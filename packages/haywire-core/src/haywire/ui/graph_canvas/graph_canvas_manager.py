@@ -64,6 +64,7 @@ class GraphCanvasManager:
             editor=self.editor,
             skin_factory=self.skin_factory,
             canvas_vue=self.canvas_vue,
+            context=self._session.context,
         )
         self.selection = SelectionHandlers(
             graph=self.graph,
@@ -78,6 +79,7 @@ class GraphCanvasManager:
             session=self._session,
             panel_registry=self._panel_registry,
             on_emit_event=self._handle_canvas_event,
+            on_emit_sync_event=self.canvas_vue.emit_sync_event,
         )
 
         self.context_menu_handlers = ContextMenuHandlers(

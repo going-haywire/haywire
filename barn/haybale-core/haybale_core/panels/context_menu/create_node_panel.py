@@ -48,9 +48,10 @@ class CreateNodePanel(BasePanel):
             if on_emit_event:
                 on_emit_event(NodeCreateRequestEvent(registryKey=key, position=canvas_position))
 
-        builder = NodeMenuBuilder(node_factory)
-        builder.create_node_menu(
-            on_node_selected=_on_node_selected,
-            recent_nodes=recent_nodes,
-            show_search=True,
-        )
+        with layout:
+            builder = NodeMenuBuilder(node_factory)
+            builder.create_node_menu(
+                on_node_selected=_on_node_selected,
+                recent_nodes=recent_nodes,
+                show_search=True,
+            )

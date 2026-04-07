@@ -36,6 +36,8 @@ window.GraphEvents = {
     SYNC_ALL_EDGES: 'syncAllEdges', // Sync all connections to UI
     SYNC_NODE_REDRAW: 'syncNodeRedraw', // Node DOM was rebuilt — re-attach observer and redraw edges
     SYNC_EDGES_UPDATE: 'syncEdgesUpdate', // Update connections for node
+    SYNC_START_RECONNECT: 'syncStartReconnect', // Remove an edge and start a new connection drag from the anchor pin
+    SYNC_PLAY_PENDING_CONNECTION: 'syncPlayPendingConnection', // Resume a paused pending connection drag (context menu dismissed without action)
   }
 };
 
@@ -161,12 +163,12 @@ window.EventCreators = {
     };
   },
 
-  createContextMenuCanvas(screenX, screenY, canvasX, canvasY, sessionId = 'default') {
+  createContextMenuCanvas(screenX, screenY, canvasX, canvasY, pendingPinId, pendingNodeId, pendingPinDir, pendingFlowType, pendingDataType, sessionId = 'default') {
     return {
       event_type: 'contextMenuCanvas',
       source_session_id: sessionId,
       timestamp: Date.now(),
-      data: { screenX, screenY, canvasX, canvasY },
+      data: { screenX, screenY, canvasX, canvasY, pendingPinId, pendingNodeId, pendingPinDir, pendingFlowType, pendingDataType },
       requires_broadcast: true
     };
   },
@@ -181,12 +183,12 @@ window.EventCreators = {
     };
   },
 
-  createContextMenuEdge(screenX, screenY, canvasX, canvasY, edge_id, sessionId = 'default') {
+  createContextMenuEdge(screenX, screenY, canvasX, canvasY, edge_id, atSinkEnd, sessionId = 'default') {
     return {
       event_type: 'contextMenuEdge',
       source_session_id: sessionId,
       timestamp: Date.now(),
-      data: { screenX, screenY, canvasX, canvasY, edge_id },
+      data: { screenX, screenY, canvasX, canvasY, edge_id, atSinkEnd },
       requires_broadcast: true
     };
   },
@@ -295,7 +297,7 @@ window.EventValidators = {
   },
 
   validateContextMenuCanvas(data) {
-    const requiredFields = ["screenX", "screenY", "canvasX", "canvasY"];
+    const requiredFields = ["screenX", "screenY", "canvasX", "canvasY", "pendingPinId", "pendingNodeId", "pendingPinDir", "pendingFlowType", "pendingDataType"];
     return requiredFields.every(field => field in data);
   },
 
@@ -305,7 +307,7 @@ window.EventValidators = {
   },
 
   validateContextMenuEdge(data) {
-    const requiredFields = ["screenX", "screenY", "canvasX", "canvasY", "edge_id"];
+    const requiredFields = ["screenX", "screenY", "canvasX", "canvasY", "edge_id", "atSinkEnd"];
     return requiredFields.every(field => field in data);
   },
 

@@ -26,6 +26,7 @@ from ..event_definitions import (
     SyncEdgeRemovalEvent,
     SyncSelectionsEvent,
     SyncCanvasClearEvent,
+    SyncStartReconnectEvent,
 )
 from ..event_handlers import handles_event
 from haywire.core.edge.edge_wrapper import EdgeWrapper
@@ -39,6 +40,7 @@ if TYPE_CHECKING:
     from haywire.core.graph.base import BaseGraph
     from haywire.ui.skin.factory import SkinFactory
     from haywire.ui.components.graph.canvas import GraphCanvasVue
+    from haywire.ui.context import SessionContext
 
 logger = logging.getLogger(__name__)
 
@@ -57,11 +59,13 @@ class VisualLayerHandlers:
         editor: "Editor",
         skin_factory: "SkinFactory",
         canvas_vue: "GraphCanvasVue",
+        context: Optional["SessionContext"] = None,
     ):
         self.graph = graph
         self.editor = editor
         self.skin_factory = skin_factory
         self.canvas_vue = canvas_vue
+        self.context = context
 
         self.node_panels: Dict[str, UINode] = {}
         self.edge_paths: Dict[str, UIEdge] = {}
@@ -85,10 +89,7 @@ class VisualLayerHandlers:
         Processes node and edge change reasons, delegating to the appropriate
         add/remove/refresh methods.
         """
-        logger.info(
-            f"🔄 Validation: {result.total_changes} changes "
-            f"in {result.validation_time_ms:.2f}ms"
-        )
+        logger.info(f"🔄 Validation: {result.total_changes} changes in {result.validation_time_ms:.2f}ms")
 
         if result.canvas_size is not None:
             self._apply_canvas_resize(*result.canvas_size)
@@ -147,20 +148,12 @@ class VisualLayerHandlers:
     def sync_with_graph(self):
         """Synthesise a full-add ValidationResult and process it via on_validated."""
         logger.info(
-            f"🔄 Initial sync: "
-            f"{len(self.graph.node_wrappers)} nodes, "
-            f"{len(self.graph.edge_wrappers)} edges"
+            f"🔄 Initial sync: {len(self.graph.node_wrappers)} nodes, {len(self.graph.edge_wrappers)} edges"
         )
         try:
             synthetic_result = ValidationResult(
-                nodes={
-                    node_id: ChangeReason.NODE_ADDED
-                    for node_id in self.graph.node_wrappers.keys()
-                },
-                edges={
-                    edge_uuid: ChangeReason.EDGE_ADDED
-                    for edge_uuid in self.graph.edge_wrappers.keys()
-                },
+                nodes={node_id: ChangeReason.NODE_ADDED for node_id in self.graph.node_wrappers.keys()},
+                edges={edge_uuid: ChangeReason.EDGE_ADDED for edge_uuid in self.graph.edge_wrappers.keys()},
                 canvas_size=(self.graph.canvas_width, self.graph.canvas_height),
                 validation_time_ms=0.0,
             )
@@ -195,18 +188,13 @@ class VisualLayerHandlers:
 
         wrapper = self.graph.get_node_wrapper(node_id)
         if not wrapper:
-            logger.warning(
-                f"⚠️ ERROR: No wrapper found for node {node_id}, hot reload won't work"
-            )
+            logger.warning(f"⚠️ ERROR: No wrapper found for node {node_id}, hot reload won't work")
 
         with self.canvas_vue:
             with (
                 ui.element("div")
                 .classes("absolute")
-                .style(
-                    f"left: {x}px; top: {y}px; "
-                    f"z-index: 100; transform-origin: top-left; cursor: move;"
-                )
+                .style(f"left: {x}px; top: {y}px; z-index: 100; transform-origin: top-left; cursor: move;")
                 .props(f'id="{node_id}" data-node-id="{node_id}" ') as container
             ):
                 ui_node = UINode(container, wrapper, self.skin_factory)
@@ -327,10 +315,7 @@ class VisualLayerHandlers:
     def process_element_removal(self, event: UserRemoveEvent):
         """Handle unified element removal."""
         total = len(event.nodes) + len(event.edges)
-        logger.info(
-            f"🗑️ Removing {total} elements: "
-            f"{len(event.nodes)} nodes, {len(event.edges)} connections"
-        )
+        logger.info(f"🗑️ Removing {total} elements: {len(event.nodes)} nodes, {len(event.edges)} connections")
         if self.editor.remove_elements(event.nodes, event.edges):
             ui.notify(f"Deleted {total} element(s)", type="positive")
         else:
@@ -340,8 +325,7 @@ class VisualLayerHandlers:
     def process_node_creation_request(self, event: NodeCreateRequestEvent):
         """Handle node creation requests."""
         logger.info(
-            f"📝 Creating node: {event.registryKey} "
-            f"at ({event.position['x']}, {event.position['y']})"
+            f"📝 Creating node: {event.registryKey} at ({event.position['x']}, {event.position['y']})"
         )
         try:
             wrapper = self.editor.create_wrapper(
@@ -350,13 +334,79 @@ class VisualLayerHandlers:
             )
             if wrapper:
                 ui.notify(f"Created {event.registryKey} node", type="positive")
+                self._try_auto_wire(wrapper)
             else:
-                ui.notify(
-                    f"Failed to create node of type: {event.registryKey}", type="negative"
-                )
+                ui.notify(f"Failed to create node of type: {event.registryKey}", type="negative")
         except Exception as e:
             logger.error(f"Error creating node: {e}")
             ui.notify(f"Error creating node: {e}", type="negative")
+
+    def _try_auto_wire(self, wrapper) -> None:
+        """
+        After node creation, check for a pending_connection in context metadata and
+        auto-wire if exactly one compatible port exists on the new node.
+
+        TODO: Static port-type introspection (before instantiation) is not yet supported.
+        Currently we inspect the live node instance. Auto-wire fires when there is
+        exactly one port whose direction and flow/data type are compatible with the
+        pending connection's source pin.
+        """
+        if self.context is None:
+            return
+        pending = self.context.metadata.pop("pending_connection", None)
+        if not pending:
+            return
+
+        pending_pin_dir = pending.get("pin_dir", "")  # 'inlet' or 'outlet'
+        pending_flow = pending.get("flow_type", "")
+        pending_data = pending.get("data_type", "")
+        pending_node_id = pending.get("node_id", "")
+        pending_pin_id = pending.get("pin_id", "")
+
+        # The new node's compatible direction is the opposite of the dragged pin.
+        target_dir = "inlet" if pending_pin_dir == "outlet" else "outlet"
+
+        compatible_ports = []
+        for port_id, port in wrapper.node.ports.items():
+            if target_dir == "inlet" and not port.is_inlet():
+                continue
+            if target_dir == "outlet" and not port.is_outlet():
+                continue
+            # Flow type must match (pending_flow is the .value string, e.g. 'data', 'control')
+            if pending_flow and port.flow_type.value != pending_flow:
+                continue
+            # For data pins, data type must match if provided
+            if pending_data and hasattr(port, "_data"):
+                type_key = port._data.get_stored_type().class_identity.registry_key
+                if type_key != pending_data:
+                    continue
+            compatible_ports.append(port_id)
+
+        if len(compatible_ports) != 1:
+            logger.debug(
+                f"Auto-wire: {len(compatible_ports)} compatible typed ports on {wrapper.node_id}, "
+                f"connecting to ghost pin (edge will be unlinked)"
+            )
+            # No exact match — connect to the ghost pin. The graph will create an
+            # unlinked/invalid edge that draws to the ghost pin via the fallback mechanism.
+            target_port_id = "root_in" if target_dir == "inlet" else "root_out"
+        else:
+            target_port_id = compatible_ports[0]
+        new_node_id = wrapper.node_id
+
+        if pending_pin_dir == "outlet":
+            # dragged from outlet → new node inlet
+            success = self.editor.create_edge(pending_node_id, pending_pin_id, new_node_id, target_port_id)
+        else:
+            # dragged from inlet → new node outlet
+            success = self.editor.create_edge(new_node_id, target_port_id, pending_node_id, pending_pin_id)
+
+        if success:
+            logger.info(f"Auto-wired {pending_node_id}:{pending_pin_id} → {new_node_id}:{target_port_id}")
+        else:
+            logger.warning(
+                f"Auto-wire failed for {pending_node_id}:{pending_pin_id} → {new_node_id}:{target_port_id}"
+            )
 
     @handles_event(EdgeCreatedEvent)
     def process_edge_creation(self, event: EdgeCreatedEvent):
@@ -395,3 +445,21 @@ class VisualLayerHandlers:
                 self.graph.request_node_reset(node_id)
             for edge_id in event.edges:
                 self.graph.request_edge_reset(edge_id)
+
+    @handles_event(SyncStartReconnectEvent)
+    def process_start_reconnect(self, event: SyncStartReconnectEvent):
+        """Forward reconnect command to Vue, then remove the edge from the graph.
+
+        Order matters:
+        1. Pre-remove the edge from edge_paths so that the validation callback fired
+           by editor.remove_elements does not emit a redundant syncEdgeRemoval to Vue.
+        2. Send syncStartReconnect to Vue — it removes the edge visual and starts the
+           click-click drag from the anchor pin.
+        3. Remove the edge from the graph so a subsequent edgeCreated for the same
+           pins is not rejected as a duplicate.
+        """
+        ui_edge = self.edge_paths.pop(event.edge_id, None)
+        if ui_edge:
+            ui_edge.cleanup()
+        self.canvas_vue.emit_sync_event(event)
+        self.editor.remove_elements([], [event.edge_id])

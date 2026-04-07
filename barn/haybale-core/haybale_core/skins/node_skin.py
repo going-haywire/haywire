@@ -158,7 +158,7 @@ class NodeSkin(BaseSkin, ABC):
             f'id="{pin_uuid}" '
             f'data-node-id="{wrapper.node_id}" '
             f'data-pin-id="{pin.id}" '
-            f'data-pin-flow-type="{pin.flow_type}" '
+            f'data-pin-flow-type="{pin.flow_type.value}" '
             f'data-pin-dir="{pin_direction}" '
             f'data-pin-dir-x="{dir_x}" '
             f'data-pin-dir-y="{dir_y}"'

@@ -24,6 +24,7 @@ from ..event_definitions import (
     ContextMenuSelectedEvent,
     ContextMenuCustomEvent,
     ContextMenuPortEvent,
+    SyncPlayPendingConnectionEvent,
 )
 from ..event_handlers import handles_event
 from haywire.ui.context_events import ContextChangeType, ContextChangedEvent
@@ -65,6 +66,7 @@ class IContextMenuProvider:
         self,
         pos: Tuple[float, float],
         canvas_pos: Tuple[float, float],
+        pending_connection: Optional[dict] = None,
     ) -> None:
         """User right-clicked on empty canvas space."""
         ...
@@ -83,6 +85,7 @@ class IContextMenuProvider:
         edge_id: str,
         edge: Any,
         state: Any,
+        at_sink_end: bool = False,
     ) -> None:
         """User right-clicked on an edge."""
         ...
@@ -141,11 +144,13 @@ class SessionContextMenuProvider(IContextMenuProvider):
         session: "Session",
         panel_registry: "PanelRegistry",
         on_emit_event: Optional[Callable] = None,
+        on_emit_sync_event: Optional[Callable] = None,
     ):
         self._context = context
         self._session = session
         self._panel_registry = panel_registry
         self._on_emit_event = on_emit_event
+        self._on_emit_sync_event = on_emit_sync_event
 
     def _open_menu(
         self,
@@ -162,9 +167,11 @@ class SessionContextMenuProvider(IContextMenuProvider):
         popup = Popup(position_x=pos[0], position_y=pos[1], backdrop_click_close=True)
 
         def _emit_and_close(event):
-            popup.close()
+            # Emit first so handlers can still read metadata (e.g. pending_connection),
+            # then close so _on_close cleanup runs after the event is processed.
             if self._on_emit_event:
                 self._on_emit_event(event)
+            popup.close()
 
         self._context.metadata["on_emit_event"] = _emit_and_close
 
@@ -175,6 +182,10 @@ class SessionContextMenuProvider(IContextMenuProvider):
             self._context.metadata.pop("on_emit_event", None)
             self._context.metadata.pop("edge_state", None)
             self._context.metadata.pop("context_menu_screen_pos", None)
+            self._context.metadata.pop("edge_reconnect_end", None)
+            # If pending_connection is still set, no node was created — resume the drag.
+            if self._context.metadata.pop("pending_connection", None) is not None:
+                self._on_emit_sync_event(SyncPlayPendingConnectionEvent())
             self._session.notify_context_changed(
                 ContextChangedEvent(change_type=ContextChangeType.CONTEXT_MENU_CLOSED)
             )
@@ -187,11 +198,16 @@ class SessionContextMenuProvider(IContextMenuProvider):
         if visible:
             layout = PanelLayout(popup.content)
             for cls in visible:
-                cls().draw(self._context, layout)
+                try:
+                    cls().draw(self._context, layout)
+                except Exception as exc:
+                    logger.exception(f"Error drawing context menu panel {cls.__name__}: {exc}")
             popup.open()
 
-    def on_canvas_context(self, pos, canvas_pos):
+    def on_canvas_context(self, pos, canvas_pos, pending_connection=None):
         self._context.metadata["canvas_position"] = {"x": canvas_pos[0], "y": canvas_pos[1]}
+        if pending_connection:
+            self._context.metadata["pending_connection"] = pending_connection
         self._open_menu(SCOPE_CANVAS, pos)
 
     def on_node_context(self, pos, node_id):
@@ -203,14 +219,23 @@ class SessionContextMenuProvider(IContextMenuProvider):
                 self._context.active_node = wrapper
         self._open_menu(SCOPE_NODE, pos)
 
-    def on_edge_context(self, pos, edge_id, edge, state):
+    def on_edge_context(self, pos, edge_id, edge, state, at_sink_end=False):
         if self._context.active_graph is not None:
             wrapper = self._context.active_graph.get_edge_wrapper(edge_id)
             if wrapper is not None:
                 self._context.active_edge = wrapper
         self._context.metadata["edge_state"] = state
         self._context.metadata["context_menu_screen_pos"] = pos
+        self._context.metadata["edge_reconnect_end"] = at_sink_end
         self._open_menu(SCOPE_EDGE, pos)
+
+    def on_port_context(self, pos, node_id, port_id, scope):
+        if self._context.active_graph is not None:
+            wrapper = self._context.active_graph.get_node_wrapper(node_id)
+            if wrapper is not None:
+                self._context.active_node = wrapper
+                self._context.active_port = wrapper.node.ports.get(port_id)
+        self._open_menu(scope, pos)
 
     def on_selection_context(self, pos, nodes, edges):
         self._open_menu(SCOPE_SELECTION, pos)
@@ -220,14 +245,6 @@ class SessionContextMenuProvider(IContextMenuProvider):
             wrapper = self._context.active_graph.get_node_wrapper(node_id)
             if wrapper is not None:
                 self._context.active_node = wrapper
-        self._open_menu(scope, pos)
-
-    def on_port_context(self, pos, node_id, port_id, scope):
-        if self._context.active_graph is not None:
-            wrapper = self._context.active_graph.get_node_wrapper(node_id)
-            if wrapper is not None:
-                self._context.active_node = wrapper
-                self._context.active_port = wrapper.node.ports.get(port_id)
         self._open_menu(scope, pos)
 
 
@@ -264,9 +281,19 @@ class ContextMenuHandlers:
         """Route context-menu events to the provider as intent calls."""
         if isinstance(event, ContextMenuCanvasEvent):
             logger.debug(f"Canvas context menu at ({event.screenX}, {event.screenY})")
+            pending = None
+            if event.pendingPinId:
+                pending = {
+                    "pin_id": event.pendingPinId,
+                    "node_id": event.pendingNodeId,
+                    "pin_dir": event.pendingPinDir,
+                    "flow_type": event.pendingFlowType,
+                    "data_type": event.pendingDataType,
+                }
             self.provider.on_canvas_context(
                 (event.screenX, event.screenY),
                 (event.canvasX, event.canvasY),
+                pending_connection=pending,
             )
 
         elif isinstance(event, ContextMenuNodeEvent):
@@ -285,6 +312,7 @@ class ContextMenuHandlers:
                     event.edge_id,
                     ui_edge.wrapper.edge,
                     ui_edge.wrapper.get_state(),
+                    at_sink_end=event.atSinkEnd,
                 )
 
         elif isinstance(event, ContextMenuSelectedEvent):

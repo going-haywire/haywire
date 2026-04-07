@@ -42,11 +42,15 @@ export default {
         return {
             edgeState: {
                 isDragging: false,
+                isClickMode: false,      // true = free-floating click-click mode
+                isPaused: false,         // true = drag paused while context menu is open
                 startPin: null,
+                startMousePos: { x: 0, y: 0 }, // screen pos at mousedown, for drag threshold
+                lastMousePos: { x: 0, y: 0 },  // last known screen mouse position
                 tempPath: null,
                 hasNodes: false,
                 lastDragEndTime: null,
-                lockProximityRange: 150, 
+                lockProximityRange: 150,
                 suggestionProximityRange: 200,
                 suggestedEdges: new Map(),
                 nearestSuggestedPin: null
@@ -163,6 +167,7 @@ export default {
             document.body.addEventListener('mousedown', this.handleMouseDown, true);
             document.body.addEventListener('mousemove', this.handleMouseMove, true);
             document.body.addEventListener('mouseup', this.handleMouseUp, true);
+            document.body.addEventListener('keydown', this.handleKeyDown, true);
         },
 
         _setupObservers() {
@@ -220,6 +225,7 @@ export default {
             document.body.removeEventListener('mousedown', this.handleMouseDown, true);
             document.body.removeEventListener('mousemove', this.handleMouseMove, true);
             document.body.removeEventListener('mouseup', this.handleMouseUp, true);
+            document.body.removeEventListener('keydown', this.handleKeyDown, true);
         },
 
         _cleanupZoomPanListener() {
@@ -284,6 +290,12 @@ export default {
                 case GraphEvents.SyncCommands.SYNC_EDGES_UPDATE:
                     this._syncEdgesUpdate(data);
                     break;
+                case GraphEvents.SyncCommands.SYNC_START_RECONNECT:
+                    this._syncStartReconnect(data);
+                    break;
+                case GraphEvents.SyncCommands.SYNC_PLAY_PENDING_CONNECTION:
+                    this._syncPlayPendingConnection();
+                    break;
                 default:
                     console.warn(`Unknown sync event: ${event_type}`);
             }
@@ -314,7 +326,10 @@ export default {
                 strokeDasharray = '',
                 opacity = 1.0
             } = data;
-            
+
+            // A permanent edge is being committed — cancel any active drag (including paused).
+            this._cancelEdgeDrag();
+
             // Check if connection already exists
             if (this.edgePaths.has(edge_id)) {
                 // Update existing connection visual properties
@@ -459,6 +474,19 @@ export default {
             this._updateEdgesForNode(nodeId);
         },
 
+        _syncStartReconnect(data) {
+            const { edge_id, anchorNodeId, anchorPinId } = data;
+            // Remove the edge first, then start a click-click drag from the anchor pin.
+            this._syncEdgeRemoval({ edge_id });
+            const pinUUID = this._buildPinUUID(anchorNodeId, anchorPinId);
+            const anchorPin = document.getElementById(pinUUID);
+            if (anchorPin) {
+                this._startEdgeDragFromPin(anchorPin);
+            } else {
+                console.warn(`[syncStartReconnect] Anchor pin not found: ${pinUUID}`);
+            }
+        },
+
         _setSelectionState(selectedNodes, selectedEdges) {
             this._clearSelection();
             selectedNodes.forEach(nodeId => this._selectElement('node', nodeId, true));
@@ -473,6 +501,8 @@ export default {
         handleMouseDown(e) {
             if (e.button === 2) return; // Skip right-click
 
+            const target = e.target;
+
             // Invalidate cached container rect at the start of every gesture
             this._cachedNodeContainerRect = null;
 
@@ -481,19 +511,18 @@ export default {
             //    the page reach this handler — e.g. clicking in the properties panel.
             //    Without this guard, those clicks fall through to _startBoxSelection
             //    which clears the selection and fires selectionChanged([],[]).
-            if (!this.$el.contains(e.target)) return;
-
-            // 1. Check for connection pin FIRST - before anything else
-            const pin = e.target.closest('.connection-pin');
-            if (pin) {
-                // Ghost pins are fallback visual anchors only — not user-connectable
-                if (pin.dataset.pinFlowType === 'ghost') return;
-                this._startEdgeDrag(e, pin);
+            if (target === this.$refs.canvasContainer || target === this.$refs.svg) {
+                // Click outside canvas while in click-mode → cancel
+                if (this.edgeState.isDragging && this.edgeState.isClickMode) {
+                    this._cancelEdgeDrag();
+                }
                 return;
             }
 
-            // 2. Skip if clicking inside a popup - let popup handle it
-            const popupElement = e.target.closest(
+            // 1. Skip if clicking inside a popup - let popup handle it.
+            //    This must run before click-click mode so popup interactions
+            //    never cancel a paused or active connection drag.
+            const popupElement = target.closest(
                 '[data-popup-container="true"], ' +
                 '[data-popup-drag-handle="true"], ' +
                 '[data-popup="true"], ' +
@@ -506,17 +535,44 @@ export default {
                 return;
             }
 
+            // ── Click-click mode: this mousedown is the "commit or cancel" click ──
+            if (this.edgeState.isDragging && this.edgeState.isClickMode && !this.edgeState.isPaused) {
+                e.preventDefault();
+                e.stopPropagation();
+                const pin = e.target.closest('.connection-pin');
+                if (pin && pin.dataset.pinFlowType !== 'ghost') {
+                    // Clicked a pin — commit if valid
+                    this._commitOrCancelEdgeDrag(pin);
+                } else if (!pin && this.edgeState.nearestSuggestedPin) {
+                    // Clicked empty canvas but a suggestion is active — commit to it
+                    this._commitOrCancelEdgeDrag(null);
+                } else {
+                    // Clicked empty canvas, no suggestion — cancel
+                    this._cancelEdgeDrag();
+                }
+                return;
+            }
+
+            // 2. Check for connection pin FIRST - before anything else
+            const pin = target.closest('.connection-pin');
+            if (pin) {
+                // Ghost pins are fallback visual anchors only — not user-connectable
+                if (pin.dataset.pinFlowType === 'ghost') return;
+                this._startEdgeDrag(e, pin);
+                return;
+            }
+
             const clickTime = Date.now();
             this.selectionState.lastClickTime = clickTime;
 
             // 3. Check for interactive widgets (but NOT drag handles)
-            if (this._isInteractiveWidgetElement(e.target)) {
+            if (this._isInteractiveWidgetElement(target)) {
                 console.log('Click on interactive widget element - skipping drag');
                 return;
             }
 
             // 4. Check for elements that can be dragged (nodes)
-            const draggableElement = this._findDraggableElement(e.target);
+            const draggableElement = this._findDraggableElement(target);
             if (draggableElement) {
                 this._startUnifiedDrag(e, draggableElement);
                 return;
@@ -527,12 +583,14 @@ export default {
         },
 
         handleMouseMove(e) {
+            this.edgeState.lastMousePos = { x: e.clientX, y: e.clientY };
+
             if (this.boxSelectionState.isActive) {
                 this._updateBoxSelection(e);
                 return;
             }
 
-            if (this.edgeState.isDragging && this.edgeState.tempPath) {
+            if (this.edgeState.isDragging && this.edgeState.tempPath && !this.edgeState.isPaused) {
                 this._handleEdgeDragMove(e);
                 return;
             }
@@ -561,6 +619,222 @@ export default {
                 this._handleUnifiedDragEnd(e);
                 return;
             }
+        },
+
+        handleKeyDown(e) {
+            if (e.key === 'Escape' && this.edgeState.isDragging) {
+                this._cancelEdgeDrag();
+            }
+        },
+
+        // =============================================================================
+        // CONTEXT MENU & REMOVAL SYSTEM
+        // =============================================================================
+
+        handleCanvasClick(event) {
+            // All click handling is done in handleMouseDown/Up
+            return;
+        },
+
+        handleContextMenu(event) {
+            event.preventDefault();
+
+            const clientX = event.clientX;
+            const clientY = event.clientY;
+            const target = event.target;
+
+            // Snapshot pending connection before pausing drag (used for canvas menu below).
+            let pendingPinId = '', pendingNodeId = '', pendingPinDir = '',
+                pendingFlowType = '', pendingDataType = '';
+            if (this.edgeState.isDragging && this.edgeState.startPin) {
+                const sp = this.edgeState.startPin.dataset;
+                pendingPinId   = sp.pinId       || '';
+                pendingNodeId  = sp.nodeId      || '';
+                pendingPinDir  = sp.pinDir      || '';
+                pendingFlowType = sp.pinFlowType || '';
+                pendingDataType = sp.pinDataType || '';
+                this._pauseEdgeDrag();
+            }
+
+            // Check for port-scope context menu (data-hw-port-menu-scope)
+            // port_id is taken from data-port-id on the element, falling back to data-pin-id.
+            // node_id is resolved by walking up to the nearest [data-node-id] ancestor.
+            const portMenuEl = target.closest('[data-hw-port-menu-scope]');
+            if (portMenuEl) {
+                const scope = portMenuEl.getAttribute('data-hw-port-menu-scope');
+                const nodeAncestor = portMenuEl.closest('[data-node-id]');
+                const nodeId = nodeAncestor ? nodeAncestor.dataset.nodeId : '';
+                const portId = portMenuEl.dataset.portId || portMenuEl.dataset.pinId
+                    || (portMenuEl.closest('[data-port-id]') || {}).dataset?.portId
+                    || (portMenuEl.closest('[data-pin-id]') || {}).dataset?.pinId
+                    || '';
+                if (scope && nodeId && portId) {
+                    const canvasCoords = this._transformScreenToSVG(clientX, clientY);
+                    this.emitCanvasEvent(EventCreators.createContextMenuPort(
+                        clientX, clientY, canvasCoords.x, canvasCoords.y, nodeId, portId, scope
+                    ));
+                    return;
+                }
+            }
+
+            // Check for custom-scope context menu button (data-hw-custom-menu-scope)
+            // These are skin-rendered elements that declare their own panel scope.
+            // node_id is resolved by walking up to the nearest [data-node-id] ancestor.
+            const customMenuEl = target.closest('[data-hw-custom-menu-scope]');
+            if (customMenuEl) {
+                const scope = customMenuEl.getAttribute('data-hw-custom-menu-scope');
+                const nodeAncestor = customMenuEl.closest('[data-node-id]');
+                const nodeId = nodeAncestor ? nodeAncestor.dataset.nodeId : '';
+                if (scope && nodeId) {
+                    const canvasCoords = this._transformScreenToSVG(clientX, clientY);
+                    this.emitCanvasEvent(EventCreators.createContextMenuCustom(
+                        clientX, clientY, canvasCoords.x, canvasCoords.y, nodeId, scope
+                    ));
+                    return;
+                }
+            }
+
+            // Check for node
+            const nodeElement = target.closest('[data-node-id]');
+            
+            // Check for connection
+            let edgeElement = null;
+            let edge_id = null;
+
+            if (target.tagName === 'path' && target.getAttribute('data-edge-id')) {
+                edge_id = target.getAttribute('data-edge-id');
+                edgeElement = target;
+            } else {
+                // Always query the SVG ref directly — target may be the canvas div
+                // itself when the click misses all path elements.
+                const svg = this.$refs.svg;
+                if (svg) {
+                    const paths = svg.querySelectorAll('path[data-edge-id]');
+                    const clickPoint = { x: clientX, y: clientY };
+                    for (const path of paths) {
+                        if (this._isPointNearStroke(path, clickPoint)) {
+                            edgeElement = path;
+                            edge_id = path.getAttribute('data-edge-id');
+                            break;
+                        }
+                    }
+                }
+            }
+
+            const canvasCoords = this._transformScreenToSVG(clientX, clientY);
+
+            if (nodeElement) {
+                const nodeId = nodeElement.dataset.nodeId;
+                const isNodeSelected = this.selectionState.selectedNodes.has(nodeId);
+                const hasMultipleSelected = this.selectionState.selectedNodes.size > 1 || this.selectionState.selectedEdges.size > 0;
+                
+                if (isNodeSelected && hasMultipleSelected) {
+                    this.emitCanvasEvent(EventCreators.createContextMenuSelected(
+                        clientX, clientY, canvasCoords.x, canvasCoords.y,
+                        Array.from(this.selectionState.selectedNodes),
+                        Array.from(this.selectionState.selectedEdges)
+                    ));
+                } else {
+                    this.emitCanvasEvent(EventCreators.createContextMenuNode(
+                        clientX, clientY, canvasCoords.x, canvasCoords.y, nodeId
+                    ));
+                }
+            } else if (edgeElement && edge_id) {
+                const isEdgeSelected = this.selectionState.selectedEdges.has(edge_id);
+                const hasMultipleSelected = this.selectionState.selectedNodes.size > 0 || this.selectionState.selectedEdges.size > 1;
+                
+                if (isEdgeSelected && hasMultipleSelected) {
+                    this.emitCanvasEvent(EventCreators.createContextMenuSelected(
+                        clientX, clientY, canvasCoords.x, canvasCoords.y,
+                        Array.from(this.selectionState.selectedNodes),
+                        Array.from(this.selectionState.selectedEdges)
+                    ));
+                } else {
+                    // Determine which end of the edge was closer to the click point.
+                    const edgeInfo = this.edgePaths.get(edge_id);
+                    let atSinkEnd = false;
+                    if (edgeInfo) {
+                        const outletPin = document.getElementById(edgeInfo.outletPinUUID);
+                        const inletPin  = document.getElementById(edgeInfo.inletPinUUID);
+                        if (outletPin && inletPin) {
+                            const op = this._getPinPosition(outletPin);
+                            const ip = this._getPinPosition(inletPin);
+                            const dOut = (op.x - canvasCoords.x) ** 2 + (op.y - canvasCoords.y) ** 2;
+                            const dIn  = (ip.x - canvasCoords.x) ** 2 + (ip.y - canvasCoords.y) ** 2;
+                            atSinkEnd = dIn < dOut;
+                        }
+                    }
+                    this.emitCanvasEvent(EventCreators.createContextMenuEdge(
+                        clientX, clientY, canvasCoords.x, canvasCoords.y, edge_id, atSinkEnd
+                    ));
+                }
+            } else {
+                this.emitCanvasEvent(EventCreators.createContextMenuCanvas(
+                    clientX, clientY, canvasCoords.x, canvasCoords.y,
+                    pendingPinId, pendingNodeId, pendingPinDir, pendingFlowType, pendingDataType
+                ));
+            }
+        },
+
+        _isPointNearPath(pathElement, point) {
+            try {
+                const rect = pathElement.getBoundingClientRect();
+                const tolerance = 10;
+
+                return point.x >= rect.left - tolerance &&
+                    point.x <= rect.right + tolerance &&
+                    point.y >= rect.top - tolerance &&
+                    point.y <= rect.bottom + tolerance;
+            } catch (e) {
+                console.warn('Error checking point near path:', e);
+                return false;
+            }
+        },
+
+        /**
+         * True if `point` (screen coords) is within `tolerance` pixels of the
+         * actual path stroke. Uses SVGPathElement.getPointAtLength() to sample
+         * the curve at fixed intervals — far more accurate than bounding-box
+         * testing for curved bezier edges.
+         */
+        _isPointNearStroke(pathElement, point, tolerance = 8) {
+            try {
+                const totalLength = pathElement.getTotalLength();
+                if (totalLength === 0) return false;
+                const steps = Math.max(20, Math.floor(totalLength / 10));
+                for (let i = 0; i <= steps; i++) {
+                    const p = pathElement.getPointAtLength((i / steps) * totalLength);
+                    // getPointAtLength returns SVG user-space coords; convert to screen
+                    const svgEl = pathElement.ownerSVGElement;
+                    const pt = svgEl.createSVGPoint();
+                    pt.x = p.x;
+                    pt.y = p.y;
+                    const screen = pt.matrixTransform(svgEl.getScreenCTM());
+                    const dx = screen.x - point.x;
+                    const dy = screen.y - point.y;
+                    if (dx * dx + dy * dy <= tolerance * tolerance) return true;
+                }
+                return false;
+            } catch (e) {
+                console.warn('Error checking point near stroke:', e);
+                return false;
+            }
+        },
+
+        _getSelectedElementsForRemoval() {
+            const elements = [];
+            
+            // Add selected nodes
+            this.selectionState.selectedNodes.forEach(nodeId => {
+                elements.push({ type: 'node', id: nodeId });
+            });
+            
+            // Add selected connections
+            this.selectionState.selectedEdges.forEach(edge_id => {
+                elements.push({ type: 'edge', id: edge_id });
+            });
+            
+            return elements;
         },
 
         // =============================================================================
@@ -1066,187 +1340,6 @@ export default {
             return { x, y };
         },
 
-        // =============================================================================
-        // CONTEXT MENU & REMOVAL SYSTEM
-        // =============================================================================
-
-        handleCanvasClick(event) {
-            // All click handling is done in handleMouseDown/Up
-            return;
-        },
-
-        handleContextMenu(event) {
-            event.preventDefault();
-
-            const clientX = event.clientX;
-            const clientY = event.clientY;
-            const target = event.target;
-
-            // Check for port-scope context menu (data-hw-port-menu-scope)
-            // port_id is taken from data-port-id on the element, falling back to data-pin-id.
-            // node_id is resolved by walking up to the nearest [data-node-id] ancestor.
-            const portMenuEl = target.closest('[data-hw-port-menu-scope]');
-            if (portMenuEl) {
-                const scope = portMenuEl.getAttribute('data-hw-port-menu-scope');
-                const nodeAncestor = portMenuEl.closest('[data-node-id]');
-                const nodeId = nodeAncestor ? nodeAncestor.dataset.nodeId : '';
-                const portId = portMenuEl.dataset.portId || portMenuEl.dataset.pinId
-                    || (portMenuEl.closest('[data-port-id]') || {}).dataset?.portId
-                    || (portMenuEl.closest('[data-pin-id]') || {}).dataset?.pinId
-                    || '';
-                if (scope && nodeId && portId) {
-                    const canvasCoords = this._transformScreenToSVG(clientX, clientY);
-                    this.emitCanvasEvent(EventCreators.createContextMenuPort(
-                        clientX, clientY, canvasCoords.x, canvasCoords.y, nodeId, portId, scope
-                    ));
-                    return;
-                }
-            }
-
-            // Check for custom-scope context menu button (data-hw-custom-menu-scope)
-            // These are skin-rendered elements that declare their own panel scope.
-            // node_id is resolved by walking up to the nearest [data-node-id] ancestor.
-            const customMenuEl = target.closest('[data-hw-custom-menu-scope]');
-            if (customMenuEl) {
-                const scope = customMenuEl.getAttribute('data-hw-custom-menu-scope');
-                const nodeAncestor = customMenuEl.closest('[data-node-id]');
-                const nodeId = nodeAncestor ? nodeAncestor.dataset.nodeId : '';
-                if (scope && nodeId) {
-                    const canvasCoords = this._transformScreenToSVG(clientX, clientY);
-                    this.emitCanvasEvent(EventCreators.createContextMenuCustom(
-                        clientX, clientY, canvasCoords.x, canvasCoords.y, nodeId, scope
-                    ));
-                    return;
-                }
-            }
-
-            // Check for node
-            const nodeElement = target.closest('[data-node-id]');
-            
-            // Check for connection
-            let edgeElement = null;
-            let edge_id = null;
-
-            if (target.tagName === 'path' && target.getAttribute('data-edge-id')) {
-                edge_id = target.getAttribute('data-edge-id');
-                edgeElement = target;
-            } else {
-                // Always query the SVG ref directly — target may be the canvas div
-                // itself when the click misses all path elements.
-                const svg = this.$refs.svg;
-                if (svg) {
-                    const paths = svg.querySelectorAll('path[data-edge-id]');
-                    const clickPoint = { x: clientX, y: clientY };
-                    for (const path of paths) {
-                        if (this._isPointNearStroke(path, clickPoint)) {
-                            edgeElement = path;
-                            edge_id = path.getAttribute('data-edge-id');
-                            break;
-                        }
-                    }
-                }
-            }
-
-            const canvasCoords = this._transformScreenToSVG(clientX, clientY);
-
-            if (nodeElement) {
-                const nodeId = nodeElement.dataset.nodeId;
-                const isNodeSelected = this.selectionState.selectedNodes.has(nodeId);
-                const hasMultipleSelected = this.selectionState.selectedNodes.size > 1 || this.selectionState.selectedEdges.size > 0;
-                
-                if (isNodeSelected && hasMultipleSelected) {
-                    this.emitCanvasEvent(EventCreators.createContextMenuSelected(
-                        clientX, clientY, canvasCoords.x, canvasCoords.y,
-                        Array.from(this.selectionState.selectedNodes),
-                        Array.from(this.selectionState.selectedEdges)
-                    ));
-                } else {
-                    this.emitCanvasEvent(EventCreators.createContextMenuNode(
-                        clientX, clientY, canvasCoords.x, canvasCoords.y, nodeId
-                    ));
-                }
-            } else if (edgeElement && edge_id) {
-                const isEdgeSelected = this.selectionState.selectedEdges.has(edge_id);
-                const hasMultipleSelected = this.selectionState.selectedNodes.size > 0 || this.selectionState.selectedEdges.size > 1;
-                
-                if (isEdgeSelected && hasMultipleSelected) {
-                    this.emitCanvasEvent(EventCreators.createContextMenuSelected(
-                        clientX, clientY, canvasCoords.x, canvasCoords.y,
-                        Array.from(this.selectionState.selectedNodes),
-                        Array.from(this.selectionState.selectedEdges)
-                    ));
-                } else {
-                    this.emitCanvasEvent(EventCreators.createContextMenuEdge(
-                        clientX, clientY, canvasCoords.x, canvasCoords.y, edge_id
-                    ));
-                }
-            } else {
-                this.emitCanvasEvent(EventCreators.createContextMenuCanvas(
-                    clientX, clientY, canvasCoords.x, canvasCoords.y
-                ));
-            }
-        },
-
-        _isPointNearPath(pathElement, point) {
-            try {
-                const rect = pathElement.getBoundingClientRect();
-                const tolerance = 10;
-
-                return point.x >= rect.left - tolerance &&
-                    point.x <= rect.right + tolerance &&
-                    point.y >= rect.top - tolerance &&
-                    point.y <= rect.bottom + tolerance;
-            } catch (e) {
-                console.warn('Error checking point near path:', e);
-                return false;
-            }
-        },
-
-        /**
-         * True if `point` (screen coords) is within `tolerance` pixels of the
-         * actual path stroke. Uses SVGPathElement.getPointAtLength() to sample
-         * the curve at fixed intervals — far more accurate than bounding-box
-         * testing for curved bezier edges.
-         */
-        _isPointNearStroke(pathElement, point, tolerance = 8) {
-            try {
-                const totalLength = pathElement.getTotalLength();
-                if (totalLength === 0) return false;
-                const steps = Math.max(20, Math.floor(totalLength / 10));
-                for (let i = 0; i <= steps; i++) {
-                    const p = pathElement.getPointAtLength((i / steps) * totalLength);
-                    // getPointAtLength returns SVG user-space coords; convert to screen
-                    const svgEl = pathElement.ownerSVGElement;
-                    const pt = svgEl.createSVGPoint();
-                    pt.x = p.x;
-                    pt.y = p.y;
-                    const screen = pt.matrixTransform(svgEl.getScreenCTM());
-                    const dx = screen.x - point.x;
-                    const dy = screen.y - point.y;
-                    if (dx * dx + dy * dy <= tolerance * tolerance) return true;
-                }
-                return false;
-            } catch (e) {
-                console.warn('Error checking point near stroke:', e);
-                return false;
-            }
-        },
-
-        _getSelectedElementsForRemoval() {
-            const elements = [];
-            
-            // Add selected nodes
-            this.selectionState.selectedNodes.forEach(nodeId => {
-                elements.push({ type: 'node', id: nodeId });
-            });
-            
-            // Add selected connections
-            this.selectionState.selectedEdges.forEach(edge_id => {
-                elements.push({ type: 'edge', id: edge_id });
-            });
-            
-            return elements;
-        },
 
         // =============================================================================
         // CONNECTION DRAG SYSTEM (keeping as-is)
@@ -1255,13 +1348,27 @@ export default {
         _startEdgeDrag(e, pin) {
             e.preventDefault();
             e.stopPropagation();
+            this.edgeState.startMousePos = { x: e.clientX, y: e.clientY };
+            this._initEdgeDrag(pin, false);
+        },
 
+        /**
+         * Programmatic entry into edge-drag mode (no mouse event required).
+         * Used by reconnect: starts directly in click-click mode so the user
+         * only has to click a target pin to commit.
+         */
+        _startEdgeDragFromPin(pin) {
+            this._initEdgeDrag(pin, true);
+        },
+
+        /** Shared setup for both drag-start paths. */
+        _initEdgeDrag(pin, clickMode) {
             this.edgeState.isDragging = true;
+            this.edgeState.isClickMode = clickMode;
             this.edgeState.startPin = pin;
 
             const startPos = this._getPinPosition(pin);
-            const [dirX, dirY] = this._getPinDirectionVector(this.edgeState.startPin);
-
+            const [dirX, dirY] = this._getPinDirectionVector(pin);
             const pinColor = pin.dataset.pinColor || '#000000';
 
             this.edgeState.tempPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
@@ -1273,12 +1380,69 @@ export default {
             this.edgeState.tempPath.setAttribute('fill', 'none');
             this.edgeState.tempPath.setAttribute('stroke-dasharray', '4');
             this.edgeState.tempPath.style.pointerEvents = 'none';
-            
+
             this.$refs.svg.appendChild(this.edgeState.tempPath);
 
             pin.style.boxShadow = '0 0 15px #4A90E2';
             pin.style.transform = 'scale(1.8)';
             pin.style.zIndex = '10003';
+        },
+
+        /**
+         * Pause an in-progress connection drag while a context menu is open.
+         * Keeps all drag state and the temp path frozen in place — the curve
+         * remains visible but stops following the mouse.
+         */
+        _pauseEdgeDrag() {
+            this.edgeState.isPaused = true;
+            // Remove glow/scale from start pin so it doesn't look "active"
+            if (this.edgeState.startPin) {
+                this.edgeState.startPin.style.boxShadow = '';
+                this.edgeState.startPin.style.transform = '';
+                this.edgeState.startPin.style.zIndex = '';
+            }
+            this._clearEdgeSuggestions();
+            document.querySelectorAll('.connection-pin').forEach(pin => {
+                pin.classList.remove('connection-valid', 'connection-invalid', 'connection-compatible');
+            });
+        },
+
+        /**
+         * Resume a paused connection drag. Called when a context menu is
+         * dismissed without creating a node (SyncPlayPendingConnection event).
+         */
+        _syncPlayPendingConnection() {
+            if (!this.edgeState.isPaused || !this.edgeState.isDragging) return;
+            this.edgeState.isPaused = false;
+            // Restore start pin highlight
+            if (this.edgeState.startPin) {
+                this.edgeState.startPin.style.boxShadow = '0 0 15px #4A90E2';
+                this.edgeState.startPin.style.transform = 'scale(1.8)';
+                this.edgeState.startPin.style.zIndex = '10003';
+            }
+        },
+
+        /** Cancel an in-progress connection drag without creating an edge. */
+        _cancelEdgeDrag() {
+            if (this.edgeState.tempPath) {
+                this.edgeState.tempPath.remove();
+                this.edgeState.tempPath = null;
+            }
+            if (this.edgeState.startPin) {
+                this.edgeState.startPin.style.boxShadow = '';
+                this.edgeState.startPin.style.transform = '';
+                this.edgeState.startPin.style.zIndex = '';
+            }
+            this._clearEdgeSuggestions();
+            document.querySelectorAll('.connection-pin').forEach(pin => {
+                pin.classList.remove('connection-valid', 'connection-invalid', 'connection-compatible');
+            });
+            this.edgeState.isDragging = false;
+            this.edgeState.isClickMode = false;
+            this.edgeState.isPaused = false;
+            this.edgeState.startPin = null;
+            this.edgeState.nearestSuggestedPin = null;
+            this.edgeState.lastDragEndTime = Date.now();
         },
 
         _handleEdgeDragMove(e) {
@@ -1344,29 +1508,16 @@ export default {
             }
         },
 
-        _handleEdgeDragEnd(e) {
-            let endPin = e.target.closest('.connection-pin');
-            
+        /**
+         * Attempt to commit the in-progress connection to `endPin`.
+         * If endPin is valid, emits edgeCreated and resets state.
+         * If endPin is null or invalid, cancels the drag.
+         */
+        _commitOrCancelEdgeDrag(endPin) {
+            // Fall back to nearest suggestion when releasing on empty canvas
             if (!endPin && this.edgeState.nearestSuggestedPin) {
                 endPin = this.edgeState.nearestSuggestedPin;
             }
-
-            if (this.edgeState.tempPath) {
-                this.edgeState.tempPath.remove();
-                this.edgeState.tempPath = null;
-            }
-
-            if (this.edgeState.startPin) {
-                this.edgeState.startPin.style.boxShadow = '';
-                this.edgeState.startPin.style.transform = '';
-                this.edgeState.startPin.style.zIndex = '';
-            }
-
-            this._clearEdgeSuggestions();
-
-            document.querySelectorAll('.connection-pin').forEach(pin => {
-                pin.classList.remove('connection-valid', 'connection-invalid', 'connection-compatible');
-            });
 
             if (endPin && this._isValidEdge(this.edgeState.startPin, endPin)) {
                 let sourceData = this.edgeState.startPin.dataset;
@@ -1382,12 +1533,32 @@ export default {
                         sourceData.nodeId, sourceData.pinId, sinkData.nodeId, sinkData.pinId
                     ));
                 }
+                this._cancelEdgeDrag();
+            } else {
+                this._cancelEdgeDrag();
             }
+        },
 
-            this.edgeState.isDragging = false;
-            this.edgeState.startPin = null;
-            this.edgeState.nearestSuggestedPin = null;
-            this.edgeState.lastDragEndTime = Date.now();
+        _handleEdgeDragEnd(e) {
+            const endPin = e.target.closest('.connection-pin') || null;
+
+            if (!this.edgeState.isClickMode) {
+                // Original drag mode: mouse was held. Mouseup always ends the drag.
+                // If the mouse barely moved (< 8px), the user just clicked the pin
+                // without dragging — enter free-floating click-click mode regardless
+                // of whether mouseup landed on the start pin or empty space.
+                const dx = e.clientX - this.edgeState.startMousePos.x;
+                const dy = e.clientY - this.edgeState.startMousePos.y;
+                const moved = Math.sqrt(dx * dx + dy * dy);
+                if (moved < 8) {
+                    // Short click on pin — enter free-floating click-click mode
+                    this.edgeState.isClickMode = true;
+                    return;
+                }
+                // Dragged and released — commit or cancel
+                this._commitOrCancelEdgeDrag(endPin);
+            }
+            // In click-mode mouseup is a no-op; handleMouseDown handles commit/cancel.
         },
 
         _createSuggestionPath(targetPin, distance) {
@@ -2057,7 +2228,9 @@ export default {
                 return false;
             }
 
-            if (startFlowType !== endFlowType) {
+            // Ghost pins are flow-type agnostic — they accept any connection type.
+            const eitherIsGhost = startFlowType === 'ghost' || endFlowType === 'ghost';
+            if (!eitherIsGhost && startFlowType !== endFlowType) {
                 return false;
             }
 

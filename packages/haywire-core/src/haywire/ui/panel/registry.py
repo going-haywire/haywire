@@ -140,7 +140,7 @@ class PanelRegistry(BaseRegistry):
                 if idx_key in self._index and cls in self._index[idx_key]:
                     self._index[idx_key].remove(cls)
 
-    def get_panels(self, editor_key: str, scope_id: str) -> List[type]:
+    def get_panels(self, editor_key: str, scope_id: str) -> List[type[BasePanel]]:
         """
         Get all panels for a given editor and scope, sorted by order.
 
@@ -149,11 +149,11 @@ class PanelRegistry(BaseRegistry):
             scope_id:   Scope ID string, e.g. 'node', 'graph', 'edge'.
 
         Returns:
-            List of panel classes sorted by class_identity.order (ascending).
+            List of BasePanel classes sorted by class_identity.order (ascending).
         """
         return list(self._index.get((editor_key, scope_id), []))
 
-    def get_all_for_editor(self, editor_key: str) -> Dict[str, List[type]]:
+    def get_all_for_editor(self, editor_key: str) -> Dict[str, List[type[BasePanel]]]:
         """
         Get all panels for an editor, grouped by scope_id.
 
@@ -161,9 +161,9 @@ class PanelRegistry(BaseRegistry):
             editor_key: Registry key of the editor type.
 
         Returns:
-            Dict mapping scope_id -> sorted list of panel classes.
+            Dict mapping scope_id -> sorted list of BasePanel classes.
         """
-        result: Dict[str, List[type]] = {}
+        result: Dict[str, List[type[BasePanel]]] = {}
         for (ek, scope_id), panel_list in self._index.items():
             if ek == editor_key:
                 result[scope_id] = list(panel_list)

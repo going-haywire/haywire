@@ -36,13 +36,13 @@ class SpyProvider(IContextMenuProvider):
         self.edge_calls = []
         self.selection_calls = []
 
-    def on_canvas_context(self, pos, canvas_pos):
+    def on_canvas_context(self, pos, canvas_pos, pending_connection=None):
         self.canvas_calls.append((pos, canvas_pos))
 
     def on_node_context(self, pos, node_id):
         self.node_calls.append((pos, node_id))
 
-    def on_edge_context(self, pos, edge_id, edge, state):
+    def on_edge_context(self, pos, edge_id, edge, state, at_sink_end=False):
         self.edge_calls.append((pos, edge_id, edge, state))
 
     def on_selection_context(self, pos, nodes, edges):
@@ -72,9 +72,7 @@ def handler(visual_layer, provider):
 
 
 def test_canvas_event_calls_on_canvas_context(handler, provider):
-    handler.process_context_menu(
-        ContextMenuCanvasEvent(screenX=10, screenY=20, canvasX=100, canvasY=200)
-    )
+    handler.process_context_menu(ContextMenuCanvasEvent(screenX=10, screenY=20, canvasX=100, canvasY=200))
     assert len(provider.canvas_calls) == 1
     pos, canvas_pos = provider.canvas_calls[0]
     assert pos == (10, 20)
@@ -143,8 +141,12 @@ def test_edge_event_does_not_call_provider_when_edge_missing(handler, provider, 
 def test_selection_event_calls_on_selection_context(handler, provider):
     handler.process_context_menu(
         ContextMenuSelectedEvent(
-            screenX=3, screenY=4, canvasX=30, canvasY=40,
-            selectedNodes=["n1", "n2"], selectedEdges=["e1"],
+            screenX=3,
+            screenY=4,
+            canvasX=30,
+            canvasY=40,
+            selectedNodes=["n1", "n2"],
+            selectedEdges=["e1"],
         )
     )
     assert len(provider.selection_calls) == 1
@@ -161,6 +163,7 @@ def test_selection_event_calls_on_selection_context(handler, provider):
 def test_provider_protocol_has_intent_methods():
     """IContextMenuProvider declares all four intent methods."""
     import inspect
+
     members = {name for name, _ in inspect.getmembers(IContextMenuProvider)}
     assert "on_canvas_context" in members
     assert "on_node_context" in members

@@ -170,6 +170,12 @@ class ContextMenuCanvasEvent(BaseGraphEvent):
     screenY: float
     canvasX: float
     canvasY: float
+    # Non-empty when right-clicked while a connection drag was in progress.
+    pendingPinId: str = ""
+    pendingNodeId: str = ""
+    pendingPinDir: str = ""  # 'inlet' | 'outlet' | ''
+    pendingFlowType: str = ""  # 'data' | 'control' | 'callback' | ''
+    pendingDataType: str = ""  # data-type registry key or ''
 
 
 @graph_event("contextMenuNode", category="user", description="Node context menu triggered")
@@ -190,6 +196,8 @@ class ContextMenuEdgeEvent(BaseGraphEvent):
     canvasX: float
     canvasY: float
     edge_id: str
+    # True if the right-click was closer to the inlet (sink) end of the edge.
+    atSinkEnd: bool = False
 
 
 @graph_event(
@@ -340,3 +348,25 @@ class SyncNodeRedrawEvent(BaseGraphEvent):
 @dataclass
 class SyncEdgesUpdateEvent(BaseGraphEvent):
     nodeId: str
+
+
+@graph_event(
+    "syncStartReconnect",
+    category="sync",
+    description="Remove an edge and start a new connection drag from the anchor pin",
+)
+@dataclass
+class SyncStartReconnectEvent(BaseGraphEvent):
+    edge_id: str
+    anchorNodeId: str
+    anchorPinId: str
+
+
+@graph_event(
+    "syncPlayPendingConnection",
+    category="sync",
+    description="Resume a paused pending connection drag (context menu dismissed without action)",
+)
+@dataclass
+class SyncPlayPendingConnectionEvent(BaseGraphEvent):
+    pass
