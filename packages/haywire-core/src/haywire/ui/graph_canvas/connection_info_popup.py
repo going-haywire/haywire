@@ -17,9 +17,10 @@ from haywire.core.edge.edge import Edge
 from haywire.core.errors.haywire_exception import HaywireException
 from haywire.core.edge.edge_wrapper import EdgeWrapperState
 
-from .popup import Popup
 from haywire.ui import elements as hui
 from haywire.ui.errors.error_info import error_render_detail
+
+from ..components.popup import Popup
 
 
 class EdgeInfoPopup:

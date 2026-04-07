@@ -27,7 +27,7 @@ from ..event_definitions import (
 from ..event_handlers import handles_event
 from haywire.ui.context_events import ContextChangeType, ContextChangedEvent
 from haywire.ui.panel.base import PanelLayout
-from haywire.ui.graph_canvas.popup import Popup
+from haywire.ui.components.popup import Popup
 
 if TYPE_CHECKING:
     from haywire.ui.graph_canvas.handlers.visual_layer import VisualLayerHandlers
