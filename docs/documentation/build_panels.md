@@ -19,6 +19,7 @@ For background on how panels fit into the larger UI architecture, see [haywire_a
 11. [Best Practices](#11-best-practices)
 12. [Full Example: A Custom Node Metrics Panel](#12-full-example-a-custom-node-metrics-panel)
 13. [Custom Context Menu Triggers](#13-custom-context-menu-triggers)
+14. [Port Context Menu Triggers](#14-port-context-menu-triggers)
 
 ---
 
@@ -864,3 +865,111 @@ class ReportErrorPanel(BasePanel):
 ```
 
 All panels matching the scope are rendered together in `order` sequence inside the same popup, just as they would be in the Properties sidebar.
+
+---
+
+## 14. Port Context Menu Triggers
+
+Any skin element can open a port-aware context menu popup by carrying `data-hw-port-menu-scope="<scope>"`. The mechanism is identical to the custom menu in chapter 13, but the Python pipeline additionally resolves the `DataPort` and exposes it as `context.active_port` so panels can inspect port metadata directly.
+
+### Port menu pipeline
+
+1. **Skin stamps the attribute.** Any element inside a node card can carry `data-hw-port-menu-scope="<scope>"`. When the user right-clicks that element, `canvas.vue` intercepts the event *before* the custom-menu check and before the normal node/edge/canvas routing, then emits a `contextMenuPort` event carrying the scope, `nodeId`, and `portId`.
+
+2. **`portId` resolution.** `canvas.vue` reads `data-port-id` from the element first, then falls back to `data-pin-id` on the same element, then walks up to the nearest ancestor carrying either attribute. This means you can stamp the attribute directly on an existing `.connection-pin` element (which already carries `data-pin-id`) or on any wrapper element by adding `data-port-id` explicitly.
+
+3. **`nodeId` resolution.** Same as the custom menu: `canvas.vue` walks up to the nearest `[data-node-id]` ancestor.
+
+4. **Python pipeline resolves port and node.** `ContextMenuHandlers` dispatches to `IContextMenuProvider.on_port_context(pos, node_id, port_id, scope)`. `SessionContextMenuProvider` sets `context.active_node` and `context.active_port` (a `DataPort` from `wrapper.node.ports[port_id]`), then calls `_open_menu(scope, pos)`. When the popup closes, `context.active_port` is cleared automatically.
+
+5. **PanelRegistry serves the panels.** Same as all other context menu types — `panel_registry.get_panels('context_menu', scope)`.
+
+### Detection priority in `handleContextMenu`
+
+```
+data-hw-port-menu-scope   ← checked first
+data-hw-custom-menu-scope
+[data-node-id]  (node context menu)
+edge path
+canvas fallback
+```
+
+### Stamping the port menu attribute
+
+**On an existing pin element** (no `data-port-id` needed — the existing `data-pin-id` is used as fallback):
+
+```python
+# Inside a NodeSkin.render() or any _render_* helper:
+pin_el.props(
+    f'data-hw-port-menu-scope="my.port.scope" '
+    f'data-node-id="{node_id}"'
+)
+```
+
+**On a widget wrapper inside the node body** (explicit `data-port-id` required):
+
+```python
+with ui.row().props(
+    f'data-hw-port-menu-scope="my.port.scope" '
+    f'data-node-id="{node_id}" '
+    f'data-port-id="{port.id}"'
+):
+    ui.label(port.id)
+    # ... widget content ...
+```
+
+The `data-node-id` prop is optional on the element itself if any ancestor already carries it (e.g. the node card).
+
+### Writing a port menu panel
+
+```python
+from haywire.ui.panel.base import BasePanel, PanelLayout
+from haywire.ui.panel.decorator import panel
+
+@panel(
+    editors='context_menu',
+    scopes='my.port.scope',
+    label='Port Actions',
+    icon='cable',
+    order=10,
+)
+class MyPortPanel(BasePanel):
+
+    @classmethod
+    def poll(cls, context) -> bool:
+        return context.active_port is not None
+
+    def draw(self, context, layout: PanelLayout) -> None:
+        from nicegui import ui
+        port = context.active_port
+        node = context.active_node
+        with layout._container:
+            ui.label(f'Port: {port.id} on {node.node_id}')
+```
+
+Place the file anywhere inside your library's `panels/` folder. No extra registration call is needed.
+
+### What `context.active_port` contains
+
+`context.active_port` is a `DataPort` instance (`haywire.core.node.base.DataPort`). It exposes the full port metadata: `id`, `flow_type`, `port_type`, `color`, `widget_key`, and the underlying data descriptor. `context.active_node` is also set, so both the node and the port are available simultaneously in `poll()` and `draw()`.
+
+### Extending an existing port scope
+
+Multiple panels can register for the same `(editor, scope)` pair and are rendered together in `order` sequence:
+
+```python
+@panel(
+    editors='context_menu',
+    scopes='my.port.scope',
+    label='Disconnect All',
+    icon='link_off',
+    order=20,
+)
+class DisconnectPortPanel(BasePanel):
+    @classmethod
+    def poll(cls, context) -> bool:
+        return context.active_port is not None
+
+    def draw(self, context, layout: PanelLayout) -> None:
+        layout.button('Disconnect all edges', on_click=lambda: ...)
+```

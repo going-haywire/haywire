@@ -169,21 +169,20 @@ class NodeSkin(BaseSkin, ABC):
         offset_px = self.CARD_H_PADDING + self.PIN_GUTTER // 2 + self.PIN_PROTRUSION
         pin_offset = f"position: relative; {direction}: -{offset_px}px; cursor: crosshair;"
 
+        port_menu_props = 'data-hw-port-menu-scope="port.info"'
+
         if pin.flow_type == FlowType.CONTROL:
             ctrl_color = pin.color
             if pin.is_inlet():
                 ctrl_icon = pin.icon_in or ICONS.JOIN_LEFT
             else:
                 ctrl_icon = pin.icon_out or ICONS.JOIN_RIGHT
-            with (
+            (
                 ui.icon(ctrl_icon, color=ctrl_color, size=pin_size)
                 .classes("port input-port connection-pin zoom-pan-lod0")
                 .style(pin_offset)
-                .props(f'{common_props} data-pin-color="{ctrl_color}"')
-            ):
-                if self._ui_settings.show_tooltips:
-                    with ui.tooltip().classes(ctrl_color):
-                        self._tooltip_for_port(pin)
+                .props(f'{common_props} data-pin-color="{ctrl_color}" {port_menu_props}')
+            )
 
         elif pin.flow_type == FlowType.CALLBACK:
             callback_color = pin.color
@@ -191,15 +190,12 @@ class NodeSkin(BaseSkin, ABC):
                 callback_icon = pin.icon_in or ICONS.SWIPE_LEFT_ALT
             else:
                 callback_icon = pin.icon_out or ICONS.SWIPE_RIGHT_ALT
-            with (
+            (
                 ui.icon(callback_icon, color=callback_color, size=pin_size)
                 .classes("port input-port connection-pin zoom-pan-lod0")
                 .style(pin_offset)
-                .props(f'{common_props} data-pin-color="{callback_color}"')
-            ):
-                if self._ui_settings.show_tooltips:
-                    with ui.tooltip().classes(callback_color):
-                        self._tooltip_for_port(pin)
+                .props(f'{common_props} data-pin-color="{callback_color}" {port_menu_props}')
+            )
 
         elif pin.flow_type == FlowType.DATA:
             pin_color = pin.color
@@ -225,20 +221,15 @@ class NodeSkin(BaseSkin, ABC):
                     data_icon = pin._data.get_stored_type().class_identity.icon_out_multi or ICONS.VIEW_DAY
                 else:
                     data_icon = pin._data.get_stored_type().class_identity.icon_out_multi or ICONS.CIRCLE
-            with (
+            (
                 ui.icon(data_icon, color=pin_color, size=pin_size)
                 .classes("port connection-pin zoom-pan-lod0")
                 .style(pin_offset)
-                .props(f'{common_props} data-pin-data-type="{pin_data_type}" data-pin-color="{pin_color}"')
-            ):
-                if self._ui_settings.show_tooltips:
-                    with ui.tooltip().classes(pin_color):
-                        self._tooltip_for_port(pin)
-
-    def _tooltip_for_port(self, port: DataPort):
-        ui.label(f"Desc: {port.description}")
-        ui.label(f"Flow: {port.flow_type.value}")
-        ui.label(f"Type: {port._data.get_stored_type().class_identity.registry_key}")
+                .props(
+                    f'{common_props} data-pin-data-type="{pin_data_type}" '
+                    f'data-pin-color="{pin_color}" {port_menu_props}'
+                )
+            )
 
     def _add_resize_handle(self, main_card: ui.card, wrapper: NodeWrapper):
         """Add a draggable resize handle to the bottom-right corner."""

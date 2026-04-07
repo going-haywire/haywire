@@ -1082,6 +1082,27 @@ export default {
             const clientY = event.clientY;
             const target = event.target;
 
+            // Check for port-scope context menu (data-hw-port-menu-scope)
+            // port_id is taken from data-port-id on the element, falling back to data-pin-id.
+            // node_id is resolved by walking up to the nearest [data-node-id] ancestor.
+            const portMenuEl = target.closest('[data-hw-port-menu-scope]');
+            if (portMenuEl) {
+                const scope = portMenuEl.getAttribute('data-hw-port-menu-scope');
+                const nodeAncestor = portMenuEl.closest('[data-node-id]');
+                const nodeId = nodeAncestor ? nodeAncestor.dataset.nodeId : '';
+                const portId = portMenuEl.dataset.portId || portMenuEl.dataset.pinId
+                    || (portMenuEl.closest('[data-port-id]') || {}).dataset?.portId
+                    || (portMenuEl.closest('[data-pin-id]') || {}).dataset?.pinId
+                    || '';
+                if (scope && nodeId && portId) {
+                    const canvasCoords = this._transformScreenToSVG(clientX, clientY);
+                    this.emitCanvasEvent(EventCreators.createContextMenuPort(
+                        clientX, clientY, canvasCoords.x, canvasCoords.y, nodeId, portId, scope
+                    ));
+                    return;
+                }
+            }
+
             // Check for custom-scope context menu button (data-hw-custom-menu-scope)
             // These are skin-rendered elements that declare their own panel scope.
             // node_id is resolved by walking up to the nearest [data-node-id] ancestor.

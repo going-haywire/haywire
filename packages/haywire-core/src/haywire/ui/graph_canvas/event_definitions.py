@@ -220,6 +220,22 @@ class ContextMenuCustomEvent(BaseGraphEvent):
     scope: str
 
 
+@graph_event(
+    "contextMenuPort",
+    category="user",
+    description="Port context menu triggered via data-hw-port-menu-scope attribute",
+)
+@dataclass
+class ContextMenuPortEvent(BaseGraphEvent):
+    screenX: float
+    screenY: float
+    canvasX: float
+    canvasY: float
+    nodeId: str
+    portId: str
+    scope: str
+
+
 @graph_event("userPasteClipboard", category="user", description="Paste clipboard contents")
 @dataclass
 class UserPasteClipboardEvent(BaseGraphEvent):

@@ -23,6 +23,7 @@ from ..event_definitions import (
     ContextMenuEdgeEvent,
     ContextMenuSelectedEvent,
     ContextMenuCustomEvent,
+    ContextMenuPortEvent,
 )
 from ..event_handlers import handles_event
 from haywire.ui.context_events import ContextChangeType, ContextChangedEvent
@@ -104,6 +105,16 @@ class IContextMenuProvider:
         """User right-clicked a custom-scope element (data-hw-custom-menu-scope)."""
         ...
 
+    def on_port_context(
+        self,
+        pos: Tuple[float, float],
+        node_id: str,
+        port_id: str,
+        scope: str,
+    ) -> None:
+        """User right-clicked a port-scope element (data-hw-port-menu-scope)."""
+        ...
+
 
 # ---------------------------------------------------------------------------
 # Session-context-driven provider
@@ -159,6 +170,7 @@ class SessionContextMenuProvider(IContextMenuProvider):
 
         def _on_close():
             self._context.context_menu_trigger = None
+            self._context.active_port = None
             self._context.metadata.pop("on_emit_event", None)
             self._context.metadata.pop("edge_state", None)
             self._context.metadata.pop("context_menu_screen_pos", None)
@@ -205,6 +217,14 @@ class SessionContextMenuProvider(IContextMenuProvider):
                 self._context.active_node = wrapper
         self._open_menu(scope, pos)
 
+    def on_port_context(self, pos, node_id, port_id, scope):
+        if self._context.active_graph is not None:
+            wrapper = self._context.active_graph.get_node_wrapper(node_id)
+            if wrapper is not None:
+                self._context.active_node = wrapper
+                self._context.active_port = wrapper.node.ports.get(port_id)
+        self._open_menu(scope, pos)
+
 
 # ---------------------------------------------------------------------------
 # Handler
@@ -233,6 +253,7 @@ class ContextMenuHandlers:
         ContextMenuEdgeEvent,
         ContextMenuSelectedEvent,
         ContextMenuCustomEvent,
+        ContextMenuPortEvent,
     )
     def process_context_menu(self, event):
         """Route context-menu events to the provider as intent calls."""
@@ -280,5 +301,17 @@ class ContextMenuHandlers:
             self.provider.on_custom_context(
                 (event.screenX, event.screenY),
                 event.nodeId,
+                event.scope,
+            )
+
+        elif isinstance(event, ContextMenuPortEvent):
+            logger.debug(
+                f"Port context menu scope={event.scope!r} "
+                f"for port {event.portId} on node {event.nodeId} at ({event.screenX}, {event.screenY})"
+            )
+            self.provider.on_port_context(
+                (event.screenX, event.screenY),
+                event.nodeId,
+                event.portId,
                 event.scope,
             )

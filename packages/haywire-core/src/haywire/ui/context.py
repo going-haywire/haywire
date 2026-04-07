@@ -19,6 +19,7 @@ if TYPE_CHECKING:
     from haywire.core.edge.edge_wrapper import EdgeWrapper
     from haywire.core.graph.base import BaseGraph
     from haywire.core.library.base import BaseLibrary
+    from haywire.core.node.base import DataPort
 
 
 class InteractionMode(Enum):
@@ -65,6 +66,7 @@ class SessionContext:
     active_graph: Optional["BaseGraph"] = None  # BaseGraph
     active_node: Optional["NodeWrapper"] = None  # NodeWrapper
     active_edge: Optional["EdgeWrapper"] = None  # Edge
+    active_port: Optional["DataPort"] = None  # DataPort resolved from active_node.node.ports
     selected_nodes: Set[str] = field(default_factory=set)
     selected_edges: Set[str] = field(default_factory=set)
     interaction_mode: InteractionMode = InteractionMode.IDLE
