@@ -1127,19 +1127,20 @@ export default {
             let edgeElement = null;
             let edge_id = null;
 
-            if (target.tagName === 'path') {
-                edge_id = target.getAttribute('data-edge-id') || target.id;
+            if (target.tagName === 'path' && target.getAttribute('data-edge-id')) {
+                edge_id = target.getAttribute('data-edge-id');
                 edgeElement = target;
             } else {
-                const svgElement = target.closest('svg');
-                if (svgElement) {
-                    const paths = svgElement.querySelectorAll('path[data-edge-id]');
+                // Always query the SVG ref directly — target may be the canvas div
+                // itself when the click misses all path elements.
+                const svg = this.$refs.svg;
+                if (svg) {
+                    const paths = svg.querySelectorAll('path[data-edge-id]');
                     const clickPoint = { x: clientX, y: clientY };
-
                     for (const path of paths) {
-                        if (this._isPointNearPath(path, clickPoint)) {
+                        if (this._isPointNearStroke(path, clickPoint)) {
                             edgeElement = path;
-                            edge_id = path.getAttribute('data-edge-id') || path.id;
+                            edge_id = path.getAttribute('data-edge-id');
                             break;
                         }
                     }
@@ -1197,6 +1198,36 @@ export default {
                     point.y <= rect.bottom + tolerance;
             } catch (e) {
                 console.warn('Error checking point near path:', e);
+                return false;
+            }
+        },
+
+        /**
+         * True if `point` (screen coords) is within `tolerance` pixels of the
+         * actual path stroke. Uses SVGPathElement.getPointAtLength() to sample
+         * the curve at fixed intervals — far more accurate than bounding-box
+         * testing for curved bezier edges.
+         */
+        _isPointNearStroke(pathElement, point, tolerance = 8) {
+            try {
+                const totalLength = pathElement.getTotalLength();
+                if (totalLength === 0) return false;
+                const steps = Math.max(20, Math.floor(totalLength / 10));
+                for (let i = 0; i <= steps; i++) {
+                    const p = pathElement.getPointAtLength((i / steps) * totalLength);
+                    // getPointAtLength returns SVG user-space coords; convert to screen
+                    const svgEl = pathElement.ownerSVGElement;
+                    const pt = svgEl.createSVGPoint();
+                    pt.x = p.x;
+                    pt.y = p.y;
+                    const screen = pt.matrixTransform(svgEl.getScreenCTM());
+                    const dx = screen.x - point.x;
+                    const dy = screen.y - point.y;
+                    if (dx * dx + dy * dy <= tolerance * tolerance) return true;
+                }
+                return false;
+            } catch (e) {
+                console.warn('Error checking point near stroke:', e);
                 return false;
             }
         },

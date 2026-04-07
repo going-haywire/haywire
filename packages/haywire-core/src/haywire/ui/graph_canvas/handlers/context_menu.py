@@ -171,6 +171,7 @@ class SessionContextMenuProvider(IContextMenuProvider):
         def _on_close():
             self._context.context_menu_trigger = None
             self._context.active_port = None
+            self._context.active_edge = None
             self._context.metadata.pop("on_emit_event", None)
             self._context.metadata.pop("edge_state", None)
             self._context.metadata.pop("context_menu_screen_pos", None)
@@ -203,6 +204,10 @@ class SessionContextMenuProvider(IContextMenuProvider):
         self._open_menu(SCOPE_NODE, pos)
 
     def on_edge_context(self, pos, edge_id, edge, state):
+        if self._context.active_graph is not None:
+            wrapper = self._context.active_graph.get_edge_wrapper(edge_id)
+            if wrapper is not None:
+                self._context.active_edge = wrapper
         self._context.metadata["edge_state"] = state
         self._context.metadata["context_menu_screen_pos"] = pos
         self._open_menu(SCOPE_EDGE, pos)
