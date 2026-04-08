@@ -537,7 +537,7 @@ class EdgeWrapper:
                 else:
                     # creating the haywire exception in here to avoid missleading stack traces
                     self._state.error_build = HaywireException.create(
-                        message=f"Edge adapter creation failed for {self._edge_id}: {error}",
+                        message=f"{error}: Edge adapter creation failed for {self._edge_id}",
                     ).enrich(
                         operation="Adapter Chain Creation",
                         category="Adapter Creation Error",
@@ -560,7 +560,7 @@ class EdgeWrapper:
         except Exception as e:
             self._state.error_build = HaywireException.from_exception(
                 exception=e,
-                message=f"Edge adapter creation failed for {self._edge_id}: {e}",
+                message=f"{e}: Edge adapter creation failed for {self._edge_id}",
             ).enrich(
                 operation="Adapter Chain Creation",
                 category="Adapter Creation Error",

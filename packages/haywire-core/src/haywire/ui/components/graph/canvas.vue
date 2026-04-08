@@ -506,6 +506,7 @@ export default {
 
         handleMouseDown(event) {
             if (event.button === 2) return; // Skip right-click
+            if (event.button === 1) return; // Skip middle-click — handled by pan.vue
 
             const target = event.target;
 

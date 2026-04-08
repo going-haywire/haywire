@@ -115,15 +115,41 @@ export default {
     },
 
     _setupListeners() {
-      // Invalidate rect cache at gesture boundaries and on resize
-      this.$el.addEventListener('mousedown', this._invalidateRectCache);
-      document.addEventListener('mouseup', this._invalidateRectCache);
+      this._onMouseDown = (e) => {
+        this._invalidateRectCache();
+        if (e.button === 1) {
+          // Middle-mouse button — start pan drag
+          e.preventDefault();
+          this.isDragging = true;
+          this.lastMouseX = e.clientX;
+          this.lastMouseY = e.clientY;
+        }
+      };
+      this._onMouseMove = (e) => {
+        if (!this.isDragging) return;
+        const dx = e.clientX - this.lastMouseX;
+        const dy = e.clientY - this.lastMouseY;
+        this.lastMouseX = e.clientX;
+        this.lastMouseY = e.clientY;
+        this._setPanDirect(this._panX + dx, this._panY + dy);
+      };
+      this._onMouseUp = (e) => {
+        this._invalidateRectCache();
+        if (e.button === 1) {
+          this.isDragging = false;
+        }
+      };
+
+      this.$el.addEventListener('mousedown', this._onMouseDown);
+      document.addEventListener('mousemove', this._onMouseMove);
+      document.addEventListener('mouseup', this._onMouseUp);
       window.addEventListener('resize', this._invalidateRectCache);
     },
 
     _cleanupListeners() {
-      this.$el.removeEventListener('mousedown', this._invalidateRectCache);
-      document.removeEventListener('mouseup', this._invalidateRectCache);
+      this.$el.removeEventListener('mousedown', this._onMouseDown);
+      document.removeEventListener('mousemove', this._onMouseMove);
+      document.removeEventListener('mouseup', this._onMouseUp);
       window.removeEventListener('resize', this._invalidateRectCache);
     },
 
@@ -148,17 +174,20 @@ export default {
     },
     
     handleWheel(e) {
-      // e.ctrlKey is set by the browser for both physical Ctrl+scroll AND trackpad
-      // pinch gestures — it is more reliable than tracking keydown/keyup state.
       if (e.ctrlKey) {
-        // Zoom: Ctrl+scroll or trackpad pinch
+        // Trackpad pinch gesture (browser sets ctrlKey synthetically)
         const zoomDelta = -e.deltaY * this.zoomSensitivity * 0.01;
         this._setZoomDirect(this._zoom + zoomDelta, e.clientX, e.clientY);
+      } else if (e.deltaX !== 0 && Math.abs(e.deltaX) > Math.abs(e.deltaY) * 0.3) {
+        // Trackpad two-finger horizontal swipe → pan X
+        this._setPanDirect(this._panX + (-e.deltaX) * this.panSensitivity, this._panY);
+      } else if (e.shiftKey) {
+        // Shift+scroll → pan horizontally
+        this._setPanDirect(this._panX + (-e.deltaY) * this.panSensitivity, this._panY);
       } else {
-        // Pan: plain scroll or two-finger trackpad swipe
-        const deltaX = (-e.deltaX) * this.panSensitivity;
-        const deltaY = (-e.deltaY) * this.panSensitivity;
-        this._setPanDirect(this._panX + deltaX, this._panY + deltaY);
+        // Plain scroll wheel or trackpad vertical swipe → zoom
+        const zoomDelta = -e.deltaY * this.zoomSensitivity * 0.01;
+        this._setZoomDirect(this._zoom + zoomDelta, e.clientX, e.clientY);
       }
     },
 
@@ -357,17 +386,14 @@ export default {
       this._updateTransformDirect(true);
     },
 
-    beforeDestroy() {
-      // Clean up any pending timers
-      if (this._wheelTimeout) {
-        clearTimeout(this._wheelTimeout);
-      }
-      if (this.updateTimeout) {
-        clearTimeout(this.updateTimeout);
-      }
-    },
   },
-  
+
+  beforeDestroy() {
+    this._cleanupListeners();
+    if (this._wheelTimeout) clearTimeout(this._wheelTimeout);
+    if (this.updateTimeout) clearTimeout(this.updateTimeout);
+  },
+
   watch: {
     // Watch for prop changes and update internal state
     initialZoom(newVal) {

@@ -11,7 +11,7 @@ theme = "studio:theme:workbench:haywire-dark"
 max_zoom = 1.8
 min_zoom = 0.05
 pan_sensitivity = 5.0
-zoom_sensitivity = 0.88
+zoom_sensitivity = 0.08
 
 [ui.minimap]
 debug_info = false
