@@ -144,7 +144,8 @@ export default {
         this._setupObservers();
         this._setupZoomPanListener();
 
-        // Expose API to parent/Python
+        // Expose sync and context menu handlers for external invocation 
+        // used by pan.vue to forward context menu events
         this.$el._graphCanvasControls = {
             handleSyncEvent: this.handleSyncEvent,
             handleContextMenu: this.handleContextMenu
@@ -773,21 +774,6 @@ export default {
                     clientX, clientY, canvasCoords.x, canvasCoords.y,
                     pendingPinId, pendingNodeId, pendingPinDir, pendingFlowType, pendingDataType
                 ));
-            }
-        },
-
-        _isPointNearPath(pathElement, point) {
-            try {
-                const rect = pathElement.getBoundingClientRect();
-                const tolerance = 10;
-
-                return point.x >= rect.left - tolerance &&
-                    point.x <= rect.right + tolerance &&
-                    point.y >= rect.top - tolerance &&
-                    point.y <= rect.bottom + tolerance;
-            } catch (e) {
-                console.warn('Error checking point near path:', e);
-                return false;
             }
         },
 
