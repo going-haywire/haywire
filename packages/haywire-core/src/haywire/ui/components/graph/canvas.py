@@ -6,6 +6,7 @@ all client-side graph canvas interactions with the enhanced event system.
 
 """
 
+import logging
 from typing import Optional, Callable
 from pathlib import Path
 
@@ -26,6 +27,7 @@ if library_path.exists():
 else:
     print(f"❌ Library not found at: {library_path}")
 
+logger = logging.getLogger(__name__)
 
 class GraphCanvasVue(ui.element, component="canvas.vue"):
     """Vue-based graph canvas component with ONLY unified event handling."""
@@ -59,7 +61,7 @@ class GraphCanvasVue(ui.element, component="canvas.vue"):
             event_type = event.get("event_type")
 
             # Log for debugging
-            print(f"🔄 Vue→Python Event: {event_type} | Data: {event.get('data', {})}")
+            logger.debug(f"🔄 Vue→Python Event: {event_type} | Data: {event.get('data', {})}")
 
             # Create event instance from registry
             if event_type in GRAPH_EVENT_REGISTRY:
@@ -68,9 +70,9 @@ class GraphCanvasVue(ui.element, component="canvas.vue"):
                     event_instance = event_class.from_dict(event)
                     self._on_canvas_event(event_instance)
                 except Exception as e:
-                    print(f"Error creating event instance for {event_type}: {e}")
+                    logger.error(f"Error creating event instance for {event_type}: {e}")
             else:
-                print(f"Unknown event type: {event_type}")
+                logger.warning(f"Unknown event type: {event_type}")
 
     def set_canvas_size(self, width: int, height: int) -> None:
         """Push new canvas dimensions to the Vue component."""
@@ -90,7 +92,7 @@ class GraphCanvasVue(ui.element, component="canvas.vue"):
         event_type = event_dict.get("event_type")
         data = event_dict.get("data", {})
 
-        print(f"🔄 Python→Vue Event: {event_type} | Data: {data}")
+        logger.debug(f"🔄 Python→Vue Event: {event_type} | Data: {data}")
 
         # Send to Vue component via handleSyncEvent - the ONLY run_method call
         self.run_method("handleSyncEvent", event_dict)
