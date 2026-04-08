@@ -9,6 +9,7 @@ Verifies:
 """
 
 import sys
+from types import SimpleNamespace
 
 import pytest
 from unittest.mock import MagicMock, patch
@@ -115,7 +116,9 @@ def test_on_node_selected_emits_node_create_request_event():
     ):
         CreateNodePanel().draw(ctx, layout)
 
-    captured_callback["fn"]("my_lib/MyNode")
+    captured_callback["fn"](
+        SimpleNamespace(identity=SimpleNamespace(registry_key="my_lib/MyNode"))
+    )
 
     assert len(emitted) == 1
     event = emitted[0]

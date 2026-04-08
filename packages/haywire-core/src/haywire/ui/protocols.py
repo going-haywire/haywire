@@ -16,6 +16,7 @@ if TYPE_CHECKING:
     from haywire.core.execution import Interpreter
     from haywire.core.execution.interpreter_loop_manager import InterpreterLoopManager
     from haywire.ui.session_manager import SessionManager
+    from haywire_studio.library_manager import LibraryManager
 
 
 class IGraphManager(Protocol):
@@ -49,3 +50,4 @@ class IProjectState(Protocol):
     node_factory: Any  # NodeFactory
     interpreter: "Interpreter"
     loop_manager: "InterpreterLoopManager"
+    library_manager: "LibraryManager"

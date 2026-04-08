@@ -7,14 +7,15 @@ lifecycle or undo operations - those are handled by Graph and Actions respective
 """
 
 import logging
-from typing import Dict, List, Optional, Any
-
-logger = logging.getLogger(__name__)
+from typing import Dict, List, Optional
 
 from haywire.core.errors.haywire_exception import HaywireException
 from . import node, BaseNode, NodeRegistry
+from .info import NodeInfo, NodeSourceInfo
 
 from ..registry.lifecycle_event import LifeCycleEvent, LifeCycleBatchCallback, LifeCycleEventCallback
+
+logger = logging.getLogger(__name__)
 
 
 # ============================================================================
@@ -206,46 +207,46 @@ class NodeFactory:
     # Node Discovery and UI Services
     # ============================================================================
 
-    def get_menu_structure(self) -> Dict[str, List[Dict[str, str]]]:
+    def _build_node_info(self, registry_key: str) -> Optional[NodeInfo]:
+        """Build composed node metadata from class identity and library information."""
+        node_class = self.node_registry.get(registry_key)
+        if node_class is None:
+            return None
+
+        identity = node_class.class_identity
+
+        library_identity = getattr(node_class, "class_library", None)
+
+        return NodeInfo(
+            identity=identity,
+            library=library_identity,
+            source=NodeSourceInfo(class_name=node_class.__name__, module=node_class.__module__),
+        )
+
+    def get_menu_structure(self) -> Dict[str, List[NodeInfo]]:
         """
         Get nodes organized by menu path for UI building.
 
         Returns:
             Dictionary mapping menu paths to lists of node info dicts
         """
-        menu = {}
+        menu: Dict[str, List[NodeInfo]] = {}
 
         for key in self.node_registry.list_names():
-            node_class = self.node_registry.get(key)
+            node_info = self._build_node_info(key)
+            if node_info is None:
+                continue
 
-            # Use class_identity if available, fallback to old attributes
-            if hasattr(node_class, "class_identity"):
-                identity = node_class.class_identity
-                menu_path = identity.menu
-                label = identity.label
-                description = identity.description
-                tags = identity.search_tags
-            else:
-                menu_path = getattr(node_class, "node_menu", "misc")
-                label = node_class.class_library.label
-                description = node_class.class_library.description
-                tags = getattr(node_class, "node_search_tags", [])
+            menu_path = node_info.identity.menu
 
             if menu_path not in menu:
                 menu[menu_path] = []
 
-            menu[menu_path].append(
-                {
-                    "label": label,  # Display name
-                    "key": key,  # Registry key
-                    "description": description,
-                    "tags": tags,
-                }
-            )
+            menu[menu_path].append(node_info)
 
         return menu
 
-    def search_nodes(self, query: str) -> List[Dict[str, str]]:
+    def search_nodes(self, query: str) -> List[NodeInfo]:
         """
         Search for nodes matching a query string.
 
@@ -255,29 +256,23 @@ class NodeFactory:
         Returns:
             List of matching node info dicts
         """
-        results = []
+        results: List[NodeInfo] = []
         query_lower = query.lower()
 
         for key in self.node_registry.list_names():
-            node_class = self.node_registry.get(key)
-
-            # Use class_identity if available, fallback to old attributes
-            if hasattr(node_class, "class_identity"):
-                identity = node_class.class_identity
-                label = identity.label
-                description = identity.description
-                tags = identity.search_tags
+            node_info = self._build_node_info(key)
+            if node_info is None:
+                continue
 
             # Search in label, description, and tags
-            searchable = [label.lower(), description.lower(), *[tag.lower() for tag in tags]]
+            searchable = [
+                node_info.identity.label.lower(),
+                node_info.identity.description.lower(),
+                *[tag.lower() for tag in node_info.identity.search_tags],
+            ]
 
             if any(query_lower in text for text in searchable):
-                library = node_class.class_library
-                library_label = library.label if library else "Unknown"
-
-                results.append(
-                    {"label": label, "key": key, "description": description, "library": library_label}
-                )
+                results.append(node_info)
 
         return results
 
@@ -290,7 +285,7 @@ class NodeFactory:
         """
         return self.node_registry.list_names()
 
-    def get_node_info(self, registry_key: str) -> Optional[Dict[str, Any]]:
+    def get_node_info(self, registry_key: str) -> Optional[NodeInfo]:
         """
         Get detailed information about a specific node.
 
@@ -301,33 +296,4 @@ class NodeFactory:
             Dictionary with node information or None if not found
         """
 
-        node_class = self.node_registry.get(registry_key)
-        if node_class is not None:
-            library_identity = node_class.class_library
-
-            # Use class_identity if available, fallback to old attributes
-            if hasattr(node_class, "class_identity"):
-                identity = node_class.class_identity
-                label = identity.label
-                description = identity.description
-                tags = identity.search_tags
-                menu = identity.menu
-            else:
-                label = node_class.class_library.label
-                description = node_class.class_library.description
-                tags = getattr(node_class, "node_search_tags", [])
-                menu = getattr(node_class, "node_menu", "misc")
-
-            return {
-                "registry_key": registry_key,
-                "label": label,
-                "description": description,
-                "search_tags": tags,
-                "menu": menu,
-                "library_label": library_identity.label if library_identity else None,
-                "library_version": library_identity.version if library_identity else None,
-                "class_name": node_class.__name__,
-                "module": node_class.__module__,
-            }
-
-        return None
+        return self._build_node_info(registry_key)

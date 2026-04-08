@@ -16,6 +16,7 @@ from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
 
+from haywire.core.library.registry import LibraryRegistry
 import toml
 
 
@@ -93,8 +94,8 @@ class LibraryManager:
     haywire library registry (in-process).
     """
 
-    def __init__(self, library_registry, venv_path: str | None = None, project_dir: str | None = None):
-        self.registry = library_registry
+    def __init__(self, library_registry: LibraryRegistry, venv_path: str | None = None, project_dir: str | None = None):
+        self.registry: LibraryRegistry = library_registry
         self.venv_path = venv_path or self._detect_venv()
         self.project_dir = Path(project_dir) if project_dir else None
 
@@ -416,31 +417,36 @@ class LibraryManager:
         """List all discovered libraries with their status."""
         libraries = []
         for lib_id in self.registry.list_names():
-            identity = self.registry.get_library_identity(lib_id)
-            install_type = self.registry.get_library_install_type(lib_id)
-            source = self.registry.get_library_source(lib_id)
-            enabled = self.registry.is_library_enabled(lib_id)
-
-            dist_name = self.registry.get_library_distribution_name(lib_id)
-
-            libraries.append(
-                InstalledLibrary(
-                    library_id=lib_id,
-                    label=identity.label if identity else lib_id,
-                    version=identity.version if identity else "",
-                    description=identity.description if identity else "",
-                    author=identity.author if identity else "",
-                    enabled=enabled,
-                    install_type=install_type.name if install_type else "UNKNOWN",
-                    source_path=str(source) if source else "",
-                    tags=identity.tags if identity and identity.tags else [],
-                    dependencies=identity.dependencies if identity and identity.dependencies else [],
-                    distribution_name=dist_name or "",
-                    url=identity.url if identity else "",
-                    author_url=identity.author_url if identity else "",
-                )
-            )
+            libraries.append(self.get_installed_library(lib_id))
         return libraries
+
+    def get_installed_library(self, library_id: str) -> InstalledLibrary:
+        """Return summary information for one installed library."""
+        identity = self.registry.get_library_identity(library_id)
+        install_type = self.registry.get_library_install_type(library_id)
+        source = self.registry.get_library_source(library_id)
+        enabled = self.registry.is_library_enabled(library_id)
+        dist_name = self.registry.get_library_distribution_name(library_id)
+
+        return InstalledLibrary(
+            library_id=library_id,
+            label=identity.label if identity else library_id,
+            version=identity.version if identity else "",
+            description=identity.description if identity else "",
+            author=identity.author if identity else "",
+            enabled=enabled,
+            install_type=install_type.name if install_type else "UNKNOWN",
+            source_path=str(source) if source else "",
+            tags=identity.tags if identity and identity.tags else [],
+            dependencies=identity.dependencies if identity and identity.dependencies else [],
+            distribution_name=dist_name or "",
+            url=identity.url if identity else "",
+            author_url=identity.author_url if identity else "",
+        )
+
+    def is_installed(self, library_id: str) -> bool:
+        """Return whether a library id is currently discovered in the registry."""
+        return library_id in self.registry.list_names()
 
     def enable_library(self, library_id: str):
         """Enable a library and persist the state."""

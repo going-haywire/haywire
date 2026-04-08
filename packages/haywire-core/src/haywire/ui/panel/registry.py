@@ -11,14 +11,13 @@ import inspect
 import logging
 from typing import Dict, List, Optional
 
-logger = logging.getLogger(__name__)
-
 from haywire.core.registry.base import BaseRegistry
 from haywire.core.library.identity import LibraryIdentity
 
 from .base import BasePanel
 from .scope import ScopeDescriptor
 
+logger = logging.getLogger(__name__)
 
 class PanelRegistry(BaseRegistry):
     """

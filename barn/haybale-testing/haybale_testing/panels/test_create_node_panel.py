@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from haywire.core.node.info import NodeInfo
 from haywire.ui.panel.base import BasePanel, PanelLayout
 from haywire.ui.panel.decorator import panel
 from haywire.ui.graph_canvas.event_definitions import NodeCreateRequestEvent
@@ -44,9 +45,14 @@ class TestCreateNodePanel(BasePanel):
         recent_nodes = context.metadata.get("recent_nodes", [])
         canvas_position = context.metadata.get("canvas_position", {"x": 0.0, "y": 0.0})
 
-        def _on_node_selected(key: str) -> None:
+        def _on_node_selected(node_info: NodeInfo) -> None:
             if on_emit_event:
-                on_emit_event(NodeCreateRequestEvent(registryKey=key, position=canvas_position))
+                on_emit_event(
+                    NodeCreateRequestEvent(
+                        registryKey=node_info.identity.registry_key,
+                        position=canvas_position,
+                    )
+                )
 
         builder = NodeMenuBuilder(node_factory)
         builder.create_node_menu(

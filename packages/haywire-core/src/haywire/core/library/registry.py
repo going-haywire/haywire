@@ -34,6 +34,7 @@ class LibraryRegistry:
     def __init__(self):
         # Registry functionality moved from BaseRegistry
         self._libraries: Dict[str, BaseLibrary] = {}  # registry_id -> library_instance
+        """key is library_registry_id (e.g. 'visiongraph'), value is the instantiated library object"""
         # registry_cls -> registry instance
         self._class_registries: Dict[Type[BaseRegistry], BaseRegistry] = {}
 
