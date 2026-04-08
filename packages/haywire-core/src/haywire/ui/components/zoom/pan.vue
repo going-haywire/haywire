@@ -175,19 +175,31 @@ export default {
     
     handleWheel(e) {
       if (e.ctrlKey) {
-        // Trackpad pinch gesture (browser sets ctrlKey synthetically)
+        // Trackpad pinch gesture (browser sets ctrlKey synthetically) OR Ctrl+scroll
         const zoomDelta = -e.deltaY * this.zoomSensitivity * 0.01;
         this._setZoomDirect(this._zoom + zoomDelta, e.clientX, e.clientY);
-      } else if (e.deltaX !== 0 && Math.abs(e.deltaX) > Math.abs(e.deltaY) * 0.3) {
-        // Trackpad two-finger horizontal swipe → pan X
-        this._setPanDirect(this._panX + (-e.deltaX) * this.panSensitivity, this._panY);
-      } else if (e.shiftKey) {
-        // Shift+scroll → pan horizontally
-        this._setPanDirect(this._panX + (-e.deltaY) * this.panSensitivity, this._panY);
+        return;
+      }
+
+      // Distinguish mouse wheel from trackpad by delta magnitude.
+      // Mouse wheels produce large discrete steps (≥ 100 on most systems, often 120).
+      // Trackpad produces small continuous pixel deltas (typically < 50 per event).
+      const isMouseWheel = e.deltaMode === 1 || (e.deltaMode === 0 && Math.abs(e.deltaY) >= 50 && e.deltaX === 0);
+
+      if (isMouseWheel) {
+        if (e.shiftKey) {
+          // Shift + mouse wheel → pan horizontally
+          this._setPanDirect(this._panX + (-e.deltaY) * this.panSensitivity, this._panY);
+        } else {
+          // Plain mouse wheel → zoom centered on cursor
+          const zoomDelta = -e.deltaY * this.zoomSensitivity * 0.01;
+          this._setZoomDirect(this._zoom + zoomDelta, e.clientX, e.clientY);
+        }
       } else {
-        // Plain scroll wheel or trackpad vertical swipe → zoom
-        const zoomDelta = -e.deltaY * this.zoomSensitivity * 0.01;
-        this._setZoomDirect(this._zoom + zoomDelta, e.clientX, e.clientY);
+        // Trackpad two-finger swipe → pan both axes
+        const deltaX = (-e.deltaX) * this.panSensitivity;
+        const deltaY = (-e.deltaY) * this.panSensitivity;
+        this._setPanDirect(this._panX + deltaX, this._panY + deltaY);
       }
     },
 
