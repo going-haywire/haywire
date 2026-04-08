@@ -79,13 +79,21 @@ class BaseGraphEvent:
 # =============================================================================
 
 
-@graph_event("userDragStart", category="user", description="User started dragging nodes")
+@graph_event(
+    "userDragStart", 
+    category="user", 
+    description="User started dragging nodes"
+)
 @dataclass
 class UserDragStartEvent(BaseGraphEvent):
     nodes: List[str]  # List of node IDs being dragged
 
 
-@graph_event("userDragUpdate", category="user", description="User is dragging nodes")
+@graph_event(
+    "userDragUpdate", 
+    category="user", 
+    description="User is dragging nodes"
+)
 @dataclass
 class UserDragUpdateEvent(BaseGraphEvent):
     nodes: List[str]  # List of node IDs being dragged
@@ -93,20 +101,32 @@ class UserDragUpdateEvent(BaseGraphEvent):
     deltaY: float
 
 
-@graph_event("userDragEnd", category="user", description="User finished dragging nodes")
+@graph_event(
+    "userDragEnd", 
+    category="user", 
+    description="User finished dragging nodes"
+)
 @dataclass
 class UserDragEndEvent(BaseGraphEvent):
     nodes: List[str]  # List of node IDs that were dragged
 
 
-@graph_event("nodeCreateRequest", category="user", description="Request to create node from context menu")
+@graph_event(
+    "nodeCreateRequest", 
+    category="user", 
+    description="Request to create node from context menu"
+)
 @dataclass
 class NodeCreateRequestEvent(BaseGraphEvent):
     registryKey: str
     position: Dict[str, float]  # {x: float, y: float}
 
 
-@graph_event("edgeCreated", category="user", description="New connection created")
+@graph_event(
+    "edgeCreated", 
+    category="user", 
+    description="New connection created"
+)
 @dataclass
 class EdgeCreatedEvent(BaseGraphEvent):
     sourceNodeId: str
@@ -115,55 +135,87 @@ class EdgeCreatedEvent(BaseGraphEvent):
     inletPinId: str
 
 
-@graph_event("edgeClicked", category="user", description="Connection clicked")
+@graph_event(
+    "edgeClicked", 
+    category="user", 
+    description="Connection clicked"
+)
 @dataclass
 class EdgeClickedEvent(BaseGraphEvent):
     edge_id: str
 
 
-@graph_event("elementRedraw", category="user", description="redraw selected element")
+@graph_event(
+    "elementRedraw", 
+    category="user", 
+    description="redraw selected element"
+)
 @dataclass
 class ElementRedrawEvent(BaseGraphEvent):
     nodes: List[str]
     edges: List[str]
 
 
-@graph_event("elementReset", category="user", description="reset selected element")
+@graph_event(
+    "elementReset", 
+    category="user", 
+    description="reset selected element"
+)
 @dataclass
 class ElementResetEvent(BaseGraphEvent):
     nodes: List[str]
     edges: List[str]
 
 
-@graph_event("elementRevalidate", category="user", description="revalidate selected element")
+@graph_event(
+    "elementRevalidate", 
+    category="user", 
+    description="revalidate selected element"
+)
 @dataclass
 class ElementRevalidateEvent(BaseGraphEvent):
     nodes: List[str]
     edges: List[str]
 
 
-@graph_event("selectionChanged", category="user", description="Selection state changed")
+@graph_event(
+    "selectionChanged", 
+    category="user", 
+    description="Selection state changed"
+)
 @dataclass
 class SelectionChangedEvent(BaseGraphEvent):
     selectedNodes: List[str]
     selectedEdges: List[str]
 
 
-@graph_event("userRemove", category="user", description="User wants to remove elements")
+@graph_event(
+    "userRemove", 
+    category="user", 
+    description="User wants to remove elements"
+)
 @dataclass
 class UserRemoveEvent(BaseGraphEvent):
     nodes: List[str]
     edges: List[str]
 
 
-@graph_event("userCopySelected", category="user", description="Copy selected elements to clipboard")
+@graph_event(
+    "userCopySelected", 
+    category="user", 
+    description="Copy selected elements to clipboard"
+)
 @dataclass
 class UserCopySelectedEvent(BaseGraphEvent):
     selectedNodes: List[str]
     selectedEdges: List[str]
 
 
-@graph_event("contextMenuCanvas", category="user", description="Canvas context menu triggered")
+@graph_event(
+    "contextMenuCanvas", 
+    category="user", 
+    description="Canvas context menu triggered"
+)
 @dataclass
 class ContextMenuCanvasEvent(BaseGraphEvent):
     screenX: float
@@ -178,7 +230,11 @@ class ContextMenuCanvasEvent(BaseGraphEvent):
     pendingDataType: str = ""  # data-type registry key or ''
 
 
-@graph_event("contextMenuNode", category="user", description="Node context menu triggered")
+@graph_event(
+    "contextMenuNode", 
+    category="user", 
+    description="Node context menu triggered"
+)
 @dataclass
 class ContextMenuNodeEvent(BaseGraphEvent):
     screenX: float
@@ -188,7 +244,11 @@ class ContextMenuNodeEvent(BaseGraphEvent):
     nodeId: str
 
 
-@graph_event("contextMenuEdge", category="user", description="Connection context menu triggered")
+@graph_event(
+    "contextMenuEdge", 
+    category="user", 
+    description="Connection context menu triggered"
+)
 @dataclass
 class ContextMenuEdgeEvent(BaseGraphEvent):
     screenX: float
@@ -201,7 +261,9 @@ class ContextMenuEdgeEvent(BaseGraphEvent):
 
 
 @graph_event(
-    "contextMenuSelected", category="user", description="Context menu triggered on selected elements"
+    "contextMenuSelected", 
+    category="user", 
+    description="Context menu triggered on selected elements"
 )
 @dataclass
 class ContextMenuSelectedEvent(BaseGraphEvent):
@@ -244,7 +306,10 @@ class ContextMenuPortEvent(BaseGraphEvent):
     scope: str
 
 
-@graph_event("userPasteClipboard", category="user", description="Paste clipboard contents")
+@graph_event(
+    "userPasteClipboard", 
+    category="user", 
+    description="Paste clipboard contents")
 @dataclass
 class UserPasteClipboardEvent(BaseGraphEvent):
     canvasX: float
@@ -256,20 +321,29 @@ class UserPasteClipboardEvent(BaseGraphEvent):
 # =============================================================================
 
 
-@graph_event("syncNodeAddition", category="sync", description="Sync node addition to UI")
+@graph_event(
+    "syncNodeAddition", 
+    category="sync", 
+    description="Sync node addition to UI")
 @dataclass
 class SyncNodeAdditionEvent(BaseGraphEvent):
     nodeId: str
     position: Dict[str, float]
 
 
-@graph_event("syncNodeRemoval", category="sync", description="Sync node removal from UI")
+@graph_event(
+    "syncNodeRemoval", 
+    category="sync", 
+    description="Sync node removal from UI")
 @dataclass
 class SyncNodeRemovalEvent(BaseGraphEvent):
     nodeId: str
 
 
-@graph_event("syncNodePosition", category="sync", description="Sync node position to UI")
+@graph_event(
+    "syncNodePosition", 
+    category="sync", 
+    description="Sync node position to UI")
 @dataclass
 class SyncNodePositionEvent(BaseGraphEvent):
     nodeId: str
@@ -309,20 +383,29 @@ class SyncEdgeAdditionEvent(BaseGraphEvent):
     opacity: float = 1.0
 
 
-@graph_event("syncEdgeRemoval", category="sync", description="Sync connection removal from UI")
+@graph_event(
+    "syncEdgeRemoval", 
+    category="sync", 
+    description="Sync connection removal from UI")
 @dataclass
 class SyncEdgeRemovalEvent(BaseGraphEvent):
     edge_id: str
 
 
-@graph_event("syncSelections", category="sync", description="Sync selection state to UI")
+@graph_event(
+    "syncSelections", 
+    category="sync", 
+    description="Sync selection state to UI")
 @dataclass
 class SyncSelectionsEvent(BaseGraphEvent):
     nodes: List[str]
     edges: List[str]
 
 
-@graph_event("syncCanvasClear", category="sync", description="Clear entire canvas")
+@graph_event(
+    "syncCanvasClear", 
+    category="sync", 
+    description="Clear entire canvas")
 @dataclass
 class SyncCanvasClearEvent(BaseGraphEvent):
     pass
@@ -344,39 +427,42 @@ class SyncNodeRedrawEvent(BaseGraphEvent):
     nodeId: str
 
 
-@graph_event("syncEdgesUpdate", category="sync", description="Update connections for node")
+@graph_event(
+    "syncEdgesUpdate", 
+    category="sync", 
+    description="Update connections for node")
 @dataclass
 class SyncEdgesUpdateEvent(BaseGraphEvent):
     nodeId: str
 
 
 @graph_event(
-    "syncStartReconnect",
+    "syncEdgeReconnect",
     category="sync",
     description="Remove an edge and start a new connection drag from the anchor pin",
 )
 @dataclass
-class SyncStartReconnectEvent(BaseGraphEvent):
+class SyncEdgeReconnectEvent(BaseGraphEvent):
     edge_id: str
     anchorNodeId: str
     anchorPinId: str
 
 
 @graph_event(
-    "syncResumeEdgeDrag",
+    "syncEdgeConnectResume",
     category="sync",
     description="Resume a paused pending connection drag (context menu dismissed without action)",
 )
 @dataclass
-class SyncResumeEdgeDragEvent(BaseGraphEvent):
+class SyncEdgeConnectResumeEvent(BaseGraphEvent):
     pass
 
 
 @graph_event(
-    "syncCancelEdgeDrag",
+    "syncEdgeConnectCancel",
     category="sync",
     description="Cancel an in-progress connection drag (e.g. after auto-wire committed the edge)",
 )
 @dataclass
-class SyncCancelEdgeDragEvent(BaseGraphEvent):
+class SyncEdgeConnectCancelEvent(BaseGraphEvent):
     pass

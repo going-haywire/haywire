@@ -287,14 +287,14 @@ export default {
                 case GraphEvents.SyncCommands.SYNC_EDGES_UPDATE:
                     this._syncEdgesUpdate(data);
                     break;
-                case GraphEvents.SyncCommands.SYNC_START_RECONNECT:
-                    this._syncStartReconnect(data);
+                case GraphEvents.SyncCommands.SYNC_EDGE_RECONNECT:
+                    this._syncEdgeReconnect(data);
                     break;
-                case GraphEvents.SyncCommands.SYNC_RESUME_EDGE_DRAG:
-                    this._syncResumeEdgeDrag();
+                case GraphEvents.SyncCommands.SYNC_EDGE_CONNECT_RESUME:
+                    this._syncEdgeConnectResume();
                     break;
-                case GraphEvents.SyncCommands.SYNC_CANCEL_EDGE_DRAG:
-                    this._syncCancelEdgeDrag();
+                case GraphEvents.SyncCommands.SYNC_EDGE_CONNECT_CANCEL:
+                    this._syncEdgeConnectCancel();
                     break;
                 default:
                     console.warn(`Unknown sync event: ${event_type}`);
@@ -469,27 +469,27 @@ export default {
             this._updateEdgesForNode(nodeId);
         },
 
-        _syncStartReconnect(data) {
+        _syncEdgeReconnect(data) {
             const { edge_id, anchorNodeId, anchorPinId } = data;
             // Remove the edge visual, then enter active connection mode from the anchor pin.
             this._syncEdgeRemoval({ edge_id });
             const pinUUID = this._buildPinUUID(anchorNodeId, anchorPinId);
             const pin = document.getElementById(pinUUID);
             if (pin) {
-                this._enterActive(pin);
+                this._enterActiveEdge(pin);
             } else {
-                console.warn(`[syncStartReconnect] Anchor pin not found: ${pinUUID}`);
+                console.warn(`[syncEdgeReconnect] Anchor pin not found: ${pinUUID}`);
             }
         },
 
-        _syncResumeEdgeDrag() {
+        _syncEdgeConnectResume() {
             if (this.edgeDrag.mode !== 'paused') return;
-            this._enterActive(this.edgeDrag.anchorPin);
+            this._enterActiveEdge(this.edgeDrag.anchorPin);
         },
 
-        _syncCancelEdgeDrag() {
+        _syncEdgeConnectCancel() {
             if (this.edgeDrag.mode !== 'idle') {
-                this._returnToIdle();
+                this._returnToIdleEdge();
             }
         },
 
@@ -549,7 +549,7 @@ export default {
                     // Clicked empty canvas but a suggestion is active — commit to it
                     this._commitConnection(null);
                 } else {
-                    this._returnToIdle();
+                    this._returnToIdleEdge();
                 }
                 return;
             }
@@ -560,7 +560,7 @@ export default {
                 if (pin.dataset.pinFlowType === 'ghost') return;
                 event.preventDefault();
                 event.stopPropagation();
-                this._enterActive(pin);
+                this._enterActiveEdge(pin);
                 return;
             }
 
@@ -619,7 +619,7 @@ export default {
 
         handleKeyDown(e) {
             if (e.key === 'Escape' && this.edgeDrag.mode !== 'idle') {
-                this._returnToIdle();
+                this._returnToIdleEdge();
             }
         },
 
@@ -764,7 +764,7 @@ export default {
                     pendingPinDir  = sp.pinDir      || '';
                     pendingFlowType = sp.pinFlowType || '';
                     pendingDataType = sp.pinDataType || '';
-                    this._enterPaused();
+                    this._enterPausedEdge();
                 }
 
                 this.emitCanvasEvent(EventCreators.createContextMenuCanvas(
@@ -1330,7 +1330,7 @@ export default {
         // =============================================================================
 
         /** Transition to active connection mode from a pin. */
-        _enterActive(pin) {
+        _enterActiveEdge(pin) {
             this.edgeDrag.mode = 'active';
             this.edgeDrag.anchorPin = pin;
             this.edgeDrag.nearestCompatiblePin = null;
@@ -1359,7 +1359,7 @@ export default {
         },
 
         /** Transition to paused mode (context menu open). Preview path stays frozen. */
-        _enterPaused() {
+        _enterPausedEdge() {
             this.edgeDrag.mode = 'paused';
             // Remove glow from anchor pin so it doesn't look active
             if (this.edgeDrag.anchorPin) {
@@ -1374,7 +1374,7 @@ export default {
         },
 
         /** Transition to idle — clean up all connection drag visuals. */
-        _returnToIdle() {
+        _returnToIdleEdge() {
             if (this.edgeDrag.previewPath) {
                 this.edgeDrag.previewPath.remove();
                 this.edgeDrag.previewPath = null;
@@ -1418,7 +1418,7 @@ export default {
                     ));
                 }
             }
-            this._returnToIdle();
+            this._returnToIdleEdge();
         },
 
         _handleEdgeDragMove(e) {

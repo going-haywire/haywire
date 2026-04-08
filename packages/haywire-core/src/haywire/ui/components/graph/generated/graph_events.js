@@ -29,16 +29,16 @@ window.GraphEvents = {
     SYNC_NODE_ADDITION: 'syncNodeAddition', // Sync node addition to UI
     SYNC_NODE_REMOVAL: 'syncNodeRemoval', // Sync node removal from UI
     SYNC_NODE_POSITION: 'syncNodePosition', // Sync node position to UI
+    SYNC_NODE_REDRAW: 'syncNodeRedraw', // Node DOM was rebuilt — re-attach observer and redraw edges
     SYNC_EDGE_ADDITION: 'syncEdgeAddition', // Sync connection addition/update to UI with visual properties
     SYNC_EDGE_REMOVAL: 'syncEdgeRemoval', // Sync connection removal from UI
+    SYNC_EDGES_UPDATE: 'syncEdgesUpdate', // Update connections for node
+    SYNC_EDGE_RECONNECT: 'syncEdgeReconnect', // Remove an edge and start a new connection drag from the anchor pin
+    SYNC_EDGE_CONNECT_RESUME: 'syncEdgeConnectResume', // Resume a paused pending connection drag (context menu dismissed without action)
+    SYNC_EDGE_CONNECT_CANCEL: 'syncEdgeConnectCancel', // Cancel an in-progress connection drag (e.g. after auto-wire committed the edge)
     SYNC_SELECTIONS: 'syncSelections', // Sync selection state to UI
     SYNC_CANVAS_CLEAR: 'syncCanvasClear', // Clear entire canvas
     SYNC_ALL_EDGES: 'syncAllEdges', // Sync all connections to UI
-    SYNC_NODE_REDRAW: 'syncNodeRedraw', // Node DOM was rebuilt — re-attach observer and redraw edges
-    SYNC_EDGES_UPDATE: 'syncEdgesUpdate', // Update connections for node
-    SYNC_START_RECONNECT: 'syncStartReconnect', // Remove an edge and start a new connection drag from the anchor pin
-    SYNC_RESUME_EDGE_DRAG: 'syncResumeEdgeDrag', // Resume a paused pending connection drag (context menu dismissed without action)
-    SYNC_CANCEL_EDGE_DRAG: 'syncCancelEdgeDrag', // Cancel an in-progress connection drag (e.g. after auto-wire committed the edge)
   }
 };
 

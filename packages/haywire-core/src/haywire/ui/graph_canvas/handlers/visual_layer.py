@@ -26,8 +26,8 @@ from ..event_definitions import (
     SyncEdgeRemovalEvent,
     SyncSelectionsEvent,
     SyncCanvasClearEvent,
-    SyncStartReconnectEvent,
-    SyncCancelEdgeDragEvent,
+    SyncEdgeReconnectEvent,
+    SyncEdgeConnectCancelEvent,
 )
 from ..event_handlers import handles_event
 from haywire.core.edge.edge_wrapper import EdgeWrapper
@@ -401,7 +401,7 @@ class VisualLayerHandlers:
 
         if success:
             logger.info(f"Auto-wired {pending_node_id}:{pending_pin_id} → {new_node_id}:{target_port_id}")
-            self.canvas_vue.emit_sync_event(SyncCancelEdgeDragEvent())
+            self.canvas_vue.emit_sync_event(SyncEdgeConnectCancelEvent())
         else:
             logger.warning(
                 f"Auto-wire failed for {pending_node_id}:{pending_pin_id} → {new_node_id}:{target_port_id}"
@@ -445,14 +445,14 @@ class VisualLayerHandlers:
             for edge_id in event.edges:
                 self.graph.request_edge_reset(edge_id)
 
-    @handles_event(SyncStartReconnectEvent)
-    def process_start_reconnect(self, event: SyncStartReconnectEvent):
+    @handles_event(SyncEdgeReconnectEvent)
+    def process_start_reconnect(self, event: SyncEdgeReconnectEvent):
         """Forward reconnect command to Vue, then remove the edge from the graph.
 
         Order matters:
         1. Pre-remove the edge from edge_paths so that the validation callback fired
            by editor.remove_elements does not emit a redundant syncEdgeRemoval to Vue.
-        2. Send syncStartReconnect to Vue — it removes the edge visual and starts the
+        2. Send syncEdgeReconnect to Vue — it removes the edge visual and starts the
            click-click drag from the anchor pin.
         3. Remove the edge from the graph so a subsequent edgeCreated for the same
            pins is not rejected as a duplicate.

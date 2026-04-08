@@ -43,7 +43,7 @@ class ReconnectEdgePanel(BasePanel):
         return context.active_edge is not None
 
     def draw(self, context: "SessionContext", layout: PanelLayout) -> None:
-        from haywire.ui.graph_canvas.event_definitions import SyncStartReconnectEvent
+        from haywire.ui.graph_canvas.event_definitions import SyncEdgeReconnectEvent
 
         wrapper = context.active_edge
         edge_id = wrapper._edge_id
@@ -61,7 +61,7 @@ class ReconnectEdgePanel(BasePanel):
         def _reconnect():
             _emit(
                 context,
-                SyncStartReconnectEvent(
+                SyncEdgeReconnectEvent(
                     edge_id=edge_id,
                     anchorNodeId=anchor_node_id,
                     anchorPinId=anchor_pin_id,
