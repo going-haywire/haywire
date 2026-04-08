@@ -328,8 +328,19 @@ export default {
                 opacity = 1.0
             } = data;
 
-            // A permanent edge is being committed — cancel any active drag (including paused).
-            this._cancelEdgeDrag();
+            // Only cancel an active drag when the synced edge involves the drag's anchor pin.
+            // Unrelated redraw/addition syncs can arrive during reconnect and must not cancel it.
+            if (this.edgeState.isDragging && this.edgeState.startPin) {
+                const startPinData = this.edgeState.startPin.dataset;
+                const addedEdgeTouchesStartPin = (
+                    sourceNodeId === startPinData.nodeId && outletPinId === startPinData.pinId
+                ) || (
+                    sinkNodeId === startPinData.nodeId && inletPinId === startPinData.pinId
+                );
+                if (addedEdgeTouchesStartPin) {
+                    this._cancelEdgeDrag();
+                }
+            }
 
             // Check if connection already exists
             if (this.edgePaths.has(edge_id)) {
@@ -463,8 +474,6 @@ export default {
             this.selectionState.selectedEdges.clear();
         },
 
-
-
         _syncNodeRedraw(data) {
             const { nodeId } = data;
             this._addNodeObserver(nodeId);
@@ -499,26 +508,14 @@ export default {
         // =============================================================================
 
 
-        handleMouseDown(e) {
-            if (e.button === 2) return; // Skip right-click
+        handleMouseDown(event) {
+            console.info('Entering handleMouseDown...', event);
+            if (event.button === 2) return; // Skip right-click
 
-            const target = e.target;
+            const target = event.target;
 
             // Invalidate cached container rect at the start of every gesture
             this._cachedNodeContainerRect = null;
-
-            // 0. Only handle events that originate within this canvas element.
-            //    The listener is on document.body (capture), so clicks anywhere on
-            //    the page reach this handler — e.g. clicking in the properties panel.
-            //    Without this guard, those clicks fall through to _startBoxSelection
-            //    which clears the selection and fires selectionChanged([],[]).
-            if (target === this.$refs.canvasContainer || target === this.$refs.svg) {
-                // Click outside canvas while in click-mode → cancel
-                if (this.edgeState.isDragging && this.edgeState.isClickMode) {
-                    this._cancelEdgeDrag();
-                }
-                return;
-            }
 
             // 1. Skip if clicking inside a popup - let popup handle it.
             //    This must run before click-click mode so popup interactions
@@ -535,12 +532,14 @@ export default {
                 console.log('Click inside popup - letting popup handle it');
                 return;
             }
+            console.info('before dragging...');
 
             // ── Click-click mode: this mousedown is the "commit or cancel" click ──
             if (this.edgeState.isDragging && this.edgeState.isClickMode && !this.edgeState.isPaused) {
-                e.preventDefault();
-                e.stopPropagation();
-                const pin = e.target.closest('.connection-pin');
+                console.log('Click commit/cancel for click-click edge drag');
+                event.preventDefault();
+                event.stopPropagation();
+                const pin = event.target.closest('.connection-pin');
                 if (pin && pin.dataset.pinFlowType !== 'ghost') {
                     // Clicked a pin — commit if valid
                     this._commitOrCancelEdgeDrag(pin);
@@ -548,10 +547,16 @@ export default {
                     // Clicked empty canvas but a suggestion is active — commit to it
                     this._commitOrCancelEdgeDrag(null);
                 } else {
-                    // Clicked empty canvas, no suggestion — cancel
-                    this._cancelEdgeDrag();
+                    // 0. Only handle events that originate within this canvas element.
+                    if (target === this.$refs.canvasContainer || target === this.$refs.svg) {
+                        // Click outside canvas while in click-mode → cancel
+                        // Clicked empty canvas, no suggestion — cancel
+                        this._cancelEdgeDrag();
+                    }
                 }
                 return;
+            } else {
+                console.debug('check is dragging: ', this.edgeState.isDragging, ' click mode: ', this.edgeState.isClickMode);
             }
 
             // 2. Check for connection pin FIRST - before anything else
@@ -559,7 +564,7 @@ export default {
             if (pin) {
                 // Ghost pins are fallback visual anchors only — not user-connectable
                 if (pin.dataset.pinFlowType === 'ghost') return;
-                this._startEdgeDrag(e, pin);
+                this._startEdgeDrag(event, pin);
                 return;
             }
 
@@ -575,12 +580,12 @@ export default {
             // 4. Check for elements that can be dragged (nodes)
             const draggableElement = this._findDraggableElement(target);
             if (draggableElement) {
-                this._startUnifiedDrag(e, draggableElement);
+                this._startUnifiedDrag(event, draggableElement);
                 return;
             }
 
             // 5. Start box selection on empty canvas
-            this._startBoxSelection(e);
+            this._startBoxSelection(event);
         },
 
         handleMouseMove(e) {
@@ -1330,13 +1335,13 @@ export default {
 
 
         // =============================================================================
-        // CONNECTION DRAG SYSTEM (keeping as-is)
+        // CONNECTION DRAG SYSTEM 
         // =============================================================================
 
-        _startEdgeDrag(e, pin) {
-            e.preventDefault();
-            e.stopPropagation();
-            this.edgeState.startMousePos = { x: e.clientX, y: e.clientY };
+        _startEdgeDrag(event, pin) {
+            event.preventDefault();
+            event.stopPropagation();
+            this.edgeState.startMousePos = { x: event.clientX, y: event.clientY };
             this._initEdgeDrag(pin, false);
         },
 
@@ -1505,7 +1510,8 @@ export default {
             // Fall back to nearest suggestion when releasing on empty canvas
             if (!endPin && this.edgeState.nearestSuggestedPin) {
                 endPin = this.edgeState.nearestSuggestedPin;
-            }
+                console.debug(`Found suggested pin: ${endPin.dataset.pinId})`);
+             }
 
             if (endPin && this._isValidEdge(this.edgeState.startPin, endPin)) {
                 let sourceData = this.edgeState.startPin.dataset;
@@ -1523,6 +1529,7 @@ export default {
                 }
                 this._cancelEdgeDrag();
             } else {
+                console.error(`Invalid edge: ${this.edgeState.startPin.dataset.pinId} -> ${endPin ? endPin.dataset.pinId : 'null'}`);
                 this._cancelEdgeDrag();
             }
         },
@@ -2242,7 +2249,7 @@ export default {
             const updateCount = Math.max(3, Math.min(8, Math.ceil(animationDuration / 50)));
             const interval = animationDuration / updateCount;
 
-            console.log(`-->  _scheduleEdgeUpdates(): ${nodeId}`);
+            console.debug(`-->  _scheduleEdgeUpdates(): ${nodeId}`);
             for (let i = 1; i <= updateCount; i++) {
                 const delay = interval * i;
                 const timer = setTimeout(() => {
