@@ -37,7 +37,7 @@ window.GraphEvents = {
     SYNC_NODE_REDRAW: 'syncNodeRedraw', // Node DOM was rebuilt — re-attach observer and redraw edges
     SYNC_EDGES_UPDATE: 'syncEdgesUpdate', // Update connections for node
     SYNC_START_RECONNECT: 'syncStartReconnect', // Remove an edge and start a new connection drag from the anchor pin
-    SYNC_PLAY_PENDING_CONNECTION: 'syncPlayPendingConnection', // Resume a paused pending connection drag (context menu dismissed without action)
+    SYNC_RESUME_EDGE_DRAG: 'syncResumeEdgeDrag', // Resume a paused pending connection drag (context menu dismissed without action)
   }
 };
 

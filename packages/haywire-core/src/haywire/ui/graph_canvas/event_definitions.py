@@ -363,10 +363,10 @@ class SyncStartReconnectEvent(BaseGraphEvent):
 
 
 @graph_event(
-    "syncPlayPendingConnection",
+    "syncResumeEdgeDrag",
     category="sync",
     description="Resume a paused pending connection drag (context menu dismissed without action)",
 )
 @dataclass
-class SyncPlayPendingConnectionEvent(BaseGraphEvent):
+class SyncResumeEdgeDragEvent(BaseGraphEvent):
     pass

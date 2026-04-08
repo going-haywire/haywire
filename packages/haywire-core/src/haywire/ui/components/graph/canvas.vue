@@ -294,8 +294,8 @@ export default {
                 case GraphEvents.SyncCommands.SYNC_START_RECONNECT:
                     this._syncStartReconnect(data);
                     break;
-                case GraphEvents.SyncCommands.SYNC_PLAY_PENDING_CONNECTION:
-                    this._syncPlayPendingConnection();
+                case GraphEvents.SyncCommands.SYNC_RESUME_EDGE_DRAG:
+                    this._resumeEdgeDrag();
                     break;
                 default:
                     console.warn(`Unknown sync event: ${event_type}`);
@@ -644,18 +644,6 @@ export default {
             const clientY = event.clientY;
             const target = event.target;
 
-            // Snapshot pending connection before pausing drag (used for canvas menu below).
-            let pendingPinId = '', pendingNodeId = '', pendingPinDir = '',
-                pendingFlowType = '', pendingDataType = '';
-            if (this.edgeState.isDragging && this.edgeState.startPin) {
-                const sp = this.edgeState.startPin.dataset;
-                pendingPinId   = sp.pinId       || '';
-                pendingNodeId  = sp.nodeId      || '';
-                pendingPinDir  = sp.pinDir      || '';
-                pendingFlowType = sp.pinFlowType || '';
-                pendingDataType = sp.pinDataType || '';
-                this._pauseEdgeDrag();
-            }
 
             // Check for port-scope context menu (data-hw-port-menu-scope)
             // port_id is taken from data-port-id on the element, falling back to data-pin-id.
@@ -770,6 +758,20 @@ export default {
                     ));
                 }
             } else {
+
+                // Snapshot pending connection before pausing drag (used for canvas menu below).
+                let pendingPinId = '', pendingNodeId = '', pendingPinDir = '',
+                    pendingFlowType = '', pendingDataType = '';
+                if (this.edgeState.isDragging && this.edgeState.startPin) {
+                    const sp = this.edgeState.startPin.dataset;
+                    pendingPinId   = sp.pinId       || '';
+                    pendingNodeId  = sp.nodeId      || '';
+                    pendingPinDir  = sp.pinDir      || '';
+                    pendingFlowType = sp.pinFlowType || '';
+                    pendingDataType = sp.pinDataType || '';
+                    this._suspendEdgeDrag();
+                }
+
                 this.emitCanvasEvent(EventCreators.createContextMenuCanvas(
                     clientX, clientY, canvasCoords.x, canvasCoords.y,
                     pendingPinId, pendingNodeId, pendingPinDir, pendingFlowType, pendingDataType
@@ -1379,7 +1381,7 @@ export default {
          * Keeps all drag state and the temp path frozen in place — the curve
          * remains visible but stops following the mouse.
          */
-        _pauseEdgeDrag() {
+        _suspendEdgeDrag() {
             this.edgeState.isPaused = true;
             // Remove glow/scale from start pin so it doesn't look "active"
             if (this.edgeState.startPin) {
@@ -1397,7 +1399,7 @@ export default {
          * Resume a paused connection drag. Called when a context menu is
          * dismissed without creating a node (SyncPlayPendingConnection event).
          */
-        _syncPlayPendingConnection() {
+        _resumeEdgeDrag() {
             if (!this.edgeState.isPaused || !this.edgeState.isDragging) return;
             this.edgeState.isPaused = false;
             // Restore start pin highlight

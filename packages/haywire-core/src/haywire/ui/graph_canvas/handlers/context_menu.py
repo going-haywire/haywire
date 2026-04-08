@@ -24,7 +24,7 @@ from ..event_definitions import (
     ContextMenuSelectedEvent,
     ContextMenuCustomEvent,
     ContextMenuPortEvent,
-    SyncPlayPendingConnectionEvent,
+    SyncResumeEdgeDragEvent,
 )
 from ..event_handlers import handles_event
 from haywire.ui.context_events import ContextChangeType, ContextChangedEvent
@@ -185,7 +185,7 @@ class SessionContextMenuProvider(IContextMenuProvider):
             self._context.metadata.pop("edge_reconnect_end", None)
             # If pending_connection is still set, no node was created — resume the drag.
             if self._context.metadata.pop("pending_connection", None) is not None:
-                self._on_emit_sync_event(SyncPlayPendingConnectionEvent())
+                self._on_emit_sync_event(SyncResumeEdgeDragEvent())
             self._session.notify_context_changed(
                 ContextChangedEvent(change_type=ContextChangeType.CONTEXT_MENU_CLOSED)
             )
