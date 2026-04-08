@@ -515,7 +515,7 @@ export default {
             //    Without this guard those clicks fall through to _startBoxSelection
             //    which calls stopPropagation(), preventing the target element from
             //    ever receiving the event.
-            if (!this.$refs.canvasContainer || !this.$refs.canvasContainer.contains(target)) {
+            if (!this.$refs.container || !this.$refs.container.contains(target)) {
                 return;
             }
 
