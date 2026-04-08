@@ -370,3 +370,13 @@ class SyncStartReconnectEvent(BaseGraphEvent):
 @dataclass
 class SyncResumeEdgeDragEvent(BaseGraphEvent):
     pass
+
+
+@graph_event(
+    "syncCancelEdgeDrag",
+    category="sync",
+    description="Cancel an in-progress connection drag (e.g. after auto-wire committed the edge)",
+)
+@dataclass
+class SyncCancelEdgeDragEvent(BaseGraphEvent):
+    pass

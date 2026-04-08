@@ -641,6 +641,7 @@ def input_field(
     placeholder: str | None = None,
     value: str = "",
     clearable: bool = False,
+    autofocus: bool = False,
     on_change: Callable | None = None,
     **kwargs: Any,
 ) -> ui.input:
@@ -656,6 +657,8 @@ def input_field(
     - Disabled: pass Quasar ``:disable="True"`` — renders ``opacity: 0.5`` automatically
     - Validation: pass Quasar ``:rules=`` and ``lazy-rules="ondemand"`` — error text
       appears below using ``var(--hw-danger)``; do not use ``hui.error_label()`` inline
+    - ``autofocus=True``: focuses the field after a short delay, required for dynamically
+      shown containers (e.g. popups) where the HTML autofocus attribute does not fire
 
     Usage::
 
@@ -678,6 +681,11 @@ def input_field(
         .classes("w-full")
         .props(props)
     )
+
+    if autofocus:
+        ui.timer(
+            0.1, lambda: ui.run_javascript(f'document.getElementById("c{inp.id}")?.focus();'), once=True
+        )
 
     return inp
 

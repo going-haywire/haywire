@@ -38,6 +38,7 @@ window.GraphEvents = {
     SYNC_EDGES_UPDATE: 'syncEdgesUpdate', // Update connections for node
     SYNC_START_RECONNECT: 'syncStartReconnect', // Remove an edge and start a new connection drag from the anchor pin
     SYNC_RESUME_EDGE_DRAG: 'syncResumeEdgeDrag', // Resume a paused pending connection drag (context menu dismissed without action)
+    SYNC_CANCEL_EDGE_DRAG: 'syncCancelEdgeDrag', // Cancel an in-progress connection drag (e.g. after auto-wire committed the edge)
   }
 };
 
@@ -331,4 +332,5 @@ window.EventValidators = {
     return requiredFields.every(field => field in data);
   }
 };
+
 

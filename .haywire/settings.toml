@@ -1,5 +1,5 @@
 [debug]
-log_level = "WARNING"
+log_level = "DEBUG"
 log_library = ""
 log_node = ""
 log_ui = ""

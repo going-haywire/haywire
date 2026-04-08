@@ -27,6 +27,7 @@ from ..event_definitions import (
     SyncSelectionsEvent,
     SyncCanvasClearEvent,
     SyncStartReconnectEvent,
+    SyncCancelEdgeDragEvent,
 )
 from ..event_handlers import handles_event
 from haywire.core.edge.edge_wrapper import EdgeWrapper
@@ -344,12 +345,9 @@ class VisualLayerHandlers:
     def _try_auto_wire(self, wrapper) -> None:
         """
         After node creation, check for a pending_connection in context metadata and
-        auto-wire if exactly one compatible port exists on the new node.
+        auto-wire at least one compatible port exists on the new node.
 
         TODO: Static port-type introspection (before instantiation) is not yet supported.
-        Currently we inspect the live node instance. Auto-wire fires when there is
-        exactly one port whose direction and flow/data type are compatible with the
-        pending connection's source pin.
         """
         if self.context is None:
             return
@@ -382,7 +380,7 @@ class VisualLayerHandlers:
                     continue
             compatible_ports.append(port_id)
 
-        if len(compatible_ports) != 1:
+        if not compatible_ports:
             logger.debug(
                 f"Auto-wire: {len(compatible_ports)} compatible typed ports on {wrapper.node_id}, "
                 f"connecting to ghost pin (edge will be unlinked)"
@@ -403,6 +401,7 @@ class VisualLayerHandlers:
 
         if success:
             logger.info(f"Auto-wired {pending_node_id}:{pending_pin_id} → {new_node_id}:{target_port_id}")
+            self.canvas_vue.emit_sync_event(SyncCancelEdgeDragEvent())
         else:
             logger.warning(
                 f"Auto-wire failed for {pending_node_id}:{pending_pin_id} → {new_node_id}:{target_port_id}"

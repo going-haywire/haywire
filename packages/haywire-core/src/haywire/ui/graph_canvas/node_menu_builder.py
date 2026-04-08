@@ -49,7 +49,8 @@ class NodeMenuBuilder:
                 hui.input_field(
                     placeholder="Search nodes...",
                     on_change=lambda e: self._handle_search(e.value, menu_container),
-                ).props("autofocus").classes("w-96 mb-2")
+                    autofocus=True,
+                ).classes("w-96 mb-2")
 
                 # Container for search results (initially hidden)
                 self._search_results = ui.column().classes("w-96 gap-1").style("display: none")
