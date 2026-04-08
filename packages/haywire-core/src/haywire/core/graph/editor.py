@@ -11,6 +11,7 @@ Design Philosophy:
 - Clean separation between business logic and presentation layer
 """
 
+import logging
 from typing import Dict, List, Optional, Tuple, Any
 from haywire.core.graph.base import BaseGraph
 from haywire.core.edge.edge_wrapper import EdgeWrapper
@@ -26,6 +27,7 @@ from haywire.core.undo.actions.graph_actions import (
     AddEdgeAction,
 )
 
+logger = logging.getLogger(__name__)
 
 class Editor:
     """
@@ -76,12 +78,12 @@ class Editor:
             action = AddNodeAction(graph=self.graph, registry_key=registry_key, position=position)
             self.history_manager.add_action(action)
 
-            print(f"✅ Editor: Created node of type {registry_key} at {position}")
+            logger.info(f"Created node of type {registry_key} at {position}")
 
             return action.wrapper
 
         except Exception as e:
-            print(f"❌ Editor: Error creating node of type {registry_key}: {e}")
+            logger.error(f"Error creating node of type {registry_key}: {e}")
             return None
 
     def move_nodes(self, nodes: List[str], deltaX: float, deltaY: float) -> bool:
@@ -104,11 +106,11 @@ class Editor:
             action = MoveNodesAction(self.graph, nodes, deltaX, deltaY)
             self.history_manager.add_action(action)
 
-            print(f"✅ Editor: Moved {len(nodes)} nodes by delta ({deltaX}, {deltaY})")
+            logger.info(f"Moved {len(nodes)} nodes by delta ({deltaX}, {deltaY})")
             return True
 
         except Exception as e:
-            print(f"❌ Editor: Error moving nodes by delta: {e}")
+            logger.error(f"Error moving nodes by delta: {e}")
             return False
 
     def remove_elements(self, nodes: List[str] = None, edges: List[str] = None) -> bool:
@@ -131,13 +133,13 @@ class Editor:
         # Validate nodes exist
         missing_nodes = [node_id for node_id in nodes if node_id not in self.graph.node_wrappers]
         if missing_nodes:
-            print(f"⚠️ Editor: Nodes not found for removal: {missing_nodes}")
+            logger.warning(f"Nodes not found for removal: {missing_nodes}")
             return False
 
         # Validate connections exist
         missing_edges = [conn_id for conn_id in edges if not self.graph.get_edge_wrapper(conn_id)]
         if missing_edges:
-            print(f"⚠️ Editor: Connections not found for removal: {missing_edges}")
+            logger.warning(f"Connections not found for removal: {missing_edges}")
             return False
 
         try:
@@ -146,13 +148,13 @@ class Editor:
             self.history_manager.add_action(action)
 
             total_count = len(nodes) + len(edges)
-            print(
-                f"✅ Editor: Removed {total_count} elements ({len(nodes)} nodes, {len(edges)} connections)"
+            logger.info(
+                f"Removed {total_count} elements ({len(nodes)} nodes, {len(edges)} connections)"
             )
             return True
 
         except Exception as e:
-            print(f"❌ Editor: Error removing elements: {e}")
+            logger.error(f"Error removing elements: {e}")
             return False
 
     def get_node_wrapper(self, node_id: str) -> Optional[NodeWrapper]:
@@ -195,13 +197,13 @@ class Editor:
             )
             self.history_manager.add_action(action)
 
-            print(
-                f"✅ Editor: Created connection {source_node_id}:{outlet_pin} -> {sink_node_id}:{inlet_pin}"
+            logger.info(
+                f"Created connection {source_node_id}:{outlet_pin} -> {sink_node_id}:{inlet_pin}"
             )
             return True
 
         except Exception as e:
-            print(f"❌ Editor: Error creating connection: {e}")
+            logger.error(f"Error creating connection: {e}")
             return False
 
     def list_edges(self) -> List[EdgeWrapper]:
@@ -218,12 +220,12 @@ class Editor:
             try:
                 result = self.history_manager.undo()
                 if result:
-                    print("✅ Editor: Undo performed")
+                    logger.info("Undo performed")
                 return result
             except Exception as e:
-                print(f"❌ Editor: Error during undo: {e}")
+                logger.error(f"Error during undo: {e}")
                 return False
-        print("⚠️ Editor: Nothing to undo")
+        logger.warning("Nothing to undo")
         return False
 
     def redo(self) -> bool:
@@ -232,12 +234,12 @@ class Editor:
             try:
                 result = self.history_manager.redo()
                 if result:
-                    print("✅ Editor: Redo performed")
+                    logger.info("Redo performed")
                 return result
             except Exception as e:
-                print(f"❌ Editor: Error during redo: {e}")
+                logger.error(f"Error during redo: {e}")
                 return False
-        print("⚠️ Editor: Nothing to redo")
+        logger.warning("Nothing to redo")
         return False
 
     def can_undo(self) -> bool:

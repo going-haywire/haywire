@@ -14,6 +14,7 @@ from dataclasses import dataclass
 from .interfaces import IAction, IHistoryManager
 from .config import UndoConfig
 
+logger = logging.getLogger(__name__)
 
 @dataclass
 class Fence:
@@ -109,11 +110,6 @@ class HistoryManager(IHistoryManager):
         self._memory_usage = 0
         self._last_merge_time = 0
 
-        # Setup logging
-        self.logger = logging.getLogger(__name__)
-        if self.config.enable_debug_logging:
-            self.logger.setLevel(logging.DEBUG)
-
     def add_action(self, action: IAction) -> None:
         """
         Add an action to the history.
@@ -130,9 +126,9 @@ class HistoryManager(IHistoryManager):
         try:
             action.execute()
             if self.config.enable_debug_logging:
-                self.logger.debug(f"Executed action: {action.description}")
+                logger.debug(f"Executed action: {action.description}")
         except Exception as e:
-            self.logger.error(f"Failed to execute action {action.description}: {e}", exc_info=True)
+            logger.error(f"Failed to execute action {action.description}: {e}", exc_info=True)
             return  # Don't add failed actions to history
 
         # Try to merge with the last action if merging is enabled
@@ -162,11 +158,11 @@ class HistoryManager(IHistoryManager):
         self._last_action_time = current_time
 
         if self.config.enable_debug_logging:
-            self.logger.debug(f"Added action: {action.description}")
-            self.logger.debug(
+            logger.debug(f"Added action: {action.description}")
+            logger.debug(
                 f"History state: {len(self.history)} items, current_index: {self.current_index}"
             )
-            self.logger.debug(f"Can undo: {self.can_undo()}, Can redo: {self.can_redo()}")
+            logger.debug(f"Can undo: {self.can_undo()}, Can redo: {self.can_redo()}")
 
     def add_fence(self) -> None:
         """
@@ -187,7 +183,7 @@ class HistoryManager(IHistoryManager):
         self._last_fence_time = current_time
 
         if self.config.enable_debug_logging:
-            self.logger.debug("Added fence")
+            logger.debug("Added fence")
 
     def undo(self) -> bool:
         """
@@ -212,10 +208,10 @@ class HistoryManager(IHistoryManager):
             # Execute the undo
             if isinstance(item, ActionGroup):
                 item.undo()
-                self.logger.debug(f"Undid action group with {item.action_count} actions")
+                logger.debug(f"Undid action group with {item.action_count} actions")
             else:
                 item.undo()
-                self.logger.debug(f"Undid action: {item.description}")
+                logger.debug(f"Undid action: {item.description}")
 
             # Move the current index
             self._move_to_previous_action()
@@ -226,7 +222,7 @@ class HistoryManager(IHistoryManager):
             return True
 
         except Exception as e:
-            self.logger.error(f"Failed to undo action: {e}")
+            logger.error(f"Failed to undo action: {e}")
             return False
 
     def redo(self) -> bool:
@@ -249,10 +245,10 @@ class HistoryManager(IHistoryManager):
             # Execute the redo
             if isinstance(item, ActionGroup):
                 item.execute()
-                self.logger.debug(f"Redid action group with {item.action_count} actions")
+                logger.debug(f"Redid action group with {item.action_count} actions")
             else:
                 item.execute()
-                self.logger.debug(f"Redid action: {item.description}")
+                logger.debug(f"Redid action: {item.description}")
 
             # Move the current index forward after successful execution
             self._move_to_next_action()
@@ -263,7 +259,7 @@ class HistoryManager(IHistoryManager):
             return True
 
         except Exception as e:
-            self.logger.error(f"Failed to redo action: {e}")
+            logger.error(f"Failed to redo action: {e}")
             return False
 
     def can_undo(self) -> bool:
@@ -293,7 +289,7 @@ class HistoryManager(IHistoryManager):
         self._memory_usage = 0
 
         if self.config.enable_debug_logging:
-            self.logger.debug("Cleared all history")
+            logger.debug("Cleared all history")
 
     def get_undo_description(self) -> Optional[str]:
         """Get description of the next action that would be undone."""
@@ -337,7 +333,7 @@ class HistoryManager(IHistoryManager):
                 self._last_merge_time = time.time()
 
                 if self.config.enable_debug_logging:
-                    self.logger.debug(f"Merged actions: {action.description}")
+                    logger.debug(f"Merged actions: {action.description}")
 
     def _should_flush_pending_actions(self, current_time: float) -> bool:
         """Check if pending actions should be flushed to history."""
@@ -454,7 +450,7 @@ class HistoryManager(IHistoryManager):
         """Show a notification message (placeholder for UI integration)."""
         # This would integrate with the UI notification system
         if self.config.enable_debug_logging:
-            self.logger.info(f"Notification: {message}")
+            logger.info(f"Notification: {message}")
 
     def _cleanup_item(self, item: Union[IAction, ActionGroup, Fence]) -> None:
         """
