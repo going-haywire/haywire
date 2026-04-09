@@ -198,5 +198,16 @@ def test_node_decorator_partial_override():
     assert DerivedNode.class_behavior.is_data_node is True  # Now data
 
 
+def test_node_decorator_sets_source_info():
+    """@node sets class_name and module on the identity."""
+
+    @node(label="Source Test")
+    class SourceTestNode(BaseNode):
+        pass
+
+    assert SourceTestNode.class_identity.class_name == "SourceTestNode"
+    assert SourceTestNode.class_identity.module == __name__
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
