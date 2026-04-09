@@ -11,6 +11,7 @@ import inspect
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+from haywire.core.library.info import LibraryInfo
 from nicegui import ui
 
 from haywire.ui import elements as hui
@@ -88,7 +89,7 @@ class LibraryComponentEditor(BaseEditor):
                 )
                 return
 
-            lib = component_info.get("lib")
+            lib: LibraryInfo = component_info.get("lib")
             class_name = component_info.get("class_name", "")
             comp_type = component_info.get("comp_type", "nodes")
 
@@ -103,14 +104,17 @@ class LibraryComponentEditor(BaseEditor):
             description = getattr(identity, "description", None) or ""
             tags = getattr(identity, "tags", []) or []
             icon = self._COMP_ICONS.get(comp_type, "extension")
-            lib_id = getattr(lib, "library_id", None) or ""
+            lib_id = lib.identity.id
             registry_key = f"{lib_id}:{comp_singular}:{class_name}" if lib_id else registry_id
             actual_name = getattr(cls, "__name__", class_name) if cls else class_name
             module_path = getattr(cls, "__module__", None) if cls else None
             menu = getattr(identity, "menu", None) if identity else None
 
             # Resolve docs and source files
-            source = Path(lib.source_path) if lib and getattr(lib, "source_path", None) else None
+            _source_path = (lib.identity.folder_path if lib and hasattr(lib, "identity") else None) or (
+                getattr(lib, "source_path", None) if lib else None
+            )
+            source = Path(_source_path) if _source_path else None
             doc_file = source / "docs" / comp_type / f"{class_name}.md" if source else None
             src_file: Path | None = None
             if cls:
@@ -118,7 +122,12 @@ class LibraryComponentEditor(BaseEditor):
                     src_file = Path(inspect.getfile(cls))
                 except (TypeError, OSError):
                     pass
-            is_editable = getattr(lib, "install_type", None) == "EDITABLE"
+            _install_type = getattr(lib, "install_type", None) if lib else None
+            is_editable = (
+                _install_type.name == "EDITABLE"
+                if hasattr(_install_type, "name")
+                else _install_type == "EDITABLE"
+            )
 
             # height:100% + flex column so tab_panels can fill remaining space
             with ui.column().classes("w-full p-4 gap-0").style("height: 100%;"):
@@ -303,9 +312,11 @@ class LibraryComponentEditor(BaseEditor):
             )
 
     @staticmethod
-    def _lookup_class(app, lib, class_name: str, comp_type: str, registry_key: str | None = None):
+    def _lookup_class(
+        app, lib: LibraryInfo, class_name: str, comp_type: str, registry_key: str | None = None
+    ):
         """Look up the component class from the appropriate registry."""
-        lib_id = getattr(lib, "library_id", None)
+        lib_id = lib.identity.id
         if not lib_id or not app:
             return None
         comp_singular = comp_type.removesuffix("s")

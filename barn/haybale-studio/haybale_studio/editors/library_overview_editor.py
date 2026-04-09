@@ -34,7 +34,8 @@ from haywire.ui.skin.registry import SkinRegistry
 from haywire.ui.themes import ThemeRegistry
 from haywire.ui.context_events import ContextChangeType, ContextChangedEvent
 
-from haywire_studio.library_manager import InstalledLibrary, LibraryManager, MarketplaceEntry
+from haywire.core.library.info import LibraryInfo
+from haywire_studio.library_manager import LibraryManager, MarketplaceEntry
 
 from haywire.ui.widget.registry import WidgetRegistry
 from haywire_studio.workspace.defaults import _K_COMPONENT_DETAIL
@@ -128,7 +129,7 @@ class LibraryOverviewEditor(BaseEditor):
             self._render_placeholder()
             return
 
-        if isinstance(lib, InstalledLibrary):
+        if isinstance(lib, LibraryInfo):
             self._render_center(lib, None, context)
         elif isinstance(lib, MarketplaceEntry):
             self._render_center(None, lib, context)
@@ -148,7 +149,7 @@ class LibraryOverviewEditor(BaseEditor):
 
     def _render_center(
         self,
-        installed_lib: InstalledLibrary | None,
+        installed_lib: LibraryInfo | None,
         marketplace_pkg: MarketplaceEntry | None,
         context: "SessionContext",
     ):
@@ -177,11 +178,11 @@ class LibraryOverviewEditor(BaseEditor):
 
         # Determine display properties
         if installed_lib:
-            name = installed_lib.label
-            version = installed_lib.version
-            description = installed_lib.description
-            author = installed_lib.author
-            tags = installed_lib.tags or (marketplace_pkg.tags if marketplace_pkg else []) or []
+            name = installed_lib.identity.label
+            version = installed_lib.identity.version
+            description = installed_lib.identity.description
+            author = installed_lib.identity.author
+            tags = installed_lib.identity.tags or (marketplace_pkg.tags if marketplace_pkg else []) or []
         else:
             name = marketplace_pkg.label or marketplace_pkg.name
             version = marketplace_pkg.version
@@ -191,11 +192,11 @@ class LibraryOverviewEditor(BaseEditor):
 
         # Check for available update
         update_available = False
-        if marketplace_pkg and installed_lib and marketplace_pkg.version and installed_lib.version:
+        if marketplace_pkg and installed_lib and marketplace_pkg.version and installed_lib.identity.version:
             try:
                 from packaging.version import Version
 
-                update_available = Version(marketplace_pkg.version) > Version(installed_lib.version)
+                update_available = Version(marketplace_pkg.version) > Version(installed_lib.identity.version)
             except Exception:
                 pass
 
@@ -210,7 +211,7 @@ class LibraryOverviewEditor(BaseEditor):
                 return 0
             return sum(1 for k in registry.list_names() if k.startswith(prefix))
 
-        lib_id = installed_lib.library_id if installed_lib else None
+        lib_id = installed_lib.identity.id if installed_lib else None
 
         # ── header + metadata + tabs bar ───────────────────────
         self._fixed.clear()
@@ -219,7 +220,7 @@ class LibraryOverviewEditor(BaseEditor):
                 # ── Header ────────────────────────────────────────────────────
                 with ui.row().classes("w-full items-start justify-between mb-2"):
                     with ui.column().classes("gap-0.5 min-w-0 flex-1"):
-                        _title_url = (installed_lib.url if installed_lib else "") or ""
+                        _title_url = (installed_lib.identity.url if installed_lib else "") or ""
                         if _title_url.startswith("http"):
                             with ui.row().classes("items-center gap-1"):
                                 ui.label(name).classes("text-2xl font-bold")
@@ -240,8 +241,8 @@ class LibraryOverviewEditor(BaseEditor):
                                     "EDITABLE": "purple",
                                     "REGULAR": "blue",
                                     "FOLDER": "teal",
-                                }.get(installed_lib.install_type, "grey")
-                                hui.tag(installed_lib.install_type.lower(), color=inst_color)
+                                }.get(installed_lib.install_type.name, "grey")
+                                hui.tag(installed_lib.install_type.name.lower(), color=inst_color)
                             if marketplace_pkg:
                                 src_color = "blue" if marketplace_pkg.source == "pypi" else "purple"
                                 hui.tag(marketplace_pkg.source, color=src_color)
@@ -254,9 +255,10 @@ class LibraryOverviewEditor(BaseEditor):
                             _is_project = self._is_project_library(installed_lib, marketplace_path)
                             _required_by = (
                                 LibraryManager.is_required_by_another_package(
-                                    installed_lib.distribution_name or installed_lib.library_id
+                                    installed_lib.distribution_name or installed_lib.identity.id
                                 )
-                                if not _is_project and installed_lib.install_type in ("REGULAR", "EDITABLE")
+                                if not _is_project
+                                and installed_lib.install_type.name in ("REGULAR", "EDITABLE")
                                 else None
                             )
 
@@ -265,7 +267,7 @@ class LibraryOverviewEditor(BaseEditor):
                                 _btn = ui.button(
                                     "Disable",
                                     icon=hui.icon.pause,
-                                    on_click=lambda lid=installed_lib.library_id, ctx=context: (
+                                    on_click=lambda lid=installed_lib.identity.id, ctx=context: (
                                         self._disable_library(lid, manager, ctx)
                                     ),
                                 ).props("size=sm color=orange flat")
@@ -277,7 +279,7 @@ class LibraryOverviewEditor(BaseEditor):
                                 ui.button(
                                     "Enable",
                                     icon=hui.icon.resume,
-                                    on_click=lambda lid=installed_lib.library_id, ctx=context: (
+                                    on_click=lambda lid=installed_lib.identity.id, ctx=context: (
                                         self._enable_library(lid, manager, ctx)
                                     ),
                                 ).props("size=sm color=green flat")
@@ -292,7 +294,7 @@ class LibraryOverviewEditor(BaseEditor):
                                     m=manager,
                                     ctx=context: (self._build_edit_dialog(ilib, mp, m, ctx).open()),
                                 ).props("size=sm color=blue flat")
-                            elif installed_lib.install_type in ("REGULAR", "EDITABLE"):
+                            elif installed_lib.install_type.name in ("REGULAR", "EDITABLE"):
                                 if _required_by:
                                     with ui.element("span").props(
                                         f'title="Required by {_required_by} — '
@@ -306,8 +308,8 @@ class LibraryOverviewEditor(BaseEditor):
                                     with ui.row().classes("gap-0 items-center"):
                                         ui.button(
                                             "Uninstall",
-                                            on_click=lambda lid=installed_lib.library_id,
-                                            ln=installed_lib.label,
+                                            on_click=lambda lid=installed_lib.identity.id,
+                                            ln=installed_lib.identity.label,
                                             m=manager,
                                             ctx=context: (self._confirm_uninstall(lid, ln, m, ctx)),
                                         ).props("size=sm color=negative flat")
@@ -336,8 +338,8 @@ class LibraryOverviewEditor(BaseEditor):
                                                 ui.separator()
                                                 ui.menu_item(
                                                     "Uninstall permanently",
-                                                    on_click=lambda lid=installed_lib.library_id,
-                                                    ln=installed_lib.label,
+                                                    on_click=lambda lid=installed_lib.identity.id,
+                                                    ln=installed_lib.identity.label,
                                                     m=manager,
                                                     ctx=context: (self._confirm_uninstall(lid, ln, m, ctx)),
                                                 )
@@ -357,7 +359,7 @@ class LibraryOverviewEditor(BaseEditor):
                 if description:
                     ui.label(description).classes("hw-text-muted text-sm mb-1")
                 if author:
-                    _author_url = (installed_lib.author_url if installed_lib else "") or ""
+                    _author_url = (installed_lib.identity.author_url if installed_lib else "") or ""
                     if _author_url.startswith("http"):
                         with ui.row().classes("items-center gap-1"):
                             ui.label("By").classes("text-xs hw-text-dim")
@@ -404,9 +406,7 @@ class LibraryOverviewEditor(BaseEditor):
                         t_nodes = ui.tab("Nodes", icon=hui.icon.node) if n_nodes else None
                         t_widgets = ui.tab("Widgets", icon=hui.icon.widget) if n_widgets else None
                         t_types = ui.tab("Types", icon=hui.icon.type) if n_types else None
-                        t_adapters = (
-                            ui.tab("Adapters", icon=hui.icon.adapter) if n_adapters else None
-                        )
+                        t_adapters = ui.tab("Adapters", icon=hui.icon.adapter) if n_adapters else None
                         t_skins = ui.tab("Skins", icon=hui.icon.skin) if n_skins else None
                         t_settings = ui.tab("Settings", icon=hui.icon.node_settings) if n_settings else None
                         t_themes = ui.tab("Themes", icon=hui.icon.theme) if n_themes else None
@@ -544,9 +544,9 @@ class LibraryOverviewEditor(BaseEditor):
                     ui.label(description).classes("text-xs hw-text-dim truncate")
                 ui.label(key).classes("text-xs hw-text-dim font-mono")
 
-    def _render_overview(self, lib: InstalledLibrary):
-        """Render OVERVIEW.md from lib.source_path or show a fallback."""
-        source = Path(lib.source_path) if lib.source_path else None
+    def _render_overview(self, lib: LibraryInfo):
+        """Render OVERVIEW.md from lib.identity.folder_path or show a fallback."""
+        source = Path(lib.identity.folder_path) if lib.identity.folder_path else None
         overview = source / "OVERVIEW.md" if source else None
 
         if overview and overview.exists():
@@ -558,7 +558,7 @@ class LibraryOverviewEditor(BaseEditor):
 
     def _render_component_tab(
         self,
-        lib: InstalledLibrary,
+        lib: LibraryInfo,
         registry,
         config: "TabConfig",
         context: "SessionContext",
@@ -569,7 +569,7 @@ class LibraryOverviewEditor(BaseEditor):
             )
             return
 
-        items = self._registry_items(registry, f"{lib.library_id}:{config.prefix_segment}:")
+        items = self._registry_items(registry, f"{lib.identity.id}:{config.prefix_segment}:")
 
         if not items:
             ui.label(f"No {config.comp_type} registered for this library.").classes(
@@ -591,7 +591,7 @@ class LibraryOverviewEditor(BaseEditor):
 
     def _select_component(
         self,
-        lib: InstalledLibrary,
+        lib: LibraryInfo,
         registry_key: str,
         comp_type: str,
         context: "SessionContext",
@@ -636,15 +636,15 @@ class LibraryOverviewEditor(BaseEditor):
         context.active_library = self._reload_installed(library_id, manager)
         self._notify_library_changed(context)
 
-    def _reload_installed(self, library_id: str, manager) -> InstalledLibrary | None:
-        """Fetch a fresh InstalledLibrary snapshot after an enable/disable."""
+    def _reload_installed(self, library_id: str, manager) -> LibraryInfo | None:
+        """Fetch a fresh LibraryInfo snapshot after an enable/disable."""
         try:
             libs = manager.list_installed()
-            return next((lib for lib in libs if lib.library_id == library_id), None)
+            return next((lib for lib in libs if lib.identity.id == library_id), None)
         except Exception:
             return None
 
-    def _find_installed_by_dist_name(self, dist_name: str, manager) -> InstalledLibrary | None:
+    def _find_installed_by_dist_name(self, dist_name: str, manager) -> LibraryInfo | None:
         """Find a freshly installed library by distribution name."""
         try:
             libs = manager.list_installed()
@@ -728,16 +728,16 @@ class LibraryOverviewEditor(BaseEditor):
     # Edit dialog (project library identity + optional rename)
     # ─────────────────────────────────────────────────────────────────────────
 
-    def _is_project_library(self, lib: InstalledLibrary, marketplace_path: str | None) -> bool:
+    def _is_project_library(self, lib: LibraryInfo, marketplace_path: str | None) -> bool:
         """Return True if lib is the local project library (lives under workspace/barn/)."""
-        if not marketplace_path or not lib.source_path:
+        if not marketplace_path or not lib.identity.folder_path:
             return False
         workspace_root = Path(marketplace_path).parent.parent
-        return Path(lib.source_path).is_relative_to(workspace_root / "barn")
+        return Path(lib.identity.folder_path).is_relative_to(workspace_root / "barn")
 
     def _build_edit_dialog(
         self,
-        lib: InstalledLibrary,
+        lib: LibraryInfo,
         marketplace_path: str | None,
         manager,
         context: "SessionContext",
@@ -751,7 +751,7 @@ class LibraryOverviewEditor(BaseEditor):
         without any directory rename or uv sync.
         """
         old_name_part = (
-            lib.distribution_name.removeprefix("haybale-") if lib.distribution_name else lib.library_id
+            lib.distribution_name.removeprefix("haybale-") if lib.distribution_name else lib.identity.id
         )
         _state = {"unlocked": False}
 
@@ -761,19 +761,21 @@ class LibraryOverviewEditor(BaseEditor):
             ui.separator()
 
             hui.section_label("Identity")
-            label_input = ui.input(label="Label", value=lib.label).classes("w-full")
-            version_input = ui.input(label="Version", value=lib.version or "0.1.0").classes("w-full")
-            desc_input = ui.input(label="Description", value=lib.description).classes("w-full")
-            author_input = ui.input(label="Author", value=lib.author).classes("w-full")
-            author_url_input = ui.input(label="Author URL", value=lib.author_url).classes("w-full")
-            url_input = ui.input(label="URL", value=lib.url).classes("w-full")
+            label_input = ui.input(label="Label", value=lib.identity.label).classes("w-full")
+            version_input = ui.input(label="Version", value=lib.identity.version or "0.1.0").classes(
+                "w-full"
+            )
+            desc_input = ui.input(label="Description", value=lib.identity.description).classes("w-full")
+            author_input = ui.input(label="Author", value=lib.identity.author).classes("w-full")
+            author_url_input = ui.input(label="Author URL", value=lib.identity.author_url).classes("w-full")
+            url_input = ui.input(label="URL", value=lib.identity.url).classes("w-full")
             tags_input = ui.input(
                 label="Tags (comma-separated)",
-                value=", ".join(lib.tags or []),
+                value=", ".join(lib.identity.tags or []),
             ).classes("w-full")
             deps_input = ui.input(
                 label="Dependencies (comma-separated)",
-                value=", ".join(lib.dependencies or []),
+                value=", ".join(lib.identity.dependencies or []),
             ).classes("w-full")
 
             ui.separator()
@@ -831,7 +833,7 @@ class LibraryOverviewEditor(BaseEditor):
             ui.label(
                 "Every node and widget from this library is identified in saved graphs "
                 "by its registry key, which includes the library name "
-                f'(e.g. "{lib.library_id}:node:…"). '
+                f'(e.g. "{lib.identity.id}:node:…"). '
                 "After renaming, graphs that reference this library from other projects "
                 "will fail to load those nodes. If your nodes are using absolute "
                 "from ... import ... statements referencing this library, "
@@ -873,7 +875,7 @@ class LibraryOverviewEditor(BaseEditor):
 
     async def _do_update_identity(
         self,
-        lib: InstalledLibrary,
+        lib: LibraryInfo,
         identity: dict,
         marketplace_path: str | None,
         manager,
@@ -887,7 +889,7 @@ class LibraryOverviewEditor(BaseEditor):
 
         success, message = await asyncio.to_thread(
             manager.update_library_identity,
-            lib.library_id,
+            lib.identity.id,
             workspace_root,
             identity,
         )
@@ -900,13 +902,13 @@ class LibraryOverviewEditor(BaseEditor):
         await asyncio.to_thread(manager.registry.scan_for_libraries)
         manager.registry.enable_all_libraries()
 
-        ui.notify(f"Saved: {identity.get('label', lib.label)}", type="positive")
+        ui.notify(f"Saved: {identity.get('label', lib.identity.label)}", type="positive")
 
         # Reload the freshly-saved library into context and re-render
         try:
             libs = manager.list_installed()
             context.active_library = next(
-                (entry for entry in libs if entry.library_id == lib.library_id), None
+                (entry for entry in libs if entry.identity.id == lib.identity.id), None
             )
         except Exception:
             pass
@@ -915,7 +917,7 @@ class LibraryOverviewEditor(BaseEditor):
 
     async def _do_rename(
         self,
-        lib: InstalledLibrary,
+        lib: LibraryInfo,
         new_name: str,
         new_identity: dict | None,
         marketplace_path: str | None,
@@ -926,13 +928,13 @@ class LibraryOverviewEditor(BaseEditor):
         if not marketplace_path:
             ui.notify("No project workspace set.", type="negative")
             return
-        old_library_id = lib.library_id
-        ui.notify(f"Renaming {lib.label}…", type="info")
+        old_library_id = lib.identity.id
+        ui.notify(f"Renaming {lib.identity.label}…", type="info")
         log = self._create_log_in_card(self._fixed, f"Renaming to haybale-{new_name}…")
         workspace_root = str(Path(marketplace_path).parent.parent)
 
         success, message = await manager.rename_project_library_streaming(
-            library_id=lib.library_id,
+            library_id=lib.identity.id,
             new_name=new_name,
             workspace_root=workspace_root,
             on_output=log.push,

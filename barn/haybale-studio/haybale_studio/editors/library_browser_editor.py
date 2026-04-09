@@ -8,7 +8,6 @@ Selecting a library updates context.active_library and fires LIBRARY_STATE_CHANG
 
 import logging
 
-logger = logging.getLogger(__name__)
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -22,6 +21,8 @@ from haywire.ui.context_events import ContextChangeType, ContextChangedEvent
 if TYPE_CHECKING:
     from haywire.ui.context import SessionContext
     from haywire.ui.context_events import ContextChangedEvent as _CE
+
+logger = logging.getLogger(__name__)
 
 
 @editor(
@@ -127,12 +128,27 @@ class LibraryBrowserEditor(BaseEditor):
 
         from haywire_studio.library_manager import LibraryManager
 
+        def _label(lib) -> str:
+            # LibraryInfo wraps identity; MarketplaceEntry has label/name directly
+            if hasattr(lib, "identity"):
+                return lib.identity.label or ""
+            return getattr(lib, "label", "") or getattr(lib, "name", "")
+
+        def _enabled(lib) -> bool:
+            if hasattr(lib, "identity"):
+                return lib.enabled
+            return getattr(lib, "enabled", True)
+
         def matches(lib) -> bool:
             if not q:
                 return True
-            label = getattr(lib, "label", "") or getattr(lib, "name", "")
-            desc = getattr(lib, "description", "") or ""
-            tags = getattr(lib, "tags", []) or []
+            label = _label(lib)
+            if hasattr(lib, "identity"):
+                desc = lib.identity.description or ""
+                tags = lib.identity.tags or []
+            else:
+                desc = getattr(lib, "description", "") or ""
+                tags = getattr(lib, "tags", []) or []
             return (
                 q in label.lower() or bool(desc and q in desc.lower()) or any(q in t.lower() for t in tags)
             )
@@ -143,26 +159,20 @@ class LibraryBrowserEditor(BaseEditor):
 
         # Always compute the exclusion set so required libs never bleed into ENABLED,
         # even when the required filter toggle is off.
-        _all_required = [lib for lib in libraries if getattr(lib, "enabled", True) and is_required(lib)]
+        _all_required = [lib for lib in libraries if _enabled(lib) and is_required(lib)]
         required_set = {id(lib) for lib in _all_required}
         required = [lib for lib in _all_required if matches(lib)] if self._filter_required else []
         enabled = (
-            [
-                lib
-                for lib in libraries
-                if id(lib) not in required_set and getattr(lib, "enabled", True) and matches(lib)
-            ]
+            [lib for lib in libraries if id(lib) not in required_set and _enabled(lib) and matches(lib)]
             if self._filter_enabled
             else []
         )
         disabled = (
-            [lib for lib in libraries if not getattr(lib, "enabled", True) and matches(lib)]
-            if self._filter_disabled
-            else []
+            [lib for lib in libraries if not _enabled(lib) and matches(lib)] if self._filter_disabled else []
         )
-        required.sort(key=lambda x: getattr(x, "label", ""))
-        enabled.sort(key=lambda x: getattr(x, "label", ""))
-        disabled.sort(key=lambda x: getattr(x, "label", ""))
+        required.sort(key=_label)
+        enabled.sort(key=_label)
+        disabled.sort(key=_label)
 
         # Marketplace entries not yet installed
         available = []
@@ -205,8 +215,12 @@ class LibraryBrowserEditor(BaseEditor):
                 hui.empty_state("No libraries found", icon=hui.icon.empty_no_results)
 
     def _library_item(self, lib, dot_color: str, context: "SessionContext"):
-        label = getattr(lib, "label", None) or getattr(lib, "name", "?")
-        version = getattr(lib, "version", "")
+        if hasattr(lib, "identity"):
+            label = lib.identity.label or "?"
+            version = lib.identity.version or ""
+        else:
+            label = getattr(lib, "label", None) or getattr(lib, "name", "?")
+            version = getattr(lib, "version", "")
         hui.list_item(
             label,
             sublabel=f"v{version}" if version else None,
