@@ -72,11 +72,13 @@ def editor(
 
         inner_cls.class_identity = EditorIdentity(
             registry_id=_registry_id,
+            registry_key=_registry_key,
             label=_label,
             icon=icon,
             default_area=default_area,
             description=description,
-            registry_key=_registry_key,
+            class_name=inner_cls.__name__,
+            module=inner_cls.__module__,
         )
         inner_cls.class_library = library_identity
         return inner_cls
