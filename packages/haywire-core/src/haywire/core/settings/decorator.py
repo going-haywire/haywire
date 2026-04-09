@@ -42,7 +42,7 @@ def settings(namespace: str, label: str = "", description: str = ""):
 
     Args:
         namespace:   Dot-separated sub-namespace (e.g. 'ui.info').
-                     the actual namespace is derived from the library 
+                     the actual namespace is derived from the library
                      identity and this sub namespace (e.g. 'my_lib.ui.info').
         label:       Human-readable display name. Defaults to namespace.
         description: Human-readable description. Defaults to ''.
@@ -84,6 +84,8 @@ def settings(namespace: str, label: str = "", description: str = ""):
             registry_key=registry_key,
             label=label or namespace,
             description=description,
+            class_name=inner_cls.__name__,
+            module=inner_cls.__module__,
         )
         inner_cls._namespace = namespace
         inner_cls.class_library = library_identity

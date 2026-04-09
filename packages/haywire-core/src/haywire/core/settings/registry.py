@@ -257,10 +257,14 @@ class SettingsRegistry(BaseRegistry):
             ns = schema_cls._namespace
             lib = library_identity or derive_library_identity(schema_cls)
             library_id = lib.id if lib else None
+            reg_key_val = reg_key(library_id, "settings", ns)
             schema_cls.class_identity = SettingsClassIdentity(
                 namespace=ns,
-                registry_key=reg_key(library_id, "settings", ns),
+                registry_id=ns,
+                registry_key=reg_key_val,
                 label=ns,
+                class_name=schema_cls.__name__,
+                module=schema_cls.__module__,
             )
         registry_key = schema_cls.class_identity.registry_key
         if self.has(registry_key):
