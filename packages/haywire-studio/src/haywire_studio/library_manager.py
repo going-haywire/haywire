@@ -469,25 +469,39 @@ class LibraryManager:
         except importlib.metadata.PackageNotFoundError:
             return None
 
-    @staticmethod
-    def is_required_by_another_package(dist_name: str) -> str | None:
-        """Return the name of the first installed distribution that requires dist_name, or None.
+    # Cache: normalized-dist-name → first owner name (or None). Built once on first call.
+    _required_by_cache: dict[str, str | None] | None = None
 
-        Walks all installed distributions and checks their Requires-Dist metadata.
-        This catches both direct and transitive requirements — e.g. haybale-core
-        is protected because haywire-app lists it, even if the user's own
-        pyproject.toml only mentions haywire-app.
+    @classmethod
+    def _build_required_by_cache(cls) -> dict[str, str | None]:
+        """Walk all installed distributions once and build a reverse-dep map.
+
+        Maps each normalized distribution name to the name of the first package
+        that lists it in Requires-Dist.  Subsequent calls to
+        is_required_by_another_package() are then O(1) dict lookups.
         """
-        target = re.sub(r"[-_.]+", "_", dist_name).lower()
+        cache: dict[str, str | None] = {}
         for dist in importlib.metadata.distributions():
-            owner_name = dist.metadata.get("Name", "")
-            if re.sub(r"[-_.]+", "_", owner_name).lower() == target:
-                continue  # skip self
+            owner_name = dist.metadata.get("Name", "") or ""
+            owner_norm = re.sub(r"[-_.]+", "_", owner_name).lower()
             for req in dist.metadata.get_all("Requires-Dist") or []:
                 req_name = re.split(r"[>=<!;\s\[]", req)[0]
-                if re.sub(r"[-_.]+", "_", req_name).lower() == target:
-                    return owner_name
-        return None
+                req_norm = re.sub(r"[-_.]+", "_", req_name).lower()
+                if req_norm and req_norm not in cache:
+                    cache[req_norm] = owner_name
+        return cache
+
+    @classmethod
+    def is_required_by_another_package(cls, dist_name: str) -> str | None:
+        """Return the name of the first installed distribution that requires dist_name, or None.
+
+        Results are cached after the first call so repeated UI renders don't
+        re-walk the entire distribution list.
+        """
+        if cls._required_by_cache is None:
+            cls._required_by_cache = cls._build_required_by_cache()
+        target = re.sub(r"[-_.]+", "_", dist_name).lower()
+        return cls._required_by_cache.get(target)
 
     async def fetch_versions(self, pkg: "MarketplaceEntry") -> list[str]:
         """Fetch available versions for a marketplace package.
