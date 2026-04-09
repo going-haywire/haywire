@@ -89,6 +89,10 @@ def adapter(cls: Type[T] = None, /, **kwargs) -> Union[Type[T], Callable[[Type[T
         library_id = library_identity.id if library_identity else None
         kwargs["registry_key"] = reg_key(library_id, "adapter", kwargs["registry_id"])
 
+        # Set source info from the class itself
+        kwargs["class_name"] = inner_cls.__name__
+        kwargs["module"] = inner_cls.__module__
+
         # Create and attach identity and library
         inner_cls.class_identity = AdapterIdentity(**kwargs)
         inner_cls.class_library = library_identity
