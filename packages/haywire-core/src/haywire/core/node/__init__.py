@@ -4,7 +4,7 @@ Node system for Haywire.
 """
 
 from .identity import NodeIdentity
-from .info import NodeInfo, NodeSourceInfo
+from .info import NodeInfo
 from .base import NodeMeta, NodeData, BaseNode
 from .behavior import NodeType, NodeBehaviorFlags, BEHAVIOR_FIELDS
 from .decorator import node
@@ -19,7 +19,6 @@ __all__ = [
     # Identity
     "NodeIdentity",
     "NodeInfo",
-    "NodeSourceInfo",
     # Base classes
     "NodeMeta",
     "NodeData",

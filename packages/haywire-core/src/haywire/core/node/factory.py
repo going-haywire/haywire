@@ -11,7 +11,7 @@ from typing import Dict, List, Optional
 
 from haywire.core.errors.haywire_exception import HaywireException
 from . import node, BaseNode, NodeRegistry
-from .info import NodeInfo, NodeSourceInfo
+from .info import NodeInfo
 
 from ..registry.lifecycle_event import LifeCycleEvent, LifeCycleBatchCallback, LifeCycleEventCallback
 
@@ -214,13 +214,11 @@ class NodeFactory:
             return None
 
         identity = node_class.class_identity
-
         library_identity = getattr(node_class, "class_library", None)
 
         return NodeInfo(
             identity=identity,
             library=library_identity,
-            source=NodeSourceInfo(class_name=node_class.__name__, module=node_class.__module__),
         )
 
     def get_menu_structure(self) -> Dict[str, List[NodeInfo]]:

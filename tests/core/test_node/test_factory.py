@@ -61,3 +61,13 @@ class TestNodeFactory:
         # It might have some nodes if core libraries are loaded
         # but in pure unit tests, it should be minimal
         assert isinstance(all_nodes, list)
+
+    def test_node_info_has_no_source_field(self):
+        """NodeInfo must not have a 'source' field after NodeSourceInfo removal."""
+        from haywire.core.node.info import NodeInfo
+        import dataclasses
+
+        field_names = {f.name for f in dataclasses.fields(NodeInfo)}
+        assert "source" not in field_names
+        assert "identity" in field_names
+        assert "library" in field_names
