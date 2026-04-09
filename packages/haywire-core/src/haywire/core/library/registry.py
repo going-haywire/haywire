@@ -9,7 +9,8 @@ import logging
 
 from .base import BaseLibrary
 from .utils import format_external_exception
-from .discovery import LibraryDiscovery, DiscoveredLibrary, InstallType
+from .discovery import LibraryDiscovery, DiscoveredLibrary
+from .install_type import InstallType
 from .identity import LibraryIdentity
 from ..registry.base import BaseRegistry
 

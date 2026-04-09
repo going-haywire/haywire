@@ -17,6 +17,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from haywire.core.library.registry import LibraryRegistry
+from haywire.core.library.info import LibraryInfo
+from haywire.core.library.install_type import InstallType
 import toml
 
 
@@ -68,25 +70,6 @@ class MarketplaceEntry:
     source_origin: str = ""  # remote URL if this entry was fetched via a [[sources]] URL
 
 
-@dataclass
-class InstalledLibrary:
-    """Summary info for an installed library."""
-
-    library_id: str
-    label: str
-    version: str
-    description: str
-    author: str
-    enabled: bool
-    install_type: str  # 'REGULAR', 'EDITABLE', 'FOLDER'
-    source_path: str
-    tags: list[str] = field(default_factory=list)
-    dependencies: list[str] = field(default_factory=list)
-    distribution_name: str = ""  # Pip package name (e.g. "haybale-visiongraph")
-    url: str = ""
-    author_url: str = ""
-
-
 class LibraryManager:
     """Orchestrates library install/uninstall/enable/disable operations.
 
@@ -94,7 +77,9 @@ class LibraryManager:
     haywire library registry (in-process).
     """
 
-    def __init__(self, library_registry: LibraryRegistry, venv_path: str | None = None, project_dir: str | None = None):
+    def __init__(
+        self, library_registry: LibraryRegistry, venv_path: str | None = None, project_dir: str | None = None
+    ):
         self.registry: LibraryRegistry = library_registry
         self.venv_path = venv_path or self._detect_venv()
         self.project_dir = Path(project_dir) if project_dir else None
@@ -413,35 +398,25 @@ class LibraryManager:
 
         return True, f"Renamed to haybale-{new_name}"
 
-    def list_installed(self) -> list[InstalledLibrary]:
+    def list_installed(self) -> list[LibraryInfo]:
         """List all discovered libraries with their status."""
         libraries = []
         for lib_id in self.registry.list_names():
             libraries.append(self.get_installed_library(lib_id))
         return libraries
 
-    def get_installed_library(self, library_id: str) -> InstalledLibrary:
+    def get_installed_library(self, library_id: str) -> LibraryInfo:
         """Return summary information for one installed library."""
         identity = self.registry.get_library_identity(library_id)
         install_type = self.registry.get_library_install_type(library_id)
-        source = self.registry.get_library_source(library_id)
         enabled = self.registry.is_library_enabled(library_id)
         dist_name = self.registry.get_library_distribution_name(library_id)
 
-        return InstalledLibrary(
-            library_id=library_id,
-            label=identity.label if identity else library_id,
-            version=identity.version if identity else "",
-            description=identity.description if identity else "",
-            author=identity.author if identity else "",
+        return LibraryInfo(
+            identity=identity,
             enabled=enabled,
-            install_type=install_type.name if install_type else "UNKNOWN",
-            source_path=str(source) if source else "",
-            tags=identity.tags if identity and identity.tags else [],
-            dependencies=identity.dependencies if identity and identity.dependencies else [],
+            install_type=install_type or InstallType.FOLDER,
             distribution_name=dist_name or "",
-            url=identity.url if identity else "",
-            author_url=identity.author_url if identity else "",
         )
 
     def is_installed(self, library_id: str) -> bool:

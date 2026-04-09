@@ -9,7 +9,7 @@ during scanning: enabled status, install type, and pip distribution name.
 from dataclasses import dataclass
 
 from .identity import LibraryIdentity
-from .discovery import InstallType
+from .install_type import InstallType
 
 
 @dataclass(frozen=True)

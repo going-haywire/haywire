@@ -13,20 +13,12 @@ from typing import Tuple
 from importlib.metadata import entry_points, EntryPoint
 from importlib import import_module
 from dataclasses import dataclass
-from enum import Enum
 
 from .base import BaseLibrary
 from .identity import LibraryIdentity
+from .install_type import InstallType
 
 logger = logging.getLogger(__name__)
-
-
-class InstallType(Enum):
-    """Types of library installations"""
-
-    REGULAR = "regular"  # Installed in site-packages
-    EDITABLE = "editable"  # Installed with -e flag
-    FOLDER = "folder"  # Discovered via folder scanning
 
 
 @dataclass
