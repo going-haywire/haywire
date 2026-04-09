@@ -158,6 +158,10 @@ def type(**kwargs) -> Callable[[Type[T]], Type[T]]:
         library_id = library_identity.id if library_identity else None
         identity_dict["registry_key"] = reg_key(library_id, "type", identity_dict["registry_id"])
 
+        # Set source info from the class itself
+        identity_dict["class_name"] = inner_cls.__name__
+        identity_dict["module"] = inner_cls.__module__
+
         # Create and attach identity
         inner_cls.class_identity = DataTypeIdentity(**identity_dict)
 
