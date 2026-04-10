@@ -23,8 +23,9 @@ from haywire.ui.context_events import ContextChangeType, ContextChangedEvent
 
 if TYPE_CHECKING:
     from haywire.ui.context import SessionContext
-    from haywire.ui.context_events import ContextChangedEvent as _CE
+    from haywire.ui.context_events import ContextChangedEvent
     from haywire_studio.graph_manager import GraphEntry
+    from nicegui.element import Element
 
 
 _GRAPH_EDITOR_KEY = "studio:editor:graph_editor"
@@ -66,10 +67,16 @@ class GraphManagerEditor(BaseEditor):
         self._list_container = None
 
     # ------------------------------------------------------------------
-    # render
+    # poll / draw
     # ------------------------------------------------------------------
 
-    def render(self, container, context: "SessionContext") -> None:
+    def poll(self, context: "SessionContext", event: "ContextChangedEvent") -> bool:
+        return event.change_type in (
+            ContextChangeType.ACTIVE_GRAPH_CHANGED,
+            ContextChangeType.DATA_MUTATED,
+        )
+
+    def draw(self, context: "SessionContext", container: "Element") -> None:
         with container:
             with ui.column().classes("w-full h-full gap-0"):
                 self._render_header(context)
@@ -229,17 +236,6 @@ class GraphManagerEditor(BaseEditor):
                 tabs.set_value(_GRAPH_EDITOR_KEY)
             except Exception:
                 pass
-
-    # ------------------------------------------------------------------
-    # context changes
-    # ------------------------------------------------------------------
-
-    def on_context_changed(self, event: "_CE", context: "SessionContext") -> None:
-        if event.change_type in (
-            ContextChangeType.ACTIVE_GRAPH_CHANGED,
-            ContextChangeType.DATA_MUTATED,
-        ):
-            self._render_list(context)
 
     # ------------------------------------------------------------------
     # cleanup

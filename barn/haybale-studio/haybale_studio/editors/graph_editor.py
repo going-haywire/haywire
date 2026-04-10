@@ -23,7 +23,9 @@ from haywire.ui.context_events import ContextChangeType, ContextChangedEvent
 
 if TYPE_CHECKING:
     from haywire.ui.context import SessionContext
+    from haywire.ui.context_events import ContextChangedEvent
     from haywire.ui.graph_canvas.graph_canvas_manager import GraphCanvasManager
+    from nicegui.element import Element
 
 logger = logging.getLogger(__name__)
 
@@ -74,17 +76,34 @@ class GraphEditor(BaseEditor):
         self._save_exists_warning = None  # ui.label — "file already exists" warning
 
     # ------------------------------------------------------------------
-    # render
+    # poll / draw
     # ------------------------------------------------------------------
 
-    def render(self, container, context: "SessionContext") -> None:
+    def poll(self, context: "SessionContext", event: "ContextChangedEvent") -> bool:
+        return event.change_type == ContextChangeType.ACTIVE_GRAPH_CHANGED
+
+    def draw(self, context: "SessionContext", container: "Element") -> None:
         self._context = context
         self._project_state = context.app
         if self._project_state is None:
             with container:
                 ui.label("GraphEditor: no app in context").classes("hw-text-danger p-4")
-            logger.warning("GraphEditor.render(): project_state not found in context.metadata")
+            logger.warning("GraphEditor.draw(): project_state not found in context.metadata")
             return
+
+        # Clean up existing canvas manager before rebuilding
+        if self._canvas_manager:
+            try:
+                self._canvas_manager.cleanup()
+            except Exception as exc:
+                logger.warning(f"GraphEditor: cleanup error during draw: {exc}")
+            self._canvas_manager = None
+
+        # Clear selection so PropertiesEditor resets to the graph panel
+        context.active_node = None
+        context.active_edge = None
+        context.selected_nodes = set()
+        context.selected_edges = set()
 
         with container:
             with ui.column().classes("w-full gap-0").style("height: 100%; overflow: hidden;"):
@@ -113,7 +132,7 @@ class GraphEditor(BaseEditor):
                         on_click=lambda: self._save_as_graph(context),
                     )
 
-                # ---- canvas area (swapped on ACTIVE_GRAPH_CHANGED) ----
+                # ---- canvas area ----
                 self._canvas_wrapper = ui.element("div").style(
                     "flex: 1; width: 100%; overflow: hidden; min-height: 0; position: relative;"
                 )
@@ -239,49 +258,6 @@ class GraphEditor(BaseEditor):
                     source_editor="graph_editor",
                 )
             )
-
-    # ------------------------------------------------------------------
-    # context changes
-    # ------------------------------------------------------------------
-
-    def on_context_changed(self, event: "ContextChangedEvent", context: "SessionContext") -> None:
-        if event.change_type == ContextChangeType.ACTIVE_GRAPH_CHANGED:
-            self._swap_canvas(context)
-        elif event.change_type == ContextChangeType.DATA_MUTATED:
-            self._update_header(context)
-
-    def _swap_canvas(self, context: "SessionContext") -> None:
-        """Tear down the old canvas and build a fresh one for the new graph."""
-        if self._canvas_wrapper is None:
-            return
-
-        # Clear selection so PropertiesEditor resets to the graph panel
-        context.active_node = None
-        context.active_edge = None
-        context.selected_nodes = set()
-        context.selected_edges = set()
-        session = context.session
-        if session is not None:
-            session.notify_context_changed(
-                ContextChangedEvent(
-                    change_type=ContextChangeType.SELECTION_CHANGED,
-                    source_editor="graph_editor",
-                )
-            )
-
-        # Clean up existing canvas manager
-        if self._canvas_manager:
-            try:
-                self._canvas_manager.cleanup()
-            except Exception as exc:
-                logger.warning(f"GraphEditor: cleanup error during swap: {exc}")
-            self._canvas_manager = None
-
-        self._canvas_wrapper.clear()
-        with self._canvas_wrapper:
-            self._build_canvas(context)
-
-        self._update_header(context)
 
     # ------------------------------------------------------------------
     # save

@@ -23,6 +23,7 @@ from haywire.ui.context_events import ContextChangeType, ContextChangedEvent
 if TYPE_CHECKING:
     from haywire.ui.context import SessionContext
     from haywire.ui.context_events import ContextChangedEvent
+    from nicegui.element import Element
 
 
 class _WidgetPreviewPort:
@@ -49,20 +50,16 @@ class LibraryComponentEditor(BaseEditor):
         self._container = None
         self._code_editor = None  # ui.codemirror reference for live theme updates
 
-    def render(self, container, context: "SessionContext") -> None:
-        self._container = container
-        self._rebuild(context)
+    def poll(self, context: "SessionContext", event: "ContextChangedEvent") -> bool:
+        return event.change_type in (
+            ContextChangeType.ACTIVE_COMPONENT_CHANGED,
+            ContextChangeType.WORKBENCH_THEME_CHANGED,
+        )
 
-    def on_context_changed(self, event: "ContextChangedEvent", context: "SessionContext") -> None:
-        if event.change_type == ContextChangeType.ACTIVE_COMPONENT_CHANGED and self._container is not None:
-            self._code_editor = None
-            self._container.clear()
-            self._rebuild(context)
-        elif (
-            event.change_type == ContextChangeType.WORKBENCH_THEME_CHANGED and self._code_editor is not None
-        ):
-            # Swap the CodeMirror theme to match the new workbench theme without a full rebuild.
-            self._code_editor.theme = self._codemirror_theme(context)
+    def draw(self, context: "SessionContext", container: "Element") -> None:
+        self._container = container
+        self._code_editor = None
+        self._rebuild(context)
 
     _COMP_ICONS = {
         "nodes": "account_tree",

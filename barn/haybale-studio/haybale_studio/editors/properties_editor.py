@@ -66,22 +66,24 @@ class PropertiesEditor(BaseEditor):
         self._panel_registry: Optional[PanelRegistry] = None
 
     # ------------------------------------------------------------------
-    # BaseEditor interface
+    # BaseEditor interface (poll/draw)
     # ------------------------------------------------------------------
 
-    def render(self, container: "Element", context: "SessionContext") -> None:
-        self._container = container
-        self._panel_registry = context.app.library_service.get_panel_registry()
-        self._build_layout(context)
-
-    def on_context_changed(self, event: "ContextChangedEvent", context: "SessionContext") -> None:
-        relevant = {
+    _RELEVANT_EVENTS = frozenset(
+        {
             ContextChangeType.SELECTION_CHANGED,
             ContextChangeType.ACTIVE_GRAPH_CHANGED,
             ContextChangeType.DATA_MUTATED,
         }
-        if event.change_type in relevant and self._container is not None:
-            self._refresh(context)
+    )
+
+    def poll(self, context: "SessionContext", event: "ContextChangedEvent") -> bool:
+        return event.change_type in self._RELEVANT_EVENTS
+
+    def draw(self, context: "SessionContext", container: "Element") -> None:
+        self._container = container
+        self._panel_registry = context.app.library_service.get_panel_registry()
+        self._build_layout(context)
 
     # ------------------------------------------------------------------
     # Layout construction (called once on render)

@@ -17,7 +17,7 @@ from haywire.ui.editor.base import BaseEditor
 
 if TYPE_CHECKING:
     from haywire.ui.context import SessionContext
-    from haywire.ui.context_events import ContextChangedEvent
+    from nicegui.element import Element
 
 
 class _LogHandler(logging.Handler):
@@ -54,7 +54,7 @@ class ConsoleEditor(BaseEditor):
         self._log_element = None
         self._handler: _LogHandler | None = None
 
-    def render(self, container, context: "SessionContext") -> None:
+    def draw(self, context: "SessionContext", container: "Element") -> None:
         with container:
             self._log_element = (
                 ui.log(max_lines=500)
@@ -67,9 +67,6 @@ class ConsoleEditor(BaseEditor):
         )
         logging.getLogger().addHandler(self._handler)
         logging.getLogger().info("Console editor connected.")
-
-    def on_context_changed(self, event: "ContextChangedEvent", context: "SessionContext") -> None:
-        pass  # Console does not react to context changes
 
     def cleanup(self) -> None:
         if self._handler is not None:

@@ -1,6 +1,15 @@
 # packages/haywire-core/src/haywire/ui/editor_framework/base.py
 """
 Abstract base class for all Haywire editor types.
+
+Editors follow a poll/draw lifecycle managed by an orchestrator (AppShell):
+
+    1. On first assignment to an area slot, the orchestrator calls draw()
+       directly — no poll.
+    2. On every ContextChangedEvent, the orchestrator calls poll(). If it
+       returns True the orchestrator clears the container and calls draw().
+    3. On hot-reload of the editor class, the orchestrator evicts the cached
+       instance, calls cleanup(), and re-instantiates + draw() if visible.
 """
 
 from abc import ABC, abstractmethod
@@ -19,12 +28,17 @@ class BaseEditor(ABC):
     Abstract base class for all editor types.
 
     An editor is a self-contained UI module that renders into an Area
-    of the workspace layout. Each editor instance is per-session — when
-    two browser windows are open, each has its own editor instances.
+    of the workspace layout. Editor instances are lazily created and
+    cached — when two browser windows are open, each session has its
+    own editor instances.
 
     Subclasses must implement:
-        - render(container, context): Build the editor UI into the given container.
-        - on_context_changed(event, context): React to context changes.
+        - draw(context, container): Build the editor UI into the given container.
+
+    Subclasses may override:
+        - poll(context, event): Return True when a full redraw is needed.
+        - cleanup(): Release resources when permanently removed.
+        - get_tab_label(context): Dynamic tab label for tabbed areas.
 
     Class attributes (set by @editor decorator):
         - class_identity: EditorIdentity with registry_key, label, icon, default_area.
@@ -33,38 +47,42 @@ class BaseEditor(ABC):
 
     class_identity: ClassVar[EditorIdentity]
 
+    def poll(self, context: "SessionContext", event: "ContextChangedEvent") -> bool:
+        """
+        Determine whether this editor needs a full redraw.
+
+        Called by the orchestrator on every ContextChangedEvent. If this
+        returns True the orchestrator will clear the container and call
+        draw(). The default implementation returns False (never redraw).
+
+        Args:
+            context: The current session context.
+            event: Describes what changed.
+
+        Returns:
+            True if the editor needs a full redraw, False otherwise.
+        """
+        return False
+
     @abstractmethod
-    def render(self, container: "Element", context: "SessionContext") -> None:
+    def draw(self, context: "SessionContext", container: "Element") -> None:
         """
         Build the editor UI into the given NiceGUI container element.
 
-        This is called once when the editor is first placed into an area,
-        and again if the editor is swapped out and back in.
+        The orchestrator clears the container before calling this method.
+        Called once on first assignment to an area, and again whenever
+        poll() returns True.
 
         Args:
-            container: NiceGUI parent element (typically a ui.column or ui.card).
             context: The current session context.
-        """
-        ...
-
-    @abstractmethod
-    def on_context_changed(self, event: "ContextChangedEvent", context: "SessionContext") -> None:
-        """
-        Called when the SessionContext changes.
-
-        The editor should re-evaluate which panels to show, update
-        displayed data, etc.
-
-        Args:
-            event: Describes what changed.
-            context: The updated session context.
+            container: NiceGUI parent element (cleared by orchestrator).
         """
         ...
 
     def cleanup(self) -> None:
         """
-        Optional cleanup when the editor is removed from an area.
-        Override to release resources, unsubscribe from events, etc.
+        Optional cleanup when the editor is permanently removed.
+        Override to release resources, cancel timers, etc.
         """
         pass
 

@@ -6,7 +6,10 @@ This is the top-level UI component that creates the ActivityBar, ContextBar,
 Left/Middle/Right/Bottom areas, TopBar, and StatusBar.
 
 It reads the current WorkspaceState to determine which editors go where,
-instantiates them, and wires up context change notifications.
+and acts as the poll/draw orchestrator: on every ContextChangedEvent it
+calls poll() on each active editor and, if True, clears the container and
+calls draw(). Editor instances are lazily created and cached. Hot-reload
+events from EditorTypeRegistry evict stale instances.
 
 The AppShell is created once per browser session from within a NiceGUI page
 handler. The haywire-app package is responsible for constructing the Session
@@ -23,8 +26,11 @@ from haywire.ui.context_events import ContextChangedEvent, ContextChangeType
 logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
-    from haywire.ui.session import Session
+    from haywire.ui.context import SessionContext
+    from haywire.ui.editor.base import BaseEditor
     from haywire.ui.editor.registry import EditorTypeRegistry
+    from haywire.ui.session import Session
+    from haywire.core.registry.lifecycle_event import LifeCycleEvent
 
 
 class AppShell:
@@ -59,7 +65,15 @@ class AppShell:
         """
         self.session = session
         self._editor_registry = editor_registry
-        self._area_containers: dict = {}  # area slot -> NiceGUI container ref
+
+        # Poll/draw orchestrator state -----------------------------------------
+        # Cached editor instances keyed by registry_key (lazy, survive area switches).
+        self._editor_cache: dict[str, "BaseEditor"] = {}
+        # Maps each area slot ('left', 'right', 'bottom', or 'middle:<key>') to
+        # (editor_key, container_element) so the poll/draw loop knows what to poll.
+        self._area_slots: dict[str, tuple[Optional[str], Optional["ui.element"]]] = {}
+
+        # DOM references -------------------------------------------------------
         self._left_column = None  # stored for dynamic switching via _switch_left_area
         self._right_column = None  # stored for dynamic switching via _switch_right_area
         self._activity_bar = None  # stored for dynamic switching via _switch_left_area
@@ -289,6 +303,13 @@ class AppShell:
         # React to workbench.theme setting changes (e.g. from the settings panel).
         settings_registry = self.session.context.app.library_service.get_settings_registry()
         settings_registry.subscribe(None, self._on_setting_changed)
+
+        # Register as the single orchestrator for context-change → poll/draw.
+        self.session.set_orchestrator(self._on_context_changed)
+
+        # Subscribe to editor hot-reload events so cached instances are evicted.
+        if self._editor_registry:
+            self._editor_registry.add_batch_event_subscriber(self._on_editor_lifecycle)
 
         # Drag-resize handlers for left/middle/right/bottom panels. These use JavaScript
         # to set inline styles on the fly for immediate response and to avoid conflicts
@@ -677,7 +698,10 @@ class AppShell:
             ui.label(f"Session: {self.session.session_id[:8]}...").classes("text-xs hw-text-muted")
 
     def _render_area(self, slot: str, editor_key: Optional[str]) -> None:
-        """Render a single area slot, instantiating the editor if available.
+        """Render a single area slot, instantiating the editor if needed.
+
+        Creates a container, obtains (or creates) a cached editor instance,
+        and calls draw() directly (first-assignment — no poll).
 
         Args:
             slot: Area slot identifier ('left', 'middle', 'right', 'bottom').
@@ -689,25 +713,16 @@ class AppShell:
 
         editor_cls = None
         if self._editor_registry:
-            # WorkspaceState stores full registry_key values (e.g. 'studio:editor:graph_editor')
             editor_cls = self._editor_registry.get_by_key(editor_key)
 
         if editor_cls is None:
-            # Placeholder — no editor registered for this key yet
             with ui.column().classes("w-full h-full items-center justify-center"):
                 ui.icon("extension").classes("hw-text-dim text-4xl")
                 ui.label(f"Editor: {editor_key}").classes("hw-text-muted")
             return
 
-        # Instantiate the editor and render it
         try:
-            editor_instance = editor_cls()
-            # Store in session for lifecycle management
-            if slot not in self.session._editors:
-                self.session._editors[slot] = editor_instance
-            # Subscribe editor to context changes
-            self.session.subscribe_context_changes(editor_instance.on_context_changed)
-            # Render into current NiceGUI context
+            editor_instance = self._get_or_create_editor(editor_key, editor_cls)
             container_div = (
                 ui.element("div")
                 .classes("hw-panel")
@@ -715,10 +730,73 @@ class AppShell:
                     "width: 100%; height: 100%; background: var(--hw-bg-page); color: var(--hw-text-body);"
                 )
             )
-            editor_instance.render(container_div, self.session.context)
+            # Track the slot → (editor_key, container) mapping for poll/draw.
+            # Middle-area tabs share slot="middle" so use editor_key to avoid
+            # overwriting each other in the dict.
+            area_key = f"middle:{editor_key}" if slot == "middle" else slot
+            self._area_slots[area_key] = (editor_key, container_div)
+            # First-assignment draw — no poll.
+            editor_instance.draw(self.session.context, container_div)
         except Exception as e:
             logger.error(f"AppShell: Failed to render editor '{editor_key}' in slot '{slot}': {e}")
             ui.label(f"Error loading editor: {editor_key}").classes("hw-text-danger p-4")
+
+    # ------------------------------------------------------------------
+    # Poll / draw orchestrator
+    # ------------------------------------------------------------------
+
+    def _get_or_create_editor(self, editor_key: str, editor_cls: "type[BaseEditor]") -> "BaseEditor":
+        """Return a cached editor instance or create and cache a new one."""
+        instance = self._editor_cache.get(editor_key)
+        if instance is None:
+            instance = editor_cls()
+            self._editor_cache[editor_key] = instance
+        return instance
+
+    def _on_context_changed(self, event: ContextChangedEvent, context: "SessionContext") -> None:
+        """Orchestrator callback: run the poll/draw cycle on all active editors."""
+        for slot, (editor_key, container) in self._area_slots.items():
+            if editor_key is None or container is None:
+                continue
+            instance = self._editor_cache.get(editor_key)
+            if instance is None:
+                continue
+            try:
+                if instance.poll(context, event):
+                    container.clear()
+                    instance.draw(context, container)
+            except Exception as e:
+                logger.error(f"AppShell: poll/draw error for '{editor_key}' in slot '{slot}': {e}")
+
+    def _on_editor_lifecycle(self, events: "list[LifeCycleEvent]") -> None:
+        """Handle editor class hot-reload events from EditorTypeRegistry."""
+        from haywire.core.registry.lifecycle_event import LifeCycleEventType
+
+        for evt in events:
+            if evt.event_type in (
+                LifeCycleEventType.CLASS_RELOADED,
+                LifeCycleEventType.CLASS_REMOVED,
+            ):
+                old_instance = self._editor_cache.pop(evt.registry_key, None)
+                if old_instance is not None:
+                    try:
+                        old_instance.cleanup()
+                    except Exception as e:
+                        logger.warning(f"AppShell: cleanup error for '{evt.registry_key}': {e}")
+
+                # If the editor is currently visible, re-instantiate and draw.
+                if evt.event_type == LifeCycleEventType.CLASS_RELOADED and evt.affected_class is not None:
+                    for slot, (editor_key, container) in self._area_slots.items():
+                        if editor_key == evt.registry_key and container is not None:
+                            try:
+                                new_instance = self._get_or_create_editor(editor_key, evt.affected_class)
+                                container.clear()
+                                new_instance.draw(self.session.context, container)
+                            except Exception as e:
+                                logger.error(
+                                    f"AppShell: hot-reload draw error for "
+                                    f"'{editor_key}' in slot '{slot}': {e}"
+                                )
 
     def _toggle_left_panel(self) -> None:
         """Toggle the left area panel visibility."""
@@ -793,16 +871,11 @@ class AppShell:
         if ws.left.editor_key == editor_key:
             return  # already showing this editor
 
-        # Unsubscribe and evict the old left-area editor instance.
-        old_editor = self.session._editors.pop("left", None)
-        if old_editor is not None:
-            self.session.unsubscribe_context_changes(old_editor.on_context_changed)
-
         ws.left.editor_key = editor_key
         ws.left_bar_active = editor_key
         logger.info(f"AppShell: Switching left area to '{editor_key}'")
 
-        # Re-render the left column with the new editor.
+        # Re-render the left column with the new editor (cached instance reused).
         if self._left_column is not None:
             self._left_column.clear()
             with self._left_column:
@@ -824,16 +897,11 @@ class AppShell:
         if ws.right.editor_key == editor_key:
             return  # already showing this editor
 
-        # Unsubscribe and evict the old right-area editor instance.
-        old_editor = self.session._editors.pop("right", None)
-        if old_editor is not None:
-            self.session.unsubscribe_context_changes(old_editor.on_context_changed)
-
         ws.right.editor_key = editor_key
         ws.right_bar_active = editor_key
         logger.info(f"AppShell: Switching right area to '{editor_key}'")
 
-        # Re-render the right column with the new editor.
+        # Re-render the right column with the new editor (cached instance reused).
         if self._right_column is not None:
             self._right_column.clear()
             with self._right_column:

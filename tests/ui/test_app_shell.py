@@ -33,10 +33,9 @@ class _FakeSession:
         )
         self._editors = {}
         self.notified_events = []
-        self.unsubscribed = []
 
-    def unsubscribe_context_changes(self, callback) -> None:
-        self.unsubscribed.append(callback)
+    def set_orchestrator(self, callback) -> None:
+        pass
 
     def notify_context_changed(self, event) -> None:
         self.notified_events.append(event)

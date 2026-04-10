@@ -20,7 +20,8 @@ from haywire.ui.context_events import ContextChangeType, ContextChangedEvent
 
 if TYPE_CHECKING:
     from haywire.ui.context import SessionContext
-    from haywire.ui.context_events import ContextChangedEvent as _CE
+    from haywire.ui.context_events import ContextChangedEvent
+    from nicegui.element import Element
 
 logger = logging.getLogger(__name__)
 
@@ -50,7 +51,10 @@ class LibraryBrowserEditor(BaseEditor):
         self._filter_disabled: bool = True
         self._filter_available: bool = True
 
-    def render(self, container, context: "SessionContext") -> None:
+    def poll(self, context: "SessionContext", event: "ContextChangedEvent") -> bool:
+        return event.change_type == ContextChangeType.LIBRARY_STATE_CHANGED
+
+    def draw(self, context: "SessionContext", container: "Element") -> None:
         self._container = container
         with container:
             self._build_ui(context)
@@ -248,7 +252,3 @@ class LibraryBrowserEditor(BaseEditor):
                     source_editor="library_browser",
                 )
             )
-
-    def on_context_changed(self, event: "_CE", context: "SessionContext") -> None:
-        if event.change_type == ContextChangeType.LIBRARY_STATE_CHANGED:
-            self._render_list(context)

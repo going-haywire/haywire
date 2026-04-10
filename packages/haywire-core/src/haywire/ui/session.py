@@ -3,7 +3,7 @@
 Session class representing a single browser connection in the Haywire UI system.
 """
 
-from typing import Dict, List, Callable, TYPE_CHECKING
+from typing import Dict, Callable, Optional, TYPE_CHECKING
 import uuid
 import logging
 
@@ -24,18 +24,15 @@ class Session:
     Each session owns:
         - A SessionContext (selection, mode, active state)
         - A WorkspaceManager (layout, which editors where)
-        - Editor instances (one per area slot)
-        - Context change subscriptions
+        - Editor instances (cached by the orchestrator)
 
     The Session is the bridge between the shared server-side data model
     and the per-client NiceGUI UI tree.
 
-    Lifecycle:
-        1. Created on client connect (NiceGUI app.on_connect)
-        2. AppShell builds the workspace layout using active workspace state
-        3. Editors are instantiated into areas based on active workspace
-        4. Editors subscribe to context changes via subscribe_context_changes()
-        5. Session destroyed on client disconnect (cleanup())
+    Context change flow:
+        1. Any component calls session.notify_context_changed(event).
+        2. Session forwards the event to the orchestrator callback (AppShell).
+        3. The orchestrator runs the poll/draw cycle on active editors.
     """
 
     def __init__(self, project_state, workspace_manager: WorkspaceManager):
@@ -55,52 +52,43 @@ class Session:
         # Active editor instances (keyed by area slot: 'left', 'middle', 'right', 'bottom')
         self._editors: Dict[str, "BaseEditor"] = {}
 
-        # Context change subscribers (editor.on_context_changed callbacks)
-        self._context_subscribers: List[Callable] = []
+        # Single orchestrator callback set by AppShell
+        self._orchestrator_callback: Optional[Callable[[ContextChangedEvent, SessionContext], None]] = None
 
         logger.info(f"Session created: {self.session_id}")
 
+    def set_orchestrator(self, callback: Callable[["ContextChangedEvent", "SessionContext"], None]) -> None:
+        """Set the single orchestrator callback for context change notifications.
+
+        Args:
+            callback: The orchestrator's context-change handler
+                      (signature: event, context -> None).
+        """
+        self._orchestrator_callback = callback
+
     def notify_context_changed(self, event: ContextChangedEvent) -> None:
         """
-        Broadcast a context change to all editors in this session.
+        Forward a context change to the orchestrator.
 
         Called when selection changes, graph switches, mode changes, etc.
-        Each subscribed editor will re-evaluate its panels.
+        The orchestrator (AppShell) runs the poll/draw cycle.
 
         Args:
             event: The ContextChangedEvent describing what changed.
         """
-        for subscriber in self._context_subscribers:
+        if self._orchestrator_callback is not None:
             try:
-                subscriber(event, self.context)
+                self._orchestrator_callback(event, self.context)
             except Exception as e:
-                logger.error(f"Session {self.session_id}: context subscriber error: {e}")
-
-    def subscribe_context_changes(self, callback: Callable) -> None:
-        """Register a callback to receive context change notifications.
-
-        Args:
-            callback: Callable with signature (event: ContextChangedEvent, context: SessionContext).
-        """
-        if callback not in self._context_subscribers:
-            self._context_subscribers.append(callback)
-
-    def unsubscribe_context_changes(self, callback: Callable) -> None:
-        """Unregister a previously registered context change callback.
-
-        Args:
-            callback: The callback to remove.
-        """
-        if callback in self._context_subscribers:
-            self._context_subscribers.remove(callback)
+                logger.error(f"Session {self.session_id}: orchestrator callback error: {e}")
 
     def cleanup(self) -> None:
-        """Clean up all editor instances and subscriptions.
+        """Clean up all editor instances.
 
         Called when the browser session disconnects.
         """
         for editor in self._editors.values():
             editor.cleanup()
         self._editors.clear()
-        self._context_subscribers.clear()
+        self._orchestrator_callback = None
         logger.info(f"Session cleaned up: {self.session_id}")

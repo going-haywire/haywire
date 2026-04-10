@@ -42,6 +42,7 @@ from haywire_studio.workspace.defaults import _K_COMPONENT_DETAIL
 
 if TYPE_CHECKING:
     from haywire.ui.context import SessionContext
+    from nicegui.element import Element
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -96,14 +97,12 @@ class LibraryOverviewEditor(BaseEditor):
     # Public editor interface
     # ─────────────────────────────────────────────────────────────────────────
 
-    def render(self, container, context: "SessionContext") -> None:
+    def poll(self, context: "SessionContext", event: "ContextChangedEvent") -> bool:
+        return event.change_type == ContextChangeType.LIBRARY_STATE_CHANGED
+
+    def draw(self, context: "SessionContext", container: "Element") -> None:
         self._container = container
         self._rebuild(context)
-
-    def on_context_changed(self, event: "ContextChangedEvent", context: "SessionContext") -> None:
-        if event.change_type == ContextChangeType.LIBRARY_STATE_CHANGED and self._container is not None:
-            self._container.clear()
-            self._rebuild(context)
 
     # ─────────────────────────────────────────────────────────────────────────
     # Top-level rebuild

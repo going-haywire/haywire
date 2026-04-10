@@ -21,7 +21,7 @@ from haywire.ui.context_events import ContextChangeType, ContextChangedEvent
 
 if TYPE_CHECKING:
     from haywire.ui.context import SessionContext
-    from haywire.ui.context_events import ContextChangedEvent as _CE
+    from nicegui.element import Element
 
 
 @editor(
@@ -68,7 +68,7 @@ class FileBrowserEditor(BaseEditor):
         self._root_path: Optional[Path] = None
         self._tree_container = None
 
-    def render(self, container, context: "SessionContext") -> None:
+    def draw(self, context: "SessionContext", container: "Element") -> None:
         app = context.app
         if app and hasattr(app, "workspace_root"):
             self._root_path = Path(app.workspace_root)
@@ -210,5 +210,4 @@ class FileBrowserEditor(BaseEditor):
     def _refresh(self, context: "SessionContext") -> None:
         self._render_tree(context)
 
-    def on_context_changed(self, event: "_CE", context: "SessionContext") -> None:
-        pass  # FileBrowserEditor does not react to context changes
+    # poll() not overridden — defaults to False (never redraws).

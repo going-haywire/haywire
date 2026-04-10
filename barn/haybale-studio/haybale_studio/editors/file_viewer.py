@@ -21,6 +21,7 @@ from haywire.ui.context_events import ContextChangeType
 if TYPE_CHECKING:
     from haywire.ui.context import SessionContext
     from haywire.ui.context_events import ContextChangedEvent
+    from nicegui.element import Element
 
 
 _MAX_DISPLAY_BYTES = 512 * 1024  # 512 KB
@@ -58,10 +59,23 @@ class FileViewerEditor(BaseEditor):
     """
 
     def __init__(self):
-        self._header_label: Optional[ui.label] = None
-        self._content_area = None
+        self._last_file: Optional[Path] = None
 
-    def render(self, container, context: "SessionContext") -> None:
+    def poll(self, context: "SessionContext", event: "ContextChangedEvent") -> bool:
+        if event.change_type != ContextChangeType.FILE_SELECTED:
+            return False
+        path = context.active_file
+        if path is None:
+            return False
+        new_path = Path(path)
+        if new_path == self._last_file:
+            return False
+        return True
+
+    def draw(self, context: "SessionContext", container: "Element") -> None:
+        path = context.active_file
+        self._last_file = Path(path) if path is not None else None
+
         with container:
             with ui.column().classes("w-full h-full gap-0"):
                 # Slim header showing the open file path
@@ -71,39 +85,17 @@ class FileViewerEditor(BaseEditor):
                     .style("min-height: 32px; background: var(--hw-bg-page);")
                 ):
                     ui.icon("description", size="14px").classes("hw-text-dim")
-                    self._header_label = ui.label("No file open").classes(
-                        "text-xs hw-text-muted truncate font-mono flex-1"
-                    )
+                    label_text = str(self._last_file) if self._last_file else "No file open"
+                    label_cls = "hw-text-body" if self._last_file else "hw-text-muted"
+                    ui.label(label_text).classes(f"text-xs {label_cls} truncate font-mono flex-1")
 
-                # Content area — cleared and rebuilt on every FILE_SELECTED event
+                # Content area
                 with ui.scroll_area().classes("flex-1 w-full"):
-                    self._content_area = ui.column().classes("w-full")
-                    with self._content_area:
-                        self._show_placeholder()
-
-    def _show_placeholder(self) -> None:
-        hui.empty_state("Select a file from the Files panel", icon=hui.icon.folder_open)
-
-    def on_context_changed(self, event: "ContextChangedEvent", context: "SessionContext") -> None:
-        if event.change_type != ContextChangeType.FILE_SELECTED:
-            return
-        path = context.active_file
-        if path is None:
-            return
-        self._display_file(Path(path))
-
-    def _display_file(self, path: Path) -> None:
-        # Update header
-        if self._header_label is not None:
-            self._header_label.text = str(path)
-            self._header_label.classes(remove="hw-text-muted", add="hw-text-body")
-
-        if self._content_area is None:
-            return
-
-        self._content_area.clear()
-        with self._content_area:
-            self._render_content(path)
+                    with ui.column().classes("w-full"):
+                        if self._last_file is not None:
+                            self._render_content(self._last_file)
+                        else:
+                            hui.empty_state("Select a file from the Files panel", icon=hui.icon.folder_open)
 
     def _render_content(self, path: Path) -> None:
         if not path.exists():

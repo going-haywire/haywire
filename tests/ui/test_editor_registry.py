@@ -22,10 +22,7 @@ from haywire.ui.editor.registry import EditorTypeRegistry
     description="An editor for unit tests.",
 )
 class _TestEditor(BaseEditor):
-    def render(self, container, context):
-        pass
-
-    def on_context_changed(self, event, context):
+    def draw(self, context, container):
         pass
 
 
@@ -35,20 +32,14 @@ class _TestEditor(BaseEditor):
     default_area="left",
 )
 class _TestLeftEditor(BaseEditor):
-    def render(self, container, context):
-        pass
-
-    def on_context_changed(self, event, context):
+    def draw(self, context, container):
         pass
 
 
 class _NotDecoratedEditor(BaseEditor):
     """BaseEditor subclass without @editor — should NOT pass _class_filter."""
 
-    def render(self, container, context):
-        pass
-
-    def on_context_changed(self, event, context):
+    def draw(self, context, container):
         pass
 
 
