@@ -476,9 +476,6 @@ class AppShell:
             # ----------------------------------------------------------------
             self._render_statusbar()
 
-        # Expose area-switching callbacks so editors can trigger panel changes.
-        self.session.context.metadata["switch_right_area"] = self._switch_right_area
-
     def _render_topbar(self) -> None:
         """Render the top bar with global controls."""
         wm = self.session.workspace_manager
@@ -726,8 +723,43 @@ class AppShell:
             self._editor_cache[editor_key] = instance
         return instance
 
+    def _reveal_editor(self, editor_key: str) -> None:
+        """Ensure ``editor_key`` is the active editor in its default-area slot.
+
+        Resolves the target slot from the editor's ``class_identity.default_area``
+        and calls the matching pure-switch helper so no nested WORKSPACE_CHANGED
+        event is fired. If the editor is unknown to the registry, or lives in an
+        area without reveal support (middle/bottom), a warning is logged and the
+        reveal is skipped — the caller's own event still propagates normally.
+
+        Args:
+            editor_key: Full registry_key of the editor to reveal.
+        """
+        if self._editor_registry is None:
+            logger.warning(f"AppShell: cannot reveal '{editor_key}' — no editor registry")
+            return
+
+        editor_cls = self._editor_registry.get_by_key(editor_key)
+        if editor_cls is None:
+            logger.warning(f"AppShell: reveal_editor '{editor_key}' not found in registry, skipping reveal")
+            return
+
+        area = getattr(editor_cls.class_identity, "default_area", None)
+        if area == "left":
+            self._apply_left_area_switch(editor_key)
+        elif area == "right":
+            self._apply_right_area_switch(editor_key)
+        else:
+            logger.warning(
+                f"AppShell: reveal_editor '{editor_key}' targets area '{area}' "
+                "which is not hostable in the active workspace, skipping reveal"
+            )
+
     def _on_context_changed(self, event: ContextChangedEvent, context: "SessionContext") -> None:
         """Orchestrator callback: run the poll/draw cycle on all active editors."""
+        if event.reveal_editor is not None:
+            self._reveal_editor(event.reveal_editor)
+
         for slot, (editor_key, container) in self._area_slots.items():
             if editor_key is None or container is None:
                 continue
@@ -834,15 +866,25 @@ class AppShell:
         with self._context_bar:
             self._render_context_bar_contents()
 
-    def _switch_left_area(self, editor_key: str) -> None:
-        """Switch the editor shown in the Left Area, re-rendering the column.
+    def _apply_left_area_switch(self, editor_key: str) -> bool:
+        """Switch the editor assigned to the Left Area without notifying.
+
+        Updates workspace state, re-renders the left column, and refreshes the
+        activity bar. Does NOT fire a WORKSPACE_CHANGED event — callers that
+        need event propagation should use :meth:`_switch_left_area`, while the
+        reveal path calls this helper directly so a single poll/draw pass can
+        cover both the reveal and the originating event.
 
         Args:
             editor_key: Full registry_key of the editor to show.
+
+        Returns:
+            True if the slot was actually switched, False if it was already
+            showing the requested editor.
         """
         ws = self.session.workspace_manager.active
         if ws.left.editor_key == editor_key:
-            return  # already showing this editor
+            return False
 
         ws.left.editor_key = editor_key
         ws.left_bar_active = editor_key
@@ -855,20 +897,40 @@ class AppShell:
                 self._render_area("left", editor_key)
 
         self._refresh_activity_bar()
+        return True
+
+    def _switch_left_area(self, editor_key: str) -> None:
+        """Switch the Left Area editor and broadcast WORKSPACE_CHANGED.
+
+        Used by the activity-bar buttons and other user-driven callers that
+        want the switch to be visible to other editors as a workspace event.
+
+        Args:
+            editor_key: Full registry_key of the editor to show.
+        """
+        if not self._apply_left_area_switch(editor_key):
+            return
 
         self.session.notify_context_changed(
             ContextChangedEvent(change_type=ContextChangeType.WORKSPACE_CHANGED)
         )
 
-    def _switch_right_area(self, editor_key: str) -> None:
-        """Switch the editor shown in the Right Area, re-rendering the column.
+    def _apply_right_area_switch(self, editor_key: str) -> bool:
+        """Switch the editor assigned to the Right Area without notifying.
+
+        See :meth:`_apply_left_area_switch` for semantics; this is the
+        right-area counterpart used by the reveal path.
 
         Args:
             editor_key: Registry key of the editor to show.
+
+        Returns:
+            True if the slot was actually switched, False if it was already
+            showing the requested editor.
         """
         ws = self.session.workspace_manager.active
         if ws.right.editor_key == editor_key:
-            return  # already showing this editor
+            return False
 
         ws.right.editor_key = editor_key
         ws.right_bar_active = editor_key
@@ -881,6 +943,16 @@ class AppShell:
                 self._render_area("right", editor_key)
 
         self._refresh_context_bar()
+        return True
+
+    def _switch_right_area(self, editor_key: str) -> None:
+        """Switch the Right Area editor and broadcast WORKSPACE_CHANGED.
+
+        Args:
+            editor_key: Registry key of the editor to show.
+        """
+        if not self._apply_right_area_switch(editor_key):
+            return
 
         self.session.notify_context_changed(
             ContextChangedEvent(change_type=ContextChangeType.WORKSPACE_CHANGED)

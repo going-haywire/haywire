@@ -41,8 +41,16 @@ class ContextChangedEvent:
         change_type: What category of change occurred.
         source_editor: Which editor originated the change (if any).
         detail: Optional additional information about the change.
+        reveal_editor: Optional registry_key of an editor that should be
+            surfaced as part of handling this event. The orchestrator resolves
+            it to a workspace slot via the editor's ``default_area`` and
+            switches that slot before running the poll/draw cycle, so the
+            revealed editor receives the same event that caused it to be
+            revealed. If the editor cannot be hosted in the active workspace
+            a warning is logged and the reveal is skipped.
     """
 
     change_type: ContextChangeType
     source_editor: Optional[str] = None
     detail: Optional[Any] = None
+    reveal_editor: Optional[str] = None

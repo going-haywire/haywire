@@ -317,17 +317,32 @@ browser).
 
 ## 8. Driving Other Areas
 
-### Switching the right-area editor
+### Revealing an editor when firing a context event
 
-The AppShell stores a `switch_right_area` callback in `context.metadata` after layout is built. Call it to replace the current right-area editor:
+When an event should also surface a particular editor (e.g. selecting a
+component should bring the component-detail editor to the front), attach the
+target editor's `registry_key` to the `ContextChangedEvent` via the
+`reveal_editor` field. The AppShell orchestrator resolves the target slot from
+the editor's `class_identity.default_area` and switches that slot before running
+the normal poll/draw cycle, so the revealed editor receives the same event that
+caused it to be revealed — a single render pass, no nested `WORKSPACE_CHANGED`.
 
 ```python
-switch = context.metadata.get('switch_right_area')
-if switch:
-    switch('component_detail')   # registry_id of target editor
+from haybale_studio.editors.library_component_editor import LibraryComponentEditor
+
+context.session.notify_context_changed(
+    ContextChangedEvent(
+        change_type=ContextChangeType.ACTIVE_COMPONENT_CHANGED,
+        source_editor='library_detail',
+        reveal_editor=LibraryComponentEditor.class_identity.registry_key,
+    )
+)
 ```
 
-The old right-area editor is cleaned up and the new one is rendered immediately.
+If the revealed editor is not hostable in the active workspace (e.g. its
+`default_area` is not `left` or `right`, or the registry does not know the
+key) the orchestrator logs a warning and the original event still propagates
+to all currently-mounted editors.
 
 ### Switching middle tabs
 

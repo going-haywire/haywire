@@ -1,10 +1,12 @@
 """Tests for AppShell toolbar styling."""
 
+import logging
+
 import haywire.core.graph.editor as graph_editor_module
 from types import SimpleNamespace
 
 from haywire.ui.app.shell import AppShell
-from haywire.ui.context_events import ContextChangeType
+from haywire.ui.context_events import ContextChangedEvent, ContextChangeType
 
 
 class _FakeContainer:
@@ -119,3 +121,81 @@ def test_refresh_context_bar_renders_contents_without_rebuilding_wrapper() -> No
 
     assert shell._context_bar.clear_calls == 1
     assert rendered == ["context"]
+
+
+class _FakeEditorRegistry:
+    """Minimal stand-in for EditorTypeRegistry used by reveal tests."""
+
+    def __init__(self, classes: dict) -> None:
+        self._classes = classes
+
+    def get_by_key(self, registry_key: str):
+        return self._classes.get(registry_key)
+
+
+def _make_editor_cls(registry_key: str, default_area: str) -> type:
+    """Build a throwaway class that looks like a decorated BaseEditor."""
+    return type(
+        f"_FakeEditor_{registry_key.replace(':', '_')}",
+        (),
+        {
+            "class_identity": SimpleNamespace(
+                registry_key=registry_key,
+                default_area=default_area,
+            )
+        },
+    )
+
+
+def test_on_context_changed_reveal_editor_switches_slot() -> None:
+    """A reveal_editor on an event switches the slot via the pure helper and
+    then continues with the normal poll/draw cycle, so the revealed editor
+    sees the same event that caused it to be revealed."""
+    target_key = "right:editor:two"
+    registry = _FakeEditorRegistry({target_key: _make_editor_cls(target_key, "right")})
+    shell = AppShell(session=_FakeSession(), editor_registry=registry)
+    shell._right_column = _FakeContainer()
+    shell._context_bar = _FakeContainer()
+
+    rendered = []
+    shell._render_area = lambda slot, editor_key: rendered.append((slot, editor_key))
+    shell._render_context_bar_contents = lambda: rendered.append(("context", None))
+
+    event = ContextChangedEvent(
+        change_type=ContextChangeType.ACTIVE_COMPONENT_CHANGED,
+        reveal_editor=target_key,
+    )
+    shell._on_context_changed(event, shell.session.workspace_manager.active)
+
+    # Slot was switched via the pure helper.
+    assert shell.session.workspace_manager.active.right.editor_key == target_key
+    assert shell.session.workspace_manager.active.right_bar_active == target_key
+    assert shell._right_column.clear_calls == 1
+    assert ("right", target_key) in rendered
+    assert ("context", None) in rendered
+    # Reveal must NOT fire a nested WORKSPACE_CHANGED event.
+    assert shell.session.notified_events == []
+
+
+def test_on_context_changed_reveal_editor_unknown_logs_warning(caplog) -> None:
+    """An unknown reveal_editor is a soft failure: warning logged, no switch,
+    the rest of the poll/draw cycle still runs for existing editors."""
+    registry = _FakeEditorRegistry({})  # empty — unknown key
+    shell = AppShell(session=_FakeSession(), editor_registry=registry)
+    shell._right_column = _FakeContainer()
+    shell._context_bar = _FakeContainer()
+
+    event = ContextChangedEvent(
+        change_type=ContextChangeType.ACTIVE_COMPONENT_CHANGED,
+        reveal_editor="nonexistent:editor:zzz",
+    )
+    with caplog.at_level(logging.WARNING, logger="haywire.ui.app.shell"):
+        shell._on_context_changed(event, shell.session.workspace_manager.active)
+
+    # Slot untouched.
+    assert shell.session.workspace_manager.active.right.editor_key == "right:editor:one"
+    assert shell._right_column.clear_calls == 0
+    # Warning was logged and mentions the offending key.
+    assert any("nonexistent:editor:zzz" in rec.message for rec in caplog.records)
+    # No nested event emitted.
+    assert shell.session.notified_events == []

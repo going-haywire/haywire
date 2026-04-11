@@ -215,7 +215,12 @@ class SessionContext:
 | `'panel_registry'`    | `PanelRegistry` | The DI-managed panel registry                              |
 | `'haywire_session'`   | `Session`       | The current session (for firing events)                    |
 | `'middle_tabs'`       | `ui.tabs`       | NiceGUI tabs element (for programmatic tab switching)      |
-| `'switch_right_area'` | `Callable`      | Callback to swap the right-area editor                     |
+
+To surface a particular editor as part of firing a context event, set
+`reveal_editor` on the `ContextChangedEvent` to the target editor's
+`registry_key`. The AppShell orchestrator resolves the slot from the editor's
+`default_area` and switches it before running the poll/draw cycle. See
+`docs/documentation/build_editors.md` § *Driving Other Areas* for details.
 
 Editors and panels should always access services via `context.metadata` rather than storing their own references, since this keeps them session-safe.
 

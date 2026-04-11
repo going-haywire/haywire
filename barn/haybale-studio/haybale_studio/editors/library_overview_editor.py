@@ -601,15 +601,8 @@ class LibraryOverviewEditor(BaseEditor):
             "comp_type": comp_type,
             "registry_key": registry_key,
         }
-        # Ensure the right area shows the ComponentDetailEditor.
-        switch_right = context.metadata.get("switch_right_area")
 
-        from haybale_studio.editors.library_component_editor import LibraryComponentEditor as cde
-        if switch_right is not None:
-            try:
-                switch_right(cde.class_identity.registry_key)
-            except Exception:
-                pass
+        from haybale_studio.editors.library_component_editor import LibraryComponentEditor
 
         session = context.session
         if session is not None:
@@ -617,6 +610,7 @@ class LibraryOverviewEditor(BaseEditor):
                 ContextChangedEvent(
                     change_type=ContextChangeType.ACTIVE_COMPONENT_CHANGED,
                     source_editor="library_detail",
+                    reveal_editor=LibraryComponentEditor.class_identity.registry_key,
                 )
             )
 
