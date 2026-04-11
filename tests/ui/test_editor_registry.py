@@ -18,7 +18,7 @@ from haywire.ui.editor.registry import EditorTypeRegistry
     registry_id="test_editor",
     label="Test Editor",
     icon="star",
-    default_area="middle",
+    canvas_area="middle",
     description="An editor for unit tests.",
 )
 class _TestEditor(BaseEditor):
@@ -29,7 +29,7 @@ class _TestEditor(BaseEditor):
 @editor(
     registry_id="test_left_editor",
     label="Test Left Editor",
-    default_area="left",
+    canvas_area="left",
 )
 class _TestLeftEditor(BaseEditor):
     def draw(self, context, container):
@@ -63,7 +63,7 @@ class TestEditorDecorator:
         assert _TestEditor.class_identity.icon == "star"
 
     def test_default_area(self):
-        assert _TestEditor.class_identity.default_area == "middle"
+        assert _TestEditor.class_identity.canvas_area == "middle"
 
     def test_description(self):
         assert _TestEditor.class_identity.description == "An editor for unit tests."
@@ -79,7 +79,7 @@ class TestEditorDecorator:
     def test_rejects_non_base_editor(self):
         with pytest.raises(TypeError):
 
-            @editor(registry_id="bad", editor="x", default_area="middle")
+            @editor(registry_id="bad", editor="x", canvas_area="middle")
             class NotAnEditor:
                 pass
 

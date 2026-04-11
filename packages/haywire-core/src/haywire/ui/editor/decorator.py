@@ -25,7 +25,7 @@ def editor(
     registry_id: Optional[str] = None,
     label: Optional[str] = None,
     icon: str = "extension",
-    default_area: str = "middle",
+    canvas_area: str = "middle",
     description: str = "",
 ):
     """
@@ -43,7 +43,7 @@ def editor(
             Defaults to the class name if not provided.
         label: Human-readable display name. Defaults to class name.
         icon: Material Design icon name. Defaults to 'extension'.
-        default_area: Which area this editor belongs in by default.
+        canvas_area: Which area this editor belongs in by default.
             One of: 'left', 'middle', 'right', 'bottom'. Defaults to 'middle'.
         description: Human-readable description.
 
@@ -52,7 +52,7 @@ def editor(
             registry_id='graph_editor',
             label='Graph Editor',
             icon='account_tree',
-            default_area='middle',
+            canvas_area='middle',
             description='Visual node graph editor',
         )
         class GraphEditor(BaseEditor):
@@ -75,7 +75,7 @@ def editor(
             registry_key=_registry_key,
             label=_label,
             icon=icon,
-            default_area=default_area,
+            canvas_area=canvas_area,
             description=description,
             class_name=inner_cls.__name__,
             module=inner_cls.__module__,

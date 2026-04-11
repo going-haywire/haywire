@@ -17,7 +17,7 @@ and calling AppShell.render().
 """
 
 import logging
-from typing import Optional, TYPE_CHECKING
+from typing import Callable, Optional, TYPE_CHECKING
 from nicegui import ui
 
 from haywire.ui import elements as hui
@@ -80,10 +80,10 @@ class AppShell:
         self._context_bar = None  # stored for dynamic switching via _switch_right_area
         self._left_divider = None  # drag handle between left and middle
         self._right_divider = None  # drag handle between middle and right
-        self._bottom_container = None  # bottom split area column
-        self._bottom_divider = None  # horizontal drag handle above bottom panel
+        self._bottom_container = None  # bottom content panel column (hidden when retracted)
+        self._bottom_divider = None  # horizontal drag handle above bottom tab bar
         self._btn_left = None  # ActivityBar toggle button for left panel
-        self._btn_bottom = None  # Tab-bar toggle button for bottom panel
+        self._btn_bottom = None  # Chevron in bottom tab bar row (retract toggle)
         self._btn_right = None  # ContextBar toggle button for right panel
 
     @staticmethod
@@ -324,8 +324,10 @@ class AppShell:
   //
   // Horizontal (.hw-area-divider): resizes the left or right panel; the middle
   //   (flex:1) fills remaining space automatically.
-  // Vertical (.hw-area-vdivider): resizes the bottom panel; the tab area
-  //   (flex:1) fills remaining height automatically.
+  // Vertical (.hw-area-vdivider): resizes the bottom content panel; the middle
+  //   tab area (flex:1) fills remaining height automatically. If the bottom
+  //   is retracted (hidden) when drag starts, mousedown auto-expands it by
+  //   dispatching a custom event the Python side listens for.
   // After drag, flex:"0 1 Xpx" (horizontal) / "0 0 Xpx" (vertical) keeps the
   // panel at its dragged size while still allowing window-resize compression.
   document.addEventListener("mousedown", function (e) {
@@ -347,12 +349,21 @@ class AppShell:
     } else {
       var panel = document.getElementById("hw-area-bottom");
       if (!panel) return;
-      var startH = panel.getBoundingClientRect().height;
+      // Auto-expand from retracted: if the panel is currently hidden,
+      // dispatch an event so the Python side can flip bottom.visible=true
+      // and show the container, then continue the drag from zero height.
+      var wasHidden = (panel.style.display === "none");
+      if (wasHidden) {
+        emitEvent("hw-bottom-auto-expand");
+        panel.style.display = "";
+      }
+      var startH = wasHidden ? 0 : panel.getBoundingClientRect().height;
       panel.style.flex = "none";
       panel.style.minHeight = "0";
       panel.style.height = startH + "px";
       drag = { panel: panel, vertical: true,
-               startPos: e.clientY, startSize: startH, minSize: 80 };
+               startPos: e.clientY, startSize: startH, minSize: 80,
+               snapThreshold: 40 };
       document.body.style.cursor = "row-resize";
     }
     document.body.style.userSelect = "none";
@@ -362,8 +373,12 @@ class AppShell:
     if (drag.vertical) {
       // Drag up → bottom panel grows (dy negative → bigger height)
       var dy = e.clientY - drag.startPos;
-      var newH = Math.max(drag.minSize, drag.startSize - dy);
+      var rawH = drag.startSize - dy;
+      // Allow temporarily dragging below min so the snap-to-retracted gesture
+      // feels responsive. Clamp only on release.
+      var newH = Math.max(0, rawH);
       drag.panel.style.height = newH + "px";
+      drag.lastRawH = rawH;
     } else {
       var dx = e.clientX - drag.startPos;
       // Left panel grows rightward (+dx); right panel grows leftward (-dx).
@@ -374,8 +389,20 @@ class AppShell:
   document.addEventListener("mouseup", function () {
     if (!drag) return;
     if (drag.vertical) {
-      // flex: 0 0 keeps exact height; no shrink (avoids fighting the parent flex layout).
-      drag.panel.style.flex = "0 0 " + drag.panel.style.height;
+      var finalH = drag.lastRawH != null ? drag.lastRawH : drag.startSize;
+      if (finalH < drag.snapThreshold) {
+        // Snap to retracted: hide the panel and tell the Python side.
+        drag.panel.style.display = "none";
+        drag.panel.style.flex = "none";
+        drag.panel.style.height = "";
+        emitEvent("hw-bottom-snap-retract");
+      } else {
+        var clamped = Math.max(drag.minSize, finalH);
+        drag.panel.style.height = clamped + "px";
+        // flex: 0 0 keeps exact height; no shrink (avoids fighting the parent flex layout).
+        drag.panel.style.flex = "0 0 " + clamped + "px";
+        emitEvent("hw-bottom-resize", clamped);
+      }
     } else {
       // flex-shrink:1 lets the panel compress when the window gets smaller.
       drag.panel.style.flex = "0 1 " + drag.panel.style.width;
@@ -386,6 +413,11 @@ class AppShell:
   }, true);
 })();
 </script>""")
+
+        # Bottom-area drag events emitted by the JS handler above.
+        ui.on("hw-bottom-auto-expand", lambda _e: self._on_bottom_drag_auto_expand())
+        ui.on("hw-bottom-snap-retract", lambda _e: self._on_bottom_drag_snap_retract())
+        ui.on("hw-bottom-resize", lambda e: self._on_bottom_drag_resize(e))
 
         with ui.column().classes("w-full gap-0").style("height: 100vh; overflow: hidden;"):
             # ----------------------------------------------------------------
@@ -587,73 +619,186 @@ class AppShell:
             ui.icon("tune").classes("hw-text-dim")
 
     def _render_middle_area(self) -> None:
-        """Render the middle area with tabs and optional bottom split."""
+        """Render the middle (main) tabbed editor region plus the bottom area.
+
+        Both the middle and bottom tabbed regions share the same rendering
+        helper :meth:`_render_tabbed_area`. The bottom area sits inside the
+        same ``middle_col`` column as the middle so it occupies the space
+        below the middle's tab panels. The middle fills ``flex: 1``; the
+        bottom adds a divider + always-visible tab-bar row + collapsible
+        content panel below it.
+        """
         ws = self.session.workspace_manager.active
 
+        # ---------- Middle tabbed region ----------
         if ws.middle.tabs:
-            # Tab bar row — tabs on the left, optional bottom-panel toggle on the right
-            with (
-                ui.row()
-                .classes("w-full items-center gap-0 flex-shrink-0")
-                .style(
-                    "background: var(--hw-bg-surface);"
-                    " border-bottom: 1px solid var(--hw-border); min-height: 36px;"
-                )
-            ):
-                with (
-                    ui.tabs()
-                    .props("dense align=left")
-                    .classes("hw-tabs")
-                    .style("flex: 1; min-height: 36px;") as tabs
-                ):
-                    for tab in ws.middle.tabs:
-                        ui.tab(name=tab.editor_key, label=tab.label).props("no-caps")
-
-                if ws.middle.bottom_editor_key:
-                    bottom_icon = "expand_less" if ws.middle.bottom_visible else "expand_more"
-                    self._btn_bottom = (
-                        ui.button(icon=bottom_icon, on_click=self._toggle_bottom_panel)
-                        .props("flat round dense size=sm")
-                        .tooltip("Toggle bottom panel")
-                        .classes("flex-shrink-0 mr-1")
-                    )
-
-            # Store tab element in session metadata so editors can switch tabs
-            self.session.context.metadata["middle_tabs"] = tabs
-
-            # Tab panels — each one gets an editor
-            with (
-                ui.tab_panels(tabs, value=ws.middle.tabs[ws.middle.active_tab_index].editor_key)
-                .classes("w-full")
-                .style("flex: 1; overflow: hidden; min-height: 0;")
-            ):
-                for tab in ws.middle.tabs:
-                    with ui.tab_panel(tab.editor_key).style("height: 100%; padding: 0;"):
-                        self._render_area("middle", tab.editor_key)
+            middle_active_key = ws.middle.tabs[ws.middle.active_tab_index].editor_key
+            middle_tabs_element = self._render_tab_bar_row(
+                tabs=ws.middle.tabs,
+                tabs_metadata_key="middle_tabs",
+            )
+            self._render_tab_panels(
+                tabs_element=middle_tabs_element,
+                tabs=ws.middle.tabs,
+                active_tab_key=middle_active_key,
+                slot_prefix="middle",
+                panels_style="flex: 1; overflow: hidden; min-height: 0;",
+            )
         else:
             # No tabs — single middle area
             with ui.column().style("flex: 1; height: 100%; overflow: hidden;"):
                 self._render_area("middle", None)
 
-        # Bottom area split — always rendered when an editor is assigned so the
-        # TopBar toggle can show/hide it without re-building the DOM.
-        # id="hw-area-bottom" lets the JS vertical drag handler find this element.
-        if ws.middle.bottom_editor_key:
-            self._bottom_divider = (
-                ui.element("div")
-                .classes("hw-area-vdivider w-full flex-shrink-0")
-                .style("height: 5px; cursor: row-resize;")
-            )
-            self._bottom_divider.set_visibility(ws.middle.bottom_visible)
+        # ---------- Bottom tabbed region ----------
+        # Only rendered when at least one bottom editor is registered.
+        # Structure when rendered:
+        #   [vertical drag divider]
+        #   [bottom tab bar row]   ← always visible (retracted state)
+        #   [bottom content panel] ← visible only when bottom.visible is True
+        if ws.bottom.tabs:
+            self._render_bottom_area()
 
-            with ui.column().style(
-                f"height: {ws.middle.bottom_size}px; min-height: {ws.middle.bottom_size}px; "
-                "overflow: hidden;"
-            ) as bottom_col:
-                self._render_area("bottom", ws.middle.bottom_editor_key)
-            bottom_col._props["id"] = "hw-area-bottom"
-            self._bottom_container = bottom_col
-            bottom_col.set_visibility(ws.middle.bottom_visible)
+    def _render_tab_bar_row(
+        self,
+        tabs: list,
+        tabs_metadata_key: str,
+        extra_row_style: str = "",
+        trailing_controls: Optional[Callable[[], None]] = None,
+    ) -> "ui.element":
+        """Render a tab-bar row and return the ``ui.tabs`` element.
+
+        Shared by the middle and bottom tabbed regions so their structure
+        stays in lock-step. The caller is responsible for wiring the
+        returned element into ``ui.tab_panels`` via :meth:`_render_tab_panels`.
+
+        Args:
+            tabs: List of ``TabState`` instances to render as tabs.
+            tabs_metadata_key: Key under which the ``ui.tabs`` element is
+                stashed in ``session.context.metadata`` so editors can
+                programmatically switch tabs.
+            extra_row_style: Additional inline style appended to the tab-bar
+                row (e.g. adding a top border for the bottom area).
+            trailing_controls: Optional callable rendered inside the tab-bar
+                row after the tabs (e.g. the bottom-area retract chevron).
+
+        Returns:
+            The ``ui.tabs`` element, which the caller passes to
+            :meth:`_render_tab_panels`.
+        """
+        base_row_style = (
+            "background: var(--hw-bg-surface); border-bottom: 1px solid var(--hw-border); min-height: 36px;"
+        )
+        with (
+            ui.row()
+            .classes("w-full items-center gap-0 flex-shrink-0")
+            .style(base_row_style + extra_row_style)
+        ):
+            with (
+                ui.tabs()
+                .props("dense align=left")
+                .classes("hw-tabs")
+                .style("flex: 1; min-height: 36px;") as tabs_element
+            ):
+                for tab in tabs:
+                    ui.tab(name=tab.editor_key, label=tab.label).props("no-caps")
+
+            if trailing_controls is not None:
+                trailing_controls()
+
+        self.session.context.metadata[tabs_metadata_key] = tabs_element
+        return tabs_element
+
+    def _render_tab_panels(
+        self,
+        tabs_element: "ui.element",
+        tabs: list,
+        active_tab_key: Optional[str],
+        slot_prefix: str,
+        panels_style: str,
+    ) -> None:
+        """Render the ``ui.tab_panels`` container for a tabbed region.
+
+        Each tab gets its own ``ui.tab_panel`` and its editor is drawn once
+        via :meth:`_render_area` with slot ``slot_prefix`` so the poll/draw
+        loop treats every tab as a mounted editor.
+
+        Args:
+            tabs_element: The ``ui.tabs`` element returned by
+                :meth:`_render_tab_bar_row`.
+            tabs: List of ``TabState`` instances (same list used for the
+                tab-bar row).
+            active_tab_key: ``editor_key`` of the initially active tab. If
+                None or not present in ``tabs``, the first tab is used.
+            slot_prefix: Slot identifier ('middle' or 'bottom') passed
+                through to :meth:`_render_area`.
+            panels_style: Inline style for the ``ui.tab_panels`` container.
+        """
+        valid_keys = {t.editor_key for t in tabs}
+        initial_value = active_tab_key if active_tab_key in valid_keys else tabs[0].editor_key
+
+        with ui.tab_panels(tabs_element, value=initial_value).classes("w-full").style(panels_style):
+            for tab in tabs:
+                with ui.tab_panel(tab.editor_key).style("height: 100%; padding: 0;"):
+                    self._render_area(slot_prefix, tab.editor_key)
+
+    def _render_bottom_area(self) -> None:
+        """Render the bottom tabbed region inside ``middle_col``.
+
+        Structure:
+            [vertical drag divider]   — visibility follows ``bottom.visible``
+            [bottom tab bar row]       — always visible (retracted state)
+            [bottom content panel]     — visibility follows ``bottom.visible``
+
+        The tab bar stays visible when ``bottom.visible`` is False; only the
+        divider and content panel hide. The retract chevron is injected into
+        the tab-bar row via ``trailing_controls``. The content panel is
+        given ``id="hw-area-bottom"`` so the JS vertical drag handler can
+        find it.
+        """
+        ws = self.session.workspace_manager.active
+
+        # Vertical drag handle above the bottom tab bar row.
+        self._bottom_divider = (
+            ui.element("div")
+            .classes("hw-area-vdivider w-full flex-shrink-0")
+            .style("height: 5px; cursor: row-resize;")
+        )
+        self._bottom_divider.set_visibility(ws.bottom.visible)
+
+        def _render_chevron() -> None:
+            chevron_icon = "expand_less" if ws.bottom.visible else "expand_more"
+            self._btn_bottom = (
+                ui.button(icon=chevron_icon, on_click=self._toggle_bottom_panel)
+                .props("flat round dense size=sm")
+                .tooltip("Toggle bottom panel")
+                .classes("flex-shrink-0 mr-1")
+            )
+
+        bottom_tabs_element = self._render_tab_bar_row(
+            tabs=ws.bottom.tabs,
+            tabs_metadata_key="bottom_tabs",
+            extra_row_style=" border-top: 1px solid var(--hw-border);",
+            trailing_controls=_render_chevron,
+        )
+
+        # Content panel (hidden when retracted).
+        with (
+            ui.column()
+            .classes("gap-0")
+            .style(
+                f"height: {ws.bottom.size}px; min-height: 0; width: 100%; overflow: hidden;"
+            ) as bottom_col
+        ):
+            self._render_tab_panels(
+                tabs_element=bottom_tabs_element,
+                tabs=ws.bottom.tabs,
+                active_tab_key=ws.bottom.active_tab_key,
+                slot_prefix="bottom",
+                panels_style="height: 100%; overflow: hidden;",
+            )
+        bottom_col._props["id"] = "hw-area-bottom"
+        self._bottom_container = bottom_col
+        bottom_col.set_visibility(ws.bottom.visible)
 
     def _render_statusbar(self) -> None:
         """Render the status bar at the bottom."""
@@ -701,9 +846,13 @@ class AppShell:
                 )
             )
             # Track the slot → (editor_key, container) mapping for poll/draw.
-            # Middle-area tabs share slot="middle" so use editor_key to avoid
+            # Tabbed areas (middle, bottom) share one slot name across many
+            # tabs, so the editor_key is included in the key to avoid
             # overwriting each other in the dict.
-            area_key = f"middle:{editor_key}" if slot == "middle" else slot
+            if slot in ("middle", "bottom"):
+                area_key = f"{slot}:{editor_key}"
+            else:
+                area_key = slot
             self._area_slots[area_key] = (editor_key, container_div)
             # First-assignment draw — no poll.
             editor_instance.draw(self.session.context, container_div)
@@ -726,7 +875,7 @@ class AppShell:
     def _reveal_editor(self, editor_key: str) -> None:
         """Ensure ``editor_key`` is the active editor in its default-area slot.
 
-        Resolves the target slot from the editor's ``class_identity.default_area``
+        Resolves the target slot from the editor's ``class_identity.canvas_area``
         and calls the matching pure-switch helper so no nested WORKSPACE_CHANGED
         event is fired. If the editor is unknown to the registry, or lives in an
         area without reveal support (middle/bottom), a warning is logged and the
@@ -744,7 +893,7 @@ class AppShell:
             logger.warning(f"AppShell: reveal_editor '{editor_key}' not found in registry, skipping reveal")
             return
 
-        area = getattr(editor_cls.class_identity, "default_area", None)
+        area = getattr(editor_cls.class_identity, "canvas_area", None)
         if area == "left":
             self._apply_left_area_switch(editor_key)
         elif area == "right":
@@ -838,15 +987,68 @@ class AppShell:
                 self._btn_right.style("transform: scaleX(-1);")
 
     def _toggle_bottom_panel(self) -> None:
-        """Toggle the bottom split panel visibility."""
+        """Toggle the bottom content panel's visibility (retract ↔ expand).
+
+        The tab bar row itself stays visible in both states; only the
+        divider and content panel change visibility. The chevron icon
+        flips between expand_less (expanded) and expand_more (retracted).
+        """
         ws = self.session.workspace_manager.active
-        ws.middle.bottom_visible = not ws.middle.bottom_visible
+        ws.bottom.visible = not ws.bottom.visible
+        self._apply_bottom_visibility(ws.bottom.visible)
+
+    def _apply_bottom_visibility(self, visible: bool) -> None:
+        """Sync divider, container, and chevron icon to ``visible``.
+
+        Shared by the chevron click path and the JS-driven drag auto-expand /
+        snap-retract paths so all three entry points produce the same UI
+        state without duplicating set-visibility logic.
+        """
         if self._bottom_divider:
-            self._bottom_divider.set_visibility(ws.middle.bottom_visible)
+            self._bottom_divider.set_visibility(visible)
         if self._bottom_container:
-            self._bottom_container.set_visibility(ws.middle.bottom_visible)
+            self._bottom_container.set_visibility(visible)
         if self._btn_bottom:
-            self._btn_bottom.props(f"icon={'expand_less' if ws.middle.bottom_visible else 'expand_more'}")
+            self._btn_bottom.props(f"icon={'expand_less' if visible else 'expand_more'}")
+
+    def _on_bottom_drag_auto_expand(self) -> None:
+        """Handle the ``hw-bottom-auto-expand`` event from the drag JS.
+
+        Fired when the user starts dragging the vertical divider while the
+        bottom is retracted. Flips ``bottom.visible = True`` and syncs the
+        Python-side UI state (chevron icon, element visibility flags) so
+        subsequent mouse moves happen in the expanded state.
+        """
+        ws = self.session.workspace_manager.active
+        if not ws.bottom.visible:
+            ws.bottom.visible = True
+            self._apply_bottom_visibility(True)
+
+    def _on_bottom_drag_snap_retract(self) -> None:
+        """Handle the ``hw-bottom-snap-retract`` event from the drag JS.
+
+        Fired when the user drags the divider below the snap threshold on
+        release. Flips ``bottom.visible = False`` and syncs the UI.
+        """
+        ws = self.session.workspace_manager.active
+        if ws.bottom.visible:
+            ws.bottom.visible = False
+            self._apply_bottom_visibility(False)
+
+    def _on_bottom_drag_resize(self, event) -> None:
+        """Handle the ``hw-bottom-resize`` event from the drag JS.
+
+        Fired on drag release with the final pixel height. Stores the new
+        size in ``bottom.size`` so it survives across future save/load
+        cycles (NiceGUI ``GenericEventArguments`` carries the value in
+        ``args``).
+        """
+        ws = self.session.workspace_manager.active
+        args = getattr(event, "args", None)
+        if isinstance(args, (int, float)):
+            ws.bottom.size = int(args)
+        elif isinstance(args, list) and args and isinstance(args[0], (int, float)):
+            ws.bottom.size = int(args[0])
 
     def _refresh_activity_bar(self) -> None:
         """Re-render the left activity bar so the active icon highlight stays in sync."""

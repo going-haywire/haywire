@@ -70,7 +70,7 @@ _CFG_EDITORS = TabConfig("editors", "editor")
     registry_id="library_detail",
     label="Library Detail",
     icon=hui.icon.node_info,
-    default_area="middle",
+    canvas_area="middle",
     description="Detailed information for the selected library.",
 )
 class LibraryOverviewEditor(BaseEditor):

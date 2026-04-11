@@ -77,4 +77,4 @@ class EditorTypeRegistry(BaseRegistry):
         Returns:
             Dict mapping registry_key -> editor class.
         """
-        return {k: v for k, v in self._classes.items() if v.class_identity.default_area == area}
+        return {k: v for k, v in self._classes.items() if v.class_identity.canvas_area == area}

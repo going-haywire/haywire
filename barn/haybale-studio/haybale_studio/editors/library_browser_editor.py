@@ -30,7 +30,7 @@ logger = logging.getLogger(__name__)
     registry_id="library_browser",
     label="Libraries",
     icon=hui.icon.library,
-    default_area="left",
+    canvas_area="left",
     description="Searchable list of installed and available libraries.",
 )
 class LibraryBrowserEditor(BaseEditor):

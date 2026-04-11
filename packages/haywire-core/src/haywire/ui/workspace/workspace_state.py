@@ -47,21 +47,45 @@ class TabState:
 @dataclass
 class MiddleAreaState:
     """
-    State of the middle (main) area which supports tabs and a bottom split.
+    State of the middle (main) area which supports tabs.
+
+    The middle area is a tabbed editor region; each tab hosts one editor.
 
     Attributes:
         tabs: List of open tabs.
         active_tab_index: Which tab is currently active.
-        bottom_visible: Whether the bottom split area is shown.
-        bottom_size: Height of the bottom area in pixels.
-        bottom_editor_key: Full registry_key of the editor in the bottom split.
     """
 
     tabs: List[TabState] = field(default_factory=lambda: [TabState()])
     active_tab_index: int = 0
-    bottom_visible: bool = False
-    bottom_size: int = 200
-    bottom_editor_key: Optional[str] = None
+
+
+@dataclass
+class BottomAreaState:
+    """
+    State of the bottom area — a tabbed editor region below the middle area
+    that can retract to a bar-only state.
+
+    The tab list itself is **not** persisted — it is auto-populated from the
+    editor registry on every load (one tab per editor whose ``canvas_area``
+    is ``"bottom"``). Only UI state (which tab is active, whether the content
+    is expanded, and the last dragged height) survives across sessions.
+
+    Attributes:
+        tabs: Runtime-only tab list, repopulated on every load. Not persisted.
+        active_tab_key: Full registry_key of the active bottom tab. Persisted;
+            resolved to an index against the freshly auto-populated tab list
+            on load, falling back to tab 0 if the key no longer exists.
+        visible: Whether the bottom content panel is expanded. When False, the
+            tab bar is still visible (as a retracted dock strip) but the
+            content panel below it is hidden.
+        size: Height of the expanded content panel in pixels.
+    """
+
+    tabs: List[TabState] = field(default_factory=list)
+    active_tab_key: Optional[str] = None
+    visible: bool = False
+    size: int = 200
 
 
 @dataclass
@@ -76,7 +100,8 @@ class WorkspaceState:
         name: Workspace name (e.g., "Graph Editing", "Development").
         left_bar_active: Full registry_key of the active activity bar editor.
         left: Left area state.
-        middle: Middle area state (with tabs and bottom split).
+        middle: Middle area state (tabbed editor region).
+        bottom: Bottom area state (tabbed editor region, retractable).
         right: Right area state.
         right_bar_active: Full registry_key of the active context bar editor.
     """
@@ -85,5 +110,6 @@ class WorkspaceState:
     left_bar_active: Optional[str] = None
     left: AreaState = field(default_factory=AreaState)
     middle: MiddleAreaState = field(default_factory=MiddleAreaState)
+    bottom: BottomAreaState = field(default_factory=BottomAreaState)
     right_bar_active: Optional[str] = None
     right: AreaState = field(default_factory=AreaState)

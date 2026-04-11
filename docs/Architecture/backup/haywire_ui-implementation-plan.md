@@ -87,9 +87,9 @@ Phase 2 will move it to its final location (`editor/`) after the canvas code is 
 
 Create these files in `packages/haywire-core/src/haywire/ui/editor_framework/`:
 
-- **`identity.py`** — `EditorIdentity` dataclass with fields: `registry_id`, `label`, `icon`, `default_area`, `description`, `registry_key`. See spec Section 2.3.
+- **`identity.py`** — `EditorIdentity` dataclass with fields: `registry_id`, `label`, `icon`, `canvas_area`, `description`, `registry_key`. See spec Section 2.3.
 - **`base.py`** — `BaseEditor` ABC. Single class attribute: `class_identity: ClassVar[EditorIdentity]`. Abstract methods: `render(container, context)`, `on_context_changed(event, context)`. Non-abstract: `cleanup()`, `get_tab_label(context)`. See spec Section 2.3 for complete class definition.
-- **`decorator.py`** — `@editor(registry_id, label, icon, default_area, description)` decorator. Validates subclass of BaseEditor, calls `derive_library_identity()` and `reg_key()` (from `haywire.core.library.utils`), creates an `EditorIdentity`, assigns it to `inner_cls.class_identity`. Does NOT register with the registry — that happens via `add_folder()`. See spec Section 2.3.
+- **`decorator.py`** — `@editor(registry_id, label, icon, canvas_area, description)` decorator. Validates subclass of BaseEditor, calls `derive_library_identity()` and `reg_key()` (from `haywire.core.library.utils`), creates an `EditorIdentity`, assigns it to `inner_cls.class_identity`. Does NOT register with the registry — that happens via `add_folder()`. See spec Section 2.3.
 - **`registry.py`** — `EditorTypeRegistry(BaseRegistry)`. Implements `_class_filter()` (checks `issubclass(cls, BaseEditor)` and `hasattr(cls, 'class_identity')`), `_register_class()` (reads `cls.class_identity.registry_key`, calls `super()._register()`), `_unregister_class()` (calls `super()._unregister()`). Extra method: `get_by_default_area(area)`. See spec Section 2.3.
 - **`__init__.py`** — export BaseEditor, EditorIdentity, editor decorator, EditorTypeRegistry
 
@@ -153,7 +153,7 @@ Ensure all new packages have `__init__.py` with appropriate exports.
 
 Create `tests/ui/test_editor_registry.py`:
 
-- Test that `@editor` decorator sets `class_identity` correctly (registry_key, label, icon, default_area)
+- Test that `@editor` decorator sets `class_identity` correctly (registry_key, label, icon, canvas_area)
 - Test that `@editor` does NOT auto-register (registry must be empty until `_register_class()` is called)
 - Test `_register_class()` adds the class; `get()` retrieves it
 - Test `_unregister_class()` removes it and clears the registry entry
@@ -330,7 +330,7 @@ Implement `GraphEditor(BaseEditor)` using the `@editor` decorator:
     registry_id='graph_editor',
     label='Graph Editor',
     icon='account_tree',
-    default_area='middle',
+    canvas_area='middle',
     description='Visual node graph editor.',
 )
 class GraphEditor(BaseEditor):
@@ -421,7 +421,7 @@ class PanelLayout:
     registry_id='properties',
     label='Properties',
     icon='tune',
-    default_area='right',
+    canvas_area='right',
     description='Context-sensitive property panels for the active selection.',
 )
 class PropertiesEditor(BaseEditor):
@@ -562,7 +562,7 @@ Select a node → Properties Editor shows node panels. Select an edge → edge p
     registry_id='console',
     label='Console',
     icon='terminal',
-    default_area='bottom',
+    canvas_area='bottom',
     description='Python console and execution log output.',
 )
 class ConsoleEditor(BaseEditor):
@@ -596,7 +596,7 @@ Fresh implementation of the **left panel** of `LibraryManagerPage`.
     registry_id='library_browser',
     label='Library Browser',
     icon='library_books',
-    default_area='left',
+    canvas_area='left',
     description='Browse available node libraries and marketplace.',
 )
 class LibraryBrowser(BaseEditor):
@@ -624,7 +624,7 @@ Fresh implementation of the **center panel** of `LibraryManagerPage` (marketplac
     registry_id='library_detail',
     label='Library Detail',
     icon='info',
-    default_area='middle',
+    canvas_area='middle',
     description='Detail view for the selected library.',
 )
 class LibraryDetailEditor(BaseEditor):
@@ -648,7 +648,7 @@ Fresh implementation of the **right panel** of `LibraryManagerPage` (per-compone
     registry_id='component_detail',
     label='Component Detail',
     icon='widgets',
-    default_area='right',
+    canvas_area='right',
     description='Documentation for the selected node or widget.',
 )
 class ComponentDetailEditor(BaseEditor):

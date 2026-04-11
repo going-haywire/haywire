@@ -45,7 +45,7 @@ def _workspace_rel_path(path: Path, workspace_root: "Path | None") -> str:
     registry_id="graph_manager",
     label="Graphs",
     icon=hui.icon.graph_manager,
-    default_area="left",
+    canvas_area="left",
     description='All open graphs. Click to switch; "+" to create a new graph.',
 )
 class GraphManagerEditor(BaseEditor):

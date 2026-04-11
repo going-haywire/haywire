@@ -7,13 +7,20 @@ in which areas, panel sizes, tab layout). WorkspaceManager handles preset
 loading, saving, and switching.
 """
 
-from .workspace_state import AreaState, TabState, MiddleAreaState, WorkspaceState
+from .workspace_state import (
+    AreaState,
+    TabState,
+    MiddleAreaState,
+    BottomAreaState,
+    WorkspaceState,
+)
 from .manager import WorkspaceManager
 
 __all__ = [
     "AreaState",
     "TabState",
     "MiddleAreaState",
+    "BottomAreaState",
     "WorkspaceState",
     "WorkspaceManager",
 ]

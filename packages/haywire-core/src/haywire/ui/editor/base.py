@@ -41,7 +41,7 @@ class BaseEditor(ABC):
         - get_tab_label(context): Dynamic tab label for tabbed areas.
 
     Class attributes (set by @editor decorator):
-        - class_identity: EditorIdentity with registry_key, label, icon, default_area.
+        - class_identity: EditorIdentity with registry_key, label, icon, canvas_area.
         - class_library: LibraryIdentity of the owning library (None for builtins).
     """
 

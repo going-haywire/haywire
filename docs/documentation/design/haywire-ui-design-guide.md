@@ -1034,13 +1034,19 @@ focus. The `--editing` and `--dragging` CSS classes handle this consistently.
 │      │      │  │  Editor Content   │  │      │        │
 │      │      │  │     (flex: 1)     │  │      │        │
 │      │      │  │                   │  │      │        │
+│      │      │  ├┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┤  │      │        │
+│      │      │  │ Bottom Tab Bar ▾  │  │      │        │ ← always-visible when tabs exist
 │      │      │  ├───────────────────┤  │      │        │
-│      │      │  │ Bottom (optional) │  │      │        │
+│      │      │  │ Bottom Content    │  │      │        │ ← collapsible via chevron or drag
+│      │      │  │   (optional)      │  │      │        │
 │      │      │  └───────────────────┘  │      │        │
 ├──────┴──────┴─────────────────────────┴──────┴────────────────┤
 │  StatusBar  (24px)             statusbar-bg, border-top       │
 └───────────────────────────────────────────────────────────────┘
 ```
+
+The bottom area is itself a tabbed region (own tab bar row + content panel),
+not a single fixed pane. See §9.7 for the retraction rules.
 
 ### 9.2 Editor Container
 
@@ -1149,6 +1155,52 @@ for the node (red gradient, danger border) provided all colour values reference
 tokens (`--hw-danger`, `--hw-danger-bg`). Hardcoded hex values like `#ef4444`
 or `#fef2f2` must be replaced.
 
+### 9.7 Bottom Area Retraction
+
+The bottom area mirrors the middle-area tab structure: its own tab bar row plus
+a collapsible content panel. Retraction is governed by three rules so the
+region always presents one consistent entry point to the user.
+
+**Rule 1 — The tab bar is always visible when tabs exist.** When the bottom
+registry contains at least one editor, the bottom tab bar row stays on screen
+in both expanded and retracted states. Users never lose sight of which bottom
+editors exist. If the registry has no bottom editors, the whole region (tab
+bar and content) is hidden.
+
+**Rule 2 — Retraction is chevron-only from a click path.** The rightmost
+control in the bottom tab bar row is a single chevron button: `expand_less`
+when expanded, `expand_more` when retracted. Clicking it toggles only the
+content panel and the divider above it — not the tab bar row itself. There
+must be no secondary close buttons or tab-level close affordances.
+
+**Rule 3 — Drag auto-expands from retracted.** The horizontal drag divider
+above the bottom tab bar is always hit-testable. Starting a drag while the
+panel is retracted auto-expands it; releasing a drag below a small snap
+threshold (~40px) retracts it again. Both paths flow through the same
+visibility-sync helper as the chevron click so Python state and DOM state
+never drift.
+
+**Visual rules:**
+
+- The horizontal drag divider above the bottom tab bar uses the same visual
+  rules as §9.5 handles (`4px`, transparent at rest, `--hw-accent` 50% on
+  hover/drag, `row-resize` cursor).
+- The bottom tab bar row shares the `hw-tabs` styling with the middle-area
+  tab bar — same `36px` height, same active/hover behaviour, same label
+  truncation rules.
+- The chevron uses standard `hui.icon_action` sizing (`xs`) and flips its
+  icon between `expand_less` and `expand_more`. It must not animate its
+  rotation; the icon swap is the state signal.
+- When retracted, the content panel's `display: none` — it does not
+  contribute to flex layout — so the divider sits directly against the top
+  edge of the tab bar row.
+
+**Persistence:** Only `bottom.visible`, `bottom.size`, and
+`bottom.active_tab_key` survive save/load cycles. The tab roster itself is
+re-derived from the editor registry on every load so newly-installed bottom
+editors appear automatically without requiring users to reset their
+workspace.
+
 ---
 
 ## 10. Naming Conventions
@@ -1177,7 +1229,7 @@ in code and comments:
 | `hw-shell-`      | Shell-specific structural classes                |
 | `hw-text-`       | Semantic text colour utilities                   |
 | `hw-panel`       | Editor container marker (enables text cascade)   |
-| `hw-tabs`        | Middle-area tab bar styling                      |
+| `hw-tabs`        | Middle- and bottom-area tab bar styling          |
 | `hw-cm-isolate`  | CodeMirror isolation wrapper (see rule below)    |
 | `compact-fields` | Dense field rendering mode                       |
 | `sf-label`       | Settings field label (responsive layout)         |

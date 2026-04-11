@@ -48,7 +48,7 @@ from haywire.ui.context_events import ContextChangeType
     registry_id='my_info',
     label='My Info',
     icon='info',
-    default_area='right',
+    canvas_area='right',
 )
 class MyInfoEditor(BaseEditor):
 
@@ -83,7 +83,7 @@ After [registering it](#5-registering-an-editor) and adding its `registry_id` to
     registry_id: str | None  = None,   # unique short ID, defaults to class name
     label:       str | None  = None,   # display name, defaults to class name
     icon:        str         = 'extension',  # Material Design icon name
-    default_area: str        = 'middle',     # 'left' | 'middle' | 'right' | 'bottom'
+    canvas_area: str        = 'middle',     # 'left' | 'middle' | 'right' | 'bottom'
     description: str         = '',
 )
 ```
@@ -323,7 +323,7 @@ When an event should also surface a particular editor (e.g. selecting a
 component should bring the component-detail editor to the front), attach the
 target editor's `registry_key` to the `ContextChangedEvent` via the
 `reveal_editor` field. The AppShell orchestrator resolves the target slot from
-the editor's `class_identity.default_area` and switches that slot before running
+the editor's `class_identity.canvas_area` and switches that slot before running
 the normal poll/draw cycle, so the revealed editor receives the same event that
 caused it to be revealed — a single render pass, no nested `WORKSPACE_CHANGED`.
 
@@ -340,7 +340,7 @@ context.session.notify_context_changed(
 ```
 
 If the revealed editor is not hostable in the active workspace (e.g. its
-`default_area` is not `left` or `right`, or the registry does not know the
+`canvas_area` is not `left` or `right`, or the registry does not know the
 key) the orchestrator logs a warning and the original event still propagates
 to all currently-mounted editors.
 
@@ -447,7 +447,7 @@ guide for the full list of overrides and theme integration via CSS custom proper
 **Implement `cleanup()`.** Even if you have nothing to clean up now, add a no-op and a
 comment. Future modifications that add timers or subscriptions are easy to forget.
 
-**Use `default_area` as a hint, not a mandate.** Set `default_area` to the area your editor is designed for, but document that it can be placed elsewhere. Workspace configs override `default_area` entirely.
+**Use `canvas_area` as a hint, not a mandate.** Set `canvas_area` to the area your editor is designed for, but document that it can be placed elsewhere. Workspace configs override `canvas_area` entirely.
 
 ---
 
@@ -475,7 +475,7 @@ if TYPE_CHECKING:
     registry_id='project_log',
     label='Project Log',
     icon='subject',
-    default_area='bottom',
+    canvas_area='bottom',
     description='Live tail of the project log file.',
 )
 class ProjectLogEditor(BaseEditor):

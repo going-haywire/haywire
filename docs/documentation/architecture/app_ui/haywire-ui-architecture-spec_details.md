@@ -255,7 +255,7 @@ class EditorIdentity:
     registry_id: str            # e.g. 'graph_editor'
     label: str                  # e.g. 'Graph Editor'
     icon: str = 'extension'     # Material Design icon name
-    default_area: str = 'middle'
+    canvas_area: str = 'middle'
     description: str = ''
     registry_key: str = ''      # fully-qualified key; set by decorator via reg_key()
 ```
@@ -289,7 +289,7 @@ class BaseEditor(ABC):
         - on_context_changed(event, context): React to context changes.
 
     Class attributes (set by @editor decorator):
-        - class_identity: EditorIdentity with registry_key, label, icon, default_area.
+        - class_identity: EditorIdentity with registry_key, label, icon, canvas_area.
         - class_library: LibraryIdentity of the owning library (None for builtins).
     """
 
@@ -356,7 +356,7 @@ def editor(
     registry_id: str = None,
     label: str = None,
     icon: str = 'extension',
-    default_area: str = 'middle',
+    canvas_area: str = 'middle',
     description: str = '',
 ):
     """
@@ -374,7 +374,7 @@ def editor(
             registry_id='graph_editor',
             label='Graph Editor',
             icon='account_tree',
-            default_area='middle',
+            canvas_area='middle',
             description='Visual node graph editor',
         )
         class GraphEditor(BaseEditor):
@@ -397,7 +397,7 @@ def editor(
             registry_id=_registry_id,
             label=_label,
             icon=icon,
-            default_area=default_area,
+            canvas_area=canvas_area,
             description=description,
             registry_key=_registry_key,
         )
@@ -460,7 +460,7 @@ class EditorTypeRegistry(BaseRegistry):
         """Get all editor classes suggested for a given default area."""
         return {
             k: v for k, v in self._classes.items()
-            if v.class_identity.default_area == area
+            if v.class_identity.canvas_area == area
         }
 ```
 
@@ -1172,7 +1172,7 @@ from haywire.ui import elements as hui
     registry_id='graph_editor',
     label='Graph Editor',
     icon=hui.icons.graph_editor,
-    default_area='middle',
+    canvas_area='middle',
     description='Visual node graph editor for wiring data processing pipelines.',
 )
 class GraphEditor(BaseEditor):
@@ -1225,7 +1225,7 @@ from haywire.ui.editor.base import BaseEditor
     registry_id='properties',
     label='Properties',
     icon='tune',
-    default_area='right',
+    canvas_area='right',
     description='Context-sensitive property panels for the active selection.',
 )
 class PropertiesEditor(BaseEditor):
@@ -1272,7 +1272,7 @@ from haywire.ui.editor.base import BaseEditor
     registry_id='console',
     label='Console',
     icon='terminal',
-    default_area='bottom',
+    canvas_area='bottom',
     description='Python console and execution log output.',
 )
 class ConsoleEditor(BaseEditor):
@@ -1313,7 +1313,7 @@ from haywire.ui.context_events import ContextChangedEvent, ContextChangeType
     registry_id='library_browser',
     label='Library Browser',
     icon='library_books',
-    default_area='left',
+    canvas_area='left',
     description='Browse available node libraries and marketplace.',
 )
 class LibraryBrowser(BaseEditor):
@@ -1363,7 +1363,7 @@ from haywire.ui.context_events import ContextChangeType
     registry_id='library_detail',
     label='Library Detail',
     icon='info',
-    default_area='middle',
+    canvas_area='middle',
     description='Detail view for the selected library.',
 )
 class LibraryDetailEditor(BaseEditor):
@@ -1412,7 +1412,7 @@ from haywire.ui.context_events import ContextChangeType
     registry_id='component_detail',
     label='Component Detail',
     icon='widgets',
-    default_area='right',
+    canvas_area='right',
     description='Documentation and details for the selected node or widget.',
 )
 class ComponentDetailEditor(BaseEditor):

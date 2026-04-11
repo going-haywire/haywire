@@ -28,7 +28,7 @@ if TYPE_CHECKING:
     registry_id="file_browser",
     label="Files",
     icon=hui.icon.folder,
-    default_area="left",
+    canvas_area="left",
     description="Project file tree. Click a file to open it in the middle area.",
 )
 class FileBrowserEditor(BaseEditor):

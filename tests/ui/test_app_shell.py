@@ -31,6 +31,12 @@ class _FakeSession:
                 right=SimpleNamespace(editor_key="right:editor:one", visible=True),
                 left_bar_active="left:editor:one",
                 right_bar_active="right:editor:one",
+                bottom=SimpleNamespace(
+                    tabs=[],
+                    active_tab_key=None,
+                    visible=False,
+                    size=200,
+                ),
             )
         )
         self._editors = {}
@@ -133,7 +139,7 @@ class _FakeEditorRegistry:
         return self._classes.get(registry_key)
 
 
-def _make_editor_cls(registry_key: str, default_area: str) -> type:
+def _make_editor_cls(registry_key: str, canvas_area: str) -> type:
     """Build a throwaway class that looks like a decorated BaseEditor."""
     return type(
         f"_FakeEditor_{registry_key.replace(':', '_')}",
@@ -141,7 +147,7 @@ def _make_editor_cls(registry_key: str, default_area: str) -> type:
         {
             "class_identity": SimpleNamespace(
                 registry_key=registry_key,
-                default_area=default_area,
+                canvas_area=canvas_area,
             )
         },
     )
@@ -175,6 +181,133 @@ def test_on_context_changed_reveal_editor_switches_slot() -> None:
     assert ("context", None) in rendered
     # Reveal must NOT fire a nested WORKSPACE_CHANGED event.
     assert shell.session.notified_events == []
+
+
+class _FakeVisibility:
+    """Stand-in for a NiceGUI element with set_visibility + props tracking."""
+
+    def __init__(self, visible: bool = True) -> None:
+        self.visible = visible
+        self.props_calls: list[str] = []
+
+    def set_visibility(self, visible: bool) -> None:
+        self.visible = visible
+
+    def props(self, value: str) -> None:
+        self.props_calls.append(value)
+
+
+def _make_shell_with_bottom_stubs(visible: bool = False):
+    shell = AppShell(session=_FakeSession(), editor_registry=None)
+    shell.session.workspace_manager.active.bottom.visible = visible
+    shell._bottom_divider = _FakeVisibility(visible=visible)
+    shell._bottom_container = _FakeVisibility(visible=visible)
+    shell._btn_bottom = _FakeVisibility()
+    return shell
+
+
+def test_toggle_bottom_panel_flips_visible_and_syncs_ui() -> None:
+    shell = _make_shell_with_bottom_stubs(visible=False)
+
+    shell._toggle_bottom_panel()
+
+    ws = shell.session.workspace_manager.active
+    assert ws.bottom.visible is True
+    assert shell._bottom_divider.visible is True
+    assert shell._bottom_container.visible is True
+    assert shell._btn_bottom.props_calls[-1] == "icon=expand_less"
+
+    shell._toggle_bottom_panel()
+
+    assert ws.bottom.visible is False
+    assert shell._bottom_divider.visible is False
+    assert shell._bottom_container.visible is False
+    assert shell._btn_bottom.props_calls[-1] == "icon=expand_more"
+
+
+def test_apply_bottom_visibility_syncs_all_three_elements() -> None:
+    shell = _make_shell_with_bottom_stubs(visible=False)
+
+    shell._apply_bottom_visibility(True)
+
+    assert shell._bottom_divider.visible is True
+    assert shell._bottom_container.visible is True
+    assert shell._btn_bottom.props_calls[-1] == "icon=expand_less"
+
+    shell._apply_bottom_visibility(False)
+
+    assert shell._bottom_divider.visible is False
+    assert shell._bottom_container.visible is False
+    assert shell._btn_bottom.props_calls[-1] == "icon=expand_more"
+
+
+def test_on_bottom_drag_auto_expand_flips_retracted_to_visible() -> None:
+    shell = _make_shell_with_bottom_stubs(visible=False)
+
+    shell._on_bottom_drag_auto_expand()
+
+    ws = shell.session.workspace_manager.active
+    assert ws.bottom.visible is True
+    assert shell._bottom_container.visible is True
+    assert shell._btn_bottom.props_calls[-1] == "icon=expand_less"
+
+
+def test_on_bottom_drag_auto_expand_noop_when_already_visible() -> None:
+    shell = _make_shell_with_bottom_stubs(visible=True)
+
+    shell._on_bottom_drag_auto_expand()
+
+    # No redundant props calls when already in the target state.
+    assert shell._btn_bottom.props_calls == []
+    assert shell.session.workspace_manager.active.bottom.visible is True
+
+
+def test_on_bottom_drag_snap_retract_flips_visible_to_retracted() -> None:
+    shell = _make_shell_with_bottom_stubs(visible=True)
+
+    shell._on_bottom_drag_snap_retract()
+
+    ws = shell.session.workspace_manager.active
+    assert ws.bottom.visible is False
+    assert shell._bottom_container.visible is False
+    assert shell._btn_bottom.props_calls[-1] == "icon=expand_more"
+
+
+def test_on_bottom_drag_snap_retract_noop_when_already_retracted() -> None:
+    shell = _make_shell_with_bottom_stubs(visible=False)
+
+    shell._on_bottom_drag_snap_retract()
+
+    assert shell._btn_bottom.props_calls == []
+    assert shell.session.workspace_manager.active.bottom.visible is False
+
+
+def test_on_bottom_drag_resize_accepts_numeric_args() -> None:
+    shell = _make_shell_with_bottom_stubs(visible=True)
+
+    shell._on_bottom_drag_resize(SimpleNamespace(args=275))
+    assert shell.session.workspace_manager.active.bottom.size == 275
+
+    shell._on_bottom_drag_resize(SimpleNamespace(args=312.5))
+    assert shell.session.workspace_manager.active.bottom.size == 312
+
+
+def test_on_bottom_drag_resize_accepts_list_args() -> None:
+    shell = _make_shell_with_bottom_stubs(visible=True)
+
+    shell._on_bottom_drag_resize(SimpleNamespace(args=[240]))
+    assert shell.session.workspace_manager.active.bottom.size == 240
+
+
+def test_on_bottom_drag_resize_ignores_unexpected_args() -> None:
+    shell = _make_shell_with_bottom_stubs(visible=True)
+    original = shell.session.workspace_manager.active.bottom.size
+
+    shell._on_bottom_drag_resize(SimpleNamespace(args="not a number"))
+    shell._on_bottom_drag_resize(SimpleNamespace(args=None))
+    shell._on_bottom_drag_resize(SimpleNamespace(args=[]))
+
+    assert shell.session.workspace_manager.active.bottom.size == original
 
 
 def test_on_context_changed_reveal_editor_unknown_logs_warning(caplog) -> None:

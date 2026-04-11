@@ -219,7 +219,7 @@ class SessionContext:
 To surface a particular editor as part of firing a context event, set
 `reveal_editor` on the `ContextChangedEvent` to the target editor's
 `registry_key`. The AppShell orchestrator resolves the slot from the editor's
-`default_area` and switches it before running the poll/draw cycle. See
+`canvas_area` and switches it before running the poll/draw cycle. See
 `docs/documentation/build_editors.md` § *Driving Other Areas* for details.
 
 Editors and panels should always access services via `context.metadata` rather than storing their own references, since this keeps them session-safe.
@@ -359,7 +359,7 @@ instance.cleanup()
   existing editor (clearing the container and re-rendering a new instance).
 - **Middle** area hosts one editor per tab. Tabs can be added/closed at runtime.
 - **Bottom** split holds a single editor, toggled by the workspace state.
-- `default_area` in the `@editor` decorator is a suggestion, not a constraint — editors can be placed in any area by the workspace configuration.
+- `canvas_area` in the `@editor` decorator is a suggestion, not a constraint — editors can be placed in any area by the workspace configuration.
 
 ---
 

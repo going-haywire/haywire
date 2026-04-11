@@ -43,7 +43,7 @@ class ContextChangedEvent:
         detail: Optional additional information about the change.
         reveal_editor: Optional registry_key of an editor that should be
             surfaced as part of handling this event. The orchestrator resolves
-            it to a workspace slot via the editor's ``default_area`` and
+            it to a workspace slot via the editor's ``canvas_area`` and
             switches that slot before running the poll/draw cycle, so the
             revealed editor receives the same event that caused it to be
             revealed. If the editor cannot be hosted in the active workspace
