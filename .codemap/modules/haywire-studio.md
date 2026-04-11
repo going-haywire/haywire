@@ -43,7 +43,6 @@ haywire_studio/
 **On-demand**:
 - `library_manager.py` — only when working on runtime library install/UI
 - `init.py` / `share.py` — only when working on CLI subcommands
-- `workspace/defaults.py` — only when working on default workspace layouts
 
 ---
 
@@ -54,8 +53,8 @@ haywire_studio/
   Managed by `config.py`; do not bypass this for settings resolution.
 - **GraphManager is file-centric** — each open graph corresponds to a `.haywire` file; the
   manager handles load/save/close lifecycle.
-- **workspace/defaults.py** owns the default editor/panel layout for new sessions —
-  change here when adding new default-visible editors.
+- **Workspace layouts are user-owned** — no built-in presets are seeded; `WorkspaceManager`
+  starts empty and loads user-saved presets from `.haywire/workspaces.json`.
 - No direct NiceGUI import in `config.py` or `graph_manager.py` — only `app.py` and `workspace/`
   should touch NiceGUI directly.
 
@@ -69,7 +68,6 @@ haywire_studio/
 | TOML config resolution | `config.py` |
 | Multi-graph file registry | `graph_manager.py` |
 | Runtime library install | `library_manager.py` |
-| Default workspace layout | `workspace/defaults.py` |
 
 ---
 

@@ -1,10 +1,10 @@
 # packages/haywire-core/src/haywire/ui/workspace/manager.py
 """
-WorkspaceManager for managing workspace presets in the Haywire UI system.
+WorkspaceManager for managing the single persisted workspace layout.
 """
 
 from dataclasses import asdict
-from typing import Dict, Optional, List
+from typing import Optional, TYPE_CHECKING
 import json
 import logging
 from pathlib import Path
@@ -16,72 +16,79 @@ from haywire.ui.workspace.workspace_state import (
     TabState,
 )
 
+if TYPE_CHECKING:
+    from haywire.ui.editor.registry import EditorTypeRegistry
+
 logger = logging.getLogger(__name__)
+
+_STATE_FILENAME = "workspace_state.json"
 
 
 class WorkspaceManager:
     """
-    Manages workspace presets.
+    Manages a single workspace layout per project.
 
-    Handles creating, saving, loading, and switching workspaces.
-    Each session has its own WorkspaceManager instance with its
-    own active workspace, but the saved presets are shared (stored
-    in the project folder).
+    There are no named presets. The project has one `WorkspaceState` persisted
+    to `.haywire/workspace_state.json`. On construction the manager tries to
+    load that file; if it is missing or fails to parse, the layout is
+    auto-populated from the editor registry (one tab per middle-area editor,
+    the first left/right/bottom editor docked into its respective area).
 
-    Presets are injected at construction via initial_presets. The host application
-    is responsible for providing its own preset definitions (e.g. haywire_studio
-    provides DEFAULT_PRESETS). If initial_presets is None, the manager starts empty.
+    Saving is explicit: callers invoke `save()` to write the current `active`
+    state to disk. Unsaved changes are lost when the session ends.
 
     Attributes:
-        active: The currently active WorkspaceState.
-        presets: Dict of saved workspace presets by name.
+        active: The current WorkspaceState.
     """
 
     def __init__(
         self,
-        initial_presets: Optional[Dict[str, WorkspaceState]] = None,
-        project_path: Optional[Path] = None,
+        project_path: Path,
+        editor_registry: "EditorTypeRegistry",
     ):
         self._project_path = project_path
-        self.presets: Dict[str, WorkspaceState] = dict(initial_presets) if initial_presets else {}
-        self.active: WorkspaceState = next(iter(self.presets.values())) if self.presets else WorkspaceState()
+        self._editor_registry = editor_registry
 
-        if project_path:
-            self._load_user_presets(project_path)
+        loaded = self._load()
+        if loaded is not None:
+            self.active = loaded
+        else:
+            self.active = self._auto_populate(editor_registry)
 
-    def switch(self, name: str) -> WorkspaceState:
-        """Switch to a named workspace preset.
+    # ------------------------------------------------------------------
+    # Public API
+    # ------------------------------------------------------------------
 
-        Args:
-            name: Name of the preset to switch to.
+    def save(self) -> None:
+        """Persist the current active workspace state to disk."""
+        preset_dir = self._project_path / ".haywire"
+        preset_dir.mkdir(parents=True, exist_ok=True)
+        state_file = preset_dir / _STATE_FILENAME
+        state_file.write_text(json.dumps(asdict(self.active), indent=2))
+        logger.info(f"WorkspaceManager: Persisted workspace state to {state_file}")
 
-        Returns:
-            The newly active WorkspaceState.
+    # ------------------------------------------------------------------
+    # Loading
+    # ------------------------------------------------------------------
 
-        Raises:
-            KeyError: If the named preset does not exist.
+    def _load(self) -> Optional[WorkspaceState]:
+        """Load workspace state from the project .haywire/ folder.
+
+        Returns the deserialized WorkspaceState, or None if the file is
+        missing or fails to parse.
         """
-        if name not in self.presets:
-            raise KeyError(f"Workspace '{name}' not found")
-        self.active = self.presets[name]
-        logger.info(f"WorkspaceManager: Switched to workspace '{name}'")
-        return self.active
-
-    def save_current(self, name: Optional[str] = None) -> None:
-        """Save the current workspace state as a preset.
-
-        Args:
-            name: Name to save under. Defaults to active.name.
-        """
-        save_name = name or self.active.name
-        self.active.name = save_name
-        self.presets[save_name] = self.active
-        if self._project_path:
-            self._persist_presets()
-
-    def get_preset_names(self) -> List[str]:
-        """Return list of all preset names."""
-        return list(self.presets.keys())
+        state_file = self._project_path / ".haywire" / _STATE_FILENAME
+        if not state_file.exists():
+            return None
+        try:
+            data = json.loads(state_file.read_text())
+            return self._deserialize_workspace(data)
+        except Exception as e:
+            logger.warning(
+                f"WorkspaceManager: Failed to load workspace state from {state_file}: {e}. "
+                "Falling back to auto-populate."
+            )
+            return None
 
     @staticmethod
     def _deserialize_workspace(state_dict: dict) -> WorkspaceState:
@@ -99,7 +106,7 @@ class WorkspaceManager:
             bottom_editor_key=middle_d.get("bottom_editor_key", None),
         )
         return WorkspaceState(
-            name=state_dict.get("name", "Unnamed"),
+            name=state_dict.get("name", "default"),
             left_bar_active=state_dict.get("left_bar_active"),
             left=AreaState(**left_d) if left_d else AreaState(),
             middle=middle,
@@ -107,26 +114,47 @@ class WorkspaceManager:
             right=AreaState(**right_d) if right_d else AreaState(),
         )
 
-    def _load_user_presets(self, project_path: Path) -> None:
-        """Load saved workspace presets from project .haywire/ folder."""
-        preset_file = project_path / ".haywire" / "workspaces.json"
-        if preset_file.exists():
-            try:
-                data = json.loads(preset_file.read_text())
-                for name, state_dict in data.items():
-                    self.presets[name] = self._deserialize_workspace(state_dict)
-            except Exception as e:
-                logger.warning(f"WorkspaceManager: Failed to load workspace presets: {e}")
+    # ------------------------------------------------------------------
+    # Auto-populate
+    # ------------------------------------------------------------------
 
-    def _persist_presets(self) -> None:
-        """Save workspace presets to project .haywire/ folder."""
-        if not self._project_path:
-            return
-        preset_dir = self._project_path / ".haywire"
-        preset_dir.mkdir(parents=True, exist_ok=True)
-        preset_file = preset_dir / "workspaces.json"
-        data = {}
-        for name, ws in self.presets.items():
-            data[name] = asdict(ws)
-        preset_file.write_text(json.dumps(data, indent=2))
-        logger.info(f"WorkspaceManager: Persisted presets to {preset_file}")
+    @staticmethod
+    def _auto_populate(editor_registry: "EditorTypeRegistry") -> WorkspaceState:
+        """Build a fresh WorkspaceState from whatever editors are registered.
+
+        The layout rule is: for each area, look up every editor whose
+        `default_area` matches, and dock the first one found. The middle area
+        gets one tab per middle-area editor. The bottom area is hidden by
+        default even if a bottom editor is registered.
+        """
+        left_editors = editor_registry.get_by_default_area("left")
+        right_editors = editor_registry.get_by_default_area("right")
+        middle_editors = editor_registry.get_by_default_area("middle")
+        bottom_editors = editor_registry.get_by_default_area("bottom")
+
+        left_first = next(iter(left_editors), None)
+        right_first = next(iter(right_editors), None)
+        bottom_first = next(iter(bottom_editors), None)
+
+        if middle_editors:
+            tabs = [
+                TabState(editor_key=key, label=cls.class_identity.label)
+                for key, cls in middle_editors.items()
+            ]
+        else:
+            tabs = [TabState()]
+
+        return WorkspaceState(
+            name="default",
+            left_bar_active=left_first,
+            left=AreaState(editor_key=left_first, visible=left_first is not None, size=250),
+            middle=MiddleAreaState(
+                tabs=tabs,
+                active_tab_index=0,
+                bottom_visible=False,
+                bottom_size=200,
+                bottom_editor_key=bottom_first,
+            ),
+            right_bar_active=right_first,
+            right=AreaState(editor_key=right_first, visible=right_first is not None, size=350),
+        )

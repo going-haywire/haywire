@@ -480,9 +480,8 @@ class AppShell:
         self.session.context.metadata["switch_right_area"] = self._switch_right_area
 
     def _render_topbar(self) -> None:
-        """Render the top bar with workspace name and global controls."""
+        """Render the top bar with global controls."""
         wm = self.session.workspace_manager
-        ws = wm.active
         with (
             ui.row()
             .classes("w-full items-center px-3 gap-3 hw-panel")
@@ -492,37 +491,11 @@ class AppShell:
             )
         ):
             ui.label("Haywire").classes("font-bold text-lg hw-text-body")
-            ui.label("|").classes("hw-text-muted")
-
-            # Workspace switcher
-            preset_names = wm.get_preset_names()
-            ws_select = (
-                ui.select(
-                    options=preset_names,
-                    value=ws.name,
-                    label=None,
-                )
-                .props("dense outlined")
-                .classes("text-sm hw-text-muted")
-                .style("min-width: 160px;")
-            )
-
-            def _on_workspace_switch(e):
-                value = e.value if hasattr(e, "value") else (e.args[0] if e.args else None)
-                if not value:
-                    return
-                try:
-                    wm.switch(value)
-                    ui.notify(f"Workspace: {value}", position="top-right", type="positive")
-                except KeyError:
-                    pass
-
-            ws_select.on_value_change(_on_workspace_switch)
 
             ui.button(
                 icon=hui.icon.save,
-                on_click=lambda: (wm.save_current(), ui.notify("Workspace saved", position="top-right")),
-            ).props("flat round dense").tooltip("Save current workspace")
+                on_click=lambda: (wm.save(), ui.notify("Workspace saved", position="top-right")),
+            ).props("flat round dense").tooltip("Save workspace layout")
 
     def _render_activity_bar(self) -> None:
         """Render the activity bar wrapper and its current contents."""

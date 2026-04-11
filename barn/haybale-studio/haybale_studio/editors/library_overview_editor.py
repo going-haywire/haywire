@@ -38,7 +38,6 @@ from haywire.core.library.info import LibraryInfo
 from haywire_studio.library_manager import LibraryManager, MarketplaceEntry
 
 from haywire.ui.widget.registry import WidgetRegistry
-from haywire_studio.workspace.defaults import _K_COMPONENT_DETAIL
 
 if TYPE_CHECKING:
     from haywire.ui.context import SessionContext
@@ -604,9 +603,11 @@ class LibraryOverviewEditor(BaseEditor):
         }
         # Ensure the right area shows the ComponentDetailEditor.
         switch_right = context.metadata.get("switch_right_area")
+
+        from haybale_studio.editors.library_component_editor import LibraryComponentEditor as cde
         if switch_right is not None:
             try:
-                switch_right(_K_COMPONENT_DETAIL)
+                switch_right(cde.class_identity.registry_key)
             except Exception:
                 pass
 

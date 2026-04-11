@@ -26,7 +26,6 @@ from haywire.core.di.config import create_library_system_service, set_library_sy
 
 # UI imports
 from haywire.ui.console_bridge import get_bridge
-from haywire_studio.workspace.defaults import DEFAULT_PRESETS
 
 
 def _result_mutates_data(result: ValidationResult) -> bool:
@@ -295,9 +294,11 @@ class HaywireApp:
 
             print(f"Creating UI for session: {context.client.id[:8]}")
 
+            editor_registry = self.library_service.injector.get(EditorTypeRegistry)
+
             workspace_manager = WorkspaceManager(
-                initial_presets=DEFAULT_PRESETS,
                 project_path=Path(self.workspace_root),
+                editor_registry=editor_registry,
             )
 
             haywire_session = self.session_manager.create_session(
@@ -312,7 +313,6 @@ class HaywireApp:
             haywire_session.context.active_workbench_theme_key = "core:theme:workbench:haywire-dark"
             haywire_session.context.active_node_theme_key = "core:theme:node:default"
 
-            editor_registry = self.library_service.injector.get(EditorTypeRegistry)
             app_shell = AppShell(haywire_session, editor_registry=editor_registry)
             app_shell.render()
 

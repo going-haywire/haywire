@@ -1,0 +1,38 @@
+{
+  "name": "default",
+  "left_bar_active": "studio:editor:file_browser",
+  "left": {
+    "editor_key": "studio:editor:file_browser",
+    "visible": true,
+    "size": 250
+  },
+  "middle": {
+    "tabs": [
+      {
+        "editor_key": "studio:editor:graph_editor",
+        "label": "Graph Editor",
+        "metadata": {}
+      },
+      {
+        "editor_key": "studio:editor:library_detail",
+        "label": "Library Detail",
+        "metadata": {}
+      },
+      {
+        "editor_key": "studio:editor:file_viewer",
+        "label": "File Viewer",
+        "metadata": {}
+      }
+    ],
+    "active_tab_index": 0,
+    "bottom_visible": false,
+    "bottom_size": 200,
+    "bottom_editor_key": "studio:editor:console"
+  },
+  "right_bar_active": "studio:editor:properties",
+  "right": {
+    "editor_key": "studio:editor:properties",
+    "visible": true,
+    "size": 350
+  }
+}
