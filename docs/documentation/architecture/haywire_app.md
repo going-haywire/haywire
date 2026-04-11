@@ -34,24 +34,24 @@ Three design goals shape every decision in the UI layer:
 
 ## 2. The Layout Model
 
-Every page rendered by Haywire is built by the `AppShell`, which divides the browser window into a fixed set of **named areas**:
+Every page rendered by Haywire is built by the `AppShell`, which divides the browser window into a fixed set of **slots**. Every slot has a **bar** (the control strip — vertical icons for left/right, horizontal tabs for main/bottom) and an **area** (the content panel where the active editor renders).
 
 ```
 ┌──────────────────────────────────────────────────────────┐
 │  TopBar  (workspace name, switcher, save)                │
 ├────┬──────────┬─────────────────────┬──────────────┬─────┤
-│    │          │    Middle Area      │              │     │
+│    │          │    Main Slot        │              │     │
 │    │          │  ┌────┬────┬─────┐  │              │     │
 │    │          │  │Tab1│Tab2│+    │  │              │     │
 │    │          │  ├────┴────┴─────┤  │              │     │
 │ A  │  Left    │  │               │  │    Right     │  C  │
-│ c  │  Area    │  │   Main        │  │    Area      │  o  │
+│ c  │  Slot    │  │   Main        │  │    Slot      │  o  │
 │ t  │          │  │  Editor       │  │              │  n  │
 │ i  │ (driven  │  │  (Graph)      │  │  (context-   │  t  │
 │ v  │  by      │  │               │  │   aware      │  e  │
 │ i  │  activ-  │  ├───────────────┤  │   editors)   │  x  │
 │ t  │  ity     │  │  Bottom       │  │              │  t  │
-│ y  │  bar)    │  │  Area         │  │  (driven by  │     │
+│ y  │  bar)    │  │  Slot         │  │  (driven by  │     │
 │    │          │  │ (console,     │  │   context    │  B  │
 │ B  │          │  │  terminal,    │  │   bar)       │  a  │
 │ a  │          │  │  logs)        │  │              │  r  │
@@ -61,24 +61,22 @@ Every page rendered by Haywire is built by the `AppShell`, which divides the bro
 └──────────────────────────────────────────────────────────┘
 ```
 
-| Area            | Description                                                     | Driven by                                       |
-| --------------- | --------------------------------------------------------------- | ----------------------------------------------- |
-| **TopBar**      | Workspace name, preset switcher, save button                    | Fixed                                           |
-| **ActivityBar** | Left icon strip — selects which editor lives in the Left Area   | Clicks update `WorkspaceState.left_bar_active`  |
-| **Left Area**   | Sidebar content (e.g. Library Browser)                          | `WorkspaceState.left.editor_key`                |
-| **Middle Area** | Primary workspace — tabbed, with optional bottom split          | `WorkspaceState.middle`                         |
-| **Right Area**  | Context-sensitive sidebar (e.g. Properties)                     | `WorkspaceState.right.editor_key`               |
-| **ContextBar**  | Right icon strip — selects which editor lives in the Right Area | Clicks update `WorkspaceState.right_bar_active` |
-| **StatusBar**   | Session diagnostics                                             | Fixed                                           |
+| Slot / Bar      | Description                                                          | Driven by                                           |
+| --------------- | -------------------------------------------------------------------- | --------------------------------------------------- |
+| **TopBar**      | Workspace name, preset switcher, save button                         | Fixed                                               |
+| **ActivityBar** | Left slot's bar — icons selecting which editor fills the left slot   | Clicks update `WorkspaceState.left.active_tab_key`  |
+| **Left Slot**   | Sidebar content (e.g. Library Browser)                               | `WorkspaceState.left.active_tab_key`                |
+| **Main Slot**   | Primary workspace — tabbed (MainTabBar), hosts the active editor     | `WorkspaceState.main`                               |
+| **Bottom Slot** | Optional retractable tabbed slot below main (BottomTabBar)           | `WorkspaceState.bottom`                             |
+| **Right Slot**  | Context-sensitive sidebar (e.g. Properties)                          | `WorkspaceState.right.active_tab_key`               |
+| **ContextBar**  | Right slot's bar — icons selecting which editor fills the right slot | Clicks update `WorkspaceState.right.active_tab_key` |
+| **StatusBar**   | Session diagnostics                                                  | Fixed                                               |
 
-### The Middle Area
+### The Main Slot
 
-The middle area is special: it hosts one or more **tabs**, each containing an independent
-editor. An optional **bottom split** can be revealed to host a second editor below the tabs (typically the Console).
+The main slot is the primary tabbed region: it hosts one or more **tabs**, each containing an independent editor. The **bottom slot** below it is a second tabbed slot that can be retracted to a bar-only state to reclaim space (typically used for Console / logs).
 
-Areas can be **collapsed**: `AreaState.visible = False` hides the area and its icon strip
-expands to fill the space. Sizes are stored in pixels in `AreaState.size` and restored on
-next load.
+Slots can be **collapsed**: `SlotState.visible = False` hides the left/right slot's area and the adjacent bar expands to fill the space. Sizes are stored in pixels in `SlotState.size` and restored on next load.
 
 ---
 
@@ -90,22 +88,23 @@ represented by the `WorkspaceState` dataclass.
 ```
 WorkspaceState
   ├── name: str                  "Graph Editing"
-  ├── left_bar_active: str       "library_browser"
-  ├── left: AreaState            editor_key="library_browser", visible=True, size=250
-  ├── middle: MiddleAreaState
+  ├── left: SlotState            active_tab_key="library_browser", visible=True, size=250
+  ├── main: MainSlotState
   │     ├── tabs: [TabState]     editor_key="graph_editor"
-  │     ├── active_tab_index: 0
-  │     ├── bottom_visible: False
-  │     └── bottom_editor_key: "console"
-  ├── right_bar_active: str      "properties"
-  └── right: AreaState           editor_key="properties", visible=True, size=350
+  │     └── active_tab_key: "graph_editor"
+  ├── bottom: BottomSlotState
+  │     ├── tabs: []             (re-derived from registry on load)
+  │     ├── active_tab_key: "console"
+  │     ├── visible: False
+  │     └── size: 200
+  └── right: SlotState           active_tab_key="properties", visible=True, size=350
 ```
 
 ### Built-in Presets
 
 Three presets ship with Haywire:
 
-| Preset            | Left            | Middle       | Bottom          | Right      |
+| Preset            | Left            | Main         | Bottom          | Right      |
 | ----------------- | --------------- | ------------ | --------------- | ---------- |
 | **Graph Editing** | Library Browser | Graph Editor | hidden          | Properties |
 | **Development**   | Library Browser | Graph Editor | Console         | Properties |
@@ -129,7 +128,7 @@ A session holds:
 | `session_id`           | `str`                   | UUID, unique per connection              |
 | `context`              | `SessionContext`        | Per-tab selection and mode state         |
 | `workspace_manager`    | `WorkspaceManager`      | Layout presets for this tab              |
-| `_editors`             | `Dict[str, BaseEditor]` | Live editor instances keyed by area slot |
+| `_editors`             | `Dict[str, BaseEditor]` | Live editor instances keyed by slot      |
 | `_context_subscribers` | `List[Callable]`        | Registered change callbacks              |
 
 ### Session Lifecycle
@@ -209,18 +208,19 @@ class SessionContext:
 
 `context.metadata` is an open extensibility point. The application wires standard services into it at startup so that any editor or panel can access them without direct DI coupling:
 
-| Key                   | Type            | Contents                                                   |
-| --------------------- | --------------- | ---------------------------------------------------------- |
-| `'project_state'`     | `HaywireApp`    | The main app object (node_registry, library_manager, etc.) |
-| `'panel_registry'`    | `PanelRegistry` | The DI-managed panel registry                              |
-| `'haywire_session'`   | `Session`       | The current session (for firing events)                    |
-| `'middle_tabs'`       | `ui.tabs`       | NiceGUI tabs element (for programmatic tab switching)      |
+| Key                 | Type            | Contents                                                              |
+| ------------------- | --------------- | --------------------------------------------------------------------- |
+| `'project_state'`   | `HaywireApp`    | The main app object (node_registry, library_manager, etc.)            |
+| `'panel_registry'`  | `PanelRegistry` | The DI-managed panel registry                                         |
+| `'haywire_session'` | `Session`       | The current session (for firing events)                               |
+| `'main_tabs'`       | `ui.tabs`       | NiceGUI tabs element for the main slot (programmatic tab switching)   |
+| `'bottom_tabs'`     | `ui.tabs`       | NiceGUI tabs element for the bottom slot (programmatic tab switching) |
 
 To surface a particular editor as part of firing a context event, set
 `reveal_editor` on the `ContextChangedEvent` to the target editor's
 `registry_key`. The AppShell orchestrator resolves the slot from the editor's
-`canvas_area` and switches it before running the poll/draw cycle. See
-`docs/documentation/build_editors.md` § *Driving Other Areas* for details.
+`default_slot` and switches it before running the poll/draw cycle. See
+`docs/documentation/build_editors.md` § *Driving Other Slots* for details.
 
 Editors and panels should always access services via `context.metadata` rather than storing their own references, since this keeps them session-safe.
 
@@ -353,13 +353,13 @@ session.unsubscribe_context_changes(instance.on_context_changed)
 instance.cleanup()
 ```
 
-### Area Placement Rules
+### Slot Placement Rules
 
-- **Left** and **Right** areas hold a single editor at a time. Swapping replaces the
+- **Left** and **Right** slots hold a single editor at a time. Swapping replaces the
   existing editor (clearing the container and re-rendering a new instance).
-- **Middle** area hosts one editor per tab. Tabs can be added/closed at runtime.
-- **Bottom** split holds a single editor, toggled by the workspace state.
-- `canvas_area` in the `@editor` decorator is a suggestion, not a constraint — editors can be placed in any area by the workspace configuration.
+- **Main** slot hosts one editor per tab. Tabs can be added/closed at runtime.
+- **Bottom** slot is a second tabbed slot below main; it can be retracted to a bar-only state.
+- `default_slot` in the `@editor` decorator is a suggestion, not a constraint — editors can be placed in any slot by the workspace configuration.
 
 ---
 

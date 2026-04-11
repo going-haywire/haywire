@@ -48,7 +48,7 @@ from haywire.ui.context_events import ContextChangeType
     registry_id='my_info',
     label='My Info',
     icon='info',
-    canvas_area='right',
+    default_slot='right',
 )
 class MyInfoEditor(BaseEditor):
 
@@ -83,7 +83,7 @@ After [registering it](#5-registering-an-editor) and adding its `registry_id` to
     registry_id: str | None  = None,   # unique short ID, defaults to class name
     label:       str | None  = None,   # display name, defaults to class name
     icon:        str         = 'extension',  # Material Design icon name
-    canvas_area: str        = 'middle',     # 'left' | 'middle' | 'right' | 'bottom'
+    default_slot: str         = 'main',     # 'left' | 'right' | 'main' | 'bottom'
     description: str         = '',
 )
 ```
@@ -101,7 +101,7 @@ The decorator does **not** register the class. Registration is always explicit (
 
 ### registry_id vs. registry_key
 
-`registry_id` is the short, human-readable identifier (`'my_info'`). The full `registry_key` includes the library prefix (`'my_library:editor:my_info'`). Workspace state files and `AppShell` use the short `registry_id` for area configuration. The registry itself uses the full key internally.
+`registry_id` is the short, human-readable identifier (`'my_info'`). The full `registry_key` includes the library prefix (`'my_library:editor:my_info'`). Workspace state files and `AppShell` use the short `registry_id` for slot configuration. The registry itself uses the full key internally.
 
 ---
 
@@ -109,7 +109,7 @@ The decorator does **not** register the class. Registration is always explicit (
 
 ### `render(container, context)`
 
-Called once when the editor is placed into an area. Build your entire NiceGUI UI here. Always use `with container:` to ensure elements are created inside the correct slot:
+Called once when the editor is placed into a slot. Build your entire NiceGUI UI here. Always use `with container:` to ensure elements are created inside the correct slot:
 
 ```python
 def render(self, container, context) -> None:
@@ -121,7 +121,7 @@ def render(self, container, context) -> None:
 ```
 
 Store references to elements you will update later. Do not rely on re-calling `render()` —
-it is only called once per area assignment.
+it is only called once per slot assignment.
 
 ### `on_context_changed(event, context)`
 
@@ -315,7 +315,7 @@ browser).
 
 ---
 
-## 8. Driving Other Areas
+## 8. Driving Other Slots
 
 ### Revealing an editor when firing a context event
 
@@ -323,7 +323,7 @@ When an event should also surface a particular editor (e.g. selecting a
 component should bring the component-detail editor to the front), attach the
 target editor's `registry_key` to the `ContextChangedEvent` via the
 `reveal_editor` field. The AppShell orchestrator resolves the target slot from
-the editor's `class_identity.canvas_area` and switches that slot before running
+the editor's `class_identity.default_slot` and switches that slot before running
 the normal poll/draw cycle, so the revealed editor receives the same event that
 caused it to be revealed — a single render pass, no nested `WORKSPACE_CHANGED`.
 
@@ -340,18 +340,18 @@ context.session.notify_context_changed(
 ```
 
 If the revealed editor is not hostable in the active workspace (e.g. its
-`canvas_area` is not `left` or `right`, or the registry does not know the
+`default_slot` is not `left` or `right`, or the registry does not know the
 key) the orchestrator logs a warning and the original event still propagates
 to all currently-mounted editors.
 
-### Switching middle tabs
+### Switching main tabs
 
-When multiple tabs are open in the middle area, the NiceGUI tabs element is stored in
-`context.metadata['middle_tabs']`. Call `set_value()` with a tab name to switch
+When multiple tabs are open in the main slot, the NiceGUI tabs element is stored in
+`context.metadata['main_tabs']`. Call `set_value()` with a tab name to switch
 programmatically:
 
 ```python
-tabs = context.metadata.get('middle_tabs')
+tabs = context.metadata.get('main_tabs')
 if tabs:
     try:
         tabs.set_value('library_detail')
@@ -447,7 +447,7 @@ guide for the full list of overrides and theme integration via CSS custom proper
 **Implement `cleanup()`.** Even if you have nothing to clean up now, add a no-op and a
 comment. Future modifications that add timers or subscriptions are easy to forget.
 
-**Use `canvas_area` as a hint, not a mandate.** Set `canvas_area` to the area your editor is designed for, but document that it can be placed elsewhere. Workspace configs override `canvas_area` entirely.
+**Use `default_slot` as a hint, not a mandate.** Set `default_slot` to the slot your editor is designed for, but document that it can be placed elsewhere. Workspace configs override `default_slot` entirely.
 
 ---
 
@@ -475,7 +475,7 @@ if TYPE_CHECKING:
     registry_id='project_log',
     label='Project Log',
     icon='subject',
-    canvas_area='bottom',
+    default_slot='bottom',
     description='Live tail of the project log file.',
 )
 class ProjectLogEditor(BaseEditor):
@@ -567,10 +567,13 @@ To make the editor appear by default, add its `registry_id` to a `WorkspaceState
 ```python
 WorkspaceState(
     name='My Workspace',
-    middle=MiddleAreaState(
+    main=MainSlotState(
         tabs=[TabState(editor_key='graph_editor')],
-        bottom_visible=True,
-        bottom_editor_key='project_log',   # ← our new editor
+        active_tab_key='graph_editor',
+    ),
+    bottom=BottomSlotState(
+        visible=True,
+        active_tab_key='project_log',   # ← our new editor
     ),
 )
 ```

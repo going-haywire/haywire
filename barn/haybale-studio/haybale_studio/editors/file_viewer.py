@@ -46,7 +46,7 @@ _LANGUAGE_MAP: dict = {
     registry_id="file_viewer",
     label="File Viewer",
     icon=hui.icon.library_component,
-    canvas_area="middle",
+    default_slot="main",
     description="Displays the contents of a file selected in the Files browser.",
 )
 class FileViewerEditor(BaseEditor):

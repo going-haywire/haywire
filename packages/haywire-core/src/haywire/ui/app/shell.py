@@ -67,24 +67,24 @@ class AppShell:
         self._editor_registry = editor_registry
 
         # Poll/draw orchestrator state -----------------------------------------
-        # Cached editor instances keyed by registry_key (lazy, survive area switches).
+        # Cached editor instances keyed by registry_key (lazy, survive slot switches).
         self._editor_cache: dict[str, "BaseEditor"] = {}
-        # Maps each area slot ('left', 'right', 'bottom', or 'middle:<key>') to
+        # Maps each slot ('left', 'right', 'main:<key>', 'bottom:<key>') to
         # (editor_key, container_element) so the poll/draw loop knows what to poll.
-        self._area_slots: dict[str, tuple[Optional[str], Optional["ui.element"]]] = {}
+        self._slots: dict[str, tuple[Optional[str], Optional["ui.element"]]] = {}
 
         # DOM references -------------------------------------------------------
-        self._left_column = None  # stored for dynamic switching via _switch_left_area
-        self._right_column = None  # stored for dynamic switching via _switch_right_area
-        self._activity_bar = None  # stored for dynamic switching via _switch_left_area
-        self._context_bar = None  # stored for dynamic switching via _switch_right_area
-        self._left_divider = None  # drag handle between left and middle
-        self._right_divider = None  # drag handle between middle and right
-        self._bottom_container = None  # bottom content panel column (hidden when retracted)
-        self._bottom_divider = None  # horizontal drag handle above bottom tab bar
-        self._btn_left = None  # ActivityBar toggle button for left panel
-        self._btn_bottom = None  # Chevron in bottom tab bar row (retract toggle)
-        self._btn_right = None  # ContextBar toggle button for right panel
+        self._left_slot = None  # stored for dynamic switching via _switch_left_slot
+        self._right_slot = None  # stored for dynamic switching via _switch_right_slot
+        self._activity_bar = None  # left slot's bar (vertical icons)
+        self._context_bar = None  # right slot's bar (vertical icons)
+        self._left_divider = None  # drag handle between left and main slots
+        self._right_divider = None  # drag handle between main and right slots
+        self._bottom_container = None  # bottom slot area (hidden when retracted)
+        self._bottom_divider = None  # horizontal drag handle above BottomTabBar
+        self._btn_left = None  # ActivityBar toggle button for left slot
+        self._btn_bottom = None  # Chevron in BottomTabBar row (retract toggle)
+        self._btn_right = None  # ContextBar toggle button for right slot
 
     @staticmethod
     def _toolbar_button_classes(is_active: bool) -> str:
@@ -153,11 +153,11 @@ class AppShell:
             " height: 100vh !important; overflow: hidden !important; }"
             " .q-tab-panels > .q-panel-parent > .q-panel.scroll"
             " { overflow: hidden !important; }"
-            # Middle-area tab bar
-            " .hw-tabs .q-tab { color: var(--hw-text-muted) !important; }"
-            " .hw-tabs .q-tab--active { color: var(--hw-text-body) !important; }"
-            " .hw-tabs .q-tab__indicator { background: var(--hw-accent) !important; }"
-            " .hw-tabs .q-tab__label { font-size: 12px; }"
+            # Tab-style slot bar (main and bottom slots)
+            " .hw-slot-bar-tabs .q-tab { color: var(--hw-text-muted) !important; }"
+            " .hw-slot-bar-tabs .q-tab--active { color: var(--hw-text-body) !important; }"
+            " .hw-slot-bar-tabs .q-tab__indicator { background: var(--hw-accent) !important; }"
+            " .hw-slot-bar-tabs .q-tab__label { font-size: 12px; }"
             # Activity/context bar buttons
             " .hw-shell-toolbar-btn {"
             "   color: var(--hw-text-muted) !important;"
@@ -338,7 +338,7 @@ class AppShell:
     e.stopPropagation();
     if (hdiv) {
       var isLeft = hdiv.classList.contains("hw-area-divider-left");
-      var panel = document.getElementById(isLeft ? "hw-area-left" : "hw-area-right");
+      var panel = document.getElementById(isLeft ? "hw-slot-left" : "hw-slot-right");
       if (!panel) return;
       var startW = panel.getBoundingClientRect().width;
       panel.style.flex = "none";
@@ -347,7 +347,7 @@ class AppShell:
                startPos: e.clientX, startSize: startW, minSize: 150 };
       document.body.style.cursor = "col-resize";
     } else {
-      var panel = document.getElementById("hw-area-bottom");
+      var panel = document.getElementById("hw-slot-bottom");
       if (!panel) return;
       // Auto-expand from retracted: if the panel is currently hidden,
       // dispatch an event so the Python side can flip bottom.visible=true
@@ -426,8 +426,8 @@ class AppShell:
             self._render_topbar()
 
             # ----------------------------------------------------------------
-            # Main content row (ActivityBar + Left + Middle + Right + ContextBar)
-            # flex-wrap: nowrap is critical for drag-resize: without it, panels
+            # Main content row (ActivityBar + Left slot + Main slot + Right slot + ContextBar)
+            # flex-wrap: nowrap is critical for drag-resize: without it, slots
             # wrap to the next line instead of shrinking when widths change.
             # ----------------------------------------------------------------
             with (
@@ -435,13 +435,13 @@ class AppShell:
                 .classes("w-full gap-0 no-wrap")
                 .style("flex: 1; overflow: hidden; min-height: 0; flex-wrap: nowrap;")
             ):
-                # ActivityBar — narrow left icon strip
+                # ActivityBar — the left slot's bar (vertical icons)
                 self._render_activity_bar()
 
-                # Left Area — always rendered if an editor is assigned so the
+                # Left slot — always rendered if an editor is assigned so the
                 # TopBar toggle can show/hide it without re-building the DOM.
-                # id="hw-area-left" lets the JS drag handler find this element.
-                if ws.left.editor_key:
+                # id="hw-slot-left" lets the JS drag handler find this element.
+                if ws.left.active_tab_key:
                     with (
                         ui.column()
                         .classes("gap-0")
@@ -451,12 +451,12 @@ class AppShell:
                             " background: var(--hw-bg-page);"
                         ) as left_col
                     ):
-                        self._left_column = left_col
-                        self._render_area("left", ws.left.editor_key)
-                    left_col._props["id"] = "hw-area-left"
+                        self._left_slot = left_col
+                        self._render_slot("left", ws.left.active_tab_key)
+                    left_col._props["id"] = "hw-slot-left"
                     left_col.set_visibility(ws.left.visible)
 
-                    # Drag handle — left panel ↔ middle area
+                    # Drag handle — left slot ↔ main slot
                     self._left_divider = (
                         ui.element("div")
                         .classes("hw-area-divider hw-area-divider-left flex-shrink-0")
@@ -464,21 +464,21 @@ class AppShell:
                     )
                     self._left_divider.set_visibility(ws.left.visible)
 
-                # Middle + optional Bottom (takes remaining space)
-                # id="hw-area-middle" lets the JS find this element directly.
+                # Main slot + optional Bottom slot (takes remaining space)
+                # id="hw-slot-main" lets the JS find this element directly.
                 with (
                     ui.column()
                     .classes("gap-0")
-                    .style("flex: 1; height: 100%; overflow: hidden; min-width: 0;") as middle_col
+                    .style("flex: 1; height: 100%; overflow: hidden; min-width: 0;") as main_col
                 ):
-                    self._render_middle_area()
-                middle_col._props["id"] = "hw-area-middle"
+                    self._render_main_slot()
+                main_col._props["id"] = "hw-slot-main"
 
-                # Right Area — always rendered if an editor is assigned so the
+                # Right slot — always rendered if an editor is assigned so the
                 # TopBar toggle can show/hide it without re-building the DOM.
-                # id="hw-area-right" lets the JS drag handler find this element.
-                if ws.right.editor_key:
-                    # Drag handle — middle area ↔ right panel
+                # id="hw-slot-right" lets the JS drag handler find this element.
+                if ws.right.active_tab_key:
+                    # Drag handle — main slot ↔ right slot
                     self._right_divider = (
                         ui.element("div")
                         .classes("hw-area-divider hw-area-divider-right flex-shrink-0")
@@ -495,12 +495,12 @@ class AppShell:
                             " background: var(--hw-bg-page);"
                         ) as right_col
                     ):
-                        self._right_column = right_col
-                        self._render_area("right", ws.right.editor_key)
-                    right_col._props["id"] = "hw-area-right"
+                        self._right_slot = right_col
+                        self._render_slot("right", ws.right.active_tab_key)
+                    right_col._props["id"] = "hw-slot-right"
                     right_col.set_visibility(ws.right.visible)
 
-                # ContextBar — narrow right icon strip
+                # ContextBar — the right slot's bar (vertical icons)
                 self._render_context_bar()
 
             # ----------------------------------------------------------------
@@ -541,21 +541,21 @@ class AppShell:
             self._render_activity_bar_contents()
 
     def _render_activity_bar_contents(self) -> None:
-        """Render the current activity bar contents inside the existing wrapper."""
+        """Render the current ActivityBar contents inside the existing wrapper."""
         ws = self.session.workspace_manager.active
 
         left_editors = {}
         if self._editor_registry:
-            left_editors = self._editor_registry.get_by_default_area("left")
+            left_editors = self._editor_registry.get_by_default_slot("left")
 
-        # Left panel toggle at the top of the bar.
+        # Left slot toggle at the top of the bar.
         # Visible → mirrored login (fold in); hidden → plain logout (fold out).
-        if ws.left.editor_key:
+        if ws.left.active_tab_key:
             fold_icon = "login" if ws.left.visible else "logout"
             self._btn_left = (
-                ui.button(icon=fold_icon, on_click=self._toggle_left_panel)
+                ui.button(icon=fold_icon, on_click=self._toggle_left_slot)
                 .props("flat round dense size=sm")
-                .tooltip("Toggle left panel")
+                .tooltip("Toggle left slot")
             )
             if ws.left.visible:
                 self._btn_left.style("transform: scaleX(-1);")
@@ -565,8 +565,8 @@ class AppShell:
             for reg_key, editor_cls in left_editors.items():
                 icon = editor_cls.class_identity.icon
                 label = editor_cls.class_identity.label
-                is_active = ws.left_bar_active == reg_key
-                ui.button(icon=icon, on_click=lambda k=reg_key: self._switch_left_area(k)).classes(
+                is_active = ws.left.active_tab_key == reg_key
+                ui.button(icon=icon, on_click=lambda k=reg_key: self._switch_left_slot(k)).classes(
                     self._toolbar_button_classes(is_active)
                 ).props("flat round").tooltip(label)
         else:
@@ -587,21 +587,21 @@ class AppShell:
             self._render_context_bar_contents()
 
     def _render_context_bar_contents(self) -> None:
-        """Render the current context bar contents inside the existing wrapper."""
+        """Render the current ContextBar contents inside the existing wrapper."""
         ws = self.session.workspace_manager.active
 
         right_editors = {}
         if self._editor_registry:
-            right_editors = self._editor_registry.get_by_default_area("right")
+            right_editors = self._editor_registry.get_by_default_slot("right")
 
-        # Right panel toggle at the top of the bar.
+        # Right slot toggle at the top of the bar.
         # Visible → plain login (fold in); hidden → mirrored logout (fold out).
-        if ws.right.editor_key:
+        if ws.right.active_tab_key:
             fold_icon = "login" if ws.right.visible else "logout"
             self._btn_right = (
-                ui.button(icon=fold_icon, on_click=self._toggle_right_panel)
+                ui.button(icon=fold_icon, on_click=self._toggle_right_slot)
                 .props("flat round dense size=sm")
-                .tooltip("Toggle right panel")
+                .tooltip("Toggle right slot")
             )
             if not ws.right.visible:
                 self._btn_right.style("transform: scaleX(-1);")
@@ -611,75 +611,74 @@ class AppShell:
             for reg_key, editor_cls in right_editors.items():
                 icon = editor_cls.class_identity.icon
                 label = editor_cls.class_identity.label
-                is_active = ws.right_bar_active == reg_key
-                ui.button(icon=icon, on_click=lambda k=reg_key: self._switch_right_area(k)).classes(
+                is_active = ws.right.active_tab_key == reg_key
+                ui.button(icon=icon, on_click=lambda k=reg_key: self._switch_right_slot(k)).classes(
                     self._toolbar_button_classes(is_active)
                 ).props("flat round").tooltip(label)
         else:
             ui.icon("tune").classes("hw-text-dim")
 
-    def _render_middle_area(self) -> None:
-        """Render the middle (main) tabbed editor region plus the bottom area.
+    def _render_main_slot(self) -> None:
+        """Render the main slot (MainTabBar + area) plus the bottom slot.
 
-        Both the middle and bottom tabbed regions share the same rendering
-        helper :meth:`_render_tabbed_area`. The bottom area sits inside the
-        same ``middle_col`` column as the middle so it occupies the space
-        below the middle's tab panels. The middle fills ``flex: 1``; the
-        bottom adds a divider + always-visible tab-bar row + collapsible
-        content panel below it.
+        Main and bottom share the same tab-bar rendering helper. The bottom
+        slot sits inside the same column as the main slot so it occupies the
+        space below the main slot's area. The main slot fills ``flex: 1``;
+        the bottom slot adds a divider + always-visible BottomTabBar +
+        collapsible area below it.
         """
         ws = self.session.workspace_manager.active
 
-        # ---------- Middle tabbed region ----------
-        if ws.middle.tabs:
-            middle_active_key = ws.middle.tabs[ws.middle.active_tab_index].editor_key
-            middle_tabs_element = self._render_tab_bar_row(
-                tabs=ws.middle.tabs,
-                tabs_metadata_key="middle_tabs",
+        # ---------- Main slot ----------
+        if ws.main.tabs:
+            main_tabs_element = self._render_tab_bar(
+                tabs=ws.main.tabs,
+                tabs_metadata_key="main_tabs",
             )
             self._render_tab_panels(
-                tabs_element=middle_tabs_element,
-                tabs=ws.middle.tabs,
-                active_tab_key=middle_active_key,
-                slot_prefix="middle",
+                tabs_element=main_tabs_element,
+                tabs=ws.main.tabs,
+                active_tab_key=ws.main.active_tab_key,
+                slot_prefix="main",
                 panels_style="flex: 1; overflow: hidden; min-height: 0;",
             )
         else:
-            # No tabs — single middle area
+            # No tabs — single empty main slot
             with ui.column().style("flex: 1; height: 100%; overflow: hidden;"):
-                self._render_area("middle", None)
+                self._render_slot("main", None)
 
-        # ---------- Bottom tabbed region ----------
+        # ---------- Bottom slot ----------
         # Only rendered when at least one bottom editor is registered.
         # Structure when rendered:
         #   [vertical drag divider]
-        #   [bottom tab bar row]   ← always visible (retracted state)
-        #   [bottom content panel] ← visible only when bottom.visible is True
+        #   [BottomTabBar]  ← always visible (retracted state)
+        #   [bottom area]   ← visible only when bottom.visible is True
         if ws.bottom.tabs:
-            self._render_bottom_area()
+            self._render_bottom_slot()
 
-    def _render_tab_bar_row(
+    def _render_tab_bar(
         self,
         tabs: list,
         tabs_metadata_key: str,
         extra_row_style: str = "",
         trailing_controls: Optional[Callable[[], None]] = None,
     ) -> "ui.element":
-        """Render a tab-bar row and return the ``ui.tabs`` element.
+        """Render a tab-style slot bar and return the ``ui.tabs`` element.
 
-        Shared by the middle and bottom tabbed regions so their structure
-        stays in lock-step. The caller is responsible for wiring the
-        returned element into ``ui.tab_panels`` via :meth:`_render_tab_panels`.
+        Shared by the main and bottom slots (MainTabBar / BottomTabBar) so
+        their structure stays in lock-step. The caller is responsible for
+        wiring the returned element into ``ui.tab_panels`` via
+        :meth:`_render_tab_panels`.
 
         Args:
             tabs: List of ``TabState`` instances to render as tabs.
             tabs_metadata_key: Key under which the ``ui.tabs`` element is
                 stashed in ``session.context.metadata`` so editors can
                 programmatically switch tabs.
-            extra_row_style: Additional inline style appended to the tab-bar
-                row (e.g. adding a top border for the bottom area).
-            trailing_controls: Optional callable rendered inside the tab-bar
-                row after the tabs (e.g. the bottom-area retract chevron).
+            extra_row_style: Additional inline style appended to the bar row
+                (e.g. adding a top border for the BottomTabBar).
+            trailing_controls: Optional callable rendered inside the bar row
+                after the tabs (e.g. the bottom slot's retract chevron).
 
         Returns:
             The ``ui.tabs`` element, which the caller passes to
@@ -690,13 +689,13 @@ class AppShell:
         )
         with (
             ui.row()
-            .classes("w-full items-center gap-0 flex-shrink-0")
+            .classes("w-full items-center gap-0 flex-shrink-0 hw-slot-bar")
             .style(base_row_style + extra_row_style)
         ):
             with (
                 ui.tabs()
                 .props("dense align=left")
-                .classes("hw-tabs")
+                .classes("hw-slot-bar-tabs")
                 .style("flex: 1; min-height: 36px;") as tabs_element
             ):
                 for tab in tabs:
@@ -716,21 +715,21 @@ class AppShell:
         slot_prefix: str,
         panels_style: str,
     ) -> None:
-        """Render the ``ui.tab_panels`` container for a tabbed region.
+        """Render the ``ui.tab_panels`` container for a tabbed slot.
 
         Each tab gets its own ``ui.tab_panel`` and its editor is drawn once
-        via :meth:`_render_area` with slot ``slot_prefix`` so the poll/draw
-        loop treats every tab as a mounted editor.
+        via :meth:`_render_slot` with slot name ``slot_prefix`` so the
+        poll/draw loop treats every tab as a mounted editor.
 
         Args:
             tabs_element: The ``ui.tabs`` element returned by
-                :meth:`_render_tab_bar_row`.
+                :meth:`_render_tab_bar`.
             tabs: List of ``TabState`` instances (same list used for the
-                tab-bar row).
+                slot bar).
             active_tab_key: ``editor_key`` of the initially active tab. If
                 None or not present in ``tabs``, the first tab is used.
-            slot_prefix: Slot identifier ('middle' or 'bottom') passed
-                through to :meth:`_render_area`.
+            slot_prefix: Slot identifier ('main' or 'bottom') passed
+                through to :meth:`_render_slot`.
             panels_style: Inline style for the ``ui.tab_panels`` container.
         """
         valid_keys = {t.editor_key for t in tabs}
@@ -739,25 +738,24 @@ class AppShell:
         with ui.tab_panels(tabs_element, value=initial_value).classes("w-full").style(panels_style):
             for tab in tabs:
                 with ui.tab_panel(tab.editor_key).style("height: 100%; padding: 0;"):
-                    self._render_area(slot_prefix, tab.editor_key)
+                    self._render_slot(slot_prefix, tab.editor_key)
 
-    def _render_bottom_area(self) -> None:
-        """Render the bottom tabbed region inside ``middle_col``.
+    def _render_bottom_slot(self) -> None:
+        """Render the bottom slot inside the main column.
 
         Structure:
-            [vertical drag divider]   — visibility follows ``bottom.visible``
-            [bottom tab bar row]       — always visible (retracted state)
-            [bottom content panel]     — visibility follows ``bottom.visible``
+            [vertical drag divider] — visibility follows ``bottom.visible``
+            [BottomTabBar]          — always visible (retracted state)
+            [bottom area]           — visibility follows ``bottom.visible``
 
-        The tab bar stays visible when ``bottom.visible`` is False; only the
-        divider and content panel hide. The retract chevron is injected into
-        the tab-bar row via ``trailing_controls``. The content panel is
-        given ``id="hw-area-bottom"`` so the JS vertical drag handler can
-        find it.
+        The BottomTabBar stays visible when ``bottom.visible`` is False; only
+        the divider and area hide. The retract chevron is injected into the
+        bar row via ``trailing_controls``. The area is given
+        ``id="hw-slot-bottom"`` so the JS vertical drag handler can find it.
         """
         ws = self.session.workspace_manager.active
 
-        # Vertical drag handle above the bottom tab bar row.
+        # Vertical drag handle above the BottomTabBar.
         self._bottom_divider = (
             ui.element("div")
             .classes("hw-area-vdivider w-full flex-shrink-0")
@@ -768,20 +766,20 @@ class AppShell:
         def _render_chevron() -> None:
             chevron_icon = "expand_less" if ws.bottom.visible else "expand_more"
             self._btn_bottom = (
-                ui.button(icon=chevron_icon, on_click=self._toggle_bottom_panel)
+                ui.button(icon=chevron_icon, on_click=self._toggle_bottom_slot)
                 .props("flat round dense size=sm")
-                .tooltip("Toggle bottom panel")
+                .tooltip("Toggle bottom slot")
                 .classes("flex-shrink-0 mr-1")
             )
 
-        bottom_tabs_element = self._render_tab_bar_row(
+        bottom_tabs_element = self._render_tab_bar(
             tabs=ws.bottom.tabs,
             tabs_metadata_key="bottom_tabs",
             extra_row_style=" border-top: 1px solid var(--hw-border);",
             trailing_controls=_render_chevron,
         )
 
-        # Content panel (hidden when retracted).
+        # Area (hidden when retracted).
         with (
             ui.column()
             .classes("gap-0")
@@ -796,7 +794,7 @@ class AppShell:
                 slot_prefix="bottom",
                 panels_style="height: 100%; overflow: hidden;",
             )
-        bottom_col._props["id"] = "hw-area-bottom"
+        bottom_col._props["id"] = "hw-slot-bottom"
         self._bottom_container = bottom_col
         bottom_col.set_visibility(ws.bottom.visible)
 
@@ -812,14 +810,14 @@ class AppShell:
         ):
             ui.label(f"Session: {self.session.session_id[:8]}...").classes("text-xs hw-text-muted")
 
-    def _render_area(self, slot: str, editor_key: Optional[str]) -> None:
-        """Render a single area slot, instantiating the editor if needed.
+    def _render_slot(self, slot: str, editor_key: Optional[str]) -> None:
+        """Render a single slot, instantiating the editor if needed.
 
         Creates a container, obtains (or creates) a cached editor instance,
         and calls draw() directly (first-assignment — no poll).
 
         Args:
-            slot: Area slot identifier ('left', 'middle', 'right', 'bottom').
+            slot: Slot identifier ('left', 'right', 'main', 'bottom').
             editor_key: Registry key of the editor to render, or None.
         """
         if not editor_key:
@@ -846,14 +844,14 @@ class AppShell:
                 )
             )
             # Track the slot → (editor_key, container) mapping for poll/draw.
-            # Tabbed areas (middle, bottom) share one slot name across many
+            # Tabbed slots (main, bottom) share one slot name across many
             # tabs, so the editor_key is included in the key to avoid
             # overwriting each other in the dict.
-            if slot in ("middle", "bottom"):
-                area_key = f"{slot}:{editor_key}"
+            if slot in ("main", "bottom"):
+                slot_key = f"{slot}:{editor_key}"
             else:
-                area_key = slot
-            self._area_slots[area_key] = (editor_key, container_div)
+                slot_key = slot
+            self._slots[slot_key] = (editor_key, container_div)
             # First-assignment draw — no poll.
             editor_instance.draw(self.session.context, container_div)
         except Exception as e:
@@ -873,12 +871,12 @@ class AppShell:
         return instance
 
     def _reveal_editor(self, editor_key: str) -> None:
-        """Ensure ``editor_key`` is the active editor in its default-area slot.
+        """Ensure ``editor_key`` is the active editor in its default slot.
 
-        Resolves the target slot from the editor's ``class_identity.canvas_area``
+        Resolves the target slot from the editor's ``class_identity.default_slot``
         and calls the matching pure-switch helper so no nested WORKSPACE_CHANGED
-        event is fired. If the editor is unknown to the registry, or lives in an
-        area without reveal support (middle/bottom), a warning is logged and the
+        event is fired. If the editor is unknown to the registry, or lives in a
+        slot without reveal support (main/bottom), a warning is logged and the
         reveal is skipped — the caller's own event still propagates normally.
 
         Args:
@@ -893,14 +891,14 @@ class AppShell:
             logger.warning(f"AppShell: reveal_editor '{editor_key}' not found in registry, skipping reveal")
             return
 
-        area = getattr(editor_cls.class_identity, "canvas_area", None)
-        if area == "left":
-            self._apply_left_area_switch(editor_key)
-        elif area == "right":
-            self._apply_right_area_switch(editor_key)
+        slot = getattr(editor_cls.class_identity, "default_slot", None)
+        if slot == "left":
+            self._apply_left_slot_switch(editor_key)
+        elif slot == "right":
+            self._apply_right_slot_switch(editor_key)
         else:
             logger.warning(
-                f"AppShell: reveal_editor '{editor_key}' targets area '{area}' "
+                f"AppShell: reveal_editor '{editor_key}' targets slot '{slot}' "
                 "which is not hostable in the active workspace, skipping reveal"
             )
 
@@ -909,7 +907,7 @@ class AppShell:
         if event.reveal_editor is not None:
             self._reveal_editor(event.reveal_editor)
 
-        for slot, (editor_key, container) in self._area_slots.items():
+        for slot, (editor_key, container) in self._slots.items():
             if editor_key is None or container is None:
                 continue
             instance = self._editor_cache.get(editor_key)
@@ -940,7 +938,7 @@ class AppShell:
 
                 # If the editor is currently visible, re-instantiate and draw.
                 if evt.event_type == LifeCycleEventType.CLASS_RELOADED and evt.affected_class is not None:
-                    for slot, (editor_key, container) in self._area_slots.items():
+                    for slot, (editor_key, container) in self._slots.items():
                         if editor_key == evt.registry_key and container is not None:
                             try:
                                 new_instance = self._get_or_create_editor(editor_key, evt.affected_class)
@@ -952,12 +950,12 @@ class AppShell:
                                     f"'{editor_key}' in slot '{slot}': {e}"
                                 )
 
-    def _toggle_left_panel(self) -> None:
-        """Toggle the left area panel visibility."""
+    def _toggle_left_slot(self) -> None:
+        """Toggle the left slot visibility."""
         ws = self.session.workspace_manager.active
         ws.left.visible = not ws.left.visible
-        if self._left_column:
-            self._left_column.set_visibility(ws.left.visible)
+        if self._left_slot:
+            self._left_slot.set_visibility(ws.left.visible)
         if self._left_divider:
             self._left_divider.set_visibility(ws.left.visible)
         if self._btn_left:
@@ -969,12 +967,12 @@ class AppShell:
                 self._btn_left.props("icon=logout")
                 self._btn_left.style("transform: none;")
 
-    def _toggle_right_panel(self) -> None:
-        """Toggle the right area panel visibility."""
+    def _toggle_right_slot(self) -> None:
+        """Toggle the right slot visibility."""
         ws = self.session.workspace_manager.active
         ws.right.visible = not ws.right.visible
-        if self._right_column:
-            self._right_column.set_visibility(ws.right.visible)
+        if self._right_slot:
+            self._right_slot.set_visibility(ws.right.visible)
         if self._right_divider:
             self._right_divider.set_visibility(ws.right.visible)
         if self._btn_right:
@@ -986,7 +984,7 @@ class AppShell:
                 self._btn_right.props("icon=logout")
                 self._btn_right.style("transform: scaleX(-1);")
 
-    def _toggle_bottom_panel(self) -> None:
+    def _toggle_bottom_slot(self) -> None:
         """Toggle the bottom content panel's visibility (retract ↔ expand).
 
         The tab bar row itself stays visible in both states; only the
@@ -1068,12 +1066,12 @@ class AppShell:
         with self._context_bar:
             self._render_context_bar_contents()
 
-    def _apply_left_area_switch(self, editor_key: str) -> bool:
-        """Switch the editor assigned to the Left Area without notifying.
+    def _apply_left_slot_switch(self, editor_key: str) -> bool:
+        """Switch the editor assigned to the Left Slot without notifying.
 
-        Updates workspace state, re-renders the left column, and refreshes the
+        Updates workspace state, re-renders the left slot, and refreshes the
         activity bar. Does NOT fire a WORKSPACE_CHANGED event — callers that
-        need event propagation should use :meth:`_switch_left_area`, while the
+        need event propagation should use :meth:`_switch_left_slot`, while the
         reveal path calls this helper directly so a single poll/draw pass can
         cover both the reveal and the originating event.
 
@@ -1085,24 +1083,23 @@ class AppShell:
             showing the requested editor.
         """
         ws = self.session.workspace_manager.active
-        if ws.left.editor_key == editor_key:
+        if ws.left.active_tab_key == editor_key:
             return False
 
-        ws.left.editor_key = editor_key
-        ws.left_bar_active = editor_key
-        logger.info(f"AppShell: Switching left area to '{editor_key}'")
+        ws.left.active_tab_key = editor_key
+        logger.info(f"AppShell: Switching left slot to '{editor_key}'")
 
-        # Re-render the left column with the new editor (cached instance reused).
-        if self._left_column is not None:
-            self._left_column.clear()
-            with self._left_column:
-                self._render_area("left", editor_key)
+        # Re-render the left slot with the new editor (cached instance reused).
+        if self._left_slot is not None:
+            self._left_slot.clear()
+            with self._left_slot:
+                self._render_slot("left", editor_key)
 
         self._refresh_activity_bar()
         return True
 
-    def _switch_left_area(self, editor_key: str) -> None:
-        """Switch the Left Area editor and broadcast WORKSPACE_CHANGED.
+    def _switch_left_slot(self, editor_key: str) -> None:
+        """Switch the Left Slot editor and broadcast WORKSPACE_CHANGED.
 
         Used by the activity-bar buttons and other user-driven callers that
         want the switch to be visible to other editors as a workspace event.
@@ -1110,18 +1107,18 @@ class AppShell:
         Args:
             editor_key: Full registry_key of the editor to show.
         """
-        if not self._apply_left_area_switch(editor_key):
+        if not self._apply_left_slot_switch(editor_key):
             return
 
         self.session.notify_context_changed(
             ContextChangedEvent(change_type=ContextChangeType.WORKSPACE_CHANGED)
         )
 
-    def _apply_right_area_switch(self, editor_key: str) -> bool:
-        """Switch the editor assigned to the Right Area without notifying.
+    def _apply_right_slot_switch(self, editor_key: str) -> bool:
+        """Switch the editor assigned to the Right Slot without notifying.
 
-        See :meth:`_apply_left_area_switch` for semantics; this is the
-        right-area counterpart used by the reveal path.
+        See :meth:`_apply_left_slot_switch` for semantics; this is the
+        right-slot counterpart used by the reveal path.
 
         Args:
             editor_key: Registry key of the editor to show.
@@ -1131,29 +1128,28 @@ class AppShell:
             showing the requested editor.
         """
         ws = self.session.workspace_manager.active
-        if ws.right.editor_key == editor_key:
+        if ws.right.active_tab_key == editor_key:
             return False
 
-        ws.right.editor_key = editor_key
-        ws.right_bar_active = editor_key
-        logger.info(f"AppShell: Switching right area to '{editor_key}'")
+        ws.right.active_tab_key = editor_key
+        logger.info(f"AppShell: Switching right slot to '{editor_key}'")
 
-        # Re-render the right column with the new editor (cached instance reused).
-        if self._right_column is not None:
-            self._right_column.clear()
-            with self._right_column:
-                self._render_area("right", editor_key)
+        # Re-render the right slot with the new editor (cached instance reused).
+        if self._right_slot is not None:
+            self._right_slot.clear()
+            with self._right_slot:
+                self._render_slot("right", editor_key)
 
         self._refresh_context_bar()
         return True
 
-    def _switch_right_area(self, editor_key: str) -> None:
-        """Switch the Right Area editor and broadcast WORKSPACE_CHANGED.
+    def _switch_right_slot(self, editor_key: str) -> None:
+        """Switch the Right Slot editor and broadcast WORKSPACE_CHANGED.
 
         Args:
             editor_key: Registry key of the editor to show.
         """
-        if not self._apply_right_area_switch(editor_key):
+        if not self._apply_right_slot_switch(editor_key):
             return
 
         self.session.notify_context_changed(

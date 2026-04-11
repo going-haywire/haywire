@@ -255,7 +255,7 @@ class EditorIdentity:
     registry_id: str            # e.g. 'graph_editor'
     label: str                  # e.g. 'Graph Editor'
     icon: str = 'extension'     # Material Design icon name
-    canvas_area: str = 'middle'
+    default_slot: str = 'main'
     description: str = ''
     registry_key: str = ''      # fully-qualified key; set by decorator via reg_key()
 ```
@@ -280,7 +280,7 @@ class BaseEditor(ABC):
     """
     Abstract base class for all editor types.
 
-    An editor is a self-contained UI module that renders into an Area
+    An editor is a self-contained UI module that renders into a slot
     of the workspace layout. Each editor instance is per-session — when
     two browser windows are open, each has its own editor instances.
 
@@ -289,7 +289,7 @@ class BaseEditor(ABC):
         - on_context_changed(event, context): React to context changes.
 
     Class attributes (set by @editor decorator):
-        - class_identity: EditorIdentity with registry_key, label, icon, canvas_area.
+        - class_identity: EditorIdentity with registry_key, label, icon, default_slot.
         - class_library: LibraryIdentity of the owning library (None for builtins).
     """
 
@@ -300,7 +300,7 @@ class BaseEditor(ABC):
         """
         Build the editor UI into the given NiceGUI container element.
 
-        This is called once when the editor is first placed into an area,
+        This is called once when the editor is first placed into a slot,
         and again if the editor is swapped out and back in.
 
         Args:
@@ -327,14 +327,14 @@ class BaseEditor(ABC):
 
     def cleanup(self) -> None:
         """
-        Optional cleanup when the editor is removed from an area.
+        Optional cleanup when the editor is removed from a slot.
         Override to release resources, unsubscribe from events, etc.
         """
         pass
 
     def get_tab_label(self, context: "SessionContext") -> str:
         """
-        Return the label to show in a tab header (for tabbed areas like Middle).
+        Return the label to show in a tab header (for tabbed slots like main/bottom).
         Defaults to class_identity.label. Override for dynamic labels (e.g., graph name).
         """
         return self.class_identity.label
@@ -356,7 +356,7 @@ def editor(
     registry_id: str = None,
     label: str = None,
     icon: str = 'extension',
-    canvas_area: str = 'middle',
+    default_slot: str = 'main',
     description: str = '',
 ):
     """
@@ -374,7 +374,7 @@ def editor(
             registry_id='graph_editor',
             label='Graph Editor',
             icon='account_tree',
-            canvas_area='middle',
+            default_slot='main',
             description='Visual node graph editor',
         )
         class GraphEditor(BaseEditor):
@@ -397,7 +397,7 @@ def editor(
             registry_id=_registry_id,
             label=_label,
             icon=icon,
-            canvas_area=canvas_area,
+            default_slot=default_slot,
             description=description,
             registry_key=_registry_key,
         )
@@ -456,11 +456,11 @@ class EditorTypeRegistry(BaseRegistry):
     def _unregister_class(self, registry_key: str) -> type | None:
         return super()._unregister(registry_key)
 
-    def get_by_default_area(self, area: str) -> Dict[str, type]:
-        """Get all editor classes suggested for a given default area."""
+    def get_by_default_slot(self, slot: str) -> Dict[str, type]:
+        """Get all editor classes suggested for a given default slot."""
         return {
             k: v for k, v in self._classes.items()
-            if v.class_identity.canvas_area == area
+            if v.class_identity.default_slot == slot
         }
 ```
 
@@ -786,16 +786,16 @@ from typing import Optional, List, Dict, Any
 
 
 @dataclass
-class AreaState:
+class SlotState:
     """
-    State of a single area in the workspace layout.
+    State of a left or right slot in the workspace layout.
 
     Attributes:
-        editor_key: Registry key of the editor currently in this area.
-        visible: Whether the area is visible/expanded.
-        size: Size in pixels (width for left/right, height for bottom).
+        active_tab_key: Registry key of the editor currently in this slot.
+        visible: Whether the slot's area is visible/expanded.
+        size: Size in pixels (width for left/right).
     """
-    editor_key: Optional[str] = None
+    active_tab_key: Optional[str] = None
     visible: bool = True
     size: int = 300
 
@@ -803,35 +803,46 @@ class AreaState:
 @dataclass
 class TabState:
     """
-    State of a single tab in the middle area.
+    State of a single tab in a tabbed slot (main or bottom).
 
     Attributes:
         editor_key: Registry key of the editor in this tab.
         label: Tab display label.
         metadata: Editor-specific state (e.g., which graph is open).
     """
-    editor_key: str = 'graph_editor'
+    editor_key: Optional[str] = None
     label: str = 'Graph'
     metadata: Dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass
-class MiddleAreaState:
+class MainSlotState:
     """
-    State of the middle (main) area which supports tabs and a bottom split.
+    State of the main slot — the primary tabbed editor region.
 
     Attributes:
         tabs: List of open tabs.
-        active_tab_index: Which tab is currently active.
-        bottom_visible: Whether the bottom split area is shown.
-        bottom_size: Height of the bottom area in pixels.
-        bottom_editor_key: Editor in the bottom split.
+        active_tab_key: Registry key of the active tab.
     """
     tabs: List[TabState] = field(default_factory=lambda: [TabState()])
-    active_tab_index: int = 0
-    bottom_visible: bool = False
-    bottom_size: int = 200
-    bottom_editor_key: Optional[str] = 'console'
+    active_tab_key: Optional[str] = None
+
+
+@dataclass
+class BottomSlotState:
+    """
+    State of the bottom slot — a retractable tabbed slot below main.
+
+    Attributes:
+        tabs: Runtime-only tab list, re-derived from the editor registry on load.
+        active_tab_key: Registry key of the active bottom tab.
+        visible: Whether the content area is expanded.
+        size: Height of the expanded content area in pixels.
+    """
+    tabs: List[TabState] = field(default_factory=list)
+    active_tab_key: Optional[str] = None
+    visible: bool = False
+    size: int = 200
 
 
 @dataclass
@@ -844,22 +855,16 @@ class WorkspaceState:
 
     Attributes:
         name: Workspace name (e.g., "Graph Editing", "Development").
-        left_bar_active: Which activity bar icon is active.
-        left: Left area state.
-        middle: Middle area state (with tabs and bottom split).
-        right: Right area state.
-        right_bar_active: Which context bar icon is active.
+        left: Left slot state (ActivityBar-driven).
+        right: Right slot state (ContextBar-driven).
+        main: Main slot state (MainTabBar-driven, tabbed).
+        bottom: Bottom slot state (BottomTabBar-driven, tabbed, retractable).
     """
     name: str = "default"
-    left_bar_active: Optional[str] = 'library_browser'
-    left: AreaState = field(default_factory=lambda: AreaState(
-        editor_key='library_browser', visible=True, size=250
-    ))
-    middle: MiddleAreaState = field(default_factory=MiddleAreaState)
-    right_bar_active: Optional[str] = 'properties'
-    right: AreaState = field(default_factory=lambda: AreaState(
-        editor_key='properties', visible=True, size=350
-    ))
+    left: SlotState = field(default_factory=SlotState)
+    right: SlotState = field(default_factory=SlotState)
+    main: MainSlotState = field(default_factory=MainSlotState)
+    bottom: BottomSlotState = field(default_factory=BottomSlotState)
 ```
 
 **Workspace Manager:**
@@ -873,7 +878,7 @@ import logging
 from pathlib import Path
 
 from haywire.ui.workspace.workspace_state import (
-    WorkspaceState, AreaState, MiddleAreaState, TabState
+    WorkspaceState, SlotState, MainSlotState, BottomSlotState, TabState
 )
 
 
@@ -887,9 +892,9 @@ class WorkspaceManager:
     in the project folder).
 
     Default workspaces shipped with Haywire:
-        - "Graph Editing": Graph in middle, Properties on right, Library on left
-        - "Development": Code Editor in middle-top, Console in bottom, Library on left
-        - "Debugging": Graph in middle-top, Data Inspector in bottom, Log Viewer on right
+        - "Graph Editing": Graph in main slot, Properties on right, Library on left
+        - "Development": Code Editor in main slot, Console in bottom, Library on left
+        - "Debugging": Graph in main slot, Data Inspector in bottom, Log Viewer on right
 
     Attributes:
         active: The currently active WorkspaceState.
@@ -899,15 +904,13 @@ class WorkspaceManager:
     DEFAULT_PRESETS: Dict[str, WorkspaceState] = {
         "Graph Editing": WorkspaceState(
             name="Graph Editing",
-            left_bar_active='library_browser',
-            left=AreaState(editor_key='library_browser', visible=True, size=250),
-            middle=MiddleAreaState(
+            left=SlotState(active_tab_key='library_browser', visible=True, size=250),
+            main=MainSlotState(
                 tabs=[TabState(editor_key='graph_editor', label='Graph')],
-                active_tab_index=0,
-                bottom_visible=False,
+                active_tab_key='graph_editor',
             ),
-            right_bar_active='properties',
-            right=AreaState(editor_key='properties', visible=True, size=350),
+            bottom=BottomSlotState(visible=False),
+            right=SlotState(active_tab_key='properties', visible=True, size=350),
         ),
     }
 
@@ -1172,7 +1175,7 @@ from haywire.ui import elements as hui
     registry_id='graph_editor',
     label='Graph Editor',
     icon=hui.icons.graph_editor,
-    canvas_area='middle',
+    default_slot='main',
     description='Visual node graph editor for wiring data processing pipelines.',
 )
 class GraphEditor(BaseEditor):
@@ -1225,7 +1228,7 @@ from haywire.ui.editor.base import BaseEditor
     registry_id='properties',
     label='Properties',
     icon='tune',
-    canvas_area='right',
+    default_slot='right',
     description='Context-sensitive property panels for the active selection.',
 )
 class PropertiesEditor(BaseEditor):
@@ -1272,7 +1275,7 @@ from haywire.ui.editor.base import BaseEditor
     registry_id='console',
     label='Console',
     icon='terminal',
-    canvas_area='bottom',
+    default_slot='bottom',
     description='Python console and execution log output.',
 )
 class ConsoleEditor(BaseEditor):
@@ -1313,7 +1316,7 @@ from haywire.ui.context_events import ContextChangedEvent, ContextChangeType
     registry_id='library_browser',
     label='Library Browser',
     icon='library_books',
-    canvas_area='left',
+    default_slot='left',
     description='Browse available node libraries and marketplace.',
 )
 class LibraryBrowser(BaseEditor):
@@ -1363,7 +1366,7 @@ from haywire.ui.context_events import ContextChangeType
     registry_id='library_detail',
     label='Library Detail',
     icon='info',
-    canvas_area='middle',
+    default_slot='main',
     description='Detail view for the selected library.',
 )
 class LibraryDetailEditor(BaseEditor):
@@ -1412,7 +1415,7 @@ from haywire.ui.context_events import ContextChangeType
     registry_id='component_detail',
     label='Component Detail',
     icon='widgets',
-    canvas_area='right',
+    default_slot='right',
     description='Documentation and details for the selected node or widget.',
 )
 class ComponentDetailEditor(BaseEditor):
@@ -1479,7 +1482,7 @@ packages/haywire-core/src/haywire/ui/
 │
 ├── workspace/                          # NEW: Workspace system
 │   ├── __init__.py
-│   ├── workspace_state.py              # WorkspaceState, AreaState, TabState dataclasses
+│   ├── workspace_state.py              # WorkspaceState, SlotState, MainSlotState, BottomSlotState, TabState
 │   └── manager.py                      # WorkspaceManager
 │
 ├── editors/                            # NEW: Built-in editor implementations (framework)

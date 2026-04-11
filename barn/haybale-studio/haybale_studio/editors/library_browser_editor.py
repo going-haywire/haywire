@@ -30,7 +30,7 @@ logger = logging.getLogger(__name__)
     registry_id="library_browser",
     label="Libraries",
     icon=hui.icon.library,
-    canvas_area="left",
+    default_slot="left",
     description="Searchable list of installed and available libraries.",
 )
 class LibraryBrowserEditor(BaseEditor):
@@ -236,11 +236,11 @@ class LibraryBrowserEditor(BaseEditor):
         context.active_library = lib
         context.active_component = None
 
-        # Switch middle tab to library_detail if it exists
-        middle_tabs = context.metadata.get("middle_tabs")
-        if middle_tabs is not None:
+        # Switch main tab to library_detail if it exists
+        main_tabs = context.metadata.get("main_tabs")
+        if main_tabs is not None:
             try:
-                middle_tabs.set_value("studio:editor:library_detail")
+                main_tabs.set_value("studio:editor:library_detail")
             except Exception:
                 pass
 

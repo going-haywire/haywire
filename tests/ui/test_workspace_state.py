@@ -8,10 +8,10 @@ import json
 from dataclasses import asdict
 
 from haywire.ui.workspace.workspace_state import (
-    AreaState,
+    SlotState,
     TabState,
-    MiddleAreaState,
-    BottomAreaState,
+    MainSlotState,
+    BottomSlotState,
     WorkspaceState,
 )
 from haywire.ui.workspace.manager import WorkspaceManager
@@ -23,10 +23,10 @@ from haywire.ui.workspace.manager import WorkspaceManager
 
 
 class TestWorkspaceStateSerialization:
-    def test_area_state_asdict(self):
-        state = AreaState(editor_key="graph_editor", visible=True, size=300)
+    def test_slot_state_asdict(self):
+        state = SlotState(active_tab_key="graph_editor", visible=True, size=300)
         d = asdict(state)
-        assert d == {"editor_key": "graph_editor", "visible": True, "size": 300}
+        assert d == {"active_tab_key": "graph_editor", "visible": True, "size": 300}
 
     def test_tab_state_asdict(self):
         state = TabState(editor_key="graph_editor", label="My Graph", metadata={"foo": 1})
@@ -35,18 +35,14 @@ class TestWorkspaceStateSerialization:
         assert d["label"] == "My Graph"
         assert d["metadata"] == {"foo": 1}
 
-    def test_middle_area_state_asdict(self):
-        state = MiddleAreaState()
+    def test_main_slot_state_asdict(self):
+        state = MainSlotState()
         d = asdict(state)
         assert "tabs" in d
-        assert "active_tab_index" in d
-        # Bottom fields live on BottomAreaState, not MiddleAreaState.
-        assert "bottom_visible" not in d
-        assert "bottom_size" not in d
-        assert "bottom_editor_key" not in d
+        assert "active_tab_key" in d
 
-    def test_bottom_area_state_asdict(self):
-        state = BottomAreaState()
+    def test_bottom_slot_state_asdict(self):
+        state = BottomSlotState()
         d = asdict(state)
         assert "tabs" in d
         assert "active_tab_key" in d
@@ -61,7 +57,7 @@ class TestWorkspaceStateSerialization:
         d = asdict(ws)
         assert d["name"] == "Test WS"
         assert "left" in d
-        assert "middle" in d
+        assert "main" in d
         assert "bottom" in d
         assert "right" in d
 
@@ -70,15 +66,15 @@ class TestWorkspaceStateSerialization:
         ws = WorkspaceState(name="My WS")
         d = asdict(ws)
         assert d["name"] == "My WS"
-        assert d["left"]["editor_key"] is None  # no studio strings in core
-        assert d["right"]["editor_key"] is None
+        assert d["left"]["active_tab_key"] is None  # no studio strings in core
+        assert d["right"]["active_tab_key"] is None
 
     def test_default_workspace_state(self):
         ws = WorkspaceState()
         assert ws.name == "default"
-        assert ws.left.editor_key is None  # generic — no studio strings
-        assert ws.right.editor_key is None
-        assert ws.middle.tabs[0].editor_key is None  # consistent with other key fields
+        assert ws.left.active_tab_key is None  # generic — no studio strings
+        assert ws.right.active_tab_key is None
+        assert ws.main.tabs[0].editor_key is None  # consistent with other key fields
         assert ws.bottom.tabs == []
         assert ws.bottom.active_tab_key is None
 
@@ -101,43 +97,41 @@ class _FakeEditorClass:
 class _FakeEditorRegistry:
     """Minimal EditorTypeRegistry stand-in for WorkspaceManager tests."""
 
-    def __init__(self, by_area: dict[str, dict[str, _FakeEditorClass]]):
-        self._by_area = by_area
+    def __init__(self, by_slot: dict[str, dict[str, _FakeEditorClass]]):
+        self._by_slot = by_slot
 
-    def get_by_default_area(self, area: str) -> dict[str, _FakeEditorClass]:
-        return dict(self._by_area.get(area, {}))
+    def get_by_default_slot(self, slot: str) -> dict[str, _FakeEditorClass]:
+        return dict(self._by_slot.get(slot, {}))
 
 
-def _make_registry(**areas) -> _FakeEditorRegistry:
-    """Build a fake registry from area -> [(key, label), ...] pairs."""
-    by_area: dict[str, dict[str, _FakeEditorClass]] = {}
-    for area, entries in areas.items():
-        by_area[area] = {key: _FakeEditorClass(label) for key, label in entries}
-    return _FakeEditorRegistry(by_area)
+def _make_registry(**slots) -> _FakeEditorRegistry:
+    """Build a fake registry from slot -> [(key, label), ...] pairs."""
+    by_slot: dict[str, dict[str, _FakeEditorClass]] = {}
+    for slot, entries in slots.items():
+        by_slot[slot] = {key: _FakeEditorClass(label) for key, label in entries}
+    return _FakeEditorRegistry(by_slot)
 
 
 class TestWorkspaceManagerAutoPopulate:
     def test_auto_populates_when_no_file(self, tmp_path):
         registry = _make_registry(
             left=[("editor:browser", "Browser")],
-            middle=[("editor:graph", "Graph"), ("editor:library", "Library")],
+            main=[("editor:graph", "Graph"), ("editor:library", "Library")],
             right=[("editor:props", "Properties")],
             bottom=[("editor:console", "Console")],
         )
         manager = WorkspaceManager(project_path=tmp_path, editor_registry=registry)
 
-        assert manager.active.left.editor_key == "editor:browser"
-        assert manager.active.left_bar_active == "editor:browser"
-        assert manager.active.right.editor_key == "editor:props"
-        assert manager.active.right_bar_active == "editor:props"
-        # Bottom area is retracted by default but its tab roster is populated
+        assert manager.active.left.active_tab_key == "editor:browser"
+        assert manager.active.right.active_tab_key == "editor:props"
+        # Bottom slot is retracted by default but its tab roster is populated
         # from the registry on every load.
         assert manager.active.bottom.visible is False
         assert [t.editor_key for t in manager.active.bottom.tabs] == ["editor:console"]
         assert manager.active.bottom.active_tab_key == "editor:console"
 
-        labels = [t.label for t in manager.active.middle.tabs]
-        keys = [t.editor_key for t in manager.active.middle.tabs]
+        labels = [t.label for t in manager.active.main.tabs]
+        keys = [t.editor_key for t in manager.active.main.tabs]
         assert keys == ["editor:graph", "editor:library"]
         assert labels == ["Graph", "Library"]
 
@@ -145,25 +139,25 @@ class TestWorkspaceManagerAutoPopulate:
         registry = _make_registry()
         manager = WorkspaceManager(project_path=tmp_path, editor_registry=registry)
 
-        assert manager.active.left.editor_key is None
+        assert manager.active.left.active_tab_key is None
         assert manager.active.left.visible is False
-        assert manager.active.right.editor_key is None
+        assert manager.active.right.active_tab_key is None
         assert manager.active.right.visible is False
         assert manager.active.bottom.tabs == []
         assert manager.active.bottom.active_tab_key is None
-        assert len(manager.active.middle.tabs) == 1
-        assert manager.active.middle.tabs[0].editor_key is None
+        assert len(manager.active.main.tabs) == 1
+        assert manager.active.main.tabs[0].editor_key is None
 
-    def test_auto_populate_partial_areas(self, tmp_path):
+    def test_auto_populate_partial_slots(self, tmp_path):
         registry = _make_registry(
-            middle=[("editor:graph", "Graph")],
+            main=[("editor:graph", "Graph")],
         )
         manager = WorkspaceManager(project_path=tmp_path, editor_registry=registry)
 
-        assert manager.active.left.editor_key is None
-        assert manager.active.right.editor_key is None
+        assert manager.active.left.active_tab_key is None
+        assert manager.active.right.active_tab_key is None
         assert manager.active.bottom.tabs == []
-        assert manager.active.middle.tabs[0].editor_key == "editor:graph"
+        assert manager.active.main.tabs[0].editor_key == "editor:graph"
 
     def test_auto_populate_does_not_write_file(self, tmp_path):
         registry = _make_registry(left=[("editor:a", "A")])
@@ -171,7 +165,7 @@ class TestWorkspaceManagerAutoPopulate:
         assert not (tmp_path / ".haywire" / "workspace_state.json").exists()
 
     def test_auto_populate_with_multiple_bottom_editors(self, tmp_path):
-        """Every bottom-area editor becomes a tab; first is active by default."""
+        """Every bottom-slot editor becomes a tab; first is active by default."""
         registry = _make_registry(
             bottom=[
                 ("editor:console", "Console"),
@@ -192,7 +186,7 @@ class TestWorkspaceManagerPersistence:
     def _registry(self) -> _FakeEditorRegistry:
         return _make_registry(
             left=[("editor:browser", "Browser")],
-            middle=[("editor:graph", "Graph")],
+            main=[("editor:graph", "Graph")],
             right=[("editor:props", "Properties")],
             bottom=[("editor:console", "Console")],
         )
@@ -205,8 +199,8 @@ class TestWorkspaceManagerPersistence:
         assert state_file.exists()
 
         data = json.loads(state_file.read_text())
-        assert data["left"]["editor_key"] == "editor:browser"
-        assert data["middle"]["tabs"][0]["editor_key"] == "editor:graph"
+        assert data["left"]["active_tab_key"] == "editor:browser"
+        assert data["main"]["tabs"][0]["editor_key"] == "editor:graph"
         # bottom.tabs must NOT be persisted — it is re-derived from the
         # registry on load so new bottom editors appear automatically.
         assert "tabs" not in data["bottom"]
@@ -233,7 +227,7 @@ class TestWorkspaceManagerPersistence:
         assert m2.active.left.visible is False
         assert m2.active.bottom.visible is True
         assert m2.active.bottom.size == 275
-        assert m2.active.left.editor_key == "editor:browser"
+        assert m2.active.left.active_tab_key == "editor:browser"
 
     def test_load_refreshes_bottom_tabs_from_registry(self, tmp_path):
         """A newly-installed bottom editor should appear after a reload even
@@ -245,7 +239,7 @@ class TestWorkspaceManagerPersistence:
         # never saw.
         richer_registry = _make_registry(
             left=[("editor:browser", "Browser")],
-            middle=[("editor:graph", "Graph")],
+            main=[("editor:graph", "Graph")],
             right=[("editor:props", "Properties")],
             bottom=[
                 ("editor:console", "Console"),
@@ -286,7 +280,7 @@ class TestWorkspaceManagerPersistence:
 
         empty_registry = _make_registry()
         m2 = WorkspaceManager(project_path=tmp_path, editor_registry=empty_registry)
-        assert m2.active.left.editor_key == "editor:browser"
+        assert m2.active.left.active_tab_key == "editor:browser"
         # Bottom tabs are re-derived — the empty registry produces an empty list.
         assert m2.active.bottom.tabs == []
         assert m2.active.bottom.active_tab_key is None
@@ -297,45 +291,11 @@ class TestWorkspaceManagerPersistence:
         (preset_dir / "workspace_state.json").write_text("{ not valid json")
 
         manager = WorkspaceManager(project_path=tmp_path, editor_registry=self._registry())
-        assert manager.active.left.editor_key == "editor:browser"
+        assert manager.active.left.active_tab_key == "editor:browser"
 
     def test_active_is_workspace_state(self, tmp_path):
         manager = WorkspaceManager(project_path=tmp_path, editor_registry=self._registry())
         assert isinstance(manager.active, WorkspaceState)
-
-    def test_legacy_middle_bottom_fields_migrated(self, tmp_path):
-        """Pre-BottomAreaState schema with ``middle.bottom_*`` fields should
-        be read and migrated into the new top-level ``bottom`` field."""
-        preset_dir = tmp_path / ".haywire"
-        preset_dir.mkdir()
-        legacy_payload = {
-            "name": "default",
-            "left": {"editor_key": "editor:browser", "visible": True, "size": 250},
-            "middle": {
-                "tabs": [{"editor_key": "editor:graph", "label": "Graph", "metadata": {}}],
-                "active_tab_index": 0,
-                "bottom_visible": True,
-                "bottom_size": 310,
-                "bottom_editor_key": "editor:console",
-            },
-            "right": {"editor_key": "editor:props", "visible": True, "size": 350},
-            "left_bar_active": "editor:browser",
-            "right_bar_active": "editor:props",
-        }
-        (preset_dir / "workspace_state.json").write_text(json.dumps(legacy_payload))
-
-        registry = _make_registry(
-            left=[("editor:browser", "Browser")],
-            middle=[("editor:graph", "Graph")],
-            right=[("editor:props", "Properties")],
-            bottom=[("editor:console", "Console")],
-        )
-        manager = WorkspaceManager(project_path=tmp_path, editor_registry=registry)
-
-        assert manager.active.bottom.visible is True
-        assert manager.active.bottom.size == 310
-        assert manager.active.bottom.active_tab_key == "editor:console"
-        assert [t.editor_key for t in manager.active.bottom.tabs] == ["editor:console"]
 
 
 class TestWorkspaceManagerDeserialize:
@@ -343,16 +303,16 @@ class TestWorkspaceManagerDeserialize:
         """WorkspaceManager._deserialize_workspace reconstructs a WorkspaceState correctly."""
         ws = WorkspaceState(
             name="custom",
-            left=AreaState(editor_key="editor:a", visible=True, size=250),
-            middle=MiddleAreaState(
+            left=SlotState(active_tab_key="editor:a", visible=True, size=250),
+            main=MainSlotState(
                 tabs=[TabState(editor_key="editor:main", label="Main")],
             ),
-            bottom=BottomAreaState(
+            bottom=BottomSlotState(
                 active_tab_key="editor:console",
                 visible=True,
                 size=215,
             ),
-            right=AreaState(editor_key="editor:b", visible=True, size=350),
+            right=SlotState(active_tab_key="editor:b", visible=True, size=350),
         )
         d = asdict(ws)
         restored = WorkspaceManager._deserialize_workspace(d)
@@ -363,7 +323,7 @@ class TestWorkspaceManagerDeserialize:
         # Deserialize leaves bottom.tabs empty — the refresh step (called in
         # WorkspaceManager.__init__ after _load) populates them from the registry.
         assert restored.bottom.tabs == []
-        assert len(restored.middle.tabs) == len(ws.middle.tabs)
-        assert restored.middle.tabs[0].editor_key == ws.middle.tabs[0].editor_key
-        assert restored.left.editor_key == ws.left.editor_key
-        assert restored.right.editor_key == ws.right.editor_key
+        assert len(restored.main.tabs) == len(ws.main.tabs)
+        assert restored.main.tabs[0].editor_key == ws.main.tabs[0].editor_key
+        assert restored.left.active_tab_key == ws.left.active_tab_key
+        assert restored.right.active_tab_key == ws.right.active_tab_key

@@ -1,12 +1,11 @@
 {
   "name": "default",
-  "left_bar_active": "studio:editor:file_browser",
   "left": {
-    "editor_key": "studio:editor:file_browser",
+    "active_tab_key": "studio:editor:file_browser",
     "visible": true,
     "size": 250
   },
-  "middle": {
+  "main": {
     "tabs": [
       {
         "editor_key": "studio:editor:graph_editor",
@@ -24,15 +23,16 @@
         "metadata": {}
       }
     ],
-    "active_tab_index": 0,
-    "bottom_visible": false,
-    "bottom_size": 200,
-    "bottom_editor_key": "studio:editor:console"
+    "active_tab_key": "studio:editor:graph_editor"
   },
-  "right_bar_active": "studio:editor:properties",
   "right": {
-    "editor_key": "studio:editor:properties",
+    "active_tab_key": "studio:editor:properties",
     "visible": true,
     "size": 350
+  },
+  "bottom": {
+    "active_tab_key": "studio:editor:console",
+    "visible": false,
+    "size": 200
   }
 }

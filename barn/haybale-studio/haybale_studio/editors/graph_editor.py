@@ -34,7 +34,7 @@ logger = logging.getLogger(__name__)
     registry_id="graph_editor",
     label="Graph Editor",
     icon=hui.icon.graph,
-    canvas_area="middle",
+    default_slot="main",
     description="Visual node graph editor for wiring data processing pipelines.",
 )
 class GraphEditor(BaseEditor):

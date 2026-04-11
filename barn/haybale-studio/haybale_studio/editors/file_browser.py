@@ -28,8 +28,8 @@ if TYPE_CHECKING:
     registry_id="file_browser",
     label="Files",
     icon=hui.icon.folder,
-    canvas_area="left",
-    description="Project file tree. Click a file to open it in the middle area.",
+    default_slot="left",
+    description="Project file tree. Click a file to open it in the main slot.",
 )
 class FileBrowserEditor(BaseEditor):
     """
@@ -184,11 +184,11 @@ class FileBrowserEditor(BaseEditor):
             # Fallback for backward compat (loads into shared untitled graph)
             app._do_load_graph(str(path))
 
-        self._switch_middle_tab("studio:editor:graph_editor", context)
+        self._switch_main_tab("studio:editor:graph_editor", context)
 
     def _open_in_file_viewer(self, path: Path, context: "SessionContext") -> None:
         """Switch to the file_viewer tab and broadcast FILE_SELECTED."""
-        self._switch_middle_tab("studio:editor:file_viewer", context)
+        self._switch_main_tab("studio:editor:file_viewer", context)
         session = context.session
         if session is not None:
             session.notify_context_changed(
@@ -199,8 +199,8 @@ class FileBrowserEditor(BaseEditor):
                 )
             )
 
-    def _switch_middle_tab(self, editor_id: str, context: "SessionContext") -> None:
-        tabs = context.metadata.get("middle_tabs")
+    def _switch_main_tab(self, editor_id: str, context: "SessionContext") -> None:
+        tabs = context.metadata.get("main_tabs")
         if tabs is not None:
             try:
                 tabs.set_value(editor_id)

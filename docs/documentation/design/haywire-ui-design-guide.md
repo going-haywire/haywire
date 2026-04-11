@@ -829,11 +829,11 @@ hui.input_field(label="Port", rules=[lambda v: v.isdigit() or "Must be a number"
 
 ### 8.16 `hui.tabs(*tab_defs, dense=True)`
 
-A tab bar, pre-configured with `hw-tabs` styling.
+A tab bar, pre-configured with `hw-slot-bar-tabs` styling.
 
 **Visual rules:**
 
-- Classes: `w-full hw-tabs`
+- Classes: `w-full hw-slot-bar-tabs`
 - Props: `dense no-caps`
 - Tab label font: 12px (`text-xs`)
 - Active indicator: `2px solid var(--hw-accent)` (bottom bar)
@@ -1026,18 +1026,18 @@ focus. The `--editing` and `--dragging` CSS classes handle this consistently.
 ┌───────────────────────────────────────────────────────────────┐
 │  TopBar  (48px)                 bg-surface, border-bottom     │
 ├──────┬──────┬─────────────────────────┬──────┬────────────────┤
-│ Act. │ Left │      Middle Area        │Right │  Ctx.  │
-│ Bar  │ Area │  ┌───────────────────┐  │ Area │  Bar   │
-│      │      │  │  Tab Bar (36px)   │  │      │        │
+│ Act. │ Left │      Main Slot          │Right │  Ctx.  │
+│ Bar  │ Slot │  ┌───────────────────┐  │ Slot │  Bar   │
+│      │ area │  │ MainTabBar (36px) │  │ area │        │
 │ 48px │ 150+ │  ├───────────────────┤  │ 150+ │  48px  │
 │      │  px  │  │                   │  │  px  │        │
 │      │      │  │  Editor Content   │  │      │        │
 │      │      │  │     (flex: 1)     │  │      │        │
 │      │      │  │                   │  │      │        │
 │      │      │  ├┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┤  │      │        │
-│      │      │  │ Bottom Tab Bar ▾  │  │      │        │ ← always-visible when tabs exist
+│      │      │  │ BottomTabBar ▾    │  │      │        │ ← always-visible when bottom slot has tabs
 │      │      │  ├───────────────────┤  │      │        │
-│      │      │  │ Bottom Content    │  │      │        │ ← collapsible via chevron or drag
+│      │      │  │ Bottom Slot area  │  │      │        │ ← collapsible via chevron or drag
 │      │      │  │   (optional)      │  │      │        │
 │      │      │  └───────────────────┘  │      │        │
 ├──────┴──────┴─────────────────────────┴──────┴────────────────┤
@@ -1045,8 +1045,11 @@ focus. The `--editing` and `--dragging` CSS classes handle this consistently.
 └───────────────────────────────────────────────────────────────┘
 ```
 
-The bottom area is itself a tabbed region (own tab bar row + content panel),
-not a single fixed pane. See §9.7 for the retraction rules.
+Every slot = a **bar** (control strip) + an **area** (content panel). Left and
+right slots have vertical icon bars (ActivityBar / ContextBar) classed with
+`hw-slot-bar hw-slot-bar-icons`; the main and bottom slots have horizontal tab
+bars (MainTabBar / BottomTabBar) classed with `hw-slot-bar hw-slot-bar-tabs`.
+See §9.7 for the bottom-slot retraction rules.
 
 ### 9.2 Editor Container
 
@@ -1185,9 +1188,9 @@ never drift.
 - The horizontal drag divider above the bottom tab bar uses the same visual
   rules as §9.5 handles (`4px`, transparent at rest, `--hw-accent` 50% on
   hover/drag, `row-resize` cursor).
-- The bottom tab bar row shares the `hw-tabs` styling with the middle-area
-  tab bar — same `36px` height, same active/hover behaviour, same label
-  truncation rules.
+- The BottomTabBar shares the `hw-slot-bar-tabs` styling with the MainTabBar
+  — same `36px` height, same active/hover behaviour, same label truncation
+  rules.
 - The chevron uses standard `hui.icon_action` sizing (`xs`) and flips its
   icon between `expand_less` and `expand_more`. It must not animate its
   rotation; the icon swap is the state signal.
@@ -1207,33 +1210,44 @@ workspace.
 
 ### 10.1 Terminology
 
-The shell has five distinct toolbar/bar concepts. Use these names consistently
-in code and comments:
+Every workspace slot (**left**, **right**, **main**, **bottom**) is composed of
+a **bar** (its control strip) and an **area** (its content panel). The shell
+also has two chrome bars (TopBar / StatusBar) and one editor-internal bar
+(ScopeToolbar). Use these names consistently in code and comments:
 
-| Name         | Location                | Content                                      |
-| ------------ | ----------------------- | -------------------------------------------- |
-| TopBar       | Top edge                | App name, workspace switcher, global actions |
-| StatusBar    | Bottom edge             | Session info, status messages                |
-| ActivityBar  | Left narrow strip       | Left-area editor switcher icons              |
-| ContextBar   | Right narrow strip      | Right-area editor switcher icons             |
-| ScopeToolbar | Inside PropertiesEditor | Scope switcher icons (36px buttons)          |
+| Name         | Slot                      | Bar kind | Content                                      |
+| ------------ | ------------------------- | -------- | -------------------------------------------- |
+| TopBar       | —                         | chrome   | App name, workspace switcher, global actions |
+| StatusBar    | —                         | chrome   | Session info, status messages                |
+| ActivityBar  | left slot                 | icons    | Left slot editor switcher icons              |
+| ContextBar   | right slot                | icons    | Right slot editor switcher icons             |
+| MainTabBar   | main slot                 | tabs     | Main slot tab switcher (horizontal tabs)     |
+| BottomTabBar | bottom slot               | tabs     | Bottom slot tab switcher + retract chevron   |
+| ScopeToolbar | (inside PropertiesEditor) | icons    | Scope switcher icons (36px buttons)          |
 
-**Rule:** "Sidebar" in CSS tokens (`--hw-bg-sidebar`) refers to the narrow bars
-(ActivityBar / ContextBar), not the left/right panel areas.
+**Rule:** The left slot hosts activity-minded editors (library browser, file
+browser, graph manager); the right slot hosts context-minded editors that react
+to selection (properties, component detail). ActivityBar and ContextBar are
+synonyms for the left slot's bar and the right slot's bar respectively.
+
+**Rule:** "Sidebar" in CSS tokens (`--hw-bg-sidebar`) refers to the narrow icon
+bars (ActivityBar / ContextBar), not the left/right slot content areas.
 
 ### 10.2 CSS Class Naming
 
-| Prefix           | Purpose                                          |
-| ---------------- | ------------------------------------------------ |
-| `hw-`            | Haywire design system (tokens, global utilities) |
-| `hw-shell-`      | Shell-specific structural classes                |
-| `hw-text-`       | Semantic text colour utilities                   |
-| `hw-panel`       | Editor container marker (enables text cascade)   |
-| `hw-tabs`        | Middle- and bottom-area tab bar styling          |
-| `hw-cm-isolate`  | CodeMirror isolation wrapper (see rule below)    |
-| `compact-fields` | Dense field rendering mode                       |
-| `sf-label`       | Settings field label (responsive layout)         |
-| `sf-widget`      | Settings field widget (responsive layout)        |
+| Prefix              | Purpose                                              |
+| ------------------- | ---------------------------------------------------- |
+| `hw-`               | Haywire design system (tokens, global utilities)     |
+| `hw-shell-`         | Shell-specific structural classes                    |
+| `hw-text-`          | Semantic text colour utilities                       |
+| `hw-panel`          | Editor container marker (enables text cascade)       |
+| `hw-slot-bar`       | Base class applied to every slot bar (icons or tabs) |
+| `hw-slot-bar-tabs`  | Tabbed slot bar modifier (MainTabBar, BottomTabBar)  |
+| `hw-slot-bar-icons` | Icon slot bar modifier (ActivityBar, ContextBar)     |
+| `hw-cm-isolate`     | CodeMirror isolation wrapper (see rule below)        |
+| `compact-fields`    | Dense field rendering mode                           |
+| `sf-label`          | Settings field label (responsive layout)             |
+| `sf-widget`         | Settings field widget (responsive layout)            |
 
 **Rule: `hw-cm-isolate`** must be applied to the direct wrapper `div` around
 any CodeMirror editor instance. Without it, Quasar and Haywire global CSS rules

@@ -43,7 +43,7 @@ _SCOPE_KEY = "properties_scope"
     registry_id="properties",
     label="Properties",
     icon=hui.icon.node_settings,
-    canvas_area="right",
+    default_slot="right",
     description="Context-sensitive property panels for the active selection.",
 )
 class PropertiesEditor(BaseEditor):

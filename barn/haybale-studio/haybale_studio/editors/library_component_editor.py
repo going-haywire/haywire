@@ -37,7 +37,7 @@ class _WidgetPreviewPort:
     registry_id="component_detail",
     label="Component Detail",
     icon=hui.icon.library_component,
-    canvas_area="right",
+    default_slot="right",
     description="Detailed documentation for the selected node component.",
 )
 class LibraryComponentEditor(BaseEditor):

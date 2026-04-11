@@ -27,10 +27,8 @@ class _FakeSession:
     def __init__(self) -> None:
         self.workspace_manager = SimpleNamespace(
             active=SimpleNamespace(
-                left=SimpleNamespace(editor_key="left:editor:one", visible=True),
-                right=SimpleNamespace(editor_key="right:editor:one", visible=True),
-                left_bar_active="left:editor:one",
-                right_bar_active="right:editor:one",
+                left=SimpleNamespace(active_tab_key="left:editor:one", visible=True),
+                right=SimpleNamespace(active_tab_key="right:editor:one", visible=True),
                 bottom=SimpleNamespace(
                     tabs=[],
                     active_tab_key=None,
@@ -65,38 +63,38 @@ def test_toolbar_button_classes_leaves_inactive_buttons_unhighlighted() -> None:
     assert "hw-shell-toolbar-btn-active" not in classes
 
 
-def test_switch_left_area_refreshes_toolbar_and_column() -> None:
+def test_switch_left_slot_refreshes_toolbar_and_slot() -> None:
     shell = AppShell(session=_FakeSession(), editor_registry=None)
-    shell._left_column = _FakeContainer()
+    shell._left_slot = _FakeContainer()
     shell._activity_bar = _FakeContainer()
 
     rendered = []
-    shell._render_area = lambda slot, editor_key: rendered.append((slot, editor_key))
+    shell._render_slot = lambda slot, editor_key: rendered.append((slot, editor_key))
     shell._render_activity_bar_contents = lambda: rendered.append(("activity", None))
 
-    shell._switch_left_area("left:editor:two")
+    shell._switch_left_slot("left:editor:two")
 
-    assert shell.session.workspace_manager.active.left_bar_active == "left:editor:two"
-    assert shell._left_column.clear_calls == 1
+    assert shell.session.workspace_manager.active.left.active_tab_key == "left:editor:two"
+    assert shell._left_slot.clear_calls == 1
     assert shell._activity_bar.clear_calls == 1
     assert ("left", "left:editor:two") in rendered
     assert ("activity", None) in rendered
     assert shell.session.notified_events[-1].change_type == ContextChangeType.WORKSPACE_CHANGED
 
 
-def test_switch_right_area_refreshes_toolbar_and_column() -> None:
+def test_switch_right_slot_refreshes_toolbar_and_slot() -> None:
     shell = AppShell(session=_FakeSession(), editor_registry=None)
-    shell._right_column = _FakeContainer()
+    shell._right_slot = _FakeContainer()
     shell._context_bar = _FakeContainer()
 
     rendered = []
-    shell._render_area = lambda slot, editor_key: rendered.append((slot, editor_key))
+    shell._render_slot = lambda slot, editor_key: rendered.append((slot, editor_key))
     shell._render_context_bar_contents = lambda: rendered.append(("context", None))
 
-    shell._switch_right_area("right:editor:two")
+    shell._switch_right_slot("right:editor:two")
 
-    assert shell.session.workspace_manager.active.right_bar_active == "right:editor:two"
-    assert shell._right_column.clear_calls == 1
+    assert shell.session.workspace_manager.active.right.active_tab_key == "right:editor:two"
+    assert shell._right_slot.clear_calls == 1
     assert shell._context_bar.clear_calls == 1
     assert ("right", "right:editor:two") in rendered
     assert ("context", None) in rendered
@@ -139,7 +137,7 @@ class _FakeEditorRegistry:
         return self._classes.get(registry_key)
 
 
-def _make_editor_cls(registry_key: str, canvas_area: str) -> type:
+def _make_editor_cls(registry_key: str, default_slot: str) -> type:
     """Build a throwaway class that looks like a decorated BaseEditor."""
     return type(
         f"_FakeEditor_{registry_key.replace(':', '_')}",
@@ -147,7 +145,7 @@ def _make_editor_cls(registry_key: str, canvas_area: str) -> type:
         {
             "class_identity": SimpleNamespace(
                 registry_key=registry_key,
-                canvas_area=canvas_area,
+                default_slot=default_slot,
             )
         },
     )
@@ -160,11 +158,11 @@ def test_on_context_changed_reveal_editor_switches_slot() -> None:
     target_key = "right:editor:two"
     registry = _FakeEditorRegistry({target_key: _make_editor_cls(target_key, "right")})
     shell = AppShell(session=_FakeSession(), editor_registry=registry)
-    shell._right_column = _FakeContainer()
+    shell._right_slot = _FakeContainer()
     shell._context_bar = _FakeContainer()
 
     rendered = []
-    shell._render_area = lambda slot, editor_key: rendered.append((slot, editor_key))
+    shell._render_slot = lambda slot, editor_key: rendered.append((slot, editor_key))
     shell._render_context_bar_contents = lambda: rendered.append(("context", None))
 
     event = ContextChangedEvent(
@@ -174,9 +172,8 @@ def test_on_context_changed_reveal_editor_switches_slot() -> None:
     shell._on_context_changed(event, shell.session.workspace_manager.active)
 
     # Slot was switched via the pure helper.
-    assert shell.session.workspace_manager.active.right.editor_key == target_key
-    assert shell.session.workspace_manager.active.right_bar_active == target_key
-    assert shell._right_column.clear_calls == 1
+    assert shell.session.workspace_manager.active.right.active_tab_key == target_key
+    assert shell._right_slot.clear_calls == 1
     assert ("right", target_key) in rendered
     assert ("context", None) in rendered
     # Reveal must NOT fire a nested WORKSPACE_CHANGED event.
@@ -206,10 +203,10 @@ def _make_shell_with_bottom_stubs(visible: bool = False):
     return shell
 
 
-def test_toggle_bottom_panel_flips_visible_and_syncs_ui() -> None:
+def test_toggle_bottom_slot_flips_visible_and_syncs_ui() -> None:
     shell = _make_shell_with_bottom_stubs(visible=False)
 
-    shell._toggle_bottom_panel()
+    shell._toggle_bottom_slot()
 
     ws = shell.session.workspace_manager.active
     assert ws.bottom.visible is True
@@ -217,7 +214,7 @@ def test_toggle_bottom_panel_flips_visible_and_syncs_ui() -> None:
     assert shell._bottom_container.visible is True
     assert shell._btn_bottom.props_calls[-1] == "icon=expand_less"
 
-    shell._toggle_bottom_panel()
+    shell._toggle_bottom_slot()
 
     assert ws.bottom.visible is False
     assert shell._bottom_divider.visible is False
@@ -315,7 +312,7 @@ def test_on_context_changed_reveal_editor_unknown_logs_warning(caplog) -> None:
     the rest of the poll/draw cycle still runs for existing editors."""
     registry = _FakeEditorRegistry({})  # empty — unknown key
     shell = AppShell(session=_FakeSession(), editor_registry=registry)
-    shell._right_column = _FakeContainer()
+    shell._right_slot = _FakeContainer()
     shell._context_bar = _FakeContainer()
 
     event = ContextChangedEvent(
@@ -326,8 +323,8 @@ def test_on_context_changed_reveal_editor_unknown_logs_warning(caplog) -> None:
         shell._on_context_changed(event, shell.session.workspace_manager.active)
 
     # Slot untouched.
-    assert shell.session.workspace_manager.active.right.editor_key == "right:editor:one"
-    assert shell._right_column.clear_calls == 0
+    assert shell.session.workspace_manager.active.right.active_tab_key == "right:editor:one"
+    assert shell._right_slot.clear_calls == 0
     # Warning was logged and mentions the offending key.
     assert any("nonexistent:editor:zzz" in rec.message for rec in caplog.records)
     # No nested event emitted.

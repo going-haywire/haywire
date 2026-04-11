@@ -11,9 +11,9 @@ from pathlib import Path
 
 from haywire.ui.workspace.workspace_state import (
     WorkspaceState,
-    AreaState,
-    MiddleAreaState,
-    BottomAreaState,
+    SlotState,
+    MainSlotState,
+    BottomSlotState,
     TabState,
 )
 
@@ -29,20 +29,20 @@ class WorkspaceManager:
     """
     Manages a single workspace layout per project.
 
-    There are no named presets. The project has one `WorkspaceState` persisted
-    to `.haywire/workspace_state.json`. On construction the manager tries to
+    There are no named presets. The project has one ``WorkspaceState`` persisted
+    to ``.haywire/workspace_state.json``. On construction the manager tries to
     load that file; if it is missing or fails to parse, the layout is
-    auto-populated from the editor registry (one tab per middle-area editor,
-    one tab per bottom-area editor).
+    auto-populated from the editor registry (one tab per main-slot editor,
+    one tab per bottom-slot editor).
 
-    The bottom-area tab list is always freshly auto-populated from the
+    The bottom slot's tab list is always freshly auto-populated from the
     registry on every load — only the active tab key, visibility, and last
     dragged size survive across sessions. This keeps the bottom tab roster
     in sync with installed editors without requiring users to reset their
     workspace.
 
-    Saving is explicit: callers invoke `save()` to write the current `active`
-    state to disk. Unsaved changes are lost when the session ends.
+    Saving is explicit: callers invoke ``save()`` to write the current
+    ``active`` state to disk. Unsaved changes are lost when the session ends.
 
     Attributes:
         active: The current WorkspaceState.
@@ -73,7 +73,7 @@ class WorkspaceManager:
     def save(self) -> None:
         """Persist the current active workspace state to disk.
 
-        The bottom-area tab list is stripped before serialization — it is
+        The bottom slot's tab list is stripped before serialization — it is
         always re-derived from the editor registry on load.
         """
         preset_dir = self._project_path / ".haywire"
@@ -115,50 +115,37 @@ class WorkspaceManager:
     def _deserialize_workspace(state_dict: dict) -> WorkspaceState:
         """Reconstruct a WorkspaceState from a plain dict (from JSON).
 
-        The bottom area's ``tabs`` are left empty — they are re-derived from
+        The bottom slot's ``tabs`` are left empty — they are re-derived from
         the editor registry in :meth:`_refresh_bottom_tabs` after load.
 
-        For backwards compatibility, legacy ``middle.bottom_*`` fields from
-        the pre-BottomAreaState schema are read and migrated into the new
-        top-level ``bottom`` field.
+        This is a strict reader: it only understands the current schema. Old
+        ``middle``/``canvas_area`` files will raise and fall back to
+        auto-populate via :meth:`_load`'s exception handler.
         """
         left_d = state_dict.get("left", {})
         right_d = state_dict.get("right", {})
-        middle_d = state_dict.get("middle", {})
-        bottom_d = state_dict.get("bottom")
+        main_d = state_dict["main"]
+        bottom_d = state_dict["bottom"]
 
-        tabs_data = middle_d.get("tabs", [])
+        tabs_data = main_d.get("tabs", [])
         tabs = [TabState(**t) for t in tabs_data] if tabs_data else [TabState()]
-        middle = MiddleAreaState(
+        main = MainSlotState(
             tabs=tabs,
-            active_tab_index=middle_d.get("active_tab_index", 0),
+            active_tab_key=main_d.get("active_tab_key"),
         )
 
-        if bottom_d is None:
-            # Legacy migration: pre-BottomAreaState schema stored bottom_* fields
-            # inside middle. Read them once; a later save() will persist the
-            # migrated shape.
-            legacy_key = middle_d.get("bottom_editor_key")
-            bottom = BottomAreaState(
-                active_tab_key=legacy_key,
-                visible=middle_d.get("bottom_visible", False),
-                size=middle_d.get("bottom_size", 200),
-            )
-        else:
-            bottom = BottomAreaState(
-                active_tab_key=bottom_d.get("active_tab_key"),
-                visible=bottom_d.get("visible", False),
-                size=bottom_d.get("size", 200),
-            )
+        bottom = BottomSlotState(
+            active_tab_key=bottom_d.get("active_tab_key"),
+            visible=bottom_d.get("visible", False),
+            size=bottom_d.get("size", 200),
+        )
 
         return WorkspaceState(
             name=state_dict.get("name", "default"),
-            left_bar_active=state_dict.get("left_bar_active"),
-            left=AreaState(**left_d) if left_d else AreaState(),
-            middle=middle,
+            left=SlotState(**left_d) if left_d else SlotState(),
+            right=SlotState(**right_d) if right_d else SlotState(),
+            main=main,
             bottom=bottom,
-            right_bar_active=state_dict.get("right_bar_active"),
-            right=AreaState(**right_d) if right_d else AreaState(),
         )
 
     # ------------------------------------------------------------------
@@ -169,37 +156,36 @@ class WorkspaceManager:
     def _auto_populate(editor_registry: "EditorTypeRegistry") -> WorkspaceState:
         """Build a fresh WorkspaceState from whatever editors are registered.
 
-        The layout rule is: for each area, look up every editor whose
-        ``canvas_area`` matches. The middle area gets one tab per middle-area
-        editor. The bottom area is hidden by default; its tab list is
+        The layout rule is: for each slot, look up every editor whose
+        ``default_slot`` matches. The main slot gets one tab per main-slot
+        editor. The bottom slot is hidden by default; its tab list is
         populated separately by :meth:`_refresh_bottom_tabs`.
         """
-        left_editors = editor_registry.get_by_default_area("left")
-        right_editors = editor_registry.get_by_default_area("right")
-        middle_editors = editor_registry.get_by_default_area("middle")
+        left_editors = editor_registry.get_by_default_slot("left")
+        right_editors = editor_registry.get_by_default_slot("right")
+        main_editors = editor_registry.get_by_default_slot("main")
 
         left_first = next(iter(left_editors), None)
         right_first = next(iter(right_editors), None)
 
-        if middle_editors:
+        if main_editors:
             tabs = [
-                TabState(editor_key=key, label=cls.class_identity.label)
-                for key, cls in middle_editors.items()
+                TabState(editor_key=key, label=cls.class_identity.label) for key, cls in main_editors.items()
             ]
         else:
             tabs = [TabState()]
 
+        main_first = tabs[0].editor_key
+
         return WorkspaceState(
             name="default",
-            left_bar_active=left_first,
-            left=AreaState(editor_key=left_first, visible=left_first is not None, size=250),
-            middle=MiddleAreaState(
+            left=SlotState(active_tab_key=left_first, visible=left_first is not None, size=250),
+            right=SlotState(active_tab_key=right_first, visible=right_first is not None, size=350),
+            main=MainSlotState(
                 tabs=tabs,
-                active_tab_index=0,
+                active_tab_key=main_first,
             ),
-            bottom=BottomAreaState(),
-            right_bar_active=right_first,
-            right=AreaState(editor_key=right_first, visible=right_first is not None, size=350),
+            bottom=BottomSlotState(),
         )
 
     # ------------------------------------------------------------------
@@ -211,14 +197,14 @@ class WorkspaceManager:
         workspace: WorkspaceState,
         editor_registry: "EditorTypeRegistry",
     ) -> None:
-        """Re-derive the bottom-area tab list from the editor registry.
+        """Re-derive the bottom slot's tab list from the editor registry.
 
         Called after load and auto-populate so that the bottom tab roster
         always reflects currently-installed editors. The persisted
         ``active_tab_key`` is preserved if the referenced editor still
         exists; otherwise it falls back to the first tab.
         """
-        bottom_editors = editor_registry.get_by_default_area("bottom")
+        bottom_editors = editor_registry.get_by_default_slot("bottom")
         workspace.bottom.tabs = [
             TabState(editor_key=key, label=cls.class_identity.label) for key, cls in bottom_editors.items()
         ]

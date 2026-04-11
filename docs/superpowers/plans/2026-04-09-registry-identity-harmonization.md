@@ -350,12 +350,12 @@ class EditorIdentity(BaseIdentity):
 
     Additional attributes:
         icon: Material Design icon name, e.g. 'account_tree'.
-        canvas_area: Which workspace area this editor belongs in by default.
-            One of: 'left', 'middle', 'right', 'bottom'.
+        default_slot: Which workspace slot this editor belongs in by default.
+            One of: 'left', 'main', 'right', 'bottom'.
     """
 
     icon: str = "extension"
-    canvas_area: str = "middle"
+    default_slot: str = "main"
 ```
 
 - [ ] **Step 2: Update `@editor` decorator**
@@ -368,7 +368,7 @@ In `packages/haywire-core/src/haywire/ui/editor/decorator.py`, the `EditorIdenti
             registry_key=_registry_key,
             label=_label,
             icon=icon,
-            canvas_area=canvas_area,
+            default_slot=default_slot,
             description=description,
             class_name=inner_cls.__name__,
             module=inner_cls.__module__,

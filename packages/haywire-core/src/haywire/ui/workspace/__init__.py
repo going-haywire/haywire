@@ -3,24 +3,24 @@
 Workspace system for the Haywire UI layout.
 
 WorkspaceState defines the complete workspace configuration (which editors are
-in which areas, panel sizes, tab layout). WorkspaceManager handles preset
-loading, saving, and switching.
+in which slots, panel sizes, tab layout). WorkspaceManager handles loading,
+saving, and auto-populating from the editor registry.
 """
 
 from .workspace_state import (
-    AreaState,
+    SlotState,
     TabState,
-    MiddleAreaState,
-    BottomAreaState,
+    MainSlotState,
+    BottomSlotState,
     WorkspaceState,
 )
 from .manager import WorkspaceManager
 
 __all__ = [
-    "AreaState",
+    "SlotState",
     "TabState",
-    "MiddleAreaState",
-    "BottomAreaState",
+    "MainSlotState",
+    "BottomSlotState",
     "WorkspaceState",
     "WorkspaceManager",
 ]

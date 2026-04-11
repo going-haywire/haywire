@@ -68,13 +68,13 @@ class EditorTypeRegistry(BaseRegistry):
         """
         return self._classes.get(registry_key)
 
-    def get_by_default_area(self, area: str) -> Dict[str, type]:
-        """Get all editor classes suggested for a given default area.
+    def get_by_default_slot(self, slot: str) -> Dict[str, type]:
+        """Get all editor classes suggested for a given default slot.
 
         Args:
-            area: One of 'left', 'middle', 'right', 'bottom'.
+            slot: One of 'left', 'right', 'main', 'bottom'.
 
         Returns:
             Dict mapping registry_key -> editor class.
         """
-        return {k: v for k, v in self._classes.items() if v.class_identity.canvas_area == area}
+        return {k: v for k, v in self._classes.items() if v.class_identity.default_slot == slot}

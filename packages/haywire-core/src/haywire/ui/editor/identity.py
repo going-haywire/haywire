@@ -24,9 +24,9 @@ class EditorIdentity(BaseIdentity):
 
     Additional attributes:
         icon: Material Design icon name, e.g. 'account_tree'.
-        canvas_area: Which workspace area this editor belongs in by default.
-            One of: 'left', 'middle', 'right', 'bottom'.
+        default_slot: Which workspace slot this editor belongs in by default.
+            One of: 'left', 'right', 'main', 'bottom'.
     """
 
     icon: str = "extension"
-    canvas_area: str = "middle"
+    default_slot: str = "main"

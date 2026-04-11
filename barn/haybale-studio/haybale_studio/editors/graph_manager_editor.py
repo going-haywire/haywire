@@ -45,7 +45,7 @@ def _workspace_rel_path(path: Path, workspace_root: "Path | None") -> str:
     registry_id="graph_manager",
     label="Graphs",
     icon=hui.icon.graph_manager,
-    canvas_area="left",
+    default_slot="left",
     description='All open graphs. Click to switch; "+" to create a new graph.',
 )
 class GraphManagerEditor(BaseEditor):
@@ -230,7 +230,7 @@ class GraphManagerEditor(BaseEditor):
         self._switch_to_graph_editor(context)
 
     def _switch_to_graph_editor(self, context: "SessionContext") -> None:
-        tabs = context.metadata.get("middle_tabs")
+        tabs = context.metadata.get("main_tabs")
         if tabs is not None:
             try:
                 tabs.set_value(_GRAPH_EDITOR_KEY)

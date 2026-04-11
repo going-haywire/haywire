@@ -39,7 +39,7 @@ class _LogHandler(logging.Handler):
     registry_id="console",
     label="Console",
     icon=hui.icon.terminal,
-    canvas_area="bottom",
+    default_slot="bottom",
     description="Application log output. Captures Python logging messages.",
 )
 class ConsoleEditor(BaseEditor):

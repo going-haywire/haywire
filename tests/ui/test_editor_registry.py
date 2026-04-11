@@ -18,7 +18,7 @@ from haywire.ui.editor.registry import EditorTypeRegistry
     registry_id="test_editor",
     label="Test Editor",
     icon="star",
-    canvas_area="middle",
+    default_slot="main",
     description="An editor for unit tests.",
 )
 class _TestEditor(BaseEditor):
@@ -29,7 +29,7 @@ class _TestEditor(BaseEditor):
 @editor(
     registry_id="test_left_editor",
     label="Test Left Editor",
-    canvas_area="left",
+    default_slot="left",
 )
 class _TestLeftEditor(BaseEditor):
     def draw(self, context, container):
@@ -62,8 +62,8 @@ class TestEditorDecorator:
     def test_icon(self):
         assert _TestEditor.class_identity.icon == "star"
 
-    def test_default_area(self):
-        assert _TestEditor.class_identity.canvas_area == "middle"
+    def test_default_slot(self):
+        assert _TestEditor.class_identity.default_slot == "main"
 
     def test_description(self):
         assert _TestEditor.class_identity.description == "An editor for unit tests."
@@ -79,7 +79,7 @@ class TestEditorDecorator:
     def test_rejects_non_base_editor(self):
         with pytest.raises(TypeError):
 
-            @editor(registry_id="bad", editor="x", canvas_area="middle")
+            @editor(registry_id="bad", editor="x", default_slot="main")
             class NotAnEditor:
                 pass
 
@@ -116,18 +116,18 @@ class TestEditorTypeRegistry:
         assert not self.registry.has(key)
         assert self.registry.get(key) is None
 
-    def test_get_by_default_area_middle(self):
+    def test_get_by_default_slot_main(self):
         self.registry._register_class(_TestEditor, library_identity=None)
         self.registry._register_class(_TestLeftEditor, library_identity=None)
-        middle = self.registry.get_by_default_area("middle")
-        left = self.registry.get_by_default_area("left")
-        assert _TestEditor.class_identity.registry_key in middle
+        main = self.registry.get_by_default_slot("main")
+        left = self.registry.get_by_default_slot("left")
+        assert _TestEditor.class_identity.registry_key in main
         assert _TestEditor.class_identity.registry_key not in left
         assert _TestLeftEditor.class_identity.registry_key in left
 
-    def test_get_by_default_area_no_results(self):
+    def test_get_by_default_slot_no_results(self):
         self.registry._register_class(_TestEditor, library_identity=None)
-        bottom = self.registry.get_by_default_area("bottom")
+        bottom = self.registry.get_by_default_slot("bottom")
         assert len(bottom) == 0
 
     def test_class_filter_accepts_decorated_subclass(self):

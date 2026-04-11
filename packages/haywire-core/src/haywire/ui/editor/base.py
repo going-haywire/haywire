@@ -4,7 +4,7 @@ Abstract base class for all Haywire editor types.
 
 Editors follow a poll/draw lifecycle managed by an orchestrator (AppShell):
 
-    1. On first assignment to an area slot, the orchestrator calls draw()
+    1. On first assignment to a slot, the orchestrator calls draw()
        directly — no poll.
     2. On every ContextChangedEvent, the orchestrator calls poll(). If it
        returns True the orchestrator clears the container and calls draw().
@@ -27,7 +27,7 @@ class BaseEditor(ABC):
     """
     Abstract base class for all editor types.
 
-    An editor is a self-contained UI module that renders into an Area
+    An editor is a self-contained UI module that renders into a slot
     of the workspace layout. Editor instances are lazily created and
     cached — when two browser windows are open, each session has its
     own editor instances.
@@ -38,10 +38,10 @@ class BaseEditor(ABC):
     Subclasses may override:
         - poll(context, event): Return True when a full redraw is needed.
         - cleanup(): Release resources when permanently removed.
-        - get_tab_label(context): Dynamic tab label for tabbed areas.
+        - get_tab_label(context): Dynamic tab label for tabbed slots.
 
     Class attributes (set by @editor decorator):
-        - class_identity: EditorIdentity with registry_key, label, icon, canvas_area.
+        - class_identity: EditorIdentity with registry_key, label, icon, default_slot.
         - class_library: LibraryIdentity of the owning library (None for builtins).
     """
 
@@ -70,7 +70,7 @@ class BaseEditor(ABC):
         Build the editor UI into the given NiceGUI container element.
 
         The orchestrator clears the container before calling this method.
-        Called once on first assignment to an area, and again whenever
+        Called once on first assignment to a slot, and again whenever
         poll() returns True.
 
         Args:
@@ -88,7 +88,7 @@ class BaseEditor(ABC):
 
     def get_tab_label(self, context: "SessionContext") -> str:
         """
-        Return the label to show in a tab header (for tabbed areas like Middle).
+        Return the label to show in a tab header (for tabbed slots — main, bottom).
         Defaults to class_identity.label. Override for dynamic labels (e.g., graph name).
         """
         return self.class_identity.label
