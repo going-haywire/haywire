@@ -105,12 +105,16 @@ class FileBrowserEditor(BaseEditor):
             return
 
         with self._tree_container:
-            self._tree = ui.tree(
-                nodes,
-                label_key="label",
-                node_key="id",
-                on_select=lambda e: self._on_select(e.value, context),
-            ).classes("w-full text-sm")
+            self._tree = (
+                ui.tree(
+                    nodes,
+                    label_key="label",
+                    node_key="id",
+                    on_select=lambda e: self._on_select(e.value, context),
+                )
+                .props("no-transition")
+                .classes("w-full text-sm")
+            )
             self._tree.expand(["graphs"])  # expand root level
 
     def _build_tree_nodes(self, path: Path, depth: int = 0) -> list:
