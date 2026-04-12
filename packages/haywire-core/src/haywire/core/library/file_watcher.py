@@ -1,8 +1,8 @@
 import logging
 import time
 import threading
+from pathlib import Path
 
-logger = logging.getLogger(__name__)
 from typing import Dict, Set, Tuple, List, Optional
 
 from watchdog.observers import Observer
@@ -11,6 +11,7 @@ from watchdog.events import FileSystemEventHandler
 from ..registry.base import HotReloadRegistry, FileChangeEvent, FileEventType
 from .identity import LibraryIdentity
 
+logger = logging.getLogger(__name__)
 
 class LibraryFileHandler(FileSystemEventHandler):
     """
@@ -32,6 +33,10 @@ class LibraryFileHandler(FileSystemEventHandler):
         # promoted via atomic write (tmp → py), since the OS may deliver a spurious
         # DELETE for the destination file after the move event.
         self._atomic_write_suppress: Dict[str, float] = {}
+        # .py files known to exist on disk — seeded when a folder mapping is
+        # added and maintained as CREATE/DELETE events flow through.  Used to
+        # downgrade a spurious CREATE (from an atomic write) to MODIFIED.
+        self._known_files: Set[str] = set()
         self._lock = threading.Lock()
 
     def add_folder_mapping(
@@ -44,6 +49,10 @@ class LibraryFileHandler(FileSystemEventHandler):
         """Register a folder path to be routed to a specific registry"""
         with self._lock:
             self.folder_mappings[folder_path] = (library_identity, registry, debounce_delay)
+            # Seed _known_files with existing .py files so that atomic-write
+            # CREATEs for pre-existing files are correctly downgraded to MODIFIED.
+            for py_file in Path(folder_path).rglob("*.py"):
+                self._known_files.add(str(py_file))
 
     def remove_folder_mapping(self, folder_path: str):
         """Unregister a folder path"""
@@ -70,11 +79,22 @@ class LibraryFileHandler(FileSystemEventHandler):
 
     def on_modified(self, event):
         if not event.is_directory and event.src_path.endswith(".py"):
+            with self._lock:
+                self._known_files.add(event.src_path)
             self._handle_file_change(event.src_path, FileEventType.MODIFIED)
 
     def on_created(self, event):
         if not event.is_directory and event.src_path.endswith(".py"):
-            self._handle_file_change(event.src_path, FileEventType.CREATED)
+            with self._lock:
+                already_known = event.src_path in self._known_files
+                self._known_files.add(event.src_path)
+            if already_known:
+                # File already existed — this CREATE is from an atomic write
+                # (or similar overwrite). Downgrade to MODIFIED.
+                logger.info(f"FileWatcher: downgrading CREATE to MODIFIED for known file: {event.src_path}")
+                self._handle_file_change(event.src_path, FileEventType.MODIFIED)
+            else:
+                self._handle_file_change(event.src_path, FileEventType.CREATED)
 
     def on_deleted(self, event):
         if not event.is_directory and event.src_path.endswith(".py"):
@@ -85,6 +105,8 @@ class LibraryFileHandler(FileSystemEventHandler):
                         f"FileWatcher: suppressing spurious DELETE for atomic-written file: {event.src_path}"
                     )
                     return
+            with self._lock:
+                self._known_files.discard(event.src_path)
             self._handle_file_change(event.src_path, FileEventType.DELETED)
 
     def on_moved(self, event):
@@ -109,6 +131,9 @@ class LibraryFileHandler(FileSystemEventHandler):
 
             if src_is_py and dest_is_py:
                 # True rename: foo.py → bar.py
+                with self._lock:
+                    self._known_files.discard(event.src_path)
+                    self._known_files.add(event.dest_path)
                 self._handle_file_change(event.src_path, FileEventType.DELETED)
                 self._handle_file_change(event.dest_path, FileEventType.CREATED)
             elif dest_is_py and not src_is_py:
@@ -116,6 +141,7 @@ class LibraryFileHandler(FileSystemEventHandler):
                 # Suppress any spurious DELETE that the OS may deliver for dest_path
                 # after this move event (observed on macOS/kqueue).
                 with self._lock:
+                    self._known_files.add(event.dest_path)
                     self._atomic_write_suppress[event.dest_path] = time.time() + 2.0
                 self._handle_file_change(event.dest_path, FileEventType.MODIFIED)
 
@@ -181,6 +207,7 @@ class LibraryFileHandler(FileSystemEventHandler):
             self.debounce_timers.clear()
             self.pending_events.clear()
             self._atomic_write_suppress.clear()
+            self._known_files.clear()
 
 
 class FileWatcher:
