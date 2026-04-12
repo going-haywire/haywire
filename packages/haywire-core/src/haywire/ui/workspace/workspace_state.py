@@ -113,6 +113,8 @@ class WorkspaceState:
 
     Attributes:
         name: Workspace name.
+        haystack: Name of the last-loaded haystack (stem of the TOML file
+            in ``haystacks/``), or None if no haystack has been loaded.
         left: Left slot state (ActivityBar-driven).
         right: Right slot state (ContextBar-driven).
         main: Main slot state (MainTabBar-driven, tabbed).
@@ -120,6 +122,7 @@ class WorkspaceState:
     """
 
     name: str = "default"
+    haystack: Optional[str] = None
     left: SlotState = field(default_factory=SlotState)
     right: SlotState = field(default_factory=SlotState)
     main: MainSlotState = field(default_factory=MainSlotState)

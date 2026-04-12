@@ -142,6 +142,7 @@ class WorkspaceManager:
 
         return WorkspaceState(
             name=state_dict.get("name", "default"),
+            haystack=state_dict.get("haystack"),
             left=SlotState(**left_d) if left_d else SlotState(),
             right=SlotState(**right_d) if right_d else SlotState(),
             main=main,

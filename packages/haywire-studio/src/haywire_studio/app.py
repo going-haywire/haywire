@@ -1,16 +1,20 @@
 """
 HaywireApp — main application entry point.
 
-Manages shared services (graph manager, libraries, interpreter) and per-session
-UI shells.  Each browser connection gets its own Session and AppShell; all
-sessions share the same library registry, interpreter, and GraphManager.
+Manages shared services (graph manager, libraries) and per-session UI shells.
+Each browser connection gets its own Session and AppShell; all sessions share
+the same library registry and GraphManager.
 
-No graph is loaded at startup.  The user creates a new graph via the
-GraphManagerEditor ('+' button) or opens an existing file via the
-FileBrowserEditor.
+Execution is per-graph: each GraphEntry owns its own Interpreter and
+InterpreterLoopManager, started/stopped via entry.start_execution() /
+entry.stop_execution().
+
+On startup the last-used haystack (if any) is auto-loaded from
+``workspace_state.json``.  Otherwise the app starts with no graphs open.
 """
 
 import os
+import logging
 from pathlib import Path
 
 from nicegui import ui, app
@@ -20,12 +24,12 @@ from haywire.core.graph.editor import Editor
 from haywire.core.graph.base import BaseGraph
 from haywire.core.graph.types import ValidationResult
 from haywire.core.undo.config import DEVELOPMENT_CONFIG
-from haywire.core.execution import Interpreter
-from haywire.core.execution.interpreter_loop_manager import InterpreterLoopManager
 from haywire.core.di.config import create_library_system_service, set_library_system, set_global_injector
 
 # UI imports
 from haywire.ui.console_bridge import get_bridge
+
+logger = logging.getLogger(__name__)
 
 
 def _result_mutates_data(result: ValidationResult) -> bool:
@@ -64,23 +68,18 @@ class HaywireApp:
         self._is_shutting_down = True
         print("Application shutdown initiated...")
 
-        # 1. Stop interpreter loop
-        if self.loop_manager and self.loop_manager.is_running:
-            print("  Stopping interpreter loop...")
-            self.stop_interpreter()
-
-        # 2. Clean up all sessions
+        # 1. Clean up all sessions
         print(f"  Cleaning up {self.session_manager.session_count} sessions...")
         self.session_manager.cleanup_all()
 
-        # 3. Clean up graph manager
+        # 2. Clean up graph manager (stops per-graph interpreters, clears entries)
         try:
             if hasattr(self, "graph_manager"):
                 self.graph_manager.cleanup()
         except Exception as e:
             print(f"  Error cleaning up graph manager: {e}")
 
-        # 4. Clean up console bridge
+        # 3. Clean up console bridge
         try:
             bridge = get_bridge()
             bridge.log_elements.clear()
@@ -88,14 +87,7 @@ class HaywireApp:
         except Exception as e:
             print(f"  Error cleaning up console bridge: {e}")
 
-        # 5. Shutdown interpreter
-        try:
-            if self.interpreter:
-                self.interpreter.shutdown()
-        except Exception as e:
-            print(f"  Error shutting down interpreter: {e}")
-
-        # 6. Cleanup library system
+        # 4. Cleanup library system
         try:
             if hasattr(self.library_service, "cleanup"):
                 self.library_service.cleanup()
@@ -149,17 +141,11 @@ class HaywireApp:
         self.adapter_factory = self.library_service.get_adapter_factory()
         self.panel_registry = self.library_service.get_panel_registry()
 
-        # Interpreter
-        self.interpreter = Interpreter()
-        self.loop_manager = InterpreterLoopManager(
-            interpreter=self.interpreter,
-            target_fps=60.0,
-        )
-
-        # Graph manager — starts empty; graphs are created/opened on demand
+        # Graph manager — starts empty; graphs are created/opened on demand.
+        # Haystack auto-load happens after workspace_manager is available (in main_page).
         from .graph_manager import GraphManager
 
-        self.graph_manager = GraphManager()
+        self.graph_manager = GraphManager(workspace_root=Path(self.workspace_root))
 
         # Library manager
         from .library_manager import LibraryManager
@@ -184,28 +170,11 @@ class HaywireApp:
         Subscribes the validation/broadcast handler on first open.
         Attaches the session to the entry and returns it.
         """
-
-        def _factory(graph_id: str, name: str):
-            g = BaseGraph(graph_id, name)
-            e = Editor(g, self.node_factory, undo_config=self.undo_config)
-            return g, e
-
-        entry = self.graph_manager.open_graph(path, _factory)
+        entry = self.graph_manager.open_graph(path, self._graph_factory)
 
         # Subscribe only the first time this file is opened
         if not entry.sessions:
-
-            def _handler(result, _path=path, _entry=entry):
-                self._on_graph_validation_for_interpreter(result)
-                if _result_mutates_data(result):
-                    _entry.unsaved = True
-                    if hasattr(self, "session_manager"):
-                        try:
-                            self.session_manager.broadcast_data_mutation(graph_path=_path)
-                        except Exception as exc:
-                            print(f"Error broadcasting for {_path.name}: {exc}")
-
-            entry.graph.subscribe_to_validation(_handler)
+            self._subscribe_entry_validation(entry)
 
         self.graph_manager.session_attach(entry, session_id)
         return entry
@@ -216,47 +185,75 @@ class HaywireApp:
 
         Produces a unique '__new_N__' entry in the GraphManager.
         """
+        entry = self.graph_manager.create_new(self._graph_factory)
+        self._subscribe_entry_validation(entry)
+        self.graph_manager.session_attach(entry, session_id)
+        return entry
 
-        def _factory(graph_id: str, name: str):
-            g = BaseGraph(graph_id, name)
-            e = Editor(g, self.node_factory, undo_config=self.undo_config)
-            return g, e
+    # ------------------------------------------------------------------
+    # Per-graph execution
+    # ------------------------------------------------------------------
 
-        entry = self.graph_manager.create_new(_factory)
+    @staticmethod
+    def _on_graph_validation_for_entry(result: ValidationResult, entry) -> None:
+        """Stop execution on an entry when a graph change requires reassembly."""
+        if not entry.is_executing:
+            return
+        if result.has_changes() and result.graph is not None and result.graph.requires_graph_reassembly():
+            entry.stop_execution()
+
+    # ------------------------------------------------------------------
+    # Graph factory (shared by open_graph_file, create_new_graph, haystack)
+    # ------------------------------------------------------------------
+
+    def _graph_factory(self, graph_id: str, name: str):
+        """Standard factory producing (BaseGraph, Editor) pairs."""
+        g = BaseGraph(graph_id, name)
+        e = Editor(g, self.node_factory, undo_config=self.undo_config)
+        return g, e
+
+    # ------------------------------------------------------------------
+    # Haystack auto-load
+    # ------------------------------------------------------------------
+
+    def try_load_startup_haystack(self, workspace_manager) -> None:
+        """Load the last-used haystack on startup (if configured).
+
+        Called once per application boot from the first session's main_page.
+        If ``workspace_state.haystack`` names a valid haystack file the graphs
+        are opened silently.  Any missing files are skipped.
+        """
+        haystack_name = workspace_manager.active.haystack
+        if not haystack_name:
+            return
+
+        if self.graph_manager.all_entries():
+            # Already have graphs open (e.g. second session connecting) — skip
+            return
+
+        try:
+            self.graph_manager.load_haystack(haystack_name, self._graph_factory)
+            # Subscribe validation handlers for each loaded entry
+            for entry in self.graph_manager.all_entries().values():
+                self._subscribe_entry_validation(entry)
+            logger.info(f"Startup haystack '{haystack_name}' loaded")
+        except Exception as exc:
+            logger.warning(f"Failed to load startup haystack '{haystack_name}': {exc}")
+
+    def _subscribe_entry_validation(self, entry) -> None:
+        """Subscribe the validation/broadcast handler for a graph entry."""
 
         def _handler(result, _entry=entry):
-            self._on_graph_validation_for_interpreter(result)
+            self._on_graph_validation_for_entry(result, _entry)
             if _result_mutates_data(result):
                 _entry.unsaved = True
                 if hasattr(self, "session_manager"):
                     try:
                         self.session_manager.broadcast_data_mutation(graph_path=_entry.path)
                     except Exception as exc:
-                        print(f"Error broadcasting for new graph {_entry.key}: {exc}")
+                        logger.warning(f"Error broadcasting for {_entry.display_name}: {exc}")
 
         entry.graph.subscribe_to_validation(_handler)
-        self.graph_manager.session_attach(entry, session_id)
-        return entry
-
-    # ------------------------------------------------------------------
-    # Interpreter
-    # ------------------------------------------------------------------
-
-    def _on_graph_validation_for_interpreter(self, result: ValidationResult):
-        """Stop the interpreter when a graph change requires reassembly."""
-        if not self.loop_manager or not self.loop_manager.is_running:
-            return
-        if result.has_changes() and result.graph is not None and result.graph.requires_graph_reassembly():
-            self.stop_interpreter()
-
-    def stop_interpreter(self):
-        """Stop the interpreter loop."""
-        self.loop_manager.stop()
-        try:
-            self.interpreter.wait_all(timeout=2.0)
-        except Exception as e:
-            print(f"Error waiting for flows: {e}")
-        print("Interpreter loop stopped")
 
     # ------------------------------------------------------------------
     # UI creation
@@ -300,6 +297,9 @@ class HaywireApp:
                 project_path=Path(self.workspace_root),
                 editor_registry=editor_registry,
             )
+
+            # Auto-load the last-used haystack on first session connect
+            self.try_load_startup_haystack(workspace_manager)
 
             haywire_session = self.session_manager.create_session(
                 project_state=self,

@@ -13,8 +13,6 @@ from typing import Any, Protocol, TYPE_CHECKING
 
 if TYPE_CHECKING:
     from haywire.core.di.config import LibrarySystemService
-    from haywire.core.execution import Interpreter
-    from haywire.core.execution.interpreter_loop_manager import InterpreterLoopManager
     from haywire.ui.session_manager import SessionManager
     from haywire_studio.library_manager import LibraryManager
 
@@ -48,6 +46,4 @@ class IProjectState(Protocol):
     graph_manager: IGraphManager
     node_registry: Any  # NodeRegistry
     node_factory: Any  # NodeFactory
-    interpreter: "Interpreter"
-    loop_manager: "InterpreterLoopManager"
     library_manager: "LibraryManager"

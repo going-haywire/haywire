@@ -6,9 +6,12 @@ Each .haywire file gets its own GraphEntry (graph + editor). Two sessions
 opening the same file share the same entry and collaborate in real time.
 An untitled entry (path=None) is created at startup and keyed as '__untitled__'.
 
+Haystack support: the current set of open graphs can be saved to / loaded
+from a TOML file in the ``haystacks/`` folder at the workspace root.
+
 Usage in app.py::
 
-    graph_manager = GraphManager()
+    graph_manager = GraphManager(workspace_root=Path(...))
     untitled = graph_manager.create_untitled(factory)
 
     # When a file is opened:
@@ -18,17 +21,28 @@ Usage in app.py::
     # On save:
     graph_manager.save_graph(entry)
 
+    # Save/load haystacks:
+    graph_manager.save_haystack("default")
+    graph_manager.load_haystack("default", factory)
+
     # On session disconnect:
     graph_manager.session_detach(entry, session_id)
 """
 
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Callable, Dict, Optional, Set, Tuple
+from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Set, Tuple
+import logging
+
+import toml
 
 if TYPE_CHECKING:
     from haywire.core.graph.base import HaywireGraph
+    from haywire.core.execution.interpreter import Interpreter
+    from haywire.core.execution.interpreter_loop_manager import InterpreterLoopManager
     from haywire.ui.editor.base import BaseEditor
+
+logger = logging.getLogger(__name__)
 
 # Factory signature: (graph_id: str, name: str) -> (BaseGraph, Editor)
 GraphFactory = Callable[[str, str], Tuple[Any, Any]]
@@ -45,6 +59,8 @@ class GraphEntry:
         path:     Absolute Path to the .haywire file, or None for untitled.
         unsaved:  True if the graph has in-memory changes not yet written to disk.
         sessions: Session IDs currently viewing this graph.
+        interpreter:  Per-graph Interpreter instance (created on execution start).
+        loop_manager: Per-graph InterpreterLoopManager (created on execution start).
     """
 
     graph: "HaywireGraph"
@@ -52,6 +68,8 @@ class GraphEntry:
     path: Optional[Path] = None
     unsaved: bool = False
     sessions: Set[str] = field(default_factory=set)
+    interpreter: Optional["Interpreter"] = field(default=None, repr=False)
+    loop_manager: Optional["InterpreterLoopManager"] = field(default=None, repr=False)
 
     @property
     def key(self) -> str:
@@ -65,10 +83,47 @@ class GraphEntry:
             return self.path.name
         return getattr(self.graph, "name", None) or "Untitled"
 
+    @property
+    def is_executing(self) -> bool:
+        """True if the interpreter loop is currently running."""
+        return self.loop_manager is not None and self.loop_manager.is_running
+
+    def start_execution(self, target_fps: float = 60.0) -> None:
+        """Create an Interpreter and start the execution loop for this graph."""
+        if self.is_executing:
+            return
+
+        from haywire.core.execution.interpreter import Interpreter
+        from haywire.core.execution.interpreter_loop_manager import InterpreterLoopManager
+
+        self.interpreter = Interpreter()
+        self.interpreter.load_graph(self.graph)
+        self.loop_manager = InterpreterLoopManager(
+            interpreter=self.interpreter,
+            target_fps=target_fps,
+        )
+        self.loop_manager.start()
+        logger.info(f"Execution started for graph '{self.display_name}'")
+
+    def stop_execution(self) -> None:
+        """Stop the execution loop and shut down the Interpreter."""
+        if not self.is_executing:
+            return
+
+        self.loop_manager.stop()
+        try:
+            self.interpreter.wait_all(timeout=2.0)
+        except Exception as e:
+            logger.warning(f"Error waiting for flows on '{self.display_name}': {e}")
+        self.interpreter.shutdown()
+        self.interpreter = None
+        self.loop_manager = None
+        logger.info(f"Execution stopped for graph '{self.display_name}'")
+
 
 class GraphManager:
     """
-    Manages all open graph instances.
+    Manages all open graph instances and haystack persistence.
 
     Key design points:
     - One GraphEntry per unique file path; untitled graphs use key '__untitled__'.
@@ -76,11 +131,14 @@ class GraphManager:
     - Sessions attach/detach to track which sessions view which graph.
     - broadcast_data_mutation() in SessionManager uses graph_path to selectively
       notify only the sessions that are viewing the changed graph.
+    - Haystacks: named selections of open graphs persisted as TOML in
+      ``<workspace>/haystacks/*.toml``.
     """
 
-    def __init__(self):
+    def __init__(self, workspace_root: Optional[Path] = None):
         self._entries: Dict[str, GraphEntry] = {}
         self._new_counter: int = 0
+        self._workspace_root: Optional[Path] = workspace_root
 
     # ------------------------------------------------------------------
     # Graph lifecycle
@@ -228,9 +286,180 @@ class GraphManager:
         return set(entry.sessions)
 
     # ------------------------------------------------------------------
+    # Unsaved check
+    # ------------------------------------------------------------------
+
+    def has_unsaved(self) -> bool:
+        """Return True if any entry has unsaved changes or no file path."""
+        return any(e.unsaved or e.path is None for e in self._entries.values())
+
+    def unsaved_entries(self) -> List[GraphEntry]:
+        """Return entries that have unsaved changes or no file path."""
+        return [e for e in self._entries.values() if e.unsaved or e.path is None]
+
+    # ------------------------------------------------------------------
+    # Haystack persistence
+    # ------------------------------------------------------------------
+
+    def _haystacks_dir(self) -> Optional[Path]:
+        """Return the haystacks/ directory, or None if no workspace root."""
+        if self._workspace_root is None:
+            return None
+        return self._workspace_root / "haystacks"
+
+    def list_haystacks(self) -> List[str]:
+        """Return sorted list of available haystack names (without extension)."""
+        hdir = self._haystacks_dir()
+        if hdir is None or not hdir.is_dir():
+            return []
+        return sorted(p.stem for p in hdir.glob("*.toml"))
+
+    def save_haystack(self, name: str, active_graph_path: Optional[Path] = None) -> Path:
+        """
+        Save the current set of open graphs to a haystack file.
+
+        Only file-backed entries (path is not None) are included.
+        The active graph and per-graph execution state are stored.
+
+        Args:
+            name: Haystack name (used as filename stem).
+            active_graph_path: Path of the currently active graph (stored in
+                the haystack so it can be restored on load).
+
+        Returns:
+            The Path to the written haystack file.
+        """
+        hdir = self._haystacks_dir()
+        if hdir is None:
+            raise RuntimeError("Cannot save haystack: no workspace root configured")
+
+        hdir.mkdir(parents=True, exist_ok=True)
+        filepath = hdir / f"{name}.toml"
+
+        # Build the active_graph value as a relative path string
+        active_rel: Optional[str] = None
+        if active_graph_path is not None:
+            try:
+                active_rel = str(active_graph_path.relative_to(self._workspace_root))
+            except ValueError:
+                active_rel = str(active_graph_path)
+
+        # Build graph entries — only saved (file-backed) graphs
+        graphs_list = []
+        for entry in self._entries.values():
+            if entry.path is None:
+                continue
+            try:
+                rel = str(entry.path.relative_to(self._workspace_root))
+            except ValueError:
+                rel = str(entry.path)
+            graphs_list.append(
+                {
+                    "path": rel,
+                    "execute": entry.is_executing,
+                }
+            )
+
+        data: Dict[str, Any] = {
+            "haystack": {
+                "name": name,
+            },
+            "graphs": graphs_list,
+        }
+        if active_rel is not None:
+            data["haystack"]["active_graph"] = active_rel
+
+        filepath.write_text(toml.dumps(data))
+        logger.info(f"Haystack saved: {filepath} ({len(graphs_list)} graphs)")
+        return filepath
+
+    def load_haystack(
+        self,
+        name: str,
+        factory: GraphFactory,
+    ) -> Tuple[List[GraphEntry], Optional[str]]:
+        """
+        Load a haystack file, replacing all current entries.
+
+        Stops execution on all current entries, clears the registry,
+        then opens each graph listed in the haystack. Graphs marked with
+        ``execute = true`` are started automatically.
+
+        Args:
+            name: Haystack name (filename stem in haystacks/).
+            factory: Graph factory for opening files.
+
+        Returns:
+            Tuple of (list of opened GraphEntry instances,
+            relative path of the active graph or None).
+
+        Raises:
+            FileNotFoundError: If the haystack file does not exist.
+        """
+        hdir = self._haystacks_dir()
+        if hdir is None:
+            raise RuntimeError("Cannot load haystack: no workspace root configured")
+
+        filepath = hdir / f"{name}.toml"
+        if not filepath.exists():
+            raise FileNotFoundError(f"Haystack not found: {filepath}")
+
+        data = toml.loads(filepath.read_text())
+        haystack_meta = data.get("haystack", {})
+        active_graph_rel = haystack_meta.get("active_graph")
+        graphs_data = data.get("graphs", [])
+
+        # Stop execution and clear all current entries
+        self._stop_all_execution()
+        self._entries.clear()
+        self._new_counter = 0
+
+        # Open each graph
+        opened: List[GraphEntry] = []
+        for gd in graphs_data:
+            rel_path = gd.get("path")
+            if not rel_path:
+                continue
+            abs_path = self._workspace_root / rel_path
+            if not abs_path.exists():
+                logger.warning(f"Haystack: skipping missing graph file: {abs_path}")
+                continue
+
+            entry = self.open_graph(abs_path, factory)
+            opened.append(entry)
+
+            if gd.get("execute", False):
+                entry.start_execution()
+
+        logger.info(f"Haystack loaded: {filepath} ({len(opened)}/{len(graphs_data)} graphs)")
+        return opened, active_graph_rel
+
+    def delete_haystack(self, name: str) -> bool:
+        """Delete a haystack file. Returns True if removed."""
+        hdir = self._haystacks_dir()
+        if hdir is None:
+            return False
+        filepath = hdir / f"{name}.toml"
+        if filepath.exists():
+            filepath.unlink()
+            logger.info(f"Haystack deleted: {filepath}")
+            return True
+        return False
+
+    # ------------------------------------------------------------------
+    # Execution helpers
+    # ------------------------------------------------------------------
+
+    def _stop_all_execution(self) -> None:
+        """Stop execution on all entries."""
+        for entry in self._entries.values():
+            entry.stop_execution()
+
+    # ------------------------------------------------------------------
     # Cleanup
     # ------------------------------------------------------------------
 
     def cleanup(self) -> None:
-        """Remove all entries (call on application shutdown)."""
+        """Stop all execution and remove all entries (call on shutdown)."""
+        self._stop_all_execution()
         self._entries.clear()
