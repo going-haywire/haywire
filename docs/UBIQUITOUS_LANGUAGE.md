@@ -113,19 +113,33 @@
 
 | Term | Definition | Aliases to avoid |
 |------|-----------|-----------------|
-| **Editor** | A full-area UI component occupying one workspace Area (Left, Middle, Right, Bottom); one instance per area per session | Panel (Panels are sub-components of editors), view |
+| **Editor** | A full-slot UI component occupying one workspace Slot (Left, Main, Right, Bottom); one instance per slot per session | Panel (Panels are sub-components of editors), view |
 | **Panel** | A context-sensitive sub-section rendered inside a panel-aware editor (e.g. Properties); appears/disappears based on `poll()`; always wrapped in `.hw-panel` container | Tab, widget (too generic) |
 | **Scope** | A named tab within a panel-aware editor that groups panels (e.g. `node`, `graph`, `edge`) | Context (overloaded), category |
-| **Area** | One of the four named slots in the AppShell where an editor is mounted: Left, Middle, Right, Bottom | Pane, region, zone |
-| **AppShell** | The top-level layout component composed of: TopBar + ActivityBar + Left/Middle/Right/Bottom Areas + ContextBar + StatusBar | Shell, frame |
+| **Slot** (updated) | One of the four named positions in the AppShell where an editor is mounted: Left, Main, Right, Bottom; each slot = bar + area | Area (deprecated), pane, region, zone |
+| **Bar** (new) | The control strip attached to a Slot; either a tab bar (horizontal, for Main/Bottom) or an icon bar (vertical, for Left/Right) | — |
+| **default_slot** (updated) | The `@editor()` decorator parameter and `EditorIdentity` field that declares which Slot an editor occupies by default; one of `'left'`, `'main'`, `'right'`, `'bottom'` | canvas_area (deprecated) |
+| **SlotState** (new) | Dataclass representing the persisted state of the Left or Right slot: `active_tab_key`, `visible`, `size` | AreaState (deprecated) |
+| **MainSlotState** (new) | Dataclass representing the Main slot's persisted state: a list of `TabState` tabs plus `active_tab_key` | MiddleAreaState (deprecated) |
+| **BottomSlotState** (new) | Dataclass representing the Bottom slot's persisted state: tab list, `active_tab_key`, `visible`, `size` | BottomAreaState (deprecated) |
+| **TabState** | Dataclass for one tab within a tabbed slot (Main or Bottom): `editor_key`, `label`, `metadata` | — |
+| **active_tab_key** (new) | The unified field on all slot state dataclasses that stores which editor is currently shown in that slot | editor_key (on slot state — deprecated), left_bar_active, right_bar_active (removed) |
+| **main_tabs** (new) | The `SessionContext.metadata` key holding the Main slot's `Tabs` element reference; used by editors to switch the active main tab programmatically | middle_tabs (deprecated) |
+| **bottom_tabs** (new) | The `SessionContext.metadata` key holding the Bottom slot's `Tabs` element reference | — |
+| **AppShell** (updated) | The top-level layout component composed of: TopBar + ActivityBar + Left/Main/Right/Bottom Slots + ContextBar + StatusBar | Shell, frame |
 | **TopBar** | The 48px bar along the top edge of the AppShell; contains the app name, workspace switcher, and global actions | Header, navbar |
 | **StatusBar** | The 24px bar along the bottom edge of the AppShell; shows session info and status messages | Footer, info bar (Info Bar is a Panel pattern, not the StatusBar) |
-| **ActivityBar** | The 48px narrow strip on the left edge of the AppShell; contains editor-switcher icons for the Left Area | Left sidebar, toolbar |
-| **ContextBar** | The 48px narrow strip on the right edge of the AppShell; contains editor-switcher icons for the Right Area | Right sidebar |
+| **ActivityBar** | The 48px icon bar on the left edge; switches editors in the Left Slot; styled with `hw-slot-bar hw-slot-bar-icons` | Left sidebar, toolbar |
+| **ContextBar** | The 48px icon bar on the right edge; switches editors in the Right Slot; styled with `hw-slot-bar hw-slot-bar-icons` | Right sidebar |
+| **MainTabBar** (new) | The horizontal tab bar above the Main Slot; switches between tabbed main editors; styled with `hw-slot-bar hw-slot-bar-tabs` | Middle tabs |
+| **BottomTabBar** (new) | The horizontal tab bar above the Bottom Slot; switches between tabbed bottom editors; styled with `hw-slot-bar hw-slot-bar-tabs` | Bottom tabs (use only for the metadata key) |
+| **hw-slot-bar** (new) | CSS base class for all slot bars (both icon bars and tab bars) | hw-tabs (deprecated) |
+| **hw-slot-bar-tabs** (new) | CSS modifier for horizontal tabbed slot bars (MainTabBar, BottomTabBar) | hw-tabs (deprecated) |
+| **hw-slot-bar-icons** (new) | CSS modifier for vertical icon slot bars (ActivityBar, ContextBar) | — |
 | **ScopeToolbar** | The vertical strip of 36×36px square buttons inside the PropertiesEditor that switches the active Scope | Scope bar, scope selector |
 | **Session** | A per-browser-connection state object; one per connected client | Connection, client |
 | **SessionContext** | The state bag passed to every editor and panel render call; contains active graph, node, edge, and theme references | Context (acceptable shorthand), state |
-| **Workspace** | A named layout preset that records which editor occupies each area; saved to `.haywire/workspaces.json` | Layout, perspective |
+| **Workspace** | A named layout preset that records which editor occupies each slot; saved to `.haywire/workspace_state.json` | Layout, perspective |
 | **Skin** | A `BaseSkin` subclass that renders the visual shape of a node on the Graph Canvas; operates outside the `.hw-panel` cascade and uses only `--hw-node-*` and `--hw-canvas-*` tokens | Renderer (Skin is canonical in code), style |
 | **Widget** | An inline UI control rendered inside a port on the node card, bound to the port's value | Control, field input |
 | **Theme** | A named set of CSS tokens (`WorkbenchTheme`) or per-node-type colour rules (`NodeTheme`); session-scoped for workbench | Style, skin (Skin is distinct) |
@@ -147,9 +161,11 @@
 - A **Flow** contains one global **Control Flow** DAG and one **LocalizedDataFlow** DAG per CONTROL node.
 - A **Library** scans folders in `register_components()` to populate registries (nodes, types, adapters, widgets, skins, themes).
 - A **Haybale** package is always a **Library**; not all Libraries are distributed as haybale packages.
-- An **Editor** occupies one **Area** in the **AppShell**; an **Editor** may host many **Panels** filtered by **Scope**.
-- The **AppShell** is composed of: **TopBar**, **ActivityBar**, **ContextBar**, **StatusBar**, and the four **Area** slots.
-- The **ActivityBar** switches editors in the Left **Area**; the **ContextBar** switches editors in the Right **Area**; the **ScopeToolbar** (inside the PropertiesEditor) switches the active **Scope**.
+- An **Editor** occupies one **Slot** in the **AppShell**; an **Editor** may host many **Panels** filtered by **Scope**.
+- The **AppShell** is composed of: **TopBar**, **ActivityBar**, **ContextBar**, **StatusBar**, and the four **Slots** (Left, Main, Right, Bottom).
+- Each **Slot** has a **Bar** and an area: Left and Right slots have icon bars (**ActivityBar**, **ContextBar**); Main and Bottom slots have tab bars (**MainTabBar**, **BottomTabBar**).
+- The **ActivityBar** switches editors in the Left **Slot**; the **ContextBar** switches editors in the Right **Slot**; the **ScopeToolbar** (inside the PropertiesEditor) switches the active **Scope**.
+- Each slot's state is tracked by a **SlotState** (Left/Right), **MainSlotState** (Main), or **BottomSlotState** (Bottom); all use **active_tab_key** to identify the currently-shown editor.
 - A **Panel** is always rendered inside a `.hw-panel` container and must use `hui.*` wrappers for any pattern covered by the design guide.
 - A **Skin** renders on the **Graph Canvas** and must use only `--hw-node-*` / `--hw-canvas-*` **CSS tokens**; it must not use `hui.*` panel wrappers.
 - Every structural colour reference in the app must use a **CSS token** (`--hw-*`); hardcoded hex or rgba values are a design violation.
@@ -167,8 +183,8 @@
 > **Domain expert:** "Yes — the DATA **outlet** connects via an **Edge** to downstream **CONTROL nodes**. The **Pipe** on that **Edge** can be eager or lazy depending on whether you want immediate push or always-latest pull."
 > **Dev:** "When I add this to a **Library**, how does it get discovered?"
 > **Domain expert:** "Declare it in `register_components()` with `scan_nodes(...)`, and the **entry_point** in `pyproject.toml` makes the whole **Library** discoverable at startup."
-> **Dev:** "And if the user is in the **Graph Canvas** and selects the node, what shows in the sidebar?"
-> **Domain expert:** "The **Properties Editor** queries the **PanelRegistry** for all **Panels** whose `poll()` returns `True` for the `node` **Scope**. Each matching **Panel** renders inside a collapsible section."
+> **Dev:** "And if the user is in the **Graph Canvas** and selects the node, what shows in the right **Slot**?"
+> **Domain expert:** "The **Properties Editor** queries the **PanelRegistry** for all **Panels** whose `poll()` returns `True` for the `node` **Scope**. Each matching **Panel** renders inside a collapsible section. The **ContextBar** icon tells you which editor is active in the right **Slot**."
 
 ---
 
@@ -185,13 +201,16 @@
 
 ---
 
-## Flagged Ambiguities (updated)
+## Flagged Ambiguities (updated 2026-04-12)
 
 - **"pin"** appears in the codebase and docs as both the colloquial name for the icon port and a general synonym for any port. Canonical terms are **Inlet** / **Outlet**; **Pin** is acceptable only for EXEC ports.
 - **"connection"** is used loosely to mean both the act of connecting (verb) and the edge itself (noun). Prefer **Edge** for the object, and **link** for the action.
 - **"context"** is overloaded: `ExecutionContext` (passed to worker), `SessionContext` (UI state), and `context=` string in older panel decorators (now replaced by **Scope**). Always qualify: ExecutionContext, SessionContext, or Scope.
 - **"flow"** appears as both the general concept (data flow, control flow) and the specific assembled object (`LocalizedDataFlow`, `Flow`). Capitalize **Flow** when referring to the assembled execution unit.
 - **"NodeBehavior" vs "NodeType"**: `NodeType` is the enum (`DATA`, `CONTROL`, `EVENT`, `OUTPUT`, `LOOPBACK`); `NodeBehavior` is the dataclass that holds `node_type: NodeType` plus other flags. The glossary term **NodeType** is canonical for the execution role. "Node type" (lowercase) is used consistently in docs and code for this concept only.
-- **"sidebar"** is overloaded: the CSS token prefix `--hw-sidebar-*` refers specifically to the **ActivityBar** and **ContextBar** (the narrow 48px icon strips). It does NOT refer to the Left or Right **Areas** (the wider editor panels). Always qualify: use **ActivityBar**, **ContextBar**, or **Area** for structural names; "sidebar" only appears as a CSS token prefix.
+- **"sidebar"** is overloaded: the CSS token prefix `--hw-sidebar-*` refers specifically to the **ActivityBar** and **ContextBar** (the narrow 48px icon strips). It does NOT refer to the Left or Right **Slots** (the wider editor panels). Always qualify: use **ActivityBar**, **ContextBar**, or **Slot** for structural names; "sidebar" only appears as a CSS token prefix.
 - **"info bar"** appears in two distinct senses: `hui.info_bar()` is a Panel-level metadata bar pattern (§8.2 of the design guide); **StatusBar** is a shell-level bar at the bottom of the AppShell. They are different things — never use "info bar" to mean the StatusBar.
 - **"panel"** in CSS token names (`--hw-panel-*`) refers to the `.hw-panel` editor container, not the **Panel** sub-component concept. The CSS token `--hw-panel-bg` is the background of the editor container, not a per-Panel background.
+- (new) **"area" vs "slot"**: As of 2026-04-12, **Slot** is the canonical term for workspace positions. **Area** and **canvas_area** are deprecated. The term "area" now refers only to the content region within a slot (the part next to the bar). Each slot = bar + area; use **Slot** for the whole position, "area" (lowercase, informal) only for the content pane if disambiguation is needed.
+- (new) **"middle" vs "main"**: The slot formerly called "middle" is now **Main**. Use `default_slot='main'` in code. "Middle" is deprecated and will cause deserialization failures in `workspace_state.json`.
+- (new) **"hw-tabs" vs "hw-slot-bar-tabs"**: The CSS class `hw-tabs` is deprecated. Use `hw-slot-bar` (base) + `hw-slot-bar-tabs` (horizontal tab bars) or `hw-slot-bar-icons` (vertical icon bars).
