@@ -13,7 +13,6 @@ Main Components:
 
 Usage:
     from haywire.core.execution import Interpreter
-    from haywire.core.execution.event_source import SystemEventType
 
     # Create interpreter
     interpreter = Interpreter()
@@ -21,12 +20,13 @@ Usage:
     # Load graph
     interpreter.load_graph(my_graph)
 
-    # Dispatch events
-    interpreter.dispatch_system_event(SystemEventType.BEGIN_PLAY)
+    # Start execution (dispatches BEGIN_PLAY)
+    interpreter.start_execution()
 
-    # Wait and cleanup
-    interpreter.wait_all()
-    interpreter.shutdown()
+    # ... execution runs until stopped ...
+
+    # Stop execution (dispatches SHUTDOWN, waits, cleans up)
+    interpreter.stop_execution()
 """
 
 from haywire.core.execution.execution_context import ExecutionContext

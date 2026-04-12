@@ -14,10 +14,7 @@ class SystemEventType(Enum):
     """Predefined system lifecycle events"""
 
     BEGIN_PLAY = "begin_play"
-    TICK = "tick"
     SHUTDOWN = "shutdown"
-    PAUSE = "pause"
-    RESUME = "resume"
 
 
 @dataclass(frozen=True)
@@ -58,9 +55,7 @@ class SystemEvent(EventSource):
 
     These are standard events provided by the Haywire runtime:
     - BEGIN_PLAY: Fired once when execution starts
-    - TICK: Fired periodically (frame updates)
     - SHUTDOWN: Fired when system is shutting down
-    - PAUSE/RESUME: Fired when execution is paused/resumed
     """
 
     type: SystemEventType

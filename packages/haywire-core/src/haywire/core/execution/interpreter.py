@@ -53,15 +53,13 @@ class Interpreter:
         # Load and assemble graph
         interpreter.load_graph(graph)
 
-        # Dispatch events
-        interpreter.dispatch_system_event(SystemEventType.BEGIN_PLAY)
-        interpreter.dispatch_external_event('input', 'key_pressed', {'key': 'Space'})
+        # Start execution (dispatches BEGIN_PLAY)
+        interpreter.start_execution()
 
-        # Wait for completion
-        interpreter.wait_all()
+        # ... execution runs until stopped ...
 
-        # Cleanup
-        interpreter.shutdown()
+        # Stop execution (dispatches SHUTDOWN, waits, cleans up)
+        interpreter.stop_execution()
     """
 
     def __init__(self, global_context: Optional[Dict[str, Any]] = None, max_stack_depth: int = 1000):
@@ -85,6 +83,9 @@ class Interpreter:
 
         # Current graph
         self.current_graph: Optional["BaseGraph"] = None
+
+        # Execution state
+        self._executing: bool = False
 
         logger.info("Haywire Interpreter initialized")
 
@@ -119,6 +120,50 @@ class Interpreter:
             self._register_flow(flow)
 
         logger.info(f"Graph {graph.graph_id} loaded and ready")
+
+    @property
+    def is_executing(self) -> bool:
+        """True if execution has been started and not yet stopped."""
+        return self._executing
+
+    def start_execution(self) -> None:
+        """
+        Start graph execution by dispatching BEGIN_PLAY.
+
+        Call after load_graph(). Dispatches the BEGIN_PLAY system event
+        which triggers BeginPlayNode flows.
+        """
+        if self._executing:
+            return
+
+        self._executing = True
+        self.dispatch_system_event(SystemEventType.BEGIN_PLAY)
+        logger.info("Execution started")
+
+    def stop_execution(self, timeout: float = 2.0) -> None:
+        """
+        Stop graph execution gracefully.
+
+        Dispatches SHUTDOWN event, waits for shutdown flows to complete,
+        then stops all schedulers and cleans up.
+
+        Args:
+            timeout: Maximum time to wait for flows to complete.
+        """
+        if not self._executing:
+            return
+
+        # Dispatch SHUTDOWN so ShutdownNode flows can run
+        self.dispatch_system_event(SystemEventType.SHUTDOWN)
+
+        # Wait for SHUTDOWN flows to finish processing
+        self.wait_all(timeout=timeout, stop_after=False)
+
+        # Now stop all schedulers and clean up
+        self._cleanup_current_graph(print_stats=True)
+
+        self._executing = False
+        logger.info("Execution stopped")
 
     def _register_flow(self, flow: "Flow"):
         """

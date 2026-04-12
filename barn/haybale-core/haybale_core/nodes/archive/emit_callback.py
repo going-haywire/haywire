@@ -24,8 +24,8 @@ class EmitCallbackNode(BaseNode):
     """
 
     def init(self):
-        from ..types.specs import EXEC, STRING, FLOAT, CALLBACK, GROUP, BOOL
-        from ..types.pooled_type import PooledType
+        from ...types.specs import EXEC, STRING, FLOAT, CALLBACK, GROUP, BOOL
+        from ...types.pooled_type import PooledType
         from haybale_core.widgets.basic_widgets import SwitchWidget, TextWidget
 
         # Control input

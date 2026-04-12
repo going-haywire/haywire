@@ -5,9 +5,8 @@ Manages shared services (graph manager, libraries) and per-session UI shells.
 Each browser connection gets its own Session and AppShell; all sessions share
 the same library registry and GraphManager.
 
-Execution is per-graph: each GraphEntry owns its own Interpreter and
-InterpreterLoopManager, started/stopped via entry.start_execution() /
-entry.stop_execution().
+Execution is per-graph: each GraphEntry owns its own Interpreter,
+started/stopped via entry.start_execution() / entry.stop_execution().
 
 On startup the last-used haystack (if any) is auto-loaded from
 ``workspace_state.json``.  Otherwise the app starts with no graphs open.

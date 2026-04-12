@@ -42,13 +42,12 @@ class _LogHandler(logging.Handler):
 
 
 @editor(
-    registry_id="console",
-    label="Console",
+    label="Terminal",
     icon=hui.icon.terminal,
     default_slot="bottom",
     description="Application log output. Captures Python logging messages.",
 )
-class ConsoleEditor(BaseEditor):
+class TerminalEditor(BaseEditor):
     """
     Renders a scrollable log panel capturing Python log output.
 

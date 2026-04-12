@@ -25,7 +25,7 @@ class CustomCallbackNode(BaseNode):
     """
 
     def init(self):
-        from ..types.specs import GROUP, EXEC, CALLBACK, STRING, FLOAT
+        from ...types.specs import GROUP, EXEC, CALLBACK, STRING, FLOAT
         from haybale_core.widgets.basic_widgets import TextWidget
 
         # Config for callback name

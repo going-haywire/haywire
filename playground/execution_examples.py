@@ -225,8 +225,8 @@ def example_callback_string_based():
     No callback edge - connection happens via string matching.
     """
     from haybale_core.nodes.begin_play import BeginPlayNode
-    from haybale_core.nodes.custom_callback import CustomCallbackNode
-    from haybale_core.nodes.emit_callback import EmitCallbackNode
+    from haybale_core.nodes.archive.custom_callback import CustomCallbackNode
+    from haybale_core.nodes.archive.emit_callback import EmitCallbackNode
     from haybale_test_a.nodes.print_node import PrintMessageNode
     
     # Create graph
@@ -322,8 +322,8 @@ def example_callback_edge_based():
     via the pipe mechanism.
     """
     from haybale_core.nodes.begin_play import BeginPlayNode
-    from haybale_core.nodes.custom_callback import CustomCallbackNode
-    from haybale_core.nodes.emit_callback import EmitCallbackNode
+    from haybale_core.nodes.archive.custom_callback import CustomCallbackNode
+    from haybale_core.nodes.archive.emit_callback import EmitCallbackNode
     from haybale_test_a.nodes.print_node import PrintMessageNode
     
     # Create graph

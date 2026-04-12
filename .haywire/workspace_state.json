@@ -32,8 +32,8 @@
     "active_tab_key": "studio:editor:graph_editor"
   },
   "bottom": {
-    "active_tab_key": "studio:editor:console",
-    "visible": false,
+    "active_tab_key": "studio:editor:terminal",
+    "visible": true,
     "size": 200
   }
 }

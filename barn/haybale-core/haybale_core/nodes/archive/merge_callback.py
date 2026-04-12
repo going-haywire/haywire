@@ -24,7 +24,7 @@ class MergeCallbackNode(BaseNode):
 
     def init(self):
         # Config for callback name
-        from ..types.specs import INT
+        from ...types.specs import INT
         from haybale_core.widgets.basic_widgets import NumberWidget
 
         self.add(
@@ -53,7 +53,7 @@ class MergeCallbackNode(BaseNode):
 
     def hb_reconfigure(self, number_of_callbacks: int = 1):
         """Reconfigure the node based on current settings."""
-        from ..types.specs import EXEC, CALLBACK, FLOAT
+        from ...types.specs import EXEC, CALLBACK, FLOAT
 
         self.cache.store = {}
 

@@ -39,7 +39,6 @@ import toml
 if TYPE_CHECKING:
     from haywire.core.graph.base import HaywireGraph
     from haywire.core.execution.interpreter import Interpreter
-    from haywire.core.execution.interpreter_loop_manager import InterpreterLoopManager
     from haywire.ui.editor.base import BaseEditor
 
 logger = logging.getLogger(__name__)
@@ -60,7 +59,6 @@ class GraphEntry:
         unsaved:  True if the graph has in-memory changes not yet written to disk.
         sessions: Session IDs currently viewing this graph.
         interpreter:  Per-graph Interpreter instance (created on execution start).
-        loop_manager: Per-graph InterpreterLoopManager (created on execution start).
     """
 
     graph: "HaywireGraph"
@@ -69,7 +67,6 @@ class GraphEntry:
     unsaved: bool = False
     sessions: Set[str] = field(default_factory=set)
     interpreter: Optional["Interpreter"] = field(default=None, repr=False)
-    loop_manager: Optional["InterpreterLoopManager"] = field(default=None, repr=False)
 
     @property
     def key(self) -> str:
@@ -85,39 +82,31 @@ class GraphEntry:
 
     @property
     def is_executing(self) -> bool:
-        """True if the interpreter loop is currently running."""
-        return self.loop_manager is not None and self.loop_manager.is_running
+        """True if the interpreter is currently executing."""
+        return self.interpreter is not None and self.interpreter.is_executing
 
-    def start_execution(self, target_fps: float = 60.0) -> None:
-        """Create an Interpreter and start the execution loop for this graph."""
+    def start_execution(self) -> None:
+        """Create an Interpreter and start execution for this graph."""
         if self.is_executing:
             return
 
         from haywire.core.execution.interpreter import Interpreter
-        from haywire.core.execution.interpreter_loop_manager import InterpreterLoopManager
 
         self.interpreter = Interpreter()
         self.interpreter.load_graph(self.graph)
-        self.loop_manager = InterpreterLoopManager(
-            interpreter=self.interpreter,
-            target_fps=target_fps,
-        )
-        self.loop_manager.start()
+        self.interpreter.start_execution()
         logger.info(f"Execution started for graph '{self.display_name}'")
 
     def stop_execution(self) -> None:
-        """Stop the execution loop and shut down the Interpreter."""
+        """Stop execution and shut down the Interpreter."""
         if not self.is_executing:
             return
 
-        self.loop_manager.stop()
         try:
-            self.interpreter.wait_all(timeout=2.0)
+            self.interpreter.stop_execution()
         except Exception as e:
-            logger.warning(f"Error waiting for flows on '{self.display_name}': {e}")
-        self.interpreter.shutdown()
+            logger.warning(f"Error stopping execution on '{self.display_name}': {e}")
         self.interpreter = None
-        self.loop_manager = None
         logger.info(f"Execution stopped for graph '{self.display_name}'")
 
 

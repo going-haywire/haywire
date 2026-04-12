@@ -27,14 +27,14 @@ class TestInterpreter:
             The populated graph
         """
         from haybale_testing.nodes.testbed.begin_play_node import TestBeginPlayNode as BeginPlayNode
-        from haybale_testing.nodes.utils.print_node import PrintMessageNode
+        from haybale_core.nodes.print_terminal import PrintTerminalMessageNode
 
         begin_play = graph.create_node_wrapper(
             BeginPlayNode.class_identity.registry_key, position=(100, 100)
         )
 
         print_msg = graph.create_node_wrapper(
-            PrintMessageNode.class_identity.registry_key, position=(300, 100)
+            PrintTerminalMessageNode.class_identity.registry_key, position=(300, 100)
         )
 
         graph.create_edge_wrapper(begin_play.node_id, "exec", print_msg.node_id, "exec")
@@ -52,7 +52,7 @@ class TestInterpreter:
             The populated graph
         """
         from haybale_testing.nodes.testbed.begin_play_node import TestBeginPlayNode as BeginPlayNode
-        from haybale_testing.nodes.utils.print_node import PrintMessageNode
+        from haybale_core.nodes.print_terminal import PrintTerminalMessageNode
         from haybale_testing.nodes.testbed.math_op_node import TestAddFloatNode as MathOP
 
         begin_play = graph.create_node_wrapper(
@@ -60,7 +60,7 @@ class TestInterpreter:
         )
 
         print_msg = graph.create_node_wrapper(
-            PrintMessageNode.class_identity.registry_key, position=(300, 100)
+            PrintTerminalMessageNode.class_identity.registry_key, position=(300, 100)
         )
 
         math_op = graph.create_node_wrapper(MathOP.class_identity.registry_key, position=(200, 100))
@@ -131,7 +131,7 @@ class TestInterpreter:
         from haybale_testing.nodes.testbed.begin_play_node import TestBeginPlayNode as BeginPlayNode
         from haybale_testing.nodes.testbed.emit_callback_node import TestEmitCallbackNode as EmitCallbackNode
         from haybale_testing.nodes.testbed.custom_callback_node import TestCustomCallbackNode as CustomCallbackNode
-        from haybale_testing.nodes.utils.print_node import PrintMessageNode
+        from haybale_core.nodes.print_terminal import PrintTerminalMessageNode
 
         graph = graph_with_library_system
 
@@ -160,7 +160,7 @@ class TestInterpreter:
         custom_callback.node.ports["custom_callback_name"].set_value("test_callback")
 
         print_msg = graph.create_node_wrapper(
-            PrintMessageNode.class_identity.registry_key, position=(300, 300)
+            PrintTerminalMessageNode.class_identity.registry_key, position=(300, 300)
         )
 
         print_msg.node.ports["message"].set_value("Callback received!")

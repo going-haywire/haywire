@@ -1,9 +1,13 @@
+import logging
+
 from haywire.core.execution.execution_context import ExecutionContext
 from haywire.core.node import node, BaseNode, NodeType
 
+logger = logging.getLogger("haybale.print")
 
-@node(label="Print Message", menu="testing/utils", node_type=NodeType.CONTROL)
-class PrintMessageNode(BaseNode):
+
+@node(label="Print Terminal Message", menu="testing/utils", node_type=NodeType.CONTROL)
+class PrintTerminalMessageNode(BaseNode):
     """Simple control node that prints a message"""
 
     def init(self):
@@ -18,5 +22,5 @@ class PrintMessageNode(BaseNode):
 
     def worker(self, context: ExecutionContext) -> str | None:
         message = self.value("message")
-        print(f"[PrintMessage] {message}")
+        logger.info(message)
         return "done"
