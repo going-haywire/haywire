@@ -16,7 +16,7 @@ zoom_sensitivity = 0.56
 [ui.minimap]
 debug_info = false
 enabled = true
-ghost_opacity = 0.4
-opacity = 1.0
+ghost_opacity = 0.2
+opacity = 0.5
 position = "bottom-right"
-width = 200
+width = 116

@@ -85,6 +85,11 @@ class FlowScheduler:
         self._exec_min_iteration: Optional[int] = None
         self._exec_max_iteration: Optional[int] = None
 
+        # Node execution statistics
+        self._node_exec_total = 0
+        self._node_exec_min: Optional[int] = None
+        self._node_exec_max: Optional[int] = None
+
         logger.debug(f"Created scheduler for flow {flow.flow_id}")
 
     def enqueue_trigger(self, trigger: "Trigger") -> bool:
@@ -217,6 +222,7 @@ class FlowScheduler:
             # >>>>>>>>>>>
 
             elapsed_ns = time.perf_counter_ns() - start_ns
+            node_count = self.vm.execution_count
 
             # Update execution statistics
             self._exec_time_sum_ns += elapsed_ns
@@ -226,6 +232,13 @@ class FlowScheduler:
             if self._exec_time_max_ns is None or elapsed_ns > self._exec_time_max_ns:
                 self._exec_time_max_ns = elapsed_ns
                 self._exec_max_iteration = self._frame_count
+
+            # Update node execution statistics
+            self._node_exec_total += node_count
+            if self._node_exec_min is None or node_count < self._node_exec_min:
+                self._node_exec_min = node_count
+            if self._node_exec_max is None or node_count > self._node_exec_max:
+                self._node_exec_max = node_count
 
         except Exception as e:
             logger.error(f"Error executing flow {self.flow.flow_id}: {e}", exc_info=True)
@@ -294,6 +307,10 @@ class FlowScheduler:
             if stats["min_us"] is not None:
                 logger.warning(
                     f"\nExecutions: {stats['count']} for {self.flow.flow_id}\n"
+                    f"Nodes/exec: {stats['nodes_avg']:.0f} avg\n"
+                    f"Nodes range: {stats['nodes_min']}-{stats['nodes_max']}\n"
+                    f"Nodes total: {stats['nodes_total']}\n"
+                    f"Avg per node: {stats['avg_us'] / stats['nodes_avg']:.2f} μs\n"
                     f"Min: {stats['min_us']:.2f} μs "
                     f"(iteration {stats['min_iteration']})\n"
                     f"Max: {stats['max_us']:.2f} μs "
@@ -351,6 +368,10 @@ class FlowScheduler:
                 "total_us": None,
                 "min_iteration": None,
                 "max_iteration": None,
+                "nodes_total": 0,
+                "nodes_min": None,
+                "nodes_max": None,
+                "nodes_avg": None,
             }
 
         return {
@@ -361,6 +382,10 @@ class FlowScheduler:
             "total_us": self._exec_time_sum_ns / 1_000,
             "min_iteration": self._exec_min_iteration,
             "max_iteration": self._exec_max_iteration,
+            "nodes_total": self._node_exec_total,
+            "nodes_min": self._node_exec_min,
+            "nodes_max": self._node_exec_max,
+            "nodes_avg": self._node_exec_total / self._frame_count,
         }
 
     def __str__(self) -> str:

@@ -108,7 +108,6 @@ class GraphRunner:
             set_library_system,
             set_global_injector,
         )
-        from haywire.core.undo.config import DEVELOPMENT_CONFIG
 
         # Find project root
         project_root = self._find_project_root()
@@ -118,7 +117,6 @@ class GraphRunner:
             workspace_root=str(project_root),
             enable_file_watching=False,  # No file watching for CLI
             watch_settings=False,
-            undo_config=DEVELOPMENT_CONFIG,
         )
 
         # Set global references
