@@ -67,6 +67,7 @@ class FileBrowserEditor(BaseEditor):
     def __init__(self):
         self._root_path: Optional[Path] = None
         self._tree_container = None
+        self._tree: Optional[ui.tree] = None
 
     def draw(self, context: "SessionContext", container: "Element") -> None:
         app = context.app
@@ -104,14 +105,13 @@ class FileBrowserEditor(BaseEditor):
             return
 
         with self._tree_container:
-            tree = ui.tree(
+            self._tree = ui.tree(
                 nodes,
                 label_key="label",
                 node_key="id",
                 on_select=lambda e: self._on_select(e.value, context),
             ).classes("w-full text-sm")
-            # tree.collapse()
-            tree.expand(["graphs"])  # expand root level
+            self._tree.expand(["graphs"])  # expand root level
 
     def _build_tree_nodes(self, path: Path, depth: int = 0) -> list:
         """Recursively build ui.tree node dicts from the filesystem."""
@@ -142,7 +142,16 @@ class FileBrowserEditor(BaseEditor):
             return
         path = Path(node_id)
         if not path.is_file():
-            return  # directory selected — let the tree handle expand/collapse
+            # Toggle expand/collapse when clicking a folder label
+            if self._tree is not None:
+                expanded = self._tree._props.get("expanded", [])
+                if node_id in expanded:
+                    self._tree.collapse([node_id])
+                else:
+                    self._tree.expand([node_id])
+                # Clear selection so the next click fires on_select again
+                self._tree.deselect()
+            return
 
         context.active_file = path
 
