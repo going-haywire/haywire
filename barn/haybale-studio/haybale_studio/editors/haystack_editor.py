@@ -45,13 +45,12 @@ def _workspace_rel_path(path: Path, workspace_root: "Path | None") -> str:
 
 
 @editor(
-    registry_id="graph_manager",
-    label="Graphs",
-    icon=hui.icon.graph_manager,
+    label="Haystack",
+    icon=hui.icon.haystack,
     default_slot="left",
     description='All open graphs. Click to switch; "+" to create a new graph.',
 )
-class GraphManagerEditor(BaseEditor):
+class HaystackEditor(BaseEditor):
     """
     Left-area editor that lists all graphs tracked by GraphManager.
 
@@ -92,7 +91,7 @@ class GraphManagerEditor(BaseEditor):
     # ------------------------------------------------------------------
 
     def _render_header(self, context: "SessionContext") -> None:
-        with hui.panel_header("GRAPHS", icon=hui.icon.graph_manager):
+        with hui.panel_header("Haystacks", icon=hui.icon.haystack):
             hui.icon_action(
                 "folder_open", tooltip="Load haystack", on_click=lambda: self._on_load_haystack(context)
             )
@@ -259,36 +258,33 @@ class GraphManagerEditor(BaseEditor):
         gm = app.graph_manager
         haystacks = gm.list_haystacks()
 
-        with ui.dialog() as dlg, ui.card().classes("hw-panel min-w-[300px]"):
+        with ui.dialog() as dlg, hui.dialog_card("w-[320px]"):
             ui.label("Save Haystack").classes("text-sm font-medium hw-text-body")
-            name_input = ui.input(
+            name_input = hui.input_field(
                 label="Name",
                 value=haystacks[0] if haystacks else "default",
-            ).classes("w-full")
+            )
 
             if haystacks:
                 ui.label("Existing:").classes("text-xs hw-text-dim mt-2")
                 for h in haystacks:
                     ui.label(f"  {h}").classes("text-xs hw-text-muted")
 
-            with ui.row().classes("w-full justify-end gap-2 mt-2"):
-                ui.button("Cancel", on_click=dlg.close).props("flat dense")
+            def _do_save():
+                name = name_input.value.strip()
+                if not name:
+                    ui.notify("Name cannot be empty", type="warning")
+                    return
+                gm.save_haystack(name, active_graph_path=context.active_graph_path)
+                # Persist haystack name in workspace state
+                session = context.session
+                if session and session.workspace_manager:
+                    session.workspace_manager.active.haystack = name
+                    session.workspace_manager.save()
+                ui.notify(f"Haystack '{name}' saved", type="positive")
+                dlg.close()
 
-                def _do_save():
-                    name = name_input.value.strip()
-                    if not name:
-                        ui.notify("Name cannot be empty", type="warning")
-                        return
-                    gm.save_haystack(name, active_graph_path=context.active_graph_path)
-                    # Persist haystack name in workspace state
-                    session = context.session
-                    if session and session.workspace_manager:
-                        session.workspace_manager.active.haystack = name
-                        session.workspace_manager.save()
-                    ui.notify(f"Haystack '{name}' saved", type="positive")
-                    dlg.close()
-
-                ui.button("Save", on_click=_do_save).props("flat dense")
+            hui.dialog_actions(on_confirm=_do_save, on_cancel=dlg.close, confirm_label="Save")
 
         dlg.open()
 
@@ -309,71 +305,60 @@ class GraphManagerEditor(BaseEditor):
         # Check for unsaved work
         unsaved = gm.unsaved_entries()
 
-        with ui.dialog() as dlg, ui.card().classes("hw-panel min-w-[300px]"):
+        with ui.dialog() as dlg, hui.dialog_card("w-[320px]"):
             ui.label("Load Haystack").classes("text-sm font-medium hw-text-body")
 
             if unsaved:
                 ui.label(
                     f"Warning: {len(unsaved)} graph(s) have unsaved changes that will be lost."
-                ).classes("text-xs hw-text-warning-dim")
+                ).classes("text-xs hw-text-warning-dim mt-1")
 
-            selected = {"name": haystacks[0]}
+            haystack_select = (
+                ui.select(
+                    options=haystacks,
+                    value=haystacks[0],
+                    label="Haystack",
+                )
+                .props("dense")
+                .classes("w-full mt-2")
+            )
 
-            with ui.column().classes("w-full gap-1 mt-2"):
-                for h in haystacks:
-                    is_first = h == haystacks[0]
-                    with (
-                        ui.row()
-                        .classes("w-full px-2 py-1 cursor-pointer rounded hw-list-item-hover items-center")
-                        .on("click", lambda e, name=h: _select(name))
-                    ):
-                        ui.radio({h: h}, value=h if is_first else None).props("dense").bind_value_from(
-                            selected, "name", lambda v, n=h: n if v == n else None
+            def _do_load():
+                name = haystack_select.value
+                entries, active_rel = gm.load_haystack(name, app._graph_factory)
+                # Subscribe validation handlers
+                for entry in entries:
+                    app._subscribe_entry_validation(entry)
+                # Restore active graph
+                if active_rel:
+                    ws_root = Path(app.workspace_root)
+                    active_path = ws_root / active_rel
+                    active_entry = gm.get_by_path(active_path)
+                    if active_entry:
+                        context.active_graph = active_entry.graph
+                        context.active_graph_path = active_entry.path
+                elif entries:
+                    context.active_graph = entries[0].graph
+                    context.active_graph_path = entries[0].path
+                # Persist haystack name
+                session = context.session
+                if session and session.workspace_manager:
+                    session.workspace_manager.active.haystack = name
+                    session.workspace_manager.save()
+                # Notify UI
+                self._notify_data_mutated(context)
+                session = context.session
+                if session:
+                    session.notify_context_changed(
+                        ContextChangedEvent(
+                            change_type=ContextChangeType.ACTIVE_GRAPH_CHANGED,
+                            source_editor="graph_manager",
                         )
-                        ui.label(h).classes("text-sm hw-text-body")
+                    )
+                ui.notify(f"Haystack '{name}' loaded", type="positive")
+                dlg.close()
 
-            def _select(name):
-                selected["name"] = name
-
-            with ui.row().classes("w-full justify-end gap-2 mt-2"):
-                ui.button("Cancel", on_click=dlg.close).props("flat dense")
-
-                def _do_load():
-                    name = selected["name"]
-                    entries, active_rel = gm.load_haystack(name, app._graph_factory)
-                    # Subscribe validation handlers
-                    for entry in entries:
-                        app._subscribe_entry_validation(entry)
-                    # Restore active graph
-                    if active_rel:
-                        ws_root = Path(app.workspace_root)
-                        active_path = ws_root / active_rel
-                        active_entry = gm.get_by_path(active_path)
-                        if active_entry:
-                            context.active_graph = active_entry.graph
-                            context.active_graph_path = active_entry.path
-                    elif entries:
-                        context.active_graph = entries[0].graph
-                        context.active_graph_path = entries[0].path
-                    # Persist haystack name
-                    session = context.session
-                    if session and session.workspace_manager:
-                        session.workspace_manager.active.haystack = name
-                        session.workspace_manager.save()
-                    # Notify UI
-                    self._notify_data_mutated(context)
-                    session = context.session
-                    if session:
-                        session.notify_context_changed(
-                            ContextChangedEvent(
-                                change_type=ContextChangeType.ACTIVE_GRAPH_CHANGED,
-                                source_editor="graph_manager",
-                            )
-                        )
-                    ui.notify(f"Haystack '{name}' loaded", type="positive")
-                    dlg.close()
-
-                ui.button("Load", on_click=_do_load).props("flat dense")
+            hui.dialog_actions(on_confirm=_do_load, on_cancel=dlg.close, confirm_label="Load")
 
         dlg.open()
 

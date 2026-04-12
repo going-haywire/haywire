@@ -33,7 +33,7 @@ class AppIcon:
     """Canvas & nodes scope."""
 
     # ── Graph ────────────────────────────────────────────────────────────────
-    graph_manager: Final[str] = "apps"
+    haystack: Final[str] = "storage"
     """Multi-graph file browser."""
 
     # ── Library  ───────────────────────────────────────────────────────────

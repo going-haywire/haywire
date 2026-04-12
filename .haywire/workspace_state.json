@@ -1,9 +1,15 @@
 {
   "name": "default",
+  "haystack": "default",
   "left": {
-    "active_tab_key": "studio:editor:file_browser",
+    "active_tab_key": "studio:editor:HaystackEditor",
     "visible": true,
     "size": 250
+  },
+  "right": {
+    "active_tab_key": "studio:editor:properties",
+    "visible": true,
+    "size": 350
   },
   "main": {
     "tabs": [
@@ -24,11 +30,6 @@
       }
     ],
     "active_tab_key": "studio:editor:graph_editor"
-  },
-  "right": {
-    "active_tab_key": "studio:editor:properties",
-    "visible": true,
-    "size": 350
   },
   "bottom": {
     "active_tab_key": "studio:editor:console",
