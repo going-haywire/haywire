@@ -26,13 +26,19 @@ class _LogHandler(logging.Handler):
     def __init__(self, log_element):
         super().__init__()
         self._log = log_element
+        self._emitting = False
 
     def emit(self, record: logging.LogRecord) -> None:
+        if self._emitting:
+            return
+        self._emitting = True
         try:
             msg = self.format(record)
             self._log.push(msg)
         except Exception:
             pass
+        finally:
+            self._emitting = False
 
 
 @editor(
