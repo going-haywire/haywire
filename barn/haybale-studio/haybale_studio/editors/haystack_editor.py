@@ -25,6 +25,7 @@ from haywire.ui import elements as hui
 from haywire.ui.editor.base import BaseEditor
 from haywire.ui.editor.decorator import editor
 from haywire.ui.context_events import ContextChangeType, ContextChangedEvent
+from haywire.ui.components.popup import Popup
 
 from haybale_studio.editors.graph_editor import GraphEditor  # for editor key reference
 
@@ -74,40 +75,7 @@ class HaystackEditor(BaseEditor):
     def __init__(self):
         self._list_container = None
         self._header_title_label = None
-        # Save-As dialog state
-        self._save_as_dialog = None
-        self._save_base_dir: Optional[Path] = None
-        self._save_base_dir_label = None
-        self._save_path_input = None
-        self._save_exists_warning = None
-        self._save_as_entry: Optional["GraphEntry"] = None
-        self._save_as_context: Optional["SessionContext"] = None
-        # Rename dialog state (per-entry)
-        self._rename_dialog = None
-        self._rename_input = None
-        self._rename_error_label = None
-        self._rename_entry: Optional["GraphEntry"] = None
-        self._rename_context: Optional["SessionContext"] = None
-        # Open Graph dialog state
-        self._open_graph_dialog = None
-        self._open_graph_select = None
-        self._open_graph_context: Optional["SessionContext"] = None
-        # Rename Haystack dialog state
-        self._rename_haystack_dialog = None
-        self._rename_haystack_input = None
-        self._rename_haystack_error_label = None
-        self._rename_haystack_context: Optional["SessionContext"] = None
         self._rename_haystack_menu_item = None
-        # Save Haystack dialog state
-        self._save_haystack_dialog = None
-        self._save_haystack_name_input = None
-        self._save_haystack_existing_container = None
-        self._save_haystack_context: Optional["SessionContext"] = None
-        # Load Haystack dialog state
-        self._load_haystack_dialog = None
-        self._load_haystack_select = None
-        self._load_haystack_warning = None
-        self._load_haystack_context: Optional["SessionContext"] = None
 
     # ------------------------------------------------------------------
     # poll / draw
@@ -126,13 +94,6 @@ class HaystackEditor(BaseEditor):
                 with ui.scroll_area().classes("flex-1 w-full"):
                     self._list_container = ui.column().classes("w-full gap-0 p-1")
                     self._render_list(context)
-            # Dialogs (Quasar teleports to <body>)
-            self._save_as_dialog = self._build_save_as_dialog(context)
-            self._rename_dialog = self._build_rename_dialog()
-            self._open_graph_dialog = self._build_open_graph_dialog()
-            self._rename_haystack_dialog = self._build_rename_haystack_dialog()
-            self._save_haystack_dialog = self._build_save_haystack_dialog()
-            self._load_haystack_dialog = self._build_load_haystack_dialog()
 
     # ------------------------------------------------------------------
     # header
@@ -376,75 +337,64 @@ class HaystackEditor(BaseEditor):
     # ------------------------------------------------------------------
 
     def _open_rename_dialog(self, entry: "GraphEntry", context: "SessionContext") -> None:
-        """Pre-fill the rename dialog and open it."""
-        if self._rename_dialog is None or self._rename_input is None:
-            ui.notify("Rename dialog not ready", type="warning")
-            return
-
-        self._rename_entry = entry
-        self._rename_context = context
-        self._rename_input.value = entry.path.stem if entry.path else ""
-        if self._rename_error_label is not None:
-            self._rename_error_label.set_visibility(False)
-        self._rename_dialog.open()
-
-    def _build_rename_dialog(self):
-        """Create the rename dialog once during draw(). Returns the dialog."""
-        with ui.dialog() as dialog, hui.dialog_card("w-[320px]"):
-            ui.label("Rename Graph").classes("text-sm font-medium hw-text-body")
-            self._rename_input = hui.input_field(label="Name", value="", autofocus=True)
-            self._rename_error_label = ui.label("").classes("text-xs hw-text-danger -mt-1")
-            self._rename_error_label.set_visibility(False)
-            hui.dialog_actions(
-                on_confirm=self._do_rename,
-                on_cancel=dialog.close,
-                confirm_label="Rename",
+        """Open a Popup to rename a graph entry."""
+        popup = Popup(
+            title="Rename Graph",
+            width="320px",
+            closable=True,
+            backdrop_click_close=True,
+            escape_close=True,
+        )
+        with popup:
+            rename_input = hui.input_field(
+                label="Name",
+                value=entry.path.stem if entry.path else "",
+                autofocus=True,
             )
-        return dialog
+            error_label = ui.label("").classes("text-xs hw-text-danger -mt-1")
+            error_label.set_visibility(False)
 
-    def _do_rename(self) -> None:
-        """Execute the rename from within the dialog."""
-        entry = self._rename_entry
-        context = self._rename_context
-        if entry is None or context is None or self._rename_dialog is None:
-            return
+            def _do_rename():
+                new_name = (rename_input.value or "").strip()
+                if not new_name:
+                    error_label.text = "Name cannot be empty"
+                    error_label.set_visibility(True)
+                    return
 
-        new_name = (self._rename_input.value or "").strip()
-        if not new_name:
-            self._rename_error_label.text = "Name cannot be empty"
-            self._rename_error_label.set_visibility(True)
-            return
+                current_stem = entry.path.stem if entry.path else ""
+                if new_name == current_stem:
+                    popup.close()
+                    return
 
-        current_stem = entry.path.stem if entry.path else ""
-        if new_name == current_stem:
-            self._rename_dialog.close()
-            return
+                app = context.app
+                if app is None or not hasattr(app, "haystack"):
+                    ui.notify("Graph manager not available", type="warning")
+                    popup.close()
+                    return
 
-        app = context.app
-        if app is None or not hasattr(app, "haystack"):
-            ui.notify("Graph manager not available", type="warning")
-            self._rename_dialog.close()
-            return
+                success = app.haystack.rename_graph(entry, new_name)
+                if success:
+                    if entry.graph is context.active_graph:
+                        context.active_graph_path = entry.path
+                        session = context.session
+                        if session:
+                            session.notify_context_changed(
+                                ContextChangedEvent(
+                                    change_type=ContextChangeType.ACTIVE_GRAPH_CHANGED,
+                                    source_editor="haystack",
+                                    detail=entry,
+                                )
+                            )
+                    self._broadcast_mutation(app, entry)
+                    ui.notify(f"Renamed to: {entry.path.name}", type="positive", position="top-right")
+                    popup.close()
+                else:
+                    error_label.text = "Rename failed — file may already exist"
+                    error_label.set_visibility(True)
 
-        success = app.haystack.rename_graph(entry, new_name)
-        if success:
-            if entry.graph is context.active_graph:
-                context.active_graph_path = entry.path
-                session = context.session
-                if session:
-                    session.notify_context_changed(
-                        ContextChangedEvent(
-                            change_type=ContextChangeType.ACTIVE_GRAPH_CHANGED,
-                            source_editor="haystack",
-                            detail=entry,
-                        )
-                    )
-            self._broadcast_mutation(app, entry)
-            ui.notify(f"Renamed to: {entry.path.name}", type="positive", position="top-right")
-            self._rename_dialog.close()
-        else:
-            self._rename_error_label.text = "Rename failed — file may already exist"
-            self._rename_error_label.set_visibility(True)
+            hui.dialog_actions(on_confirm=_do_rename, on_cancel=popup.close, confirm_label="Rename")
+
+        popup.open()
 
     # ------------------------------------------------------------------
     # save-as dialog
@@ -457,19 +407,8 @@ class HaystackEditor(BaseEditor):
         return graphs_dir if graphs_dir.is_dir() else root
 
     def _open_save_as_dialog(self, app, entry: "GraphEntry", context: "SessionContext") -> None:
-        """Pre-fill the Save-As dialog and open it."""
-        if self._save_as_dialog is None or self._save_path_input is None:
-            ui.notify("Save-As dialog not ready", type="warning")
-            return
-
-        self._save_as_entry = entry
-        self._save_as_context = context
-
+        """Open a Popup for Save-As."""
         workspace_root = Path(getattr(app, "workspace_root", str(Path.home())))
-        self._save_base_dir = workspace_root
-
-        if self._save_base_dir_label is not None:
-            self._save_base_dir_label.text = str(workspace_root).rstrip("/") + "/"
 
         if entry.path is not None:
             try:
@@ -486,103 +425,75 @@ class HaystackEditor(BaseEditor):
             except ValueError:
                 input_value = f"{safe_name}.haywire"
 
-        self._save_path_input.value = input_value
-        if self._save_exists_warning is not None:
-            self._save_exists_warning.set_visibility(False)
-        self._save_as_dialog.open()
-
-    def _build_save_as_dialog(self, context: "SessionContext"):
-        """Create the Save-As dialog once during draw(). Returns the dialog."""
-        with ui.dialog() as dialog, ui.card().style("min-width: 460px; max-width: 640px"):
-            with ui.column().classes("w-full gap-2"):
-                ui.label("Save Graph As").classes("text-base font-semibold")
-
-                with (
-                    ui.row()
-                    .classes("w-full items-center gap-1 px-1")
-                    .style(
-                        "background: var(--hw-bg-page); border-radius: 4px;"
-                        " border: 1px solid var(--hw-border);"
-                    )
-                ):
-                    ui.icon("folder", size="14px").classes("hw-text-dim flex-shrink-0")
-                    self._save_base_dir_label = ui.label("").classes(
-                        "text-xs font-mono hw-text-dim truncate py-1"
-                    )
-
-                self._save_path_input = (
-                    ui.input(label="Path within workspace")
-                    .classes("w-full")
-                    .props("outlined dense")
-                    .on("update:model-value", lambda _: self._clear_exists_warning())
+        popup = Popup(
+            title="Save Graph As",
+            width="460px",
+            closable=True,
+            backdrop_click_close=True,
+            escape_close=True,
+        )
+        with popup:
+            with (
+                ui.row()
+                .classes("w-full items-center gap-1 px-1")
+                .style(
+                    "background: var(--hw-bg-page); border-radius: 4px; border: 1px solid var(--hw-border);"
                 )
-                self._save_exists_warning = ui.label("").classes("text-xs hw-text-danger -mt-1")
-                self._save_exists_warning.set_visibility(False)
-                with ui.row().classes("w-full justify-end gap-2 mt-1"):
-                    ui.button("Cancel", on_click=dialog.close).props("flat dense")
-                    ui.button(
-                        "Save",
-                        on_click=lambda: self._do_save_as(dialog),
-                    ).props("color=positive dense")
-        return dialog
-
-    def _clear_exists_warning(self) -> None:
-        if self._save_exists_warning is not None:
-            self._save_exists_warning.set_visibility(False)
-
-    def _do_save_as(self, dialog) -> None:
-        """Execute the Save-As from within the dialog."""
-        entry = self._save_as_entry
-        context = self._save_as_context
-        if entry is None or context is None:
-            dialog.close()
-            return
-
-        app = context.app
-        if app is None:
-            ui.notify("App not available", type="warning")
-            return
-
-        path_str = (self._save_path_input.value or "").strip()
-        if not path_str:
-            ui.notify("Please enter a file name", type="warning")
-            return
-
-        if self._save_base_dir is None:
-            ui.notify("Base directory not set", type="warning")
-            return
-
-        save_path = (self._save_base_dir / path_str).resolve()
-        if not save_path.suffix:
-            save_path = save_path.with_suffix(".haywire")
-
-        if save_path.exists() and save_path != entry.path:
-            if self._save_exists_warning is not None:
-                self._save_exists_warning.text = (
-                    f'"{save_path.name}" already exists — choose a different name.'
+            ):
+                ui.icon("folder", size="14px").classes("hw-text-dim flex-shrink-0")
+                ui.label(str(workspace_root).rstrip("/") + "/").classes(
+                    "text-xs font-mono hw-text-dim truncate py-1"
                 )
-                self._save_exists_warning.set_visibility(True)
-            return
 
-        success = app.haystack.save_graph(entry, save_as=save_path)
-        if success:
-            # Update context if this is the active graph
-            if entry.graph is context.active_graph:
-                context.active_graph_path = save_path
-                session = context.session
-                if session:
-                    session.notify_context_changed(
-                        ContextChangedEvent(
-                            change_type=ContextChangeType.ACTIVE_GRAPH_CHANGED,
-                            source_editor="haystack",
-                            detail=entry,
-                        )
-                    )
-            self._broadcast_mutation(app, entry)
-            ui.notify(f"Saved: {save_path.name}", type="positive", position="top-right")
-            dialog.close()
-        else:
-            ui.notify("Save failed — check the path and try again", type="negative")
+            exists_warning = ui.label("").classes("text-xs hw-text-danger -mt-1")
+            exists_warning.set_visibility(False)
+
+            path_input = (
+                ui.input(label="Path within workspace", value=input_value)
+                .classes("w-full")
+                .props("outlined dense")
+                .on("update:model-value", lambda _: exists_warning.set_visibility(False))
+            )
+
+            def _do_save_as():
+                path_str = (path_input.value or "").strip()
+                if not path_str:
+                    ui.notify("Please enter a file name", type="warning")
+                    return
+
+                save_path = (workspace_root / path_str).resolve()
+                if not save_path.suffix:
+                    save_path = save_path.with_suffix(".haywire")
+
+                if save_path.exists() and save_path != entry.path:
+                    exists_warning.text = f'"{save_path.name}" already exists — choose a different name.'
+                    exists_warning.set_visibility(True)
+                    return
+
+                success = app.haystack.save_graph(entry, save_as=save_path)
+                if success:
+                    if entry.graph is context.active_graph:
+                        context.active_graph_path = save_path
+                        session = context.session
+                        if session:
+                            session.notify_context_changed(
+                                ContextChangedEvent(
+                                    change_type=ContextChangeType.ACTIVE_GRAPH_CHANGED,
+                                    source_editor="haystack",
+                                    detail=entry,
+                                )
+                            )
+                    self._broadcast_mutation(app, entry)
+                    ui.notify(f"Saved: {save_path.name}", type="positive", position="top-right")
+                    popup.close()
+                else:
+                    ui.notify("Save failed — check the path and try again", type="negative")
+
+            with ui.row().classes("w-full justify-end gap-2 mt-1"):
+                ui.button("Cancel", on_click=popup.close).props("flat dense")
+                ui.button("Save", on_click=_do_save_as).props("color=positive dense")
+
+        popup.open()
 
     # ------------------------------------------------------------------
     # actions (new graph / select)
@@ -657,71 +568,44 @@ class HaystackEditor(BaseEditor):
             ui.notify("Graph manager not available", type="warning")
             return
 
-        if self._save_haystack_dialog is None or self._save_haystack_name_input is None:
-            ui.notify("Save Haystack dialog not ready", type="warning")
-            return
-
         gm = app.haystack
         haystacks = gm.list_haystacks()
 
-        self._save_haystack_context = context
-        self._save_haystack_name_input.value = haystacks[0] if haystacks else "default"
-
-        # Refresh existing haystacks list
-        if self._save_haystack_existing_container is not None:
-            self._save_haystack_existing_container.clear()
-            if haystacks:
-                with self._save_haystack_existing_container:
-                    ui.label("Existing:").classes("text-xs hw-text-dim mt-2")
-                    for h in haystacks:
-                        ui.label(f"  {h}").classes("text-xs hw-text-muted")
-
-        self._save_haystack_dialog.open()
-
-    def _build_save_haystack_dialog(self):
-        """Create the Save Haystack dialog once during draw(). Returns the dialog."""
-        with ui.dialog() as dialog, hui.dialog_card("w-[320px]"):
-            ui.label("Save Haystack").classes("text-sm font-medium hw-text-body")
-            self._save_haystack_name_input = hui.input_field(
+        popup = Popup(
+            title="Save Haystack",
+            width="320px",
+            closable=True,
+            backdrop_click_close=True,
+            escape_close=True,
+        )
+        with popup:
+            name_input = hui.input_field(
                 label="Name",
-                value="default",
+                value=haystacks[0] if haystacks else "default",
             )
-            self._save_haystack_existing_container = ui.column().classes("w-full gap-0")
-            hui.dialog_actions(
-                on_confirm=lambda: self._do_save_haystack(dialog),
-                on_cancel=dialog.close,
-                confirm_label="Save",
-            )
-        return dialog
 
-    def _do_save_haystack(self, dialog) -> None:
-        """Execute the Save Haystack from within the dialog."""
-        context = self._save_haystack_context
-        if context is None:
-            dialog.close()
-            return
+            if haystacks:
+                ui.label("Existing:").classes("text-xs hw-text-dim mt-2")
+                for h in haystacks:
+                    ui.label(f"  {h}").classes("text-xs hw-text-muted")
 
-        app = context.app
-        if app is None or not hasattr(app, "haystack"):
-            ui.notify("Graph manager not available", type="warning")
-            dialog.close()
-            return
+            def _do_save():
+                name = (name_input.value or "").strip()
+                if not name:
+                    ui.notify("Name cannot be empty", type="warning")
+                    return
+                gm.save_haystack(name, active_graph_path=context.active_graph_path)
+                session = context.session
+                if session and session.workspace_manager:
+                    session.workspace_manager.active.haystack = name
+                    session.workspace_manager.save()
+                self._update_header_title(context)
+                ui.notify(f"Haystack '{name}' saved", type="positive")
+                popup.close()
 
-        name = (self._save_haystack_name_input.value or "").strip()
-        if not name:
-            ui.notify("Name cannot be empty", type="warning")
-            return
+            hui.dialog_actions(on_confirm=_do_save, on_cancel=popup.close, confirm_label="Save")
 
-        gm = app.haystack
-        gm.save_haystack(name, active_graph_path=context.active_graph_path)
-        # Persist haystack name in workspace state
-        session = context.session
-        if session and session.workspace_manager:
-            session.workspace_manager.active.haystack = name
-            session.workspace_manager.save()
-        self._update_header_title(context)
-        ui.notify(f"Haystack '{name}' saved", type="positive")
-        dialog.close()
+        popup.open()
 
     def _on_load_haystack(self, context: "SessionContext") -> None:
         """Load a haystack, replacing all currently open graphs."""
@@ -737,100 +621,66 @@ class HaystackEditor(BaseEditor):
             ui.notify("No haystacks found", type="info")
             return
 
-        if self._load_haystack_dialog is None or self._load_haystack_select is None:
-            ui.notify("Load Haystack dialog not ready", type="warning")
-            return
-
-        self._load_haystack_context = context
-
-        # Update the select options with current haystacks
-        self._load_haystack_select.options = haystacks
-        self._load_haystack_select.value = haystacks[0]
-        self._load_haystack_select.update()
-
-        # Update unsaved warning
         unsaved = gm.unsaved_entries()
-        if self._load_haystack_warning is not None:
+
+        popup = Popup(
+            title="Load Haystack",
+            width="320px",
+            closable=True,
+            backdrop_click_close=True,
+            escape_close=True,
+        )
+        with popup:
             if unsaved:
-                self._load_haystack_warning.text = (
+                ui.label(
                     f"Warning: {len(unsaved)} graph(s) have unsaved changes that will be lost."
-                )
-                self._load_haystack_warning.set_visibility(True)
-            else:
-                self._load_haystack_warning.set_visibility(False)
+                ).classes("text-xs hw-text-warning-dim mt-1")
 
-        self._load_haystack_dialog.open()
-
-    def _build_load_haystack_dialog(self):
-        """Create the Load Haystack dialog once during draw(). Returns the dialog."""
-        with ui.dialog() as dialog, hui.dialog_card("w-[320px]"):
-            ui.label("Load Haystack").classes("text-sm font-medium hw-text-body")
-            self._load_haystack_warning = ui.label("").classes("text-xs hw-text-warning-dim mt-1")
-            self._load_haystack_warning.set_visibility(False)
-            self._load_haystack_select = (
+            haystack_select = (
                 ui.select(
-                    options=[],
-                    value=None,
+                    options=haystacks,
+                    value=haystacks[0],
                     label="Haystack",
                 )
                 .props("dense")
                 .classes("w-full mt-2")
             )
-            hui.dialog_actions(
-                on_confirm=lambda: self._do_load_haystack(dialog),
-                on_cancel=dialog.close,
-                confirm_label="Load",
-            )
-        return dialog
 
-    def _do_load_haystack(self, dialog) -> None:
-        """Execute the Load Haystack from within the dialog."""
-        context = self._load_haystack_context
-        if context is None:
-            dialog.close()
-            return
+            def _do_load():
+                name = haystack_select.value
+                entries, active_rel = gm.load_haystack(name, app._graph_factory)
+                for entry in entries:
+                    app._subscribe_entry_validation(entry)
+                if active_rel:
+                    ws_root = Path(app.workspace_root)
+                    active_path = ws_root / active_rel
+                    active_entry = gm.get_by_path(active_path)
+                    if active_entry:
+                        context.active_graph = active_entry.graph
+                        context.active_graph_path = active_entry.path
+                elif entries:
+                    context.active_graph = entries[0].graph
+                    context.active_graph_path = entries[0].path
+                session = context.session
+                if session and session.workspace_manager:
+                    session.workspace_manager.active.haystack = name
+                    session.workspace_manager.save()
+                self._notify_data_mutated(context)
+                session = context.session
+                if session:
+                    session.notify_context_changed(
+                        ContextChangedEvent(
+                            change_type=ContextChangeType.ACTIVE_GRAPH_CHANGED,
+                            source_editor="haystack",
+                        )
+                    )
+                self._update_header_title(context)
+                ui.notify(f"Haystack '{name}' loaded", type="positive")
+                popup.close()
 
-        app = context.app
-        if app is None or not hasattr(app, "haystack"):
-            ui.notify("Graph manager not available", type="warning")
-            dialog.close()
-            return
+            hui.dialog_actions(on_confirm=_do_load, on_cancel=popup.close, confirm_label="Load")
 
-        gm = app.haystack
-        name = self._load_haystack_select.value
-        entries, active_rel = gm.load_haystack(name, app._graph_factory)
-        # Subscribe validation handlers
-        for entry in entries:
-            app._subscribe_entry_validation(entry)
-        # Restore active graph
-        if active_rel:
-            ws_root = Path(app.workspace_root)
-            active_path = ws_root / active_rel
-            active_entry = gm.get_by_path(active_path)
-            if active_entry:
-                context.active_graph = active_entry.graph
-                context.active_graph_path = active_entry.path
-        elif entries:
-            context.active_graph = entries[0].graph
-            context.active_graph_path = entries[0].path
-        # Persist haystack name
-        session = context.session
-        if session and session.workspace_manager:
-            session.workspace_manager.active.haystack = name
-            session.workspace_manager.save()
-        # Notify UI
-        self._notify_data_mutated(context)
-        session = context.session
-        if session:
-            session.notify_context_changed(
-                ContextChangedEvent(
-                    change_type=ContextChangeType.ACTIVE_GRAPH_CHANGED,
-                    source_editor="haystack",
-                )
-            )
-        self._update_header_title(context)
-        ui.notify(f"Haystack '{name}' loaded", type="positive")
-        dialog.close()
+        popup.open()
 
     # ------------------------------------------------------------------
     # open graph dialog
@@ -864,71 +714,48 @@ class HaystackEditor(BaseEditor):
                 rel = str(f)
             options[rel] = f
 
-        self._open_graph_context = context
-        if self._open_graph_dialog is None or self._open_graph_select is None:
-            ui.notify("Open Graph dialog not ready", type="warning")
-            return
-
-        # Update the select options and reset value
-        self._open_graph_select.options = list(options.keys())
-        self._open_graph_select.value = None
-        self._open_graph_select.update()
-        self._open_graph_paths = options
-        self._open_graph_dialog.open()
-
-    def _build_open_graph_dialog(self):
-        """Create the Open Graph dialog once during draw(). Returns the dialog."""
-        with ui.dialog() as dialog, hui.dialog_card("w-[360px]"):
-            ui.label("Open Graph").classes("text-sm font-medium hw-text-body")
-            self._open_graph_select = (
+        popup = Popup(
+            title="Open Graph",
+            width="360px",
+            closable=True,
+            backdrop_click_close=True,
+            escape_close=True,
+        )
+        with popup:
+            graph_select = (
                 ui.select(
-                    options=[],
+                    options=list(options.keys()),
                     label="Graph file",
                     with_input=True,
                 )
                 .props("dense use-input")
                 .classes("w-full mt-2")
             )
-            hui.dialog_actions(
-                on_confirm=lambda: self._do_open_graph(dialog),
-                on_cancel=dialog.close,
-                confirm_label="Open",
-            )
-        return dialog
 
-    def _do_open_graph(self, dialog) -> None:
-        """Execute the Open Graph from within the dialog."""
-        context = self._open_graph_context
-        if context is None:
-            dialog.close()
-            return
+            def _do_open():
+                selected = graph_select.value
+                if not selected or selected not in options:
+                    ui.notify("Please select a graph file", type="warning")
+                    return
 
-        selected = self._open_graph_select.value
-        if not selected or selected not in getattr(self, "_open_graph_paths", {}):
-            ui.notify("Please select a graph file", type="warning")
-            return
+                path = options[selected]
+                session = context.session
+                if not hasattr(app, "open_graph_file") or session is None:
+                    ui.notify("Graph manager not available", type="warning")
+                    popup.close()
+                    return
 
-        path = self._open_graph_paths[selected]
-        app = context.app
-        session = context.session
-        if app is None or not hasattr(app, "open_graph_file") or session is None:
-            ui.notify("Graph manager not available", type="warning")
-            dialog.close()
-            return
+                self._detach_current(app, context, session)
+                entry = app.open_graph_file(path, session.session_id)
+                context.active_graph = entry.graph
+                context.active_graph_path = entry.path
+                self._activate_entry(entry, context, session)
+                ui.notify(f"Opened: {path.name}", type="positive", position="top-right")
+                popup.close()
 
-        # Detach from current graph
-        self._detach_current(app, context, session)
+            hui.dialog_actions(on_confirm=_do_open, on_cancel=popup.close, confirm_label="Open")
 
-        # Open the graph file and attach this session
-        entry = app.open_graph_file(path, session.session_id)
-
-        # Update context
-        context.active_graph = entry.graph
-        context.active_graph_path = entry.path
-
-        self._activate_entry(entry, context, session)
-        ui.notify(f"Opened: {path.name}", type="positive", position="top-right")
-        dialog.close()
+        popup.open()
 
     # ------------------------------------------------------------------
     # rename haystack dialog
@@ -952,80 +779,57 @@ class HaystackEditor(BaseEditor):
             self._rename_haystack_menu_item.props("disable")
 
     def _on_rename_haystack(self, context: "SessionContext") -> None:
-        """Open the Rename Haystack dialog."""
-        name = self._get_active_haystack_name(context)
-        if not name:
-            ui.notify("No haystack is currently loaded", type="warning")
-            return
-
-        if self._rename_haystack_dialog is None or self._rename_haystack_input is None:
-            ui.notify("Rename Haystack dialog not ready", type="warning")
-            return
-
-        self._rename_haystack_context = context
-        self._rename_haystack_input.value = name
-        if self._rename_haystack_error_label is not None:
-            self._rename_haystack_error_label.set_visibility(False)
-        self._rename_haystack_dialog.open()
-
-    def _build_rename_haystack_dialog(self):
-        """Create the Rename Haystack dialog once during draw(). Returns the dialog."""
-        with ui.dialog() as dialog, hui.dialog_card("w-[320px]"):
-            ui.label("Rename Haystack").classes("text-sm font-medium hw-text-body")
-            self._rename_haystack_input = hui.input_field(label="Name", value="", autofocus=True)
-            self._rename_haystack_error_label = ui.label("").classes("text-xs hw-text-danger -mt-1")
-            self._rename_haystack_error_label.set_visibility(False)
-            hui.dialog_actions(
-                on_confirm=lambda: self._do_rename_haystack(dialog),
-                on_cancel=dialog.close,
-                confirm_label="Rename",
-            )
-        return dialog
-
-    def _do_rename_haystack(self, dialog) -> None:
-        """Execute the Rename Haystack from within the dialog."""
-        context = self._rename_haystack_context
-        if context is None:
-            dialog.close()
-            return
-
-        app = context.app
-        if app is None or not hasattr(app, "haystack"):
-            ui.notify("Graph manager not available", type="warning")
-            dialog.close()
-            return
-
+        """Open a Popup to rename the current haystack."""
         old_name = self._get_active_haystack_name(context)
         if not old_name:
             ui.notify("No haystack is currently loaded", type="warning")
-            dialog.close()
             return
 
-        new_name = (self._rename_haystack_input.value or "").strip()
-        if not new_name:
-            self._rename_haystack_error_label.text = "Name cannot be empty"
-            self._rename_haystack_error_label.set_visibility(True)
-            return
+        popup = Popup(
+            title="Rename Haystack",
+            width="320px",
+            closable=True,
+            backdrop_click_close=True,
+            escape_close=True,
+        )
+        with popup:
+            name_input = hui.input_field(label="Name", value=old_name, autofocus=True)
+            error_label = ui.label("").classes("text-xs hw-text-danger -mt-1")
+            error_label.set_visibility(False)
 
-        if new_name == old_name:
-            dialog.close()
-            return
+            def _do_rename():
+                new_name = (name_input.value or "").strip()
+                if not new_name:
+                    error_label.text = "Name cannot be empty"
+                    error_label.set_visibility(True)
+                    return
 
-        success = app.haystack.rename_haystack(old_name, new_name)
-        if success:
-            # Update workspace state with the new name
-            session = context.session
-            if session and session.workspace_manager:
-                session.workspace_manager.active.haystack = new_name
-                session.workspace_manager.save()
-            self._update_header_title(context)
-            ui.notify(f"Haystack renamed to '{new_name}'", type="positive")
-            dialog.close()
-        else:
-            self._rename_haystack_error_label.text = (
-                "Rename failed — a haystack with that name may already exist"
-            )
-            self._rename_haystack_error_label.set_visibility(True)
+                if new_name == old_name:
+                    popup.close()
+                    return
+
+                app = context.app
+                if app is None or not hasattr(app, "haystack"):
+                    ui.notify("Graph manager not available", type="warning")
+                    popup.close()
+                    return
+
+                success = app.haystack.rename_haystack(old_name, new_name)
+                if success:
+                    session = context.session
+                    if session and session.workspace_manager:
+                        session.workspace_manager.active.haystack = new_name
+                        session.workspace_manager.save()
+                    self._update_header_title(context)
+                    ui.notify(f"Haystack renamed to '{new_name}'", type="positive")
+                    popup.close()
+                else:
+                    error_label.text = "Rename failed — a haystack with that name may already exist"
+                    error_label.set_visibility(True)
+
+            hui.dialog_actions(on_confirm=_do_rename, on_cancel=popup.close, confirm_label="Rename")
+
+        popup.open()
 
     def _notify_data_mutated(self, context: "SessionContext") -> None:
         """Fire DATA_MUTATED to refresh the graph list."""
@@ -1095,31 +899,4 @@ class HaystackEditor(BaseEditor):
     def cleanup(self) -> None:
         self._header_title_label = None
         self._list_container = None
-        self._save_as_dialog = None
-        self._save_base_dir = None
-        self._save_base_dir_label = None
-        self._save_path_input = None
-        self._save_exists_warning = None
-        self._save_as_entry = None
-        self._save_as_context = None
-        self._rename_dialog = None
-        self._rename_input = None
-        self._rename_error_label = None
-        self._rename_entry = None
-        self._rename_context = None
-        self._open_graph_dialog = None
-        self._open_graph_select = None
-        self._open_graph_context = None
-        self._rename_haystack_dialog = None
-        self._rename_haystack_input = None
-        self._rename_haystack_error_label = None
-        self._rename_haystack_context = None
         self._rename_haystack_menu_item = None
-        self._save_haystack_dialog = None
-        self._save_haystack_name_input = None
-        self._save_haystack_existing_container = None
-        self._save_haystack_context = None
-        self._load_haystack_dialog = None
-        self._load_haystack_select = None
-        self._load_haystack_warning = None
-        self._load_haystack_context = None
