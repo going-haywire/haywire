@@ -229,6 +229,59 @@ class Haystack:
                 self._entries[entry.key] = entry
         return success
 
+    def remove_entry(self, entry: GraphEntry) -> bool:
+        """
+        Remove a graph entry from the registry.
+
+        Stops execution if running. Does NOT delete the file on disk.
+
+        Returns:
+            True if the entry was found and removed.
+        """
+        entry.stop_execution()
+        key = next((k for k, v in self._entries.items() if v is entry), None)
+        if key is not None:
+            del self._entries[key]
+            return True
+        return False
+
+    def rename_graph(self, entry: GraphEntry, new_name: str) -> bool:
+        """
+        Rename a graph's file on disk (same directory, new stem).
+
+        The entry's path and registry key are updated. The old file is
+        moved to the new name via ``Path.rename()``.
+
+        Args:
+            entry:    The GraphEntry to rename.
+            new_name: New filename stem (without extension).
+
+        Returns:
+            True if the rename succeeded.
+        """
+        if entry.path is None:
+            return False
+
+        new_path = entry.path.with_stem(new_name)
+        if new_path == entry.path:
+            return True  # nothing to do
+        if new_path.exists():
+            return False  # refuse to overwrite
+
+        try:
+            entry.path.rename(new_path)
+        except OSError:
+            return False
+
+        # Re-key in the registry
+        old_key = next((k for k, v in self._entries.items() if v is entry), None)
+        if old_key is not None:
+            del self._entries[old_key]
+        entry.path = new_path
+        self._entries[entry.key] = entry
+        entry.unsaved = False
+        return True
+
     # ------------------------------------------------------------------
     # Lookups
     # ------------------------------------------------------------------

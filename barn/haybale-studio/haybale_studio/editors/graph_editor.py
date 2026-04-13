@@ -126,11 +126,6 @@ class GraphEditor(BaseEditor):
                     hui.icon_action(
                         "save", tooltip="Save (Ctrl+S)", on_click=lambda: self._save_graph(context)
                     )
-                    hui.icon_action(
-                        "drive_file_rename_outline",
-                        tooltip="Save As…",
-                        on_click=lambda: self._save_as_graph(context),
-                    )
 
                 # ---- canvas area ----
                 self._canvas_wrapper = ui.element("div").style(
@@ -299,18 +294,6 @@ class GraphEditor(BaseEditor):
             return
 
         # No path yet — open the Save-As dialog
-        self._open_save_as_dialog(app, entry)
-
-    def _save_as_graph(self, context: "SessionContext") -> None:
-        """Always open the Save-As dialog, regardless of whether a path exists."""
-        app = context.app
-        if app is None or not hasattr(app, "haystack"):
-            ui.notify("Graph manager not available", type="warning")
-            return
-        entry = self._get_entry(context)
-        if entry is None:
-            ui.notify("No graph to save", type="warning")
-            return
         self._open_save_as_dialog(app, entry)
 
     def _open_save_as_dialog(self, app, entry) -> None:
