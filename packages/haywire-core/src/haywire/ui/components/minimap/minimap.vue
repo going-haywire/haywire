@@ -111,7 +111,7 @@ export default {
     this._scanInterval = setInterval(() => this.scanContent(), 5000);
   },
 
-  beforeDestroy() {
+  beforeUnmount() {
     document.removeEventListener('zoom-pan-state', this._onZoomPanState);
     clearInterval(this._scanInterval);
     if (this._fadeTimer) clearTimeout(this._fadeTimer);

@@ -289,7 +289,7 @@ class UINode:
                 # Optionally remove the container itself
                 self.container_slot.delete()
             except Exception as e:
-                self.logger.warning(f"Failed to clean up container slot: {e}", exc_info=True)
+                logger.warning(f"Failed to clean up container slot: {e}", exc_info=True)
             self.container_slot = None
 
         # Clear references

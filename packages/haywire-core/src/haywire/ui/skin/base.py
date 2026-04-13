@@ -118,6 +118,6 @@ class BaseSkin(IBaseSkin, ABC):
             ui_element.classes(classes)
 
         if widget_instance:
-            self._nodeids_widget_instances.setdefault(node_id, {port.id, widget_instance})
+            self._nodeids_widget_instances.setdefault(node_id, {})[port.id] = widget_instance
 
         return ui_element

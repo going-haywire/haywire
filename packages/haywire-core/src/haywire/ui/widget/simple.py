@@ -150,17 +150,19 @@ class SimpleWidget(IWidget, ABC):
 
     def cleanup(self) -> None:
         """Clean up subscriptions"""
-        if self._model_changed_callback:
+        if self._model_changed_callback and self.port is not None:
             try:
                 self.port._data.on_changed -= self._model_changed_callback
             except Exception as e:
                 self.logger.warning(f"Failed to clean up model event listener: {e}", exc_info=True)
 
-        if self._ui_changed_callback and not self.IS_READONLY:
+        if self._ui_changed_callback and not self.IS_READONLY and self.ui_element is not None:
             try:
                 self.ui_element.delete()
             except Exception as e:
                 self.logger.warning(f"Failed to clean up UI event listener: {e}", exc_info=True)
 
+        self._model_changed_callback = None
+        self._ui_changed_callback = None
         self.port = None
         self.ui_element = None

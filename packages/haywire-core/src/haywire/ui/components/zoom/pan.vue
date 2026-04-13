@@ -400,7 +400,7 @@ export default {
 
   },
 
-  beforeDestroy() {
+  beforeUnmount() {
     this._cleanupListeners();
     if (this._wheelTimeout) clearTimeout(this._wheelTimeout);
     if (this.updateTimeout) clearTimeout(this.updateTimeout);

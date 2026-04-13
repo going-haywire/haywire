@@ -3,6 +3,12 @@ Custom Streaming Viewer Component for Haywire Widgets
 
 Based on duit's OpencvViewer but adapted to work within widget lifecycle
 without requiring app.on_startup decorator.
+
+Split into two parts:
+- StreamingBackend: manages the FastAPI endpoint, frame queue, and async task.
+  Survives node redraws so the browser MJPEG connection stays alive.
+- StreamingViewer: lightweight NiceGUI Element that renders an <img> tag
+  pointing at the backend's endpoint.  Recreated on each redraw.
 """
 
 import asyncio
@@ -17,19 +23,18 @@ from nicegui import app
 from nicegui.element import Element
 
 
-class StreamingViewer(Element, component="opencv_viewer.js"):
+class StreamingBackend:
     """
-    NiceGUI component for MJPEG streaming of numpy image arrays.
+    Server-side MJPEG streaming pipeline.
 
-    Adapted from duit's OpencvViewer to work within Haywire's widget system
-    by managing the background task lifecycle explicitly instead of using
-    app.on_startup decorator.
+    Owns the FastAPI route, the thread-safe frame queue, and the async
+    queue-reader task.  This object is **not** a NiceGUI element and is
+    therefore unaffected by NiceGUI container clears / redraws.
 
-    :param endpoint: HTTP endpoint for the MJPEG stream (default: random id is generated).
-    :param quality: JPEG compression quality (0-100, higher is better quality, default: 80).
-    :param frame_queue_size: Maximum number of frames to buffer (default: 1).
-    :param block_on_full: If True, block the producer when the queue is full;
-                          if False, drop the oldest frame when full (default: False).
+    :param endpoint: HTTP path for the MJPEG stream (default: auto-generated).
+    :param quality: JPEG compression quality (0-100, default: 80).
+    :param frame_queue_size: Maximum buffered frames (default: 1).
+    :param block_on_full: Block the producer when the queue is full (default: False).
     """
 
     def __init__(
@@ -39,14 +44,10 @@ class StreamingViewer(Element, component="opencv_viewer.js"):
         frame_queue_size: int = 1,
         block_on_full: bool = False,
     ):
-        super().__init__()
-
-        # Generate a new random endpoint for this component
         if endpoint is None:
             endpoint_id = uuid.uuid4().hex[:8]
             endpoint = f"/stream/{endpoint_id}"
 
-        self._props["endpoint"] = endpoint
         self.endpoint = endpoint
         self.quality = quality
         self.frame_queue_size = frame_queue_size
@@ -66,6 +67,10 @@ class StreamingViewer(Element, component="opencv_viewer.js"):
 
         # Register the HTTP endpoint
         self._register_endpoint()
+
+    # ------------------------------------------------------------------
+    # Queue reader
+    # ------------------------------------------------------------------
 
     def _ensure_queue_reader(self) -> None:
         """Ensure the background queue reader task is running.
@@ -121,6 +126,10 @@ class StreamingViewer(Element, component="opencv_viewer.js"):
         finally:
             self._is_running = False
 
+    # ------------------------------------------------------------------
+    # Public: push a frame
+    # ------------------------------------------------------------------
+
     def stream(self, frame: np.ndarray) -> None:
         """
         Push an OpenCV BGR frame into the streaming pipeline.
@@ -162,7 +171,11 @@ class StreamingViewer(Element, component="opencv_viewer.js"):
 
         except Exception as e:
             if self._is_running:
-                print(f"[StreamingViewer] Stream error: {e}")
+                print(f"[StreamingBackend] Stream error: {e}")
+
+    # ------------------------------------------------------------------
+    # FastAPI endpoint
+    # ------------------------------------------------------------------
 
     def _register_endpoint(self) -> None:
         """Register the HTTP endpoint for MJPEG streaming"""
@@ -205,9 +218,13 @@ class StreamingViewer(Element, component="opencv_viewer.js"):
                 except asyncio.CancelledError:
                     return
                 except Exception as e:
-                    print(f"[StreamingViewer] Client stream error: {e}")
+                    print(f"[StreamingBackend] Client stream error: {e}")
 
             return StreamingResponse(generator(), media_type="multipart/x-mixed-replace; boundary=frame")
+
+    # ------------------------------------------------------------------
+    # Cleanup
+    # ------------------------------------------------------------------
 
     def cleanup(self) -> None:
         """Clean up resources when widget is destroyed."""
@@ -225,9 +242,32 @@ class StreamingViewer(Element, component="opencv_viewer.js"):
         except Exception:
             pass
 
+        # Remove the FastAPI route to prevent accumulation
+        try:
+            app.routes[:] = [r for r in app.routes if getattr(r, "path", None) != self.endpoint]
+        except Exception:
+            pass
+
     def __del__(self):
         """Ensure cleanup on deletion"""
         try:
             self.cleanup()
         except Exception:
             pass
+
+
+class StreamingViewer(Element, component="opencv_viewer.js"):
+    """
+    Lightweight NiceGUI element that renders an ``<img>`` tag pointing at a
+    :class:`StreamingBackend` endpoint.
+
+    A new instance is created on every node redraw, but the underlying
+    ``StreamingBackend`` (and therefore the browser's MJPEG connection)
+    survives because it is owned by the widget, not the NiceGUI tree.
+
+    :param backend: The :class:`StreamingBackend` that owns the MJPEG route.
+    """
+
+    def __init__(self, backend: StreamingBackend):
+        super().__init__()
+        self._props["endpoint"] = backend.endpoint

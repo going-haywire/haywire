@@ -148,7 +148,7 @@ export default {
         };
     },
 
-    beforeDestroy() {
+    beforeUnmount() {
         this._cleanupEventListeners();
         this._cleanupObservers();
         this._cleanupZoomPanListener();

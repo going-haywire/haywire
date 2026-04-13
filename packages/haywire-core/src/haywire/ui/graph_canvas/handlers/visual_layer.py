@@ -304,9 +304,9 @@ class VisualLayerHandlers:
         self.canvas_vue.emit_sync_event(SyncCanvasClearEvent())
 
     def cleanup(self):
-        """Release all visual state."""
-        self.node_panels.clear()
-        self.edge_paths.clear()
+        """Release all visual state, properly cleaning up each UINode/UIEdge."""
+        self.remove_all_edge_visuals()
+        self.remove_all_node_visuals()
 
     # -------------------------------------------------------------------------
     # Event handlers — graph mutation requests
