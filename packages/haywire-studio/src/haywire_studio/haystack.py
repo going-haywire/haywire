@@ -39,7 +39,7 @@ import toml
 if TYPE_CHECKING:
     from haywire.core.graph.base import HaywireGraph
     from haywire.core.execution.interpreter import Interpreter
-    from haywire.ui.editor.base import BaseEditor
+    from haywire.core.graph.editor import Editor
 
 logger = logging.getLogger(__name__)
 
@@ -62,7 +62,7 @@ class GraphEntry:
     """
 
     graph: "HaywireGraph"
-    editor: "BaseEditor"
+    editor: "Editor"
     path: Optional[Path] = None
     unsaved: bool = False
     sessions: Set[str] = field(default_factory=set)
