@@ -98,6 +98,16 @@ class HaystackEditor(BaseEditor):
         self._rename_haystack_error_label = None
         self._rename_haystack_context: Optional["SessionContext"] = None
         self._rename_haystack_menu_item = None
+        # Save Haystack dialog state
+        self._save_haystack_dialog = None
+        self._save_haystack_name_input = None
+        self._save_haystack_existing_container = None
+        self._save_haystack_context: Optional["SessionContext"] = None
+        # Load Haystack dialog state
+        self._load_haystack_dialog = None
+        self._load_haystack_select = None
+        self._load_haystack_warning = None
+        self._load_haystack_context: Optional["SessionContext"] = None
 
     # ------------------------------------------------------------------
     # poll / draw
@@ -121,6 +131,8 @@ class HaystackEditor(BaseEditor):
             self._rename_dialog = self._build_rename_dialog()
             self._open_graph_dialog = self._build_open_graph_dialog()
             self._rename_haystack_dialog = self._build_rename_haystack_dialog()
+            self._save_haystack_dialog = self._build_save_haystack_dialog()
+            self._load_haystack_dialog = self._build_load_haystack_dialog()
 
     # ------------------------------------------------------------------
     # header
@@ -645,39 +657,71 @@ class HaystackEditor(BaseEditor):
             ui.notify("Graph manager not available", type="warning")
             return
 
+        if self._save_haystack_dialog is None or self._save_haystack_name_input is None:
+            ui.notify("Save Haystack dialog not ready", type="warning")
+            return
+
         gm = app.haystack
         haystacks = gm.list_haystacks()
 
-        with ui.dialog() as dlg, hui.dialog_card("w-[320px]"):
-            ui.label("Save Haystack").classes("text-sm font-medium hw-text-body")
-            name_input = hui.input_field(
-                label="Name",
-                value=haystacks[0] if haystacks else "default",
-            )
+        self._save_haystack_context = context
+        self._save_haystack_name_input.value = haystacks[0] if haystacks else "default"
 
+        # Refresh existing haystacks list
+        if self._save_haystack_existing_container is not None:
+            self._save_haystack_existing_container.clear()
             if haystacks:
-                ui.label("Existing:").classes("text-xs hw-text-dim mt-2")
-                for h in haystacks:
-                    ui.label(f"  {h}").classes("text-xs hw-text-muted")
+                with self._save_haystack_existing_container:
+                    ui.label("Existing:").classes("text-xs hw-text-dim mt-2")
+                    for h in haystacks:
+                        ui.label(f"  {h}").classes("text-xs hw-text-muted")
 
-            def _do_save():
-                name = name_input.value.strip()
-                if not name:
-                    ui.notify("Name cannot be empty", type="warning")
-                    return
-                gm.save_haystack(name, active_graph_path=context.active_graph_path)
-                # Persist haystack name in workspace state
-                session = context.session
-                if session and session.workspace_manager:
-                    session.workspace_manager.active.haystack = name
-                    session.workspace_manager.save()
-                self._update_header_title(context)
-                ui.notify(f"Haystack '{name}' saved", type="positive")
-                dlg.close()
+        self._save_haystack_dialog.open()
 
-            hui.dialog_actions(on_confirm=_do_save, on_cancel=dlg.close, confirm_label="Save")
+    def _build_save_haystack_dialog(self):
+        """Create the Save Haystack dialog once during draw(). Returns the dialog."""
+        with ui.dialog() as dialog, hui.dialog_card("w-[320px]"):
+            ui.label("Save Haystack").classes("text-sm font-medium hw-text-body")
+            self._save_haystack_name_input = hui.input_field(
+                label="Name",
+                value="default",
+            )
+            self._save_haystack_existing_container = ui.column().classes("w-full gap-0")
+            hui.dialog_actions(
+                on_confirm=lambda: self._do_save_haystack(dialog),
+                on_cancel=dialog.close,
+                confirm_label="Save",
+            )
+        return dialog
 
-        dlg.open()
+    def _do_save_haystack(self, dialog) -> None:
+        """Execute the Save Haystack from within the dialog."""
+        context = self._save_haystack_context
+        if context is None:
+            dialog.close()
+            return
+
+        app = context.app
+        if app is None or not hasattr(app, "haystack"):
+            ui.notify("Graph manager not available", type="warning")
+            dialog.close()
+            return
+
+        name = (self._save_haystack_name_input.value or "").strip()
+        if not name:
+            ui.notify("Name cannot be empty", type="warning")
+            return
+
+        gm = app.haystack
+        gm.save_haystack(name, active_graph_path=context.active_graph_path)
+        # Persist haystack name in workspace state
+        session = context.session
+        if session and session.workspace_manager:
+            session.workspace_manager.active.haystack = name
+            session.workspace_manager.save()
+        self._update_header_title(context)
+        ui.notify(f"Haystack '{name}' saved", type="positive")
+        dialog.close()
 
     def _on_load_haystack(self, context: "SessionContext") -> None:
         """Load a haystack, replacing all currently open graphs."""
@@ -693,66 +737,100 @@ class HaystackEditor(BaseEditor):
             ui.notify("No haystacks found", type="info")
             return
 
-        # Check for unsaved work
+        if self._load_haystack_dialog is None or self._load_haystack_select is None:
+            ui.notify("Load Haystack dialog not ready", type="warning")
+            return
+
+        self._load_haystack_context = context
+
+        # Update the select options with current haystacks
+        self._load_haystack_select.options = haystacks
+        self._load_haystack_select.value = haystacks[0]
+        self._load_haystack_select.update()
+
+        # Update unsaved warning
         unsaved = gm.unsaved_entries()
-
-        with ui.dialog() as dlg, hui.dialog_card("w-[320px]"):
-            ui.label("Load Haystack").classes("text-sm font-medium hw-text-body")
-
+        if self._load_haystack_warning is not None:
             if unsaved:
-                ui.label(
+                self._load_haystack_warning.text = (
                     f"Warning: {len(unsaved)} graph(s) have unsaved changes that will be lost."
-                ).classes("text-xs hw-text-warning-dim mt-1")
+                )
+                self._load_haystack_warning.set_visibility(True)
+            else:
+                self._load_haystack_warning.set_visibility(False)
 
-            haystack_select = (
+        self._load_haystack_dialog.open()
+
+    def _build_load_haystack_dialog(self):
+        """Create the Load Haystack dialog once during draw(). Returns the dialog."""
+        with ui.dialog() as dialog, hui.dialog_card("w-[320px]"):
+            ui.label("Load Haystack").classes("text-sm font-medium hw-text-body")
+            self._load_haystack_warning = ui.label("").classes("text-xs hw-text-warning-dim mt-1")
+            self._load_haystack_warning.set_visibility(False)
+            self._load_haystack_select = (
                 ui.select(
-                    options=haystacks,
-                    value=haystacks[0],
+                    options=[],
+                    value=None,
                     label="Haystack",
                 )
                 .props("dense")
                 .classes("w-full mt-2")
             )
+            hui.dialog_actions(
+                on_confirm=lambda: self._do_load_haystack(dialog),
+                on_cancel=dialog.close,
+                confirm_label="Load",
+            )
+        return dialog
 
-            def _do_load():
-                name = haystack_select.value
-                entries, active_rel = gm.load_haystack(name, app._graph_factory)
-                # Subscribe validation handlers
-                for entry in entries:
-                    app._subscribe_entry_validation(entry)
-                # Restore active graph
-                if active_rel:
-                    ws_root = Path(app.workspace_root)
-                    active_path = ws_root / active_rel
-                    active_entry = gm.get_by_path(active_path)
-                    if active_entry:
-                        context.active_graph = active_entry.graph
-                        context.active_graph_path = active_entry.path
-                elif entries:
-                    context.active_graph = entries[0].graph
-                    context.active_graph_path = entries[0].path
-                # Persist haystack name
-                session = context.session
-                if session and session.workspace_manager:
-                    session.workspace_manager.active.haystack = name
-                    session.workspace_manager.save()
-                # Notify UI
-                self._notify_data_mutated(context)
-                session = context.session
-                if session:
-                    session.notify_context_changed(
-                        ContextChangedEvent(
-                            change_type=ContextChangeType.ACTIVE_GRAPH_CHANGED,
-                            source_editor="haystack",
-                        )
-                    )
-                self._update_header_title(context)
-                ui.notify(f"Haystack '{name}' loaded", type="positive")
-                dlg.close()
+    def _do_load_haystack(self, dialog) -> None:
+        """Execute the Load Haystack from within the dialog."""
+        context = self._load_haystack_context
+        if context is None:
+            dialog.close()
+            return
 
-            hui.dialog_actions(on_confirm=_do_load, on_cancel=dlg.close, confirm_label="Load")
+        app = context.app
+        if app is None or not hasattr(app, "haystack"):
+            ui.notify("Graph manager not available", type="warning")
+            dialog.close()
+            return
 
-        dlg.open()
+        gm = app.haystack
+        name = self._load_haystack_select.value
+        entries, active_rel = gm.load_haystack(name, app._graph_factory)
+        # Subscribe validation handlers
+        for entry in entries:
+            app._subscribe_entry_validation(entry)
+        # Restore active graph
+        if active_rel:
+            ws_root = Path(app.workspace_root)
+            active_path = ws_root / active_rel
+            active_entry = gm.get_by_path(active_path)
+            if active_entry:
+                context.active_graph = active_entry.graph
+                context.active_graph_path = active_entry.path
+        elif entries:
+            context.active_graph = entries[0].graph
+            context.active_graph_path = entries[0].path
+        # Persist haystack name
+        session = context.session
+        if session and session.workspace_manager:
+            session.workspace_manager.active.haystack = name
+            session.workspace_manager.save()
+        # Notify UI
+        self._notify_data_mutated(context)
+        session = context.session
+        if session:
+            session.notify_context_changed(
+                ContextChangedEvent(
+                    change_type=ContextChangeType.ACTIVE_GRAPH_CHANGED,
+                    source_editor="haystack",
+                )
+            )
+        self._update_header_title(context)
+        ui.notify(f"Haystack '{name}' loaded", type="positive")
+        dialog.close()
 
     # ------------------------------------------------------------------
     # open graph dialog
@@ -1037,3 +1115,11 @@ class HaystackEditor(BaseEditor):
         self._rename_haystack_error_label = None
         self._rename_haystack_context = None
         self._rename_haystack_menu_item = None
+        self._save_haystack_dialog = None
+        self._save_haystack_name_input = None
+        self._save_haystack_existing_container = None
+        self._save_haystack_context = None
+        self._load_haystack_dialog = None
+        self._load_haystack_select = None
+        self._load_haystack_warning = None
+        self._load_haystack_context = None
