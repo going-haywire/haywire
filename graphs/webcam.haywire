@@ -5,7 +5,7 @@
   "version": "1.0.0",
   "author": "",
   "created_at": null,
-  "modified_at": "2026-04-13T22:24:01.322166",
+  "modified_at": "2026-04-13T23:29:56.642109",
   "nodes": {
     "BeginPlayNode_87f32274": {
       "node_id": "BeginPlayNode_87f32274",
@@ -60,7 +60,7 @@
               "registry_key": "core:type:FLOAT"
             },
             "field_data": {
-              "value": 1776111836.022181
+              "value": 1776115751.469492
             }
           }
         },
@@ -595,7 +595,7 @@
               "registry_key": "core:type:FLOAT"
             },
             "field_data": {
-              "value": 0.6977839469909668
+              "value": 41.62448978424072
             }
           },
           "frame_number": {
@@ -621,7 +621,7 @@
               "registry_key": "core:type:INT"
             },
             "field_data": {
-              "value": 21
+              "value": 1249
             }
           },
           "width": {
@@ -824,7 +824,7 @@
               "registry_key": "core:type:STRING"
             },
             "field_data": {
-              "value": "Frame #21 | 1920x1080x3 | 0.70s | 30.1 FPS"
+              "value": "Frame #1249 | 1920x1080x3 | 41.62s | 30.0 FPS"
             }
           },
           "frame_ready": {
@@ -899,7 +899,7 @@
               "registry_key": "core:type:FLOAT"
             },
             "field_data": {
-              "value": 0.6977839469909668
+              "value": 41.62448978424072
             }
           },
           "frame_number": {
@@ -925,7 +925,7 @@
               "registry_key": "core:type:INT"
             },
             "field_data": {
-              "value": 21
+              "value": 1249
             }
           },
           "width": {
@@ -1037,6 +1037,614 @@
           "module_name": "haybale_visiongraph"
         }
       }
+    },
+    "WebcamFrameInfoDisplayNode_2cec750c": {
+      "node_id": "WebcamFrameInfoDisplayNode_2cec750c",
+      "registry_key": "visiongraph:node:WebcamFrameInfoDisplayNode",
+      "position": [
+        4126.175003544758,
+        3941.9194807811123
+      ],
+      "node_data": {
+        "node_id": "WebcamFrameInfoDisplayNode_2cec750c",
+        "ports": {
+          "execute": {
+            "kwargs": {
+              "registry_id": "EXEC",
+              "registry_key": "core:type:EXEC",
+              "label": "Analyze Frame",
+              "description": "Signal for controlling execution flow between nodes",
+              "class_name": "EXEC",
+              "module": "haybale_core.types.specs",
+              "flow_type": "control",
+              "default": {},
+              "store_strategy": 2,
+              "color": "#004cff",
+              "id": "execute",
+              "port_type": "inlet",
+              "allow_multiple_links": true
+            },
+            "recipe": {
+              "registry_key": "core:type:EXEC"
+            },
+            "field_data": {}
+          },
+          "frame": {
+            "kwargs": {
+              "registry_id": "FRAME",
+              "registry_key": "visiongraph:type:FRAME",
+              "label": "Frame",
+              "description": "Video frame data with metadata",
+              "class_name": "FRAME",
+              "module": "haybale_visiongraph.types.frame_type",
+              "flow_type": "data",
+              "default": {
+                "data": null,
+                "timestamp": 0.0,
+                "frame_number": 0,
+                "width": 0,
+                "height": 0,
+                "channels": 0
+              },
+              "store_strategy": 1,
+              "color": "#9c27b0",
+              "widget_key": "visiongraph:widget:OpencvViewerWidget",
+              "widget_config": {
+                "properties": {
+                  "quality": 85,
+                  "width": "100%",
+                  "height": "300px",
+                  "frame_queue_size": 1,
+                  "block_on_full": false
+                }
+              },
+              "id": "frame",
+              "port_type": "inlet",
+              "order": 1
+            },
+            "recipe": {
+              "registry_key": "visiongraph:type:FRAME"
+            }
+          },
+          "info_display": {
+            "kwargs": {
+              "registry_id": "STRING",
+              "registry_key": "core:type:STRING",
+              "label": "Frame Info",
+              "description": "Text data",
+              "class_name": "STRING",
+              "module": "haybale_core.types.specs",
+              "default": {
+                "value": "No frame yet"
+              },
+              "store_strategy": 14,
+              "color": "#ffc107",
+              "widget_key": "core:widget:SimpleLabelWidget",
+              "id": "info_display",
+              "port_type": "config",
+              "order": 2
+            },
+            "recipe": {
+              "registry_key": "core:type:STRING"
+            },
+            "field_data": {
+              "value": "Frame #1249 | 1920x1080x3 | 41.62s | 30.0 FPS"
+            }
+          },
+          "frame_ready": {
+            "kwargs": {
+              "registry_id": "EXEC",
+              "registry_key": "core:type:EXEC",
+              "label": "Frame Ready",
+              "description": "Signal for controlling execution flow between nodes",
+              "class_name": "EXEC",
+              "module": "haybale_core.types.specs",
+              "flow_type": "control",
+              "default": {},
+              "store_strategy": 14,
+              "color": "#004cff",
+              "id": "frame_ready",
+              "port_type": "outlet",
+              "order": 3
+            },
+            "recipe": {
+              "registry_key": "core:type:EXEC"
+            },
+            "field_data": {}
+          },
+          "frame_pass": {
+            "kwargs": {
+              "registry_id": "FRAME",
+              "registry_key": "visiongraph:type:FRAME",
+              "label": "Frame Pass",
+              "description": "Video frame data with metadata",
+              "class_name": "FRAME",
+              "module": "haybale_visiongraph.types.frame_type",
+              "flow_type": "data",
+              "default": {
+                "data": null,
+                "timestamp": 0.0,
+                "frame_number": 0,
+                "width": 0,
+                "height": 0,
+                "channels": 0
+              },
+              "store_strategy": 1,
+              "color": "#9c27b0",
+              "id": "frame_pass",
+              "port_type": "outlet",
+              "allow_multiple_links": true,
+              "order": 4
+            },
+            "recipe": {
+              "registry_key": "visiongraph:type:FRAME"
+            }
+          },
+          "timestamp": {
+            "kwargs": {
+              "registry_id": "FLOAT",
+              "registry_key": "core:type:FLOAT",
+              "label": "Timestamp (s)",
+              "description": "Decimal numberer",
+              "class_name": "FLOAT",
+              "module": "haybale_core.types.specs",
+              "flow_type": "data",
+              "default": {
+                "value": 0.0
+              },
+              "store_strategy": 14,
+              "color": "#50b0ff",
+              "id": "timestamp",
+              "port_type": "outlet",
+              "allow_multiple_links": true,
+              "order": 5
+            },
+            "recipe": {
+              "registry_key": "core:type:FLOAT"
+            },
+            "field_data": {
+              "value": 41.62448978424072
+            }
+          },
+          "frame_number": {
+            "kwargs": {
+              "registry_id": "INT",
+              "registry_key": "core:type:INT",
+              "label": "Frame Number",
+              "description": "Whole number",
+              "class_name": "INT",
+              "module": "haybale_core.types.specs",
+              "flow_type": "data",
+              "default": {
+                "value": 0
+              },
+              "store_strategy": 14,
+              "color": "#f7b0ff",
+              "id": "frame_number",
+              "port_type": "outlet",
+              "allow_multiple_links": true,
+              "order": 6
+            },
+            "recipe": {
+              "registry_key": "core:type:INT"
+            },
+            "field_data": {
+              "value": 1249
+            }
+          },
+          "width": {
+            "kwargs": {
+              "registry_id": "INT",
+              "registry_key": "core:type:INT",
+              "label": "Width",
+              "description": "Whole number",
+              "class_name": "INT",
+              "module": "haybale_core.types.specs",
+              "flow_type": "data",
+              "default": {
+                "value": 0
+              },
+              "store_strategy": 14,
+              "color": "#f7b0ff",
+              "id": "width",
+              "port_type": "outlet",
+              "allow_multiple_links": true,
+              "order": 7
+            },
+            "recipe": {
+              "registry_key": "core:type:INT"
+            },
+            "field_data": {
+              "value": 1920
+            }
+          },
+          "height": {
+            "kwargs": {
+              "registry_id": "INT",
+              "registry_key": "core:type:INT",
+              "label": "Height",
+              "description": "Whole number",
+              "class_name": "INT",
+              "module": "haybale_core.types.specs",
+              "flow_type": "data",
+              "default": {
+                "value": 0
+              },
+              "store_strategy": 14,
+              "color": "#f7b0ff",
+              "id": "height",
+              "port_type": "outlet",
+              "allow_multiple_links": true,
+              "order": 8
+            },
+            "recipe": {
+              "registry_key": "core:type:INT"
+            },
+            "field_data": {
+              "value": 1080
+            }
+          }
+        },
+        "settings": {
+          "props": {
+            "posX": 4126.175003544758,
+            "posY": 3941.9194807811123
+          }
+        },
+        "props": {
+          "posX": 4126.175003544758,
+          "posY": 3941.9194807811123
+        },
+        "store": {},
+        "identity": {
+          "registry_id": "WebcamFrameInfoDisplayNode",
+          "registry_key": "visiongraph:node:WebcamFrameInfoDisplayNode",
+          "label": "Webcam Frame Info Display",
+          "description": "Displays information about webcam frames with live preview",
+          "deprecation_warning": "",
+          "class_name": "WebcamFrameInfoDisplayNode",
+          "module": "haybale_visiongraph.nodes.frame_info_display_node",
+          "search_tags": [
+            "webcam",
+            "frame",
+            "camera",
+            "display",
+            "preview",
+            "video"
+          ],
+          "menu": "vision/info",
+          "help_md": null,
+          "help_url": "https://haywire.io/docs/node-help",
+          "_is_error": false,
+          "_error_priority": 0
+        },
+        "library": {
+          "label": "Visiongraph",
+          "version": "0.0.1",
+          "description": "Visiongraph library",
+          "url": "https://github.com/haywire/haywire-repo/libraries/haybale-visiongraph",
+          "help_url": "https://docs.github.io/haywire_library",
+          "author": "Florian Briggisser, Martin Fröhlich",
+          "author_url": "https://author_url",
+          "id": "visiongraph",
+          "dependencies": [
+            "haybale_core"
+          ],
+          "tags": [
+            "vision",
+            "camera",
+            "video",
+            "opencv"
+          ],
+          "file_watcher": false,
+          "folder_path": "/Volumes/Ddrive/06_open_tracking_tool/haywire/haywire-repo/barn/haybale-visiongraph/haybale_visiongraph",
+          "module_name": "haybale_visiongraph"
+        }
+      }
+    },
+    "WebcamFrameInfoDisplayNode_f6b52713": {
+      "node_id": "WebcamFrameInfoDisplayNode_f6b52713",
+      "registry_key": "visiongraph:node:WebcamFrameInfoDisplayNode",
+      "position": [
+        4626.138777129664,
+        4101.7718437640415
+      ],
+      "node_data": {
+        "node_id": "WebcamFrameInfoDisplayNode_f6b52713",
+        "ports": {
+          "execute": {
+            "kwargs": {
+              "registry_id": "EXEC",
+              "registry_key": "core:type:EXEC",
+              "label": "Analyze Frame",
+              "description": "Signal for controlling execution flow between nodes",
+              "class_name": "EXEC",
+              "module": "haybale_core.types.specs",
+              "flow_type": "control",
+              "default": {},
+              "store_strategy": 2,
+              "color": "#004cff",
+              "id": "execute",
+              "port_type": "inlet",
+              "allow_multiple_links": true
+            },
+            "recipe": {
+              "registry_key": "core:type:EXEC"
+            },
+            "field_data": {}
+          },
+          "frame": {
+            "kwargs": {
+              "registry_id": "FRAME",
+              "registry_key": "visiongraph:type:FRAME",
+              "label": "Frame",
+              "description": "Video frame data with metadata",
+              "class_name": "FRAME",
+              "module": "haybale_visiongraph.types.frame_type",
+              "flow_type": "data",
+              "default": {
+                "data": null,
+                "timestamp": 0.0,
+                "frame_number": 0,
+                "width": 0,
+                "height": 0,
+                "channels": 0
+              },
+              "store_strategy": 1,
+              "color": "#9c27b0",
+              "widget_key": "visiongraph:widget:OpencvViewerWidget",
+              "widget_config": {
+                "properties": {
+                  "quality": 85,
+                  "width": "100%",
+                  "height": "300px",
+                  "frame_queue_size": 1,
+                  "block_on_full": false
+                }
+              },
+              "id": "frame",
+              "port_type": "inlet",
+              "order": 1
+            },
+            "recipe": {
+              "registry_key": "visiongraph:type:FRAME"
+            }
+          },
+          "info_display": {
+            "kwargs": {
+              "registry_id": "STRING",
+              "registry_key": "core:type:STRING",
+              "label": "Frame Info",
+              "description": "Text data",
+              "class_name": "STRING",
+              "module": "haybale_core.types.specs",
+              "default": {
+                "value": "No frame yet"
+              },
+              "store_strategy": 14,
+              "color": "#ffc107",
+              "widget_key": "core:widget:SimpleLabelWidget",
+              "id": "info_display",
+              "port_type": "config",
+              "order": 2
+            },
+            "recipe": {
+              "registry_key": "core:type:STRING"
+            },
+            "field_data": {
+              "value": "Frame #1249 | 1920x1080x3 | 41.62s | 30.0 FPS"
+            }
+          },
+          "frame_ready": {
+            "kwargs": {
+              "registry_id": "EXEC",
+              "registry_key": "core:type:EXEC",
+              "label": "Frame Ready",
+              "description": "Signal for controlling execution flow between nodes",
+              "class_name": "EXEC",
+              "module": "haybale_core.types.specs",
+              "flow_type": "control",
+              "default": {},
+              "store_strategy": 14,
+              "color": "#004cff",
+              "id": "frame_ready",
+              "port_type": "outlet",
+              "order": 3
+            },
+            "recipe": {
+              "registry_key": "core:type:EXEC"
+            },
+            "field_data": {}
+          },
+          "frame_pass": {
+            "kwargs": {
+              "registry_id": "FRAME",
+              "registry_key": "visiongraph:type:FRAME",
+              "label": "Frame Pass",
+              "description": "Video frame data with metadata",
+              "class_name": "FRAME",
+              "module": "haybale_visiongraph.types.frame_type",
+              "flow_type": "data",
+              "default": {
+                "data": null,
+                "timestamp": 0.0,
+                "frame_number": 0,
+                "width": 0,
+                "height": 0,
+                "channels": 0
+              },
+              "store_strategy": 1,
+              "color": "#9c27b0",
+              "id": "frame_pass",
+              "port_type": "outlet",
+              "allow_multiple_links": true,
+              "order": 4
+            },
+            "recipe": {
+              "registry_key": "visiongraph:type:FRAME"
+            }
+          },
+          "timestamp": {
+            "kwargs": {
+              "registry_id": "FLOAT",
+              "registry_key": "core:type:FLOAT",
+              "label": "Timestamp (s)",
+              "description": "Decimal numberer",
+              "class_name": "FLOAT",
+              "module": "haybale_core.types.specs",
+              "flow_type": "data",
+              "default": {
+                "value": 0.0
+              },
+              "store_strategy": 14,
+              "color": "#50b0ff",
+              "id": "timestamp",
+              "port_type": "outlet",
+              "allow_multiple_links": true,
+              "order": 5
+            },
+            "recipe": {
+              "registry_key": "core:type:FLOAT"
+            },
+            "field_data": {
+              "value": 41.62448978424072
+            }
+          },
+          "frame_number": {
+            "kwargs": {
+              "registry_id": "INT",
+              "registry_key": "core:type:INT",
+              "label": "Frame Number",
+              "description": "Whole number",
+              "class_name": "INT",
+              "module": "haybale_core.types.specs",
+              "flow_type": "data",
+              "default": {
+                "value": 0
+              },
+              "store_strategy": 14,
+              "color": "#f7b0ff",
+              "id": "frame_number",
+              "port_type": "outlet",
+              "allow_multiple_links": true,
+              "order": 6
+            },
+            "recipe": {
+              "registry_key": "core:type:INT"
+            },
+            "field_data": {
+              "value": 1249
+            }
+          },
+          "width": {
+            "kwargs": {
+              "registry_id": "INT",
+              "registry_key": "core:type:INT",
+              "label": "Width",
+              "description": "Whole number",
+              "class_name": "INT",
+              "module": "haybale_core.types.specs",
+              "flow_type": "data",
+              "default": {
+                "value": 0
+              },
+              "store_strategy": 14,
+              "color": "#f7b0ff",
+              "id": "width",
+              "port_type": "outlet",
+              "allow_multiple_links": true,
+              "order": 7
+            },
+            "recipe": {
+              "registry_key": "core:type:INT"
+            },
+            "field_data": {
+              "value": 1920
+            }
+          },
+          "height": {
+            "kwargs": {
+              "registry_id": "INT",
+              "registry_key": "core:type:INT",
+              "label": "Height",
+              "description": "Whole number",
+              "class_name": "INT",
+              "module": "haybale_core.types.specs",
+              "flow_type": "data",
+              "default": {
+                "value": 0
+              },
+              "store_strategy": 14,
+              "color": "#f7b0ff",
+              "id": "height",
+              "port_type": "outlet",
+              "allow_multiple_links": true,
+              "order": 8
+            },
+            "recipe": {
+              "registry_key": "core:type:INT"
+            },
+            "field_data": {
+              "value": 1080
+            }
+          }
+        },
+        "settings": {
+          "props": {
+            "posX": 4626.138777129664,
+            "posY": 4101.7718437640415
+          }
+        },
+        "props": {
+          "posX": 4626.138777129664,
+          "posY": 4101.7718437640415
+        },
+        "store": {},
+        "identity": {
+          "registry_id": "WebcamFrameInfoDisplayNode",
+          "registry_key": "visiongraph:node:WebcamFrameInfoDisplayNode",
+          "label": "Webcam Frame Info Display",
+          "description": "Displays information about webcam frames with live preview",
+          "deprecation_warning": "",
+          "class_name": "WebcamFrameInfoDisplayNode",
+          "module": "haybale_visiongraph.nodes.frame_info_display_node",
+          "search_tags": [
+            "webcam",
+            "frame",
+            "camera",
+            "display",
+            "preview",
+            "video"
+          ],
+          "menu": "vision/info",
+          "help_md": null,
+          "help_url": "https://haywire.io/docs/node-help",
+          "_is_error": false,
+          "_error_priority": 0
+        },
+        "library": {
+          "label": "Visiongraph",
+          "version": "0.0.1",
+          "description": "Visiongraph library",
+          "url": "https://github.com/haywire/haywire-repo/libraries/haybale-visiongraph",
+          "help_url": "https://docs.github.io/haywire_library",
+          "author": "Florian Briggisser, Martin Fröhlich",
+          "author_url": "https://author_url",
+          "id": "visiongraph",
+          "dependencies": [
+            "haybale_core"
+          ],
+          "tags": [
+            "vision",
+            "camera",
+            "video",
+            "opencv"
+          ],
+          "file_watcher": false,
+          "folder_path": "/Volumes/Ddrive/06_open_tracking_tool/haywire/haywire-repo/barn/haybale-visiongraph/haybale_visiongraph",
+          "module_name": "haybale_visiongraph"
+        }
+      }
     }
   },
   "edges": {
@@ -1071,6 +1679,42 @@
       "source_node_id": "WebcamFrameEventNode_a450f436",
       "outlet_port_id": "frame",
       "sink_node_id": "WebcamFrameInfoDisplayNode_e397b53f",
+      "inlet_port_id": "frame",
+      "edge_type": "data",
+      "chain_adapter_keys": [],
+      "is_lazy": false
+    },
+    "edge::frame_ready@WebcamFrameInfoDisplayNode_e397b53f>>execute@WebcamFrameInfoDisplayNode_2cec750c": {
+      "source_node_id": "WebcamFrameInfoDisplayNode_e397b53f",
+      "outlet_port_id": "frame_ready",
+      "sink_node_id": "WebcamFrameInfoDisplayNode_2cec750c",
+      "inlet_port_id": "execute",
+      "edge_type": "control",
+      "chain_adapter_keys": [],
+      "is_lazy": false
+    },
+    "edge::frame_pass@WebcamFrameInfoDisplayNode_e397b53f>>frame@WebcamFrameInfoDisplayNode_2cec750c": {
+      "source_node_id": "WebcamFrameInfoDisplayNode_e397b53f",
+      "outlet_port_id": "frame_pass",
+      "sink_node_id": "WebcamFrameInfoDisplayNode_2cec750c",
+      "inlet_port_id": "frame",
+      "edge_type": "data",
+      "chain_adapter_keys": [],
+      "is_lazy": false
+    },
+    "edge::frame_ready@WebcamFrameInfoDisplayNode_2cec750c>>execute@WebcamFrameInfoDisplayNode_f6b52713": {
+      "source_node_id": "WebcamFrameInfoDisplayNode_2cec750c",
+      "outlet_port_id": "frame_ready",
+      "sink_node_id": "WebcamFrameInfoDisplayNode_f6b52713",
+      "inlet_port_id": "execute",
+      "edge_type": "control",
+      "chain_adapter_keys": [],
+      "is_lazy": false
+    },
+    "edge::frame_pass@WebcamFrameInfoDisplayNode_2cec750c>>frame@WebcamFrameInfoDisplayNode_f6b52713": {
+      "source_node_id": "WebcamFrameInfoDisplayNode_2cec750c",
+      "outlet_port_id": "frame_pass",
+      "sink_node_id": "WebcamFrameInfoDisplayNode_f6b52713",
       "inlet_port_id": "frame",
       "edge_type": "data",
       "chain_adapter_keys": [],

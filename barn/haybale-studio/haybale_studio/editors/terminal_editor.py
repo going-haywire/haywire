@@ -4,9 +4,15 @@ ConsoleEditor — scrollable log output panel.
 
 Displays application log messages using NiceGUI's ui.log widget.
 Subscribed to the Python root logger via a logging.Handler.
+
+Log records are buffered and flushed to the UI in batches (default
+every 100 ms) so that high-frequency logging (e.g. 60 messages/s from
+execution nodes) does not overwhelm the browser with DOM updates.
 """
 
 import logging
+import threading
+from collections import deque
 from typing import TYPE_CHECKING
 
 from nicegui import ui
@@ -21,24 +27,53 @@ if TYPE_CHECKING:
 
 
 class _LogHandler(logging.Handler):
-    """Forwards log records to a NiceGUI ui.log element."""
+    """Buffers log records and flushes them to a NiceGUI ui.log element on a timer.
+
+    ``emit()`` is called from arbitrary threads (execution, file-watcher, …).
+    It only appends the formatted message to a thread-safe buffer.
+    A NiceGUI ``ui.timer`` calls ``flush()`` at a fixed interval to push
+    the buffered messages into the UI in a single batch.
+    """
+
+    _FLUSH_INTERVAL = 0.1  # seconds between UI flushes
+    _MAX_BUFFERED = 200  # drop oldest messages if buffer exceeds this
 
     def __init__(self, log_element):
         super().__init__()
         self._log = log_element
-        self._emitting = False
+        self._buffer: deque[str] = deque(maxlen=self._MAX_BUFFERED)
+        self._lock = threading.Lock()
+        self._timer = ui.timer(self._FLUSH_INTERVAL, self.flush)
 
     def emit(self, record: logging.LogRecord) -> None:
-        if self._emitting:
-            return
-        self._emitting = True
         try:
             msg = self.format(record)
-            self._log.push(msg)
+            with self._lock:
+                self._buffer.append(msg)
         except Exception:
             pass
-        finally:
-            self._emitting = False
+
+    def flush(self) -> None:
+        """Push all buffered messages into the ui.log element at once."""
+        with self._lock:
+            if not self._buffer:
+                return
+            batch = list(self._buffer)
+            self._buffer.clear()
+
+        try:
+            for msg in batch:
+                self._log.push(msg)
+        except Exception:
+            pass
+
+    def close(self) -> None:
+        """Stop the timer and flush remaining messages."""
+        if self._timer is not None:
+            self._timer.cancel()
+            self._timer = None
+        self.flush()
+        super().close()
 
 
 @editor(
@@ -76,5 +111,6 @@ class TerminalEditor(BaseEditor):
     def cleanup(self) -> None:
         if self._handler is not None:
             logging.getLogger().removeHandler(self._handler)
+            self._handler.close()
             self._handler = None
         self._log_element = None
