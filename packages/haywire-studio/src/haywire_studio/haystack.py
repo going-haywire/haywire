@@ -476,6 +476,62 @@ class Haystack:
         logger.info(f"Haystack loaded: {filepath} ({len(opened)}/{len(graphs_data)} graphs)")
         return opened, active_graph_rel
 
+    def rename_haystack(self, old_name: str, new_name: str) -> bool:
+        """
+        Rename a haystack file on disk.
+
+        Args:
+            old_name: Current haystack name (filename stem).
+            new_name: Desired haystack name (filename stem).
+
+        Returns:
+            True if the rename succeeded.
+        """
+        hdir = self._haystacks_dir()
+        if hdir is None:
+            return False
+
+        old_path = hdir / f"{old_name}.toml"
+        new_path = hdir / f"{new_name}.toml"
+
+        if not old_path.exists():
+            return False
+        if new_path.exists():
+            return False  # refuse to overwrite
+
+        try:
+            old_path.rename(new_path)
+        except OSError:
+            return False
+
+        # Update the stored name inside the TOML
+        try:
+            data = toml.loads(new_path.read_text())
+            if "haystack" in data:
+                data["haystack"]["name"] = new_name
+                new_path.write_text(toml.dumps(data))
+        except Exception:
+            pass  # rename succeeded even if TOML update fails
+
+        logger.info(f"Haystack renamed: {old_name} → {new_name}")
+        return True
+
+    def list_graph_files(self) -> List[Path]:
+        """
+        Scan the graphs/ folder for all .haywire files.
+
+        Searches ``<workspace_root>/graphs/`` and its subfolders.
+
+        Returns:
+            Sorted list of absolute Paths to .haywire files.
+        """
+        if self._workspace_root is None:
+            return []
+        graphs_dir = self._workspace_root / "graphs"
+        if not graphs_dir.is_dir():
+            return []
+        return sorted(p for p in graphs_dir.rglob("*.haywire") if p.is_file())
+
     def delete_haystack(self, name: str) -> bool:
         """Delete a haystack file. Returns True if removed."""
         hdir = self._haystacks_dir()

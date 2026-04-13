@@ -25,7 +25,6 @@ if TYPE_CHECKING:
 
 
 @editor(
-    registry_id="file_browser",
     label="Files",
     icon=hui.icon.folder,
     default_slot="left",

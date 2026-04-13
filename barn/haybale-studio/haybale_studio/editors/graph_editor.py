@@ -31,7 +31,6 @@ logger = logging.getLogger(__name__)
 
 
 @editor(
-    registry_id="graph_editor",
     label="Graph Editor",
     icon=hui.icon.graph,
     default_slot="main",

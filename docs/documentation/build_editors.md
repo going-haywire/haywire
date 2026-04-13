@@ -45,7 +45,6 @@ from haywire.ui.editor.decorator import editor
 from haywire.ui.context_events import ContextChangeType
 
 @editor(
-    registry_id='my_info',
     label='My Info',
     icon='info',
     default_slot='right',
@@ -472,7 +471,6 @@ if TYPE_CHECKING:
 
 
 @editor(
-    registry_id='project_log',
     label='Project Log',
     icon='subject',
     default_slot='bottom',

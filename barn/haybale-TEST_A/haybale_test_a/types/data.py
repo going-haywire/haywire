@@ -14,7 +14,6 @@ from haywire.ui import elements as hui
 
 
 @type(
-    registry_id="test_data",
     label="Test Data",
     description="Simple test data structure for cross-library testing",
     color="#FF5722",

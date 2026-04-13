@@ -9,7 +9,6 @@ from haywire.core.execution.execution_context import ExecutionContext
 
 
 @node(
-    registry_id="for_loop",
     label="For Loop",
     description="Iterate with start, end, and step control",
     menu="control/loops",

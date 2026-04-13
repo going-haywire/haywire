@@ -10,7 +10,7 @@ from haywire.ui.themes.workbench import WorkbenchTheme
 from haywire.ui.themes.decorator import theme
 
 
-@theme(registry_id="haywire-dark", label="Haywire Dark")
+@theme(label="Haywire Dark")
 class HaywireDarkTheme(WorkbenchTheme):
     """Default dark workbench theme."""
 
@@ -100,7 +100,7 @@ class HaywireDarkTheme(WorkbenchTheme):
     drag_ghost = "0.5"
 
 
-@theme(registry_id="haywire-light", label="Haywire Light")
+@theme(label="Haywire Light")
 class HaywireLightTheme(WorkbenchTheme):
     """Default light workbench theme."""
 

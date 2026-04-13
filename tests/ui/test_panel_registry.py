@@ -16,7 +16,6 @@ from haywire.ui.panel.scope import ScopeDescriptor
 
 
 @panel(
-    registry_id="test_node_panel",
     editors="properties",
     scopes="node",
     label="Test Node Panel",
@@ -93,7 +92,7 @@ class TestPanelDecorator:
         assert hasattr(_TestNodePanel, "class_identity")
 
     def test_registry_key(self):
-        assert _TestNodePanel.class_identity.registry_key.endswith(":panel:test_node_panel")
+        assert _TestNodePanel.class_identity.registry_key.endswith(":panel:_TestNodePanel")
 
     def test_editor_keys_is_list(self):
         assert _TestNodePanel.class_identity.editor_keys == ["properties"]

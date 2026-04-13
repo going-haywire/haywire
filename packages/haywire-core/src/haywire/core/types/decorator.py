@@ -33,7 +33,6 @@ def type(**kwargs) -> Callable[[Type[T]], Type[T]]:
     Examples:
         # Primitive type:
         @type(
-            registry_id='float',
             color='#50b0ff',
             default={'value': 0.0}
         )
@@ -43,7 +42,6 @@ def type(**kwargs) -> Callable[[Type[T]], Type[T]]:
 
         # Derived variant - can override parent defaults:
         @type(
-            registry_id='temperature',
             default={'value': 20.0},  # Override default
             ui={'properties': {'unit': '°C'}}
         )
@@ -52,7 +50,6 @@ def type(**kwargs) -> Callable[[Type[T]], Type[T]]:
 
         # Complex type:
         @type(
-            registry_id='mesh_data',
             label='3D Mesh',
             color='#4CAF50',
             default={'vertices': [], 'faces': [], 'name': 'Default Mesh'}
@@ -64,7 +61,6 @@ def type(**kwargs) -> Callable[[Type[T]], Type[T]]:
             name: str = "Unnamed Mesh"
 
     Args:
-        registry_id (str, optional): Unique identifier within library.
         cls (type, optional): The Python type being wrapped (auto-set to the decorated class).
         label (str, optional): Human-readable display name.
         description (str, optional): Type description.
@@ -76,11 +72,12 @@ def type(**kwargs) -> Callable[[Type[T]], Type[T]]:
         icon_out_multi (str, optional): Icon for multi-link outlet pins.
         widget_key (str, optional): Widget for editing values. NOT RECOMENDED TO USE
         widget_config (dict, optional): Additional widget configuration properties. NOT RECOMENDED TO USE
-        container_type (ContainerType, optional): SINGLE, LIST, DICT, etc.
         flow_type (FlowType, optional): DATA, CTRL, or NONE.
         default (dict, required): Dict of constructor kwargs for default instance.
         help_url (str, optional): Documentation URL.
         deprecation_warning (str, optional): Deprecation warning message.
+        store_strategy: (StoreStrategy, optional): When to serialize field values (default: NEVER).
+        registry_id (str, optional): Unique identifier within library. Defaults to class name.
 
     Returns:
         Decorated class with class_identity attribute

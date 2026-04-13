@@ -232,7 +232,7 @@ class IType(ABC):
                 flow_type (FlowType): DATA, CONTROL, CALLBACK, or NONE
                     (default: DATA)
                 store_strategy (StoreStrategy): NEVER, HAS_WIDGET, WHEN_LINKED, NODE_SET or ALWAYS
-                    (default: WIDGET)
+                    (default: WIDGET if not set on type identity)
                 color (str): Pin color as hex string (e.g. '#FF0000')
                 icon (str): Pin icon (sets all icon variants)
                 icon_in (str): Icon for inlet pin
@@ -274,9 +274,8 @@ class IType(ABC):
         # Validate port type
         cls._validate_port_type(PortType.INLET)
 
-        return create_port_spec(
-            cls, id=id, port_type=PortType.INLET, store_strategy=StoreStrategy.HAS_WIDGET, **kwargs
-        )
+        kwargs.setdefault("store_strategy", cls._resolve_store_strategy(StoreStrategy.HAS_WIDGET))
+        return create_port_spec(cls, id=id, port_type=PortType.INLET, **kwargs)
 
     @classmethod
     def as_outlet(cls, id: str, **kwargs) -> "PortSpec":
@@ -309,7 +308,7 @@ class IType(ABC):
                 flow_type (FlowType): DATA, CONTROL, CALLBACK, or NONE
                     (default: DATA)
                 store_strategy (StoreStrategy): NEVER, HAS_WIDGET, WHEN_LINKED, NODE_SET or ALWAYS
-                    (default: ALWAYS)
+                    (default: ALWAYS if not set on type identity)
                 color (str): Pin color as hex string (e.g. '#FF0000')
                 icon (str): Pin icon (sets all icon variants)
                 icon_in (str): Icon for inlet pin
@@ -349,9 +348,8 @@ class IType(ABC):
         # Validate port type
         cls._validate_port_type(PortType.OUTLET)
 
-        return create_port_spec(
-            cls, id=id, port_type=PortType.OUTLET, store_strategy=StoreStrategy.ALWAYS, **kwargs
-        )
+        kwargs.setdefault("store_strategy", cls._resolve_store_strategy(StoreStrategy.ALWAYS))
+        return create_port_spec(cls, id=id, port_type=PortType.OUTLET, **kwargs)
 
     @classmethod
     def as_config(cls, id: str, **kwargs) -> "PortSpec":
@@ -380,7 +378,7 @@ class IType(ABC):
                 default (dict | primitive): Default value. Primitives auto-wrap
                     to {'value': ...} for PrimitiveType subclasses
                 store_strategy (StoreStrategy): NEVER, HAS_WIDGET, WHEN_LINKED, NODE_SET or ALWAYS
-                    (default: ALWAYS)
+                    (default: ALWAYS if not set on type identity)
                 color (str): Pin color as hex string (e.g. '#FF0000')
                 widget_key (str): Widget key for value editing (preferably use widget instead)
                 widget_config (dict): Widget configuration parameters (preferably use widget instead)
@@ -413,14 +411,22 @@ class IType(ABC):
         cls._validate_port_type(PortType.CONFIG)
 
         kwargs["flow_type"] = FlowType.NONE
+        kwargs.setdefault("store_strategy", cls._resolve_store_strategy(StoreStrategy.ALWAYS))
 
-        return create_port_spec(
-            cls, id=id, port_type=PortType.CONFIG, store_strategy=StoreStrategy.ALWAYS, **kwargs
-        )
+        return create_port_spec(cls, id=id, port_type=PortType.CONFIG, **kwargs)
 
     # ========================================================================
     # UTILITY METHODS
     # ========================================================================
+
+    @classmethod
+    def _resolve_store_strategy(cls, method_default: StoreStrategy) -> StoreStrategy:
+        """Return the type identity's store_strategy if set, otherwise the method default."""
+        if hasattr(cls, "class_identity"):
+            identity_ss = cls.class_identity.store_strategy
+            if identity_ss != StoreStrategy.NONE:
+                return identity_ss
+        return method_default
 
     def is_value_type(self, compare: type) -> bool:
         """Check if the value is of a specific type"""

@@ -12,7 +12,6 @@ T = TypeVar("T")
 
 
 @type(
-    registry_id="maps_string",
     flow_type=FlowType.DATA,
     label="Array",
     description="Map with key type string",

@@ -4,7 +4,6 @@ from haybale_core.types.specs import FLOAT
 
 
 @type(
-    registry_id="temperature",
     label="Temperature",
     description="Temperature data types",
     widget_key="example:widget:TemperatureWidget",

@@ -4,18 +4,19 @@ Frame data type for video streams
 
 from dataclasses import dataclass
 from typing import Optional
+from haywire.core.types.enums import StoreStrategy
 import numpy as np
 
 from haywire.core.types import type, FlowType, BaseType
 
 
 @type(
-    registry_id="frame",
     label="Frame",
     description="Video frame data with metadata",
     flow_type=FlowType.DATA,
     default={"data": None, "timestamp": 0.0, "frame_number": 0, "width": 0, "height": 0, "channels": 0},
     color="#9c27b0",
+    store_strategy=StoreStrategy.NEVER,  # Frames can be large, so we avoid storing them by default
 )
 @dataclass
 class FRAME(BaseType):
@@ -58,4 +59,27 @@ class FRAME(BaseType):
             width=self.width,
             height=self.height,
             channels=self.channels,
+        )
+
+    def to_dict(self) -> dict:
+        """Serialize metadata only — pixel data is not persisted."""
+        return {
+            "data": None,
+            "timestamp": self.timestamp,
+            "frame_number": self.frame_number,
+            "width": self.width,
+            "height": self.height,
+            "channels": self.channels,
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict) -> "FRAME":
+        """Deserialize from dict — pixel data will be None."""
+        return cls(
+            data=None,
+            timestamp=data.get("timestamp", 0.0),
+            frame_number=data.get("frame_number", 0),
+            width=data.get("width", 0),
+            height=data.get("height", 0),
+            channels=data.get("channels", 0),
         )

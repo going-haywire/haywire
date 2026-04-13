@@ -3,7 +3,6 @@ from haywire.core.node import node, BaseNode, NodeType
 
 
 @node(
-    registry_id="test_emit_callback",
     label="Test Emit Callback",
     description="Test version of EmitCallback — emits a callback to trigger event nodes",
     menu="testing/callbacks",

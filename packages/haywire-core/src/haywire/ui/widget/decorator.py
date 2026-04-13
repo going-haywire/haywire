@@ -44,7 +44,6 @@ def widget(cls: Type[T] = None, /, **kwargs) -> Union[Type[T], Callable[[Type[T]
 
         # Full customization
         @widget(
-            registry_id="text_input_widget",
             description="Advanced text input widget with validation",
             _is_error=False
         )

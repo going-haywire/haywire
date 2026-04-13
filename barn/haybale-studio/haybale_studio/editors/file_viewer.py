@@ -43,7 +43,6 @@ _LANGUAGE_MAP: dict = {
 
 
 @editor(
-    registry_id="file_viewer",
     label="File Viewer",
     icon=hui.icon.library_component,
     default_slot="main",

@@ -22,7 +22,6 @@ T = TypeVar("T")
 
 
 @type(
-    registry_id="pooled",
     label="Pooled",
     description="Multi-source aggregation",
     color="#9c27b0",

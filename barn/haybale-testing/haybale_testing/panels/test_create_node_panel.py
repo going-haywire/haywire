@@ -20,7 +20,6 @@ if TYPE_CHECKING:
 
 
 @panel(
-    registry_id="test_create_node",
     editors="test_inspector",
     scopes="test_canvas",
     label="Create Node",

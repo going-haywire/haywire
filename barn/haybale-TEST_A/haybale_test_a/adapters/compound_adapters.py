@@ -7,7 +7,6 @@ from ..types.maps_string_type import MapsStringType
 
 
 @adapter(
-    registry_id="mapsString_array",
     label="MapsString to Array",
     description="Transform MapsString elements (MapsStringType[str, X] → ArrayType[Y])",
     converts_from=MapsStringType,

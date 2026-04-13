@@ -4,7 +4,6 @@ from haywire.core.node import node, BaseNode, NodeType
 
 
 @node(
-    registry_id="begin_play",
     label="Begin Play",
     description="Triggered once when execution starts",
     menu="event/runtime",

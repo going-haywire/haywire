@@ -8,7 +8,7 @@ from haywire.ui.themes.workbench import WorkbenchTheme
 from haywire.ui.themes.decorator import theme
 
 
-@theme(registry_id="test-dark", label="Test Dark")
+@theme(label="Test Dark")
 class TestDarkTheme(WorkbenchTheme):
     """Minimal dark-style theme for tests."""
 
@@ -63,7 +63,7 @@ class TestDarkTheme(WorkbenchTheme):
     console_text = "#00ff00"
 
 
-@theme(registry_id="test-light", label="Test Light")
+@theme(label="Test Light")
 class TestLightTheme(WorkbenchTheme):
     """Minimal light-style theme for tests."""
 

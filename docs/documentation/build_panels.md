@@ -52,7 +52,6 @@ from haywire.ui.panel.base import BasePanel, PanelLayout
 from haywire.ui.panel.decorator import panel
 
 @panel(
-    registry_id='my_node_info',
     editor='properties',   # target editor registry_id
     scope='node',          # visible when a node is active
     label='My Node Info',
@@ -396,7 +395,6 @@ A panel can appear in more than one scope tab by passing a list to `scope=`:
 
 ```python
 @panel(
-    registry_id='my_lib_render_settings',
     editor='properties',
     scope=['my_lib', 'node'],   # appears under both tabs
     label='Render Settings',
@@ -691,7 +689,6 @@ if TYPE_CHECKING:
 
 
 @panel(
-    registry_id='node_metrics',
     editor='properties',
     scope='node',
     label='Execution Metrics',

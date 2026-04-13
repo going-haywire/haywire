@@ -12,7 +12,6 @@ from ..types.specs import EXEC, FLOAT
 
 
 @node(
-    registry_id="shutdown",
     label="Shutdown",
     description="Triggered when execution is shutting down",
     menu="event/runtime",

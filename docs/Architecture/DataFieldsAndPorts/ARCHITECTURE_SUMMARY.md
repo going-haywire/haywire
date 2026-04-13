@@ -106,7 +106,6 @@ from haywire.core.types.base import PrimitiveType
 from haywire.core.types.decorator import type
 
 @type(
-    registry_id='float',
     default={'value': 0.0},
     color='#2196f3',
     icon='circle'
@@ -127,7 +126,6 @@ from haywire.core.types.base import BaseType
 from dataclasses import dataclass
 
 @type(
-    registry_id='meshdata',
     default={'vertices': [], 'faces': []},
     color='#4caf50',
     icon='mesh'
@@ -191,7 +189,6 @@ class PooledType(CompoundType[T]):
     field_class = PooledField  # Declared directly
 
 # Custom types can override
-@type(registry_id='custom')
 class CustomType(BaseType):
     field_class = CustomField  # Use custom field implementation
 ```

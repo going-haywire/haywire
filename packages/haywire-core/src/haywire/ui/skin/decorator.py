@@ -18,8 +18,6 @@ def skin(cls: Type[T] = None, /, **kwargs) -> Union[Type[T], Callable[[Type[T]],
     Accepts any SkinIdentity field as a keyword argument. Common arguments include:
 
     Args:
-        registry_id (str, optional): Unique identifier for the skin within its library.
-            Defaults to class name if not provided.
         label (str, optional): Human-readable display name for the skin.
             Defaults to class name if not provided.
         description (str, optional): Human-readable description of the skin.
@@ -30,6 +28,8 @@ def skin(cls: Type[T] = None, /, **kwargs) -> Union[Type[T], Callable[[Type[T]],
             Defaults to False.
         deprecation_warning (str, optional): Deprecation warning message for the skin.
             Defaults to empty string.
+        registry_id (str, optional): Unique identifier for the skin within its library.
+            Defaults to class name if not provided.
 
     Any other keyword arguments will be passed through to the SkinIdentity constructor.
     See the SkinIdentity dataclass for the complete list of available fields.
@@ -45,7 +45,6 @@ def skin(cls: Type[T] = None, /, **kwargs) -> Union[Type[T], Callable[[Type[T]],
 
         # Full customization
         @skin(
-            registry_id="custom_skin",
             description="Custom node skin for special cases",
             is_default=False
         )

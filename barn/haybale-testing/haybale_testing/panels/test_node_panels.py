@@ -24,7 +24,6 @@ def _emit(context: "SessionContext", event):
 
 
 @panel(
-    registry_id="test_delete_node",
     editors="test_inspector",
     scopes="test_node",
     label="Delete Node",
@@ -48,7 +47,6 @@ class TestDeleteNodePanel(BasePanel):
 
 
 @panel(
-    registry_id="test_copy_node",
     editors="test_inspector",
     scopes="test_node",
     label="Copy Node",
@@ -72,7 +70,6 @@ class TestCopyNodePanel(BasePanel):
 
 
 @panel(
-    registry_id="test_redraw_node",
     editors="test_inspector",
     scopes="test_node",
     label="Redraw Node",
@@ -96,7 +93,6 @@ class TestRedrawNodePanel(BasePanel):
 
 
 @panel(
-    registry_id="test_revalidate_node",
     editors="test_inspector",
     scopes="test_node",
     label="Revalidate Node",
@@ -120,7 +116,6 @@ class TestRevalidateNodePanel(BasePanel):
 
 
 @panel(
-    registry_id="test_reset_node",
     editors="test_inspector",
     scopes="test_node",
     label="Reset Node",

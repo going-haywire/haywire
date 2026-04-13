@@ -5,7 +5,6 @@ from haywire.core.node import node, BaseNode, NodeType
 
 
 @node(
-    registry_id="custom_callback",
     label="Custom Callback",
     description="Listens for custom callbacks from other flows",
     menu="event/callback",

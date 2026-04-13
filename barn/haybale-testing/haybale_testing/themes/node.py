@@ -6,7 +6,7 @@ from haywire.ui.themes.node_theme import NodeTheme
 from haywire.ui.themes.decorator import theme
 
 
-@theme(registry_id="test-node", label="Test Node")
+@theme(label="Test Node")
 class TestNodeTheme(NodeTheme):
     """Minimal node theme for tests."""
 

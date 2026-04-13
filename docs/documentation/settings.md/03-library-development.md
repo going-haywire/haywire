@@ -39,7 +39,7 @@ For explicit registration (e.g. in a `register_components()` override):
 # my_lib/__init__.py
 from haywire.core.node import BaseLibrary, library
 
-@library(label='My Library', registry_id='my_lib')
+@library(label='My Library')
 class MyLibrary(BaseLibrary):
 
     def register_components(self, registries):

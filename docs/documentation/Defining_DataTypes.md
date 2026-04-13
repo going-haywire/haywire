@@ -80,7 +80,7 @@ That's all you need for a working type. The `Generic[T]` parameter (`float` in t
 
 ```python
 @type(
-    registry_id='float',           # unique ID within your library (default: class name)
+class name)
     label='Float',                 # display name in the UI
     description='Decimal number',  # tooltip / description
     color='#50b0ff',               # hex color for pins on the canvas
@@ -156,7 +156,6 @@ You can create specialized versions of existing primitive types. The derived typ
 
 ```python
 @type(
-    registry_id='temperature',
     label='Temperature',
     color='#ff5722',
     default={'value': 20.0},      # override parent's default
@@ -178,7 +177,6 @@ Derived types are automatically **compatible with their ancestor types** for con
 
 ```python
 @type(
-    registry_id='math_operation',
     label='Operation',
     widget_key='core:widget:SelectWidget',
     widget_config={'properties': {'options': ['add', 'subtract', 'multiply', 'divide']}},
@@ -229,7 +227,6 @@ from haywire.core.types.decorator import type
 from haywire.core.data.enums import FlowType
 
 @type(
-    registry_id='frame',
     label='Frame',
     description='Video frame data with metadata',
     color='#9c27b0',
@@ -346,7 +343,6 @@ Control flow types signal execution order rather than carry data.
 
 ```python
 @type(
-    registry_id='exec',
     flow_type=FlowType.CONTROL,
     label='Execution Signal',
     color='#004cff',
@@ -371,7 +367,6 @@ Key differences from data types:
 
 ```python
 @type(
-    registry_id='callback',
     flow_type=FlowType.CALLBACK,
     label='Callback Signal',
     color='#ff3c00',
@@ -417,10 +412,10 @@ class CALLBACK(STRING):
 When a decorated type inherits from another decorated type, the child starts with a copy of the parent's identity and then overwrites only the parameters you provide:
 
 ```python
-@type(registry_id='float', color='#50b0ff', default={'value': 0.0})
+@type(color='#50b0ff', default={'value': 0.0})
 class FLOAT(PrimitiveType[float]): ...
 
-@type(registry_id='temperature', default={'value': 20.0})
+@type(default={'value': 20.0})
 class Temperature(FLOAT): ...
 # Temperature gets: color='#50b0ff' (inherited), default={'value': 20.0} (overridden)
 ```
@@ -525,7 +520,7 @@ class IntToFloatAdapter(BaseAdapter):
 from haywire.core.adapter.base import BaseAdapter, adapter
 
 @adapter(
-    registry_id='int_to_float',          # unique ID within library (default: class name)
+class name)
     label='Int to Float',                # display name
     description='Convert integer to float',
     converts_from=INT,                   # source IType class
@@ -611,7 +606,6 @@ from haywire.core.types.decorator import type
 from haywire.core.data.enums import FlowType
 
 @type(
-    registry_id='color',
     label='Color',
     description='RGBA color',
     color='#e91e63',
@@ -727,7 +721,6 @@ class MixColorsNode(BaseNode):
 
 ```python
 @type(
-    registry_id='my_type',
     flow_type=FlowType.DATA,
     color='#hexcolor',
     default={'value': <default_value>},
@@ -747,7 +740,6 @@ class MY_TYPE(PrimitiveType[<python_type>]):
 
 ```python
 @type(
-    registry_id='my_type',
     flow_type=FlowType.DATA,
     color='#hexcolor',
     default={'attr1': val1, 'attr2': val2},

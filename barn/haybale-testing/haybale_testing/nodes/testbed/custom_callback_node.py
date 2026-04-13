@@ -4,7 +4,6 @@ from haywire.core.node import node, BaseNode, NodeType
 
 
 @node(
-    registry_id="test_custom_callback",
     label="Test Custom Callback",
     description="Test version of CustomCallback — listens for named callbacks",
     menu="testing/callbacks",

@@ -6,7 +6,6 @@ from ..types.array_type import ArrayType
 
 
 @adapter(
-    registry_id="array_array",
     label="Array to Array",
     description="Transform array elements (ArrayType[X] → ArrayType[Y])",
     converts_from=ArrayType,

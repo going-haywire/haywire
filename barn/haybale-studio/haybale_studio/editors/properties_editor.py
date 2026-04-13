@@ -40,7 +40,6 @@ _SCOPE_KEY = "properties_scope"
 
 
 @editor(
-    registry_id="properties",
     label="Properties",
     icon=hui.icon.node_settings,
     default_slot="right",

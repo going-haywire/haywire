@@ -371,7 +371,6 @@ def editor(
 
     Usage:
         @editor(
-            registry_id='graph_editor',
             label='Graph Editor',
             icon='account_tree',
             default_slot='main',
@@ -642,7 +641,6 @@ def panel(
 
     Usage:
         @panel(
-            registry_id='node_transform',
             editor='properties',
             context='node',
             label='Transform',
@@ -1172,7 +1170,6 @@ from haywire.ui.editor.base import BaseEditor
 from haywire.ui import elements as hui
 
 @editor(
-    registry_id='graph_editor',
     label='Graph Editor',
     icon=hui.icons.graph_editor,
     default_slot='main',
@@ -1225,7 +1222,6 @@ from haywire.ui.editor.base import BaseEditor
 
 
 @editor(
-    registry_id='properties',
     label='Properties',
     icon='tune',
     default_slot='right',
@@ -1272,7 +1268,6 @@ from haywire.ui.editor.base import BaseEditor
 
 
 @editor(
-    registry_id='console',
     label='Console',
     icon='terminal',
     default_slot='bottom',
@@ -1313,7 +1308,6 @@ from haywire.ui.context_events import ContextChangedEvent, ContextChangeType
 
 
 @editor(
-    registry_id='library_browser',
     label='Library Browser',
     icon='library_books',
     default_slot='left',
@@ -1363,7 +1357,6 @@ from haywire.ui.context_events import ContextChangeType
 
 
 @editor(
-    registry_id='library_detail',
     label='Library Detail',
     icon='info',
     default_slot='main',
@@ -1412,7 +1405,6 @@ from haywire.ui.context_events import ContextChangeType
 
 
 @editor(
-    registry_id='component_detail',
     label='Component Detail',
     icon='widgets',
     default_slot='right',

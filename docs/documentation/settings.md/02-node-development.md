@@ -87,7 +87,7 @@ This is the key used for TOML resolution and global registry lookups. You never 
 A node can declare any number of `NodeSettings` inner classes. Each gets its own accessor name:
 
 ```python
-@node(registry_id='image_filter')
+@node(label='image filter')
 class ImageFilterNode(BaseNode):
 
     class filter(NodeSettings):

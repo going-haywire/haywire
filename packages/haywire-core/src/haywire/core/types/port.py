@@ -611,7 +611,8 @@ class DataPort(DataTypeIdentity):
         if include_data and self._data:
             ss = self.store_strategy
             if (
-                not (ss & StoreStrategy.NEVER)
+                not (ss & StoreStrategy.NEVER) 
+                and ss != StoreStrategy.NONE
                 or (ss & StoreStrategy.ALWAYS)
                 or (ss & StoreStrategy.WHEN_LINKED and self.is_linked())
                 or (ss & StoreStrategy.HAS_WIDGET and self.widget_key is not None)

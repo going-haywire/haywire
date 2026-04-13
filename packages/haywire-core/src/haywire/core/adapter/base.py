@@ -27,8 +27,6 @@ def adapter(cls: Type[T] = None, /, **kwargs) -> Union[Type[T], Callable[[Type[T
     Accepts any AdapterIdentity field as a keyword argument.
 
     Args:
-        registry_id (str, optional): Unique identifier for the adapter.
-            Defaults to class name if not provided.
         label (str, optional): Human-readable display name.
             Defaults to class name if not provided.
         description (str, optional): Human-readable description.
@@ -41,6 +39,8 @@ def adapter(cls: Type[T] = None, /, **kwargs) -> Union[Type[T], Callable[[Type[T
             Defaults to 0.
         deprecation_warning (str, optional): Deprecation warning message.
             Defaults to empty string.
+        registry_id (str, optional): Unique identifier for the adapter.
+            Defaults to class name if not provided.
 
     Any other keyword arguments will be passed through to AdapterIdentity.
     See the AdapterIdentity dataclass for complete list of fields.
@@ -56,7 +56,6 @@ def adapter(cls: Type[T] = None, /, **kwargs) -> Union[Type[T], Callable[[Type[T
 
         # Full customization with IType classes
         @adapter(
-            registry_id="temp_to_float",
             description="Convert Temperature (Celsius) to FLOAT",
             converts_from=Temperature,
             converts_to=FLOAT,

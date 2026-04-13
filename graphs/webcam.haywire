@@ -5,24 +5,26 @@
   "version": "1.0.0",
   "author": "",
   "created_at": null,
-  "modified_at": "2026-04-02T20:45:12.341861",
+  "modified_at": "2026-04-13T21:55:04.975964",
   "nodes": {
-    "begin_play_f465f325": {
-      "node_id": "begin_play_f465f325",
-      "registry_key": "core:node:begin_play",
+    "BeginPlayNode_87f32274": {
+      "node_id": "BeginPlayNode_87f32274",
+      "registry_key": "core:node:BeginPlayNode",
       "position": [
-        827.3853963056957,
-        1294.5358787315542
+        3164,
+        3381.5
       ],
       "node_data": {
-        "node_id": "begin_play_f465f325",
+        "node_id": "BeginPlayNode_87f32274",
         "ports": {
           "exec": {
             "kwargs": {
-              "registry_id": "exec",
-              "registry_key": "core:type:exec",
+              "registry_id": "EXEC",
+              "registry_key": "core:type:EXEC",
               "label": "Execute",
               "description": "Signal for controlling execution flow between nodes",
+              "class_name": "EXEC",
+              "module": "haybale_core.types.specs",
               "flow_type": "control",
               "default": {},
               "store_strategy": 14,
@@ -31,16 +33,18 @@
               "port_type": "outlet"
             },
             "recipe": {
-              "registry_key": "core:type:exec"
+              "registry_key": "core:type:EXEC"
             },
             "field_data": {}
           },
           "timestamp": {
             "kwargs": {
-              "registry_id": "float",
-              "registry_key": "core:type:float",
+              "registry_id": "FLOAT",
+              "registry_key": "core:type:FLOAT",
               "label": "Start Time",
               "description": "Decimal numberer",
+              "class_name": "FLOAT",
+              "module": "haybale_core.types.specs",
               "flow_type": "data",
               "default": {
                 "value": 0.0
@@ -53,34 +57,32 @@
               "order": 1
             },
             "recipe": {
-              "registry_key": "core:type:float"
+              "registry_key": "core:type:FLOAT"
             },
             "field_data": {
-              "value": 0.0
+              "value": 1776110090.428617
             }
           }
         },
         "settings": {
           "props": {
-            "pinned": true,
-            "skin": "core:skin:DefaultNodeSkin",
-            "posX": 827.3853963056957,
-            "posY": 1294.5358787315542
+            "posX": 3164,
+            "posY": 3381.5
           }
         },
         "props": {
-          "pinned": true,
-          "skin": "core:skin:DefaultNodeSkin",
-          "posX": 827.3853963056957,
-          "posY": 1294.5358787315542
+          "posX": 3164,
+          "posY": 3381.5
         },
         "store": {},
         "identity": {
-          "registry_id": "begin_play",
-          "registry_key": "core:node:begin_play",
+          "registry_id": "BeginPlayNode",
+          "registry_key": "core:node:BeginPlayNode",
           "label": "Begin Play",
           "description": "Triggered once when execution starts",
           "deprecation_warning": "",
+          "class_name": "BeginPlayNode",
+          "module": "haybale_core.nodes.begin_play",
           "search_tags": [
             "start",
             "init",
@@ -115,22 +117,24 @@
         }
       }
     },
-    "StartWebcamStreamNode_2d74351f": {
-      "node_id": "StartWebcamStreamNode_2d74351f",
+    "StartWebcamStreamNode_15b5bccb": {
+      "node_id": "StartWebcamStreamNode_15b5bccb",
       "registry_key": "visiongraph:node:StartWebcamStreamNode",
       "position": [
-        1327.2116720928827,
-        1154.2220893721621
+        3569,
+        3314.5
       ],
       "node_data": {
-        "node_id": "StartWebcamStreamNode_2d74351f",
+        "node_id": "StartWebcamStreamNode_15b5bccb",
         "ports": {
           "start": {
             "kwargs": {
-              "registry_id": "exec",
-              "registry_key": "core:type:exec",
+              "registry_id": "EXEC",
+              "registry_key": "core:type:EXEC",
               "label": "Start",
               "description": "Signal for controlling execution flow between nodes",
+              "class_name": "EXEC",
+              "module": "haybale_core.types.specs",
               "flow_type": "control",
               "default": {},
               "store_strategy": 2,
@@ -140,16 +144,18 @@
               "allow_multiple_links": true
             },
             "recipe": {
-              "registry_key": "core:type:exec"
+              "registry_key": "core:type:EXEC"
             },
             "field_data": {}
           },
           "stop": {
             "kwargs": {
-              "registry_id": "exec",
-              "registry_key": "core:type:exec",
+              "registry_id": "EXEC",
+              "registry_key": "core:type:EXEC",
               "label": "Stop",
               "description": "Signal for controlling execution flow between nodes",
+              "class_name": "EXEC",
+              "module": "haybale_core.types.specs",
               "flow_type": "control",
               "default": {},
               "store_strategy": 2,
@@ -160,17 +166,18 @@
               "order": 1
             },
             "recipe": {
-              "registry_key": "core:type:exec"
+              "registry_key": "core:type:EXEC"
             },
             "field_data": {}
           },
           "camera_index": {
             "kwargs": {
-              "registry_id": "int",
-              "registry_key": "core:type:int",
+              "registry_id": "INT",
+              "registry_key": "core:type:INT",
               "label": "Camera Index",
               "description": "Whole number",
-              "flow_type": "data",
+              "class_name": "INT",
+              "module": "haybale_core.types.specs",
               "default": {
                 "value": 0
               },
@@ -189,7 +196,7 @@
               "order": 2
             },
             "recipe": {
-              "registry_key": "core:type:int"
+              "registry_key": "core:type:INT"
             },
             "field_data": {
               "value": 0
@@ -197,11 +204,12 @@
           },
           "width": {
             "kwargs": {
-              "registry_id": "int",
-              "registry_key": "core:type:int",
+              "registry_id": "INT",
+              "registry_key": "core:type:INT",
               "label": "Width (0=auto)",
               "description": "Whole number",
-              "flow_type": "data",
+              "class_name": "INT",
+              "module": "haybale_core.types.specs",
               "default": {
                 "value": 0
               },
@@ -220,7 +228,7 @@
               "order": 3
             },
             "recipe": {
-              "registry_key": "core:type:int"
+              "registry_key": "core:type:INT"
             },
             "field_data": {
               "value": 0
@@ -228,11 +236,12 @@
           },
           "height": {
             "kwargs": {
-              "registry_id": "int",
-              "registry_key": "core:type:int",
+              "registry_id": "INT",
+              "registry_key": "core:type:INT",
               "label": "Height (0=auto)",
               "description": "Whole number",
-              "flow_type": "data",
+              "class_name": "INT",
+              "module": "haybale_core.types.specs",
               "default": {
                 "value": 0
               },
@@ -251,7 +260,7 @@
               "order": 4
             },
             "recipe": {
-              "registry_key": "core:type:int"
+              "registry_key": "core:type:INT"
             },
             "field_data": {
               "value": 0
@@ -259,11 +268,12 @@
           },
           "fps": {
             "kwargs": {
-              "registry_id": "int",
-              "registry_key": "core:type:int",
+              "registry_id": "INT",
+              "registry_key": "core:type:INT",
               "label": "FPS (0=auto)",
               "description": "Whole number",
-              "flow_type": "data",
+              "class_name": "INT",
+              "module": "haybale_core.types.specs",
               "default": {
                 "value": 0
               },
@@ -282,7 +292,7 @@
               "order": 5
             },
             "recipe": {
-              "registry_key": "core:type:int"
+              "registry_key": "core:type:INT"
             },
             "field_data": {
               "value": 0
@@ -290,11 +300,12 @@
           },
           "frame_skip": {
             "kwargs": {
-              "registry_id": "int",
-              "registry_key": "core:type:int",
+              "registry_id": "INT",
+              "registry_key": "core:type:INT",
               "label": "Frame Skip",
               "description": "Whole number",
-              "flow_type": "data",
+              "class_name": "INT",
+              "module": "haybale_core.types.specs",
               "default": {
                 "value": 1
               },
@@ -313,7 +324,7 @@
               "order": 6
             },
             "recipe": {
-              "registry_key": "core:type:int"
+              "registry_key": "core:type:INT"
             },
             "field_data": {
               "value": 1
@@ -321,10 +332,12 @@
           },
           "callback_names": {
             "kwargs": {
-              "registry_id": "pooled",
-              "registry_key": "core:type:pooled",
+              "registry_id": "PooledType",
+              "registry_key": "core:type:PooledType",
               "label": "Trigger",
               "description": "Multi-source aggregation",
+              "class_name": "PooledType",
+              "module": "haybale_core.types.pooled_type",
               "flow_type": "callback",
               "default": {
                 "value": {}
@@ -337,9 +350,9 @@
               "order": 7
             },
             "recipe": {
-              "registry_key": "core:type:pooled",
+              "registry_key": "core:type:PooledType",
               "element_type": {
-                "registry_key": "core:type:callback"
+                "registry_key": "core:type:CALLBACK"
               }
             },
             "field_data": {
@@ -348,11 +361,12 @@
           },
           "status": {
             "kwargs": {
-              "registry_id": "string",
-              "registry_key": "core:type:string",
+              "registry_id": "STRING",
+              "registry_key": "core:type:STRING",
               "label": "Status",
               "description": "Text data",
-              "flow_type": "data",
+              "class_name": "STRING",
+              "module": "haybale_core.types.specs",
               "default": {
                 "value": "Idle"
               },
@@ -364,18 +378,20 @@
               "order": 8
             },
             "recipe": {
-              "registry_key": "core:type:string"
+              "registry_key": "core:type:STRING"
             },
             "field_data": {
-              "value": "Idle"
+              "value": "Shutdown"
             }
           },
           "started": {
             "kwargs": {
-              "registry_id": "exec",
-              "registry_key": "core:type:exec",
+              "registry_id": "EXEC",
+              "registry_key": "core:type:EXEC",
               "label": "Started",
               "description": "Signal for controlling execution flow between nodes",
+              "class_name": "EXEC",
+              "module": "haybale_core.types.specs",
               "flow_type": "control",
               "default": {},
               "store_strategy": 14,
@@ -385,16 +401,18 @@
               "order": 9
             },
             "recipe": {
-              "registry_key": "core:type:exec"
+              "registry_key": "core:type:EXEC"
             },
             "field_data": {}
           },
           "stopped": {
             "kwargs": {
-              "registry_id": "exec",
-              "registry_key": "core:type:exec",
+              "registry_id": "EXEC",
+              "registry_key": "core:type:EXEC",
               "label": "Stopped",
               "description": "Signal for controlling execution flow between nodes",
+              "class_name": "EXEC",
+              "module": "haybale_core.types.specs",
               "flow_type": "control",
               "default": {},
               "store_strategy": 14,
@@ -404,24 +422,20 @@
               "order": 10
             },
             "recipe": {
-              "registry_key": "core:type:exec"
+              "registry_key": "core:type:EXEC"
             },
             "field_data": {}
           }
         },
         "settings": {
           "props": {
-            "muted": true,
-            "collapsed": true,
-            "posX": 1327.2116720928827,
-            "posY": 1154.2220893721621
+            "posX": 3569,
+            "posY": 3314.5
           }
         },
         "props": {
-          "muted": true,
-          "collapsed": true,
-          "posX": 1327.2116720928827,
-          "posY": 1154.2220893721621
+          "posX": 3569,
+          "posY": 3314.5
         },
         "store": {},
         "identity": {
@@ -430,6 +444,8 @@
           "label": "Start Webcam Stream",
           "description": "Starts a webcam stream and emits frame callbacks",
           "deprecation_warning": "",
+          "class_name": "StartWebcamStreamNode",
+          "module": "haybale_visiongraph.nodes.start_web_cam_stream_node",
           "search_tags": [
             "webcam",
             "camera",
@@ -467,25 +483,27 @@
         }
       }
     },
-    "WebcamFrameEventNode_5afd8725": {
-      "node_id": "WebcamFrameEventNode_5afd8725",
+    "WebcamFrameEventNode_a450f436": {
+      "node_id": "WebcamFrameEventNode_a450f436",
       "registry_key": "visiongraph:node:WebcamFrameEventNode",
       "position": [
-        843.5185398438456,
-        1540.6310492539621
+        3136,
+        3704.5
       ],
       "node_data": {
-        "node_id": "WebcamFrameEventNode_5afd8725",
+        "node_id": "WebcamFrameEventNode_a450f436",
         "ports": {
           "callback_name": {
             "kwargs": {
-              "registry_id": "callback",
-              "registry_key": "core:type:callback",
+              "registry_id": "CALLBACK",
+              "registry_key": "core:type:CALLBACK",
               "label": "Listen",
               "description": "Signal for callback execution between nodes",
+              "class_name": "CALLBACK",
+              "module": "haybale_core.types.specs",
               "flow_type": "callback",
               "default": {
-                "value": "WebcamFrameEventNode_5afd8725"
+                "value": "WebcamFrameEventNode_a450f436"
               },
               "store_strategy": 14,
               "color": "#ff3c00",
@@ -493,18 +511,20 @@
               "port_type": "outlet"
             },
             "recipe": {
-              "registry_key": "core:type:callback"
+              "registry_key": "core:type:CALLBACK"
             },
             "field_data": {
-              "value": "WebcamFrameEventNode_5afd8725"
+              "value": "WebcamFrameEventNode_a450f436"
             }
           },
           "frame_ready": {
             "kwargs": {
-              "registry_id": "exec",
-              "registry_key": "core:type:exec",
+              "registry_id": "EXEC",
+              "registry_key": "core:type:EXEC",
               "label": "Frame Ready",
               "description": "Signal for controlling execution flow between nodes",
+              "class_name": "EXEC",
+              "module": "haybale_core.types.specs",
               "flow_type": "control",
               "default": {},
               "store_strategy": 14,
@@ -514,16 +534,18 @@
               "order": 1
             },
             "recipe": {
-              "registry_key": "core:type:exec"
+              "registry_key": "core:type:EXEC"
             },
             "field_data": {}
           },
           "frame": {
             "kwargs": {
-              "registry_id": "frame",
-              "registry_key": "visiongraph:type:frame",
+              "registry_id": "FRAME",
+              "registry_key": "visiongraph:type:FRAME",
               "label": "Frame",
               "description": "Video frame data with metadata",
+              "class_name": "FRAME",
+              "module": "haybale_visiongraph.types.frame_type",
               "flow_type": "data",
               "default": {
                 "data": null,
@@ -533,7 +555,7 @@
                 "height": 0,
                 "channels": 0
               },
-              "store_strategy": 14,
+              "store_strategy": 1,
               "color": "#9c27b0",
               "id": "frame",
               "port_type": "outlet",
@@ -541,23 +563,17 @@
               "order": 2
             },
             "recipe": {
-              "registry_key": "visiongraph:type:frame"
-            },
-            "field_data": {
-              "data": null,
-              "timestamp": 0.0,
-              "frame_number": 0,
-              "width": 0,
-              "height": 0,
-              "channels": 0
+              "registry_key": "visiongraph:type:FRAME"
             }
           },
           "timestamp": {
             "kwargs": {
-              "registry_id": "float",
-              "registry_key": "core:type:float",
+              "registry_id": "FLOAT",
+              "registry_key": "core:type:FLOAT",
               "label": "Timestamp (s)",
               "description": "Decimal numberer",
+              "class_name": "FLOAT",
+              "module": "haybale_core.types.specs",
               "flow_type": "data",
               "default": {
                 "value": 0.0
@@ -570,18 +586,20 @@
               "order": 3
             },
             "recipe": {
-              "registry_key": "core:type:float"
+              "registry_key": "core:type:FLOAT"
             },
             "field_data": {
-              "value": 0.0
+              "value": 10.633183002471924
             }
           },
           "frame_number": {
             "kwargs": {
-              "registry_id": "int",
-              "registry_key": "core:type:int",
+              "registry_id": "INT",
+              "registry_key": "core:type:INT",
               "label": "Frame Number",
               "description": "Whole number",
+              "class_name": "INT",
+              "module": "haybale_core.types.specs",
               "flow_type": "data",
               "default": {
                 "value": 0
@@ -594,18 +612,20 @@
               "order": 4
             },
             "recipe": {
-              "registry_key": "core:type:int"
+              "registry_key": "core:type:INT"
             },
             "field_data": {
-              "value": 0
+              "value": 321
             }
           },
           "width": {
             "kwargs": {
-              "registry_id": "int",
-              "registry_key": "core:type:int",
+              "registry_id": "INT",
+              "registry_key": "core:type:INT",
               "label": "Width",
               "description": "Whole number",
+              "class_name": "INT",
+              "module": "haybale_core.types.specs",
               "flow_type": "data",
               "default": {
                 "value": 0
@@ -618,18 +638,20 @@
               "order": 5
             },
             "recipe": {
-              "registry_key": "core:type:int"
+              "registry_key": "core:type:INT"
             },
             "field_data": {
-              "value": 0
+              "value": 1920
             }
           },
           "height": {
             "kwargs": {
-              "registry_id": "int",
-              "registry_key": "core:type:int",
+              "registry_id": "INT",
+              "registry_key": "core:type:INT",
               "label": "Height",
               "description": "Whole number",
+              "class_name": "INT",
+              "module": "haybale_core.types.specs",
               "flow_type": "data",
               "default": {
                 "value": 0
@@ -642,22 +664,22 @@
               "order": 6
             },
             "recipe": {
-              "registry_key": "core:type:int"
+              "registry_key": "core:type:INT"
             },
             "field_data": {
-              "value": 0
+              "value": 1080
             }
           }
         },
         "settings": {
           "props": {
-            "posX": 843.5185398438456,
-            "posY": 1540.6310492539621
+            "posX": 3136,
+            "posY": 3704.5
           }
         },
         "props": {
-          "posX": 843.5185398438456,
-          "posY": 1540.6310492539621
+          "posX": 3136,
+          "posY": 3704.5
         },
         "store": {},
         "identity": {
@@ -666,6 +688,8 @@
           "label": "Webcam Frame Event",
           "description": "Triggered when a webcam frame is ready",
           "deprecation_warning": "",
+          "class_name": "WebcamFrameEventNode",
+          "module": "haybale_visiongraph.nodes.webcam_frame_event_node",
           "search_tags": [
             "webcam",
             "frame",
@@ -703,22 +727,24 @@
         }
       }
     },
-    "WebcamFrameInfoDisplayNode_12d89188": {
-      "node_id": "WebcamFrameInfoDisplayNode_12d89188",
+    "WebcamFrameInfoDisplayNode_e397b53f": {
+      "node_id": "WebcamFrameInfoDisplayNode_e397b53f",
       "registry_key": "visiongraph:node:WebcamFrameInfoDisplayNode",
       "position": [
-        1419.2397429064715,
-        1709.607671112896
+        3560.6921934134334,
+        3756.856016672508
       ],
       "node_data": {
-        "node_id": "WebcamFrameInfoDisplayNode_12d89188",
+        "node_id": "WebcamFrameInfoDisplayNode_e397b53f",
         "ports": {
           "execute": {
             "kwargs": {
-              "registry_id": "exec",
-              "registry_key": "core:type:exec",
+              "registry_id": "EXEC",
+              "registry_key": "core:type:EXEC",
               "label": "Analyze Frame",
               "description": "Signal for controlling execution flow between nodes",
+              "class_name": "EXEC",
+              "module": "haybale_core.types.specs",
               "flow_type": "control",
               "default": {},
               "store_strategy": 2,
@@ -728,16 +754,18 @@
               "allow_multiple_links": true
             },
             "recipe": {
-              "registry_key": "core:type:exec"
+              "registry_key": "core:type:EXEC"
             },
             "field_data": {}
           },
           "frame": {
             "kwargs": {
-              "registry_id": "frame",
-              "registry_key": "visiongraph:type:frame",
+              "registry_id": "FRAME",
+              "registry_key": "visiongraph:type:FRAME",
               "label": "Frame",
               "description": "Video frame data with metadata",
+              "class_name": "FRAME",
+              "module": "haybale_visiongraph.types.frame_type",
               "flow_type": "data",
               "default": {
                 "data": null,
@@ -747,7 +775,7 @@
                 "height": 0,
                 "channels": 0
               },
-              "store_strategy": 2,
+              "store_strategy": 1,
               "color": "#9c27b0",
               "widget_key": "visiongraph:widget:OpencvViewerWidget",
               "widget_config": {
@@ -764,24 +792,17 @@
               "order": 1
             },
             "recipe": {
-              "registry_key": "visiongraph:type:frame"
-            },
-            "field_data": {
-              "data": null,
-              "timestamp": 0.0,
-              "frame_number": 0,
-              "width": 0,
-              "height": 0,
-              "channels": 0
+              "registry_key": "visiongraph:type:FRAME"
             }
           },
           "info_display": {
             "kwargs": {
-              "registry_id": "string",
-              "registry_key": "core:type:string",
+              "registry_id": "STRING",
+              "registry_key": "core:type:STRING",
               "label": "Frame Info",
               "description": "Text data",
-              "flow_type": "data",
+              "class_name": "STRING",
+              "module": "haybale_core.types.specs",
               "default": {
                 "value": "No frame yet"
               },
@@ -793,18 +814,20 @@
               "order": 2
             },
             "recipe": {
-              "registry_key": "core:type:string"
+              "registry_key": "core:type:STRING"
             },
             "field_data": {
-              "value": "No frame yet"
+              "value": "Frame #321 | 1920x1080x3 | 10.63s | 30.2 FPS"
             }
           },
           "frame_ready": {
             "kwargs": {
-              "registry_id": "exec",
-              "registry_key": "core:type:exec",
+              "registry_id": "EXEC",
+              "registry_key": "core:type:EXEC",
               "label": "Frame Ready",
               "description": "Signal for controlling execution flow between nodes",
+              "class_name": "EXEC",
+              "module": "haybale_core.types.specs",
               "flow_type": "control",
               "default": {},
               "store_strategy": 14,
@@ -814,16 +837,18 @@
               "order": 3
             },
             "recipe": {
-              "registry_key": "core:type:exec"
+              "registry_key": "core:type:EXEC"
             },
             "field_data": {}
           },
           "frame_pass": {
             "kwargs": {
-              "registry_id": "frame",
-              "registry_key": "visiongraph:type:frame",
+              "registry_id": "FRAME",
+              "registry_key": "visiongraph:type:FRAME",
               "label": "Frame Pass",
               "description": "Video frame data with metadata",
+              "class_name": "FRAME",
+              "module": "haybale_visiongraph.types.frame_type",
               "flow_type": "data",
               "default": {
                 "data": null,
@@ -833,7 +858,7 @@
                 "height": 0,
                 "channels": 0
               },
-              "store_strategy": 14,
+              "store_strategy": 1,
               "color": "#9c27b0",
               "id": "frame_pass",
               "port_type": "outlet",
@@ -841,23 +866,17 @@
               "order": 4
             },
             "recipe": {
-              "registry_key": "visiongraph:type:frame"
-            },
-            "field_data": {
-              "data": null,
-              "timestamp": 0.0,
-              "frame_number": 0,
-              "width": 0,
-              "height": 0,
-              "channels": 0
+              "registry_key": "visiongraph:type:FRAME"
             }
           },
           "timestamp": {
             "kwargs": {
-              "registry_id": "float",
-              "registry_key": "core:type:float",
+              "registry_id": "FLOAT",
+              "registry_key": "core:type:FLOAT",
               "label": "Timestamp (s)",
               "description": "Decimal numberer",
+              "class_name": "FLOAT",
+              "module": "haybale_core.types.specs",
               "flow_type": "data",
               "default": {
                 "value": 0.0
@@ -870,18 +889,20 @@
               "order": 5
             },
             "recipe": {
-              "registry_key": "core:type:float"
+              "registry_key": "core:type:FLOAT"
             },
             "field_data": {
-              "value": 0.0
+              "value": 10.633183002471924
             }
           },
           "frame_number": {
             "kwargs": {
-              "registry_id": "int",
-              "registry_key": "core:type:int",
+              "registry_id": "INT",
+              "registry_key": "core:type:INT",
               "label": "Frame Number",
               "description": "Whole number",
+              "class_name": "INT",
+              "module": "haybale_core.types.specs",
               "flow_type": "data",
               "default": {
                 "value": 0
@@ -894,18 +915,20 @@
               "order": 6
             },
             "recipe": {
-              "registry_key": "core:type:int"
+              "registry_key": "core:type:INT"
             },
             "field_data": {
-              "value": 0
+              "value": 321
             }
           },
           "width": {
             "kwargs": {
-              "registry_id": "int",
-              "registry_key": "core:type:int",
+              "registry_id": "INT",
+              "registry_key": "core:type:INT",
               "label": "Width",
               "description": "Whole number",
+              "class_name": "INT",
+              "module": "haybale_core.types.specs",
               "flow_type": "data",
               "default": {
                 "value": 0
@@ -918,18 +941,20 @@
               "order": 7
             },
             "recipe": {
-              "registry_key": "core:type:int"
+              "registry_key": "core:type:INT"
             },
             "field_data": {
-              "value": 0
+              "value": 1920
             }
           },
           "height": {
             "kwargs": {
-              "registry_id": "int",
-              "registry_key": "core:type:int",
+              "registry_id": "INT",
+              "registry_key": "core:type:INT",
               "label": "Height",
               "description": "Whole number",
+              "class_name": "INT",
+              "module": "haybale_core.types.specs",
               "flow_type": "data",
               "default": {
                 "value": 0
@@ -942,22 +967,22 @@
               "order": 8
             },
             "recipe": {
-              "registry_key": "core:type:int"
+              "registry_key": "core:type:INT"
             },
             "field_data": {
-              "value": 0
+              "value": 1080
             }
           }
         },
         "settings": {
           "props": {
-            "posX": 1419.2397429064715,
-            "posY": 1709.607671112896
+            "posX": 3560.6921934134334,
+            "posY": 3756.856016672508
           }
         },
         "props": {
-          "posX": 1419.2397429064715,
-          "posY": 1709.607671112896
+          "posX": 3560.6921934134334,
+          "posY": 3756.856016672508
         },
         "store": {},
         "identity": {
@@ -966,6 +991,8 @@
           "label": "Webcam Frame Info Display",
           "description": "Displays information about webcam frames with live preview",
           "deprecation_warning": "",
+          "class_name": "WebcamFrameInfoDisplayNode",
+          "module": "haybale_visiongraph.nodes.frame_info_display_node",
           "search_tags": [
             "webcam",
             "frame",
@@ -1003,128 +1030,40 @@
           "module_name": "haybale_visiongraph"
         }
       }
-    },
-    "SettingsNode_2a9932a9": {
-      "node_id": "SettingsNode_2a9932a9",
-      "registry_key": "testing:node:SettingsNode",
-      "position": [
-        1847.3937169806634,
-        1355.4215906190454
-      ],
-      "node_data": {
-        "node_id": "SettingsNode_2a9932a9",
-        "ports": {
-          "settings": {
-            "kwargs": {
-              "registry_id": "string",
-              "registry_key": "core:type:string",
-              "label": "Settings",
-              "description": "Text data",
-              "flow_type": "data",
-              "default": {
-                "value": "default value"
-              },
-              "store_strategy": 14,
-              "color": "#ffc107",
-              "id": "settings",
-              "port_type": "outlet",
-              "allow_multiple_links": true
-            },
-            "recipe": {
-              "registry_key": "core:type:string"
-            },
-            "field_data": {
-              "value": "default value"
-            }
-          }
-        },
-        "settings": {
-          "props": {
-            "posX": 1847.3937169806634,
-            "posY": 1355.4215906190454
-          },
-          "example": {}
-        },
-        "props": {
-          "posX": 1847.3937169806634,
-          "posY": 1355.4215906190454
-        },
-        "store": {},
-        "identity": {
-          "registry_id": "SettingsNode",
-          "registry_key": "testing:node:SettingsNode",
-          "label": "Settings Test Node",
-          "description": "Test the Settings for debugging",
-          "deprecation_warning": "",
-          "search_tags": [
-            "settings",
-            "debug",
-            "test",
-            "example"
-          ],
-          "menu": "testing/testbed",
-          "help_md": null,
-          "help_url": "https://haywire.io/docs/node-help",
-          "_is_error": false,
-          "_error_priority": 0
-        },
-        "library": {
-          "label": "Testing",
-          "version": "1.0.0",
-          "description": "Test library for test support",
-          "url": "https://github.com/maybites/haywire",
-          "help_url": "https://github.com/maybites/haywire",
-          "author": "Haywire Team",
-          "author_url": "https://github.com/maybites/haywire",
-          "id": "testing",
-          "dependencies": [
-            "haybale_core",
-            "haybale_test_a"
-          ],
-          "tags": [
-            "testing",
-            "development",
-            "debug"
-          ],
-          "file_watcher": true,
-          "folder_path": "/Volumes/Ddrive/06_open_tracking_tool/haywire/haywire-repo/barn/haybale-testing/haybale_testing",
-          "module_name": "haybale_testing"
-        }
-      }
     }
   },
   "edges": {
-    "edge::exec@begin_play_f465f325>>start@StartWebcamStreamNode_2d74351f": {
-      "source_node_id": "begin_play_f465f325",
+    "edge::exec@BeginPlayNode_87f32274>>start@StartWebcamStreamNode_15b5bccb": {
+      "source_node_id": "BeginPlayNode_87f32274",
       "outlet_port_id": "exec",
-      "sink_node_id": "StartWebcamStreamNode_2d74351f",
+      "sink_node_id": "StartWebcamStreamNode_15b5bccb",
       "inlet_port_id": "start",
       "edge_type": "control",
       "chain_adapter_keys": [],
       "is_lazy": false
     },
-    "edge::callback_name@WebcamFrameEventNode_5afd8725>>callback_names@StartWebcamStreamNode_2d74351f": {
-      "source_node_id": "WebcamFrameEventNode_5afd8725",
+    "edge::callback_name@WebcamFrameEventNode_a450f436>>callback_names@StartWebcamStreamNode_15b5bccb": {
+      "source_node_id": "WebcamFrameEventNode_a450f436",
       "outlet_port_id": "callback_name",
-      "sink_node_id": "StartWebcamStreamNode_2d74351f",
+      "sink_node_id": "StartWebcamStreamNode_15b5bccb",
       "inlet_port_id": "callback_names",
       "edge_type": "callback",
       "chain_adapter_keys": [],
       "is_lazy": false
     },
-    "edge::frame_ready@WebcamFrameEventNode_5afd8725>>execute@WebcamFrameInfoDisplayNode_12d89188": {
-      "source_node_id": "WebcamFrameEventNode_5afd8725",
+    "edge::frame_ready@WebcamFrameEventNode_a450f436>>execute@WebcamFrameInfoDisplayNode_e397b53f": {
+      "source_node_id": "WebcamFrameEventNode_a450f436",
       "outlet_port_id": "frame_ready",
-      "sink_node_id": "WebcamFrameInfoDisplayNode_12d89188",
+      "sink_node_id": "WebcamFrameInfoDisplayNode_e397b53f",
       "inlet_port_id": "execute",
       "edge_type": "control",
       "chain_adapter_keys": [],
       "is_lazy": false
     },
-    "edge::frame@WebcamFrameEventNode_5afd8725>>frame@WebcamFrameInfoDisplayNode_12d89188": {
-      "source_node_id": "WebcamFrameEventNode_5afd8725",
+    "edge::frame@WebcamFrameEventNode_a450f436>>frame@WebcamFrameInfoDisplayNode_e397b53f": {
+      "source_node_id": "WebcamFrameEventNode_a450f436",
       "outlet_port_id": "frame",
-      "sink_node_id": "WebcamFrameInfoDisplayNode_12d89188",
+      "sink_node_id": "WebcamFrameInfoDisplayNode_e397b53f",
       "inlet_port_id": "frame",
       "edge_type": "data",
       "chain_adapter_keys": [],

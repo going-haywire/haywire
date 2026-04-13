@@ -34,7 +34,6 @@ class _WidgetPreviewPort:
 
 
 @editor(
-    registry_id="component_detail",
     label="Component Detail",
     icon=hui.icon.library_component,
     default_slot="right",

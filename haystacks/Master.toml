@@ -7,5 +7,5 @@ path = "graphs/loop.haywire"
 execute = true
 
 [haystack]
-name = "default"
-active_graph = "graphs/webcam.haywire"
+name = "Master"
+active_graph = "graphs/loop.haywire"

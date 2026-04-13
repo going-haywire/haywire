@@ -22,11 +22,11 @@ def editor(
     cls=None,
     /,
     *,
-    registry_id: Optional[str] = None,
     label: Optional[str] = None,
+    description: str = "",
     icon: str = "extension",
     default_slot: str = "main",
-    description: str = "",
+    registry_id: Optional[str] = None,
 ):
     """
     Decorator to mark a class as an editor type.
@@ -39,17 +39,16 @@ def editor(
     in the DI provider via register_builtin_editors().
 
     Args:
-        registry_id: Unique ID for this editor, e.g. 'graph_editor'.
-            Defaults to the class name if not provided.
         label: Human-readable display name. Defaults to class name.
         icon: Material Design icon name. Defaults to 'extension'.
         default_slot: Which slot this editor belongs in by default.
             One of: 'left', 'right', 'main', 'bottom'. Defaults to 'main'.
         description: Human-readable description.
+        registry_id: Unique ID for this editor, e.g. 'graph_editor'.
+            Defaults to the class name if not provided.
 
     Usage:
         @editor(
-            registry_id='graph_editor',
             label='Graph Editor',
             icon='account_tree',
             default_slot='main',

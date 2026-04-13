@@ -4,7 +4,6 @@ from haywire.core.node import node, BaseNode, NodeType
 
 
 @node(
-    registry_id="test_begin_play",
     label="Test Begin Play",
     description="Test version of BeginPlay — triggered once when execution starts",
     menu="testing/events",

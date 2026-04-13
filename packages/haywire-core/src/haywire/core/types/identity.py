@@ -20,7 +20,7 @@ class DataTypeIdentity(BaseIdentity):
 
     Combines:
     - Registry identity (registry_id, registry_key, label, description)
-    - Type specification (cls, container_type, default)
+    - Type specification (cls, default)
     - UI metadata (color, icon, widget, ui)
 
     Used for:
@@ -33,7 +33,6 @@ class DataTypeIdentity(BaseIdentity):
         label: Display name
         description: Type description
         cls: Python type (int, float, str, MeshData, etc.)
-        container_type: SINGLE, LIST, DICT, SET, TUPLE
         flow_type: DATA, CTRL, or NONE
         color: UI pin color (hex)
         icon: UI pin icon
@@ -61,7 +60,7 @@ class DataTypeIdentity(BaseIdentity):
     # Type specification:
     type_cls: IType = None  # The Python Type class
     default: dict = None
-    store_strategy: StoreStrategy = StoreStrategy.NEVER
+    store_strategy: StoreStrategy = StoreStrategy.NONE
     """flag to control whether field values are serialized"""
 
     # UI specification:

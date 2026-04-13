@@ -52,6 +52,7 @@ class StoreStrategy(IntFlag):
         store only if HAS_WIDGET is True **AND** WHEN_LINKED is True
     """
 
+    NONE = 0
     NEVER = 1
     HAS_WIDGET = 2
     WHEN_LINKED = 4

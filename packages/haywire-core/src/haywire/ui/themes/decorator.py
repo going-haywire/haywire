@@ -2,7 +2,7 @@
 """
 Decorators for registering WorkbenchTheme and NodeTheme classes.
 
-@theme(registry_id=...) — marks a WorkbenchTheme or NodeTheme subclass for auto-discovery
+@theme(...) — marks a WorkbenchTheme or NodeTheme subclass for auto-discovery
 by ThemeRegistry when a library calls add_folder().
 
 Consistent with @node, @editor, @panel, @settings pattern:
@@ -30,9 +30,9 @@ def theme(
     cls=None,
     /,
     *,
-    registry_id: str | None = None,
     label: str = "",
     description: str = "",
+    registry_id: str | None = None,
 ):
     """
     Decorator that registers a WorkbenchTheme or NodeTheme subclass.
@@ -41,19 +41,19 @@ def theme(
     no need to specify it explicitly.
 
     Args:
+        label:        Human-readable display name. Defaults to registry_id.
+        description:  Human-readable description. Defaults to ''.
         registry_id:  Unique theme identifier (e.g. 'haywire-dark', 'default').
                       Defaults to the class name. Used as the final segment of the
                       registry_key, which is the canonical lookup key.
-        label:        Human-readable display name. Defaults to registry_id.
-        description:  Human-readable description. Defaults to ''.
 
     Usage:
-        @theme(registry_id='haywire-dark', label='Haywire Dark')
+        @theme(label='Haywire Dark')
         class HaywireDarkTheme(WorkbenchTheme):
             bg_page = '#12121e'
             ...
 
-        @theme(registry_id='default', label='Default Node Theme')
+        @theme(label='Default Node Theme')
         class DefaultNodeTheme(NodeTheme):
             header_bg = '#252540'
             ...

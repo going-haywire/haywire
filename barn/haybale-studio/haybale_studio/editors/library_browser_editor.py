@@ -27,7 +27,6 @@ logger = logging.getLogger(__name__)
 
 
 @editor(
-    registry_id="library_browser",
     label="Libraries",
     icon=hui.icon.library,
     default_slot="left",

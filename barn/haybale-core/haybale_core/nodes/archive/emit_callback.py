@@ -3,7 +3,6 @@ from haywire.core.node import node, BaseNode, NodeType
 
 
 @node(
-    registry_id="emit_callback",
     label="Emit Callback",
     description="Emits a callback to trigger event nodes in other flows",
     menu="emit/callback",

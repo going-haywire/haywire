@@ -17,13 +17,13 @@ class TestBaseNode:
     def test_node_has_registry_key(self):
         """Test that decorated nodes get registry key."""
 
-        @node(registry_id="test_node", label="Test Node")
+        @node(label="Test Node")
         class TestNode(BaseNode):
             def init(self):
                 pass
 
         assert hasattr(TestNode, "class_identity")
-        assert TestNode.class_identity.registry_id == "test_node"
+        assert TestNode.class_identity.registry_id == "TestNode"
 
     def test_node_metadata(self):
         """Test that node metadata is properly set."""

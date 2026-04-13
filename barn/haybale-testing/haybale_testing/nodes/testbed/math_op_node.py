@@ -3,7 +3,6 @@ from haywire.core.node import node, BaseNode, NodeType
 
 
 @node(
-    registry_id="test_add_float",
     label="Test Add Float",
     description="Test arithmetic node — adds two float values",
     menu="testing/math",

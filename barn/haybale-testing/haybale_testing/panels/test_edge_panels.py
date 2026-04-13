@@ -30,7 +30,6 @@ def _state(context: "SessionContext") -> "EdgeWrapperState | None":
 
 
 @panel(
-    registry_id="test_delete_edge",
     editors="test_inspector",
     scopes="test_edge",
     label="Delete Connection",
@@ -54,7 +53,6 @@ class TestDeleteEdgePanel(BasePanel):
 
 
 @panel(
-    registry_id="test_inspect_edge",
     editors="test_inspector",
     scopes="test_edge",
     label="Inspect Connection",
@@ -86,7 +84,6 @@ class TestInspectEdgePanel(BasePanel):
 
 
 @panel(
-    registry_id="test_edge_errors",
     editors="test_inspector",
     scopes="test_edge",
     label="Connection Errors",
@@ -120,7 +117,6 @@ class TestEdgeErrorsPanel(BasePanel):
 
 
 @panel(
-    registry_id="test_edge_connection_path",
     editors="test_inspector",
     scopes="test_edge",
     label="Connection Path",
@@ -147,7 +143,6 @@ class TestEdgeConnectionPathPanel(BasePanel):
 
 
 @panel(
-    registry_id="test_edge_warnings",
     editors="test_inspector",
     scopes="test_edge",
     label="Connection Warnings",

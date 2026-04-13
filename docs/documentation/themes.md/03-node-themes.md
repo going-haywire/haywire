@@ -11,7 +11,7 @@ from haywire.ui.themes.node_theme import NodeTheme
 from haywire.ui.themes.decorator import theme
 
 
-@theme(registry_id='blueprint', label='Blueprint')
+@theme(label='Blueprint')
 class BlueprintNodeTheme(NodeTheme):
     """Blueprint-style node rendering — dark blue with cyan ports."""
 
@@ -91,7 +91,7 @@ Subclass an existing theme and override only the tokens you need:
 from haywire.ui.themes.builtin import DefaultNodeTheme
 
 
-@theme(registry_id='high-contrast-nodes', label='High Contrast Nodes')
+@theme(label='High Contrast Nodes')
 class HighContrastNodeTheme(DefaultNodeTheme):
     """Default node theme with high-contrast borders."""
     border          = '#ffffff'

@@ -47,7 +47,6 @@ class DeleteNodePanel(BasePanel):
 
 
 @panel(
-    registry_id="context_menu_copy_node",
     editors="context_menu",
     scopes="node",
     label="Copy Node",

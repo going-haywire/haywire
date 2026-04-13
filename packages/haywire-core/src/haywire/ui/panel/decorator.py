@@ -19,7 +19,6 @@ def panel(
     cls=None,
     /,
     *,
-    registry_id: Optional[str] = None,
     editors: Union[str, list[str]],
     scopes: Union[str, list[str]],
     label: Optional[str] = None,
@@ -27,6 +26,7 @@ def panel(
     order: int = 100,
     default_open: bool = True,
     description: str = "",
+    registry_id: Optional[str] = None,
 ):
     """
     Decorator to mark a class as a panel.
@@ -36,8 +36,6 @@ def panel(
     register_components(), following the same pattern as @renderer and @widget.
 
     Args:
-        registry_id:  Unique ID for this panel, e.g. 'node_transform'.
-                      Defaults to the class name if not provided.
         editors:      Editor key or list of editor keys this panel belongs to,
                       e.g. 'properties' or ['properties', 'context_menu'].
         scopes:       Scope ID or list of scope IDs this panel appears under,
@@ -47,10 +45,11 @@ def panel(
         order:        Sort priority (lower = higher in the panel list). Default 100.
         default_open: Whether the panel starts expanded. Defaults to True.
         description:  Human-readable description.
+        registry_id:  Unique ID for this panel, e.g. 'node_transform'.
+                      Defaults to the class name if not provided.
 
     Usage:
         @panel(
-            registry_id='node_transform',
             editors='properties',
             scopes='node',
             label='Transform',

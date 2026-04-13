@@ -1,39 +1,39 @@
 {
   "name": "default",
-  "haystack": "default",
+  "haystack": "Master",
   "left": {
     "active_tab_key": "studio:editor:HaystackEditor",
     "visible": true,
     "size": 250
   },
   "right": {
-    "active_tab_key": "studio:editor:properties",
-    "visible": false,
+    "active_tab_key": "studio:editor:LibraryComponentEditor",
+    "visible": true,
     "size": 350
   },
   "main": {
     "tabs": [
       {
-        "editor_key": "studio:editor:graph_editor",
+        "editor_key": "studio:editor:GraphEditor",
         "label": "Graph Editor",
         "metadata": {}
       },
       {
-        "editor_key": "studio:editor:library_detail",
+        "editor_key": "studio:editor:LibraryOverviewEditor",
         "label": "Library Detail",
         "metadata": {}
       },
       {
-        "editor_key": "studio:editor:file_viewer",
+        "editor_key": "studio:editor:FileViewerEditor",
         "label": "File Viewer",
         "metadata": {}
       }
     ],
-    "active_tab_key": "studio:editor:graph_editor"
+    "active_tab_key": "studio:editor:GraphEditor"
   },
   "bottom": {
     "active_tab_key": "studio:editor:TerminalEditor",
-    "visible": true,
+    "visible": false,
     "size": 200
   }
 }

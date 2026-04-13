@@ -32,7 +32,7 @@ from haywire.ui.themes.workbench import WorkbenchTheme
 from haywire.ui.themes.decorator import theme
 
 
-@theme(registry_id='mylib-dark', label='My Library — Dark')
+@theme(label='My Library — Dark')
 class MyLibDarkTheme(WorkbenchTheme):
     bg_page    = '#0e0e18'
     bg_surface = '#18182a'
@@ -49,7 +49,7 @@ from haywire.ui.themes.node_theme import NodeTheme
 from haywire.ui.themes.decorator import theme
 
 
-@theme(registry_id='mylib-nodes', label='My Library — Nodes')
+@theme(label='My Library — Nodes')
 class MyLibNodeTheme(NodeTheme):
     header_bg   = '#1a0a2e'
     header_text = '#d8b4fe'
@@ -69,7 +69,7 @@ from haywire.core.node import BaseLibrary, library
 from haywire.ui.themes.theme_registry import ThemeRegistry
 
 
-@library(label='My Library', registry_id='mylib')
+@library(label='My Library')
 class MyLibrary(BaseLibrary):
 
     def register_components(self, registries):
@@ -189,8 +189,8 @@ def test_node_colors(theme_registry):
 
 ## Checklist
 
-- [ ] `@theme(registry_id=..., label=...)` decorator applied to WorkbenchTheme subclass
-- [ ] `@theme(registry_id=..., label=...)` decorator applied to NodeTheme subclass
+- [ ] `@theme(label=...)` decorator applied to WorkbenchTheme subclass
+- [ ] `@theme(label=...)` decorator applied to NodeTheme subclass
 - [ ] All tokens defined (or explicitly inherited from a base class)
 - [ ] `register_components()` calls `theme_registry.register_workbench()` / `register_node_theme()`
 - [ ] `registry_id` values are unique within the library (prefix with library name, e.g. `mylib-dark`)

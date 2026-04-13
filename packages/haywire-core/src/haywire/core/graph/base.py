@@ -1013,7 +1013,9 @@ class BaseGraph:
             graph.save_to_file('template.json', include_data=False)  # Structure only
         """
         import json
+        import os
         from datetime import datetime
+        from pathlib import Path
 
         try:
             # Update modification timestamp
@@ -1022,9 +1024,19 @@ class BaseGraph:
             # Serialize graph
             data = self.to_dict(include_data=include_data)
 
-            # Write to file with pretty formatting
-            with open(filepath, "w", encoding="utf-8") as f:
-                json.dump(data, f, indent=2, ensure_ascii=False)
+            # Serialize to string first — if this fails, the file is untouched
+            json_str = json.dumps(data, indent=2, ensure_ascii=False)
+
+            # Atomic write: write to a temp file, then rename over the target
+            target = Path(filepath)
+            tmp_path = target.with_suffix(".haywire.tmp")
+            try:
+                tmp_path.write_text(json_str, encoding="utf-8")
+                os.replace(str(tmp_path), str(target))
+            except Exception:
+                # Clean up the temp file if rename failed
+                tmp_path.unlink(missing_ok=True)
+                raise
 
             logger.info(f"Successfully saved graph to {filepath}")
             return True

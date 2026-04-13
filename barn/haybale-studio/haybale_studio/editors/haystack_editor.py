@@ -26,15 +26,18 @@ from haywire.ui.editor.base import BaseEditor
 from haywire.ui.editor.decorator import editor
 from haywire.ui.context_events import ContextChangeType, ContextChangedEvent
 
+from haybale_studio.editors.graph_editor import GraphEditor  # for editor key reference
+
 if TYPE_CHECKING:
     from haywire.ui.context import SessionContext
     from haywire.ui.context_events import ContextChangedEvent
     from haywire_studio.haystack import GraphEntry
     from nicegui.element import Element
 
+
 logger = logging.getLogger(__name__)
 
-_GRAPH_EDITOR_KEY = "studio:editor:graph_editor"
+_GRAPH_EDITOR_KEY = GraphEditor.class_identity.registry_key
 
 
 def _workspace_rel_path(path: Path, workspace_root: "Path | None") -> str:
@@ -70,6 +73,7 @@ class HaystackEditor(BaseEditor):
 
     def __init__(self):
         self._list_container = None
+        self._header_title_label = None
         # Save-As dialog state
         self._save_as_dialog = None
         self._save_base_dir: Optional[Path] = None
@@ -78,12 +82,22 @@ class HaystackEditor(BaseEditor):
         self._save_exists_warning = None
         self._save_as_entry: Optional["GraphEntry"] = None
         self._save_as_context: Optional["SessionContext"] = None
-        # Rename dialog state
+        # Rename dialog state (per-entry)
         self._rename_dialog = None
         self._rename_input = None
         self._rename_error_label = None
         self._rename_entry: Optional["GraphEntry"] = None
         self._rename_context: Optional["SessionContext"] = None
+        # Open Graph dialog state
+        self._open_graph_dialog = None
+        self._open_graph_select = None
+        self._open_graph_context: Optional["SessionContext"] = None
+        # Rename Haystack dialog state
+        self._rename_haystack_dialog = None
+        self._rename_haystack_input = None
+        self._rename_haystack_error_label = None
+        self._rename_haystack_context: Optional["SessionContext"] = None
+        self._rename_haystack_menu_item = None
 
     # ------------------------------------------------------------------
     # poll / draw
@@ -105,20 +119,51 @@ class HaystackEditor(BaseEditor):
             # Dialogs (Quasar teleports to <body>)
             self._save_as_dialog = self._build_save_as_dialog(context)
             self._rename_dialog = self._build_rename_dialog()
+            self._open_graph_dialog = self._build_open_graph_dialog()
+            self._rename_haystack_dialog = self._build_rename_haystack_dialog()
 
     # ------------------------------------------------------------------
     # header
     # ------------------------------------------------------------------
 
     def _render_header(self, context: "SessionContext") -> None:
-        with hui.panel_header("Haystacks", icon=hui.icon.haystack):
-            hui.icon_action(
-                "folder_open", tooltip="Load haystack", on_click=lambda: self._on_load_haystack(context)
-            )
-            hui.icon_action(
-                hui.icon.save, tooltip="Save haystack", on_click=lambda: self._on_save_haystack(context)
-            )
-            hui.icon_action("add", tooltip="New graph", on_click=lambda: self._on_new(context))
+        title = self._get_active_haystack_name(context) or "Haystacks"
+        with hui.panel_header(title, icon=hui.icon.haystack) as header:
+            # Grab the title label so we can update it later (second child after the icon)
+            for child in header:
+                if isinstance(child, ui.label):
+                    self._header_title_label = child
+                    break
+            with ui.button(icon="more_vert").props("flat round dense size=sm").classes("flex-shrink-0"):
+                with ui.menu():
+                    ui.menu_item(
+                        "Save Haystack",
+                        on_click=lambda: self._on_save_haystack(context),
+                    )
+                    ui.menu_item(
+                        "Load Haystack",
+                        on_click=lambda: self._on_load_haystack(context),
+                    )
+                    self._rename_haystack_menu_item = ui.menu_item(
+                        "Rename Haystack…",
+                        on_click=lambda: self._on_rename_haystack(context),
+                    )
+                    # Disable rename if no haystack is currently loaded
+                    self._update_rename_haystack_enabled(context)
+
+    def _render_add_bar(self, context: "SessionContext") -> None:
+        """Slim + button row matching graph entry width and alignment."""
+        with ui.row().classes("w-full px-2 py-1.5 items-center justify-center rounded hw-list-item-hover"):
+            with ui.button(icon="add").props("flat dense size=sm").classes("w-full"):
+                with ui.menu():
+                    ui.menu_item(
+                        "New Graph",
+                        on_click=lambda: self._on_new(context),
+                    )
+                    ui.menu_item(
+                        "Open Graph…",
+                        on_click=lambda: self._on_open_graph(context),
+                    )
 
     # ------------------------------------------------------------------
     # list
@@ -136,12 +181,12 @@ class HaystackEditor(BaseEditor):
             return
 
         entries = app.haystack.all_entries()
-        if not entries:
-            with self._list_container:
-                ui.label("No graphs open").classes("text-xs hw-text-dim p-2 italic")
-            return
 
         with self._list_container:
+            self._render_add_bar(context)
+            if not entries:
+                ui.label("No graphs open").classes("text-xs hw-text-dim p-2 italic")
+                return
             for entry in entries.values():
                 self._render_entry(entry, context)
 
@@ -626,6 +671,7 @@ class HaystackEditor(BaseEditor):
                 if session and session.workspace_manager:
                     session.workspace_manager.active.haystack = name
                     session.workspace_manager.save()
+                self._update_header_title(context)
                 ui.notify(f"Haystack '{name}' saved", type="positive")
                 dlg.close()
 
@@ -700,12 +746,208 @@ class HaystackEditor(BaseEditor):
                             source_editor="haystack",
                         )
                     )
+                self._update_header_title(context)
                 ui.notify(f"Haystack '{name}' loaded", type="positive")
                 dlg.close()
 
             hui.dialog_actions(on_confirm=_do_load, on_cancel=dlg.close, confirm_label="Load")
 
         dlg.open()
+
+    # ------------------------------------------------------------------
+    # open graph dialog
+    # ------------------------------------------------------------------
+
+    def _on_open_graph(self, context: "SessionContext") -> None:
+        """Open a dialog to pick an existing .haywire file to add to the haystack."""
+        app = context.app
+        if app is None or not hasattr(app, "haystack"):
+            ui.notify("Graph manager not available", type="warning")
+            return
+
+        gm = app.haystack
+        workspace_root = Path(getattr(app, "workspace_root", str(Path.home())))
+
+        # Scan for all .haywire files, excluding those already open
+        all_files = gm.list_graph_files()
+        open_paths = {entry.path for entry in gm.all_entries().values() if entry.path is not None}
+        available = [f for f in all_files if f not in open_paths]
+
+        if not available:
+            ui.notify("All graph files are already open", type="info")
+            return
+
+        # Build options: {relative_path_str: absolute_Path}
+        options = {}
+        for f in available:
+            try:
+                rel = str(f.relative_to(workspace_root))
+            except ValueError:
+                rel = str(f)
+            options[rel] = f
+
+        self._open_graph_context = context
+        if self._open_graph_dialog is None or self._open_graph_select is None:
+            ui.notify("Open Graph dialog not ready", type="warning")
+            return
+
+        # Update the select options and reset value
+        self._open_graph_select.options = list(options.keys())
+        self._open_graph_select.value = None
+        self._open_graph_select.update()
+        self._open_graph_paths = options
+        self._open_graph_dialog.open()
+
+    def _build_open_graph_dialog(self):
+        """Create the Open Graph dialog once during draw(). Returns the dialog."""
+        with ui.dialog() as dialog, hui.dialog_card("w-[360px]"):
+            ui.label("Open Graph").classes("text-sm font-medium hw-text-body")
+            self._open_graph_select = (
+                ui.select(
+                    options=[],
+                    label="Graph file",
+                    with_input=True,
+                )
+                .props("dense use-input")
+                .classes("w-full mt-2")
+            )
+            hui.dialog_actions(
+                on_confirm=lambda: self._do_open_graph(dialog),
+                on_cancel=dialog.close,
+                confirm_label="Open",
+            )
+        return dialog
+
+    def _do_open_graph(self, dialog) -> None:
+        """Execute the Open Graph from within the dialog."""
+        context = self._open_graph_context
+        if context is None:
+            dialog.close()
+            return
+
+        selected = self._open_graph_select.value
+        if not selected or selected not in getattr(self, "_open_graph_paths", {}):
+            ui.notify("Please select a graph file", type="warning")
+            return
+
+        path = self._open_graph_paths[selected]
+        app = context.app
+        session = context.session
+        if app is None or not hasattr(app, "open_graph_file") or session is None:
+            ui.notify("Graph manager not available", type="warning")
+            dialog.close()
+            return
+
+        # Detach from current graph
+        self._detach_current(app, context, session)
+
+        # Open the graph file and attach this session
+        entry = app.open_graph_file(path, session.session_id)
+
+        # Update context
+        context.active_graph = entry.graph
+        context.active_graph_path = entry.path
+
+        self._activate_entry(entry, context, session)
+        ui.notify(f"Opened: {path.name}", type="positive", position="top-right")
+        dialog.close()
+
+    # ------------------------------------------------------------------
+    # rename haystack dialog
+    # ------------------------------------------------------------------
+
+    def _get_active_haystack_name(self, context: "SessionContext") -> Optional[str]:
+        """Return the name of the currently loaded haystack, or None."""
+        session = context.session
+        if session and session.workspace_manager:
+            return session.workspace_manager.active.haystack
+        return None
+
+    def _update_rename_haystack_enabled(self, context: "SessionContext") -> None:
+        """Enable/disable the Rename Haystack menu item based on whether a haystack is loaded."""
+        if self._rename_haystack_menu_item is None:
+            return
+        name = self._get_active_haystack_name(context)
+        if name:
+            self._rename_haystack_menu_item.props(remove="disable")
+        else:
+            self._rename_haystack_menu_item.props("disable")
+
+    def _on_rename_haystack(self, context: "SessionContext") -> None:
+        """Open the Rename Haystack dialog."""
+        name = self._get_active_haystack_name(context)
+        if not name:
+            ui.notify("No haystack is currently loaded", type="warning")
+            return
+
+        if self._rename_haystack_dialog is None or self._rename_haystack_input is None:
+            ui.notify("Rename Haystack dialog not ready", type="warning")
+            return
+
+        self._rename_haystack_context = context
+        self._rename_haystack_input.value = name
+        if self._rename_haystack_error_label is not None:
+            self._rename_haystack_error_label.set_visibility(False)
+        self._rename_haystack_dialog.open()
+
+    def _build_rename_haystack_dialog(self):
+        """Create the Rename Haystack dialog once during draw(). Returns the dialog."""
+        with ui.dialog() as dialog, hui.dialog_card("w-[320px]"):
+            ui.label("Rename Haystack").classes("text-sm font-medium hw-text-body")
+            self._rename_haystack_input = hui.input_field(label="Name", value="", autofocus=True)
+            self._rename_haystack_error_label = ui.label("").classes("text-xs hw-text-danger -mt-1")
+            self._rename_haystack_error_label.set_visibility(False)
+            hui.dialog_actions(
+                on_confirm=lambda: self._do_rename_haystack(dialog),
+                on_cancel=dialog.close,
+                confirm_label="Rename",
+            )
+        return dialog
+
+    def _do_rename_haystack(self, dialog) -> None:
+        """Execute the Rename Haystack from within the dialog."""
+        context = self._rename_haystack_context
+        if context is None:
+            dialog.close()
+            return
+
+        app = context.app
+        if app is None or not hasattr(app, "haystack"):
+            ui.notify("Graph manager not available", type="warning")
+            dialog.close()
+            return
+
+        old_name = self._get_active_haystack_name(context)
+        if not old_name:
+            ui.notify("No haystack is currently loaded", type="warning")
+            dialog.close()
+            return
+
+        new_name = (self._rename_haystack_input.value or "").strip()
+        if not new_name:
+            self._rename_haystack_error_label.text = "Name cannot be empty"
+            self._rename_haystack_error_label.set_visibility(True)
+            return
+
+        if new_name == old_name:
+            dialog.close()
+            return
+
+        success = app.haystack.rename_haystack(old_name, new_name)
+        if success:
+            # Update workspace state with the new name
+            session = context.session
+            if session and session.workspace_manager:
+                session.workspace_manager.active.haystack = new_name
+                session.workspace_manager.save()
+            self._update_header_title(context)
+            ui.notify(f"Haystack renamed to '{new_name}'", type="positive")
+            dialog.close()
+        else:
+            self._rename_haystack_error_label.text = (
+                "Rename failed — a haystack with that name may already exist"
+            )
+            self._rename_haystack_error_label.set_visibility(True)
 
     def _notify_data_mutated(self, context: "SessionContext") -> None:
         """Fire DATA_MUTATED to refresh the graph list."""
@@ -721,6 +963,13 @@ class HaystackEditor(BaseEditor):
     # ------------------------------------------------------------------
     # helpers
     # ------------------------------------------------------------------
+
+    def _update_header_title(self, context: "SessionContext") -> None:
+        """Refresh the header title to show the active haystack name."""
+        if self._header_title_label is None:
+            return
+        name = self._get_active_haystack_name(context)
+        self._header_title_label.text = name or "Haystacks"
 
     def _broadcast_mutation(self, app, entry: "GraphEntry") -> None:
         """Broadcast a DATA_MUTATED event to all sessions viewing this graph."""
@@ -766,6 +1015,7 @@ class HaystackEditor(BaseEditor):
     # ------------------------------------------------------------------
 
     def cleanup(self) -> None:
+        self._header_title_label = None
         self._list_container = None
         self._save_as_dialog = None
         self._save_base_dir = None
@@ -779,3 +1029,11 @@ class HaystackEditor(BaseEditor):
         self._rename_error_label = None
         self._rename_entry = None
         self._rename_context = None
+        self._open_graph_dialog = None
+        self._open_graph_select = None
+        self._open_graph_context = None
+        self._rename_haystack_dialog = None
+        self._rename_haystack_input = None
+        self._rename_haystack_error_label = None
+        self._rename_haystack_context = None
+        self._rename_haystack_menu_item = None

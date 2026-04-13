@@ -11,7 +11,7 @@ from haywire.ui.themes.workbench import WorkbenchTheme
 from haywire.ui.themes.decorator import theme
 
 
-@theme(registry_id='ocean-dark', label='Ocean Dark')
+@theme(label='Ocean Dark')
 class OceanDarkTheme(WorkbenchTheme):
     """A deep-ocean dark theme."""
 
@@ -89,8 +89,8 @@ class OceanDarkTheme(WorkbenchTheme):
 
 | Rule | Detail |
 |------|--------|
-| **Decorator required** | `@theme(registry_id=...)` must appear before the class |
-| **Unique `registry_id`** | Must not clash with existing ids within the same library (`haywire-dark`, `haywire-light`) |
+| **Decorator required** | `@theme(...)` must appear before the class |
+| **Unique `registry_id`** | Must not clash with existing ids within the same library (`haywire-dark`, `haywire-light`). Choose unique class names and let the `registry_id` be automatically derived. |
 | **All fields optional** | Only define fields you want to override from the base class |
 | **Values must be CSS strings** | Hex, rgba, hsl, named colours — anything valid as a CSS colour |
 | **No `setting()` descriptors** | Fields are plain class attributes, not descriptors |
@@ -105,7 +105,7 @@ You can subclass an existing theme and override only the tokens you want:
 from haywire.ui.themes.builtin import HaywireDarkTheme
 
 
-@theme(registry_id='dark-red-accent', label='Dark — Red Accent')
+@theme(label='Dark — Red Accent')
 class DarkRedAccentTheme(HaywireDarkTheme):
     """Haywire dark with a red accent colour."""
     accent        = '#e74c3c'
@@ -144,7 +144,7 @@ from haywire.ui.themes.theme_registry import ThemeRegistry
 from .themes import OceanDarkTheme
 
 
-@library(label='My Library', registry_id='my_lib')
+@library(label='My Library')
 class MyLibrary(BaseLibrary):
 
     def register_components(self, registries):

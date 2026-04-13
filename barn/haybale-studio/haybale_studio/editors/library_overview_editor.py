@@ -67,7 +67,6 @@ _CFG_EDITORS = TabConfig("editors", "editor")
 
 
 @editor(
-    registry_id="library_detail",
     label="Library Detail",
     icon=hui.icon.node_info,
     default_slot="main",

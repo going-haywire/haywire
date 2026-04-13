@@ -20,7 +20,6 @@ T = TypeVar("T")
 
 
 @type(
-    registry_id="array",
     label="Array",
     description="Homogeneous typed array",
     color="#d8e91e",

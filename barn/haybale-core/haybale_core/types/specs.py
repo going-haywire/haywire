@@ -11,7 +11,6 @@ from haywire.core.types import type, FlowType, PrimitiveType, PrimitiveField, Ba
 
 
 @type(
-    registry_id="group",
     flow_type=FlowType.DATA,
     label="Group",
     description="Inlet group",
@@ -37,7 +36,6 @@ class GROUP(PrimitiveType[bool]):
 
 
 @type(
-    registry_id="int",
     flow_type=FlowType.DATA,
     label="Integer",
     description="Whole number",
@@ -72,7 +70,6 @@ INT.field_class = INTField
 
 
 @type(
-    registry_id="float",
     flow_type=FlowType.DATA,
     label="Float",
     description="Decimal numberer",
@@ -109,7 +106,6 @@ FLOAT.field_class = FLOATField
 
 
 @type(
-    registry_id="string",
     flow_type=FlowType.DATA,
     label="String",
     description="Text data",
@@ -134,7 +130,6 @@ class STRING(PrimitiveType[str]):
 
 
 @type(
-    registry_id="bool",
     flow_type=FlowType.DATA,
     label="Boolean",
     description="True or False",
@@ -159,7 +154,6 @@ class BOOL(PrimitiveType[bool]):
 
 
 @type(
-    registry_id="bytes",
     flow_type=FlowType.DATA,
     label="Bytes",
     description="Binary data",
@@ -188,7 +182,6 @@ class BYTES(PrimitiveType[bytes]):
 
 
 @type(
-    registry_id="list",
     flow_type=FlowType.DATA,
     label="List",
     description="Ordered collection",
@@ -208,7 +201,6 @@ class LIST(PrimitiveType[list]):
 
 
 @type(
-    registry_id="dict",
     flow_type=FlowType.DATA,
     label="Dictionary",
     description="Key-value pairs",
@@ -233,7 +225,6 @@ class DICT(PrimitiveType[dict]):
 
 
 @type(
-    registry_id="exec",
     flow_type=FlowType.CONTROL,
     label="Execution Signal",
     description="Signal for controlling execution flow between nodes",
@@ -254,7 +245,6 @@ class EXEC(BaseType):
 
 
 @type(
-    registry_id="callback",
     flow_type=FlowType.CALLBACK,
     label="Callback Signal",
     description="Signal for callback execution between nodes",
