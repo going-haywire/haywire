@@ -3,7 +3,7 @@ HaywireApp — main application entry point.
 
 Manages shared services (graph manager, libraries) and per-session UI shells.
 Each browser connection gets its own Session and AppShell; all sessions share
-the same library registry and GraphManager.
+the same library registry and Haystack.
 
 Execution is per-graph: each GraphEntry owns its own Interpreter,
 started/stopped via entry.start_execution() / entry.stop_execution().
@@ -73,8 +73,8 @@ class HaywireApp:
 
         # 2. Clean up graph manager (stops per-graph interpreters, clears entries)
         try:
-            if hasattr(self, "graph_manager"):
-                self.graph_manager.cleanup()
+            if hasattr(self, "haystack"):
+                self.haystack.cleanup()
         except Exception as e:
             print(f"  Error cleaning up graph manager: {e}")
 
@@ -142,9 +142,9 @@ class HaywireApp:
 
         # Graph manager — starts empty; graphs are created/opened on demand.
         # Haystack auto-load happens after workspace_manager is available (in main_page).
-        from .graph_manager import GraphManager
+        from .haystack import Haystack
 
-        self.graph_manager = GraphManager(workspace_root=Path(self.workspace_root))
+        self.haystack = Haystack(workspace_root=Path(self.workspace_root))
 
         # Library manager
         from .library_manager import LibraryManager
@@ -169,24 +169,24 @@ class HaywireApp:
         Subscribes the validation/broadcast handler on first open.
         Attaches the session to the entry and returns it.
         """
-        entry = self.graph_manager.open_graph(path, self._graph_factory)
+        entry = self.haystack.open_graph(path, self._graph_factory)
 
         # Subscribe only the first time this file is opened
         if not entry.sessions:
             self._subscribe_entry_validation(entry)
 
-        self.graph_manager.session_attach(entry, session_id)
+        self.haystack.session_attach(entry, session_id)
         return entry
 
     def create_new_graph(self, session_id: str):
         """
         Create a new unnamed graph and attach a session to it.
 
-        Produces a unique '__new_N__' entry in the GraphManager.
+        Produces a unique '__new_N__' entry in the Haystack.
         """
-        entry = self.graph_manager.create_new(self._graph_factory)
+        entry = self.haystack.create_new(self._graph_factory)
         self._subscribe_entry_validation(entry)
-        self.graph_manager.session_attach(entry, session_id)
+        self.haystack.session_attach(entry, session_id)
         return entry
 
     # ------------------------------------------------------------------
@@ -226,14 +226,14 @@ class HaywireApp:
         if not haystack_name:
             return
 
-        if self.graph_manager.all_entries():
+        if self.haystack.all_entries():
             # Already have graphs open (e.g. second session connecting) — skip
             return
 
         try:
-            self.graph_manager.load_haystack(haystack_name, self._graph_factory)
+            self.haystack.load_haystack(haystack_name, self._graph_factory)
             # Subscribe validation handlers for each loaded entry
-            for entry in self.graph_manager.all_entries().values():
+            for entry in self.haystack.all_entries().values():
                 self._subscribe_entry_validation(entry)
             logger.info(f"Startup haystack '{haystack_name}' loaded")
         except Exception as exc:

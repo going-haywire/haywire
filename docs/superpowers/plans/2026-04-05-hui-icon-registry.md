@@ -71,7 +71,7 @@ class AppIcons:
     node_status: Final[str] = "check_circle" # validation / runtime status
 
     # ── Graph ────────────────────────────────────────────────────────────────
-    graph_manager: Final[str] = "account_tree"  # multi-graph file browser
+    haystack: Final[str] = "account_tree"  # multi-graph file browser
 
     # ── Library / editor tabs ────────────────────────────────────────────────
     library_browser:   Final[str] = "widgets"     # library browser editor

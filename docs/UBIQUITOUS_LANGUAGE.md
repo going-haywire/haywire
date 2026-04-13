@@ -55,7 +55,7 @@
 | **Control Flow** | The ordered sequence of CONTROL/EVENT/OUTPUT nodes visited during execution; follows EXEC edges | Execution order |
 | **LocalizedDataFlow** | The per-control-node data dependency DAG, backpropagated from that node's inlets; only the nodes needed for that step | Global data flow (does not exist) |
 | **VM** | The two-stack virtual machine that interprets a Flow: a done-stack (prevents re-execution) + loopback-stack (loops) | Runtime (too generic), executor |
-| **Interpreter** | The component that drives the VM; owns scheduling, event dispatch, and graph load/unload | Runner |
+| **Interpreter** (updated) | A per-graph component that drives the VM; owns scheduling, event dispatch, and graph load/unload; each executing **GraphEntry** creates its own instance | Runner, shared interpreter (deprecated — no longer a singleton) |
 | **Worker** | The `worker()` method on a node class; the main execution logic called by the VM per node evaluation | Execute, run, process |
 | **Frame** | One full execution pass through a Flow from its entry EVENT node to completion | Tick (reserved for the Tick node event), cycle |
 | **Eager push** | Data transport mode where a Pipe immediately propagates a new value downstream on write | Synchronous push |
@@ -106,6 +106,16 @@
 | **Three-tier resolution** | The precedence chain for a settings value: global TOML override → workspace TOML override → local instance value → workspace TOML set → global TOML set → descriptor default | — |
 | **cache** | Transient, non-serialized per-node storage for computation buffers or memoization | temp, scratch |
 | **store** | Persistent, serialized per-node internal state not shown in the UI | private state |
+
+---
+
+## Graph Management
+
+| Term | Definition | Aliases to avoid |
+|------|-----------|-----------------|
+| **GraphEntry** | A runtime container for one open graph: holds the **Graph**, **Editor**, file path, unsaved flag, session set, and per-graph **Interpreter** | Graph slot, graph handle |
+| **Haystack** | A named, curated selection of **GraphEntry**'s stored as a TOML file in `haystacks/`; records which graphs are open and which should auto-execute on load | Session (overloaded with browser sessions), workspace (overloaded with layout), setlist, graphset |
+| **HaystackEditor** | The left-slot editor that lists all open graphs, provides play/stop per row, and save/load haystack actions in the header | GraphManagerEditor (renamed) |
 
 ---
 
@@ -172,6 +182,10 @@
 - A **Node** may declare one or more **NodeSettings** inner classes; each is accessible via its **accessor name** on the node instance.
 - A **NodeSettings** field may `mirrors=` a **FrameworkSettings** or **LibrarySettings** field; the value resolves through the **SettingsRegistry** via **Three-tier resolution**.
 - **FrameworkSettings** classes auto-register at registry init; **LibrarySettings** classes register via the **BaseRegistry** hot-reload path when their **Library** loads.
+- A **GraphEntry** wraps exactly one **Graph**, one **Editor** and one **Interpreter** when it is executing; these are created/destroyed by `start_execution()` / `stop_execution()`.
+- A **Haystack** references zero or more **GraphEntries** by relative file path; it also records which graph is active and which graphs should auto-execute on load.
+- `workspace_state.json` stores the last-loaded **Haystack** name; on startup, **HaywireApp** auto-loads it if present.
+- The **HaystackEditor** displays a **Haystack**'s entries and provides save/load **Haystack** actions and per-entry execution controls.
 
 ---
 
@@ -188,7 +202,20 @@
 
 ---
 
-### Settings dialogue (new)
+### Haystack dialogue
+
+> **Dev:** "I want to save the set of graphs I'm working on so I can come back to it later."
+> **Domain expert:** "Save a **Haystack** — it's a named TOML file in `haystacks/` that records which graphs are open. Use the save button in the **HaystackEditor** header."
+> **Dev:** "What if one of my graphs is currently executing? Does the **Haystack** capture that?"
+> **Domain expert:** "Yes — each graph entry in the **Haystack** has an `execute` flag. When you load the **Haystack** later, any graph marked `execute = true` will auto-start its **Interpreter**."
+> **Dev:** "And unsaved graphs — do they go into the **Haystack**?"
+> **Domain expert:** "No. A **Haystack** only stores paths to saved `.haywire` files. Unsaved **GraphEntries** (ones with no file path) are ephemeral — save the graph to disk first if you want it in a **Haystack**."
+> **Dev:** "When I load a **Haystack**, what happens to the graphs I already have open?"
+> **Domain expert:** "It's a full replace. If any current **GraphEntries** have unsaved changes, you'll get a confirmation dialog before they're discarded."
+
+---
+
+### Settings dialogue
 
 > **Dev:** "I want my node to respect the library's default quality setting, but let users override it per-node."
 > **Domain expert:** "Declare a **NodeSettings** inner class with a field that `mirrors=` the **LibrarySettings** field. The **accessor name** is whatever you call the inner class — `self.output`, say."
@@ -201,7 +228,7 @@
 
 ---
 
-## Flagged Ambiguities (updated 2026-04-12)
+## Flagged Ambiguities (updated 2026-04-13)
 
 - **"pin"** appears in the codebase and docs as both the colloquial name for the icon port and a general synonym for any port. Canonical terms are **Inlet** / **Outlet**; **Pin** is acceptable only for EXEC ports.
 - **"connection"** is used loosely to mean both the act of connecting (verb) and the edge itself (noun). Prefer **Edge** for the object, and **link** for the action.
@@ -211,6 +238,8 @@
 - **"sidebar"** is overloaded: the CSS token prefix `--hw-sidebar-*` refers specifically to the **ActivityBar** and **ContextBar** (the narrow 48px icon strips). It does NOT refer to the Left or Right **Slots** (the wider editor panels). Always qualify: use **ActivityBar**, **ContextBar**, or **Slot** for structural names; "sidebar" only appears as a CSS token prefix.
 - **"info bar"** appears in two distinct senses: `hui.info_bar()` is a Panel-level metadata bar pattern (§8.2 of the design guide); **StatusBar** is a shell-level bar at the bottom of the AppShell. They are different things — never use "info bar" to mean the StatusBar.
 - **"panel"** in CSS token names (`--hw-panel-*`) refers to the `.hw-panel` editor container, not the **Panel** sub-component concept. The CSS token `--hw-panel-bg` is the background of the editor container, not a per-Panel background.
-- (new) **"area" vs "slot"**: As of 2026-04-12, **Slot** is the canonical term for workspace positions. **Area** and **canvas_area** are deprecated. The term "area" now refers only to the content region within a slot (the part next to the bar). Each slot = bar + area; use **Slot** for the whole position, "area" (lowercase, informal) only for the content pane if disambiguation is needed.
-- (new) **"middle" vs "main"**: The slot formerly called "middle" is now **Main**. Use `default_slot='main'` in code. "Middle" is deprecated and will cause deserialization failures in `workspace_state.json`.
-- (new) **"hw-tabs" vs "hw-slot-bar-tabs"**: The CSS class `hw-tabs` is deprecated. Use `hw-slot-bar` (base) + `hw-slot-bar-tabs` (horizontal tab bars) or `hw-slot-bar-icons` (vertical icon bars).
+- **"area" vs "slot"**: As of 2026-04-12, **Slot** is the canonical term for workspace positions. **Area** and **canvas_area** are deprecated. The term "area" now refers only to the content region within a slot (the part next to the bar). Each slot = bar + area; use **Slot** for the whole position, "area" (lowercase, informal) only for the content pane if disambiguation is needed.
+- **"middle" vs "main"**: The slot formerly called "middle" is now **Main**. Use `default_slot='main'` in code. "Middle" is deprecated and will cause deserialization failures in `workspace_state.json`.
+- **"hw-tabs" vs "hw-slot-bar-tabs"**: The CSS class `hw-tabs` is deprecated. Use `hw-slot-bar` (base) + `hw-slot-bar-tabs` (horizontal tab bars) or `hw-slot-bar-icons` (vertical icon bars).
+- **"session" vs "haystack"**: "Session" in Haywire means a per-browser-connection state object (**Session**, **SessionContext**). A named selection of graphs to work on is a **Haystack**, not a "session" — despite IDE conventions. Do not use "session" to mean a saved graph selection.
+- **"interpreter"**: Each **GraphEntry** owns its own **Interpreter** instance. References to "the interpreter" should be qualified: "the graph's Interpreter" or "entry.interpreter". The app-level `self.interpreter` is removed.

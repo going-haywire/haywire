@@ -2,7 +2,7 @@
 """
 GraphEditor — wraps GraphCanvasManager as a BaseEditor.
 
-Supports multiple open graphs via the GraphManager in haywire-app.
+Supports multiple open graphs via the Haystack in haywire-app.
 When an ACTIVE_GRAPH_CHANGED event arrives the canvas is swapped out for
 the new graph's canvas without re-creating the outer shell.
 
@@ -55,7 +55,7 @@ class GraphEditor(BaseEditor):
 
     The 'project_state' entry in context.metadata is set by haywire-app and
     must expose:
-        .graph_manager          (GraphManager)  — preferred
+        .haystack          (Haystack)  — preferred
         .editor                 (Editor)        — fallback for untitled graph
         .skin_factory           (SkinFactory)
         .node_factory           (NodeFactory)
@@ -186,15 +186,15 @@ class GraphEditor(BaseEditor):
         logger.info(f"GraphEditor: canvas built for session {context.session_id[:8]}")
 
     def _get_entry(self, context: "SessionContext"):
-        """Look up the active GraphEntry from the graph_manager, if available."""
+        """Look up the active GraphEntry from the haystack, if available."""
         app = self._project_state
-        if app is None or not hasattr(app, "graph_manager"):
+        if app is None or not hasattr(app, "haystack"):
             return None
         if context.active_graph_path is not None:
-            return app.graph_manager.get_by_path(context.active_graph_path)
+            return app.haystack.get_by_path(context.active_graph_path)
         # path is None — use graph-object identity for '__new_N__' entries.
-        if context.active_graph is not None and hasattr(app.graph_manager, "get_by_graph"):
-            return app.graph_manager.get_by_graph(context.active_graph)
+        if context.active_graph is not None and hasattr(app.haystack, "get_by_graph"):
+            return app.haystack.get_by_graph(context.active_graph)
         return None
 
     # ------------------------------------------------------------------
@@ -272,7 +272,7 @@ class GraphEditor(BaseEditor):
     def _save_graph(self, context: "SessionContext") -> None:
         """Save the active graph; opens Save-As dialog if no path exists yet."""
         app = context.app
-        if app is None or not hasattr(app, "graph_manager"):
+        if app is None or not hasattr(app, "haystack"):
             ui.notify("Graph manager not available", type="warning")
             return
 
@@ -283,7 +283,7 @@ class GraphEditor(BaseEditor):
 
         if entry.path is not None:
             # Already has a path — just overwrite it
-            success = app.graph_manager.save_graph(entry)
+            success = app.haystack.save_graph(entry)
             if success:
                 ui.notify(f"Saved: {entry.path.name}", type="positive", position="top-right")
                 self._update_header(context)
@@ -304,7 +304,7 @@ class GraphEditor(BaseEditor):
     def _save_as_graph(self, context: "SessionContext") -> None:
         """Always open the Save-As dialog, regardless of whether a path exists."""
         app = context.app
-        if app is None or not hasattr(app, "graph_manager"):
+        if app is None or not hasattr(app, "haystack"):
             ui.notify("Graph manager not available", type="warning")
             return
         entry = self._get_entry(context)
@@ -425,7 +425,7 @@ class GraphEditor(BaseEditor):
                 self._save_exists_warning.set_visibility(True)
             return  # stay in the dialog
 
-        success = app.graph_manager.save_graph(entry, save_as=save_path)
+        success = app.haystack.save_graph(entry, save_as=save_path)
         if success:
             context.active_graph_path = save_path
             session = context.session

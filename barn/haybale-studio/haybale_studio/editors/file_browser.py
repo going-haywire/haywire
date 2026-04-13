@@ -172,11 +172,11 @@ class FileBrowserEditor(BaseEditor):
         if app is not None and hasattr(app, "open_graph_file") and session is not None:
             # Detach from whichever graph this session is currently viewing
             if context.active_graph_path is not None:
-                prev_entry = app.graph_manager.get_by_path(context.active_graph_path)
+                prev_entry = app.haystack.get_by_path(context.active_graph_path)
             else:
-                prev_entry = app.graph_manager.get_untitled()
+                prev_entry = app.haystack.get_untitled()
             if prev_entry is not None:
-                app.graph_manager.session_detach(prev_entry, session.session_id)
+                app.haystack.session_detach(prev_entry, session.session_id)
 
             # Open (or reuse) the graph entry and attach this session
             entry = app.open_graph_file(path, session.session_id)

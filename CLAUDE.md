@@ -18,7 +18,7 @@ When user runs a slash command or skill, execute it immediately without asking c
 - **`packages/haywire-studio/`** — CLI application (`haywire` entry point)
   - `app.py` — main `HaywireApp` class (~500 lines)
   - `config.py` — global/project TOML config
-  - `graph_manager.py` — GraphManager, file-centric multi-graph registry
+  - `haystack.py` — file-centric multi-graph registry
   - `library_manager.py` — runtime library install/UI
   - `init.py` / `share.py` — CLI subcommands
 - **`barn/haybale-*/`** — plugin node libraries

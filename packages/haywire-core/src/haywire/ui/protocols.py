@@ -21,7 +21,7 @@ class IGraphManager(Protocol):
     """
     Structural interface for graph file management.
 
-    GraphManager in haywire-studio satisfies this protocol without inheriting from it.
+    Haystack in haywire-studio satisfies this protocol without inheriting from it.
     Factory args are typed as Any to avoid importing the studio-specific GraphFactory
     type alias into haywire.ui.
     """
@@ -43,7 +43,7 @@ class IProjectState(Protocol):
     library_service: "LibrarySystemService"
     workspace_root: str
     session_manager: "SessionManager"
-    graph_manager: IGraphManager
+    haystack: IGraphManager
     node_registry: Any  # NodeRegistry
     node_factory: Any  # NodeFactory
     library_manager: "LibraryManager"

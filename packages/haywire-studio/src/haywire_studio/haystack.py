@@ -1,6 +1,6 @@
-# packages/haywire-app/src/haywire_studio/graph_manager.py
+# packages/haywire-app/src/haywire_studio/haystack.py
 """
-GraphManager — file-centric multi-graph registry.
+Haystack — file-centric multi-graph registry.
 
 Each .haywire file gets its own GraphEntry (graph + editor). Two sessions
 opening the same file share the same entry and collaborate in real time.
@@ -11,22 +11,22 @@ from a TOML file in the ``haystacks/`` folder at the workspace root.
 
 Usage in app.py::
 
-    graph_manager = GraphManager(workspace_root=Path(...))
-    untitled = graph_manager.create_untitled(factory)
+    haystack = Haystack(workspace_root=Path(...))
+    untitled = haystack.create_untitled(factory)
 
     # When a file is opened:
-    entry = graph_manager.open_graph(path, factory)
-    graph_manager.session_attach(entry, session_id)
+    entry = haystack.open_graph(path, factory)
+    haystack.session_attach(entry, session_id)
 
     # On save:
-    graph_manager.save_graph(entry)
+    haystack.save_graph(entry)
 
     # Save/load haystacks:
-    graph_manager.save_haystack("default")
-    graph_manager.load_haystack("default", factory)
+    haystack.save_haystack("default")
+    haystack.load_haystack("default", factory)
 
     # On session disconnect:
-    graph_manager.session_detach(entry, session_id)
+    haystack.session_detach(entry, session_id)
 """
 
 from dataclasses import dataclass, field
@@ -110,7 +110,7 @@ class GraphEntry:
         logger.info(f"Execution stopped for graph '{self.display_name}'")
 
 
-class GraphManager:
+class Haystack:
     """
     Manages all open graph instances and haystack persistence.
 

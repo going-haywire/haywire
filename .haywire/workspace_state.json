@@ -8,7 +8,7 @@
   },
   "right": {
     "active_tab_key": "studio:editor:properties",
-    "visible": true,
+    "visible": false,
     "size": 350
   },
   "main": {
@@ -32,7 +32,7 @@
     "active_tab_key": "studio:editor:graph_editor"
   },
   "bottom": {
-    "active_tab_key": "studio:editor:terminal",
+    "active_tab_key": "studio:editor:TerminalEditor",
     "visible": true,
     "size": 200
   }

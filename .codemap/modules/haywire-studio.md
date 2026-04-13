@@ -22,7 +22,7 @@ haywire_studio/
 ├── __main__.py                 # python -m haywire_studio entry
 ├── app.py                      # HaywireApp — main application class
 ├── config.py                   # Global + project TOML config
-├── graph_manager.py            # GraphManager — file-centric multi-graph registry
+├── haystack.py                 # Haystack — file-centric multi-graph registry
 ├── library_manager.py          # LibraryManager — runtime library install/UI
 ├── init.py                     # `haywire init` CLI subcommand
 ├── share.py                    # `haywire share` CLI subcommand
@@ -38,7 +38,7 @@ haywire_studio/
 **Always-load**:
 - `app.py` — understand HaywireApp bootstrap, DI wiring, NiceGUI startup
 - `config.py` — where/how TOML settings are loaded (global vs project)
-- `graph_manager.py` — multi-graph file system model
+- `haystack.py` — multi-graph file system model
 
 **On-demand**:
 - `library_manager.py` — only when working on runtime library install/UI
@@ -51,11 +51,11 @@ haywire_studio/
 - **CLI entry point only** — this package should not export reusable library APIs.
 - **Config hierarchy**: global (`~/.haywire/settings.toml`) → project (`.haywire/settings.toml`).
   Managed by `config.py`; do not bypass this for settings resolution.
-- **GraphManager is file-centric** — each open graph corresponds to a `.haywire` file; the
+- **Haystack is file-centric** — each open graph corresponds to a `.haywire` file; the
   manager handles load/save/close lifecycle.
 - **Workspace layouts are user-owned** — no built-in presets are seeded; `WorkspaceManager`
   starts empty and loads user-saved presets from `.haywire/workspaces.json`.
-- No direct NiceGUI import in `config.py` or `graph_manager.py` — only `app.py` and `workspace/`
+- No direct NiceGUI import in `config.py` or `haystack.py` — only `app.py` and `workspace/`
   should touch NiceGUI directly.
 
 ---
@@ -66,7 +66,7 @@ haywire_studio/
 |---------|------|
 | App bootstrap & DI wiring | `app.py` |
 | TOML config resolution | `config.py` |
-| Multi-graph file registry | `graph_manager.py` |
+| Multi-graph file registry | `haystack.py` |
 | Runtime library install | `library_manager.py` |
 
 ---
