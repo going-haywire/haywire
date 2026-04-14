@@ -235,18 +235,12 @@ class LibraryBrowserEditor(BaseEditor):
         context.active_library = lib
         context.active_component = None
 
-        # Switch main tab to library_detail if it exists
-        main_tabs = context.metadata.get("main_tabs")
-        if main_tabs is not None:
-            try:
-                main_tabs.set_value("studio:editor:library_detail")
-            except Exception:
-                pass
-
         session = context.session
         if session is not None:
+            from haybale_studio.editors.library_overview_editor import LibraryOverviewEditor
             session.notify_context_changed(
                 ContextChangedEvent(
+                    reveal_editor=LibraryOverviewEditor.class_identity.registry_key,
                     change_type=ContextChangeType.LIBRARY_STATE_CHANGED,
                     source_editor="library_browser",
                 )

@@ -184,40 +184,34 @@ class FileBrowserEditor(BaseEditor):
             context.active_graph = entry.graph
             context.active_graph_path = path
 
-            # Broadcast ACTIVE_GRAPH_CHANGED to all editors in this session
+            # Broadcast ACTIVE_GRAPH_CHANGED + reveal the graph editor tab.
             session.notify_context_changed(
                 ContextChangedEvent(
                     change_type=ContextChangeType.ACTIVE_GRAPH_CHANGED,
                     source_editor="file_browser",
                     detail=entry,
+                    reveal_editor="studio:editor:graph_editor",
                 )
             )
         elif app is not None and hasattr(app, "_do_load_graph"):
             # Fallback for backward compat (loads into shared untitled graph)
             app._do_load_graph(str(path))
 
-        self._switch_main_tab("studio:editor:graph_editor", context)
-
     def _open_in_file_viewer(self, path: Path, context: "SessionContext") -> None:
-        """Switch to the file_viewer tab and broadcast FILE_SELECTED."""
-        self._switch_main_tab("studio:editor:file_viewer", context)
+        """Broadcast FILE_SELECTED and reveal the file viewer tab."""
         session = context.session
         if session is not None:
+
+            from haybale_studio.editors.file_viewer import FileViewerEditor
+
             session.notify_context_changed(
                 ContextChangedEvent(
                     change_type=ContextChangeType.FILE_SELECTED,
                     source_editor="file_browser",
                     detail=path,
+                    reveal_editor=FileViewerEditor.class_identity.registry_key,
                 )
             )
-
-    def _switch_main_tab(self, editor_id: str, context: "SessionContext") -> None:
-        tabs = context.metadata.get("main_tabs")
-        if tabs is not None:
-            try:
-                tabs.set_value(editor_id)
-            except Exception:
-                pass
 
     def _refresh(self, context: "SessionContext") -> None:
         self._render_tree(context)

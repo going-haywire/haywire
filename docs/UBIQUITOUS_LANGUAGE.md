@@ -134,8 +134,7 @@
 | **BottomSlotState** (new) | Dataclass representing the Bottom slot's persisted state: tab list, `active_tab_key`, `visible`, `size` | BottomAreaState (deprecated) |
 | **TabState** | Dataclass for one tab within a tabbed slot (Main or Bottom): `editor_key`, `label`, `metadata` | — |
 | **active_tab_key** (new) | The unified field on all slot state dataclasses that stores which editor is currently shown in that slot | editor_key (on slot state — deprecated), left_bar_active, right_bar_active (removed) |
-| **main_tabs** (new) | The `SessionContext.metadata` key holding the Main slot's `Tabs` element reference; used by editors to switch the active main tab programmatically | middle_tabs (deprecated) |
-| **bottom_tabs** (new) | The `SessionContext.metadata` key holding the Bottom slot's `Tabs` element reference | — |
+| **reveal_editor** (new) | An optional field on `ContextChangedEvent`. When set to an editor's registry key, the AppShell switches the hosting slot to that editor as part of the same event dispatch. Replaces the removed `main_tabs`/`bottom_tabs` `metadata` shims. | main_tabs/bottom_tabs (removed) |
 | **AppShell** (updated) | The top-level layout component composed of: TopBar + ActivityBar + Left/Main/Right/Bottom Slots + ContextBar + StatusBar | Shell, frame |
 | **TopBar** | The 48px bar along the top edge of the AppShell; contains the app name, workspace switcher, and global actions | Header, navbar |
 | **StatusBar** | The 24px bar along the bottom edge of the AppShell; shows session info and status messages | Footer, info bar (Info Bar is a Panel pattern, not the StatusBar) |

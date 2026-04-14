@@ -213,14 +213,13 @@ class SessionContext:
 | `'project_state'`   | `HaywireApp`    | The main app object (node_registry, library_manager, etc.)            |
 | `'panel_registry'`  | `PanelRegistry` | The DI-managed panel registry                                         |
 | `'haywire_session'` | `Session`       | The current session (for firing events)                               |
-| `'main_tabs'`       | `ui.tabs`       | NiceGUI tabs element for the main slot (programmatic tab switching)   |
-| `'bottom_tabs'`     | `ui.tabs`       | NiceGUI tabs element for the bottom slot (programmatic tab switching) |
 
-To surface a particular editor as part of firing a context event, set
-`reveal_editor` on the `ContextChangedEvent` to the target editor's
-`registry_key`. The AppShell orchestrator resolves the slot from the editor's
-`default_slot` and switches it before running the poll/draw cycle. See
-`docs/documentation/build_editors.md` § *Driving Other Slots* for details.
+Programmatic tab switching does NOT use `context.metadata`. To surface a
+particular editor as part of firing a context event, set `reveal_editor` on
+the `ContextChangedEvent` to the target editor's `registry_key`. The AppShell
+orchestrator resolves the hosting slot (left, right, main, or bottom) from
+the editor's registration and switches it before running the poll/draw cycle.
+See `docs/documentation/build_editors.md` § *Driving Other Slots* for details.
 
 Editors and panels should always access services via `context.metadata` rather than storing their own references, since this keeps them session-safe.
 

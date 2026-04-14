@@ -874,23 +874,15 @@ class HaystackEditor(BaseEditor):
             app.haystack.session_detach(current_entry, session.session_id)
 
     def _activate_entry(self, entry: "GraphEntry", context: "SessionContext", session) -> None:
-        """Fire ACTIVE_GRAPH_CHANGED and switch to the graph editor tab."""
+        """Fire ACTIVE_GRAPH_CHANGED and reveal the graph editor tab."""
         session.notify_context_changed(
             ContextChangedEvent(
                 change_type=ContextChangeType.ACTIVE_GRAPH_CHANGED,
                 source_editor="haystack",
                 detail=entry,
+                reveal_editor=_GRAPH_EDITOR_KEY,
             )
         )
-        self._switch_to_graph_editor(context)
-
-    def _switch_to_graph_editor(self, context: "SessionContext") -> None:
-        tabs = context.metadata.get("main_tabs")
-        if tabs is not None:
-            try:
-                tabs.set_value(_GRAPH_EDITOR_KEY)
-            except Exception:
-                pass
 
     # ------------------------------------------------------------------
     # cleanup

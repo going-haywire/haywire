@@ -67,25 +67,19 @@ class AppShell:
         self.session = session
         self._editor_registry = editor_registry
 
-        # Poll/draw orchestrator state -----------------------------------------
-        # Managed slots (left, right) — PR1 of the Slot/EditorBinding refactor.
-        # PR2 will absorb main/bottom and remove _editor_cache + _slots below.
+        # Poll/draw orchestrator state — every slot (left, right, main,
+        # bottom) is a managed :class:`Slot` that owns its area and bindings.
         self._managed_slots: dict[str, Slot] = {}
-        # Cached editor instances keyed by registry_key — still used by main/bottom
-        # tabs and by the hot-reload handler. Removed in PR2 once every slot is
-        # managed via self._managed_slots.
-        self._editor_cache: dict[str, "BaseEditor"] = {}
-        # Legacy poll/draw map for main/bottom tabs. Entries are keyed by
-        # 'main:<editor_key>' / 'bottom:<editor_key>' and hold
-        # (editor_key, container_element). Left/right no longer appear here —
-        # their poll/draw goes through self._managed_slots. Removed in PR2.
-        self._slots: dict[str, tuple[Optional[str], Optional["ui.element"]]] = {}
 
         # DOM references -------------------------------------------------------
         self._left_slot_parent = None  # parent container the left Slot renders its area into
         self._right_slot_parent = None  # parent container the right Slot renders its area into
+        self._main_slot_parent = None  # parent container the main Slot renders its area into
+        self._bottom_slot_parent = None  # parent container the bottom Slot renders its area into
         self._activity_bar = None  # left slot's bar (vertical icons)
         self._context_bar = None  # right slot's bar (vertical icons)
+        self._main_bar = None  # main slot's bar (horizontal tabs)
+        self._bottom_bar = None  # bottom slot's bar (horizontal tabs + chevron)
         self._left_divider = None  # drag handle between left and main slots
         self._right_divider = None  # drag handle between main and right slots
         self._bottom_container = None  # bottom slot area (hidden when retracted)
@@ -633,137 +627,100 @@ class AppShell:
     def _render_main_slot(self) -> None:
         """Render the main slot (MainTabBar + area) plus the bottom slot.
 
-        Main and bottom share the same tab-bar rendering helper. The bottom
-        slot sits inside the same column as the main slot so it occupies the
-        space below the main slot's area. The main slot fills ``flex: 1``;
-        the bottom slot adds a divider + always-visible BottomTabBar +
-        collapsible area below it.
+        Both main and bottom are managed :class:`Slot` instances. The bar
+        for each renders a row of tabs whose click handler calls
+        :meth:`_switch_main_slot` / :meth:`_switch_bottom_slot`. The area
+        below the bar is the :class:`Slot`'s own container, and only the
+        active binding is mounted in the DOM at any time.
         """
         ws = self.session.workspace_manager.active
 
         # ---------- Main slot ----------
+        # Rendered as flex-items directly inside the caller's ``main_col``
+        # (the outer flex column). The bar is flex-shrink:0 and the area
+        # takes ``flex: 1`` of the remaining height. An intermediate wrapper
+        # breaks flex sizing when the bottom slot is a sibling below.
         if ws.main.tabs:
-            main_tabs_element = self._render_tab_bar(
-                tabs=ws.main.tabs,
-                tabs_metadata_key="main_tabs",
-            )
-            self._render_tab_panels(
-                tabs_element=main_tabs_element,
-                tabs=ws.main.tabs,
-                active_tab_key=ws.main.active_tab_key,
-                slot_prefix="main",
-                panels_style="flex: 1; overflow: hidden; min-height: 0;",
-            )
+            main_slot = self._build_managed_slot("main", ws.main.active_tab_key)
+            # Keep workspace state in sync with the slot's resolved active key
+            # (falls back to the first binding when the persisted key is stale).
+            if main_slot.active_key is not None:
+                ws.main.active_tab_key = main_slot.active_key
+
+            self._render_main_bar()
+            with (
+                ui.column()
+                .classes("gap-0 w-full")
+                .style("flex: 1; min-height: 0; overflow: hidden;") as main_area_parent
+            ):
+                self._main_slot_parent = main_area_parent
+                main_slot.render_area(main_area_parent)
         else:
-            # No tabs — single empty main slot
-            with ui.column().style("flex: 1; height: 100%; overflow: hidden;"):
-                self._render_slot("main", None)
+            # No tabs — empty placeholder.
+            with ui.column().classes("w-full").style("flex: 1; min-height: 0; overflow: hidden;"):
+                ui.label("No editor").classes("hw-text-muted p-4")
 
         # ---------- Bottom slot ----------
-        # Only rendered when at least one bottom editor is registered.
-        # Structure when rendered:
-        #   [vertical drag divider]
-        #   [BottomTabBar]  ← always visible (retracted state)
-        #   [bottom area]   ← visible only when bottom.visible is True
         if ws.bottom.tabs:
             self._render_bottom_slot()
 
-    def _render_tab_bar(
-        self,
-        tabs: list,
-        tabs_metadata_key: str,
-        extra_row_style: str = "",
-        trailing_controls: Optional[Callable[[], None]] = None,
-    ) -> "ui.element":
-        """Render a tab-style slot bar and return the ``ui.tabs`` element.
-
-        Shared by the main and bottom slots (MainTabBar / BottomTabBar) so
-        their structure stays in lock-step. The caller is responsible for
-        wiring the returned element into ``ui.tab_panels`` via
-        :meth:`_render_tab_panels`.
-
-        Args:
-            tabs: List of ``TabState`` instances to render as tabs.
-            tabs_metadata_key: Key under which the ``ui.tabs`` element is
-                stashed in ``session.context.metadata`` so editors can
-                programmatically switch tabs.
-            extra_row_style: Additional inline style appended to the bar row
-                (e.g. adding a top border for the BottomTabBar).
-            trailing_controls: Optional callable rendered inside the bar row
-                after the tabs (e.g. the bottom slot's retract chevron).
-
-        Returns:
-            The ``ui.tabs`` element, which the caller passes to
-            :meth:`_render_tab_panels`.
-        """
-        base_row_style = (
-            "background: var(--hw-bg-surface); border-bottom: 1px solid var(--hw-border); min-height: 36px;"
-        )
+    def _render_main_bar(self) -> None:
+        """Render the main slot's tab bar wrapper plus its current contents."""
         with (
             ui.row()
             .classes("w-full items-center gap-0 flex-shrink-0 hw-slot-bar")
-            .style(base_row_style + extra_row_style)
+            .style(
+                "background: var(--hw-bg-surface);"
+                " border-bottom: 1px solid var(--hw-border); min-height: 36px;"
+            ) as main_bar
         ):
-            with (
-                ui.tabs()
-                .props("dense align=left")
-                .classes("hw-slot-bar-tabs")
-                .style("flex: 1; min-height: 36px;") as tabs_element
-            ):
-                for tab in tabs:
-                    ui.tab(name=tab.editor_key, label=tab.label).props("no-caps")
+            self._main_bar = main_bar
+            self._render_main_bar_contents()
 
-            if trailing_controls is not None:
-                trailing_controls()
+    def _render_main_bar_contents(self) -> None:
+        """Render the clickable tabs for the main slot."""
+        ws = self.session.workspace_manager.active
+        self._render_slot_tabs(
+            tabs=ws.main.tabs,
+            active_tab_key=ws.main.active_tab_key,
+            on_select=self._switch_main_slot,
+        )
 
-        self.session.context.metadata[tabs_metadata_key] = tabs_element
-        return tabs_element
-
-    def _render_tab_panels(
+    def _render_slot_tabs(
         self,
-        tabs_element: "ui.element",
         tabs: list,
         active_tab_key: Optional[str],
-        slot_prefix: str,
-        panels_style: str,
+        on_select: Callable[[str], None],
     ) -> None:
-        """Render the ``ui.tab_panels`` container for a tabbed slot.
+        """Render a Quasar-styled ``ui.tabs`` row wired to ``on_select``.
 
-        Each tab gets its own ``ui.tab_panel`` and its editor is drawn once
-        via :meth:`_render_slot` with slot name ``slot_prefix`` so the
-        poll/draw loop treats every tab as a mounted editor.
-
-        Args:
-            tabs_element: The ``ui.tabs`` element returned by
-                :meth:`_render_tab_bar`.
-            tabs: List of ``TabState`` instances (same list used for the
-                slot bar).
-            active_tab_key: ``editor_key`` of the initially active tab. If
-                None or not present in ``tabs``, the first tab is used.
-            slot_prefix: Slot identifier ('main' or 'bottom') passed
-                through to :meth:`_render_slot`.
-            panels_style: Inline style for the ``ui.tab_panels`` container.
+        The selection is one-way: clicks fire ``on_select(editor_key)`` and
+        the shell's switch helper updates the Slot. The ``ui.tabs`` value
+        prop is set only for initial styling; the bar row is cleared and
+        re-rendered on every switch.
         """
-        valid_keys = {t.editor_key for t in tabs}
-        initial_value = active_tab_key if active_tab_key in valid_keys else tabs[0].editor_key
+        keys = [t.editor_key for t in tabs]
+        initial = active_tab_key if active_tab_key in keys else (keys[0] if keys else None)
 
-        with ui.tab_panels(tabs_element, value=initial_value).classes("w-full").style(panels_style):
+        with (
+            ui.tabs(value=initial, on_change=lambda e: on_select(e.value))
+            .props("dense align=left")
+            .classes("hw-slot-bar-tabs")
+            .style("flex: 1; min-height: 36px;")
+        ):
             for tab in tabs:
-                with ui.tab_panel(tab.editor_key).style("height: 100%; padding: 0;"):
-                    self._render_slot(slot_prefix, tab.editor_key)
+                ui.tab(name=tab.editor_key, label=tab.label).props("no-caps")
 
     def _render_bottom_slot(self) -> None:
-        """Render the bottom slot inside the main column.
+        """Render the bottom slot below the main slot.
 
         Structure:
             [vertical drag divider] — visibility follows ``bottom.visible``
             [BottomTabBar]          — always visible (retracted state)
             [bottom area]           — visibility follows ``bottom.visible``
 
-        The BottomTabBar stays visible when ``bottom.visible`` is False; only
-        the divider and area hide. The retract chevron is injected into the
-        bar row via ``trailing_controls``. The area is given
-        ``id="hw-slot-bottom"`` so the JS vertical drag handler can find it.
+        The area is given ``id="hw-slot-bottom"`` so the JS vertical drag
+        handler can find it.
         """
         ws = self.session.workspace_manager.active
 
@@ -775,23 +732,12 @@ class AppShell:
         )
         self._bottom_divider.set_visibility(ws.bottom.visible)
 
-        def _render_chevron() -> None:
-            chevron_icon = "expand_less" if ws.bottom.visible else "expand_more"
-            self._btn_bottom = (
-                ui.button(icon=chevron_icon, on_click=self._toggle_bottom_slot)
-                .props("flat round dense size=sm")
-                .tooltip("Toggle bottom slot")
-                .classes("flex-shrink-0 mr-1")
-            )
+        bottom_slot = self._build_managed_slot("bottom", ws.bottom.active_tab_key)
+        if bottom_slot.active_key is not None:
+            ws.bottom.active_tab_key = bottom_slot.active_key
 
-        bottom_tabs_element = self._render_tab_bar(
-            tabs=ws.bottom.tabs,
-            tabs_metadata_key="bottom_tabs",
-            extra_row_style=" border-top: 1px solid var(--hw-border);",
-            trailing_controls=_render_chevron,
-        )
+        self._render_bottom_bar()
 
-        # Area (hidden when retracted).
         with (
             ui.column()
             .classes("gap-0")
@@ -799,16 +745,41 @@ class AppShell:
                 f"height: {ws.bottom.size}px; min-height: 0; width: 100%; overflow: hidden;"
             ) as bottom_col
         ):
-            self._render_tab_panels(
-                tabs_element=bottom_tabs_element,
-                tabs=ws.bottom.tabs,
-                active_tab_key=ws.bottom.active_tab_key,
-                slot_prefix="bottom",
-                panels_style="height: 100%; overflow: hidden;",
-            )
+            self._bottom_slot_parent = bottom_col
+            bottom_slot.render_area(bottom_col)
         bottom_col._props["id"] = "hw-slot-bottom"
         self._bottom_container = bottom_col
         bottom_col.set_visibility(ws.bottom.visible)
+
+    def _render_bottom_bar(self) -> None:
+        """Render the bottom slot's tab bar wrapper plus its current contents."""
+        with (
+            ui.row()
+            .classes("w-full items-center gap-0 flex-shrink-0 hw-slot-bar")
+            .style(
+                "background: var(--hw-bg-surface);"
+                " border-top: 1px solid var(--hw-border);"
+                " border-bottom: 1px solid var(--hw-border); min-height: 36px;"
+            ) as bottom_bar
+        ):
+            self._bottom_bar = bottom_bar
+            self._render_bottom_bar_contents()
+
+    def _render_bottom_bar_contents(self) -> None:
+        """Render the clickable tabs + retract chevron for the bottom slot."""
+        ws = self.session.workspace_manager.active
+        self._render_slot_tabs(
+            tabs=ws.bottom.tabs,
+            active_tab_key=ws.bottom.active_tab_key,
+            on_select=self._switch_bottom_slot,
+        )
+        chevron_icon = "expand_less" if ws.bottom.visible else "expand_more"
+        self._btn_bottom = (
+            ui.button(icon=chevron_icon, on_click=self._toggle_bottom_slot)
+            .props("flat round dense size=sm")
+            .tooltip("Toggle bottom slot")
+            .classes("flex-shrink-0 mr-1")
+        )
 
     def _render_statusbar(self) -> None:
         """Render the status bar at the bottom."""
@@ -825,14 +796,36 @@ class AppShell:
     def _build_managed_slot(self, slot_name: str, active_key: Optional[str]) -> Slot:
         """Construct and cache a managed :class:`Slot` for ``slot_name``.
 
-        Seeds the slot's initial bindings from the editor registry's
-        ``get_by_default_slot`` result. All payloads are ``None`` — the
-        multi-instance payload scope lands in a follow-up PRD.
+        * Left/right bindings come from the editor registry's
+          ``get_by_default_slot`` lookup.
+        * Main/bottom bindings come from the workspace state's persisted
+          tab list, resolving each tab's ``editor_key`` against the
+          registry. Tabs whose class can't be resolved are skipped.
+
+        All payloads are ``None`` — the multi-instance payload scope lands
+        in a follow-up PRD.
         """
-        editors = self._editor_registry.get_by_default_slot(slot_name) if self._editor_registry else {}
-        bindings = [
-            EditorBinding(editor_key=key, editor_cls=cls, payload=None) for key, cls in editors.items()
-        ]
+        bindings: list[EditorBinding] = []
+        if slot_name in ("left", "right"):
+            editors = self._editor_registry.get_by_default_slot(slot_name) if self._editor_registry else {}
+            bindings = [
+                EditorBinding(editor_key=key, editor_cls=cls, payload=None) for key, cls in editors.items()
+            ]
+        else:
+            ws = self.session.workspace_manager.active
+            tabs = ws.main.tabs if slot_name == "main" else ws.bottom.tabs
+            for tab in tabs:
+                if tab.editor_key is None:
+                    continue
+                cls = self._editor_registry.get_by_key(tab.editor_key) if self._editor_registry else None
+                if cls is None:
+                    logger.warning(
+                        f"AppShell: slot '{slot_name}' tab '{tab.editor_key}' "
+                        "has no registered editor class; skipping binding"
+                    )
+                    continue
+                bindings.append(EditorBinding(editor_key=tab.editor_key, editor_cls=cls, payload=None))
+
         slot = Slot(
             session=self.session,
             name=slot_name,
@@ -842,66 +835,9 @@ class AppShell:
         self._managed_slots[slot_name] = slot
         return slot
 
-    def _render_slot(self, slot: str, editor_key: Optional[str]) -> None:
-        """Render a single slot, instantiating the editor if needed.
-
-        Creates a container, obtains (or creates) a cached editor instance,
-        and calls draw() directly (first-assignment — no poll).
-
-        Args:
-            slot: Slot identifier ('main', 'bottom'). Left/right go through
-                :class:`Slot` via :meth:`_build_managed_slot`.
-            editor_key: Registry key of the editor to render, or None.
-        """
-        if not editor_key:
-            ui.label("No editor").classes("hw-text-muted p-4")
-            return
-
-        editor_cls = None
-        if self._editor_registry:
-            editor_cls = self._editor_registry.get_by_key(editor_key)
-
-        if editor_cls is None:
-            with ui.column().classes("w-full h-full items-center justify-center"):
-                ui.icon("extension").classes("hw-text-dim text-4xl")
-                ui.label(f"Editor: {editor_key}").classes("hw-text-muted")
-            return
-
-        try:
-            editor_instance = self._get_or_create_editor(editor_key, editor_cls)
-            container_div = (
-                ui.element("div")
-                .classes("hw-panel")
-                .style(
-                    "width: 100%; height: 100%; background: var(--hw-bg-page); color: var(--hw-text-body);"
-                )
-            )
-            # Track the slot → (editor_key, container) mapping for poll/draw.
-            # Tabbed slots (main, bottom) share one slot name across many
-            # tabs, so the editor_key is included in the key to avoid
-            # overwriting each other in the dict.
-            if slot in ("main", "bottom"):
-                slot_key = f"{slot}:{editor_key}"
-            else:
-                slot_key = slot
-            self._slots[slot_key] = (editor_key, container_div)
-            # First-assignment draw — no poll.
-            editor_instance.draw(self.session.context, container_div)
-        except Exception as e:
-            logger.error(f"AppShell: Failed to render editor '{editor_key}' in slot '{slot}': {e}")
-            ui.label(f"Error loading editor: {editor_key}").classes("hw-text-danger p-4")
-
     # ------------------------------------------------------------------
     # Poll / draw orchestrator
     # ------------------------------------------------------------------
-
-    def _get_or_create_editor(self, editor_key: str, editor_cls: "type[BaseEditor]") -> "BaseEditor":
-        """Return a cached editor instance or create and cache a new one."""
-        instance = self._editor_cache.get(editor_key)
-        if instance is None:
-            instance = editor_cls()
-            self._editor_cache[editor_key] = instance
-        return instance
 
     def _reveal_editor(self, editor_key: str) -> None:
         """Ensure ``editor_key`` is the active editor in its default slot.
@@ -926,7 +862,7 @@ class AppShell:
             return
 
         slot = getattr(editor_cls.class_identity, "default_slot", None)
-        if slot in ("left", "right"):
+        if slot in self._managed_slots:
             self._apply_managed_slot_switch(slot, editor_key)
         else:
             logger.warning(
@@ -935,28 +871,12 @@ class AppShell:
             )
 
     def _on_context_changed(self, event: ContextChangedEvent, context: "SessionContext") -> None:
-        """Orchestrator callback: run the poll/draw cycle on all active editors."""
+        """Orchestrator callback: run the poll/draw cycle on every managed slot."""
         if event.reveal_editor is not None:
             self._reveal_editor(event.reveal_editor)
 
-        # Managed slots (left, right) — each Slot runs the poll/draw gate
-        # on its own active binding.
         for slot in self._managed_slots.values():
             slot.handle_context_event(event)
-
-        # Legacy main/bottom tabs — PR2 will migrate these to managed slots.
-        for slot_key, (editor_key, container) in self._slots.items():
-            if editor_key is None or container is None:
-                continue
-            instance = self._editor_cache.get(editor_key)
-            if instance is None:
-                continue
-            try:
-                if instance.poll(context, event):
-                    container.clear()
-                    instance.draw(context, container)
-            except Exception as e:
-                logger.error(f"AppShell: poll/draw error for '{editor_key}' in slot '{slot_key}': {e}")
 
     def _on_editor_lifecycle(self, events: "list[LifeCycleEvent]") -> None:
         """Handle editor class hot-reload events from EditorTypeRegistry."""
@@ -975,29 +895,11 @@ class AppShell:
             ):
                 continue
 
-            # Managed slots (left, right) — route via Slot helpers.
             for managed in self._managed_slots.values():
                 if evt.event_type == LifeCycleEventType.CLASS_RELOADED and evt.affected_class is not None:
                     managed.replace_class(evt.registry_key, evt.affected_class, cleanup_old=_cleanup)
                 elif evt.event_type == LifeCycleEventType.CLASS_REMOVED:
                     managed.remove_bindings(evt.registry_key, cleanup=_cleanup)
-
-            # Legacy main/bottom cache + redraw path. Removed in PR2.
-            old_instance = self._editor_cache.pop(evt.registry_key, None)
-            if old_instance is not None:
-                _cleanup(old_instance)
-
-            if evt.event_type == LifeCycleEventType.CLASS_RELOADED and evt.affected_class is not None:
-                for slot, (editor_key, container) in self._slots.items():
-                    if editor_key == evt.registry_key and container is not None:
-                        try:
-                            new_instance = self._get_or_create_editor(editor_key, evt.affected_class)
-                            container.clear()
-                            new_instance.draw(self.session.context, container)
-                        except Exception as e:
-                            logger.error(
-                                f"AppShell: hot-reload draw error for '{editor_key}' in slot '{slot}': {e}"
-                            )
 
     def _toggle_left_slot(self) -> None:
         """Toggle the left slot visibility."""
@@ -1121,6 +1023,22 @@ class AppShell:
         with self._context_bar:
             self._render_context_bar_contents()
 
+    def _refresh_main_bar(self) -> None:
+        """Re-render the main slot's tab bar so the active tab stays in sync."""
+        if self._main_bar is None:
+            return
+        self._main_bar.clear()
+        with self._main_bar:
+            self._render_main_bar_contents()
+
+    def _refresh_bottom_bar(self) -> None:
+        """Re-render the bottom slot's tab bar so the active tab stays in sync."""
+        if self._bottom_bar is None:
+            return
+        self._bottom_bar.clear()
+        with self._bottom_bar:
+            self._render_bottom_bar_contents()
+
     def _apply_managed_slot_switch(self, slot_name: str, editor_key: str) -> bool:
         """Switch the editor in a managed slot without broadcasting.
 
@@ -1146,6 +1064,12 @@ class AppShell:
         elif slot_name == "right":
             ws.right.active_tab_key = editor_key
             self._refresh_context_bar()
+        elif slot_name == "main":
+            ws.main.active_tab_key = editor_key
+            self._refresh_main_bar()
+        elif slot_name == "bottom":
+            ws.bottom.active_tab_key = editor_key
+            self._refresh_bottom_bar()
         return True
 
     def _switch_left_slot(self, editor_key: str) -> None:
@@ -1159,6 +1083,22 @@ class AppShell:
     def _switch_right_slot(self, editor_key: str) -> None:
         """Switch the Right Slot editor and broadcast WORKSPACE_CHANGED."""
         if not self._apply_managed_slot_switch("right", editor_key):
+            return
+        self.session.notify_context_changed(
+            ContextChangedEvent(change_type=ContextChangeType.WORKSPACE_CHANGED)
+        )
+
+    def _switch_main_slot(self, editor_key: str) -> None:
+        """Switch the Main Slot editor and broadcast WORKSPACE_CHANGED."""
+        if not self._apply_managed_slot_switch("main", editor_key):
+            return
+        self.session.notify_context_changed(
+            ContextChangedEvent(change_type=ContextChangeType.WORKSPACE_CHANGED)
+        )
+
+    def _switch_bottom_slot(self, editor_key: str) -> None:
+        """Switch the Bottom Slot editor and broadcast WORKSPACE_CHANGED."""
+        if not self._apply_managed_slot_switch("bottom", editor_key):
             return
         self.session.notify_context_changed(
             ContextChangedEvent(change_type=ContextChangeType.WORKSPACE_CHANGED)

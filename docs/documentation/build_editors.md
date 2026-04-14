@@ -343,22 +343,26 @@ If the revealed editor is not hostable in the active workspace (e.g. its
 key) the orchestrator logs a warning and the original event still propagates
 to all currently-mounted editors.
 
-### Switching main tabs
+### Switching tabs in main / bottom slots
 
-When multiple tabs are open in the main slot, the NiceGUI tabs element is stored in
-`context.metadata['main_tabs']`. Call `set_value()` with a tab name to switch
-programmatically:
+`reveal_editor` works identically for all four slots (left, right, main,
+bottom). Set it on the emitted `ContextChangedEvent` — the AppShell resolves
+the hosting slot and switches as part of the same dispatch:
 
 ```python
-tabs = context.metadata.get('main_tabs')
-if tabs:
-    try:
-        tabs.set_value('library_detail')
-    except Exception:
-        pass  # tab might not exist in this workspace
+session.notify_context_changed(
+    ContextChangedEvent(
+        change_type=ContextChangeType.ACTIVE_GRAPH_CHANGED,
+        source_editor="file_browser",
+        detail=entry,
+        reveal_editor="studio:editor:graph_editor",
+    )
+)
 ```
 
-Use `try/except` since the tab may not exist in all workspace configurations.
+If the target editor is not registered or its hosting slot is not active in
+the current workspace, the orchestrator logs a warning and the event still
+propagates.
 
 ---
 

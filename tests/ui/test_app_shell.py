@@ -29,6 +29,11 @@ class _FakeSession:
             active=SimpleNamespace(
                 left=SimpleNamespace(active_tab_key="left:editor:one", visible=True),
                 right=SimpleNamespace(active_tab_key="right:editor:one", visible=True),
+                main=SimpleNamespace(
+                    tabs=[],
+                    active_tab_key="main:editor:one",
+                    visible=True,
+                ),
                 bottom=SimpleNamespace(
                     tabs=[],
                     active_tab_key=None,
@@ -133,6 +138,60 @@ def test_switch_left_slot_no_op_when_already_active_does_not_notify() -> None:
     assert shell.session.notified_events == []
 
 
+def test_switch_main_slot_delegates_to_managed_slot_and_refreshes_bar() -> None:
+    shell = AppShell(session=_FakeSession(), editor_registry=None)
+    fake = _FakeSlot("main", active_key="main:editor:one")
+    shell._managed_slots["main"] = fake
+    shell._main_bar = _FakeContainer()
+
+    rendered = []
+    shell._render_main_bar_contents = lambda: rendered.append("main")
+
+    shell._switch_main_slot("main:editor:two")
+
+    assert fake.switch_calls == ["main:editor:two"]
+    assert shell.session.workspace_manager.active.main.active_tab_key == "main:editor:two"
+    assert shell._main_bar.clear_calls == 1
+    assert rendered == ["main"]
+    assert shell.session.notified_events[-1].change_type == ContextChangeType.WORKSPACE_CHANGED
+
+
+def test_switch_bottom_slot_delegates_to_managed_slot_and_refreshes_bar() -> None:
+    shell = AppShell(session=_FakeSession(), editor_registry=None)
+    fake = _FakeSlot("bottom", active_key="bottom:editor:one")
+    shell._managed_slots["bottom"] = fake
+    shell._bottom_bar = _FakeContainer()
+
+    rendered = []
+    shell._render_bottom_bar_contents = lambda: rendered.append("bottom")
+
+    shell._switch_bottom_slot("bottom:editor:two")
+
+    assert fake.switch_calls == ["bottom:editor:two"]
+    assert shell.session.workspace_manager.active.bottom.active_tab_key == "bottom:editor:two"
+    assert shell._bottom_bar.clear_calls == 1
+    assert rendered == ["bottom"]
+    assert shell.session.notified_events[-1].change_type == ContextChangeType.WORKSPACE_CHANGED
+
+
+def test_switch_main_slot_no_op_when_already_active_does_not_notify() -> None:
+    shell = AppShell(session=_FakeSession(), editor_registry=None)
+    fake = _FakeSlot("main", active_key="main:editor:one")
+    shell._managed_slots["main"] = fake
+
+    shell._switch_main_slot("main:editor:one")
+
+    assert fake.switch_calls == ["main:editor:one"]
+    assert shell.session.notified_events == []
+
+
+def test_apply_managed_slot_switch_unknown_slot_returns_false() -> None:
+    shell = AppShell(session=_FakeSession(), editor_registry=None)
+
+    assert shell._apply_managed_slot_switch("main", "main:editor:two") is False
+    assert shell.session.notified_events == []
+
+
 def test_refresh_activity_bar_renders_contents_without_rebuilding_wrapper() -> None:
     shell = AppShell(session=_FakeSession(), editor_registry=None)
     shell._activity_bar = _FakeContainer()
@@ -206,6 +265,48 @@ def test_on_context_changed_reveal_editor_switches_slot() -> None:
     assert shell.session.workspace_manager.active.right.active_tab_key == target_key
     assert rendered == ["context"]
     # Reveal must NOT fire a nested WORKSPACE_CHANGED event.
+    assert shell.session.notified_events == []
+
+
+def test_on_context_changed_reveal_editor_routes_to_main_slot() -> None:
+    """reveal_editor works for main slot identically to left/right — proves
+    the managed-slot path is uniform across all four slots."""
+    target_key = "main:editor:two"
+    registry = _FakeEditorRegistry({target_key: _make_editor_cls(target_key, "main")})
+    shell = AppShell(session=_FakeSession(), editor_registry=registry)
+    fake = _FakeSlot("main", active_key="main:editor:one")
+    shell._managed_slots["main"] = fake
+    shell._main_bar = _FakeContainer()
+    shell._render_main_bar_contents = lambda: None
+
+    event = ContextChangedEvent(
+        change_type=ContextChangeType.ACTIVE_GRAPH_CHANGED,
+        reveal_editor=target_key,
+    )
+    shell._on_context_changed(event, shell.session.workspace_manager.active)
+
+    assert fake.switch_calls == [target_key]
+    assert shell.session.workspace_manager.active.main.active_tab_key == target_key
+    assert shell.session.notified_events == []
+
+
+def test_on_context_changed_reveal_editor_routes_to_bottom_slot() -> None:
+    target_key = "bottom:editor:two"
+    registry = _FakeEditorRegistry({target_key: _make_editor_cls(target_key, "bottom")})
+    shell = AppShell(session=_FakeSession(), editor_registry=registry)
+    fake = _FakeSlot("bottom", active_key="bottom:editor:one")
+    shell._managed_slots["bottom"] = fake
+    shell._bottom_bar = _FakeContainer()
+    shell._render_bottom_bar_contents = lambda: None
+
+    event = ContextChangedEvent(
+        change_type=ContextChangeType.WORKSPACE_CHANGED,
+        reveal_editor=target_key,
+    )
+    shell._on_context_changed(event, shell.session.workspace_manager.active)
+
+    assert fake.switch_calls == [target_key]
+    assert shell.session.workspace_manager.active.bottom.active_tab_key == target_key
     assert shell.session.notified_events == []
 
 
