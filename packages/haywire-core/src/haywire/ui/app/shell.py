@@ -26,6 +26,7 @@ from nicegui import ui
 from haywire.ui import elements as hui
 from haywire.ui.context_events import ContextChangedEvent, ContextChangeType
 from haywire.ui.app.slot import EditorBinding, Slot
+from haywire.ui.workspace.workspace_state import TabState
 
 logger = logging.getLogger(__name__)
 
@@ -679,6 +680,27 @@ class AppShell:
             tabs=ws.main.tabs,
             active_tab_key=ws.main.active_tab_key,
             on_select=self._switch_main_slot,
+            on_close=self._close_main_tab_by_id,
+        )
+
+    def _close_main_tab_by_id(self, tab_id: str) -> None:
+        """Handler for the × button on a main tab.
+
+        Emits a ``TAB_CLOSE_REQUESTED`` event so both the shell (which
+        actually closes the tab) and host apps (which do domain cleanup
+        like haystack ``session_detach``) run through the same path.
+        """
+        editor_key, payload = self._split_tab_id(tab_id)
+        self.session.notify_context_changed(
+            ContextChangedEvent(
+                change_type=ContextChangeType.TAB_CLOSE_REQUESTED,
+                source_editor="app_shell",
+                detail={
+                    "slot_name": "main",
+                    "editor_key": editor_key,
+                    "payload": payload,
+                },
+            )
         )
 
     def _render_slot_tabs(
@@ -686,16 +708,24 @@ class AppShell:
         tabs: list,
         active_tab_key: Optional[str],
         on_select: Callable[[str], None],
+        on_close: Optional[Callable[[str], None]] = None,
     ) -> None:
         """Render a Quasar-styled ``ui.tabs`` row wired to ``on_select``.
 
-        The selection is one-way: clicks fire ``on_select(editor_key)`` and
-        the shell's switch helper updates the Slot. The ``ui.tabs`` value
-        prop is set only for initial styling; the bar row is cleared and
-        re-rendered on every switch.
+        The selection is one-way: clicks fire ``on_select(tab_id)`` and the
+        shell's switch helper updates the Slot. ``tab_id`` equals ``editor_key``
+        for single-instance tabs and ``editor_key::payload`` for multi-instance
+        tabs; the switch helper decomposes it before calling into the Slot.
+        The ``ui.tabs`` value prop is set only for initial styling; the bar row
+        is cleared and re-rendered on every switch.
+
+        When ``on_close`` is supplied every multi-instance tab (one with a
+        payload) renders a trailing ``×`` button that fires ``on_close(tab_id)``.
+        Single-instance tabs stay close-less — closing a registry-backed tab
+        like FileBrowser wouldn't make sense.
         """
-        keys = [t.editor_key for t in tabs]
-        initial = active_tab_key if active_tab_key in keys else (keys[0] if keys else None)
+        ids = [t.tab_id for t in tabs]
+        initial = active_tab_key if active_tab_key in ids else (ids[0] if ids else None)
 
         with (
             ui.tabs(value=initial, on_change=lambda e: on_select(e.value))
@@ -704,7 +734,24 @@ class AppShell:
             .style("flex: 1; min-height: 36px;")
         ):
             for tab in tabs:
-                ui.tab(name=tab.editor_key, label=tab.label).props("no-caps")
+                # Pass label="" so Quasar's q-tab doesn't auto-render the
+                # ``name`` (which is our composite editor_key::payload id)
+                # when custom slot content is used.
+                tab_el = ui.tab(name=tab.tab_id, label="").props("no-caps")
+                with tab_el:
+                    with ui.row().classes("items-center gap-1 no-wrap"):
+                        ui.label(tab.label)
+                        if on_close is not None and tab.payload is not None:
+                            tab_id = tab.tab_id
+                            (
+                                ui.button(
+                                    icon="close",
+                                    on_click=lambda _e, tid=tab_id: on_close(tid),
+                                )
+                                .props("flat round dense size=xs")
+                                .classes("hw-tab-close -mr-1")
+                                .on("click.stop", lambda _e: None)
+                            )
 
     def _render_bottom_slot(self) -> None:
         """Render the bottom slot below the main slot.
@@ -792,10 +839,9 @@ class AppShell:
           ``get_by_default_slot`` lookup.
         * Main/bottom bindings come from the workspace state's persisted
           tab list, resolving each tab's ``editor_key`` against the
-          registry. Tabs whose class can't be resolved are skipped.
-
-        All payloads are ``None`` — the multi-instance payload scope lands
-        in a follow-up PRD.
+          registry. Tabs whose class can't be resolved are skipped. The
+          tab's ``metadata["payload"]`` flows into the binding so persisted
+          multi-instance tabs round-trip correctly across restart.
         """
         bindings: list[EditorBinding] = []
         if slot_name in ("left", "right"):
@@ -816,7 +862,9 @@ class AppShell:
                         "has no registered editor class; skipping binding"
                     )
                     continue
-                bindings.append(EditorBinding(editor_key=tab.editor_key, editor_cls=cls, payload=None))
+                bindings.append(
+                    EditorBinding(editor_key=tab.editor_key, editor_cls=cls, payload=tab.payload)
+                )
 
         slot = Slot(
             session=self.session,
@@ -853,8 +901,13 @@ class AppShell:
     # Poll / draw orchestrator
     # ------------------------------------------------------------------
 
-    def _reveal_editor(self, editor_key: str) -> None:
-        """Ensure ``editor_key`` is the active editor in its default slot.
+    def _reveal_editor(
+        self,
+        editor_key: str,
+        payload: Optional[str] = None,
+        label: Optional[str] = None,
+    ) -> None:
+        """Ensure ``(editor_key, payload)`` is the active editor in its default slot.
 
         Resolves the target slot from the editor's ``class_identity.default_slot``
         and calls the matching pure-switch helper so no nested WORKSPACE_CHANGED
@@ -863,8 +916,17 @@ class AppShell:
         and the reveal is skipped — the caller's own event still propagates
         normally.
 
+        For main/bottom targets a reveal with a ``payload`` that has no matching
+        binding is treated as a tab-open: a new tab is created via
+        :meth:`open_in_tab` using ``label`` (or the editor class label when
+        omitted) as the tab's display label.
+
         Args:
             editor_key: Full registry_key of the editor to reveal.
+            payload: Optional disambiguator for multi-instance editors. When
+                omitted, the slot falls back to the first binding matching
+                ``editor_key`` (preserves pre-multi-instance callers).
+            label: Optional tab label for newly-created multi-instance tabs.
         """
         if self._editor_registry is None:
             logger.warning(f"AppShell: cannot reveal '{editor_key}' — no editor registry")
@@ -875,22 +937,84 @@ class AppShell:
             logger.warning(f"AppShell: reveal_editor '{editor_key}' not found in registry, skipping reveal")
             return
 
-        slot = getattr(editor_cls.class_identity, "default_slot", None)
-        if slot in self._managed_slots:
-            self._apply_managed_slot_switch(slot, editor_key)
-        else:
+        slot_name = getattr(editor_cls.class_identity, "default_slot", None)
+        if slot_name not in self._managed_slots:
             logger.warning(
-                f"AppShell: reveal_editor '{editor_key}' targets slot '{slot}' "
+                f"AppShell: reveal_editor '{editor_key}' targets slot '{slot_name}' "
                 "which is not hostable in the active workspace, skipping reveal"
             )
+            return
+
+        # For tabbed slots, auto-create a tab when payload has no match.
+        if slot_name in ("main", "bottom") and payload is not None:
+            slot = self._managed_slots[slot_name]
+            if slot.find_binding(editor_key, payload) is None:
+                tab_label = label or getattr(editor_cls.class_identity, "label", editor_key)
+                self.open_in_tab(slot_name, editor_key, payload, tab_label)
+                return
+
+        self._apply_managed_slot_switch(slot_name, editor_key, payload)
 
     def _on_context_changed(self, event: ContextChangedEvent, context: "SessionContext") -> None:
         """Orchestrator callback: run the poll/draw cycle on every managed slot."""
+        if event.change_type == ContextChangeType.TAB_CLOSE_REQUESTED:
+            self._handle_tab_close_requested(event)
+        elif event.change_type == ContextChangeType.TAB_REPAYLOAD_REQUESTED:
+            self._handle_tab_repayload_requested(event)
+        elif event.change_type == ContextChangeType.GRAPH_REMOVED:
+            self._handle_graph_removed(event)
+
         if event.reveal_editor is not None:
-            self._reveal_editor(event.reveal_editor)
+            self._reveal_editor(event.reveal_editor, event.reveal_payload, event.reveal_label)
 
         for slot in self._managed_slots.values():
             slot.handle_context_event(event)
+
+    def _handle_tab_close_requested(self, event: ContextChangedEvent) -> None:
+        """Carry ``TAB_CLOSE_REQUESTED`` through to :meth:`close_tab`.
+
+        ``event.detail`` is expected to be a dict with the keys
+        ``slot_name``, ``editor_key`` and ``payload``. Missing keys are
+        treated as a silent no-op so malformed events don't crash the
+        orchestrator.
+        """
+        detail = event.detail if isinstance(event.detail, dict) else {}
+        slot_name = detail.get("slot_name")
+        editor_key = detail.get("editor_key")
+        if not slot_name or not editor_key:
+            return
+        self.close_tab(slot_name, editor_key, detail.get("payload"))
+
+    def _handle_tab_repayload_requested(self, event: ContextChangedEvent) -> None:
+        """Carry ``TAB_REPAYLOAD_REQUESTED`` through to :meth:`repayload_tab`.
+
+        ``event.detail`` keys: ``slot_name``, ``editor_key``, ``old_payload``,
+        ``new_payload``, optional ``new_label``.
+        """
+        detail = event.detail if isinstance(event.detail, dict) else {}
+        slot_name = detail.get("slot_name")
+        editor_key = detail.get("editor_key")
+        if not slot_name or not editor_key:
+            return
+        self.repayload_tab(
+            slot_name,
+            editor_key,
+            detail.get("old_payload"),
+            detail.get("new_payload"),
+            detail.get("new_label"),
+        )
+
+    def _handle_graph_removed(self, event: ContextChangedEvent) -> None:
+        """Close every tab bound to the removed graph entry.
+
+        ``event.detail`` may be the entry's key string, or a dict with a
+        ``payload`` key carrying it.
+        """
+        detail = event.detail
+        payload = detail if isinstance(detail, str) else (detail or {}).get("payload")
+        if not payload:
+            return
+        self.close_tabs_for_payload(payload)
 
     def _on_editor_lifecycle(self, events: "list[LifeCycleEvent]") -> None:
         """Handle editor class hot-reload events from EditorTypeRegistry."""
@@ -1053,7 +1177,26 @@ class AppShell:
         with self._bottom_bar:
             self._render_bottom_bar_contents()
 
-    def _apply_managed_slot_switch(self, slot_name: str, editor_key: str) -> bool:
+    @staticmethod
+    def _split_tab_id(tab_id: str) -> tuple[str, Optional[str]]:
+        """Decompose a ``tab_id`` into ``(editor_key, payload)``.
+
+        ``tab_id`` equals ``editor_key`` for single-instance tabs and
+        ``editor_key::payload`` for multi-instance tabs. The main/bottom tab
+        bars emit ``tab_id`` on click; the switch helpers use this to recover
+        the payload before calling into the Slot.
+        """
+        if "::" in tab_id:
+            editor_key, payload = tab_id.split("::", 1)
+            return editor_key, payload
+        return tab_id, None
+
+    def _apply_managed_slot_switch(
+        self,
+        slot_name: str,
+        editor_key: str,
+        payload: Optional[str] = None,
+    ) -> bool:
         """Switch the editor in a managed slot without broadcasting.
 
         Delegates to ``Slot.switch_to`` for the draw, updates workspace
@@ -1062,16 +1205,26 @@ class AppShell:
         directly so a single poll/draw pass can cover both the reveal and
         the originating event.
 
+        ``payload`` disambiguates multi-instance tabs (e.g. a graph path).
+        Callers pre-dating multi-instance bindings may omit it; the slot
+        then falls back to the first binding matching ``editor_key``.
+
+        For left/right slots ``active_tab_key`` is the plain ``editor_key``
+        (those slots have no payloads). For main/bottom it is the composite
+        ``tab_id`` so the tab bar can round-trip the selection through
+        :meth:`_render_slot_tabs`.
+
         Returns:
             True if the slot was actually switched.
         """
         slot = self._managed_slots.get(slot_name)
         if slot is None:
             return False
-        if not slot.switch_to(editor_key):
+        if not slot.switch_to(editor_key, payload):
             return False
 
         ws = self.session.workspace_manager.active
+        tab_id = f"{editor_key}::{payload}" if payload else editor_key
         if slot_name == "left":
             ws.left.active_tab_key = editor_key
             self._refresh_activity_bar()
@@ -1079,10 +1232,10 @@ class AppShell:
             ws.right.active_tab_key = editor_key
             self._refresh_context_bar()
         elif slot_name == "main":
-            ws.main.active_tab_key = editor_key
+            ws.main.active_tab_key = tab_id
             self._refresh_main_bar()
         elif slot_name == "bottom":
-            ws.bottom.active_tab_key = editor_key
+            ws.bottom.active_tab_key = tab_id
             self._refresh_bottom_bar()
         return True
 
@@ -1102,18 +1255,275 @@ class AppShell:
             ContextChangedEvent(change_type=ContextChangeType.WORKSPACE_CHANGED)
         )
 
-    def _switch_main_slot(self, editor_key: str) -> None:
-        """Switch the Main Slot editor and broadcast WORKSPACE_CHANGED."""
-        if not self._apply_managed_slot_switch("main", editor_key):
+    def _switch_main_slot(self, tab_id: str) -> None:
+        """Switch the Main Slot editor and broadcast WORKSPACE_CHANGED.
+
+        Receives the composite ``tab_id`` emitted by the main tab bar; splits
+        it back to ``(editor_key, payload)`` before delegating.
+        """
+        editor_key, payload = self._split_tab_id(tab_id)
+        if not self._apply_managed_slot_switch("main", editor_key, payload):
+            return
+        self._follow_main_tab_context(payload)
+        self.session.notify_context_changed(
+            ContextChangedEvent(change_type=ContextChangeType.WORKSPACE_CHANGED)
+        )
+
+    def _switch_bottom_slot(self, tab_id: str) -> None:
+        """Switch the Bottom Slot editor and broadcast WORKSPACE_CHANGED.
+
+        Receives the composite ``tab_id`` emitted by the bottom tab bar; splits
+        it back to ``(editor_key, payload)`` before delegating.
+        """
+        editor_key, payload = self._split_tab_id(tab_id)
+        if not self._apply_managed_slot_switch("bottom", editor_key, payload):
             return
         self.session.notify_context_changed(
             ContextChangedEvent(change_type=ContextChangeType.WORKSPACE_CHANGED)
         )
 
-    def _switch_bottom_slot(self, editor_key: str) -> None:
-        """Switch the Bottom Slot editor and broadcast WORKSPACE_CHANGED."""
-        if not self._apply_managed_slot_switch("bottom", editor_key):
+    # ------------------------------------------------------------------
+    # Tab creation (multi-instance entry point)
+    # ------------------------------------------------------------------
+
+    def open_in_tab(
+        self,
+        slot_name: str,
+        editor_key: str,
+        payload: Optional[str],
+        label: str,
+    ) -> bool:
+        """Ensure a tab for ``(editor_key, payload)`` exists in ``slot_name``
+        and make it active.
+
+        The core, editor-agnostic entry point for opening multi-instance tabs.
+        Host apps (e.g. HaywireApp) wrap this with domain-aware helpers that
+        resolve the payload + label from their own objects.
+
+        Behavior:
+
+        * If a tab with the same ``(editor_key, payload)`` is already present,
+          it is simply activated — no duplicate tab, no duplicate binding.
+        * Otherwise a new ``TabState`` is appended to the slot's tab list,
+          a matching ``EditorBinding`` is added to the managed slot, and the
+          slot is switched to the new tab.
+        * The tab bar is re-rendered so the new tab is visible.
+        * Does NOT broadcast a WORKSPACE_CHANGED or ACTIVE_GRAPH_CHANGED event;
+          callers decide what domain event (if any) to emit.
+
+        Args:
+            slot_name: Target slot. Only ``"main"`` and ``"bottom"`` host
+                multi-instance tabs today; left/right are rejected.
+            editor_key: Full registry key of the editor class.
+            payload: Multi-instance disambiguator (e.g. a graph path or a
+                haystack-entry key). ``None`` means single-instance.
+            label: Display label for the tab.
+
+        Returns:
+            ``True`` iff the active tab actually changed (a new tab was
+            created or an inactive existing tab became active).
+        """
+        if slot_name not in ("main", "bottom"):
+            logger.warning(f"AppShell.open_in_tab: slot '{slot_name}' is not tabbed; refusing to open tab")
+            return False
+        if self._editor_registry is None:
+            logger.warning("AppShell.open_in_tab: no editor registry configured")
+            return False
+        editor_cls = self._editor_registry.get_by_key(editor_key)
+        if editor_cls is None:
+            logger.warning(f"AppShell.open_in_tab: editor '{editor_key}' not found in registry")
+            return False
+
+        slot = self._managed_slots.get(slot_name)
+        if slot is None:
+            logger.warning(f"AppShell.open_in_tab: slot '{slot_name}' is not managed")
+            return False
+
+        ws = self.session.workspace_manager.active
+        slot_state = ws.main if slot_name == "main" else ws.bottom
+
+        existing = slot.find_binding(editor_key, payload)
+        if existing is not None:
+            return self._apply_managed_slot_switch(slot_name, editor_key, payload)
+
+        # Clean up the seed placeholder tab (editor_key=None) that default
+        # MainSlotState carries when nothing has been opened yet.
+        slot_state.tabs = [t for t in slot_state.tabs if t.editor_key is not None]
+
+        metadata = {"payload": payload} if payload else {}
+        slot_state.tabs.append(TabState(editor_key=editor_key, label=label, metadata=metadata))
+        slot.add_binding(
+            EditorBinding(editor_key=editor_key, editor_cls=editor_cls, payload=payload),
+            activate=True,
+        )
+
+        tab_id = f"{editor_key}::{payload}" if payload else editor_key
+        slot_state.active_tab_key = tab_id
+        if slot_name == "main":
+            self._refresh_main_bar()
+        else:
+            self._refresh_bottom_bar()
+        self._persist_workspace()
+        return True
+
+    def close_tab(
+        self,
+        slot_name: str,
+        editor_key: str,
+        payload: Optional[str],
+    ) -> bool:
+        """Close one multi-instance tab in ``slot_name``.
+
+        Removes the binding from the Slot (cleanup runs on the editor
+        instance), drops the matching ``TabState`` from workspace state,
+        and refreshes the tab bar. When the closed tab was active the
+        Slot promotes the next binding; workspace ``active_tab_key`` is
+        mirrored back from the slot so the bar highlight stays consistent.
+
+        Does NOT notify the haystack — domain-level bookkeeping (session
+        detach, entry lifecycle) is the caller's responsibility. Host apps
+        wrap this with a domain-aware helper. Returns ``True`` iff a tab
+        was actually removed.
+        """
+        if slot_name not in ("main", "bottom"):
+            logger.warning(f"AppShell.close_tab: slot '{slot_name}' is not tabbed")
+            return False
+        slot = self._managed_slots.get(slot_name)
+        if slot is None:
+            return False
+
+        def _cleanup(instance: "BaseEditor") -> None:
+            try:
+                instance.cleanup()
+            except Exception as exc:
+                logger.warning(f"AppShell.close_tab: cleanup error: {exc}")
+
+        removed = slot.remove_binding(editor_key, payload, cleanup=_cleanup)
+        if removed is None:
+            return False
+
+        ws = self.session.workspace_manager.active
+        slot_state = ws.main if slot_name == "main" else ws.bottom
+        tab_id = removed.binding_id
+        slot_state.tabs = [t for t in slot_state.tabs if t.tab_id != tab_id]
+        slot_state.active_tab_key = slot.active_binding_id
+
+        if slot_name == "main":
+            self._refresh_main_bar()
+            self._follow_main_tab_context(slot.active_binding.payload if slot.active_binding else None)
+        else:
+            self._refresh_bottom_bar()
+        self._persist_workspace()
+        return True
+
+    def repayload_tab(
+        self,
+        slot_name: str,
+        editor_key: str,
+        old_payload: Optional[str],
+        new_payload: Optional[str],
+        new_label: Optional[str] = None,
+    ) -> bool:
+        """Re-key a multi-instance tab in place (e.g. after Save-As).
+
+        Updates the Slot's binding payload, the workspace ``TabState``
+        (``metadata["payload"]`` + optional ``label``), and the mirrored
+        ``active_tab_key`` when the repayloaded tab is the active one.
+        The editor *instance* is preserved — it keeps its in-memory state
+        and its canvas DOM. Returns ``False`` when no matching tab exists
+        or when the new id collides with a sibling.
+        """
+        if slot_name not in ("main", "bottom"):
+            logger.warning(f"AppShell.repayload_tab: slot '{slot_name}' is not tabbed")
+            return False
+        slot = self._managed_slots.get(slot_name)
+        if slot is None:
+            return False
+        if not slot.repayload_binding(editor_key, old_payload, new_payload):
+            return False
+
+        ws = self.session.workspace_manager.active
+        slot_state = ws.main if slot_name == "main" else ws.bottom
+        old_tab_id = f"{editor_key}::{old_payload}" if old_payload else editor_key
+        new_tab_id = f"{editor_key}::{new_payload}" if new_payload else editor_key
+        for tab in slot_state.tabs:
+            if tab.tab_id == old_tab_id:
+                if new_payload:
+                    tab.metadata["payload"] = new_payload
+                else:
+                    tab.metadata.pop("payload", None)
+                if new_label is not None:
+                    tab.label = new_label
+                break
+        if slot_state.active_tab_key == old_tab_id:
+            slot_state.active_tab_key = new_tab_id
+        if slot_name == "main":
+            self._refresh_main_bar()
+        else:
+            self._refresh_bottom_bar()
+        self._persist_workspace()
+        return True
+
+    def close_tabs_for_payload(self, payload: str) -> int:
+        """Close every main/bottom tab whose binding payload matches ``payload``.
+
+        Used by the ``GRAPH_REMOVED`` handler when a haystack entry is
+        dropped — any editor tab pointing at that entry must go away. Returns
+        the number of tabs closed.
+        """
+        closed = 0
+        for slot_name in ("main", "bottom"):
+            slot = self._managed_slots.get(slot_name)
+            if slot is None:
+                continue
+            matches = [b for b in slot.bindings if b.payload == payload]
+            for binding in matches:
+                if self.close_tab(slot_name, binding.editor_key, binding.payload):
+                    closed += 1
+        return closed
+
+    def _persist_workspace(self) -> None:
+        """Write workspace state to disk after a tab mutation.
+
+        Called from ``open_in_tab`` / ``close_tab`` / ``repayload_tab`` so
+        the persisted tab list tracks the live layout without requiring an
+        explicit Save. Swallows errors — a transient I/O failure should
+        not crash the UI mutation that triggered it.
+        """
+        try:
+            self.session.workspace_manager.save()
+        except Exception as exc:
+            logger.warning(f"AppShell: workspace auto-save failed: {exc}")
+
+    def _follow_main_tab_context(self, payload: Optional[str]) -> None:
+        """Mirror the active main tab's graph identity into the session context.
+
+        Per-tab editors (GraphEditor) now read their own binding payload, so
+        this does *not* drive the revealed editor. It exists for the other
+        editors and panels that still consume ``context.active_graph`` /
+        ``context.active_graph_path`` (haystack list highlight, graph-info
+        panel, save/open dialogs, etc.) and broadcasts an
+        ``ACTIVE_GRAPH_CHANGED`` so those consumers can refresh.
+        """
+        if payload is None:
             return
+        context = self.session.context
+        app = context.app
+        if app is None or not hasattr(app, "haystack"):
+            return
+
+        entry = app.haystack.get_by_key(payload)
+        if entry is None:
+            return
+        if context.active_graph is entry.graph and context.active_graph_path == entry.path:
+            return
+
+        context.active_graph = entry.graph
+        context.active_graph_path = entry.path
         self.session.notify_context_changed(
-            ContextChangedEvent(change_type=ContextChangeType.WORKSPACE_CHANGED)
+            ContextChangedEvent(
+                change_type=ContextChangeType.ACTIVE_GRAPH_CHANGED,
+                source_editor="app_shell",
+                detail=entry,
+            )
         )

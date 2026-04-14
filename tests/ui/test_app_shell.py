@@ -77,9 +77,9 @@ class _FakeSlot:
         self.switch_calls: list[str] = []
         self.visible_calls: list[bool] = []
 
-    def switch_to(self, editor_key: str) -> bool:
-        self.switch_calls.append(editor_key)
-        if editor_key == self.active_key:
+    def switch_to(self, editor_key: str, payload=None) -> bool:
+        self.switch_calls.append((editor_key, payload))
+        if editor_key == self.active_key and payload is None:
             return False
         self.active_key = editor_key
         return True
@@ -102,7 +102,7 @@ def test_switch_left_slot_delegates_to_managed_slot_and_notifies() -> None:
 
     shell._switch_left_slot("left:editor:two")
 
-    assert fake.switch_calls == ["left:editor:two"]
+    assert fake.switch_calls == [("left:editor:two", None)]
     assert shell.session.workspace_manager.active.left.active_tab_key == "left:editor:two"
     assert shell._activity_bar.clear_calls == 1
     assert rendered == ["activity"]
@@ -120,7 +120,7 @@ def test_switch_right_slot_delegates_to_managed_slot_and_notifies() -> None:
 
     shell._switch_right_slot("right:editor:two")
 
-    assert fake.switch_calls == ["right:editor:two"]
+    assert fake.switch_calls == [("right:editor:two", None)]
     assert shell.session.workspace_manager.active.right.active_tab_key == "right:editor:two"
     assert shell._context_bar.clear_calls == 1
     assert rendered == ["context"]
@@ -134,7 +134,7 @@ def test_switch_left_slot_no_op_when_already_active_does_not_notify() -> None:
 
     shell._switch_left_slot("left:editor:one")
 
-    assert fake.switch_calls == ["left:editor:one"]
+    assert fake.switch_calls == [("left:editor:one", None)]
     assert shell.session.notified_events == []
 
 
@@ -149,7 +149,7 @@ def test_switch_main_slot_delegates_to_managed_slot_and_refreshes_bar() -> None:
 
     shell._switch_main_slot("main:editor:two")
 
-    assert fake.switch_calls == ["main:editor:two"]
+    assert fake.switch_calls == [("main:editor:two", None)]
     assert shell.session.workspace_manager.active.main.active_tab_key == "main:editor:two"
     assert shell._main_bar.clear_calls == 1
     assert rendered == ["main"]
@@ -167,7 +167,7 @@ def test_switch_bottom_slot_delegates_to_managed_slot_and_refreshes_bar() -> Non
 
     shell._switch_bottom_slot("bottom:editor:two")
 
-    assert fake.switch_calls == ["bottom:editor:two"]
+    assert fake.switch_calls == [("bottom:editor:two", None)]
     assert shell.session.workspace_manager.active.bottom.active_tab_key == "bottom:editor:two"
     assert shell._bottom_bar.clear_calls == 1
     assert rendered == ["bottom"]
@@ -181,7 +181,7 @@ def test_switch_main_slot_no_op_when_already_active_does_not_notify() -> None:
 
     shell._switch_main_slot("main:editor:one")
 
-    assert fake.switch_calls == ["main:editor:one"]
+    assert fake.switch_calls == [("main:editor:one", None)]
     assert shell.session.notified_events == []
 
 
@@ -261,7 +261,7 @@ def test_on_context_changed_reveal_editor_switches_slot() -> None:
     )
     shell._on_context_changed(event, shell.session.workspace_manager.active)
 
-    assert fake.switch_calls == [target_key]
+    assert fake.switch_calls == [(target_key, None)]
     assert shell.session.workspace_manager.active.right.active_tab_key == target_key
     assert rendered == ["context"]
     # Reveal must NOT fire a nested WORKSPACE_CHANGED event.
@@ -285,7 +285,7 @@ def test_on_context_changed_reveal_editor_routes_to_main_slot() -> None:
     )
     shell._on_context_changed(event, shell.session.workspace_manager.active)
 
-    assert fake.switch_calls == [target_key]
+    assert fake.switch_calls == [(target_key, None)]
     assert shell.session.workspace_manager.active.main.active_tab_key == target_key
     assert shell.session.notified_events == []
 
@@ -305,7 +305,7 @@ def test_on_context_changed_reveal_editor_routes_to_bottom_slot() -> None:
     )
     shell._on_context_changed(event, shell.session.workspace_manager.active)
 
-    assert fake.switch_calls == [target_key]
+    assert fake.switch_calls == [(target_key, None)]
     assert shell.session.workspace_manager.active.bottom.active_tab_key == target_key
     assert shell.session.notified_events == []
 

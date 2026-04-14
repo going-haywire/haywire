@@ -190,6 +190,65 @@ class HaywireApp:
         return entry
 
     # ------------------------------------------------------------------
+    # Multi-instance tab orchestration
+    # ------------------------------------------------------------------
+
+    def open_graph_in_tab(self, entry, context, editor_key: str) -> None:
+        """Activate ``entry`` in the session and reveal its tab.
+
+        The single entry point for anything that opens a graph — file browser
+        double-click, haystack-list click, "+" new-graph button, "open graph"
+        dialog, load-haystack activate-one path. It performs the standard
+        detach/attach/context-update dance and broadcasts an
+        ``ACTIVE_GRAPH_CHANGED`` event carrying the ``reveal_editor`` +
+        ``reveal_payload`` + ``reveal_label`` trio so the AppShell opens (or
+        focuses) a tab keyed by ``entry.key``.
+
+        ``editor_key`` is passed by the caller — each editor knows which
+        editor class it wants to reveal (typically GraphEditor for callers
+        in haybale-studio). Keeping the decision at the call site avoids
+        hardcoding studio-specific knowledge here.
+
+        The GraphEditor still reads ``context.active_graph_path`` from the
+        session context in this stage; the per-tab binding payload becomes
+        authoritative in a later refactor.
+        """
+        from haywire.ui.context_events import ContextChangeType, ContextChangedEvent
+
+        session = context.session
+        if session is None:
+            logger.warning("open_graph_in_tab: no session on context")
+            return
+
+        # Detach from whichever graph this session is currently viewing
+        if context.active_graph_path is not None:
+            prev_entry = self.haystack.get_by_path(context.active_graph_path)
+        elif context.active_graph is not None:
+            prev_entry = self.haystack.get_by_graph(context.active_graph)
+        else:
+            prev_entry = None
+        if prev_entry is not None and prev_entry is not entry:
+            self.haystack.session_detach(prev_entry, session.session_id)
+
+        # Attach this session to the target entry (idempotent)
+        self.haystack.session_attach(entry, session.session_id)
+
+        # Update context
+        context.active_graph = entry.graph
+        context.active_graph_path = entry.path
+
+        session.notify_context_changed(
+            ContextChangedEvent(
+                change_type=ContextChangeType.ACTIVE_GRAPH_CHANGED,
+                source_editor="haywire_app",
+                detail=entry,
+                reveal_editor=editor_key,
+                reveal_payload=entry.key,
+                reveal_label=entry.display_name,
+            )
+        )
+
+    # ------------------------------------------------------------------
     # Per-graph execution
     # ------------------------------------------------------------------
 
@@ -238,6 +297,46 @@ class HaywireApp:
             logger.info(f"Startup haystack '{haystack_name}' loaded")
         except Exception as exc:
             logger.warning(f"Failed to load startup haystack '{haystack_name}': {exc}")
+
+    def restore_persisted_tabs(self, workspace_manager, session_id: str) -> None:
+        """Re-materialize the haystack entries referenced by persisted main tabs.
+
+        Called after the startup haystack is loaded but before the AppShell
+        wires bindings, so that tabs carrying a saved-graph payload resolve
+        to a live ``GraphEntry`` instead of a dangling binding.
+
+        In-memory payloads (``__new_N__`` / ``__untitled__``) are dropped
+        from the persisted tab list — their graphs vanished when the
+        previous session exited, so their tabs can't be restored.
+        """
+        ws = workspace_manager.active
+        surviving: list = []
+        for tab in ws.main.tabs:
+            payload = tab.payload
+            if payload is None:
+                surviving.append(tab)
+                continue
+            if payload.startswith("__"):
+                # Untitled/new graphs don't persist across restart
+                logger.info(f"Dropping unsaved tab on restore: {payload}")
+                continue
+            path = Path(payload)
+            if not path.exists():
+                logger.warning(f"Dropping tab for missing file on restore: {payload}")
+                continue
+            try:
+                self.open_graph_file(path, session_id)
+            except Exception as exc:
+                logger.warning(f"Failed to restore tab for '{payload}': {exc}")
+                continue
+            surviving.append(tab)
+
+        if len(surviving) != len(ws.main.tabs):
+            ws.main.tabs = surviving
+            # Re-resolve active_tab_key if the previous one was dropped
+            valid_ids = {t.tab_id for t in surviving}
+            if ws.main.active_tab_key not in valid_ids:
+                ws.main.active_tab_key = surviving[0].tab_id if surviving else None
 
     def _subscribe_entry_validation(self, entry) -> None:
         """Subscribe the validation/broadcast handler for a graph entry."""
@@ -307,6 +406,10 @@ class HaywireApp:
 
             # Store session ID on NiceGUI Client for disconnect lookup
             context.client._haywire_session_id = haywire_session.session_id
+
+            # Re-open graph files referenced by persisted main tabs so the
+            # AppShell binds to live haystack entries on restart.
+            self.restore_persisted_tabs(workspace_manager, haywire_session.session_id)
 
             # Set studio theme defaults on context before rendering
             haywire_session.context.active_workbench_theme_key = "core:theme:workbench:haywire-dark"

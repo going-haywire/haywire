@@ -119,6 +119,20 @@ def test_editor_binding_lazy_creates_instance() -> None:
     assert binding.ensure_instance() is instance
 
 
+def test_editor_binding_id_single_instance_is_just_editor_key() -> None:
+    binding = EditorBinding(editor_key="lib:editor:one", editor_cls=_FakeEditor)
+    assert binding.binding_id == "lib:editor:one"
+
+
+def test_editor_binding_id_multi_instance_composes_editor_key_and_payload() -> None:
+    binding = EditorBinding(
+        editor_key="studio:editor:graph_editor",
+        editor_cls=_FakeEditor,
+        payload="/path/to/a.haywire",
+    )
+    assert binding.binding_id == "studio:editor:graph_editor::/path/to/a.haywire"
+
+
 # ----------------------------------------------------------------------
 # Construction + initial active resolution
 # ----------------------------------------------------------------------
@@ -259,6 +273,43 @@ def test_find_binding_returns_match() -> None:
     slot = Slot(_session_with_context(), "left", [b1], active_key=None)
     assert slot.find_binding("a:e:1") is b1
     assert slot.find_binding("nope") is None
+
+
+def test_find_binding_disambiguates_by_payload() -> None:
+    ge_a = EditorBinding("studio:editor:graph_editor", _FakeEditor, payload="/a.haywire")
+    ge_b = EditorBinding("studio:editor:graph_editor", _FakeEditor, payload="/b.haywire")
+    slot = Slot(_session_with_context(), "main", [ge_a, ge_b], active_key=None)
+
+    assert slot.find_binding("studio:editor:graph_editor", payload="/a.haywire") is ge_a
+    assert slot.find_binding("studio:editor:graph_editor", payload="/b.haywire") is ge_b
+    # Unknown payload with known key returns None — no silent fallback when
+    # the caller explicitly asked for a specific instance.
+    assert slot.find_binding("studio:editor:graph_editor", payload="/nope.haywire") is None
+
+
+def test_find_binding_payload_less_caller_still_matches_first_binding() -> None:
+    """Callers that pre-date payloads (pass no payload) keep working."""
+    b = EditorBinding("studio:editor:graph_editor", _FakeEditor, payload="/a.haywire")
+    slot = Slot(_session_with_context(), "main", [b], active_key=None)
+    assert slot.find_binding("studio:editor:graph_editor") is b
+
+
+def test_switch_to_disambiguates_by_payload(monkeypatch) -> None:
+    bindings = [
+        EditorBinding("studio:editor:graph_editor", _FakeEditor, payload="/a.haywire"),
+        EditorBinding("studio:editor:graph_editor", _FakeEditor, payload="/b.haywire"),
+    ]
+    slot = Slot(_session_with_context(), "main", bindings, active_key=None)
+    slot._active = bindings[0]
+    panels_created, panel_created = _install_fake_tab_panels(monkeypatch)
+    slot.render_area(_FakeContainer())
+    area = panels_created[0]
+
+    changed = slot.switch_to("studio:editor:graph_editor", payload="/b.haywire")
+
+    assert changed is True
+    assert slot.active_binding is bindings[1]
+    assert area.value == "studio:editor:graph_editor::/b.haywire"
 
 
 def test_find_binding_warns_on_ambiguous_match(caplog) -> None:

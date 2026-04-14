@@ -22,6 +22,7 @@ from haywire.ui.editor.base import BaseEditor
 from haywire.ui.context_events import ContextChangeType, ContextChangedEvent
 
 if TYPE_CHECKING:
+    from haywire_studio.haystack import GraphEntry
     from haywire.ui.context import SessionContext
     from haywire.ui.context_events import ContextChangedEvent
     from haywire.ui.graph_canvas.graph_canvas_manager import GraphCanvasManager
@@ -79,7 +80,12 @@ class GraphEditor(BaseEditor):
     # ------------------------------------------------------------------
 
     def poll(self, context: "SessionContext", event: "ContextChangedEvent") -> bool:
-        return event.change_type == ContextChangeType.ACTIVE_GRAPH_CHANGED
+        # Each GraphEditor instance is pinned to one graph via its binding
+        # payload. ACTIVE_GRAPH_CHANGED now just means "some tab became the
+        # foreground" — this instance's own graph hasn't changed, so there
+        # is nothing to redraw. The canvas keeps its zoom/pan, selection,
+        # and DOM state across tab switches.
+        return False
 
     def draw(self, context: "SessionContext", container: "Element") -> None:
         self._context = context
@@ -179,17 +185,21 @@ class GraphEditor(BaseEditor):
 
         logger.info(f"GraphEditor: canvas built for session {context.session_id[:8]}")
 
-    def _get_entry(self, context: "SessionContext"):
-        """Look up the active GraphEntry from the haystack, if available."""
+    def _get_entry(self, context: "SessionContext") -> Optional["GraphEntry"]:
+        """Look up this tab's GraphEntry from the haystack via binding payload.
+
+        Each GraphEditor instance is bound to one ``(editor_key, payload)``
+        pair — the payload is the ``GraphEntry.key`` (a path string for saved
+        graphs, ``__new_N__`` / ``__untitled__`` for unsaved). The tab owns
+        its graph identity; the session-level ``active_graph_path`` is no
+        longer consulted here.
+        """
         app = self._project_state
         if app is None or not hasattr(app, "haystack"):
             return None
-        if context.active_graph_path is not None:
-            return app.haystack.get_by_path(context.active_graph_path)
-        # path is None — use graph-object identity for '__new_N__' entries.
-        if context.active_graph is not None and hasattr(app.haystack, "get_by_graph"):
-            return app.haystack.get_by_graph(context.active_graph)
-        return None
+        if self.binding is None or self.binding.payload is None:
+            return None
+        return app.haystack.get_by_key(self.binding.payload)
 
     # ------------------------------------------------------------------
     # ------------------------------------------------------------------
@@ -197,16 +207,15 @@ class GraphEditor(BaseEditor):
     # ------------------------------------------------------------------
 
     def _update_header(self, context: "SessionContext") -> None:
-        """Refresh the name label and undo/redo buttons to reflect the current graph."""
+        """Refresh the name label and undo/redo buttons to reflect this tab's graph."""
         if self._graph_name_label is None:
             return
         entry = self._get_entry(context)
         if entry is None:
             self._graph_name_label.text = "No graph"
             self._graph_name_label.classes(remove="hw-text-body hw-text-muted", add="hw-text-dim")
-        elif context.active_graph_path is not None:
-            name = Path(context.active_graph_path).name
-            self._graph_name_label.text = ("● " if entry.unsaved else "") + name
+        elif entry.path is not None:
+            self._graph_name_label.text = ("● " if entry.unsaved else "") + entry.path.name
             self._graph_name_label.classes(remove="hw-text-muted hw-text-dim", add="hw-text-body")
         else:
             # Unnamed / not-yet-saved graph
@@ -407,10 +416,26 @@ class GraphEditor(BaseEditor):
                 self._save_exists_warning.set_visibility(True)
             return  # stay in the dialog
 
+        old_payload = self.binding.payload if self.binding is not None else None
         success = app.haystack.save_graph(entry, save_as=save_path)
         if success:
             context.active_graph_path = save_path
             session = context.session
+            new_payload = entry.key
+            if session is not None and self.binding is not None and old_payload != new_payload:
+                session.notify_context_changed(
+                    ContextChangedEvent(
+                        change_type=ContextChangeType.TAB_REPAYLOAD_REQUESTED,
+                        source_editor="graph_editor",
+                        detail={
+                            "slot_name": "main",
+                            "editor_key": self.binding.editor_key,
+                            "old_payload": old_payload,
+                            "new_payload": new_payload,
+                            "new_label": entry.display_name,
+                        },
+                    )
+                )
             if session:
                 session.notify_context_changed(
                     ContextChangedEvent(
@@ -436,6 +461,20 @@ class GraphEditor(BaseEditor):
     # ------------------------------------------------------------------
 
     def cleanup(self) -> None:
+        # Detach this session from its graph entry so the haystack can tell
+        # when no session is still viewing the graph. Running here covers
+        # both the close-× path (Slot calls cleanup during remove_binding)
+        # and full-session teardown.
+        context = self._context
+        app = self._project_state
+        if context is not None and app is not None and hasattr(app, "haystack"):
+            entry = self._get_entry(context)
+            if entry is not None and context.session is not None:
+                try:
+                    app.haystack.session_detach(entry, context.session.session_id)
+                except Exception as exc:
+                    logger.warning(f"GraphEditor.cleanup(): haystack detach failed: {exc}")
+
         if self._canvas_manager:
             try:
                 self._canvas_manager.cleanup()

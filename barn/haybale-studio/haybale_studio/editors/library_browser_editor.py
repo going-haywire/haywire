@@ -238,6 +238,7 @@ class LibraryBrowserEditor(BaseEditor):
         session = context.session
         if session is not None:
             from haybale_studio.editors.library_overview_editor import LibraryOverviewEditor
+
             session.notify_context_changed(
                 ContextChangedEvent(
                     reveal_editor=LibraryOverviewEditor.class_identity.registry_key,

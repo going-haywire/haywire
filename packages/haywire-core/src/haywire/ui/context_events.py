@@ -26,6 +26,9 @@ class ContextChangeType(Enum):
     WORKBENCH_THEME_CHANGED = auto()  # active workbench theme switched
     CONTEXT_MENU_OPENED = auto()  # context menu popup was opened
     CONTEXT_MENU_CLOSED = auto()  # context menu popup was closed
+    TAB_CLOSE_REQUESTED = auto()  # editor (or caller) is asking the shell to close a tab
+    TAB_REPAYLOAD_REQUESTED = auto()  # re-key a tab after save-as / rename
+    GRAPH_REMOVED = auto()  # a haystack entry was removed; shell closes matching tabs
     CUSTOM = auto()  # extensible
 
 
@@ -48,9 +51,20 @@ class ContextChangedEvent:
             revealed editor receives the same event that caused it to be
             revealed. If the editor cannot be hosted in the active workspace
             a warning is logged and the reveal is skipped.
+        reveal_payload: Optional disambiguator for multi-instance editors
+            (e.g., a graph path). When provided alongside ``reveal_editor``
+            the orchestrator switches to the specific ``(editor_key, payload)``
+            tab rather than the first binding matching ``editor_key``. Absent
+            or ``None`` preserves the pre-multi-instance behavior.
+        reveal_label: Optional display label for the revealed tab. Used only
+            when the reveal creates a new tab (e.g., opening a graph file for
+            the first time). If omitted, the tab label falls back to the
+            editor class's default label.
     """
 
     change_type: ContextChangeType
     source_editor: Optional[str] = None
     detail: Optional[Any] = None
     reveal_editor: Optional[str] = None
+    reveal_payload: Optional[str] = None
+    reveal_label: Optional[str] = None

@@ -27,7 +27,7 @@ from haywire.ui.editor.decorator import editor
 from haywire.ui.context_events import ContextChangeType, ContextChangedEvent
 from haywire.ui.components.popup import Popup
 
-from haybale_studio.editors.graph_editor import GraphEditor  # for editor key reference
+from haybale_studio.editors.graph_editor import GraphEditor
 
 if TYPE_CHECKING:
     from haywire.ui.context import SessionContext
@@ -305,6 +305,7 @@ class HaystackEditor(BaseEditor):
             return
 
         is_active = entry.graph is context.active_graph
+        removed_key = entry.key  # capture before remove_entry re-keys / drops
 
         # Stop execution if running
         entry.stop_execution()
@@ -316,11 +317,21 @@ class HaystackEditor(BaseEditor):
         # Remove from haystack
         app.haystack.remove_entry(entry)
 
+        session = context.session
+        # Ask the shell to close any tab hosting this entry.
+        if session is not None:
+            session.notify_context_changed(
+                ContextChangedEvent(
+                    change_type=ContextChangeType.GRAPH_REMOVED,
+                    source_editor="haystack",
+                    detail=removed_key,
+                )
+            )
+
         # If it was the active graph, clear the active graph → empty state
         if is_active:
             context.active_graph = None
             context.active_graph_path = None
-            session = context.session
             if session:
                 session.notify_context_changed(
                     ContextChangedEvent(
@@ -507,41 +518,19 @@ class HaystackEditor(BaseEditor):
             ui.notify("Graph manager not available", type="warning")
             return
 
-        # Detach from current graph
-        self._detach_current(app, context, session)
-
-        # Create the new graph and attach this session
+        # create_new_graph produces a fresh entry and attaches this session.
+        # open_graph_in_tab then performs detach-from-prev / context update /
+        # reveal — no need to duplicate it here.
         entry = app.create_new_graph(session.session_id)
-
-        # Update context
-        context.active_graph = entry.graph
-        context.active_graph_path = entry.path
-
-        self._activate_entry(entry, context, session)
+        app.open_graph_in_tab(entry, context, _GRAPH_EDITOR_KEY)
 
     def _on_select(self, entry: "GraphEntry", context: "SessionContext") -> None:
         """Activate an existing graph entry."""
-        if entry.graph is context.active_graph:
-            # Already active — just make sure GraphEditor is visible
-            self._switch_to_graph_editor(context)
-            return
-
         app = context.app
         session = context.session
-        if app is None or session is None:
+        if app is None or session is None or not hasattr(app, "open_graph_in_tab"):
             return
-
-        # Detach from current graph
-        self._detach_current(app, context, session)
-
-        # Attach to selected entry
-        app.haystack.session_attach(entry, session.session_id)
-
-        # Update context
-        context.active_graph = entry.graph
-        context.active_graph_path = entry.path
-
-        self._activate_entry(entry, context, session)
+        app.open_graph_in_tab(entry, context, _GRAPH_EDITOR_KEY)
 
     # ------------------------------------------------------------------
     # execution actions
@@ -651,29 +640,23 @@ class HaystackEditor(BaseEditor):
                 entries, active_rel = gm.load_haystack(name, app._graph_factory)
                 for entry in entries:
                     app._subscribe_entry_validation(entry)
+
+                active_entry = None
                 if active_rel:
                     ws_root = Path(app.workspace_root)
-                    active_path = ws_root / active_rel
-                    active_entry = gm.get_by_path(active_path)
-                    if active_entry:
-                        context.active_graph = active_entry.graph
-                        context.active_graph_path = active_entry.path
-                elif entries:
-                    context.active_graph = entries[0].graph
-                    context.active_graph_path = entries[0].path
+                    active_entry = gm.get_by_path(ws_root / active_rel)
+                if active_entry is None and entries:
+                    active_entry = entries[0]
+
                 session = context.session
                 if session and session.workspace_manager:
                     session.workspace_manager.active.haystack = name
                     session.workspace_manager.save()
+
                 self._notify_data_mutated(context)
-                session = context.session
-                if session:
-                    session.notify_context_changed(
-                        ContextChangedEvent(
-                            change_type=ContextChangeType.ACTIVE_GRAPH_CHANGED,
-                            source_editor="haystack",
-                        )
-                    )
+                if active_entry is not None and hasattr(app, "open_graph_in_tab"):
+                    app.open_graph_in_tab(active_entry, context, _GRAPH_EDITOR_KEY)
+
                 self._update_header_title(context)
                 ui.notify(f"Haystack '{name}' loaded", type="positive")
                 popup.close()
@@ -740,16 +723,13 @@ class HaystackEditor(BaseEditor):
 
                 path = options[selected]
                 session = context.session
-                if not hasattr(app, "open_graph_file") or session is None:
+                if not hasattr(app, "open_graph_in_tab") or session is None:
                     ui.notify("Graph manager not available", type="warning")
                     popup.close()
                     return
 
-                self._detach_current(app, context, session)
                 entry = app.open_graph_file(path, session.session_id)
-                context.active_graph = entry.graph
-                context.active_graph_path = entry.path
-                self._activate_entry(entry, context, session)
+                app.open_graph_in_tab(entry, context, _GRAPH_EDITOR_KEY)
                 ui.notify(f"Opened: {path.name}", type="positive", position="top-right")
                 popup.close()
 
@@ -860,29 +840,6 @@ class HaystackEditor(BaseEditor):
                 app.session_manager.broadcast_data_mutation(graph_path=entry.path)
             except Exception:
                 pass
-
-    def _detach_current(self, app, context: "SessionContext", session) -> None:
-        """Detach the session from whatever graph it is currently viewing."""
-        if context.active_graph_path is not None:
-            current_entry = app.haystack.get_by_path(context.active_graph_path)
-        elif context.active_graph is not None:
-            # path=None covers both '__untitled__' and '__new_N__' — use identity
-            current_entry = app.haystack.get_by_graph(context.active_graph)
-        else:
-            current_entry = None
-        if current_entry is not None:
-            app.haystack.session_detach(current_entry, session.session_id)
-
-    def _activate_entry(self, entry: "GraphEntry", context: "SessionContext", session) -> None:
-        """Fire ACTIVE_GRAPH_CHANGED and reveal the graph editor tab."""
-        session.notify_context_changed(
-            ContextChangedEvent(
-                change_type=ContextChangeType.ACTIVE_GRAPH_CHANGED,
-                source_editor="haystack",
-                detail=entry,
-                reveal_editor=_GRAPH_EDITOR_KEY,
-            )
-        )
 
     # ------------------------------------------------------------------
     # cleanup

@@ -35,6 +35,20 @@ class TestWorkspaceStateSerialization:
         assert d["label"] == "My Graph"
         assert d["metadata"] == {"foo": 1}
 
+    def test_tab_state_tab_id_is_editor_key_when_no_payload(self):
+        state = TabState(editor_key="graph_editor", label="My Graph")
+        assert state.payload is None
+        assert state.tab_id == "graph_editor"
+
+    def test_tab_state_tab_id_composes_editor_key_and_payload(self):
+        state = TabState(
+            editor_key="graph_editor",
+            label="My Graph",
+            metadata={"payload": "/path/to/a.haywire"},
+        )
+        assert state.payload == "/path/to/a.haywire"
+        assert state.tab_id == "graph_editor::/path/to/a.haywire"
+
     def test_main_slot_state_asdict(self):
         state = MainSlotState()
         d = asdict(state)

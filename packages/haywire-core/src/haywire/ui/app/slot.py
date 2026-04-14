@@ -62,10 +62,27 @@ class EditorBinding:
     payload: Any = None
     instance: Optional["BaseEditor"] = None
 
+    @property
+    def binding_id(self) -> str:
+        """Stable identity matching :attr:`TabState.tab_id`.
+
+        Equals ``editor_key`` for single-instance bindings (the case for every
+        binding today) and ``editor_key::payload`` when a payload is present.
+        Used as the key for the slot's per-binding ``ui.tab_panel``.
+        """
+        return f"{self.editor_key}::{self.payload}" if self.payload else self.editor_key
+
     def ensure_instance(self) -> "BaseEditor":
-        """Lazy-create ``instance`` on first use. Subsequent calls return it."""
+        """Lazy-create ``instance`` on first use. Subsequent calls return it.
+
+        On creation the binding attaches itself to the instance via
+        ``instance.binding = self`` so the editor can read its own
+        ``editor_key`` / ``payload`` at any time (draw, poll, handlers)
+        without the slot having to pass it through each entry point.
+        """
         if self.instance is None:
             self.instance = self.editor_cls()
+            self.instance.binding = self
         return self.instance
 
 
@@ -154,6 +171,11 @@ class Slot:
         return self._active.editor_key if self._active is not None else None
 
     @property
+    def active_binding_id(self) -> Optional[str]:
+        """Full binding id (``editor_key`` or ``editor_key::payload``) of the active binding."""
+        return self._active.binding_id if self._active is not None else None
+
+    @property
     def visible(self) -> bool:
         """Whether the area container is currently visible."""
         return self._visible
@@ -163,23 +185,39 @@ class Slot:
         """Read-only view of the bindings list."""
         return list(self._bindings)
 
-    def find_binding(self, editor_key: str) -> Optional[EditorBinding]:
+    def find_binding(self, editor_key: str, payload: Any = None) -> Optional[EditorBinding]:
         """
-        First-match lookup by registry key.
+        Lookup a binding by ``(editor_key, payload)``.
 
-        Logs a warning when multiple bindings share ``editor_key`` — this
-        is a no-op in scope B (every binding has a unique key) but surfaces
-        an ambiguity when the multi-instance follow-up lands.
+        An exact match (both fields equal) always wins. When ``payload`` is
+        ``None`` and no exact match exists, falls back to the first binding
+        whose ``editor_key`` matches — this preserves the behavior every
+        pre-multi-instance call site relied on.
+
+        Warns on ambiguous matches so the multi-instance migration surfaces
+        any call site that still looks up by key alone when duplicates exist.
         """
-        matches = [b for b in self._bindings if b.editor_key == editor_key]
-        if not matches:
-            return None
-        if len(matches) > 1:
-            logger.warning(
-                f"Slot '{self.name}': {len(matches)} bindings match key '{editor_key}'; "
-                "returning the first. Use a payload-aware reveal once available."
-            )
-        return matches[0]
+        exact = [b for b in self._bindings if b.editor_key == editor_key and b.payload == payload]
+        if exact:
+            if len(exact) > 1:
+                logger.warning(
+                    f"Slot '{self.name}': {len(exact)} bindings match "
+                    f"({editor_key!r}, payload={payload!r}); returning the first."
+                )
+            return exact[0]
+
+        if payload is None:
+            fuzzy = [b for b in self._bindings if b.editor_key == editor_key]
+            if not fuzzy:
+                return None
+            if len(fuzzy) > 1:
+                logger.warning(
+                    f"Slot '{self.name}': {len(fuzzy)} bindings match key '{editor_key}' "
+                    "(payload-less lookup); returning the first. "
+                    "Pass payload to disambiguate once multi-instance tabs land."
+                )
+            return fuzzy[0]
+        return None
 
     # ------------------------------------------------------------------
     # Rendering
@@ -198,9 +236,10 @@ class Slot:
         per-binding panels are stored so ``switch_to`` can change the
         active panel without rebuilding anything.
         """
+        initial_value = self._active.binding_id if self._active is not None else None
         with parent:
             self._area_container = (
-                ui.tab_panels(value=self.active_key, animated=False)
+                ui.tab_panels(value=initial_value, animated=False)
                 .props("keep-alive")
                 .classes("hw-panel")
                 .style(
@@ -223,63 +262,66 @@ class Slot:
         if self._area_container is None:
             return
         with self._area_container:
-            panel = ui.tab_panel(binding.editor_key).style("width: 100%; height: 100%; padding: 0;")
-        self._panels[binding.editor_key] = panel
+            panel = ui.tab_panel(binding.binding_id).style("width: 100%; height: 100%; padding: 0;")
+        self._panels[binding.binding_id] = panel
 
     def _ensure_drawn(self, binding: EditorBinding) -> None:
         """Draw the binding's editor into its panel on first activation."""
-        key = binding.editor_key
-        if key in self._drawn:
+        bid = binding.binding_id
+        if bid in self._drawn:
             return
-        panel = self._panels.get(key)
+        panel = self._panels.get(bid)
         if panel is None:
             return
         try:
             instance = binding.ensure_instance()
             instance.draw(self._session.context, panel)
-            self._drawn.add(key)
+            self._drawn.add(bid)
         except Exception as exc:
-            logger.error(f"Slot '{self.name}': draw failed for '{key}': {exc}")
+            logger.error(f"Slot '{self.name}': draw failed for '{bid}': {exc}")
             with panel:
-                ui.label(f"Error loading editor: {key}").classes("hw-text-danger p-4")
+                ui.label(f"Error loading editor: {bid}").classes("hw-text-danger p-4")
 
     def _redraw(self, binding: EditorBinding) -> None:
         """Full redraw of one binding's panel (clear + draw)."""
-        panel = self._panels.get(binding.editor_key)
+        panel = self._panels.get(binding.binding_id)
         if panel is None:
             return
         panel.clear()
-        self._drawn.discard(binding.editor_key)
+        self._drawn.discard(binding.binding_id)
         self._ensure_drawn(binding)
 
     # ------------------------------------------------------------------
     # Switching
     # ------------------------------------------------------------------
 
-    def switch_to(self, editor_key: str) -> bool:
+    def switch_to(self, editor_key: str, payload: Any = None) -> bool:
         """
-        Change the active binding to the one matching ``editor_key``.
+        Change the active binding to the one matching ``(editor_key, payload)``.
 
-        Re-renders the area on success. No-op if ``editor_key`` already
-        identifies the active binding. Logs a warning and returns ``False``
-        when no binding matches the key.
+        Re-renders the area on success. No-op if the target is already
+        active. Logs a warning and returns ``False`` when no binding matches.
+        Callers pre-dating multi-instance bindings omit ``payload``; see
+        :meth:`find_binding` for the fallback rules.
 
         Returns:
             ``True`` iff the active binding actually changed.
         """
-        if self._active is not None and self._active.editor_key == editor_key:
+        target = self.find_binding(editor_key, payload)
+        if target is None:
+            logger.warning(
+                f"Slot '{self.name}': switch_to({editor_key!r}, payload={payload!r}) — no matching binding"
+            )
             return False
 
-        target = self.find_binding(editor_key)
-        if target is None:
-            logger.warning(f"Slot '{self.name}': switch_to('{editor_key}') — no binding with that key")
+        if self._active is target:
             return False
 
         self._active = target
-        logger.info(f"Slot '{self.name}': switched to '{editor_key}'")
+        logger.info(f"Slot '{self.name}': switched to '{target.binding_id}'")
         self._ensure_drawn(target)
         if self._area_container is not None:
-            self._area_container.set_value(editor_key)
+            self._area_container.set_value(target.binding_id)
         return True
 
     def add_binding(self, binding: EditorBinding, activate: bool = False) -> None:
@@ -298,9 +340,9 @@ class Slot:
                 self._active = binding
                 self._ensure_drawn(binding)
                 if self._area_container is not None:
-                    self._area_container.set_value(binding.editor_key)
+                    self._area_container.set_value(binding.binding_id)
             else:
-                self.switch_to(binding.editor_key)
+                self.switch_to(binding.editor_key, binding.payload)
 
     # ------------------------------------------------------------------
     # Visibility
@@ -334,7 +376,7 @@ class Slot:
             if instance.poll(self._session.context, event):
                 self._redraw(self._active)
         except Exception as exc:
-            logger.error(f"Slot '{self.name}': poll/draw error for '{self._active.editor_key}': {exc}")
+            logger.error(f"Slot '{self.name}': poll/draw error for '{self._active.binding_id}': {exc}")
 
     # ------------------------------------------------------------------
     # Hot-reload support
@@ -374,6 +416,97 @@ class Slot:
                 redrew = True
         return redrew
 
+    def remove_binding(
+        self,
+        editor_key: str,
+        payload: Any = None,
+        cleanup: Callable[["BaseEditor"], None] | None = None,
+    ) -> Optional[EditorBinding]:
+        """
+        Remove a single binding matching ``(editor_key, payload)``.
+
+        Used by the shell to close one multi-instance tab without touching
+        sibling tabs that share the same ``editor_key``. If the removed
+        binding was active, the next binding in the list becomes active
+        (falling back to the previous one if there is no next; ``None`` if
+        the slot is now empty).
+
+        Returns the removed binding, or ``None`` when no match was found.
+        """
+        target = self.find_binding(editor_key, payload)
+        if target is None:
+            return None
+
+        if target.instance is not None and cleanup is not None:
+            try:
+                cleanup(target.instance)
+            except Exception as exc:
+                logger.warning(f"Slot '{self.name}': cleanup error for '{target.binding_id}': {exc}")
+
+        panel = self._panels.pop(target.binding_id, None)
+        if panel is not None:
+            panel.delete()
+        self._drawn.discard(target.binding_id)
+
+        was_active = self._active is target
+        idx = self._bindings.index(target)
+        self._bindings.remove(target)
+
+        if was_active:
+            if self._bindings:
+                next_idx = min(idx, len(self._bindings) - 1)
+                self._active = self._bindings[next_idx]
+                self._ensure_drawn(self._active)
+                if self._area_container is not None:
+                    self._area_container.set_value(self._active.binding_id)
+            else:
+                self._active = None
+        return target
+
+    def repayload_binding(
+        self,
+        editor_key: str,
+        old_payload: Any,
+        new_payload: Any,
+    ) -> bool:
+        """
+        Re-key an existing binding's payload in-place.
+
+        Used by the shell to track a graph whose haystack key changed (e.g.
+        save-as moved an entry from ``__new_3__`` to an absolute path). The
+        binding keeps its editor instance; only the identity used for
+        ``find_binding`` / ``switch_to`` / ``binding_id`` changes.
+
+        The ``ui.tab_panel`` DOM node also needs its name updated so
+        ``ui.tab_panels.set_value`` still selects it. Returns ``False`` when
+        no binding matches or when the new id collides with an existing one.
+        """
+        target = self.find_binding(editor_key, old_payload)
+        if target is None:
+            return False
+        if target.payload == new_payload:
+            return True
+
+        new_id = f"{editor_key}::{new_payload}" if new_payload else editor_key
+        if any(b is not target and b.binding_id == new_id for b in self._bindings):
+            logger.warning(f"Slot '{self.name}': repayload collision — '{new_id}' already exists")
+            return False
+
+        old_id = target.binding_id
+        target.payload = new_payload
+
+        panel = self._panels.pop(old_id, None)
+        if panel is not None:
+            panel._props["name"] = new_id
+            self._panels[new_id] = panel
+        drawn = old_id in self._drawn
+        self._drawn.discard(old_id)
+        if drawn:
+            self._drawn.add(new_id)
+        if self._active is target and self._area_container is not None:
+            self._area_container.set_value(new_id)
+        return True
+
     def remove_bindings(
         self,
         editor_key: str,
@@ -395,14 +528,14 @@ class Slot:
                     cleanup(binding.instance)
                 except Exception as exc:
                     logger.warning(f"Slot '{self.name}': cleanup error for '{editor_key}': {exc}")
-            panel = self._panels.pop(binding.editor_key, None)
+            panel = self._panels.pop(binding.binding_id, None)
             if panel is not None:
                 panel.delete()
-            self._drawn.discard(binding.editor_key)
+            self._drawn.discard(binding.binding_id)
         self._bindings = [b for b in self._bindings if b.editor_key != editor_key]
         if self._active in removed:
             self._active = self._bindings[0] if self._bindings else None
             if self._active is not None:
                 self._ensure_drawn(self._active)
                 if self._area_container is not None:
-                    self._area_container.set_value(self._active.editor_key)
+                    self._area_container.set_value(self._active.binding_id)

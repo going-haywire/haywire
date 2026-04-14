@@ -25,12 +25,33 @@ class TabState:
     Attributes:
         editor_key: Full registry_key of the editor in this tab.
         label: Tab display label.
-        metadata: Editor-specific state (e.g., which graph is open).
+        metadata: Editor-specific state. By convention ``metadata["payload"]``
+            (when present) disambiguates multi-instance editors — e.g. the
+            path of the graph hosted in this tab. Absent or ``None`` means
+            single-instance, which is the behavior every tab has today.
     """
 
     editor_key: Optional[str] = None
     label: str = "Graph"
     metadata: Dict[str, Any] = field(default_factory=dict)
+
+    @property
+    def payload(self) -> Optional[str]:
+        """Multi-instance disambiguator, or ``None`` for single-instance tabs."""
+        return self.metadata.get("payload")
+
+    @property
+    def tab_id(self) -> str:
+        """Stable identity for this tab.
+
+        For single-instance tabs this equals ``editor_key`` — preserving the
+        identifier every existing call site already uses. Multi-instance
+        tabs compose ``editor_key::payload`` so two tabs hosting the same
+        editor class with different payloads don't collide.
+        """
+        if self.editor_key is None:
+            return ""
+        return f"{self.editor_key}::{self.payload}" if self.payload else self.editor_key
 
 
 @dataclass

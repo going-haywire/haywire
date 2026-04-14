@@ -164,44 +164,25 @@ class FileBrowserEditor(BaseEditor):
             self._open_in_file_viewer(path, context)
 
     def _open_graph_file(self, path: Path, context: "SessionContext") -> None:
-        """Load a .haywire graph file and switch to the graph editor tab."""
+        """Load a .haywire graph file and open its graph editor tab."""
+        from haybale_studio.editors.graph_editor import GraphEditor
+
         app: "HaywireApp" = context.app
         session = context.session
 
-        if app is not None and hasattr(app, "open_graph_file") and session is not None:
-            # Detach from whichever graph this session is currently viewing
-            if context.active_graph_path is not None:
-                prev_entry = app.haystack.get_by_path(context.active_graph_path)
-            else:
-                prev_entry = app.haystack.get_untitled()
-            if prev_entry is not None:
-                app.haystack.session_detach(prev_entry, session.session_id)
+        if app is None or session is None or not hasattr(app, "open_graph_in_tab"):
+            return
 
-            # Open (or reuse) the graph entry and attach this session
-            entry = app.open_graph_file(path, session.session_id)
-
-            # Update context
-            context.active_graph = entry.graph
-            context.active_graph_path = path
-
-            # Broadcast ACTIVE_GRAPH_CHANGED + reveal the graph editor tab.
-            session.notify_context_changed(
-                ContextChangedEvent(
-                    change_type=ContextChangeType.ACTIVE_GRAPH_CHANGED,
-                    source_editor="file_browser",
-                    detail=entry,
-                    reveal_editor="studio:editor:graph_editor",
-                )
-            )
-        elif app is not None and hasattr(app, "_do_load_graph"):
-            # Fallback for backward compat (loads into shared untitled graph)
-            app._do_load_graph(str(path))
+        # open_graph_file is idempotent: returns the existing entry if already
+        # loaded. open_graph_in_tab then performs the detach/attach dance and
+        # emits the reveal event pointing at the GraphEditor.
+        entry = app.open_graph_file(path, session.session_id)
+        app.open_graph_in_tab(entry, context, GraphEditor.class_identity.registry_key)
 
     def _open_in_file_viewer(self, path: Path, context: "SessionContext") -> None:
         """Broadcast FILE_SELECTED and reveal the file viewer tab."""
         session = context.session
         if session is not None:
-
             from haybale_studio.editors.file_viewer import FileViewerEditor
 
             session.notify_context_changed(
