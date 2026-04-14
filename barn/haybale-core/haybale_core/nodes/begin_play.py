@@ -28,6 +28,9 @@ class BeginPlayNode(BaseNode):
         # Data output
         self.add(FLOAT.as_outlet("timestamp", label="Start Time"))
 
+        # Data output
+        self.add(FLOAT.as_outlet("timestamp3", label="Stop Time"))
+
     def post_init(self):
         self.event_subscription = SystemEvent(SystemEventType.BEGIN_PLAY)
 

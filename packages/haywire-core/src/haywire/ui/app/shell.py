@@ -22,6 +22,7 @@ from nicegui import ui
 
 from haywire.ui import elements as hui
 from haywire.ui.context_events import ContextChangedEvent, ContextChangeType
+from haywire.ui.app.slot import EditorBinding, Slot
 
 logger = logging.getLogger(__name__)
 
@@ -67,15 +68,22 @@ class AppShell:
         self._editor_registry = editor_registry
 
         # Poll/draw orchestrator state -----------------------------------------
-        # Cached editor instances keyed by registry_key (lazy, survive slot switches).
+        # Managed slots (left, right) — PR1 of the Slot/EditorBinding refactor.
+        # PR2 will absorb main/bottom and remove _editor_cache + _slots below.
+        self._managed_slots: dict[str, Slot] = {}
+        # Cached editor instances keyed by registry_key — still used by main/bottom
+        # tabs and by the hot-reload handler. Removed in PR2 once every slot is
+        # managed via self._managed_slots.
         self._editor_cache: dict[str, "BaseEditor"] = {}
-        # Maps each slot ('left', 'right', 'main:<key>', 'bottom:<key>') to
-        # (editor_key, container_element) so the poll/draw loop knows what to poll.
+        # Legacy poll/draw map for main/bottom tabs. Entries are keyed by
+        # 'main:<editor_key>' / 'bottom:<editor_key>' and hold
+        # (editor_key, container_element). Left/right no longer appear here —
+        # their poll/draw goes through self._managed_slots. Removed in PR2.
         self._slots: dict[str, tuple[Optional[str], Optional["ui.element"]]] = {}
 
         # DOM references -------------------------------------------------------
-        self._left_slot = None  # stored for dynamic switching via _switch_left_slot
-        self._right_slot = None  # stored for dynamic switching via _switch_right_slot
+        self._left_slot_parent = None  # parent container the left Slot renders its area into
+        self._right_slot_parent = None  # parent container the right Slot renders its area into
         self._activity_bar = None  # left slot's bar (vertical icons)
         self._context_bar = None  # right slot's bar (vertical icons)
         self._left_divider = None  # drag handle between left and main slots
@@ -442,6 +450,8 @@ class AppShell:
                 # TopBar toggle can show/hide it without re-building the DOM.
                 # id="hw-slot-left" lets the JS drag handler find this element.
                 if ws.left.active_tab_key:
+                    left_slot = self._build_managed_slot("left", ws.left.active_tab_key)
+                    left_slot.set_visible(ws.left.visible)
                     with (
                         ui.column()
                         .classes("gap-0")
@@ -451,8 +461,8 @@ class AppShell:
                             " background: var(--hw-bg-page);"
                         ) as left_col
                     ):
-                        self._left_slot = left_col
-                        self._render_slot("left", ws.left.active_tab_key)
+                        self._left_slot_parent = left_col
+                        left_slot.render_area(left_col)
                     left_col._props["id"] = "hw-slot-left"
                     left_col.set_visibility(ws.left.visible)
 
@@ -486,6 +496,8 @@ class AppShell:
                     )
                     self._right_divider.set_visibility(ws.right.visible)
 
+                    right_slot = self._build_managed_slot("right", ws.right.active_tab_key)
+                    right_slot.set_visible(ws.right.visible)
                     with (
                         ui.column()
                         .classes("gap-0")
@@ -495,8 +507,8 @@ class AppShell:
                             " background: var(--hw-bg-page);"
                         ) as right_col
                     ):
-                        self._right_slot = right_col
-                        self._render_slot("right", ws.right.active_tab_key)
+                        self._right_slot_parent = right_col
+                        right_slot.render_area(right_col)
                     right_col._props["id"] = "hw-slot-right"
                     right_col.set_visibility(ws.right.visible)
 
@@ -810,6 +822,26 @@ class AppShell:
         ):
             ui.label(f"Session: {self.session.session_id[:8]}...").classes("text-xs hw-text-muted")
 
+    def _build_managed_slot(self, slot_name: str, active_key: Optional[str]) -> Slot:
+        """Construct and cache a managed :class:`Slot` for ``slot_name``.
+
+        Seeds the slot's initial bindings from the editor registry's
+        ``get_by_default_slot`` result. All payloads are ``None`` — the
+        multi-instance payload scope lands in a follow-up PRD.
+        """
+        editors = self._editor_registry.get_by_default_slot(slot_name) if self._editor_registry else {}
+        bindings = [
+            EditorBinding(editor_key=key, editor_cls=cls, payload=None) for key, cls in editors.items()
+        ]
+        slot = Slot(
+            session=self.session,
+            name=slot_name,
+            initial_bindings=bindings,
+            active_key=active_key,
+        )
+        self._managed_slots[slot_name] = slot
+        return slot
+
     def _render_slot(self, slot: str, editor_key: Optional[str]) -> None:
         """Render a single slot, instantiating the editor if needed.
 
@@ -817,7 +849,8 @@ class AppShell:
         and calls draw() directly (first-assignment — no poll).
 
         Args:
-            slot: Slot identifier ('left', 'right', 'main', 'bottom').
+            slot: Slot identifier ('main', 'bottom'). Left/right go through
+                :class:`Slot` via :meth:`_build_managed_slot`.
             editor_key: Registry key of the editor to render, or None.
         """
         if not editor_key:
@@ -893,14 +926,8 @@ class AppShell:
             return
 
         slot = getattr(editor_cls.class_identity, "default_slot", None)
-        if slot == "left":
-            self._apply_left_slot_switch(editor_key)
-        elif slot == "right":
-            self._apply_right_slot_switch(editor_key)
-        elif slot == "main":
-            self._apply_main_slot_switch(editor_key)
-        elif slot == "bottom":
-            self._apply_bottom_slot_switch(editor_key)
+        if slot in ("left", "right"):
+            self._apply_managed_slot_switch(slot, editor_key)
         else:
             logger.warning(
                 f"AppShell: reveal_editor '{editor_key}' targets slot '{slot}' "
@@ -912,7 +939,13 @@ class AppShell:
         if event.reveal_editor is not None:
             self._reveal_editor(event.reveal_editor)
 
-        for slot, (editor_key, container) in self._slots.items():
+        # Managed slots (left, right) — each Slot runs the poll/draw gate
+        # on its own active binding.
+        for slot in self._managed_slots.values():
+            slot.handle_context_event(event)
+
+        # Legacy main/bottom tabs — PR2 will migrate these to managed slots.
+        for slot_key, (editor_key, container) in self._slots.items():
             if editor_key is None or container is None:
                 continue
             instance = self._editor_cache.get(editor_key)
@@ -923,44 +956,58 @@ class AppShell:
                     container.clear()
                     instance.draw(context, container)
             except Exception as e:
-                logger.error(f"AppShell: poll/draw error for '{editor_key}' in slot '{slot}': {e}")
+                logger.error(f"AppShell: poll/draw error for '{editor_key}' in slot '{slot_key}': {e}")
 
     def _on_editor_lifecycle(self, events: "list[LifeCycleEvent]") -> None:
         """Handle editor class hot-reload events from EditorTypeRegistry."""
         from haywire.core.registry.lifecycle_event import LifeCycleEventType
 
+        def _cleanup(instance: "BaseEditor") -> None:
+            try:
+                instance.cleanup()
+            except Exception as e:
+                logger.warning(f"AppShell: cleanup error: {e}")
+
         for evt in events:
-            if evt.event_type in (
+            if evt.event_type not in (
                 LifeCycleEventType.CLASS_RELOADED,
                 LifeCycleEventType.CLASS_REMOVED,
             ):
-                old_instance = self._editor_cache.pop(evt.registry_key, None)
-                if old_instance is not None:
-                    try:
-                        old_instance.cleanup()
-                    except Exception as e:
-                        logger.warning(f"AppShell: cleanup error for '{evt.registry_key}': {e}")
+                continue
 
-                # If the editor is currently visible, re-instantiate and draw.
+            # Managed slots (left, right) — route via Slot helpers.
+            for managed in self._managed_slots.values():
                 if evt.event_type == LifeCycleEventType.CLASS_RELOADED and evt.affected_class is not None:
-                    for slot, (editor_key, container) in self._slots.items():
-                        if editor_key == evt.registry_key and container is not None:
-                            try:
-                                new_instance = self._get_or_create_editor(editor_key, evt.affected_class)
-                                container.clear()
-                                new_instance.draw(self.session.context, container)
-                            except Exception as e:
-                                logger.error(
-                                    f"AppShell: hot-reload draw error for "
-                                    f"'{editor_key}' in slot '{slot}': {e}"
-                                )
+                    managed.replace_class(evt.registry_key, evt.affected_class, cleanup_old=_cleanup)
+                elif evt.event_type == LifeCycleEventType.CLASS_REMOVED:
+                    managed.remove_bindings(evt.registry_key, cleanup=_cleanup)
+
+            # Legacy main/bottom cache + redraw path. Removed in PR2.
+            old_instance = self._editor_cache.pop(evt.registry_key, None)
+            if old_instance is not None:
+                _cleanup(old_instance)
+
+            if evt.event_type == LifeCycleEventType.CLASS_RELOADED and evt.affected_class is not None:
+                for slot, (editor_key, container) in self._slots.items():
+                    if editor_key == evt.registry_key and container is not None:
+                        try:
+                            new_instance = self._get_or_create_editor(editor_key, evt.affected_class)
+                            container.clear()
+                            new_instance.draw(self.session.context, container)
+                        except Exception as e:
+                            logger.error(
+                                f"AppShell: hot-reload draw error for '{editor_key}' in slot '{slot}': {e}"
+                            )
 
     def _toggle_left_slot(self) -> None:
         """Toggle the left slot visibility."""
         ws = self.session.workspace_manager.active
         ws.left.visible = not ws.left.visible
-        if self._left_slot:
-            self._left_slot.set_visibility(ws.left.visible)
+        if self._left_slot_parent:
+            self._left_slot_parent.set_visibility(ws.left.visible)
+        left_slot = self._managed_slots.get("left")
+        if left_slot is not None:
+            left_slot.set_visible(ws.left.visible)
         if self._left_divider:
             self._left_divider.set_visibility(ws.left.visible)
         if self._btn_left:
@@ -976,8 +1023,11 @@ class AppShell:
         """Toggle the right slot visibility."""
         ws = self.session.workspace_manager.active
         ws.right.visible = not ws.right.visible
-        if self._right_slot:
-            self._right_slot.set_visibility(ws.right.visible)
+        if self._right_slot_parent:
+            self._right_slot_parent.set_visibility(ws.right.visible)
+        right_slot = self._managed_slots.get("right")
+        if right_slot is not None:
+            right_slot.set_visible(ws.right.visible)
         if self._right_divider:
             self._right_divider.set_visibility(ws.right.visible)
         if self._btn_right:
@@ -1071,92 +1121,45 @@ class AppShell:
         with self._context_bar:
             self._render_context_bar_contents()
 
-    def _apply_left_slot_switch(self, editor_key: str) -> bool:
-        """Switch the editor assigned to the Left Slot without notifying.
+    def _apply_managed_slot_switch(self, slot_name: str, editor_key: str) -> bool:
+        """Switch the editor in a managed slot without broadcasting.
 
-        Updates workspace state, re-renders the left slot, and refreshes the
-        activity bar. Does NOT fire a WORKSPACE_CHANGED event — callers that
-        need event propagation should use :meth:`_switch_left_slot`, while the
-        reveal path calls this helper directly so a single poll/draw pass can
-        cover both the reveal and the originating event.
-
-        Args:
-            editor_key: Full registry_key of the editor to show.
+        Delegates to ``Slot.switch_to`` for the draw, updates workspace
+        state, and refreshes the slot's bar. Does NOT fire a
+        WORKSPACE_CHANGED event — the reveal path calls this helper
+        directly so a single poll/draw pass can cover both the reveal and
+        the originating event.
 
         Returns:
-            True if the slot was actually switched, False if it was already
-            showing the requested editor.
+            True if the slot was actually switched.
         """
-        ws = self.session.workspace_manager.active
-        if ws.left.active_tab_key == editor_key:
+        slot = self._managed_slots.get(slot_name)
+        if slot is None:
+            return False
+        if not slot.switch_to(editor_key):
             return False
 
-        ws.left.active_tab_key = editor_key
-        logger.info(f"AppShell: Switching left slot to '{editor_key}'")
-
-        # Re-render the left slot with the new editor (cached instance reused).
-        if self._left_slot is not None:
-            self._left_slot.clear()
-            with self._left_slot:
-                self._render_slot("left", editor_key)
-
-        self._refresh_activity_bar()
+        ws = self.session.workspace_manager.active
+        if slot_name == "left":
+            ws.left.active_tab_key = editor_key
+            self._refresh_activity_bar()
+        elif slot_name == "right":
+            ws.right.active_tab_key = editor_key
+            self._refresh_context_bar()
         return True
 
     def _switch_left_slot(self, editor_key: str) -> None:
-        """Switch the Left Slot editor and broadcast WORKSPACE_CHANGED.
-
-        Used by the activity-bar buttons and other user-driven callers that
-        want the switch to be visible to other editors as a workspace event.
-
-        Args:
-            editor_key: Full registry_key of the editor to show.
-        """
-        if not self._apply_left_slot_switch(editor_key):
+        """Switch the Left Slot editor and broadcast WORKSPACE_CHANGED."""
+        if not self._apply_managed_slot_switch("left", editor_key):
             return
-
         self.session.notify_context_changed(
             ContextChangedEvent(change_type=ContextChangeType.WORKSPACE_CHANGED)
         )
 
-    def _apply_right_slot_switch(self, editor_key: str) -> bool:
-        """Switch the editor assigned to the Right Slot without notifying.
-
-        See :meth:`_apply_left_slot_switch` for semantics; this is the
-        right-slot counterpart used by the reveal path.
-
-        Args:
-            editor_key: Registry key of the editor to show.
-
-        Returns:
-            True if the slot was actually switched, False if it was already
-            showing the requested editor.
-        """
-        ws = self.session.workspace_manager.active
-        if ws.right.active_tab_key == editor_key:
-            return False
-
-        ws.right.active_tab_key = editor_key
-        logger.info(f"AppShell: Switching right slot to '{editor_key}'")
-
-        # Re-render the right slot with the new editor (cached instance reused).
-        if self._right_slot is not None:
-            self._right_slot.clear()
-            with self._right_slot:
-                self._render_slot("right", editor_key)
-
-        self._refresh_context_bar()
-        return True
-
     def _switch_right_slot(self, editor_key: str) -> None:
-        """Switch the Right Slot editor and broadcast WORKSPACE_CHANGED.
-
-        Args:
-            editor_key: Registry key of the editor to show.
-        """
-        if not self._apply_right_slot_switch(editor_key):
+        """Switch the Right Slot editor and broadcast WORKSPACE_CHANGED."""
+        if not self._apply_managed_slot_switch("right", editor_key):
             return
-
         self.session.notify_context_changed(
             ContextChangedEvent(change_type=ContextChangeType.WORKSPACE_CHANGED)
         )
