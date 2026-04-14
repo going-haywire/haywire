@@ -1,19 +1,22 @@
-# packages/haywire-core/src/haywire/ui/app_shell.py
+# packages/haywire-core/src/haywire/ui/app/shell.py
 """
 AppShell renders the workspace layout using NiceGUI.
 
-This is the top-level UI component that creates the ActivityBar, ContextBar,
-Left/Middle/Right/Bottom areas, TopBar, and StatusBar.
+Top-level UI component that builds the ActivityBar, ContextBar, Left / Main
+/ Right / Bottom slots, TopBar, and StatusBar.
 
-It reads the current WorkspaceState to determine which editors go where,
-and acts as the poll/draw orchestrator: on every ContextChangedEvent it
-calls poll() on each active editor and, if True, clears the container and
-calls draw(). Editor instances are lazily created and cached. Hot-reload
-events from EditorTypeRegistry evict stale instances.
+Each of the four slots is a managed :class:`Slot` (see ``slot.py``) that
+owns its editor bindings, area container, and active-binding lifecycle.
+The shell's role is layout chrome (bars, dividers, visibility toggles) and
+orchestration: on every ContextChangedEvent it calls
+``handle_context_event`` on each managed slot, and on hot-reload events
+from EditorTypeRegistry it forwards ``replace_class`` / ``remove_bindings``.
+Editor instance caching, draw/poll gating, and fresh-draw on reload live
+inside :class:`Slot`, not here.
 
-The AppShell is created once per browser session from within a NiceGUI page
-handler. The haywire-app package is responsible for constructing the Session
-and calling AppShell.render().
+The AppShell is created once per browser session from within a NiceGUI
+page handler. The haywire-app package is responsible for constructing the
+Session and calling AppShell.render().
 """
 
 import logging
@@ -74,8 +77,6 @@ class AppShell:
         # DOM references -------------------------------------------------------
         self._left_slot_parent = None  # parent container the left Slot renders its area into
         self._right_slot_parent = None  # parent container the right Slot renders its area into
-        self._main_slot_parent = None  # parent container the main Slot renders its area into
-        self._bottom_slot_parent = None  # parent container the bottom Slot renders its area into
         self._activity_bar = None  # left slot's bar (vertical icons)
         self._context_bar = None  # right slot's bar (vertical icons)
         self._main_bar = None  # main slot's bar (horizontal tabs)
@@ -642,18 +643,12 @@ class AppShell:
         # breaks flex sizing when the bottom slot is a sibling below.
         if ws.main.tabs:
             main_slot = self._build_managed_slot("main", ws.main.active_tab_key)
-            # Keep workspace state in sync with the slot's resolved active key
-            # (falls back to the first binding when the persisted key is stale).
-            if main_slot.active_key is not None:
-                ws.main.active_tab_key = main_slot.active_key
-
             self._render_main_bar()
             with (
                 ui.column()
                 .classes("gap-0 w-full")
                 .style("flex: 1; min-height: 0; overflow: hidden;") as main_area_parent
             ):
-                self._main_slot_parent = main_area_parent
                 main_slot.render_area(main_area_parent)
         else:
             # No tabs — empty placeholder.
@@ -733,8 +728,6 @@ class AppShell:
         self._bottom_divider.set_visibility(ws.bottom.visible)
 
         bottom_slot = self._build_managed_slot("bottom", ws.bottom.active_tab_key)
-        if bottom_slot.active_key is not None:
-            ws.bottom.active_tab_key = bottom_slot.active_key
 
         self._render_bottom_bar()
 
@@ -745,7 +738,6 @@ class AppShell:
                 f"height: {ws.bottom.size}px; min-height: 0; width: 100%; overflow: hidden;"
             ) as bottom_col
         ):
-            self._bottom_slot_parent = bottom_col
             bottom_slot.render_area(bottom_col)
         bottom_col._props["id"] = "hw-slot-bottom"
         self._bottom_container = bottom_col
@@ -833,7 +825,29 @@ class AppShell:
             active_key=active_key,
         )
         self._managed_slots[slot_name] = slot
+        self._mirror_active_key_to_workspace(slot_name, slot.active_key)
         return slot
+
+    def _mirror_active_key_to_workspace(self, slot_name: str, active_key: Optional[str]) -> None:
+        """Reconcile the workspace's persisted ``active_tab_key`` with the slot's resolved key.
+
+        Why: a persisted key may point to an editor class that is no longer
+        in the registry. ``Slot._resolve_initial_active`` silently falls back
+        to the first binding in that case — without this mirror the bar/icon
+        highlight would still read the stale key and desync from the drawn
+        editor.
+        """
+        if active_key is None:
+            return
+        ws = self.session.workspace_manager.active
+        if slot_name == "left":
+            ws.left.active_tab_key = active_key
+        elif slot_name == "right":
+            ws.right.active_tab_key = active_key
+        elif slot_name == "main":
+            ws.main.active_tab_key = active_key
+        elif slot_name == "bottom":
+            ws.bottom.active_tab_key = active_key
 
     # ------------------------------------------------------------------
     # Poll / draw orchestrator
