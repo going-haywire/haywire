@@ -124,6 +124,8 @@ class Slot:
         self._active: Optional[EditorBinding] = self._resolve_initial_active(active_key)
         self._visible: bool = True
         self._area_container: Optional["ui.element"] = None
+        self._panels: dict[str, "ui.element"] = {}
+        self._drawn: set[str] = set()
 
     # ------------------------------------------------------------------
     # Construction helpers
@@ -185,40 +187,70 @@ class Slot:
 
     def render_area(self, parent: "ui.element") -> None:
         """
-        Create the area container as a child of ``parent`` and draw the
-        active binding's editor into it.
+        Create the area container (a headless ``ui.tab_panels``) as a child
+        of ``parent`` and draw the active binding's editor into its panel.
 
-        Called once during the shell's initial render. The container is
-        stored so subsequent ``switch_to`` calls can clear + re-render
-        without re-building the wrapper.
+        Each binding gets its own ``ui.tab_panel`` keyed by ``editor_key``.
+        All panels live in the DOM simultaneously; switching toggles
+        visibility via ``set_value`` rather than clearing and re-rendering.
+
+        Called once during the shell's initial render. The container and
+        per-binding panels are stored so ``switch_to`` can change the
+        active panel without rebuilding anything.
         """
         with parent:
             self._area_container = (
-                ui.element("div")
+                ui.tab_panels(value=self.active_key, animated=False)
+                .props("keep-alive")
                 .classes("hw-panel")
                 .style(
                     "width: 100%; height: 100%; background: var(--hw-bg-page); color: var(--hw-text-body);"
                 )
             )
         self._area_container.set_visibility(self._visible)
-        self._draw_active()
 
-    def _draw_active(self) -> None:
-        """Clear the area container and draw the active binding (if any)."""
-        if self._area_container is None:
-            return
-        self._area_container.clear()
-        if self._active is None:
+        for binding in self._bindings:
+            self._create_panel(binding)
+
+        if self._active is None and self._area_container is not None:
             with self._area_container:
                 ui.label("No editor").classes("hw-text-muted p-4")
+        elif self._active is not None:
+            self._ensure_drawn(self._active)
+
+    def _create_panel(self, binding: EditorBinding) -> None:
+        """Create a ``ui.tab_panel`` shell for ``binding``. Draw is deferred."""
+        if self._area_container is None:
+            return
+        with self._area_container:
+            panel = ui.tab_panel(binding.editor_key).style("width: 100%; height: 100%; padding: 0;")
+        self._panels[binding.editor_key] = panel
+
+    def _ensure_drawn(self, binding: EditorBinding) -> None:
+        """Draw the binding's editor into its panel on first activation."""
+        key = binding.editor_key
+        if key in self._drawn:
+            return
+        panel = self._panels.get(key)
+        if panel is None:
             return
         try:
-            instance = self._active.ensure_instance()
-            instance.draw(self._session.context, self._area_container)
+            instance = binding.ensure_instance()
+            instance.draw(self._session.context, panel)
+            self._drawn.add(key)
         except Exception as exc:
-            logger.error(f"Slot '{self.name}': draw failed for '{self._active.editor_key}': {exc}")
-            with self._area_container:
-                ui.label(f"Error loading editor: {self._active.editor_key}").classes("hw-text-danger p-4")
+            logger.error(f"Slot '{self.name}': draw failed for '{key}': {exc}")
+            with panel:
+                ui.label(f"Error loading editor: {key}").classes("hw-text-danger p-4")
+
+    def _redraw(self, binding: EditorBinding) -> None:
+        """Full redraw of one binding's panel (clear + draw)."""
+        panel = self._panels.get(binding.editor_key)
+        if panel is None:
+            return
+        panel.clear()
+        self._drawn.discard(binding.editor_key)
+        self._ensure_drawn(binding)
 
     # ------------------------------------------------------------------
     # Switching
@@ -245,8 +277,30 @@ class Slot:
 
         self._active = target
         logger.info(f"Slot '{self.name}': switched to '{editor_key}'")
-        self._draw_active()
+        self._ensure_drawn(target)
+        if self._area_container is not None:
+            self._area_container.set_value(editor_key)
         return True
+
+    def add_binding(self, binding: EditorBinding, activate: bool = False) -> None:
+        """
+        Append a new binding to the slot, creating its panel if the area
+        has already been rendered.
+
+        Used by main/bottom when a workspace tab opens at runtime (the
+        left/right slots are seeded from the registry at construction).
+        """
+        self._bindings.append(binding)
+        if self._area_container is not None:
+            self._create_panel(binding)
+        if activate:
+            if self._active is None:
+                self._active = binding
+                self._ensure_drawn(binding)
+                if self._area_container is not None:
+                    self._area_container.set_value(binding.editor_key)
+            else:
+                self.switch_to(binding.editor_key)
 
     # ------------------------------------------------------------------
     # Visibility
@@ -278,8 +332,7 @@ class Slot:
             return
         try:
             if instance.poll(self._session.context, event):
-                self._area_container.clear()
-                instance.draw(self._session.context, self._area_container)
+                self._redraw(self._active)
         except Exception as exc:
             logger.error(f"Slot '{self.name}': poll/draw error for '{self._active.editor_key}': {exc}")
 
@@ -316,8 +369,8 @@ class Slot:
                     logger.warning(f"Slot '{self.name}': cleanup error for '{editor_key}': {exc}")
             binding.editor_cls = new_cls
             binding.instance = None
+            self._redraw(binding)
             if self._active is binding:
-                self._draw_active()
                 redrew = True
         return redrew
 
@@ -342,7 +395,14 @@ class Slot:
                     cleanup(binding.instance)
                 except Exception as exc:
                     logger.warning(f"Slot '{self.name}': cleanup error for '{editor_key}': {exc}")
+            panel = self._panels.pop(binding.editor_key, None)
+            if panel is not None:
+                panel.delete()
+            self._drawn.discard(binding.editor_key)
         self._bindings = [b for b in self._bindings if b.editor_key != editor_key]
         if self._active in removed:
             self._active = self._bindings[0] if self._bindings else None
-            self._draw_active()
+            if self._active is not None:
+                self._ensure_drawn(self._active)
+                if self._area_container is not None:
+                    self._area_container.set_value(self._active.editor_key)

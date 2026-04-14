@@ -12,6 +12,8 @@ class _FakeContainer:
     def __init__(self) -> None:
         self.clear_calls = 0
         self.visible = True
+        self.value: object = None
+        self.deleted = False
 
     def clear(self) -> None:
         self.clear_calls += 1
@@ -19,11 +21,56 @@ class _FakeContainer:
     def set_visibility(self, visible: bool) -> None:
         self.visible = visible
 
+    def set_value(self, value) -> None:
+        self.value = value
+
+    def delete(self) -> None:
+        self.deleted = True
+
+    def classes(self, _c):
+        return self
+
+    def style(self, _s):
+        return self
+
+    def props(self, _p):
+        return self
+
     def __enter__(self):
         return self
 
     def __exit__(self, exc_type, exc, tb) -> None:
         return None
+
+
+def _install_fake_tab_panels(monkeypatch):
+    """Replace ``ui.tab_panels`` and ``ui.tab_panel`` with _FakeContainer instances.
+
+    Returns ``(panels_created, panel_created)`` — two lists that receive the
+    fakes in creation order so tests can assert against them.
+    """
+    from haywire.ui.app import slot as slot_module
+
+    panels_created: list[_FakeContainer] = []
+    panel_created: list[tuple[str, _FakeContainer]] = []
+
+    def _fake_tab_panels(*_args, **_kwargs):
+        c = _FakeContainer()
+        c.value = _kwargs.get("value")
+        panels_created.append(c)
+        return c
+
+    def _fake_tab_panel(name, *_args, **_kwargs):
+        c = _FakeContainer()
+        panel_created.append((name, c))
+        return c
+
+    monkeypatch.setattr(slot_module.ui, "tab_panels", _fake_tab_panels)
+    monkeypatch.setattr(slot_module.ui, "tab_panel", _fake_tab_panel)
+    monkeypatch.setattr(
+        slot_module.ui, "label", lambda *_a, **_kw: SimpleNamespace(classes=lambda *_c, **_k: None)
+    )
+    return panels_created, panel_created
 
 
 class _FakeEditor:
@@ -103,40 +150,28 @@ def test_slot_with_no_bindings_has_no_active_binding() -> None:
 # ----------------------------------------------------------------------
 
 
-def test_render_area_creates_container_and_draws_active(monkeypatch) -> None:
-    """render_area mounts the area container under the parent and draws the
-    active binding's editor into it."""
-    bindings = [EditorBinding("a:e:1", _FakeEditor)]
+def test_render_area_creates_tab_panels_and_draws_active(monkeypatch) -> None:
+    """render_area mounts a ui.tab_panels container, creates a tab_panel per
+    binding, and eagerly draws only the active binding."""
+    bindings = [
+        EditorBinding("a:e:1", _FakeEditor),
+        EditorBinding("a:e:2", _FakeEditor),
+    ]
     slot = Slot(_session_with_context(), "left", bindings, active_key="a:e:1")
-
-    # Capture the area container the slot creates by patching ui.element.
-    created: list[_FakeContainer] = []
-
-    class _FakeUiElement(_FakeContainer):
-        def classes(self, _c):
-            return self
-
-        def style(self, _s):
-            return self
-
-    def _fake_element(_tag):
-        c = _FakeUiElement()
-        created.append(c)
-        return c
-
-    from haywire.ui.app import slot as slot_module
-
-    monkeypatch.setattr(slot_module.ui, "element", _fake_element)
+    panels_created, panel_created = _install_fake_tab_panels(monkeypatch)
 
     parent = _FakeContainer()
     slot.render_area(parent)
 
-    # Container created and stored; visibility synced.
-    assert len(created) == 1
-    assert created[0].visible is True
-    # Active binding's instance was created and drawn.
+    # Exactly one tab_panels container; one tab_panel per binding.
+    assert len(panels_created) == 1
+    assert panels_created[0].visible is True
+    assert panels_created[0].value == "a:e:1"
+    assert [name for name, _ in panel_created] == ["a:e:1", "a:e:2"]
+    # Only the active binding was drawn; the inactive one is still lazy.
     assert bindings[0].instance is not None
     assert len(bindings[0].instance.draw_calls) == 1
+    assert bindings[1].instance is None
 
 
 # ----------------------------------------------------------------------
@@ -144,40 +179,67 @@ def test_render_area_creates_container_and_draws_active(monkeypatch) -> None:
 # ----------------------------------------------------------------------
 
 
-def test_switch_to_changes_active_and_redraws() -> None:
+def test_switch_to_toggles_active_panel_without_clearing(monkeypatch) -> None:
+    """Switching sets the tab_panels value and lazy-draws the newly active
+    binding into its own panel — the area container is not cleared."""
     bindings = [
         EditorBinding("a:e:1", _FakeEditor),
         EditorBinding("a:e:2", _FakeEditor),
     ]
     slot = Slot(_session_with_context(), "left", bindings, active_key="a:e:1")
-    slot._area_container = _FakeContainer()  # bypass render_area
+    panels_created, _ = _install_fake_tab_panels(monkeypatch)
+    slot.render_area(_FakeContainer())
+    area = panels_created[0]
 
     changed = slot.switch_to("a:e:2")
 
     assert changed is True
     assert slot.active_key == "a:e:2"
-    # Container cleared once for the redraw.
-    assert slot._area_container.clear_calls == 1
-    # Second binding's instance was created and drawn.
+    # DOM-level: value flipped, container itself untouched.
+    assert area.value == "a:e:2"
+    assert area.clear_calls == 0
+    # Second binding was lazy-drawn on first activation.
     assert bindings[1].instance is not None
+    assert len(bindings[1].instance.draw_calls) == 1
+    # First binding's draw count is unchanged — siblings are not redrawn.
+    assert len(bindings[0].instance.draw_calls) == 1
+
+
+def test_switch_to_second_time_does_not_redraw(monkeypatch) -> None:
+    """Switching back to a previously-drawn binding is a pure value flip —
+    no second draw() call."""
+    bindings = [
+        EditorBinding("a:e:1", _FakeEditor),
+        EditorBinding("a:e:2", _FakeEditor),
+    ]
+    slot = Slot(_session_with_context(), "left", bindings, active_key="a:e:1")
+    _install_fake_tab_panels(monkeypatch)
+    slot.render_area(_FakeContainer())
+
+    slot.switch_to("a:e:2")
+    slot.switch_to("a:e:1")
+
+    # Each binding was drawn exactly once despite two switches.
+    assert len(bindings[0].instance.draw_calls) == 1
     assert len(bindings[1].instance.draw_calls) == 1
 
 
-def test_switch_to_no_op_when_already_active() -> None:
+def test_switch_to_no_op_when_already_active(monkeypatch) -> None:
     bindings = [EditorBinding("a:e:1", _FakeEditor)]
     slot = Slot(_session_with_context(), "left", bindings, active_key="a:e:1")
-    slot._area_container = _FakeContainer()
+    _install_fake_tab_panels(monkeypatch)
+    slot.render_area(_FakeContainer())
 
     assert slot.switch_to("a:e:1") is False
-    assert slot._area_container.clear_calls == 0
 
 
-def test_switch_to_unknown_key_returns_false_and_logs(caplog) -> None:
+def test_switch_to_unknown_key_returns_false_and_logs(caplog, monkeypatch) -> None:
     import logging
 
     bindings = [EditorBinding("a:e:1", _FakeEditor)]
     slot = Slot(_session_with_context(), "left", bindings, active_key="a:e:1")
-    slot._area_container = _FakeContainer()
+    _install_fake_tab_panels(monkeypatch)
+    slot.render_area(_FakeContainer())
 
     with caplog.at_level(logging.WARNING, logger="haywire.ui.app.slot"):
         result = slot.switch_to("a:e:does-not-exist")
@@ -237,48 +299,58 @@ def test_set_visible_syncs_area_container() -> None:
 # ----------------------------------------------------------------------
 
 
-def test_handle_context_event_redraws_when_poll_true() -> None:
+def test_handle_context_event_redraws_active_panel_when_poll_true(monkeypatch) -> None:
     binding = EditorBinding("a:e:1", _FakeEditor)
     slot = Slot(_session_with_context(), "left", [binding], active_key="a:e:1")
-    container = _FakeContainer()
-    slot._area_container = container
-    # Force-create the instance so handle_context_event has something to poll.
-    instance = binding.ensure_instance()
+    _, panel_created = _install_fake_tab_panels(monkeypatch)
+    slot.render_area(_FakeContainer())
+    panel = panel_created[0][1]
+    instance = binding.instance
+    assert instance is not None
+    instance.draw_calls.clear()  # ignore the initial eager draw
     instance.poll_returns = True
 
-    event = ContextChangedEvent(change_type=ContextChangeType.WORKSPACE_CHANGED)
-    slot.handle_context_event(event)
+    slot.handle_context_event(ContextChangedEvent(change_type=ContextChangeType.WORKSPACE_CHANGED))
 
+    # Only the active binding's panel is cleared + redrawn.
     assert len(instance.poll_calls) == 1
-    assert container.clear_calls == 1
+    assert panel.clear_calls == 1
     assert len(instance.draw_calls) == 1
 
 
-def test_handle_context_event_skips_when_poll_false() -> None:
+def test_handle_context_event_skips_when_poll_false(monkeypatch) -> None:
     binding = EditorBinding("a:e:1", _FakeEditor)
     slot = Slot(_session_with_context(), "left", [binding], active_key="a:e:1")
-    container = _FakeContainer()
-    slot._area_container = container
-    instance = binding.ensure_instance()
+    _, panel_created = _install_fake_tab_panels(monkeypatch)
+    slot.render_area(_FakeContainer())
+    panel = panel_created[0][1]
+    instance = binding.instance
+    assert instance is not None
+    instance.draw_calls.clear()
     instance.poll_returns = False
 
     slot.handle_context_event(ContextChangedEvent(change_type=ContextChangeType.WORKSPACE_CHANGED))
 
     assert len(instance.poll_calls) == 1
-    assert container.clear_calls == 0
+    assert panel.clear_calls == 0
     assert len(instance.draw_calls) == 0
 
 
-def test_handle_context_event_is_noop_when_instance_not_yet_created() -> None:
-    """Lazy instances haven't drawn yet so there's nothing to poll."""
-    binding = EditorBinding("a:e:1", _FakeEditor)
-    slot = Slot(_session_with_context(), "left", [binding], active_key="a:e:1")
-    slot._area_container = _FakeContainer()
-    # Instance never created via ensure_instance.
+def test_handle_context_event_is_noop_when_instance_not_yet_created(monkeypatch) -> None:
+    """An inactive, never-drawn binding has no instance to poll."""
+    bindings = [
+        EditorBinding("a:e:1", _FakeEditor),
+        EditorBinding("a:e:2", _FakeEditor),
+    ]
+    slot = Slot(_session_with_context(), "left", bindings, active_key="a:e:1")
+    _install_fake_tab_panels(monkeypatch)
+    slot.render_area(_FakeContainer())
 
+    # Active binding got its initial draw; swap to a non-existent active so
+    # handle_context_event sees None as the active instance.
+    slot._active = None
     slot.handle_context_event(ContextChangedEvent(change_type=ContextChangeType.WORKSPACE_CHANGED))
-
-    assert binding.instance is None
+    assert bindings[1].instance is None
 
 
 # ----------------------------------------------------------------------
@@ -286,36 +358,36 @@ def test_handle_context_event_is_noop_when_instance_not_yet_created() -> None:
 # ----------------------------------------------------------------------
 
 
-def test_replace_class_swaps_class_clears_instance_and_redraws_active() -> None:
+def test_replace_class_swaps_class_clears_instance_and_redraws_active(monkeypatch) -> None:
     binding = EditorBinding("a:e:1", _FakeEditor)
     slot = Slot(_session_with_context(), "left", [binding], active_key="a:e:1")
-    slot._area_container = _FakeContainer()
-    old = binding.ensure_instance()
+    _install_fake_tab_panels(monkeypatch)
+    slot.render_area(_FakeContainer())
+    old = binding.instance
     cleanup_calls: list = []
 
     redrew = slot.replace_class("a:e:1", _FakeEditorAlt, cleanup_old=lambda inst: cleanup_calls.append(inst))
 
     assert redrew is True
     assert binding.editor_cls is _FakeEditorAlt
-    # Old instance was cleaned up; new instance will be lazy-created on draw.
+    # Old instance was cleaned up; fresh instance was drawn into the panel.
     assert cleanup_calls == [old]
-    # _draw_active triggered ensure_instance with the new class.
     assert isinstance(binding.instance, _FakeEditorAlt)
 
 
-def test_replace_class_returns_false_when_not_active() -> None:
+def test_replace_class_returns_false_when_not_active(monkeypatch) -> None:
     bindings = [
         EditorBinding("a:e:1", _FakeEditor),
         EditorBinding("a:e:2", _FakeEditor),
     ]
     slot = Slot(_session_with_context(), "left", bindings, active_key="a:e:1")
-    slot._area_container = _FakeContainer()
+    _install_fake_tab_panels(monkeypatch)
+    slot.render_area(_FakeContainer())
 
     redrew = slot.replace_class("a:e:2", _FakeEditorAlt)
 
     assert redrew is False
     assert bindings[1].editor_cls is _FakeEditorAlt
-    # Inactive binding had no instance, so cleanup wasn't called.
 
 
 # ----------------------------------------------------------------------
@@ -323,35 +395,51 @@ def test_replace_class_returns_false_when_not_active() -> None:
 # ----------------------------------------------------------------------
 
 
-def test_remove_bindings_drops_matching_and_promotes_first_remaining() -> None:
+def test_remove_bindings_drops_matching_and_promotes_first_remaining(monkeypatch) -> None:
     bindings = [
         EditorBinding("a:e:1", _FakeEditor),
         EditorBinding("a:e:2", _FakeEditor),
     ]
     slot = Slot(_session_with_context(), "left", bindings, active_key="a:e:1")
-    slot._area_container = _FakeContainer()
+    _, panel_created = _install_fake_tab_panels(monkeypatch)
+    slot.render_area(_FakeContainer())
+    removed_panel = panel_created[0][1]
+    old = bindings[0].instance
     cleanup_calls: list = []
-    old = bindings[0].ensure_instance()
 
     slot.remove_bindings("a:e:1", cleanup=lambda inst: cleanup_calls.append(inst))
 
     assert len(slot.bindings) == 1
     assert slot.active_key == "a:e:2"
     assert cleanup_calls == [old]
+    # The removed binding's panel was deleted from the DOM.
+    assert removed_panel.deleted is True
+
+
+def test_add_binding_creates_panel_and_optionally_activates(monkeypatch) -> None:
+    bindings = [EditorBinding("a:e:1", _FakeEditor)]
+    slot = Slot(_session_with_context(), "main", bindings, active_key="a:e:1")
+    panels_created, panel_created = _install_fake_tab_panels(monkeypatch)
+    slot.render_area(_FakeContainer())
+    area = panels_created[0]
+
+    new_binding = EditorBinding("a:e:2", _FakeEditor)
+    slot.add_binding(new_binding, activate=True)
+
+    # Panel was created for the new binding.
+    assert [name for name, _ in panel_created] == ["a:e:1", "a:e:2"]
+    # Active switched; tab_panels value reflects it.
+    assert slot.active_key == "a:e:2"
+    assert area.value == "a:e:2"
+    assert new_binding.instance is not None
 
 
 def test_remove_bindings_clears_active_when_no_bindings_remain(monkeypatch) -> None:
-    from haywire.ui.app import slot as slot_module
-
-    # _draw_active renders a "No editor" label when active is None; stub out
-    # ui.label so the test doesn't need a real NiceGUI slot stack.
-    monkeypatch.setattr(
-        slot_module.ui, "label", lambda *_a, **_kw: SimpleNamespace(classes=lambda *_c, **_k: None)
-    )
+    _install_fake_tab_panels(monkeypatch)
 
     binding = EditorBinding("a:e:1", _FakeEditor)
     slot = Slot(_session_with_context(), "left", [binding], active_key="a:e:1")
-    slot._area_container = _FakeContainer()
+    slot.render_area(_FakeContainer())
 
     slot.remove_bindings("a:e:1")
 
