@@ -57,14 +57,7 @@ class CreateNodePanel(BasePanel):
 
         def _on_context_click(node_info: NodeInfo) -> None:
             if context.app.library_manager.is_installed(node_info.library.id):
-                lib = context.app.library_manager.get_installed_library(node_info.library.id)
-                registry_key = node_info.identity.registry_key
-                context.active_component = {
-                    "lib": lib,
-                    "class_name": registry_key.split(":")[-1],
-                    "comp_type": "nodes",
-                    "registry_key": registry_key,
-                }
+                context.active_component = node_info.identity.registry_key
 
                 from haybale_studio.editors.library_component_editor import LibraryComponentEditor
 

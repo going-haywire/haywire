@@ -875,9 +875,10 @@ class AppShell:
 
         Resolves the target slot from the editor's ``class_identity.default_slot``
         and calls the matching pure-switch helper so no nested WORKSPACE_CHANGED
-        event is fired. If the editor is unknown to the registry, or lives in a
-        slot without reveal support (main/bottom), a warning is logged and the
-        reveal is skipped — the caller's own event still propagates normally.
+        event is fired. If the editor is unknown to the registry, or targets a
+        slot that does not exist in the active workspace, a warning is logged
+        and the reveal is skipped — the caller's own event still propagates
+        normally.
 
         Args:
             editor_key: Full registry_key of the editor to reveal.
@@ -896,6 +897,10 @@ class AppShell:
             self._apply_left_slot_switch(editor_key)
         elif slot == "right":
             self._apply_right_slot_switch(editor_key)
+        elif slot == "main":
+            self._apply_main_slot_switch(editor_key)
+        elif slot == "bottom":
+            self._apply_bottom_slot_switch(editor_key)
         else:
             logger.warning(
                 f"AppShell: reveal_editor '{editor_key}' targets slot '{slot}' "

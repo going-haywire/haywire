@@ -1,11 +1,10 @@
 [[graphs]]
 path = "graphs/webcam.haywire"
-execute = true
+execute = false
 
 [[graphs]]
 path = "graphs/loop.haywire"
-execute = true
+execute = false
 
 [haystack]
 name = "Master"
-active_graph = "graphs/webcam.haywire"

@@ -55,8 +55,9 @@ class SessionContext:
         workspace_name: Name of the active workspace preset.
         active_library: Library selected in LibraryBrowser (InstalledLibrary |
             MarketplaceEntry, or None). Drives LibraryDetailEditor.
-        active_component: Component selected in LibraryBrowser (node/widget/renderer
-            class or metadata, or None). Drives ComponentDetailEditor.
+        active_component: registry_key of the component selected in LibraryBrowser
+            (format "{lib_id}:{comp_singular}:{class_name}", or None). Drives
+            ComponentDetailEditor, which resolves library/class from the key.
         metadata: Extensible dict for editor-specific state.
     """
 
@@ -73,7 +74,7 @@ class SessionContext:
     active_editor: Optional[str] = None  # editor registry key
     workspace_name: str = "default"
     active_library: Optional["BaseLibrary"] = None  # InstalledLibrary | MarketplaceEntry
-    active_component: Optional[Any] = None  # node/widget/renderer class or metadata
+    active_component: Optional[str] = None  # registry_key: "{lib_id}:{comp_singular}:{class_name}"
     active_file: Optional[Any] = None  # Path to the currently viewed file
     active_graph_path: Optional[Any] = None  # Path to the currently active .haywire file
     active_workbench_theme_key: Optional[str] = None  # set by host app after session creation

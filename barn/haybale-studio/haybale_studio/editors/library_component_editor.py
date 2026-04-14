@@ -75,9 +75,9 @@ class LibraryComponentEditor(BaseEditor):
     def _rebuild(self, context: "SessionContext") -> None:
         if self._container is None:
             return
-        component_info = context.active_component
+        registry_key = context.active_component
         with self._container:
-            if not component_info:
+            if not registry_key:
                 hui.empty_state(
                     "Click a node or widget",
                     icon=hui.icon.library_docs,
@@ -85,23 +85,22 @@ class LibraryComponentEditor(BaseEditor):
                 )
                 return
 
-            lib: LibraryInfo = component_info.get("lib")
-            class_name = component_info.get("class_name", "")
-            comp_type = component_info.get("comp_type", "nodes")
-
             app = context.app
-            registry_key = component_info.get("registry_key")
-            cls = self._lookup_class(app, lib, class_name, comp_type, registry_key)
+            lib_id, comp_singular, class_name = registry_key.split(":", 2)
+            comp_type = f"{comp_singular}s"
+            lib: LibraryInfo | None = (
+                app.library_manager.get_installed_library(lib_id)
+                if app and getattr(app, "library_manager", None)
+                else None
+            )
+
+            cls = self._lookup_class(app, lib_id, comp_type, registry_key)
             identity = getattr(cls, "class_identity", None) if cls else None
 
-            comp_singular = comp_type.removesuffix("s")
             label = getattr(identity, "label", None) or class_name or "?"
-            registry_id = getattr(identity, "registry_id", None) or ""
             description = getattr(identity, "description", None) or ""
             tags = getattr(identity, "tags", []) or []
             icon = self._COMP_ICONS.get(comp_type, "extension")
-            lib_id = lib.identity.id
-            registry_key = f"{lib_id}:{comp_singular}:{class_name}" if lib_id else registry_id
             actual_name = getattr(cls, "__name__", class_name) if cls else class_name
             module_path = getattr(cls, "__module__", None) if cls else None
             menu = getattr(identity, "menu", None) if identity else None
@@ -308,15 +307,10 @@ class LibraryComponentEditor(BaseEditor):
             )
 
     @staticmethod
-    def _lookup_class(
-        app, lib: LibraryInfo, class_name: str, comp_type: str, registry_key: str | None = None
-    ):
+    def _lookup_class(app, lib_id: str, comp_type: str, registry_key: str):
         """Look up the component class from the appropriate registry."""
-        lib_id = lib.identity.id
         if not lib_id or not app:
             return None
-        comp_singular = comp_type.removesuffix("s")
-        key = registry_key or f"{lib_id}:{comp_singular}:{class_name}"
         try:
             svc = app.library_service
             reg = {
@@ -330,6 +324,6 @@ class LibraryComponentEditor(BaseEditor):
                 "panels": svc.get_panel_registry,
                 "editors": svc.get_editor_registry,
             }.get(comp_type, lambda: None)()
-            return reg.get(key) if reg else None
+            return reg.get(registry_key) if reg else None
         except Exception:
             return None

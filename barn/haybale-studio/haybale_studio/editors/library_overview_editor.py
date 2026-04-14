@@ -579,7 +579,7 @@ class LibraryOverviewEditor(BaseEditor):
                 key,
                 cls.class_identity.label,
                 cls.class_identity.description or "",
-                partial(self._select_component, lib, key, config.comp_type, context),
+                partial(self._select_component, key, context),
             )
 
     # ─────────────────────────────────────────────────────────────────────────
@@ -588,18 +588,11 @@ class LibraryOverviewEditor(BaseEditor):
 
     def _select_component(
         self,
-        lib: LibraryInfo,
         registry_key: str,
-        comp_type: str,
         context: "SessionContext",
     ):
         """Set context.active_component and fire ACTIVE_COMPONENT_CHANGED."""
-        context.active_component = {
-            "lib": lib,
-            "class_name": registry_key.split(":")[-1],
-            "comp_type": comp_type,
-            "registry_key": registry_key,
-        }
+        context.active_component = registry_key
 
         from haybale_studio.editors.library_component_editor import LibraryComponentEditor
 
