@@ -261,7 +261,11 @@ class Slot:
             with self._area_container:
                 ui.label("No editor").classes("hw-text-muted p-4")
         elif self._active is not None:
-            self._ensure_drawn(self._active)
+            # Reset _active so _activate sees the correct transition
+            # semantics (not-active → active) and fires on_focus.
+            initial = self._active
+            self._active = None
+            self._activate(initial)
 
     def _create_panel(self, binding: EditorBinding) -> None:
         """Create a ``ui.tab_panel`` shell for ``binding``. Draw is deferred."""
@@ -311,6 +315,39 @@ class Slot:
         self._drawn.discard(bid)
         self._ensure_drawn(binding)
 
+    def _activate(self, binding: EditorBinding) -> None:
+        """Make ``binding`` the active one and run its on_focus hook.
+
+        Single choke point for "binding transitions to active". Used by:
+
+        * ``render_area`` — on first render of the slot, for the initially
+          active binding picked by ``_resolve_initial_active``.
+        * ``switch_to`` — when the user clicks a different tab or a reveal
+          swaps the active binding.
+        * ``add_binding(activate=True)`` — when a new multi-instance tab is
+          opened and made active in one step.
+
+        Order of operations:
+          1. Mark ``self._active = binding``.
+          2. Ensure the instance exists (lazy-create) and call its
+             ``on_focus(context)`` hook. Runs before ``draw`` so any context
+             mutation the hook performs is visible to ``draw``.
+          3. ``_ensure_drawn(binding)`` — first-time draw if needed.
+          4. Flip the tab_panels visibility via ``set_value``.
+
+        Exceptions raised by ``on_focus`` are logged and swallowed so a
+        buggy editor can't wedge the slot.
+        """
+        self._active = binding
+        instance = binding.ensure_instance()
+        try:
+            instance.on_focus(self._session.context)
+        except Exception as exc:
+            logger.error(f"Slot '{self.name}': on_focus error for '{binding.binding_id}': {exc}")
+        self._ensure_drawn(binding)
+        if self._area_container is not None:
+            self._area_container.set_value(binding.binding_id)
+
     # ------------------------------------------------------------------
     # Switching
     # ------------------------------------------------------------------
@@ -337,11 +374,8 @@ class Slot:
         if self._active is target:
             return False
 
-        self._active = target
         logger.info(f"Slot '{self.name}': switched to '{target.binding_id}'")
-        self._ensure_drawn(target)
-        if self._area_container is not None:
-            self._area_container.set_value(target.binding_id)
+        self._activate(target)
         return True
 
     def add_binding(self, binding: EditorBinding, activate: bool = False) -> None:
@@ -357,10 +391,7 @@ class Slot:
             self._create_panel(binding)
         if activate:
             if self._active is None:
-                self._active = binding
-                self._ensure_drawn(binding)
-                if self._area_container is not None:
-                    self._area_container.set_value(binding.binding_id)
+                self._activate(binding)
             else:
                 self.switch_to(binding.editor_key, binding.payload)
 
