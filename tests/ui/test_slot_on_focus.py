@@ -6,8 +6,6 @@ from types import SimpleNamespace
 from typing import Any
 from unittest.mock import MagicMock
 
-import pytest
-
 from haywire.ui.app.slot import EditorBinding, Slot
 from haywire.ui.editor.base import BaseEditor
 
@@ -135,4 +133,54 @@ def test_on_focus_raising_is_logged_and_swallowed(caplog):
     with caplog.at_level(logging.ERROR, logger="haywire.ui.app.slot"):
         slot.render_area(parent)
 
-    assert any("on_focus" in rec.message for rec in caplog.records)
+    # Log format is "Slot '<name>': on_focus error for '<binding_id>': <exc>".
+    # Assert that it carries both the binding id and the exception text so
+    # regressions that strip either one are caught.
+    matches = [
+        rec
+        for rec in caplog.records
+        if "on_focus" in rec.message and "e1" in rec.message and "boom" in rec.message
+    ]
+    assert matches, f"expected log with on_focus + 'e1' + 'boom'; got {[r.message for r in caplog.records]}"
+
+
+def test_remove_binding_fires_on_focus_on_promoted_sibling():
+    """remove_binding on the active binding must fire on_focus on the promoted sibling."""
+    session = _make_session()
+    b1 = _make_binding("e1")
+    b2 = _make_binding("e2")
+    slot = Slot(session, "main", [b1, b2], active_key="e1")
+    slot._area_container = MagicMock()
+
+    # Activate e1 first so its on_focus is recorded (and we can tell the
+    # sibling's on_focus apart from the original activation).
+    b1.ensure_instance()
+    b2.ensure_instance()
+    assert b2.instance.focus_calls == []
+
+    slot.remove_binding("e1")
+
+    assert slot.active_binding is b2
+    assert len(b2.instance.focus_calls) == 1
+    assert b2.instance.focus_calls[0] is session.context
+
+
+def test_remove_bindings_fires_on_focus_on_promoted_sibling():
+    """remove_bindings that drops the active binding must fire on_focus on the promoted sibling."""
+    session = _make_session()
+    b1 = _make_binding("e1")
+    b2 = _make_binding("e2")
+    slot = Slot(session, "main", [b1, b2], active_key="e1")
+    slot._area_container = MagicMock()
+
+    b1.ensure_instance()
+    b2.ensure_instance()
+    assert b2.instance.focus_calls == []
+
+    # remove_bindings drops every binding with the given editor_key; "e1"
+    # is active so the sibling b2 must be promoted and focused.
+    slot.remove_bindings("e1")
+
+    assert slot.active_binding is b2
+    assert len(b2.instance.focus_calls) == 1
+    assert b2.instance.focus_calls[0] is session.context

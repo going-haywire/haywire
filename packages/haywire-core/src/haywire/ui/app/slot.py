@@ -506,10 +506,11 @@ class Slot:
         if was_active:
             if self._bindings:
                 next_idx = min(idx, len(self._bindings) - 1)
-                self._active = self._bindings[next_idx]
-                self._ensure_drawn(self._active)
-                if self._area_container is not None:
-                    self._area_container.set_value(self._active.binding_id)
+                sibling = self._bindings[next_idx]
+                # Reset _active so _activate sees a real transition
+                # (not-active → active) and fires on_focus on the sibling.
+                self._active = None
+                self._activate(sibling)
             else:
                 self._active = None
         return target
@@ -585,8 +586,11 @@ class Slot:
             self._drawn.discard(binding.binding_id)
         self._bindings = [b for b in self._bindings if b.editor_key != editor_key]
         if self._active in removed:
-            self._active = self._bindings[0] if self._bindings else None
-            if self._active is not None:
-                self._ensure_drawn(self._active)
-                if self._area_container is not None:
-                    self._area_container.set_value(self._active.binding_id)
+            if self._bindings:
+                sibling = self._bindings[0]
+                # Reset _active so _activate sees a real transition
+                # (not-active → active) and fires on_focus on the sibling.
+                self._active = None
+                self._activate(sibling)
+            else:
+                self._active = None
