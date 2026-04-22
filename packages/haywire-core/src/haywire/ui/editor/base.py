@@ -38,6 +38,7 @@ class BaseEditor(ABC):
 
     Subclasses may override:
         - poll(context, event): Return True when a full redraw is needed.
+        - on_focus(context): Called when this binding becomes active.
         - cleanup(): Release resources when permanently removed.
         - get_tab_label(context): Dynamic tab label for tabbed slots.
 
@@ -72,6 +73,30 @@ class BaseEditor(ABC):
             True if the editor needs a full redraw, False otherwise.
         """
         return False
+
+    def on_focus(self, context: "SessionContext") -> None:
+        """
+        Called when this binding transitions from not-active to active
+        in its slot.
+
+        Fires on: initial slot render (first active binding), Slot.switch_to
+        (programmatic reveal or user tab click), Slot.add_binding(activate=True).
+        Does NOT fire when re-selecting the already-active binding.
+
+        Runs before draw() on the newly-activated binding, so any context
+        mutations this hook performs are visible to that draw() call and
+        to any events this hook broadcasts.
+
+        The default implementation is a no-op. Editors that own session
+        state (e.g. GraphEditor owns context.active_graph) override this
+        to update the context and broadcast the corresponding event.
+
+        Read ``self.binding.payload`` for this instance's identity.
+
+        Args:
+            context: The current session context.
+        """
+        pass
 
     @abstractmethod
     def draw(self, context: "SessionContext", container: "Element") -> None:
