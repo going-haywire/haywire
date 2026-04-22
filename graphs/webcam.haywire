@@ -5,14 +5,14 @@
   "version": "1.0.0",
   "author": "",
   "created_at": null,
-  "modified_at": "2026-04-13T23:29:56.642109",
+  "modified_at": "2026-04-22T15:49:35.269925",
   "nodes": {
     "BeginPlayNode_87f32274": {
       "node_id": "BeginPlayNode_87f32274",
       "registry_key": "core:node:BeginPlayNode",
       "position": [
-        3164,
-        3381.5
+        577.6387811665327,
+        1360.6834575628718
       ],
       "node_data": {
         "node_id": "BeginPlayNode_87f32274",
@@ -66,19 +66,19 @@
         },
         "settings": {
           "props": {
-            "posX": 3164,
-            "posY": 3381.5
+            "posX": 577.6387811665327,
+            "posY": 1360.6834575628718
           }
         },
         "props": {
-          "posX": 3164,
-          "posY": 3381.5
+          "posX": 577.6387811665327,
+          "posY": 1360.6834575628718
         },
         "store": {},
         "identity": {
           "registry_id": "BeginPlayNode",
           "registry_key": "core:node:BeginPlayNode",
-          "label": "Begin Play",
+          "label": "Begin Player One",
           "description": "Triggered once when execution starts",
           "deprecation_warning": "",
           "class_name": "BeginPlayNode",
@@ -121,8 +121,8 @@
       "node_id": "StartWebcamStreamNode_15b5bccb",
       "registry_key": "visiongraph:node:StartWebcamStreamNode",
       "position": [
-        3569,
-        3314.5
+        982.6387811665331,
+        1293.6834575628718
       ],
       "node_data": {
         "node_id": "StartWebcamStreamNode_15b5bccb",
@@ -435,13 +435,13 @@
         },
         "settings": {
           "props": {
-            "posX": 3569,
-            "posY": 3314.5
+            "posX": 982.6387811665331,
+            "posY": 1293.6834575628718
           }
         },
         "props": {
-          "posX": 3569,
-          "posY": 3314.5
+          "posX": 982.6387811665331,
+          "posY": 1293.6834575628718
         },
         "store": {},
         "identity": {
@@ -493,8 +493,8 @@
       "node_id": "WebcamFrameEventNode_a450f436",
       "registry_key": "visiongraph:node:WebcamFrameEventNode",
       "position": [
-        3136,
-        3704.5
+        549.6387811665327,
+        1683.6834575628718
       ],
       "node_data": {
         "node_id": "WebcamFrameEventNode_a450f436",
@@ -679,13 +679,13 @@
         },
         "settings": {
           "props": {
-            "posX": 3136,
-            "posY": 3704.5
+            "posX": 549.6387811665327,
+            "posY": 1683.6834575628718
           }
         },
         "props": {
-          "posX": 3136,
-          "posY": 3704.5
+          "posX": 549.6387811665327,
+          "posY": 1683.6834575628718
         },
         "store": {},
         "identity": {
@@ -737,8 +737,8 @@
       "node_id": "WebcamFrameInfoDisplayNode_e397b53f",
       "registry_key": "visiongraph:node:WebcamFrameInfoDisplayNode",
       "position": [
-        3560.6921934134334,
-        3756.856016672508
+        974.3309745799666,
+        1736.03947423538
       ],
       "node_data": {
         "node_id": "WebcamFrameInfoDisplayNode_e397b53f",
@@ -983,13 +983,13 @@
         },
         "settings": {
           "props": {
-            "posX": 3560.6921934134334,
-            "posY": 3756.856016672508
+            "posX": 974.3309745799666,
+            "posY": 1736.03947423538
           }
         },
         "props": {
-          "posX": 3560.6921934134334,
-          "posY": 3756.856016672508
+          "posX": 974.3309745799666,
+          "posY": 1736.03947423538
         },
         "store": {},
         "identity": {
@@ -1042,8 +1042,8 @@
       "node_id": "WebcamFrameInfoDisplayNode_2cec750c",
       "registry_key": "visiongraph:node:WebcamFrameInfoDisplayNode",
       "position": [
-        4126.175003544758,
-        3941.9194807811123
+        1539.8137847112907,
+        1921.1029383439845
       ],
       "node_data": {
         "node_id": "WebcamFrameInfoDisplayNode_2cec750c",
@@ -1114,6 +1114,7 @@
               "description": "Text data",
               "class_name": "STRING",
               "module": "haybale_core.types.specs",
+              "flow_type": "data",
               "default": {
                 "value": "No frame yet"
               },
@@ -1287,13 +1288,13 @@
         },
         "settings": {
           "props": {
-            "posX": 4126.175003544758,
-            "posY": 3941.9194807811123
+            "posX": 1539.8137847112907,
+            "posY": 1921.1029383439845
           }
         },
         "props": {
-          "posX": 4126.175003544758,
-          "posY": 3941.9194807811123
+          "posX": 1539.8137847112907,
+          "posY": 1921.1029383439845
         },
         "store": {},
         "identity": {
@@ -1346,8 +1347,8 @@
       "node_id": "WebcamFrameInfoDisplayNode_f6b52713",
       "registry_key": "visiongraph:node:WebcamFrameInfoDisplayNode",
       "position": [
-        4626.138777129664,
-        4101.7718437640415
+        2039.7775582961972,
+        2080.9553013269133
       ],
       "node_data": {
         "node_id": "WebcamFrameInfoDisplayNode_f6b52713",
@@ -1418,6 +1419,7 @@
               "description": "Text data",
               "class_name": "STRING",
               "module": "haybale_core.types.specs",
+              "flow_type": "data",
               "default": {
                 "value": "No frame yet"
               },
@@ -1591,13 +1593,13 @@
         },
         "settings": {
           "props": {
-            "posX": 4626.138777129664,
-            "posY": 4101.7718437640415
+            "posX": 2039.7775582961972,
+            "posY": 2080.9553013269133
           }
         },
         "props": {
-          "posX": 4626.138777129664,
-          "posY": 4101.7718437640415
+          "posX": 2039.7775582961972,
+          "posY": 2080.9553013269133
         },
         "store": {},
         "identity": {
