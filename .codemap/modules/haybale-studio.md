@@ -63,6 +63,16 @@ haybale_studio/
 └── widgets/                    # Widget contributions
 ```
 
+### Instance modes (`opens`) by editor
+
+- `GraphEditor` — `opens=on_payload` (one tab per graph).
+- `FileViewerEditor` — `opens=on_payload` (one tab per file).
+- `LibraryOverviewEditor` — `opens=on_context` (singleton, tracks
+  `context.active_library`).
+- `FileBrowserEditor`, `HaystackEditor`, `LibraryBrowserEditor`,
+  `PropertiesEditor`, `LibraryComponentEditor`, `TerminalEditor` —
+  `opens=required` (default).
+
 ---
 
 ## Always-load vs On-demand

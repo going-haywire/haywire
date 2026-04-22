@@ -159,6 +159,25 @@ def test_slot_with_no_bindings_has_no_active_binding() -> None:
     assert slot.active_key is None
 
 
+def test_slot_resolves_initial_active_with_payload() -> None:
+    """active_key + active_payload must exact-match the payload-carrying
+    binding, not fall through to the first same-key binding."""
+    bindings = [
+        EditorBinding("a:e:graph", _FakeEditor, payload=None),
+        EditorBinding("a:e:graph", _FakeEditor, payload="/tmp/a.haywire"),
+        EditorBinding("a:e:graph", _FakeEditor, payload="/tmp/b.haywire"),
+    ]
+    slot = Slot(
+        _session_with_context(),
+        "main",
+        bindings,
+        active_key="a:e:graph",
+        active_payload="/tmp/b.haywire",
+    )
+    assert slot.active_binding is bindings[2]
+    assert slot.active_binding_id == "a:e:graph::/tmp/b.haywire"
+
+
 # ----------------------------------------------------------------------
 # render_area + draw
 # ----------------------------------------------------------------------
@@ -439,6 +458,31 @@ def test_replace_class_returns_false_when_not_active(monkeypatch) -> None:
 
     assert redrew is False
     assert bindings[1].editor_cls is _FakeEditorAlt
+
+
+def test_replace_class_swallows_dead_client_runtime_error(monkeypatch) -> None:
+    """When a background session's client has disconnected, NiceGUI raises
+    RuntimeError from panel.clear(). Hot-reload must drop the panel and
+    continue instead of propagating the error across sibling shells."""
+    binding = EditorBinding("a:e:1", _FakeEditor)
+    slot = Slot(_session_with_context(), "left", [binding], active_key="a:e:1")
+    panels_created, panel_created = _install_fake_tab_panels(monkeypatch)
+    slot.render_area(_FakeContainer())
+
+    dead_panel = panel_created[0][1]
+
+    def _raise_dead(self=dead_panel):
+        raise RuntimeError("The client this element belongs to has been deleted.")
+
+    dead_panel.clear = _raise_dead
+
+    # Must not raise.
+    redrew = slot.replace_class("a:e:1", _FakeEditorAlt)
+
+    assert redrew is True
+    assert binding.editor_cls is _FakeEditorAlt
+    # Panel was dropped so subsequent operations treat the binding as undrawn.
+    assert binding.binding_id not in slot._panels
 
 
 # ----------------------------------------------------------------------

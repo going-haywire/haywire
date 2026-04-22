@@ -16,7 +16,6 @@ from nicegui import ui
 from haywire.ui import elements as hui
 from haywire.ui.editor.base import BaseEditor
 from haywire.ui.editor.decorator import editor
-from haywire.ui.context_events import ContextChangeType
 
 if TYPE_CHECKING:
     from haywire.ui.context import SessionContext
@@ -46,6 +45,8 @@ _LANGUAGE_MAP: dict = {
     label="File Viewer",
     icon=hui.icon.library_component,
     default_slot="main",
+    opens="on_payload",
+    context_field="active_file",
     description="Displays the contents of a file selected in the Files browser.",
 )
 class FileViewerEditor(BaseEditor):
@@ -60,20 +61,23 @@ class FileViewerEditor(BaseEditor):
     def __init__(self):
         self._last_file: Optional[Path] = None
 
+    def _resolve_path(self) -> Optional[Path]:
+        """Return the file path this tab is pinned to, via binding.payload."""
+        if self.binding is None or self.binding.payload is None:
+            return None
+        return Path(self.binding.payload)
+
     def poll(self, context: "SessionContext", event: "ContextChangedEvent") -> bool:
-        if event.change_type != ContextChangeType.FILE_SELECTED:
-            return False
-        path = context.active_file
-        if path is None:
-            return False
-        new_path = Path(path)
-        if new_path == self._last_file:
-            return False
-        return True
+        """Redraw when DATA_MUTATED touches this file, otherwise stay put.
+
+        Each FileViewer instance is pinned to one file via its binding
+        payload. FILE_SELECTED events no longer drive redraws — a different
+        file means a different tab.
+        """
+        return False
 
     def draw(self, context: "SessionContext", container: "Element") -> None:
-        path = context.active_file
-        self._last_file = Path(path) if path is not None else None
+        self._last_file = self._resolve_path()
 
         with container:
             with ui.column().classes("w-full h-full gap-0"):
@@ -94,7 +98,10 @@ class FileViewerEditor(BaseEditor):
                         if self._last_file is not None:
                             self._render_content(self._last_file)
                         else:
-                            hui.empty_state("Select a file from the Files panel", icon=hui.icon.folder_open)
+                            hui.empty_state(
+                                "Select a file from the Files panel",
+                                icon=hui.icon.folder_open,
+                            )
 
     def _render_content(self, path: Path) -> None:
         if not path.exists():
@@ -152,9 +159,9 @@ class FileViewerEditor(BaseEditor):
             )
 
     def get_tab_label(self, context: "SessionContext") -> str:
-        path = getattr(context, "active_file", None)
+        path = self._resolve_path()
         if path is not None:
-            return Path(path).name
+            return path.name
         return self.class_identity.label
 
     def cleanup(self) -> None:

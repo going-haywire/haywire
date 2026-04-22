@@ -58,7 +58,11 @@ The goal is to introduce a structured, extensible UI framework where:
 
 - Any editor type can be placed in any area (no hard restrictions)
 - The Left Area, Bottom Area, and Right Area can each be collapsed/hidden
-- The Middle Area supports multiple tabs (e.g., multiple graphs open simultaneously)
+- The Middle Area supports multiple tabs (e.g., multiple graphs open simultaneously). Only
+  `opens='required'` main editors auto-populate at startup; `on_context` and `on_payload`
+  editors are opened on demand via `reveal_editor`. On save, main tabs without a payload are
+  stripped; on load, `required` main tabs are re-derived from the registry and persisted
+  `on_payload` tabs are added back.
 - The Bottom Area splits off from the Middle Area and can be toggled
 - ActivityBar drives the Left Area; ContextBar drives the Right Area
 
@@ -374,6 +378,7 @@ def editor(
             label='Graph Editor',
             icon='account_tree',
             default_slot='main',
+            opens='on_payload',
             description='Visual node graph editor',
         )
         class GraphEditor(BaseEditor):
@@ -1173,6 +1178,7 @@ from haywire.ui import elements as hui
     label='Graph Editor',
     icon=hui.icons.graph_editor,
     default_slot='main',
+    opens='on_payload',
     description='Visual node graph editor for wiring data processing pipelines.',
 )
 class GraphEditor(BaseEditor):
@@ -1360,6 +1366,7 @@ from haywire.ui.context_events import ContextChangeType
     label='Library Detail',
     icon='info',
     default_slot='main',
+    opens='on_context',
     description='Detail view for the selected library.',
 )
 class LibraryDetailEditor(BaseEditor):

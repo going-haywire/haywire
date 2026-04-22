@@ -79,13 +79,47 @@ After [registering it](#5-registering-an-editor) and adding its `registry_id` to
 
 ```python
 @editor(
-    registry_id: str | None  = None,   # unique short ID, defaults to class name
-    label:       str | None  = None,   # display name, defaults to class name
-    icon:        str         = 'extension',  # Material Design icon name
-    default_slot: str         = 'main',     # 'left' | 'right' | 'main' | 'bottom'
-    description: str         = '',
+    label='Graph Editor',
+    icon='account_tree',
+    default_slot='main',            # 'left' | 'right' | 'main' | 'bottom'
+    opens='on_payload',             # 'required' | 'on_context' | 'on_payload'
+    context_field='active_graph_path',  # optional; field on SessionContext to mirror
+    description='Visual node graph editor',
 )
 ```
+
+### Instance behavior: `opens`
+
+The `opens` kwarg declares how an editor's tabs come into being and how
+many can exist. Three values:
+
+- **`required`** (default) — the shell guarantees one tab at startup.
+  Uncloseable. Content typically reads from session context. Use for
+  persistent panels (left/right side editors, bottom terminal, rarely
+  main).
+
+- **`on_context`** — singleton tab, on-demand. The tab's content mirrors
+  a slice of session context (e.g. `active_library`). Opened when
+  something fires `reveal_editor=...` with no payload; a second reveal
+  with different context just redraws the same tab via `poll()`.
+  Closeable. Not persisted across restart.
+
+- **`on_payload`** — per-payload tab, on-demand. The tab's identity and
+  content are determined by its `binding.payload`. Opened when the
+  reveal fires `reveal_editor=... reveal_payload=<value>`; N distinct
+  payloads means N distinct tabs. Closeable. Persisted across restart.
+
+**Constraint:** `default_slot='left'` and `'right'` only support
+`opens='required'`. Bars don't have a tab structure to host on-demand
+or multi-instance editors — the decorator raises `ValueError` at
+class-definition time if you try.
+
+**`context_field`** (optional) names a `SessionContext` attribute that
+the shell should mirror `binding.payload` into whenever this editor's
+tab becomes active. Only meaningful for `on_payload` editors in the
+main slot. Example: a FileViewer declares `context_field='active_file'`
+so any peer editor reading `context.active_file` sees the currently-
+focused file.
 
 ### What the decorator does
 
@@ -364,6 +398,11 @@ If the target editor is not registered or its hosting slot is not active in
 the current workspace, the orchestrator logs a warning and the event still
 propagates.
 
+When the target editor is `opens='on_payload'`, a reveal without a
+`reveal_payload` is a no-op with a warning — payloads are mandatory for
+per-payload editors. When the target is `opens='on_context'` and no
+matching tab exists, the shell auto-creates a payload-less tab.
+
 ---
 
 ## 9. NiceGUI Async Patterns
@@ -450,7 +489,11 @@ guide for the full list of overrides and theme integration via CSS custom proper
 **Implement `cleanup()`.** Even if you have nothing to clean up now, add a no-op and a
 comment. Future modifications that add timers or subscriptions are easy to forget.
 
-**Use `default_slot` as a hint, not a mandate.** Set `default_slot` to the slot your editor is designed for, but document that it can be placed elsewhere. Workspace configs override `default_slot` entirely.
+**`default_slot` is where the editor lives; `opens` is how its tabs
+appear.** Set `default_slot` to place the editor in the right slot.
+Set `opens` to say whether it auto-populates (`required`) or waits to
+be triggered (`on_context` / `on_payload`). Workspace configs override
+`default_slot` entirely; `opens` is a property of the editor class.
 
 ---
 

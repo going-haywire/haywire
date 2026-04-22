@@ -158,6 +158,26 @@
 | **Compact-fields** | A container-query–based responsive layout system for dense settings/property panels; activated by the `compact-fields` CSS class on the outer column | Dense layout, settings layout |
 | **Ghost pin** | The visual indicator (low-opacity colour via `--hw-ghost-pin`) on a port that is unconnected; rendered by node skins | Unconnected pin, empty pin |
 
+### Editor instance-mode terms
+
+- **`OpenBehavior`** — Enum on `EditorIdentity` declaring how an editor's
+  tabs come into being. Three values:
+  - **`required`**: exactly one tab, always present, auto-populated at
+    startup, uncloseable.
+  - **`on_context`**: singleton tab, on-demand. Content mirrors a slice
+    of session context; the tab has no payload. Closeable. Not persisted.
+  - **`on_payload`**: per-payload tab, on-demand. The `binding.payload`
+    is both the tab's identity and its content source. N tabs allowed.
+    Closeable. Persisted across restart.
+- **`payload` (tab)** — A `str` that disambiguates per-payload tabs of
+  the same editor class. For GraphEditor the payload is the graph path;
+  for FileViewer it is the file path. Stored in `TabState.metadata.payload`
+  and mirrored in `EditorBinding.payload`.
+- **`context_field`** — Optional attribute on `EditorIdentity` naming a
+  `SessionContext` field the shell mirrors `binding.payload` into when
+  the active main tab changes. Enables peer editors to read the current
+  subject (e.g. `context.active_file`) without subscribing to tab events.
+
 ---
 
 ## Relationships

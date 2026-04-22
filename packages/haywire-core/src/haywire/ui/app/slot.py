@@ -120,6 +120,7 @@ class Slot:
         name: str,
         initial_bindings: list[EditorBinding],
         active_key: Optional[str] = None,
+        active_payload: Any = None,
     ):
         """
         Args:
@@ -130,15 +131,18 @@ class Slot:
             initial_bindings: Bindings to host in this slot. The shell is
                 responsible for enumerating these per-slot (registry for
                 left/right; workspace tabs for main/bottom).
-            active_key: Registry key of the initially active binding. If
+            active_key: ``editor_key`` of the initially active binding. If
                 the key has no matching binding, the first binding (if
                 any) becomes active; if there are no bindings, the slot
                 is inactive until a binding is added.
+            active_payload: Payload disambiguating multi-instance bindings.
+                Callers that work with a composite ``tab_id`` must split it
+                before construction (see ``AppShell._split_tab_id``).
         """
         self._session = session
         self.name = name
         self._bindings: list[EditorBinding] = list(initial_bindings)
-        self._active: Optional[EditorBinding] = self._resolve_initial_active(active_key)
+        self._active: Optional[EditorBinding] = self._resolve_initial_active(active_key, active_payload)
         self._visible: bool = True
         self._area_container: Optional["ui.element"] = None
         self._panels: dict[str, "ui.element"] = {}
@@ -148,10 +152,12 @@ class Slot:
     # Construction helpers
     # ------------------------------------------------------------------
 
-    def _resolve_initial_active(self, active_key: Optional[str]) -> Optional[EditorBinding]:
-        """Pick the starting active binding from ``active_key`` or the first binding."""
+    def _resolve_initial_active(
+        self, active_key: Optional[str], active_payload: Any = None
+    ) -> Optional[EditorBinding]:
+        """Pick the starting active binding from ``(active_key, active_payload)`` or the first binding."""
         if active_key is not None:
-            match = self.find_binding(active_key)
+            match = self.find_binding(active_key, active_payload)
             if match is not None:
                 return match
         return self._bindings[0] if self._bindings else None
@@ -283,12 +289,26 @@ class Slot:
                 ui.label(f"Error loading editor: {bid}").classes("hw-text-danger p-4")
 
     def _redraw(self, binding: EditorBinding) -> None:
-        """Full redraw of one binding's panel (clear + draw)."""
-        panel = self._panels.get(binding.binding_id)
+        """Full redraw of one binding's panel (clear + draw).
+
+        Hot-reload fires this across every live ``AppShell`` — including
+        shells whose browser client has already disconnected. NiceGUI raises
+        ``RuntimeError`` when we touch elements owned by a dead client, so
+        we drop the panel reference on that error rather than letting the
+        reload propagate.
+        """
+        bid = binding.binding_id
+        panel = self._panels.get(bid)
         if panel is None:
             return
-        panel.clear()
-        self._drawn.discard(binding.binding_id)
+        try:
+            panel.clear()
+        except RuntimeError as exc:
+            logger.debug(f"Slot '{self.name}': skipping redraw of '{bid}' on dead client: {exc}")
+            self._panels.pop(bid, None)
+            self._drawn.discard(bid)
+            return
+        self._drawn.discard(bid)
         self._ensure_drawn(binding)
 
     # ------------------------------------------------------------------

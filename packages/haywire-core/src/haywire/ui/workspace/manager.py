@@ -65,6 +65,9 @@ class WorkspaceManager:
         # Bottom tabs are runtime-only and must always reflect the current
         # registry, so refresh them after both load and auto-populate paths.
         self._refresh_bottom_tabs(self.active, editor_registry)
+        # Main tabs are a merge of registry-derived `required` tabs and
+        # persisted payload-carrying tabs. After load, reconcile both.
+        self._refresh_main_tabs(self.active, editor_registry)
 
     # ------------------------------------------------------------------
     # Public API
@@ -73,18 +76,33 @@ class WorkspaceManager:
     def save(self) -> None:
         """Persist the current active workspace state to disk.
 
-        The bottom slot's tab list is stripped before serialization — it is
-        always re-derived from the editor registry on load.
+        Two kinds of data are stripped before serialization:
+
+        * The bottom slot's tab list — always re-derived from the editor
+          registry on load so newly-installed bottom editors appear in
+          existing sessions.
+        * Main-slot tabs without a payload — these are ``required`` /
+          ``on_context`` singletons that are re-derived (required) or
+          re-triggered (on_context) on load; persisting them would
+          prevent new ``required`` editors from showing up and would
+          resurrect closed ``on_context`` tabs.
         """
         preset_dir = self._project_path / ".haywire"
         preset_dir.mkdir(parents=True, exist_ok=True)
         state_file = preset_dir / _STATE_FILENAME
         payload = asdict(self.active)
-        # Drop the runtime-only bottom tab list — it will be re-derived from
-        # the registry on load, so persisting it would cause new bottom
-        # editors to be invisible to existing sessions.
+        # Drop the runtime-only bottom tab list.
         if "bottom" in payload and isinstance(payload["bottom"], dict):
             payload["bottom"].pop("tabs", None)
+        # Drop payload-less main tabs — they are re-derived from the
+        # registry / retrigger flow on load.
+        if "main" in payload and isinstance(payload["main"], dict):
+            main_tabs = payload["main"].get("tabs", [])
+            payload["main"]["tabs"] = [
+                t
+                for t in main_tabs
+                if isinstance(t, dict) and t.get("metadata", {}).get("payload") is not None
+            ]
         state_file.write_text(json.dumps(payload, indent=2))
         logger.info(f"WorkspaceManager: Persisted workspace state to {state_file}")
 
@@ -159,12 +177,21 @@ class WorkspaceManager:
 
         The layout rule is: for each slot, look up every editor whose
         ``default_slot`` matches. The main slot gets one tab per main-slot
-        editor. The bottom slot is hidden by default; its tab list is
-        populated separately by :meth:`_refresh_bottom_tabs`.
+        editor whose ``opens`` value is ``REQUIRED`` — editors declared
+        ``on_context`` or ``on_payload`` materialize only when triggered.
+        The bottom slot is hidden by default; its tab list is populated
+        separately by :meth:`_refresh_bottom_tabs`.
         """
+        from haywire.ui.editor.identity import OpenBehavior
+
         left_editors = editor_registry.get_by_default_slot("left")
         right_editors = editor_registry.get_by_default_slot("right")
-        main_editors = editor_registry.get_by_default_slot("main")
+        main_editors_all = editor_registry.get_by_default_slot("main")
+        main_editors = {
+            key: cls
+            for key, cls in main_editors_all.items()
+            if cls.class_identity.opens is OpenBehavior.REQUIRED
+        }
 
         left_first = next(iter(left_editors), None)
         right_first = next(iter(right_editors), None)
@@ -218,3 +245,70 @@ class WorkspaceManager:
             workspace.bottom.active_tab_key = (
                 workspace.bottom.tabs[0].editor_key if workspace.bottom.tabs else None
             )
+
+    # ------------------------------------------------------------------
+    # Main-tab refresh
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def _refresh_main_tabs(
+        workspace: WorkspaceState,
+        editor_registry: "EditorTypeRegistry",
+    ) -> None:
+        """Reconcile main tab list against the current editor registry.
+
+        Rules:
+          * Drop persisted tabs whose ``editor_key`` is unknown to the
+            registry (editor class was uninstalled).
+          * Drop persisted tabs whose editor is no longer ``on_payload``
+            (semantic changed — shouldn't be a payload-carrying tab).
+          * Ensure every ``opens=REQUIRED`` main editor has a tab. Inject
+            one at the head of the list if missing. Idempotent.
+          * Resolve ``active_tab_key`` against the reconciled list; fall
+            back to the first tab if the persisted key is no longer
+            present.
+        """
+        from haywire.ui.editor.identity import OpenBehavior
+
+        main_editors = editor_registry.get_by_default_slot("main")
+
+        def _keep(tab: TabState) -> bool:
+            if tab.editor_key is None:
+                # Placeholder from empty-registry path — keep if nothing else.
+                return True
+            cls = main_editors.get(tab.editor_key)
+            if cls is None:
+                # Editor no longer registered — drop the tab.
+                return False
+            opens = getattr(cls.class_identity, "opens", OpenBehavior.REQUIRED)
+            if tab.payload is not None and opens is OpenBehavior.ON_CONTEXT:
+                # ON_CONTEXT editors are triggered by context, not by payload —
+                # a persisted payload tab for an ON_CONTEXT editor is stale.
+                return False
+            return True
+
+        kept = [t for t in workspace.main.tabs if _keep(t)]
+
+        # Collect required editors and determine which need injecting.
+        required_editors = {
+            key: cls
+            for key, cls in main_editors.items()
+            if cls.class_identity.opens is OpenBehavior.REQUIRED
+        }
+        # Drop the lone placeholder when real required editors exist.
+        if required_editors:
+            kept = [t for t in kept if t.editor_key is not None]
+
+        existing_required_keys = {t.editor_key for t in kept if t.payload is None}
+        injected: list[TabState] = []
+        for key, cls in required_editors.items():
+            if key not in existing_required_keys:
+                injected.append(TabState(editor_key=key, label=cls.class_identity.label))
+        workspace.main.tabs = injected + kept
+
+        if not workspace.main.tabs:
+            workspace.main.tabs = [TabState()]
+
+        valid_ids = {t.tab_id for t in workspace.main.tabs if t.editor_key is not None}
+        if workspace.main.active_tab_key not in valid_ids:
+            workspace.main.active_tab_key = workspace.main.tabs[0].tab_id if workspace.main.tabs else None

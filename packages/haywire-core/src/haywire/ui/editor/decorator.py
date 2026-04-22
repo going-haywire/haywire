@@ -10,12 +10,12 @@ For built-in framework editors, registration is bootstrapped directly
 in the DI provider via register_builtin_editors().
 """
 
-from typing import Optional
+from typing import Optional, Union
 
 from haywire.core.library.utils import derive_library_identity, reg_key
 
 from .base import BaseEditor
-from .identity import EditorIdentity
+from .identity import EditorIdentity, OpenBehavior
 
 
 def editor(
@@ -26,6 +26,8 @@ def editor(
     description: str = "",
     icon: str = "extension",
     default_slot: str = "main",
+    opens: Union[OpenBehavior, str] = OpenBehavior.REQUIRED,
+    context_field: Optional[str] = None,
     registry_id: Optional[str] = None,
 ):
     """
@@ -43,6 +45,12 @@ def editor(
         icon: Material Design icon name. Defaults to 'extension'.
         default_slot: Which slot this editor belongs in by default.
             One of: 'left', 'right', 'main', 'bottom'. Defaults to 'main'.
+        opens: Instance-creation behavior. One of 'required', 'on_context',
+            'on_payload'. Defaults to 'required'. Only 'required' is
+            permitted on 'left' / 'right' slots today.
+        context_field: Optional ``SessionContext`` attribute name to mirror
+            the active main binding's payload into (e.g. ``'active_file'``
+            or ``'active_graph_path'``). ``None`` means no mirroring.
         description: Human-readable description.
         registry_id: Unique ID for this editor, e.g. 'graph_editor'.
             Defaults to the class name if not provided.
@@ -52,6 +60,7 @@ def editor(
             label='Graph Editor',
             icon='account_tree',
             default_slot='main',
+            opens='on_payload',
             description='Visual node graph editor',
         )
         class GraphEditor(BaseEditor):
@@ -61,6 +70,15 @@ def editor(
     def decorator(inner_cls):
         if not issubclass(inner_cls, BaseEditor):
             raise TypeError(f"@editor can only be applied to BaseEditor subclasses, got {inner_cls}")
+
+        # Coerce string to enum; raises ValueError at class-definition time on typo.
+        opens_enum = OpenBehavior(opens) if isinstance(opens, str) else opens
+
+        if default_slot in ("left", "right") and opens_enum is not OpenBehavior.REQUIRED:
+            raise ValueError(
+                f"@editor {inner_cls.__name__}: opens={opens_enum.value!r} is not allowed on "
+                f"default_slot={default_slot!r}. Left/right slots only support opens='required'."
+            )
 
         _registry_id = registry_id or inner_cls.__name__
         _label = label or inner_cls.__name__
@@ -75,6 +93,8 @@ def editor(
             label=_label,
             icon=icon,
             default_slot=default_slot,
+            opens=opens_enum,
+            context_field=context_field,
             description=description,
             class_name=inner_cls.__name__,
             module=inner_cls.__module__,

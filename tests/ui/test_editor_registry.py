@@ -6,6 +6,7 @@ Tests for the EditorTypeRegistry and @editor decorator.
 import pytest
 from haywire.ui.editor.base import BaseEditor
 from haywire.ui.editor.decorator import editor
+from haywire.ui.editor.identity import OpenBehavior
 from haywire.ui.editor.registry import EditorTypeRegistry
 
 
@@ -146,3 +147,66 @@ class TestEditorTypeRegistry:
         self.registry._register_class(_TestEditor, library_identity=None)
         names = self.registry.list_names()
         assert _TestEditor.class_identity.registry_key in names
+
+
+# ---------------------------------------------------------------------------
+# OpenBehavior / opens kwarg tests
+# ---------------------------------------------------------------------------
+
+
+class TestOpenBehavior:
+    def test_enum_has_three_values(self):
+        assert OpenBehavior.REQUIRED.value == "required"
+        assert OpenBehavior.ON_CONTEXT.value == "on_context"
+        assert OpenBehavior.ON_PAYLOAD.value == "on_payload"
+
+    def test_default_opens_is_required(self):
+        assert _TestEditor.class_identity.opens is OpenBehavior.REQUIRED
+
+    def test_opens_accepts_string(self):
+        @editor(registry_id="op_str", default_slot="main", opens="on_payload")
+        class _OpensStrEditor(BaseEditor):
+            def draw(self, context, container):
+                pass
+
+        assert _OpensStrEditor.class_identity.opens is OpenBehavior.ON_PAYLOAD
+
+    def test_opens_accepts_enum(self):
+        @editor(registry_id="op_enum", default_slot="main", opens=OpenBehavior.ON_CONTEXT)
+        class _OpensEnumEditor(BaseEditor):
+            def draw(self, context, container):
+                pass
+
+        assert _OpensEnumEditor.class_identity.opens is OpenBehavior.ON_CONTEXT
+
+    def test_opens_rejects_typo(self):
+        with pytest.raises(ValueError):
+
+            @editor(registry_id="op_bad", default_slot="main", opens="per_documnt")
+            class _OpensTypoEditor(BaseEditor):
+                def draw(self, context, container):
+                    pass
+
+    def test_opens_non_required_rejected_on_left(self):
+        with pytest.raises(ValueError):
+
+            @editor(registry_id="op_left", default_slot="left", opens="on_payload")
+            class _OpensLeftEditor(BaseEditor):
+                def draw(self, context, container):
+                    pass
+
+    def test_opens_non_required_rejected_on_right(self):
+        with pytest.raises(ValueError):
+
+            @editor(registry_id="op_right", default_slot="right", opens="on_context")
+            class _OpensRightEditor(BaseEditor):
+                def draw(self, context, container):
+                    pass
+
+    def test_opens_required_ok_on_left(self):
+        @editor(registry_id="op_left_req", default_slot="left", opens="required")
+        class _OpensLeftReqEditor(BaseEditor):
+            def draw(self, context, container):
+                pass
+
+        assert _OpensLeftReqEditor.class_identity.opens is OpenBehavior.REQUIRED

@@ -7,6 +7,7 @@ import json
 
 from dataclasses import asdict
 
+from haywire.ui.editor.identity import OpenBehavior
 from haywire.ui.workspace.workspace_state import (
     SlotState,
     TabState,
@@ -99,13 +100,14 @@ class TestWorkspaceStateSerialization:
 
 
 class _FakeIdentity:
-    def __init__(self, label: str):
+    def __init__(self, label: str, opens: OpenBehavior = OpenBehavior.REQUIRED):
         self.label = label
+        self.opens = opens
 
 
 class _FakeEditorClass:
-    def __init__(self, label: str):
-        self.class_identity = _FakeIdentity(label)
+    def __init__(self, label: str, opens: OpenBehavior = OpenBehavior.REQUIRED):
+        self.class_identity = _FakeIdentity(label, opens)
 
 
 class _FakeEditorRegistry:
@@ -119,10 +121,17 @@ class _FakeEditorRegistry:
 
 
 def _make_registry(**slots) -> _FakeEditorRegistry:
-    """Build a fake registry from slot -> [(key, label), ...] pairs."""
+    """Build a fake registry from slot -> [(key, label) | (key, label, opens)] pairs."""
     by_slot: dict[str, dict[str, _FakeEditorClass]] = {}
     for slot, entries in slots.items():
-        by_slot[slot] = {key: _FakeEditorClass(label) for key, label in entries}
+        by_slot[slot] = {}
+        for entry in entries:
+            if len(entry) == 2:
+                key, label = entry
+                opens = OpenBehavior.REQUIRED
+            else:
+                key, label, opens = entry
+            by_slot[slot][key] = _FakeEditorClass(label, opens)
     return _FakeEditorRegistry(by_slot)
 
 
@@ -195,6 +204,43 @@ class TestWorkspaceManagerAutoPopulate:
         assert labels == ["Console", "Terminal", "Problems"]
         assert manager.active.bottom.active_tab_key == "editor:console"
 
+    def test_auto_populate_skips_on_payload_main_editors(self, tmp_path):
+        """Main-slot auto-populate must exclude opens='on_payload' editors."""
+        registry = _make_registry(
+            main=[
+                ("editor:required", "Required", OpenBehavior.REQUIRED),
+                ("editor:doc", "Document", OpenBehavior.ON_PAYLOAD),
+            ],
+        )
+        manager = WorkspaceManager(project_path=tmp_path, editor_registry=registry)
+        keys = [t.editor_key for t in manager.active.main.tabs]
+        assert keys == ["editor:required"]
+
+    def test_auto_populate_skips_on_context_main_editors(self, tmp_path):
+        """Main-slot auto-populate must exclude opens='on_context' editors."""
+        registry = _make_registry(
+            main=[
+                ("editor:required", "Required", OpenBehavior.REQUIRED),
+                ("editor:ctx", "Contextual", OpenBehavior.ON_CONTEXT),
+            ],
+        )
+        manager = WorkspaceManager(project_path=tmp_path, editor_registry=registry)
+        keys = [t.editor_key for t in manager.active.main.tabs]
+        assert keys == ["editor:required"]
+
+    def test_auto_populate_main_all_on_payload_leaves_empty(self, tmp_path):
+        """When every main editor is on_payload, main tab list has one empty placeholder."""
+        registry = _make_registry(
+            main=[
+                ("editor:doc_a", "Doc A", OpenBehavior.ON_PAYLOAD),
+                ("editor:doc_b", "Doc B", OpenBehavior.ON_PAYLOAD),
+            ],
+        )
+        manager = WorkspaceManager(project_path=tmp_path, editor_registry=registry)
+        # Matches the existing empty-registry contract: one placeholder TabState.
+        assert len(manager.active.main.tabs) == 1
+        assert manager.active.main.tabs[0].editor_key is None
+
 
 class TestWorkspaceManagerPersistence:
     def _registry(self) -> _FakeEditorRegistry:
@@ -214,7 +260,9 @@ class TestWorkspaceManagerPersistence:
 
         data = json.loads(state_file.read_text())
         assert data["left"]["active_tab_key"] == "editor:browser"
-        assert data["main"]["tabs"][0]["editor_key"] == "editor:graph"
+        # payload-less main tabs (required singletons) are stripped on save —
+        # they are re-derived from the registry on the next load.
+        assert data["main"]["tabs"] == []
         # bottom.tabs must NOT be persisted — it is re-derived from the
         # registry on load so new bottom editors appear automatically.
         assert "tabs" not in data["bottom"]
@@ -310,6 +358,96 @@ class TestWorkspaceManagerPersistence:
     def test_active_is_workspace_state(self, tmp_path):
         manager = WorkspaceManager(project_path=tmp_path, editor_registry=self._registry())
         assert isinstance(manager.active, WorkspaceState)
+
+    def test_save_strips_payload_less_main_tabs(self, tmp_path):
+        """Save must not persist main tabs without a payload — they are
+        re-derived from the registry on load, same pattern as bottom."""
+        manager = WorkspaceManager(project_path=tmp_path, editor_registry=self._registry())
+        # Add a payload-less tab (would be a `required` singleton) and a
+        # payload-carrying tab (an `on_payload` document).
+        manager.active.main.tabs = [
+            TabState(editor_key="editor:required", label="Required"),
+            TabState(
+                editor_key="editor:graph",
+                label="loop.haywire",
+                metadata={"payload": "/tmp/loop.haywire"},
+            ),
+        ]
+        manager.active.main.active_tab_key = "editor:graph::/tmp/loop.haywire"
+        manager.save()
+
+        data = json.loads((tmp_path / ".haywire" / "workspace_state.json").read_text())
+        main_tabs = data["main"]["tabs"]
+        assert len(main_tabs) == 1
+        assert main_tabs[0]["editor_key"] == "editor:graph"
+        assert main_tabs[0]["metadata"]["payload"] == "/tmp/loop.haywire"
+
+    def test_load_injects_missing_required_main_tabs(self, tmp_path):
+        """If a `required` main editor has no persisted tab, inject it on load."""
+        # Save with only a payload-carrying main tab persisted.
+        m1 = WorkspaceManager(project_path=tmp_path, editor_registry=self._registry())
+        m1.active.main.tabs = [
+            TabState(
+                editor_key="editor:graph",
+                label="loop.haywire",
+                metadata={"payload": "/tmp/loop.haywire"},
+            ),
+        ]
+        m1.active.main.active_tab_key = "editor:graph::/tmp/loop.haywire"
+        m1.save()
+
+        # On load, registry still has the required "editor:graph" — it must be
+        # injected in addition to the persisted payload-carrying tab.
+        m2 = WorkspaceManager(project_path=tmp_path, editor_registry=self._registry())
+        keys = [t.editor_key for t in m2.active.main.tabs]
+        # editor:graph REQUIRED tab + the persisted payload tab
+        assert keys.count("editor:graph") == 2
+        # One is payload-less, one carries the path.
+        payloads = [t.payload for t in m2.active.main.tabs]
+        assert None in payloads
+        assert "/tmp/loop.haywire" in payloads
+
+    def test_load_drops_payload_tabs_whose_editor_is_unregistered(self, tmp_path):
+        """A persisted on_payload tab whose editor is gone from registry is skipped."""
+        m1 = WorkspaceManager(project_path=tmp_path, editor_registry=self._registry())
+        m1.active.main.tabs = [
+            TabState(
+                editor_key="editor:unknown",
+                label="gone.haywire",
+                metadata={"payload": "/tmp/gone.haywire"},
+            ),
+        ]
+        m1.save()
+
+        m2 = WorkspaceManager(project_path=tmp_path, editor_registry=self._registry())
+        keys = [t.editor_key for t in m2.active.main.tabs]
+        assert "editor:unknown" not in keys
+
+    def test_load_only_on_payload_registry_restores_payload_tabs(self, tmp_path):
+        """A persisted payload tab whose editor is opens=on_payload is restored."""
+        registry = _make_registry(
+            main=[("editor:graph", "Graph", OpenBehavior.ON_PAYLOAD)],
+        )
+        m1 = WorkspaceManager(project_path=tmp_path, editor_registry=registry)
+        m1.active.main.tabs = [
+            TabState(
+                editor_key="editor:graph",
+                label="a.haywire",
+                metadata={"payload": "/tmp/a.haywire"},
+            ),
+            TabState(
+                editor_key="editor:graph",
+                label="b.haywire",
+                metadata={"payload": "/tmp/b.haywire"},
+            ),
+        ]
+        m1.active.main.active_tab_key = "editor:graph::/tmp/b.haywire"
+        m1.save()
+
+        m2 = WorkspaceManager(project_path=tmp_path, editor_registry=registry)
+        payloads = sorted(t.payload or "" for t in m2.active.main.tabs)
+        assert payloads == ["/tmp/a.haywire", "/tmp/b.haywire"]
+        assert m2.active.main.active_tab_key == "editor:graph::/tmp/b.haywire"
 
 
 class TestWorkspaceManagerDeserialize:

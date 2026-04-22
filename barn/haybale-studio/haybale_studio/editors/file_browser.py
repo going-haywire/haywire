@@ -183,19 +183,27 @@ class FileBrowserEditor(BaseEditor):
         )
 
     def _open_in_file_viewer(self, path: Path, context: "SessionContext") -> None:
-        """Broadcast FILE_SELECTED and reveal the file viewer tab."""
-        session = context.session
-        if session is not None:
-            from haybale_studio.editors.file_viewer import FileViewerEditor
+        """Reveal a FileViewer tab pinned to this file's path.
 
-            session.notify_context_changed(
-                ContextChangedEvent(
-                    change_type=ContextChangeType.FILE_SELECTED,
-                    source_editor="file_browser",
-                    detail=path,
-                    reveal_editor=FileViewerEditor.class_identity.registry_key,
-                )
+        Uses the ``reveal_payload`` channel so ``AppShell._reveal_editor``
+        dedupes on ``(editor_key, payload)`` — re-clicking an open file
+        switches to the existing tab instead of opening a duplicate.
+        """
+        session = context.session
+        if session is None:
+            return
+        from haybale_studio.editors.file_viewer import FileViewerEditor
+
+        session.notify_context_changed(
+            ContextChangedEvent(
+                change_type=ContextChangeType.FILE_SELECTED,
+                source_editor="file_browser",
+                detail=path,
+                reveal_editor=FileViewerEditor.class_identity.registry_key,
+                reveal_payload=str(path),
+                reveal_label=path.name,
             )
+        )
 
     def _refresh(self, context: "SessionContext") -> None:
         self._render_tree(context)

@@ -5,14 +5,14 @@
   "version": "1.0.0",
   "author": "",
   "created_at": null,
-  "modified_at": "2026-04-13T22:00:04.719167",
+  "modified_at": "2026-04-15T20:47:04.645865",
   "nodes": {
     "BeginPlayNode_8d7335c8": {
       "node_id": "BeginPlayNode_8d7335c8",
       "registry_key": "core:node:BeginPlayNode",
       "position": [
-        3133,
-        3395.5
+        3119.580717488789,
+        3378.2466367713005
       ],
       "node_data": {
         "node_id": "BeginPlayNode_8d7335c8",
@@ -60,19 +60,19 @@
               "registry_key": "core:type:FLOAT"
             },
             "field_data": {
-              "value": 1776110372.647004
+              "value": 1776278658.577015
             }
           }
         },
         "settings": {
           "props": {
-            "posX": 3133,
-            "posY": 3395.5
+            "posX": 3119.580717488789,
+            "posY": 3378.2466367713005
           }
         },
         "props": {
-          "posX": 3133,
-          "posY": 3395.5
+          "posX": 3119.580717488789,
+          "posY": 3378.2466367713005
         },
         "store": {},
         "identity": {
@@ -121,8 +121,8 @@
       "node_id": "TickEmitNode_8accf22d",
       "registry_key": "core:node:TickEmitNode",
       "position": [
-        3489,
-        3352.5
+        3523.4635883717333,
+        3349.293170160595
       ],
       "node_data": {
         "node_id": "TickEmitNode_8accf22d",
@@ -277,13 +277,13 @@
         },
         "settings": {
           "props": {
-            "posX": 3489,
-            "posY": 3352.5
+            "posX": 3523.4635883717333,
+            "posY": 3349.293170160595
           }
         },
         "props": {
-          "posX": 3489,
-          "posY": 3352.5
+          "posX": 3523.4635883717333,
+          "posY": 3349.293170160595
         },
         "store": {},
         "identity": {
@@ -409,7 +409,7 @@
               "registry_key": "core:type:FLOAT"
             },
             "field_data": {
-              "value": 0.014524665893986821
+              "value": 0.01580774993635714
             }
           }
         },
@@ -726,8 +726,8 @@
       "node_id": "ControlSwitch_48a0d650",
       "registry_key": "core:node:ControlSwitch",
       "position": [
-        4177.984991339529,
-        3591.0403031243864
+        4166.482749187063,
+        3569.952859178198
       ],
       "node_data": {
         "node_id": "ControlSwitch_48a0d650",
@@ -761,6 +761,7 @@
               "description": "Text data",
               "class_name": "STRING",
               "module": "haybale_core.types.specs",
+              "flow_type": "data",
               "default": {
                 "value": "int"
               },
@@ -884,7 +885,7 @@
               },
               "id": "condition",
               "port_type": "config",
-              "order": 8
+              "order": 11
             },
             "recipe": {
               "registry_key": "core:type:STRING"
@@ -910,7 +911,7 @@
               "widget_key": "core:widget:NumberWidget",
               "id": "compare",
               "port_type": "inlet",
-              "order": 9
+              "order": 12
             },
             "recipe": {
               "registry_key": "core:type:FLOAT"
@@ -936,7 +937,7 @@
               "widget_key": "core:widget:NumberWidget",
               "id": "with",
               "port_type": "inlet",
-              "order": 10
+              "order": 13
             },
             "recipe": {
               "registry_key": "core:type:FLOAT"
@@ -948,13 +949,13 @@
         },
         "settings": {
           "props": {
-            "posX": 4177.984991339529,
-            "posY": 3591.0403031243864
+            "posX": 4166.482749187063,
+            "posY": 3569.952859178198
           }
         },
         "props": {
-          "posX": 4177.984991339529,
-          "posY": 3591.0403031243864
+          "posX": 4166.482749187063,
+          "posY": 3569.952859178198
         },
         "store": {},
         "identity": {

@@ -6,5 +6,10 @@ execute = false
 path = "graphs/loop.haywire"
 execute = false
 
+[[graphs]]
+path = "graphs/loop2.haywire"
+execute = false
+
 [haystack]
 name = "Master"
+active_graph = "graphs/loop.haywire"

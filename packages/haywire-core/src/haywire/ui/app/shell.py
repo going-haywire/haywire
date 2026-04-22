@@ -20,6 +20,7 @@ Session and calling AppShell.render().
 """
 
 import logging
+from pathlib import Path
 from typing import Callable, Optional, TYPE_CHECKING
 from nicegui import ui
 
@@ -703,6 +704,26 @@ class AppShell:
             )
         )
 
+    def _tab_close_visible(self, tab) -> bool:
+        """Return True if the tab should render a close (×) button.
+
+        Rule: every tab whose editor class declares ``opens != REQUIRED``
+        is closeable. ``required`` tabs are always-present singletons and
+        have no close button.
+
+        Unknown editor classes default to closeable — better to let the
+        user remove a tab whose class is gone than strand it.
+        """
+        from haywire.ui.editor.identity import OpenBehavior
+
+        if tab.editor_key is None:
+            return False
+        cls = self._editor_registry.get_by_key(tab.editor_key) if self._editor_registry else None
+        if cls is None:
+            return True
+        opens = getattr(cls.class_identity, "opens", OpenBehavior.REQUIRED)
+        return opens is not OpenBehavior.REQUIRED
+
     def _render_slot_tabs(
         self,
         tabs: list,
@@ -741,7 +762,7 @@ class AppShell:
                 with tab_el:
                     with ui.row().classes("items-center gap-1 no-wrap"):
                         ui.label(tab.label)
-                        if on_close is not None and tab.payload is not None:
+                        if on_close is not None and self._tab_close_visible(tab):
                             tab_id = tab.tab_id
                             (
                                 ui.button(
@@ -866,14 +887,20 @@ class AppShell:
                     EditorBinding(editor_key=tab.editor_key, editor_cls=cls, payload=tab.payload)
                 )
 
+        if slot_name in ("main", "bottom") and active_key is not None:
+            initial_editor_key, initial_payload = self._split_tab_id(active_key)
+        else:
+            initial_editor_key, initial_payload = active_key, None
+
         slot = Slot(
             session=self.session,
             name=slot_name,
             initial_bindings=bindings,
-            active_key=active_key,
+            active_key=initial_editor_key,
+            active_payload=initial_payload,
         )
         self._managed_slots[slot_name] = slot
-        self._mirror_active_key_to_workspace(slot_name, slot.active_key)
+        self._mirror_active_key_to_workspace(slot_name, slot.active_binding_id or slot.active_key)
         return slot
 
     def _mirror_active_key_to_workspace(self, slot_name: str, active_key: Optional[str]) -> None:
@@ -944,6 +971,22 @@ class AppShell:
                 "which is not hostable in the active workspace, skipping reveal"
             )
             return
+
+        from haywire.ui.editor.identity import OpenBehavior
+
+        opens = getattr(editor_cls.class_identity, "opens", OpenBehavior.REQUIRED)
+
+        if opens is OpenBehavior.ON_PAYLOAD and payload is None:
+            logger.warning(
+                f"AppShell: reveal of opens='on_payload' editor '{editor_key}' requires a payload; dropping."
+            )
+            return
+
+        if opens is OpenBehavior.ON_CONTEXT and slot_name in ("main", "bottom"):
+            slot = self._managed_slots[slot_name]
+            if slot.find_binding(editor_key, None) is None:
+                tab_label = label or getattr(editor_cls.class_identity, "label", editor_key)
+                self.open_in_tab(slot_name, editor_key, None, tab_label)
 
         # For tabbed slots, auto-create a tab when payload has no match.
         if slot_name in ("main", "bottom") and payload is not None:
@@ -1539,34 +1582,84 @@ class AppShell:
             logger.warning(f"AppShell: workspace auto-save failed: {exc}")
 
     def _follow_main_tab_context(self, payload: Optional[str]) -> None:
-        """Mirror the active main tab's graph identity into the session context.
+        """Mirror the active main tab's binding payload into the session context.
 
-        Per-tab editors (GraphEditor) now read their own binding payload, so
-        this does *not* drive the revealed editor. It exists for the other
-        editors and panels that still consume ``context.active_graph`` /
-        ``context.active_graph_path`` (haystack list highlight, graph-info
-        panel, save/open dialogs, etc.) and broadcasts an
-        ``ACTIVE_GRAPH_CHANGED`` so those consumers can refresh.
+        The target attribute is chosen by the active editor's
+        ``EditorIdentity.context_field``:
+
+        * ``"active_graph_path"`` — legacy haystack path: look up the entry
+          via ``app.haystack.get_by_key`` and set both ``active_graph`` and
+          ``active_graph_path``; broadcast ``ACTIVE_GRAPH_CHANGED``.
+        * ``"active_file"`` — mirror ``Path(payload)`` (or ``None``) into
+          ``context.active_file`` and broadcast ``FILE_SELECTED``.
+        * ``None`` — the editor manages its own context; this hook is a
+          no-op for that editor.
+
+        Unknown ``context_field`` values are logged and ignored so a
+        future editor typo never silently trashes session state.
         """
-        if payload is None:
+        slot = self._managed_slots.get("main")
+        if slot is None:
             return
+        active_binding = getattr(slot, "active_binding", None)
+        if active_binding is None:
+            return
+        editor_cls = getattr(active_binding, "editor_cls", None)
+        if editor_cls is None:
+            return
+        class_identity = getattr(editor_cls, "class_identity", None)
+        context_field = getattr(class_identity, "context_field", None) if class_identity else None
+        if context_field is None:
+            return
+
         context = self.session.context
-        app = context.app
-        if app is None or not hasattr(app, "haystack"):
+
+        if context_field == "active_graph_path":
+            # Legacy haystack-driven path: resolve payload → entry, update
+            # both active_graph and active_graph_path, broadcast
+            # ACTIVE_GRAPH_CHANGED so panels that still consume the graph
+            # object can refresh.
+            if payload is None:
+                return
+            app = context.app
+            if app is None or not hasattr(app, "haystack"):
+                return
+            entry = app.haystack.get_by_key(payload)
+            if entry is None:
+                return
+            if context.active_graph is entry.graph and context.active_graph_path == entry.path:
+                return
+            context.active_graph = entry.graph
+            context.active_graph_path = entry.path
+            self.session.notify_context_changed(
+                ContextChangedEvent(
+                    change_type=ContextChangeType.ACTIVE_GRAPH_CHANGED,
+                    source_editor="app_shell",
+                    detail=entry,
+                )
+            )
             return
 
-        entry = app.haystack.get_by_key(payload)
-        if entry is None:
+        # Generic mirror: context.<context_field> = Path(payload) | None.
+        new_value = Path(payload) if payload else None
+        current_value = getattr(context, context_field, None)
+        if current_value == new_value:
             return
-        if context.active_graph is entry.graph and context.active_graph_path == entry.path:
-            return
+        setattr(context, context_field, new_value)
 
-        context.active_graph = entry.graph
-        context.active_graph_path = entry.path
+        if context_field == "active_file":
+            change_type = ContextChangeType.FILE_SELECTED
+        else:
+            logger.warning(
+                f"AppShell._follow_main_tab_context: unknown context_field "
+                f"{context_field!r}; emitting CUSTOM context event"
+            )
+            change_type = ContextChangeType.CUSTOM
+
         self.session.notify_context_changed(
             ContextChangedEvent(
-                change_type=ContextChangeType.ACTIVE_GRAPH_CHANGED,
+                change_type=change_type,
                 source_editor="app_shell",
-                detail=entry,
+                detail=new_value,
             )
         )

@@ -29,6 +29,7 @@ else:
 
 logger = logging.getLogger(__name__)
 
+
 class GraphCanvasVue(ui.element, component="canvas.vue"):
     """Vue-based graph canvas component with ONLY unified event handling."""
 
@@ -50,6 +51,11 @@ class GraphCanvasVue(ui.element, component="canvas.vue"):
         self._props["canvasWidth"] = canvas_width
         self._props["canvasHeight"] = canvas_height
         self._props["data-graph_canvas"] = True
+        # The sibling ZoomPanContainer broadcasts ``zoom-pan-state`` events on
+        # ``document``; canvas.vue uses this id to ignore events from other
+        # canvases' pan/zoom containers (otherwise panning editor B would
+        # corrupt editor A's zoomState and render edges with wrong coords).
+        self._props["zoomContainerId"] = zoom_container.container_id if zoom_container else ""
 
         # Register single unified event handler
         self.on("canvasEvent", self._handle_canvas_event)

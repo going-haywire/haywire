@@ -34,6 +34,7 @@ export default {
 
     props: {
         containerId: { type: String, required: true },
+        zoomContainerId: { type: String, default: '' },
         canvasWidth:  { type: Number, default: 8000 },
         canvasHeight: { type: Number, default: 8000 },
     },
@@ -212,6 +213,13 @@ export default {
         _setupZoomPanListener() {
             this.handleZoomPanUpdate = (event) => {
                 const { zoom, panX, panY, containerId, isDragging } = event.detail;
+                // Ignore events from sibling canvases' ZoomPanContainers —
+                // otherwise panning another tab's canvas clobbers this
+                // instance's zoomState, and pin coords compute against the
+                // wrong zoom until the user pans here to overwrite it.
+                if (this.zoomContainerId && containerId && containerId !== this.zoomContainerId) {
+                    return;
+                }
                 this.zoomState = { zoom, panX, panY, isDragging };
             };
 
