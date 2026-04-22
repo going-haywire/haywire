@@ -687,8 +687,8 @@ class AppShell:
         """Handler for the × button on a main tab.
 
         Emits a ``TAB_CLOSE_REQUESTED`` event so both the shell (which
-        actually closes the tab) and host apps (which do domain cleanup
-        like haystack ``session_detach``) run through the same path.
+        actually closes the tab) and host apps (which do domain cleanup)
+        run through the same path.
         """
         editor_key, payload = self._split_tab_id(tab_id)
         self.session.notify_context_changed(
@@ -963,6 +963,15 @@ class AppShell:
             self._handle_tab_repayload_requested(event)
         elif event.change_type == ContextChangeType.GRAPH_REMOVED:
             self._handle_graph_removed(event)
+        elif event.change_type == ContextChangeType.OPEN_GRAPH_REQUESTED:
+            self._handle_open_graph_requested(event)
+            # Skip the generic reveal — the handler re-emits ACTIVE_GRAPH_CHANGED
+            # with the full reveal_payload/reveal_label, which drives the reveal.
+            # Doing both would trigger a second slot-switch with payload=None
+            # that falls back to the first binding and clobbers the canvas.
+            for slot in self._managed_slots.values():
+                slot.handle_context_event(event)
+            return
 
         if event.reveal_editor is not None:
             self._reveal_editor(event.reveal_editor, event.reveal_payload, event.reveal_label)
@@ -1015,6 +1024,40 @@ class AppShell:
         if not payload:
             return
         self.close_tabs_for_payload(payload)
+
+    def _handle_open_graph_requested(self, event: ContextChangedEvent) -> None:
+        """Activate ``event.detail`` (a GraphEntry) in the session and reveal its tab.
+
+        Updates the session context and fires ``ACTIVE_GRAPH_CHANGED`` with
+        reveal fields so the main slot opens (or focuses) the right tab.
+        """
+        entry = event.detail
+        editor_key = event.reveal_editor
+        if entry is None or editor_key is None:
+            logger.warning(
+                "OPEN_GRAPH_REQUESTED dropped: missing detail=%r or reveal_editor=%r",
+                entry,
+                editor_key,
+            )
+            return
+
+        context = self.session.context
+
+        # Update context
+        context.active_graph = entry.graph
+        context.active_graph_path = entry.path
+
+        # Fire ACTIVE_GRAPH_CHANGED with reveal fields — this triggers the tab reveal.
+        self.session.notify_context_changed(
+            ContextChangedEvent(
+                change_type=ContextChangeType.ACTIVE_GRAPH_CHANGED,
+                source_editor="app_shell",
+                detail=entry,
+                reveal_editor=editor_key,
+                reveal_payload=entry.key,
+                reveal_label=entry.display_name,
+            )
+        )
 
     def _on_editor_lifecycle(self, events: "list[LifeCycleEvent]") -> None:
         """Handle editor class hot-reload events from EditorTypeRegistry."""

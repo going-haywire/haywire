@@ -3,14 +3,14 @@
 SessionManager — manages the lifecycle of all active browser sessions.
 
 Each browser connection gets its own Session. The SessionManager creates,
-tracks, and removes sessions. It also provides broadcast_data_mutation()
-to notify all sessions when the shared graph changes.
+tracks, and removes sessions. It also provides broadcast() to fan a
+ContextChangedEvent to every session — used for cross-session updates.
 """
 
 import logging
 from typing import Dict, Optional, TYPE_CHECKING
 
-from haywire.ui.context_events import ContextChangedEvent, ContextChangeType
+from haywire.ui.context_events import ContextChangedEvent
 
 if TYPE_CHECKING:
     from haywire.ui.session import Session
@@ -25,9 +25,9 @@ class SessionManager:
 
     Usage:
         manager = SessionManager()
-        session = manager.create_session(project_state=app)
+        session = manager.create_session(project_state=app, workspace_manager=ws)
         manager.remove_session(session.session_id)
-        manager.broadcast_data_mutation()
+        manager.broadcast(event)
     """
 
     def __init__(self):
@@ -42,13 +42,15 @@ class SessionManager:
         Create a new Session and register it.
 
         All keyword arguments are forwarded to the Session constructor.
+        ``session_manager=self`` is injected automatically so callers do
+        not pass it.
 
         Returns:
             The newly created Session.
         """
         from haywire.ui.session import Session
 
-        session = Session(**session_kwargs)
+        session = Session(session_manager=self, **session_kwargs)
         self._sessions[session.session_id] = session
         logger.info(f"SessionManager: created session {session.session_id[:8]}")
         return session
@@ -86,33 +88,16 @@ class SessionManager:
     # Broadcast helpers
     # ------------------------------------------------------------------
 
-    def broadcast_data_mutation(
-        self,
-        source_editor: Optional[str] = None,
-        graph_path=None,
-    ) -> None:
-        """
-        Notify sessions that graph data has changed.
+    def broadcast(self, event: ContextChangedEvent) -> None:
+        """Fan an event out to every registered session.
 
-        When graph_path is None, all sessions are notified (legacy behaviour).
-        When graph_path is provided, only sessions whose active_graph_path
-        matches are notified — enabling per-graph selective broadcast.
-
-        Args:
-            source_editor: Optional editor key identifying the mutation origin.
-            graph_path:    Optional Path (or str) of the graph that changed.
-                           Pass None to broadcast to every session.
+        Used for cross-session notifications (e.g. DATA_MUTATED after a
+        graph edit). Consumers already re-read their own ground-truth state
+        when notified, so unconditional fan-out is safe — a session that
+        doesn't care no-ops on receipt.
         """
-        event = ContextChangedEvent(
-            change_type=ContextChangeType.DATA_MUTATED,
-            source_editor=source_editor,
-        )
         failed = []
         for session_id, session in list(self._sessions.items()):
-            if graph_path is not None:
-                session_path = getattr(session.context, "active_graph_path", None)
-                if str(session_path) != str(graph_path):
-                    continue
             try:
                 session.notify_context_changed(event)
             except Exception as e:

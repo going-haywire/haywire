@@ -4,42 +4,47 @@ Haystack — file-centric multi-graph registry.
 
 Each .haywire file gets its own GraphEntry (graph + editor). Two sessions
 opening the same file share the same entry and collaborate in real time.
-An untitled entry (path=None) is created at startup and keyed as '__untitled__'.
 
 Haystack support: the current set of open graphs can be saved to / loaded
 from a TOML file in the ``haystacks/`` folder at the workspace root.
 
 Usage in app.py::
 
-    haystack = Haystack(workspace_root=Path(...))
-    untitled = haystack.create_untitled(factory)
+    haystack = Haystack(
+        workspace_root=Path(...),
+        graph_factory=app._graph_factory,
+        session_manager=app.session_manager,
+    )
 
     # When a file is opened:
-    entry = haystack.open_graph(path, factory)
-    haystack.session_attach(entry, session_id)
+    entry = haystack.open_graph(path)
+
+    # When the user creates a new unnamed graph:
+    entry = haystack.create_new()
 
     # On save:
     haystack.save_graph(entry)
 
     # Save/load haystacks:
     haystack.save_haystack("default")
-    haystack.load_haystack("default", factory)
-
-    # On session disconnect:
-    haystack.session_detach(entry, session_id)
+    haystack.load_haystack("default")
 """
 
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Set, Tuple
+from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Tuple
 import logging
 
 import toml
+
+from haywire.ui.context_events import ContextChangedEvent, ContextChangeType
 
 if TYPE_CHECKING:
     from haywire.core.graph.base import HaywireGraph
     from haywire.core.execution.interpreter import Interpreter
     from haywire.core.graph.editor import Editor
+    from haywire.core.graph.validation import ValidationResult
+    from haywire.ui.session_manager import SessionManager
 
 logger = logging.getLogger(__name__)
 
@@ -57,7 +62,6 @@ class GraphEntry:
         editor:   Editor wrapping the graph for undo/redo and mutations.
         path:     Absolute Path to the .haywire file, or None for untitled.
         unsaved:  True if the graph has in-memory changes not yet written to disk.
-        sessions: Session IDs currently viewing this graph.
         interpreter:  Per-graph Interpreter instance (created on execution start).
     """
 
@@ -65,7 +69,6 @@ class GraphEntry:
     editor: "Editor"
     path: Optional[Path] = None
     unsaved: bool = False
-    sessions: Set[str] = field(default_factory=set)
     interpreter: Optional["Interpreter"] = field(default=None, repr=False)
 
     @property
@@ -117,49 +120,55 @@ class Haystack:
     Key design points:
     - One GraphEntry per unique file path; untitled graphs use key '__untitled__'.
     - New unnamed graphs get auto-keyed as '__new_1__', '__new_2__', etc.
-    - Sessions attach/detach to track which sessions view which graph.
-    - broadcast_data_mutation() in SessionManager uses graph_path to selectively
-      notify only the sessions that are viewing the changed graph.
     - Haystacks: named selections of open graphs persisted as TOML in
       ``<workspace>/haystacks/*.toml``.
     """
 
-    def __init__(self, workspace_root: Optional[Path] = None):
+    def __init__(
+        self,
+        workspace_root: Path,
+        graph_factory: GraphFactory,
+        session_manager: "SessionManager",
+    ):
         self._entries: Dict[str, GraphEntry] = {}
         self._new_counter: int = 0
-        self._workspace_root: Optional[Path] = workspace_root
+        self._workspace_root: Path = workspace_root
+        self._graph_factory: GraphFactory = graph_factory
+        self._session_manager = session_manager
+
+    # ------------------------------------------------------------------
+    # Validation → entry lifecycle + cross-session broadcast
+    # ------------------------------------------------------------------
+
+    def _on_entry_validation(self, entry: GraphEntry, result: "ValidationResult") -> None:
+        """Handle a validation result on one of this haystack's entries.
+
+        Three concerns, all rooted in the fact that a graph under this
+        haystack's ownership just validated:
+
+        1. Stop execution if the result requires graph reassembly.
+        2. Mark the entry unsaved if the result mutated data.
+        3. Broadcast DATA_MUTATED so peer sessions refresh.
+        """
+        if entry.is_executing and result.has_changes() and result.graph is not None:
+            if result.graph.requires_graph_reassembly():
+                entry.stop_execution()
+
+        if bool(result.nodes or result.edges):
+            entry.unsaved = True
+            event = ContextChangedEvent(change_type=ContextChangeType.DATA_MUTATED)
+            self._session_manager.broadcast(event)
 
     # ------------------------------------------------------------------
     # Graph lifecycle
     # ------------------------------------------------------------------
 
-    def create_untitled(self, factory: GraphFactory) -> GraphEntry:
+    def create_new(self) -> GraphEntry:
         """
-        Create a new untitled graph and register it under '__untitled__'.
+        Create a new unnamed graph.
 
-        If an untitled entry already exists it is replaced.
-
-        Args:
-            factory: Callable returning (BaseGraph, Editor) for given id/name.
-
-        Returns:
-            The new GraphEntry.
-        """
-        graph, editor = factory("untitled", "Untitled Graph")
-        entry = GraphEntry(graph=graph, editor=editor, path=None)
-        self._entries["__untitled__"] = entry
-        return entry
-
-    def create_new(self, factory: GraphFactory) -> GraphEntry:
-        """
-        Create a new unnamed graph with a unique auto-generated key and name.
-
-        Unlike ``create_untitled`` this does NOT replace any existing entry.
         Each call produces a fresh entry keyed as ``'__new_1__'``, ``'__new_2__'``, …
         and named ``'Untitled 1'``, ``'Untitled 2'``, …
-
-        Args:
-            factory: Callable returning (BaseGraph, Editor) for given id/name.
 
         Returns:
             The new GraphEntry.
@@ -167,36 +176,40 @@ class Haystack:
         self._new_counter += 1
         key = f"__new_{self._new_counter}__"
         name = f"Untitled {self._new_counter}"
-        graph, editor = factory(key, name)
+        graph, editor = self._graph_factory(key, name)
         entry = GraphEntry(graph=graph, editor=editor, path=None)
         self._entries[key] = entry
+        entry.graph.subscribe_to_validation(
+            lambda result, _entry=entry: self._on_entry_validation(_entry, result)
+        )
         return entry
 
-    def open_graph(self, path: Path, factory: GraphFactory) -> GraphEntry:
+    def open_graph(self, path: Path) -> GraphEntry:
         """
         Open a .haywire file, reusing the existing entry if already loaded.
 
+        On first-time open, subscribes the validation callback.
+
         Args:
             path: Absolute path to the .haywire file.
-            factory: Callable returning (BaseGraph, Editor) for given id/name.
 
         Returns:
-            Existing GraphEntry if the path is already open; otherwise a new one
-            loaded from disk.
+            The (existing or newly-loaded) GraphEntry.
         """
         key = str(path)
-        if key in self._entries:
-            return self._entries[key]
-
-        graph, editor = factory(path.stem, str(path))
-        graph.load_from_file(str(path))
-        # Flush any deferred NODE_ADDED/EDGE_ADDED validation events that
-        # load_from_file queues. This must happen BEFORE the entry is created
-        # and before any validation handler is subscribed, so that those events
-        # don't fire later and incorrectly mark the freshly loaded graph as unsaved.
-        graph.force_validation()
-        entry = GraphEntry(graph=graph, editor=editor, path=path)
-        self._entries[key] = entry
+        entry = self._entries.get(key)
+        if entry is None:
+            graph, editor = self._graph_factory(path.stem, str(path))
+            graph.load_from_file(str(path))
+            # Flush the validation queue load_from_file enqueued BEFORE
+            # subscribing the handler, otherwise those events fire later
+            # and mark the freshly-loaded graph as unsaved.
+            graph.force_validation()
+            entry = GraphEntry(graph=graph, editor=editor, path=path)
+            self._entries[key] = entry
+            entry.graph.subscribe_to_validation(
+                lambda result, _entry=entry: self._on_entry_validation(_entry, result)
+            )
         return entry
 
     def save_graph(self, entry: GraphEntry, save_as: Optional[Path] = None) -> bool:
@@ -286,10 +299,6 @@ class Haystack:
     # Lookups
     # ------------------------------------------------------------------
 
-    def get_untitled(self) -> Optional[GraphEntry]:
-        """Return the untitled entry, or None if it doesn't exist."""
-        return self._entries.get("__untitled__")
-
     def get_by_path(self, path: Optional[Path]) -> Optional[GraphEntry]:
         """Return the entry for the given path (None path → untitled)."""
         if path is None:
@@ -312,22 +321,6 @@ class Haystack:
         return dict(self._entries)
 
     # ------------------------------------------------------------------
-    # Session tracking
-    # ------------------------------------------------------------------
-
-    def session_attach(self, entry: GraphEntry, session_id: str) -> None:
-        """Record that a session is now viewing this graph."""
-        entry.sessions.add(session_id)
-
-    def session_detach(self, entry: GraphEntry, session_id: str) -> None:
-        """Remove a session from this graph."""
-        entry.sessions.discard(session_id)
-
-    def sessions_for_entry(self, entry: GraphEntry) -> Set[str]:
-        """Return the set of session IDs currently viewing the entry."""
-        return set(entry.sessions)
-
-    # ------------------------------------------------------------------
     # Unsaved check
     # ------------------------------------------------------------------
 
@@ -343,16 +336,14 @@ class Haystack:
     # Haystack persistence
     # ------------------------------------------------------------------
 
-    def _haystacks_dir(self) -> Optional[Path]:
-        """Return the haystacks/ directory, or None if no workspace root."""
-        if self._workspace_root is None:
-            return None
+    def _haystacks_dir(self) -> Path:
+        """Return the haystacks/ directory."""
         return self._workspace_root / "haystacks"
 
     def list_haystacks(self) -> List[str]:
         """Return sorted list of available haystack names (without extension)."""
         hdir = self._haystacks_dir()
-        if hdir is None or not hdir.is_dir():
+        if not hdir.is_dir():
             return []
         return sorted(p.stem for p in hdir.glob("*.toml"))
 
@@ -372,9 +363,6 @@ class Haystack:
             The Path to the written haystack file.
         """
         hdir = self._haystacks_dir()
-        if hdir is None:
-            raise RuntimeError("Cannot save haystack: no workspace root configured")
-
         hdir.mkdir(parents=True, exist_ok=True)
         filepath = hdir / f"{name}.toml"
 
@@ -418,18 +406,17 @@ class Haystack:
     def load_haystack(
         self,
         name: str,
-        factory: GraphFactory,
     ) -> Tuple[List[GraphEntry], Optional[str]]:
         """
         Load a haystack file, replacing all current entries.
 
         Stops execution on all current entries, clears the registry,
         then opens each graph listed in the haystack. Graphs marked with
-        ``execute = true`` are started automatically.
+        ``execute = true`` are started automatically. Each freshly-opened
+        entry has the validation handler subscribed.
 
         Args:
             name: Haystack name (filename stem in haystacks/).
-            factory: Graph factory for opening files.
 
         Returns:
             Tuple of (list of opened GraphEntry instances,
@@ -439,9 +426,6 @@ class Haystack:
             FileNotFoundError: If the haystack file does not exist.
         """
         hdir = self._haystacks_dir()
-        if hdir is None:
-            raise RuntimeError("Cannot load haystack: no workspace root configured")
-
         filepath = hdir / f"{name}.toml"
         if not filepath.exists():
             raise FileNotFoundError(f"Haystack not found: {filepath}")
@@ -456,7 +440,8 @@ class Haystack:
         self._entries.clear()
         self._new_counter = 0
 
-        # Open each graph
+        # Open each graph — we reuse the entry-creation core by inlining it.
+        # Validation subscriber IS invoked.
         opened: List[GraphEntry] = []
         for gd in graphs_data:
             rel_path = gd.get("path")
@@ -467,7 +452,15 @@ class Haystack:
                 logger.warning(f"Haystack: skipping missing graph file: {abs_path}")
                 continue
 
-            entry = self.open_graph(abs_path, factory)
+            key = str(abs_path)
+            graph, editor = self._graph_factory(abs_path.stem, str(abs_path))
+            graph.load_from_file(str(abs_path))
+            graph.force_validation()
+            entry = GraphEntry(graph=graph, editor=editor, path=abs_path)
+            self._entries[key] = entry
+            entry.graph.subscribe_to_validation(
+                lambda result, _entry=entry: self._on_entry_validation(_entry, result)
+            )
             opened.append(entry)
 
             if gd.get("execute", False):
@@ -488,9 +481,6 @@ class Haystack:
             True if the rename succeeded.
         """
         hdir = self._haystacks_dir()
-        if hdir is None:
-            return False
-
         old_path = hdir / f"{old_name}.toml"
         new_path = hdir / f"{new_name}.toml"
 
@@ -525,8 +515,6 @@ class Haystack:
         Returns:
             Sorted list of absolute Paths to .haywire files.
         """
-        if self._workspace_root is None:
-            return []
         graphs_dir = self._workspace_root / "graphs"
         if not graphs_dir.is_dir():
             return []
@@ -535,8 +523,6 @@ class Haystack:
     def delete_haystack(self, name: str) -> bool:
         """Delete a haystack file. Returns True if removed."""
         hdir = self._haystacks_dir()
-        if hdir is None:
-            return False
         filepath = hdir / f"{name}.toml"
         if filepath.exists():
             filepath.unlink()

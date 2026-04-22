@@ -459,3 +459,122 @@ def test_on_context_changed_reveal_editor_unknown_logs_warning(caplog) -> None:
     assert any("nonexistent:editor:zzz" in rec.message for rec in caplog.records)
     # No nested event emitted.
     assert shell.session.notified_events == []
+
+
+# ---------------------------------------------------------------------------
+# OPEN_GRAPH_REQUESTED handler tests
+# ---------------------------------------------------------------------------
+
+
+class _FakeEntry:
+    """Minimal GraphEntry stand-in."""
+
+    def __init__(self, key: str, graph, path=None, display_name: str = "Entry") -> None:
+        self.key = key
+        self.graph = graph
+        self.path = path
+        self.display_name = display_name
+
+
+class _FakeHaystack:
+    """Supports lookup by path or graph."""
+
+    def __init__(self) -> None:
+        self._by_path: dict[object, _FakeEntry] = {}
+        self._by_graph: dict[object, _FakeEntry] = {}
+
+    def register(self, entry: _FakeEntry) -> None:
+        if entry.path is not None:
+            self._by_path[entry.path] = entry
+        self._by_graph[entry.graph] = entry
+
+    def get_by_path(self, path):
+        return self._by_path.get(path)
+
+    def get_by_graph(self, graph):
+        return self._by_graph.get(graph)
+
+
+def _make_shell_for_open_graph(prev_entry=None, target_entry=None):
+    """Return (shell, session) wired for open-graph-requested testing."""
+    from haywire.ui.app.shell import AppShell
+
+    haystack = _FakeHaystack()
+    if prev_entry is not None:
+        haystack.register(prev_entry)
+    if target_entry is not None:
+        haystack.register(target_entry)
+
+    app = SimpleNamespace(haystack=haystack)
+    context = SimpleNamespace(
+        app=app,
+        active_graph=prev_entry.graph if prev_entry else None,
+        active_graph_path=prev_entry.path if prev_entry else None,
+        session=None,  # set below
+    )
+
+    session = _FakeSession()
+    session.session_id = "sess-1"
+    session.context = context
+    context.session = session
+
+    # AppShell has a lot of setup; we only need the handler, so instantiate bare.
+    shell = AppShell.__new__(AppShell)
+    shell.session = session
+    return shell, session, haystack
+
+
+def test_open_graph_requested_updates_context() -> None:
+    target = _FakeEntry(key="/tmp/a.haywire", graph=object(), path="/tmp/a.haywire")
+    shell, session, _ = _make_shell_for_open_graph(target_entry=target)
+
+    shell._handle_open_graph_requested(
+        ContextChangedEvent(
+            change_type=ContextChangeType.OPEN_GRAPH_REQUESTED,
+            detail=target,
+            reveal_editor="editor.key",
+        )
+    )
+
+    assert session.context.active_graph is target.graph
+    assert session.context.active_graph_path == target.path
+
+
+def test_open_graph_requested_fires_active_graph_changed() -> None:
+    target = _FakeEntry(
+        key="/tmp/a.haywire",
+        graph=object(),
+        path="/tmp/a.haywire",
+        display_name="a.haywire",
+    )
+    shell, session, _ = _make_shell_for_open_graph(target_entry=target)
+
+    shell._handle_open_graph_requested(
+        ContextChangedEvent(
+            change_type=ContextChangeType.OPEN_GRAPH_REQUESTED,
+            detail=target,
+            reveal_editor="editor.key",
+        )
+    )
+
+    assert len(session.notified_events) == 1
+    downstream = session.notified_events[0]
+    assert downstream.change_type == ContextChangeType.ACTIVE_GRAPH_CHANGED
+    assert downstream.reveal_editor == "editor.key"
+    assert downstream.reveal_payload == target.key
+    assert downstream.reveal_label == target.display_name
+    assert downstream.detail is target
+
+
+def test_open_graph_requested_null_detail_is_noop() -> None:
+    shell, session, haystack = _make_shell_for_open_graph()
+
+    shell._handle_open_graph_requested(
+        ContextChangedEvent(
+            change_type=ContextChangeType.OPEN_GRAPH_REQUESTED,
+            detail=None,
+            reveal_editor="editor.key",
+        )
+    )
+
+    assert session.notified_events == []

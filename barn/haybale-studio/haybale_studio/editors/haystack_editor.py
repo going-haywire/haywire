@@ -16,7 +16,7 @@ and DATA_MUTATED (to reflect unsaved/modified state).
 
 import logging
 from pathlib import Path
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, Callable, Optional
 
 from haywire.ui.protocols import IProjectState
 from nicegui import ui
@@ -68,8 +68,8 @@ class HaystackEditor(BaseEditor):
       4. Fires ACTIVE_GRAPH_CHANGED so GraphEditor swaps its canvas.
       5. Switches the middle-area tab to the GraphEditor.
 
-    The "+" header button calls app.create_new_graph() and immediately
-    activates the freshly created entry.
+    The "+" header button calls app.haystack.create_new() and fires
+    OPEN_GRAPH_REQUESTED to activate the freshly created entry.
     """
 
     def __init__(self):
@@ -267,7 +267,7 @@ class HaystackEditor(BaseEditor):
             success = app.haystack.save_graph(entry)
             if success:
                 ui.notify(f"Saved: {entry.path.name}", type="positive", position="top-right")
-                self._broadcast_mutation(app, entry)
+                self._notify_data_mutated(context)
             else:
                 ui.notify("Save failed", type="negative", position="top-right")
             return
@@ -295,7 +295,7 @@ class HaystackEditor(BaseEditor):
         self._open_rename_dialog(entry, context)
 
     def _on_entry_delete(self, entry: "GraphEntry", context: "SessionContext") -> None:
-        """Remove a graph entry from the haystack (does not delete the file)."""
+        """Remove a graph entry; prompt for dirty entries before discarding."""
         if entry.is_executing:
             ui.notify("Stop execution before removing", type="warning")
             return
@@ -304,15 +304,26 @@ class HaystackEditor(BaseEditor):
             ui.notify("Graph manager not available", type="warning")
             return
 
+        is_dirty = entry.unsaved or entry.path is None
+        if not is_dirty:
+            self._remove_entry(entry, context)
+            return
+
+        self._open_remove_confirm_dialog(entry, context)
+
+    def _remove_entry(self, entry: "GraphEntry", context: "SessionContext") -> None:
+        """Tear down a graph entry: stop execution, remove, notify.
+
+        Pre-condition: ``entry`` is not executing and the haystack is available.
+        Callers are responsible for the ``is_executing`` / ``hasattr`` guards
+        and for any dirty-state confirmation flow before invoking this.
+        """
+        app = context.app
         is_active = entry.graph is context.active_graph
         removed_key = entry.key  # capture before remove_entry re-keys / drops
 
-        # Stop execution if running
+        # Stop execution if running (defensive — should already be stopped)
         entry.stop_execution()
-
-        # Detach all sessions
-        for sid in list(entry.sessions):
-            app.haystack.session_detach(entry, sid)
 
         # Remove from haystack
         app.haystack.remove_entry(entry)
@@ -342,6 +353,66 @@ class HaystackEditor(BaseEditor):
 
         ui.notify(f"Removed: {entry.display_name}", type="info", position="top-right")
         self._notify_data_mutated(context)
+
+    # ------------------------------------------------------------------
+    # remove confirmation dialog
+    # ------------------------------------------------------------------
+
+    def _open_remove_confirm_dialog(self, entry: "GraphEntry", context: "SessionContext") -> None:
+        """Confirm before removing a dirty entry.
+
+        For file-backed + modified entries: Save / Save As… / Discard / Cancel.
+        For unnamed entries (``path is None``): Save As… / Discard / Cancel
+        (no plain Save — there is no target file).
+        """
+        app = context.app
+        can_save_in_place = entry.path is not None
+
+        popup = Popup(
+            title="Remove graph?",
+            width="400px",
+            closable=True,
+            backdrop_click_close=True,
+            escape_close=True,
+        )
+        with popup:
+            if can_save_in_place:
+                msg = f'"{entry.display_name}" has unsaved changes.'
+            else:
+                msg = "This graph has never been saved."
+            ui.label(msg).classes("text-sm")
+            ui.label("What would you like to do?").classes("text-sm hw-text-dim")
+
+            def _save_and_remove():
+                success = app.haystack.save_graph(entry)
+                if success:
+                    self._notify_data_mutated(context)
+                    self._remove_entry(entry, context)
+                    popup.close()
+                else:
+                    ui.notify("Save failed", type="negative", position="top-right")
+
+            def _save_as_and_remove():
+                popup.close()
+                self._open_save_as_dialog(
+                    app,
+                    entry,
+                    context,
+                    on_success=lambda: self._remove_entry(entry, context),
+                )
+
+            def _discard_and_remove():
+                self._remove_entry(entry, context)
+                popup.close()
+
+            with ui.row().classes("w-full justify-end gap-2 mt-3"):
+                ui.button("Cancel", on_click=popup.close).props("flat dense")
+                ui.button("Discard", on_click=_discard_and_remove).props("flat dense color=negative")
+                ui.button("Save As…", on_click=_save_as_and_remove).props("dense")
+                if can_save_in_place:
+                    ui.button("Save", on_click=_save_and_remove).props("color=positive dense")
+
+        popup.open()
 
     # ------------------------------------------------------------------
     # rename dialog
@@ -385,9 +456,9 @@ class HaystackEditor(BaseEditor):
 
                 success = app.haystack.rename_graph(entry, new_name)
                 if success:
+                    session = context.session
                     if entry.graph is context.active_graph:
                         context.active_graph_path = entry.path
-                        session = context.session
                         if session:
                             session.notify_context_changed(
                                 ContextChangedEvent(
@@ -396,7 +467,7 @@ class HaystackEditor(BaseEditor):
                                     detail=entry,
                                 )
                             )
-                    self._broadcast_mutation(app, entry)
+                    self._notify_data_mutated(context)
                     ui.notify(f"Renamed to: {entry.path.name}", type="positive", position="top-right")
                     popup.close()
                 else:
@@ -417,7 +488,13 @@ class HaystackEditor(BaseEditor):
         graphs_dir = root / "graphs"
         return graphs_dir if graphs_dir.is_dir() else root
 
-    def _open_save_as_dialog(self, app, entry: "GraphEntry", context: "SessionContext") -> None:
+    def _open_save_as_dialog(
+        self,
+        app,
+        entry: "GraphEntry",
+        context: "SessionContext",
+        on_success: "Optional[Callable[[], None]]" = None,
+    ) -> None:
         """Open a Popup for Save-As."""
         workspace_root = Path(getattr(app, "workspace_root", str(Path.home())))
 
@@ -483,9 +560,9 @@ class HaystackEditor(BaseEditor):
 
                 success = app.haystack.save_graph(entry, save_as=save_path)
                 if success:
+                    session = context.session
                     if entry.graph is context.active_graph:
                         context.active_graph_path = save_path
-                        session = context.session
                         if session:
                             session.notify_context_changed(
                                 ContextChangedEvent(
@@ -494,9 +571,11 @@ class HaystackEditor(BaseEditor):
                                     detail=entry,
                                 )
                             )
-                    self._broadcast_mutation(app, entry)
+                    self._notify_data_mutated(context)
                     ui.notify(f"Saved: {save_path.name}", type="positive", position="top-right")
                     popup.close()
+                    if on_success is not None:
+                        on_success()
                 else:
                     ui.notify("Save failed — check the path and try again", type="negative")
 
@@ -514,23 +593,32 @@ class HaystackEditor(BaseEditor):
         """Create a new unnamed graph and activate it."""
         app: IProjectState = context.app
         session = context.session
-        if app is None or not hasattr(app, "create_new_graph") or session is None:
-            ui.notify("Graph manager not available", type="warning")
+        if app is None or session is None or not hasattr(app, "haystack"):
             return
 
-        # create_new_graph produces a fresh entry and attaches this session.
-        # open_graph_in_tab then performs detach-from-prev / context update /
-        # reveal — no need to duplicate it here.
-        entry = app.create_new_graph(session.session_id)
-        app.open_graph_in_tab(entry, context, _GRAPH_EDITOR_KEY)
+        entry = app.haystack.create_new()
+        session.notify_context_changed(
+            ContextChangedEvent(
+                change_type=ContextChangeType.OPEN_GRAPH_REQUESTED,
+                source_editor="haystack",
+                detail=entry,
+                reveal_editor=_GRAPH_EDITOR_KEY,
+            )
+        )
 
     def _on_select(self, entry: "GraphEntry", context: "SessionContext") -> None:
         """Activate an existing graph entry."""
-        app = context.app
         session = context.session
-        if app is None or session is None or not hasattr(app, "open_graph_in_tab"):
+        if session is None:
             return
-        app.open_graph_in_tab(entry, context, _GRAPH_EDITOR_KEY)
+        session.notify_context_changed(
+            ContextChangedEvent(
+                change_type=ContextChangeType.OPEN_GRAPH_REQUESTED,
+                source_editor="haystack",
+                detail=entry,
+                reveal_editor=_GRAPH_EDITOR_KEY,
+            )
+        )
 
     # ------------------------------------------------------------------
     # execution actions
@@ -637,9 +725,7 @@ class HaystackEditor(BaseEditor):
 
             def _do_load():
                 name = haystack_select.value
-                entries, active_rel = gm.load_haystack(name, app._graph_factory)
-                for entry in entries:
-                    app._subscribe_entry_validation(entry)
+                entries, active_rel = gm.load_haystack(name)
 
                 active_entry = None
                 if active_rel:
@@ -654,8 +740,15 @@ class HaystackEditor(BaseEditor):
                     session.workspace_manager.save()
 
                 self._notify_data_mutated(context)
-                if active_entry is not None and hasattr(app, "open_graph_in_tab"):
-                    app.open_graph_in_tab(active_entry, context, _GRAPH_EDITOR_KEY)
+                if active_entry is not None and session is not None:
+                    session.notify_context_changed(
+                        ContextChangedEvent(
+                            change_type=ContextChangeType.OPEN_GRAPH_REQUESTED,
+                            source_editor="haystack",
+                            detail=active_entry,
+                            reveal_editor=_GRAPH_EDITOR_KEY,
+                        )
+                    )
 
                 self._update_header_title(context)
                 ui.notify(f"Haystack '{name}' loaded", type="positive")
@@ -723,13 +816,20 @@ class HaystackEditor(BaseEditor):
 
                 path = options[selected]
                 session = context.session
-                if not hasattr(app, "open_graph_in_tab") or session is None:
+                if session is None or not hasattr(app, "haystack"):
                     ui.notify("Graph manager not available", type="warning")
                     popup.close()
                     return
 
-                entry = app.open_graph_file(path, session.session_id)
-                app.open_graph_in_tab(entry, context, _GRAPH_EDITOR_KEY)
+                entry = app.haystack.open_graph(path)
+                session.notify_context_changed(
+                    ContextChangedEvent(
+                        change_type=ContextChangeType.OPEN_GRAPH_REQUESTED,
+                        source_editor="haystack",
+                        detail=entry,
+                        reveal_editor=_GRAPH_EDITOR_KEY,
+                    )
+                )
                 ui.notify(f"Opened: {path.name}", type="positive", position="top-right")
                 popup.close()
 
@@ -812,10 +912,10 @@ class HaystackEditor(BaseEditor):
         popup.open()
 
     def _notify_data_mutated(self, context: "SessionContext") -> None:
-        """Fire DATA_MUTATED to refresh the graph list."""
+        """Fire DATA_MUTATED to refresh the graph list across all sessions."""
         session = context.session
         if session:
-            session.notify_context_changed(
+            session.notify_cross_session_context_change(
                 ContextChangedEvent(
                     change_type=ContextChangeType.DATA_MUTATED,
                     source_editor="haystack",
@@ -832,14 +932,6 @@ class HaystackEditor(BaseEditor):
             return
         name = self._get_active_haystack_name(context)
         self._header_title_label.text = name or "Haystacks"
-
-    def _broadcast_mutation(self, app, entry: "GraphEntry") -> None:
-        """Broadcast a DATA_MUTATED event to all sessions viewing this graph."""
-        if hasattr(app, "session_manager"):
-            try:
-                app.session_manager.broadcast_data_mutation(graph_path=entry.path)
-            except Exception:
-                pass
 
     # ------------------------------------------------------------------
     # cleanup

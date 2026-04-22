@@ -21,7 +21,6 @@ from nicegui import ui, app
 # Core imports
 from haywire.core.graph.editor import Editor
 from haywire.core.graph.base import BaseGraph
-from haywire.core.graph.types import ValidationResult
 from haywire.core.undo.config import DEVELOPMENT_CONFIG
 from haywire.core.di.config import create_library_system_service, set_library_system, set_global_injector
 
@@ -29,15 +28,6 @@ from haywire.core.di.config import create_library_system_service, set_library_sy
 from haywire.ui.console_bridge import get_bridge
 
 logger = logging.getLogger(__name__)
-
-
-def _result_mutates_data(result: ValidationResult) -> bool:
-    """Return True if the validation result contains any graph data changes.
-
-    Selection is now per-session and never enters the validation pipeline,
-    so every ValidationResult that arrives here is a real data mutation.
-    """
-    return bool(result.nodes or result.edges)
 
 
 class HaywireApp:
@@ -144,7 +134,11 @@ class HaywireApp:
         # Haystack auto-load happens after workspace_manager is available (in main_page).
         from .haystack import Haystack
 
-        self.haystack = Haystack(workspace_root=Path(self.workspace_root))
+        self.haystack = Haystack(
+            workspace_root=Path(self.workspace_root),
+            graph_factory=self._graph_factory,
+            session_manager=self.session_manager,
+        )
 
         # Library manager
         from .library_manager import LibraryManager
@@ -159,112 +153,10 @@ class HaywireApp:
         print("Shared services configured successfully.")
 
     # ------------------------------------------------------------------
-    # Graph management (called by editors)
+    # Graph factory (shared by Haystack)
     # ------------------------------------------------------------------
 
-    def open_graph_file(self, path: Path, session_id: str):
-        """
-        Open a .haywire file, creating or reusing a GraphEntry.
-
-        Subscribes the validation/broadcast handler on first open.
-        Attaches the session to the entry and returns it.
-        """
-        entry = self.haystack.open_graph(path, self._graph_factory)
-
-        # Subscribe only the first time this file is opened
-        if not entry.sessions:
-            self._subscribe_entry_validation(entry)
-
-        self.haystack.session_attach(entry, session_id)
-        return entry
-
-    def create_new_graph(self, session_id: str):
-        """
-        Create a new unnamed graph and attach a session to it.
-
-        Produces a unique '__new_N__' entry in the Haystack.
-        """
-        entry = self.haystack.create_new(self._graph_factory)
-        self._subscribe_entry_validation(entry)
-        self.haystack.session_attach(entry, session_id)
-        return entry
-
-    # ------------------------------------------------------------------
-    # Multi-instance tab orchestration
-    # ------------------------------------------------------------------
-
-    def open_graph_in_tab(self, entry, context, editor_key: str) -> None:
-        """Activate ``entry`` in the session and reveal its tab.
-
-        The single entry point for anything that opens a graph — file browser
-        double-click, haystack-list click, "+" new-graph button, "open graph"
-        dialog, load-haystack activate-one path. It performs the standard
-        detach/attach/context-update dance and broadcasts an
-        ``ACTIVE_GRAPH_CHANGED`` event carrying the ``reveal_editor`` +
-        ``reveal_payload`` + ``reveal_label`` trio so the AppShell opens (or
-        focuses) a tab keyed by ``entry.key``.
-
-        ``editor_key`` is passed by the caller — each editor knows which
-        editor class it wants to reveal (typically GraphEditor for callers
-        in haybale-studio). Keeping the decision at the call site avoids
-        hardcoding studio-specific knowledge here.
-
-        The GraphEditor still reads ``context.active_graph_path`` from the
-        session context in this stage; the per-tab binding payload becomes
-        authoritative in a later refactor.
-        """
-        from haywire.ui.context_events import ContextChangeType, ContextChangedEvent
-
-        session = context.session
-        if session is None:
-            logger.warning("open_graph_in_tab: no session on context")
-            return
-
-        # Detach from whichever graph this session is currently viewing
-        if context.active_graph_path is not None:
-            prev_entry = self.haystack.get_by_path(context.active_graph_path)
-        elif context.active_graph is not None:
-            prev_entry = self.haystack.get_by_graph(context.active_graph)
-        else:
-            prev_entry = None
-        if prev_entry is not None and prev_entry is not entry:
-            self.haystack.session_detach(prev_entry, session.session_id)
-
-        # Attach this session to the target entry (idempotent)
-        self.haystack.session_attach(entry, session.session_id)
-
-        # Update context
-        context.active_graph = entry.graph
-        context.active_graph_path = entry.path
-
-        session.notify_context_changed(
-            ContextChangedEvent(
-                change_type=ContextChangeType.ACTIVE_GRAPH_CHANGED,
-                source_editor="haywire_app",
-                detail=entry,
-                reveal_editor=editor_key,
-                reveal_payload=entry.key,
-                reveal_label=entry.display_name,
-            )
-        )
-
-    # ------------------------------------------------------------------
-    # Per-graph execution
-    # ------------------------------------------------------------------
-
-    @staticmethod
-    def _on_graph_validation_for_entry(result: ValidationResult, entry) -> None:
-        """Stop execution on an entry when a graph change requires reassembly."""
-        if not entry.is_executing:
-            return
-        if result.has_changes() and result.graph is not None and result.graph.requires_graph_reassembly():
-            entry.stop_execution()
-
-    # ------------------------------------------------------------------
-    # Graph factory (shared by open_graph_file, create_new_graph, haystack)
-    # ------------------------------------------------------------------
-
-    def _graph_factory(self, graph_id: str, name: str):
+    def _graph_factory(self, graph_id: str, name: str) -> tuple[BaseGraph, Editor]:
         """Standard factory producing (BaseGraph, Editor) pairs."""
         g = BaseGraph(graph_id, name)
         e = Editor(g, self.node_factory, undo_config=self.undo_config)
@@ -290,10 +182,7 @@ class HaywireApp:
             return
 
         try:
-            self.haystack.load_haystack(haystack_name, self._graph_factory)
-            # Subscribe validation handlers for each loaded entry
-            for entry in self.haystack.all_entries().values():
-                self._subscribe_entry_validation(entry)
+            self.haystack.load_haystack(haystack_name)
             logger.info(f"Startup haystack '{haystack_name}' loaded")
         except Exception as exc:
             logger.warning(f"Failed to load startup haystack '{haystack_name}': {exc}")
@@ -325,7 +214,7 @@ class HaywireApp:
                 logger.warning(f"Dropping tab for missing file on restore: {payload}")
                 continue
             try:
-                self.open_graph_file(path, session_id)
+                self.haystack.open_graph(path)
             except Exception as exc:
                 logger.warning(f"Failed to restore tab for '{payload}': {exc}")
                 continue
@@ -338,21 +227,6 @@ class HaywireApp:
             if ws.main.active_tab_key not in valid_ids:
                 ws.main.active_tab_key = surviving[0].tab_id if surviving else None
 
-    def _subscribe_entry_validation(self, entry) -> None:
-        """Subscribe the validation/broadcast handler for a graph entry."""
-
-        def _handler(result, _entry=entry):
-            self._on_graph_validation_for_entry(result, _entry)
-            if _result_mutates_data(result):
-                _entry.unsaved = True
-                if hasattr(self, "session_manager"):
-                    try:
-                        self.session_manager.broadcast_data_mutation(graph_path=_entry.path)
-                    except Exception as exc:
-                        logger.warning(f"Error broadcasting for {_entry.display_name}: {exc}")
-
-        entry.graph.subscribe_to_validation(_handler)
-
     # ------------------------------------------------------------------
     # UI creation
     # ------------------------------------------------------------------
@@ -363,22 +237,6 @@ class HaywireApp:
 
     def create_ui(self):
         """Register NiceGUI page routes."""
-
-        @ui.page("/libraries", title="Library Manager")
-        def libraries_page():
-            from .library_manager_ui import LibraryManagerPage
-
-            marketplace_path = Path(self.workspace_root) / ".haywire" / "marketplace.toml"
-            page = LibraryManagerPage(
-                self.library_manager,
-                marketplace_path=str(marketplace_path) if marketplace_path.exists() else None,
-                node_registry=self.node_registry,
-                widget_registry=self.library_service.get_widget_registry(),
-                type_registry=self.library_service.get_type_registry(),
-                adapter_registry=self.library_service.get_adapter_registry(),
-                skin_registry=self.library_service.get_skin_registry(),
-            )
-            page.create_page()
 
         @ui.page("/", title="Haywire")
         def main_page():

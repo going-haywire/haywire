@@ -167,7 +167,7 @@ SessionManager.remove_session()
 | `SessionManager`                 | Editor instances                   |
 | Graph mutations                  | `active_node`, `active_edge`, etc. |
 
-When a graph mutation happens (e.g. a node is added), `SessionManager.broadcast_data_mutation()` fires a `DATA_MUTATED` event to *all* sessions so every connected tab refreshes.
+When a graph mutation happens (e.g. a node is added), producers call `session.notify_cross_session_context_change(event)`, which routes through `SessionManager.broadcast()` to fan a `DATA_MUTATED` event to *all* sessions so every connected tab refreshes.
 
 ---
 

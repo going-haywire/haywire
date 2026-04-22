@@ -240,7 +240,7 @@ class GraphEditor(BaseEditor):
         entry.editor.undo()
         session = context.session
         if session is not None:
-            session.notify_context_changed(
+            session.notify_cross_session_context_change(
                 ContextChangedEvent(
                     change_type=ContextChangeType.DATA_MUTATED,
                     source_editor="graph_editor",
@@ -255,7 +255,7 @@ class GraphEditor(BaseEditor):
         entry.editor.redo()
         session = context.session
         if session is not None:
-            session.notify_context_changed(
+            session.notify_cross_session_context_change(
                 ContextChangedEvent(
                     change_type=ContextChangeType.DATA_MUTATED,
                     source_editor="graph_editor",
@@ -292,11 +292,14 @@ class GraphEditor(BaseEditor):
                 self._update_header(context)
                 # Notify all sessions viewing this graph so GraphManagerEditor
                 # and other headers clear their dirty indicators.
-                if hasattr(app, "session_manager"):
-                    try:
-                        app.session_manager.broadcast_data_mutation(graph_path=entry.path)
-                    except Exception:
-                        pass
+                session = context.session
+                if session is not None:
+                    session.notify_cross_session_context_change(
+                        ContextChangedEvent(
+                            change_type=ContextChangeType.DATA_MUTATED,
+                            source_editor="graph_editor",
+                        )
+                    )
             else:
                 ui.notify("Save failed", type="negative", position="top-right")
             return
@@ -444,13 +447,14 @@ class GraphEditor(BaseEditor):
                         detail=entry,
                     )
                 )
-            # Broadcast to all sessions so their GraphManagerEditor and header
-            # also clear the dirty indicator.
-            if hasattr(app, "session_manager"):
-                try:
-                    app.session_manager.broadcast_data_mutation(graph_path=save_path)
-                except Exception:
-                    pass
+                # Notify peer sessions so their GraphManagerEditor and header
+                # also clear the dirty indicator.
+                session.notify_cross_session_context_change(
+                    ContextChangedEvent(
+                        change_type=ContextChangeType.DATA_MUTATED,
+                        source_editor="graph_editor",
+                    )
+                )
             ui.notify(f"Saved: {save_path.name}", type="positive", position="top-right")
             dialog.close()
         else:
@@ -461,20 +465,6 @@ class GraphEditor(BaseEditor):
     # ------------------------------------------------------------------
 
     def cleanup(self) -> None:
-        # Detach this session from its graph entry so the haystack can tell
-        # when no session is still viewing the graph. Running here covers
-        # both the close-× path (Slot calls cleanup during remove_binding)
-        # and full-session teardown.
-        context = self._context
-        app = self._project_state
-        if context is not None and app is not None and hasattr(app, "haystack"):
-            entry = self._get_entry(context)
-            if entry is not None and context.session is not None:
-                try:
-                    app.haystack.session_detach(entry, context.session.session_id)
-                except Exception as exc:
-                    logger.warning(f"GraphEditor.cleanup(): haystack detach failed: {exc}")
-
         if self._canvas_manager:
             try:
                 self._canvas_manager.cleanup()

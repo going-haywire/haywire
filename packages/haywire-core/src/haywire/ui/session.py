@@ -15,6 +15,7 @@ logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
     from haywire.ui.editor.base import BaseEditor
+    from haywire.ui.session_manager import SessionManager
 
 
 class Session:
@@ -29,25 +30,33 @@ class Session:
     The Session is the bridge between the shared server-side data model
     and the per-client NiceGUI UI tree.
 
-    Context change flow:
-        1. Any component calls session.notify_context_changed(event).
-        2. Session forwards the event to the orchestrator callback (AppShell).
-        3. The orchestrator runs the poll/draw cycle on active editors.
+    Two context change flows:
+        Local (single session):
+            component → session.notify_context_changed(event) → orchestrator
+        Cross-session (all sessions including origin):
+            component → session.notify_cross_session_context_change(event)
+                      → SessionManager.broadcast(event)
+                      → every session.notify_context_changed(event) → orchestrator
     """
 
-    def __init__(self, project_state, workspace_manager: WorkspaceManager):
+    def __init__(
+        self, project_state, workspace_manager: WorkspaceManager, session_manager: "SessionManager"
+    ):
         """
         Create a new session.
 
         Args:
             project_state: The shared project state (graph data, settings, etc.).
             workspace_manager: Pre-configured WorkspaceManager for this session.
+            session_manager: The SessionManager that owns this session, used for
+                cross-session event broadcasting.
         """
         self.session_id = str(uuid.uuid4())
         self.project_state = project_state
         self.context = SessionContext(session_id=self.session_id, app=project_state)
         self.context.session = self
         self.workspace_manager = workspace_manager
+        self._session_manager = session_manager
 
         # Active editor instances (keyed by area slot: 'left', 'middle', 'right', 'bottom')
         self._editors: Dict[str, "BaseEditor"] = {}
@@ -81,6 +90,19 @@ class Session:
                 self._orchestrator_callback(event, self.context)
             except Exception as e:
                 logger.error(f"Session {self.session_id}: orchestrator callback error: {e}")
+
+    def notify_cross_session_context_change(self, event: ContextChangedEvent) -> None:
+        """
+        Fan a context change out to every session (including self).
+
+        Used for events that peer sessions care about — graph data mutations,
+        haystack changes. Delegates to SessionManager.broadcast, which calls
+        notify_context_changed on every registered session.
+
+        Args:
+            event: The ContextChangedEvent describing what changed.
+        """
+        self._session_manager.broadcast(event)
 
     def cleanup(self) -> None:
         """Clean up all editor instances.

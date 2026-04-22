@@ -169,15 +169,18 @@ class FileBrowserEditor(BaseEditor):
 
         app: "HaywireApp" = context.app
         session = context.session
-
-        if app is None or session is None or not hasattr(app, "open_graph_in_tab"):
+        if app is None or session is None or not hasattr(app, "haystack"):
             return
 
-        # open_graph_file is idempotent: returns the existing entry if already
-        # loaded. open_graph_in_tab then performs the detach/attach dance and
-        # emits the reveal event pointing at the GraphEditor.
-        entry = app.open_graph_file(path, session.session_id)
-        app.open_graph_in_tab(entry, context, GraphEditor.class_identity.registry_key)
+        entry = app.haystack.open_graph(path)
+        session.notify_context_changed(
+            ContextChangedEvent(
+                change_type=ContextChangeType.OPEN_GRAPH_REQUESTED,
+                source_editor="file_browser",
+                detail=entry,
+                reveal_editor=GraphEditor.class_identity.registry_key,
+            )
+        )
 
     def _open_in_file_viewer(self, path: Path, context: "SessionContext") -> None:
         """Broadcast FILE_SELECTED and reveal the file viewer tab."""
