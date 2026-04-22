@@ -24,12 +24,15 @@ class _FakeEditor(BaseEditor):
     def __init__(self) -> None:
         self.focus_calls: list[Any] = []
         self.draw_calls: list[Any] = []
+        self.call_sequence: list[str] = []
 
     def draw(self, context, container) -> None:
         self.draw_calls.append(context)
+        self.call_sequence.append("draw")
 
     def on_focus(self, context) -> None:
         self.focus_calls.append(context)
+        self.call_sequence.append("focus")
 
 
 def _make_session():
@@ -111,10 +114,9 @@ def test_on_focus_runs_before_draw_on_first_activation():
     slot.render_area(parent)
 
     instance = b1.instance
-    # focus_calls is appended in on_focus; draw_calls is appended in draw.
-    # We can't compare timestamps easily — instead assert both ran.
-    assert len(instance.focus_calls) == 1
-    assert len(instance.draw_calls) == 1
+    # Both hooks append a label to call_sequence; order in that list reflects
+    # the actual invocation order inside Slot._activate.
+    assert instance.call_sequence == ["focus", "draw"]
 
 
 def test_on_focus_raising_is_logged_and_swallowed(caplog):
