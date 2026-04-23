@@ -42,14 +42,19 @@ def editor_and_context():
     return editor, context, app, haystack
 
 
-def _make_entry(path=None, unsaved: bool = False, is_executing: bool = False, key: str = "/tmp/a.haywire"):
+def _make_entry(
+    path=None,
+    unsaved: bool = False,
+    is_executing: bool = False,
+    entry_id: str = "/tmp/a.haywire",
+):
     graph = object()
     return SimpleNamespace(
         graph=graph,
         path=path,
         unsaved=unsaved,
         is_executing=is_executing,
-        key=key,
+        entry_id=entry_id,
         display_name="a.haywire",
         stop_execution=MagicMock(),
     )

@@ -62,7 +62,7 @@ class HaystackEditor(BaseEditor):
     Left-area editor that lists all graphs tracked by Haystack.
 
     One entry per open file or new unnamed graph.  Clicking an entry fires
-    EDITOR_FOCUSED with reveal_editor=GraphEditor and reveal_payload=entry.key.
+    EDITOR_FOCUSED with reveal_editor=GraphEditor and reveal_payload=entry.entry_id.
     The shell reveals the matching tab, then GraphEditor.on_focus updates
     context.active_graph / active_graph_path and broadcasts ACTIVE_GRAPH_CHANGED.
 
@@ -85,6 +85,25 @@ class HaystackEditor(BaseEditor):
             ContextChangeType.ACTIVE_GRAPH_CHANGED,
             ContextChangeType.DATA_MUTATED,
         )
+
+    def on_focus(self, context: "SessionContext") -> None:
+        """Refresh the header title and entry list on activation.
+
+        The editor sits in the left slot and shares the slot with other
+        sidebar editors. While inactive, ``poll`` does not run, so entries
+        added or removed by other editors (e.g. FileBrowser opening a graph)
+        don't trigger a redraw. Re-rendering here ensures switching back to
+        this tab always shows current haystack state.
+
+        Safe before first ``draw``: both ``_render_header`` and
+        ``_render_list`` are no-ops until their target containers exist.
+        """
+        if self._header_title_label is not None:
+            title = self._get_active_haystack_name(context) or "Haystacks"
+            self._header_title_label.text = title
+            self._update_rename_haystack_enabled(context)
+        if self._list_container is not None:
+            self._render_list(context)
 
     def draw(self, context: "SessionContext", container: "Element") -> None:
         with container:
@@ -319,7 +338,7 @@ class HaystackEditor(BaseEditor):
         """
         app = context.app
         is_active = entry.graph is context.active_graph
-        removed_key = entry.key  # capture before remove_entry re-keys / drops
+        removed_id = entry.entry_id  # capture before remove_entry drops
 
         # Stop execution if running (defensive — should already be stopped)
         entry.stop_execution()
@@ -334,7 +353,7 @@ class HaystackEditor(BaseEditor):
                 ContextChangedEvent(
                     change_type=ContextChangeType.GRAPH_REMOVED,
                     source_editor="haystack",
-                    detail=removed_key,
+                    detail=removed_id,
                 )
             )
 
@@ -601,7 +620,7 @@ class HaystackEditor(BaseEditor):
                 change_type=ContextChangeType.EDITOR_FOCUSED,
                 source_editor="haystack",
                 reveal_editor=_GRAPH_EDITOR_KEY,
-                reveal_payload=entry.key,
+                reveal_payload=entry.entry_id,
                 reveal_label=entry.display_name,
             )
         )
@@ -616,7 +635,7 @@ class HaystackEditor(BaseEditor):
                 change_type=ContextChangeType.EDITOR_FOCUSED,
                 source_editor="haystack",
                 reveal_editor=_GRAPH_EDITOR_KEY,
-                reveal_payload=entry.key,
+                reveal_payload=entry.entry_id,
                 reveal_label=entry.display_name,
             )
         )
@@ -747,7 +766,7 @@ class HaystackEditor(BaseEditor):
                             change_type=ContextChangeType.EDITOR_FOCUSED,
                             source_editor="haystack",
                             reveal_editor=_GRAPH_EDITOR_KEY,
-                            reveal_payload=active_entry.key,
+                            reveal_payload=active_entry.entry_id,
                             reveal_label=active_entry.display_name,
                         )
                     )
@@ -829,7 +848,7 @@ class HaystackEditor(BaseEditor):
                         change_type=ContextChangeType.EDITOR_FOCUSED,
                         source_editor="haystack",
                         reveal_editor=_GRAPH_EDITOR_KEY,
-                        reveal_payload=entry.key,
+                        reveal_payload=entry.entry_id,
                         reveal_label=entry.display_name,
                     )
                 )

@@ -11,8 +11,10 @@ from haybale_studio.editors.graph_editor import GraphEditor
 
 
 class _FakeEntry:
-    def __init__(self, key: str, graph, path: Optional[Path] = None, display_name: str = "Entry") -> None:
-        self.key = key
+    def __init__(
+        self, entry_id: str, graph, path: Optional[Path] = None, display_name: str = "Entry"
+    ) -> None:
+        self.entry_id = entry_id
         self.graph = graph
         self.path = path
         self.display_name = display_name
@@ -20,13 +22,13 @@ class _FakeEntry:
 
 class _FakeHaystack:
     def __init__(self) -> None:
-        self._by_key: dict[str, _FakeEntry] = {}
+        self._by_id: dict[str, _FakeEntry] = {}
 
     def register(self, entry: _FakeEntry) -> None:
-        self._by_key[entry.key] = entry
+        self._by_id[entry.entry_id] = entry
 
-    def get_by_key(self, key: str) -> Optional[_FakeEntry]:
-        return self._by_key.get(key)
+    def get_by_id(self, entry_id: str) -> Optional[_FakeEntry]:
+        return self._by_id.get(entry_id)
 
 
 class _FakeSession:
@@ -62,7 +64,7 @@ def _make_editor_with_payload(payload: str) -> GraphEditor:
 
 def test_on_focus_resolves_entry_and_sets_active_graph() -> None:
     g = object()
-    entry = _FakeEntry(key="/tmp/a.haywire", graph=g, path=Path("/tmp/a.haywire"))
+    entry = _FakeEntry(entry_id="/tmp/a.haywire", graph=g, path=Path("/tmp/a.haywire"))
     ctx = _make_context(entry)
     ed = _make_editor_with_payload("/tmp/a.haywire")
 
@@ -75,7 +77,7 @@ def test_on_focus_resolves_entry_and_sets_active_graph() -> None:
 def test_on_focus_fires_active_graph_changed() -> None:
     g = object()
     entry = _FakeEntry(
-        key="/tmp/a.haywire",
+        entry_id="/tmp/a.haywire",
         graph=g,
         path=Path("/tmp/a.haywire"),
         display_name="a.haywire",
@@ -93,7 +95,7 @@ def test_on_focus_fires_active_graph_changed() -> None:
 
 def test_on_focus_short_circuits_when_graph_already_active() -> None:
     g = object()
-    entry = _FakeEntry(key="/tmp/a.haywire", graph=g, path=Path("/tmp/a.haywire"))
+    entry = _FakeEntry(entry_id="/tmp/a.haywire", graph=g, path=Path("/tmp/a.haywire"))
     ctx = _make_context(entry, existing_active_graph=g)
     # Also pre-set active_graph_path to match — the short-circuit requires both.
     ctx.active_graph_path = Path("/tmp/a.haywire")

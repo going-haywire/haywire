@@ -178,7 +178,7 @@ class FileBrowserEditor(BaseEditor):
                 change_type=ContextChangeType.EDITOR_FOCUSED,
                 source_editor="file_browser",
                 reveal_editor=GraphEditor.class_identity.registry_key,
-                reveal_payload=entry.key,
+                reveal_payload=entry.entry_id,
                 reveal_label=entry.display_name,
             )
         )

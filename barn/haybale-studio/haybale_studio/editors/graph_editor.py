@@ -112,7 +112,7 @@ class GraphEditor(BaseEditor):
         if haystack is None:
             return
 
-        entry = haystack.get_by_key(payload)
+        entry = haystack.get_by_id(payload)
         session = getattr(context, "session", None)
         if entry is None:
             if session is not None:
@@ -246,17 +246,17 @@ class GraphEditor(BaseEditor):
         """Look up this tab's GraphEntry from the haystack via binding payload.
 
         Each GraphEditor instance is bound to one ``(editor_key, payload)``
-        pair — the payload is the ``GraphEntry.key`` (a path string for saved
-        graphs, ``__new_N__`` / ``__untitled__`` for unsaved). The tab owns
-        its graph identity; the session-level ``active_graph_path`` is no
-        longer consulted here.
+        pair — the payload is the ``GraphEntry.entry_id`` (a path string for
+        saved graphs, ``__unsaved_N__`` for unsaved). The tab owns its graph
+        identity; the session-level ``active_graph_path`` is no longer
+        consulted here.
         """
         app = self._project_state
         if app is None or not hasattr(app, "haystack"):
             return None
         if self.binding is None or self.binding.payload is None:
             return None
-        return app.haystack.get_by_key(self.binding.payload)
+        return app.haystack.get_by_id(self.binding.payload)
 
     # ------------------------------------------------------------------
     # ------------------------------------------------------------------
@@ -481,7 +481,7 @@ class GraphEditor(BaseEditor):
         if success:
             context.active_graph_path = save_path
             session = context.session
-            new_payload = entry.key
+            new_payload = entry.entry_id
             if session is not None and self.binding is not None and old_payload != new_payload:
                 session.notify_context_changed(
                     ContextChangedEvent(

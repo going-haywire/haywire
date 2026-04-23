@@ -6,8 +6,65 @@ from types import SimpleNamespace
 from typing import Any
 from unittest.mock import MagicMock
 
+import pytest
+
 from haywire.ui.app.slot import EditorBinding, Slot
 from haywire.ui.editor.base import BaseEditor
+
+
+class _FakeContainer:
+    """Stand-in for a NiceGUI element; supports context-manager + fluent API."""
+
+    def __init__(self) -> None:
+        self.value: object = None
+        self.visible = True
+
+    def set_visibility(self, visible: bool) -> None:
+        self.visible = visible
+
+    def set_value(self, value) -> None:
+        self.value = value
+
+    def clear(self) -> None:
+        pass
+
+    def delete(self) -> None:
+        pass
+
+    def classes(self, _c):
+        return self
+
+    def style(self, _s):
+        return self
+
+    def props(self, _p):
+        return self
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *_exc):
+        return None
+
+
+@pytest.fixture(autouse=True)
+def _fake_nicegui(monkeypatch):
+    """Bypass NiceGUI's slot-stack requirement by patching the elements Slot uses.
+
+    ``Slot.render_area`` calls ``ui.tab_panels`` / ``ui.tab_panel`` / ``ui.label``
+    which normally require a live NiceGUI client context. These tests don't care
+    about the real DOM — they only need the Slot's own bookkeeping and lifecycle
+    firing — so we swap in ``_FakeContainer`` stand-ins.
+    """
+    from haywire.ui.app import slot as slot_module
+
+    monkeypatch.setattr(slot_module.ui, "tab_panels", lambda *a, **kw: _FakeContainer())
+    monkeypatch.setattr(slot_module.ui, "tab_panel", lambda *a, **kw: _FakeContainer())
+    monkeypatch.setattr(
+        slot_module.ui,
+        "label",
+        lambda *a, **kw: SimpleNamespace(classes=lambda *_c, **_k: None),
+    )
 
 
 class _FakeEditor(BaseEditor):

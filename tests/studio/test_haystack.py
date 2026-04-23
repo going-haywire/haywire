@@ -50,10 +50,10 @@ def test_create_new_keys_each_entry_uniquely(tmp_path: Path) -> None:
     assert a is not b
     assert a.graph.graph_id != b.graph.graph_id
     entries = haystack.all_entries()
-    assert "__new_1__" in entries
-    assert "__new_2__" in entries
-    assert entries["__new_1__"] is a
-    assert entries["__new_2__"] is b
+    assert "__unsaved_1__" in entries
+    assert "__unsaved_2__" in entries
+    assert entries["__unsaved_1__"] is a
+    assert entries["__unsaved_2__"] is b
 
 
 def test_open_graph_reuses_entry_for_same_path(tmp_path: Path) -> None:

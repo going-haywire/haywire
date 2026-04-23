@@ -63,6 +63,10 @@ class GraphEntry:
         path:     Absolute Path to the .haywire file, or None for untitled.
         unsaved:  True if the graph has in-memory changes not yet written to disk.
         interpreter:  Per-graph Interpreter instance (created on execution start).
+        _unsaved_id: Synthetic ``__unsaved_N__`` token, set by Haystack on
+            :meth:`Haystack.create_new`. Unused once the entry is saved and
+            :attr:`path` becomes non-None. Accessed indirectly via
+            :attr:`entry_id`.
     """
 
     graph: "HaywireGraph"
@@ -70,11 +74,17 @@ class GraphEntry:
     path: Optional[Path] = None
     unsaved: bool = False
     interpreter: Optional["Interpreter"] = field(default=None, repr=False)
+    _unsaved_id: str = ""
 
     @property
-    def key(self) -> str:
-        """Registry key: str(path) or '__untitled__'."""
-        return str(self.path) if self.path is not None else "__untitled__"
+    def entry_id(self) -> str:
+        """Stable identifier within the Haystack's ``_entries`` dict.
+
+        For saved graphs this is ``str(path)``; for unsaved graphs it is the
+        synthetic ``__unsaved_N__`` token set at creation time. Updates
+        automatically when :attr:`path` is assigned on save-as or rename.
+        """
+        return str(self.path) if self.path is not None else self._unsaved_id
 
     @property
     def display_name(self) -> str:
@@ -118,8 +128,8 @@ class Haystack:
     Manages all open graph instances and haystack persistence.
 
     Key design points:
-    - One GraphEntry per unique file path; untitled graphs use key '__untitled__'.
-    - New unnamed graphs get auto-keyed as '__new_1__', '__new_2__', etc.
+    - One GraphEntry per unique file path, keyed by ``str(path)``.
+    - New unnamed graphs get auto-keyed as '__unsaved_1__', '__unsaved_2__', etc.
     - Haystacks: named selections of open graphs persisted as TOML in
       ``<workspace>/haystacks/*.toml``.
     """
@@ -167,18 +177,18 @@ class Haystack:
         """
         Create a new unnamed graph.
 
-        Each call produces a fresh entry keyed as ``'__new_1__'``, ``'__new_2__'``, …
-        and named ``'Untitled 1'``, ``'Untitled 2'``, …
+        Each call produces a fresh entry with ``entry_id`` ``'__unsaved_1__'``,
+        ``'__unsaved_2__'``, … and named ``'Untitled 1'``, ``'Untitled 2'``, …
 
         Returns:
             The new GraphEntry.
         """
         self._new_counter += 1
-        key = f"__new_{self._new_counter}__"
+        entry_id = f"__unsaved_{self._new_counter}__"
         name = f"Untitled {self._new_counter}"
-        graph, editor = self._graph_factory(key, name)
-        entry = GraphEntry(graph=graph, editor=editor, path=None)
-        self._entries[key] = entry
+        graph, editor = self._graph_factory(entry_id, name)
+        entry = GraphEntry(graph=graph, editor=editor, path=None, _unsaved_id=entry_id)
+        self._entries[entry_id] = entry
         entry.graph.subscribe_to_validation(
             lambda result, _entry=entry: self._on_entry_validation(_entry, result)
         )
@@ -196,8 +206,8 @@ class Haystack:
         Returns:
             The (existing or newly-loaded) GraphEntry.
         """
-        key = str(path)
-        entry = self._entries.get(key)
+        entry_id = str(path)
+        entry = self._entries.get(entry_id)
         if entry is None:
             graph, editor = self._graph_factory(path.stem, str(path))
             graph.load_from_file(str(path))
@@ -206,7 +216,7 @@ class Haystack:
             # and mark the freshly-loaded graph as unsaved.
             graph.force_validation()
             entry = GraphEntry(graph=graph, editor=editor, path=path)
-            self._entries[key] = entry
+            self._entries[entry_id] = entry
             entry.graph.subscribe_to_validation(
                 lambda result, _entry=entry: self._on_entry_validation(_entry, result)
             )
@@ -232,14 +242,9 @@ class Haystack:
         if success:
             entry.unsaved = False
             if save_as and save_as != entry.path:
-                # Find and remove the entry's current registry key by identity
-                # (cannot use entry.key here — it returns '__untitled__' for any
-                # path-less entry, including '__new_N__' ones).
-                old_key = next((k for k, v in self._entries.items() if v is entry), None)
-                if old_key is not None:
-                    self._entries.pop(old_key)
+                self._entries.pop(entry.entry_id, None)
                 entry.path = save_as
-                self._entries[entry.key] = entry
+                self._entries[entry.entry_id] = entry
         return success
 
     def remove_entry(self, entry: GraphEntry) -> bool:
@@ -252,9 +257,8 @@ class Haystack:
             True if the entry was found and removed.
         """
         entry.stop_execution()
-        key = next((k for k, v in self._entries.items() if v is entry), None)
-        if key is not None:
-            del self._entries[key]
+        if entry.entry_id in self._entries and self._entries[entry.entry_id] is entry:
+            del self._entries[entry.entry_id]
             return True
         return False
 
@@ -286,12 +290,9 @@ class Haystack:
         except OSError:
             return False
 
-        # Re-key in the registry
-        old_key = next((k for k, v in self._entries.items() if v is entry), None)
-        if old_key is not None:
-            del self._entries[old_key]
+        self._entries.pop(entry.entry_id, None)
         entry.path = new_path
-        self._entries[entry.key] = entry
+        self._entries[entry.entry_id] = entry
         entry.unsaved = False
         return True
 
@@ -299,15 +300,13 @@ class Haystack:
     # Lookups
     # ------------------------------------------------------------------
 
-    def get_by_path(self, path: Optional[Path]) -> Optional[GraphEntry]:
-        """Return the entry for the given path (None path → untitled)."""
-        if path is None:
-            return self._entries.get("__untitled__")
+    def get_by_path(self, path: Path) -> Optional[GraphEntry]:
+        """Return the entry for the given file path, or ``None`` if not loaded."""
         return self._entries.get(str(path))
 
-    def get_by_key(self, key: str) -> Optional[GraphEntry]:
-        """Return the entry for the given registry key."""
-        return self._entries.get(key)
+    def get_by_id(self, entry_id: str) -> Optional[GraphEntry]:
+        """Return the entry for the given ``entry_id``."""
+        return self._entries.get(entry_id)
 
     def get_by_graph(self, graph) -> Optional[GraphEntry]:
         """Return the entry whose .graph attribute is the given object, or None."""

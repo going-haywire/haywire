@@ -1,15 +1,4 @@
-[[graphs]]
-path = "graphs/webcam.haywire"
-execute = false
-
-[[graphs]]
-path = "graphs/loop.haywire"
-execute = false
-
-[[graphs]]
-path = "graphs/loop2.haywire"
-execute = false
+graphs = []
 
 [haystack]
 name = "Master"
-active_graph = "graphs/loop.haywire"

@@ -525,7 +525,7 @@ class Slot:
         Re-key an existing binding's payload in-place.
 
         Used by the shell to track a graph whose haystack key changed (e.g.
-        save-as moved an entry from ``__new_3__`` to an absolute path). The
+        save-as moved an entry from ``__unsaved_3__`` to an absolute path). The
         binding keeps its editor instance; only the identity used for
         ``find_binding`` / ``switch_to`` / ``binding_id`` changes.
 

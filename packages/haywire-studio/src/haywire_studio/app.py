@@ -194,7 +194,7 @@ class HaywireApp:
         wires bindings, so that tabs carrying a saved-graph payload resolve
         to a live ``GraphEntry`` instead of a dangling binding.
 
-        In-memory payloads (``__new_N__`` / ``__untitled__``) are dropped
+        In-memory payloads (``__unsaved_N__`` / ``__untitled__``) are dropped
         from the persisted tab list — their graphs vanished when the
         previous session exited, so their tabs can't be restored.
         """

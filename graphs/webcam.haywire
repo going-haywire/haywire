@@ -5,7 +5,7 @@
   "version": "1.0.0",
   "author": "",
   "created_at": null,
-  "modified_at": "2026-04-22T15:49:35.269925",
+  "modified_at": "2026-04-22T16:26:41.651715",
   "nodes": {
     "BeginPlayNode_87f32274": {
       "node_id": "BeginPlayNode_87f32274",
@@ -60,7 +60,7 @@
               "registry_key": "core:type:FLOAT"
             },
             "field_data": {
-              "value": 1776115751.469492
+              "value": 1776867815.7981691
             }
           }
         },
@@ -121,8 +121,8 @@
       "node_id": "StartWebcamStreamNode_15b5bccb",
       "registry_key": "visiongraph:node:StartWebcamStreamNode",
       "position": [
-        982.6387811665331,
-        1293.6834575628718
+        998.6091401802038,
+        1288.8923498587706
       ],
       "node_data": {
         "node_id": "StartWebcamStreamNode_15b5bccb",
@@ -435,13 +435,13 @@
         },
         "settings": {
           "props": {
-            "posX": 982.6387811665331,
-            "posY": 1293.6834575628718
+            "posX": 998.6091401802038,
+            "posY": 1288.8923498587706
           }
         },
         "props": {
-          "posX": 982.6387811665331,
-          "posY": 1293.6834575628718
+          "posX": 998.6091401802038,
+          "posY": 1288.8923498587706
         },
         "store": {},
         "identity": {
@@ -595,7 +595,7 @@
               "registry_key": "core:type:FLOAT"
             },
             "field_data": {
-              "value": 41.62448978424072
+              "value": 16.00016164779663
             }
           },
           "frame_number": {
@@ -621,7 +621,7 @@
               "registry_key": "core:type:INT"
             },
             "field_data": {
-              "value": 1249
+              "value": 481
             }
           },
           "width": {
@@ -737,8 +737,8 @@
       "node_id": "WebcamFrameInfoDisplayNode_e397b53f",
       "registry_key": "visiongraph:node:WebcamFrameInfoDisplayNode",
       "position": [
-        974.3309745799666,
-        1736.03947423538
+        995.0924412977383,
+        1807.906089796898
       ],
       "node_data": {
         "node_id": "WebcamFrameInfoDisplayNode_e397b53f",
@@ -824,7 +824,7 @@
               "registry_key": "core:type:STRING"
             },
             "field_data": {
-              "value": "Frame #1249 | 1920x1080x3 | 41.62s | 30.0 FPS"
+              "value": "Frame #481 | 1920x1080x3 | 16.00s | 30.1 FPS"
             }
           },
           "frame_ready": {
@@ -899,7 +899,7 @@
               "registry_key": "core:type:FLOAT"
             },
             "field_data": {
-              "value": 41.62448978424072
+              "value": 16.00016164779663
             }
           },
           "frame_number": {
@@ -925,7 +925,7 @@
               "registry_key": "core:type:INT"
             },
             "field_data": {
-              "value": 1249
+              "value": 481
             }
           },
           "width": {
@@ -983,13 +983,13 @@
         },
         "settings": {
           "props": {
-            "posX": 974.3309745799666,
-            "posY": 1736.03947423538
+            "posX": 995.0924412977383,
+            "posY": 1807.906089796898
           }
         },
         "props": {
-          "posX": 974.3309745799666,
-          "posY": 1736.03947423538
+          "posX": 995.0924412977383,
+          "posY": 1807.906089796898
         },
         "store": {},
         "identity": {
@@ -1042,8 +1042,8 @@
       "node_id": "WebcamFrameInfoDisplayNode_2cec750c",
       "registry_key": "visiongraph:node:WebcamFrameInfoDisplayNode",
       "position": [
-        1539.8137847112907,
-        1921.1029383439845
+        1547.798964218126,
+        1948.2525486672246
       ],
       "node_data": {
         "node_id": "WebcamFrameInfoDisplayNode_2cec750c",
@@ -1129,7 +1129,7 @@
               "registry_key": "core:type:STRING"
             },
             "field_data": {
-              "value": "Frame #1249 | 1920x1080x3 | 41.62s | 30.0 FPS"
+              "value": "Frame #481 | 1920x1080x3 | 16.00s | 30.1 FPS"
             }
           },
           "frame_ready": {
@@ -1204,7 +1204,7 @@
               "registry_key": "core:type:FLOAT"
             },
             "field_data": {
-              "value": 41.62448978424072
+              "value": 16.00016164779663
             }
           },
           "frame_number": {
@@ -1230,7 +1230,7 @@
               "registry_key": "core:type:INT"
             },
             "field_data": {
-              "value": 1249
+              "value": 481
             }
           },
           "width": {
@@ -1288,13 +1288,13 @@
         },
         "settings": {
           "props": {
-            "posX": 1539.8137847112907,
-            "posY": 1921.1029383439845
+            "posX": 1547.798964218126,
+            "posY": 1948.2525486672246
           }
         },
         "props": {
-          "posX": 1539.8137847112907,
-          "posY": 1921.1029383439845
+          "posX": 1547.798964218126,
+          "posY": 1948.2525486672246
         },
         "store": {},
         "identity": {
@@ -1347,8 +1347,8 @@
       "node_id": "WebcamFrameInfoDisplayNode_f6b52713",
       "registry_key": "visiongraph:node:WebcamFrameInfoDisplayNode",
       "position": [
-        2039.7775582961972,
-        2080.9553013269133
+        2065.33013271807,
+        2125.672306565191
       ],
       "node_data": {
         "node_id": "WebcamFrameInfoDisplayNode_f6b52713",
@@ -1434,7 +1434,7 @@
               "registry_key": "core:type:STRING"
             },
             "field_data": {
-              "value": "Frame #1249 | 1920x1080x3 | 41.62s | 30.0 FPS"
+              "value": "Frame #481 | 1920x1080x3 | 16.00s | 30.1 FPS"
             }
           },
           "frame_ready": {
@@ -1509,7 +1509,7 @@
               "registry_key": "core:type:FLOAT"
             },
             "field_data": {
-              "value": 41.62448978424072
+              "value": 16.00016164779663
             }
           },
           "frame_number": {
@@ -1535,7 +1535,7 @@
               "registry_key": "core:type:INT"
             },
             "field_data": {
-              "value": 1249
+              "value": 481
             }
           },
           "width": {
@@ -1593,13 +1593,13 @@
         },
         "settings": {
           "props": {
-            "posX": 2039.7775582961972,
-            "posY": 2080.9553013269133
+            "posX": 2065.33013271807,
+            "posY": 2125.672306565191
           }
         },
         "props": {
-          "posX": 2039.7775582961972,
-          "posY": 2080.9553013269133
+          "posX": 2065.33013271807,
+          "posY": 2125.672306565191
         },
         "store": {},
         "identity": {
