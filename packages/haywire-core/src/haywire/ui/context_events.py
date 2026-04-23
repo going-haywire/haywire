@@ -29,7 +29,6 @@ class ContextChangeType(Enum):
     TAB_CLOSE_REQUESTED = auto()  # editor (or caller) is asking the shell to close a tab
     TAB_REPAYLOAD_REQUESTED = auto()  # re-key a tab after save-as / rename
     GRAPH_REMOVED = auto()  # a haystack entry was removed; shell closes matching tabs
-    OPEN_GRAPH_REQUESTED = auto()  # caller asks AppShell to activate an entry + reveal its tab
     CUSTOM = auto()  # extensible
 
 
