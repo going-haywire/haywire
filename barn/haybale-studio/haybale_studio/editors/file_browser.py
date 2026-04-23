@@ -175,10 +175,11 @@ class FileBrowserEditor(BaseEditor):
         entry = app.haystack.open_graph(path)
         session.notify_context_changed(
             ContextChangedEvent(
-                change_type=ContextChangeType.OPEN_GRAPH_REQUESTED,
+                change_type=ContextChangeType.EDITOR_FOCUSED,
                 source_editor="file_browser",
-                detail=entry,
                 reveal_editor=GraphEditor.class_identity.registry_key,
+                reveal_payload=entry.key,
+                reveal_label=entry.display_name,
             )
         )
 

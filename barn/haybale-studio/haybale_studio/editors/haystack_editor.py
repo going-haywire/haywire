@@ -69,7 +69,8 @@ class HaystackEditor(BaseEditor):
       5. Switches the middle-area tab to the GraphEditor.
 
     The "+" header button calls app.haystack.create_new() and fires
-    OPEN_GRAPH_REQUESTED to activate the freshly created entry.
+    EDITOR_FOCUSED with reveal_editor=GraphEditor to activate the
+    freshly created entry.
     """
 
     def __init__(self):
@@ -599,10 +600,11 @@ class HaystackEditor(BaseEditor):
         entry = app.haystack.create_new()
         session.notify_context_changed(
             ContextChangedEvent(
-                change_type=ContextChangeType.OPEN_GRAPH_REQUESTED,
+                change_type=ContextChangeType.EDITOR_FOCUSED,
                 source_editor="haystack",
-                detail=entry,
                 reveal_editor=_GRAPH_EDITOR_KEY,
+                reveal_payload=entry.key,
+                reveal_label=entry.display_name,
             )
         )
 
@@ -613,10 +615,11 @@ class HaystackEditor(BaseEditor):
             return
         session.notify_context_changed(
             ContextChangedEvent(
-                change_type=ContextChangeType.OPEN_GRAPH_REQUESTED,
+                change_type=ContextChangeType.EDITOR_FOCUSED,
                 source_editor="haystack",
-                detail=entry,
                 reveal_editor=_GRAPH_EDITOR_KEY,
+                reveal_payload=entry.key,
+                reveal_label=entry.display_name,
             )
         )
 
@@ -743,10 +746,11 @@ class HaystackEditor(BaseEditor):
                 if active_entry is not None and session is not None:
                     session.notify_context_changed(
                         ContextChangedEvent(
-                            change_type=ContextChangeType.OPEN_GRAPH_REQUESTED,
+                            change_type=ContextChangeType.EDITOR_FOCUSED,
                             source_editor="haystack",
-                            detail=active_entry,
                             reveal_editor=_GRAPH_EDITOR_KEY,
+                            reveal_payload=active_entry.key,
+                            reveal_label=active_entry.display_name,
                         )
                     )
 
@@ -824,10 +828,11 @@ class HaystackEditor(BaseEditor):
                 entry = app.haystack.open_graph(path)
                 session.notify_context_changed(
                     ContextChangedEvent(
-                        change_type=ContextChangeType.OPEN_GRAPH_REQUESTED,
+                        change_type=ContextChangeType.EDITOR_FOCUSED,
                         source_editor="haystack",
-                        detail=entry,
                         reveal_editor=_GRAPH_EDITOR_KEY,
+                        reveal_payload=entry.key,
+                        reveal_label=entry.display_name,
                     )
                 )
                 ui.notify(f"Opened: {path.name}", type="positive", position="top-right")
