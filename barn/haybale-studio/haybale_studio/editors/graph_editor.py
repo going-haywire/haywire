@@ -46,10 +46,10 @@ class GraphEditor(BaseEditor):
     with the open file name and a Save button.
 
     Context changes consumed:
-        ACTIVE_GRAPH_CHANGED — swap to a different graph / file.
         DATA_MUTATED         — sync canvas from another session.
 
     Context changes emitted:
+        ACTIVE_GRAPH_CHANGED — on tab focus, via on_focus().
         SELECTION_CHANGED    — node / edge selection.
         MODE_CHANGED         — interaction mode.
         DATA_MUTATED         — graph structure changes.
