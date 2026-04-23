@@ -170,8 +170,11 @@ haywire/ui/
     auto-populates and is uncloseable; `on_context` is a singleton tab
     opened on demand (content mirrors session context); `on_payload` is
     one tab per distinct payload, opened on demand (payload drives content).
-  - `context_field` (optional): `SessionContext` attribute the shell
-    mirrors `binding.payload` into when the active main tab changes.
+- Editors that own a slice of `SessionContext` override
+  `BaseEditor.on_focus(context)` — fired by `Slot._activate` on every
+  transition-to-active — to mutate the relevant field and broadcast the
+  matching `ContextChangedEvent`. Replaces the former shell-side
+  `_follow_main_tab_context` / `EditorIdentity.context_field` mirror.
 - Only `opens='required'` main editors auto-populate; `on_context` and
   `on_payload` editors start with zero tabs.
 - All Vue components in `components/` should have matching `.py` wrapper and `.vue` file.

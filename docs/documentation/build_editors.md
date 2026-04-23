@@ -83,7 +83,6 @@ After [registering it](#5-registering-an-editor) and adding its `registry_id` to
     icon='account_tree',
     default_slot='main',            # 'left' | 'right' | 'main' | 'bottom'
     opens='on_payload',             # 'required' | 'on_context' | 'on_payload'
-    context_field='active_graph_path',  # optional; field on SessionContext to mirror
     description='Visual node graph editor',
 )
 ```
@@ -113,13 +112,6 @@ many can exist. Three values:
 `opens='required'`. Bars don't have a tab structure to host on-demand
 or multi-instance editors — the decorator raises `ValueError` at
 class-definition time if you try.
-
-**`context_field`** (optional) names a `SessionContext` attribute that
-the shell should mirror `binding.payload` into whenever this editor's
-tab becomes active. Only meaningful for `on_payload` editors in the
-main slot. Example: a FileViewer declares `context_field='active_file'`
-so any peer editor reading `context.active_file` sees the currently-
-focused file.
 
 ### What the decorator does
 
@@ -174,6 +166,34 @@ def on_context_changed(self, event, context) -> None:
 
 For large updates, clear the container and rebuild. For small updates, modify element
 attributes directly (see [Section 9](#9-nicegui-async-patterns) for async considerations).
+
+### `on_focus(context)` — editor owns session state
+
+Called when this binding transitions from not-active to active in its slot.
+Fires on: initial slot render, `Slot.switch_to`, `Slot.add_binding(activate=True)`,
+and when a sibling is promoted after the active binding is removed. Does NOT
+fire on re-selecting the already-active binding.
+
+Runs **before** `draw` on the newly-activated binding, so any `context` mutation
+is visible to that `draw` call.
+
+Default implementation is a no-op. Override when the editor owns a slice of
+session state:
+
+```python
+class MyEditor(BaseEditor):
+    def on_focus(self, context):
+        payload = self.binding.payload
+        context.active_thing = resolve(payload)
+        context.session.notify_context_changed(ContextChangedEvent(
+            change_type=ContextChangeType.MY_THING_CHANGED,
+            source_editor="my_editor",
+            detail=context.active_thing,
+        ))
+```
+
+If `on_focus` raises, the slot logs the error and swallows it so a buggy editor
+can't wedge the UI.
 
 ### `cleanup()`
 

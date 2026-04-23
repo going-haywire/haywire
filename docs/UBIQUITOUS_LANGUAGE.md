@@ -169,14 +169,15 @@
   - **`on_payload`**: per-payload tab, on-demand. The `binding.payload`
     is both the tab's identity and its content source. N tabs allowed.
     Closeable. Persisted across restart.
+- **`on_focus`** — `BaseEditor` lifecycle hook called by `Slot._activate` when a
+  binding transitions from not-active to active. Editors that own a slice of
+  session state (e.g. `GraphEditor` owns `active_graph`) override it to mutate
+  the context and broadcast the corresponding event. Replaces the shell-side
+  `context_field` / `OPEN_GRAPH_REQUESTED` dispatch.
 - **`payload` (tab)** — A `str` that disambiguates per-payload tabs of
   the same editor class. For GraphEditor the payload is the graph path;
   for FileViewer it is the file path. Stored in `TabState.metadata.payload`
   and mirrored in `EditorBinding.payload`.
-- **`context_field`** — Optional attribute on `EditorIdentity` naming a
-  `SessionContext` field the shell mirrors `binding.payload` into when
-  the active main tab changes. Enables peer editors to read the current
-  subject (e.g. `context.active_file`) without subscribing to tab events.
 
 ---
 
