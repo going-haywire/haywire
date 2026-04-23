@@ -89,6 +89,63 @@ class GraphEditor(BaseEditor):
         # and DOM state across tab switches.
         return False
 
+    def on_focus(self, context: "SessionContext") -> None:
+        """Claim ownership of session state when this tab becomes active.
+
+        Resolves ``self.binding.payload`` (the entry key) via the haystack
+        and, if the entry exists, updates ``context.active_graph`` +
+        ``active_graph_path`` and broadcasts ``ACTIVE_GRAPH_CHANGED`` so
+        panels (properties, minimap, execution controls) refresh.
+
+        If the payload no longer resolves to an entry (the graph was
+        concurrently removed from the haystack), fires
+        ``TAB_CLOSE_REQUESTED`` for this tab and returns — the shell then
+        closes the orphaned tab.
+
+        Short-circuits when the context already reflects this entry so a
+        redundant call (e.g. during the parallel-path transition period
+        before ``_handle_open_graph_requested`` is removed) is a no-op.
+        """
+        if self.binding is None or self.binding.payload is None:
+            return
+        payload = self.binding.payload
+        app = getattr(context, "app", None)
+        haystack = getattr(app, "haystack", None) if app is not None else None
+        if haystack is None:
+            return
+
+        entry = haystack.get_by_key(payload)
+        session = getattr(context, "session", None)
+        if entry is None:
+            if session is not None:
+                session.notify_context_changed(
+                    ContextChangedEvent(
+                        change_type=ContextChangeType.TAB_CLOSE_REQUESTED,
+                        source_editor="graph_editor",
+                        detail={
+                            "slot_name": "main",
+                            "editor_key": self.binding.editor_key,
+                            "payload": payload,
+                        },
+                    )
+                )
+            return
+
+        if context.active_graph is entry.graph and context.active_graph_path == entry.path:
+            return
+
+        context.active_graph = entry.graph
+        context.active_graph_path = entry.path
+
+        if session is not None:
+            session.notify_context_changed(
+                ContextChangedEvent(
+                    change_type=ContextChangeType.ACTIVE_GRAPH_CHANGED,
+                    source_editor="graph_editor",
+                    detail=entry,
+                )
+            )
+
     def draw(self, context: "SessionContext", container: "Element") -> None:
         self._context = context
         self._project_state = context.app
