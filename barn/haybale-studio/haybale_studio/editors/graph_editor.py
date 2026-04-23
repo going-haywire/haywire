@@ -103,8 +103,7 @@ class GraphEditor(BaseEditor):
         closes the orphaned tab.
 
         Short-circuits when the context already reflects this entry so a
-        redundant call (e.g. during the parallel-path transition period
-        before ``_handle_open_graph_requested`` is removed) is a no-op.
+        redundant call is a no-op.
         """
         if self.binding is None or self.binding.payload is None:
             return
