@@ -61,12 +61,10 @@ class HaystackEditor(BaseEditor):
     """
     Left-area editor that lists all graphs tracked by Haystack.
 
-    One entry per open file or new unnamed graph.  Clicking an entry:
-      1. Detaches the session from the current graph.
-      2. Attaches the session to the selected graph.
-      3. Updates context.active_graph / active_graph_path.
-      4. Fires ACTIVE_GRAPH_CHANGED so GraphEditor swaps its canvas.
-      5. Switches the middle-area tab to the GraphEditor.
+    One entry per open file or new unnamed graph.  Clicking an entry fires
+    EDITOR_FOCUSED with reveal_editor=GraphEditor and reveal_payload=entry.key.
+    The shell reveals the matching tab, then GraphEditor.on_focus updates
+    context.active_graph / active_graph_path and broadcasts ACTIVE_GRAPH_CHANGED.
 
     The "+" header button calls app.haystack.create_new() and fires
     EDITOR_FOCUSED with reveal_editor=GraphEditor to activate the
