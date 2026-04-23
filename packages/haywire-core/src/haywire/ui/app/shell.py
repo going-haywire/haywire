@@ -20,7 +20,6 @@ Session and calling AppShell.render().
 """
 
 import logging
-from pathlib import Path
 from typing import Callable, Optional, TYPE_CHECKING
 from nicegui import ui
 
@@ -1302,12 +1301,14 @@ class AppShell:
         """Switch the Main Slot editor and broadcast WORKSPACE_CHANGED.
 
         Receives the composite ``tab_id`` emitted by the main tab bar; splits
-        it back to ``(editor_key, payload)`` before delegating.
+        it back to ``(editor_key, payload)`` before delegating. The new active
+        binding's ``on_focus`` hook is called by ``Slot._activate`` inside
+        :meth:`_apply_managed_slot_switch`; editors that want to mirror state
+        into the session context (e.g. ``active_file``) do it there.
         """
         editor_key, payload = self._split_tab_id(tab_id)
         if not self._apply_managed_slot_switch("main", editor_key, payload):
             return
-        self._follow_main_tab_context(payload)
         self.session.notify_context_changed(
             ContextChangedEvent(change_type=ContextChangeType.WORKSPACE_CHANGED)
         )
@@ -1453,7 +1454,6 @@ class AppShell:
 
         if slot_name == "main":
             self._refresh_main_bar()
-            self._follow_main_tab_context(slot.active_binding.payload if slot.active_binding else None)
         else:
             self._refresh_bottom_bar()
         self._persist_workspace()
@@ -1537,86 +1537,3 @@ class AppShell:
             self.session.workspace_manager.save()
         except Exception as exc:
             logger.warning(f"AppShell: workspace auto-save failed: {exc}")
-
-    def _follow_main_tab_context(self, payload: Optional[str]) -> None:
-        """Mirror the active main tab's binding payload into the session context.
-
-        The target attribute is chosen by the active editor's
-        ``EditorIdentity.context_field``:
-
-        * ``"active_graph_path"`` — legacy haystack path: look up the entry
-          via ``app.haystack.get_by_key`` and set both ``active_graph`` and
-          ``active_graph_path``; broadcast ``ACTIVE_GRAPH_CHANGED``.
-        * ``"active_file"`` — mirror ``Path(payload)`` (or ``None``) into
-          ``context.active_file`` and broadcast ``FILE_SELECTED``.
-        * ``None`` — the editor manages its own context; this hook is a
-          no-op for that editor.
-
-        Unknown ``context_field`` values are logged and ignored so a
-        future editor typo never silently trashes session state.
-        """
-        slot = self._managed_slots.get("main")
-        if slot is None:
-            return
-        active_binding = getattr(slot, "active_binding", None)
-        if active_binding is None:
-            return
-        editor_cls = getattr(active_binding, "editor_cls", None)
-        if editor_cls is None:
-            return
-        class_identity = getattr(editor_cls, "class_identity", None)
-        context_field = getattr(class_identity, "context_field", None) if class_identity else None
-        if context_field is None:
-            return
-
-        context = self.session.context
-
-        if context_field == "active_graph_path":
-            # Legacy haystack-driven path: resolve payload → entry, update
-            # both active_graph and active_graph_path, broadcast
-            # ACTIVE_GRAPH_CHANGED so panels that still consume the graph
-            # object can refresh.
-            if payload is None:
-                return
-            app = context.app
-            if app is None or not hasattr(app, "haystack"):
-                return
-            entry = app.haystack.get_by_key(payload)
-            if entry is None:
-                return
-            if context.active_graph is entry.graph and context.active_graph_path == entry.path:
-                return
-            context.active_graph = entry.graph
-            context.active_graph_path = entry.path
-            self.session.notify_context_changed(
-                ContextChangedEvent(
-                    change_type=ContextChangeType.ACTIVE_GRAPH_CHANGED,
-                    source_editor="app_shell",
-                    detail=entry,
-                )
-            )
-            return
-
-        # Generic mirror: context.<context_field> = Path(payload) | None.
-        new_value = Path(payload) if payload else None
-        current_value = getattr(context, context_field, None)
-        if current_value == new_value:
-            return
-        setattr(context, context_field, new_value)
-
-        if context_field == "active_file":
-            change_type = ContextChangeType.FILE_SELECTED
-        else:
-            logger.warning(
-                f"AppShell._follow_main_tab_context: unknown context_field "
-                f"{context_field!r}; emitting CUSTOM context event"
-            )
-            change_type = ContextChangeType.CUSTOM
-
-        self.session.notify_context_changed(
-            ContextChangedEvent(
-                change_type=change_type,
-                source_editor="app_shell",
-                detail=new_value,
-            )
-        )

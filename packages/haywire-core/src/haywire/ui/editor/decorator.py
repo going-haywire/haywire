@@ -27,7 +27,6 @@ def editor(
     icon: str = "extension",
     default_slot: str = "main",
     opens: Union[OpenBehavior, str] = OpenBehavior.REQUIRED,
-    context_field: Optional[str] = None,
     registry_id: Optional[str] = None,
 ):
     """
@@ -48,9 +47,6 @@ def editor(
         opens: Instance-creation behavior. One of 'required', 'on_context',
             'on_payload'. Defaults to 'required'. Only 'required' is
             permitted on 'left' / 'right' slots today.
-        context_field: Optional ``SessionContext`` attribute name to mirror
-            the active main binding's payload into (e.g. ``'active_file'``
-            or ``'active_graph_path'``). ``None`` means no mirroring.
         description: Human-readable description.
         registry_id: Unique ID for this editor, e.g. 'graph_editor'.
             Defaults to the class name if not provided.
@@ -94,7 +90,6 @@ def editor(
             icon=icon,
             default_slot=default_slot,
             opens=opens_enum,
-            context_field=context_field,
             description=description,
             class_name=inner_cls.__name__,
             module=inner_cls.__module__,

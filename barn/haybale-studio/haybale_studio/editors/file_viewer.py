@@ -14,12 +14,12 @@ from typing import TYPE_CHECKING, Optional
 from nicegui import ui
 
 from haywire.ui import elements as hui
+from haywire.ui.context_events import ContextChangedEvent, ContextChangeType
 from haywire.ui.editor.base import BaseEditor
 from haywire.ui.editor.decorator import editor
 
 if TYPE_CHECKING:
     from haywire.ui.context import SessionContext
-    from haywire.ui.context_events import ContextChangedEvent
     from nicegui.element import Element
 
 
@@ -46,7 +46,6 @@ _LANGUAGE_MAP: dict = {
     icon=hui.icon.library_component,
     default_slot="main",
     opens="on_payload",
-    context_field="active_file",
     description="Displays the contents of a file selected in the Files browser.",
 )
 class FileViewerEditor(BaseEditor):
@@ -75,6 +74,32 @@ class FileViewerEditor(BaseEditor):
         file means a different tab.
         """
         return False
+
+    def on_focus(self, context: "SessionContext") -> None:
+        """Claim ownership of context.active_file when this tab becomes active.
+
+        Reads ``self.binding.payload`` (the file path as a string) and
+        mirrors it into ``context.active_file`` as a ``Path``, then
+        broadcasts ``FILE_SELECTED`` so listeners react.
+
+        Short-circuits when the target already matches the active file.
+        """
+        if self.binding is None:
+            return
+        payload = self.binding.payload
+        new_value = Path(payload) if payload else None
+        if getattr(context, "active_file", None) == new_value:
+            return
+        context.active_file = new_value
+        session = getattr(context, "session", None)
+        if session is not None:
+            session.notify_context_changed(
+                ContextChangedEvent(
+                    change_type=ContextChangeType.FILE_SELECTED,
+                    source_editor="file_viewer",
+                    detail=new_value,
+                )
+            )
 
     def draw(self, context: "SessionContext", container: "Element") -> None:
         self._last_file = self._resolve_path()

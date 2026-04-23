@@ -463,40 +463,6 @@ def test_on_context_changed_reveal_editor_unknown_logs_warning(caplog) -> None:
 
 
 # ---------------------------------------------------------------------------
-# Shared fakes for graph-entry tests (used by TestFollowMainTabContextByField)
-# ---------------------------------------------------------------------------
-
-
-class _FakeEntry:
-    """Minimal GraphEntry stand-in."""
-
-    def __init__(self, key: str, graph, path=None, display_name: str = "Entry") -> None:
-        self.key = key
-        self.graph = graph
-        self.path = path
-        self.display_name = display_name
-
-
-class _FakeHaystack:
-    """Supports lookup by path or graph."""
-
-    def __init__(self) -> None:
-        self._by_path: dict[object, _FakeEntry] = {}
-        self._by_graph: dict[object, _FakeEntry] = {}
-
-    def register(self, entry: _FakeEntry) -> None:
-        if entry.path is not None:
-            self._by_path[entry.path] = entry
-        self._by_graph[entry.graph] = entry
-
-    def get_by_path(self, path):
-        return self._by_path.get(path)
-
-    def get_by_graph(self, graph):
-        return self._by_graph.get(graph)
-
-
-# ---------------------------------------------------------------------------
 # Reveal-dispatch by `opens` value
 # ---------------------------------------------------------------------------
 
@@ -584,8 +550,6 @@ def _build_test_shell_with_editors(entries: list[tuple]) -> tuple:
             if isinstance(slot, _FakeTabbedSlot):
                 editor_cls = _shell._editor_registry.get_by_key(ek) if _shell._editor_registry else None
                 slot.add_binding(ek, pl, editor_cls=editor_cls)
-                if sn == "main":
-                    _shell._follow_main_tab_context(pl)
             # Do NOT call orig — it would try to render NiceGUI UI.
 
         shell.open_in_tab = _patched_open_in_tab
@@ -650,108 +614,3 @@ class TestRevealDispatchOpens:
         assert open_in_tab_calls == [], "open_in_tab must not be called"
         assert fake_slot.find_binding(editor_key, None) is None
         assert any("on_payload" in rec.message and "payload" in rec.message for rec in caplog.records)
-
-
-class TestFollowMainTabContextByField:
-    """Tests for ``_follow_main_tab_context`` driven by ``EditorIdentity.context_field``.
-
-    ``context_field`` names the session-context attribute to mirror the active
-    main binding's payload into (e.g. ``"active_file"``, ``"active_graph_path"``).
-    The graph-haystack path is preserved for backwards compatibility.
-    """
-
-    def _prepare_shell(self, editor_key: str, context_field):
-        from pathlib import Path  # noqa: F401
-
-        shell, session = _build_test_shell_with_editors([(editor_key, "main", OpenBehavior.ON_PAYLOAD)])
-        editor_cls = shell._editor_registry.get_by_key(editor_key)
-        editor_cls.class_identity.context_field = context_field
-
-        context = SimpleNamespace(
-            app=None,
-            active_graph=None,
-            active_graph_path=None,
-            active_file=None,
-            session=session,
-        )
-        session.context = context
-        session.session_id = "sess-1"
-        return shell, session, editor_cls
-
-    def test_on_payload_mirrors_payload_into_active_file_when_context_field_set(self) -> None:
-        """With ``context_field='active_file'``, opening a main tab mirrors
-        ``binding.payload`` (as ``Path``) into ``context.active_file``."""
-        from pathlib import Path
-
-        editor_key = "studio:editor:F"
-        shell, session, _ = self._prepare_shell(editor_key, "active_file")
-
-        shell.open_in_tab("main", editor_key, "/tmp/a.txt", "a.txt")
-
-        assert session.context.active_file == Path("/tmp/a.txt")
-        assert str(session.context.active_file) == "/tmp/a.txt"
-
-    def test_mirror_emits_file_selected_event(self) -> None:
-        """Mirror into ``active_file`` emits a ``FILE_SELECTED`` event."""
-        editor_key = "studio:editor:F"
-        shell, session, _ = self._prepare_shell(editor_key, "active_file")
-
-        shell.open_in_tab("main", editor_key, "/tmp/a.txt", "a.txt")
-
-        file_events = [
-            e for e in session.notified_events if e.change_type == ContextChangeType.FILE_SELECTED
-        ]
-        assert len(file_events) == 1
-
-    def test_unchanged_value_short_circuits_event(self) -> None:
-        """Re-running follow with the same payload must NOT emit a second event."""
-        editor_key = "studio:editor:F"
-        shell, session, _ = self._prepare_shell(editor_key, "active_file")
-
-        shell.open_in_tab("main", editor_key, "/tmp/a.txt", "a.txt")
-        events_after_open = list(session.notified_events)
-        shell._follow_main_tab_context("/tmp/a.txt")
-
-        assert session.notified_events == events_after_open, (
-            "duplicate _follow_main_tab_context call must not re-emit FILE_SELECTED"
-        )
-
-    def test_missing_context_field_is_noop(self) -> None:
-        """An editor without ``context_field`` does not mutate context."""
-        editor_key = "studio:editor:NoField"
-        shell, session, _ = self._prepare_shell(editor_key, None)
-
-        shell.open_in_tab("main", editor_key, "/tmp/a.txt", "a.txt")
-
-        assert session.context.active_file is None
-        assert session.context.active_graph_path is None
-        assert session.notified_events == []
-
-    def test_graph_path_context_field_preserves_haystack_lookup(self) -> None:
-        """``context_field='active_graph_path'`` still follows the haystack path
-        and emits ``ACTIVE_GRAPH_CHANGED``."""
-        editor_key = "studio:editor:G"
-        shell, session, _ = self._prepare_shell(editor_key, "active_graph_path")
-
-        # Wire a fake app+haystack with a matching entry.
-        target_graph = object()
-        entry = _FakeEntry(
-            key="/tmp/g.haywire",
-            graph=target_graph,
-            path="/tmp/g.haywire",
-            display_name="g.haywire",
-        )
-        haystack = _FakeHaystack()
-        haystack.register(entry)
-        # get_by_key lookup — HaystackEditor-style. Add inline.
-        haystack.get_by_key = lambda key, _e=entry: _e if key == "/tmp/g.haywire" else None  # type: ignore[assignment]
-        session.context.app = SimpleNamespace(haystack=haystack)
-
-        shell.open_in_tab("main", editor_key, "/tmp/g.haywire", "g.haywire")
-
-        assert session.context.active_graph is target_graph
-        assert session.context.active_graph_path == "/tmp/g.haywire"
-        graph_events = [
-            e for e in session.notified_events if e.change_type == ContextChangeType.ACTIVE_GRAPH_CHANGED
-        ]
-        assert len(graph_events) == 1
