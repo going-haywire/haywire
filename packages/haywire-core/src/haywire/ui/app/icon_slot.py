@@ -18,6 +18,8 @@ from typing import Any, Callable, Literal, Optional
 
 from nicegui import ui
 
+from haywire.ui.editor.registry import EditorTypeRegistry
+
 from haywire.ui.app.slot import EditorBinding, Slot
 from haywire.ui.context_events import ContextChangedEvent, ContextChangeType
 
@@ -38,12 +40,12 @@ class IconSlot(Slot):
         self,
         session: Any,
         name: str,
+        registry: EditorTypeRegistry,
         initial_bindings: list[EditorBinding],
         active_key: Optional[str] = None,
         active_payload: Any = None,
         slot_state: Optional[Any] = None,
         on_visibility_change: Optional[Callable[[bool], None]] = None,
-        registry: Optional[Any] = None,
         bar_side: Literal["left", "right"] = "left",
     ):
         super().__init__(
@@ -72,17 +74,17 @@ class IconSlot(Slot):
         if self._bar_side == "left":
             with wrapper:
                 self._render_bar_column()
-                area_col = self._create_area_column()
+                self._area_parent_box = self._create_content_box()
         else:
             with wrapper:
-                area_col = self._create_area_column()
+                self._area_parent_box = self._create_content_box()
                 self._render_bar_column()
 
-        self._render_area(area_col)
-        area_col.set_visibility(self._visible)
+        self._render_area(self._area_parent_box)
+        self._area_parent_box.set_visibility(self._visible)
 
-    def _create_area_column(self) -> ui.element:
-        """Create the area's outer column (width = slot_state.size, id for drag JS)."""
+    def _create_content_box(self) -> ui.element:
+        """Create the slot's outer content box (width = slot_state.size, id for drag JS)."""
         size = getattr(self._slot_state, "size", 300) if self._slot_state is not None else 300
         border_style = (
             "border-right: 1px solid var(--hw-border);"

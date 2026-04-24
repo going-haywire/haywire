@@ -36,6 +36,8 @@ from typing import Any, Callable, Optional, TYPE_CHECKING
 
 from nicegui import ui
 
+from haywire.ui.editor.registry import EditorTypeRegistry
+
 if TYPE_CHECKING:
     from haywire.ui.context_events import ContextChangedEvent
     from haywire.ui.editor.base import BaseEditor
@@ -145,12 +147,12 @@ class Slot:
         self,
         session: "Session",
         name: str,
+        registry: EditorTypeRegistry,
         initial_bindings: list[EditorBinding],
         active_key: Optional[str] = None,
         active_payload: Any = None,
         slot_state: Optional[Any] = None,
         on_visibility_change: Optional[Callable[[bool], None]] = None,
-        registry: Optional[Any] = None,
     ):
         """
         Args:
@@ -180,18 +182,19 @@ class Slot:
         """
         self._session = session
         self.name = name
+        self._registry: EditorTypeRegistry = registry
         self._bindings: list[EditorBinding] = list(initial_bindings)
         self._active: Optional[EditorBinding] = self._resolve_initial_active(active_key, active_payload)
         self._visible: bool = True
-        self._area_container: Optional["ui.element"] = None
+        self._area_panel_container: Optional["ui.element"] = None
+        self._area_parent_box: Optional["ui.element"] = None
         self._panels: dict[str, "ui.element"] = {}
         self._drawn: set[str] = set()
         self._slot_state = slot_state
         self._on_visibility_change = on_visibility_change
-        self._registry = registry
+
         self._mirror_active_into_state()
-        if self._registry is not None:
-            self._registry.add_batch_event_subscriber(self._on_editor_lifecycle)
+        self._registry.add_batch_event_subscriber(self._on_editor_lifecycle)
 
     # ------------------------------------------------------------------
     # Construction helpers
@@ -315,7 +318,7 @@ class Slot:
         """
         initial_value = self._active.binding_id if self._active is not None else None
         with parent:
-            self._area_container = (
+            self._area_panel_container = (
                 ui.tab_panels(value=initial_value, animated=False)
                 .props("keep-alive")
                 .classes("hw-panel")
@@ -323,13 +326,13 @@ class Slot:
                     "width: 100%; height: 100%; background: var(--hw-bg-page); color: var(--hw-text-body);"
                 )
             )
-        self._area_container.set_visibility(self._visible)
+        self._area_panel_container.set_visibility(self._visible)
 
         for binding in self._bindings:
             self._create_panel(binding)
 
-        if self._active is None and self._area_container is not None:
-            with self._area_container:
+        if self._active is None and self._area_panel_container is not None:
+            with self._area_panel_container:
                 ui.label("No editor").classes("hw-text-muted p-4")
         elif self._active is not None:
             # Reset _active so _activate sees the correct transition
@@ -340,9 +343,9 @@ class Slot:
 
     def _create_panel(self, binding: EditorBinding) -> None:
         """Create a ``ui.tab_panel`` shell for ``binding``. Draw is deferred."""
-        if self._area_container is None:
+        if self._area_panel_container is None:
             return
-        with self._area_container:
+        with self._area_panel_container:
             panel = ui.tab_panel(binding.binding_id).style("width: 100%; height: 100%; padding: 0;")
         self._panels[binding.binding_id] = panel
 
@@ -416,8 +419,8 @@ class Slot:
         except Exception as exc:
             logger.error(f"Slot '{self.name}': on_focus error for '{binding.binding_id}': {exc}")
         self._ensure_drawn(binding)
-        if self._area_container is not None:
-            self._area_container.set_value(binding.binding_id)
+        if self._area_panel_container is not None:
+            self._area_panel_container.set_value(binding.binding_id)
         self._mirror_active_into_state()
 
     # ------------------------------------------------------------------
@@ -459,7 +462,7 @@ class Slot:
         left/right slots are seeded from the registry at construction).
         """
         self._bindings.append(binding)
-        if self._area_container is not None:
+        if self._area_panel_container is not None:
             self._create_panel(binding)
         if activate:
             if self._active is None:
@@ -481,8 +484,10 @@ class Slot:
         if visible == self._visible:
             return
         self._visible = visible
-        if self._area_container is not None:
-            self._area_container.set_visibility(visible)
+        if self._area_parent_box is not None:
+            self._area_parent_box.set_visibility(visible)
+        if self._area_panel_container is not None:
+            self._area_panel_container.set_visibility(visible)
         if self._slot_state is not None and hasattr(self._slot_state, "visible"):
             self._slot_state.visible = visible
         if self._on_visibility_change is not None:
@@ -510,7 +515,7 @@ class Slot:
         binding's instance has not yet been created (instances are created
         lazily on first draw).
         """
-        if self._active is None or self._area_container is None:
+        if self._active is None or self._area_panel_container is None:
             return
         instance = self._active.instance
         if instance is None:
@@ -648,8 +653,8 @@ class Slot:
         self._drawn.discard(old_id)
         if drawn:
             self._drawn.add(new_id)
-        if self._active is target and self._area_container is not None:
-            self._area_container.set_value(new_id)
+        if self._active is target and self._area_panel_container is not None:
+            self._area_panel_container.set_value(new_id)
         self._mirror_active_into_state()
         return True
 

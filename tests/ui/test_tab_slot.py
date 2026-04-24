@@ -8,6 +8,19 @@ from haywire.ui.editor.identity import OpenBehavior
 from haywire.ui.workspace.workspace_state import TabState
 
 
+class _FakeRegistry:
+    """Stub EditorTypeRegistry — only lifecycle hooks matter for Slot construction."""
+
+    def add_batch_event_subscriber(self, _cb) -> None:
+        pass
+
+    def remove_batch_event_subscriber(self, _cb) -> None:
+        pass
+
+
+_REGISTRY = _FakeRegistry()
+
+
 class _FakeContainer:
     def __init__(self):
         self.clear_calls = 0
@@ -92,6 +105,7 @@ def test_tab_slot_open_tab_adds_binding_and_tabstate(monkeypatch):
     slot = TabSlot(
         session=SimpleNamespace(context=None),
         name="main",
+        registry=_REGISTRY,
         initial_bindings=[],
         slot_state=state,
         persist_workspace=lambda: None,
@@ -116,6 +130,7 @@ def test_tab_slot_open_tab_existing_activates_no_duplicate(monkeypatch):
     slot = TabSlot(
         session=SimpleNamespace(context=None),
         name="main",
+        registry=_REGISTRY,
         initial_bindings=[binding],
         active_key="a",
         active_payload="/tmp/a",
@@ -143,6 +158,7 @@ def test_tab_slot_close_tab_removes_and_promotes_sibling(monkeypatch):
     slot = TabSlot(
         session=SimpleNamespace(context=None),
         name="main",
+        registry=_REGISTRY,
         initial_bindings=[
             EditorBinding(editor_key="a", editor_cls=cls_a, payload="p1"),
             EditorBinding(editor_key="b", editor_cls=cls_b, payload="p2"),
@@ -169,6 +185,7 @@ def test_tab_slot_repayload_tab_updates_ids(monkeypatch):
     slot = TabSlot(
         session=SimpleNamespace(context=None),
         name="main",
+        registry=_REGISTRY,
         initial_bindings=[EditorBinding(editor_key="a", editor_cls=cls, payload="old")],
         active_key="a",
         active_payload="old",
@@ -196,6 +213,7 @@ def test_tab_slot_close_tabs_for_payload_closes_matching(monkeypatch):
     slot = TabSlot(
         session=SimpleNamespace(context=None),
         name="main",
+        registry=_REGISTRY,
         initial_bindings=[
             EditorBinding(editor_key="a", editor_cls=cls, payload="p1"),
             EditorBinding(editor_key="a", editor_cls=cls, payload="p2"),

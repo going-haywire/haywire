@@ -104,6 +104,19 @@ def _session_with_context() -> SimpleNamespace:
     return SimpleNamespace(context=SimpleNamespace())
 
 
+class _FakeRegistry:
+    """Stub EditorTypeRegistry for Slot construction — only the lifecycle hooks matter."""
+
+    def add_batch_event_subscriber(self, _cb) -> None:
+        pass
+
+    def remove_batch_event_subscriber(self, _cb) -> None:
+        pass
+
+
+_REGISTRY = _FakeRegistry()
+
+
 # ----------------------------------------------------------------------
 # EditorBinding
 # ----------------------------------------------------------------------
@@ -143,18 +156,18 @@ def test_slot_resolves_initial_active_from_active_key() -> None:
         EditorBinding("a:e:1", _FakeEditor),
         EditorBinding("a:e:2", _FakeEditor),
     ]
-    slot = Slot(_session_with_context(), "left", bindings, active_key="a:e:2")
+    slot = Slot(_session_with_context(), "left", _REGISTRY, bindings, active_key="a:e:2")
     assert slot.active_key == "a:e:2"
 
 
 def test_slot_falls_back_to_first_binding_when_active_key_unknown() -> None:
     bindings = [EditorBinding("a:e:1", _FakeEditor)]
-    slot = Slot(_session_with_context(), "left", bindings, active_key="missing")
+    slot = Slot(_session_with_context(), "left", _REGISTRY, bindings, active_key="missing")
     assert slot.active_key == "a:e:1"
 
 
 def test_slot_with_no_bindings_has_no_active_binding() -> None:
-    slot = Slot(_session_with_context(), "left", [], active_key=None)
+    slot = Slot(_session_with_context(), "left", _REGISTRY, [], active_key=None)
     assert slot.active_binding is None
     assert slot.active_key is None
 
@@ -170,6 +183,7 @@ def test_slot_resolves_initial_active_with_payload() -> None:
     slot = Slot(
         _session_with_context(),
         "main",
+        _REGISTRY,
         bindings,
         active_key="a:e:graph",
         active_payload="/tmp/b.haywire",
@@ -190,7 +204,7 @@ def test_render_area_creates_tab_panels_and_draws_active(monkeypatch) -> None:
         EditorBinding("a:e:1", _FakeEditor),
         EditorBinding("a:e:2", _FakeEditor),
     ]
-    slot = Slot(_session_with_context(), "left", bindings, active_key="a:e:1")
+    slot = Slot(_session_with_context(), "left", _REGISTRY, bindings, active_key="a:e:1")
     panels_created, panel_created = _install_fake_tab_panels(monkeypatch)
 
     parent = _FakeContainer()
@@ -219,7 +233,7 @@ def test_switch_to_toggles_active_panel_without_clearing(monkeypatch) -> None:
         EditorBinding("a:e:1", _FakeEditor),
         EditorBinding("a:e:2", _FakeEditor),
     ]
-    slot = Slot(_session_with_context(), "left", bindings, active_key="a:e:1")
+    slot = Slot(_session_with_context(), "left", _REGISTRY, bindings, active_key="a:e:1")
     panels_created, _ = _install_fake_tab_panels(monkeypatch)
     slot._render_area(_FakeContainer())
     area = panels_created[0]
@@ -245,7 +259,7 @@ def test_switch_to_second_time_does_not_redraw(monkeypatch) -> None:
         EditorBinding("a:e:1", _FakeEditor),
         EditorBinding("a:e:2", _FakeEditor),
     ]
-    slot = Slot(_session_with_context(), "left", bindings, active_key="a:e:1")
+    slot = Slot(_session_with_context(), "left", _REGISTRY, bindings, active_key="a:e:1")
     _install_fake_tab_panels(monkeypatch)
     slot._render_area(_FakeContainer())
 
@@ -259,7 +273,7 @@ def test_switch_to_second_time_does_not_redraw(monkeypatch) -> None:
 
 def test_switch_to_no_op_when_already_active(monkeypatch) -> None:
     bindings = [EditorBinding("a:e:1", _FakeEditor)]
-    slot = Slot(_session_with_context(), "left", bindings, active_key="a:e:1")
+    slot = Slot(_session_with_context(), "left", _REGISTRY, bindings, active_key="a:e:1")
     _install_fake_tab_panels(monkeypatch)
     slot._render_area(_FakeContainer())
 
@@ -270,7 +284,7 @@ def test_switch_to_unknown_key_returns_false_and_logs(caplog, monkeypatch) -> No
     import logging
 
     bindings = [EditorBinding("a:e:1", _FakeEditor)]
-    slot = Slot(_session_with_context(), "left", bindings, active_key="a:e:1")
+    slot = Slot(_session_with_context(), "left", _REGISTRY, bindings, active_key="a:e:1")
     _install_fake_tab_panels(monkeypatch)
     slot._render_area(_FakeContainer())
 
@@ -289,7 +303,7 @@ def test_switch_to_unknown_key_returns_false_and_logs(caplog, monkeypatch) -> No
 
 def test_find_binding_returns_match() -> None:
     b1 = EditorBinding("a:e:1", _FakeEditor)
-    slot = Slot(_session_with_context(), "left", [b1], active_key=None)
+    slot = Slot(_session_with_context(), "left", _REGISTRY, [b1], active_key=None)
     assert slot.find_binding("a:e:1") is b1
     assert slot.find_binding("nope") is None
 
@@ -297,7 +311,7 @@ def test_find_binding_returns_match() -> None:
 def test_find_binding_disambiguates_by_payload() -> None:
     ge_a = EditorBinding("studio:editor:graph_editor", _FakeEditor, payload="/a.haywire")
     ge_b = EditorBinding("studio:editor:graph_editor", _FakeEditor, payload="/b.haywire")
-    slot = Slot(_session_with_context(), "main", [ge_a, ge_b], active_key=None)
+    slot = Slot(_session_with_context(), "main", _REGISTRY, [ge_a, ge_b], active_key=None)
 
     assert slot.find_binding("studio:editor:graph_editor", payload="/a.haywire") is ge_a
     assert slot.find_binding("studio:editor:graph_editor", payload="/b.haywire") is ge_b
@@ -309,7 +323,7 @@ def test_find_binding_disambiguates_by_payload() -> None:
 def test_find_binding_payload_less_caller_still_matches_first_binding() -> None:
     """Callers that pre-date payloads (pass no payload) keep working."""
     b = EditorBinding("studio:editor:graph_editor", _FakeEditor, payload="/a.haywire")
-    slot = Slot(_session_with_context(), "main", [b], active_key=None)
+    slot = Slot(_session_with_context(), "main", _REGISTRY, [b], active_key=None)
     assert slot.find_binding("studio:editor:graph_editor") is b
 
 
@@ -318,7 +332,7 @@ def test_switch_to_disambiguates_by_payload(monkeypatch) -> None:
         EditorBinding("studio:editor:graph_editor", _FakeEditor, payload="/a.haywire"),
         EditorBinding("studio:editor:graph_editor", _FakeEditor, payload="/b.haywire"),
     ]
-    slot = Slot(_session_with_context(), "main", bindings, active_key=None)
+    slot = Slot(_session_with_context(), "main", _REGISTRY, bindings, active_key=None)
     slot._active = bindings[0]
     panels_created, panel_created = _install_fake_tab_panels(monkeypatch)
     slot._render_area(_FakeContainer())
@@ -336,7 +350,7 @@ def test_find_binding_warns_on_ambiguous_match(caplog) -> None:
 
     dup_a = EditorBinding("a:e:1", _FakeEditor)
     dup_b = EditorBinding("a:e:1", _FakeEditor)
-    slot = Slot(_session_with_context(), "left", [dup_a, dup_b], active_key=None)
+    slot = Slot(_session_with_context(), "left", _REGISTRY, [dup_a, dup_b], active_key=None)
 
     with caplog.at_level(logging.WARNING, logger="haywire.ui.app.slot"):
         result = slot.find_binding("a:e:1")
@@ -350,10 +364,10 @@ def test_find_binding_warns_on_ambiguous_match(caplog) -> None:
 # ----------------------------------------------------------------------
 
 
-def test_set_visible_syncs_area_container() -> None:
-    slot = Slot(_session_with_context(), "left", [], active_key=None)
+def test_set_visible_syncs_content_container() -> None:
+    slot = Slot(_session_with_context(), "left", _REGISTRY, [], active_key=None)
     container = _FakeContainer()
-    slot._area_container = container
+    slot._area_panel_container = container
 
     slot.set_visible(False)
     assert slot.visible is False
@@ -371,7 +385,7 @@ def test_set_visible_syncs_area_container() -> None:
 
 def test_handle_context_event_redraws_active_panel_when_poll_true(monkeypatch) -> None:
     binding = EditorBinding("a:e:1", _FakeEditor)
-    slot = Slot(_session_with_context(), "left", [binding], active_key="a:e:1")
+    slot = Slot(_session_with_context(), "left", _REGISTRY, [binding], active_key="a:e:1")
     _, panel_created = _install_fake_tab_panels(monkeypatch)
     slot._render_area(_FakeContainer())
     panel = panel_created[0][1]
@@ -390,7 +404,7 @@ def test_handle_context_event_redraws_active_panel_when_poll_true(monkeypatch) -
 
 def test_handle_context_event_skips_when_poll_false(monkeypatch) -> None:
     binding = EditorBinding("a:e:1", _FakeEditor)
-    slot = Slot(_session_with_context(), "left", [binding], active_key="a:e:1")
+    slot = Slot(_session_with_context(), "left", _REGISTRY, [binding], active_key="a:e:1")
     _, panel_created = _install_fake_tab_panels(monkeypatch)
     slot._render_area(_FakeContainer())
     panel = panel_created[0][1]
@@ -412,7 +426,7 @@ def test_handle_context_event_is_noop_when_instance_not_yet_created(monkeypatch)
         EditorBinding("a:e:1", _FakeEditor),
         EditorBinding("a:e:2", _FakeEditor),
     ]
-    slot = Slot(_session_with_context(), "left", bindings, active_key="a:e:1")
+    slot = Slot(_session_with_context(), "left", _REGISTRY, bindings, active_key="a:e:1")
     _install_fake_tab_panels(monkeypatch)
     slot._render_area(_FakeContainer())
 
@@ -430,7 +444,7 @@ def test_handle_context_event_is_noop_when_instance_not_yet_created(monkeypatch)
 
 def test_replace_class_swaps_class_clears_instance_and_redraws_active(monkeypatch) -> None:
     binding = EditorBinding("a:e:1", _FakeEditor)
-    slot = Slot(_session_with_context(), "left", [binding], active_key="a:e:1")
+    slot = Slot(_session_with_context(), "left", _REGISTRY, [binding], active_key="a:e:1")
     _install_fake_tab_panels(monkeypatch)
     slot._render_area(_FakeContainer())
     old = binding.instance
@@ -450,7 +464,7 @@ def test_replace_class_returns_false_when_not_active(monkeypatch) -> None:
         EditorBinding("a:e:1", _FakeEditor),
         EditorBinding("a:e:2", _FakeEditor),
     ]
-    slot = Slot(_session_with_context(), "left", bindings, active_key="a:e:1")
+    slot = Slot(_session_with_context(), "left", _REGISTRY, bindings, active_key="a:e:1")
     _install_fake_tab_panels(monkeypatch)
     slot._render_area(_FakeContainer())
 
@@ -465,7 +479,7 @@ def test_replace_class_swallows_dead_client_runtime_error(monkeypatch) -> None:
     RuntimeError from panel.clear(). Hot-reload must drop the panel and
     continue instead of propagating the error across sibling shells."""
     binding = EditorBinding("a:e:1", _FakeEditor)
-    slot = Slot(_session_with_context(), "left", [binding], active_key="a:e:1")
+    slot = Slot(_session_with_context(), "left", _REGISTRY, [binding], active_key="a:e:1")
     panels_created, panel_created = _install_fake_tab_panels(monkeypatch)
     slot._render_area(_FakeContainer())
 
@@ -495,7 +509,7 @@ def test_remove_bindings_drops_matching_and_promotes_first_remaining(monkeypatch
         EditorBinding("a:e:1", _FakeEditor),
         EditorBinding("a:e:2", _FakeEditor),
     ]
-    slot = Slot(_session_with_context(), "left", bindings, active_key="a:e:1")
+    slot = Slot(_session_with_context(), "left", _REGISTRY, bindings, active_key="a:e:1")
     _, panel_created = _install_fake_tab_panels(monkeypatch)
     slot._render_area(_FakeContainer())
     removed_panel = panel_created[0][1]
@@ -513,7 +527,7 @@ def test_remove_bindings_drops_matching_and_promotes_first_remaining(monkeypatch
 
 def test_add_binding_creates_panel_and_optionally_activates(monkeypatch) -> None:
     bindings = [EditorBinding("a:e:1", _FakeEditor)]
-    slot = Slot(_session_with_context(), "main", bindings, active_key="a:e:1")
+    slot = Slot(_session_with_context(), "main", _REGISTRY, bindings, active_key="a:e:1")
     panels_created, panel_created = _install_fake_tab_panels(monkeypatch)
     slot._render_area(_FakeContainer())
     area = panels_created[0]
@@ -533,7 +547,7 @@ def test_remove_bindings_clears_active_when_no_bindings_remain(monkeypatch) -> N
     _install_fake_tab_panels(monkeypatch)
 
     binding = EditorBinding("a:e:1", _FakeEditor)
-    slot = Slot(_session_with_context(), "left", [binding], active_key="a:e:1")
+    slot = Slot(_session_with_context(), "left", _REGISTRY, [binding], active_key="a:e:1")
     slot._render_area(_FakeContainer())
 
     slot.remove_bindings("a:e:1")
@@ -609,6 +623,7 @@ def test_slot_switch_mirrors_active_key_into_slot_state(monkeypatch):
     slot = Slot(
         session=SimpleNamespace(context=None),
         name="left",
+        registry=_REGISTRY,
         initial_bindings=[a, b],
         active_key="a",
         slot_state=state,
@@ -628,6 +643,7 @@ def test_slot_set_visible_fires_on_visibility_change(monkeypatch):
     slot = Slot(
         session=SimpleNamespace(context=None),
         name="left",
+        registry=_REGISTRY,
         initial_bindings=[EditorBinding(editor_key="e", editor_cls=cls)],
         on_visibility_change=calls.append,
     )
@@ -646,6 +662,7 @@ def test_slot_set_visible_mirrors_into_slot_state_visible(monkeypatch):
     slot = Slot(
         session=SimpleNamespace(context=None),
         name="left",
+        registry=_REGISTRY,
         initial_bindings=[EditorBinding(editor_key="e", editor_cls=cls)],
         slot_state=state,
     )
@@ -662,6 +679,7 @@ def test_slot_set_visible_skips_mirror_when_state_lacks_visible_attr(monkeypatch
     slot = Slot(
         session=SimpleNamespace(context=None),
         name="main",
+        registry=_REGISTRY,
         initial_bindings=[EditorBinding(editor_key="e", editor_cls=cls)],
         slot_state=state,
     )
@@ -681,6 +699,7 @@ def test_slot_set_size_updates_slot_state(monkeypatch):
     slot = Slot(
         session=SimpleNamespace(context=None),
         name="bottom",
+        registry=_REGISTRY,
         initial_bindings=[EditorBinding(editor_key="e", editor_cls=cls)],
         slot_state=state,
     )
@@ -695,6 +714,7 @@ def test_slot_set_size_noop_when_slot_state_has_no_size():
     slot = Slot(
         session=SimpleNamespace(context=None),
         name="main",
+        registry=_REGISTRY,
         initial_bindings=[EditorBinding(editor_key="e", editor_cls=cls)],
         slot_state=state,
     )
@@ -730,8 +750,8 @@ def test_slot_subscribes_to_registry_on_construction(monkeypatch):
     slot = Slot(
         session=SimpleNamespace(context=None),
         name="left",
-        initial_bindings=[a],
         registry=reg,
+        initial_bindings=[a],
     )
     assert len(reg.subscribers) == 1
 

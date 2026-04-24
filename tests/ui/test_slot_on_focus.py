@@ -96,6 +96,19 @@ def _make_session():
     return session
 
 
+class _FakeRegistry:
+    """Stub EditorTypeRegistry — only the lifecycle hooks matter for Slot construction."""
+
+    def add_batch_event_subscriber(self, _cb) -> None:
+        pass
+
+    def remove_batch_event_subscriber(self, _cb) -> None:
+        pass
+
+
+_REGISTRY = _FakeRegistry()
+
+
 def _make_binding(key: str) -> EditorBinding:
     return EditorBinding(editor_key=key, editor_cls=_FakeEditor, payload=None)
 
@@ -105,10 +118,10 @@ def test_switch_to_calls_on_focus_on_new_active_binding():
     session = _make_session()
     b1 = _make_binding("e1")
     b2 = _make_binding("e2")
-    slot = Slot(session, "main", [b1, b2], active_key="e1")
+    slot = Slot(session, "main", _REGISTRY, [b1, b2], active_key="e1")
 
     # Bootstrap area so switch_to executes its full path.
-    slot._area_container = MagicMock()
+    slot._area_panel_container = MagicMock()
 
     # Pre-create instances so we can observe calls.
     b1.ensure_instance()
@@ -124,8 +137,8 @@ def test_switch_to_does_not_call_on_focus_when_target_already_active():
     """Re-selecting the active binding must NOT re-fire on_focus."""
     session = _make_session()
     b1 = _make_binding("e1")
-    slot = Slot(session, "main", [b1], active_key="e1")
-    slot._area_container = MagicMock()
+    slot = Slot(session, "main", _REGISTRY, [b1], active_key="e1")
+    slot._area_panel_container = MagicMock()
     b1.ensure_instance()
 
     slot.switch_to("e1")
@@ -137,7 +150,7 @@ def test_render_area_calls_on_focus_on_initial_active_binding():
     """First render of the slot must fire on_focus on the initially-active binding."""
     session = _make_session()
     b1 = _make_binding("e1")
-    slot = Slot(session, "main", [b1], active_key="e1")
+    slot = Slot(session, "main", _REGISTRY, [b1], active_key="e1")
 
     parent = MagicMock()
     slot._render_area(parent)
@@ -149,8 +162,8 @@ def test_render_area_calls_on_focus_on_initial_active_binding():
 def test_add_binding_activate_true_calls_on_focus():
     """add_binding(activate=True) must fire on_focus on the newly-added binding."""
     session = _make_session()
-    slot = Slot(session, "main", [], active_key=None)
-    slot._area_container = MagicMock()
+    slot = Slot(session, "main", _REGISTRY, [], active_key=None)
+    slot._area_panel_container = MagicMock()
 
     new_binding = _make_binding("e_new")
     slot.add_binding(new_binding, activate=True)
@@ -163,7 +176,7 @@ def test_on_focus_runs_before_draw_on_first_activation():
     """on_focus must fire before draw on the first time a binding becomes active."""
     session = _make_session()
     b1 = _make_binding("e1")
-    slot = Slot(session, "main", [b1], active_key="e1")
+    slot = Slot(session, "main", _REGISTRY, [b1], active_key="e1")
 
     parent = MagicMock()
     slot._render_area(parent)
@@ -184,7 +197,7 @@ def test_on_focus_raising_is_logged_and_swallowed(caplog):
 
     session = _make_session()
     b1 = EditorBinding(editor_key="e1", editor_cls=_RaisingEditor, payload=None)
-    slot = Slot(session, "main", [b1], active_key="e1")
+    slot = Slot(session, "main", _REGISTRY, [b1], active_key="e1")
     parent = MagicMock()
 
     with caplog.at_level(logging.ERROR, logger="haywire.ui.app.slot"):
@@ -206,8 +219,8 @@ def test_remove_binding_fires_on_focus_on_promoted_sibling():
     session = _make_session()
     b1 = _make_binding("e1")
     b2 = _make_binding("e2")
-    slot = Slot(session, "main", [b1, b2], active_key="e1")
-    slot._area_container = MagicMock()
+    slot = Slot(session, "main", _REGISTRY, [b1, b2], active_key="e1")
+    slot._area_panel_container = MagicMock()
 
     # Activate e1 first so its on_focus is recorded (and we can tell the
     # sibling's on_focus apart from the original activation).
@@ -227,8 +240,8 @@ def test_remove_bindings_fires_on_focus_on_promoted_sibling():
     session = _make_session()
     b1 = _make_binding("e1")
     b2 = _make_binding("e2")
-    slot = Slot(session, "main", [b1, b2], active_key="e1")
-    slot._area_container = MagicMock()
+    slot = Slot(session, "main", _REGISTRY, [b1, b2], active_key="e1")
+    slot._area_panel_container = MagicMock()
 
     b1.ensure_instance()
     b2.ensure_instance()

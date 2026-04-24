@@ -6,6 +6,19 @@ from haywire.ui.app.icon_slot import IconSlot
 from haywire.ui.app.slot import EditorBinding
 
 
+class _FakeRegistry:
+    """Stub EditorTypeRegistry — only lifecycle hooks matter for Slot construction."""
+
+    def add_batch_event_subscriber(self, _cb) -> None:
+        pass
+
+    def remove_batch_event_subscriber(self, _cb) -> None:
+        pass
+
+
+_REGISTRY = _FakeRegistry()
+
+
 class _FakeContainer:
     def __init__(self):
         self.clear_calls = 0
@@ -115,6 +128,7 @@ def test_icon_slot_renders_row_with_bar_and_area(monkeypatch):
     slot = IconSlot(
         session=SimpleNamespace(context=None),
         name="left",
+        registry=_REGISTRY,
         initial_bindings=[EditorBinding(editor_key="a", editor_cls=a)],
         slot_state=state,
         bar_side="left",
@@ -141,6 +155,7 @@ def test_icon_slot_bar_click_fires_switch_and_workspace_changed(monkeypatch):
     slot = IconSlot(
         session=session,
         name="left",
+        registry=_REGISTRY,
         initial_bindings=[
             EditorBinding(editor_key="a", editor_cls=a),
             EditorBinding(editor_key="b", editor_cls=b),
@@ -170,6 +185,7 @@ def test_icon_slot_fold_toggle_flips_visible(monkeypatch):
     slot = IconSlot(
         session=SimpleNamespace(context=None, notify_context_changed=lambda _e: None),
         name="left",
+        registry=_REGISTRY,
         initial_bindings=[EditorBinding(editor_key="a", editor_cls=a)],
         slot_state=state,
         bar_side="left",

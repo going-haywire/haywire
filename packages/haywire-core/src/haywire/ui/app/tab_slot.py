@@ -21,6 +21,8 @@ from typing import Any, Callable, Optional
 
 from nicegui import ui
 
+from haywire.ui.editor.registry import EditorTypeRegistry
+
 from haywire.ui.app.slot import EditorBinding, Slot
 from haywire.ui.context_events import ContextChangedEvent, ContextChangeType
 from haywire.ui.workspace.workspace_state import TabState
@@ -43,24 +45,24 @@ class TabSlot(Slot):
         self,
         session,
         name: str,
+        registry: EditorTypeRegistry,
         initial_bindings: list[EditorBinding],
         active_key: Optional[str] = None,
         active_payload: Any = None,
         slot_state: Optional[Any] = None,
         on_visibility_change: Optional[Callable[[bool], None]] = None,
-        registry: Optional[Any] = None,
         show_fold_toggle: bool = False,
         persist_workspace: Optional[Callable[[], None]] = None,
     ):
         super().__init__(
             session=session,
             name=name,
+            registry=registry,
             initial_bindings=initial_bindings,
             active_key=active_key,
             active_payload=active_payload,
             slot_state=slot_state,
             on_visibility_change=on_visibility_change,
-            registry=registry,
         )
         self._show_fold_toggle = show_fold_toggle
         self._persist_workspace = persist_workspace or (lambda: None)
@@ -73,18 +75,23 @@ class TabSlot(Slot):
 
     def render(self, parent: ui.element) -> None:
         """Build ``[bar / area]`` column inside ``parent``."""
+        # Main fills the remaining space; bottom content-sizes so dragging
+        # the inner #hw-slot-bottom area height actually moves the layout.
+        wrapper_flex = "flex: 1" if self.name == "main" else "flex: 0 0 auto"
         with parent:
             wrapper = (
-                ui.column().classes("gap-0").style("width: 100%; flex: 1; min-height: 0; overflow: hidden;")
+                ui.column()
+                .classes("gap-0")
+                .style(f"width: 100%; {wrapper_flex}; min-height: 0; overflow: hidden;")
             )
         with wrapper:
             self._render_bar_row()
-            area_col = self._create_area_column()
-        self._render_area(area_col)
-        area_col.set_visibility(self._visible)
+            self._area_parent_box = self._create_content_box()
+        self._render_area(self._area_parent_box)
+        self._area_parent_box.set_visibility(self._visible)
 
-    def _create_area_column(self) -> ui.element:
-        """Create the area's outer column — flex:1 for main, fixed height for bottom."""
+    def _create_content_box(self) -> ui.element:
+        """Create the slot's outer content box — flex:1 for main, fixed height for bottom."""
         if self.name == "bottom":
             size = getattr(self._slot_state, "size", 200) if self._slot_state is not None else 200
             col = (

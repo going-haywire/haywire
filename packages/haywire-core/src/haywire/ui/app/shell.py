@@ -512,31 +512,31 @@ class AppShell:
             slot = IconSlot(
                 session=self.session,
                 name="left",
+                registry=self._editor_registry,
                 initial_bindings=bindings,
                 active_key=initial_editor_key,
                 slot_state=slot_state_map["left"],
-                registry=self._editor_registry,
                 bar_side="left",
             )
         elif slot_name == "right":
             slot = IconSlot(
                 session=self.session,
                 name="right",
+                registry=self._editor_registry,
                 initial_bindings=bindings,
                 active_key=initial_editor_key,
                 slot_state=slot_state_map["right"],
-                registry=self._editor_registry,
                 bar_side="right",
             )
         elif slot_name == "main":
             slot = TabSlot(
                 session=self.session,
                 name="main",
+                registry=self._editor_registry,
                 initial_bindings=bindings,
                 active_key=initial_editor_key,
                 active_payload=initial_payload,
                 slot_state=slot_state_map["main"],
-                registry=self._editor_registry,
                 show_fold_toggle=False,
                 persist_workspace=self._persist_workspace,
             )
@@ -544,11 +544,11 @@ class AppShell:
             slot = TabSlot(
                 session=self.session,
                 name="bottom",
+                registry=self._editor_registry,
                 initial_bindings=bindings,
                 active_key=initial_editor_key,
                 active_payload=initial_payload,
                 slot_state=slot_state_map["bottom"],
-                registry=self._editor_registry,
                 show_fold_toggle=True,
                 persist_workspace=self._persist_workspace,
             )
