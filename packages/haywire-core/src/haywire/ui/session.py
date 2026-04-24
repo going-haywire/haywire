@@ -53,10 +53,11 @@ class Session:
         """
         self.session_id = str(uuid.uuid4())
         self.project_state = project_state
+        self.workspace_manager: WorkspaceManager = workspace_manager
+        self._session_manager: SessionManager = session_manager
+
         self.context = SessionContext(session_id=self.session_id, app=project_state)
         self.context.session = self
-        self.workspace_manager = workspace_manager
-        self._session_manager = session_manager
 
         # Active editor instances (keyed by area slot: 'left', 'middle', 'right', 'bottom')
         self._editors: Dict[str, "BaseEditor"] = {}

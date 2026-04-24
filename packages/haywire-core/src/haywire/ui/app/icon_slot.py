@@ -59,8 +59,6 @@ class IconSlot(Slot):
             registry=registry,
         )
         self._bar_side = bar_side
-        self._bar_container: Optional[ui.element] = None
-        self._fold_button: Optional[ui.element] = None
 
     # ------------------------------------------------------------------
     # Rendering

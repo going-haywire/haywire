@@ -186,15 +186,18 @@ class Slot:
         self._bindings: list[EditorBinding] = list(initial_bindings)
         self._active: Optional[EditorBinding] = self._resolve_initial_active(active_key, active_payload)
         self._visible: bool = True
-        self._area_panel_container: Optional["ui.element"] = None
-        self._area_parent_box: Optional["ui.element"] = None
-        self._panels: dict[str, "ui.element"] = {}
+        self._area_panel_container: Optional[ui.element] = None
+        self._area_parent_box: Optional[ui.element] = None
+        self._panels: dict[str, ui.element] = {}
         self._drawn: set[str] = set()
         self._slot_state = slot_state
         self._on_visibility_change = on_visibility_change
 
         self._mirror_active_into_state()
         self._registry.add_batch_event_subscriber(self._on_editor_lifecycle)
+
+        self._bar_container: Optional[ui.element] = None
+        self._fold_button: Optional[ui.element] = None
 
     # ------------------------------------------------------------------
     # Construction helpers

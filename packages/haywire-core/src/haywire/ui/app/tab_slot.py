@@ -66,8 +66,6 @@ class TabSlot(Slot):
         )
         self._show_fold_toggle = show_fold_toggle
         self._persist_workspace = persist_workspace or (lambda: None)
-        self._bar_container: Optional[ui.element] = None
-        self._fold_button: Optional[ui.element] = None
 
     # ------------------------------------------------------------------
     # Rendering
