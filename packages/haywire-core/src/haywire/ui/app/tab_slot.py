@@ -9,9 +9,6 @@ optional chevron for the bottom slot that folds the area in/out) and the
 keep the persisted tab list, the slot's bindings, and the active-tab mirror
 in lockstep.
 
-Persistence is performed via the ``persist_workspace`` callback passed at
-construction so the slot stays framework-agnostic (no direct dependency on
-``WorkspaceManager``).
 """
 
 from __future__ import annotations
@@ -120,21 +117,6 @@ class TabSlot(Slot):
         binding = self.find_binding(tab.editor_key, tab.payload)
         return True if binding is None else binding.can_close
 
-    def set_visible(self, visible: bool) -> None:
-        """Override: refresh the chevron icon on transition."""
-        transitioning = visible != self._visible
-        super().set_visible(visible)
-        if transitioning:
-            self._refresh_bar()
-
-    def _refresh_bar(self) -> None:
-        """Clear + re-render the bar so tab highlight and chevron stay in sync."""
-        if self._bar_container is None:
-            return
-        self._bar_container.clear()
-        with self._bar_container:
-            self._render_bar_contents()
-
     # ------------------------------------------------------------------
     # User actions
     # ------------------------------------------------------------------
@@ -197,7 +179,6 @@ class TabSlot(Slot):
             activate=True,
         )
         self._refresh_bar()
-        self._persist_workspace()
         return True
 
     def close_tab(self, editor_key: str, payload: Optional[str]) -> bool:
@@ -216,7 +197,6 @@ class TabSlot(Slot):
         if self._slot_state is not None:
             self._slot_state.tabs = [t for t in self._slot_state.tabs if t.tab_id != tab_id]
         self._refresh_bar()
-        self._persist_workspace()
         return True
 
     def repayload_tab(
@@ -241,7 +221,6 @@ class TabSlot(Slot):
                         tab.label = new_label
                     break
         self._refresh_bar()
-        self._persist_workspace()
         return True
 
     def close_tabs_for_payload(self, payload: str) -> int:

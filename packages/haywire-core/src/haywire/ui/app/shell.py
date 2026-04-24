@@ -532,7 +532,6 @@ class AppShell:
                 slot_state=slot_state_map["main"],
                 bar_place="top",
                 show_fold_toggle=False,
-                persist_workspace=self._persist_workspace,
             )
         else:  # bottom
             slot = TabSlot(
@@ -544,7 +543,6 @@ class AppShell:
                 slot_state=slot_state_map["bottom"],
                 bar_place="top",
                 show_fold_toggle=True,
-                persist_workspace=self._persist_workspace,
             )
         self._managed_slots[slot_name] = slot
         return slot
@@ -687,33 +685,3 @@ class AppShell:
         if slot is None:
             return
         slot.set_size(int(size))
-
-    def open_in_tab(self, slot_name: str, editor_key: str, payload: Optional[str], label: str) -> bool:
-        """Back-compat wrapper — delegates to TabSlot.open_tab."""
-        from haywire.ui.app.tab_slot import TabSlot
-
-        slot = self._managed_slots.get(slot_name)
-        if not isinstance(slot, TabSlot):
-            logger.warning(f"AppShell.open_in_tab: slot '{slot_name}' is not tabbed")
-            return False
-        if self._editor_registry is None:
-            logger.warning("AppShell.open_in_tab: no editor registry configured")
-            return False
-        editor_cls = self._editor_registry.get_by_key(editor_key)
-        if editor_cls is None:
-            logger.warning(f"AppShell.open_in_tab: editor '{editor_key}' not found in registry")
-            return False
-        return slot.open_tab(editor_cls, editor_key, payload, label)
-
-    def _persist_workspace(self) -> None:
-        """Write workspace state to disk after a TabSlot mutation.
-
-        Called by TabSlot when tabs are opened, closed, or repayloaded, so the
-        persisted tab list tracks the live layout without requiring an explicit
-        Save. Swallows errors — a transient I/O failure should not crash the UI
-        mutation that triggered it.
-        """
-        try:
-            self.session.workspace_manager.save()
-        except Exception as exc:
-            logger.warning(f"AppShell: workspace auto-save failed: {exc}")

@@ -155,7 +155,6 @@ class Slot(ABC):
         on_visibility_change: Optional[Callable[[bool], None]] = None,
         bar_place: Literal["left", "right", "top", "bottom"] = "left",
         show_fold_toggle: bool = False,
-        persist_workspace: Optional[Callable[[], None]] = None,
     ):
         """
         Args:
@@ -187,9 +186,6 @@ class Slot(ABC):
             show_fold_toggle: Render a fold toggle on the bar. When ``True``
                 the content box uses a fixed pixel size (resizable/foldable);
                 when ``False`` it fills remaining space with ``flex: 1``.
-            persist_workspace: TabSlot-only — callback invoked after tab
-                mutations so the host can persist workspace state. Ignored
-                by IconSlot.
         """
         self._session = session
         self.name = name
@@ -205,7 +201,6 @@ class Slot(ABC):
         self._on_visibility_change = on_visibility_change
         self._bar_place = bar_place
         self._show_fold_toggle = show_fold_toggle
-        self._persist_workspace = persist_workspace or (lambda: None)
 
         self._mirror_active_into_state()
         self._registry.add_batch_event_subscriber(self._on_editor_lifecycle)
@@ -401,6 +396,14 @@ class Slot(ABC):
     def _render_bar_contents(self) -> None:
         pass
 
+    def _refresh_bar(self) -> None:
+        """Clear + re-render the bar so tab highlight and chevron stay in sync."""
+        if self._bar_container is None:
+            return
+        self._bar_container.clear()
+        with self._bar_container:
+            self._render_bar_contents()   
+            
     def _render_area_contents(self, parent: "ui.element") -> None:
         """
         Create the area container (a headless ``ui.tab_panels``) as a child
@@ -572,6 +575,7 @@ class Slot(ABC):
     # Visibility
     # ------------------------------------------------------------------
 
+
     def set_visible(self, visible: bool) -> None:
         """Show or hide the area container. Idempotent.
 
@@ -579,6 +583,7 @@ class Slot(ABC):
         subscribers (e.g. the shell's divider + toggle button) aren't
         thrashed by no-op calls.
         """
+        transitioning = visible != self._visible
         if visible == self._visible:
             return
         self._visible = visible
@@ -590,6 +595,10 @@ class Slot(ABC):
             self._slot_state.visible = visible
         if self._on_visibility_change is not None:
             self._on_visibility_change(visible)
+
+        if transitioning:
+            self._refresh_bar()
+     
 
     def set_size(self, size_px: int) -> None:
         """Persist a drag-resize result into ``slot_state.size``.

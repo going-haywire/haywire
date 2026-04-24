@@ -118,18 +118,3 @@ class IconSlot(Slot):
     def _on_fold_toggle_clicked(self) -> None:
         """Flip the slot's area visibility."""
         self.set_visible(not self._visible)
-
-    def set_visible(self, visible: bool) -> None:
-        """Override: also refresh the fold button icon on transition."""
-        transitioning = visible != self._visible
-        super().set_visible(visible)
-        if transitioning:
-            self._refresh_bar()
-
-    def _refresh_bar(self) -> None:
-        """Clear and re-render the bar so active-icon highlight + fold icon stay in sync."""
-        if self._bar_container is None:
-            return
-        self._bar_container.clear()
-        with self._bar_container:
-            self._render_bar_contents()
