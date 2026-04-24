@@ -14,11 +14,7 @@ arg: ``"left"`` places the bar before the area (used by the left slot);
 
 from __future__ import annotations
 
-from typing import Any, Callable, Literal, Optional
-
 from nicegui import ui
-
-from haywire.ui.editor.registry import EditorTypeRegistry
 
 from haywire.ui.app.slot import EditorBinding, Slot
 from haywire.ui.context_events import ContextChangedEvent, ContextChangeType
@@ -35,30 +31,6 @@ class IconSlot(Slot):
         the fold toggle remains available in both expanded and retracted
         states (matching the VS Code activity-bar idiom).
     """
-
-    def __init__(
-        self,
-        session: Any,
-        name: str,
-        registry: EditorTypeRegistry,
-        initial_bindings: list[EditorBinding],
-        active_key: Optional[str] = None,
-        active_payload: Any = None,
-        slot_state: Optional[Any] = None,
-        on_visibility_change: Optional[Callable[[bool], None]] = None,
-        bar_side: Literal["left", "right"] = "left",
-    ):
-        super().__init__(
-            session=session,
-            name=name,
-            initial_bindings=initial_bindings,
-            active_key=active_key,
-            active_payload=active_payload,
-            slot_state=slot_state,
-            on_visibility_change=on_visibility_change,
-            registry=registry,
-        )
-        self._bar_side = bar_side
 
     # ------------------------------------------------------------------
     # Rendering

@@ -32,7 +32,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
-from typing import Any, Callable, Optional, TYPE_CHECKING
+from typing import Any, Callable, Literal, Optional, TYPE_CHECKING
 
 from nicegui import ui
 
@@ -153,6 +153,9 @@ class Slot:
         active_payload: Any = None,
         slot_state: Optional[Any] = None,
         on_visibility_change: Optional[Callable[[bool], None]] = None,
+        bar_side: Literal["left", "right"] = "left",
+        show_fold_toggle: bool = False,
+        persist_workspace: Optional[Callable[[], None]] = None,
     ):
         """
         Args:
@@ -179,6 +182,13 @@ class Slot:
             on_visibility_change: Optional callback fired when the slot's
                 visibility changes. Receives the new visibility state (bool).
                 Not fired on idempotent calls (when the state doesn't change).
+            bar_side: IconSlot-only — which side of the area the icon bar
+                renders on. Ignored by TabSlot.
+            show_fold_toggle: TabSlot-only — render a chevron fold toggle
+                on the tab bar (used by the bottom slot). Ignored by IconSlot.
+            persist_workspace: TabSlot-only — callback invoked after tab
+                mutations so the host can persist workspace state. Ignored
+                by IconSlot.
         """
         self._session = session
         self.name = name
@@ -192,6 +202,9 @@ class Slot:
         self._drawn: set[str] = set()
         self._slot_state = slot_state
         self._on_visibility_change = on_visibility_change
+        self._bar_side = bar_side
+        self._show_fold_toggle = show_fold_toggle
+        self._persist_workspace = persist_workspace or (lambda: None)
 
         self._mirror_active_into_state()
         self._registry.add_batch_event_subscriber(self._on_editor_lifecycle)

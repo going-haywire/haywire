@@ -17,11 +17,9 @@ construction so the slot stays framework-agnostic (no direct dependency on
 from __future__ import annotations
 
 import logging
-from typing import Any, Callable, Optional
+from typing import Optional
 
 from nicegui import ui
-
-from haywire.ui.editor.registry import EditorTypeRegistry
 
 from haywire.ui.app.slot import EditorBinding, Slot
 from haywire.ui.context_events import ContextChangedEvent, ContextChangeType
@@ -40,32 +38,6 @@ class TabSlot(Slot):
         The optional ``show_fold_toggle`` flag renders the chevron expand/
         retract button at the end of the bar — used by the bottom slot.
     """
-
-    def __init__(
-        self,
-        session,
-        name: str,
-        registry: EditorTypeRegistry,
-        initial_bindings: list[EditorBinding],
-        active_key: Optional[str] = None,
-        active_payload: Any = None,
-        slot_state: Optional[Any] = None,
-        on_visibility_change: Optional[Callable[[bool], None]] = None,
-        show_fold_toggle: bool = False,
-        persist_workspace: Optional[Callable[[], None]] = None,
-    ):
-        super().__init__(
-            session=session,
-            name=name,
-            registry=registry,
-            initial_bindings=initial_bindings,
-            active_key=active_key,
-            active_payload=active_payload,
-            slot_state=slot_state,
-            on_visibility_change=on_visibility_change,
-        )
-        self._show_fold_toggle = show_fold_toggle
-        self._persist_workspace = persist_workspace or (lambda: None)
 
     # ------------------------------------------------------------------
     # Rendering
