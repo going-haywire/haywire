@@ -1,10 +1,151 @@
 """Regression tests for on_context reveal dispatch (singleton tab per class)."""
 
+from types import SimpleNamespace
+
+from haywire.ui.app.shell import AppShell
+from haywire.ui.app.tab_slot import TabSlot
 from haywire.ui.editor.identity import OpenBehavior
 
-from tests.ui.test_app_shell import (
-    _build_test_shell_with_editors,
-)
+
+# ---------------------------------------------------------------------------
+# Shared fakes (used only by this module)
+# ---------------------------------------------------------------------------
+
+
+class _FakeSession:
+    def __init__(self) -> None:
+        self.workspace_manager = SimpleNamespace(
+            active=SimpleNamespace(
+                left=SimpleNamespace(active_tab_key="left:editor:one", visible=True, size=300),
+                right=SimpleNamespace(active_tab_key="right:editor:one", visible=True, size=300),
+                main=SimpleNamespace(tabs=[], active_tab_key="main:editor:one"),
+                bottom=SimpleNamespace(tabs=[], active_tab_key=None, visible=False, size=200),
+            )
+        )
+        self._editors = {}
+        self.notified_events = []
+
+    def set_orchestrator(self, _callback) -> None:
+        pass
+
+    def notify_context_changed(self, event) -> None:
+        self.notified_events.append(event)
+
+
+def _make_editor_cls(registry_key: str, default_slot: str, opens=OpenBehavior.REQUIRED) -> type:
+    return type(
+        f"_FakeEditor_{registry_key.replace(':', '_')}",
+        (),
+        {
+            "class_identity": SimpleNamespace(
+                registry_key=registry_key,
+                default_slot=default_slot,
+                opens=opens,
+                label=registry_key,
+                icon="icon",
+            )
+        },
+    )
+
+
+class _FakeEditorRegistry:
+    def __init__(self, classes: dict) -> None:
+        self._classes = classes
+
+    def get_by_key(self, registry_key: str):
+        return self._classes.get(registry_key)
+
+
+class _FakeBinding:
+    """Minimal binding stand-in returned by _FakeTabbedSlot.find_binding."""
+
+    def __init__(self, editor_key: str, payload, editor_cls=None) -> None:
+        self.editor_key = editor_key
+        self.payload = payload
+        self.editor_cls = editor_cls
+
+
+class _FakeTabbedSlot(TabSlot):
+    """Minimal tabbed-slot stand-in that passes isinstance(slot, TabSlot).
+
+    Overrides the real TabSlot methods with fake in-memory implementations so
+    the NiceGUI rendering path is never invoked.
+    """
+
+    # Shadow every read-only property Slot defines so plain instance attributes
+    # can be set without hitting Python's data-descriptor setter guard.
+    active_key = None  # type: ignore[assignment]
+    active_binding = None  # type: ignore[assignment]
+    active_binding_id = None  # type: ignore[assignment]
+    visible = None  # type: ignore[assignment]
+    bindings = None  # type: ignore[assignment]
+
+    def __init__(self, name: str) -> None:
+        # Bypass Slot.__init__ — we manage all state as plain attributes.
+        self.name = name
+        self.bindings: list[_FakeBinding] = []
+        self.active_key: str | None = None
+        self.active_binding: _FakeBinding | None = None
+
+    def find_binding(self, editor_key: str, payload):
+        for b in self.bindings:
+            if b.editor_key == editor_key and b.payload == payload:
+                return b
+        return None
+
+    def open_tab(self, editor_cls, editor_key: str, payload, label: str) -> bool:
+        """Register a new tab and make it active. Returns True (contract match)."""
+        binding = _FakeBinding(editor_key, payload, editor_cls=editor_cls)
+        self.bindings.append(binding)
+        self.active_key = editor_key
+        self.active_binding = binding
+        return True
+
+    def switch_to(self, editor_key: str, payload=None) -> bool:
+        if self.active_key == editor_key:
+            return False
+        self.active_key = editor_key
+        for b in self.bindings:
+            if b.editor_key == editor_key and b.payload == payload:
+                self.active_binding = b
+                break
+        return True
+
+    def set_visible(self, visible: bool) -> None:
+        pass
+
+    def handle_context_event(self, event) -> None:
+        pass
+
+    def _refresh_bar(self) -> None:
+        pass
+
+
+def _build_test_shell_with_editors(entries: list[tuple]) -> tuple:
+    """Build an AppShell wired with fake editors and a tabbed main slot.
+
+    Args:
+        entries: list of (registry_key, default_slot, OpenBehavior).
+
+    Returns:
+        (shell, session) ready for _reveal_editor tests.
+    """
+    classes = {key: _make_editor_cls(key, slot, opens) for key, slot, opens in entries}
+    registry = _FakeEditorRegistry(classes)
+    session = _FakeSession()
+    shell = AppShell(session=session, editor_registry=registry)
+
+    # Replace managed slots with fake tabbed slots for all referenced slots.
+    slot_names = {slot for _, slot, _ in entries}
+    for slot_name in slot_names:
+        shell._managed_slots[slot_name] = _FakeTabbedSlot(slot_name)
+
+    return shell, session
+
+
+# ---------------------------------------------------------------------------
+# Tests
+# ---------------------------------------------------------------------------
 
 
 class TestOnContextRevealDispatch:

@@ -1,82 +1,60 @@
-"""Tests for AppShell toolbar styling."""
+"""Tests for AppShell — post-refactor surface area.
+
+After the slot-hierarchy refactor, AppShell only owns:
+  - Theme CSS build + `apply_workbench_theme`
+  - Orchestrator callback (`_on_context_changed`) routing events to slots
+  - Reveal dispatch (`_reveal_editor`) resolving editor → slot
+  - Slot construction via `_build_managed_slot`
+  - `_on_slot_resize` dispatching to `slot.set_size`
+  - Tab-close/repayload/graph-removed event → TabSlot method dispatch
+
+Bar rendering, tab-state mutations, visibility toggling, and hot-reload are
+tested in test_icon_slot.py / test_tab_slot.py / test_slot.py.
+"""
 
 import logging
-
-import haywire.core.graph.editor as graph_editor_module
 from types import SimpleNamespace
 
+import haywire.core.graph.editor as graph_editor_module
 from haywire.ui.app.shell import AppShell
 from haywire.ui.context_events import ContextChangedEvent, ContextChangeType
 from haywire.ui.editor.identity import OpenBehavior
-
-
-class _FakeContainer:
-    def __init__(self) -> None:
-        self.clear_calls = 0
-
-    def clear(self) -> None:
-        self.clear_calls += 1
-
-    def __enter__(self):
-        return self
-
-    def __exit__(self, exc_type, exc, tb) -> None:
-        return None
 
 
 class _FakeSession:
     def __init__(self) -> None:
         self.workspace_manager = SimpleNamespace(
             active=SimpleNamespace(
-                left=SimpleNamespace(active_tab_key="left:editor:one", visible=True),
-                right=SimpleNamespace(active_tab_key="right:editor:one", visible=True),
-                main=SimpleNamespace(
-                    tabs=[],
-                    active_tab_key="main:editor:one",
-                    visible=True,
-                ),
-                bottom=SimpleNamespace(
-                    tabs=[],
-                    active_tab_key=None,
-                    visible=False,
-                    size=200,
-                ),
+                left=SimpleNamespace(active_tab_key="left:editor:one", visible=True, size=300),
+                right=SimpleNamespace(active_tab_key="right:editor:one", visible=True, size=300),
+                main=SimpleNamespace(tabs=[], active_tab_key="main:editor:one"),
+                bottom=SimpleNamespace(tabs=[], active_tab_key=None, visible=False, size=200),
             )
         )
         self._editors = {}
         self.notified_events = []
 
-    def set_orchestrator(self, callback) -> None:
+    def set_orchestrator(self, _callback) -> None:
         pass
 
     def notify_context_changed(self, event) -> None:
         self.notified_events.append(event)
 
 
-def test_toolbar_button_classes_marks_active_buttons() -> None:
-    assert graph_editor_module is not None
-
-    classes = AppShell._toolbar_button_classes(is_active=True)
-
-    assert "hw-shell-toolbar-btn" in classes
-    assert "hw-shell-toolbar-btn-active" in classes
-
-
-def test_toolbar_button_classes_leaves_inactive_buttons_unhighlighted() -> None:
-    classes = AppShell._toolbar_button_classes(is_active=False)
-
-    assert "hw-shell-toolbar-btn" in classes
-    assert "hw-shell-toolbar-btn-active" not in classes
-
-
 class _FakeSlot:
-    """Stand-in for :class:`haywire.ui.app.slot.Slot` used by switch tests."""
+    """Stand-in for IconSlot/TabSlot used by orchestrator + dispatch tests."""
 
-    def __init__(self, name: str, active_key: str) -> None:
+    def __init__(self, name: str, active_key: str | None = None) -> None:
         self.name = name
         self.active_key = active_key
-        self.switch_calls: list[str] = []
-        self.visible_calls: list[bool] = []
+        self.visible = True
+        self.bindings: list = []
+        self.switch_calls: list = []
+        self.size_calls: list[int] = []
+        self.open_tab_calls: list = []
+        self.close_tab_calls: list = []
+        self.repayload_calls: list = []
+        self.close_tabs_for_payload_calls: list = []
 
     def switch_to(self, editor_key: str, payload=None) -> bool:
         self.switch_calls.append((editor_key, payload))
@@ -86,151 +64,52 @@ class _FakeSlot:
         return True
 
     def set_visible(self, visible: bool) -> None:
-        self.visible_calls.append(visible)
+        self.visible = visible
+
+    def set_size(self, size_px: int) -> None:
+        self.size_calls.append(size_px)
 
     def handle_context_event(self, event) -> None:
         pass
 
+    def find_binding(self, editor_key, payload=None):
+        for b in self.bindings:
+            if b.editor_key == editor_key and getattr(b, "payload", None) == payload:
+                return b
+        return None
 
-def test_switch_left_slot_delegates_to_managed_slot_and_notifies() -> None:
-    shell = AppShell(session=_FakeSession(), editor_registry=None)
-    fake = _FakeSlot("left", active_key="left:editor:one")
-    shell._managed_slots["left"] = fake
-    shell._activity_bar = _FakeContainer()
+    def open_tab(self, cls, editor_key, payload, label):
+        self.open_tab_calls.append((editor_key, payload, label))
+        self.bindings.append(SimpleNamespace(editor_key=editor_key, payload=payload))
+        self.active_key = editor_key
+        return True
 
-    rendered = []
-    shell._render_activity_bar_contents = lambda: rendered.append("activity")
+    def close_tab(self, editor_key, payload):
+        self.close_tab_calls.append((editor_key, payload))
+        return True
 
-    shell._switch_left_slot("left:editor:two")
+    def repayload_tab(self, editor_key, old_payload, new_payload, new_label=None):
+        self.repayload_calls.append((editor_key, old_payload, new_payload, new_label))
+        return True
 
-    assert fake.switch_calls == [("left:editor:two", None)]
-    assert shell.session.workspace_manager.active.left.active_tab_key == "left:editor:two"
-    assert shell._activity_bar.clear_calls == 1
-    assert rendered == ["activity"]
-    assert shell.session.notified_events[-1].change_type == ContextChangeType.WORKSPACE_CHANGED
+    def close_tabs_for_payload(self, payload):
+        self.close_tabs_for_payload_calls.append(payload)
+        return 1
 
-
-def test_switch_right_slot_delegates_to_managed_slot_and_notifies() -> None:
-    shell = AppShell(session=_FakeSession(), editor_registry=None)
-    fake = _FakeSlot("right", active_key="right:editor:one")
-    shell._managed_slots["right"] = fake
-    shell._context_bar = _FakeContainer()
-
-    rendered = []
-    shell._render_context_bar_contents = lambda: rendered.append("context")
-
-    shell._switch_right_slot("right:editor:two")
-
-    assert fake.switch_calls == [("right:editor:two", None)]
-    assert shell.session.workspace_manager.active.right.active_tab_key == "right:editor:two"
-    assert shell._context_bar.clear_calls == 1
-    assert rendered == ["context"]
-    assert shell.session.notified_events[-1].change_type == ContextChangeType.WORKSPACE_CHANGED
+    def _refresh_bar(self):
+        pass
 
 
-def test_switch_left_slot_no_op_when_already_active_does_not_notify() -> None:
-    shell = AppShell(session=_FakeSession(), editor_registry=None)
-    fake = _FakeSlot("left", active_key="left:editor:one")
-    shell._managed_slots["left"] = fake
-
-    shell._switch_left_slot("left:editor:one")
-
-    assert fake.switch_calls == [("left:editor:one", None)]
-    assert shell.session.notified_events == []
+class _FakeTabSlot(_FakeSlot):
+    """Subclass marker so isinstance(slot, TabSlot) checks in shell match."""
 
 
-def test_switch_main_slot_delegates_to_managed_slot_and_refreshes_bar() -> None:
-    shell = AppShell(session=_FakeSession(), editor_registry=None)
-    fake = _FakeSlot("main", active_key="main:editor:one")
-    shell._managed_slots["main"] = fake
-    shell._main_bar = _FakeContainer()
-
-    rendered = []
-    shell._render_main_bar_contents = lambda: rendered.append("main")
-
-    shell._switch_main_slot("main:editor:two")
-
-    assert fake.switch_calls == [("main:editor:two", None)]
-    assert shell.session.workspace_manager.active.main.active_tab_key == "main:editor:two"
-    assert shell._main_bar.clear_calls == 1
-    assert rendered == ["main"]
-    assert shell.session.notified_events[-1].change_type == ContextChangeType.WORKSPACE_CHANGED
+# ---------------------------------------------------------------------------
+# Fake editor registry + helpers
+# ---------------------------------------------------------------------------
 
 
-def test_switch_bottom_slot_delegates_to_managed_slot_and_refreshes_bar() -> None:
-    shell = AppShell(session=_FakeSession(), editor_registry=None)
-    fake = _FakeSlot("bottom", active_key="bottom:editor:one")
-    shell._managed_slots["bottom"] = fake
-    shell._bottom_bar = _FakeContainer()
-
-    rendered = []
-    shell._render_bottom_bar_contents = lambda: rendered.append("bottom")
-
-    shell._switch_bottom_slot("bottom:editor:two")
-
-    assert fake.switch_calls == [("bottom:editor:two", None)]
-    assert shell.session.workspace_manager.active.bottom.active_tab_key == "bottom:editor:two"
-    assert shell._bottom_bar.clear_calls == 1
-    assert rendered == ["bottom"]
-    assert shell.session.notified_events[-1].change_type == ContextChangeType.WORKSPACE_CHANGED
-
-
-def test_switch_main_slot_no_op_when_already_active_does_not_notify() -> None:
-    shell = AppShell(session=_FakeSession(), editor_registry=None)
-    fake = _FakeSlot("main", active_key="main:editor:one")
-    shell._managed_slots["main"] = fake
-
-    shell._switch_main_slot("main:editor:one")
-
-    assert fake.switch_calls == [("main:editor:one", None)]
-    assert shell.session.notified_events == []
-
-
-def test_apply_managed_slot_switch_unknown_slot_returns_false() -> None:
-    shell = AppShell(session=_FakeSession(), editor_registry=None)
-
-    assert shell._apply_managed_slot_switch("main", "main:editor:two") is False
-    assert shell.session.notified_events == []
-
-
-def test_refresh_activity_bar_renders_contents_without_rebuilding_wrapper() -> None:
-    shell = AppShell(session=_FakeSession(), editor_registry=None)
-    shell._activity_bar = _FakeContainer()
-
-    rendered = []
-    shell._render_activity_bar_contents = lambda: rendered.append("activity")
-
-    shell._refresh_activity_bar()
-
-    assert shell._activity_bar.clear_calls == 1
-    assert rendered == ["activity"]
-
-
-def test_refresh_context_bar_renders_contents_without_rebuilding_wrapper() -> None:
-    shell = AppShell(session=_FakeSession(), editor_registry=None)
-    shell._context_bar = _FakeContainer()
-
-    rendered = []
-    shell._render_context_bar_contents = lambda: rendered.append("context")
-
-    shell._refresh_context_bar()
-
-    assert shell._context_bar.clear_calls == 1
-    assert rendered == ["context"]
-
-
-class _FakeEditorRegistry:
-    """Minimal stand-in for EditorTypeRegistry used by reveal tests."""
-
-    def __init__(self, classes: dict) -> None:
-        self._classes = classes
-
-    def get_by_key(self, registry_key: str):
-        return self._classes.get(registry_key)
-
-
-def _make_editor_cls(registry_key: str, default_slot: str) -> type:
-    """Build a throwaway class that looks like a decorated BaseEditor."""
+def _make_editor_cls(registry_key: str, default_slot: str, opens=OpenBehavior.REQUIRED) -> type:
     return type(
         f"_FakeEditor_{registry_key.replace(':', '_')}",
         (),
@@ -238,23 +117,62 @@ def _make_editor_cls(registry_key: str, default_slot: str) -> type:
             "class_identity": SimpleNamespace(
                 registry_key=registry_key,
                 default_slot=default_slot,
+                opens=opens,
+                label=registry_key,
+                icon="icon",
             )
         },
     )
 
 
-def test_on_context_changed_reveal_editor_switches_slot() -> None:
-    """A reveal_editor on an event routes through the managed Slot and
-    does NOT fire a nested WORKSPACE_CHANGED event."""
+class _FakeEditorRegistry:
+    def __init__(self, classes: dict) -> None:
+        self._classes = classes
+
+    def get_by_key(self, registry_key: str):
+        return self._classes.get(registry_key)
+
+
+# ---------------------------------------------------------------------------
+# _on_slot_resize
+# ---------------------------------------------------------------------------
+
+
+def test_on_slot_resize_routes_to_named_slot() -> None:
+    shell = AppShell(session=_FakeSession(), editor_registry=None)
+    slot = _FakeSlot("bottom")
+    shell._managed_slots["bottom"] = slot
+    shell._on_slot_resize(SimpleNamespace(args={"slot": "bottom", "size": 275}))
+    assert slot.size_calls == [275]
+
+
+def test_on_slot_resize_ignores_unknown_slot() -> None:
+    shell = AppShell(session=_FakeSession(), editor_registry=None)
+    shell._on_slot_resize(SimpleNamespace(args={"slot": "mystery", "size": 100}))  # no crash
+
+
+def test_on_slot_resize_ignores_malformed_args() -> None:
+    shell = AppShell(session=_FakeSession(), editor_registry=None)
+    slot = _FakeSlot("bottom")
+    shell._managed_slots["bottom"] = slot
+    shell._on_slot_resize(SimpleNamespace(args="not a dict"))
+    shell._on_slot_resize(SimpleNamespace(args=None))
+    shell._on_slot_resize(SimpleNamespace(args={"slot": "bottom"}))
+    assert slot.size_calls == []
+
+
+# ---------------------------------------------------------------------------
+# _on_context_changed — reveal + event dispatch
+# ---------------------------------------------------------------------------
+
+
+def test_reveal_editor_routes_through_icon_slot() -> None:
     target_key = "right:editor:two"
-    registry = _FakeEditorRegistry({target_key: _make_editor_cls(target_key, "right")})
+    cls = _make_editor_cls(target_key, "right", OpenBehavior.REQUIRED)
+    registry = _FakeEditorRegistry({target_key: cls})
     shell = AppShell(session=_FakeSession(), editor_registry=registry)
     fake = _FakeSlot("right", active_key="right:editor:one")
     shell._managed_slots["right"] = fake
-    shell._context_bar = _FakeContainer()
-
-    rendered = []
-    shell._render_context_bar_contents = lambda: rendered.append("context")
 
     event = ContextChangedEvent(
         change_type=ContextChangeType.ACTIVE_COMPONENT_CHANGED,
@@ -263,185 +181,11 @@ def test_on_context_changed_reveal_editor_switches_slot() -> None:
     shell._on_context_changed(event, shell.session.workspace_manager.active)
 
     assert fake.switch_calls == [(target_key, None)]
-    assert shell.session.workspace_manager.active.right.active_tab_key == target_key
-    assert rendered == ["context"]
-    # Reveal must NOT fire a nested WORKSPACE_CHANGED event.
-    assert shell.session.notified_events == []
+    assert shell.session.notified_events == []  # reveal must not broadcast
 
 
-def test_on_context_changed_reveal_editor_routes_to_main_slot() -> None:
-    """reveal_editor works for main slot identically to left/right — proves
-    the managed-slot path is uniform across all four slots."""
-    target_key = "main:editor:two"
-    registry = _FakeEditorRegistry({target_key: _make_editor_cls(target_key, "main")})
-    shell = AppShell(session=_FakeSession(), editor_registry=registry)
-    fake = _FakeSlot("main", active_key="main:editor:one")
-    shell._managed_slots["main"] = fake
-    shell._main_bar = _FakeContainer()
-    shell._render_main_bar_contents = lambda: None
-
-    event = ContextChangedEvent(
-        change_type=ContextChangeType.ACTIVE_GRAPH_CHANGED,
-        reveal_editor=target_key,
-    )
-    shell._on_context_changed(event, shell.session.workspace_manager.active)
-
-    assert fake.switch_calls == [(target_key, None)]
-    assert shell.session.workspace_manager.active.main.active_tab_key == target_key
-    assert shell.session.notified_events == []
-
-
-def test_on_context_changed_reveal_editor_routes_to_bottom_slot() -> None:
-    target_key = "bottom:editor:two"
-    registry = _FakeEditorRegistry({target_key: _make_editor_cls(target_key, "bottom")})
-    shell = AppShell(session=_FakeSession(), editor_registry=registry)
-    fake = _FakeSlot("bottom", active_key="bottom:editor:one")
-    shell._managed_slots["bottom"] = fake
-    shell._bottom_bar = _FakeContainer()
-    shell._render_bottom_bar_contents = lambda: None
-
-    event = ContextChangedEvent(
-        change_type=ContextChangeType.WORKSPACE_CHANGED,
-        reveal_editor=target_key,
-    )
-    shell._on_context_changed(event, shell.session.workspace_manager.active)
-
-    assert fake.switch_calls == [(target_key, None)]
-    assert shell.session.workspace_manager.active.bottom.active_tab_key == target_key
-    assert shell.session.notified_events == []
-
-
-class _FakeVisibility:
-    """Stand-in for a NiceGUI element with set_visibility + props tracking."""
-
-    def __init__(self, visible: bool = True) -> None:
-        self.visible = visible
-        self.props_calls: list[str] = []
-
-    def set_visibility(self, visible: bool) -> None:
-        self.visible = visible
-
-    def props(self, value: str) -> None:
-        self.props_calls.append(value)
-
-
-def _make_shell_with_bottom_stubs(visible: bool = False):
-    shell = AppShell(session=_FakeSession(), editor_registry=None)
-    shell.session.workspace_manager.active.bottom.visible = visible
-    shell._bottom_divider = _FakeVisibility(visible=visible)
-    shell._bottom_container = _FakeVisibility(visible=visible)
-    shell._btn_bottom = _FakeVisibility()
-    return shell
-
-
-def test_toggle_bottom_slot_flips_visible_and_syncs_ui() -> None:
-    shell = _make_shell_with_bottom_stubs(visible=False)
-
-    shell._toggle_bottom_slot()
-
-    ws = shell.session.workspace_manager.active
-    assert ws.bottom.visible is True
-    assert shell._bottom_divider.visible is True
-    assert shell._bottom_container.visible is True
-    assert shell._btn_bottom.props_calls[-1] == "icon=expand_less"
-
-    shell._toggle_bottom_slot()
-
-    assert ws.bottom.visible is False
-    assert shell._bottom_divider.visible is False
-    assert shell._bottom_container.visible is False
-    assert shell._btn_bottom.props_calls[-1] == "icon=expand_more"
-
-
-def test_apply_bottom_visibility_syncs_all_three_elements() -> None:
-    shell = _make_shell_with_bottom_stubs(visible=False)
-
-    shell._apply_bottom_visibility(True)
-
-    assert shell._bottom_divider.visible is True
-    assert shell._bottom_container.visible is True
-    assert shell._btn_bottom.props_calls[-1] == "icon=expand_less"
-
-    shell._apply_bottom_visibility(False)
-
-    assert shell._bottom_divider.visible is False
-    assert shell._bottom_container.visible is False
-    assert shell._btn_bottom.props_calls[-1] == "icon=expand_more"
-
-
-def test_on_bottom_drag_auto_expand_flips_retracted_to_visible() -> None:
-    shell = _make_shell_with_bottom_stubs(visible=False)
-
-    shell._on_bottom_drag_auto_expand()
-
-    ws = shell.session.workspace_manager.active
-    assert ws.bottom.visible is True
-    assert shell._bottom_container.visible is True
-    assert shell._btn_bottom.props_calls[-1] == "icon=expand_less"
-
-
-def test_on_bottom_drag_auto_expand_noop_when_already_visible() -> None:
-    shell = _make_shell_with_bottom_stubs(visible=True)
-
-    shell._on_bottom_drag_auto_expand()
-
-    # No redundant props calls when already in the target state.
-    assert shell._btn_bottom.props_calls == []
-    assert shell.session.workspace_manager.active.bottom.visible is True
-
-
-def test_on_bottom_drag_snap_retract_flips_visible_to_retracted() -> None:
-    shell = _make_shell_with_bottom_stubs(visible=True)
-
-    shell._on_bottom_drag_snap_retract()
-
-    ws = shell.session.workspace_manager.active
-    assert ws.bottom.visible is False
-    assert shell._bottom_container.visible is False
-    assert shell._btn_bottom.props_calls[-1] == "icon=expand_more"
-
-
-def test_on_bottom_drag_snap_retract_noop_when_already_retracted() -> None:
-    shell = _make_shell_with_bottom_stubs(visible=False)
-
-    shell._on_bottom_drag_snap_retract()
-
-    assert shell._btn_bottom.props_calls == []
-    assert shell.session.workspace_manager.active.bottom.visible is False
-
-
-def test_on_bottom_drag_resize_accepts_numeric_args() -> None:
-    shell = _make_shell_with_bottom_stubs(visible=True)
-
-    shell._on_bottom_drag_resize(SimpleNamespace(args=275))
-    assert shell.session.workspace_manager.active.bottom.size == 275
-
-    shell._on_bottom_drag_resize(SimpleNamespace(args=312.5))
-    assert shell.session.workspace_manager.active.bottom.size == 312
-
-
-def test_on_bottom_drag_resize_accepts_list_args() -> None:
-    shell = _make_shell_with_bottom_stubs(visible=True)
-
-    shell._on_bottom_drag_resize(SimpleNamespace(args=[240]))
-    assert shell.session.workspace_manager.active.bottom.size == 240
-
-
-def test_on_bottom_drag_resize_ignores_unexpected_args() -> None:
-    shell = _make_shell_with_bottom_stubs(visible=True)
-    original = shell.session.workspace_manager.active.bottom.size
-
-    shell._on_bottom_drag_resize(SimpleNamespace(args="not a number"))
-    shell._on_bottom_drag_resize(SimpleNamespace(args=None))
-    shell._on_bottom_drag_resize(SimpleNamespace(args=[]))
-
-    assert shell.session.workspace_manager.active.bottom.size == original
-
-
-def test_on_context_changed_reveal_editor_unknown_logs_warning(caplog) -> None:
-    """An unknown reveal_editor is a soft failure: warning logged, no switch,
-    the rest of the poll/draw cycle still runs for existing editors."""
-    registry = _FakeEditorRegistry({})  # empty — unknown key
+def test_reveal_editor_unknown_logs_warning(caplog) -> None:
+    registry = _FakeEditorRegistry({})
     shell = AppShell(session=_FakeSession(), editor_registry=registry)
     fake = _FakeSlot("right", active_key="right:editor:one")
     shell._managed_slots["right"] = fake
@@ -453,164 +197,145 @@ def test_on_context_changed_reveal_editor_unknown_logs_warning(caplog) -> None:
     with caplog.at_level(logging.WARNING, logger="haywire.ui.app.shell"):
         shell._on_context_changed(event, shell.session.workspace_manager.active)
 
-    # Slot untouched.
     assert fake.switch_calls == []
-    assert shell.session.workspace_manager.active.right.active_tab_key == "right:editor:one"
-    # Warning was logged and mentions the offending key.
     assert any("nonexistent:editor:zzz" in rec.message for rec in caplog.records)
-    # No nested event emitted.
-    assert shell.session.notified_events == []
+
+
+def test_reveal_editor_on_payload_without_payload_logs_and_skips(caplog) -> None:
+    from haywire.ui.app.tab_slot import TabSlot
+
+    editor_key = "main:editor:Doc"
+    cls = _make_editor_cls(editor_key, "main", OpenBehavior.ON_PAYLOAD)
+    registry = _FakeEditorRegistry({editor_key: cls})
+    shell = AppShell(session=_FakeSession(), editor_registry=registry)
+
+    class _FakeTab(TabSlot, _FakeSlot):
+        """Subclass of the real TabSlot so isinstance checks match, with fake deep state."""
+
+        # Shadow every read-only property Slot defines so _FakeSlot.__init__ can set plain
+        # instance attributes without hitting Python's data-descriptor setter guard.
+        active_key = None  # type: ignore[assignment]
+        active_binding = None  # type: ignore[assignment]
+        active_binding_id = None  # type: ignore[assignment]
+        visible = None  # type: ignore[assignment]
+        bindings = None  # type: ignore[assignment]
+
+        def __init__(self, name):
+            _FakeSlot.__init__(self, name)
+
+    fake_tab = _FakeTab("main")
+    shell._managed_slots["main"] = fake_tab
+
+    with caplog.at_level(logging.WARNING, logger="haywire.ui.app.shell"):
+        shell._reveal_editor(editor_key, payload=None)
+
+    assert fake_tab.open_tab_calls == []
+    assert any("on_payload" in rec.message and "payload" in rec.message for rec in caplog.records)
 
 
 # ---------------------------------------------------------------------------
-# Reveal-dispatch by `opens` value
+# TAB_CLOSE_REQUESTED / TAB_REPAYLOAD_REQUESTED / GRAPH_REMOVED dispatch
 # ---------------------------------------------------------------------------
 
 
-def _make_editor_cls_with_opens(registry_key: str, default_slot: str, opens: OpenBehavior) -> type:
-    """Variant of _make_editor_cls that also sets the opens field on class_identity."""
-    cls = _make_editor_cls(registry_key, default_slot)
-    cls.class_identity.opens = opens
-    return cls
+def _make_fake_tab_slot(name: str) -> "_FakeSlot":
+    """Return an instance that IS-A TabSlot (for isinstance checks) with fake behavior.
 
-
-class _FakeBinding:
-    """Minimal binding stand-in returned by _FakeTabbedSlot.find_binding."""
-
-    def __init__(self, editor_key: str, payload, editor_cls=None) -> None:
-        self.editor_key = editor_key
-        self.payload = payload
-        self.editor_cls = editor_cls
-
-
-class _FakeTabbedSlot:
-    """Minimal tabbed-slot stand-in that supports find_binding, bindings list, and switch_to."""
-
-    def __init__(self, name: str) -> None:
-        self.name = name
-        self.bindings: list[_FakeBinding] = []
-        self.active_key: str | None = None
-        self.active_binding: _FakeBinding | None = None
-
-    def find_binding(self, editor_key: str, payload):
-        for b in self.bindings:
-            if b.editor_key == editor_key and b.payload == payload:
-                return b
-        return None
-
-    def add_binding(self, editor_key: str, payload, editor_cls=None) -> _FakeBinding:
-        """Used by the shell's open_in_tab stub to register a new tab."""
-        binding = _FakeBinding(editor_key, payload, editor_cls=editor_cls)
-        self.bindings.append(binding)
-        self.active_key = editor_key
-        self.active_binding = binding
-        return binding
-
-    def switch_to(self, editor_key: str, payload=None) -> bool:
-        if self.active_key == editor_key:
-            return False
-        self.active_key = editor_key
-        for b in self.bindings:
-            if b.editor_key == editor_key and b.payload == payload:
-                self.active_binding = b
-                break
-        return True
-
-    def set_visible(self, visible: bool) -> None:
-        pass
-
-    def handle_context_event(self, event) -> None:
-        pass
-
-
-def _build_test_shell_with_editors(entries: list[tuple]) -> tuple:
-    """Build an AppShell wired with fake editors and a tabbed main slot.
-
-    Args:
-        entries: list of (registry_key, default_slot, OpenBehavior).
-
-    Returns:
-        (shell, session) ready for _reveal_editor tests.
+    All methods are delegated to _FakeSlot so the real TabSlot implementation
+    (which requires a fully initialised Slot.__init__ state) is never called.
+    isinstance(result, TabSlot) is True because TabSlot is in the MRO.
     """
-    classes = {key: _make_editor_cls_with_opens(key, slot, opens) for key, slot, opens in entries}
-    registry = _FakeEditorRegistry(classes)
-    session = _FakeSession()
-    shell = AppShell(session=session, editor_registry=registry)
+    from haywire.ui.app.tab_slot import TabSlot
 
-    # Replace managed slots with fake tabbed slots for all referenced slots.
-    slot_names = {slot for _, slot, _ in entries}
-    for slot_name in slot_names:
-        fake_slot = _FakeTabbedSlot(slot_name)
-        shell._managed_slots[slot_name] = fake_slot
-        # Stub open_in_tab to register a binding on the fake slot.
-        _orig_open_in_tab = shell.open_in_tab
+    class _FakeTab(TabSlot, _FakeSlot):
+        # Shadow every read-only property Slot defines so _FakeSlot.__init__ can set plain
+        # instance attributes without hitting Python's data-descriptor setter guard.
+        active_key = None  # type: ignore[assignment]
+        active_binding = None  # type: ignore[assignment]
+        active_binding_id = None  # type: ignore[assignment]
+        visible = None  # type: ignore[assignment]
+        bindings = None  # type: ignore[assignment]
 
-        def _patched_open_in_tab(sn, ek, pl, lbl, _shell=shell, _orig=_orig_open_in_tab):
-            slot = _shell._managed_slots.get(sn)
-            if isinstance(slot, _FakeTabbedSlot):
-                editor_cls = _shell._editor_registry.get_by_key(ek) if _shell._editor_registry else None
-                slot.add_binding(ek, pl, editor_cls=editor_cls)
-            # Do NOT call orig — it would try to render NiceGUI UI.
+        def __init__(self, slot_name):
+            _FakeSlot.__init__(self, slot_name)
 
-        shell.open_in_tab = _patched_open_in_tab
+        # Explicitly route to _FakeSlot implementations so TabSlot's real logic
+        # (which requires Slot.__init__ state) is never invoked.
+        def close_tab(self, editor_key, payload):
+            return _FakeSlot.close_tab(self, editor_key, payload)
 
-    return shell, session
+        def repayload_tab(self, editor_key, old_payload, new_payload, new_label=None):
+            return _FakeSlot.repayload_tab(self, editor_key, old_payload, new_payload, new_label)
 
+        def close_tabs_for_payload(self, payload):
+            return _FakeSlot.close_tabs_for_payload(self, payload)
 
-class TestTabCloseButtonVisibility:
-    def test_required_tab_has_no_close_button(self):
-        """opens=REQUIRED tabs must not render a close button."""
-        from haywire.ui.workspace.workspace_state import TabState
-
-        editor_key = "studio:editor:Req"
-        classes = {editor_key: _make_editor_cls_with_opens(editor_key, "main", OpenBehavior.REQUIRED)}
-        registry = _FakeEditorRegistry(classes)
-        shell = AppShell(session=_FakeSession(), editor_registry=registry)
-
-        tab = TabState(editor_key=editor_key, label="Req")
-        assert shell._tab_close_visible(tab) is False
-
-    def test_on_payload_tab_has_close_button(self):
-        from haywire.ui.workspace.workspace_state import TabState
-
-        editor_key = "studio:editor:Doc"
-        classes = {editor_key: _make_editor_cls_with_opens(editor_key, "main", OpenBehavior.ON_PAYLOAD)}
-        registry = _FakeEditorRegistry(classes)
-        shell = AppShell(session=_FakeSession(), editor_registry=registry)
-
-        tab = TabState(editor_key=editor_key, label="a", metadata={"payload": "/tmp/a"})
-        assert shell._tab_close_visible(tab) is True
-
-    def test_on_context_tab_has_close_button(self):
-        from haywire.ui.workspace.workspace_state import TabState
-
-        editor_key = "studio:editor:Ctx"
-        classes = {editor_key: _make_editor_cls_with_opens(editor_key, "main", OpenBehavior.ON_CONTEXT)}
-        registry = _FakeEditorRegistry(classes)
-        shell = AppShell(session=_FakeSession(), editor_registry=registry)
-
-        tab = TabState(editor_key=editor_key, label="Ctx")
-        assert shell._tab_close_visible(tab) is True
+    return _FakeTab(name)
 
 
-class TestRevealDispatchOpens:
-    def test_on_payload_without_payload_logs_warning(self, caplog) -> None:
-        """_reveal_editor on an opens='on_payload' editor with no payload
-        must log a warning and no-op (no tab created)."""
-        editor_key = "main:editor:Doc"
-        editor_cls = _make_editor_cls_with_opens(editor_key, "main", OpenBehavior.ON_PAYLOAD)
-        registry = _FakeEditorRegistry({editor_key: editor_cls})
+def test_handle_tab_close_requested_dispatches_to_tab_slot() -> None:
+    shell = AppShell(session=_FakeSession(), editor_registry=None)
+    fake_tab = _make_fake_tab_slot("main")
+    shell._managed_slots["main"] = fake_tab
 
-        shell = AppShell(session=_FakeSession(), editor_registry=registry)
-        fake_slot = _FakeTabbedSlot("main")
-        shell._managed_slots["main"] = fake_slot
+    shell._handle_tab_close_requested(
+        ContextChangedEvent(
+            change_type=ContextChangeType.TAB_CLOSE_REQUESTED,
+            detail={"slot_name": "main", "editor_key": "a", "payload": "p1"},
+        )
+    )
+    assert fake_tab.close_tab_calls == [("a", "p1")]
 
-        open_in_tab_calls: list = []
-        shell.open_in_tab = lambda *args, **kwargs: open_in_tab_calls.append(args)
 
-        with caplog.at_level(logging.WARNING, logger="haywire.ui.app.shell"):
-            shell._reveal_editor(editor_key, payload=None)
+def test_handle_tab_close_requested_ignores_missing_detail() -> None:
+    shell = AppShell(session=_FakeSession(), editor_registry=None)
+    fake_tab = _make_fake_tab_slot("main")
+    shell._managed_slots["main"] = fake_tab
 
-        assert open_in_tab_calls == [], "open_in_tab must not be called"
-        assert fake_slot.find_binding(editor_key, None) is None
-        assert any("on_payload" in rec.message and "payload" in rec.message for rec in caplog.records)
+    shell._handle_tab_close_requested(
+        ContextChangedEvent(change_type=ContextChangeType.TAB_CLOSE_REQUESTED, detail={})
+    )
+    assert fake_tab.close_tab_calls == []
+
+
+def test_handle_tab_repayload_requested_dispatches_to_tab_slot() -> None:
+    shell = AppShell(session=_FakeSession(), editor_registry=None)
+    fake_tab = _make_fake_tab_slot("main")
+    shell._managed_slots["main"] = fake_tab
+
+    shell._handle_tab_repayload_requested(
+        ContextChangedEvent(
+            change_type=ContextChangeType.TAB_REPAYLOAD_REQUESTED,
+            detail={
+                "slot_name": "main",
+                "editor_key": "a",
+                "old_payload": "o",
+                "new_payload": "n",
+                "new_label": "new.graph",
+            },
+        )
+    )
+    assert fake_tab.repayload_calls == [("a", "o", "n", "new.graph")]
+
+
+def test_handle_graph_removed_closes_matching_tabs_in_every_tab_slot() -> None:
+    shell = AppShell(session=_FakeSession(), editor_registry=None)
+    main = _make_fake_tab_slot("main")
+    bottom = _make_fake_tab_slot("bottom")
+    shell._managed_slots["main"] = main
+    shell._managed_slots["bottom"] = bottom
+
+    shell._handle_graph_removed(
+        ContextChangedEvent(change_type=ContextChangeType.GRAPH_REMOVED, detail="/tmp/a.graph")
+    )
+    assert main.close_tabs_for_payload_calls == ["/tmp/a.graph"]
+    assert bottom.close_tabs_for_payload_calls == ["/tmp/a.graph"]
+
+
+# ---------------------------------------------------------------------------
+# Graph-editor import regression guard (kept from pre-refactor)
+# ---------------------------------------------------------------------------
+
+
+def test_graph_editor_module_imports_without_circular() -> None:
+    assert graph_editor_module is not None

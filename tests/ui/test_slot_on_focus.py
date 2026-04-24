@@ -51,7 +51,7 @@ class _FakeContainer:
 def _fake_nicegui(monkeypatch):
     """Bypass NiceGUI's slot-stack requirement by patching the elements Slot uses.
 
-    ``Slot.render_area`` calls ``ui.tab_panels`` / ``ui.tab_panel`` / ``ui.label``
+    ``Slot._render_area`` calls ``ui.tab_panels`` / ``ui.tab_panel`` / ``ui.label``
     which normally require a live NiceGUI client context. These tests don't care
     about the real DOM — they only need the Slot's own bookkeeping and lifecycle
     firing — so we swap in ``_FakeContainer`` stand-ins.
@@ -140,7 +140,7 @@ def test_render_area_calls_on_focus_on_initial_active_binding():
     slot = Slot(session, "main", [b1], active_key="e1")
 
     parent = MagicMock()
-    slot.render_area(parent)
+    slot._render_area(parent)
 
     assert b1.instance is not None
     assert len(b1.instance.focus_calls) == 1
@@ -166,7 +166,7 @@ def test_on_focus_runs_before_draw_on_first_activation():
     slot = Slot(session, "main", [b1], active_key="e1")
 
     parent = MagicMock()
-    slot.render_area(parent)
+    slot._render_area(parent)
 
     instance = b1.instance
     # Both hooks append a label to call_sequence; order in that list reflects
@@ -188,7 +188,7 @@ def test_on_focus_raising_is_logged_and_swallowed(caplog):
     parent = MagicMock()
 
     with caplog.at_level(logging.ERROR, logger="haywire.ui.app.slot"):
-        slot.render_area(parent)
+        slot._render_area(parent)
 
     # Log format is "Slot '<name>': on_focus error for '<binding_id>': <exc>".
     # Assert that it carries both the binding id and the exception text so

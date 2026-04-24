@@ -179,12 +179,12 @@ def test_slot_resolves_initial_active_with_payload() -> None:
 
 
 # ----------------------------------------------------------------------
-# render_area + draw
+# _render_area + draw
 # ----------------------------------------------------------------------
 
 
 def test_render_area_creates_tab_panels_and_draws_active(monkeypatch) -> None:
-    """render_area mounts a ui.tab_panels container, creates a tab_panel per
+    """_render_area mounts a ui.tab_panels container, creates a tab_panel per
     binding, and eagerly draws only the active binding."""
     bindings = [
         EditorBinding("a:e:1", _FakeEditor),
@@ -194,7 +194,7 @@ def test_render_area_creates_tab_panels_and_draws_active(monkeypatch) -> None:
     panels_created, panel_created = _install_fake_tab_panels(monkeypatch)
 
     parent = _FakeContainer()
-    slot.render_area(parent)
+    slot._render_area(parent)
 
     # Exactly one tab_panels container; one tab_panel per binding.
     assert len(panels_created) == 1
@@ -221,7 +221,7 @@ def test_switch_to_toggles_active_panel_without_clearing(monkeypatch) -> None:
     ]
     slot = Slot(_session_with_context(), "left", bindings, active_key="a:e:1")
     panels_created, _ = _install_fake_tab_panels(monkeypatch)
-    slot.render_area(_FakeContainer())
+    slot._render_area(_FakeContainer())
     area = panels_created[0]
 
     changed = slot.switch_to("a:e:2")
@@ -247,7 +247,7 @@ def test_switch_to_second_time_does_not_redraw(monkeypatch) -> None:
     ]
     slot = Slot(_session_with_context(), "left", bindings, active_key="a:e:1")
     _install_fake_tab_panels(monkeypatch)
-    slot.render_area(_FakeContainer())
+    slot._render_area(_FakeContainer())
 
     slot.switch_to("a:e:2")
     slot.switch_to("a:e:1")
@@ -261,7 +261,7 @@ def test_switch_to_no_op_when_already_active(monkeypatch) -> None:
     bindings = [EditorBinding("a:e:1", _FakeEditor)]
     slot = Slot(_session_with_context(), "left", bindings, active_key="a:e:1")
     _install_fake_tab_panels(monkeypatch)
-    slot.render_area(_FakeContainer())
+    slot._render_area(_FakeContainer())
 
     assert slot.switch_to("a:e:1") is False
 
@@ -272,7 +272,7 @@ def test_switch_to_unknown_key_returns_false_and_logs(caplog, monkeypatch) -> No
     bindings = [EditorBinding("a:e:1", _FakeEditor)]
     slot = Slot(_session_with_context(), "left", bindings, active_key="a:e:1")
     _install_fake_tab_panels(monkeypatch)
-    slot.render_area(_FakeContainer())
+    slot._render_area(_FakeContainer())
 
     with caplog.at_level(logging.WARNING, logger="haywire.ui.app.slot"):
         result = slot.switch_to("a:e:does-not-exist")
@@ -321,7 +321,7 @@ def test_switch_to_disambiguates_by_payload(monkeypatch) -> None:
     slot = Slot(_session_with_context(), "main", bindings, active_key=None)
     slot._active = bindings[0]
     panels_created, panel_created = _install_fake_tab_panels(monkeypatch)
-    slot.render_area(_FakeContainer())
+    slot._render_area(_FakeContainer())
     area = panels_created[0]
 
     changed = slot.switch_to("studio:editor:graph_editor", payload="/b.haywire")
@@ -373,7 +373,7 @@ def test_handle_context_event_redraws_active_panel_when_poll_true(monkeypatch) -
     binding = EditorBinding("a:e:1", _FakeEditor)
     slot = Slot(_session_with_context(), "left", [binding], active_key="a:e:1")
     _, panel_created = _install_fake_tab_panels(monkeypatch)
-    slot.render_area(_FakeContainer())
+    slot._render_area(_FakeContainer())
     panel = panel_created[0][1]
     instance = binding.instance
     assert instance is not None
@@ -392,7 +392,7 @@ def test_handle_context_event_skips_when_poll_false(monkeypatch) -> None:
     binding = EditorBinding("a:e:1", _FakeEditor)
     slot = Slot(_session_with_context(), "left", [binding], active_key="a:e:1")
     _, panel_created = _install_fake_tab_panels(monkeypatch)
-    slot.render_area(_FakeContainer())
+    slot._render_area(_FakeContainer())
     panel = panel_created[0][1]
     instance = binding.instance
     assert instance is not None
@@ -414,7 +414,7 @@ def test_handle_context_event_is_noop_when_instance_not_yet_created(monkeypatch)
     ]
     slot = Slot(_session_with_context(), "left", bindings, active_key="a:e:1")
     _install_fake_tab_panels(monkeypatch)
-    slot.render_area(_FakeContainer())
+    slot._render_area(_FakeContainer())
 
     # Active binding got its initial draw; swap to a non-existent active so
     # handle_context_event sees None as the active instance.
@@ -432,7 +432,7 @@ def test_replace_class_swaps_class_clears_instance_and_redraws_active(monkeypatc
     binding = EditorBinding("a:e:1", _FakeEditor)
     slot = Slot(_session_with_context(), "left", [binding], active_key="a:e:1")
     _install_fake_tab_panels(monkeypatch)
-    slot.render_area(_FakeContainer())
+    slot._render_area(_FakeContainer())
     old = binding.instance
     cleanup_calls: list = []
 
@@ -452,7 +452,7 @@ def test_replace_class_returns_false_when_not_active(monkeypatch) -> None:
     ]
     slot = Slot(_session_with_context(), "left", bindings, active_key="a:e:1")
     _install_fake_tab_panels(monkeypatch)
-    slot.render_area(_FakeContainer())
+    slot._render_area(_FakeContainer())
 
     redrew = slot.replace_class("a:e:2", _FakeEditorAlt)
 
@@ -467,7 +467,7 @@ def test_replace_class_swallows_dead_client_runtime_error(monkeypatch) -> None:
     binding = EditorBinding("a:e:1", _FakeEditor)
     slot = Slot(_session_with_context(), "left", [binding], active_key="a:e:1")
     panels_created, panel_created = _install_fake_tab_panels(monkeypatch)
-    slot.render_area(_FakeContainer())
+    slot._render_area(_FakeContainer())
 
     dead_panel = panel_created[0][1]
 
@@ -497,7 +497,7 @@ def test_remove_bindings_drops_matching_and_promotes_first_remaining(monkeypatch
     ]
     slot = Slot(_session_with_context(), "left", bindings, active_key="a:e:1")
     _, panel_created = _install_fake_tab_panels(monkeypatch)
-    slot.render_area(_FakeContainer())
+    slot._render_area(_FakeContainer())
     removed_panel = panel_created[0][1]
     old = bindings[0].instance
     cleanup_calls: list = []
@@ -515,7 +515,7 @@ def test_add_binding_creates_panel_and_optionally_activates(monkeypatch) -> None
     bindings = [EditorBinding("a:e:1", _FakeEditor)]
     slot = Slot(_session_with_context(), "main", bindings, active_key="a:e:1")
     panels_created, panel_created = _install_fake_tab_panels(monkeypatch)
-    slot.render_area(_FakeContainer())
+    slot._render_area(_FakeContainer())
     area = panels_created[0]
 
     new_binding = EditorBinding("a:e:2", _FakeEditor)
@@ -534,9 +534,216 @@ def test_remove_bindings_clears_active_when_no_bindings_remain(monkeypatch) -> N
 
     binding = EditorBinding("a:e:1", _FakeEditor)
     slot = Slot(_session_with_context(), "left", [binding], active_key="a:e:1")
-    slot.render_area(_FakeContainer())
+    slot._render_area(_FakeContainer())
 
     slot.remove_bindings("a:e:1")
 
     assert slot.bindings == []
     assert slot.active_binding is None
+
+
+# ----------------------------------------------------------------------
+# EditorBinding.split_id
+# ----------------------------------------------------------------------
+
+
+def test_editor_binding_split_id_roundtrips_single_instance():
+    assert EditorBinding.split_id("editor:one") == ("editor:one", None)
+
+
+def test_editor_binding_split_id_roundtrips_multi_instance():
+    assert EditorBinding.split_id("editor:one::/tmp/a.graph") == ("editor:one", "/tmp/a.graph")
+
+
+def test_editor_binding_split_id_round_trip_with_binding_id(monkeypatch):
+    class _Fake:
+        pass
+
+    b = EditorBinding(editor_key="editor:one", editor_cls=_Fake, payload="/tmp/a.graph")
+    assert EditorBinding.split_id(b.binding_id) == ("editor:one", "/tmp/a.graph")
+
+
+# ----------------------------------------------------------------------
+# EditorBinding.can_close
+# ----------------------------------------------------------------------
+
+
+def test_can_close_required_is_false():
+    from haywire.ui.editor.identity import OpenBehavior
+
+    cls = type("_C", (), {"class_identity": SimpleNamespace(opens=OpenBehavior.REQUIRED)})
+    b = EditorBinding(editor_key="e", editor_cls=cls)
+    assert b.can_close is False
+
+
+def test_can_close_on_payload_is_true():
+    from haywire.ui.editor.identity import OpenBehavior
+
+    cls = type("_C", (), {"class_identity": SimpleNamespace(opens=OpenBehavior.ON_PAYLOAD)})
+    b = EditorBinding(editor_key="e", editor_cls=cls)
+    assert b.can_close is True
+
+
+def test_can_close_on_context_is_true():
+    from haywire.ui.editor.identity import OpenBehavior
+
+    cls = type("_C", (), {"class_identity": SimpleNamespace(opens=OpenBehavior.ON_CONTEXT)})
+    b = EditorBinding(editor_key="e", editor_cls=cls)
+    assert b.can_close is True
+
+
+def test_can_close_missing_opens_defaults_true():
+    """Unknown/missing class_identity.opens defaults to closeable (permissive)."""
+    cls = type("_C", (), {"class_identity": SimpleNamespace()})
+    b = EditorBinding(editor_key="e", editor_cls=cls)
+    assert b.can_close is True
+
+
+def test_slot_switch_mirrors_active_key_into_slot_state(monkeypatch):
+    _install_fake_tab_panels(monkeypatch)
+    cls_a = type("_A", (), {"class_identity": SimpleNamespace(opens="required")})
+    cls_b = type("_B", (), {"class_identity": SimpleNamespace(opens="required")})
+    a = EditorBinding(editor_key="a", editor_cls=cls_a)
+    b = EditorBinding(editor_key="b", editor_cls=cls_b)
+    state = SimpleNamespace(active_tab_key="a", visible=True, size=200)
+    slot = Slot(
+        session=SimpleNamespace(context=None),
+        name="left",
+        initial_bindings=[a, b],
+        active_key="a",
+        slot_state=state,
+    )
+    parent = _FakeContainer()
+    slot._render_area(parent)
+    assert state.active_tab_key == "a"
+
+    slot.switch_to("b")
+    assert state.active_tab_key == "b"
+
+
+def test_slot_set_visible_fires_on_visibility_change(monkeypatch):
+    _install_fake_tab_panels(monkeypatch)
+    cls = type("_C", (), {"class_identity": SimpleNamespace(opens="required")})
+    calls: list[bool] = []
+    slot = Slot(
+        session=SimpleNamespace(context=None),
+        name="left",
+        initial_bindings=[EditorBinding(editor_key="e", editor_cls=cls)],
+        on_visibility_change=calls.append,
+    )
+    slot.set_visible(False)
+    assert calls == [False]
+    slot.set_visible(False)  # idempotent — no duplicate notification
+    assert calls == [False]
+    slot.set_visible(True)
+    assert calls == [False, True]
+
+
+def test_slot_set_visible_mirrors_into_slot_state_visible(monkeypatch):
+    _install_fake_tab_panels(monkeypatch)
+    cls = type("_C", (), {"class_identity": SimpleNamespace(opens="required")})
+    state = SimpleNamespace(active_tab_key="e", visible=True, size=200)
+    slot = Slot(
+        session=SimpleNamespace(context=None),
+        name="left",
+        initial_bindings=[EditorBinding(editor_key="e", editor_cls=cls)],
+        slot_state=state,
+    )
+    slot.set_visible(False)
+    assert state.visible is False
+    slot.set_visible(True)
+    assert state.visible is True
+
+
+def test_slot_set_visible_skips_mirror_when_state_lacks_visible_attr(monkeypatch):
+    _install_fake_tab_panels(monkeypatch)
+    cls = type("_C", (), {"class_identity": SimpleNamespace(opens="required")})
+    state = SimpleNamespace(active_tab_key=None)  # no 'visible' attr
+    slot = Slot(
+        session=SimpleNamespace(context=None),
+        name="main",
+        initial_bindings=[EditorBinding(editor_key="e", editor_cls=cls)],
+        slot_state=state,
+    )
+    slot.set_visible(False)  # must not raise
+    assert not hasattr(state, "visible")
+
+
+# ----------------------------------------------------------------------
+# set_size
+# ----------------------------------------------------------------------
+
+
+def test_slot_set_size_updates_slot_state(monkeypatch):
+    _install_fake_tab_panels(monkeypatch)
+    cls = type("_C", (), {"class_identity": SimpleNamespace(opens="required")})
+    state = SimpleNamespace(active_tab_key=None, visible=True, size=300)
+    slot = Slot(
+        session=SimpleNamespace(context=None),
+        name="bottom",
+        initial_bindings=[EditorBinding(editor_key="e", editor_cls=cls)],
+        slot_state=state,
+    )
+    slot.set_size(275)
+    assert state.size == 275
+
+
+def test_slot_set_size_noop_when_slot_state_has_no_size():
+    """MainSlotState has no size field; set_size must not crash."""
+    cls = type("_C", (), {"class_identity": SimpleNamespace(opens="required")})
+    state = SimpleNamespace(active_tab_key=None)  # no size attr
+    slot = Slot(
+        session=SimpleNamespace(context=None),
+        name="main",
+        initial_bindings=[EditorBinding(editor_key="e", editor_cls=cls)],
+        slot_state=state,
+    )
+    slot.set_size(500)  # no-op, no crash
+    assert not hasattr(state, "size")
+
+
+def test_slot_subscribes_to_registry_on_construction(monkeypatch):
+    from haywire.core.registry.lifecycle_event import LifeCycleEvent, LifeCycleEventType
+
+    _install_fake_tab_panels(monkeypatch)
+
+    class _FakeRegistry:
+        def __init__(self):
+            self.subscribers = []
+
+        def add_batch_event_subscriber(self, cb):
+            self.subscribers.append(cb)
+
+        def remove_batch_event_subscriber(self, cb):
+            self.subscribers.remove(cb)
+
+        def get_by_default_slot(self, _slot):
+            return {}
+
+        def get_by_key(self, _key):
+            return None
+
+    reg = _FakeRegistry()
+    cls = type("_A", (), {"class_identity": SimpleNamespace(opens="required")})
+    new_cls = type("_A2", (), {"class_identity": SimpleNamespace(opens="required")})
+    a = EditorBinding(editor_key="a", editor_cls=cls)
+    slot = Slot(
+        session=SimpleNamespace(context=None),
+        name="left",
+        initial_bindings=[a],
+        registry=reg,
+    )
+    assert len(reg.subscribers) == 1
+
+    # Firing a CLASS_RELOADED event swaps the binding's class via the slot's subscriber.
+    evt = LifeCycleEvent(
+        event_type=LifeCycleEventType.CLASS_RELOADED,
+        registry_key="a",
+        affected_class=new_cls,
+    )
+    reg.subscribers[0]([evt])
+    assert a.editor_cls is new_cls
+
+    # teardown unsubscribes.
+    slot.teardown()
+    assert reg.subscribers == []

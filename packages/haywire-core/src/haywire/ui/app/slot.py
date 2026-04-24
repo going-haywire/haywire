@@ -16,8 +16,9 @@ Relationship to AppShell:
 * The shell owns the slot dict ``{"left": Slot, "right": Slot, ...}``.
 * The shell renders bars (activity bar, context bar, main/bottom tab bars)
   because those are layout chrome outside the slot's area.
-* The shell calls ``slot.render_area(parent)`` to mount each slot's
-  container at the right spot in the layout.
+* The shell calls ``slot.render(parent)`` (or ``slot._render_area`` directly
+  at existing call sites until Task 10) to mount each slot's container at
+  the right spot in the layout.
 * On user click (bar) or ``reveal_editor`` event, the shell calls
   ``slot.switch_to(key)`` and does its own follow-up (bar refresh,
   WORKSPACE_CHANGED broadcast). The slot handles everything inside its
@@ -72,6 +73,32 @@ class EditorBinding:
         """
         return f"{self.editor_key}::{self.payload}" if self.payload else self.editor_key
 
+    @staticmethod
+    def split_id(tab_id: str) -> tuple[str, Optional[str]]:
+        """Inverse of :attr:`binding_id`.
+
+        Decompose ``editor_key`` (single-instance) or ``editor_key::payload``
+        (multi-instance) back into its components.
+        """
+        if "::" in tab_id:
+            editor_key, payload = tab_id.split("::", 1)
+            return editor_key, payload
+        return tab_id, None
+
+    @property
+    def can_close(self) -> bool:
+        """Whether the host UI should render a close button for this binding.
+
+        Tabs whose editor class declares ``opens=REQUIRED`` are always-present
+        singletons and have no close button. All other ``OpenBehavior`` values
+        are closeable. Missing ``opens`` defaults to closeable (permissive —
+        better to let the user remove a tab than strand it).
+        """
+        from haywire.ui.editor.identity import OpenBehavior
+
+        opens = getattr(self.editor_cls.class_identity, "opens", None)
+        return opens is not OpenBehavior.REQUIRED
+
     def ensure_instance(self) -> "BaseEditor":
         """Lazy-create ``instance`` on first use. Subsequent calls return it.
 
@@ -98,7 +125,7 @@ class Slot:
         * Constructed by the shell once per slot, seeded with the list of
           bindings appropriate for that slot (registry-derived for
           left/right; workspace-tabs-derived for main/bottom).
-        * ``render_area(parent)`` creates the slot's area container as a
+        * ``_render_area(parent)`` creates the slot's area container as a
           child of ``parent`` and draws the active binding.
         * ``switch_to(key)`` changes the active binding, clears the area,
           re-draws the new active binding's editor. Returns ``True`` only
@@ -121,6 +148,9 @@ class Slot:
         initial_bindings: list[EditorBinding],
         active_key: Optional[str] = None,
         active_payload: Any = None,
+        slot_state: Optional[Any] = None,
+        on_visibility_change: Optional[Callable[[bool], None]] = None,
+        registry: Optional[Any] = None,
     ):
         """
         Args:
@@ -137,7 +167,16 @@ class Slot:
                 is inactive until a binding is added.
             active_payload: Payload disambiguating multi-instance bindings.
                 Callers that work with a composite ``tab_id`` must split it
-                before construction (see ``AppShell._split_tab_id``).
+                before construction (see :meth:`EditorBinding.split_id`).
+            slot_state: Reference to the workspace-state sub-object for this
+                slot (``SlotState`` for left/right, ``MainSlotState`` /
+                ``BottomSlotState`` for main/bottom). When set, the slot
+                mirrors its active key / size / visibility onto this object
+                so the persisted workspace tracks live state automatically.
+                May be ``None`` in tests that don't care about persistence.
+            on_visibility_change: Optional callback fired when the slot's
+                visibility changes. Receives the new visibility state (bool).
+                Not fired on idempotent calls (when the state doesn't change).
         """
         self._session = session
         self.name = name
@@ -147,6 +186,12 @@ class Slot:
         self._area_container: Optional["ui.element"] = None
         self._panels: dict[str, "ui.element"] = {}
         self._drawn: set[str] = set()
+        self._slot_state = slot_state
+        self._on_visibility_change = on_visibility_change
+        self._registry = registry
+        self._mirror_active_into_state()
+        if self._registry is not None:
+            self._registry.add_batch_event_subscriber(self._on_editor_lifecycle)
 
     # ------------------------------------------------------------------
     # Construction helpers
@@ -161,6 +206,24 @@ class Slot:
             if match is not None:
                 return match
         return self._bindings[0] if self._bindings else None
+
+    def _mirror_active_into_state(self) -> None:
+        """Reconcile the workspace slot_state's ``active_tab_key`` with the slot's resolved binding.
+
+        A persisted key may point to a now-unregistered editor class;
+        ``_resolve_initial_active`` silently falls back to the first binding.
+        Without this mirror, the bar highlight would still read the stale key.
+        No-op when ``slot_state`` is ``None`` (test mode).
+        """
+        if self._slot_state is None:
+            return
+        new_key = self._active.binding_id if self._active is not None else None
+        # Tabbed slots persist composite tab_id; icon slots persist plain editor_key.
+        # Decide by peeking at the slot_state dataclass via hasattr(tabs).
+        if hasattr(self._slot_state, "tabs"):
+            self._slot_state.active_tab_key = new_key
+        else:
+            self._slot_state.active_tab_key = self._active.editor_key if self._active else None
 
     # ------------------------------------------------------------------
     # Queries
@@ -229,7 +292,15 @@ class Slot:
     # Rendering
     # ------------------------------------------------------------------
 
-    def render_area(self, parent: "ui.element") -> None:
+    def render(self, parent: "ui.element") -> None:
+        """Render this slot into ``parent``.
+
+        Subclasses build their internal layout (row or column containing bar
+        + area) and call ``_render_area`` at the appropriate mount point.
+        """
+        raise NotImplementedError
+
+    def _render_area(self, parent: "ui.element") -> None:
         """
         Create the area container (a headless ``ui.tab_panels``) as a child
         of ``parent`` and draw the active binding's editor into its panel.
@@ -238,7 +309,7 @@ class Slot:
         All panels live in the DOM simultaneously; switching toggles
         visibility via ``set_value`` rather than clearing and re-rendering.
 
-        Called once during the shell's initial render. The container and
+        Called once during the slot's initial render. The container and
         per-binding panels are stored so ``switch_to`` can change the
         active panel without rebuilding anything.
         """
@@ -320,7 +391,7 @@ class Slot:
 
         Single choke point for "binding transitions to active". Used by:
 
-        * ``render_area`` — on first render of the slot, for the initially
+        * ``_render_area`` — on first render of the slot, for the initially
           active binding picked by ``_resolve_initial_active``.
         * ``switch_to`` — when the user clicks a different tab or a reveal
           swaps the active binding.
@@ -347,6 +418,7 @@ class Slot:
         self._ensure_drawn(binding)
         if self._area_container is not None:
             self._area_container.set_value(binding.binding_id)
+        self._mirror_active_into_state()
 
     # ------------------------------------------------------------------
     # Switching
@@ -400,10 +472,30 @@ class Slot:
     # ------------------------------------------------------------------
 
     def set_visible(self, visible: bool) -> None:
-        """Show or hide the area container."""
+        """Show or hide the area container. Idempotent.
+
+        Fires :attr:`on_visibility_change` only on actual state transitions so
+        subscribers (e.g. the shell's divider + toggle button) aren't
+        thrashed by no-op calls.
+        """
+        if visible == self._visible:
+            return
         self._visible = visible
         if self._area_container is not None:
             self._area_container.set_visibility(visible)
+        if self._slot_state is not None and hasattr(self._slot_state, "visible"):
+            self._slot_state.visible = visible
+        if self._on_visibility_change is not None:
+            self._on_visibility_change(visible)
+
+    def set_size(self, size_px: int) -> None:
+        """Persist a drag-resize result into ``slot_state.size``.
+
+        No-op when the slot_state has no ``size`` field (e.g. ``MainSlotState``
+        which is the flex:1 filler and never stores an explicit size).
+        """
+        if self._slot_state is not None and hasattr(self._slot_state, "size"):
+            self._slot_state.size = int(size_px)
 
     # ------------------------------------------------------------------
     # Orchestrator hook
@@ -513,6 +605,7 @@ class Slot:
                 self._activate(sibling)
             else:
                 self._active = None
+                self._mirror_active_into_state()
         return target
 
     def repayload_binding(
@@ -557,6 +650,7 @@ class Slot:
             self._drawn.add(new_id)
         if self._active is target and self._area_container is not None:
             self._area_container.set_value(new_id)
+        self._mirror_active_into_state()
         return True
 
     def remove_bindings(
@@ -594,3 +688,44 @@ class Slot:
                 self._activate(sibling)
             else:
                 self._active = None
+                self._mirror_active_into_state()
+
+    # ------------------------------------------------------------------
+    # Registry hot-reload (self-owned)
+    # ------------------------------------------------------------------
+
+    def _on_editor_lifecycle(self, events: list) -> None:
+        """Apply hot-reload events to bindings owned by this slot.
+
+        Delegates to :meth:`replace_class` / :meth:`remove_bindings`; filters
+        out events for ``editor_key``s not present in this slot.
+        """
+        from haywire.core.registry.lifecycle_event import LifeCycleEventType
+
+        def _cleanup(instance: "BaseEditor") -> None:
+            try:
+                instance.cleanup()
+            except Exception as exc:
+                logger.warning(f"Slot '{self.name}': cleanup error: {exc}")
+
+        owned_keys = {b.editor_key for b in self._bindings}
+        for evt in events:
+            if evt.registry_key not in owned_keys:
+                continue
+            if evt.event_type == LifeCycleEventType.CLASS_RELOADED and evt.affected_class is not None:
+                self.replace_class(evt.registry_key, evt.affected_class, cleanup_old=_cleanup)
+            elif evt.event_type == LifeCycleEventType.CLASS_REMOVED:
+                self.remove_bindings(evt.registry_key, cleanup=_cleanup)
+
+    def teardown(self) -> None:
+        """Detach from the registry. Safe to call more than once.
+
+        Called by the shell when the session ends so the slot doesn't leak
+        a subscriber reference into the registry across sessions.
+        """
+        if self._registry is not None:
+            try:
+                self._registry.remove_batch_event_subscriber(self._on_editor_lifecycle)
+            except Exception:
+                pass
+            self._registry = None
