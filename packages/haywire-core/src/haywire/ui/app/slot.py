@@ -151,7 +151,6 @@ class Slot(ABC):
         registry: EditorTypeRegistry,
         initial_bindings: list[EditorBinding],
         active_key: Optional[str] = None,
-        active_payload: Any = None,
         slot_state: Optional[Any] = None,
         on_visibility_change: Optional[Callable[[bool], None]] = None,
         bar_place: Literal["left", "right", "top", "bottom"] = "left",
@@ -167,13 +166,12 @@ class Slot(ABC):
             initial_bindings: Bindings to host in this slot. The shell is
                 responsible for enumerating these per-slot (registry for
                 left/right; workspace tabs for main/bottom).
-            active_key: ``editor_key`` of the initially active binding. If
-                the key has no matching binding, the first binding (if
-                any) becomes active; if there are no bindings, the slot
-                is inactive until a binding is added.
-            active_payload: Payload disambiguating multi-instance bindings.
-                Callers that work with a composite ``tab_id`` must split it
-                before construction (see :meth:`EditorBinding.split_id`).
+            active_key: ``editor_key`` or composite ``editor_key::payload``
+                of the initially active binding. A ``::``-containing value is
+                automatically split so callers never need to call
+                :meth:`EditorBinding.split_id` before construction. If the key
+                has no matching binding, the first binding (if any) becomes
+                active; if there are no bindings, the slot is inactive.
             slot_state: Reference to the workspace-state sub-object for this
                 slot (``SlotState`` for left/right, ``MainSlotState`` /
                 ``BottomSlotState`` for main/bottom). When set, the slot
@@ -197,7 +195,7 @@ class Slot(ABC):
         self.name = name
         self._registry: EditorTypeRegistry = registry
         self._bindings: list[EditorBinding] = list(initial_bindings)
-        self._active: Optional[EditorBinding] = self._resolve_initial_active(active_key, active_payload)
+        self._active: Optional[EditorBinding] = self._resolve_initial_active(active_key)
         self._visible: bool = True
         self._area_panel_container: Optional[ui.element] = None
         self._area_parent_box: Optional[ui.element] = None
@@ -225,12 +223,16 @@ class Slot(ABC):
     # Construction helpers
     # ------------------------------------------------------------------
 
-    def _resolve_initial_active(
-        self, active_key: Optional[str], active_payload: Any = None
-    ) -> Optional[EditorBinding]:
-        """Pick the starting active binding from ``(active_key, active_payload)`` or the first binding."""
+    def _resolve_initial_active(self, active_key: Optional[str]) -> Optional[EditorBinding]:
+        """Pick the starting active binding from ``active_key`` or the first binding.
+
+        ``active_key`` may be a plain ``editor_key`` or a composite
+        ``editor_key::payload``; the ``::`` split is handled here so callers
+        never need to do it before construction.
+        """
         if active_key is not None:
-            match = self.find_binding(active_key, active_payload)
+            key, payload = EditorBinding.split_id(active_key)
+            match = self.find_binding(key, payload)
             if match is not None:
                 return match
         return self._bindings[0] if self._bindings else None

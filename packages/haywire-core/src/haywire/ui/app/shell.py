@@ -502,19 +502,13 @@ class AppShell:
                     EditorBinding(editor_key=tab.editor_key, editor_cls=cls, payload=tab.payload)
                 )
 
-        initial_editor_key, initial_payload = (
-            EditorBinding.split_id(active_key)
-            if (slot_name in ("main", "bottom") and active_key)
-            else (active_key, None)
-        )
-
         if slot_name == "left":
             slot = IconSlot(
                 session=self.session,
                 name="left",
                 registry=self._editor_registry,
                 initial_bindings=bindings,
-                active_key=initial_editor_key,
+                active_key=active_key,
                 slot_state=slot_state_map["left"],
                 bar_place="left",
             )
@@ -524,7 +518,7 @@ class AppShell:
                 name="right",
                 registry=self._editor_registry,
                 initial_bindings=bindings,
-                active_key=initial_editor_key,
+                active_key=active_key,
                 slot_state=slot_state_map["right"],
                 bar_place="right",
             )
@@ -534,8 +528,7 @@ class AppShell:
                 name="main",
                 registry=self._editor_registry,
                 initial_bindings=bindings,
-                active_key=initial_editor_key,
-                active_payload=initial_payload,
+                active_key=active_key,
                 slot_state=slot_state_map["main"],
                 bar_place="top",
                 show_fold_toggle=False,
@@ -547,8 +540,7 @@ class AppShell:
                 name="bottom",
                 registry=self._editor_registry,
                 initial_bindings=bindings,
-                active_key=initial_editor_key,
-                active_payload=initial_payload,
+                active_key=active_key,
                 slot_state=slot_state_map["bottom"],
                 bar_place="top",
                 show_fold_toggle=True,
@@ -675,21 +667,6 @@ class AppShell:
         for slot in self._managed_slots.values():
             if isinstance(slot, TabSlot):
                 slot.close_tabs_for_payload(payload)
-
-    def _toggle_left_slot(self) -> None:
-        slot = self._managed_slots.get("left")
-        if slot is not None:
-            slot.set_visible(not slot.visible)
-
-    def _toggle_right_slot(self) -> None:
-        slot = self._managed_slots.get("right")
-        if slot is not None:
-            slot.set_visible(not slot.visible)
-
-    def _toggle_bottom_slot(self) -> None:
-        slot = self._managed_slots.get("bottom")
-        if slot is not None:
-            slot.set_visible(not slot.visible)
 
     def _on_slot_resize(self, event) -> None:
         """Dispatch ``hw-slot-resize`` events from the drag JS to the target slot.

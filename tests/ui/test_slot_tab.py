@@ -132,8 +132,7 @@ def test_tab_slot_open_tab_existing_activates_no_duplicate(monkeypatch):
         name="main",
         registry=_REGISTRY,
         initial_bindings=[binding],
-        active_key="a",
-        active_payload="/tmp/a",
+        active_key="a::/tmp/a",
         slot_state=state,
         persist_workspace=lambda: None,
     )
@@ -163,8 +162,7 @@ def test_tab_slot_close_tab_removes_and_promotes_sibling(monkeypatch):
             EditorBinding(editor_key="a", editor_cls=cls_a, payload="p1"),
             EditorBinding(editor_key="b", editor_cls=cls_b, payload="p2"),
         ],
-        active_key="a",
-        active_payload="p1",
+        active_key="a::p1",
         slot_state=state,
         persist_workspace=lambda: None,
     )
@@ -187,8 +185,7 @@ def test_tab_slot_repayload_tab_updates_ids(monkeypatch):
         name="main",
         registry=_REGISTRY,
         initial_bindings=[EditorBinding(editor_key="a", editor_cls=cls, payload="old")],
-        active_key="a",
-        active_payload="old",
+        active_key="a::old",
         slot_state=state,
         persist_workspace=lambda: None,
     )
@@ -218,8 +215,7 @@ def test_tab_slot_close_tabs_for_payload_closes_matching(monkeypatch):
             EditorBinding(editor_key="a", editor_cls=cls, payload="p1"),
             EditorBinding(editor_key="a", editor_cls=cls, payload="p2"),
         ],
-        active_key="a",
-        active_payload="p1",
+        active_key="a::p1",
         slot_state=state,
         persist_workspace=lambda: None,
     )

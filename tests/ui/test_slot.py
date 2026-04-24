@@ -174,8 +174,8 @@ def test_slot_with_no_bindings_has_no_active_binding() -> None:
 
 
 def test_slot_resolves_initial_active_with_payload() -> None:
-    """active_key + active_payload must exact-match the payload-carrying
-    binding, not fall through to the first same-key binding."""
+    """composite active_key must exact-match the payload-carrying binding,
+    not fall through to the first same-key binding."""
     bindings = [
         EditorBinding("a:e:graph", _FakeEditor, payload=None),
         EditorBinding("a:e:graph", _FakeEditor, payload="/tmp/a.haywire"),
@@ -186,8 +186,7 @@ def test_slot_resolves_initial_active_with_payload() -> None:
         "main",
         _REGISTRY,
         bindings,
-        active_key="a:e:graph",
-        active_payload="/tmp/b.haywire",
+        active_key="a:e:graph::/tmp/b.haywire",
     )
     assert slot.active_binding is bindings[2]
     assert slot.active_binding_id == "a:e:graph::/tmp/b.haywire"
