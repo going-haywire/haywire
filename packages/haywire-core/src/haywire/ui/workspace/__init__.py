@@ -1,26 +1,11 @@
 # packages/haywire-core/src/haywire/ui/workspace/__init__.py
 """
-Workspace system for the Haywire UI layout.
+Workspace persistence for the Haywire UI layout.
 
-WorkspaceState defines the complete workspace configuration (which editors are
-in which slots, panel sizes, tab layout). WorkspaceManager handles loading,
-saving, and auto-populating from the editor registry.
+WorkspaceManager handles loading and saving the raw workspace snapshot dict.
+Slot classes (IconSlot, TabSlot) own the interpretation of snapshot contents.
 """
 
-from .workspace_state import (
-    SlotState,
-    TabState,
-    MainSlotState,
-    BottomSlotState,
-    WorkspaceState,
-)
 from .manager import WorkspaceManager
 
-__all__ = [
-    "SlotState",
-    "TabState",
-    "MainSlotState",
-    "BottomSlotState",
-    "WorkspaceState",
-    "WorkspaceManager",
-]
+__all__ = ["WorkspaceManager"]

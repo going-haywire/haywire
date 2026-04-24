@@ -65,6 +65,7 @@ class EditorBinding:
     editor_cls: type["BaseEditor"]
     payload: Any = None
     instance: Optional["BaseEditor"] = None
+    label: str = ""
 
     @property
     def binding_id(self) -> str:
@@ -148,13 +149,14 @@ class Slot(ABC):
         self,
         session: "Session",
         name: str,
-        registry: EditorTypeRegistry,
+        registry: Optional[EditorTypeRegistry],
         initial_bindings: list[EditorBinding],
         active_key: Optional[str] = None,
-        slot_state: Optional[Any] = None,
         on_visibility_change: Optional[Callable[[bool], None]] = None,
         bar_place: Literal["left", "right", "top", "bottom"] = "left",
         show_fold_toggle: bool = False,
+        visible: bool = True,
+        size: int = 300,
     ):
         """
         Args:
@@ -171,12 +173,6 @@ class Slot(ABC):
                 :meth:`EditorBinding.split_id` before construction. If the key
                 has no matching binding, the first binding (if any) becomes
                 active; if there are no bindings, the slot is inactive.
-            slot_state: Reference to the workspace-state sub-object for this
-                slot (``SlotState`` for left/right, ``MainSlotState`` /
-                ``BottomSlotState`` for main/bottom). When set, the slot
-                mirrors its active key / size / visibility onto this object
-                so the persisted workspace tracks live state automatically.
-                May be ``None`` in tests that don't care about persistence.
             on_visibility_change: Optional callback fired when the slot's
                 visibility changes. Receives the new visibility state (bool).
                 Not fired on idempotent calls (when the state doesn't change).
@@ -186,27 +182,28 @@ class Slot(ABC):
             show_fold_toggle: Render a fold toggle on the bar. When ``True``
                 the content box uses a fixed pixel size (resizable/foldable);
                 when ``False`` it fills remaining space with ``flex: 1``.
+            visible: Initial visibility of the slot's area container.
+            size: Initial pixel size for the slot's content box (width for
+                horizontal slots, height for vertical fold-toggle slots).
         """
         self._session = session
         self.name = name
-        self._registry: EditorTypeRegistry = registry
+        self._registry: Optional[EditorTypeRegistry] = registry
         self._bindings: list[EditorBinding] = list(initial_bindings)
         self._active: Optional[EditorBinding] = self._resolve_initial_active(active_key)
-        self._visible: bool = True
+        self._visible: bool = visible
+        self._size: int = size
         self._area_panel_container: Optional[ui.element] = None
         self._area_parent_box: Optional[ui.element] = None
         self._panels: dict[str, ui.element] = {}
         self._drawn: set[str] = set()
-        self._slot_state = slot_state
         self._on_visibility_change = on_visibility_change
         self._bar_place = bar_place
         self._show_fold_toggle = show_fold_toggle
-
-        self._mirror_active_into_state()
-        self._registry.add_batch_event_subscriber(self._on_editor_lifecycle)
-
         self._bar_container: Optional[ui.element] = None
         self._fold_button: Optional[ui.element] = None
+        if self._registry is not None:
+            self._registry.add_batch_event_subscriber(self._on_editor_lifecycle)
 
     _ORIENTATION: ClassVar[Literal["horizontal", "vertical"]]
 
@@ -232,54 +229,32 @@ class Slot(ABC):
                 return match
         return self._bindings[0] if self._bindings else None
 
-    def _mirror_active_into_state(self) -> None:
-        """Reconcile the workspace slot_state's ``active_tab_key`` with the slot's resolved binding.
-
-        A persisted key may point to a now-unregistered editor class;
-        ``_resolve_initial_active`` silently falls back to the first binding.
-        Without this mirror, the bar highlight would still read the stale key.
-        No-op when ``slot_state`` is ``None`` (test mode).
-        """
-        if self._slot_state is None:
-            return
-        new_key = self._active.binding_id if self._active is not None else None
-        # Tabbed slots persist composite tab_id; icon slots persist plain editor_key.
-        # Decide by peeking at the slot_state dataclass via hasattr(tabs).
-        if hasattr(self._slot_state, "tabs"):
-            self._slot_state.active_tab_key = new_key
-        else:
-            self._slot_state.active_tab_key = self._active.editor_key if self._active else None
-
     def _create_content_box(self) -> "ui.element":
         """Create the slot's outer content box.
 
         Size axis and flex behaviour are derived from ``_ORIENTATION`` and
         ``show_fold_toggle``:
-        * horizontal + fold  → fixed ``width`` from ``slot_state.size`` (default 300)
-        * vertical   + fold  → fixed ``height`` from ``slot_state.size`` (default 200)
+        * horizontal + fold  → fixed ``width`` from ``self._size`` (default 300)
+        * vertical   + fold  → fixed ``height`` from ``self._size`` (default 200)
         * vertical   no fold → ``flex: 1`` (fills remaining vertical space)
 
         A border is added on the bar side for horizontal slots.
         """
-        size = getattr(self._slot_state, "size", None) if self._slot_state is not None else None
-
         if self._is_horizontal:
-            size = size if size is not None else 300
             border = f"border-{self._bar_place}: 1px solid var(--hw-border);"
             col = (
                 ui.column()
                 .classes("gap-0")
                 .style(
-                    f"width: {size}px; min-width: 150px; height: 100%; "
+                    f"width: {self._size}px; min-width: 150px; height: 100%; "
                     f"overflow: hidden; background: var(--hw-bg-page); {border}"
                 )
             )
         elif self._show_fold_toggle:
-            size = size if size is not None else 200
             col = (
                 ui.column()
                 .classes("gap-0")
-                .style(f"height: {size}px; min-height: 0; width: 100%; overflow: hidden;")
+                .style(f"height: {self._size}px; min-height: 0; width: 100%; overflow: hidden;")
             )
         else:
             col = ui.column().classes("gap-0 w-full").style("flex: 1; min-height: 0; overflow: hidden;")
@@ -402,8 +377,8 @@ class Slot(ABC):
             return
         self._bar_container.clear()
         with self._bar_container:
-            self._render_bar_contents()   
-            
+            self._render_bar_contents()
+
     def _render_area_contents(self, parent: "ui.element") -> None:
         """
         Create the area container (a headless ``ui.tab_panels``) as a child
@@ -522,7 +497,6 @@ class Slot(ABC):
         self._ensure_drawn(binding)
         if self._area_panel_container is not None:
             self._area_panel_container.set_value(binding.binding_id)
-        self._mirror_active_into_state()
 
     # ------------------------------------------------------------------
     # Switching
@@ -575,7 +549,6 @@ class Slot(ABC):
     # Visibility
     # ------------------------------------------------------------------
 
-
     def set_visible(self, visible: bool) -> None:
         """Show or hide the area container. Idempotent.
 
@@ -583,7 +556,6 @@ class Slot(ABC):
         subscribers (e.g. the shell's divider + toggle button) aren't
         thrashed by no-op calls.
         """
-        transitioning = visible != self._visible
         if visible == self._visible:
             return
         self._visible = visible
@@ -591,23 +563,97 @@ class Slot(ABC):
             self._area_parent_box.set_visibility(visible)
         if self._area_panel_container is not None:
             self._area_panel_container.set_visibility(visible)
-        if self._slot_state is not None and hasattr(self._slot_state, "visible"):
-            self._slot_state.visible = visible
         if self._on_visibility_change is not None:
             self._on_visibility_change(visible)
-
-        if transitioning:
-            self._refresh_bar()
-     
+        self._refresh_bar()
 
     def set_size(self, size_px: int) -> None:
-        """Persist a drag-resize result into ``slot_state.size``.
+        """Store the drag-resize result in ``self._size``."""
+        self._size = int(size_px)
 
-        No-op when the slot_state has no ``size`` field (e.g. ``MainSlotState``
-        which is the flex:1 filler and never stores an explicit size).
+    def to_snapshot(self) -> dict:
+        """Serialize current slot state to a plain dict for persistence.
+
+        REQUIRED editors are excluded — they are always re-injected from the
+        registry at construction and don't need persisting.
         """
-        if self._slot_state is not None and hasattr(self._slot_state, "size"):
-            self._slot_state.size = int(size_px)
+        from haywire.ui.editor.identity import OpenBehavior
+
+        editors = []
+        for binding in self._bindings:
+            opens = getattr(binding.editor_cls.class_identity, "opens", OpenBehavior.REQUIRED)
+            if opens is OpenBehavior.REQUIRED:
+                continue
+            entry: dict = {"key": binding.editor_key}
+            if binding.payload is not None:
+                entry["payload"] = binding.payload
+            label = binding.label or getattr(binding.editor_cls.class_identity, "label", binding.editor_key)
+            entry["label"] = label
+            editors.append(entry)
+
+        return {
+            "active_key": self.active_binding_id,
+            "visible": self._visible,
+            "size": self._size,
+            "editors": editors,
+        }
+
+    @classmethod
+    def from_snapshot(
+        cls,
+        data: dict,
+        registry: "Optional[EditorTypeRegistry]",
+        session: "Session",
+        name: str,
+        bar_place: Literal["left", "right", "top", "bottom"] = "left",
+        show_fold_toggle: bool = False,
+        on_visibility_change: Optional[Callable[[bool], None]] = None,
+    ) -> "Slot":
+        """Construct a slot from a raw snapshot dict.
+
+        Injects all REQUIRED editors for this slot unconditionally from the
+        registry. Then appends snapshot editors (ON_PAYLOAD / ON_CONTEXT) in
+        order. Unknown editor keys are silently skipped.
+        """
+        from haywire.ui.editor.identity import OpenBehavior
+
+        bindings: list[EditorBinding] = []
+
+        if registry is not None:
+            for key, editor_cls in registry.get_by_default_slot(name).items():
+                opens = getattr(editor_cls.class_identity, "opens", OpenBehavior.REQUIRED)
+                if opens is OpenBehavior.REQUIRED:
+                    bindings.append(EditorBinding(editor_key=key, editor_cls=editor_cls, payload=None))
+
+        for entry in data.get("editors", []):
+            key = entry.get("key")
+            if not key:
+                continue
+            editor_cls = registry.get_by_key(key) if registry is not None else None
+            if editor_cls is None:
+                logger.warning(f"Slot '{name}': snapshot editor '{key}' not in registry — skipping")
+                continue
+            payload = entry.get("payload")
+            binding = EditorBinding(editor_key=key, editor_cls=editor_cls, payload=payload)
+            binding.label = entry.get("label", key)
+            bindings.append(binding)
+
+        active_key = data.get("active_key")
+        visible = data.get("visible", True)
+        size = data.get("size", 300)
+
+        return cls(
+            session=session,
+            name=name,
+            registry=registry,
+            initial_bindings=bindings,
+            active_key=active_key,
+            on_visibility_change=on_visibility_change,
+            bar_place=bar_place,
+            show_fold_toggle=show_fold_toggle,
+            visible=visible,
+            size=size,
+        )
 
     # ------------------------------------------------------------------
     # Orchestrator hook
@@ -717,7 +763,6 @@ class Slot(ABC):
                 self._activate(sibling)
             else:
                 self._active = None
-                self._mirror_active_into_state()
         return target
 
     def repayload_binding(
@@ -762,7 +807,6 @@ class Slot(ABC):
             self._drawn.add(new_id)
         if self._active is target and self._area_panel_container is not None:
             self._area_panel_container.set_value(new_id)
-        self._mirror_active_into_state()
         return True
 
     def remove_bindings(
@@ -800,7 +844,6 @@ class Slot(ABC):
                 self._activate(sibling)
             else:
                 self._active = None
-                self._mirror_active_into_state()
 
     # ------------------------------------------------------------------
     # Registry hot-reload (self-owned)

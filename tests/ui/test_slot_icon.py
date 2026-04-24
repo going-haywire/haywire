@@ -124,13 +124,11 @@ def _editor_cls(key, icon="ic", label="Lbl"):
 def test_icon_slot_renders_row_with_bar_and_area(monkeypatch):
     created = _install_ui_fakes(monkeypatch)
     a = _editor_cls("a")
-    state = SimpleNamespace(active_tab_key="a", visible=True, size=300)
     slot = IconSlot(
         session=SimpleNamespace(context=None),
         name="left",
         registry=_REGISTRY,
         initial_bindings=[EditorBinding(editor_key="a", editor_cls=a)],
-        slot_state=state,
         bar_place="left",
     )
     parent = _FakeContainer()
@@ -151,7 +149,6 @@ def test_icon_slot_bar_click_fires_switch_and_workspace_changed(monkeypatch):
     b = _editor_cls("b")
     notified = []
     session = SimpleNamespace(context=None, notify_context_changed=notified.append)
-    state = SimpleNamespace(active_tab_key="a", visible=True, size=300)
     slot = IconSlot(
         session=session,
         name="left",
@@ -161,7 +158,6 @@ def test_icon_slot_bar_click_fires_switch_and_workspace_changed(monkeypatch):
             EditorBinding(editor_key="b", editor_cls=b),
         ],
         active_key="a",
-        slot_state=state,
         bar_place="left",
     )
     slot.render(_FakeContainer())
@@ -172,7 +168,6 @@ def test_icon_slot_bar_click_fires_switch_and_workspace_changed(monkeypatch):
     buttons[1].on_click()  # click the 'b' icon
 
     assert slot.active_key == "b"
-    assert state.active_tab_key == "b"
     assert len(notified) == 1
     assert notified[0].change_type == ContextChangeType.WORKSPACE_CHANGED
 
@@ -180,14 +175,12 @@ def test_icon_slot_bar_click_fires_switch_and_workspace_changed(monkeypatch):
 def test_icon_slot_fold_toggle_flips_visible(monkeypatch):
     created = _install_ui_fakes(monkeypatch)
     a = _editor_cls("a")
-    state = SimpleNamespace(active_tab_key="a", visible=True, size=300)
     vis_calls = []
     slot = IconSlot(
         session=SimpleNamespace(context=None, notify_context_changed=lambda _e: None),
         name="left",
         registry=_REGISTRY,
         initial_bindings=[EditorBinding(editor_key="a", editor_cls=a)],
-        slot_state=state,
         bar_place="left",
         on_visibility_change=vis_calls.append,
     )
@@ -198,5 +191,4 @@ def test_icon_slot_fold_toggle_flips_visible(monkeypatch):
     assert fold_btns, "fold toggle button should be present"
     fold_btns[0].on_click()
     assert slot.visible is False
-    assert state.visible is False
     assert vis_calls == [False]

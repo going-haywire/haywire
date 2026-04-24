@@ -613,27 +613,25 @@ def test_can_close_missing_opens_defaults_true():
     assert b.can_close is True
 
 
-def test_slot_switch_mirrors_active_key_into_slot_state(monkeypatch):
+def test_slot_switch_to_updates_active_key(monkeypatch):
     _install_fake_tab_panels(monkeypatch)
     cls_a = type("_A", (), {"class_identity": SimpleNamespace(opens="required")})
     cls_b = type("_B", (), {"class_identity": SimpleNamespace(opens="required")})
     a = EditorBinding(editor_key="a", editor_cls=cls_a)
     b = EditorBinding(editor_key="b", editor_cls=cls_b)
-    state = SimpleNamespace(active_tab_key="a", visible=True, size=200)
     slot = TabSlot(
         session=SimpleNamespace(context=None),
         name="left",
         registry=_REGISTRY,
         initial_bindings=[a, b],
         active_key="a",
-        slot_state=state,
     )
     parent = _FakeContainer()
     slot._render_area_contents(parent)
-    assert state.active_tab_key == "a"
+    assert slot.active_key == "a"
 
     slot.switch_to("b")
-    assert state.active_tab_key == "b"
+    assert slot.active_key == "b"
 
 
 def test_slot_set_visible_fires_on_visibility_change(monkeypatch):
@@ -655,36 +653,19 @@ def test_slot_set_visible_fires_on_visibility_change(monkeypatch):
     assert calls == [False, True]
 
 
-def test_slot_set_visible_mirrors_into_slot_state_visible(monkeypatch):
+def test_slot_set_visible_updates_internal_state(monkeypatch):
     _install_fake_tab_panels(monkeypatch)
     cls = type("_C", (), {"class_identity": SimpleNamespace(opens="required")})
-    state = SimpleNamespace(active_tab_key="e", visible=True, size=200)
     slot = TabSlot(
         session=SimpleNamespace(context=None),
         name="left",
         registry=_REGISTRY,
         initial_bindings=[EditorBinding(editor_key="e", editor_cls=cls)],
-        slot_state=state,
     )
     slot.set_visible(False)
-    assert state.visible is False
+    assert slot.visible is False
     slot.set_visible(True)
-    assert state.visible is True
-
-
-def test_slot_set_visible_skips_mirror_when_state_lacks_visible_attr(monkeypatch):
-    _install_fake_tab_panels(monkeypatch)
-    cls = type("_C", (), {"class_identity": SimpleNamespace(opens="required")})
-    state = SimpleNamespace(active_tab_key=None)  # no 'visible' attr
-    slot = TabSlot(
-        session=SimpleNamespace(context=None),
-        name="main",
-        registry=_REGISTRY,
-        initial_bindings=[EditorBinding(editor_key="e", editor_cls=cls)],
-        slot_state=state,
-    )
-    slot.set_visible(False)  # must not raise
-    assert not hasattr(state, "visible")
+    assert slot.visible is True
 
 
 # ----------------------------------------------------------------------
@@ -692,34 +673,17 @@ def test_slot_set_visible_skips_mirror_when_state_lacks_visible_attr(monkeypatch
 # ----------------------------------------------------------------------
 
 
-def test_slot_set_size_updates_slot_state(monkeypatch):
-    _install_fake_tab_panels(monkeypatch)
+def test_slot_set_size_updates_internal_size():
     cls = type("_C", (), {"class_identity": SimpleNamespace(opens="required")})
-    state = SimpleNamespace(active_tab_key=None, visible=True, size=300)
     slot = TabSlot(
         session=SimpleNamespace(context=None),
         name="bottom",
         registry=_REGISTRY,
         initial_bindings=[EditorBinding(editor_key="e", editor_cls=cls)],
-        slot_state=state,
+        size=300,
     )
     slot.set_size(275)
-    assert state.size == 275
-
-
-def test_slot_set_size_noop_when_slot_state_has_no_size():
-    """MainSlotState has no size field; set_size must not crash."""
-    cls = type("_C", (), {"class_identity": SimpleNamespace(opens="required")})
-    state = SimpleNamespace(active_tab_key=None)  # no size attr
-    slot = TabSlot(
-        session=SimpleNamespace(context=None),
-        name="main",
-        registry=_REGISTRY,
-        initial_bindings=[EditorBinding(editor_key="e", editor_cls=cls)],
-        slot_state=state,
-    )
-    slot.set_size(500)  # no-op, no crash
-    assert not hasattr(state, "size")
+    assert slot._size == 275
 
 
 def test_slot_subscribes_to_registry_on_construction(monkeypatch):
@@ -767,3 +731,176 @@ def test_slot_subscribes_to_registry_on_construction(monkeypatch):
     # teardown unsubscribes.
     slot.teardown()
     assert reg.subscribers == []
+
+
+# ---------------------------------------------------------------------------
+# Slot.to_snapshot / from_snapshot
+# ---------------------------------------------------------------------------
+
+from types import SimpleNamespace as _SN
+
+
+class _FakeEditorCls2:
+    def __init__(self, key, opens=None, slot="main"):
+        from haywire.ui.editor.identity import OpenBehavior
+
+        self.class_identity = _SN(
+            registry_key=key,
+            label=key,
+            icon="icon",
+            opens=opens or OpenBehavior.REQUIRED,
+            default_slot=slot,
+        )
+
+
+class _FakeRegistry2:
+    def __init__(self, classes):
+        self._classes = classes
+
+    def get_by_key(self, key):
+        return self._classes.get(key)
+
+    def get_by_default_slot(self, slot):
+        return {k: v for k, v in self._classes.items() if v.class_identity.default_slot == slot}
+
+    def add_batch_event_subscriber(self, _cb):
+        pass
+
+    def remove_batch_event_subscriber(self, _cb):
+        pass
+
+
+def _make_tab_slot2(bindings, active_key=None, visible=True, size=200):
+    from haywire.ui.app.tab_slot import TabSlot
+
+    return TabSlot(
+        session=_SN(context=None, notify_context_changed=lambda _e: None),
+        name="main",
+        registry=_FakeRegistry2({}),
+        initial_bindings=bindings,
+        active_key=active_key,
+        bar_place="top",
+        show_fold_toggle=False,
+        visible=visible,
+        size=size,
+    )
+
+
+class TestSlotToSnapshot:
+    def test_active_key_is_serialized(self):
+        from haywire.ui.editor.identity import OpenBehavior
+        from haywire.ui.app.slot import EditorBinding
+
+        cls = _FakeEditorCls2("ed:graph", OpenBehavior.ON_PAYLOAD)
+        binding = EditorBinding(editor_key="ed:graph", editor_cls=cls, payload="/a.haywire")
+        slot = _make_tab_slot2([binding], active_key="ed:graph::/a.haywire")
+        snap = slot.to_snapshot()
+        assert snap["active_key"] == "ed:graph::/a.haywire"
+
+    def test_required_editors_excluded(self):
+        from haywire.ui.editor.identity import OpenBehavior
+        from haywire.ui.app.slot import EditorBinding
+
+        req_cls = _FakeEditorCls2("ed:required", OpenBehavior.REQUIRED)
+        pay_cls = _FakeEditorCls2("ed:graph", OpenBehavior.ON_PAYLOAD)
+        bindings = [
+            EditorBinding(editor_key="ed:required", editor_cls=req_cls, payload=None),
+            EditorBinding(editor_key="ed:graph", editor_cls=pay_cls, payload="/a.haywire"),
+        ]
+        slot = _make_tab_slot2(bindings, active_key="ed:graph::/a.haywire")
+        snap = slot.to_snapshot()
+        keys = [e["key"] for e in snap["editors"]]
+        assert "ed:required" not in keys
+        assert "ed:graph" in keys
+
+    def test_payload_and_label_serialized(self):
+        from haywire.ui.editor.identity import OpenBehavior
+        from haywire.ui.app.slot import EditorBinding
+
+        cls = _FakeEditorCls2("ed:graph", OpenBehavior.ON_PAYLOAD)
+        binding = EditorBinding(editor_key="ed:graph", editor_cls=cls, payload="/a.haywire")
+        binding.label = "a.haywire"
+        slot = _make_tab_slot2([binding], active_key="ed:graph::/a.haywire")
+        snap = slot.to_snapshot()
+        ed = snap["editors"][0]
+        assert ed["key"] == "ed:graph"
+        assert ed["payload"] == "/a.haywire"
+        assert ed["label"] == "a.haywire"
+
+    def test_visible_and_size(self):
+        slot = _make_tab_slot2([], visible=False, size=350)
+        snap = slot.to_snapshot()
+        assert snap["visible"] is False
+        assert snap["size"] == 350
+
+
+class TestSlotFromSnapshot:
+    def test_required_editors_injected(self):
+        from haywire.ui.editor.identity import OpenBehavior
+        from haywire.ui.app.tab_slot import TabSlot
+
+        cls = _FakeEditorCls2("ed:required", OpenBehavior.REQUIRED, slot="main")
+        registry = _FakeRegistry2({"ed:required": cls})
+        session = _SN(context=None, notify_context_changed=lambda _e: None)
+        slot = TabSlot.from_snapshot(
+            data={},
+            registry=registry,
+            session=session,
+            name="main",
+            bar_place="top",
+            show_fold_toggle=False,
+        )
+        assert any(b.editor_key == "ed:required" for b in slot.bindings)
+
+    def test_on_payload_editors_restored(self):
+        from haywire.ui.editor.identity import OpenBehavior
+        from haywire.ui.app.tab_slot import TabSlot
+
+        cls = _FakeEditorCls2("ed:graph", OpenBehavior.ON_PAYLOAD, slot="main")
+        registry = _FakeRegistry2({"ed:graph": cls})
+        session = _SN(context=None, notify_context_changed=lambda _e: None)
+        data = {
+            "active_key": "ed:graph::/a.haywire",
+            "editors": [{"key": "ed:graph", "payload": "/a.haywire", "label": "a.haywire"}],
+        }
+        slot = TabSlot.from_snapshot(
+            data=data,
+            registry=registry,
+            session=session,
+            name="main",
+            bar_place="top",
+            show_fold_toggle=False,
+        )
+        assert any(b.editor_key == "ed:graph" for b in slot.bindings)
+
+    def test_unknown_editor_key_skipped(self):
+        from haywire.ui.app.tab_slot import TabSlot
+
+        registry = _FakeRegistry2({})
+        session = _SN(context=None, notify_context_changed=lambda _e: None)
+        data = {"editors": [{"key": "ed:gone", "payload": "/x.haywire", "label": "x"}]}
+        slot = TabSlot.from_snapshot(
+            data=data,
+            registry=registry,
+            session=session,
+            name="main",
+            bar_place="top",
+            show_fold_toggle=False,
+        )
+        assert slot.bindings == []
+
+    def test_visible_and_size_restored(self):
+        from haywire.ui.app.tab_slot import TabSlot
+
+        registry = _FakeRegistry2({})
+        session = _SN(context=None, notify_context_changed=lambda _e: None)
+        slot = TabSlot.from_snapshot(
+            data={"visible": False, "size": 275},
+            registry=registry,
+            session=session,
+            name="bottom",
+            bar_place="top",
+            show_fold_toggle=True,
+        )
+        assert slot.visible is False
+        assert slot._size == 275

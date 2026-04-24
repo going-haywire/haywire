@@ -42,5 +42,5 @@ def test_notify_context_changed_stays_local_only():
     event = ContextChangedEvent(change_type=ContextChangeType.SELECTION_CHANGED)
     session.notify_context_changed(event)
 
-    orchestrator.assert_called_once_with(event, session.context)
+    orchestrator.assert_called_once_with(event)
     sm.broadcast.assert_not_called()

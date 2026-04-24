@@ -131,7 +131,8 @@ class HaywireApp:
         self.panel_registry = self.library_service.get_panel_registry()
 
         # Graph manager — starts empty; graphs are created/opened on demand.
-        # Haystack auto-load happens after workspace_manager is available (in main_page).
+        # Haystack auto-load is deferred to main_page so it can guard against
+        # multiple sessions reconnecting to an already-populated haystack.
         from .haystack import Haystack
 
         self.haystack = Haystack(
@@ -139,6 +140,10 @@ class HaywireApp:
             graph_factory=self._graph_factory,
             session_manager=self.session_manager,
         )
+
+        from haywire.ui.workspace.manager import WorkspaceManager
+
+        self.workspace_manager = WorkspaceManager(project_path=Path(self.workspace_root))
 
         # Library manager
         from .library_manager import LibraryManager
@@ -166,66 +171,36 @@ class HaywireApp:
     # Haystack auto-load
     # ------------------------------------------------------------------
 
-    def try_load_startup_haystack(self, workspace_manager) -> None:
-        """Load the last-used haystack on startup (if configured).
-
-        Called once per application boot from the first session's main_page.
-        If ``workspace_state.haystack`` names a valid haystack file the graphs
-        are opened silently.  Any missing files are skipped.
-        """
-        haystack_name = workspace_manager.active.haystack
+    def try_load_startup_haystack(self) -> None:
+        """Load the last-used haystack on startup (if configured)."""
+        haystack_name = self.workspace_manager.snapshot.get("haystack")
         if not haystack_name:
             return
-
         if self.haystack.all_entries():
-            # Already have graphs open (e.g. second session connecting) — skip
             return
-
         try:
             self.haystack.load_haystack(haystack_name)
             logger.info(f"Startup haystack '{haystack_name}' loaded")
         except Exception as exc:
             logger.warning(f"Failed to load startup haystack '{haystack_name}': {exc}")
 
-    def restore_persisted_tabs(self, workspace_manager, session_id: str) -> None:
-        """Re-materialize the haystack entries referenced by persisted main tabs.
+    def save_workspace(self, shell=None, active_graph_path=None) -> None:
+        """Save haystack and workspace snapshot atomically.
 
-        Called after the startup haystack is loaded but before the AppShell
-        wires bindings, so that tabs carrying a saved-graph payload resolve
-        to a live ``GraphEntry`` instead of a dangling binding.
-
-        In-memory payloads (``__unsaved_N__`` / ``__untitled__``) are dropped
-        from the persisted tab list — their graphs vanished when the
-        previous session exited, so their tabs can't be restored.
+        Args:
+            shell: The active AppShell. When provided, collects the current slot
+                snapshot from it. When None, re-saves the existing snapshot.
+            active_graph_path: Path of the currently active graph to store in
+                the haystack TOML.
         """
-        ws = workspace_manager.active
-        surviving: list = []
-        for tab in ws.main.tabs:
-            payload = tab.payload
-            if payload is None:
-                surviving.append(tab)
-                continue
-            if payload.startswith("__"):
-                # Untitled/new graphs don't persist across restart
-                logger.info(f"Dropping unsaved tab on restore: {payload}")
-                continue
-            path = Path(payload)
-            if not path.exists():
-                logger.warning(f"Dropping tab for missing file on restore: {payload}")
-                continue
-            try:
-                self.haystack.open_graph(path)
-            except Exception as exc:
-                logger.warning(f"Failed to restore tab for '{payload}': {exc}")
-                continue
-            surviving.append(tab)
-
-        if len(surviving) != len(ws.main.tabs):
-            ws.main.tabs = surviving
-            # Re-resolve active_tab_key if the previous one was dropped
-            valid_ids = {t.tab_id for t in surviving}
-            if ws.main.active_tab_key not in valid_ids:
-                ws.main.active_tab_key = surviving[0].tab_id if surviving else None
+        haystack_name = self.workspace_manager.snapshot.get("haystack") or "default"
+        self.haystack.save_haystack(haystack_name, active_graph_path=active_graph_path)
+        snapshot = self.workspace_manager.snapshot.copy()
+        if shell is not None:
+            slot_data = shell.collect_snapshot()
+            snapshot.update(slot_data)
+            snapshot["haystack"] = haystack_name
+        self.workspace_manager.save(snapshot)
 
     # ------------------------------------------------------------------
     # UI creation
@@ -242,32 +217,23 @@ class HaywireApp:
         def main_page():
             from haywire.ui.app.shell import AppShell
             from haywire.ui.editor.registry import EditorTypeRegistry
-            from haywire.ui.workspace.manager import WorkspaceManager
             from nicegui import context
 
             print(f"Creating UI for session: {context.client.id[:8]}")
 
             editor_registry = self.library_service.injector.get(EditorTypeRegistry)
 
-            workspace_manager = WorkspaceManager(
-                project_path=Path(self.workspace_root),
-                editor_registry=editor_registry,
-            )
-
-            # Auto-load the last-used haystack on first session connect
-            self.try_load_startup_haystack(workspace_manager)
+            # Only load haystack on first session connect
+            if not self.haystack.all_entries():
+                self.try_load_startup_haystack()
 
             haywire_session = self.session_manager.create_session(
                 project_state=self,
-                workspace_manager=workspace_manager,
+                workspace_manager=self.workspace_manager,
             )
 
             # Store session ID on NiceGUI Client for disconnect lookup
             context.client._haywire_session_id = haywire_session.session_id
-
-            # Re-open graph files referenced by persisted main tabs so the
-            # AppShell binds to live haystack entries on restart.
-            self.restore_persisted_tabs(workspace_manager, haywire_session.session_id)
 
             # Set studio theme defaults on context before rendering
             haywire_session.context.active_workbench_theme_key = "core:theme:workbench:haywire-dark"

@@ -24,12 +24,12 @@ from haywire.ui.editor.identity import OpenBehavior
 class _FakeSession:
     def __init__(self) -> None:
         self.workspace_manager = SimpleNamespace(
-            active=SimpleNamespace(
-                left=SimpleNamespace(active_tab_key="left:editor:one", visible=True, size=300),
-                right=SimpleNamespace(active_tab_key="right:editor:one", visible=True, size=300),
-                main=SimpleNamespace(tabs=[], active_tab_key="main:editor:one"),
-                bottom=SimpleNamespace(tabs=[], active_tab_key=None, visible=False, size=200),
-            )
+            snapshot={
+                "left": {"active_key": "left:editor:one", "visible": True, "size": 300, "editors": []},
+                "right": {"active_key": "right:editor:one", "visible": True, "size": 300, "editors": []},
+                "main": {"active_key": "main:editor:one", "editors": []},
+                "bottom": {"active_key": None, "visible": False, "size": 200, "editors": []},
+            }
         )
         self._editors = {}
         self.notified_events = []
@@ -178,7 +178,7 @@ def test_reveal_editor_routes_through_icon_slot() -> None:
         change_type=ContextChangeType.ACTIVE_COMPONENT_CHANGED,
         reveal_editor=target_key,
     )
-    shell._on_context_changed(event, shell.session.workspace_manager.active)
+    shell._on_context_changed(event)
 
     assert fake.switch_calls == [(target_key, None)]
     assert shell.session.notified_events == []  # reveal must not broadcast
@@ -195,7 +195,7 @@ def test_reveal_editor_unknown_logs_warning(caplog) -> None:
         reveal_editor="nonexistent:editor:zzz",
     )
     with caplog.at_level(logging.WARNING, logger="haywire.ui.app.shell"):
-        shell._on_context_changed(event, shell.session.workspace_manager.active)
+        shell._on_context_changed(event)
 
     assert fake.switch_calls == []
     assert any("nonexistent:editor:zzz" in rec.message for rec in caplog.records)

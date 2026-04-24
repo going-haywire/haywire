@@ -63,16 +63,15 @@ class Session:
         self._editors: Dict[str, "BaseEditor"] = {}
 
         # Single orchestrator callback set by AppShell
-        self._orchestrator_callback: Optional[Callable[[ContextChangedEvent, SessionContext], None]] = None
+        self._orchestrator_callback: Optional[Callable[[ContextChangedEvent], None]] = None
 
         logger.info(f"Session created: {self.session_id}")
 
-    def set_orchestrator(self, callback: Callable[["ContextChangedEvent", "SessionContext"], None]) -> None:
+    def set_orchestrator(self, callback: Callable[["ContextChangedEvent"], None]) -> None:
         """Set the single orchestrator callback for context change notifications.
 
         Args:
-            callback: The orchestrator's context-change handler
-                      (signature: event, context -> None).
+            callback: The orchestrator's context-change handler (signature: event -> None).
         """
         self._orchestrator_callback = callback
 
@@ -88,7 +87,7 @@ class Session:
         """
         if self._orchestrator_callback is not None:
             try:
-                self._orchestrator_callback(event, self.context)
+                self._orchestrator_callback(event)
             except Exception as e:
                 logger.error(f"Session {self.session_id}: orchestrator callback error: {e}")
 

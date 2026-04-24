@@ -3,11 +3,9 @@ TabSlot — the Slot subclass for main / bottom slots.
 
 Renders a column containing a horizontal tab bar on top (``ui.tabs``, plus an
 optional chevron for the bottom slot that folds the area in/out) and the
-``ui.tab_panels`` area below. Unlike ``IconSlot``, ``TabSlot`` owns a
-``list[TabState]`` on its ``slot_state`` and exposes mutators
+``ui.tab_panels`` area below. Exposes mutators
 (``open_tab``/``close_tab``/``repayload_tab``/``close_tabs_for_payload``) that
-keep the persisted tab list, the slot's bindings, and the active-tab mirror
-in lockstep.
+keep the slot's binding list in sync with the tab bar.
 
 """
 
@@ -20,7 +18,6 @@ from nicegui import ui
 
 from haywire.ui.app.slot import EditorBinding, Slot
 from haywire.ui.context_events import ContextChangedEvent, ContextChangeType
-from haywire.ui.workspace.workspace_state import TabState
 
 logger = logging.getLogger(__name__)
 
@@ -28,12 +25,8 @@ logger = logging.getLogger(__name__)
 class TabSlot(Slot):
     """Tabbed slot for the main and bottom shell slots.
 
-    Notes:
-        ``slot_state`` must expose ``tabs: list[TabState]`` and
-        ``active_tab_key: Optional[str]``; main/bottom workspace states
-        already do. Bottom slots additionally carry ``visible`` and ``size``.
-        The optional ``show_fold_toggle`` flag renders the chevron expand/
-        retract button at the end of the bar — used by the bottom slot.
+    The optional ``show_fold_toggle`` flag renders the chevron expand/retract
+    button at the end of the bar — used by the bottom slot.
     """
 
     _ORIENTATION: ClassVar[Literal["horizontal", "vertical"]] = "vertical"
@@ -66,26 +59,26 @@ class TabSlot(Slot):
 
     def _render_bar_contents(self) -> None:
         """Render tab row + optional chevron."""
-        tabs = getattr(self._slot_state, "tabs", []) if self._slot_state is not None else []
-        if tabs:
-            active_tab_key = getattr(self._slot_state, "active_tab_key", None)
-            ids = [t.tab_id for t in tabs]
-            initial = active_tab_key if active_tab_key in ids else (ids[0] if ids else None)
+        if self._bindings:
+            active_id = self._active.binding_id if self._active is not None else None
+            ids = [b.binding_id for b in self._bindings]
+            initial = active_id if active_id in ids else (ids[0] if ids else None)
             with (
                 ui.tabs(value=initial, on_change=lambda e: self._on_tab_clicked(e.value))
                 .props("dense align=left")
                 .classes("hw-slot-bar-tabs")
                 .style("flex: 1; min-height: 36px;")
             ):
-                for tab in tabs:
-                    if tab.editor_key is None:
-                        continue
-                    tab_el = ui.tab(name=tab.tab_id, label="").props("no-caps")
+                for binding in self._bindings:
+                    tab_el = ui.tab(name=binding.binding_id, label="").props("no-caps")
                     with tab_el:
                         with ui.row().classes("items-center gap-1 no-wrap"):
-                            ui.label(tab.label)
-                            if self._tab_close_visible(tab):
-                                tab_id = tab.tab_id
+                            label = binding.label or getattr(
+                                binding.editor_cls.class_identity, "label", binding.editor_key
+                            )
+                            ui.label(label)
+                            if binding.can_close:
+                                tab_id = binding.binding_id
                                 (
                                     ui.button(
                                         icon="close",
@@ -104,18 +97,6 @@ class TabSlot(Slot):
                 .tooltip(f"Toggle {self.name} slot")
                 .classes("flex-shrink-0 mr-1")
             )
-
-    def _tab_close_visible(self, tab) -> bool:
-        """Return True if ``tab`` should render a close button.
-
-        Reads the binding's ``can_close`` when a matching binding exists.
-        Falls back to ``True`` if the tab's editor class is no longer
-        registered (prevents stranding).
-        """
-        if tab.editor_key is None:
-            return False
-        binding = self.find_binding(tab.editor_key, tab.payload)
-        return True if binding is None else binding.can_close
 
     # ------------------------------------------------------------------
     # User actions
@@ -168,12 +149,6 @@ class TabSlot(Slot):
             self._refresh_bar()
             return True
 
-        # Drop the seed placeholder (editor_key=None) that default MainSlotState carries.
-        if self._slot_state is not None:
-            self._slot_state.tabs = [t for t in self._slot_state.tabs if t.editor_key is not None]
-            metadata = {"payload": payload} if payload else {}
-            self._slot_state.tabs.append(TabState(editor_key=editor_key, label=label, metadata=metadata))
-
         self.add_binding(
             EditorBinding(editor_key=editor_key, editor_cls=editor_cls, payload=payload),
             activate=True,
@@ -182,7 +157,7 @@ class TabSlot(Slot):
         return True
 
     def close_tab(self, editor_key: str, payload: Optional[str]) -> bool:
-        """Close one tab — removes binding + TabState; promotes sibling when active."""
+        """Close one tab — removes binding; promotes sibling when active."""
 
         def _cleanup(instance) -> None:
             try:
@@ -193,9 +168,6 @@ class TabSlot(Slot):
         removed = self.remove_binding(editor_key, payload, cleanup=_cleanup)
         if removed is None:
             return False
-        tab_id = removed.binding_id
-        if self._slot_state is not None:
-            self._slot_state.tabs = [t for t in self._slot_state.tabs if t.tab_id != tab_id]
         self._refresh_bar()
         return True
 
@@ -209,17 +181,10 @@ class TabSlot(Slot):
         """Re-key a tab in place (e.g. Save-As). Preserves the editor instance."""
         if not self.repayload_binding(editor_key, old_payload, new_payload):
             return False
-        old_tab_id = f"{editor_key}::{old_payload}" if old_payload else editor_key
-        if self._slot_state is not None:
-            for tab in self._slot_state.tabs:
-                if tab.tab_id == old_tab_id:
-                    if new_payload:
-                        tab.metadata["payload"] = new_payload
-                    else:
-                        tab.metadata.pop("payload", None)
-                    if new_label is not None:
-                        tab.label = new_label
-                    break
+        if new_label is not None:
+            binding = self.find_binding(editor_key, new_payload)
+            if binding is not None:
+                binding.label = new_label
         self._refresh_bar()
         return True
 

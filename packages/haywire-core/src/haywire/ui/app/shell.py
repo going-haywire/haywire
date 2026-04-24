@@ -18,17 +18,16 @@ Session and calling AppShell.render().
 """
 
 import logging
-from typing import Optional, TYPE_CHECKING
+from typing import Literal, Optional, TYPE_CHECKING
 from nicegui import ui
 
 from haywire.ui import elements as hui
 from haywire.ui.context_events import ContextChangedEvent, ContextChangeType
-from haywire.ui.app.slot import EditorBinding, Slot
+from haywire.ui.app.slot import Slot
 
 logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
-    from haywire.ui.context import SessionContext
     from haywire.ui.editor.registry import EditorTypeRegistry
     from haywire.ui.session import Session
 
@@ -119,8 +118,6 @@ class AppShell:
 
     def render(self) -> None:
         """Build the complete workspace layout into the current NiceGUI page."""
-        ws = self.session.workspace_manager.active
-
         # Remove NiceGUI's default content padding so the shell fills the viewport.
         # Area-level tab panels must not scroll — editors own their scroll behaviour.
         # CSS vars are injected from the active WorkbenchTheme (no body.body--dark block).
@@ -360,6 +357,8 @@ class AppShell:
         # Drag-resize event emitted by the JS handler above.
         ui.on("hw-slot-resize", lambda e: self._on_slot_resize(e))
 
+        snapshot = self.session.workspace_manager.snapshot
+
         with ui.column().classes("w-full gap-0").style("height: 100vh; overflow: hidden;"):
             # ----------------------------------------------------------------
             # TopBar
@@ -377,9 +376,11 @@ class AppShell:
                 .style("flex: 1; overflow: hidden; min-height: 0; flex-wrap: nowrap;")
             ):
                 # ---------------- Left slot ----------------
-                if ws.left.active_tab_key:
-                    left_slot = self._build_managed_slot("left", ws.left.active_tab_key)
-                    left_slot.set_visible(ws.left.visible)
+                left_data = snapshot.get("left", {})
+                if left_data.get("active_key") or (
+                    self._editor_registry and self._editor_registry.get_by_default_slot("left")
+                ):
+                    left_slot = self._build_managed_slot("left", bar_place="left")
                     # Slot wrapper lives inside main_content_row; slot renders bar + area into it.
                     left_wrapper = ui.element("div").style("height: 100%;")
                     left_slot.render(left_wrapper)
@@ -389,7 +390,7 @@ class AppShell:
                         .classes("hw-area-divider hw-area-divider-left flex-shrink-0")
                         .style("width: 5px; height: 100%; cursor: col-resize;")
                     )
-                    self._left_divider.set_visibility(ws.left.visible)
+                    self._left_divider.set_visibility(left_slot.visible)
                     left_slot._on_visibility_change = self._left_divider.set_visibility
 
                 # ---------------- Main + Bottom ----------------
@@ -399,36 +400,43 @@ class AppShell:
                     .style("flex: 1; height: 100%; overflow: hidden; min-width: 0;") as main_col
                 ):
                     main_col._props["id"] = "hw-slot-main-container"
-                    if ws.main.tabs:
-                        main_slot = self._build_managed_slot("main", ws.main.active_tab_key)
+                    main_data = snapshot.get("main", {})
+                    if main_data.get("editors") or (
+                        self._editor_registry and self._editor_registry.get_by_default_slot("main")
+                    ):
+                        main_slot = self._build_managed_slot("main", bar_place="top")
                         main_slot.render(main_col)
                     else:
                         ui.label("No editor").classes("hw-text-muted p-4")
 
-                    if ws.bottom.tabs:
+                    bottom_data = snapshot.get("bottom", {})
+                    if bottom_data.get("editors") or (
+                        self._editor_registry and self._editor_registry.get_by_default_slot("bottom")
+                    ):
                         self._bottom_divider = (
                             ui.element("div")
                             .classes("hw-area-vdivider w-full flex-shrink-0")
                             .style("height: 5px; cursor: row-resize;")
                         )
-                        self._bottom_divider.set_visibility(ws.bottom.visible)
-
-                        bottom_slot = self._build_managed_slot("bottom", ws.bottom.active_tab_key)
-                        bottom_slot.set_visible(ws.bottom.visible)
+                        bottom_slot = self._build_managed_slot(
+                            "bottom", bar_place="top", show_fold_toggle=True
+                        )
+                        self._bottom_divider.set_visibility(bottom_slot.visible)
                         bottom_slot.render(main_col)
                         bottom_slot._on_visibility_change = self._bottom_divider.set_visibility
 
                 # ---------------- Right slot ----------------
-                if ws.right.active_tab_key:
+                right_data = snapshot.get("right", {})
+                if right_data.get("active_key") or (
+                    self._editor_registry and self._editor_registry.get_by_default_slot("right")
+                ):
                     self._right_divider = (
                         ui.element("div")
                         .classes("hw-area-divider hw-area-divider-right flex-shrink-0")
                         .style("width: 5px; height: 100%; cursor: col-resize;")
                     )
-                    self._right_divider.set_visibility(ws.right.visible)
-
-                    right_slot = self._build_managed_slot("right", ws.right.active_tab_key)
-                    right_slot.set_visible(ws.right.visible)
+                    right_slot = self._build_managed_slot("right", bar_place="right")
+                    self._right_divider.set_visibility(right_slot.visible)
                     right_wrapper = ui.element("div").style("height: 100%;")
                     right_slot.render(right_wrapper)
                     right_slot._on_visibility_change = self._right_divider.set_visibility
@@ -440,7 +448,6 @@ class AppShell:
 
     def _render_topbar(self) -> None:
         """Render the top bar with global controls."""
-        wm = self.session.workspace_manager
         with (
             ui.row()
             .classes("w-full items-center px-3 gap-3 hw-panel")
@@ -453,7 +460,10 @@ class AppShell:
 
             ui.button(
                 icon=hui.icon.save,
-                on_click=lambda: (wm.save(), ui.notify("Workspace saved", position="top-right")),
+                on_click=lambda: (
+                    self.session.project_state.save_workspace(shell=self),
+                    ui.notify("Workspace saved", position="top-right"),
+                ),
             ).props("flat round dense").tooltip("Save workspace layout")
 
     def _render_statusbar(self) -> None:
@@ -468,84 +478,39 @@ class AppShell:
         ):
             ui.label(f"Session: {self.session.session_id[:8]}...").classes("text-xs hw-text-muted")
 
-    def _build_managed_slot(self, slot_name: str, active_key: Optional[str]) -> Slot:
-        """Construct and cache a managed Slot for ``slot_name``.
+    def _build_managed_slot(
+        self,
+        slot_name: str,
+        bar_place: Literal["left", "right", "top", "bottom"] = "left",
+        show_fold_toggle: bool = False,
+        on_visibility_change=None,
+    ) -> Slot:
+        """Construct and cache a Slot for ``slot_name`` from the workspace snapshot.
 
-        Left / right → IconSlot. Main / bottom → TabSlot. Bindings source:
-        registry lookup for icon slots, persisted workspace tabs for tab slots.
+        Left / right → IconSlot. Main / bottom → TabSlot.
         """
         from haywire.ui.app.icon_slot import IconSlot
         from haywire.ui.app.tab_slot import TabSlot
 
-        ws = self.session.workspace_manager.active
-        slot_state_map = {"left": ws.left, "right": ws.right, "main": ws.main, "bottom": ws.bottom}
+        snapshot = self.session.workspace_manager.snapshot
+        data = snapshot.get(slot_name, {})
 
-        bindings: list[EditorBinding] = []
-        if slot_name in ("left", "right"):
-            editors = self._editor_registry.get_by_default_slot(slot_name) if self._editor_registry else {}
-            bindings = [
-                EditorBinding(editor_key=key, editor_cls=cls, payload=None) for key, cls in editors.items()
-            ]
-        else:
-            tabs = ws.main.tabs if slot_name == "main" else ws.bottom.tabs
-            for tab in tabs:
-                if tab.editor_key is None:
-                    continue
-                cls = self._editor_registry.get_by_key(tab.editor_key) if self._editor_registry else None
-                if cls is None:
-                    logger.warning(
-                        f"AppShell: slot '{slot_name}' tab '{tab.editor_key}' "
-                        "has no registered editor class; skipping binding"
-                    )
-                    continue
-                bindings.append(
-                    EditorBinding(editor_key=tab.editor_key, editor_cls=cls, payload=tab.payload)
-                )
-
-        if slot_name == "left":
-            slot = IconSlot(
-                session=self.session,
-                name="left",
-                registry=self._editor_registry,
-                initial_bindings=bindings,
-                active_key=active_key,
-                slot_state=slot_state_map["left"],
-                bar_place="left",
-            )
-        elif slot_name == "right":
-            slot = IconSlot(
-                session=self.session,
-                name="right",
-                registry=self._editor_registry,
-                initial_bindings=bindings,
-                active_key=active_key,
-                slot_state=slot_state_map["right"],
-                bar_place="right",
-            )
-        elif slot_name == "main":
-            slot = TabSlot(
-                session=self.session,
-                name="main",
-                registry=self._editor_registry,
-                initial_bindings=bindings,
-                active_key=active_key,
-                slot_state=slot_state_map["main"],
-                bar_place="top",
-                show_fold_toggle=False,
-            )
-        else:  # bottom
-            slot = TabSlot(
-                session=self.session,
-                name="bottom",
-                registry=self._editor_registry,
-                initial_bindings=bindings,
-                active_key=active_key,
-                slot_state=slot_state_map["bottom"],
-                bar_place="top",
-                show_fold_toggle=True,
-            )
+        cls = IconSlot if slot_name in ("left", "right") else TabSlot
+        slot = cls.from_snapshot(
+            data=data,
+            registry=self._editor_registry,
+            session=self.session,
+            name=slot_name,
+            bar_place=bar_place,
+            show_fold_toggle=show_fold_toggle,
+            on_visibility_change=on_visibility_change,
+        )
         self._managed_slots[slot_name] = slot
         return slot
+
+    def collect_snapshot(self) -> dict:
+        """Collect current slot state into a snapshot dict for persistence."""
+        return {slot_name: slot.to_snapshot() for slot_name, slot in self._managed_slots.items()}
 
     # ------------------------------------------------------------------
     # Poll / draw orchestrator
@@ -608,7 +573,7 @@ class AppShell:
             if hasattr(slot, "_refresh_bar"):
                 slot._refresh_bar()
 
-    def _on_context_changed(self, event: ContextChangedEvent, context: "SessionContext") -> None:
+    def _on_context_changed(self, event: ContextChangedEvent) -> None:
         """Orchestrator callback: run the poll/draw cycle on every managed slot."""
         if event.change_type == ContextChangeType.TAB_CLOSE_REQUESTED:
             self._handle_tab_close_requested(event)

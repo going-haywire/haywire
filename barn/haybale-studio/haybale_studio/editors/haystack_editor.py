@@ -691,11 +691,8 @@ class HaystackEditor(BaseEditor):
                 if not name:
                     ui.notify("Name cannot be empty", type="warning")
                     return
-                gm.save_haystack(name, active_graph_path=context.active_graph_path)
-                session = context.session
-                if session and session.workspace_manager:
-                    session.workspace_manager.active.haystack = name
-                    session.workspace_manager.save()
+                context.app.workspace_manager.snapshot["haystack"] = name
+                context.app.save_workspace(active_graph_path=context.active_graph_path)
                 self._update_header_title(context)
                 ui.notify(f"Haystack '{name}' saved", type="positive")
                 popup.close()
@@ -754,11 +751,10 @@ class HaystackEditor(BaseEditor):
                 if active_entry is None and entries:
                     active_entry = entries[0]
 
-                session = context.session
-                if session and session.workspace_manager:
-                    session.workspace_manager.active.haystack = name
-                    session.workspace_manager.save()
+                context.app.workspace_manager.snapshot["haystack"] = name
+                context.app.save_workspace(active_graph_path=context.active_graph_path)
 
+                session = context.session
                 self._notify_data_mutated(context)
                 if active_entry is not None and session is not None:
                     session.notify_context_changed(
@@ -865,9 +861,9 @@ class HaystackEditor(BaseEditor):
 
     def _get_active_haystack_name(self, context: "SessionContext") -> Optional[str]:
         """Return the name of the currently loaded haystack, or None."""
-        session = context.session
-        if session and session.workspace_manager:
-            return session.workspace_manager.active.haystack
+        app = context.app
+        if app is not None and hasattr(app, "workspace_manager"):
+            return app.workspace_manager.snapshot.get("haystack")
         return None
 
     def _update_rename_haystack_enabled(self, context: "SessionContext") -> None:
@@ -918,10 +914,8 @@ class HaystackEditor(BaseEditor):
 
                 success = app.haystack.rename_haystack(old_name, new_name)
                 if success:
-                    session = context.session
-                    if session and session.workspace_manager:
-                        session.workspace_manager.active.haystack = new_name
-                        session.workspace_manager.save()
+                    context.app.workspace_manager.snapshot["haystack"] = new_name
+                    context.app.save_workspace(active_graph_path=context.active_graph_path)
                     self._update_header_title(context)
                     ui.notify(f"Haystack renamed to '{new_name}'", type="positive")
                     popup.close()

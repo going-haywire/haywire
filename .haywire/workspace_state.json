@@ -2,37 +2,33 @@
   "name": "default",
   "haystack": "Master",
   "left": {
-    "active_tab_key": "studio:editor:LibraryBrowserEditor",
+    "active_key": "studio:editor:FileBrowserEditor",
     "visible": true,
-    "size": 314
+    "size": 241,
+    "editors": []
   },
   "right": {
-    "active_tab_key": "studio:editor:PropertiesEditor",
+    "active_key": "studio:editor:PropertiesEditor",
     "visible": true,
-    "size": 305
+    "size": 369,
+    "editors": []
   },
   "main": {
-    "tabs": [
+    "active_key": "studio:editor:GraphEditor::/Volumes/Ddrive/06_open_tracking_tool/haywire/haywire-repo/graphs/webcam.haywire",
+    "visible": true,
+    "size": 300,
+    "editors": [
       {
-        "editor_key": "studio:editor:GraphEditor",
-        "label": "webcam.haywire",
-        "metadata": {
-          "payload": "/Volumes/Ddrive/06_open_tracking_tool/haywire/haywire-repo/graphs/webcam.haywire"
-        }
-      },
-      {
-        "editor_key": "studio:editor:GraphEditor",
-        "label": "loop.haywire",
-        "metadata": {
-          "payload": "/Volumes/Ddrive/06_open_tracking_tool/haywire/haywire-repo/graphs/loop.haywire"
-        }
+        "key": "studio:editor:GraphEditor",
+        "payload": "/Volumes/Ddrive/06_open_tracking_tool/haywire/haywire-repo/graphs/webcam.haywire",
+        "label": "Graph Editor"
       }
-    ],
-    "active_tab_key": "studio:editor:GraphEditor::/Volumes/Ddrive/06_open_tracking_tool/haywire/haywire-repo/graphs/webcam.haywire"
+    ]
   },
   "bottom": {
-    "active_tab_key": "studio:editor:TerminalEditor",
+    "active_key": "studio:editor:TerminalEditor",
     "visible": false,
-    "size": 310
+    "size": 310,
+    "editors": []
   }
 }
