@@ -17,7 +17,7 @@ construction so the slot stays framework-agnostic (no direct dependency on
 from __future__ import annotations
 
 import logging
-from typing import Optional
+from typing import ClassVar, Literal, Optional
 
 from nicegui import ui
 
@@ -39,57 +39,33 @@ class TabSlot(Slot):
         retract button at the end of the bar — used by the bottom slot.
     """
 
+    _ORIENTATION: ClassVar[Literal["horizontal", "vertical"]] = "vertical"
+
     # ------------------------------------------------------------------
     # Rendering
     # ------------------------------------------------------------------
 
     def render(self, parent: ui.element) -> None:
-        """Build ``[bar / area]`` column inside ``parent``."""
-        # Main fills the remaining space; bottom content-sizes so dragging
-        # the inner #hw-slot-bottom area height actually moves the layout.
-        wrapper_flex = "flex: 1" if self.name == "main" else "flex: 0 0 auto"
+        """Build ``[bar / area]`` or ``[area / bar]`` column inside ``parent``."""
+        wrapper_flex = "flex: 1" if not self._show_fold_toggle else "flex: 0 0 auto"
         with parent:
             wrapper = (
                 ui.column()
                 .classes("gap-0")
                 .style(f"width: 100%; {wrapper_flex}; min-height: 0; overflow: hidden;")
             )
-        with wrapper:
-            self._render_bar_row()
-            self._area_parent_box = self._create_content_box()
-        self._render_area(self._area_parent_box)
-        self._area_parent_box.set_visibility(self._visible)
 
-    def _create_content_box(self) -> ui.element:
-        """Create the slot's outer content box — flex:1 for main, fixed height for bottom."""
-        if self.name == "bottom":
-            size = getattr(self._slot_state, "size", 200) if self._slot_state is not None else 200
-            col = (
-                ui.column()
-                .classes("gap-0")
-                .style(f"height: {size}px; min-height: 0; width: 100%; overflow: hidden;")
-            )
-            col._props["id"] = "hw-slot-bottom"
+        if self._bar_place == "top":
+            with wrapper:
+                self._render_bar_row()
+                self._area_parent_box = self._create_content_box()
         else:
-            col = ui.column().classes("gap-0 w-full").style("flex: 1; min-height: 0; overflow: hidden;")
-            col._props["id"] = f"hw-slot-{self.name}"
-        return col
+            with wrapper:
+                self._area_parent_box = self._create_content_box()
+                self._render_bar_row()
 
-    def _render_bar_row(self) -> None:
-        self._bar_container = (
-            ui.row()
-            .classes("w-full items-center gap-0 flex-shrink-0 hw-slot-bar")
-            .style(
-                "background: var(--hw-bg-surface);"
-                " border-top: 1px solid var(--hw-border);"
-                " border-bottom: 1px solid var(--hw-border); min-height: 36px;"
-                if self.name == "bottom"
-                else "background: var(--hw-bg-surface);"
-                " border-bottom: 1px solid var(--hw-border); min-height: 36px;"
-            )
-        )
-        with self._bar_container:
-            self._render_bar_contents()
+        self._render_area_contents(self._area_parent_box)
+        self._area_parent_box.set_visibility(self._visible)
 
     def _render_bar_contents(self) -> None:
         """Render tab row + optional chevron."""

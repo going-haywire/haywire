@@ -14,6 +14,8 @@ arg: ``"left"`` places the bar before the area (used by the left slot);
 
 from __future__ import annotations
 
+from typing import ClassVar, Literal
+
 from nicegui import ui
 
 from haywire.ui.app.slot import EditorBinding, Slot
@@ -32,6 +34,8 @@ class IconSlot(Slot):
         states (matching the VS Code activity-bar idiom).
     """
 
+    _ORIENTATION: ClassVar[Literal["horizontal", "vertical"]] = "horizontal"
+
     # ------------------------------------------------------------------
     # Rendering
     # ------------------------------------------------------------------
@@ -41,7 +45,7 @@ class IconSlot(Slot):
         with parent:
             wrapper = ui.row().classes("gap-0 no-wrap").style("height: 100%; overflow: hidden;")
 
-        if self._bar_side == "left":
+        if self._bar_place == "left":
             with wrapper:
                 self._render_bar_column()
                 self._area_parent_box = self._create_content_box()
@@ -50,45 +54,8 @@ class IconSlot(Slot):
                 self._area_parent_box = self._create_content_box()
                 self._render_bar_column()
 
-        self._render_area(self._area_parent_box)
+        self._render_area_contents(self._area_parent_box)
         self._area_parent_box.set_visibility(self._visible)
-
-    def _create_content_box(self) -> ui.element:
-        """Create the slot's outer content box (width = slot_state.size, id for drag JS)."""
-        size = getattr(self._slot_state, "size", 300) if self._slot_state is not None else 300
-        border_style = (
-            "border-right: 1px solid var(--hw-border);"
-            if self._bar_side == "left"
-            else "border-left: 1px solid var(--hw-border);"
-        )
-        col = (
-            ui.column()
-            .classes("gap-0")
-            .style(
-                f"width: {size}px; min-width: 150px; height: 100%; "
-                "overflow: hidden; background: var(--hw-bg-page);" + border_style
-            )
-        )
-        col._props["id"] = f"hw-slot-{self.name}"
-        return col
-
-    def _render_bar_column(self) -> None:
-        """Render the icon bar (fold toggle + per-binding icon buttons)."""
-        border_style = (
-            "border-right: 1px solid var(--hw-border);"
-            if self._bar_side == "left"
-            else "border-left: 1px solid var(--hw-border);"
-        )
-        self._bar_container = (
-            ui.column()
-            .classes("items-center justify-start gap-1 py-2")
-            .style(
-                "width: 48px; min-width: 48px; height: 100%; "
-                "background: var(--hw-bg-sidebar); " + border_style + " overflow: hidden;"
-            )
-        )
-        with self._bar_container:
-            self._render_bar_contents()
 
     def _render_bar_contents(self) -> None:
         """Re-entrant bar content renderer — call after clearing ``_bar_container``."""
@@ -131,7 +98,7 @@ class IconSlot(Slot):
 
     def _mirror_fold_icon(self, visible: bool) -> bool:
         """Whether to apply scaleX(-1) to the fold icon, matching the original UX."""
-        if self._bar_side == "left":
+        if self._bar_place == "left":
             return visible  # left slot: mirror icon while expanded
         return not visible  # right slot: mirror while retracted
 

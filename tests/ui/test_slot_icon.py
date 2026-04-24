@@ -131,7 +131,7 @@ def test_icon_slot_renders_row_with_bar_and_area(monkeypatch):
         registry=_REGISTRY,
         initial_bindings=[EditorBinding(editor_key="a", editor_cls=a)],
         slot_state=state,
-        bar_side="left",
+        bar_place="left",
     )
     parent = _FakeContainer()
     slot.render(parent)
@@ -162,7 +162,7 @@ def test_icon_slot_bar_click_fires_switch_and_workspace_changed(monkeypatch):
         ],
         active_key="a",
         slot_state=state,
-        bar_side="left",
+        bar_place="left",
     )
     slot.render(_FakeContainer())
 
@@ -188,7 +188,7 @@ def test_icon_slot_fold_toggle_flips_visible(monkeypatch):
         registry=_REGISTRY,
         initial_bindings=[EditorBinding(editor_key="a", editor_cls=a)],
         slot_state=state,
-        bar_side="left",
+        bar_place="left",
         on_visibility_change=vis_calls.append,
     )
     slot.render(_FakeContainer())

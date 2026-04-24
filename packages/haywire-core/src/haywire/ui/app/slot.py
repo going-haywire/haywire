@@ -30,9 +30,10 @@ Relationship to AppShell:
 
 from __future__ import annotations
 
+from abc import ABC, abstractmethod
 import logging
 from dataclasses import dataclass
-from typing import Any, Callable, Literal, Optional, TYPE_CHECKING
+from typing import Any, Callable, ClassVar, Literal, Optional, TYPE_CHECKING
 
 from nicegui import ui
 
@@ -115,7 +116,7 @@ class EditorBinding:
         return self.instance
 
 
-class Slot:
+class Slot(ABC):
     """
     Runtime manager for one of the four shell slots.
 
@@ -153,7 +154,7 @@ class Slot:
         active_payload: Any = None,
         slot_state: Optional[Any] = None,
         on_visibility_change: Optional[Callable[[bool], None]] = None,
-        bar_side: Literal["left", "right"] = "left",
+        bar_place: Literal["left", "right", "top", "bottom"] = "left",
         show_fold_toggle: bool = False,
         persist_workspace: Optional[Callable[[], None]] = None,
     ):
@@ -182,10 +183,12 @@ class Slot:
             on_visibility_change: Optional callback fired when the slot's
                 visibility changes. Receives the new visibility state (bool).
                 Not fired on idempotent calls (when the state doesn't change).
-            bar_side: IconSlot-only — which side of the area the icon bar
-                renders on. Ignored by TabSlot.
-            show_fold_toggle: TabSlot-only — render a chevron fold toggle
-                on the tab bar (used by the bottom slot). Ignored by IconSlot.
+            bar_place: Where the bar renders relative to the area.
+                ``"left"``/``"right"`` for icon slots (horizontal layout);
+                ``"top"``/``"bottom"`` for tab slots (vertical layout).
+            show_fold_toggle: Render a fold toggle on the bar. When ``True``
+                the content box uses a fixed pixel size (resizable/foldable);
+                when ``False`` it fills remaining space with ``flex: 1``.
             persist_workspace: TabSlot-only — callback invoked after tab
                 mutations so the host can persist workspace state. Ignored
                 by IconSlot.
@@ -202,7 +205,7 @@ class Slot:
         self._drawn: set[str] = set()
         self._slot_state = slot_state
         self._on_visibility_change = on_visibility_change
-        self._bar_side = bar_side
+        self._bar_place = bar_place
         self._show_fold_toggle = show_fold_toggle
         self._persist_workspace = persist_workspace or (lambda: None)
 
@@ -211,6 +214,12 @@ class Slot:
 
         self._bar_container: Optional[ui.element] = None
         self._fold_button: Optional[ui.element] = None
+
+    _ORIENTATION: ClassVar[Literal["horizontal", "vertical"]]
+
+    @property
+    def _is_horizontal(self) -> bool:
+        return self._ORIENTATION == "horizontal"
 
     # ------------------------------------------------------------------
     # Construction helpers
@@ -243,6 +252,43 @@ class Slot:
             self._slot_state.active_tab_key = new_key
         else:
             self._slot_state.active_tab_key = self._active.editor_key if self._active else None
+
+    def _create_content_box(self) -> "ui.element":
+        """Create the slot's outer content box.
+
+        Size axis and flex behaviour are derived from ``_ORIENTATION`` and
+        ``show_fold_toggle``:
+        * horizontal + fold  → fixed ``width`` from ``slot_state.size`` (default 300)
+        * vertical   + fold  → fixed ``height`` from ``slot_state.size`` (default 200)
+        * vertical   no fold → ``flex: 1`` (fills remaining vertical space)
+
+        A border is added on the bar side for horizontal slots.
+        """
+        size = getattr(self._slot_state, "size", None) if self._slot_state is not None else None
+
+        if self._is_horizontal:
+            size = size if size is not None else 300
+            border = f"border-{self._bar_place}: 1px solid var(--hw-border);"
+            col = (
+                ui.column()
+                .classes("gap-0")
+                .style(
+                    f"width: {size}px; min-width: 150px; height: 100%; "
+                    f"overflow: hidden; background: var(--hw-bg-page); {border}"
+                )
+            )
+        elif self._show_fold_toggle:
+            size = size if size is not None else 200
+            col = (
+                ui.column()
+                .classes("gap-0")
+                .style(f"height: {size}px; min-height: 0; width: 100%; overflow: hidden;")
+            )
+        else:
+            col = ui.column().classes("gap-0 w-full").style("flex: 1; min-height: 0; overflow: hidden;")
+
+        col._props["id"] = f"hw-slot-{self.name}"
+        return col
 
     # ------------------------------------------------------------------
     # Queries
@@ -311,15 +357,49 @@ class Slot:
     # Rendering
     # ------------------------------------------------------------------
 
+    @abstractmethod
     def render(self, parent: "ui.element") -> None:
-        """Render this slot into ``parent``.
+        """Render this slot into ``parent``."""
+        pass
 
-        Subclasses build their internal layout (row or column containing bar
-        + area) and call ``_render_area`` at the appropriate mount point.
-        """
-        raise NotImplementedError
+    def _render_bar_row(self) -> None:
+        """Render the tab bar"""
+        border_style = (
+            "border-top: 1px solid var(--hw-border); border-bottom: 1px solid var(--hw-border);"
+            if self._bar_place == "bottom"
+            else "border-bottom: 1px solid var(--hw-border);"
+        )
+        self._bar_container = (
+            ui.row()
+            .classes("w-full items-center gap-0 flex-shrink-0 hw-slot-bar")
+            .style(f"background: var(--hw-bg-surface); {border_style} min-height: 36px;")
+        )
+        with self._bar_container:
+            self._render_bar_contents()
 
-    def _render_area(self, parent: "ui.element") -> None:
+    def _render_bar_column(self) -> None:
+        """Render the icon bar (fold toggle + per-binding icon buttons)."""
+        border_style = (
+            "border-right: 1px solid var(--hw-border);"
+            if self._bar_place == "left"
+            else "border-left: 1px solid var(--hw-border);"
+        )
+        self._bar_container = (
+            ui.column()
+            .classes("items-center justify-start gap-1 py-2")
+            .style(
+                "width: 48px; min-width: 48px; height: 100%; "
+                "background: var(--hw-bg-sidebar); " + border_style + " overflow: hidden;"
+            )
+        )
+        with self._bar_container:
+            self._render_bar_contents()
+
+    @abstractmethod
+    def _render_bar_contents(self) -> None:
+        pass
+
+    def _render_area_contents(self, parent: "ui.element") -> None:
         """
         Create the area container (a headless ``ui.tab_panels``) as a child
         of ``parent`` and draw the active binding's editor into its panel.

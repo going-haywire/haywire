@@ -2,9 +2,9 @@
   "name": "default",
   "haystack": "Master",
   "left": {
-    "active_tab_key": "studio:editor:HaystackEditor",
+    "active_tab_key": "studio:editor:LibraryBrowserEditor",
     "visible": true,
-    "size": 239
+    "size": 314
   },
   "right": {
     "active_tab_key": "studio:editor:PropertiesEditor",
@@ -12,27 +12,12 @@
     "size": 305
   },
   "main": {
-    "tabs": [
-      {
-        "editor_key": "studio:editor:GraphEditor",
-        "label": "loop.haywire",
-        "metadata": {
-          "payload": "/Volumes/Ddrive/06_open_tracking_tool/haywire/haywire-repo/graphs/loop.haywire"
-        }
-      },
-      {
-        "editor_key": "studio:editor:GraphEditor",
-        "label": "webcam.haywire",
-        "metadata": {
-          "payload": "/Volumes/Ddrive/06_open_tracking_tool/haywire/haywire-repo/graphs/webcam.haywire"
-        }
-      }
-    ],
-    "active_tab_key": "studio:editor:GraphEditor::/Volumes/Ddrive/06_open_tracking_tool/haywire/haywire-repo/graphs/webcam.haywire"
+    "tabs": [],
+    "active_tab_key": "studio:editor:LibraryOverviewEditor"
   },
   "bottom": {
     "active_tab_key": "studio:editor:TerminalEditor",
-    "visible": false,
+    "visible": true,
     "size": 310
   }
 }

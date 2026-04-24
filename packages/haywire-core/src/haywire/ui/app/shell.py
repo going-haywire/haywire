@@ -516,7 +516,7 @@ class AppShell:
                 initial_bindings=bindings,
                 active_key=initial_editor_key,
                 slot_state=slot_state_map["left"],
-                bar_side="left",
+                bar_place="left",
             )
         elif slot_name == "right":
             slot = IconSlot(
@@ -526,7 +526,7 @@ class AppShell:
                 initial_bindings=bindings,
                 active_key=initial_editor_key,
                 slot_state=slot_state_map["right"],
-                bar_side="right",
+                bar_place="right",
             )
         elif slot_name == "main":
             slot = TabSlot(
@@ -537,6 +537,7 @@ class AppShell:
                 active_key=initial_editor_key,
                 active_payload=initial_payload,
                 slot_state=slot_state_map["main"],
+                bar_place="top",
                 show_fold_toggle=False,
                 persist_workspace=self._persist_workspace,
             )
@@ -549,6 +550,7 @@ class AppShell:
                 active_key=initial_editor_key,
                 active_payload=initial_payload,
                 slot_state=slot_state_map["bottom"],
+                bar_place="top",
                 show_fold_toggle=True,
                 persist_workspace=self._persist_workspace,
             )
