@@ -728,8 +728,8 @@ def test_slot_subscribes_to_registry_on_construction(monkeypatch):
     reg.subscribers[0]([evt])
     assert a.editor_cls is new_cls
 
-    # teardown unsubscribes.
-    slot.teardown()
+    # cleanup unsubscribes.
+    slot.cleanup()
     assert reg.subscribers == []
 
 

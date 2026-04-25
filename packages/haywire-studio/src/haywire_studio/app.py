@@ -240,6 +240,7 @@ class HaywireApp:
             haywire_session.context.active_node_theme_key = "core:theme:node:default"
 
             app_shell = AppShell(haywire_session, editor_registry=editor_registry)
+            haywire_session.set_shell(app_shell)
             app_shell.render()
 
     # ------------------------------------------------------------------

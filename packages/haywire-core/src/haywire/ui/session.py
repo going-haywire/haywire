@@ -14,6 +14,7 @@ from .workspace.manager import WorkspaceManager
 logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
+    from haywire.ui.app.shell import AppShell
     from haywire.ui.editor.base import BaseEditor
     from haywire.ui.session_manager import SessionManager
 
@@ -64,8 +65,13 @@ class Session:
 
         # Single orchestrator callback set by AppShell
         self._orchestrator_callback: Optional[Callable[[ContextChangedEvent], None]] = None
+        self._shell: Optional["AppShell"] = None
 
         logger.info(f"Session created: {self.session_id}")
+
+    def set_shell(self, shell: "AppShell") -> None:
+        """Register the AppShell that owns this session's slots."""
+        self._shell = shell
 
     def set_orchestrator(self, callback: Callable[["ContextChangedEvent"], None]) -> None:
         """Set the single orchestrator callback for context change notifications.
@@ -105,10 +111,13 @@ class Session:
         self._session_manager.broadcast(event)
 
     def cleanup(self) -> None:
-        """Clean up all editor instances.
+        """Clean up all editor instances and managed slots.
 
         Called when the browser session disconnects.
         """
+        if self._shell is not None:
+            self._shell.cleanup()
+            self._shell = None
         for editor in self._editors.values():
             editor.cleanup()
         self._editors.clear()

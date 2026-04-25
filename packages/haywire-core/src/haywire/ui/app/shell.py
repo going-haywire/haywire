@@ -508,6 +508,16 @@ class AppShell:
         self._managed_slots[slot_name] = slot
         return slot
 
+    def cleanup(self) -> None:
+        """Detach all managed slots from the editor registry.
+
+        Called by the session when the browser disconnects so that slot
+        lifecycle subscribers don't leak across sessions.
+        """
+        for slot in self._managed_slots.values():
+            slot.cleanup()
+        self._managed_slots.clear()
+
     def collect_snapshot(self) -> dict:
         """Collect current slot state into a snapshot dict for persistence."""
         return {slot_name: slot.to_snapshot() for slot_name, slot in self._managed_slots.items()}

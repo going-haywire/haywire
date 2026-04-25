@@ -55,25 +55,24 @@ class EditorBinding:
     Attributes:
         editor_key: Registry key of the editor class.
         editor_cls: The editor class. Used to create ``instance`` lazily.
-        payload: Reserved for the multi-instance follow-up (e.g., a graph
-            path). Always ``None`` in scope B; every current call site
-            passes ``None``.
+        payload: the absolute file path string (e.g., a graph
+            path)or a synthetic placeholder token for unsaved documents.
+            ``None`` if the editor doesn not rely on a payload.
         instance: The live editor instance. Created on first activation.
     """
 
     editor_key: str
     editor_cls: type["BaseEditor"]
-    payload: Any = None
+    payload: Optional[str] = None
     instance: Optional["BaseEditor"] = None
     label: str = ""
 
     @property
     def binding_id(self) -> str:
-        """Stable identity matching :attr:`TabState.tab_id`.
+        """Stable identity.
 
         Equals ``editor_key`` for single-instance bindings (the case for every
         binding today) and ``editor_key::payload`` when a payload is present.
-        Used as the key for the slot's per-binding ``ui.tab_panel``.
         """
         return f"{self.editor_key}::{self.payload}" if self.payload else self.editor_key
 
@@ -149,7 +148,7 @@ class Slot(ABC):
         self,
         session: "Session",
         name: str,
-        registry: Optional[EditorTypeRegistry],
+        registry: EditorTypeRegistry,
         initial_bindings: list[EditorBinding],
         active_key: Optional[str] = None,
         on_visibility_change: Optional[Callable[[bool], None]] = None,
@@ -188,7 +187,7 @@ class Slot(ABC):
         """
         self._session = session
         self.name = name
-        self._registry: Optional[EditorTypeRegistry] = registry
+        self._registry: EditorTypeRegistry = registry
         self._bindings: list[EditorBinding] = list(initial_bindings)
         self._active: Optional[EditorBinding] = self._resolve_initial_active(active_key)
         self._visible: bool = visible
@@ -202,14 +201,118 @@ class Slot(ABC):
         self._show_fold_toggle = show_fold_toggle
         self._bar_container: Optional[ui.element] = None
         self._fold_button: Optional[ui.element] = None
-        if self._registry is not None:
-            self._registry.add_batch_event_subscriber(self._on_editor_lifecycle)
+
+        self._registry.add_batch_event_subscriber(self._on_editor_lifecycle)
 
     _ORIENTATION: ClassVar[Literal["horizontal", "vertical"]]
 
     @property
     def _is_horizontal(self) -> bool:
         return self._ORIENTATION == "horizontal"
+
+    # ------------------------------------------------------------------
+    # Serialising / Deserialising Slots
+    # ------------------------------------------------------------------
+
+    def to_snapshot(self) -> dict:
+        """Serialize current slot state to a plain dict for persistence.
+
+        REQUIRED editors are excluded — they are always re-injected from the
+        registry at construction and don't need persisting.
+        """
+        from haywire.ui.editor.identity import OpenBehavior
+
+        editors = []
+        for binding in self._bindings:
+            opens = getattr(binding.editor_cls.class_identity, "opens", OpenBehavior.REQUIRED)
+            if opens is OpenBehavior.REQUIRED:
+                continue
+            entry: dict = {"key": binding.editor_key}
+            if binding.payload is not None:
+                entry["payload"] = binding.payload
+            label = binding.label or getattr(binding.editor_cls.class_identity, "label", binding.editor_key)
+            entry["label"] = label
+            editors.append(entry)
+
+        return {
+            "active_key": self.active_binding_id,
+            "visible": self._visible,
+            "size": self._size,
+            "editors": editors,
+        }
+
+    @classmethod
+    def from_snapshot(
+        cls,
+        data: dict,
+        registry: "EditorTypeRegistry",
+        session: "Session",
+        name: str,
+        bar_place: Literal["left", "right", "top", "bottom"] = "left",
+        show_fold_toggle: bool = False,
+        on_visibility_change: Optional[Callable[[bool], None]] = None,
+    ) -> "Slot":
+        """Construct a slot from a raw snapshot dict.
+
+        Injects all REQUIRED editors for this slot unconditionally from the
+        registry. Then appends snapshot editors (ON_PAYLOAD / ON_CONTEXT) in
+        order. Unknown editor keys are silently skipped.
+
+        Args:
+            data: Raw snapshot dict as produced by :meth:`to_snapshot`.
+                Expected keys: ``active_key``, ``visible``, ``size``,
+                ``editors`` (list of ``{key, payload?, label}`` dicts).
+            registry: Editor type registry used to resolve editor classes by
+                key. Unknown keys in ``editors`` are skipped with a warning.
+            session: The owning session passed through to the constructed
+                ``Slot``.
+            name: Slot identifier (``"left"``, ``"right"``, ``"main"``,
+                ``"bottom"``). Used for registry lookup and logging.
+            bar_place: Where the bar renders relative to the area. Forwarded
+                to the ``Slot`` constructor unchanged.
+            show_fold_toggle: Whether to render a fold toggle on the bar.
+                Forwarded to the ``Slot`` constructor unchanged.
+            on_visibility_change: Optional callback fired on visibility
+                transitions. Forwarded to the ``Slot`` constructor unchanged.
+        """
+        from haywire.ui.editor.identity import OpenBehavior
+
+        bindings: list[EditorBinding] = []
+
+        for key, editor_cls in registry.get_by_default_slot(name).items():
+            opens = getattr(editor_cls.class_identity, "opens", OpenBehavior.REQUIRED)
+            if opens is OpenBehavior.REQUIRED:
+                bindings.append(EditorBinding(editor_key=key, editor_cls=editor_cls, payload=None))
+
+        for entry in data.get("editors", []):
+            key = entry.get("key")
+            if not key:
+                continue
+            editor_cls = registry.get_by_key(key)
+            if editor_cls is None:
+                logger.warning(f"Slot '{name}': snapshot editor '{key}' not in registry — skipping")
+                continue
+            payload = entry.get("payload")
+            binding = EditorBinding(editor_key=key, editor_cls=editor_cls, payload=payload)
+            binding.label = entry.get("label", key)
+            bindings.append(binding)
+
+        active_key = data.get("active_key")
+        visible = data.get("visible", True)
+        size = data.get("size", 300)
+
+        return cls(
+            session=session,
+            name=name,
+            registry=registry,
+            initial_bindings=bindings,
+            active_key=active_key,
+            on_visibility_change=on_visibility_change,
+            bar_place=bar_place,
+            show_fold_toggle=show_fold_toggle,
+            visible=visible,
+            size=size,
+        )
 
     # ------------------------------------------------------------------
     # Construction helpers
@@ -571,90 +674,6 @@ class Slot(ABC):
         """Store the drag-resize result in ``self._size``."""
         self._size = int(size_px)
 
-    def to_snapshot(self) -> dict:
-        """Serialize current slot state to a plain dict for persistence.
-
-        REQUIRED editors are excluded — they are always re-injected from the
-        registry at construction and don't need persisting.
-        """
-        from haywire.ui.editor.identity import OpenBehavior
-
-        editors = []
-        for binding in self._bindings:
-            opens = getattr(binding.editor_cls.class_identity, "opens", OpenBehavior.REQUIRED)
-            if opens is OpenBehavior.REQUIRED:
-                continue
-            entry: dict = {"key": binding.editor_key}
-            if binding.payload is not None:
-                entry["payload"] = binding.payload
-            label = binding.label or getattr(binding.editor_cls.class_identity, "label", binding.editor_key)
-            entry["label"] = label
-            editors.append(entry)
-
-        return {
-            "active_key": self.active_binding_id,
-            "visible": self._visible,
-            "size": self._size,
-            "editors": editors,
-        }
-
-    @classmethod
-    def from_snapshot(
-        cls,
-        data: dict,
-        registry: "Optional[EditorTypeRegistry]",
-        session: "Session",
-        name: str,
-        bar_place: Literal["left", "right", "top", "bottom"] = "left",
-        show_fold_toggle: bool = False,
-        on_visibility_change: Optional[Callable[[bool], None]] = None,
-    ) -> "Slot":
-        """Construct a slot from a raw snapshot dict.
-
-        Injects all REQUIRED editors for this slot unconditionally from the
-        registry. Then appends snapshot editors (ON_PAYLOAD / ON_CONTEXT) in
-        order. Unknown editor keys are silently skipped.
-        """
-        from haywire.ui.editor.identity import OpenBehavior
-
-        bindings: list[EditorBinding] = []
-
-        if registry is not None:
-            for key, editor_cls in registry.get_by_default_slot(name).items():
-                opens = getattr(editor_cls.class_identity, "opens", OpenBehavior.REQUIRED)
-                if opens is OpenBehavior.REQUIRED:
-                    bindings.append(EditorBinding(editor_key=key, editor_cls=editor_cls, payload=None))
-
-        for entry in data.get("editors", []):
-            key = entry.get("key")
-            if not key:
-                continue
-            editor_cls = registry.get_by_key(key) if registry is not None else None
-            if editor_cls is None:
-                logger.warning(f"Slot '{name}': snapshot editor '{key}' not in registry — skipping")
-                continue
-            payload = entry.get("payload")
-            binding = EditorBinding(editor_key=key, editor_cls=editor_cls, payload=payload)
-            binding.label = entry.get("label", key)
-            bindings.append(binding)
-
-        active_key = data.get("active_key")
-        visible = data.get("visible", True)
-        size = data.get("size", 300)
-
-        return cls(
-            session=session,
-            name=name,
-            registry=registry,
-            initial_bindings=bindings,
-            active_key=active_key,
-            on_visibility_change=on_visibility_change,
-            bar_place=bar_place,
-            show_fold_toggle=show_fold_toggle,
-            visible=visible,
-            size=size,
-        )
-
     # ------------------------------------------------------------------
     # Orchestrator hook
     # ------------------------------------------------------------------
@@ -864,23 +883,21 @@ class Slot(ABC):
                 logger.warning(f"Slot '{self.name}': cleanup error: {exc}")
 
         owned_keys = {b.editor_key for b in self._bindings}
-        for evt in events:
-            if evt.registry_key not in owned_keys:
+        for event in events:
+            if event.registry_key not in owned_keys:
                 continue
-            if evt.event_type == LifeCycleEventType.CLASS_RELOADED and evt.affected_class is not None:
-                self.replace_class(evt.registry_key, evt.affected_class, cleanup_old=_cleanup)
-            elif evt.event_type == LifeCycleEventType.CLASS_REMOVED:
-                self.remove_bindings(evt.registry_key, cleanup=_cleanup)
+            if event.event_type == LifeCycleEventType.CLASS_RELOADED and event.affected_class is not None:
+                self.replace_class(event.registry_key, event.affected_class, cleanup_old=_cleanup)
+            elif event.event_type == LifeCycleEventType.CLASS_REMOVED:
+                self.remove_bindings(event.registry_key, cleanup=_cleanup)
 
-    def teardown(self) -> None:
+    def cleanup(self) -> None:
         """Detach from the registry. Safe to call more than once.
 
         Called by the shell when the session ends so the slot doesn't leak
         a subscriber reference into the registry across sessions.
         """
-        if self._registry is not None:
-            try:
-                self._registry.remove_batch_event_subscriber(self._on_editor_lifecycle)
-            except Exception:
-                pass
-            self._registry = None
+        try:
+            self._registry.remove_batch_event_subscriber(self._on_editor_lifecycle)
+        except Exception:
+            pass
