@@ -234,7 +234,7 @@ def test_reveal_editor_on_payload_without_payload_logs_and_skips(caplog) -> None
 
 
 # ---------------------------------------------------------------------------
-# TAB_CLOSE_REQUESTED / TAB_REPAYLOAD_REQUESTED / GRAPH_REMOVED dispatch
+# GRAPH_REMOVED dispatch
 # ---------------------------------------------------------------------------
 
 
@@ -271,51 +271,6 @@ def _make_fake_tab_slot(name: str) -> "_FakeSlot":
             return _FakeSlot.close_tabs_for_payload(self, payload)
 
     return _FakeTab(name)
-
-
-def test_handle_tab_close_requested_dispatches_to_tab_slot() -> None:
-    shell = AppShell(session=_FakeSession(), editor_registry=None)
-    fake_tab = _make_fake_tab_slot("main")
-    shell._managed_slots["main"] = fake_tab
-
-    shell._handle_tab_close_requested(
-        ContextChangedEvent(
-            change_type=ContextChangeType.TAB_CLOSE_REQUESTED,
-            detail={"slot_name": "main", "editor_key": "a", "payload": "p1"},
-        )
-    )
-    assert fake_tab.close_tab_calls == [("a", "p1")]
-
-
-def test_handle_tab_close_requested_ignores_missing_detail() -> None:
-    shell = AppShell(session=_FakeSession(), editor_registry=None)
-    fake_tab = _make_fake_tab_slot("main")
-    shell._managed_slots["main"] = fake_tab
-
-    shell._handle_tab_close_requested(
-        ContextChangedEvent(change_type=ContextChangeType.TAB_CLOSE_REQUESTED, detail={})
-    )
-    assert fake_tab.close_tab_calls == []
-
-
-def test_handle_tab_repayload_requested_dispatches_to_tab_slot() -> None:
-    shell = AppShell(session=_FakeSession(), editor_registry=None)
-    fake_tab = _make_fake_tab_slot("main")
-    shell._managed_slots["main"] = fake_tab
-
-    shell._handle_tab_repayload_requested(
-        ContextChangedEvent(
-            change_type=ContextChangeType.TAB_REPAYLOAD_REQUESTED,
-            detail={
-                "slot_name": "main",
-                "editor_key": "a",
-                "old_payload": "o",
-                "new_payload": "n",
-                "new_label": "new.graph",
-            },
-        )
-    )
-    assert fake_tab.repayload_calls == [("a", "o", "n", "new.graph")]
 
 
 def test_handle_graph_removed_closes_matching_tabs_in_every_tab_slot() -> None:

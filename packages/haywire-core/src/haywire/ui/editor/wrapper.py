@@ -20,6 +20,7 @@ if TYPE_CHECKING:
     from haywire.ui.editor.base import BaseEditor
     from haywire.ui.editor.registry import EditorTypeRegistry
     from haywire.ui.session import Session
+    from haywire.ui.app.slot import Slot
     from haywire.core.registry.lifecycle_event import LifeCycleEvent
     from nicegui.element import Element
 
@@ -46,6 +47,13 @@ class EditorWrapperState:
 
     error_runtime: Optional[HaywireException] = None
     """Error from a runtime call (draw, on_focus, poll, redraw)."""
+
+    is_dirty: bool = False
+    """True when the editor's in-memory content differs from disk.
+
+    Editors set this via :meth:`EditorWrapper.set_dirty` to drive the tab's
+    dirty badge and the close-consent gate. Framework clears it automatically
+    on hot-reload class swap (the new instance starts fresh)."""
 
     def is_valid(self) -> bool:
         """True iff the editor is imported and instantiation has not failed.
@@ -95,6 +103,7 @@ class EditorWrapper:
         session: "Session",
         payload: Optional[str] = None,
         label: str = "",
+        slot: "Optional[Slot]" = None,
     ):
         """
         Args:
@@ -108,6 +117,9 @@ class EditorWrapper:
                 multi-instance editors). None for single-instance editors.
             label: Tab label for tabbed slots. Defaults to empty; resolved
                 lazily at draw time when empty.
+            slot: Owning slot — used by close/force_close/repayload to call
+                back into slot mutators. None for detached wrappers (e.g.
+                unit tests); those paths fall back to direct field updates.
         """
         self.editor_key = editor_key
         self.editor_cls = editor_cls
@@ -118,6 +130,7 @@ class EditorWrapper:
         self._instance: "Optional[BaseEditor]" = None
         self._redraw_callback: Optional[Callable[["EditorWrapper"], None]] = None
         self._state: Optional[EditorWrapperState] = EditorWrapperState()
+        self._slot: "Optional[Slot]" = slot
 
         # Subscribe per-key for hot-reload events
         self._registry.add_event_subscriber(self.editor_key, self._on_lifecycle_event)
@@ -192,6 +205,16 @@ class EditorWrapper:
         """
         self._redraw_callback = callback
 
+    def set_dirty(self, value: bool) -> None:
+        """Mark the wrapped editor's content as dirty (or not).
+
+        Called by editors when in-memory state diverges from disk. The
+        tab bar reads ``state.is_dirty`` on its next render to show the
+        unsaved-work badge — no immediate refresh is triggered (lazy
+        update is acceptable since the next user action repaints the bar).
+        """
+        self._state.is_dirty = bool(value)
+
     # ------------------------------------------------------------------
     # Lifecycle event handling (placeholder — implemented in Task 5)
     # ------------------------------------------------------------------
@@ -240,6 +263,7 @@ class EditorWrapper:
             self.editor_cls = event.affected_class
             self._state.is_imported = True
             self._state.error_import = None
+            self._state.is_dirty = False
             # Clear instance so next draw lazy-instantiates with new class
             if self._instance is not None:
                 try:
@@ -357,14 +381,81 @@ class EditorWrapper:
             ).enrich(registry_key=self.editor_key)
             return False
 
-    def repayload(self, new_payload: Optional[str]) -> None:
-        """Update the payload in place.
+    async def request_close(self) -> bool:
+        """Ask the editor whether it allows closing.
 
-        Slot owns collision detection and DOM-side housekeeping (panel
-        name, set_value); the wrapper just exposes a setter for symmetry
-        with cleanup() and to centralize future invariants.
+        Returns True if the close should proceed, False if the editor
+        vetoed (e.g. user cancelled at a save dialog).
+
+        No-op-allows when there's no instance — a broken or unloaded
+        wrapper has nothing to ask. If ``handle_close_request`` raises,
+        the error is captured into ``state.error_runtime`` (consistent
+        with draw/on_focus/poll) and the close is allowed — better to
+        lose veto than strand the user with an unclosable tab.
         """
-        self.payload = new_payload
+        if self._instance is None:
+            return True
+        try:
+            return bool(await self._instance.handle_close_request())
+        except Exception as exc:
+            self._state.error_runtime = HaywireException.from_exception(
+                exception=exc,
+                operation="Editor Close Request",
+                message=f"handle_close_request() raised in editor '{self.editor_key}'",
+            ).enrich(registry_key=self.editor_key)
+            return True
+
+    async def close(self) -> bool:
+        """User-initiated close. Asks consent, closes if allowed.
+
+        Returns True if the close happened, False if the editor vetoed.
+        Use :meth:`force_close` for programmatic closes that should skip
+        the consent gate.
+        """
+        if not await self.request_close():
+            return False
+        self.force_close()
+        return True
+
+    def force_close(self) -> None:
+        """Programmatic close. Skips the consent gate.
+
+        For editor self-initiated paths where the data source vanished
+        or the editor has already decided. Calls into the slot directly
+        — no-op if the wrapper isn't attached to a slot (defensive).
+        """
+        if self._slot is None:
+            logger.debug(
+                f"EditorWrapper '{self.editor_key}': force_close called but no slot attached; nothing to do."
+            )
+            return
+        self._slot.close_tab(self.editor_key, self.payload)
+
+    def repayload(self, new_payload: Optional[str], new_label: Optional[str] = None) -> None:
+        """Update the payload (and optional label) in place.
+
+        When attached to a slot, delegates to ``slot.repayload_tab`` for
+        DOM-side housekeeping (panel name, set_value, bar refresh, collision
+        detection). When detached (e.g. unit tests with no slot), updates
+        the wrapper's fields directly so identity helpers like
+        ``binding_id`` reflect the change.
+
+        Editor authors call this from save-as / rename flows. The slot
+        owns collision detection — if ``new_payload`` collides with another
+        wrapper's binding_id, the slot logs a warning and the call is a
+        no-op.
+        """
+        if self._slot is None:
+            self.payload = new_payload
+            if new_label is not None:
+                self.label = new_label
+            return
+        self._slot.repayload_tab(
+            self.editor_key,
+            self.payload,
+            new_payload,
+            new_label,
+        )
 
     # ------------------------------------------------------------------
     # Cleanup
@@ -385,3 +476,4 @@ class EditorWrapper:
         self._state = None
         self._session = None
         self._redraw_callback = None
+        self._slot = None

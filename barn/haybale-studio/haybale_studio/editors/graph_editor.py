@@ -97,9 +97,8 @@ class GraphEditor(BaseEditor):
         panels (properties, minimap, execution controls) refresh.
 
         If the payload no longer resolves to an entry (the graph was
-        concurrently removed from the haystack), fires
-        ``TAB_CLOSE_REQUESTED`` for this tab and returns — the shell then
-        closes the orphaned tab.
+        concurrently removed from the haystack), calls
+        ``self.wrapper.force_close()`` to close the orphaned tab.
 
         Short-circuits when the context already reflects this entry so a
         redundant call is a no-op.
@@ -115,18 +114,11 @@ class GraphEditor(BaseEditor):
         entry = haystack.get_by_id(payload)
         session = getattr(context, "session", None)
         if entry is None:
-            if session is not None:
-                session.notify_context_changed(
-                    ContextChangedEvent(
-                        change_type=ContextChangeType.TAB_CLOSE_REQUESTED,
-                        source_editor="graph_editor",
-                        detail={
-                            "slot_name": "main",
-                            "editor_key": self.wrapper.editor_key,
-                            "payload": payload,
-                        },
-                    )
-                )
+            # Graph entry vanished from the haystack — close ourselves.
+            # Programmatic close (no consent dialog needed; the user
+            # already removed the underlying graph).
+            if self.wrapper is not None:
+                self.wrapper.force_close()
             return
 
         if context.active_graph is entry.graph and context.active_graph_path == entry.path:
@@ -485,20 +477,10 @@ class GraphEditor(BaseEditor):
             context.active_graph_path = save_path
             session = context.session
             new_payload = entry.entry_id
-            if session is not None and self.wrapper is not None and old_payload != new_payload:
-                session.notify_context_changed(
-                    ContextChangedEvent(
-                        change_type=ContextChangeType.TAB_REPAYLOAD_REQUESTED,
-                        source_editor="graph_editor",
-                        detail={
-                            "slot_name": "main",
-                            "editor_key": self.wrapper.editor_key,
-                            "old_payload": old_payload,
-                            "new_payload": new_payload,
-                            "new_label": entry.display_name,
-                        },
-                    )
-                )
+            if self.wrapper is not None and old_payload != new_payload:
+                # Save-as renamed the graph entry — re-key the tab so the
+                # wrapper's payload + label reflect the new file path.
+                self.wrapper.repayload(new_payload, new_label=entry.display_name)
             if session:
                 session.notify_context_changed(
                     ContextChangedEvent(

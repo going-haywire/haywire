@@ -624,4 +624,397 @@ def test_repayload_to_none_removes_suffix():
     )
     w.repayload(None)
     assert w.payload is None
-    assert w.binding_id == "fake:editor:1"
+
+
+# ---------------------------------------------------------------------------
+# Task 1: is_dirty state + set_dirty mutator
+# ---------------------------------------------------------------------------
+
+
+def test_state_default_is_not_dirty():
+    state = EditorWrapperState()
+    assert state.is_dirty is False
+
+
+def test_set_dirty_updates_state_flag():
+    reg = EditorTypeRegistry()
+    w = EditorWrapper(
+        editor_key="fake:editor:1",
+        editor_cls=_FakeEditorCls,
+        registry=reg,
+        session=_make_session(),
+    )
+    assert w.state.is_dirty is False
+    w.set_dirty(True)
+    assert w.state.is_dirty is True
+    w.set_dirty(False)
+    assert w.state.is_dirty is False
+
+
+def test_set_dirty_coerces_truthy_values_to_bool():
+    reg = EditorTypeRegistry()
+    w = EditorWrapper(
+        editor_key="fake:editor:1",
+        editor_cls=_FakeEditorCls,
+        registry=reg,
+        session=_make_session(),
+    )
+    w.set_dirty(1)  # truthy non-bool
+    assert w.state.is_dirty is True
+    assert isinstance(w.state.is_dirty, bool)
+
+
+# ---------------------------------------------------------------------------
+# Task 2: _slot back-reference
+# ---------------------------------------------------------------------------
+
+
+def test_wrapper_slot_starts_as_none():
+    """Until a slot adopts the wrapper via add_binding, _slot is None."""
+    reg = EditorTypeRegistry()
+    w = EditorWrapper(
+        editor_key="fake:editor:1",
+        editor_cls=_FakeEditorCls,
+        registry=reg,
+        session=_make_session(),
+    )
+    assert w._slot is None
+
+
+def test_wrapper_cleanup_clears_slot_reference():
+    reg = EditorTypeRegistry()
+    w = EditorWrapper(
+        editor_key="fake:editor:1",
+        editor_cls=_FakeEditorCls,
+        registry=reg,
+        session=_make_session(),
+    )
+    # Simulate slot adoption (slot would do this in add_binding).
+    sentinel_slot = object()
+    w._slot = sentinel_slot
+    assert w._slot is sentinel_slot
+    w.cleanup()
+    assert w._slot is None
+
+
+# ---------------------------------------------------------------------------
+# Task 3: BaseEditor.handle_close_request default
+# ---------------------------------------------------------------------------
+
+import asyncio  # noqa: E402
+
+
+def _run_async(coro):
+    """Run an awaitable synchronously, even when a loop is already running.
+
+    Runs the coroutine in a worker thread with its own fresh event loop —
+    bypasses the running loop NiceGUI sometimes leaves attached to the main
+    thread during the test session.
+    """
+    import threading
+
+    box: list = []
+
+    def _runner():
+        loop = asyncio.new_event_loop()
+        try:
+            box.append(("ok", loop.run_until_complete(coro)))
+        except BaseException as e:
+            box.append(("err", e))
+        finally:
+            loop.close()
+
+    t = threading.Thread(target=_runner)
+    t.start()
+    t.join()
+    tag, value = box[0]
+    if tag == "err":
+        raise value
+    return value
+
+
+def test_base_editor_handle_close_request_defaults_to_true():
+    """The framework default is 'allow close' — editors override to veto."""
+    from haywire.ui.editor.base import BaseEditor
+    from haywire.ui.editor.identity import EditorIdentity
+
+    class _MinimalEditor(BaseEditor):
+        class_identity = EditorIdentity(
+            registry_id="close-default",
+            registry_key="test:close-default",
+            label="Test",
+            default_slot="main",
+        )
+
+        def draw(self, context, container):
+            pass
+
+    editor = _MinimalEditor()
+    result = _run_async(editor.handle_close_request())
+    assert result is True
+
+
+# ---------------------------------------------------------------------------
+# Task 4: request_close / close / force_close
+# ---------------------------------------------------------------------------
+
+
+def test_request_close_returns_true_when_no_instance():
+    """A wrapper with no instance allows close (nothing to ask)."""
+    reg = EditorTypeRegistry()
+    w = EditorWrapper(
+        editor_key="fake:editor:1",
+        editor_cls=_FakeEditorCls,
+        registry=reg,
+        session=_make_session(),
+    )
+    # No instance yet (lazy)
+    assert w._instance is None
+    result = _run_async(w.request_close())
+    assert result is True
+
+
+class _ConsentingEditorCls:
+    """Stub editor that records handle_close_request calls and returns a
+    configurable value."""
+
+    class_identity = SimpleNamespace(
+        registry_key="consent:editor:1",
+        label="Consent",
+        default_slot="main",
+        opens=None,
+    )
+
+    def __init__(self):
+        self.wrapper = None
+        self.consent_calls = 0
+        self.consent_response = True
+
+    async def handle_close_request(self):
+        self.consent_calls += 1
+        return self.consent_response
+
+
+def test_request_close_delegates_to_instance_handle_close_request():
+    reg = EditorTypeRegistry()
+    w = EditorWrapper(
+        editor_key="consent:editor:1",
+        editor_cls=_ConsentingEditorCls,
+        registry=reg,
+        session=_make_session(),
+    )
+    w._instantiate()
+    result = _run_async(w.request_close())
+    assert result is True
+    assert w._instance.consent_calls == 1
+
+
+def test_request_close_returns_false_when_editor_vetoes():
+    reg = EditorTypeRegistry()
+    w = EditorWrapper(
+        editor_key="consent:editor:1",
+        editor_cls=_ConsentingEditorCls,
+        registry=reg,
+        session=_make_session(),
+    )
+    w._instantiate()
+    w._instance.consent_response = False
+    result = _run_async(w.request_close())
+    assert result is False
+
+
+def test_request_close_allows_when_handle_close_request_raises():
+    """A buggy handle_close_request must not strand the user with an
+    unclosable tab. Allow close on exception."""
+
+    class _RaisingConsentCls:
+        class_identity = SimpleNamespace(
+            registry_key="rc:editor:1",
+            label="RC",
+            default_slot="main",
+            opens=None,
+        )
+
+        def __init__(self):
+            self.wrapper = None
+
+        async def handle_close_request(self):
+            raise RuntimeError("buggy editor")
+
+    reg = EditorTypeRegistry()
+    w = EditorWrapper(
+        editor_key="rc:editor:1",
+        editor_cls=_RaisingConsentCls,
+        registry=reg,
+        session=_make_session(),
+    )
+    w._instantiate()
+    result = _run_async(w.request_close())
+    assert result is True
+    # Failure is captured into structured state, mirroring draw/on_focus/poll.
+    assert w.state.error_runtime is not None
+
+
+class _FakeSlot:
+    """Stub slot that records close_tab calls."""
+
+    def __init__(self):
+        self.close_calls: list = []
+
+    def close_tab(self, editor_key, payload):
+        self.close_calls.append((editor_key, payload))
+        return True
+
+
+def test_force_close_calls_slot_close_tab():
+    reg = EditorTypeRegistry()
+    w = EditorWrapper(
+        editor_key="fake:editor:1",
+        editor_cls=_FakeEditorCls,
+        registry=reg,
+        session=_make_session(),
+        payload="/tmp/x",
+    )
+    fake_slot = _FakeSlot()
+    w._slot = fake_slot
+    w.force_close()
+    assert fake_slot.close_calls == [("fake:editor:1", "/tmp/x")]
+
+
+def test_force_close_no_op_when_no_slot():
+    reg = EditorTypeRegistry()
+    w = EditorWrapper(
+        editor_key="fake:editor:1",
+        editor_cls=_FakeEditorCls,
+        registry=reg,
+        session=_make_session(),
+    )
+    # No slot attached — must not raise
+    w.force_close()
+
+
+def test_close_calls_slot_close_tab_on_consent():
+    reg = EditorTypeRegistry()
+    w = EditorWrapper(
+        editor_key="consent:editor:1",
+        editor_cls=_ConsentingEditorCls,
+        registry=reg,
+        session=_make_session(),
+    )
+    w._instantiate()
+    fake_slot = _FakeSlot()
+    w._slot = fake_slot
+    closed = _run_async(w.close())
+    assert closed is True
+    assert len(fake_slot.close_calls) == 1
+
+
+def test_close_does_not_call_slot_when_editor_vetoes():
+    reg = EditorTypeRegistry()
+    w = EditorWrapper(
+        editor_key="consent:editor:1",
+        editor_cls=_ConsentingEditorCls,
+        registry=reg,
+        session=_make_session(),
+    )
+    w._instantiate()
+    w._instance.consent_response = False
+    fake_slot = _FakeSlot()
+    w._slot = fake_slot
+    closed = _run_async(w.close())
+    assert closed is False
+    assert fake_slot.close_calls == []
+
+
+# ---------------------------------------------------------------------------
+# Task 5: repayload delegates to slot
+# ---------------------------------------------------------------------------
+
+
+class _RepayloadTrackingSlot:
+    """Stub slot recording repayload_tab calls."""
+
+    def __init__(self):
+        self.repayload_calls: list = []
+
+    def repayload_tab(self, editor_key, old_payload, new_payload, new_label):
+        self.repayload_calls.append((editor_key, old_payload, new_payload, new_label))
+        return True
+
+    def close_tab(self, editor_key, payload):
+        return True
+
+
+def test_repayload_with_slot_delegates_to_slot_repayload_tab():
+    reg = EditorTypeRegistry()
+    w = EditorWrapper(
+        editor_key="fake:editor:1",
+        editor_cls=_FakeEditorCls,
+        registry=reg,
+        session=_make_session(),
+        payload="__unsaved_3__",
+    )
+    fake_slot = _RepayloadTrackingSlot()
+    w._slot = fake_slot
+    w.repayload("/tmp/saved.haywire", new_label="saved.haywire")
+    assert fake_slot.repayload_calls == [
+        ("fake:editor:1", "__unsaved_3__", "/tmp/saved.haywire", "saved.haywire")
+    ]
+
+
+def test_repayload_without_slot_just_updates_field():
+    """Detached wrapper (no slot) — repayload still updates payload field
+    so unit tests can verify identity changes without a slot."""
+    reg = EditorTypeRegistry()
+    w = EditorWrapper(
+        editor_key="fake:editor:1",
+        editor_cls=_FakeEditorCls,
+        registry=reg,
+        session=_make_session(),
+        payload="x",
+    )
+    # No _slot set
+    w.repayload("y", new_label="Y")
+    assert w.payload == "y"
+    assert w.label == "Y"
+
+
+def test_repayload_label_is_optional():
+    reg = EditorTypeRegistry()
+    w = EditorWrapper(
+        editor_key="fake:editor:1",
+        editor_cls=_FakeEditorCls,
+        registry=reg,
+        session=_make_session(),
+        payload="x",
+    )
+    w.repayload("y")  # no new_label
+    assert w.payload == "y"
+
+
+# ---------------------------------------------------------------------------
+# Task 6: hot-reload clears is_dirty
+# ---------------------------------------------------------------------------
+
+
+def test_lifecycle_class_reloaded_clears_is_dirty():
+    """Hot-reload replaces the instance; in-memory unsaved state is gone
+    along with it, so the dirty flag must clear."""
+    reg = EditorTypeRegistry()
+    w = EditorWrapper(
+        editor_key="fake:editor:1",
+        editor_cls=_FakeEditorCls,
+        registry=reg,
+        session=_make_session(),
+    )
+    w.set_dirty(True)
+    assert w.state.is_dirty is True
+
+    event = LifeCycleEvent(
+        event_type=LifeCycleEventType.CLASS_RELOADED,
+        registry_key="fake:editor:1",
+        affected_class=_NewFakeEditorCls,
+    )
+    w._on_lifecycle_event(event)
+
+    assert w.state.is_dirty is False

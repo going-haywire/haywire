@@ -77,6 +77,8 @@ class TabSlot(Slot):
                             label = wrapper.label or getattr(
                                 wrapper.editor_cls.class_identity, "label", wrapper.editor_key
                             )
+                            if wrapper.state is not None and wrapper.state.is_dirty:
+                                label = f"• {label}"
                             ui.label(label)
                             if wrapper.can_close:
                                 tab_id = wrapper.binding_id
@@ -113,16 +115,18 @@ class TabSlot(Slot):
             ContextChangedEvent(change_type=ContextChangeType.WORKSPACE_CHANGED)
         )
 
-    def _on_tab_close_clicked(self, tab_id: str) -> None:
-        """Emit TAB_CLOSE_REQUESTED so host apps can run domain cleanup."""
+    async def _on_tab_close_clicked(self, tab_id: str) -> None:
+        """Ask the editor whether to close, then close if allowed.
+
+        The wrapper awaits ``handle_close_request`` on the editor instance
+        (which can show a save-or-discard dialog) and only invokes
+        ``slot.close_tab`` if the editor allows the close.
+        """
         editor_key, payload = EditorWrapper.split_id(tab_id)
-        self._session.notify_context_changed(
-            ContextChangedEvent(
-                change_type=ContextChangeType.TAB_CLOSE_REQUESTED,
-                source_editor="app_shell",
-                detail={"slot_name": self.name, "editor_key": editor_key, "payload": payload},
-            )
-        )
+        wrapper = self.find_binding(editor_key, payload)
+        if wrapper is None:
+            return
+        await wrapper.close()
 
     def _on_fold_toggle_clicked(self) -> None:
         self.set_visible(not self._visible)

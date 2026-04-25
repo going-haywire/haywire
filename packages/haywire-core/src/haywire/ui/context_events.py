@@ -26,8 +26,6 @@ class ContextChangeType(Enum):
     WORKBENCH_THEME_CHANGED = auto()  # active workbench theme switched
     CONTEXT_MENU_OPENED = auto()  # context menu popup was opened
     CONTEXT_MENU_CLOSED = auto()  # context menu popup was closed
-    TAB_CLOSE_REQUESTED = auto()  # editor (or caller) is asking the shell to close a tab
-    TAB_REPAYLOAD_REQUESTED = auto()  # re-key a tab after save-as / rename
     GRAPH_REMOVED = auto()  # a haystack entry was removed; shell closes matching tabs
     CUSTOM = auto()  # extensible
 

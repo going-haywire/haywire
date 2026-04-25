@@ -204,3 +204,178 @@ def test_tab_slot_close_tabs_for_payload_closes_matching(monkeypatch):
     assert closed == 1
     assert slot.find_binding("a", "p1") is None
     assert slot.find_binding("a", "p2") is not None
+
+
+# ---------------------------------------------------------------------------
+# Task 7: X-button calls wrapper.close() directly (no event)
+# ---------------------------------------------------------------------------
+
+
+import asyncio  # noqa: E402
+
+
+def _run_async(coro):
+    """Worker-thread runner for async tests — see test_editor_wrapper.py."""
+    import threading
+
+    box: list = []
+
+    def _runner():
+        loop = asyncio.new_event_loop()
+        try:
+            box.append(("ok", loop.run_until_complete(coro)))
+        except BaseException as e:
+            box.append(("err", e))
+        finally:
+            loop.close()
+
+    t = threading.Thread(target=_runner)
+    t.start()
+    t.join()
+    tag, value = box[0]
+    if tag == "err":
+        raise value
+    return value
+
+
+class _VetoEditor:
+    """Editor that vetoes close based on .allow."""
+
+    class_identity = SimpleNamespace(
+        registry_key="veto:editor:1",
+        label="Veto",
+        default_slot="main",
+        opens=OpenBehavior.ON_PAYLOAD,
+    )
+
+    def __init__(self):
+        self.wrapper = None
+        self.consent_calls = 0
+        self.allow = True
+
+    async def handle_close_request(self):
+        self.consent_calls += 1
+        return self.allow
+
+    def draw(self, context, container):
+        pass
+
+
+def test_on_tab_close_clicked_calls_wrapper_close(monkeypatch):
+    _install_ui_fakes(monkeypatch)
+    reg = _FakeRegistry()
+    slot = TabSlot(
+        session=SimpleNamespace(context=None),
+        name="main",
+        registry=reg,
+    )
+    slot.add_binding(editor_key="veto:editor:1", editor_cls=_VetoEditor)
+    target = slot.find_binding("veto:editor:1")
+    slot._active = target
+    slot.render(_FakeContainer())
+    target._instantiate()
+    target._instance.allow = True
+
+    _run_async(slot._on_tab_close_clicked("veto:editor:1"))
+
+    # Tab gone after consent allowed
+    assert slot.find_binding("veto:editor:1") is None
+
+
+def test_on_tab_close_clicked_respects_veto(monkeypatch):
+    _install_ui_fakes(monkeypatch)
+    reg = _FakeRegistry()
+    slot = TabSlot(
+        session=SimpleNamespace(context=None),
+        name="main",
+        registry=reg,
+    )
+    slot.add_binding(editor_key="veto:editor:1", editor_cls=_VetoEditor)
+    target = slot.find_binding("veto:editor:1")
+    slot._active = target
+    slot.render(_FakeContainer())
+    target._instantiate()
+    target._instance.allow = False  # veto
+
+    _run_async(slot._on_tab_close_clicked("veto:editor:1"))
+
+    # Tab still there
+    assert slot.find_binding("veto:editor:1") is target
+
+
+def test_on_tab_close_clicked_no_longer_emits_tab_close_requested(monkeypatch):
+    """Regression: the X-button must NOT emit any session event."""
+    _install_ui_fakes(monkeypatch)
+    cls = _editor_cls("a")
+    reg = _FakeRegistry()
+    events_seen: list = []
+
+    sess = SimpleNamespace(
+        context=None,
+        notify_context_changed=lambda ev: events_seen.append(ev),
+    )
+    slot = TabSlot(session=sess, name="main", registry=reg)
+    slot.add_binding(editor_key="a", editor_cls=cls)
+    target = slot.find_binding("a")
+    slot._active = target
+    slot.render(_FakeContainer())
+
+    _run_async(slot._on_tab_close_clicked("a"))
+
+    # No events emitted by the close path
+    assert events_seen == []
+
+
+# ---------------------------------------------------------------------------
+# Task 10: dirty badge prefix
+# ---------------------------------------------------------------------------
+
+
+def test_dirty_wrapper_label_has_bullet_prefix(monkeypatch):
+    """When state.is_dirty is True, the bar's tab label is prefixed
+    with '• ' so the user sees there's unsaved work."""
+    created = _install_ui_fakes(monkeypatch)
+    cls = _editor_cls("a", label="MyEditor")
+    reg = _FakeRegistry()
+    slot = TabSlot(
+        session=SimpleNamespace(context=None),
+        name="main",
+        registry=reg,
+    )
+    slot.add_binding(editor_key="a", editor_cls=cls, payload="p1")
+    target = slot.find_binding("a", "p1")
+    target.label = "my.graph"
+    slot._active = target
+    target.set_dirty(True)
+
+    # Clear the created log and re-render the bar
+    created.clear()
+    slot._render_bar_contents()
+
+    # The label call args for the dirty tab should have '• ' prefix.
+    label_calls = [c for kind, c in created if kind == "label"]
+    assert any(c._args and c._args[0].startswith("• ") for c in label_calls), (
+        f"No dirty-prefixed label found in {[c._args for c in label_calls]}"
+    )
+
+
+def test_clean_wrapper_label_has_no_bullet_prefix(monkeypatch):
+    created = _install_ui_fakes(monkeypatch)
+    cls = _editor_cls("a", label="MyEditor")
+    reg = _FakeRegistry()
+    slot = TabSlot(
+        session=SimpleNamespace(context=None),
+        name="main",
+        registry=reg,
+    )
+    slot.add_binding(editor_key="a", editor_cls=cls, payload="p1")
+    target = slot.find_binding("a", "p1")
+    target.label = "my.graph"
+    slot._active = target
+    # is_dirty is False by default
+
+    created.clear()
+    slot._render_bar_contents()
+
+    label_calls = [c for kind, c in created if kind == "label"]
+    assert not any(c._args and c._args[0].startswith("• ") for c in label_calls)

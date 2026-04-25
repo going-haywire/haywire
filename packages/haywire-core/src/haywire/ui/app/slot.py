@@ -558,6 +558,7 @@ class Slot(ABC):
             registry=self._registry,
             session=self._session,
             payload=payload,
+            slot=self,
         )
         wrapper.set_redraw_callback(lambda w=wrapper: self._redraw(w))
         self._bindings.append(wrapper)
@@ -670,7 +671,9 @@ class Slot(ABC):
             return False
 
         old_id = target.binding_id
-        target.repayload(new_payload)
+        # Mutate the wrapper's field directly — the public wrapper.repayload()
+        # delegates back to this slot, which would cause unbounded recursion.
+        target.payload = new_payload
 
         panel = self._panels.pop(old_id, None)
         if panel is not None:

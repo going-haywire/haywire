@@ -58,7 +58,18 @@ def _make_context(entry: Optional[_FakeEntry], existing_active_graph=None):
 
 def _make_editor_with_payload(payload: str) -> GraphEditor:
     ed = GraphEditor()
-    ed.wrapper = SimpleNamespace(editor_key="graph_editor", payload=payload)
+
+    force_close_calls: list = []
+
+    def _force_close():
+        force_close_calls.append(True)
+
+    ed.wrapper = SimpleNamespace(
+        editor_key="graph_editor",
+        payload=payload,
+        force_close=_force_close,
+        force_close_calls=force_close_calls,
+    )
     return ed
 
 
@@ -106,20 +117,15 @@ def test_on_focus_short_circuits_when_graph_already_active() -> None:
     assert ctx.session.notified_events == []
 
 
-def test_on_focus_missing_entry_fires_tab_close_requested() -> None:
+def test_on_focus_missing_entry_force_closes_via_wrapper() -> None:
     ctx = _make_context(entry=None)
     ed = _make_editor_with_payload("/tmp/gone.haywire")
 
     ed.on_focus(ctx)
 
-    assert len(ctx.session.notified_events) == 1
-    ev = ctx.session.notified_events[0]
-    assert ev.change_type == ContextChangeType.TAB_CLOSE_REQUESTED
-    assert ev.detail == {
-        "slot_name": "main",
-        "editor_key": "graph_editor",
-        "payload": "/tmp/gone.haywire",
-    }
+    # Editor closes itself via wrapper.force_close — no event emitted.
+    assert ctx.session.notified_events == []
+    assert ed.wrapper.force_close_calls == [True]
     assert ctx.active_graph is None
 
 

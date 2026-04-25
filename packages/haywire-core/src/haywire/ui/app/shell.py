@@ -586,11 +586,7 @@ class AppShell:
 
     def _on_context_changed(self, event: ContextChangedEvent) -> None:
         """Orchestrator callback: run the poll/draw cycle on every managed slot."""
-        if event.change_type == ContextChangeType.TAB_CLOSE_REQUESTED:
-            self._handle_tab_close_requested(event)
-        elif event.change_type == ContextChangeType.TAB_REPAYLOAD_REQUESTED:
-            self._handle_tab_repayload_requested(event)
-        elif event.change_type == ContextChangeType.GRAPH_REMOVED:
+        if event.change_type == ContextChangeType.GRAPH_REMOVED:
             self._handle_graph_removed(event)
 
         if event.reveal_editor is not None:
@@ -598,37 +594,6 @@ class AppShell:
 
         for slot in self._managed_slots.values():
             slot.handle_context_event(event)
-
-    def _handle_tab_close_requested(self, event: ContextChangedEvent) -> None:
-        """Carry ``TAB_CLOSE_REQUESTED`` through to the target TabSlot."""
-        from haywire.ui.app.tab_slot import TabSlot
-
-        detail = event.detail if isinstance(event.detail, dict) else {}
-        slot_name = detail.get("slot_name")
-        editor_key = detail.get("editor_key")
-        if not slot_name or not editor_key:
-            return
-        slot = self._managed_slots.get(slot_name)
-        if isinstance(slot, TabSlot):
-            slot.close_tab(editor_key, detail.get("payload"))
-
-    def _handle_tab_repayload_requested(self, event: ContextChangedEvent) -> None:
-        """Carry ``TAB_REPAYLOAD_REQUESTED`` through to the target TabSlot."""
-        from haywire.ui.app.tab_slot import TabSlot
-
-        detail = event.detail if isinstance(event.detail, dict) else {}
-        slot_name = detail.get("slot_name")
-        editor_key = detail.get("editor_key")
-        if not slot_name or not editor_key:
-            return
-        slot = self._managed_slots.get(slot_name)
-        if isinstance(slot, TabSlot):
-            slot.repayload_tab(
-                editor_key,
-                detail.get("old_payload"),
-                detail.get("new_payload"),
-                detail.get("new_label"),
-            )
 
     def _handle_graph_removed(self, event: ContextChangedEvent) -> None:
         """Close every tab bound to the removed graph entry."""

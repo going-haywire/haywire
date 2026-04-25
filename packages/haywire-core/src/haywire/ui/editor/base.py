@@ -125,6 +125,23 @@ class BaseEditor(ABC):
         """
         pass
 
+    async def handle_close_request(self) -> bool:
+        """Decide whether to allow this editor's tab to close.
+
+        Called when the user clicks the X on the tab (the slot awaits this
+        before removing the wrapper). Override to show a save / discard /
+        cancel dialog when the editor has unsaved content; await the user's
+        choice; return True to allow the close, False to veto.
+
+        The default implementation always allows close. Editors that don't
+        track dirty state can ignore this method entirely.
+
+        Read ``self.wrapper.state.is_dirty`` to check whether to prompt.
+        Editors are responsible for their own dialog UI — the framework
+        provides the gate but no default dialog.
+        """
+        return True
+
     def get_tab_label(self, context: "SessionContext") -> str:
         """
         Return the label to show in a tab header (for tabbed slots — main, bottom).
