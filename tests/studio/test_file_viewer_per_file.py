@@ -20,12 +20,12 @@ def test_file_viewer_reads_payload_from_binding(tmp_path):
 
     viewer = FileViewerEditor()
 
-    # Simulate binding attachment the way EditorBinding.ensure_instance does.
-    class _FakeBinding:
+    # Simulate wrapper attachment the way EditorWrapper._instantiate does.
+    class _FakeWrapper:
         editor_key = FileViewerEditor.class_identity.registry_key
         payload = str(path)
 
-    viewer.binding = _FakeBinding()
+    viewer.wrapper = _FakeWrapper()
 
     # Assert the helper that resolves the path from the binding:
     assert viewer._resolve_path() == path

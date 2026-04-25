@@ -8,9 +8,10 @@ events, dependency tracking, and snapshot rollback.
 
 import inspect
 import logging
-from typing import Optional, Dict
+from typing import Dict, List, Optional
 
 from haywire.core.registry.base import BaseRegistry
+from haywire.core.registry.lifecycle_event import LifeCycleEventCallback
 from haywire.core.library.identity import LibraryIdentity
 
 from .base import BaseEditor
@@ -30,6 +31,10 @@ class EditorTypeRegistry(BaseRegistry):
     Built-in framework editors are bootstrapped via register_builtin_editors()
     called from the DI provider, analogous to register_builtin_settings().
     """
+
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+        self._lifecycle_event_subscribers: Dict[str, List[LifeCycleEventCallback]] = {}
 
     def _class_filter(self, cls) -> bool:
         """Return True if cls is a valid, decorated BaseEditor subclass."""
@@ -78,3 +83,43 @@ class EditorTypeRegistry(BaseRegistry):
             Dict mapping registry_key -> editor class.
         """
         return {k: v for k, v in self._classes.items() if v.class_identity.default_slot == slot}
+
+    # ------------------------------------------------------------------
+    # Per-key event subscription (mirrors NodeFactory.add_event_subscriber)
+    # ------------------------------------------------------------------
+
+    def add_event_subscriber(self, registry_key: str, callback: LifeCycleEventCallback) -> None:
+        """Register a callback for lifecycle events of a specific registry_key.
+
+        Used by EditorWrapper to self-subscribe for hot-reload notifications
+        without going through the slot. Mirrors NodeFactory's per-key API.
+        """
+        self._lifecycle_event_subscribers.setdefault(registry_key, []).append(callback)
+
+    def remove_event_subscriber(self, registry_key: str, callback: LifeCycleEventCallback) -> None:
+        """Unregister a per-key callback."""
+        if registry_key in self._lifecycle_event_subscribers:
+            if callback in self._lifecycle_event_subscribers[registry_key]:
+                self._lifecycle_event_subscribers[registry_key].remove(callback)
+                if not self._lifecycle_event_subscribers[registry_key]:
+                    del self._lifecycle_event_subscribers[registry_key]
+
+    def _notify_batch_event_subscribers(self) -> None:
+        """Override to dispatch per-key callbacks after batch fan-out.
+
+        Order: batch subscribers first (preserving existing semantics), then
+        per-key callbacks for every event in the queue. The queue is cleared
+        by the super() call, so we copy events first.
+        """
+        events = list(self._lifecycle_event_queue)
+        super()._notify_batch_event_subscribers()
+        for event in events:
+            callbacks = self._lifecycle_event_subscribers.get(event.registry_key, [])
+            for cb in callbacks:
+                try:
+                    cb(event)
+                except Exception as exc:
+                    logger.error(
+                        f"EditorTypeRegistry: per-key subscriber for '{event.registry_key}' raised: {exc}",
+                        exc_info=True,
+                    )

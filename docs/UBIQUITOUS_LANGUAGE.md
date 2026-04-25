@@ -177,7 +177,7 @@
 - **`payload` (tab)** — A `str` that disambiguates per-payload tabs of
   the same editor class. For GraphEditor the payload is the graph path;
   for FileViewer it is the file path. Stored in `TabState.metadata.payload`
-  and mirrored in `EditorBinding.payload`.
+  and mirrored in `EditorWrapper.payload`.
 
 ---
 

@@ -5,7 +5,7 @@ Renders a column containing a horizontal tab bar on top (``ui.tabs``, plus an
 optional chevron for the bottom slot that folds the area in/out) and the
 ``ui.tab_panels`` area below. Exposes mutators
 (``open_tab``/``close_tab``/``repayload_tab``/``close_tabs_for_payload``) that
-keep the slot's binding list in sync with the tab bar.
+keep the slot's wrapper list in sync with the tab bar.
 
 """
 
@@ -16,7 +16,8 @@ from typing import ClassVar, Literal, Optional
 
 from nicegui import ui
 
-from haywire.ui.app.slot import EditorBinding, Slot
+from haywire.ui.app.slot import Slot
+from haywire.ui.editor.wrapper import EditorWrapper
 from haywire.ui.context_events import ContextChangedEvent, ContextChangeType
 
 logger = logging.getLogger(__name__)
@@ -69,16 +70,16 @@ class TabSlot(Slot):
                 .classes("hw-slot-bar-tabs")
                 .style("flex: 1; min-height: 36px;")
             ):
-                for binding in self._bindings:
-                    tab_el = ui.tab(name=binding.binding_id, label="").props("no-caps")
+                for wrapper in self._bindings:
+                    tab_el = ui.tab(name=wrapper.binding_id, label="").props("no-caps")
                     with tab_el:
                         with ui.row().classes("items-center gap-1 no-wrap"):
-                            label = binding.label or getattr(
-                                binding.editor_cls.class_identity, "label", binding.editor_key
+                            label = wrapper.label or getattr(
+                                wrapper.editor_cls.class_identity, "label", wrapper.editor_key
                             )
                             ui.label(label)
-                            if binding.can_close:
-                                tab_id = binding.binding_id
+                            if wrapper.can_close:
+                                tab_id = wrapper.binding_id
                                 (
                                     ui.button(
                                         icon="close",
@@ -104,7 +105,7 @@ class TabSlot(Slot):
 
     def _on_tab_clicked(self, tab_id: str) -> None:
         """Switch to the clicked tab and broadcast WORKSPACE_CHANGED."""
-        editor_key, payload = EditorBinding.split_id(tab_id)
+        editor_key, payload = EditorWrapper.split_id(tab_id)
         if not self.switch_to(editor_key, payload):
             return
         self._refresh_bar()
@@ -114,7 +115,7 @@ class TabSlot(Slot):
 
     def _on_tab_close_clicked(self, tab_id: str) -> None:
         """Emit TAB_CLOSE_REQUESTED so host apps can run domain cleanup."""
-        editor_key, payload = EditorBinding.split_id(tab_id)
+        editor_key, payload = EditorWrapper.split_id(tab_id)
         self._session.notify_context_changed(
             ContextChangedEvent(
                 change_type=ContextChangeType.TAB_CLOSE_REQUESTED,
@@ -149,23 +150,20 @@ class TabSlot(Slot):
             self._refresh_bar()
             return True
 
-        self.add_binding(
-            EditorBinding(editor_key=editor_key, editor_cls=editor_cls, payload=payload),
+        wrapper = self.add_binding(
+            editor_key=editor_key,
+            editor_cls=editor_cls,
+            payload=payload,
             activate=True,
         )
+        if label:
+            wrapper.label = label
         self._refresh_bar()
         return True
 
     def close_tab(self, editor_key: str, payload: Optional[str]) -> bool:
-        """Close one tab — removes binding; promotes sibling when active."""
-
-        def _cleanup(instance) -> None:
-            try:
-                instance.cleanup()
-            except Exception as exc:
-                logger.warning(f"TabSlot '{self.name}': cleanup error: {exc}")
-
-        removed = self.remove_binding(editor_key, payload, cleanup=_cleanup)
+        """Close one tab — removes wrapper; promotes sibling when active."""
+        removed = self.remove_binding(editor_key, payload)
         if removed is None:
             return False
         self._refresh_bar()
@@ -182,17 +180,17 @@ class TabSlot(Slot):
         if not self.repayload_binding(editor_key, old_payload, new_payload):
             return False
         if new_label is not None:
-            binding = self.find_binding(editor_key, new_payload)
-            if binding is not None:
-                binding.label = new_label
+            wrapper = self.find_binding(editor_key, new_payload)
+            if wrapper is not None:
+                wrapper.label = new_label
         self._refresh_bar()
         return True
 
     def close_tabs_for_payload(self, payload: str) -> int:
-        """Close every tab whose binding.payload == ``payload``."""
-        matches = [b for b in self._bindings if b.payload == payload]
+        """Close every tab whose wrapper.payload == ``payload``."""
+        matches = [w for w in self._bindings if w.payload == payload]
         closed = 0
-        for binding in matches:
-            if self.close_tab(binding.editor_key, binding.payload):
+        for wrapper in matches:
+            if self.close_tab(wrapper.editor_key, wrapper.payload):
                 closed += 1
         return closed

@@ -4,6 +4,7 @@ Tests for the EditorTypeRegistry and @editor decorator.
 """
 
 import pytest
+from haywire.core.registry.lifecycle_event import LifeCycleEvent, LifeCycleEventType
 from haywire.ui.editor.base import BaseEditor
 from haywire.ui.editor.decorator import editor
 from haywire.ui.editor.identity import OpenBehavior
@@ -210,3 +211,95 @@ class TestOpenBehavior:
                 pass
 
         assert _OpensLeftReqEditor.class_identity.opens is OpenBehavior.REQUIRED
+
+
+# ---------------------------------------------------------------------------
+# Per-key event subscriber tests
+# ---------------------------------------------------------------------------
+
+
+class _PlainCls:
+    pass
+
+
+class TestPerKeyEventSubscribers:
+    def test_per_key_subscriber_receives_event_for_its_key(self):
+        reg = EditorTypeRegistry()
+        received: list[LifeCycleEvent] = []
+        reg.add_event_subscriber("a:editor:1", lambda evt: received.append(evt))
+
+        reg._lifecycle_event_queue.append(
+            LifeCycleEvent(
+                event_type=LifeCycleEventType.CLASS_RELOADED,
+                registry_key="a:editor:1",
+                affected_class=_PlainCls,
+            )
+        )
+        reg._notify_batch_event_subscribers()
+
+        assert len(received) == 1
+        assert received[0].registry_key == "a:editor:1"
+
+    def test_per_key_subscriber_does_not_receive_other_keys(self):
+        reg = EditorTypeRegistry()
+        received: list[LifeCycleEvent] = []
+        reg.add_event_subscriber("a:editor:1", lambda evt: received.append(evt))
+
+        reg._lifecycle_event_queue.append(
+            LifeCycleEvent(
+                event_type=LifeCycleEventType.CLASS_RELOADED,
+                registry_key="other:editor:99",
+                affected_class=_PlainCls,
+            )
+        )
+        reg._notify_batch_event_subscribers()
+
+        assert received == []
+
+    def test_remove_event_subscriber_stops_callbacks(self):
+        reg = EditorTypeRegistry()
+        received: list[LifeCycleEvent] = []
+
+        def cb(evt: LifeCycleEvent) -> None:
+            received.append(evt)
+
+        reg.add_event_subscriber("a:editor:1", cb)
+        reg.remove_event_subscriber("a:editor:1", cb)
+
+        reg._lifecycle_event_queue.append(
+            LifeCycleEvent(
+                event_type=LifeCycleEventType.CLASS_RELOADED,
+                registry_key="a:editor:1",
+                affected_class=_PlainCls,
+            )
+        )
+        reg._notify_batch_event_subscribers()
+
+        assert received == []
+
+    def test_per_key_subscriber_exception_does_not_block_other_callbacks(self):
+        """A throwing callback must not prevent later callbacks from firing."""
+        reg = EditorTypeRegistry()
+        received: list[str] = []
+
+        def throwing_cb(evt):
+            raise RuntimeError("boom")
+
+        def recording_cb(evt):
+            received.append(evt.registry_key)
+
+        reg.add_event_subscriber("a:editor:1", throwing_cb)
+        reg.add_event_subscriber("a:editor:1", recording_cb)
+
+        reg._lifecycle_event_queue.append(
+            LifeCycleEvent(
+                event_type=LifeCycleEventType.CLASS_RELOADED,
+                registry_key="a:editor:1",
+                affected_class=_PlainCls,
+            )
+        )
+        # Must not raise — exception should be swallowed and logged
+        reg._notify_batch_event_subscribers()
+
+        # The recording callback should still have fired
+        assert received == ["a:editor:1"]

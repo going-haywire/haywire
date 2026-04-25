@@ -3,18 +3,32 @@
 from types import SimpleNamespace
 
 from haywire.ui.app.tab_slot import TabSlot
-from haywire.ui.app.slot import EditorBinding
 from haywire.ui.editor.identity import OpenBehavior
 
 
 class _FakeRegistry:
-    """Stub EditorTypeRegistry — only lifecycle hooks matter for Slot construction."""
+    """Stub EditorTypeRegistry — provides all subscriber hooks wrappers need."""
+
+    def __init__(self):
+        self._subscribers: dict = {}
 
     def add_batch_event_subscriber(self, _cb) -> None:
         pass
 
     def remove_batch_event_subscriber(self, _cb) -> None:
         pass
+
+    def add_event_subscriber(self, key, cb) -> None:
+        self._subscribers.setdefault(key, []).append(cb)
+
+    def remove_event_subscriber(self, key, cb) -> None:
+        if key in self._subscribers:
+            try:
+                self._subscribers[key].remove(cb)
+            except ValueError:
+                pass
+            if not self._subscribers[key]:
+                del self._subscribers[key]
 
 
 _REGISTRY = _FakeRegistry()
@@ -100,11 +114,11 @@ def _editor_cls(key, opens=OpenBehavior.ON_PAYLOAD, label="Lbl"):
 def test_tab_slot_open_tab_adds_binding_and_makes_active(monkeypatch):
     _install_ui_fakes(monkeypatch)
     cls = _editor_cls("a")
+    reg = _FakeRegistry()
     slot = TabSlot(
         session=SimpleNamespace(context=None),
         name="main",
-        registry=_REGISTRY,
-        initial_bindings=[],
+        registry=reg,
     )
     slot.render(_FakeContainer())
 
@@ -117,14 +131,15 @@ def test_tab_slot_open_tab_adds_binding_and_makes_active(monkeypatch):
 def test_tab_slot_open_tab_existing_activates_no_duplicate(monkeypatch):
     _install_ui_fakes(monkeypatch)
     cls = _editor_cls("a")
-    binding = EditorBinding(editor_key="a", editor_cls=cls, payload="/tmp/a")
+    reg = _FakeRegistry()
     slot = TabSlot(
         session=SimpleNamespace(context=None),
         name="main",
-        registry=_REGISTRY,
-        initial_bindings=[binding],
-        active_key="a::/tmp/a",
+        registry=reg,
     )
+    slot.add_binding(editor_key="a", editor_cls=cls, payload="/tmp/a")
+    binding = slot.find_binding("a", "/tmp/a")
+    slot._active = binding
     slot.render(_FakeContainer())
 
     # Already the active tab: open returns False (no change).
@@ -136,16 +151,15 @@ def test_tab_slot_close_tab_removes_and_promotes_sibling(monkeypatch):
     _install_ui_fakes(monkeypatch)
     cls_a = _editor_cls("a")
     cls_b = _editor_cls("b")
+    reg = _FakeRegistry()
     slot = TabSlot(
         session=SimpleNamespace(context=None),
         name="main",
-        registry=_REGISTRY,
-        initial_bindings=[
-            EditorBinding(editor_key="a", editor_cls=cls_a, payload="p1"),
-            EditorBinding(editor_key="b", editor_cls=cls_b, payload="p2"),
-        ],
-        active_key="a::p1",
+        registry=reg,
     )
+    slot.add_binding(editor_key="a", editor_cls=cls_a, payload="p1")
+    slot.add_binding(editor_key="b", editor_cls=cls_b, payload="p2")
+    slot._active = slot.find_binding("a", "p1")
     slot.render(_FakeContainer())
 
     assert slot.close_tab("a", "p1") is True
@@ -156,13 +170,14 @@ def test_tab_slot_close_tab_removes_and_promotes_sibling(monkeypatch):
 def test_tab_slot_repayload_tab_updates_ids(monkeypatch):
     _install_ui_fakes(monkeypatch)
     cls = _editor_cls("a")
+    reg = _FakeRegistry()
     slot = TabSlot(
         session=SimpleNamespace(context=None),
         name="main",
-        registry=_REGISTRY,
-        initial_bindings=[EditorBinding(editor_key="a", editor_cls=cls, payload="old")],
-        active_key="a::old",
+        registry=reg,
     )
+    slot.add_binding(editor_key="a", editor_cls=cls, payload="old")
+    slot._active = slot.find_binding("a", "old")
     slot.render(_FakeContainer())
 
     assert slot.repayload_tab("a", "old", "new", new_label="new.graph") is True
@@ -174,16 +189,15 @@ def test_tab_slot_repayload_tab_updates_ids(monkeypatch):
 def test_tab_slot_close_tabs_for_payload_closes_matching(monkeypatch):
     _install_ui_fakes(monkeypatch)
     cls = _editor_cls("a")
+    reg = _FakeRegistry()
     slot = TabSlot(
         session=SimpleNamespace(context=None),
         name="main",
-        registry=_REGISTRY,
-        initial_bindings=[
-            EditorBinding(editor_key="a", editor_cls=cls, payload="p1"),
-            EditorBinding(editor_key="a", editor_cls=cls, payload="p2"),
-        ],
-        active_key="a::p1",
+        registry=reg,
     )
+    slot.add_binding(editor_key="a", editor_cls=cls, payload="p1")
+    slot.add_binding(editor_key="a", editor_cls=cls, payload="p2")
+    slot._active = slot.find_binding("a", "p1")
     slot.render(_FakeContainer())
 
     closed = slot.close_tabs_for_payload("p1")

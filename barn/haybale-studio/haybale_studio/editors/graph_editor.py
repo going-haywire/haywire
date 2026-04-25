@@ -91,7 +91,7 @@ class GraphEditor(BaseEditor):
     def on_focus(self, context: "SessionContext") -> None:
         """Claim ownership of session state when this tab becomes active.
 
-        Resolves ``self.binding.payload`` (the entry key) via the haystack
+        Resolves ``self.wrapper.payload`` (the entry key) via the haystack
         and, if the entry exists, updates ``context.active_graph`` +
         ``active_graph_path`` and broadcasts ``ACTIVE_GRAPH_CHANGED`` so
         panels (properties, minimap, execution controls) refresh.
@@ -104,9 +104,9 @@ class GraphEditor(BaseEditor):
         Short-circuits when the context already reflects this entry so a
         redundant call is a no-op.
         """
-        if self.binding is None or self.binding.payload is None:
+        if self.wrapper is None or self.wrapper.payload is None:
             return
-        payload = self.binding.payload
+        payload = self.wrapper.payload
         app = getattr(context, "app", None)
         haystack = getattr(app, "haystack", None) if app is not None else None
         if haystack is None:
@@ -122,7 +122,7 @@ class GraphEditor(BaseEditor):
                         source_editor="graph_editor",
                         detail={
                             "slot_name": "main",
-                            "editor_key": self.binding.editor_key,
+                            "editor_key": self.wrapper.editor_key,
                             "payload": payload,
                         },
                     )
@@ -257,9 +257,9 @@ class GraphEditor(BaseEditor):
         app = self._project_state
         if app is None or not hasattr(app, "haystack"):
             return None
-        if self.binding is None or self.binding.payload is None:
+        if self.wrapper is None or self.wrapper.payload is None:
             return None
-        return app.haystack.get_by_id(self.binding.payload)
+        return app.haystack.get_by_id(self.wrapper.payload)
 
     # ------------------------------------------------------------------
     # ------------------------------------------------------------------
@@ -479,20 +479,20 @@ class GraphEditor(BaseEditor):
                 self._save_exists_warning.set_visibility(True)
             return  # stay in the dialog
 
-        old_payload = self.binding.payload if self.binding is not None else None
+        old_payload = self.wrapper.payload if self.wrapper is not None else None
         success = app.haystack.save_graph(entry, save_as=save_path)
         if success:
             context.active_graph_path = save_path
             session = context.session
             new_payload = entry.entry_id
-            if session is not None and self.binding is not None and old_payload != new_payload:
+            if session is not None and self.wrapper is not None and old_payload != new_payload:
                 session.notify_context_changed(
                     ContextChangedEvent(
                         change_type=ContextChangeType.TAB_REPAYLOAD_REQUESTED,
                         source_editor="graph_editor",
                         detail={
                             "slot_name": "main",
-                            "editor_key": self.binding.editor_key,
+                            "editor_key": self.wrapper.editor_key,
                             "old_payload": old_payload,
                             "new_payload": new_payload,
                             "new_label": entry.display_name,

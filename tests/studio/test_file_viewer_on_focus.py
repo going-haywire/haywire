@@ -30,7 +30,7 @@ def _make_context(existing_active_file=None):
 
 def _make_editor_with_payload(payload) -> FileViewerEditor:
     ed = FileViewerEditor()
-    ed.binding = SimpleNamespace(editor_key="file_viewer", payload=payload)
+    ed.wrapper = SimpleNamespace(editor_key="file_viewer", payload=payload)
     return ed
 
 
@@ -67,7 +67,7 @@ def test_on_focus_short_circuits_when_file_unchanged() -> None:
 def test_on_focus_no_binding_is_noop() -> None:
     ctx = _make_context()
     ed = FileViewerEditor()
-    ed.binding = None
+    ed.wrapper = None
 
     ed.on_focus(ctx)
 

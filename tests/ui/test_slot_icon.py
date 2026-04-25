@@ -3,17 +3,31 @@
 from types import SimpleNamespace
 
 from haywire.ui.app.icon_slot import IconSlot
-from haywire.ui.app.slot import EditorBinding
 
 
 class _FakeRegistry:
-    """Stub EditorTypeRegistry — only lifecycle hooks matter for Slot construction."""
+    """Stub EditorTypeRegistry — provides all subscriber hooks wrappers need."""
+
+    def __init__(self):
+        self._subscribers: dict = {}
 
     def add_batch_event_subscriber(self, _cb) -> None:
         pass
 
     def remove_batch_event_subscriber(self, _cb) -> None:
         pass
+
+    def add_event_subscriber(self, key, cb) -> None:
+        self._subscribers.setdefault(key, []).append(cb)
+
+    def remove_event_subscriber(self, key, cb) -> None:
+        if key in self._subscribers:
+            try:
+                self._subscribers[key].remove(cb)
+            except ValueError:
+                pass
+            if not self._subscribers[key]:
+                del self._subscribers[key]
 
 
 _REGISTRY = _FakeRegistry()
@@ -124,13 +138,15 @@ def _editor_cls(key, icon="ic", label="Lbl"):
 def test_icon_slot_renders_row_with_bar_and_area(monkeypatch):
     created = _install_ui_fakes(monkeypatch)
     a = _editor_cls("a")
+    reg = _FakeRegistry()
     slot = IconSlot(
         session=SimpleNamespace(context=None),
         name="left",
-        registry=_REGISTRY,
-        initial_bindings=[EditorBinding(editor_key="a", editor_cls=a)],
+        registry=reg,
         bar_place="left",
     )
+    slot.add_binding(editor_key="a", editor_cls=a)
+    slot._active = slot.find_binding("a")
     parent = _FakeContainer()
     slot.render(parent)
 
@@ -149,17 +165,16 @@ def test_icon_slot_bar_click_fires_switch_and_workspace_changed(monkeypatch):
     b = _editor_cls("b")
     notified = []
     session = SimpleNamespace(context=None, notify_context_changed=notified.append)
+    reg = _FakeRegistry()
     slot = IconSlot(
         session=session,
         name="left",
-        registry=_REGISTRY,
-        initial_bindings=[
-            EditorBinding(editor_key="a", editor_cls=a),
-            EditorBinding(editor_key="b", editor_cls=b),
-        ],
-        active_key="a",
+        registry=reg,
         bar_place="left",
     )
+    slot.add_binding(editor_key="a", editor_cls=a)
+    slot.add_binding(editor_key="b", editor_cls=b)
+    slot._active = slot.find_binding("a")
     slot.render(_FakeContainer())
 
     buttons = [c for (kind, c) in created if kind == "button" and getattr(c, "icon", None) == "ic"]
@@ -176,14 +191,16 @@ def test_icon_slot_fold_toggle_flips_visible(monkeypatch):
     created = _install_ui_fakes(monkeypatch)
     a = _editor_cls("a")
     vis_calls = []
+    reg = _FakeRegistry()
     slot = IconSlot(
         session=SimpleNamespace(context=None, notify_context_changed=lambda _e: None),
         name="left",
-        registry=_REGISTRY,
-        initial_bindings=[EditorBinding(editor_key="a", editor_cls=a)],
+        registry=reg,
         bar_place="left",
         on_visibility_change=vis_calls.append,
     )
+    slot.add_binding(editor_key="a", editor_cls=a)
+    slot._active = slot.find_binding("a")
     slot.render(_FakeContainer())
 
     # The fold toggle is the first button created (before the icon buttons).

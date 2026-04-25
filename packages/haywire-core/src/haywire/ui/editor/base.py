@@ -18,7 +18,7 @@ from typing import TYPE_CHECKING, ClassVar, Optional
 from .identity import EditorIdentity
 
 if TYPE_CHECKING:
-    from haywire.ui.app.slot import EditorBinding
+    from haywire.ui.editor.wrapper import EditorWrapper
     from haywire.ui.context import SessionContext
     from haywire.ui.context_events import ContextChangedEvent
     from nicegui.element import Element
@@ -38,7 +38,7 @@ class BaseEditor(ABC):
 
     Subclasses may override:
         - poll(context, event): Return True when a full redraw is needed.
-        - on_focus(context): Called when this binding becomes active.
+        - on_focus(context): Called when this wrapper becomes active.
         - cleanup(): Release resources when permanently removed.
         - get_tab_label(context): Dynamic tab label for tabbed slots.
 
@@ -49,13 +49,13 @@ class BaseEditor(ABC):
 
     class_identity: ClassVar[EditorIdentity]
 
-    #: The runtime binding this instance belongs to. Assigned by
-    #: :meth:`EditorBinding.ensure_instance` right after construction so the
+    #: The runtime wrapper this instance belongs to. Assigned by
+    #: :meth:`EditorWrapper._instantiate` right after construction so the
     #: editor can read its own ``editor_key`` / ``payload`` at any point
     #: (draw, poll, event handlers) without the slot having to pass it
     #: through each entry point. Stays ``None`` only for instances created
-    #: outside a slot (e.g. in direct unit tests).
-    binding: "Optional[EditorBinding]" = None
+    #: outside a wrapper (e.g. in direct unit tests).
+    wrapper: "Optional[EditorWrapper]" = None
 
     def poll(self, context: "SessionContext", event: "ContextChangedEvent") -> bool:
         """
@@ -76,14 +76,14 @@ class BaseEditor(ABC):
 
     def on_focus(self, context: "SessionContext") -> None:
         """
-        Called when this binding transitions from not-active to active
+        Called when this wrapper transitions from not-active to active
         in its slot.
 
-        Fires on: initial slot render (first active binding), Slot.switch_to
+        Fires on: initial slot render (first active wrapper), Slot.switch_to
         (programmatic reveal or user tab click), Slot.add_binding(activate=True).
-        Does NOT fire when re-selecting the already-active binding.
+        Does NOT fire when re-selecting the already-active wrapper.
 
-        Runs before draw() on the newly-activated binding, so any context
+        Runs before draw() on the newly-activated wrapper, so any context
         mutations this hook performs are visible to that draw() call and
         to any events this hook broadcasts.
 
@@ -91,7 +91,7 @@ class BaseEditor(ABC):
         state (e.g. GraphEditor owns context.active_graph) override this
         to update the context and broadcast the corresponding event.
 
-        Read ``self.binding.payload`` for this instance's identity.
+        Read ``self.wrapper.payload`` for this instance's identity.
 
         Args:
             context: The current session context.
@@ -108,8 +108,8 @@ class BaseEditor(ABC):
         poll() returns True.
 
         Multi-instance editors (e.g. GraphEditor) read their own identity
-        from :attr:`binding` (set by the slot at instance-creation time);
-        the ``binding`` carries the ``editor_key`` and ``payload`` that
+        from :attr:`wrapper` (set by the slot at instance-creation time);
+        the ``wrapper`` carries the ``editor_key`` and ``payload`` that
         disambiguate this instance from other tabs of the same class.
 
         Args:

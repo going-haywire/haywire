@@ -61,15 +61,15 @@ class FileViewerEditor(BaseEditor):
         self._last_file: Optional[Path] = None
 
     def _resolve_path(self) -> Optional[Path]:
-        """Return the file path this tab is pinned to, via binding.payload."""
-        if self.binding is None or self.binding.payload is None:
+        """Return the file path this tab is pinned to, via wrapper.payload."""
+        if self.wrapper is None or self.wrapper.payload is None:
             return None
-        return Path(self.binding.payload)
+        return Path(self.wrapper.payload)
 
     def poll(self, context: "SessionContext", event: "ContextChangedEvent") -> bool:
         """Redraw when DATA_MUTATED touches this file, otherwise stay put.
 
-        Each FileViewer instance is pinned to one file via its binding
+        Each FileViewer instance is pinned to one file via its wrapper
         payload. FILE_SELECTED events no longer drive redraws — a different
         file means a different tab.
         """
@@ -78,15 +78,15 @@ class FileViewerEditor(BaseEditor):
     def on_focus(self, context: "SessionContext") -> None:
         """Claim ownership of context.active_file when this tab becomes active.
 
-        Reads ``self.binding.payload`` (the file path as a string) and
+        Reads ``self.wrapper.payload`` (the file path as a string) and
         mirrors it into ``context.active_file`` as a ``Path``, then
         broadcasts ``FILE_SELECTED`` so listeners react.
 
         Short-circuits when the target already matches the active file.
         """
-        if self.binding is None:
+        if self.wrapper is None:
             return
-        payload = self.binding.payload
+        payload = self.wrapper.payload
         new_value = Path(payload) if payload else None
         if getattr(context, "active_file", None) == new_value:
             return

@@ -18,7 +18,8 @@ from typing import ClassVar, Literal
 
 from nicegui import ui
 
-from haywire.ui.app.slot import EditorBinding, Slot
+from haywire.ui.app.slot import Slot
+from haywire.ui.editor.wrapper import EditorWrapper
 from haywire.ui.context_events import ContextChangedEvent, ContextChangeType
 
 
@@ -27,7 +28,7 @@ class IconSlot(Slot):
 
     Notes:
         The bar area holds the fold-toggle button, a separator, and one icon
-        button per binding. Clicking an icon fires ``switch_to`` and emits a
+        button per wrapper. Clicking an icon fires ``switch_to`` and emits a
         ``WORKSPACE_CHANGED`` event via the session.
         The bar is never hidden by ``set_visible`` — only the area is — so
         the fold toggle remains available in both expanded and retracted
@@ -43,14 +44,14 @@ class IconSlot(Slot):
     def render(self, parent: ui.element) -> None:
         """Build ``[bar | area]`` (or ``[area | bar]``) inside ``parent``."""
         with parent:
-            wrapper = ui.row().classes("gap-0 no-wrap").style("height: 100%; overflow: hidden;")
+            row = ui.row().classes("gap-0 no-wrap").style("height: 100%; overflow: hidden;")
 
         if self._bar_place == "left":
-            with wrapper:
+            with row:
                 self._render_bar_column()
                 self._area_parent_box = self._create_content_box()
         else:
-            with wrapper:
+            with row:
                 self._area_parent_box = self._create_content_box()
                 self._render_bar_column()
 
@@ -59,7 +60,7 @@ class IconSlot(Slot):
 
     def _render_bar_contents(self) -> None:
         """Re-entrant bar content renderer — call after clearing ``_bar_container``."""
-        # Fold-toggle button (only rendered when the slot has bindings).
+        # Fold-toggle button (only rendered when the slot has wrappers).
         if self._bindings:
             fold_icon = self._fold_icon_for_visible(self._visible)
             btn = (
@@ -73,15 +74,15 @@ class IconSlot(Slot):
             self._fold_button = btn
             ui.separator().classes("w-full opacity-20")
 
-        # One icon button per binding, highlighting the active one.
-        for binding in self._bindings:
-            icon = binding.editor_cls.class_identity.icon
-            label = binding.editor_cls.class_identity.label
-            is_active = self._active is binding
+        # One icon button per wrapper, highlighting the active one.
+        for wrapper in self._bindings:
+            icon = wrapper.editor_cls.class_identity.icon
+            label = wrapper.editor_cls.class_identity.label
+            is_active = self._active is wrapper
             (
                 ui.button(
                     icon=icon,
-                    on_click=lambda _e=None, b=binding: self._on_icon_clicked(b),
+                    on_click=lambda _e=None, w=wrapper: self._on_icon_clicked(w),
                 )
                 .classes(self._button_classes(is_active))
                 .props("flat round")
@@ -106,9 +107,9 @@ class IconSlot(Slot):
     # User actions
     # ------------------------------------------------------------------
 
-    def _on_icon_clicked(self, binding: EditorBinding) -> None:
-        """Switch to ``binding`` and broadcast WORKSPACE_CHANGED."""
-        if not self.switch_to(binding.editor_key, binding.payload):
+    def _on_icon_clicked(self, wrapper: EditorWrapper) -> None:
+        """Switch to ``wrapper`` and broadcast WORKSPACE_CHANGED."""
+        if not self.switch_to(wrapper.editor_key, wrapper.payload):
             return
         self._refresh_bar()
         self._session.notify_context_changed(

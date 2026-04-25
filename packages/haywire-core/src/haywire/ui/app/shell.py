@@ -8,7 +8,7 @@ orchestrates editor reveal/open operations across them, handles workspace
 layout DOM construction (TopBar, StatusBar, resizable dividers), and delegates
 context-change events to each slot for their independent poll/draw cycles.
 
-Each slot owns its own editor bindings, area container, and active-binding
+Each slot owns its own editor wrappers, area container, and active-wrapper
 lifecycle. The shell's role is layout chrome and orchestration only; business
 logic lives inside the slots themselves.
 
@@ -64,7 +64,7 @@ class AppShell:
         self._editor_registry = editor_registry
 
         # Poll/draw orchestrator state — every slot (left, right, main,
-        # bottom) is a managed :class:`Slot` that owns its area and bindings.
+        # bottom) is a managed :class:`Slot` that owns its area and wrappers.
         self._managed_slots: dict[str, Slot] = {}
 
         # DOM references -------------------------------------------------------
@@ -496,15 +496,15 @@ class AppShell:
         data = snapshot.get(slot_name, {})
 
         cls = IconSlot if slot_name in ("left", "right") else TabSlot
-        slot = cls.from_snapshot(
-            data=data,
-            registry=self._editor_registry,
+        slot = cls(
             session=self.session,
             name=slot_name,
+            registry=self._editor_registry,
             bar_place=bar_place,
             show_fold_toggle=show_fold_toggle,
             on_visibility_change=on_visibility_change,
         )
+        slot.populate_from_snapshot(data)
         self._managed_slots[slot_name] = slot
         return slot
 
@@ -537,7 +537,7 @@ class AppShell:
         Resolves the target slot from the editor's ``class_identity.default_slot``,
         then:
             * IconSlot — calls ``switch_to`` directly (no tab creation path).
-            * TabSlot  — uses ``open_tab`` when the binding is missing (auto-
+            * TabSlot  — uses ``open_tab`` when the wrapper is missing (auto-
               create), otherwise ``switch_to``. Honours ``OpenBehavior``.
         Does NOT broadcast WORKSPACE_CHANGED (the reveal is in response to
         another event already propagating).
@@ -573,8 +573,9 @@ class AppShell:
 
         if isinstance(slot, TabSlot):
             if slot.find_binding(editor_key, payload) is None:
-                tab_label = label or getattr(editor_cls.class_identity, "label", editor_key)
-                slot.open_tab(editor_cls, editor_key, payload, tab_label)
+                # Empty label falls through to dynamic class_identity.label
+                # resolution in the bar — keeps hot-reload label updates working.
+                slot.open_tab(editor_cls, editor_key, payload, label or "")
             else:
                 slot.switch_to(editor_key, payload)
                 slot._refresh_bar()

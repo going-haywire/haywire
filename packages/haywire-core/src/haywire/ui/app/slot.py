@@ -1,15 +1,14 @@
 """
-Slot and EditorBinding — runtime containers for the AppShell's four slots.
+Slot and EditorWrapper — runtime containers for the AppShell's four slots.
 
-A :class:`Slot` owns the editor bindings that can be hosted in one of the
+A :class:`Slot` owns the editor wrappers that can be hosted in one of the
 four shell slots (``left``, ``right``, ``main``, ``bottom``), the live area
-container those editors draw into, and the currently active binding.
+container those editors draw into, and the currently active wrapper.
 
-A :class:`EditorBinding` pairs an editor class + payload with its live
-instance. The ``payload`` field is reserved for a follow-up PRD that will
-enable multi-instance editors (e.g., a GraphEditor per open graph file); in
-the current scope every binding is constructed with ``payload=None`` and the
-field is unused, but carrying it from day one avoids a second refactor.
+An :class:`EditorWrapper` pairs an editor class + payload with its live
+instance and self-subscribes to the editor registry for hot-reload events.
+The ``payload`` field enables multi-instance editors (e.g., a GraphEditor
+per open graph file).
 
 Relationship to AppShell:
 
@@ -25,19 +24,20 @@ Relationship to AppShell:
   area — container clear, instance lazy-create, draw.
 * On every ``ContextChangedEvent``, the shell calls
   ``slot.handle_context_event(event)`` on each slot to run the poll/draw
-  gate on the active binding.
+  gate on the active wrapper.
 """
 
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from contextlib import nullcontext
 import logging
-from dataclasses import dataclass
 from typing import Any, Callable, ClassVar, Literal, Optional, TYPE_CHECKING
 
 from nicegui import ui
 
 from haywire.ui.editor.registry import EditorTypeRegistry
+from haywire.ui.editor.wrapper import EditorWrapper
 
 if TYPE_CHECKING:
     from haywire.ui.context_events import ContextChangedEvent
@@ -47,100 +47,31 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-@dataclass
-class EditorBinding:
-    """
-    One editor class + optional payload, paired with its live instance.
-
-    Attributes:
-        editor_key: Registry key of the editor class.
-        editor_cls: The editor class. Used to create ``instance`` lazily.
-        payload: the absolute file path string (e.g., a graph
-            path)or a synthetic placeholder token for unsaved documents.
-            ``None`` if the editor doesn not rely on a payload.
-        instance: The live editor instance. Created on first activation.
-    """
-
-    editor_key: str
-    editor_cls: type["BaseEditor"]
-    payload: Optional[str] = None
-    instance: Optional["BaseEditor"] = None
-    label: str = ""
-
-    @property
-    def binding_id(self) -> str:
-        """Stable identity.
-
-        Equals ``editor_key`` for single-instance bindings (the case for every
-        binding today) and ``editor_key::payload`` when a payload is present.
-        """
-        return f"{self.editor_key}::{self.payload}" if self.payload else self.editor_key
-
-    @staticmethod
-    def split_id(tab_id: str) -> tuple[str, Optional[str]]:
-        """Inverse of :attr:`binding_id`.
-
-        Decompose ``editor_key`` (single-instance) or ``editor_key::payload``
-        (multi-instance) back into its components.
-        """
-        if "::" in tab_id:
-            editor_key, payload = tab_id.split("::", 1)
-            return editor_key, payload
-        return tab_id, None
-
-    @property
-    def can_close(self) -> bool:
-        """Whether the host UI should render a close button for this binding.
-
-        Tabs whose editor class declares ``opens=REQUIRED`` are always-present
-        singletons and have no close button. All other ``OpenBehavior`` values
-        are closeable. Missing ``opens`` defaults to closeable (permissive —
-        better to let the user remove a tab than strand it).
-        """
-        from haywire.ui.editor.identity import OpenBehavior
-
-        opens = getattr(self.editor_cls.class_identity, "opens", None)
-        return opens is not OpenBehavior.REQUIRED
-
-    def ensure_instance(self) -> "BaseEditor":
-        """Lazy-create ``instance`` on first use. Subsequent calls return it.
-
-        On creation the binding attaches itself to the instance via
-        ``instance.binding = self`` so the editor can read its own
-        ``editor_key`` / ``payload`` at any time (draw, poll, handlers)
-        without the slot having to pass it through each entry point.
-        """
-        if self.instance is None:
-            self.instance = self.editor_cls()
-            self.instance.binding = self
-        return self.instance
-
-
 class Slot(ABC):
     """
     Runtime manager for one of the four shell slots.
 
-    Owns its editor bindings, the currently active binding, its area
+    Owns its editor wrappers, the currently active wrapper, its area
     container, and the slot's visibility state. Provides the switch,
     reveal, and poll/draw entry points used by the AppShell.
 
     Lifecycle:
-        * Constructed by the shell once per slot, seeded with the list of
-          bindings appropriate for that slot (registry-derived for
-          left/right; workspace-tabs-derived for main/bottom).
-        * ``_render_area(parent)`` creates the slot's area container as a
-          child of ``parent`` and draws the active binding.
-        * ``switch_to(key)`` changes the active binding, clears the area,
-          re-draws the new active binding's editor. Returns ``True`` only
+        * Constructed by the shell once per slot. After construction,
+          callers must call :meth:`populate_from_snapshot` or
+          :meth:`add_binding` before any rendering.
+        * ``render(parent)`` creates the slot's area container as a
+          child of ``parent`` and draws the active wrapper.
+        * ``switch_to(key)`` changes the active wrapper, clears the area,
+          re-draws the new active wrapper's editor. Returns ``True`` only
           when the active key actually changed.
         * ``handle_context_event(event)`` runs the poll/draw gate on the
-          active binding. No-op when there is no active binding.
+          active wrapper. No-op when there is no active wrapper.
         * ``set_visible(visible)`` toggles the area container visibility.
 
     Instance state:
-        * The editor instance of a previously-active binding is kept in its
-          ``EditorBinding`` so its Python-side state survives being hidden.
-          The container DOM is cleared on switch and re-built on
+        * The editor instance of a previously-active wrapper is kept in its
+          :class:`EditorWrapper` so its Python-side state survives being
+          hidden. The container DOM is cleared on switch and re-built on
           reactivation (``draw()`` runs on a fresh container).
     """
 
@@ -149,8 +80,6 @@ class Slot(ABC):
         session: "Session",
         name: str,
         registry: EditorTypeRegistry,
-        initial_bindings: list[EditorBinding],
-        active_key: Optional[str] = None,
         on_visibility_change: Optional[Callable[[bool], None]] = None,
         bar_place: Literal["left", "right", "top", "bottom"] = "left",
         show_fold_toggle: bool = False,
@@ -159,22 +88,13 @@ class Slot(ABC):
     ):
         """
         Args:
-            session: The owning session (used to access context on
-                draw/poll). Slot holds it for its lifetime.
+            session: The owning session.
             name: Slot identifier — one of ``"left"``, ``"right"``,
-                ``"main"``, ``"bottom"``. Used in logs only.
-            initial_bindings: Bindings to host in this slot. The shell is
-                responsible for enumerating these per-slot (registry for
-                left/right; workspace tabs for main/bottom).
-            active_key: ``editor_key`` or composite ``editor_key::payload``
-                of the initially active binding. A ``::``-containing value is
-                automatically split so callers never need to call
-                :meth:`EditorBinding.split_id` before construction. If the key
-                has no matching binding, the first binding (if any) becomes
-                active; if there are no bindings, the slot is inactive.
+                ``"main"``, ``"bottom"``.
+            registry: Editor type registry; passed through to wrappers
+                constructed via add_binding / populate_from_snapshot.
             on_visibility_change: Optional callback fired when the slot's
-                visibility changes. Receives the new visibility state (bool).
-                Not fired on idempotent calls (when the state doesn't change).
+                visibility changes.
             bar_place: Where the bar renders relative to the area.
                 ``"left"``/``"right"`` for icon slots (horizontal layout);
                 ``"top"``/``"bottom"`` for tab slots (vertical layout).
@@ -184,12 +104,17 @@ class Slot(ABC):
             visible: Initial visibility of the slot's area container.
             size: Initial pixel size for the slot's content box (width for
                 horizontal slots, height for vertical fold-toggle slots).
+
+        After construction, callers must populate the slot via
+        :meth:`populate_from_snapshot` or :meth:`add_binding` before any
+        rendering. The slot is empty (no wrappers, no active wrapper) until
+        populated.
         """
         self._session = session
         self.name = name
         self._registry: EditorTypeRegistry = registry
-        self._bindings: list[EditorBinding] = list(initial_bindings)
-        self._active: Optional[EditorBinding] = self._resolve_initial_active(active_key)
+        self._bindings: list[EditorWrapper] = []
+        self._active: Optional[EditorWrapper] = None
         self._visible: bool = visible
         self._size: int = size
         self._area_panel_container: Optional[ui.element] = None
@@ -201,8 +126,14 @@ class Slot(ABC):
         self._show_fold_toggle = show_fold_toggle
         self._bar_container: Optional[ui.element] = None
         self._fold_button: Optional[ui.element] = None
-
-        self._registry.add_batch_event_subscriber(self._on_editor_lifecycle)
+        # See :meth:`_capture_tab_client`. None in tests that skip rendering.
+        self._tab_client: Any = None
+        # See :meth:`_on_class_added`. The slot subscribes to batch lifecycle
+        # events only to react to CLASS_ADDED for REQUIRED editors that
+        # belong in this slot's default position. Per-key dispatch (used by
+        # EditorWrapper) covers RELOADED / REMOVED for already-tracked keys
+        # but cannot fire for keys no wrapper subscribes to yet.
+        self._registry.add_batch_event_subscriber(self._on_class_added)
 
     _ORIENTATION: ClassVar[Literal["horizontal", "vertical"]]
 
@@ -223,14 +154,14 @@ class Slot(ABC):
         from haywire.ui.editor.identity import OpenBehavior
 
         editors = []
-        for binding in self._bindings:
-            opens = getattr(binding.editor_cls.class_identity, "opens", OpenBehavior.REQUIRED)
+        for wrapper in self._bindings:
+            opens = getattr(wrapper.editor_cls.class_identity, "opens", OpenBehavior.REQUIRED)
             if opens is OpenBehavior.REQUIRED:
                 continue
-            entry: dict = {"key": binding.editor_key}
-            if binding.payload is not None:
-                entry["payload"] = binding.payload
-            label = binding.label or getattr(binding.editor_cls.class_identity, "label", binding.editor_key)
+            entry: dict = {"key": wrapper.editor_key}
+            if wrapper.payload is not None:
+                entry["payload"] = wrapper.payload
+            label = wrapper.label or getattr(wrapper.editor_cls.class_identity, "label", wrapper.editor_key)
             entry["label"] = label
             editors.append(entry)
 
@@ -241,96 +172,71 @@ class Slot(ABC):
             "editors": editors,
         }
 
-    @classmethod
-    def from_snapshot(
-        cls,
-        data: dict,
-        registry: "EditorTypeRegistry",
-        session: "Session",
-        name: str,
-        bar_place: Literal["left", "right", "top", "bottom"] = "left",
-        show_fold_toggle: bool = False,
-        on_visibility_change: Optional[Callable[[bool], None]] = None,
-    ) -> "Slot":
-        """Construct a slot from a raw snapshot dict.
+    def populate_from_snapshot(self, data: dict) -> None:
+        """Populate the slot's wrappers from a snapshot dict.
 
-        Injects all REQUIRED editors for this slot unconditionally from the
-        registry. Then appends snapshot editors (ON_PAYLOAD / ON_CONTEXT) in
-        order. Unknown editor keys are silently skipped.
+        Injects all REQUIRED editors for this slot from the registry first,
+        then appends snapshot entries (ON_PAYLOAD / ON_CONTEXT). Resolves
+        the active wrapper from data["active_key"]. Unknown editor keys
+        in the snapshot are skipped with a log warning.
 
-        Args:
-            data: Raw snapshot dict as produced by :meth:`to_snapshot`.
-                Expected keys: ``active_key``, ``visible``, ``size``,
-                ``editors`` (list of ``{key, payload?, label}`` dicts).
-            registry: Editor type registry used to resolve editor classes by
-                key. Unknown keys in ``editors`` are skipped with a warning.
-            session: The owning session passed through to the constructed
-                ``Slot``.
-            name: Slot identifier (``"left"``, ``"right"``, ``"main"``,
-                ``"bottom"``). Used for registry lookup and logging.
-            bar_place: Where the bar renders relative to the area. Forwarded
-                to the ``Slot`` constructor unchanged.
-            show_fold_toggle: Whether to render a fold toggle on the bar.
-                Forwarded to the ``Slot`` constructor unchanged.
-            on_visibility_change: Optional callback fired on visibility
-                transitions. Forwarded to the ``Slot`` constructor unchanged.
+        Idempotent only on a fresh slot — call exactly once after __init__,
+        before any rendering.
         """
         from haywire.ui.editor.identity import OpenBehavior
 
-        bindings: list[EditorBinding] = []
-
-        for key, editor_cls in registry.get_by_default_slot(name).items():
+        # REQUIRED editors are always re-injected from the registry.
+        # No label set — bar resolves dynamically from class_identity.
+        for key, editor_cls in self._registry.get_by_default_slot(self.name).items():
             opens = getattr(editor_cls.class_identity, "opens", OpenBehavior.REQUIRED)
             if opens is OpenBehavior.REQUIRED:
-                bindings.append(EditorBinding(editor_key=key, editor_cls=editor_cls, payload=None))
+                self.add_binding(
+                    editor_key=key,
+                    editor_cls=editor_cls,
+                    payload=None,
+                    activate=False,
+                )
 
+        # Snapshot entries — custom labels (e.g. graph filenames) are
+        # restored via direct field assignment on the returned wrapper.
         for entry in data.get("editors", []):
             key = entry.get("key")
             if not key:
                 continue
-            editor_cls = registry.get_by_key(key)
+            editor_cls = self._registry.get_by_key(key)
             if editor_cls is None:
-                logger.warning(f"Slot '{name}': snapshot editor '{key}' not in registry — skipping")
+                logger.warning(f"Slot '{self.name}': snapshot editor '{key}' not in registry — skipping")
                 continue
-            payload = entry.get("payload")
-            binding = EditorBinding(editor_key=key, editor_cls=editor_cls, payload=payload)
-            binding.label = entry.get("label", key)
-            bindings.append(binding)
+            wrapper = self.add_binding(
+                editor_key=key,
+                editor_cls=editor_cls,
+                payload=entry.get("payload"),
+                activate=False,
+            )
+            snapshot_label = entry.get("label", "")
+            if snapshot_label:
+                wrapper.label = snapshot_label
 
+        # Apply visibility/size from snapshot if present
+        if "visible" in data:
+            self._visible = bool(data["visible"])
+        if "size" in data:
+            self._size = int(data["size"])
+
+        # Resolve initial active wrapper
         active_key = data.get("active_key")
-        visible = data.get("visible", True)
-        size = data.get("size", 300)
-
-        return cls(
-            session=session,
-            name=name,
-            registry=registry,
-            initial_bindings=bindings,
-            active_key=active_key,
-            on_visibility_change=on_visibility_change,
-            bar_place=bar_place,
-            show_fold_toggle=show_fold_toggle,
-            visible=visible,
-            size=size,
-        )
+        if active_key is not None:
+            key, payload = EditorWrapper.split_id(active_key)
+            match = self.find_binding(key, payload)
+            if match is not None:
+                self._active = match
+                return
+        if self._bindings:
+            self._active = self._bindings[0]
 
     # ------------------------------------------------------------------
     # Construction helpers
     # ------------------------------------------------------------------
-
-    def _resolve_initial_active(self, active_key: Optional[str]) -> Optional[EditorBinding]:
-        """Pick the starting active binding from ``active_key`` or the first binding.
-
-        ``active_key`` may be a plain ``editor_key`` or a composite
-        ``editor_key::payload``; the ``::`` split is handled here so callers
-        never need to do it before construction.
-        """
-        if active_key is not None:
-            key, payload = EditorBinding.split_id(active_key)
-            match = self.find_binding(key, payload)
-            if match is not None:
-                return match
-        return self._bindings[0] if self._bindings else None
 
     def _create_content_box(self) -> "ui.element":
         """Create the slot's outer content box.
@@ -370,18 +276,18 @@ class Slot(ABC):
     # ------------------------------------------------------------------
 
     @property
-    def active_binding(self) -> Optional[EditorBinding]:
-        """The binding currently shown in the area, or ``None`` if empty."""
+    def active_binding(self) -> Optional[EditorWrapper]:
+        """The wrapper currently shown in the area, or ``None`` if empty."""
         return self._active
 
     @property
     def active_key(self) -> Optional[str]:
-        """Registry key of the active binding, or ``None`` if empty."""
+        """Registry key of the active wrapper, or ``None`` if empty."""
         return self._active.editor_key if self._active is not None else None
 
     @property
     def active_binding_id(self) -> Optional[str]:
-        """Full binding id (``editor_key`` or ``editor_key::payload``) of the active binding."""
+        """Full wrapper id (``editor_key`` or ``editor_key::payload``) of the active wrapper."""
         return self._active.binding_id if self._active is not None else None
 
     @property
@@ -390,16 +296,16 @@ class Slot(ABC):
         return self._visible
 
     @property
-    def bindings(self) -> list[EditorBinding]:
-        """Read-only view of the bindings list."""
+    def bindings(self) -> list[EditorWrapper]:
+        """Read-only view of the wrappers list."""
         return list(self._bindings)
 
-    def find_binding(self, editor_key: str, payload: Any = None) -> Optional[EditorBinding]:
+    def find_binding(self, editor_key: str, payload: Optional[str] = None) -> Optional[EditorWrapper]:
         """
-        Lookup a binding by ``(editor_key, payload)``.
+        Lookup a wrapper by ``(editor_key, payload)``.
 
         An exact match (both fields equal) always wins. When ``payload`` is
-        ``None`` and no exact match exists, falls back to the first binding
+        ``None`` and no exact match exists, falls back to the first wrapper
         whose ``editor_key`` matches — this preserves the behavior every
         pre-multi-instance call site relied on.
 
@@ -410,7 +316,7 @@ class Slot(ABC):
         if exact:
             if len(exact) > 1:
                 logger.warning(
-                    f"Slot '{self.name}': {len(exact)} bindings match "
+                    f"Slot '{self.name}': {len(exact)} wrappers match "
                     f"({editor_key!r}, payload={payload!r}); returning the first."
                 )
             return exact[0]
@@ -421,7 +327,7 @@ class Slot(ABC):
                 return None
             if len(fuzzy) > 1:
                 logger.warning(
-                    f"Slot '{self.name}': {len(fuzzy)} bindings match key '{editor_key}' "
+                    f"Slot '{self.name}': {len(fuzzy)} wrappers match key '{editor_key}' "
                     "(payload-less lookup); returning the first. "
                     "Pass payload to disambiguate once multi-instance tabs land."
                 )
@@ -453,7 +359,7 @@ class Slot(ABC):
             self._render_bar_contents()
 
     def _render_bar_column(self) -> None:
-        """Render the icon bar (fold toggle + per-binding icon buttons)."""
+        """Render the icon bar (fold toggle + per-wrapper icon buttons)."""
         border_style = (
             "border-right: 1px solid var(--hw-border);"
             if self._bar_place == "left"
@@ -482,19 +388,38 @@ class Slot(ABC):
         with self._bar_container:
             self._render_bar_contents()
 
+    def _capture_tab_client(self) -> None:
+        """Snapshot the current NiceGUI Client (one per browser tab).
+
+        Called from :meth:`_render_area_contents`, which runs inside the
+        ``@ui.page`` handler chain — the only moment ``ui.context.client``
+        is guaranteed valid. The reference is later used by :meth:`_redraw`
+        to re-enter the client's context when invoked from a background
+        thread (hot-reload via the watchdog file watcher), so NiceGUI calls
+        inside an editor's ``draw()`` — including elements created outside
+        a ``with container:`` block such as ``ui.timer`` — can find the
+        right slot stack instead of silently misbehaving.
+        """
+        try:
+            self._tab_client = ui.context.client
+        except Exception as exc:
+            logger.debug(f"Slot '{self.name}': could not capture client context: {exc}")
+            self._tab_client = None
+
     def _render_area_contents(self, parent: "ui.element") -> None:
         """
         Create the area container (a headless ``ui.tab_panels``) as a child
-        of ``parent`` and draw the active binding's editor into its panel.
+        of ``parent`` and draw the active wrapper's editor into its panel.
 
-        Each binding gets its own ``ui.tab_panel`` keyed by ``editor_key``.
+        Each wrapper gets its own ``ui.tab_panel`` keyed by ``binding_id``.
         All panels live in the DOM simultaneously; switching toggles
         visibility via ``set_value`` rather than clearing and re-rendering.
 
         Called once during the slot's initial render. The container and
-        per-binding panels are stored so ``switch_to`` can change the
+        per-wrapper panels are stored so ``switch_to`` can change the
         active panel without rebuilding anything.
         """
+        self._capture_tab_client()
         initial_value = self._active.binding_id if self._active is not None else None
         with parent:
             self._area_panel_container = (
@@ -507,8 +432,8 @@ class Slot(ABC):
             )
         self._area_panel_container.set_visibility(self._visible)
 
-        for binding in self._bindings:
-            self._create_panel(binding)
+        for wrapper in self._bindings:
+            self._create_panel(wrapper)
 
         if self._active is None and self._area_panel_container is not None:
             with self._area_panel_container:
@@ -520,107 +445,83 @@ class Slot(ABC):
             self._active = None
             self._activate(initial)
 
-    def _create_panel(self, binding: EditorBinding) -> None:
-        """Create a ``ui.tab_panel`` shell for ``binding``. Draw is deferred."""
+    def _create_panel(self, wrapper: EditorWrapper) -> None:
+        """Create a ``ui.tab_panel`` shell for ``wrapper``. Draw is deferred."""
         if self._area_panel_container is None:
             return
         with self._area_panel_container:
-            panel = ui.tab_panel(binding.binding_id).style("width: 100%; height: 100%; padding: 0;")
-        self._panels[binding.binding_id] = panel
+            panel = ui.tab_panel(wrapper.binding_id).style("width: 100%; height: 100%; padding: 0;")
+        self._panels[wrapper.binding_id] = panel
 
-    def _ensure_drawn(self, binding: EditorBinding) -> None:
-        """Draw the binding's editor into its panel on first activation."""
-        bid = binding.binding_id
+    def _ensure_drawn(self, wrapper: EditorWrapper) -> None:
+        """Trigger first-time draw of the wrapper's panel."""
+        bid = wrapper.binding_id
         if bid in self._drawn:
             return
         panel = self._panels.get(bid)
         if panel is None:
             return
-        try:
-            instance = binding.ensure_instance()
-            instance.draw(self._session.context, panel)
-            self._drawn.add(bid)
-        except Exception as exc:
-            logger.error(f"Slot '{self.name}': draw failed for '{bid}': {exc}")
-            with panel:
-                ui.label(f"Error loading editor: {bid}").classes("hw-text-danger p-4")
+        wrapper.draw(panel)
+        self._drawn.add(bid)
 
-    def _redraw(self, binding: EditorBinding) -> None:
-        """Full redraw of one binding's panel (clear + draw).
+    def _redraw(self, wrapper: EditorWrapper) -> None:
+        """Full redraw of one wrapper's panel and the bar.
 
-        Hot-reload fires this across every live ``AppShell`` — including
-        shells whose browser client has already disconnected. NiceGUI raises
-        ``RuntimeError`` when we touch elements owned by a dead client, so
-        we drop the panel reference on that error rather than letting the
-        reload propagate.
+        ``wrapper.draw(panel)`` owns the clear — it calls ``panel.clear()``
+        internally and handles dead-client RuntimeErrors. The slot resets
+        the drawn-set so draw() runs unconditionally, then calls
+        ``panel.update()`` to push the new DOM over the live websocket
+        (without it the new content stays invisible until browser refresh
+        — matters chiefly for hot-reload), and ``_refresh_bar()`` so any
+        bar element derived from the editor class (label, icon, can_close
+        policy) re-renders with the new class.
+
+        When invoked from a background thread (hot-reload), enters the
+        captured tab client's context first so NiceGUI element/timer
+        creation inside the editor's draw() can find a valid slot stack.
+        See :meth:`_capture_tab_client`.
         """
-        bid = binding.binding_id
+        bid = wrapper.binding_id
         panel = self._panels.get(bid)
         if panel is None:
             return
-        try:
-            panel.clear()
-        except RuntimeError as exc:
-            logger.debug(f"Slot '{self.name}': skipping redraw of '{bid}' on dead client: {exc}")
-            self._panels.pop(bid, None)
+        client_ctx = self._tab_client if self._tab_client is not None else nullcontext()
+        with client_ctx:
             self._drawn.discard(bid)
-            return
-        self._drawn.discard(bid)
-        self._ensure_drawn(binding)
+            wrapper.draw(panel)
+            self._drawn.add(bid)
+            try:
+                panel.update()
+            except Exception as exc:
+                logger.debug(f"Slot '{self.name}': panel.update() raised (dead client?): {exc}")
+            self._refresh_bar()
 
-    def _activate(self, binding: EditorBinding) -> None:
-        """Make ``binding`` the active one and run its on_focus hook.
-
-        Single choke point for "binding transitions to active". Used by:
-
-        * ``_render_area`` — on first render of the slot, for the initially
-          active binding picked by ``_resolve_initial_active``.
-        * ``switch_to`` — when the user clicks a different tab or a reveal
-          swaps the active binding.
-        * ``add_binding(activate=True)`` — when a new multi-instance tab is
-          opened and made active in one step.
-
-        Order of operations:
-          1. Mark ``self._active = binding``.
-          2. Ensure the instance exists (lazy-create) and call its
-             ``on_focus(context)`` hook. Runs before ``draw`` so any context
-             mutation the hook performs is visible to ``draw``.
-          3. ``_ensure_drawn(binding)`` — first-time draw if needed.
-          4. Flip the tab_panels visibility via ``set_value``.
-
-        Exceptions raised by ``on_focus`` are logged and swallowed so a
-        buggy editor can't wedge the slot.
-        """
-        self._active = binding
-        instance = binding.ensure_instance()
-        try:
-            instance.on_focus(self._session.context)
-        except Exception as exc:
-            logger.error(f"Slot '{self.name}': on_focus error for '{binding.binding_id}': {exc}")
-        self._ensure_drawn(binding)
+    def _activate(self, wrapper: EditorWrapper) -> None:
+        """Make ``wrapper`` the active one and run its on_focus hook."""
+        self._active = wrapper
+        wrapper.on_focus()
+        self._ensure_drawn(wrapper)
         if self._area_panel_container is not None:
-            self._area_panel_container.set_value(binding.binding_id)
+            self._area_panel_container.set_value(wrapper.binding_id)
 
     # ------------------------------------------------------------------
     # Switching
     # ------------------------------------------------------------------
 
-    def switch_to(self, editor_key: str, payload: Any = None) -> bool:
+    def switch_to(self, editor_key: str, payload: Optional[str] = None) -> bool:
         """
-        Change the active binding to the one matching ``(editor_key, payload)``.
+        Change the active wrapper to the one matching ``(editor_key, payload)``.
 
         Re-renders the area on success. No-op if the target is already
-        active. Logs a warning and returns ``False`` when no binding matches.
-        Callers pre-dating multi-instance bindings omit ``payload``; see
-        :meth:`find_binding` for the fallback rules.
+        active. Logs a warning and returns ``False`` when no wrapper matches.
 
         Returns:
-            ``True`` iff the active binding actually changed.
+            ``True`` iff the active wrapper actually changed.
         """
         target = self.find_binding(editor_key, payload)
         if target is None:
             logger.warning(
-                f"Slot '{self.name}': switch_to({editor_key!r}, payload={payload!r}) — no matching binding"
+                f"Slot '{self.name}': switch_to({editor_key!r}, payload={payload!r}) — no matching wrapper"
             )
             return False
 
@@ -631,22 +532,43 @@ class Slot(ABC):
         self._activate(target)
         return True
 
-    def add_binding(self, binding: EditorBinding, activate: bool = False) -> None:
-        """
-        Append a new binding to the slot, creating its panel if the area
-        has already been rendered.
+    def add_binding(
+        self,
+        editor_key: str,
+        editor_cls: "type[BaseEditor]",
+        payload: Optional[str] = None,
+        activate: bool = False,
+    ) -> EditorWrapper:
+        """Construct a wrapper, attach the redraw callback, and add it.
 
-        Used by main/bottom when a workspace tab opens at runtime (the
-        left/right slots are seeded from the registry at construction).
+        Single wrapper-construction path — used by both populate_from_snapshot
+        and TabSlot.open_tab. Creates the panel if the area has been
+        rendered. Activates the new wrapper if requested.
+
+        The wrapper's ``label`` defaults to empty so the bar resolves it
+        dynamically from ``editor_cls.class_identity.label``. Callers with
+        a custom label (e.g. graph filename) assign ``wrapper.label = ...``
+        on the returned wrapper.
+
+        Returns the newly-constructed wrapper.
         """
-        self._bindings.append(binding)
+        wrapper = EditorWrapper(
+            editor_key=editor_key,
+            editor_cls=editor_cls,
+            registry=self._registry,
+            session=self._session,
+            payload=payload,
+        )
+        wrapper.set_redraw_callback(lambda w=wrapper: self._redraw(w))
+        self._bindings.append(wrapper)
         if self._area_panel_container is not None:
-            self._create_panel(binding)
+            self._create_panel(wrapper)
         if activate:
             if self._active is None:
-                self._activate(binding)
+                self._activate(wrapper)
             else:
-                self.switch_to(binding.editor_key, binding.payload)
+                self.switch_to(wrapper.editor_key, wrapper.payload)
+        return wrapper
 
     # ------------------------------------------------------------------
     # Visibility
@@ -679,89 +601,32 @@ class Slot(ABC):
     # ------------------------------------------------------------------
 
     def handle_context_event(self, event: "ContextChangedEvent") -> None:
-        """
-        Run the poll/draw gate on the active binding.
-
-        Called by the shell's orchestrator for every ContextChangedEvent.
-        Does nothing when the slot has no active binding or when the
-        binding's instance has not yet been created (instances are created
-        lazily on first draw).
-        """
+        """Forward the event to the active wrapper's poll/redraw gate."""
         if self._active is None or self._area_panel_container is None:
             return
-        instance = self._active.instance
-        if instance is None:
-            return
-        try:
-            if instance.poll(self._session.context, event):
-                self._redraw(self._active)
-        except Exception as exc:
-            logger.error(f"Slot '{self.name}': poll/draw error for '{self._active.binding_id}': {exc}")
+        if self._active.poll(event):
+            self._redraw(self._active)
 
     # ------------------------------------------------------------------
-    # Hot-reload support
+    # Mutation methods
     # ------------------------------------------------------------------
-
-    def replace_class(
-        self,
-        editor_key: str,
-        new_cls: type["BaseEditor"],
-        cleanup_old: Callable[["BaseEditor"], None] | None = None,
-    ) -> bool:
-        """
-        Swap the class of every binding with ``editor_key`` to ``new_cls``.
-
-        Used by the shell's hot-reload handler: when a class is reloaded,
-        every binding that references the old class gets its ``instance``
-        cleared (after optional cleanup) and its class pointer updated. If
-        the reloaded binding was active, a fresh draw runs immediately.
-
-        Returns:
-            ``True`` iff a redraw was triggered (i.e., the reloaded class
-            was active in this slot).
-        """
-        redrew = False
-        for binding in self._bindings:
-            if binding.editor_key != editor_key:
-                continue
-            if binding.instance is not None and cleanup_old is not None:
-                try:
-                    cleanup_old(binding.instance)
-                except Exception as exc:
-                    logger.warning(f"Slot '{self.name}': cleanup error for '{editor_key}': {exc}")
-            binding.editor_cls = new_cls
-            binding.instance = None
-            self._redraw(binding)
-            if self._active is binding:
-                redrew = True
-        return redrew
 
     def remove_binding(
         self,
         editor_key: str,
-        payload: Any = None,
-        cleanup: Callable[["BaseEditor"], None] | None = None,
-    ) -> Optional[EditorBinding]:
-        """
-        Remove a single binding matching ``(editor_key, payload)``.
+        payload: Optional[str] = None,
+    ) -> "Optional[EditorWrapper]":
+        """Remove a single wrapper matching (editor_key, payload).
 
-        Used by the shell to close one multi-instance tab without touching
-        sibling tabs that share the same ``editor_key``. If the removed
-        binding was active, the next binding in the list becomes active
-        (falling back to the previous one if there is no next; ``None`` if
-        the slot is now empty).
-
-        Returns the removed binding, or ``None`` when no match was found.
+        Calls wrapper.cleanup() which unsubscribes from the registry and
+        tears down the editor instance.
         """
         target = self.find_binding(editor_key, payload)
         if target is None:
             return None
 
-        if target.instance is not None and cleanup is not None:
-            try:
-                cleanup(target.instance)
-            except Exception as exc:
-                logger.warning(f"Slot '{self.name}': cleanup error for '{target.binding_id}': {exc}")
+        target.set_redraw_callback(None)
+        target.cleanup()
 
         panel = self._panels.pop(target.binding_id, None)
         if panel is not None:
@@ -776,8 +641,6 @@ class Slot(ABC):
             if self._bindings:
                 next_idx = min(idx, len(self._bindings) - 1)
                 sibling = self._bindings[next_idx]
-                # Reset _active so _activate sees a real transition
-                # (not-active → active) and fires on_focus on the sibling.
                 self._active = None
                 self._activate(sibling)
             else:
@@ -787,20 +650,13 @@ class Slot(ABC):
     def repayload_binding(
         self,
         editor_key: str,
-        old_payload: Any,
-        new_payload: Any,
+        old_payload: Optional[str],
+        new_payload: Optional[str],
     ) -> bool:
-        """
-        Re-key an existing binding's payload in-place.
+        """Re-key an existing wrapper's payload in place.
 
-        Used by the shell to track a graph whose haystack key changed (e.g.
-        save-as moved an entry from ``__unsaved_3__`` to an absolute path). The
-        binding keeps its editor instance; only the identity used for
-        ``find_binding`` / ``switch_to`` / ``binding_id`` changes.
-
-        The ``ui.tab_panel`` DOM node also needs its name updated so
-        ``ui.tab_panels.set_value`` still selects it. Returns ``False`` when
-        no binding matches or when the new id collides with an existing one.
+        Slot owns collision detection and DOM-side housekeeping; the
+        wrapper just exposes its payload as a mutable field via repayload().
         """
         target = self.find_binding(editor_key, old_payload)
         if target is None:
@@ -814,7 +670,7 @@ class Slot(ABC):
             return False
 
         old_id = target.binding_id
-        target.payload = new_payload
+        target.repayload(new_payload)
 
         panel = self._panels.pop(old_id, None)
         if panel is not None:
@@ -828,76 +684,51 @@ class Slot(ABC):
             self._area_panel_container.set_value(new_id)
         return True
 
-    def remove_bindings(
-        self,
-        editor_key: str,
-        cleanup: Callable[["BaseEditor"], None] | None = None,
-    ) -> None:
-        """
-        Drop every binding with ``editor_key`` from the slot.
-
-        Used by the shell's hot-reload handler on CLASS_REMOVED. If the
-        active binding is removed, the first remaining binding becomes
-        active (or the slot becomes inactive).
-        """
-        removed = [b for b in self._bindings if b.editor_key == editor_key]
-        if not removed:
-            return
-        for binding in removed:
-            if binding.instance is not None and cleanup is not None:
-                try:
-                    cleanup(binding.instance)
-                except Exception as exc:
-                    logger.warning(f"Slot '{self.name}': cleanup error for '{editor_key}': {exc}")
-            panel = self._panels.pop(binding.binding_id, None)
-            if panel is not None:
-                panel.delete()
-            self._drawn.discard(binding.binding_id)
-        self._bindings = [b for b in self._bindings if b.editor_key != editor_key]
-        if self._active in removed:
-            if self._bindings:
-                sibling = self._bindings[0]
-                # Reset _active so _activate sees a real transition
-                # (not-active → active) and fires on_focus on the sibling.
-                self._active = None
-                self._activate(sibling)
-            else:
-                self._active = None
-
     # ------------------------------------------------------------------
-    # Registry hot-reload (self-owned)
+    # Registry batch events (CLASS_ADDED only)
     # ------------------------------------------------------------------
 
-    def _on_editor_lifecycle(self, events: list) -> None:
-        """Apply hot-reload events to bindings owned by this slot.
+    def _on_class_added(self, events: list) -> None:
+        """Auto-attach REQUIRED editors registered after the slot was populated.
 
-        Delegates to :meth:`replace_class` / :meth:`remove_bindings`; filters
-        out events for ``editor_key``s not present in this slot.
+        Existing wrappers self-subscribe per-key for RELOADED / REMOVED
+        events. CLASS_ADDED for a brand-new editor key has no per-key
+        subscriber yet, so the slot listens to the batch stream and
+        creates a wrapper iff the new class is REQUIRED in this slot's
+        default position. Non-REQUIRED editors stay dormant until
+        explicitly opened (e.g. via reveal).
         """
         from haywire.core.registry.lifecycle_event import LifeCycleEventType
+        from haywire.ui.editor.identity import OpenBehavior
 
-        def _cleanup(instance: "BaseEditor") -> None:
-            try:
-                instance.cleanup()
-            except Exception as exc:
-                logger.warning(f"Slot '{self.name}': cleanup error: {exc}")
-
-        owned_keys = {b.editor_key for b in self._bindings}
         for event in events:
-            if event.registry_key not in owned_keys:
+            if event.event_type != LifeCycleEventType.CLASS_ADDED:
                 continue
-            if event.event_type == LifeCycleEventType.CLASS_RELOADED and event.affected_class is not None:
-                self.replace_class(event.registry_key, event.affected_class, cleanup_old=_cleanup)
-            elif event.event_type == LifeCycleEventType.CLASS_REMOVED:
-                self.remove_bindings(event.registry_key, cleanup=_cleanup)
+            cls = event.affected_class
+            if cls is None:
+                continue
+            if getattr(cls.class_identity, "default_slot", None) != self.name:
+                continue
+            opens = getattr(cls.class_identity, "opens", OpenBehavior.REQUIRED)
+            if opens is not OpenBehavior.REQUIRED:
+                continue
+            if self.find_binding(event.registry_key) is not None:
+                continue
+            self.add_binding(editor_key=event.registry_key, editor_cls=cls)
+            self._refresh_bar()
+
+    # ------------------------------------------------------------------
+    # Cleanup
+    # ------------------------------------------------------------------
 
     def cleanup(self) -> None:
-        """Detach from the registry. Safe to call more than once.
-
-        Called by the shell when the session ends so the slot doesn't leak
-        a subscriber reference into the registry across sessions.
-        """
+        """Tear down all wrappers. Idempotent."""
         try:
-            self._registry.remove_batch_event_subscriber(self._on_editor_lifecycle)
-        except Exception:
-            pass
+            self._registry.remove_batch_event_subscriber(self._on_class_added)
+        except Exception as exc:
+            logger.warning(f"Slot '{self.name}': failed to unsubscribe class-added listener: {exc}")
+        for wrapper in list(self._bindings):
+            wrapper.set_redraw_callback(None)
+            wrapper.cleanup()
+        self._bindings.clear()
+        self._active = None

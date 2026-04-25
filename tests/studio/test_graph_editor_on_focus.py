@@ -58,7 +58,7 @@ def _make_context(entry: Optional[_FakeEntry], existing_active_graph=None):
 
 def _make_editor_with_payload(payload: str) -> GraphEditor:
     ed = GraphEditor()
-    ed.binding = SimpleNamespace(editor_key="graph_editor", payload=payload)
+    ed.wrapper = SimpleNamespace(editor_key="graph_editor", payload=payload)
     return ed
 
 
@@ -126,7 +126,7 @@ def test_on_focus_missing_entry_fires_tab_close_requested() -> None:
 def test_on_focus_no_binding_is_noop() -> None:
     ctx = _make_context(entry=None)
     ed = GraphEditor()
-    ed.binding = None
+    ed.wrapper = None
 
     ed.on_focus(ctx)
 
