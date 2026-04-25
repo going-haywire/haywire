@@ -2,7 +2,7 @@
 
 from types import SimpleNamespace
 
-from haywire.ui.app.slot import EditorBinding, Slot
+from haywire.ui.app.slot import EditorBinding
 from haywire.ui.app.tab_slot import TabSlot
 from haywire.ui.context_events import ContextChangedEvent, ContextChangeType
 
@@ -737,7 +737,7 @@ def test_slot_subscribes_to_registry_on_construction(monkeypatch):
 # Slot.to_snapshot / from_snapshot
 # ---------------------------------------------------------------------------
 
-from types import SimpleNamespace as _SN
+from types import SimpleNamespace as _SN  # noqa: E402
 
 
 class _FakeEditorCls2:

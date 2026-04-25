@@ -1,8 +1,6 @@
 import ast
 import logging
 import importlib
-
-logger = logging.getLogger(__name__)
 import inspect
 from pathlib import Path
 import sys
@@ -10,6 +8,8 @@ from types import ModuleType
 from typing import List, Type, Optional, Callable
 
 from haywire.core.library.identity import LibraryIdentity
+
+logger = logging.getLogger(__name__)
 
 
 class FolderScanMixin:

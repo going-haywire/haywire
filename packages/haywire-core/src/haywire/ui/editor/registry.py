@@ -10,12 +10,12 @@ import inspect
 import logging
 from typing import Optional, Dict
 
-logger = logging.getLogger(__name__)
-
 from haywire.core.registry.base import BaseRegistry
 from haywire.core.library.identity import LibraryIdentity
 
 from .base import BaseEditor
+
+logger = logging.getLogger(__name__)
 
 
 class EditorTypeRegistry(BaseRegistry):

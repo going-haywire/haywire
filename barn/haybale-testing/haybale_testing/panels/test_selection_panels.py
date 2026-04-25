@@ -39,10 +39,13 @@ class TestCopySelectionPanel(BasePanel):
         from haywire.ui.graph_canvas.event_definitions import UserCopySelectedEvent
 
         def _copy():
-            _emit(context, UserCopySelectedEvent(
-                selectedNodes=list(context.selected_nodes),
-                selectedEdges=list(context.selected_edges),
-            ))
+            _emit(
+                context,
+                UserCopySelectedEvent(
+                    selectedNodes=list(context.selected_nodes),
+                    selectedEdges=list(context.selected_edges),
+                ),
+            )
 
         layout.button("Copy Selection", icon=hui.icon.copy, on_click=_copy)
 

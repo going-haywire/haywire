@@ -3,14 +3,14 @@
 import inspect
 import logging
 
-logger = logging.getLogger(__name__)
-
 from haywire.core.library.utils import get_registry_id_from_key
 
 from ...core.registry.lifecycle_event import LifeCycleEvent
 from ..registry.base import BaseRegistry
 from ..library.identity import LibraryIdentity
 from . import BaseNode
+
+logger = logging.getLogger(__name__)
 
 
 class NodeRegistry(BaseRegistry):

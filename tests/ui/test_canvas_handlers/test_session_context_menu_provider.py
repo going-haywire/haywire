@@ -9,9 +9,7 @@ Verifies that the provider:
 - Clears context_menu_trigger on close
 """
 
-import pytest
-from unittest.mock import MagicMock, call, patch
-from typing import Optional
+from unittest.mock import MagicMock, patch
 
 from haywire.ui.context import SessionContext
 from haywire.ui.context_events import ContextChangeType

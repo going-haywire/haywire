@@ -19,8 +19,6 @@ class TestAddFloatNode(BaseNode):
         self.add(FLOAT.as_inlet(id="value_b", label="Value B", default=0.0))
         self.add(FLOAT.as_outlet(id="result", label="Result"))
 
-    def worker(
-        self, context: ExecutionContext, value_a: float, value_b: float
-    ) -> dict | None:
+    def worker(self, context: ExecutionContext, value_a: float, value_b: float) -> dict | None:
         self.out("result", value_a + value_b)
         return None

@@ -4,6 +4,7 @@
 from haywire.core.settings import field
 from haywire.core.settings.schema import FrameworkSettings
 
+
 class EdgeUISettings(FrameworkSettings):
     """Global preferences controlling edge routing, width, and animation behaviour."""
 

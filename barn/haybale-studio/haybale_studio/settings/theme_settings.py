@@ -6,6 +6,7 @@ from haywire.core.settings import field
 from haywire.core.settings.decorator import settings
 from haywire.core.di.config import get_theme_registry
 
+
 def _workbench_theme_choices():
     try:
         return {
@@ -15,7 +16,8 @@ def _workbench_theme_choices():
         }
     except Exception:
         return {}
-    
+
+
 @settings(namespace="workbench", label="Workbench Theme")
 class WorkbenchThemeSettings(LibrarySettings):
     """Global settings controlling the active workbench theme."""

@@ -13,6 +13,7 @@ from .identity import LibraryIdentity
 
 logger = logging.getLogger(__name__)
 
+
 class LibraryFileHandler(FileSystemEventHandler):
     """
     Handles file system events with multiple folder-to-registry mappings.

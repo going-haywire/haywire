@@ -3,7 +3,10 @@ from haywire.ui.console_bridge import console_print
 
 
 @node(
-    label="Print UI Log", menu="system/utils", description="Print to the haywire UI console", node_type=NodeType.CONTROL
+    label="Print UI Log",
+    menu="system/utils",
+    description="Print to the haywire UI console",
+    node_type=NodeType.CONTROL,
 )
 class PrintLogNode(BaseNode):
     """Prints a message to the haywire ui console"""

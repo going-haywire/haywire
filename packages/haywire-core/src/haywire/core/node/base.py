@@ -15,7 +15,7 @@ from ..library.identity import LibraryIdentity
 from ..types import DataPort
 from .behavior import NodeBehaviorFlags
 from .user_data import NodeCache, NodeStore
-from haywire.core.settings import Settings, NodeSettings
+from haywire.core.settings import Settings
 
 if TYPE_CHECKING:
     from haywire.core.node import NodeWrapper

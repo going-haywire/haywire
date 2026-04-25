@@ -533,7 +533,7 @@ class LibraryOverviewEditor(BaseEditor):
     def _component_row(self, key: str, label: str, description: str, handler):
         with (
             ui.row()
-            .classes(f"w-full px-3 py-2 rounded hw-list-item-hover cursor-pointer")
+            .classes("w-full px-3 py-2 rounded hw-list-item-hover cursor-pointer")
             .on("click", handler)
         ):
             with ui.column().classes("gap-0 min-w-0"):

@@ -93,12 +93,15 @@ def error_render_detail(error: HaywireException) -> ui.element:
         with (
             ui.column()
             .classes("w-full p-2")
-            .style("border-left: 4px solid var(--hw-danger); border-right: 4px solid var(--hw-danger); background: var(--hw-danger-bg);")
+            .style(
+                "border-left: 4px solid var(--hw-danger); "
+                "border-right: 4px solid var(--hw-danger); "
+                "background: var(--hw-danger-bg);"
+            )
         ):
             with ui.row().classes("items-start gap-3 w-full"):
-                detail_button = (
-                    hui.button(error.category, icon=hui.icon.debug)
-                    .style("background: var(--hw-danger); color: var(--hw-text-on-accent);")
+                detail_button = hui.button(error.category, icon=hui.icon.debug).style(
+                    "background: var(--hw-danger); color: var(--hw-text-on-accent);"
                 )
 
         # Connect button to show details

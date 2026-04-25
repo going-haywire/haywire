@@ -16,6 +16,7 @@ from .config import UndoConfig
 
 logger = logging.getLogger(__name__)
 
+
 @dataclass
 class Fence:
     """
@@ -159,9 +160,7 @@ class HistoryManager(IHistoryManager):
 
         if self.config.enable_debug_logging:
             logger.debug(f"Added action: {action.description}")
-            logger.debug(
-                f"History state: {len(self.history)} items, current_index: {self.current_index}"
-            )
+            logger.debug(f"History state: {len(self.history)} items, current_index: {self.current_index}")
             logger.debug(f"Can undo: {self.can_undo()}, Can redo: {self.can_redo()}")
 
     def add_fence(self) -> None:

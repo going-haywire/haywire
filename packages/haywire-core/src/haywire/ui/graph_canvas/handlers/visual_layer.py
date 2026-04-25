@@ -95,8 +95,6 @@ class VisualLayerHandlers:
         if result.canvas_size is not None:
             self._apply_canvas_resize(*result.canvas_size)
 
-        node_has_moved = False
-
         for node_id, reason in result.nodes.items():
             if reason == ChangeReason.NODE_ADDED:
                 wrapper = self.graph.get_node_wrapper(node_id)
@@ -117,7 +115,6 @@ class VisualLayerHandlers:
                     if wrapper:
                         new_position = (wrapper.node.props.posX, wrapper.node.props.posY)
                         self.update_node_position(node_id, new_position)
-                        node_has_moved = True
                         logger.debug(f"  ↔ Moved node: {node_id}")
 
             elif reason.requires_redraw():

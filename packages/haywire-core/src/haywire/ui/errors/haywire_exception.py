@@ -152,7 +152,6 @@ def render_error_details(error: HaywireException, parent_container=None) -> Any:
                                     theme="vscodeDark",
                                 ).classes("w-full").props("readonly")
 
-
                             # File path with "Open in Editor" button
                             file_display = error.filename
                             if error.library_identity and error.library_identity.folder_path:

@@ -29,6 +29,7 @@ from haywire.core.undo.actions.graph_actions import (
 
 logger = logging.getLogger(__name__)
 
+
 class Editor:
     """
     High-level editor interface with simple callback-based change notifications.
@@ -148,9 +149,7 @@ class Editor:
             self.history_manager.add_action(action)
 
             total_count = len(nodes) + len(edges)
-            logger.info(
-                f"Removed {total_count} elements ({len(nodes)} nodes, {len(edges)} connections)"
-            )
+            logger.info(f"Removed {total_count} elements ({len(nodes)} nodes, {len(edges)} connections)")
             return True
 
         except Exception as e:
@@ -197,9 +196,7 @@ class Editor:
             )
             self.history_manager.add_action(action)
 
-            logger.info(
-                f"Created connection {source_node_id}:{outlet_pin} -> {sink_node_id}:{inlet_pin}"
-            )
+            logger.info(f"Created connection {source_node_id}:{outlet_pin} -> {sink_node_id}:{inlet_pin}")
             return True
 
         except Exception as e:

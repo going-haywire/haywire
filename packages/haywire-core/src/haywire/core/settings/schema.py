@@ -22,7 +22,6 @@ from __future__ import annotations
 from typing import ClassVar, TYPE_CHECKING
 
 from haywire.core.settings.settings import Settings
-from haywire.core.settings.descriptor import field
 
 if TYPE_CHECKING:
     from haywire.core.settings.registry import SettingsRegistry
@@ -88,9 +87,9 @@ class FrameworkSettings(Settings):
                         f"Use plain field() without mirrors=, shadow(), or watch()."
                     )
                 val._field_key = f"{namespace}.{name}"
-                # we need to set _mirror_key because in this class it is in fact 
+                # we need to set _mirror_key because in this class it is in fact
                 # a mirror of itself for resolution and subscription purposes
-                # we don't want the user to set mirrors because this would 
+                # we don't want the user to set mirrors because this would
                 # silently break the resolution and subscription machinery
                 val._mirror_key = val._field_key
 
@@ -150,9 +149,9 @@ class LibrarySettings(Settings):
                         f"Use plain field() without mirrors=, shadow(), or watch()."
                     )
                 val._field_key = f"{namespace}.{name}"
-                # we need to set _mirror_key because in this class it is in fact 
+                # we need to set _mirror_key because in this class it is in fact
                 # a mirror of itself for resolution and subscription purposes
-                # we don't want the user to set mirrors because this would 
+                # we don't want the user to set mirrors because this would
                 # silently break the resolution and subscription machinery
                 val._mirror_key = val._field_key
 

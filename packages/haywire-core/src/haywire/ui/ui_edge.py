@@ -13,13 +13,13 @@ Features:
 
 import logging
 from dataclasses import dataclass
-
-logger = logging.getLogger(__name__)
 from typing import Callable, Optional
 
 from haywire.core.edge.edge_wrapper import EdgeWrapper
 from haywire.core.graph.types import ChangeReason
 from haywire.ui.graph_canvas.event_definitions import SyncEdgeAdditionEvent, BaseGraphEvent
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass

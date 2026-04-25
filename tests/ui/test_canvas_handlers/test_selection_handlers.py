@@ -56,27 +56,19 @@ def test_initial_clipboard_is_none(handler):
 
 
 def test_selection_changed_updates_nodes(handler):
-    handler.process_selection_change(
-        SelectionChangedEvent(selectedNodes=["n1", "n2"], selectedEdges=[])
-    )
+    handler.process_selection_change(SelectionChangedEvent(selectedNodes=["n1", "n2"], selectedEdges=[]))
     assert handler.selected_nodes == {"n1", "n2"}
     assert handler.selected_edges == set()
 
 
 def test_selection_changed_updates_edges(handler):
-    handler.process_selection_change(
-        SelectionChangedEvent(selectedNodes=[], selectedEdges=["e1", "e2"])
-    )
+    handler.process_selection_change(SelectionChangedEvent(selectedNodes=[], selectedEdges=["e1", "e2"]))
     assert handler.selected_edges == {"e1", "e2"}
 
 
 def test_selection_changed_replaces_previous(handler):
-    handler.process_selection_change(
-        SelectionChangedEvent(selectedNodes=["n1"], selectedEdges=[])
-    )
-    handler.process_selection_change(
-        SelectionChangedEvent(selectedNodes=["n2"], selectedEdges=["e1"])
-    )
+    handler.process_selection_change(SelectionChangedEvent(selectedNodes=["n1"], selectedEdges=[]))
+    handler.process_selection_change(SelectionChangedEvent(selectedNodes=["n2"], selectedEdges=["e1"]))
     assert handler.selected_nodes == {"n2"}
     assert handler.selected_edges == {"e1"}
 
@@ -93,9 +85,7 @@ def test_selection_changed_notifies_session():
         session_id="s",
         session=session,
     )
-    handler.process_selection_change(
-        SelectionChangedEvent(selectedNodes=["n1"], selectedEdges=["e1"])
-    )
+    handler.process_selection_change(SelectionChangedEvent(selectedNodes=["n1"], selectedEdges=["e1"]))
     session.notify_context_changed.assert_called_once()
     assert session.context.selected_nodes == {"n1"}
     assert session.context.selected_edges == {"e1"}
@@ -103,9 +93,7 @@ def test_selection_changed_notifies_session():
 
 def test_selection_changed_no_callback_does_not_raise(handler):
     """No callback configured — must not raise."""
-    handler.process_selection_change(
-        SelectionChangedEvent(selectedNodes=[], selectedEdges=[])
-    )
+    handler.process_selection_change(SelectionChangedEvent(selectedNodes=[], selectedEdges=[]))
 
 
 # ---------------------------------------------------------------------------
@@ -114,35 +102,25 @@ def test_selection_changed_no_callback_does_not_raise(handler):
 
 
 def test_copy_stores_clipboard_with_node_ids(handler):
-    handler.process_copy_selection(
-        UserCopySelectedEvent(selectedNodes=["n1", "n2"], selectedEdges=[])
-    )
+    handler.process_copy_selection(UserCopySelectedEvent(selectedNodes=["n1", "n2"], selectedEdges=[]))
     assert handler.clipboard is not None
     assert "n1" in handler.clipboard.nodes
     assert "n2" in handler.clipboard.nodes
 
 
 def test_copy_stores_edge_ids(handler):
-    handler.process_copy_selection(
-        UserCopySelectedEvent(selectedNodes=["n1"], selectedEdges=["e1"])
-    )
+    handler.process_copy_selection(UserCopySelectedEvent(selectedNodes=["n1"], selectedEdges=["e1"]))
     assert "e1" in handler.clipboard.edges
 
 
 def test_copy_records_session_id(handler):
-    handler.process_copy_selection(
-        UserCopySelectedEvent(selectedNodes=["n1"], selectedEdges=[])
-    )
+    handler.process_copy_selection(UserCopySelectedEvent(selectedNodes=["n1"], selectedEdges=[]))
     assert handler.clipboard.source_session_id == "test-session"
 
 
 def test_copy_overwrites_previous_clipboard(handler):
-    handler.process_copy_selection(
-        UserCopySelectedEvent(selectedNodes=["n1"], selectedEdges=[])
-    )
-    handler.process_copy_selection(
-        UserCopySelectedEvent(selectedNodes=["n2"], selectedEdges=[])
-    )
+    handler.process_copy_selection(UserCopySelectedEvent(selectedNodes=["n1"], selectedEdges=[]))
+    handler.process_copy_selection(UserCopySelectedEvent(selectedNodes=["n2"], selectedEdges=[]))
     assert "n2" in handler.clipboard.nodes
     assert "n1" not in handler.clipboard.nodes
 

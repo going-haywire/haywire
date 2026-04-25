@@ -24,7 +24,7 @@ if TYPE_CHECKING:
 
 @panel(
     editors="properties",
-    scopes="execution",  
+    scopes="execution",
     label="Log Levels",
     icon=hui.icon.debug,
     order=20,

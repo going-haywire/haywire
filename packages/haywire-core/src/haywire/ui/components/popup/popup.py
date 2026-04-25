@@ -110,7 +110,7 @@ class Popup(ui.element, component="popup.vue"):
 
     @property
     def content(self) -> "ui.column":
-        """The inner content column — use to place children without entering the popup as a context manager."""
+        """Inner content column — place children without using popup as context manager."""
         return self._content
 
     # ------------------------------------------------------------------

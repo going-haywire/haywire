@@ -217,7 +217,10 @@ class GraphEditor(BaseEditor):
             hui.empty_state(
                 "No graph open",
                 icon=hui.icon.graph,
-                hint="Use the Graphs panel ( layers ) to create a new graph,\nor open a .haywire file from the File Browser.",
+                hint=(
+                    "Use the Graphs panel ( layers ) to create a new graph,\n"
+                    "or open a .haywire file from the File Browser."
+                ),
             )
             return
 

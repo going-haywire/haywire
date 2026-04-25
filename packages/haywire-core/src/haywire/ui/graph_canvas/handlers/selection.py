@@ -55,9 +55,7 @@ class SelectionHandlers:
     @handles_event(SelectionChangedEvent)
     def process_selection_change(self, event: SelectionChangedEvent):
         """Update local selection state and write through to SessionContext."""
-        logger.debug(
-            f"Selection changed: nodes={event.selectedNodes}, connections={event.selectedEdges}"
-        )
+        logger.debug(f"Selection changed: nodes={event.selectedNodes}, connections={event.selectedEdges}")
         self.selected_nodes = set(event.selectedNodes)
         self.selected_edges = set(event.selectedEdges)
 
@@ -69,12 +67,10 @@ class SelectionHandlers:
         ctx.selected_edges = self.selected_edges
 
         ctx.active_node = (
-            self.graph.get_node_wrapper(next(iter(self.selected_nodes)))
-            if self.selected_nodes else None
+            self.graph.get_node_wrapper(next(iter(self.selected_nodes))) if self.selected_nodes else None
         )
         ctx.active_edge = (
-            self.graph.get_edge_wrapper(next(iter(self.selected_edges)))
-            if self.selected_edges else None
+            self.graph.get_edge_wrapper(next(iter(self.selected_edges))) if self.selected_edges else None
         )
 
         self._session.notify_context_changed(
@@ -88,8 +84,7 @@ class SelectionHandlers:
     def process_copy_selection(self, event: UserCopySelectedEvent):
         """Store selected elements in the session clipboard."""
         logger.info(
-            f"📋 Copying {len(event.selectedNodes)} nodes and "
-            f"{len(event.selectedEdges)} connections"
+            f"📋 Copying {len(event.selectedNodes)} nodes and {len(event.selectedEdges)} connections"
         )
         try:
             bounding_box = self._calculate_selection_bounds(event.selectedNodes)

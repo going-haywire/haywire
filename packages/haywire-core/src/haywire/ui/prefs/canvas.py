@@ -4,7 +4,8 @@
 from haywire.core.settings import field
 from haywire.core.settings.schema import FrameworkSettings
 
-#TODO: Setup Canvas Settings
+# TODO: Setup Canvas Settings
+
 
 class CanvasSettings(FrameworkSettings):
     """Global preferences controlling canvas grid, zoom, and pan behaviour."""
@@ -48,4 +49,3 @@ class CanvasSettings(FrameworkSettings):
         category="ui.canvas",
         order=23,
     )
-

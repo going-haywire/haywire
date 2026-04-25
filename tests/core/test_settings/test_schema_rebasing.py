@@ -12,7 +12,7 @@ Verifies:
 """
 
 import pytest
-from haywire.core.settings import Settings, field, FrameworkSettings, LibrarySettings, FieldDescriptor
+from haywire.core.settings import Settings, field, FrameworkSettings, LibrarySettings
 from haywire.core.settings.registry import SettingsRegistry
 from haywire.core.settings.decorator import settings
 

@@ -2,14 +2,14 @@ import inspect
 import logging
 from typing import Optional
 
-logger = logging.getLogger(__name__)
-
 from haywire.core.errors.haywire_exception import ErrorSeverity, HaywireException
 from haywire.core.registry.lifecycle_event import LifeCycleEvent
 from haywire.core.library.identity import LibraryIdentity
 from haywire.core.registry.base import BaseRegistry
 
 from .interface import IBaseSkin
+
+logger = logging.getLogger(__name__)
 
 
 class SkinRegistry(BaseRegistry):

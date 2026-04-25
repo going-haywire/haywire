@@ -11,7 +11,6 @@ Verifies:
 import sys
 from types import SimpleNamespace
 
-import pytest
 from unittest.mock import MagicMock, patch
 
 from haywire.ui.panel.base import BasePanel, PanelLayout
@@ -84,7 +83,9 @@ def test_create_node_panel_draw_calls_node_menu_builder(monkeypatch):
     builder_mock = MagicMock()
 
     with patch.object(
-        _PANEL_MODULE, "NodeMenuBuilder", return_value=builder_mock,
+        _PANEL_MODULE,
+        "NodeMenuBuilder",
+        return_value=builder_mock,
     ):
         panel = CreateNodePanel()
         panel.draw(ctx, layout)
@@ -111,14 +112,13 @@ def test_on_node_selected_emits_node_create_request_event():
     builder_instance.create_node_menu.side_effect = fake_create_node_menu
 
     with patch.object(
-        _PANEL_MODULE, "NodeMenuBuilder",
+        _PANEL_MODULE,
+        "NodeMenuBuilder",
         return_value=builder_instance,
     ):
         CreateNodePanel().draw(ctx, layout)
 
-    captured_callback["fn"](
-        SimpleNamespace(identity=SimpleNamespace(registry_key="my_lib/MyNode"))
-    )
+    captured_callback["fn"](SimpleNamespace(identity=SimpleNamespace(registry_key="my_lib/MyNode")))
 
     assert len(emitted) == 1
     event = emitted[0]

@@ -33,19 +33,19 @@ class MinimapCanvas(ui.element, component="minimap.vue"):
     ) -> None:
         super().__init__(**kwargs)
 
-        self._settings      = MinimapSettings()
+        self._settings = MinimapSettings()
         self.zoom_container = zoom_container
-        self.minimap_width  = self._settings.width
-        self.is_visible     = self._settings.enabled
+        self.minimap_width = self._settings.width
+        self.is_visible = self._settings.enabled
 
         mm = self._settings
-        self._props["container-id"]   = zoom_container.container_id
-        self._props["minimap-width"]  = mm.width
-        self._props["position"]       = mm.position
+        self._props["container-id"] = zoom_container.container_id
+        self._props["minimap-width"] = mm.width
+        self._props["position"] = mm.position
         self._props["active-opacity"] = mm.opacity
-        self._props["ghost-opacity"]  = mm.ghost_opacity
-        self._props["debug-info"]     = mm.debug_info
-        self._props["visible"]        = mm.enabled
+        self._props["ghost-opacity"] = mm.ghost_opacity
+        self._props["debug-info"] = mm.debug_info
+        self._props["visible"] = mm.enabled
 
         self._settings.subscribe(self._on_setting_changed)
 
@@ -68,7 +68,7 @@ class MinimapCanvas(ui.element, component="minimap.vue"):
 
     def set_enabled(self, enabled: bool) -> None:
         """Show or hide the minimap."""
-        self.is_visible        = enabled
+        self.is_visible = enabled
         self._props["visible"] = enabled
         self.update()
 
@@ -83,7 +83,7 @@ class MinimapCanvas(ui.element, component="minimap.vue"):
 
     def set_width(self, width: int) -> None:
         """Update minimap width; the Vue watcher recalculates height and scale."""
-        self.minimap_width           = width
+        self.minimap_width = width
         self._props["minimap-width"] = width
         self.update()
 

@@ -11,7 +11,6 @@ and automatically re-renders when the underlying node class is hot-reloaded.
 import logging
 from typing import Any, Callable, Optional
 
-logger = logging.getLogger(__name__)
 from nicegui import ui
 from haywire.core.graph.types import ChangeReason
 from haywire.core.node.base import BaseNode
@@ -21,6 +20,8 @@ from haywire.core.node.node_wrapper import NodeWrapper
 from haywire.ui.graph_canvas.event_definitions import SyncNodeRedrawEvent
 from haywire.ui.ui_nodecard import UINodeCard
 from haywire.ui.skin.factory import SkinFactory, NO_SKIN_DEFINED
+
+logger = logging.getLogger(__name__)
 
 
 class UINode:

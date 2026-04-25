@@ -5,6 +5,7 @@ Enums for the settings system.
 
 from enum import Enum, auto
 
+
 class FieldMode(Enum):
     """How a setting value should be resolved."""
 

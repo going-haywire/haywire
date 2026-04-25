@@ -483,7 +483,6 @@ class LibraryManager:
         cache: dict[str, str | None] = {}
         for dist in importlib.metadata.distributions():
             owner_name = dist.metadata.get("Name", "") or ""
-            owner_norm = re.sub(r"[-_.]+", "_", owner_name).lower()
             for req in dist.metadata.get_all("Requires-Dist") or []:
                 req_name = re.split(r"[>=<!;\s\[]", req)[0]
                 req_norm = re.sub(r"[-_.]+", "_", req_name).lower()

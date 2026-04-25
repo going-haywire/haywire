@@ -10,6 +10,7 @@ _GROUP_CHOICES = {"": "inherit", "DEBUG": "DEBUG", "INFO": "INFO", "WARNING": "W
 
 GLOBAL_BASELINE_LOG_LEVEL_KEY = "log_level"
 
+
 class DebugSettings(FrameworkSettings, namespace=NAMESPACE_DEBUG):
     """Global preferences for debug features."""
 

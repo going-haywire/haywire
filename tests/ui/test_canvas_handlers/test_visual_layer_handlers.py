@@ -10,7 +10,7 @@ exercised through the integration/harness tests. Here we verify:
 """
 
 import pytest
-from unittest.mock import MagicMock, patch, call
+from unittest.mock import MagicMock, patch
 
 from haywire.ui.graph_canvas.handlers.visual_layer import VisualLayerHandlers
 from haywire.ui.graph_canvas.event_definitions import (

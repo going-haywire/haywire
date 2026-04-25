@@ -6,14 +6,13 @@ events into Editor calls (which handle undo internally).
 """
 
 import pytest
-from unittest.mock import MagicMock, call
+from unittest.mock import MagicMock
 
 from haywire.ui.graph_canvas.handlers.interaction import InteractionHandlers
 from haywire.ui.graph_canvas.event_definitions import (
     UserDragStartEvent,
     UserDragUpdateEvent,
     UserDragEndEvent,
-    EdgeClickedEvent,
 )
 from haywire.ui.graph_canvas.event_handlers import build_event_handler_map
 
@@ -54,9 +53,7 @@ def test_drag_start_does_not_move_nodes(handler, editor):
 
 def test_drag_update_calls_move_nodes(handler, editor):
     """DragUpdate forwards node IDs and delta to editor.move_nodes."""
-    handler.process_drag_update(
-        UserDragUpdateEvent(nodes=["n1", "n2"], deltaX=15.0, deltaY=-8.5)
-    )
+    handler.process_drag_update(UserDragUpdateEvent(nodes=["n1", "n2"], deltaX=15.0, deltaY=-8.5))
     editor.move_nodes.assert_called_once_with(["n1", "n2"], 15.0, -8.5)
 
 

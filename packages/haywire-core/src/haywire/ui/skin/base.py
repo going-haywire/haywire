@@ -3,8 +3,6 @@ from ast import Dict
 from dataclasses import dataclass
 import logging
 
-logger = logging.getLogger(__name__)
-
 import nicegui.ui as ui
 
 from haywire.core.library.identity import LibraryIdentity
@@ -16,6 +14,8 @@ from haywire.core.registry.identity import BaseIdentity
 from ..widget.base import BaseWidget
 from ..widget.factory_interface import IWidgetFactory
 from .interface import IBaseSkin
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass

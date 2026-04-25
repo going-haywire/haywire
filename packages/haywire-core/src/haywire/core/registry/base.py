@@ -11,13 +11,13 @@ from pathlib import Path
 import sys
 import logging
 
-logger = logging.getLogger(__name__)
-
 from ..errors import HaywireException
 from ..library.identity import LibraryIdentity
 from .dependency_graph import DependencyGraph
 from .folder_scan import FolderScanMixin
 from .lifecycle_event import LifeCycleEvent, LifeCycleEventType, LifeCycleBatchCallback
+
+logger = logging.getLogger(__name__)
 
 
 class FileEventType(Enum):

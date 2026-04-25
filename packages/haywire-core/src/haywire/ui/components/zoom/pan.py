@@ -131,9 +131,8 @@ class ZoomPanContainer(ui.element, component="pan.vue"):
             self.current_zoom = e.args["zoom"]
             self._update_performance_metrics()
             if self._on_ready is not None:
-                _log.info(
-                    f"[ZoomPan] _on_ready firing, cb={self._on_ready.__name__ if hasattr(self._on_ready, '__name__') else self._on_ready}"
-                )
+                cb_name = self._on_ready.__name__ if hasattr(self._on_ready, "__name__") else self._on_ready
+                _log.info(f"[ZoomPan] _on_ready firing, cb={cb_name}")
                 cb = self._on_ready
                 self._on_ready = None
                 cb()

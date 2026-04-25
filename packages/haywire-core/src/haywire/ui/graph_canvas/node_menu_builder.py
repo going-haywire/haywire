@@ -128,10 +128,7 @@ class NodeMenuBuilder:
         btn.props("flat dense align=left")
         btn.classes("w-full justify-start px-3 py-1.5 hw-text-body hw-list-item-hover text-sm")
         if self._on_context_click is not None:
-            btn.on(
-                "contextmenu.prevent",
-                lambda ni=node_info: self._on_context_click(ni)
-            )
+            btn.on("contextmenu.prevent", lambda ni=node_info: self._on_context_click(ni))
 
         # Add library badge
         with btn:
@@ -323,15 +320,11 @@ class NodeMenuBuilder:
     def _create_menu_item_for_node(self, node_info: NodeInfo):
         """Create a menu item for a single node."""
         menu_item = ui.menu_item(
-            f"+ {node_info.identity.label}",
-            lambda ni=node_info: self._on_node_selected(ni)
+            f"+ {node_info.identity.label}", lambda ni=node_info: self._on_node_selected(ni)
         ).props("dense")
 
         if self._on_context_click is not None:
-            menu_item.on(
-                "contextmenu.prevent",
-                lambda ni=node_info: self._on_context_click(ni)
-            )
+            menu_item.on("contextmenu.prevent", lambda ni=node_info: self._on_context_click(ni))
 
         # Add tooltip with description and tags if available
         if node_info.identity.description:

@@ -9,7 +9,6 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from nicegui import ui
 
 from haywire.ui import elements as hui
 from haywire.ui.panel.decorator import panel

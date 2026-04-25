@@ -130,7 +130,9 @@ class TestInterpreter:
         """Test callback flow: BeginPlay → EmitCallback, CustomCallback → Print"""
         from haybale_testing.nodes.testbed.begin_play_node import TestBeginPlayNode as BeginPlayNode
         from haybale_testing.nodes.testbed.emit_callback_node import TestEmitCallbackNode as EmitCallbackNode
-        from haybale_testing.nodes.testbed.custom_callback_node import TestCustomCallbackNode as CustomCallbackNode
+        from haybale_testing.nodes.testbed.custom_callback_node import (
+            TestCustomCallbackNode as CustomCallbackNode,
+        )
         from haybale_core.nodes.print_terminal import PrintTerminalMessageNode
 
         graph = graph_with_library_system

@@ -9,6 +9,7 @@ from haywire.core.settings import field
 def _node_skin_choices():
     try:
         from haywire.core.di.config import get_skin_registry
+
         return {reg_key: reg_key for reg_key in get_skin_registry().list_names()}
     except Exception:
         return {}
@@ -17,12 +18,13 @@ def _node_skin_choices():
 def _default_skin():
     try:
         from haywire.core.di.config import get_skin_registry
+
         return get_skin_registry().get_default_skin_registry_key()
     except Exception:
         return "default"
 
 
-class NodeDefaultSkinSettings(FrameworkSettings, namespace = NAMESPACE_UI_NODE_DEFAULT_SKIN):
+class NodeDefaultSkinSettings(FrameworkSettings, namespace=NAMESPACE_UI_NODE_DEFAULT_SKIN):
     """Settings controlling node layout, pin geometry, and element visibility.
 
     These settings are referenced by Node properties.

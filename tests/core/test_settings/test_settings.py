@@ -21,7 +21,6 @@ from haywire.core.settings import (
     Vec2i,
     Vec3i,
     Vec4i,
-    Vec2f,
     Vec3f,
     Vec4f,
     get_vec_meta,

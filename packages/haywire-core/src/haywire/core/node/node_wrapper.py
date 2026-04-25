@@ -8,8 +8,6 @@ including creation, hot reload, serialization, and cleanup.
 import time
 import threading
 import logging
-
-logger = logging.getLogger(__name__)
 from typing import List, Optional, Tuple, Any, Dict, TYPE_CHECKING
 from dataclasses import dataclass
 from abc import ABC, abstractmethod
@@ -18,6 +16,8 @@ from ..graph.types import ChangeReason
 from ..errors import HaywireException
 from ..registry.lifecycle_event import LifeCycleEvent
 from ..validation.interface import IStructuralValidator
+
+logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
     from ..graph.base import BaseGraph

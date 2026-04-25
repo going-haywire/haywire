@@ -17,6 +17,7 @@ logger = logging.getLogger(__name__)
 #    BASE CLASS
 # ============================================================================
 
+
 class BaseLibrary(ABC):
     """
     Abstract base class for all libraries

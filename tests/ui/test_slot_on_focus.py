@@ -9,7 +9,7 @@ from unittest.mock import MagicMock
 from haywire.ui.app.tab_slot import TabSlot
 import pytest
 
-from haywire.ui.app.slot import EditorBinding, Slot
+from haywire.ui.app.slot import EditorBinding
 from haywire.ui.editor.base import BaseEditor
 
 

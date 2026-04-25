@@ -44,9 +44,7 @@ class Library(BaseLibrary):
         base_path = Path(__file__).parent
 
         # Register settings
-        self.add_folder_to_registry(
-            folder_path=str(base_path / "settings"), registry_cls=SettingsRegistry
-        )
+        self.add_folder_to_registry(folder_path=str(base_path / "settings"), registry_cls=SettingsRegistry)
 
         # Register themes (workbench and node themes)
         self.add_folder_to_registry(folder_path=str(base_path / "themes"), registry_cls=ThemeRegistry)

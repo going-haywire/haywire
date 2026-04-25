@@ -53,23 +53,44 @@ def make_context(active_node=None, active_edge=None, clipboard=None) -> SessionC
 # ---------------------------------------------------------------------------
 
 
-@pytest.mark.parametrize("panel_cls", [
-    DeleteNodePanel, CopyNodePanel, RedrawNodePanel, RevalidateNodePanel, ResetNodePanel,
-])
+@pytest.mark.parametrize(
+    "panel_cls",
+    [
+        DeleteNodePanel,
+        CopyNodePanel,
+        RedrawNodePanel,
+        RevalidateNodePanel,
+        ResetNodePanel,
+    ],
+)
 def test_node_action_panel_editor_is_context_menu(panel_cls):
     assert panel_cls.class_identity.editor_keys == ["test_inspector"]
 
 
-@pytest.mark.parametrize("panel_cls", [
-    DeleteNodePanel, CopyNodePanel, RedrawNodePanel, RevalidateNodePanel, ResetNodePanel,
-])
+@pytest.mark.parametrize(
+    "panel_cls",
+    [
+        DeleteNodePanel,
+        CopyNodePanel,
+        RedrawNodePanel,
+        RevalidateNodePanel,
+        ResetNodePanel,
+    ],
+)
 def test_node_action_panel_scope_is_node(panel_cls):
     assert "test_node" in panel_cls.class_identity.scopes
 
 
-@pytest.mark.parametrize("panel_cls", [
-    DeleteNodePanel, CopyNodePanel, RedrawNodePanel, RevalidateNodePanel, ResetNodePanel,
-])
+@pytest.mark.parametrize(
+    "panel_cls",
+    [
+        DeleteNodePanel,
+        CopyNodePanel,
+        RedrawNodePanel,
+        RevalidateNodePanel,
+        ResetNodePanel,
+    ],
+)
 def test_node_action_panels_are_base_panel_subclasses(panel_cls):
     assert issubclass(panel_cls, BasePanel)
 
@@ -79,17 +100,31 @@ def test_node_action_panels_are_base_panel_subclasses(panel_cls):
 # ---------------------------------------------------------------------------
 
 
-@pytest.mark.parametrize("panel_cls", [
-    DeleteNodePanel, CopyNodePanel, RedrawNodePanel, RevalidateNodePanel, ResetNodePanel,
-])
+@pytest.mark.parametrize(
+    "panel_cls",
+    [
+        DeleteNodePanel,
+        CopyNodePanel,
+        RedrawNodePanel,
+        RevalidateNodePanel,
+        ResetNodePanel,
+    ],
+)
 def test_node_action_panel_poll_true_when_node_active(panel_cls):
     ctx = make_context(active_node=MagicMock())
     assert panel_cls.poll(ctx) is True
 
 
-@pytest.mark.parametrize("panel_cls", [
-    DeleteNodePanel, CopyNodePanel, RedrawNodePanel, RevalidateNodePanel, ResetNodePanel,
-])
+@pytest.mark.parametrize(
+    "panel_cls",
+    [
+        DeleteNodePanel,
+        CopyNodePanel,
+        RedrawNodePanel,
+        RevalidateNodePanel,
+        ResetNodePanel,
+    ],
+)
 def test_node_action_panel_poll_false_when_no_node(panel_cls):
     ctx = make_context(active_node=None)
     assert panel_cls.poll(ctx) is False

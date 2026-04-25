@@ -4,6 +4,7 @@
 from haywire.core.settings import field
 from haywire.core.settings.schema import FrameworkSettings
 
+
 class EditorSettings(FrameworkSettings):
     """Global preferences controlling editor interaction and behaviour."""
 

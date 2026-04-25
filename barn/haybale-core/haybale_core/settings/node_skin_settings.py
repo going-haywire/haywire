@@ -5,6 +5,7 @@ from haywire.core.settings.schema import LibrarySettings
 from haywire.core.settings import field
 from haywire.core.settings.decorator import settings
 
+
 @settings(namespace="ui.node.skin", label="Node Skin")
 class NodeSkinSettings(LibrarySettings):
     """Settings controlling node layout, pin geometry, and element visibility.
@@ -86,17 +87,10 @@ class NodeSkinSettings(LibrarySettings):
     )
     # --- debug ---
     show_node_ids: bool = field(
-        False, 
-        label="Show Node IDs", 
-        description="Display internal node IDs", 
-        category="debug", order=21
+        False, label="Show Node IDs", description="Display internal node IDs", category="debug", order=21
     )
     show_port_ids: bool = field(
-        False, 
-        label="Show Port IDs", 
-        description="Display internal port IDs", 
-        category="debug", 
-        order=22
+        False, label="Show Port IDs", description="Display internal port IDs", category="debug", order=22
     )
     inspect_on_click: bool = field(
         False,

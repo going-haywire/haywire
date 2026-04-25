@@ -6,15 +6,10 @@ from haywire.core.settings import field
 from haywire.core.settings.schema import FrameworkSettings
 
 
-class MinimapSettings(FrameworkSettings, namespace = NAMESPACE_UI_MINIMAP):
+class MinimapSettings(FrameworkSettings, namespace=NAMESPACE_UI_MINIMAP):
     """Global preferences controlling the minimap overlay layout and visibility."""
 
-    enabled: bool = field(
-        True, 
-        label="Show Minimap", 
-        description="Display minimap overview", 
-        order=10
-    )
+    enabled: bool = field(True, label="Show Minimap", description="Display minimap overview", order=10)
     position: str = field(
         "bottom-right",
         label="Minimap Position",

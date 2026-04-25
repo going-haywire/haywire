@@ -19,6 +19,7 @@ from .scope import ScopeDescriptor
 
 logger = logging.getLogger(__name__)
 
+
 class PanelRegistry(BaseRegistry):
     """
     Registry of panels and scope descriptors.

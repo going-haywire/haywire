@@ -2,11 +2,11 @@ import ast
 import sys
 import logging
 from pathlib import Path
-
-logger = logging.getLogger(__name__)
 from typing import Set, List, Dict, Optional
 from dataclasses import dataclass
 from collections import deque
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass

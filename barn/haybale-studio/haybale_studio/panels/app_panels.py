@@ -15,7 +15,6 @@ from haywire.ui.panel.decorator import panel
 from haywire.ui.panel.base import BasePanel, PanelLayout
 from haywire.ui.panel.render_utils import render_schema
 
-from haywire.ui.components.zoom.settings import EditorPanZoomSettings
 from haybale_studio.settings.theme_settings import WorkbenchThemeSettings, NodeThemeSettings
 from haywire.ui.skin.settings import NodeDefaultSkinSettings
 from haywire.ui.prefs.editor import EditorSettings
