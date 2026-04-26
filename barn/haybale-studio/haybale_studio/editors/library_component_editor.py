@@ -52,6 +52,7 @@ class LibraryComponentEditor(BaseEditor):
     def poll(self, context: "SessionContext", event: "ContextChangedEvent") -> bool:
         return event.change_type in (
             ContextChangeType.ACTIVE_COMPONENT_CHANGED,
+            ContextChangeType.SELECTION_CHANGED,
             ContextChangeType.WORKBENCH_THEME_CHANGED,
         )
 
@@ -76,6 +77,8 @@ class LibraryComponentEditor(BaseEditor):
         if self._container is None:
             return
         registry_key = context.active_component
+        if not registry_key and context.active_node is not None:
+            registry_key = context.active_node.registry_key
         with self._container:
             if not registry_key:
                 hui.empty_state(

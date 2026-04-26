@@ -100,6 +100,8 @@ class AppIcon:
     """Component source tab."""
     library_view: Final[str] = "visibility"
     """Component preview tab."""
+    node_source: Final[str] = "code"
+    """Node source editor (source of the currently selected graph node)."""
 
     # ── Edge panels ───────────────────────────────────────────────────────────
     edge_statistics: Final[str] = "linear_scale"
