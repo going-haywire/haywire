@@ -2,6 +2,7 @@
 log_level = "WARNING"
 log_library = ""
 log_node = ""
+log_to_file = false
 log_ui = ""
 
 [workbench]

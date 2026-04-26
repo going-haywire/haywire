@@ -4,7 +4,7 @@ from haywire.core.node import node, BaseNode, NodeType
 
 
 @node(
-    label="Begin Player One",
+    label="Begin Player",
     description="Triggered once when execution starts",
     menu="event/runtime",
     search_tags=["start", "init", "begin", "event"],
