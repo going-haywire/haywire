@@ -20,12 +20,12 @@ from haywire.ui import elements as hui
 from haywire.ui.editor.decorator import editor
 from haywire.ui.editor.base import BaseEditor
 from haywire.ui.context_events import ContextChangeType, ContextChangedEvent
+from haywire.ui.graph_canvas.graph_canvas_manager import GraphCanvasManager
 
 if TYPE_CHECKING:
     from haywire_studio.haystack import GraphEntry
     from haywire.ui.context import SessionContext
     from haywire.ui.context_events import ContextChangedEvent
-    from haywire.ui.graph_canvas.graph_canvas_manager import GraphCanvasManager
     from nicegui.element import Element
 
 logger = logging.getLogger(__name__)
@@ -63,7 +63,7 @@ class GraphEditor(BaseEditor):
     """
 
     def __init__(self):
-        self._canvas_manager: Optional["GraphCanvasManager"] = None
+        self._canvas_manager: Optional[GraphCanvasManager] = None
         self._project_state = None
         self._context: Optional["SessionContext"] = None
         self._canvas_wrapper = None  # ui.element — cleared on graph switch
@@ -199,8 +199,6 @@ class GraphEditor(BaseEditor):
 
     def _build_canvas(self, context: "SessionContext") -> None:
         """Instantiate a GraphCanvasManager inside _canvas_wrapper."""
-        from haywire.ui.graph_canvas.graph_canvas_manager import GraphCanvasManager
-
         app = self._project_state
         entry = self._get_entry(context)
 
