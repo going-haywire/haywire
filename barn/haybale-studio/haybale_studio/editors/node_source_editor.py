@@ -128,6 +128,7 @@ class NodeSourceEditor(BaseEditor):
             self._path = None
             self._registry_key = None
             self._is_editable = False
+            self._sync_subscription(context)
             return
 
         self._registry_key = node.registry_key
@@ -157,6 +158,7 @@ class NodeSourceEditor(BaseEditor):
             self._path = None
 
         self._is_editable = self._compute_is_editable(context)
+        self._sync_subscription(context)
 
     def _compute_is_editable(self, context: "SessionContext") -> bool:
         if not self._registry_key:
@@ -230,6 +232,11 @@ class NodeSourceEditor(BaseEditor):
             .classes("w-full items-center px-3 gap-2 flex-shrink-0 border-b")
             .style("min-height: 32px; background: var(--hw-bg-surface);")
         ):
+            (
+                ui.button(icon="arrow_back", on_click=self._open_in_code_editor)
+                .props("flat dense round size=sm")
+                .tooltip("Open in editor")
+            )
             ui.icon(hui.icon.node_source, size="14px").classes("hw-text-dim")
             label_text = str(self._path) if self._path is not None else "—"
             self._path_label = ui.label(label_text).classes(
@@ -246,7 +253,7 @@ class NodeSourceEditor(BaseEditor):
                 self._readonly_badge = None
                 self._save_button = (
                     ui.button(
-                        "Save",
+                        "",
                         icon=hui.icon.save,
                         on_click=self._save,
                     )
@@ -322,7 +329,6 @@ class NodeSourceEditor(BaseEditor):
         self._content = new_value
         if not self._pinned and self._content != self._original:
             self._pinned = True
-            self._subscribe_lifecycle()
             self._refresh_chrome()
 
     def _save(self) -> None:
@@ -336,7 +342,6 @@ class NodeSourceEditor(BaseEditor):
         self._original = self._content
         self._pinned = False
         self._conflict = False
-        self._unsubscribe_lifecycle()
         self._refresh_chrome()
         ui.notify(f"Saved {self._path.name}", type="positive")
 
@@ -347,7 +352,6 @@ class NodeSourceEditor(BaseEditor):
         self._original = text
         self._pinned = False
         self._conflict = False
-        self._unsubscribe_lifecycle()
         # Replace the codemirror buffer in place rather than triggering
         # a full redraw, so we don't wipe other UI handles.
         if self._editor is not None:
@@ -358,26 +362,57 @@ class NodeSourceEditor(BaseEditor):
         # Same as discard — the disk has the canonical content.
         self._discard()
 
-    # ------------------------------------------------------------------
-    # Lifecycle subscription (external-change detection)
-    # ------------------------------------------------------------------
-
-    def _subscribe_lifecycle(self) -> None:
-        if self._lifecycle_node_factory is not None or self._registry_key is None:
+    def _open_in_code_editor(self) -> None:
+        """Reveal the same file in the main-slot CodeEditor."""
+        if self._path is None:
             return
         wrapper = self.wrapper
         session = getattr(wrapper, "_session", None) if wrapper is not None else None
-        app = getattr(getattr(session, "context", None), "app", None) if session is not None else None
-        factory = getattr(app, "node_factory", None) if app is not None else None
+        if session is None:
+            return
+        # Lazy import to keep the editor decorator chain identical to
+        # how file_browser does it.
+        from haybale_studio.editors.code_editor import CodeEditor
+
+        from haywire.ui.context_events import ContextChangedEvent
+
+        session.notify_context_changed(
+            ContextChangedEvent(
+                change_type=ContextChangeType.FILE_SELECTED,
+                source_editor="node_source_editor",
+                detail=self._path,
+                reveal_editor=CodeEditor.class_identity.registry_key,
+                reveal_payload=str(self._path),
+                reveal_label=self._path.name,
+            )
+        )
+
+    # ------------------------------------------------------------------
+    # Lifecycle subscription (external-change detection)
+    #
+    # Subscription is bound to "the file this editor is showing", not
+    # to edit mode. _resolve_target calls _sync_subscription on every
+    # redraw to (re)attach the callback when the active node — and
+    # therefore the watched registry_key — changes.
+    # ------------------------------------------------------------------
+
+    def _sync_subscription(self, context: "SessionContext") -> None:
+        target_key = self._registry_key if self._path is not None else None
+        if target_key == self._lifecycle_registry_key:
+            return  # already on the right key (or both None)
+        self._unsubscribe_lifecycle()
+        if target_key is None:
+            return
+        factory = getattr(context.app, "node_factory", None) if context.app is not None else None
         if factory is None:
             return
         try:
-            factory.add_event_subscriber(self._registry_key, self._on_lifecycle_event)
+            factory.add_event_subscriber(target_key, self._on_lifecycle_event)
         except Exception as exc:  # pragma: no cover - defensive
-            logger.debug("subscribe failed for %s: %s", self._registry_key, exc)
+            logger.debug("subscribe failed for %s: %s", target_key, exc)
             return
         self._lifecycle_node_factory = factory
-        self._lifecycle_registry_key = self._registry_key
+        self._lifecycle_registry_key = target_key
 
     def _unsubscribe_lifecycle(self) -> None:
         if self._lifecycle_node_factory is None or self._lifecycle_registry_key is None:
@@ -392,21 +427,30 @@ class NodeSourceEditor(BaseEditor):
         self._lifecycle_registry_key = None
 
     def _on_lifecycle_event(self, event: "LifeCycleEvent") -> None:
-        # We only care about "the file on disk has changed" — re-read
-        # and decide whether it conflicts with our edits. Class-removed
-        # / failure events leave us with a stale buffer but nothing to
-        # surface yet.
-        if self._path is None or not self._pinned:
+        # Re-read the file. If unchanged from _original, it's our own
+        # save echoing back (or a class-only reload that didn't touch
+        # the source text) — ignore. Otherwise:
+        #   - not pinned → silently refresh the buffer (passive viewer)
+        #   - pinned     → surface the conflict banner
+        if self._path is None:
             return
         try:
             disk = self._read_file(self._path)
         except Exception:  # pragma: no cover - defensive
             return
         if disk == self._original:
-            # Our own save echoing back, or no real text change.
             return
-        # Real external change. Surface the conflict banner.
-        self._original = disk  # so a subsequent self-save matches again
+
+        if not self._pinned:
+            self._content = disk
+            self._original = disk
+            if self._editor is not None:
+                self._editor.value = disk
+            return
+
+        # Pinned: real conflict. Update _original so a subsequent
+        # self-save doesn't re-trigger the banner.
+        self._original = disk
         self._conflict = True
         self._refresh_chrome()
 
