@@ -17,6 +17,7 @@ from typing import TYPE_CHECKING, Optional
 
 from nicegui import ui
 
+from haywire.ui import elements as hui
 from haywire.ui.context_events import ContextChangeType
 from haywire.ui.editor.base import BaseEditor
 from haywire.ui.editor.decorator import editor
@@ -374,7 +375,7 @@ class CodeEditor(BaseEditor):
 
         result: dict = {}
 
-        with ui.dialog() as dialog, ui.card():
+        with ui.dialog() as dialog, hui.dialog_card("w-[420px]"):
             ui.label("Save changes before closing?").classes("text-base font-semibold")
             ui.label("You have unsaved changes in this file.").classes("text-sm hw-text-muted")
 
@@ -384,8 +385,12 @@ class CodeEditor(BaseEditor):
 
             with ui.row().classes("w-full justify-end gap-2 mt-2"):
                 ui.button("Cancel", on_click=lambda: _resolve("cancel")).props("flat dense")
-                ui.button("Discard", on_click=lambda: _resolve("discard")).props("flat dense color=warning")
-                ui.button("Save & Close", on_click=lambda: _resolve("save")).props("color=positive dense")
+                ui.button("Discard", on_click=lambda: _resolve("discard")).props("flat dense").style(
+                    "color: var(--hw-danger);"
+                )
+                ui.button("Save & Close", on_click=lambda: _resolve("save")).props("flat dense").style(
+                    "color: var(--hw-positive);"
+                )
 
         await dialog
         action = result.get("action", "cancel")

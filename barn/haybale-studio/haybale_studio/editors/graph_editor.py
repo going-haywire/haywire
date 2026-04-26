@@ -272,6 +272,20 @@ class GraphEditor(BaseEditor):
             self._graph_name_label.text = "● " + entry.display_name
             self._graph_name_label.classes(remove="hw-text-body hw-text-dim", add="hw-text-muted")
         self._update_undo_redo_buttons(entry)
+        self._sync_tab_dirty(entry)
+
+    def _sync_tab_dirty(self, entry) -> None:
+        """Mirror the entry's unsaved state to the tab bar via wrapper.set_dirty."""
+        if self.wrapper is None:
+            return
+        is_dirty = entry is not None and (entry.unsaved or entry.path is None)
+        self.wrapper.set_dirty(is_dirty)
+        slot = getattr(self.wrapper, "_slot", None)
+        if slot is not None and hasattr(slot, "_refresh_bar"):
+            try:
+                slot._refresh_bar()
+            except Exception:
+                pass
 
     def _update_undo_redo_buttons(self, entry) -> None:
         """Enable/disable undo and redo buttons based on history state."""
