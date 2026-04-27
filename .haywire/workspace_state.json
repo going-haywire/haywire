@@ -14,7 +14,7 @@
     "editors": []
   },
   "main": {
-    "active_key": "studio:editor:GraphEditor::/Volumes/Ddrive/06_open_tracking_tool/haywire/haywire-repo/graphs/loop.haywire",
+    "active_key": "studio:editor:CodeEditor::/Volumes/Ddrive/06_open_tracking_tool/haywire/haywire-repo/barn/haybale-core/haybale_core/nodes/begin_play.py",
     "visible": true,
     "size": 300,
     "editors": [
@@ -22,16 +22,6 @@
         "key": "studio:editor:CodeEditor",
         "payload": "/Volumes/Ddrive/06_open_tracking_tool/haywire/haywire-repo/barn/haybale-core/haybale_core/nodes/begin_play.py",
         "label": "begin_play.py"
-      },
-      {
-        "key": "studio:editor:GraphEditor",
-        "payload": "/Volumes/Ddrive/06_open_tracking_tool/haywire/haywire-repo/graphs/webcam.haywire",
-        "label": "webcam.haywire"
-      },
-      {
-        "key": "studio:editor:GraphEditor",
-        "payload": "/Volumes/Ddrive/06_open_tracking_tool/haywire/haywire-repo/graphs/loop.haywire",
-        "label": "loop.haywire"
       }
     ]
   },
