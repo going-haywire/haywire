@@ -32,8 +32,8 @@ the fields fall into two distinct families that aren't named or grouped:
 
 | Family | Fields | Lifetime |
 | --- | --- | --- |
-| **Selection / cursor** — what the user is pointing at right now | `active_node`, `active_edge`, `active_port`, `selected_nodes`, `selected_edges`, `interaction_mode`, `context_menu_trigger` | transient, mouse-scale |
-| **Workspace cursor** — what the user is currently looking at | `active_graph`, `active_graph_path`, `active_file`, `active_library`, `active_component`, `active_editor`, `active_workbench_theme_key`, `active_node_theme_key`, `workspace_name` | session-scale |
+| **Selection / cursor** — what the user is pointing at right now | `active_node`, `active_edge`, `active_port`, `selected_nodes`, `selected_edges`, `context_menu_trigger` | transient, mouse-scale |
+| **Workspace cursor** — what the user is currently looking at | `active_graph`, `active_graph_path`, `active_file`, `active_library`, `active_component`, `active_workbench_theme_key`, `active_node_theme_key`, `workspace_name` | session-scale |
 
 This is a **navigation state vs. selection state** split that the type
 system never makes explicit. They live in the same dataclass, get mutated
@@ -52,12 +52,11 @@ them and what they really say*:
 - `ACTIVE_COMPONENT_CHANGED` — switched library component
 - `LIBRARY_STATE_CHANGED` — library list / selection changed (overloaded; see §3)
 - `EDITOR_FOCUSED` — used purely as a "please reveal the following editor"
-  sentinel; the literal field `active_editor` on `SessionContext` is dead
+  sentinel; nothing about the change-event itself is about focus
 
 #### Cluster B — "Selection: the user is pointing at a different sub-thing"
 
 - `SELECTION_CHANGED` — node/edge selection in the canvas
-- `MODE_CHANGED` — interaction mode (declared, **never emitted**)
 
 #### Cluster C — "Underlying data was mutated"
 
@@ -68,8 +67,6 @@ them and what they really say*:
 
 - `WORKSPACE_CHANGED` — a tab was clicked / icon-slot switched
 - `WORKBENCH_THEME_CHANGED` — visual theme swap
-- `CONTEXT_MENU_OPENED` / `CONTEXT_MENU_CLOSED` — popup lifecycle
-- `CUSTOM` — never used anywhere
 
 The clusters do not share consumers. **Properties** subscribes to A+B+C
 but not D. **CodeEditor** subscribes only to D
@@ -80,7 +77,6 @@ context-event-wise — it has its own internal Vue event bus.
 
 ```python
 change_type: ContextChangeType
-source_editor: Optional[str] = None
 detail: Optional[Any] = None
 reveal_editor: Optional[str] = None
 reveal_payload: Optional[str] = None
@@ -90,13 +86,12 @@ reveal_label: Optional[str] = None
 | Field | Real role today |
 | --- | --- |
 | `change_type` | Reader's filter ("is this for me?") |
-| `source_editor` | **Cosmetic / debugging only.** Grepping the codebase: nothing reads `event.source_editor` |
 | `detail` | **One real consumer:** `_handle_graph_removed` reads it for the entry id. Everywhere else it carries either `entry` or `path` redundantly with what is already on `SessionContext` |
 | `reveal_editor` | A *command* ("open this editor"), tunneled through an event |
 | `reveal_payload` | Disambiguator for multi-instance editors, only meaningful with `reveal_editor` |
 | `reveal_label` | Display label for a newly created tab, only meaningful with `reveal_editor` |
 
-So three of the six fields exist solely to support the **reveal-this-tab**
+So three of the five fields exist solely to support the **reveal-this-tab**
 operation, not to describe what changed. The event is structurally
 two events stapled together.
 
@@ -112,9 +107,8 @@ Look at what each value answers:
 - `WORKSPACE_CHANGED` answers **"which UI surface moved?"**
 - `DATA_MUTATED` answers **"is the underlying data fresh?"**
 - `EDITOR_FOCUSED` answers **"please switch the active tab"**
-- `CONTEXT_MENU_OPENED` answers **"a popup just appeared"**
 
-Five different *kinds of question* are crammed into one enum.
+Four different *kinds of question* are crammed into one enum.
 
 ### 3.2 `EDITOR_FOCUSED` is a misnomer
 
@@ -145,21 +139,7 @@ clicked a library row" (selection) and "library was installed/enabled"
 on both. This is exactly the conflation that `DATA_MUTATED` vs.
 `SELECTION_CHANGED` keeps separate elsewhere.
 
-### 3.5 `MODE_CHANGED` and `CUSTOM` are dead
-
-- `MODE_CHANGED` is declared, documented in the GraphEditor docstring,
-  and **never emitted**. `interaction_mode` itself is set in `IDLE` at
-  birth and never written.
-- `CUSTOM` has zero call sites.
-
-### 3.6 Selection write-paths bypass the helpers
-
-`SessionContext` exposes `set_selection()`, `select_node()`, etc., but
-[selection.py:65-67](../../packages/haywire-core/src/haywire/ui/graph_canvas/handlers/selection.py#L65-L67)
-writes the fields directly. Either the helpers should be the only legal
-way in, or they should be deleted — the half-and-half state is a trap.
-
-### 3.7 The reveal payload tunnels through an event
+### 3.5 The reveal payload tunnels through an event
 
 `reveal_editor` / `reveal_payload` / `reveal_label` are **imperative
 commands**, not observations. The shell handles them in
@@ -168,13 +148,6 @@ commands**, not observations. The shell handles them in
 If you read the codebase as a newcomer, the orchestrator's first job is
 "obey a command embedded in the event". That's a hint that the bus is
 carrying two things.
-
-### 3.8 `source_editor` is folklore
-
-It exists in every event, costs an attribute on every struct, and is
-read by **nothing**. Most editors fill it in dutifully with a string
-literal, sometimes wrong (file_browser passes `"lazy_file_browser"`
-which is the old class name). It will rot.
 
 ---
 
@@ -224,9 +197,9 @@ You can subscribe to any subset and never wonder whether
 
 `GRAPH_REMOVED` collapses into `ACTIVE_GRAPH` plus a side-effect that
 the shell already runs (`_handle_graph_removed` only needs the entry
-id, which can hang off the signal payload). `WORKSPACE_CHANGED`,
-`EDITOR_FOCUSED`, `CONTEXT_MENU_OPENED/CLOSED`, `MODE_CHANGED`, `CUSTOM`
-either disappear entirely or move to the other channel — see below.
+id, which can hang off the signal payload). `WORKSPACE_CHANGED` and
+`EDITOR_FOCUSED` either disappear entirely or move to the other
+channel — see below.
 
 ### 4.3 Re-home the orphans
 
@@ -234,9 +207,6 @@ either disappear entirely or move to the other channel — see below.
 | --- | --- |
 | `EDITOR_FOCUSED` | becomes a `RevealRequest`, no signal |
 | `WORKSPACE_CHANGED` | drop; `BaseEditor.on_focus` already fires |
-| `CONTEXT_MENU_OPENED/CLOSED` | not a context change — it's a popup. Either an internal canvas event, or piggyback on `SELECTION` if a panel really needs it |
-| `MODE_CHANGED` | delete; `interaction_mode` itself is dead |
-| `CUSTOM` | delete |
 | `LIBRARY_STATE_CHANGED` | split: selection = `ACTIVE_LIBRARY`, install/enable = a new `LIBRARY_CATALOG` signal (or fold into `GRAPH_DATA`'s broader sibling — see §4.5) |
 
 ### 4.4 Shrink `ContextChangedEvent` to its actual payload
@@ -250,7 +220,6 @@ class ContextSignal:
 
 That's it. Drop:
 
-- `source_editor` — unused; if we ever need it, structured logging is the right place
 - `reveal_editor` / `reveal_payload` / `reveal_label` — they belong on
   `RevealRequest`, not `ContextSignal`
 
@@ -394,12 +363,10 @@ see §7.4 for the full set.)
    - `Subject.peer(id)` → delivered to that one peer
    - `Subject.BROADCAST` → all sessions including self (current
      `notify_cross_session_context_change` semantics)
-3. **`SessionContext` doesn't grow a `peer_selections` dict.** The
-   comment at [context.py:87-89](../../packages/haywire-core/src/haywire/ui/context.py#L87-L89)
-   already anticipates this with a planned `peer_selections` field —
-   under the subject model it becomes unnecessary. Peers expose their
-   own context through the `SessionManager`; the signal's subject
-   identifies whose, and editors traverse to peer state when they care.
+3. **`SessionContext` doesn't grow a `peer_selections` dict.** Peers
+   expose their own context through the `SessionManager`; the signal's
+   subject identifies whose, and editors traverse to peer state when
+   they care.
 
 ### 6.3 Inline state vs. pointer
 
@@ -655,49 +622,33 @@ From [context_menu.py](../../packages/haywire-core/src/haywire/ui/graph_canvas/h
 
 1. User right-clicks. `SessionContextMenuProvider._open_menu` sets
    `context.context_menu_trigger = "canvas" | "node" | "edge" | "selection"`.
-2. Fires `ContextChangedEvent(change_type=CONTEXT_MENU_OPENED)` via
-   `notify_context_changed`.
-3. Builds a `Popup`, queries `PanelRegistry` for panels matching the
+2. Builds a `Popup`, queries `PanelRegistry` for panels matching the
    trigger scope, draws them.
-4. Stuffs callbacks and intermediate state into `context.metadata`:
+3. Stuffs callbacks and intermediate state into `context.metadata`:
    `on_emit_event`, `edge_state`, `pending_connection`,
    `context_menu_screen_pos`, `edge_reconnect_end`.
-5. On close: clears `context_menu_trigger`, drains the metadata keys,
-   fires `CONTEXT_MENU_CLOSED`.
+4. On close: clears `context_menu_trigger`, drains the metadata keys.
 
 Panels themselves use the bus too —
 [create_node_panel.py:64-70](../../barn/haybale-core/haybale_core/panels/context_menu/create_node_panel.py#L64-L70)
 sets `context.active_component`, fires `ACTIVE_COMPONENT_CHANGED`, and
 attaches `reveal_editor=LibraryComponentEditor` to the same event.
 
-### 8.2 Three problems, all instances of the §3 smells
+### 8.2 Two problems, all instances of the §3 smells
 
-1. **`CONTEXT_MENU_OPENED` / `CONTEXT_MENU_CLOSED` aren't context
-   changes.** Nothing on `SessionContext` meaningfully *moved*. Nothing
-   in the codebase subscribes to them. They exist only because the
-   popup pipeline needs to fire something — exactly the
-   "events with no real consumers" smell from §3.1.
-
-2. **`metadata` is popup-internal state masquerading as session
+1. **`metadata` is popup-internal state masquerading as session
    context.** Five of six `metadata` keys are popup ephemera; they live
    on `SessionContext` only because that's the object the panels
    receive. The dict is doing the job of "popup-scoped state" without
    a name for it.
 
-3. **`create_node_panel.py` does three unrelated things in one event.**
+2. **`create_node_panel.py` does three unrelated things in one event.**
    State mutation (`context.active_component = ...` already happened),
    observation (`ACTIVE_COMPONENT_CHANGED`), and command
    (`reveal_editor=...`) are all glued to one `notify_context_changed`
-   call. The §3.7 conflation, in miniature.
+   call. The §3.5 conflation, in miniature.
 
 ### 8.3 What the new model gives them
-
-**Drop both popup lifecycle events.** No replacement signal — a popup
-is a UI primitive with its own `popup.on_close(...)` hook. The
-existing `_on_close` callback in `_open_menu` keeps doing its
-teardown (clearing `active_edge`, resuming a paused edge drag, etc.)
-without firing any signal. Two enum values disappear, no consumer
-loses anything.
 
 **Move popup-internal state onto a typed scope object.** Instead of
 panels reading `context.metadata['edge_state']`, they read a typed
@@ -746,8 +697,7 @@ it, switch the right-hand tab.*
 Compare to today's pitch, which has to explain: that
 `context_menu_trigger` lives on the context but is only meaningful
 while a menu is open; that `metadata` is a typed-nothing dict
-carrying popup callbacks; that `CONTEXT_MENU_OPENED` is fired but
-nobody listens; that panel emits combine state changes with reveal
+carrying popup callbacks; that panel emits combine state changes with reveal
 commands; and that the popup pipeline is simultaneously a registry
 lookup and a session-context mutation.
 
@@ -766,7 +716,7 @@ Formalising it isn't required for the bus split, but the bus split
 is what makes the missing pattern visible: once popup state stops
 hiding inside `metadata`, it becomes obvious that several popups
 have the same shape and could share a name. Worth considering as a
-follow-on once §6 / §7 land — see open question §9.6.
+follow-on once §6 / §7 land — see open question §9.5.
 
 ---
 
@@ -799,14 +749,7 @@ follow-on once §6 / §7 land — see open question §9.6.
    call sites are all `BROADCAST` semantics; widening the API to
    include `Subject.peer(id)` is purely additive.
 
-5. **Where does `interaction_mode` go?** It's declared on
-   `SessionContext`, never written, and `MODE_CHANGED` is never
-   emitted. Bury it for now — and if a future canvas needs modal
-   behaviour (drag-to-connect vs. select-box vs. pan), declare a
-   `InteractionModeMoved` signal class then, where the use case is
-   real. Speculative state is harder to delete than to add.
-
-6. **Is `ContextMenuScope` an instance of a more general "popup
+5. **Is `ContextMenuScope` an instance of a more general "popup
    scope" pattern?** §8.5 notes that several other popups in the
    codebase (Save-As, rename dialog, remove-confirm) carry similar
    ephemeral state in closures and locals. After the bus split makes
@@ -823,11 +766,10 @@ follow-on once §6 / §7 land — see open question §9.6.
 
 - `ContextChangedEvent` is two events glued together: an *observation*
   (`change_type` + `detail`) and a *command* (`reveal_*`).
-- `ContextChangeType` mixes five different axes; three values are
-  dead, two values are commands, one value is overloaded.
+- `ContextChangeType` mixes five different axes; two values are
+  commands, one value is overloaded.
 - `SessionContext` carries two distinct kinds of state (workbench
   focus and live selection) under one flat dataclass.
-- `source_editor` is read by nothing.
 
 A simpler story:
 
@@ -842,8 +784,6 @@ A simpler story:
   moved it. That gives an editor author a one-line subscription rule.
 - Group the dataclass into **`workbench` + `selection`** so the two
   state lifetimes are visible in the type.
-- Delete dead code (`MODE_CHANGED`, `CUSTOM`, `interaction_mode`,
-  `source_editor`, `active_editor`).
 
 Mechanism unchanged; vocabulary tightened, and made open at exactly
 the two seams (signal type and subject scope) where library authors

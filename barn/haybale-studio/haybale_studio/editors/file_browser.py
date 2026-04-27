@@ -314,7 +314,6 @@ class LazyFileBrowserEditor(BaseEditor):
         session.notify_context_changed(
             ContextChangedEvent(
                 change_type=ContextChangeType.EDITOR_FOCUSED,
-                source_editor="lazy_file_browser",
                 reveal_editor=GraphEditor.class_identity.registry_key,
                 reveal_payload=entry.entry_id,
                 reveal_label=entry.display_name,
@@ -330,7 +329,6 @@ class LazyFileBrowserEditor(BaseEditor):
         session.notify_context_changed(
             ContextChangedEvent(
                 change_type=ContextChangeType.FILE_SELECTED,
-                source_editor="lazy_file_browser",
                 detail=path,
                 reveal_editor=CodeEditor.class_identity.registry_key,
                 reveal_payload=str(path),
@@ -347,7 +345,6 @@ class LazyFileBrowserEditor(BaseEditor):
         session.notify_context_changed(
             ContextChangedEvent(
                 change_type=ContextChangeType.FILE_SELECTED,
-                source_editor="lazy_file_browser",
                 detail=path,
                 reveal_editor=FileViewerEditor.class_identity.registry_key,
                 reveal_payload=str(path),

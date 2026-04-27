@@ -110,7 +110,6 @@ class AppShell:
             self.session.notify_context_changed(
                 ContextChangedEvent(
                     change_type=ContextChangeType.WORKBENCH_THEME_CHANGED,
-                    source_editor="app_shell",
                 )
             )
         except Exception as e:

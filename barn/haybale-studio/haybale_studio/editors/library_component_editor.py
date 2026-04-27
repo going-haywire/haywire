@@ -305,7 +305,6 @@ class LibraryComponentEditor(BaseEditor):
             session.notify_context_changed(
                 ContextChangedEvent(
                     change_type=ContextChangeType.ACTIVE_COMPONENT_CHANGED,
-                    source_editor="component_detail",
                 )
             )
 

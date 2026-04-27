@@ -352,7 +352,6 @@ class HaystackEditor(BaseEditor):
             session.notify_context_changed(
                 ContextChangedEvent(
                     change_type=ContextChangeType.GRAPH_REMOVED,
-                    source_editor="haystack",
                     detail=removed_id,
                 )
             )
@@ -365,7 +364,6 @@ class HaystackEditor(BaseEditor):
                 session.notify_context_changed(
                     ContextChangedEvent(
                         change_type=ContextChangeType.ACTIVE_GRAPH_CHANGED,
-                        source_editor="haystack",
                     )
                 )
 
@@ -481,7 +479,6 @@ class HaystackEditor(BaseEditor):
                             session.notify_context_changed(
                                 ContextChangedEvent(
                                     change_type=ContextChangeType.ACTIVE_GRAPH_CHANGED,
-                                    source_editor="haystack",
                                     detail=entry,
                                 )
                             )
@@ -585,7 +582,6 @@ class HaystackEditor(BaseEditor):
                             session.notify_context_changed(
                                 ContextChangedEvent(
                                     change_type=ContextChangeType.ACTIVE_GRAPH_CHANGED,
-                                    source_editor="haystack",
                                     detail=entry,
                                 )
                             )
@@ -618,7 +614,6 @@ class HaystackEditor(BaseEditor):
         session.notify_context_changed(
             ContextChangedEvent(
                 change_type=ContextChangeType.EDITOR_FOCUSED,
-                source_editor="haystack",
                 reveal_editor=_GRAPH_EDITOR_KEY,
                 reveal_payload=entry.entry_id,
                 reveal_label=entry.display_name,
@@ -633,7 +628,6 @@ class HaystackEditor(BaseEditor):
         session.notify_context_changed(
             ContextChangedEvent(
                 change_type=ContextChangeType.EDITOR_FOCUSED,
-                source_editor="haystack",
                 reveal_editor=_GRAPH_EDITOR_KEY,
                 reveal_payload=entry.entry_id,
                 reveal_label=entry.display_name,
@@ -760,7 +754,6 @@ class HaystackEditor(BaseEditor):
                     session.notify_context_changed(
                         ContextChangedEvent(
                             change_type=ContextChangeType.EDITOR_FOCUSED,
-                            source_editor="haystack",
                             reveal_editor=_GRAPH_EDITOR_KEY,
                             reveal_payload=active_entry.entry_id,
                             reveal_label=active_entry.display_name,
@@ -842,7 +835,6 @@ class HaystackEditor(BaseEditor):
                 session.notify_context_changed(
                     ContextChangedEvent(
                         change_type=ContextChangeType.EDITOR_FOCUSED,
-                        source_editor="haystack",
                         reveal_editor=_GRAPH_EDITOR_KEY,
                         reveal_payload=entry.entry_id,
                         reveal_label=entry.display_name,
@@ -934,7 +926,6 @@ class HaystackEditor(BaseEditor):
             session.notify_cross_session_context_change(
                 ContextChangedEvent(
                     change_type=ContextChangeType.DATA_MUTATED,
-                    source_editor="haystack",
                 )
             )
 

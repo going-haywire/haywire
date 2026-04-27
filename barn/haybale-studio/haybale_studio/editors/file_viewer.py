@@ -96,7 +96,6 @@ class FileViewerEditor(BaseEditor):
             session.notify_context_changed(
                 ContextChangedEvent(
                     change_type=ContextChangeType.FILE_SELECTED,
-                    source_editor="file_viewer",
                     detail=new_value,
                 )
             )

@@ -243,6 +243,5 @@ class LibraryBrowserEditor(BaseEditor):
                 ContextChangedEvent(
                     reveal_editor=LibraryOverviewEditor.class_identity.registry_key,
                     change_type=ContextChangeType.LIBRARY_STATE_CHANGED,
-                    source_editor="library_browser",
                 )
             )

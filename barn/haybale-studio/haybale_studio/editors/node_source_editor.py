@@ -379,7 +379,6 @@ class NodeSourceEditor(BaseEditor):
         session.notify_context_changed(
             ContextChangedEvent(
                 change_type=ContextChangeType.FILE_SELECTED,
-                source_editor="node_source_editor",
                 detail=self._path,
                 reveal_editor=CodeEditor.class_identity.registry_key,
                 reveal_payload=str(self._path),

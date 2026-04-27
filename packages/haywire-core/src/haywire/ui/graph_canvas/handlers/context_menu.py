@@ -7,9 +7,9 @@ calls.  The provider decides how to surface the menu.
 Design:
 - IContextMenuProvider defines *intent* methods, not imperative "show" calls.
 - SessionContextMenuProvider is the panel-driven implementation: it updates
-  SessionContext, fires CONTEXT_MENU_OPENED, queries PanelRegistry for
-  registered panels (editor='context_menu', scope=trigger), and draws
-  those that pass poll() into a Popup.
+  SessionContext, queries PanelRegistry for registered panels
+  (editor='context_menu', scope=trigger), and draws those that pass poll()
+  into a Popup.
 - ContextMenuHandlers accepts any IContextMenuProvider and never imports
   concrete implementations directly.
 """
@@ -27,7 +27,6 @@ from ..event_definitions import (
     SyncEdgeConnectResumeEvent,
 )
 from ..event_handlers import handles_event
-from haywire.ui.context_events import ContextChangeType, ContextChangedEvent
 from haywire.ui.panel.base import PanelLayout
 from haywire.ui.components.popup import Popup
 
@@ -130,12 +129,11 @@ class SessionContextMenuProvider(IContextMenuProvider):
 
     On each intent call this provider:
     1. Updates SessionContext (active_node/edge, context_menu_trigger).
-    2. Fires CONTEXT_MENU_OPENED via session.notify_context_changed.
-    3. Queries PanelRegistry for panels with editor=EDITOR_CONTEXT_MENU and the
-       matching scope, filters by poll(), and draws matching panels into a
-       Popup produced by popup_factory.
-    4. Registers a close callback that clears context_menu_trigger and fires
-       CONTEXT_MENU_CLOSED.
+    2. Queries PanelRegistry for panels with editor=EDITOR_CONTEXT_MENU and
+       the matching scope, filters by poll(), and draws matching panels into
+       a Popup produced by popup_factory.
+    3. Registers a close callback that clears context_menu_trigger and
+       drains popup-internal metadata keys.
     """
 
     def __init__(
@@ -157,12 +155,8 @@ class SessionContextMenuProvider(IContextMenuProvider):
         trigger: str,
         pos: Tuple[float, float],
     ) -> None:
-        """Common logic: set trigger, fire OPENED, build popup, draw panels, register close."""
+        """Common logic: set trigger, build popup, draw panels, register close."""
         self._context.context_menu_trigger = trigger
-
-        self._session.notify_context_changed(
-            ContextChangedEvent(change_type=ContextChangeType.CONTEXT_MENU_OPENED)
-        )
 
         popup = Popup(position_x=pos[0], position_y=pos[1], backdrop_click_close=True)
 
@@ -186,9 +180,6 @@ class SessionContextMenuProvider(IContextMenuProvider):
             # If pending_connection is still set, no node was created — resume the drag.
             if self._context.metadata.pop("pending_connection", None) is not None:
                 self._on_emit_sync_event(SyncEdgeConnectResumeEvent())
-            self._session.notify_context_changed(
-                ContextChangedEvent(change_type=ContextChangeType.CONTEXT_MENU_CLOSED)
-            )
 
         popup.on_close(_on_close)
 

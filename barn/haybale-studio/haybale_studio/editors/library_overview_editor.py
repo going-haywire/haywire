@@ -602,7 +602,6 @@ class LibraryOverviewEditor(BaseEditor):
             session.notify_context_changed(
                 ContextChangedEvent(
                     change_type=ContextChangeType.ACTIVE_COMPONENT_CHANGED,
-                    source_editor="library_detail",
                     reveal_editor=LibraryComponentEditor.class_identity.registry_key,
                 )
             )
@@ -646,7 +645,6 @@ class LibraryOverviewEditor(BaseEditor):
             session.notify_context_changed(
                 ContextChangedEvent(
                     change_type=ContextChangeType.LIBRARY_STATE_CHANGED,
-                    source_editor="library_detail",
                 )
             )
 

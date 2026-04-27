@@ -51,7 +51,6 @@ class GraphEditor(BaseEditor):
     Context changes emitted:
         ACTIVE_GRAPH_CHANGED — on tab focus, via on_focus().
         SELECTION_CHANGED    — node / edge selection.
-        MODE_CHANGED         — interaction mode.
         DATA_MUTATED         — graph structure changes.
 
     The 'project_state' entry in context.metadata is set by haywire-app and
@@ -131,7 +130,6 @@ class GraphEditor(BaseEditor):
             session.notify_context_changed(
                 ContextChangedEvent(
                     change_type=ContextChangeType.ACTIVE_GRAPH_CHANGED,
-                    source_editor="graph_editor",
                     detail=entry,
                 )
             )
@@ -307,7 +305,6 @@ class GraphEditor(BaseEditor):
             session.notify_cross_session_context_change(
                 ContextChangedEvent(
                     change_type=ContextChangeType.DATA_MUTATED,
-                    source_editor="graph_editor",
                 )
             )
 
@@ -322,7 +319,6 @@ class GraphEditor(BaseEditor):
             session.notify_cross_session_context_change(
                 ContextChangedEvent(
                     change_type=ContextChangeType.DATA_MUTATED,
-                    source_editor="graph_editor",
                 )
             )
 
@@ -361,7 +357,6 @@ class GraphEditor(BaseEditor):
                     session.notify_cross_session_context_change(
                         ContextChangedEvent(
                             change_type=ContextChangeType.DATA_MUTATED,
-                            source_editor="graph_editor",
                         )
                     )
             else:
@@ -497,7 +492,6 @@ class GraphEditor(BaseEditor):
                 session.notify_context_changed(
                     ContextChangedEvent(
                         change_type=ContextChangeType.ACTIVE_GRAPH_CHANGED,
-                        source_editor="graph_editor",
                         detail=entry,
                     )
                 )
@@ -506,7 +500,6 @@ class GraphEditor(BaseEditor):
                 session.notify_cross_session_context_change(
                     ContextChangedEvent(
                         change_type=ContextChangeType.DATA_MUTATED,
-                        source_editor="graph_editor",
                     )
                 )
             ui.notify(f"Saved: {save_path.name}", type="positive", position="top-right")

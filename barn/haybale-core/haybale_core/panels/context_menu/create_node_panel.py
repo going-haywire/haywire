@@ -64,7 +64,6 @@ class CreateNodePanel(BasePanel):
                 context.session.notify_context_changed(
                     ContextChangedEvent(
                         change_type=ContextChangeType.ACTIVE_COMPONENT_CHANGED,
-                        source_editor="library_detail",
                         reveal_editor=LibraryComponentEditor.class_identity.registry_key,
                     )
                 )

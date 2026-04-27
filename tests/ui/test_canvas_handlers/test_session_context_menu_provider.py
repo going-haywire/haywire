@@ -3,16 +3,14 @@ Tests for SessionContextMenuProvider.
 
 Verifies that the provider:
 - Updates SessionContext.context_menu_trigger before drawing panels
-- Fires CONTEXT_MENU_OPENED via session.notify_context_changed
 - Calls poll() on registered panels and draws only those returning True
-- Fires CONTEXT_MENU_CLOSED when the popup close callback is invoked
-- Clears context_menu_trigger on close
+- Clears context_menu_trigger and drains popup metadata when the popup
+  close callback is invoked
 """
 
 from unittest.mock import MagicMock, patch
 
 from haywire.ui.context import SessionContext
-from haywire.ui.context_events import ContextChangeType
 from haywire.ui.panel.base import BasePanel
 from haywire.ui.panel.decorator import panel
 from haywire.ui.panel.registry import PanelRegistry
@@ -101,24 +99,6 @@ def test_on_selection_context_sets_trigger_to_selection():
 
 
 # ---------------------------------------------------------------------------
-# CONTEXT_MENU_OPENED event
-# ---------------------------------------------------------------------------
-
-
-def test_on_node_context_fires_context_menu_opened():
-    session = MagicMock()
-    ctx = make_context(session=session)
-    registry = PanelRegistry()
-    provider, _, _ = make_provider(ctx, registry)
-
-    provider.on_node_context((10, 20), "node-1")
-
-    session.notify_context_changed.assert_called_once()
-    event = session.notify_context_changed.call_args[0][0]
-    assert event.change_type == ContextChangeType.CONTEXT_MENU_OPENED
-
-
-# ---------------------------------------------------------------------------
 # Panel poll / draw
 # ---------------------------------------------------------------------------
 
@@ -194,7 +174,7 @@ def test_panels_for_wrong_scope_are_not_drawn():
 
 
 # ---------------------------------------------------------------------------
-# CONTEXT_MENU_CLOSED + trigger cleared
+# Close callback: trigger cleared + metadata drained
 # ---------------------------------------------------------------------------
 
 
@@ -212,23 +192,6 @@ def test_close_callback_clears_context_menu_trigger():
     close_cb()
 
     assert ctx.context_menu_trigger is None
-
-
-def test_close_callback_fires_context_menu_closed():
-    session = MagicMock()
-    ctx = make_context(session=session)
-    registry = PanelRegistry()
-    provider, popup, _ = make_provider(ctx, registry)
-
-    provider.on_node_context((10, 20), "node-1")
-    session.notify_context_changed.reset_mock()
-
-    close_cb = popup.on_close.call_args[0][0]
-    close_cb()
-
-    session.notify_context_changed.assert_called_once()
-    event = session.notify_context_changed.call_args[0][0]
-    assert event.change_type == ContextChangeType.CONTEXT_MENU_CLOSED
 
 
 def test_on_emit_event_is_set_on_context_metadata_before_panels_draw():

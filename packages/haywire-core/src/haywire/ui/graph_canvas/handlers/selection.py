@@ -76,7 +76,6 @@ class SelectionHandlers:
         self._session.notify_context_changed(
             ContextChangedEvent(
                 change_type=ContextChangeType.SELECTION_CHANGED,
-                source_editor="graph_editor",
             )
         )
 
