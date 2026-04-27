@@ -16,6 +16,11 @@ class LibraryIdentity:
     id: str = None
     # List of referenced haywire libraries.
     # For hot reloading to work, the dependencies must be specified.
+    # This includes any library whose ``ContextSignal`` subclasses this
+    # library subscribes to in editor poll() methods — without the
+    # dependency, hot-reload of the signal-declaring library can leave
+    # the subscriber holding a stale class reference, causing
+    # ``isinstance`` checks to spuriously return False.
     dependencies: list[str] = None
     tags: list[str] = None  # Searchable tags for marketplace/discovery
     file_watcher: bool = False  # Whether to watch for file changes

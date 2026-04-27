@@ -1,41 +1,40 @@
-"""Tests for SessionManager broadcast and session injection."""
+"""Tests for SessionManager session lifecycle.
+
+Cross-session broadcast (``broadcast_signal``) is covered by
+``tests/ui/test_context_signals.py``.
+"""
 
 from unittest.mock import MagicMock
 
 import haywire.core.graph.editor  # noqa: F401 — circular-import guard
 
-from haywire.ui.context_events import ContextChangedEvent, ContextChangeType
 from haywire.ui.session_manager import SessionManager
 
 
-def test_broadcast_fans_event_to_every_session():
-    """broadcast() calls notify_context_changed on every registered session."""
+def test_session_manager_starts_empty():
     manager = SessionManager()
-    s1 = MagicMock()
-    s1.session_id = "s1"
-    s2 = MagicMock()
-    s2.session_id = "s2"
-    manager._sessions = {"s1": s1, "s2": s2}
-
-    event = ContextChangedEvent(change_type=ContextChangeType.DATA_MUTATED)
-    manager.broadcast(event)
-
-    s1.notify_context_changed.assert_called_once_with(event)
-    s2.notify_context_changed.assert_called_once_with(event)
+    assert manager.session_count == 0
 
 
-def test_broadcast_swallows_session_errors_and_continues():
-    """If one session raises, broadcast still reaches the others."""
+def test_create_session_registers_session():
     manager = SessionManager()
-    good = MagicMock()
-    good.session_id = "good"
-    bad = MagicMock()
-    bad.session_id = "bad"
-    bad.notify_context_changed.side_effect = RuntimeError("boom")
-    manager._sessions = {"bad": bad, "good": good}
+    session = manager.create_session(
+        project_state=MagicMock(),
+        workspace_manager=MagicMock(),
+    )
+    assert manager.get_session(session.session_id) is session
+    assert manager.session_count == 1
 
-    event = ContextChangedEvent(change_type=ContextChangeType.DATA_MUTATED)
-    manager.broadcast(event)  # must not raise
 
-    bad.notify_context_changed.assert_called_once_with(event)
-    good.notify_context_changed.assert_called_once_with(event)
+def test_remove_session_calls_cleanup_and_drops_it():
+    manager = SessionManager()
+    session = manager.create_session(
+        project_state=MagicMock(),
+        workspace_manager=MagicMock(),
+    )
+    sid = session.session_id
+
+    manager.remove_session(sid)
+
+    assert manager.get_session(sid) is None
+    assert manager.session_count == 0

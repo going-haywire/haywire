@@ -1,12 +1,12 @@
 """Tests for AppShell — post-refactor surface area.
 
-After the slot-hierarchy refactor, AppShell only owns:
+After the bus split (signal/reveal channels), AppShell owns:
   - Theme CSS build + `apply_workbench_theme`
-  - Orchestrator callback (`_on_context_changed`) routing events to slots
-  - Reveal dispatch (`_reveal_editor`) resolving editor → slot
+  - Signal-channel orchestrator callback (`_on_signal`) fanning signals to slots
+  - Reveal-channel orchestrator callback (`_on_reveal`) → ``_reveal_editor``
   - Slot construction via `_build_managed_slot`
   - `_on_slot_resize` dispatching to `slot.set_size`
-  - Tab-close/repayload/graph-removed event → TabSlot method dispatch
+  - Tab-close/repayload/graph-removed signal → TabSlot method dispatch
 
 Bar rendering, tab-state mutations, visibility toggling, and hot-reload are
 tested in test_icon_slot.py / test_tab_slot.py / test_slot.py.
@@ -17,7 +17,7 @@ from types import SimpleNamespace
 
 import haywire.core.graph.editor as graph_editor_module
 from haywire.ui.app.shell import AppShell
-from haywire.ui.context_events import ContextChangedEvent, ContextChangeType
+from haywire.ui.context_signals import GraphRemoved, RevealRequest
 from haywire.ui.editor.identity import OpenBehavior
 
 
@@ -32,13 +32,16 @@ class _FakeSession:
             }
         )
         self._editors = {}
-        self.notified_events = []
+        self.signals_seen: list = []
 
-    def set_orchestrator(self, _callback) -> None:
+    def set_signal_orchestrator(self, _callback) -> None:
         pass
 
-    def notify_context_changed(self, event) -> None:
-        self.notified_events.append(event)
+    def set_reveal_orchestrator(self, _callback) -> None:
+        pass
+
+    def signal(self, s) -> None:
+        self.signals_seen.append(s)
 
 
 class _FakeSlot:
@@ -69,7 +72,7 @@ class _FakeSlot:
     def set_size(self, size_px: int) -> None:
         self.size_calls.append(size_px)
 
-    def handle_context_event(self, event) -> None:
+    def handle_signal(self, signal) -> None:
         pass
 
     def find_binding(self, editor_key, payload=None):
@@ -162,7 +165,7 @@ def test_on_slot_resize_ignores_malformed_args() -> None:
 
 
 # ---------------------------------------------------------------------------
-# _on_context_changed — reveal + event dispatch
+# _on_reveal — reveal dispatch
 # ---------------------------------------------------------------------------
 
 
@@ -174,31 +177,25 @@ def test_reveal_editor_routes_through_icon_slot() -> None:
     fake = _FakeSlot("right", active_key="right:editor:one")
     shell._managed_slots["right"] = fake
 
-    event = ContextChangedEvent(
-        change_type=ContextChangeType.ACTIVE_COMPONENT_CHANGED,
-        reveal_editor=target_key,
-    )
-    shell._on_context_changed(event)
+    shell._on_reveal(RevealRequest(editor=cls))
 
     assert fake.switch_calls == [(target_key, None)]
-    assert shell.session.notified_events == []  # reveal must not broadcast
+    assert shell.session.signals_seen == []  # reveal must not broadcast a signal
 
 
 def test_reveal_editor_unknown_logs_warning(caplog) -> None:
-    registry = _FakeEditorRegistry({})
+    nonexistent_key = "nonexistent:editor:zzz"
+    cls = _make_editor_cls(nonexistent_key, "right", OpenBehavior.REQUIRED)
+    registry = _FakeEditorRegistry({})  # cls intentionally NOT registered
     shell = AppShell(session=_FakeSession(), editor_registry=registry)
     fake = _FakeSlot("right", active_key="right:editor:one")
     shell._managed_slots["right"] = fake
 
-    event = ContextChangedEvent(
-        change_type=ContextChangeType.ACTIVE_COMPONENT_CHANGED,
-        reveal_editor="nonexistent:editor:zzz",
-    )
     with caplog.at_level(logging.WARNING, logger="haywire.ui.app.shell"):
-        shell._on_context_changed(event)
+        shell._on_reveal(RevealRequest(editor=cls))
 
     assert fake.switch_calls == []
-    assert any("nonexistent:editor:zzz" in rec.message for rec in caplog.records)
+    assert any(nonexistent_key in rec.message for rec in caplog.records)
 
 
 def test_reveal_editor_on_payload_without_payload_logs_and_skips(caplog) -> None:
@@ -280,9 +277,7 @@ def test_handle_graph_removed_closes_matching_tabs_in_every_tab_slot() -> None:
     shell._managed_slots["main"] = main
     shell._managed_slots["bottom"] = bottom
 
-    shell._handle_graph_removed(
-        ContextChangedEvent(change_type=ContextChangeType.GRAPH_REMOVED, detail="/tmp/a.graph")
-    )
+    shell._handle_graph_removed(GraphRemoved(entry_id="/tmp/a.graph"))
     assert main.close_tabs_for_payload_calls == ["/tmp/a.graph"]
     assert bottom.close_tabs_for_payload_calls == ["/tmp/a.graph"]
 

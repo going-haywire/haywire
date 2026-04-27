@@ -18,7 +18,7 @@ from ..event_definitions import (
 )
 from ..event_handlers import handles_event
 from haywire.core.undo.actions.graph_actions import ClipboardData
-from haywire.ui.context_events import ContextChangeType, ContextChangedEvent
+from haywire.ui.context_signals import SelectionMoved
 
 if TYPE_CHECKING:
     from haywire.core.graph.editor import Editor
@@ -73,11 +73,7 @@ class SelectionHandlers:
             self.graph.get_edge_wrapper(next(iter(self.selected_edges))) if self.selected_edges else None
         )
 
-        self._session.notify_context_changed(
-            ContextChangedEvent(
-                change_type=ContextChangeType.SELECTION_CHANGED,
-            )
-        )
+        self._session.signal(SelectionMoved())
 
     @handles_event(UserCopySelectedEvent)
     def process_copy_selection(self, event: UserCopySelectedEvent):

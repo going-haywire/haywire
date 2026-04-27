@@ -3,7 +3,7 @@
 from types import SimpleNamespace
 
 from haywire.ui.app.tab_slot import TabSlot
-from haywire.ui.context_events import ContextChangedEvent, ContextChangeType
+from haywire.ui.context_signals import SelectionMoved
 from haywire.ui.editor.wrapper import EditorWrapper
 
 
@@ -399,11 +399,11 @@ def test_set_visible_syncs_content_container() -> None:
 
 
 # ----------------------------------------------------------------------
-# handle_context_event
+# handle_signal
 # ----------------------------------------------------------------------
 
 
-def test_handle_context_event_redraws_active_panel_when_poll_true(monkeypatch) -> None:
+def test_handle_signal_redraws_active_panel_when_poll_true(monkeypatch) -> None:
     slot = _make_slot("a:e:1")
     _, panel_created = _install_fake_tab_panels(monkeypatch)
     slot._render_area_contents(_FakeContainer())
@@ -415,7 +415,7 @@ def test_handle_context_event_redraws_active_panel_when_poll_true(monkeypatch) -
     panel.clear_calls = 0  # reset clear count after initial render
     instance.poll_returns = True
 
-    slot.handle_context_event(ContextChangedEvent(change_type=ContextChangeType.WORKSPACE_CHANGED))
+    slot.handle_signal(SelectionMoved())
 
     # Only the active binding's panel is cleared + redrawn.
     assert len(instance.poll_calls) == 1
@@ -423,7 +423,7 @@ def test_handle_context_event_redraws_active_panel_when_poll_true(monkeypatch) -
     assert len(instance.draw_calls) == 1
 
 
-def test_handle_context_event_skips_when_poll_false(monkeypatch) -> None:
+def test_handle_signal_skips_when_poll_false(monkeypatch) -> None:
     slot = _make_slot("a:e:1")
     _, panel_created = _install_fake_tab_panels(monkeypatch)
     slot._render_area_contents(_FakeContainer())
@@ -435,14 +435,14 @@ def test_handle_context_event_skips_when_poll_false(monkeypatch) -> None:
     panel.clear_calls = 0  # reset clear count after initial render
     instance.poll_returns = False
 
-    slot.handle_context_event(ContextChangedEvent(change_type=ContextChangeType.WORKSPACE_CHANGED))
+    slot.handle_signal(SelectionMoved())
 
     assert len(instance.poll_calls) == 1
     assert panel.clear_calls == 0
     assert len(instance.draw_calls) == 0
 
 
-def test_handle_context_event_is_noop_when_instance_not_yet_created(monkeypatch) -> None:
+def test_handle_signal_is_noop_when_instance_not_yet_created(monkeypatch) -> None:
     """An inactive, never-drawn binding has no instance to poll."""
     reg = _FakeRegistry()
     sess = _session_with_context()
@@ -455,10 +455,10 @@ def test_handle_context_event_is_noop_when_instance_not_yet_created(monkeypatch)
     _install_fake_tab_panels(monkeypatch)
     slot._render_area_contents(_FakeContainer())
 
-    # Active binding got its initial draw; swap to a non-existent active so
-    # handle_context_event sees None as the active instance.
+    # Active binding got its initial draw; swap to None so
+    # handle_signal sees no active instance.
     slot._active = None
-    slot.handle_context_event(ContextChangedEvent(change_type=ContextChangeType.WORKSPACE_CHANGED))
+    slot.handle_signal(SelectionMoved())
     assert w2.instance is None
 
 
@@ -715,7 +715,7 @@ def _make_tab_slot2(registry=None, visible=True, size=200):
     from haywire.ui.app.tab_slot import TabSlot
 
     return TabSlot(
-        session=_SN(context=None, notify_context_changed=lambda _e: None),
+        session=_SN(context=None),
         name="main",
         registry=registry or _FakeRegistry2({}),
         bar_place="top",
@@ -782,7 +782,7 @@ class TestSlotPopulateFromSnapshot:
 
         cls = _FakeEditorCls2("ed:required", OpenBehavior.REQUIRED, slot="main")
         registry = _FakeRegistry2({"ed:required": cls})
-        session = _SN(context=None, notify_context_changed=lambda _e: None)
+        session = _SN(context=None)
         slot = TabSlot(
             session=session,
             name="main",
@@ -798,7 +798,7 @@ class TestSlotPopulateFromSnapshot:
 
         cls = _FakeEditorCls2("ed:graph", OpenBehavior.ON_PAYLOAD, slot="main")
         registry = _FakeRegistry2({"ed:graph": cls})
-        session = _SN(context=None, notify_context_changed=lambda _e: None)
+        session = _SN(context=None)
         data = {
             "active_key": "ed:graph::/a.haywire",
             "editors": [{"key": "ed:graph", "payload": "/a.haywire", "label": "a.haywire"}],
@@ -815,7 +815,7 @@ class TestSlotPopulateFromSnapshot:
 
     def test_unknown_editor_key_skipped(self):
         registry = _FakeRegistry2({})
-        session = _SN(context=None, notify_context_changed=lambda _e: None)
+        session = _SN(context=None)
         data = {"editors": [{"key": "ed:gone", "payload": "/x.haywire", "label": "x"}]}
         slot = TabSlot(
             session=session,
@@ -829,7 +829,7 @@ class TestSlotPopulateFromSnapshot:
 
     def test_visible_and_size_restored(self):
         registry = _FakeRegistry2({})
-        session = _SN(context=None, notify_context_changed=lambda _e: None)
+        session = _SN(context=None)
         slot = TabSlot(
             session=session,
             name="bottom",

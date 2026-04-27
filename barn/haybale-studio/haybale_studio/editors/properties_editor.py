@@ -25,13 +25,17 @@ from nicegui import ui
 from haywire.ui import elements as hui
 from haywire.ui.editor.decorator import editor
 from haywire.ui.editor.base import BaseEditor
-from haywire.ui.context_events import ContextChangeType
+from haywire.ui.context_signals import (
+    ActiveGraphMoved,
+    GraphDataMutated,
+    SelectionMoved,
+)
 from haywire.ui.panel.base import PanelLayout
 from haywire.ui.panel.registry import PanelRegistry
 
 if TYPE_CHECKING:
     from haywire.ui.context import SessionContext
-    from haywire.ui.context_events import ContextChangedEvent
+    from haywire.ui.context_signals import ContextSignal
     from nicegui.element import Element
 
 logger = logging.getLogger(__name__)
@@ -68,16 +72,10 @@ class PropertiesEditor(BaseEditor):
     # BaseEditor interface (poll/draw)
     # ------------------------------------------------------------------
 
-    _RELEVANT_EVENTS = frozenset(
-        {
-            ContextChangeType.SELECTION_CHANGED,
-            ContextChangeType.ACTIVE_GRAPH_CHANGED,
-            ContextChangeType.DATA_MUTATED,
-        }
-    )
+    _RELEVANT_SIGNALS = (SelectionMoved, ActiveGraphMoved, GraphDataMutated)
 
-    def poll(self, context: "SessionContext", event: "ContextChangedEvent") -> bool:
-        return event.change_type in self._RELEVANT_EVENTS
+    def poll(self, context: "SessionContext", signal: "ContextSignal") -> bool:
+        return isinstance(signal, self._RELEVANT_SIGNALS)
 
     def draw(self, context: "SessionContext", container: "Element") -> None:
         self._container = container

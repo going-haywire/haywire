@@ -22,7 +22,12 @@ from typing import Literal, Optional, TYPE_CHECKING
 from nicegui import ui
 
 from haywire.ui import elements as hui
-from haywire.ui.context_events import ContextChangedEvent, ContextChangeType
+from haywire.ui.context_signals import (
+    ContextSignal,
+    GraphRemoved,
+    RevealRequest,
+    ThemeMoved,
+)
 from haywire.ui.app.slot import Slot
 
 logger = logging.getLogger(__name__)
@@ -107,11 +112,7 @@ class AppShell:
             for css_var, value in theme.to_css_vars().items():
                 safe_value = value.replace("'", "\\'")
                 ui.run_javascript(f"document.documentElement.style.setProperty('{css_var}', '{safe_value}')")
-            self.session.notify_context_changed(
-                ContextChangedEvent(
-                    change_type=ContextChangeType.WORKBENCH_THEME_CHANGED,
-                )
-            )
+            self.session.signal(ThemeMoved())
         except Exception as e:
             logging.getLogger(__name__).error(f"Failed to apply workbench theme '{registry_key}': {e}")
 
@@ -279,8 +280,9 @@ class AppShell:
         settings_registry = self.session.context.app.library_service.get_settings_registry()
         settings_registry.subscribe(None, self._on_setting_changed)
 
-        # Register as the single orchestrator for context-change → poll/draw.
-        self.session.set_orchestrator(self._on_context_changed)
+        # Two-channel orchestrator wiring (signal + reveal).
+        self.session.set_signal_orchestrator(self._on_signal)
+        self.session.set_reveal_orchestrator(self._on_reveal)
 
         # Drag-resize handlers for left/middle/right/bottom panels. These use JavaScript
         # to set inline styles on the fly for immediate response and to avoid conflicts
@@ -583,28 +585,36 @@ class AppShell:
             if hasattr(slot, "_refresh_bar"):
                 slot._refresh_bar()
 
-    def _on_context_changed(self, event: ContextChangedEvent) -> None:
-        """Orchestrator callback: run the poll/draw cycle on every managed slot."""
-        if event.change_type == ContextChangeType.GRAPH_REMOVED:
-            self._handle_graph_removed(event)
+    def _on_signal(self, signal: ContextSignal) -> None:
+        """Signal-channel orchestrator callback.
 
-        if event.reveal_editor is not None:
-            self._reveal_editor(event.reveal_editor, event.reveal_payload, event.reveal_label)
+        Runs the GraphRemoved tab-close side-effect (if applicable), then
+        fans the signal out to every managed slot's poll/draw gate.
+        """
+        if isinstance(signal, GraphRemoved):
+            self._handle_graph_removed(signal)
 
         for slot in self._managed_slots.values():
-            slot.handle_context_event(event)
+            slot.handle_signal(signal)
 
-    def _handle_graph_removed(self, event: ContextChangedEvent) -> None:
+    def _on_reveal(self, request: RevealRequest) -> None:
+        """Reveal-channel orchestrator callback.
+
+        Resolves the request's editor class to its registry key and
+        delegates to ``_reveal_editor``.
+        """
+        editor_key = request.editor.class_identity.registry_key
+        self._reveal_editor(editor_key, request.payload, request.label)
+
+    def _handle_graph_removed(self, signal: GraphRemoved) -> None:
         """Close every tab bound to the removed graph entry."""
         from haywire.ui.app.tab_slot import TabSlot
 
-        detail = event.detail
-        payload = detail if isinstance(detail, str) else (detail or {}).get("payload")
-        if not payload:
+        if not signal.entry_id:
             return
         for slot in self._managed_slots.values():
             if isinstance(slot, TabSlot):
-                slot.close_tabs_for_payload(payload)
+                slot.close_tabs_for_payload(signal.entry_id)
 
     def _on_slot_resize(self, event) -> None:
         """Dispatch ``hw-slot-resize`` events from the drag JS to the target slot.

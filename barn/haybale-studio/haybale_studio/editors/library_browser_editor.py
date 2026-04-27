@@ -16,11 +16,15 @@ from nicegui import ui
 from haywire.ui import elements as hui
 from haywire.ui.editor.decorator import editor
 from haywire.ui.editor.base import BaseEditor
-from haywire.ui.context_events import ContextChangeType, ContextChangedEvent
+from haywire.ui.context_signals import (
+    ActiveLibraryMoved,
+    LibraryCatalogChanged,
+    RevealRequest,
+)
 
 if TYPE_CHECKING:
     from haywire.ui.context import SessionContext
-    from haywire.ui.context_events import ContextChangedEvent
+    from haywire.ui.context_signals import ContextSignal
     from nicegui.element import Element
 
 logger = logging.getLogger(__name__)
@@ -50,8 +54,10 @@ class LibraryBrowserEditor(BaseEditor):
         self._filter_disabled: bool = True
         self._filter_available: bool = True
 
-    def poll(self, context: "SessionContext", event: "ContextChangedEvent") -> bool:
-        return event.change_type == ContextChangeType.LIBRARY_STATE_CHANGED
+    def poll(self, context: "SessionContext", signal: "ContextSignal") -> bool:
+        # Today's LIBRARY_STATE_CHANGED filter widens to both replacement
+        # signal classes during migration (§11.2 editorial decision #6).
+        return isinstance(signal, (ActiveLibraryMoved, LibraryCatalogChanged))
 
     def draw(self, context: "SessionContext", container: "Element") -> None:
         self._container = container
@@ -239,9 +245,5 @@ class LibraryBrowserEditor(BaseEditor):
         if session is not None:
             from haybale_studio.editors.library_overview_editor import LibraryOverviewEditor
 
-            session.notify_context_changed(
-                ContextChangedEvent(
-                    reveal_editor=LibraryOverviewEditor.class_identity.registry_key,
-                    change_type=ContextChangeType.LIBRARY_STATE_CHANGED,
-                )
-            )
+            session.signal(ActiveLibraryMoved())
+            session.reveal(RevealRequest(editor=LibraryOverviewEditor))

@@ -18,11 +18,15 @@ from haywire.ui import elements as hui
 
 from haywire.ui.editor.decorator import editor
 from haywire.ui.editor.base import BaseEditor
-from haywire.ui.context_events import ContextChangeType, ContextChangedEvent
+from haywire.ui.context_signals import (
+    ActiveComponentMoved,
+    SelectionMoved,
+    ThemeMoved,
+)
 
 if TYPE_CHECKING:
     from haywire.ui.context import SessionContext
-    from haywire.ui.context_events import ContextChangedEvent
+    from haywire.ui.context_signals import ContextSignal
     from nicegui.element import Element
 
 
@@ -49,12 +53,8 @@ class LibraryComponentEditor(BaseEditor):
         self._container = None
         self._code_editor = None  # ui.codemirror reference for live theme updates
 
-    def poll(self, context: "SessionContext", event: "ContextChangedEvent") -> bool:
-        return event.change_type in (
-            ContextChangeType.ACTIVE_COMPONENT_CHANGED,
-            ContextChangeType.SELECTION_CHANGED,
-            ContextChangeType.WORKBENCH_THEME_CHANGED,
-        )
+    def poll(self, context: "SessionContext", signal: "ContextSignal") -> bool:
+        return isinstance(signal, (ActiveComponentMoved, SelectionMoved, ThemeMoved))
 
     def draw(self, context: "SessionContext", container: "Element") -> None:
         self._container = container
@@ -302,11 +302,7 @@ class LibraryComponentEditor(BaseEditor):
         context.active_component = None
         session = context.session
         if session is not None:
-            session.notify_context_changed(
-                ContextChangedEvent(
-                    change_type=ContextChangeType.ACTIVE_COMPONENT_CHANGED,
-                )
-            )
+            session.signal(ActiveComponentMoved())
 
     @staticmethod
     def _lookup_class(app, lib_id: str, comp_type: str, registry_key: str):

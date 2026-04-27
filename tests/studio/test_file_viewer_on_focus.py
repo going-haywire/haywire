@@ -5,17 +5,17 @@ from __future__ import annotations
 from pathlib import Path
 from types import SimpleNamespace
 
-from haywire.ui.context_events import ContextChangeType
+from haywire.ui.context_signals import ActiveFileMoved
 from haybale_studio.editors.file_viewer import FileViewerEditor
 
 
 class _FakeSession:
     def __init__(self) -> None:
-        self.notified_events: list = []
+        self.signals: list = []
         self.context = None
 
-    def notify_context_changed(self, event) -> None:
-        self.notified_events.append(event)
+    def signal(self, signal) -> None:
+        self.signals.append(signal)
 
 
 def _make_context(existing_active_file=None):
@@ -43,16 +43,14 @@ def test_on_focus_sets_active_file_from_payload() -> None:
     assert ctx.active_file == Path("/tmp/a.txt")
 
 
-def test_on_focus_fires_file_selected() -> None:
+def test_on_focus_fires_active_file_moved() -> None:
     ctx = _make_context()
     ed = _make_editor_with_payload("/tmp/a.txt")
 
     ed.on_focus(ctx)
 
-    assert len(ctx.session.notified_events) == 1
-    ev = ctx.session.notified_events[0]
-    assert ev.change_type == ContextChangeType.FILE_SELECTED
-    assert ev.detail == Path("/tmp/a.txt")
+    assert len(ctx.session.signals) == 1
+    assert isinstance(ctx.session.signals[0], ActiveFileMoved)
 
 
 def test_on_focus_short_circuits_when_file_unchanged() -> None:
@@ -61,7 +59,7 @@ def test_on_focus_short_circuits_when_file_unchanged() -> None:
 
     ed.on_focus(ctx)
 
-    assert ctx.session.notified_events == []
+    assert ctx.session.signals == []
 
 
 def test_on_focus_no_binding_is_noop() -> None:
@@ -71,4 +69,4 @@ def test_on_focus_no_binding_is_noop() -> None:
 
     ed.on_focus(ctx)
 
-    assert ctx.session.notified_events == []
+    assert ctx.session.signals == []

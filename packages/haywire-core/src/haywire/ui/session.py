@@ -8,7 +8,7 @@ import uuid
 import logging
 
 from .context import SessionContext
-from .context_events import ContextChangedEvent
+from .context_signals import ContextSignal, RevealRequest
 from .workspace.manager import WorkspaceManager
 
 logger = logging.getLogger(__name__)
@@ -31,13 +31,15 @@ class Session:
     The Session is the bridge between the shared server-side data model
     and the per-client NiceGUI UI tree.
 
-    Two context change flows:
-        Local (single session):
-            component → session.notify_context_changed(event) → orchestrator
-        Cross-session (all sessions including origin):
-            component → session.notify_cross_session_context_change(event)
-                      → SessionManager.broadcast(event)
-                      → every session.notify_context_changed(event) → orchestrator
+    Two channels flow through the AppShell:
+
+    - ``session.signal(s: ContextSignal)`` — observation, fans out to
+      local subscribers. If ``type(s).cross_session is True``, instead
+      delegates to ``SessionManager.broadcast_signal`` which dispatches
+      to every session (including this one) and stamps
+      ``subject = Subject.peer(origin_id)`` on non-origin sessions.
+    - ``session.reveal(r: RevealRequest)`` — command, point-to-point,
+      local-only.
     """
 
     def __init__(
@@ -50,7 +52,7 @@ class Session:
             project_state: The shared project state (graph data, settings, etc.).
             workspace_manager: Pre-configured WorkspaceManager for this session.
             session_manager: The SessionManager that owns this session, used for
-                cross-session event broadcasting.
+                cross-session signal broadcasting.
         """
         self.session_id = str(uuid.uuid4())
         self.project_state = project_state
@@ -63,8 +65,11 @@ class Session:
         # Active editor instances (keyed by area slot: 'left', 'middle', 'right', 'bottom')
         self._editors: Dict[str, "BaseEditor"] = {}
 
-        # Single orchestrator callback set by AppShell
-        self._orchestrator_callback: Optional[Callable[[ContextChangedEvent], None]] = None
+        # Two-callback wiring set by AppShell. Bound to
+        # AppShell._on_signal / _on_reveal.
+        self._signal_callback: Optional[Callable[[ContextSignal], None]] = None
+        self._reveal_callback: Optional[Callable[[RevealRequest], None]] = None
+
         self._shell: Optional["AppShell"] = None
 
         logger.info(f"Session created: {self.session_id}")
@@ -73,42 +78,75 @@ class Session:
         """Register the AppShell that owns this session's slots."""
         self._shell = shell
 
-    def set_orchestrator(self, callback: Callable[["ContextChangedEvent"], None]) -> None:
-        """Set the single orchestrator callback for context change notifications.
+    def set_signal_orchestrator(self, callback: Callable[[ContextSignal], None]) -> None:
+        """Register the AppShell._on_signal handler.
 
         Args:
-            callback: The orchestrator's context-change handler (signature: event -> None).
+            callback: The orchestrator's signal handler (signature: signal -> None).
         """
-        self._orchestrator_callback = callback
+        self._signal_callback = callback
 
-    def notify_context_changed(self, event: ContextChangedEvent) -> None:
-        """
-        Forward a context change to the orchestrator.
-
-        Called when selection changes, graph switches, mode changes, etc.
-        The orchestrator (AppShell) runs the poll/draw cycle.
+    def set_reveal_orchestrator(self, callback: Callable[[RevealRequest], None]) -> None:
+        """Register the AppShell._on_reveal handler.
 
         Args:
-            event: The ContextChangedEvent describing what changed.
+            callback: The orchestrator's reveal handler (signature: request -> None).
         """
-        if self._orchestrator_callback is not None:
+        self._reveal_callback = callback
+
+    def signal(self, signal: ContextSignal) -> None:
+        """Emit a context signal.
+
+        Routing depends on ``type(signal).cross_session``:
+
+        - ``False`` (local-only): synchronously calls the registered signal
+          callback with the signal.
+        - ``True`` (cross-session): delegates to
+          ``SessionManager.broadcast_signal``, which dispatches to *every*
+          session (including this one) and stamps
+          ``subject = Subject.peer(origin_id)`` on non-origin sessions.
+          Origin receives subject=SELF (the unmodified signal).
+
+        Either way the local callback is called exactly once.
+
+        Args:
+            signal: A ContextSignal instance describing what moved.
+        """
+        if type(signal).cross_session:
+            self._session_manager.broadcast_signal(signal, origin_session_id=self.session_id)
+            return
+
+        if self._signal_callback is not None:
             try:
-                self._orchestrator_callback(event)
+                self._signal_callback(signal)
             except Exception as e:
-                logger.error(f"Session {self.session_id}: orchestrator callback error: {e}")
+                logger.error(f"Session {self.session_id}: signal callback error: {e}")
 
-    def notify_cross_session_context_change(self, event: ContextChangedEvent) -> None:
-        """
-        Fan a context change out to every session (including self).
-
-        Used for events that peer sessions care about — graph data mutations,
-        haystack changes. Delegates to SessionManager.broadcast, which calls
-        notify_context_changed on every registered session.
+    def reveal(self, request: RevealRequest) -> None:
+        """Issue a reveal command (local-only).
 
         Args:
-            event: The ContextChangedEvent describing what changed.
+            request: A RevealRequest naming the editor to bring to the front.
         """
-        self._session_manager.broadcast(event)
+        if self._reveal_callback is not None:
+            try:
+                self._reveal_callback(request)
+            except Exception as e:
+                logger.error(f"Session {self.session_id}: reveal callback error: {e}")
+
+    def _dispatch_signal(self, signal: ContextSignal) -> None:
+        """Internal: deliver a signal originating elsewhere (e.g. a peer
+        broadcast) without re-triggering broadcast.
+
+        Called by ``SessionManager.broadcast_signal`` on each receiving
+        session. Bypasses the cross_session check on purpose — the broadcast
+        is already happening.
+        """
+        if self._signal_callback is not None:
+            try:
+                self._signal_callback(signal)
+            except Exception as e:
+                logger.error(f"Session {self.session_id}: dispatch_signal error: {e}")
 
     def cleanup(self) -> None:
         """Clean up all editor instances and managed slots.
@@ -121,5 +159,6 @@ class Session:
         for editor in self._editors.values():
             editor.cleanup()
         self._editors.clear()
-        self._orchestrator_callback = None
+        self._signal_callback = None
+        self._reveal_callback = None
         logger.info(f"Session cleaned up: {self.session_id}")

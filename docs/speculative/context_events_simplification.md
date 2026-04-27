@@ -174,54 +174,62 @@ structs on two channels would let `RevealRequest` lose its "what kind
 of change is this?" pretence — it has no change type, it's a command.
 And it would let `ContextSignal` shrink to its minimum.
 
-### 4.2 Re-cut the enum along a single axis: **what moved in `SessionContext`**
+### 4.2 Re-cut the vocabulary along a single axis: **what moved in `SessionContext`**
 
-If the only purpose of the enum is to let editors filter, name the
-values after the *field that moved*, not after the action that caused
-the move. That gives a developer a one-to-one mapping:
+The vocabulary should let editors filter on *the field that moved*,
+not on *the action that caused the move*. That gives a developer a
+one-to-one mapping between session-context state and the signals
+they subscribe to:
 
 | Editor field of interest | Subscribes to signal |
 | --- | --- |
-| `active_graph` / `active_graph_path` | `ACTIVE_GRAPH` |
-| `active_file` | `ACTIVE_FILE` |
-| `active_library` | `ACTIVE_LIBRARY` |
-| `active_component` | `ACTIVE_COMPONENT` |
-| `active_node` / `active_edge` / selection sets | `SELECTION` |
-| graph data (nodes, edges, props) | `GRAPH_DATA` |
-| theme tokens | `THEME` |
+| `active_graph` / `active_graph_path` | `ActiveGraphMoved` |
+| `active_file` | `ActiveFileMoved` |
+| `active_library` | `ActiveLibraryMoved` |
+| `active_component` | `ActiveComponentMoved` |
+| `active_node` / `active_edge` / selection sets | `SelectionMoved` |
+| graph data (nodes, edges, props) | `GraphDataMutated` |
+| installed library catalog | `LibraryCatalogChanged` |
+| theme tokens | `ThemeMoved` |
+| (entry removed) | `GraphRemoved` |
 
-Six signals. Naming them "what's authoritative now" rather than
-"what action just happened" makes them composable without overlap.
-You can subscribe to any subset and never wonder whether
-`LIBRARY_STATE_CHANGED` includes a selection click.
+Naming signals "what's authoritative now" rather than "what action
+just happened" makes them composable without overlap. You can
+subscribe to any subset and never wonder whether
+`LIBRARY_STATE_CHANGED` includes a selection click. The §7 design
+takes this one step further by making each signal a typed dataclass
+rather than an enum value, which is what unlocks the open
+vocabulary; the table above is the *core-declared* set (see §7.5,
+§11 for the per-enum-value derivation).
 
-`GRAPH_REMOVED` collapses into `ACTIVE_GRAPH` plus a side-effect that
-the shell already runs (`_handle_graph_removed` only needs the entry
-id, which can hang off the signal payload). `WORKSPACE_CHANGED` and
-`EDITOR_FOCUSED` either disappear entirely or move to the other
-channel — see below.
+`WORKSPACE_CHANGED` and `EDITOR_FOCUSED` are not in the table —
+they describe UI shell events, not session-context state moves, and
+re-home onto other channels (§4.3).
 
 ### 4.3 Re-home the orphans
 
 | Today | Proposed home |
 | --- | --- |
 | `EDITOR_FOCUSED` | becomes a `RevealRequest`, no signal |
-| `WORKSPACE_CHANGED` | drop; `BaseEditor.on_focus` already fires |
-| `LIBRARY_STATE_CHANGED` | split: selection = `ACTIVE_LIBRARY`, install/enable = a new `LIBRARY_CATALOG` signal (or fold into `GRAPH_DATA`'s broader sibling — see §4.5) |
+| `WORKSPACE_CHANGED` | drop; `BaseEditor.on_focus` already fires (verified §5) |
+| `LIBRARY_STATE_CHANGED` | split: selection click → `ActiveLibraryMoved`, install/enable/disable → `LibraryCatalogChanged` (`cross_session=True` — see §11) |
+| `GRAPH_REMOVED` | stays as its own class `GraphRemoved(entry_id)` — the orchestrator-side handler in `shell.py:597` needs the entry id, so collapsing into `ActiveGraphMoved` would lose information (see §11) |
 
 ### 4.4 Shrink `ContextChangedEvent` to its actual payload
 
-```python
-@dataclass(frozen=True)
-class ContextSignal:
-    field: ContextField        # which group of state moved
-    detail: Optional[Any] = None  # narrow disambiguator (entry_id for removals, etc.)
-```
+The base `ContextSignal` is empty in the §4 sketch — concrete signal
+classes derive from it (see §7.1 for the real shape). The
+discriminator is *the type itself*, not a field on a single
+dataclass. The four reveal-related fields drop entirely:
 
-That's it. Drop:
-
-- `reveal_editor` / `reveal_payload` / `reveal_label` — they belong on
-  `RevealRequest`, not `ContextSignal`
+- `reveal_editor` / `reveal_payload` / `reveal_label` — they belong
+  on `RevealRequest`, not `ContextSignal`
+- `change_type` (the enum field) — replaced by the typed signal
+  class, filtered with plain `isinstance` (§7.4)
+- `detail` (the typed-nothing payload) — replaced by typed fields
+  on the specific signal classes that need them
+  (e.g. `GraphRemoved(entry_id: str)`); pointer-by-default rule
+  applies (§6.3)
 
 The shell's orchestrator splits cleanly:
 
@@ -230,35 +238,45 @@ session.signal(ContextSignal(...))    →  fan out to slots
 session.reveal(RevealRequest(...))    →  switch tab in target slot
 ```
 
-Both can be batched if needed (a graph open is "set active_graph,
-then reveal the GraphEditor for that payload").
+#### Ordering: signal before reveal
+
+The two methods are deliberately separate; there is no batched
+`dispatch(...)` API. Authors who want a state change to be visible to
+a freshly-revealed editor call them in order:
+
+```python
+context.active_graph = entry.graph
+context.active_graph_path = entry.path
+session.signal(ActiveGraphMoved())
+session.reveal(RevealRequest(GraphEditor, payload=entry.entry_id))
+```
+
+The contract:
+
+- `session.signal(...)` runs fan-out **synchronously** to every
+  subscribed slot in the current session, then returns. The subsequent
+  `session.reveal(...)` therefore observes the post-signal context.
+- The revealed editor's `draw()` runs against the post-signal context
+  — same as today's accidental ordering in `shell.py:591-595`, made
+  explicit.
+- **Cross-session delivery is asynchronous in spirit and best-effort
+  sequential per peer** (`session_manager.py:99-105` iterates peers
+  and swallows per-peer exceptions). Authors must not assume any
+  ordering between a `cross_session=True` signal arriving at a peer
+  and any other event in that peer's session.
+- **Reveals are local-only.** `RevealRequest` does not cross session
+  boundaries (Q4A). A peer session is responsible for its own
+  workspace state; one session cannot reach into another's tab order.
 
 ### 4.5 Naming `SessionContext`
 
-The dataclass is doing two jobs (§2.1). One option: keep a single
-`SessionContext` but expose two grouped sub-objects so the split is
-obvious:
-
-```python
-@dataclass
-class SessionContext:
-    workbench: WorkbenchState   # active_graph, active_file, active_library, ...
-    selection: SelectionState   # active_node, active_edge, selected_nodes, ...
-    app: IProjectState
-    session: Session
-    metadata: dict[str, Any]
-```
-
-The signal field then maps 1:1 to a sub-object (`ContextField.SELECTION`
-moves things on `selection`, `ContextField.ACTIVE_GRAPH` moves things on
-`workbench`). A new editor author can read the dataclass top-down and
-*see* the two roles.
-
-A weaker version of the same idea: keep the flat dataclass but rename
-the existing fields with consistent prefixes (`focus_graph`,
-`focus_file`, `focus_node`, ... vs `selected_nodes`). Today the prefix
-soup (`active_*`, `selected_*`, `interaction_*`, `context_menu_*`) hides
-the structure.
+The dataclass carries two families of fields (§2.1: workbench focus
+and live selection). Considered nesting them into `workbench` /
+`selection` sub-objects, but rejected — the typed signal vocabulary
+in §4.2 / §7 already encodes the split (a reader who understands
+`ActiveGraphMoved` vs `SelectionMoved` already understands the
+distinction), and nesting would add an access-site hop everywhere
+for a benefit that's pure documentation.
 
 ### 4.6 The story you tell a new editor author
 
@@ -281,8 +299,12 @@ means two different things depending on emit site.
 
 ## 5. What stays exactly the same
 
-This is *not* an architectural rewrite, it's a renaming-and-pruning
-exercise dressed up as a model. Specifically:
+The mental model and runtime mechanism are unchanged; only the
+vocabulary tightens. The LOC scope is non-trivial (see §11 for the
+full migration surface), but every site is touched in a mechanical
+way — no behavioural change is expected outside the two
+flagged latent-bug fixes (§11 notes for `LibraryCatalogChanged` and
+`GraphRemoved`). Specifically:
 
 - The poll/draw cycle on `BaseEditor` is unchanged.
 - The slot orchestration in `AppShell._on_context_changed` is unchanged
@@ -294,7 +316,15 @@ exercise dressed up as a model. Specifically:
   cross-broadcasts a reveal).
 - `BaseEditor.on_focus` already exists and already does the
   "wrapper just became active" job that `WORKSPACE_CHANGED` was trying
-  to express.
+  to express. Verified against `Slot._activate` (slot.py:499-505),
+  which is the sole path to setting the active wrapper and
+  unconditionally calls `wrapper.on_focus()`. Every activation route
+  — initial render (slot.py:441-446), `switch_to` (slot.py:532, used
+  by both user tab clicks and programmatic reveals via
+  `shell._reveal_editor`), and `add_binding(activate=True)` — goes
+  through `_activate`. Today's `WORKSPACE_CHANGED` emission in
+  `tab_slot._on_tab_clicked` (lines 114-116) fires *after* `switch_to`
+  has already run, so dropping the bus event loses no behavior.
 - All the emit sites stay where they are — they just emit smaller,
   more honestly-named structs.
 
@@ -307,8 +337,9 @@ Mechanically nothing changes. The mental model is what gets simpler.
 The §4 model implicitly assumes one authoritative state per session.
 Haywire's collaboration story already breaks that assumption — multiple
 sessions share one `BaseGraph`, edits propagate via
-`notify_cross_session_context_change` → `SessionManager.broadcast` —
-and plausible future directions (peer cursors, follow-mode, presence
+`notify_cross_session_context_change` → `SessionManager.broadcast`
+(absorbed into the unified bus by Q9B + Q2C, see §6.2) — and
+plausible future directions (peer cursors, follow-mode, presence
 indicators, conflict-aware undo) push it further.
 
 The structural fact those features share:
@@ -329,40 +360,50 @@ state moved:
 
 ```python
 class Subject:
-    SELF: ClassVar["Subject"]      # this session
-    BROADCAST: ClassVar["Subject"] # all sessions, including self
+    SELF: ClassVar["Subject"]      # this session — default for local-bus signals
 
     @classmethod
-    def peer(cls, session_id: str) -> "Subject": ...
+    def peer(cls, session_id: str) -> "Subject":
+        # stamped by the transport on cross-session delivery; never
+        # set by emit sites
+        ...
 ```
 
-`subject` defaults to `Subject.SELF` so existing emit sites and
-subscribers don't have to think about it. A peer-aware editor opts in
-explicitly:
+Two subject values, both meaningful: `SELF` for signals delivered to
+the session that emitted them (and the default for purely local
+signals), `peer(id)` for signals that arrived from another session.
+**Emit sites never set the subject** — the transport stamps
+`peer(origin_id)` on signals delivered to non-origin sessions during
+cross-session fan-out (see §6.2 for routing). A peer-aware editor
+opts in explicitly:
 
 ```python
 class PeerCursorEditor(BaseEditor):
     def poll(self, context, signal):
         # Only react to peer selection signals; ignore my own.
-        return signal.is_a(SelectionMoved) and signal.is_from_peer()
+        return isinstance(signal, SelectionMoved) and signal.is_from_peer()
 ```
 
-(`is_a` and `is_from_peer` are predicates on `ContextSignal` itself —
-see §7.4 for the full set.)
+(`is_local` and `is_from_peer` are predicates on `ContextSignal`
+itself — see §7.4. There is no `is_a` predicate; plain `isinstance`
+is the recommended idiom — Q3A.)
 
 ### 6.2 Why this works
 
 1. **Existing editors keep working.** Without an explicit subject filter
    they implicitly mean "self" — which is what they already mean today.
    No subscriber accidentally renders a peer's selection as their own.
-2. **Cross-session fan-out becomes a property of the signal**, not a
-   separate transport method. Today there are two parallel APIs
-   (`notify_context_changed` and `notify_cross_session_context_change`);
-   tomorrow the signal's `subject` decides routing:
-   - `Subject.SELF` → local fan-out (current `notify_context_changed`)
-   - `Subject.peer(id)` → delivered to that one peer
-   - `Subject.BROADCAST` → all sessions including self (current
-     `notify_cross_session_context_change` semantics)
+2. **Cross-session fan-out becomes a property of the signal class**,
+   not a separate transport method or a per-emit choice. Today there
+   are two parallel APIs (`notify_context_changed` and
+   `notify_cross_session_context_change`); tomorrow each signal class
+   declares `cross_session=True` or `False` once, and routing is
+   derived from that:
+   - signal class `cross_session=False` → local fan-out only; the
+     emitting session's subscribers receive `subject = SELF`
+   - signal class `cross_session=True` → local fan-out *and*
+     transport-stamped peer delivery; the emitting session receives
+     `subject = SELF`, every other session receives `subject = peer(origin_id)`
 3. **`SessionContext` doesn't grow a `peer_selections` dict.** Peers
    expose their own context through the `SessionManager`; the signal's
    subject identifies whose, and editors traverse to peer state when
@@ -370,19 +411,24 @@ see §7.4 for the full set.)
 
 ### 6.3 Inline state vs. pointer
 
-A peer-cursor signal could carry the new selection inline
-(`SelectionMoved(subject=peer:abc, selection_id="node-7")`) or just
-say "go look" (`SelectionMoved(subject=peer:abc)`).
+Signals are pointers, not inline payloads, by default. Today's
+`DATA_MUTATED` broadcast carries no graph data — receivers re-read
+the shared `BaseGraph`. The new vocabulary follows the same rule: a
+peer-cursor signal says "go look" rather than carrying the new
+selection inline. Editors that care fetch from
+`session_manager.get(peer_id).context`.
 
-The codebase already prefers **pointer**: today's `DATA_MUTATED`
-broadcast carries no graph data — receivers re-read the shared
-`BaseGraph`. Following that precedent, peer signals just mark a peer's
-state dirty; editors that care fetch from `session_manager.get(peer_id).context`.
+Inline payloads couple the wire format to the sender's data model
+and break the moment a library adds new fields to its peer-visible
+state. Pointer is more flexible and matches the existing pattern.
 
-Inline payloads are tempting for performance but couple the wire
-format to the sender's data model and break the moment a library
-adds new fields to its peer-visible state. Pointer is more flexible
-and matches the existing pattern.
+**The one documented exception is `GraphRemoved(entry_id: str)`.**
+The referenced state is no longer reachable from the session by the
+time the signal fires — the entry has been removed from the
+haystack — so a pointer would point at nothing. Inline carriage is
+warranted only for this "referenced state no longer reachable" case,
+not as a performance optimisation. New signal classes that want
+inline payload should justify themselves against this rule.
 
 ### 6.4 What stays sealed
 
@@ -390,6 +436,47 @@ and matches the existing pattern.
 correct. Peers are sessions, sessions are managed by core, and a
 library has no business inventing new subject kinds. `field` opens up
 (see §7); `subject` does not.
+
+### 6.5 Cross-session delivery semantics
+
+The broadcast path is structurally identical pre- and post-migration
+— Q9B (class-level routing) decides *whether* a signal crosses
+session boundaries, but does not change *how* the
+`SessionManager.broadcast` loop delivers it. Documenting today's
+behaviour explicitly so authors don't read more into `cross_session=True`
+than the loop provides:
+
+- **Per-peer sequential, arbitrary peer order.** The broadcast loop
+  iterates the session dict in dict-iteration order (effectively
+  insertion order in CPython 3.7+, but not stable across reconnects).
+  Peer A's `dispatch_signal` returns before peer B's begins. There is
+  no fairness or priority — first peer in dict order goes first,
+  every time, until session lifecycle shifts the order.
+- **Per-peer exceptions are swallowed.** A subscriber raising in one
+  session does not abort delivery to other sessions. The framework
+  logs a warning and continues.
+- **No cross-peer ordering guarantee.** If peer B's subscriber emits
+  its own follow-on signal during its handling, that signal interleaves
+  arbitrarily with the rest of the broadcast. Authors must not assume
+  causal ordering across peers.
+- **No response-awaiting.** Broadcast does not wait for peers to
+  *finish* processing the signal before returning to the caller. A
+  call site that emits then immediately reads peer state via
+  `session_manager.get(peer_id).context` may observe pre-signal state
+  on the peer side.
+- **Subject is stamped by the transport, not the emitter.** Per Q2C,
+  the broadcast loop sets `subject = Subject.peer(origin_session_id)`
+  on signals delivered to non-origin sessions; the origin session
+  receives the signal with `subject = Subject.SELF`. Emit sites stay
+  subject-free.
+
+**Known weak spot, flagged separately.** Per-peer exception swallowing
+combined with warning-only logging means a subscriber that crashes on
+every signal will produce a warning per signal but never surface as
+an error. This is a pre-existing weakness of today's broadcast path,
+not a migration regression — but worth revisiting once the open
+vocabulary attracts heavier broadcast traffic (peer-cursor library,
+collaboration features). Out of scope for the bus-split PR.
 
 ---
 
@@ -409,6 +496,9 @@ signal classes** fit best.
 @dataclass(frozen=True)
 class ContextSignal:
     subject: Subject = Subject.SELF
+    # cross_session is a class-level attribute, not an instance field
+    # — the transport reads it from type(signal) to decide routing
+    cross_session: ClassVar[bool] = False
 
 @dataclass(frozen=True)
 class ActiveGraphMoved(ContextSignal):
@@ -416,19 +506,31 @@ class ActiveGraphMoved(ContextSignal):
 
 @dataclass(frozen=True)
 class SelectionMoved(ContextSignal):
-    selection_id: Optional[str] = None  # node/edge id, optional disambiguator
+    # No payload: subscribers read context.selected_nodes / active_node
+    # for SELF, or session_manager.get(peer_id).context for peer subjects
+    # (§6.3 pointer rule).
+    pass
 
 @dataclass(frozen=True)
 class GraphDataMutated(ContextSignal):
-    pass
+    cross_session: ClassVar[bool] = True
+
+@dataclass(frozen=True)
+class GraphRemoved(ContextSignal):
+    # The §6.3 inline-payload exception: the entry is gone from the
+    # haystack by the time this fires, so a pointer would point at
+    # nothing.
+    entry_id: str
+    cross_session: ClassVar[bool] = True
 
 # A library declares its own:
 @dataclass(frozen=True)
 class ActiveBreakpointMoved(ContextSignal):
-    breakpoint_id: str
+    pass
 ```
 
-Editors filter by class:
+Editors filter by class with plain `isinstance` (Q3A — no `is_a`
+predicate):
 
 ```python
 def poll(self, context, signal):
@@ -489,43 +591,25 @@ Two consequences:
 
 The only real failure case is **cross-library subscription**: a signal
 class declared in library A, subscribed to by an editor in library B,
-where A reloads without B. This is narrow — and arguably any library
-that subscribes to another library's signals already has a dependency
-relationship that could be made explicit (B reloads when A does). The
-framework handles this case via the `is_a` predicate in §7.4 — no
-author-declared identity key needed.
+where A reloads without B. The fix is to make the dependency
+explicit: a library that subscribes to another library's signal
+classes must declare that library as a hot-reload sibling, so they
+reload as a pair. The framework refuses (or warns on) cross-library
+subscriptions without a declared dependency. This pushes the cost
+onto the rare case (cross-library subscription) instead of taxing
+every subscription site in the codebase with framework machinery
+(Q3A — explicit dependency, not author-declared identity keys, not
+qualified-name comparison).
 
-### 7.4 Filter ergonomics: `is_a` / `is_local` / `is_from_peer`
+### 7.4 Filter ergonomics
 
-Plain `isinstance` works, but reads heavily once you compose it with
-the subject filter from §6:
-
-```python
-return (isinstance(signal, SelectionMoved)
-     or isinstance(signal, ActiveGraphMoved)
-     or isinstance(signal, GraphDataMutated)) and signal.subject == Subject.SELF
-```
-
-The base `ContextSignal` can expose three small predicates that read
-as the question the subscriber is asking:
+Plain `isinstance` is the recommended idiom (Q3A). Combined with the
+subject predicates from §6:
 
 ```python
-def _qualified_name(cls: type) -> str:
-    return f"{cls.__module__}.{cls.__qualname__}"
-
-
 class ContextSignal:
     subject: Subject = Subject.SELF
-
-    def is_a(self, signal_type: type["ContextSignal"]) -> bool:
-        """True if this signal is of the given type.
-
-        Compares by qualified name (module + qualname) rather than class
-        identity, so the predicate survives hot-reload of the
-        signal-declaring library even when the subscriber wasn't
-        reloaded in the same pass (the §7.3 cross-library edge case).
-        """
-        return _qualified_name(type(self)) == _qualified_name(signal_type)
+    cross_session: ClassVar[bool] = False
 
     def is_local(self) -> bool:
         """True if this signal describes *this* session's state."""
@@ -533,7 +617,7 @@ class ContextSignal:
 
     def is_from_peer(self) -> bool:
         """True if this signal describes a peer session's state."""
-        return self.subject not in (Subject.SELF, Subject.BROADCAST)
+        return self.subject != Subject.SELF
 ```
 
 Filter sites read as the question they're asking:
@@ -541,58 +625,59 @@ Filter sites read as the question they're asking:
 ```python
 # Properties: redraw on local selection / graph / data changes.
 def poll(self, context, signal):
-    return ((signal.is_a(SelectionMoved)
-          or signal.is_a(ActiveGraphMoved)
-          or signal.is_a(GraphDataMutated))
+    return (isinstance(signal, (SelectionMoved, ActiveGraphMoved, GraphDataMutated))
          and signal.is_local())
 
 # PeerCursor: only peers' selections.
 def poll(self, context, signal):
-    return signal.is_a(SelectionMoved) and signal.is_from_peer()
+    return isinstance(signal, SelectionMoved) and signal.is_from_peer()
 ```
 
 A few design choices worth being explicit about:
 
-- **`is_a` does single-level matching, not subclass matching.** The
-  signal hierarchy in §7 is flat by convention — each signal names a
-  distinct concern, and "subscribe to all subclasses of X" isn't a
-  pattern the design uses. Comparing qualified names instead of walking
-  the MRO matches that intent and removes a class of accidents (a
-  refactor that introduces an intermediate base class wouldn't silently
-  widen every subscription).
-- **The class itself is the identity.** `__module__` + `__qualname__`
-  are stable across hot-reload by construction, so the framework
-  derives signal identity from the class declaration directly. Library
-  authors declare nothing beyond the dataclass.
-- **Type-checker support.** `is_a` is annotated `signal_type: type[ContextSignal]`,
-  so passing a string or non-class (`signal.is_a("SelectionMoved")`)
-  is flagged by mypy / pyright. No runtime guard needed.
-- **`isinstance` still works** within a library — but `is_a` is the
-  recommended idiom across the codebase for consistency, and is
-  required for cross-library subscriptions.
-
-Naming: `is_a` follows the Smalltalk/Ruby tradition (`is_a?`,
-`kind_of?`) and reads as English. `is_instance` was considered but
-collides visually with the stdlib `isinstance` builtin without being
-the same thing — boring-and-distinct beats clever-and-similar.
-
-> **Footnote on `__main__`.** Python sets `cls.__module__ == "__main__"`
-> when a module is run directly (`python some_signals.py`) instead of
-> imported. A class defined in such a module has qualified name
-> `"__main__.ClassName"` rather than `"package.module.ClassName"`, and
-> won't compare equal to the same class imported normally. This only
-> affects ad-hoc script invocation — Haywire's plugin discovery always
-> imports modules, never executes them as `__main__`, so the trap
-> doesn't bite real sessions. Worth knowing if a developer is
-> debugging signal classes with a `if __name__ == "__main__":` block.
+- **Signal classes are flat by convention.** One class per concern,
+  no inheritance for specialisation between `ContextSignal` and the
+  leaves. `isinstance` walks the MRO normally; subclassing a leaf
+  signal *would* widen subscriptions, which is exactly the silent
+  widening to avoid. Specialisation belongs in payload fields
+  (`SelectionMoved(kind=...)` if needed), not in subclasses. Code
+  review enforces this — the framework adds no machinery.
+- **The class itself is the identity.** Subscribers and emitters
+  share the same class object via normal Python imports. No
+  framework-side identity registry, no qualified-name comparison —
+  the cross-library hot-reload edge case from §7.3 is handled by the
+  explicit-dependency rule, not by stripping `isinstance` of its
+  natural semantics.
+- **No `is_a` predicate.** Plain `isinstance` everywhere. The
+  predicates that *do* live on `ContextSignal` (`is_local`,
+  `is_from_peer`) ask questions about the *subject*, not the
+  *class* — and those questions can't be answered by `isinstance`
+  alone, which is why they exist.
 
 ### 7.5 What core declares vs. what libraries declare
 
-Core declares the signal vocabulary for state core owns:
-`ActiveGraphMoved`, `SelectionMoved`, `GraphDataMutated`, `ActiveFileMoved`,
-`ActiveLibraryMoved`, `ActiveComponentMoved`, `ThemeMoved`. That's the
-full vocabulary needed to retire today's 14-value enum — the
-core-declared set covers every existing emit site.
+Core declares the signal vocabulary for state core owns. The full
+core set is **9 signal classes plus 1 RevealRequest type** — see §11
+for the per-enum-value mapping that derives this number from the
+audit:
+
+- `ActiveGraphMoved`
+- `ActiveFileMoved`
+- `ActiveLibraryMoved`
+- `ActiveComponentMoved`
+- `LibraryCatalogChanged` (`cross_session=True`)
+- `SelectionMoved`
+- `GraphDataMutated` (`cross_session=True`)
+- `GraphRemoved(entry_id: str)` (`cross_session=True`, §6.3 inline
+  exception)
+- `ThemeMoved`
+
+This corrects an earlier draft that listed 7 — the audit in §11
+surfaced two additions: `LibraryCatalogChanged` (the `LIBRARY_STATE_CHANGED`
+overload split per §3.4) and `GraphRemoved` staying as its own class
+(§4.2 had suggested collapsing it into `ActiveGraphMoved`, but the
+orchestrator-side handler in `shell.py:597` needs the entry id, so
+the dedicated class earns its keep).
 
 Libraries declare new signal classes when they add new context state.
 Examples:
@@ -716,7 +801,50 @@ Formalising it isn't required for the bus split, but the bus split
 is what makes the missing pattern visible: once popup state stops
 hiding inside `metadata`, it becomes obvious that several popups
 have the same shape and could share a name. Worth considering as a
-follow-on once §6 / §7 land — see open question §9.5.
+follow-on once §6 / §7 land — see open question §9.4.
+
+### 8.6 What the bus PR commits to (so §8 stays unblocked)
+
+§8 is deferred to a separate refactor (Q7D), but the bus-split PR
+will rewrite every panel's emit site from
+`notify_context_changed(ContextChangedEvent(...))` to
+`session.signal(...)` + `session.reveal(...)`. The context-menu
+panels in `barn/haybale-core/haybale_core/panels/context_menu/` are
+the overlap zone — they get touched by the bus PR *and* by §8 later.
+To prevent double-touch and keep §8 a clean follow-up, the bus PR
+commits to:
+
+1. **Not change panel signatures.** Panels stay `(cls, context)` for
+   poll/draw. The §8 PR is the one that adds the `scope` parameter.
+2. **Not move popup-internal state.** `context.metadata` stays
+   `dict[str, Any]` carrying the popup-ephemeral keys
+   (`edge_state`, `pending_connection`, `context_menu_screen_pos`,
+   `edge_reconnect_end`, `on_emit_event`). The §8 PR is the one that
+   moves them onto `ContextMenuScope`.
+3. **Co-locate signal+reveal at the call site exactly as §8 will
+   leave it.** After the bus PR, the
+   [create_node_panel.py:64-70](../../barn/haybale-core/haybale_core/panels/context_menu/create_node_panel.py#L64-L70)
+   site reads as the §8.3 example shows:
+
+   ```python
+   context.active_component = node_info.identity.registry_key
+   session.signal(ActiveComponentMoved())
+   session.reveal(RevealRequest(LibraryComponentEditor, ...))
+   ```
+
+   The §8 PR will rewrite signature/reads (replacing
+   `context.metadata['x']` with `scope.x`), but these three emit
+   lines stay byte-identical. No re-touch.
+
+Together: the bus PR touches ~30 emit sites once, the §8 PR touches
+~6 context-menu panels' read sites once — no overlap.
+
+The remaining open question for whoever lands §8 is the panel
+signature shape (one base class with `scope: Optional[ScopeBase] =
+None` everywhere, vs. splitting `ContextMenuPanel(BasePanel)` from
+non-popup panels). The bus PR does not commit to either — it leaves
+§8 free to choose based on whether other popup types (§8.5) join the
+pattern.
 
 ---
 
@@ -742,14 +870,7 @@ follow-on once §6 / §7 land — see open question §9.5.
    miss, IconSlot just switches. The behaviour is fine; the question is
    whether the request type should make it explicit.
 
-4. **Does the current `notify_cross_session_context_change` survive as
-   a separate API, or is it absorbed into the subject-routed signal
-   bus** (§6.2)? Mechanically the second is cleaner — one method, the
-   `subject` field decides routing. The migration risk is that today's
-   call sites are all `BROADCAST` semantics; widening the API to
-   include `Subject.peer(id)` is purely additive.
-
-5. **Is `ContextMenuScope` an instance of a more general "popup
+4. **Is `ContextMenuScope` an instance of a more general "popup
    scope" pattern?** §8.5 notes that several other popups in the
    codebase (Save-As, rename dialog, remove-confirm) carry similar
    ephemeral state in closures and locals. After the bus split makes
@@ -760,9 +881,25 @@ follow-on once §6 / §7 land — see open question §9.5.
    warranted, or the popups might stay independent and just follow a
    convention. Don't decide now.
 
+### 9.5 Resolved during inquisition
+
+These started as open questions and were settled during the design
+review pass; recorded here so the rationale doesn't get lost.
+
+- **Does `notify_cross_session_context_change` survive as a separate
+  API?** No — absorbed into the unified bus (§6.2). Routing comes
+  from the class-level `cross_session` attribute on the signal class
+  (Q9B), not from a subject value at the emit site. Today's call
+  sites are all `DATA_MUTATED` and migrate to
+  `session.signal(GraphDataMutated())`; the transport stamps
+  `subject = peer(origin_id)` on non-origin sessions (Q2C). One
+  emit method, class-level routing, transport-stamped subjects.
+
 ---
 
 ## 10. TL;DR
+
+The shape of the problem:
 
 - `ContextChangedEvent` is two events glued together: an *observation*
   (`change_type` + `detail`) and a *command* (`reveal_*`).
@@ -771,20 +908,116 @@ follow-on once §6 / §7 land — see open question §9.5.
 - `SessionContext` carries two distinct kinds of state (workbench
   focus and live selection) under one flat dataclass.
 
-A simpler story:
+The simpler story:
 
 - Split the bus into **`ContextSignal`** (observations, fan-out) and
-  **`RevealRequest`** (commands, point-to-point).
-- Make signals **typed classes**, not enum values, so libraries can
-  declare their own without touching core (§7).
-- Every signal carries a **`subject`** so peer-cursor / collaboration
-  features have a place to land without breaking existing subscribers
-  (§6).
+  **`RevealRequest`** (commands, point-to-point, local-only). Two
+  separate methods on `Session`; signal-then-reveal at the call site
+  is the documented ordering contract (§4.4).
+- Make signals **typed dataclasses**, not enum values, so libraries
+  can declare their own without touching core (§7). Editors filter
+  with plain `isinstance`; no framework identity machinery.
+- Cross-session routing is a **class-level attribute**
+  (`cross_session: ClassVar[bool] = False/True`) on each signal class
+  (§6.2). The transport stamps the `subject` field on cross-session
+  delivery — emit sites stay subject-free.
 - Name signals after the **field that moved**, not the action that
   moved it. That gives an editor author a one-line subscription rule.
-- Group the dataclass into **`workbench` + `selection`** so the two
-  state lifetimes are visible in the type.
+- Keep `SessionContext` flat. The signal vocabulary already encodes
+  the workbench/selection split (§4.5).
+- The vocabulary is open at exactly **one seam: the signal class**.
+  Subjects (§6.4) and the bus topology stay sealed in core.
 
-Mechanism unchanged; vocabulary tightened, and made open at exactly
-the two seams (signal type and subject scope) where library authors
-need room to extend.
+Mechanism unchanged; vocabulary tightened. The migration surface is
+non-trivial in LOC but mechanical in shape — see §11 for the
+enum→signal-class mapping that makes the rewrite reviewable.
+
+---
+
+## 11. Migration surface — enum → signal-class mapping
+
+This section enumerates the concrete migration work. §5's "mechanically
+nothing changes" is true at the architectural level but undersells the
+LOC-level scope: every emit site of every enum value is touched, every
+poll() filter is rewritten, and several editorial decisions per enum
+value need to be made up front (not discovered during implementation).
+
+The table below is the source of truth for those decisions. It is also
+the verification of §7.5's claim that the core vocabulary covers every
+existing emit site — that claim turns out to be off by two: the
+LIBRARY_STATE_CHANGED split adds `LibraryCatalogChanged`, and
+`GraphRemoved` stays as its own class (see notes), bringing the core
+vocabulary to **9 signal classes + 1 RevealRequest**, not the 7 named
+in §7.5.
+
+### 11.1 The mapping table
+
+| Old enum value | New signal class(es) | Owning package | `cross_session` | Emit sites | Filter sites | Notes |
+| --- | --- | --- | --- | --- | --- | --- |
+| `SELECTION_CHANGED` | `SelectionMoved` | haywire-core | False | `graph_canvas/handlers/selection.py:78` (1) | `properties_editor.py:73`, `node_source_editor.py:56`, `library_component_editor.py:55` (3) | Per-session. Future peer-cursor library subscribes to `SelectionMoved` from peer subjects (Q1 open-vocabulary path) — `SelectionMoved` itself stays local-only. |
+| `ACTIVE_GRAPH_CHANGED` | `ActiveGraphMoved` | haywire-core | False | `graph_editor.py:132,494`, `haystack_editor.py:366,481,584` (5) | `properties_editor.py:74`, `haystack_editor.py:85` (2) | Each session has its own active graph; multiple sessions may view different graphs simultaneously. |
+| `EDITOR_FOCUSED` | (none — becomes `RevealRequest`) | haywire-core | N/A | `file_browser.py:316`, `haystack_editor.py:616,630,756,837` (5) | (none) | All emit sites carry `reveal_editor=...` (§3.2). Pure command, no signal. Replaced by `session.reveal(RevealRequest(editor=..., payload=...))`. |
+| `WORKSPACE_CHANGED` | (deleted) | haywire-core | N/A | `tab_slot.py:115`, `icon_slot.py:116` (2) | (none in barn/) | Slot machinery calls `editor.on_focus()` directly instead (Q6A). |
+| `DATA_MUTATED` | `GraphDataMutated` | haywire-core | True | `graph_editor.py:307,321,359,502`, `haystack_editor.py:928`, `haystack.py:169` (6 — all today already use `notify_cross_session_context_change` or `session_manager.broadcast`) | `properties_editor.py:75`, `haystack_editor.py:86` (2) | Class-level `cross_session=True` matches today's existing broadcast behavior exactly. |
+| `LIBRARY_STATE_CHANGED` | **split:** `ActiveLibraryMoved` + `LibraryCatalogChanged` | haywire-core | `ActiveLibraryMoved`: False; `LibraryCatalogChanged`: True | `library_browser_editor.py:245` → `ActiveLibraryMoved`; `library_overview_editor.py:647` (called from enable/disable/install/uninstall handlers, ~4 sites) → `LibraryCatalogChanged` | `library_browser_editor.py:54`, `library_overview_editor.py:100` (2 — both today filter on the overloaded enum, so they widen to *both* new signals during migration; can be tightened post-migration if desired) | §3.4 overload resolved. **Latent-bug flag:** today's `LibraryCatalogChanged` emits are local-only; cross-session is the right behavior (if session A installs a library, session B's library browser must refresh) — behavior change, intentional. |
+| `ACTIVE_COMPONENT_CHANGED` | `ActiveComponentMoved` | haywire-core | False | `library_overview_editor.py:604`, `library_component_editor.py:307`, `create_node_panel.py:66` (3) | `library_component_editor.py:54` (1) | Per-session inspection selection. |
+| `FILE_SELECTED` | `ActiveFileMoved` | haywire-core | False | `file_browser.py:331,347`, `file_viewer.py:98`, `node_source_editor.py:381` (4) | (none) | All emit sites today carry `reveal_editor=...` — they're commands. Under Q4A the reveal becomes `session.reveal(...)`; the state mutation gets `ActiveFileMoved` for vocabulary completeness (Q5C — every workbench field gets a signal, even if no current subscriber). |
+| `WORKBENCH_THEME_CHANGED` | `ThemeMoved` | haywire-core | False | `shell.py:112` (1) | `code_editor.py:108`, `node_source_editor.py:57`, `library_component_editor.py:56` (3) | Per-session preference. **Audit flag:** confirm no other emit sites exist that today reach the bus by side-channel — grep clean as of writing. |
+| `GRAPH_REMOVED` | `GraphRemoved(entry_id: str)` | haywire-core | True | `haystack_editor.py:354` (1) | `shell.py:588` (1 — orchestrator, not an editor) | **Inline payload exception** (Hole #1) — the entry is gone from the haystack by the time the signal fires, so pointer-only would have nothing to point to. **Latent-bug flag:** today emit is local-only; peer sessions can keep showing tabs for a removed graph. Cross-session is the right behavior — behavior change, intentional. Does NOT collapse into `ActiveGraphMoved` (§4.2 suggested collapse; the orchestrator-side handler in `shell.py:597` needs the entry id to close tabs, so the dedicated class earns its keep). |
+
+**Total emit sites touched:** ~30 across 11 files.
+**Total filter sites rewritten:** 8 across 6 editors (`event.change_type` reads), plus `shell.py:588` orchestrator branch.
+**Total signal classes in core:** 9 (was 7 in §7.5's claim — see introduction above).
+
+### 11.2 Editorial decisions logged
+
+Decisions made during the audit that the table compresses into single
+cells; recorded here so reviewers can challenge them without re-deriving
+the rationale:
+
+1. **`EDITOR_FOCUSED` produces no signal class.** Every emit carries
+   `reveal_editor`. No subscriber today reads it as a state-change
+   event. Becomes pure `RevealRequest`.
+2. **`FILE_SELECTED` produces `ActiveFileMoved` even though no current
+   subscriber needs it.** Q5C wants every workbench field to have a
+   signal so the vocabulary is uniform; future editors that follow
+   `active_file` shouldn't have to introduce the signal class as part
+   of their own work.
+3. **`LIBRARY_STATE_CHANGED` splits into two classes, both in
+   haywire-core.** The library *manager* lives in haywire-studio, but
+   the *concept* of an installed library is core (it's a SessionContext
+   field). Vocabulary cohesion beats package-of-emit-site as the home
+   rule.
+4. **`LibraryCatalogChanged` and `GraphRemoved` flip to
+   `cross_session=True`** — both are latent-bug fixes, not pure
+   refactors. Flagged in the table as intentional behavior changes.
+5. **`GraphRemoved` carries `entry_id` inline.** The Hole #1
+   pointer-by-default rule has one documented exception: signals whose
+   referenced state is no longer reachable from the session. This is
+   that exception.
+6. **Filter sites that today match overloaded enum values widen to
+   match all replacement signal classes during migration.** Tightening
+   is a separate post-migration pass — the migration itself is
+   mechanically `ContextChangeType.LIBRARY_STATE_CHANGED` →
+   `(ActiveLibraryMoved, LibraryCatalogChanged)`.
+
+### 11.3 Out-of-vocabulary flags
+
+The audit also surfaced things the table doesn't cover but the
+implementation PR will hit:
+
+- **`reveal_editor` / `reveal_payload` / `reveal_label` fields on
+  `ContextChangedEvent`** — appear on emit sites that *also* carry a
+  `change_type`. Per §4.4, those split into two emits: a
+  `session.signal(...)` for the state mutation, then a
+  `session.reveal(...)` for the reveal. Affected sites:
+  `file_browser.py:329,345`, `library_browser_editor.py:242` (carries
+  `LIBRARY_STATE_CHANGED` and a reveal — splits into
+  `ActiveLibraryMoved` + reveal), `create_node_panel.py:64-70`
+  (already cited in §8.2 — ACTIVE_COMPONENT_CHANGED + reveal).
+- **Signal/reveal ordering** at the call site is the author's
+  responsibility — see §4.4 "Ordering: signal before reveal" for the
+  canonical contract. The migration preserves today's
+  `_on_context_changed` ordering in `shell.py:591-595` (signal fan-out
+  first, reveal second) by *making it the documented call-site
+  convention* rather than a framework guarantee.

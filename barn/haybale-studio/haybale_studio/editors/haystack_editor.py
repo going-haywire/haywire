@@ -24,21 +24,24 @@ from nicegui import ui
 from haywire.ui import elements as hui
 from haywire.ui.editor.base import BaseEditor
 from haywire.ui.editor.decorator import editor
-from haywire.ui.context_events import ContextChangeType, ContextChangedEvent
+from haywire.ui.context_signals import (
+    ActiveGraphMoved,
+    GraphDataMutated,
+    GraphRemoved,
+    RevealRequest,
+)
 from haywire.ui.components.popup import Popup
 
 from haybale_studio.editors.graph_editor import GraphEditor
 
 if TYPE_CHECKING:
     from haywire.ui.context import SessionContext
-    from haywire.ui.context_events import ContextChangedEvent
+    from haywire.ui.context_signals import ContextSignal
     from haywire_studio.haystack import GraphEntry
     from nicegui.element import Element
 
 
 logger = logging.getLogger(__name__)
-
-_GRAPH_EDITOR_KEY = GraphEditor.class_identity.registry_key
 
 
 def _workspace_rel_path(path: Path, workspace_root: "Path | None") -> str:
@@ -80,11 +83,8 @@ class HaystackEditor(BaseEditor):
     # poll / draw
     # ------------------------------------------------------------------
 
-    def poll(self, context: "SessionContext", event: "ContextChangedEvent") -> bool:
-        return event.change_type in (
-            ContextChangeType.ACTIVE_GRAPH_CHANGED,
-            ContextChangeType.DATA_MUTATED,
-        )
+    def poll(self, context: "SessionContext", signal: "ContextSignal") -> bool:
+        return isinstance(signal, (ActiveGraphMoved, GraphDataMutated))
 
     def on_focus(self, context: "SessionContext") -> None:
         """Refresh the header title and entry list on activation.
@@ -347,25 +347,17 @@ class HaystackEditor(BaseEditor):
         app.haystack.remove_entry(entry)
 
         session = context.session
-        # Ask the shell to close any tab hosting this entry.
+        # Ask the shell to close any tab hosting this entry — and broadcast
+        # cross-session so peer tabs also close (latent-bug-flip per §11).
         if session is not None:
-            session.notify_context_changed(
-                ContextChangedEvent(
-                    change_type=ContextChangeType.GRAPH_REMOVED,
-                    detail=removed_id,
-                )
-            )
+            session.signal(GraphRemoved(entry_id=removed_id))
 
         # If it was the active graph, clear the active graph → empty state
         if is_active:
             context.active_graph = None
             context.active_graph_path = None
             if session:
-                session.notify_context_changed(
-                    ContextChangedEvent(
-                        change_type=ContextChangeType.ACTIVE_GRAPH_CHANGED,
-                    )
-                )
+                session.signal(ActiveGraphMoved())
 
         ui.notify(f"Removed: {entry.display_name}", type="info", position="top-right")
         self._notify_data_mutated(context)
@@ -476,12 +468,7 @@ class HaystackEditor(BaseEditor):
                     if entry.graph is context.active_graph:
                         context.active_graph_path = entry.path
                         if session:
-                            session.notify_context_changed(
-                                ContextChangedEvent(
-                                    change_type=ContextChangeType.ACTIVE_GRAPH_CHANGED,
-                                    detail=entry,
-                                )
-                            )
+                            session.signal(ActiveGraphMoved())
                     self._notify_data_mutated(context)
                     ui.notify(f"Renamed to: {entry.path.name}", type="positive", position="top-right")
                     popup.close()
@@ -579,12 +566,7 @@ class HaystackEditor(BaseEditor):
                     if entry.graph is context.active_graph:
                         context.active_graph_path = save_path
                         if session:
-                            session.notify_context_changed(
-                                ContextChangedEvent(
-                                    change_type=ContextChangeType.ACTIVE_GRAPH_CHANGED,
-                                    detail=entry,
-                                )
-                            )
+                            session.signal(ActiveGraphMoved())
                     self._notify_data_mutated(context)
                     ui.notify(f"Saved: {save_path.name}", type="positive", position="top-right")
                     popup.close()
@@ -611,12 +593,11 @@ class HaystackEditor(BaseEditor):
             return
 
         entry = app.haystack.create_new()
-        session.notify_context_changed(
-            ContextChangedEvent(
-                change_type=ContextChangeType.EDITOR_FOCUSED,
-                reveal_editor=_GRAPH_EDITOR_KEY,
-                reveal_payload=entry.entry_id,
-                reveal_label=entry.display_name,
+        session.reveal(
+            RevealRequest(
+                editor=GraphEditor,
+                payload=entry.entry_id,
+                label=entry.display_name,
             )
         )
 
@@ -625,12 +606,11 @@ class HaystackEditor(BaseEditor):
         session = context.session
         if session is None:
             return
-        session.notify_context_changed(
-            ContextChangedEvent(
-                change_type=ContextChangeType.EDITOR_FOCUSED,
-                reveal_editor=_GRAPH_EDITOR_KEY,
-                reveal_payload=entry.entry_id,
-                reveal_label=entry.display_name,
+        session.reveal(
+            RevealRequest(
+                editor=GraphEditor,
+                payload=entry.entry_id,
+                label=entry.display_name,
             )
         )
 
@@ -751,12 +731,11 @@ class HaystackEditor(BaseEditor):
                 session = context.session
                 self._notify_data_mutated(context)
                 if active_entry is not None and session is not None:
-                    session.notify_context_changed(
-                        ContextChangedEvent(
-                            change_type=ContextChangeType.EDITOR_FOCUSED,
-                            reveal_editor=_GRAPH_EDITOR_KEY,
-                            reveal_payload=active_entry.entry_id,
-                            reveal_label=active_entry.display_name,
+                    session.reveal(
+                        RevealRequest(
+                            editor=GraphEditor,
+                            payload=active_entry.entry_id,
+                            label=active_entry.display_name,
                         )
                     )
 
@@ -832,12 +811,11 @@ class HaystackEditor(BaseEditor):
                     return
 
                 entry = app.haystack.open_graph(path)
-                session.notify_context_changed(
-                    ContextChangedEvent(
-                        change_type=ContextChangeType.EDITOR_FOCUSED,
-                        reveal_editor=_GRAPH_EDITOR_KEY,
-                        reveal_payload=entry.entry_id,
-                        reveal_label=entry.display_name,
+                session.reveal(
+                    RevealRequest(
+                        editor=GraphEditor,
+                        payload=entry.entry_id,
+                        label=entry.display_name,
                     )
                 )
                 ui.notify(f"Opened: {path.name}", type="positive", position="top-right")
@@ -920,14 +898,10 @@ class HaystackEditor(BaseEditor):
         popup.open()
 
     def _notify_data_mutated(self, context: "SessionContext") -> None:
-        """Fire DATA_MUTATED to refresh the graph list across all sessions."""
+        """Fire GraphDataMutated to refresh the graph list across all sessions."""
         session = context.session
         if session:
-            session.notify_cross_session_context_change(
-                ContextChangedEvent(
-                    change_type=ContextChangeType.DATA_MUTATED,
-                )
-            )
+            session.signal(GraphDataMutated())
 
     # ------------------------------------------------------------------
     # helpers

@@ -6,7 +6,7 @@ from pathlib import Path
 from types import SimpleNamespace
 from typing import Optional
 
-from haywire.ui.context_events import ContextChangeType
+from haywire.ui.context_signals import ActiveGraphMoved
 from haybale_studio.editors.graph_editor import GraphEditor
 
 
@@ -33,11 +33,11 @@ class _FakeHaystack:
 
 class _FakeSession:
     def __init__(self) -> None:
-        self.notified_events: list = []
+        self.signals: list = []
         self.context = None
 
-    def notify_context_changed(self, event) -> None:
-        self.notified_events.append(event)
+    def signal(self, signal) -> None:
+        self.signals.append(signal)
 
 
 def _make_context(entry: Optional[_FakeEntry], existing_active_graph=None):
@@ -85,7 +85,7 @@ def test_on_focus_resolves_entry_and_sets_active_graph() -> None:
     assert ctx.active_graph_path == Path("/tmp/a.haywire")
 
 
-def test_on_focus_fires_active_graph_changed() -> None:
+def test_on_focus_fires_active_graph_moved() -> None:
     g = object()
     entry = _FakeEntry(
         entry_id="/tmp/a.haywire",
@@ -98,10 +98,8 @@ def test_on_focus_fires_active_graph_changed() -> None:
 
     ed.on_focus(ctx)
 
-    assert len(ctx.session.notified_events) == 1
-    ev = ctx.session.notified_events[0]
-    assert ev.change_type == ContextChangeType.ACTIVE_GRAPH_CHANGED
-    assert ev.detail is entry
+    assert len(ctx.session.signals) == 1
+    assert isinstance(ctx.session.signals[0], ActiveGraphMoved)
 
 
 def test_on_focus_short_circuits_when_graph_already_active() -> None:
@@ -114,7 +112,7 @@ def test_on_focus_short_circuits_when_graph_already_active() -> None:
 
     ed.on_focus(ctx)
 
-    assert ctx.session.notified_events == []
+    assert ctx.session.signals == []
 
 
 def test_on_focus_missing_entry_force_closes_via_wrapper() -> None:
@@ -124,7 +122,7 @@ def test_on_focus_missing_entry_force_closes_via_wrapper() -> None:
     ed.on_focus(ctx)
 
     # Editor closes itself via wrapper.force_close — no event emitted.
-    assert ctx.session.notified_events == []
+    assert ctx.session.signals == []
     assert ed.wrapper.force_close_calls == [True]
     assert ctx.active_graph is None
 
@@ -136,7 +134,7 @@ def test_on_focus_no_binding_is_noop() -> None:
 
     ed.on_focus(ctx)
 
-    assert ctx.session.notified_events == []
+    assert ctx.session.signals == []
     assert ctx.active_graph is None
 
 
@@ -153,4 +151,4 @@ def test_on_focus_no_app_is_noop() -> None:
 
     ed.on_focus(ctx)
 
-    assert session.notified_events == []
+    assert session.signals == []

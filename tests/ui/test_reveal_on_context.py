@@ -23,13 +23,12 @@ class _FakeSession:
             )
         )
         self._editors = {}
-        self.notified_events = []
 
-    def set_orchestrator(self, _callback) -> None:
+    def set_signal_orchestrator(self, _callback) -> None:
         pass
 
-    def notify_context_changed(self, event) -> None:
-        self.notified_events.append(event)
+    def set_reveal_orchestrator(self, _callback) -> None:
+        pass
 
 
 def _make_editor_cls(registry_key: str, default_slot: str, opens=OpenBehavior.REQUIRED) -> type:
@@ -114,7 +113,7 @@ class _FakeTabbedSlot(TabSlot):
     def set_visible(self, visible: bool) -> None:
         pass
 
-    def handle_context_event(self, event) -> None:
+    def handle_signal(self, signal) -> None:
         pass
 
     def _refresh_bar(self) -> None:

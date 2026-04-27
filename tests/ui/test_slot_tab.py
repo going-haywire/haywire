@@ -304,15 +304,16 @@ def test_on_tab_close_clicked_respects_veto(monkeypatch):
 
 
 def test_on_tab_close_clicked_no_longer_emits_tab_close_requested(monkeypatch):
-    """Regression: the X-button must NOT emit any session event."""
+    """Regression: the X-button must NOT emit any session signal."""
     _install_ui_fakes(monkeypatch)
     cls = _editor_cls("a")
     reg = _FakeRegistry()
-    events_seen: list = []
+    signals_seen: list = []
 
     sess = SimpleNamespace(
         context=None,
-        notify_context_changed=lambda ev: events_seen.append(ev),
+        signal=lambda s: signals_seen.append(s),
+        reveal=lambda r: None,
     )
     slot = TabSlot(session=sess, name="main", registry=reg)
     slot.add_binding(editor_key="a", editor_cls=cls)
@@ -322,8 +323,8 @@ def test_on_tab_close_clicked_no_longer_emits_tab_close_requested(monkeypatch):
 
     _run_async(slot._on_tab_close_clicked("a"))
 
-    # No events emitted by the close path
-    assert events_seen == []
+    # No signals emitted by the close path
+    assert signals_seen == []
 
 
 # ---------------------------------------------------------------------------

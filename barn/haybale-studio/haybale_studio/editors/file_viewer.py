@@ -14,12 +14,13 @@ from typing import TYPE_CHECKING, Optional
 from nicegui import ui
 
 from haywire.ui import elements as hui
-from haywire.ui.context_events import ContextChangedEvent, ContextChangeType
+from haywire.ui.context_signals import ActiveFileMoved
 from haywire.ui.editor.base import BaseEditor
 from haywire.ui.editor.decorator import editor
 
 if TYPE_CHECKING:
     from haywire.ui.context import SessionContext
+    from haywire.ui.context_signals import ContextSignal
     from nicegui.element import Element
 
 
@@ -66,11 +67,9 @@ class FileViewerEditor(BaseEditor):
             return None
         return Path(self.wrapper.payload)
 
-    def poll(self, context: "SessionContext", event: "ContextChangedEvent") -> bool:
-        """Redraw when DATA_MUTATED touches this file, otherwise stay put.
-
-        Each FileViewer instance is pinned to one file via its wrapper
-        payload. FILE_SELECTED events no longer drive redraws — a different
+    def poll(self, context: "SessionContext", signal: "ContextSignal") -> bool:
+        """Each FileViewer instance is pinned to one file via its wrapper
+        payload. ActiveFileMoved signals don't drive redraws — a different
         file means a different tab.
         """
         return False
@@ -93,12 +92,7 @@ class FileViewerEditor(BaseEditor):
         context.active_file = new_value
         session = getattr(context, "session", None)
         if session is not None:
-            session.notify_context_changed(
-                ContextChangedEvent(
-                    change_type=ContextChangeType.FILE_SELECTED,
-                    detail=new_value,
-                )
-            )
+            session.signal(ActiveFileMoved())
 
     def draw(self, context: "SessionContext", container: "Element") -> None:
         self._last_file = self._resolve_path()

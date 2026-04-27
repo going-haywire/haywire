@@ -6,7 +6,7 @@ Editors follow a poll/draw lifecycle managed by an orchestrator (AppShell):
 
     1. On first assignment to a slot, the orchestrator calls draw()
        directly — no poll.
-    2. On every ContextChangedEvent, the orchestrator calls poll(). If it
+    2. On every ContextSignal, the orchestrator calls poll(). If it
        returns True the orchestrator clears the container and calls draw().
     3. On hot-reload of the editor class, the orchestrator evicts the cached
        instance, calls cleanup(), and re-instantiates + draw() if visible.
@@ -20,7 +20,7 @@ from .identity import EditorIdentity
 if TYPE_CHECKING:
     from haywire.ui.editor.wrapper import EditorWrapper
     from haywire.ui.context import SessionContext
-    from haywire.ui.context_events import ContextChangedEvent
+    from haywire.ui.context_signals import ContextSignal
     from nicegui.element import Element
 
 
@@ -37,7 +37,7 @@ class BaseEditor(ABC):
         - draw(context, container): Build the editor UI into the given container.
 
     Subclasses may override:
-        - poll(context, event): Return True when a full redraw is needed.
+        - poll(context, signal): Return True when a full redraw is needed.
         - on_focus(context): Called when this wrapper becomes active.
         - cleanup(): Release resources when permanently removed.
         - get_tab_label(context): Dynamic tab label for tabbed slots.
@@ -57,17 +57,20 @@ class BaseEditor(ABC):
     #: outside a wrapper (e.g. in direct unit tests).
     wrapper: "Optional[EditorWrapper]" = None
 
-    def poll(self, context: "SessionContext", event: "ContextChangedEvent") -> bool:
+    def poll(self, context: "SessionContext", signal: "ContextSignal") -> bool:
         """
         Determine whether this editor needs a full redraw.
 
-        Called by the orchestrator on every ContextChangedEvent. If this
+        Called by the orchestrator on every ContextSignal. If this
         returns True the orchestrator will clear the container and call
         draw(). The default implementation returns False (never redraw).
 
+        Subclasses filter with plain ``isinstance(signal, SignalType)`` —
+        no framework-side identity machinery (Q3A).
+
         Args:
             context: The current session context.
-            event: Describes what changed.
+            signal: The ContextSignal describing what moved in the session.
 
         Returns:
             True if the editor needs a full redraw, False otherwise.

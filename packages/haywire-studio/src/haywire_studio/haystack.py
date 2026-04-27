@@ -37,7 +37,7 @@ import logging
 
 import toml
 
-from haywire.ui.context_events import ContextChangedEvent, ContextChangeType
+from haywire.ui.context_signals import GraphDataMutated
 
 if TYPE_CHECKING:
     from haywire.core.graph.base import HaywireGraph
@@ -166,8 +166,11 @@ class Haystack:
 
         if bool(result.nodes or result.edges):
             entry.unsaved = True
-            event = ContextChangedEvent(change_type=ContextChangeType.DATA_MUTATED)
-            self._session_manager.broadcast(event)
+            # System-level broadcast (no originating session). Every session
+            # sees the signal with subject=peer("") — receivers re-read
+            # ground-truth state from the shared BaseGraph and don't depend
+            # on subject identity here.
+            self._session_manager.broadcast_signal(GraphDataMutated(), origin_session_id="")
 
     # ------------------------------------------------------------------
     # Graph lifecycle

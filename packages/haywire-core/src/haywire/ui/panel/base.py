@@ -155,7 +155,7 @@ class BasePanel(ABC):
         - class_identity.default_open: Whether the panel starts expanded.
 
     Lifecycle:
-        1. Editor receives ContextChangedEvent.
+        1. Editor receives ContextSignal.
         2. Editor queries PanelRegistry for panels matching its editor_key.
         3. For each panel, editor calls poll(context).
         4. If poll() returns True, editor calls draw(context, layout).

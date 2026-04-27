@@ -86,7 +86,10 @@ def test_selection_changed_notifies_session():
         session=session,
     )
     handler.process_selection_change(SelectionChangedEvent(selectedNodes=["n1"], selectedEdges=["e1"]))
-    session.notify_context_changed.assert_called_once()
+    session.signal.assert_called_once()
+    from haywire.ui.context_signals import SelectionMoved
+
+    assert isinstance(session.signal.call_args.args[0], SelectionMoved)
     assert session.context.selected_nodes == {"n1"}
     assert session.context.selected_edges == {"e1"}
 

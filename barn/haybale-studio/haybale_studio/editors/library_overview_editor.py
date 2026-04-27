@@ -32,7 +32,12 @@ from haywire.ui.editor.registry import EditorTypeRegistry
 from haywire.ui.panel.registry import PanelRegistry
 from haywire.ui.skin.registry import SkinRegistry
 from haywire.ui.themes import ThemeRegistry
-from haywire.ui.context_events import ContextChangeType, ContextChangedEvent
+from haywire.ui.context_signals import (
+    ActiveComponentMoved,
+    ActiveLibraryMoved,
+    LibraryCatalogChanged,
+    RevealRequest,
+)
 
 from haywire.core.library.info import LibraryInfo
 from haywire_studio.library_manager import LibraryManager, MarketplaceEntry
@@ -41,6 +46,7 @@ from haywire.ui.widget.registry import WidgetRegistry
 
 if TYPE_CHECKING:
     from haywire.ui.context import SessionContext
+    from haywire.ui.context_signals import ContextSignal
     from nicegui.element import Element
 
 
@@ -96,8 +102,10 @@ class LibraryOverviewEditor(BaseEditor):
     # Public editor interface
     # ─────────────────────────────────────────────────────────────────────────
 
-    def poll(self, context: "SessionContext", event: "ContextChangedEvent") -> bool:
-        return event.change_type == ContextChangeType.LIBRARY_STATE_CHANGED
+    def poll(self, context: "SessionContext", signal: "ContextSignal") -> bool:
+        # Today's LIBRARY_STATE_CHANGED filter widens to both replacement
+        # signal classes during migration (§11.2 editorial decision #6).
+        return isinstance(signal, (ActiveLibraryMoved, LibraryCatalogChanged))
 
     def draw(self, context: "SessionContext", container: "Element") -> None:
         self._container = container
@@ -599,12 +607,8 @@ class LibraryOverviewEditor(BaseEditor):
 
         session = context.session
         if session is not None:
-            session.notify_context_changed(
-                ContextChangedEvent(
-                    change_type=ContextChangeType.ACTIVE_COMPONENT_CHANGED,
-                    reveal_editor=LibraryComponentEditor.class_identity.registry_key,
-                )
-            )
+            session.signal(ActiveComponentMoved())
+            session.reveal(RevealRequest(editor=LibraryComponentEditor))
 
     # ─────────────────────────────────────────────────────────────────────────
     # Enable / Disable
@@ -639,14 +643,13 @@ class LibraryOverviewEditor(BaseEditor):
             return None
 
     def _notify_library_changed(self, context: "SessionContext") -> None:
-        """Broadcast LIBRARY_STATE_CHANGED so all editors (incl. LibraryBrowser) refresh."""
+        """Broadcast LibraryCatalogChanged so all editors (incl. LibraryBrowser)
+        refresh — and so peer sessions update too (latent-bug-flip per §11:
+        was local-only, now cross-session via ``cross_session=True``).
+        """
         session = context.session
         if session is not None:
-            session.notify_context_changed(
-                ContextChangedEvent(
-                    change_type=ContextChangeType.LIBRARY_STATE_CHANGED,
-                )
-            )
+            session.signal(LibraryCatalogChanged())
 
     # ─────────────────────────────────────────────────────────────────────────
     # Uninstall

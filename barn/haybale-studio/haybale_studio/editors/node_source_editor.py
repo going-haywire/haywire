@@ -28,14 +28,14 @@ from typing import TYPE_CHECKING, Optional
 from nicegui import ui
 
 from haywire.ui import elements as hui
-from haywire.ui.context_events import ContextChangeType
+from haywire.ui.context_signals import SelectionMoved, ThemeMoved
 from haywire.ui.editor.base import BaseEditor
 from haywire.ui.editor.decorator import editor
 
 if TYPE_CHECKING:
     from haywire.core.registry.lifecycle_event import LifeCycleEvent
     from haywire.ui.context import SessionContext
-    from haywire.ui.context_events import ContextChangedEvent
+    from haywire.ui.context_signals import ContextSignal
     from nicegui.element import Element
 
 
@@ -51,12 +51,7 @@ logger = logging.getLogger(__name__)
 class NodeSourceEditor(BaseEditor):
     """Source viewer/editor that follows ``context.active_node``."""
 
-    _RELEVANT_EVENTS = frozenset(
-        {
-            ContextChangeType.SELECTION_CHANGED,
-            ContextChangeType.WORKBENCH_THEME_CHANGED,
-        }
-    )
+    _RELEVANT_SIGNALS = (SelectionMoved, ThemeMoved)
 
     def __init__(self) -> None:
         # Buffer state
@@ -87,14 +82,14 @@ class NodeSourceEditor(BaseEditor):
     # BaseEditor interface
     # ------------------------------------------------------------------
 
-    def poll(self, context: "SessionContext", event: "ContextChangedEvent") -> bool:
+    def poll(self, context: "SessionContext", signal: "ContextSignal") -> bool:
         # While the user is editing, freeze the buffer against selection
         # churn. Theme changes still redraw so CodeMirror picks up the
         # new colors — but theme changes are expected to be rare and the
         # redraw happily reads the already-dirty _content out of self.
-        if self._pinned and event.change_type == ContextChangeType.SELECTION_CHANGED:
+        if self._pinned and isinstance(signal, SelectionMoved):
             return False
-        return event.change_type in self._RELEVANT_EVENTS
+        return isinstance(signal, self._RELEVANT_SIGNALS)
 
     def draw(self, context: "SessionContext", container: "Element") -> None:
         # If we're not pinned, reload from active_node. If we are pinned,
@@ -374,15 +369,15 @@ class NodeSourceEditor(BaseEditor):
         # how file_browser does it.
         from haybale_studio.editors.code_editor import CodeEditor
 
-        from haywire.ui.context_events import ContextChangedEvent
+        from haywire.ui.context_signals import ActiveFileMoved, RevealRequest
 
-        session.notify_context_changed(
-            ContextChangedEvent(
-                change_type=ContextChangeType.FILE_SELECTED,
-                detail=self._path,
-                reveal_editor=CodeEditor.class_identity.registry_key,
-                reveal_payload=str(self._path),
-                reveal_label=self._path.name,
+        session.context.active_file = self._path
+        session.signal(ActiveFileMoved())
+        session.reveal(
+            RevealRequest(
+                editor=CodeEditor,
+                payload=str(self._path),
+                label=self._path.name,
             )
         )
 

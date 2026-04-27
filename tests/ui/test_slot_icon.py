@@ -157,14 +157,15 @@ def test_icon_slot_renders_row_with_bar_and_area(monkeypatch):
     assert "tab_panels" in kinds
 
 
-def test_icon_slot_bar_click_fires_switch_and_workspace_changed(monkeypatch):
-    from haywire.ui.context_events import ContextChangeType
-
+def test_icon_slot_bar_click_switches_active_binding(monkeypatch):
+    """Clicking an icon swaps the active binding. The legacy
+    WORKSPACE_CHANGED emission was deleted (Q6A) — on_focus runs via
+    Slot._activate during switch_to, no separate bus event is needed."""
     created = _install_ui_fakes(monkeypatch)
     a = _editor_cls("a")
     b = _editor_cls("b")
-    notified = []
-    session = SimpleNamespace(context=None, notify_context_changed=notified.append)
+    signals = []
+    session = SimpleNamespace(context=None, signal=signals.append)
     reg = _FakeRegistry()
     slot = IconSlot(
         session=session,
@@ -183,8 +184,10 @@ def test_icon_slot_bar_click_fires_switch_and_workspace_changed(monkeypatch):
     buttons[1].on_click()  # click the 'b' icon
 
     assert slot.active_key == "b"
-    assert len(notified) == 1
-    assert notified[0].change_type == ContextChangeType.WORKSPACE_CHANGED
+    # No signal is emitted by the slot itself for the switch — on_focus
+    # handles "wrapper just became active" directly, and any context-state
+    # signals come from the editor's own on_focus implementation.
+    assert signals == []
 
 
 def test_icon_slot_fold_toggle_flips_visible(monkeypatch):
@@ -193,7 +196,7 @@ def test_icon_slot_fold_toggle_flips_visible(monkeypatch):
     vis_calls = []
     reg = _FakeRegistry()
     slot = IconSlot(
-        session=SimpleNamespace(context=None, notify_context_changed=lambda _e: None),
+        session=SimpleNamespace(context=None),
         name="left",
         registry=reg,
         bar_place="left",

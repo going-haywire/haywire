@@ -19,13 +19,13 @@ from nicegui import ui
 from haywire.ui import elements as hui
 from haywire.ui.editor.decorator import editor
 from haywire.ui.editor.base import BaseEditor
-from haywire.ui.context_events import ContextChangeType, ContextChangedEvent
+from haywire.ui.context_signals import ActiveGraphMoved, GraphDataMutated
 from haywire.ui.graph_canvas.graph_canvas_manager import GraphCanvasManager
 
 if TYPE_CHECKING:
     from haywire_studio.haystack import GraphEntry
     from haywire.ui.context import SessionContext
-    from haywire.ui.context_events import ContextChangedEvent
+    from haywire.ui.context_signals import ContextSignal
     from nicegui.element import Element
 
 logger = logging.getLogger(__name__)
@@ -79,9 +79,9 @@ class GraphEditor(BaseEditor):
     # poll / draw
     # ------------------------------------------------------------------
 
-    def poll(self, context: "SessionContext", event: "ContextChangedEvent") -> bool:
+    def poll(self, context: "SessionContext", signal: "ContextSignal") -> bool:
         # Each GraphEditor instance is pinned to one graph via its binding
-        # payload. ACTIVE_GRAPH_CHANGED now just means "some tab became the
+        # payload. ActiveGraphMoved now just means "some tab became the
         # foreground" — this instance's own graph hasn't changed, so there
         # is nothing to redraw. The canvas keeps its zoom/pan, selection,
         # and DOM state across tab switches.
@@ -127,12 +127,7 @@ class GraphEditor(BaseEditor):
         context.active_graph_path = entry.path
 
         if session is not None:
-            session.notify_context_changed(
-                ContextChangedEvent(
-                    change_type=ContextChangeType.ACTIVE_GRAPH_CHANGED,
-                    detail=entry,
-                )
-            )
+            session.signal(ActiveGraphMoved())
 
     def draw(self, context: "SessionContext", container: "Element") -> None:
         self._context = context
@@ -302,11 +297,7 @@ class GraphEditor(BaseEditor):
         entry.editor.undo()
         session = context.session
         if session is not None:
-            session.notify_cross_session_context_change(
-                ContextChangedEvent(
-                    change_type=ContextChangeType.DATA_MUTATED,
-                )
-            )
+            session.signal(GraphDataMutated())
 
     def _do_redo(self, context: "SessionContext") -> None:
         """Redo the last undone action on the active graph."""
@@ -316,11 +307,7 @@ class GraphEditor(BaseEditor):
         entry.editor.redo()
         session = context.session
         if session is not None:
-            session.notify_cross_session_context_change(
-                ContextChangedEvent(
-                    change_type=ContextChangeType.DATA_MUTATED,
-                )
-            )
+            session.signal(GraphDataMutated())
 
     # ------------------------------------------------------------------
     # save
@@ -354,11 +341,7 @@ class GraphEditor(BaseEditor):
                 # and other headers clear their dirty indicators.
                 session = context.session
                 if session is not None:
-                    session.notify_cross_session_context_change(
-                        ContextChangedEvent(
-                            change_type=ContextChangeType.DATA_MUTATED,
-                        )
-                    )
+                    session.signal(GraphDataMutated())
             else:
                 ui.notify("Save failed", type="negative", position="top-right")
             return
@@ -489,19 +472,10 @@ class GraphEditor(BaseEditor):
                 # wrapper's payload + label reflect the new file path.
                 self.wrapper.repayload(new_payload, new_label=entry.display_name)
             if session:
-                session.notify_context_changed(
-                    ContextChangedEvent(
-                        change_type=ContextChangeType.ACTIVE_GRAPH_CHANGED,
-                        detail=entry,
-                    )
-                )
+                session.signal(ActiveGraphMoved())
                 # Notify peer sessions so their GraphManagerEditor and header
                 # also clear the dirty indicator.
-                session.notify_cross_session_context_change(
-                    ContextChangedEvent(
-                        change_type=ContextChangeType.DATA_MUTATED,
-                    )
-                )
+                session.signal(GraphDataMutated())
             ui.notify(f"Saved: {save_path.name}", type="positive", position="top-right")
             dialog.close()
         else:

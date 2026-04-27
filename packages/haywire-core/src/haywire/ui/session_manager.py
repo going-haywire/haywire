@@ -3,14 +3,16 @@
 SessionManager — manages the lifecycle of all active browser sessions.
 
 Each browser connection gets its own Session. The SessionManager creates,
-tracks, and removes sessions. It also provides broadcast() to fan a
-ContextChangedEvent to every session — used for cross-session updates.
+tracks, and removes sessions. It also provides broadcast_signal() to fan a
+ContextSignal to every session — used for cross-session updates when the
+signal class declares ``cross_session = True``.
 """
 
 import logging
+from dataclasses import replace
 from typing import Dict, Optional, TYPE_CHECKING
 
-from haywire.ui.context_events import ContextChangedEvent
+from haywire.ui.context_signals import ContextSignal, Subject
 
 if TYPE_CHECKING:
     from haywire.ui.session import Session
@@ -27,7 +29,7 @@ class SessionManager:
         manager = SessionManager()
         session = manager.create_session(project_state=app, workspace_manager=ws)
         manager.remove_session(session.session_id)
-        manager.broadcast(event)
+        manager.broadcast_signal(signal, origin_session_id=...)
     """
 
     def __init__(self):
@@ -88,23 +90,36 @@ class SessionManager:
     # Broadcast helpers
     # ------------------------------------------------------------------
 
-    def broadcast(self, event: ContextChangedEvent) -> None:
-        """Fan an event out to every registered session.
+    def broadcast_signal(self, signal: ContextSignal, origin_session_id: str) -> None:
+        """Fan a ContextSignal out to every registered session.
 
-        Used for cross-session notifications (e.g. DATA_MUTATED after a
-        graph edit). Consumers already re-read their own ground-truth state
-        when notified, so unconditional fan-out is safe — a session that
-        doesn't care no-ops on receipt.
+        Stamps ``subject = Subject.peer(origin_session_id)`` on signals
+        delivered to sessions other than the origin; the origin session
+        receives the signal with ``subject = Subject.SELF`` (the default).
+
+        Per-peer exceptions are swallowed and logged — a subscriber
+        raising in one session does not abort delivery to others. This
+        matches the legacy ``broadcast`` semantics; see §6.5 of the
+        design doc for the cross-session delivery contract.
+
+        Args:
+            signal: The ContextSignal to fan out.
+            origin_session_id: The session_id of the session that emitted
+                the signal. Receives the signal with subject=SELF.
         """
         failed = []
         for session_id, session in list(self._sessions.items()):
             try:
-                session.notify_context_changed(event)
+                if session_id == origin_session_id:
+                    delivered = signal
+                else:
+                    delivered = replace(signal, subject=Subject.peer(origin_session_id))
+                session._dispatch_signal(delivered)
             except Exception as e:
-                logger.warning(f"SessionManager: broadcast failed for session {session_id[:8]}: {e}")
+                logger.warning(f"SessionManager: broadcast_signal failed for session {session_id[:8]}: {e}")
                 failed.append(session_id)
         if failed:
-            logger.warning(f"SessionManager: {len(failed)} session(s) failed during broadcast")
+            logger.warning(f"SessionManager: {len(failed)} session(s) failed during broadcast_signal")
 
     def cleanup_all(self) -> None:
         """Clean up all sessions (call on application shutdown)."""

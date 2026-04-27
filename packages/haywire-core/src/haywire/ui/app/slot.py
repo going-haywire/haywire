@@ -18,12 +18,13 @@ Relationship to AppShell:
 * The shell calls ``slot.render(parent)`` (or ``slot._render_area`` directly
   at existing call sites until Task 10) to mount each slot's container at
   the right spot in the layout.
-* On user click (bar) or ``reveal_editor`` event, the shell calls
-  ``slot.switch_to(key)`` and does its own follow-up (bar refresh,
-  WORKSPACE_CHANGED broadcast). The slot handles everything inside its
-  area — container clear, instance lazy-create, draw.
-* On every ``ContextChangedEvent``, the shell calls
-  ``slot.handle_context_event(event)`` on each slot to run the poll/draw
+* On user click (bar) or ``RevealRequest``, the shell calls
+  ``slot.switch_to(key)`` and does its own follow-up (bar refresh).
+  ``Slot._activate`` calls ``editor.on_focus`` for the newly-active
+  wrapper. The slot handles everything inside its area — container
+  clear, instance lazy-create, draw.
+* On every ``ContextSignal``, the shell calls
+  ``slot.handle_signal(signal)`` on each slot to run the poll/draw
   gate on the active wrapper.
 """
 
@@ -40,7 +41,7 @@ from haywire.ui.editor.registry import EditorTypeRegistry
 from haywire.ui.editor.wrapper import EditorWrapper
 
 if TYPE_CHECKING:
-    from haywire.ui.context_events import ContextChangedEvent
+    from haywire.ui.context_signals import ContextSignal
     from haywire.ui.editor.base import BaseEditor
     from haywire.ui.session import Session
 
@@ -64,7 +65,7 @@ class Slot(ABC):
         * ``switch_to(key)`` changes the active wrapper, clears the area,
           re-draws the new active wrapper's editor. Returns ``True`` only
           when the active key actually changed.
-        * ``handle_context_event(event)`` runs the poll/draw gate on the
+        * ``handle_signal(signal)`` runs the poll/draw gate on the
           active wrapper. No-op when there is no active wrapper.
         * ``set_visible(visible)`` toggles the area container visibility.
 
@@ -601,11 +602,11 @@ class Slot(ABC):
     # Orchestrator hook
     # ------------------------------------------------------------------
 
-    def handle_context_event(self, event: "ContextChangedEvent") -> None:
-        """Forward the event to the active wrapper's poll/redraw gate."""
+    def handle_signal(self, signal: "ContextSignal") -> None:
+        """Forward a signal to the active wrapper's poll/redraw gate."""
         if self._active is None or self._area_panel_container is None:
             return
-        if self._active.poll(event):
+        if self._active.poll(signal):
             self._redraw(self._active)
 
     # ------------------------------------------------------------------

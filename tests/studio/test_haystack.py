@@ -88,7 +88,12 @@ def test_new_entry_subscribes_validation_callback(tmp_path: Path) -> None:
     haystack._on_entry_validation(entry, result)
 
     assert entry.unsaved is True
-    sm.broadcast.assert_called_once()
+    sm.broadcast_signal.assert_called_once()
+    # Confirm the broadcast carries the new GraphDataMutated signal type.
+    from haywire.ui.context_signals import GraphDataMutated
+
+    args, kwargs = sm.broadcast_signal.call_args
+    assert isinstance(args[0], GraphDataMutated)
 
 
 def test_on_entry_validation_stops_execution_on_reassembly(tmp_path: Path) -> None:

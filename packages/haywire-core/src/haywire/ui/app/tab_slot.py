@@ -18,7 +18,6 @@ from nicegui import ui
 
 from haywire.ui.app.slot import Slot
 from haywire.ui.editor.wrapper import EditorWrapper
-from haywire.ui.context_events import ContextChangedEvent, ContextChangeType
 
 logger = logging.getLogger(__name__)
 
@@ -106,14 +105,16 @@ class TabSlot(Slot):
     # ------------------------------------------------------------------
 
     def _on_tab_clicked(self, tab_id: str) -> None:
-        """Switch to the clicked tab and broadcast WORKSPACE_CHANGED."""
+        """Switch to the clicked tab.
+
+        ``slot.switch_to`` already calls ``editor.on_focus`` via
+        ``Slot._activate`` (slot.py:499-505), so no separate context
+        notification is needed — focus-followers run on the on_focus path.
+        """
         editor_key, payload = EditorWrapper.split_id(tab_id)
         if not self.switch_to(editor_key, payload):
             return
         self._refresh_bar()
-        self._session.notify_context_changed(
-            ContextChangedEvent(change_type=ContextChangeType.WORKSPACE_CHANGED)
-        )
 
     async def _on_tab_close_clicked(self, tab_id: str) -> None:
         """Ask the editor whether to close, then close if allowed.

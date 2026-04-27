@@ -18,13 +18,13 @@ from typing import TYPE_CHECKING, Optional
 from nicegui import ui
 
 from haywire.ui import elements as hui
-from haywire.ui.context_events import ContextChangeType
+from haywire.ui.context_signals import ThemeMoved
 from haywire.ui.editor.base import BaseEditor
 from haywire.ui.editor.decorator import editor
 
 if TYPE_CHECKING:
     from haywire.ui.context import SessionContext
-    from haywire.ui.context_events import ContextChangedEvent
+    from haywire.ui.context_signals import ContextSignal
     from nicegui.element import Element
 
 
@@ -103,9 +103,9 @@ class CodeEditor(BaseEditor):
     # rendering
     # ------------------------------------------------------------------
 
-    def poll(self, context: "SessionContext", event: "ContextChangedEvent") -> bool:
+    def poll(self, context: "SessionContext", signal: "ContextSignal") -> bool:
         """Redraw on workbench-theme change so CodeMirror picks up the new theme."""
-        return event.change_type == ContextChangeType.WORKBENCH_THEME_CHANGED
+        return isinstance(signal, ThemeMoved)
 
     @staticmethod
     def _codemirror_theme(context: "SessionContext") -> str:

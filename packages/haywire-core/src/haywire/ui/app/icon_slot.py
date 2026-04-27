@@ -20,7 +20,6 @@ from nicegui import ui
 
 from haywire.ui.app.slot import Slot
 from haywire.ui.editor.wrapper import EditorWrapper
-from haywire.ui.context_events import ContextChangedEvent, ContextChangeType
 
 
 class IconSlot(Slot):
@@ -108,13 +107,15 @@ class IconSlot(Slot):
     # ------------------------------------------------------------------
 
     def _on_icon_clicked(self, wrapper: EditorWrapper) -> None:
-        """Switch to ``wrapper`` and broadcast WORKSPACE_CHANGED."""
+        """Switch to ``wrapper``.
+
+        ``slot.switch_to`` already calls ``editor.on_focus`` via
+        ``Slot._activate`` (slot.py:499-505), so no separate context
+        notification is needed.
+        """
         if not self.switch_to(wrapper.editor_key, wrapper.payload):
             return
         self._refresh_bar()
-        self._session.notify_context_changed(
-            ContextChangedEvent(change_type=ContextChangeType.WORKSPACE_CHANGED)
-        )
 
     def _on_fold_toggle_clicked(self) -> None:
         """Flip the slot's area visibility."""
