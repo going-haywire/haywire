@@ -7,7 +7,12 @@ import pytest
 
 import haywire.core.graph.editor  # noqa: F401 -- circular-import guard
 
-from haywire.ui.context_signals import ActiveGraphMoved, GraphDataMutated, GraphRemoved
+from haywire.ui.context_signals import (
+    ActiveGraphMoved,
+    Close,
+    GraphDataMutated,
+    GraphRemoved,
+)
 
 
 @pytest.fixture
@@ -24,7 +29,7 @@ def editor_and_context():
         session_id="sess-1",
         workspace_manager=None,
         signal=MagicMock(),
-        reveal=MagicMock(),
+        lifecycle=MagicMock(),
     )
 
     app = SimpleNamespace(
@@ -108,20 +113,24 @@ def test_remove_executing_entry_blocked_before_dialog(editor_and_context):
     assert any("Stop execution" in str(c) for c in mock_notify.call_args_list)
 
 
-def test_remove_entry_helper_fires_graph_removed(editor_and_context):
+def test_remove_entry_helper_fires_graph_removed_signal_and_close_command(editor_and_context):
     editor, context, app, haystack = editor_and_context
     entry = _make_entry(path="/tmp/a.haywire", unsaved=False)
 
     with patch("haybale_studio.editors.haystack_editor.ui.notify"):
         editor._remove_entry(entry, context)
 
+    # Signal channel: GraphRemoved (cross-session observation, no payload)
+    # and GraphDataMutated (via _notify_data_mutated, also cross-session).
     emitted_signals = [call.args[0] for call in context.session.signal.call_args_list]
-    # GraphRemoved emitted (with the right entry_id), and GraphDataMutated emitted
-    # via _notify_data_mutated. Both are cross_session=True per §11.
-    graph_removed_signals = [s for s in emitted_signals if isinstance(s, GraphRemoved)]
-    assert len(graph_removed_signals) == 1
-    assert graph_removed_signals[0].entry_id == entry.entry_id
+    assert any(isinstance(s, GraphRemoved) for s in emitted_signals)
     assert any(isinstance(s, GraphDataMutated) for s in emitted_signals)
+
+    # Lifecycle channel: a Close command for the removed entry, local-only.
+    emitted_commands = [call.args[0] for call in context.session.lifecycle.call_args_list]
+    close_commands = [c for c in emitted_commands if isinstance(c, Close)]
+    assert len(close_commands) == 1
+    assert close_commands[0].payload == entry.entry_id
 
 
 def test_remove_entry_helper_clears_active_graph_when_active(editor_and_context):

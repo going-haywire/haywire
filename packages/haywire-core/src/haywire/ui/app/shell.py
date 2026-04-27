@@ -23,9 +23,10 @@ from nicegui import ui
 
 from haywire.ui import elements as hui
 from haywire.ui.context_signals import (
+    Close,
     ContextSignal,
-    GraphRemoved,
-    RevealRequest,
+    LifecycleCommand,
+    Reveal,
     ThemeMoved,
 )
 from haywire.ui.app.slot import Slot
@@ -280,9 +281,9 @@ class AppShell:
         settings_registry = self.session.context.app.library_service.get_settings_registry()
         settings_registry.subscribe(None, self._on_setting_changed)
 
-        # Two-channel orchestrator wiring (signal + reveal).
+        # Two-channel orchestrator wiring (signal + lifecycle).
         self.session.set_signal_orchestrator(self._on_signal)
-        self.session.set_reveal_orchestrator(self._on_reveal)
+        self.session.set_lifecycle_orchestrator(self._on_lifecycle)
 
         # Drag-resize handlers for left/middle/right/bottom panels. These use JavaScript
         # to set inline styles on the fly for immediate response and to avoid conflicts
@@ -588,33 +589,40 @@ class AppShell:
     def _on_signal(self, signal: ContextSignal) -> None:
         """Signal-channel orchestrator callback.
 
-        Runs the GraphRemoved tab-close side-effect (if applicable), then
-        fans the signal out to every managed slot's poll/draw gate.
+        Pure fan-out: every managed slot's poll/draw gate sees every
+        signal. No type-aware branching here — side-effects on signal
+        types belong on the lifecycle channel.
         """
-        if isinstance(signal, GraphRemoved):
-            self._handle_graph_removed(signal)
-
         for slot in self._managed_slots.values():
             slot.handle_signal(signal)
 
-    def _on_reveal(self, request: RevealRequest) -> None:
-        """Reveal-channel orchestrator callback.
+    def _on_lifecycle(self, command: LifecycleCommand) -> None:
+        """Lifecycle-channel orchestrator callback.
 
-        Resolves the request's editor class to its registry key and
-        delegates to ``_reveal_editor``.
+        Routes per-command type:
+
+        - ``Reveal`` is point-to-point — resolved to a slot via the
+          editor's ``default_slot`` and dispatched there.
+        - ``Close`` is fan-out — every TabSlot is asked to close any
+          tab whose payload matches.
         """
-        editor_key = request.editor.class_identity.registry_key
-        self._reveal_editor(editor_key, request.payload, request.label)
+        if isinstance(command, Reveal):
+            editor_key = command.editor.class_identity.registry_key
+            self._reveal_editor(editor_key, command.payload, command.label)
+        elif isinstance(command, Close):
+            self._close_payload(command.payload)
+        else:
+            logger.warning(f"AppShell: unknown LifecycleCommand subclass {type(command).__name__}")
 
-    def _handle_graph_removed(self, signal: GraphRemoved) -> None:
-        """Close every tab bound to the removed graph entry."""
+    def _close_payload(self, payload: str) -> None:
+        """Close every tab bound to ``payload`` across all TabSlots."""
         from haywire.ui.app.tab_slot import TabSlot
 
-        if not signal.entry_id:
+        if not payload:
             return
         for slot in self._managed_slots.values():
             if isinstance(slot, TabSlot):
-                slot.close_tabs_for_payload(signal.entry_id)
+                slot.close_tabs_for_payload(payload)
 
     def _on_slot_resize(self, event) -> None:
         """Dispatch ``hw-slot-resize`` events from the drag JS to the target slot.

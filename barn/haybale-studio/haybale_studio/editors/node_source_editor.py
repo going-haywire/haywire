@@ -369,12 +369,12 @@ class NodeSourceEditor(BaseEditor):
         # how file_browser does it.
         from haybale_studio.editors.code_editor import CodeEditor
 
-        from haywire.ui.context_signals import ActiveFileMoved, RevealRequest
+        from haywire.ui.context_signals import ActiveFileMoved, Reveal
 
         session.context.active_file = self._path
         session.signal(ActiveFileMoved())
-        session.reveal(
-            RevealRequest(
+        session.lifecycle(
+            Reveal(
                 editor=CodeEditor,
                 payload=str(self._path),
                 label=self._path.name,

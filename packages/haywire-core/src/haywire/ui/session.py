@@ -8,7 +8,7 @@ import uuid
 import logging
 
 from .context import SessionContext
-from .context_signals import ContextSignal, RevealRequest
+from .context_signals import ContextSignal, LifecycleCommand
 from .workspace.manager import WorkspaceManager
 
 logger = logging.getLogger(__name__)
@@ -38,8 +38,9 @@ class Session:
       delegates to ``SessionManager.broadcast_signal`` which dispatches
       to every session (including this one) and stamps
       ``subject = Subject.peer(origin_id)`` on non-origin sessions.
-    - ``session.reveal(r: RevealRequest)`` — command, point-to-point,
-      local-only.
+    - ``session.lifecycle(cmd: LifecycleCommand)`` — imperative
+      mutation of the workspace tree (``Reveal`` brings an editor to
+      the front, ``Close`` removes tabs bound to a payload). Local-only.
     """
 
     def __init__(
@@ -66,9 +67,9 @@ class Session:
         self._editors: Dict[str, "BaseEditor"] = {}
 
         # Two-callback wiring set by AppShell. Bound to
-        # AppShell._on_signal / _on_reveal.
+        # AppShell._on_signal / _on_lifecycle.
         self._signal_callback: Optional[Callable[[ContextSignal], None]] = None
-        self._reveal_callback: Optional[Callable[[RevealRequest], None]] = None
+        self._lifecycle_callback: Optional[Callable[[LifecycleCommand], None]] = None
 
         self._shell: Optional["AppShell"] = None
 
@@ -86,13 +87,14 @@ class Session:
         """
         self._signal_callback = callback
 
-    def set_reveal_orchestrator(self, callback: Callable[[RevealRequest], None]) -> None:
-        """Register the AppShell._on_reveal handler.
+    def set_lifecycle_orchestrator(self, callback: Callable[[LifecycleCommand], None]) -> None:
+        """Register the AppShell._on_lifecycle handler.
 
         Args:
-            callback: The orchestrator's reveal handler (signature: request -> None).
+            callback: The orchestrator's lifecycle-command handler
+                (signature: command -> None).
         """
-        self._reveal_callback = callback
+        self._lifecycle_callback = callback
 
     def signal(self, signal: ContextSignal) -> None:
         """Emit a context signal.
@@ -122,17 +124,22 @@ class Session:
             except Exception as e:
                 logger.error(f"Session {self.session_id}: signal callback error: {e}")
 
-    def reveal(self, request: RevealRequest) -> None:
-        """Issue a reveal command (local-only).
+    def lifecycle(self, command: LifecycleCommand) -> None:
+        """Issue a lifecycle command (local-only).
+
+        Routes through the AppShell, which dispatches per-command:
+        ``Reveal`` is point-to-point (one slot resolved from
+        ``editor.class_identity.default_slot``); ``Close`` is fan-out
+        across slots.
 
         Args:
-            request: A RevealRequest naming the editor to bring to the front.
+            command: A LifecycleCommand subclass (Reveal / Close).
         """
-        if self._reveal_callback is not None:
+        if self._lifecycle_callback is not None:
             try:
-                self._reveal_callback(request)
+                self._lifecycle_callback(command)
             except Exception as e:
-                logger.error(f"Session {self.session_id}: reveal callback error: {e}")
+                logger.error(f"Session {self.session_id}: lifecycle callback error: {e}")
 
     def _dispatch_signal(self, signal: ContextSignal) -> None:
         """Internal: deliver a signal originating elsewhere (e.g. a peer
@@ -160,5 +167,5 @@ class Session:
             editor.cleanup()
         self._editors.clear()
         self._signal_callback = None
-        self._reveal_callback = None
+        self._lifecycle_callback = None
         logger.info(f"Session cleaned up: {self.session_id}")

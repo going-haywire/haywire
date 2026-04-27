@@ -26,9 +26,10 @@ from haywire.ui.editor.base import BaseEditor
 from haywire.ui.editor.decorator import editor
 from haywire.ui.context_signals import (
     ActiveGraphMoved,
+    Close,
     GraphDataMutated,
     GraphRemoved,
-    RevealRequest,
+    Reveal,
 )
 from haywire.ui.components.popup import Popup
 
@@ -347,10 +348,14 @@ class HaystackEditor(BaseEditor):
         app.haystack.remove_entry(entry)
 
         session = context.session
-        # Ask the shell to close any tab hosting this entry — and broadcast
-        # cross-session so peer tabs also close (latent-bug-flip per §11).
         if session is not None:
-            session.signal(GraphRemoved(entry_id=removed_id))
+            # Local lifecycle command: close every tab in this session
+            # bound to the removed entry.
+            session.lifecycle(Close(payload=removed_id))
+            # Cross-session observation: peer sessions refresh their
+            # haystack-derived views (and emit their own Close from
+            # their tab tracking if they have one).
+            session.signal(GraphRemoved())
 
         # If it was the active graph, clear the active graph → empty state
         if is_active:
@@ -593,8 +598,8 @@ class HaystackEditor(BaseEditor):
             return
 
         entry = app.haystack.create_new()
-        session.reveal(
-            RevealRequest(
+        session.lifecycle(
+            Reveal(
                 editor=GraphEditor,
                 payload=entry.entry_id,
                 label=entry.display_name,
@@ -606,8 +611,8 @@ class HaystackEditor(BaseEditor):
         session = context.session
         if session is None:
             return
-        session.reveal(
-            RevealRequest(
+        session.lifecycle(
+            Reveal(
                 editor=GraphEditor,
                 payload=entry.entry_id,
                 label=entry.display_name,
@@ -731,8 +736,8 @@ class HaystackEditor(BaseEditor):
                 session = context.session
                 self._notify_data_mutated(context)
                 if active_entry is not None and session is not None:
-                    session.reveal(
-                        RevealRequest(
+                    session.lifecycle(
+                        Reveal(
                             editor=GraphEditor,
                             payload=active_entry.entry_id,
                             label=active_entry.display_name,
@@ -811,8 +816,8 @@ class HaystackEditor(BaseEditor):
                     return
 
                 entry = app.haystack.open_graph(path)
-                session.reveal(
-                    RevealRequest(
+                session.lifecycle(
+                    Reveal(
                         editor=GraphEditor,
                         payload=entry.entry_id,
                         label=entry.display_name,

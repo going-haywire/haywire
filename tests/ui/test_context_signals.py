@@ -1,16 +1,16 @@
-"""Tests for the new ContextSignal / RevealRequest vocabulary.
+"""Tests for the ContextSignal / LifecycleCommand vocabulary.
 
 Covers:
 - ContextSignal base class (frozen, default subject, cross_session ClassVar,
   is_local / is_from_peer predicates)
 - Subject value object (SELF singleton, peer factory, equality)
-- Concrete signal classes (typed payload on GraphRemoved, cross_session flags)
-- RevealRequest (frozen, equality)
+- Concrete signal classes (cross_session flags; GraphRemoved is payload-less)
+- LifecycleCommand subclasses: Reveal, Close
 - Session.signal() local-only routing for cross_session=False signals
 - Session.signal() + SessionManager.broadcast_signal for cross_session=True
 - SessionManager.broadcast_signal subject-stamping (origin sees SELF, peers see peer(id))
-- Session.reveal() routing
-- Signal/reveal sequential ordering (§4.4 contract)
+- Session.lifecycle() routing
+- Signal/lifecycle sequential ordering (§4.4 contract)
 """
 
 from dataclasses import FrozenInstanceError
@@ -25,11 +25,13 @@ from haywire.ui.context_signals import (
     ActiveFileMoved,
     ActiveGraphMoved,
     ActiveLibraryMoved,
+    Close,
     ContextSignal,
     GraphDataMutated,
     GraphRemoved,
     LibraryCatalogChanged,
-    RevealRequest,
+    LifecycleCommand,
+    Reveal,
     SelectionMoved,
     Subject,
     ThemeMoved,
@@ -102,41 +104,63 @@ def test_signal_is_frozen():
         s.subject = Subject.peer("x")  # type: ignore[misc]
 
 
-def test_graph_removed_carries_entry_id():
-    g = GraphRemoved(entry_id="entry-42")
-    assert g.entry_id == "entry-42"
+def test_graph_removed_is_payload_less():
+    """GraphRemoved is a pointer-only observation (§6.3). Tab-close
+    routing is a separate ``Close`` lifecycle command emitted by the
+    originating session.
+    """
+    g = GraphRemoved()
     assert g.cross_session is True
     assert g.subject == Subject.SELF
 
 
-def test_graph_removed_requires_entry_id():
-    with pytest.raises(TypeError):
-        GraphRemoved()  # type: ignore[call-arg]
-
-
 # ----------------------------------------------------------------------
-# RevealRequest
+# Reveal / Close (lifecycle commands)
 # ----------------------------------------------------------------------
 
 
 def test_reveal_request_basic():
     editor_cls = MagicMock()
-    r = RevealRequest(editor=editor_cls, payload="abc", label="My Tab")
+    r = Reveal(editor=editor_cls, payload="abc", label="My Tab")
     assert r.editor is editor_cls
     assert r.payload == "abc"
     assert r.label == "My Tab"
 
 
 def test_reveal_request_is_frozen():
-    r = RevealRequest(editor=MagicMock())
+    r = Reveal(editor=MagicMock())
     with pytest.raises(FrozenInstanceError):
         r.payload = "new"  # type: ignore[misc]
 
 
 def test_reveal_request_optional_payload_label():
-    r = RevealRequest(editor=MagicMock())
+    r = Reveal(editor=MagicMock())
     assert r.payload is None
     assert r.label is None
+
+
+def test_reveal_is_lifecycle_command():
+    assert isinstance(Reveal(editor=MagicMock()), LifecycleCommand)
+
+
+def test_close_carries_payload():
+    c = Close(payload="entry-42")
+    assert c.payload == "entry-42"
+
+
+def test_close_is_frozen():
+    c = Close(payload="x")
+    with pytest.raises(FrozenInstanceError):
+        c.payload = "y"  # type: ignore[misc]
+
+
+def test_close_requires_payload():
+    with pytest.raises(TypeError):
+        Close()  # type: ignore[call-arg]
+
+
+def test_close_is_lifecycle_command():
+    assert isinstance(Close(payload="x"), LifecycleCommand)
 
 
 # ----------------------------------------------------------------------
@@ -202,53 +226,66 @@ def test_session_signal_no_handler_is_noop():
 
 
 # ----------------------------------------------------------------------
-# Session.reveal()
+# Session.lifecycle()
 # ----------------------------------------------------------------------
 
 
-def test_session_reveal_calls_callback():
+def test_session_lifecycle_reveal_calls_callback():
     sm = MagicMock()
     session = _make_session(session_manager=sm)
     handler = MagicMock()
-    session.set_reveal_orchestrator(handler)
+    session.set_lifecycle_orchestrator(handler)
 
-    r = RevealRequest(editor=MagicMock(), payload="p")
-    session.reveal(r)
+    r = Reveal(editor=MagicMock(), payload="p")
+    session.lifecycle(r)
 
     handler.assert_called_once_with(r)
 
 
-def test_session_reveal_does_not_broadcast():
-    """Reveals are local-only (Q4A); they never cross sessions."""
+def test_session_lifecycle_close_calls_callback():
     sm = MagicMock()
     session = _make_session(session_manager=sm)
-    session.set_reveal_orchestrator(MagicMock())
+    handler = MagicMock()
+    session.set_lifecycle_orchestrator(handler)
 
-    session.reveal(RevealRequest(editor=MagicMock()))
+    c = Close(payload="x")
+    session.lifecycle(c)
+
+    handler.assert_called_once_with(c)
+
+
+def test_session_lifecycle_does_not_broadcast():
+    """Lifecycle commands are local-only; they never cross sessions."""
+    sm = MagicMock()
+    session = _make_session(session_manager=sm)
+    session.set_lifecycle_orchestrator(MagicMock())
+
+    session.lifecycle(Reveal(editor=MagicMock()))
+    session.lifecycle(Close(payload="x"))
 
     sm.broadcast.assert_not_called()
     sm.broadcast_signal.assert_not_called()
 
 
 # ----------------------------------------------------------------------
-# Signal/reveal ordering (§4.4)
+# Signal / lifecycle ordering (§4.4)
 # ----------------------------------------------------------------------
 
 
-def test_signal_runs_before_reveal_when_called_in_order():
-    """Authors call signal() then reveal(); the signal handler must
-    complete before the reveal handler starts."""
+def test_signal_runs_before_lifecycle_when_called_in_order():
+    """Authors call signal() then lifecycle(); the signal handler must
+    complete before the lifecycle handler starts."""
     sm = MagicMock()
     session = _make_session(session_manager=sm)
 
     call_order = []
     session.set_signal_orchestrator(lambda s: call_order.append("signal"))
-    session.set_reveal_orchestrator(lambda r: call_order.append("reveal"))
+    session.set_lifecycle_orchestrator(lambda c: call_order.append("lifecycle"))
 
     session.signal(SelectionMoved())
-    session.reveal(RevealRequest(editor=MagicMock()))
+    session.lifecycle(Reveal(editor=MagicMock()))
 
-    assert call_order == ["signal", "reveal"]
+    assert call_order == ["signal", "lifecycle"]
 
 
 # ----------------------------------------------------------------------

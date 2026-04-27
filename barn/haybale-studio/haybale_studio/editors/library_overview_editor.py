@@ -36,7 +36,7 @@ from haywire.ui.context_signals import (
     ActiveComponentMoved,
     ActiveLibraryMoved,
     LibraryCatalogChanged,
-    RevealRequest,
+    Reveal,
 )
 
 from haywire.core.library.info import LibraryInfo
@@ -608,7 +608,7 @@ class LibraryOverviewEditor(BaseEditor):
         session = context.session
         if session is not None:
             session.signal(ActiveComponentMoved())
-            session.reveal(RevealRequest(editor=LibraryComponentEditor))
+            session.lifecycle(Reveal(editor=LibraryComponentEditor))
 
     # ─────────────────────────────────────────────────────────────────────────
     # Enable / Disable

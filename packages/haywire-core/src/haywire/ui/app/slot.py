@@ -18,7 +18,7 @@ Relationship to AppShell:
 * The shell calls ``slot.render(parent)`` (or ``slot._render_area`` directly
   at existing call sites until Task 10) to mount each slot's container at
   the right spot in the layout.
-* On user click (bar) or ``RevealRequest``, the shell calls
+* On user click (bar) or a ``Reveal`` lifecycle command, the shell calls
   ``slot.switch_to(key)`` and does its own follow-up (bar refresh).
   ``Slot._activate`` calls ``editor.on_focus`` for the newly-active
   wrapper. The slot handles everything inside its area — container

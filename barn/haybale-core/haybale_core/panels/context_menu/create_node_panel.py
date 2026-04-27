@@ -13,7 +13,7 @@ from haywire.core.node.info import NodeInfo
 from haywire.ui import elements as hui
 from haywire.ui.panel.base import BasePanel, PanelLayout
 from haywire.ui.panel.decorator import panel
-from haywire.ui.context_signals import ActiveComponentMoved, RevealRequest
+from haywire.ui.context_signals import ActiveComponentMoved, Reveal
 from haywire.ui.graph_canvas.event_definitions import NodeCreateRequestEvent
 from haywire.ui.graph_canvas.node_menu_builder import NodeMenuBuilder
 
@@ -61,7 +61,7 @@ class CreateNodePanel(BasePanel):
 
                 context.active_component = node_info.identity.registry_key
                 context.session.signal(ActiveComponentMoved())
-                context.session.reveal(RevealRequest(editor=LibraryComponentEditor))
+                context.session.lifecycle(Reveal(editor=LibraryComponentEditor))
 
         with layout:
             builder = NodeMenuBuilder(node_factory)

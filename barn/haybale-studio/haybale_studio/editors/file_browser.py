@@ -30,7 +30,7 @@ from nicegui import ui
 from haywire.ui import elements as hui
 from haywire.ui.editor.base import BaseEditor
 from haywire.ui.editor.decorator import editor
-from haywire.ui.context_signals import ActiveFileMoved, RevealRequest
+from haywire.ui.context_signals import ActiveFileMoved, Reveal
 
 if TYPE_CHECKING:
     from haywire.ui.context import SessionContext
@@ -311,8 +311,8 @@ class LazyFileBrowserEditor(BaseEditor):
             return
 
         entry = app.haystack.open_graph(path)
-        session.reveal(
-            RevealRequest(
+        session.lifecycle(
+            Reveal(
                 editor=GraphEditor,
                 payload=entry.entry_id,
                 label=entry.display_name,
@@ -327,8 +327,8 @@ class LazyFileBrowserEditor(BaseEditor):
 
         context.active_file = path
         session.signal(ActiveFileMoved())
-        session.reveal(
-            RevealRequest(
+        session.lifecycle(
+            Reveal(
                 editor=CodeEditor,
                 payload=str(path),
                 label=path.name,
@@ -343,8 +343,8 @@ class LazyFileBrowserEditor(BaseEditor):
 
         context.active_file = path
         session.signal(ActiveFileMoved())
-        session.reveal(
-            RevealRequest(
+        session.lifecycle(
+            Reveal(
                 editor=FileViewerEditor,
                 payload=str(path),
                 label=path.name,

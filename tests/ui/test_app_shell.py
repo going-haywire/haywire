@@ -1,12 +1,12 @@
 """Tests for AppShell — post-refactor surface area.
 
-After the bus split (signal/reveal channels), AppShell owns:
+After the bus split (signal + lifecycle channels), AppShell owns:
   - Theme CSS build + `apply_workbench_theme`
   - Signal-channel orchestrator callback (`_on_signal`) fanning signals to slots
-  - Reveal-channel orchestrator callback (`_on_reveal`) → ``_reveal_editor``
+  - Lifecycle-channel orchestrator callback (`_on_lifecycle`) routing
+    ``Reveal`` to ``_reveal_editor`` and ``Close`` to ``_close_payload``
   - Slot construction via `_build_managed_slot`
   - `_on_slot_resize` dispatching to `slot.set_size`
-  - Tab-close/repayload/graph-removed signal → TabSlot method dispatch
 
 Bar rendering, tab-state mutations, visibility toggling, and hot-reload are
 tested in test_icon_slot.py / test_tab_slot.py / test_slot.py.
@@ -17,7 +17,7 @@ from types import SimpleNamespace
 
 import haywire.core.graph.editor as graph_editor_module
 from haywire.ui.app.shell import AppShell
-from haywire.ui.context_signals import GraphRemoved, RevealRequest
+from haywire.ui.context_signals import Close, Reveal
 from haywire.ui.editor.identity import OpenBehavior
 
 
@@ -37,7 +37,7 @@ class _FakeSession:
     def set_signal_orchestrator(self, _callback) -> None:
         pass
 
-    def set_reveal_orchestrator(self, _callback) -> None:
+    def set_lifecycle_orchestrator(self, _callback) -> None:
         pass
 
     def signal(self, s) -> None:
@@ -165,7 +165,7 @@ def test_on_slot_resize_ignores_malformed_args() -> None:
 
 
 # ---------------------------------------------------------------------------
-# _on_reveal — reveal dispatch
+# _on_lifecycle — Reveal + Close dispatch
 # ---------------------------------------------------------------------------
 
 
@@ -177,7 +177,7 @@ def test_reveal_editor_routes_through_icon_slot() -> None:
     fake = _FakeSlot("right", active_key="right:editor:one")
     shell._managed_slots["right"] = fake
 
-    shell._on_reveal(RevealRequest(editor=cls))
+    shell._on_lifecycle(Reveal(editor=cls))
 
     assert fake.switch_calls == [(target_key, None)]
     assert shell.session.signals_seen == []  # reveal must not broadcast a signal
@@ -192,7 +192,7 @@ def test_reveal_editor_unknown_logs_warning(caplog) -> None:
     shell._managed_slots["right"] = fake
 
     with caplog.at_level(logging.WARNING, logger="haywire.ui.app.shell"):
-        shell._on_reveal(RevealRequest(editor=cls))
+        shell._on_lifecycle(Reveal(editor=cls))
 
     assert fake.switch_calls == []
     assert any(nonexistent_key in rec.message for rec in caplog.records)
@@ -231,7 +231,7 @@ def test_reveal_editor_on_payload_without_payload_logs_and_skips(caplog) -> None
 
 
 # ---------------------------------------------------------------------------
-# GRAPH_REMOVED dispatch
+# Close lifecycle command — fan-out tab close across every TabSlot
 # ---------------------------------------------------------------------------
 
 
@@ -270,14 +270,14 @@ def _make_fake_tab_slot(name: str) -> "_FakeSlot":
     return _FakeTab(name)
 
 
-def test_handle_graph_removed_closes_matching_tabs_in_every_tab_slot() -> None:
+def test_close_lifecycle_command_closes_matching_tabs_in_every_tab_slot() -> None:
     shell = AppShell(session=_FakeSession(), editor_registry=None)
     main = _make_fake_tab_slot("main")
     bottom = _make_fake_tab_slot("bottom")
     shell._managed_slots["main"] = main
     shell._managed_slots["bottom"] = bottom
 
-    shell._handle_graph_removed(GraphRemoved(entry_id="/tmp/a.graph"))
+    shell._on_lifecycle(Close(payload="/tmp/a.graph"))
     assert main.close_tabs_for_payload_calls == ["/tmp/a.graph"]
     assert bottom.close_tabs_for_payload_calls == ["/tmp/a.graph"]
 

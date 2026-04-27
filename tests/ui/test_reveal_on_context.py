@@ -27,7 +27,7 @@ class _FakeSession:
     def set_signal_orchestrator(self, _callback) -> None:
         pass
 
-    def set_reveal_orchestrator(self, _callback) -> None:
+    def set_lifecycle_orchestrator(self, _callback) -> None:
         pass
 
 

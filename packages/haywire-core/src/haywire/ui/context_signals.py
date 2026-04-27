@@ -1,23 +1,26 @@
 # packages/haywire-core/src/haywire/ui/context_signals.py
 # (renamed from context_events.py — see implementation plan step 1)
 """
-Context signals and reveal requests for the Haywire UI system.
+Context signals and lifecycle commands for the Haywire UI system.
 
 Two channels flow through the AppShell:
 
-- **Observations** — `ContextSignal` subclasses describe state moves on the
-  session (selection changed, active graph switched, theme swapped, etc.).
-  Anyone may emit; anyone may subscribe; signals fan out to every editor in
-  the session via `Session.signal(...)`. Routing across session boundaries
-  is declared by the signal class via `cross_session: ClassVar[bool]`.
+- **Signal channel** — observations. ``ContextSignal`` subclasses describe
+  state moves on the session (selection changed, active graph switched,
+  theme swapped, etc.). Anyone may emit; anyone may subscribe; signals
+  fan out to every editor in the session via ``Session.signal(...)``.
+  Routing across session boundaries is declared by the signal class via
+  ``cross_session: ClassVar[bool]``.
 
-- **Commands** — `RevealRequest` is a point-to-point instruction to the shell
-  to bring a specific editor to the front. Local-only (does not cross
-  session boundaries). Sent via `Session.reveal(...)`.
+- **Lifecycle channel** — commands. ``LifecycleCommand`` subclasses
+  describe imperative mutations of the workspace tree (which editor
+  instances exist, in which slot, which is in front). ``Reveal`` brings
+  an editor to the front; ``Close`` removes tabs bound to a payload.
+  Sent via ``Session.lifecycle(...)``. Local-only: peer sessions own
+  their own workspace state.
 
-See `docs/speculative/context_events_simplification.md` for the design
-rationale and §11 for the per-enum-value migration mapping.
-
+See ``docs/speculative/context_events_simplification.md`` for the design
+rationale.
 """
 
 from __future__ import annotations
@@ -98,7 +101,8 @@ class ContextSignal:
 
     Uses ``kw_only=True`` so subclasses can declare non-defaulted fields
     after the inherited ``subject`` default without dataclass-ordering pain.
-    Construct signals with keyword args: ``GraphRemoved(entry_id="abc")``.
+    Construct signals with keyword args (e.g. for subclasses that
+    declare their own fields).
     """
 
     subject: Subject = Subject.SELF
@@ -169,16 +173,18 @@ class GraphDataMutated(ContextSignal):
     cross_session: ClassVar[bool] = True
 
 
-@dataclass(frozen=True, kw_only=True)
+@dataclass(frozen=True)
 class GraphRemoved(ContextSignal):
     """
-    A haystack entry was removed; close any tabs bound to it.
+    A haystack entry was removed. Cross-session — peer sessions need
+    to refresh views derived from the haystack.
 
-    The §6.3 inline-payload exception: the entry is gone from the haystack
-    by the time this fires, so a pointer would point at nothing. Cross-session.
+    Carries no payload (pointer-by-default rule, §6.3): receivers
+    re-read the haystack to discover what's still there. Tab-close
+    routing is a *separate* lifecycle command (``Close``) emitted by
+    the originating session.
     """
 
-    entry_id: str
     cross_session: ClassVar[bool] = True
 
 
@@ -206,23 +212,40 @@ class ThemeMoved(ContextSignal):
 
 
 # ---------------------------------------------------------------------------
-# RevealRequest — command channel
+# Lifecycle channel — commands that mutate which editors exist and where
 # ---------------------------------------------------------------------------
+#
+# Lifecycle commands are imperative requests to mutate the workspace tree
+# (which editor instances exist, in which slot, which is in front).
+# They are not observations — they don't fan out to "anyone who cares";
+# they are routed by AppShell to the slot(s) that can carry them out.
+#
+# All lifecycle commands are local-only: peer sessions own their own
+# workspace state, and one session cannot reach into another's tab order.
+# Cross-session synchronization is the job of the signal channel.
 
 
 @dataclass(frozen=True, kw_only=True)
-class RevealRequest:
-    """
-    Command: bring an editor to the front in its default slot.
+class LifecycleCommand:
+    """Base class for editor-lifecycle commands sent via ``Session.lifecycle(...)``.
 
-    Routed point-to-point by `AppShell` via `Session.reveal(...)`. Does NOT
-    cross session boundaries — peer sessions own their workspace state.
+    Subclasses describe a specific mutation of the workspace tree.
+    Routing is per-subclass: ``Reveal`` is point-to-point (one slot),
+    ``Close`` is fan-out across slots.
+    """
+
+
+@dataclass(frozen=True, kw_only=True)
+class Reveal(LifecycleCommand):
+    """Bring an editor to the front in its default slot.
+
+    Routed point-to-point: the orchestrator resolves
+    ``editor.class_identity.default_slot`` and dispatches to that slot.
+    If the slot is not hostable in the active workspace, the reveal is
+    dropped with a warning.
 
     Attributes:
-        editor: The editor class to reveal. Resolved to a slot via
-            ``editor.class_identity.default_slot``. If the slot is not
-            hostable in the active workspace, the reveal is dropped with
-            a warning.
+        editor: The editor class to reveal.
         payload: Optional disambiguator for multi-instance editors
             (e.g. a graph entry id). The orchestrator switches to the
             specific ``(editor_key, payload)`` tab rather than the first
@@ -235,3 +258,24 @@ class RevealRequest:
     editor: "type[BaseEditor]"
     payload: Optional[str] = None
     label: Optional[str] = None
+
+
+@dataclass(frozen=True, kw_only=True)
+class Close(LifecycleCommand):
+    """Close every tab bound to ``payload`` across all slots.
+
+    Routed as fan-out: the orchestrator asks every slot to close any
+    tab whose binding matches ``payload``. Used when the underlying
+    entity for a multi-instance editor goes away (e.g. a graph entry
+    is removed from the haystack) and tabs that pointed at it should
+    close.
+
+    Local-only — peer sessions decide what tabs *they* have open in
+    response to the corresponding observation signal (e.g. ``GraphRemoved``).
+
+    Attributes:
+        payload: The binding payload (e.g. a graph entry id). Slots
+            close every wrapper whose payload matches this value.
+    """
+
+    payload: str

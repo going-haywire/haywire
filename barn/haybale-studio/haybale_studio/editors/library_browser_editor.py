@@ -19,7 +19,7 @@ from haywire.ui.editor.base import BaseEditor
 from haywire.ui.context_signals import (
     ActiveLibraryMoved,
     LibraryCatalogChanged,
-    RevealRequest,
+    Reveal,
 )
 
 if TYPE_CHECKING:
@@ -246,4 +246,4 @@ class LibraryBrowserEditor(BaseEditor):
             from haybale_studio.editors.library_overview_editor import LibraryOverviewEditor
 
             session.signal(ActiveLibraryMoved())
-            session.reveal(RevealRequest(editor=LibraryOverviewEditor))
+            session.lifecycle(Reveal(editor=LibraryOverviewEditor))

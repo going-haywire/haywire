@@ -162,17 +162,28 @@ the goal is to find the cleanest mental model first.
 Stop calling everything a "context change". There are really two
 different things flowing through the AppShell:
 
-- **`ContextSignal`** — *observations*: "the world looks different
-  now; if you depend on X, redraw". Fan-out, idempotent, anyone
+- **Signal channel** — observations. ``ContextSignal`` subclasses
+  describe state moves on the session ("the world looks different
+  now; if you depend on X, redraw"). Fan-out, idempotent, anyone
   may emit, anyone may subscribe.
-- **`RevealRequest`** — *commands*: "please bring editor *E* with
-  payload *P* to the front". Point-to-point, the shell is the only
-  consumer.
+- **Lifecycle channel** — commands. ``LifecycleCommand`` subclasses
+  describe imperative mutations of the workspace tree (which editor
+  instances exist, in which slot, which is in front). ``Reveal``
+  brings an editor to the front; ``Close`` removes tabs bound to a
+  payload. The shell is the only consumer; routing is per-command
+  (Reveal is point-to-point, Close is fan-out across slots).
 
-Today both ride one struct (`ContextChangedEvent`) on one bus. Two
-structs on two channels would let `RevealRequest` lose its "what kind
-of change is this?" pretence — it has no change type, it's a command.
-And it would let `ContextSignal` shrink to its minimum.
+Today everything rides one struct (`ContextChangedEvent`) on one bus.
+Two channels with their own typed vocabularies make the categories
+honest: signals have no command fields, commands have no
+"what-kind-of-change-is-this" pretence.
+
+The lifecycle channel is named after the *category* of operation
+("editor lifecycle: create, reveal, close…") rather than after one
+specific command. Today's vocabulary has only ``Reveal`` and
+``Close``, but the shape is open: future commands like "minimize",
+"split", "move to other slot" would slot in as additional
+``LifecycleCommand`` subclasses without expanding the API surface.
 
 ### 4.2 Re-cut the vocabulary along a single axis: **what moved in `SessionContext`**
 
@@ -210,35 +221,38 @@ re-home onto other channels (§4.3).
 
 | Today | Proposed home |
 | --- | --- |
-| `EDITOR_FOCUSED` | becomes a `RevealRequest`, no signal |
+| `EDITOR_FOCUSED` | becomes a ``Reveal`` lifecycle command, no signal |
 | `WORKSPACE_CHANGED` | drop; `BaseEditor.on_focus` already fires (verified §5) |
 | `LIBRARY_STATE_CHANGED` | split: selection click → `ActiveLibraryMoved`, install/enable/disable → `LibraryCatalogChanged` (`cross_session=True` — see §11) |
-| `GRAPH_REMOVED` | stays as its own class `GraphRemoved(entry_id)` — the orchestrator-side handler in `shell.py:597` needs the entry id, so collapsing into `ActiveGraphMoved` would lose information (see §11) |
+| `GRAPH_REMOVED` | split: ``GraphRemoved`` (cross-session signal, payload-less observation) + ``Close(payload=entry_id)`` (local lifecycle command). Together these give the originating session local tab-close + peer sessions an observation to refresh haystack-derived views. |
 
 ### 4.4 Shrink `ContextChangedEvent` to its actual payload
 
-The base `ContextSignal` is empty in the §4 sketch — concrete signal
-classes derive from it (see §7.1 for the real shape). The
-discriminator is *the type itself*, not a field on a single
-dataclass. The four reveal-related fields drop entirely:
+The base `ContextSignal` is empty — concrete signal classes derive
+from it (see §7.1 for the real shape). The discriminator is *the
+type itself*, not a field on a single dataclass. The four
+reveal-related fields drop entirely:
 
 - `reveal_editor` / `reveal_payload` / `reveal_label` — they belong
-  on `RevealRequest`, not `ContextSignal`
+  on lifecycle commands (``Reveal``), not on signals
 - `change_type` (the enum field) — replaced by the typed signal
   class, filtered with plain `isinstance` (§7.4)
-- `detail` (the typed-nothing payload) — replaced by typed fields
-  on the specific signal classes that need them
-  (e.g. `GraphRemoved(entry_id: str)`); pointer-by-default rule
-  applies (§6.3)
+- `detail` (the typed-nothing payload) — gone; signals are
+  pointer-only by default (§6.3). When `GRAPH_REMOVED` previously
+  used `detail` to carry an entry id, that information now lives on
+  the ``Close(payload=entry_id)`` lifecycle command emitted alongside
+  the (payload-less) ``GraphRemoved`` signal.
 
 The shell's orchestrator splits cleanly:
 
 ```text
-session.signal(ContextSignal(...))    →  fan out to slots
-session.reveal(RevealRequest(...))    →  switch tab in target slot
+session.signal(ContextSignal(...))         →  fan out to slots
+session.lifecycle(LifecycleCommand(...))   →  route per-command type
+                                              (Reveal: point-to-point;
+                                               Close: fan-out)
 ```
 
-#### Ordering: signal before reveal
+#### Ordering: signal before lifecycle
 
 The two methods are deliberately separate; there is no batched
 `dispatch(...)` API. Authors who want a state change to be visible to
@@ -248,15 +262,22 @@ a freshly-revealed editor call them in order:
 context.active_graph = entry.graph
 context.active_graph_path = entry.path
 session.signal(ActiveGraphMoved())
-session.reveal(RevealRequest(GraphEditor, payload=entry.entry_id))
+session.lifecycle(Reveal(editor=GraphEditor, payload=entry.entry_id))
+```
+
+Or, for a remove flow:
+
+```python
+session.lifecycle(Close(payload=removed_id))   # close my tabs
+session.signal(GraphRemoved())                 # tell peers to refresh
 ```
 
 The contract:
 
 - `session.signal(...)` runs fan-out **synchronously** to every
   subscribed slot in the current session, then returns. The subsequent
-  `session.reveal(...)` therefore observes the post-signal context.
-- The revealed editor's `draw()` runs against the post-signal context
+  `session.lifecycle(...)` therefore observes the post-signal context.
+- A revealed editor's `draw()` runs against the post-signal context
   — same as today's accidental ordering in `shell.py:591-595`, made
   explicit.
 - **Cross-session delivery is asynchronous in spirit and best-effort
@@ -264,9 +285,12 @@ The contract:
   and swallows per-peer exceptions). Authors must not assume any
   ordering between a `cross_session=True` signal arriving at a peer
   and any other event in that peer's session.
-- **Reveals are local-only.** `RevealRequest` does not cross session
-  boundaries (Q4A). A peer session is responsible for its own
-  workspace state; one session cannot reach into another's tab order.
+- **Lifecycle commands are local-only.** ``Reveal`` and ``Close`` do
+  not cross session boundaries (Q4A). A peer session is responsible
+  for its own workspace state; one session cannot reach into
+  another's tab order. Cross-session synchronization of "the
+  underlying entity is gone, react accordingly" is the job of the
+  signal channel (e.g. ``GraphRemoved``).
 
 ### 4.5 Naming `SessionContext`
 
@@ -284,11 +308,13 @@ After the rework, the developer-facing pitch fits in a paragraph:
 
 > **An editor is a function of `SessionContext`. When the workbench
 > moves (different graph, different file) or the selection moves
-> (different node/edge), the shell sends a `ContextSignal` so you can
-> redraw. Subscribe to the signals whose fields you read; ignore the
-> rest. If you want to bring another editor to the front (e.g. you
-> just opened a file), send a `RevealRequest` — that's a separate
-> action, not a kind of change.**
+> (different node/edge), the shell sends a ``ContextSignal`` so you
+> can redraw. Subscribe to the signals whose fields you read; ignore
+> the rest. If you want to mutate the workspace tree itself — bring
+> an editor to the front, close tabs bound to a removed entity —
+> send a ``LifecycleCommand`` (``Reveal`` / ``Close``). Signals are
+> observations; lifecycle commands are imperatives. They live on
+> separate channels so neither can pretend to be the other.**
 
 Compare to today's pitch, which has to explain a 14-value enum where
 most values overlap, three values are unused, two values are commands
@@ -307,13 +333,14 @@ flagged latent-bug fixes (§11 notes for `LibraryCatalogChanged` and
 `GraphRemoved`). Specifically:
 
 - The poll/draw cycle on `BaseEditor` is unchanged.
-- The slot orchestration in `AppShell._on_context_changed` is unchanged
-  in shape — it just dispatches `ContextSignal` to slots and
-  `RevealRequest` to the reveal helper.
+- The slot orchestration in `AppShell._on_context_changed` is
+  unchanged in shape — it just splits into ``_on_signal`` (fans
+  ``ContextSignal`` to slots) and ``_on_lifecycle`` (routes
+  ``Reveal`` / ``Close`` to the appropriate slot or fan-out helper).
 - Cross-session broadcast (`Session.notify_cross_session_context_change`
   → `SessionManager.broadcast`) is unchanged. It only ever needed to
   carry *signals*, not commands; this is already true today (no caller
-  cross-broadcasts a reveal).
+  cross-broadcasts a lifecycle command).
 - `BaseEditor.on_focus` already exists and already does the
   "wrapper just became active" job that `WORKSPACE_CHANGED` was trying
   to express. Verified against `Slot._activate` (slot.py:499-505),
@@ -411,24 +438,28 @@ is the recommended idiom — Q3A.)
 
 ### 6.3 Inline state vs. pointer
 
-Signals are pointers, not inline payloads, by default. Today's
-`DATA_MUTATED` broadcast carries no graph data — receivers re-read
-the shared `BaseGraph`. The new vocabulary follows the same rule: a
-peer-cursor signal says "go look" rather than carrying the new
-selection inline. Editors that care fetch from
+Signals are pointers, not inline payloads — universally. Today's
+`DATA_MUTATED` broadcast carries no graph data; receivers re-read
+the shared `BaseGraph`. The new vocabulary follows the same rule
+across the board: every core signal is empty (or carries only a
+``subject``). A peer-cursor signal says "go look" rather than
+carrying the new selection inline. Editors that care fetch from
 `session_manager.get(peer_id).context`.
 
 Inline payloads couple the wire format to the sender's data model
 and break the moment a library adds new fields to its peer-visible
 state. Pointer is more flexible and matches the existing pattern.
 
-**The one documented exception is `GraphRemoved(entry_id: str)`.**
-The referenced state is no longer reachable from the session by the
-time the signal fires — the entry has been removed from the
-haystack — so a pointer would point at nothing. Inline carriage is
-warranted only for this "referenced state no longer reachable" case,
-not as a performance optimisation. New signal classes that want
-inline payload should justify themselves against this rule.
+**No exceptions in the core vocabulary.** Earlier drafts of this doc
+proposed ``GraphRemoved(entry_id: str)`` as a one-off exception —
+because the entry is gone from the haystack by the time the signal
+fires, so a "go look" pointer would point at nothing. The lifecycle
+channel resolves this cleanly: ``GraphRemoved`` becomes a
+payload-less *observation* (peers refresh haystack-derived views
+from their own ground truth), and the originating session emits a
+separate ``Close(payload=entry_id)`` *lifecycle command* to close
+its own tabs. Identifiers that are needed for routing live on the
+command channel, not the observation channel.
 
 ### 6.4 What stays sealed
 
@@ -656,10 +687,12 @@ A few design choices worth being explicit about:
 
 ### 7.5 What core declares vs. what libraries declare
 
-Core declares the signal vocabulary for state core owns. The full
-core set is **9 signal classes plus 1 RevealRequest type** — see §11
-for the per-enum-value mapping that derives this number from the
-audit:
+Core declares **9 signal classes** (signal channel) and
+**2 lifecycle commands** (lifecycle channel) for state core owns —
+see §11 for the per-enum-value mapping that derives these from the
+audit.
+
+Signals (observations, all payload-less per §6.3):
 
 - `ActiveGraphMoved`
 - `ActiveFileMoved`
@@ -668,16 +701,20 @@ audit:
 - `LibraryCatalogChanged` (`cross_session=True`)
 - `SelectionMoved`
 - `GraphDataMutated` (`cross_session=True`)
-- `GraphRemoved(entry_id: str)` (`cross_session=True`, §6.3 inline
-  exception)
+- `GraphRemoved` (`cross_session=True`, payload-less observation —
+  routing of "close my tabs" lives on the lifecycle channel)
 - `ThemeMoved`
 
-This corrects an earlier draft that listed 7 — the audit in §11
-surfaced two additions: `LibraryCatalogChanged` (the `LIBRARY_STATE_CHANGED`
-overload split per §3.4) and `GraphRemoved` staying as its own class
-(§4.2 had suggested collapsing it into `ActiveGraphMoved`, but the
-orchestrator-side handler in `shell.py:597` needs the entry id, so
-the dedicated class earns its keep).
+Lifecycle commands (imperatives, all local-only):
+
+- `Reveal(editor, payload=None, label=None)` — point-to-point
+- `Close(payload)` — fan-out across slots
+
+This corrects an earlier draft that listed 7 signal classes — the
+audit in §11 surfaced two additions: `LibraryCatalogChanged` (the
+`LIBRARY_STATE_CHANGED` overload split per §3.4) and `GraphRemoved`
+staying as its own class (rather than collapsing into
+`ActiveGraphMoved`).
 
 Libraries declare new signal classes when they add new context state.
 Examples:
@@ -762,7 +799,7 @@ session-level UI key (`properties_scope`).
 ```python
 context.active_component = node_info.identity.registry_key
 context.session.signal(ActiveComponentMoved())
-context.session.reveal(RevealRequest(LibraryComponentEditor, ...))
+context.session.lifecycle(Reveal(editor=LibraryComponentEditor))
 ```
 
 Three lines, three things, each named after what it actually is. A
@@ -776,8 +813,9 @@ it, switch the right-hand tab.*
 > (popup-local state: what was right-clicked, where, which callbacks).
 > If the panel mutates session state, it does so on the context and
 > emits a signal naming the field that moved. If it wants to open
-> another editor, it sends a reveal request. The popup's open/close
-> is the popup's own lifecycle — not a signal anyone subscribes to.
+> another editor, it sends a ``Reveal`` lifecycle command. The
+> popup's open/close is the popup's own lifecycle — not a signal
+> anyone subscribes to.
 
 Compare to today's pitch, which has to explain: that
 `context_menu_trigger` lives on the context but is only meaningful
@@ -808,7 +846,7 @@ follow-on once §6 / §7 land — see open question §9.4.
 §8 is deferred to a separate refactor (Q7D), but the bus-split PR
 will rewrite every panel's emit site from
 `notify_context_changed(ContextChangedEvent(...))` to
-`session.signal(...)` + `session.reveal(...)`. The context-menu
+`session.signal(...)` + `session.lifecycle(...)`. The context-menu
 panels in `barn/haybale-core/haybale_core/panels/context_menu/` are
 the overlap zone — they get touched by the bus PR *and* by §8 later.
 To prevent double-touch and keep §8 a clean follow-up, the bus PR
@@ -821,7 +859,7 @@ commits to:
    (`edge_state`, `pending_connection`, `context_menu_screen_pos`,
    `edge_reconnect_end`, `on_emit_event`). The §8 PR is the one that
    moves them onto `ContextMenuScope`.
-3. **Co-locate signal+reveal at the call site exactly as §8 will
+3. **Co-locate signal+lifecycle at the call site exactly as §8 will
    leave it.** After the bus PR, the
    [create_node_panel.py:64-70](../../barn/haybale-core/haybale_core/panels/context_menu/create_node_panel.py#L64-L70)
    site reads as the §8.3 example shows:
@@ -829,7 +867,7 @@ commits to:
    ```python
    context.active_component = node_info.identity.registry_key
    session.signal(ActiveComponentMoved())
-   session.reveal(RevealRequest(LibraryComponentEditor, ...))
+   session.lifecycle(Reveal(editor=LibraryComponentEditor))
    ```
 
    The §8 PR will rewrite signature/reads (replacing
@@ -865,10 +903,11 @@ pattern.
    hatch — worth auditing once the signal split clarifies what is
    actually session-scoped vs. interaction-scoped.
 
-3. **Should `RevealRequest` carry a "create if missing" flag, or is
-   that always-on?** Today the shell decides: TabSlot auto-creates on
-   miss, IconSlot just switches. The behaviour is fine; the question is
-   whether the request type should make it explicit.
+3. **Should ``Reveal`` carry a "create if missing" flag, or is
+   that always-on?** Today the shell decides: TabSlot auto-creates
+   on miss, IconSlot just switches. The behaviour is fine; the
+   question is whether the lifecycle command should make it
+   explicit.
 
 4. **Is `ContextMenuScope` an instance of a more general "popup
    scope" pattern?** §8.5 notes that several other popups in the
@@ -910,10 +949,12 @@ The shape of the problem:
 
 The simpler story:
 
-- Split the bus into **`ContextSignal`** (observations, fan-out) and
-  **`RevealRequest`** (commands, point-to-point, local-only). Two
-  separate methods on `Session`; signal-then-reveal at the call site
-  is the documented ordering contract (§4.4).
+- Split the bus into a **signal channel** (``ContextSignal``
+  observations, fan-out) and a **lifecycle channel**
+  (``LifecycleCommand`` imperatives — ``Reveal`` and ``Close`` are
+  the two core commands; both local-only). Two separate methods on
+  ``Session`` (``signal()`` / ``lifecycle()``); signal-then-lifecycle
+  at the call site is the documented ordering contract (§4.4).
 - Make signals **typed dataclasses**, not enum values, so libraries
   can declare their own without touching core (§7). Editors filter
   with plain `isinstance`; no framework identity machinery.
@@ -947,8 +988,8 @@ the verification of §7.5's claim that the core vocabulary covers every
 existing emit site — that claim turns out to be off by two: the
 LIBRARY_STATE_CHANGED split adds `LibraryCatalogChanged`, and
 `GraphRemoved` stays as its own class (see notes), bringing the core
-vocabulary to **9 signal classes + 1 RevealRequest**, not the 7 named
-in §7.5.
+vocabulary to **9 signal classes + 2 lifecycle commands** (``Reveal``,
+``Close``), not the 7 named in §7.5.
 
 ### 11.1 The mapping table
 
@@ -956,18 +997,19 @@ in §7.5.
 | --- | --- | --- | --- | --- | --- | --- |
 | `SELECTION_CHANGED` | `SelectionMoved` | haywire-core | False | `graph_canvas/handlers/selection.py:78` (1) | `properties_editor.py:73`, `node_source_editor.py:56`, `library_component_editor.py:55` (3) | Per-session. Future peer-cursor library subscribes to `SelectionMoved` from peer subjects (Q1 open-vocabulary path) — `SelectionMoved` itself stays local-only. |
 | `ACTIVE_GRAPH_CHANGED` | `ActiveGraphMoved` | haywire-core | False | `graph_editor.py:132,494`, `haystack_editor.py:366,481,584` (5) | `properties_editor.py:74`, `haystack_editor.py:85` (2) | Each session has its own active graph; multiple sessions may view different graphs simultaneously. |
-| `EDITOR_FOCUSED` | (none — becomes `RevealRequest`) | haywire-core | N/A | `file_browser.py:316`, `haystack_editor.py:616,630,756,837` (5) | (none) | All emit sites carry `reveal_editor=...` (§3.2). Pure command, no signal. Replaced by `session.reveal(RevealRequest(editor=..., payload=...))`. |
+| `EDITOR_FOCUSED` | (none — becomes ``Reveal`` lifecycle command) | haywire-core | N/A | `file_browser.py:316`, `haystack_editor.py:616,630,756,837` (5) | (none) | All emit sites carry `reveal_editor=...` (§3.2). Pure command, no signal. Replaced by `session.lifecycle(Reveal(editor=..., payload=...))`. |
 | `WORKSPACE_CHANGED` | (deleted) | haywire-core | N/A | `tab_slot.py:115`, `icon_slot.py:116` (2) | (none in barn/) | Slot machinery calls `editor.on_focus()` directly instead (Q6A). |
 | `DATA_MUTATED` | `GraphDataMutated` | haywire-core | True | `graph_editor.py:307,321,359,502`, `haystack_editor.py:928`, `haystack.py:169` (6 — all today already use `notify_cross_session_context_change` or `session_manager.broadcast`) | `properties_editor.py:75`, `haystack_editor.py:86` (2) | Class-level `cross_session=True` matches today's existing broadcast behavior exactly. |
 | `LIBRARY_STATE_CHANGED` | **split:** `ActiveLibraryMoved` + `LibraryCatalogChanged` | haywire-core | `ActiveLibraryMoved`: False; `LibraryCatalogChanged`: True | `library_browser_editor.py:245` → `ActiveLibraryMoved`; `library_overview_editor.py:647` (called from enable/disable/install/uninstall handlers, ~4 sites) → `LibraryCatalogChanged` | `library_browser_editor.py:54`, `library_overview_editor.py:100` (2 — both today filter on the overloaded enum, so they widen to *both* new signals during migration; can be tightened post-migration if desired) | §3.4 overload resolved. **Latent-bug flag:** today's `LibraryCatalogChanged` emits are local-only; cross-session is the right behavior (if session A installs a library, session B's library browser must refresh) — behavior change, intentional. |
 | `ACTIVE_COMPONENT_CHANGED` | `ActiveComponentMoved` | haywire-core | False | `library_overview_editor.py:604`, `library_component_editor.py:307`, `create_node_panel.py:66` (3) | `library_component_editor.py:54` (1) | Per-session inspection selection. |
-| `FILE_SELECTED` | `ActiveFileMoved` | haywire-core | False | `file_browser.py:331,347`, `file_viewer.py:98`, `node_source_editor.py:381` (4) | (none) | All emit sites today carry `reveal_editor=...` — they're commands. Under Q4A the reveal becomes `session.reveal(...)`; the state mutation gets `ActiveFileMoved` for vocabulary completeness (Q5C — every workbench field gets a signal, even if no current subscriber). |
+| `FILE_SELECTED` | `ActiveFileMoved` | haywire-core | False | `file_browser.py:331,347`, `file_viewer.py:98`, `node_source_editor.py:381` (4) | (none) | All emit sites today carry `reveal_editor=...` — they're commands. Under Q4A the reveal becomes `session.lifecycle(Reveal(...))`; the state mutation gets `ActiveFileMoved` for vocabulary completeness (Q5C — every workbench field gets a signal, even if no current subscriber). |
 | `WORKBENCH_THEME_CHANGED` | `ThemeMoved` | haywire-core | False | `shell.py:112` (1) | `code_editor.py:108`, `node_source_editor.py:57`, `library_component_editor.py:56` (3) | Per-session preference. **Audit flag:** confirm no other emit sites exist that today reach the bus by side-channel — grep clean as of writing. |
-| `GRAPH_REMOVED` | `GraphRemoved(entry_id: str)` | haywire-core | True | `haystack_editor.py:354` (1) | `shell.py:588` (1 — orchestrator, not an editor) | **Inline payload exception** (Hole #1) — the entry is gone from the haystack by the time the signal fires, so pointer-only would have nothing to point to. **Latent-bug flag:** today emit is local-only; peer sessions can keep showing tabs for a removed graph. Cross-session is the right behavior — behavior change, intentional. Does NOT collapse into `ActiveGraphMoved` (§4.2 suggested collapse; the orchestrator-side handler in `shell.py:597` needs the entry id to close tabs, so the dedicated class earns its keep). |
+| `GRAPH_REMOVED` | **split:** `GraphRemoved` (signal, payload-less) + ``Close(payload=entry_id)`` (lifecycle command) | haywire-core | `GraphRemoved`: True; `Close`: N/A (local-only) | `haystack_editor.py:354` (1 emit site, now emits both) | `shell.py:_close_payload` routes the Close fan-out to every TabSlot's `close_tabs_for_payload`. | **Lifecycle split.** Routing of "close my tabs" lives on the lifecycle channel; cross-session "the underlying graph is gone" lives on the signal channel as a payload-less observation. Removes the §6.3 inline-payload exception entirely. **Latent-bug flag:** today's emit is local-only; peer sessions can keep showing tabs for a removed graph. The new model has each session emit its own ``Close`` in response to ``GraphRemoved`` (or via direct authoring, as today's haystack_editor does for its own session) — behavior change, intentional. |
 
 **Total emit sites touched:** ~30 across 11 files.
 **Total filter sites rewritten:** 8 across 6 editors (`event.change_type` reads), plus `shell.py:588` orchestrator branch.
-**Total signal classes in core:** 9 (was 7 in §7.5's claim — see introduction above).
+**Total core vocabulary:** 9 signal classes + 2 lifecycle commands
+(``Reveal``, ``Close``).
 
 ### 11.2 Editorial decisions logged
 
@@ -977,7 +1019,7 @@ the rationale:
 
 1. **`EDITOR_FOCUSED` produces no signal class.** Every emit carries
    `reveal_editor`. No subscriber today reads it as a state-change
-   event. Becomes pure `RevealRequest`.
+   event. Becomes a pure ``Reveal`` lifecycle command.
 2. **`FILE_SELECTED` produces `ActiveFileMoved` even though no current
    subscriber needs it.** Q5C wants every workbench field to have a
    signal so the vocabulary is uniform; future editors that follow
@@ -991,10 +1033,12 @@ the rationale:
 4. **`LibraryCatalogChanged` and `GraphRemoved` flip to
    `cross_session=True`** — both are latent-bug fixes, not pure
    refactors. Flagged in the table as intentional behavior changes.
-5. **`GraphRemoved` carries `entry_id` inline.** The Hole #1
-   pointer-by-default rule has one documented exception: signals whose
-   referenced state is no longer reachable from the session. This is
-   that exception.
+5. **`GRAPH_REMOVED` splits across both channels.** The signal
+   ``GraphRemoved`` is payload-less (cross-session observation
+   only). Tab-close routing for the originating session is a
+   separate ``Close(payload=entry_id)`` lifecycle command. This
+   removes the §6.3 inline-payload exception that earlier drafts
+   carried as a one-off — every core signal is now pointer-only.
 6. **Filter sites that today match overloaded enum values widen to
    match all replacement signal classes during migration.** Tightening
    is a separate post-migration pass — the migration itself is
@@ -1010,14 +1054,14 @@ implementation PR will hit:
   `ContextChangedEvent`** — appear on emit sites that *also* carry a
   `change_type`. Per §4.4, those split into two emits: a
   `session.signal(...)` for the state mutation, then a
-  `session.reveal(...)` for the reveal. Affected sites:
-  `file_browser.py:329,345`, `library_browser_editor.py:242` (carries
-  `LIBRARY_STATE_CHANGED` and a reveal — splits into
-  `ActiveLibraryMoved` + reveal), `create_node_panel.py:64-70`
-  (already cited in §8.2 — ACTIVE_COMPONENT_CHANGED + reveal).
-- **Signal/reveal ordering** at the call site is the author's
-  responsibility — see §4.4 "Ordering: signal before reveal" for the
-  canonical contract. The migration preserves today's
-  `_on_context_changed` ordering in `shell.py:591-595` (signal fan-out
-  first, reveal second) by *making it the documented call-site
-  convention* rather than a framework guarantee.
+  `session.lifecycle(Reveal(...))` for the reveal. Affected sites:
+  `file_browser.py:329,345`, `library_browser_editor.py:242`
+  (carries `LIBRARY_STATE_CHANGED` and a reveal — splits into
+  `ActiveLibraryMoved` + ``Reveal``), `create_node_panel.py:64-70`
+  (already cited in §8.2 — ACTIVE_COMPONENT_CHANGED + ``Reveal``).
+- **Signal/lifecycle ordering** at the call site is the author's
+  responsibility — see §4.4 "Ordering: signal before lifecycle" for
+  the canonical contract. The migration preserves today's
+  `_on_context_changed` ordering in `shell.py:591-595` (signal
+  fan-out first, command second) by *making it the documented
+  call-site convention* rather than a framework guarantee.
