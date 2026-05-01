@@ -3,7 +3,7 @@
 Session class representing a single browser connection in the Haywire UI system.
 """
 
-from typing import Dict, Callable, Optional, TYPE_CHECKING
+from typing import Callable, Optional, TYPE_CHECKING
 import uuid
 import logging
 
@@ -15,7 +15,6 @@ logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
     from haywire.ui.app.shell import AppShell
-    from haywire.ui.editor.base import BaseEditor
     from haywire.ui.session_manager import SessionManager
 
 
@@ -62,9 +61,6 @@ class Session:
 
         self.context = SessionContext(session_id=self.session_id, app=project_state)
         self.context.session = self
-
-        # Active editor instances (keyed by area slot: 'left', 'middle', 'right', 'bottom')
-        self._editors: Dict[str, "BaseEditor"] = {}
 
         # Two-callback wiring set by AppShell. Bound to
         # AppShell._on_signal / _on_lifecycle.
@@ -163,9 +159,6 @@ class Session:
         if self._shell is not None:
             self._shell.cleanup()
             self._shell = None
-        for editor in self._editors.values():
-            editor.cleanup()
-        self._editors.clear()
         self._signal_callback = None
         self._lifecycle_callback = None
         logger.info(f"Session cleaned up: {self.session_id}")
