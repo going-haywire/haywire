@@ -27,7 +27,7 @@ sentence. The current design serves it, but with significant accretion.
 
 ### 2.1 The two parallel things `SessionContext` carries
 
-When you read [context.py](../../packages/haywire-core/src/haywire/ui/context.py)
+When you read [context.py](../../../packages/haywire-core/src/haywire/ui/context.py)
 the fields fall into two distinct families that aren't named or grouped:
 
 | Family | Fields | Lifetime |
@@ -113,8 +113,8 @@ Four different *kinds of question* are crammed into one enum.
 ### 3.2 `EDITOR_FOCUSED` is a misnomer
 
 It is **never about focus**. Every emit site of `EDITOR_FOCUSED`
-([file_browser.py:316](../../barn/haybale-studio/haybale_studio/editors/file_browser.py#L316),
-[haystack_editor.py:620](../../barn/haybale-studio/haybale_studio/editors/haystack_editor.py#L620),
+([file_browser.py:316](../../../barn/haybale-studio/haybale_studio/editors/file_browser.py#L316),
+[haystack_editor.py:620](../../../barn/haybale-studio/haybale_studio/editors/haystack_editor.py#L620),
 etc.) carries `reveal_editor=...`. It's the sentinel "I have nothing
 new to say about context, but please switch tabs to *X*". It would
 be honestly named `REVEAL_EDITOR` — or, better, not be a context-change
@@ -132,7 +132,7 @@ has via `BaseEditor.on_focus`.
 ### 3.4 `LIBRARY_STATE_CHANGED` is overloaded
 
 `LibraryBrowserEditor._select_library`
-([library_browser_editor.py:245](../../barn/haybale-studio/haybale_studio/editors/library_browser_editor.py#L245))
+([library_browser_editor.py:245](../../../barn/haybale-studio/haybale_studio/editors/library_browser_editor.py#L245))
 fires `LIBRARY_STATE_CHANGED` for **two different things**: "user
 clicked a library row" (selection) and "library was installed/enabled"
 (data mutation). Subscribers can't tell them apart and have to redraw
@@ -144,7 +144,7 @@ on both. This is exactly the conflation that `DATA_MUTATED` vs.
 `reveal_editor` / `reveal_payload` / `reveal_label` are **imperative
 commands**, not observations. The shell handles them in
 `_on_context_changed` *before* the per-slot poll loop
-([shell.py:592-596](../../packages/haywire-core/src/haywire/ui/app/shell.py#L592-L596)).
+([shell.py:592-596](../../../packages/haywire-core/src/haywire/ui/app/shell.py#L592-L596)).
 If you read the codebase as a newcomer, the orchestrator's first job is
 "obey a command embedded in the event". That's a hint that the bus is
 carrying two things.
@@ -740,7 +740,7 @@ pattern worth flagging.
 
 ### 8.1 What the pipeline does today
 
-From [context_menu.py](../../packages/haywire-core/src/haywire/ui/graph_canvas/handlers/context_menu.py):
+From [context_menu.py](../../../packages/haywire-core/src/haywire/ui/graph_canvas/handlers/context_menu.py):
 
 1. User right-clicks. `SessionContextMenuProvider._open_menu` sets
    `context.context_menu_trigger = "canvas" | "node" | "edge" | "selection"`.
@@ -752,7 +752,7 @@ From [context_menu.py](../../packages/haywire-core/src/haywire/ui/graph_canvas/h
 4. On close: clears `context_menu_trigger`, drains the metadata keys.
 
 Panels themselves use the bus too —
-[create_node_panel.py:64-70](../../barn/haybale-core/haybale_core/panels/context_menu/create_node_panel.py#L64-L70)
+[create_node_panel.py:64-70](../../../barn/haybale-core/haybale_core/panels/context_menu/create_node_panel.py#L64-L70)
 sets `context.active_component`, fires `ACTIVE_COMPONENT_CHANGED`, and
 attaches `reveal_editor=LibraryComponentEditor` to the same event.
 
@@ -861,7 +861,7 @@ commits to:
    moves them onto `ContextMenuScope`.
 3. **Co-locate signal+lifecycle at the call site exactly as §8 will
    leave it.** After the bus PR, the
-   [create_node_panel.py:64-70](../../barn/haybale-core/haybale_core/panels/context_menu/create_node_panel.py#L64-L70)
+   [create_node_panel.py:64-70](../../../barn/haybale-core/haybale_core/panels/context_menu/create_node_panel.py#L64-L70)
    site reads as the §8.3 example shows:
 
    ```python
