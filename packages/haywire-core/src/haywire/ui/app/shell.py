@@ -74,9 +74,9 @@ class AppShell:
         self._managed_slots: dict[str, Slot] = {}
 
         # DOM references -------------------------------------------------------
-        self._left_divider = None  # drag handle between left and main slots
-        self._right_divider = None  # drag handle between main and right slots
-        self._bottom_divider = None  # horizontal drag handle above BottomTabBar
+        self._left_divider: ui.element | None = None  # drag handle between left and main slots
+        self._right_divider: ui.element | None = None  # drag handle between main and right slots
+        self._bottom_divider: ui.element | None = None  # horizontal drag handle above BottomTabBar
 
     def _build_initial_theme_css(self) -> str:
         """Build the :root CSS block from the active WorkbenchTheme."""

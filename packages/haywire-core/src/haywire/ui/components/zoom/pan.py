@@ -59,7 +59,7 @@ class ZoomPanContainer(ui.element, component="pan.vue"):
         self.pan_y = 0.0
 
         # Performance tracking
-        self.update_times = []
+        self.update_times: list[float] = []
         self.update_count = 0
         self.last_update_time = time.time()
 

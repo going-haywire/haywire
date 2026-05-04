@@ -37,7 +37,7 @@ class FileChangeEvent:
     event_type: FileEventType  # 'created', 'modified', 'deleted', 'detected'
     library_identity: LibraryIdentity
     timestamp: float
-    reloaded_modules: set[str] = None  # Track modules already reloaded in this event chain
+    reloaded_modules: set[str] | None = None  # Track modules already reloaded in this event chain
     dependency_event: bool = False  # Whether this event is due to dependency reload
     """indicates if this event is a result of a dependency change (detected by a different registry)"""
 

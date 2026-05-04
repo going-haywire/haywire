@@ -13,8 +13,8 @@ def _create_detail_row(
     icon: str,
     multiline: bool = False,
     monospace: bool = False,
-    file_path: str = None,
-    line_number: int = None,
+    file_path: str | None = None,
+    line_number: int | None = None,
 ):
     """Helper to create a consistent detail row with optional file open button"""
     classes = "text-xs " + ("font-mono" if monospace else "")

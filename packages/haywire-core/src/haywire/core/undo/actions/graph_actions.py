@@ -37,9 +37,9 @@ class AddNodeAction(ActionBase):
         self.graph = graph
         self.registry_key = registry_key
         self.position = position
-        self.wrapper = None
+        self.wrapper: "NodeWrapper | None" = None
 
-        self.undo_wrapper = None
+        self.undo_wrapper: "NodeWrapper | None" = None
 
     def _execute_impl(self) -> None:
         """Add the node to the graph."""
@@ -107,7 +107,7 @@ class AddEdgeAction(ActionBase):
         # Wrapper created during execute
         self.wrapper: Optional[EdgeWrapper] = None
 
-        self.undo_wrapper = None
+        self.undo_wrapper: Optional[EdgeWrapper] = None
 
     def _execute_impl(self) -> None:
         """Add the edge to the graph."""

@@ -45,7 +45,7 @@ class ActionGroup:
 
     actions: List[Union[IAction, "ActionGroup"]]
     description: Optional[str] = None
-    timestamp: float = None
+    timestamp: float | None = None
 
     def __post_init__(self):
         if self.timestamp is None:

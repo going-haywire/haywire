@@ -61,7 +61,7 @@ class DataPort(DataTypeIdentity):
     """DataField instance storing port data"""
 
     # Type tracking
-    type_cls: type[IType] = field(default=None, metadata={"serialize": False})
+    type_cls: type[IType] | None = field(default=None, metadata={"serialize": False})
     """The type class (FLOAT, ArrayType, etc.)"""
 
     # Edge state — two-tier storage

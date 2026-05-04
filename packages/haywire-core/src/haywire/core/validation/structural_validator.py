@@ -252,7 +252,7 @@ class StructuralValidator(IStructuralValidator):
             List of error messages (empty if valid)
         """
         errors = []
-        event_subscriptions = {}  # subscription_key -> list of node_ids
+        event_subscriptions: dict[str, list[str]] = {}  # subscription_key -> list of node_ids
         from haywire.core.node.behavior import NodeType
 
         for node_wrapper in self.graph.node_wrappers.values():

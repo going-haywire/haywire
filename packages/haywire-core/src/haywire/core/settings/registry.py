@@ -560,7 +560,7 @@ class SettingsRegistry(BaseRegistry):
         if not path:
             raise ValueError("No workspace path configured and no path argument provided")
 
-        data = {}
+        data: dict[str, Any] = {}
 
         with self._lock:
             for name, sv in sorted(self._workspace_tier_values.items()):

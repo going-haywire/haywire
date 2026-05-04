@@ -1,7 +1,7 @@
 # haywire.core.library.base.py
 from abc import ABC, abstractmethod
 import logging
-from typing import Dict, List, Tuple, Type, Optional
+from typing import Any, Dict, List, Tuple, Type, Optional
 
 from haywire.core.namespaces import CATEGORY_LIBRARY_LOG
 
@@ -30,7 +30,7 @@ class BaseLibrary(ABC):
 
     def __init__(self, file_path: str, enforce_file_watching: bool = False, debounce_delay: float = 0.5):
         self.file_path = file_path
-        self.registries = {}
+        self.registries: Dict[Type[BaseRegistry], Any] = {}
         self.enforce_file_watching = enforce_file_watching
         self.debounce_delay = debounce_delay
         # registry_cls -> (folder_path, exclude_patterns)

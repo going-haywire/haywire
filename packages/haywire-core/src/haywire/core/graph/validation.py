@@ -44,7 +44,7 @@ class ValidationManager:
         self._graph = graph
         self._debounce_ms = debounce_ms
 
-        self._dirty_graph: ChangeReason = None
+        self._dirty_graph: ChangeReason | None = None
         """If the whole graph is dirty, reason for it"""
 
         # Simplified tracking - just map elements to reasons

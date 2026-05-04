@@ -29,8 +29,8 @@ def graph_to_python_script(graph: "BaseGraph") -> str:
         function_name = f"graph_{function_name}"
 
     # Track imports and node info
-    imports = {}  # {module_path: [class_names]}
-    node_vars = {}  # {node_id: (var_name, class_name)}
+    imports: dict[str, list[str]] = {}  # {module_path: [class_names]}
+    node_vars: dict[str, tuple[str, str]] = {}  # {node_id: (var_name, class_name)}
 
     # 1. Collect all node classes and generate imports
     for node_id, wrapper in graph.node_wrappers.items():
@@ -93,7 +93,7 @@ def graph_to_python_script(graph: "BaseGraph") -> str:
     has_value_sets = False
     for node_id, wrapper in graph.node_wrappers.items():
         var_name, _ = node_vars[node_id]
-        value_lines = []
+        value_lines: list[str] = []
 
         for port_id, port in wrapper.node.ports.items():
             # Only process inlets with primitive fields

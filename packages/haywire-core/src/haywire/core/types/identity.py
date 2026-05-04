@@ -58,8 +58,8 @@ class DataTypeIdentity(BaseIdentity):
     flow_type: FlowType = FlowType.NONE
 
     # Type specification:
-    type_cls: IType = None  # The Python Type class
-    default: dict = None
+    type_cls: IType | None = None  # The Python Type class
+    default: dict | None = None
     store_strategy: StoreStrategy = StoreStrategy.NONE
     """flag to control whether field values are serialized"""
 

@@ -12,7 +12,7 @@ from .identity import LibraryIdentity
 T = TypeVar("T")
 
 
-def library(cls: Type[T] = None, /, **kwargs) -> Union[Type[T], Callable[[Type[T]], Type[T]]]:
+def library(cls: Type[T] | None = None, /, **kwargs) -> Union[Type[T], Callable[[Type[T]], Type[T]]]:
     """
     Decorator to register a class as a Haywire library.
 

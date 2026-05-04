@@ -1,4 +1,4 @@
-from typing import Callable
+from typing import Any, Callable
 
 import nicegui.ui as ui
 
@@ -20,7 +20,7 @@ class WidgetFactory(IWidgetFactory):
     """
 
     def __init__(self, widget_registry: WidgetRegistry):
-        self._creators = {}
+        self._creators: dict[str, Any] = {}
         self.widget_registry: WidgetRegistry = widget_registry
 
         # Customer callbacks for hot reload notifications

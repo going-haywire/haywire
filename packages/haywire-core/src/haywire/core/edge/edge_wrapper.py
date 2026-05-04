@@ -45,7 +45,7 @@ class EdgeWrapperState:
     """The edge is linked to both ports"""
     is_executing: bool = False
     """Edge is currently transforming data"""
-    warnings: List[str] = None
+    warnings: List[str] | None = None
     """main warning message"""
     error_link: Optional[HaywireException] = None
     """port validation error message"""
@@ -65,9 +65,9 @@ class EdgeWrapperState:
     """Last transform() execution time"""
     average_execution_time_us: float = 0.0
     """Average transform() execution time"""
-    example_test_value: str = None
+    example_test_value: str | None = None
     """Example test value used during test"""
-    example_test_result: str = None
+    example_test_result: str | None = None
     """Example test result value used during test"""
 
     def has_warning(self) -> bool:

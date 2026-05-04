@@ -391,7 +391,7 @@ class LibraryRegistry:
 
     def _discover_core_libraries(self) -> list[DiscoveredLibrary]:
         """Discover core libraries from src/haywire/libraries"""
-        discovered = []
+        discovered: list[DiscoveredLibrary] = []
 
         if not self.core_libraries_path or not os.path.exists(self.core_libraries_path):
             logger.warning(f"Core libraries path not found: {self.core_libraries_path}")

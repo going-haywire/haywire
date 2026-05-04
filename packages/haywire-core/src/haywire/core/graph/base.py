@@ -814,7 +814,7 @@ class BaseGraph:
 
         for node_id in self.node_wrappers.keys():
             if node_id not in visited:
-                component = []
+                component: list[str] = []
                 dfs(node_id, component)
                 components.append(component)
 

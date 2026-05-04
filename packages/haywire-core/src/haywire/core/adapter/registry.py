@@ -221,7 +221,7 @@ class AdapterRegistry(BaseRegistry):
 
         # BFS to find shortest chain
         # Queue: (current_registry_key, chain_so_far)
-        queue = deque([(source_registry_key, [])])
+        queue: deque[tuple[str, list[BaseAdapter]]] = deque([(source_registry_key, [])])
         visited = {source_registry_key}
 
         while queue:

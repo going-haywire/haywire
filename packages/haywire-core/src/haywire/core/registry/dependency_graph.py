@@ -574,7 +574,7 @@ class DependencyGraph:
         # Build dependency graph for these modules using cached data
         module_set = set(modules)
         in_degree = {m: 0 for m in modules}
-        edges = {m: [] for m in modules}
+        edges: dict[str, list[str]] = {m: [] for m in modules}
 
         for module in modules:
             # Direct lookup from cache - already filtered by scope during building

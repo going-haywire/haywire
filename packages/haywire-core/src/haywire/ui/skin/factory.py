@@ -86,7 +86,7 @@ class SkinFactory:
         Returns:
             UINodeCard instance or None if rendering failed
         """
-        ui_nodeCard: UINodeCard = None
+        ui_nodeCard: UINodeCard | None = None
 
         skin_instance: BaseSkin | None = None
 

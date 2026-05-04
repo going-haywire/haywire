@@ -1,9 +1,12 @@
 from __future__ import annotations
 from abc import ABC
-from typing import Generic, TypeVar, final
+from typing import Any, Generic, TypeVar, final, TYPE_CHECKING
 from typing_extensions import Self
 
 from .interface import IType
+
+if TYPE_CHECKING:
+    from .fields import DataField
 
 T = TypeVar("T")
 
@@ -45,7 +48,7 @@ class PrimitiveType(IType, ABC, Generic[T]):
     """
 
     # Field class set after PrimitiveField is defined
-    field_class = None  # Will be set to PrimitiveField
+    field_class: "type[DataField[Any]] | None" = None  # Will be set to PrimitiveField
 
     def __init_subclass__(cls, **kwargs):
         """
@@ -185,7 +188,7 @@ class BaseType(IType, ABC):
     """
 
     # Field class set after BaseField is defined
-    field_class = None  # Will be set to BaseField
+    field_class: "type[DataField[Any]] | None" = None  # Will be set to BaseField
 
     def __init_subclass__(cls, **kwargs):
         """
@@ -342,11 +345,11 @@ class CompoundType(BaseType, ABC, Generic[T]):
     """
 
     # Subclasses MUST override field_class
-    field_class = None
+    field_class: "type[DataField[Any]] | None" = None
 
     # Cache for parameterized classes
     # this cache is cleared in the decorator when a class is recreated by hot-reload
-    _parameterized_cache = {}
+    _parameterized_cache: "dict[Any, type]" = {}
 
     @classmethod
     def __class_getitem__(cls, element_type_cls: type[IType]):

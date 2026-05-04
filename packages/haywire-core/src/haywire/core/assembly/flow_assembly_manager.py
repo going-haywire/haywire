@@ -268,7 +268,7 @@ class FlowAssemblyManager:
 
         # Build reverse map: target_node_id -> source event subscription
         # This helps show which flows trigger which event nodes
-        callback_triggers = {}  # target_node_id -> list of source_node_ids
+        callback_triggers: dict[str, list[str]] = {}  # target_node_id -> list of source_node_ids
 
         for edge in callback_edges:
             source_id = edge.source_node_id

@@ -78,12 +78,12 @@ class IType(ABC):
     """
 
     # STRUCTURAL ATTRIBUTES (type system mechanics)
-    field_class: type["DataField"] = None
+    field_class: type["DataField"] | None = None
     # DataField class responsible for storing this type's data.
     # Subclasses MUST set this to their corresponding DataField subclass.
     # This allows the type to create its own field instances with the correct configuration.
 
-    element_type_cls: type = None
+    element_type_cls: type | None = None
     # What this type wraps/contains
 
     # IDENTITY ATTRIBUTES (set by @type decorator)

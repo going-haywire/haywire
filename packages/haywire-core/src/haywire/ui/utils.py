@@ -119,7 +119,7 @@ def parse_edge_id(edge_id: str) -> EdgeComponents:
     )
 
 
-def _open_file_in_editor(filepath: str, line_number: int = None):
+def _open_file_in_editor(filepath: str, line_number: int | None = None):
     """Open a file in the user's preferred editor with fallback options"""
     if not os.path.exists(filepath):
         ui.notify(f"File not found: {filepath}", type="negative")

@@ -628,7 +628,7 @@ class HaywireException(Exception):
         filename = None
         line_number = None
         source_line = None
-        source_context = []
+        source_context: list[str] = []
         highlight_span = None
         context_type = "unknown"
         highlighted_item = None

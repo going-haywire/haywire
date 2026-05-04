@@ -5,7 +5,7 @@ defined in node decorators (e.g., menu='core/basic').
 """
 
 from nicegui import ui
-from typing import Dict, List, Optional, Callable
+from typing import Any, Dict, List, Optional, Callable
 from haywire.core.node.info import NodeInfo
 from haywire.core.node.factory import NodeFactory
 from haywire.ui import elements as hui
@@ -181,7 +181,7 @@ class NodeMenuBuilder:
         if self._menu_tree_cache is not None:
             return self._menu_tree_cache
 
-        tree = {}
+        tree: Dict[str, Any] = {}
 
         for menu_path, nodes in menu_structure.items():
             if not nodes:
