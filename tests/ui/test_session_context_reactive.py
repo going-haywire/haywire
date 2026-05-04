@@ -59,7 +59,6 @@ def test_all_documented_reactive_fields_are_present():
         "active_graph_path",
         "active_workbench_theme_key",
         "active_node_theme_key",
-        "context_menu_trigger",
     }
     for name in expected_fields:
         attr = getattr(ctx, name)

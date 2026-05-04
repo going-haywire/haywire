@@ -63,7 +63,6 @@ class SessionContext:
     active_graph_path: Reactive[Optional[Any]] = reactive_field(None)
     active_workbench_theme_key: Reactive[Optional[str]] = reactive_field(None)
     active_node_theme_key: Reactive[Optional[str]] = reactive_field(None)
-    context_menu_trigger: Reactive[Optional[str]] = reactive_field(None)
 
     def __init__(self, session_id: str, app: "IProjectState") -> None:
         self.session_id = session_id

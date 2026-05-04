@@ -7,9 +7,9 @@ calls.  The provider decides how to surface the menu.
 Design:
 - IContextMenuProvider defines *intent* methods, not imperative "show" calls.
 - SessionContextMenuProvider is the panel-driven implementation: it updates
-  SessionContext, queries PanelRegistry for registered panels
-  (editor='context_menu', scope=trigger), and draws those that pass poll()
-  into a Popup.
+  SessionContext, queries PanelRegistry for panels matching the actions
+  provider and focus of the right-clicked element, and draws those that
+  pass poll() into a Popup.
 - ContextMenuHandlers accepts any IContextMenuProvider and never imports
   concrete implementations directly.
 """
@@ -43,14 +43,6 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 # Protocol
 # ---------------------------------------------------------------------------
-
-# hardcoded scope for built-in context menu types.
-SCOPE_CANVAS = "canvas"
-SCOPE_NODE = "node"
-SCOPE_EDGE = "edge"
-SCOPE_SELECTION = "selection"
-
-EDITOR_CONTEXT_MENU = "context_menu"
 
 
 class IContextMenuProvider:
@@ -153,12 +145,12 @@ class SessionContextMenuProvider(IContextMenuProvider):
     Panel-driven IContextMenuProvider implementation.
 
     On each intent call this provider:
-    1. Updates SessionContext (active_node/edge, context_menu_trigger).
-    2. Queries PanelRegistry for panels with editor=EDITOR_CONTEXT_MENU and
-       the matching scope, filters by poll(), and draws matching panels into
-       a Popup produced by popup_factory.
-    3. Registers a close callback that clears context_menu_trigger and
-       drains popup-internal metadata keys.
+    1. Updates SessionContext (active_node/edge/port).
+    2. Queries PanelRegistry for panels matching the actions provider and
+       focus of the right-clicked element, filters by poll(), and draws
+       matching panels into a Popup produced by popup_factory.
+    3. Registers a close callback that clears active_port/active_edge and
+       resumes any pending edge-drag connection.
     """
 
     def __init__(
@@ -202,7 +194,6 @@ class SessionContextMenuProvider(IContextMenuProvider):
         self._open_popup = popup
 
         def _on_close():
-            self._context.context_menu_trigger.value = None
             self._context.active_port.value = None
             self._context.active_edge.value = None
             # Resume drag if pending_connection wasn't consumed
@@ -236,7 +227,6 @@ class SessionContextMenuProvider(IContextMenuProvider):
             canvas_pos=canvas_pos,
             pending_connection=pending_connection,
         )
-        self._context.context_menu_trigger.value = SCOPE_CANVAS
         self._open_menu(CanvasContextActions, CanvasFocus, pos)
 
     def on_node_context(self, pos, node_id):
@@ -250,7 +240,6 @@ class SessionContextMenuProvider(IContextMenuProvider):
                 self._context.active_node.value = wrapper
 
         self._open_ctx = _OpenMenuContext(click_pos=pos)
-        self._context.context_menu_trigger.value = SCOPE_NODE
         self._open_menu(NodeContextActions, NodeFocus, pos)
 
     def on_edge_context(self, pos, edge_id, edge, state, at_sink_end=False):
@@ -268,7 +257,6 @@ class SessionContextMenuProvider(IContextMenuProvider):
             edge_state=state,
             edge_reconnect_end=at_sink_end,
         )
-        self._context.context_menu_trigger.value = SCOPE_EDGE
         self._open_menu(EdgeContextActions, EdgeFocus, pos)
 
     def on_port_context(self, pos, node_id, port_id, scope):
@@ -284,7 +272,6 @@ class SessionContextMenuProvider(IContextMenuProvider):
                 self._context.active_port.value = wrapper.node.ports.get(port_id)
 
         self._open_ctx = _OpenMenuContext(click_pos=pos)
-        self._context.context_menu_trigger.value = scope
         # Resolve the focus from the DOM-supplied id; fall back to PortFocus.
         focus = focus_by_id(scope) or PortFocus
         self._open_menu(PortContextActions, focus, pos)
@@ -294,7 +281,6 @@ class SessionContextMenuProvider(IContextMenuProvider):
         from haywire.ui.graph_canvas.handlers.context_menu_actions import SelectionContextActions
 
         self._open_ctx = _OpenMenuContext(click_pos=pos)
-        self._context.context_menu_trigger.value = SCOPE_SELECTION
         self._open_menu(SelectionContextActions, SelectionFocus, pos)
 
     def on_custom_context(self, pos, node_id, scope):
@@ -314,7 +300,6 @@ class SessionContextMenuProvider(IContextMenuProvider):
                 self._context.active_node.value = wrapper
 
         self._open_ctx = _OpenMenuContext(click_pos=pos)
-        self._context.context_menu_trigger.value = scope
         focus = focus_by_id(scope) or NodeFocus
         self._open_menu(NodeContextActions, focus, pos)
 

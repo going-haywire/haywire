@@ -2,10 +2,8 @@
 Tests for SessionContextMenuProvider.
 
 Verifies that the provider:
-- Updates SessionContext.context_menu_trigger before drawing panels
 - Calls poll() on registered panels and draws only those returning True
-- Clears context_menu_trigger and drains popup metadata when the popup
-  close callback is invoked
+- Clears active_port/active_edge when the popup close callback is invoked
 """
 
 from unittest.mock import MagicMock, patch
@@ -56,51 +54,6 @@ def make_provider(ctx: SessionContext, registry: PanelRegistry, on_emit_event=No
         on_emit_event=on_emit_event,
     )
     return provider, popup, patcher
-
-
-# ---------------------------------------------------------------------------
-# Context trigger tests
-# ---------------------------------------------------------------------------
-
-
-def test_on_node_context_sets_trigger_to_node():
-    ctx = make_context()
-    registry = PanelRegistry()
-    provider, popup, _ = make_provider(ctx, registry)
-
-    provider.on_node_context((10, 20), "node-1")
-
-    assert ctx.context_menu_trigger.value == "node"
-
-
-def test_on_edge_context_sets_trigger_to_edge():
-    ctx = make_context()
-    registry = PanelRegistry()
-    provider, popup, _ = make_provider(ctx, registry)
-
-    provider.on_edge_context((10, 20), "edge-1", MagicMock(), MagicMock())
-
-    assert ctx.context_menu_trigger.value == "edge"
-
-
-def test_on_canvas_context_sets_trigger_to_canvas():
-    ctx = make_context()
-    registry = PanelRegistry()
-    provider, popup, _ = make_provider(ctx, registry)
-
-    provider.on_canvas_context((10, 20), (5, 5))
-
-    assert ctx.context_menu_trigger.value == "canvas"
-
-
-def test_on_selection_context_sets_trigger_to_selection():
-    ctx = make_context()
-    registry = PanelRegistry()
-    provider, popup, _ = make_provider(ctx, registry)
-
-    provider.on_selection_context((10, 20), ["n1"], ["e1"])
-
-    assert ctx.context_menu_trigger.value == "selection"
 
 
 # ---------------------------------------------------------------------------
@@ -194,21 +147,23 @@ def test_panels_for_wrong_focus_are_not_drawn():
 
 
 # ---------------------------------------------------------------------------
-# Close callback: trigger cleared + metadata drained
+# Close callback: active_port / active_edge cleared
 # ---------------------------------------------------------------------------
 
 
-def test_close_callback_clears_context_menu_trigger():
+def test_close_callback_clears_active_port_and_edge():
     session = MagicMock()
     ctx = make_context(session=session)
+    ctx.active_port.value = MagicMock()
+    ctx.active_edge.value = MagicMock()
     registry = PanelRegistry()
     provider, popup, _ = make_provider(ctx, registry)
 
     provider.on_node_context((10, 20), "node-1")
-    assert ctx.context_menu_trigger.value == "node"
 
     # Simulate popup close — provider must register a close callback on popup
     close_cb = popup.on_close.call_args[0][0]
     close_cb()
 
-    assert ctx.context_menu_trigger.value is None
+    assert ctx.active_port.value is None
+    assert ctx.active_edge.value is None

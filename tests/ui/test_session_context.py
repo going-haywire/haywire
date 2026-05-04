@@ -20,26 +20,3 @@ def test_theme_keys_can_be_set():
     ctx = SessionContext(session_id="test-123", app=FakeApp())
     ctx.active_workbench_theme_key.value = "core:theme:workbench:haywire-dark"
     assert ctx.active_workbench_theme_key.value == "core:theme:workbench:haywire-dark"
-
-
-# ---------------------------------------------------------------------------
-# context_menu_trigger
-# ---------------------------------------------------------------------------
-
-
-def test_context_menu_trigger_defaults_to_none():
-    ctx = SessionContext(session_id="test-123", app=FakeApp())
-    assert ctx.context_menu_trigger.value is None
-
-
-def test_context_menu_trigger_can_be_set_to_node():
-    ctx = SessionContext(session_id="test-123", app=FakeApp())
-    ctx.context_menu_trigger.value = "node"
-    assert ctx.context_menu_trigger.value == "node"
-
-
-def test_context_menu_trigger_can_be_cleared():
-    ctx = SessionContext(session_id="test-123", app=FakeApp())
-    ctx.context_menu_trigger.value = "edge"
-    ctx.context_menu_trigger.value = None
-    assert ctx.context_menu_trigger.value is None
