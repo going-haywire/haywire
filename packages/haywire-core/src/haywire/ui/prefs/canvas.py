@@ -11,7 +11,7 @@ class CanvasSettings(FrameworkSettings, namespace="ui.canvas"):
     """Global preferences controlling canvas grid, zoom, and pan behaviour."""
 
     # Background pattern (style, not color)
-    bg_pattern: str = field(
+    bg_pattern = field[str](
         "dots",
         label="Background Pattern",
         description="Pattern style for canvas background",
@@ -21,10 +21,10 @@ class CanvasSettings(FrameworkSettings, namespace="ui.canvas"):
     )
 
     # Grid
-    grid_enabled: bool = field(
+    grid_enabled = field[bool](
         True, label="Show Grid", description="Display grid on canvas", category="ui.canvas", order=20
     )
-    grid_size: int = field(
+    grid_size = field[int](
         20,
         label="Grid Size",
         description="Grid cell size in pixels",
@@ -33,7 +33,7 @@ class CanvasSettings(FrameworkSettings, namespace="ui.canvas"):
         min=5,
         max=100,
     )
-    grid_subdivisions: int = field(
+    grid_subdivisions = field[int](
         5,
         label="Grid Subdivisions",
         description="Minor grid lines per major line",
@@ -42,7 +42,7 @@ class CanvasSettings(FrameworkSettings, namespace="ui.canvas"):
         min=1,
         max=10,
     )
-    snap_to_grid: bool = field(
+    snap_to_grid = field[bool](
         True,
         label="Snap to Grid",
         description="Snap nodes to grid when moving",

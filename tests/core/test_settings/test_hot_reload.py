@@ -14,8 +14,8 @@ from haywire.core.settings.registry import SettingsRegistry
 
 
 class _HotGS(FrameworkSettings, namespace="hot.gs"):
-    alpha: int = field(7, label="Alpha")
-    beta: str = field("abc", label="Beta")
+    alpha = field[int](7, label="Alpha")
+    beta = field[str]("abc", label="Beta")
 
 
 class TestRegisterSchema:
@@ -52,7 +52,7 @@ class TestRegisterSchema:
 
 @settings(namespace="hot.lib")
 class _HotLib(LibrarySettings):
-    rate: int = field(4, min=1, max=20)
+    rate = field[int](4, min=1, max=20)
 
 
 class TestRegisterLibrarySchema:

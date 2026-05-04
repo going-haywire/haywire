@@ -814,8 +814,6 @@ class TabState:
     editor_key: Optional[str] = None
     label: str = 'Graph'
     metadata: Dict[str, Any] = field(default_factory=dict)
-
-
 @dataclass
 class MainSlotState:
     """

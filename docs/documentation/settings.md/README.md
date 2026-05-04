@@ -18,10 +18,10 @@ Every node instance exposes three containers:
 
 ## Settings: Descriptor-Based Schema
 
-Settings are declared as an inner `class node(NodeSettings)` using `setting()` descriptors:
+Settings are declared as an inner `class node(NodeSettings)` using `field()`, `shadow()`, and `watch()` descriptors:
 
 ```python
-from haywire.core.settings import NodeSettings, setting, Color
+from haywire.core.settings import NodeSettings, field, shadow, watch, Color
 from haywire.core.settings.builtins.ui_node import NodeUISettings
 from haywire.core.settings.builtins.debug import DebugSettings
 
@@ -29,13 +29,13 @@ class MyNode(BaseNode):
 
     class node(NodeSettings):
         # Local setting — stored in graph, shown in panel
-        threshold: float = setting(0.5, min=0.0, max=1.0, label='Threshold')
+        threshold = field[float](0.5, min=0.0, max=1.0, label='Threshold')
 
-        # mirrors= — inherits global default; per-node override with reset affordance
-        bg_color:  Color = setting(mirrors=NodeUISettings.bg_color)
+        # shadow() — writable mirror; inherits global default; per-node override with reset affordance
+        bg_color = shadow(NodeUISettings.bg_color)
 
-        # mirrors= + read_only=True — read-only cache of a global; invisible in panel, never stored
-        verbose:   bool  = setting(mirrors=DebugSettings.verbose_logging, read_only=True)
+        # watch() — read-only mirror; invisible in panel, never stored
+        verbose = watch(DebugSettings.verbose_logging)
 
     def worker(self, context, value: float):
         result = value * self.node.threshold
@@ -91,7 +91,7 @@ self.node.threshold
 
 - **[Overview](01-overview.md)** — Architecture, containers, descriptor types, serialization format
 - **[Node Development](02-node-development.md)** — Declaring `NodeSettings` class, using descriptors, `on_change` callbacks
-- **[Library Development](03-library-development.md)** — Creating `LibrarySettings`, referencing with `mirrors=`
+- **[Library Development](03-library-development.md)** — Creating `LibrarySettings`, referencing with `shadow()` and `watch()`
 - **[UI Integration](04-ui-integration.md)** — Building settings panels, widget factory, inheritance indicators
 - **[API Reference](05-reference.md)** — Complete descriptor, schema, registry, and chain API
 - **[Testing Guide](06-testing.md)** — `create_test_bag()`, `SettingsTestContext`, fixtures

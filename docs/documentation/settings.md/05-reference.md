@@ -44,7 +44,7 @@ Base class for node-local settings. Declare as an inner class on a `@node` class
 @node(label="My Node")
 class MyNode(BaseNode):
     class filter(NodeSettings):
-        threshold: float = field(0.5, min=0.0, max=1.0, label='Threshold')
+        threshold = field[float](0.5, min=0.0, max=1.0, label='Threshold')
 ```
 
 `NodeSettings` are never registered with `SettingsRegistry`. The `@node` decorator assigns `_field_key` to each descriptor, and the node instance injects the registry for mirror/watch resolution.
@@ -54,10 +54,10 @@ class MyNode(BaseNode):
 Declare a field on a `NodeSettings`, `FrameworkSettings`, or `LibrarySettings` class.
 
 ```python
-threshold: float = field(0.5, min=0.0, max=1.0, label='Threshold')
-algorithm: str   = field('fast', choices=['fast', 'accurate'])
-color:     Color = field('#ffffff', label='Background')
-verbose:   bool  = field(False, on_change='hb_on_verbose_change')
+threshold = field[float](0.5, min=0.0, max=1.0, label='Threshold')
+algorithm = field[str]('fast', choices=['fast', 'accurate'])
+color = field[Color]('#ffffff', label='Background')
+verbose = field[bool](False, on_change='hb_on_verbose_change')
 ```
 
 | Parameter | Type | Description |
@@ -99,9 +99,9 @@ Descriptor attributes (set after construction):
 Writable mirror of `src`. Inherits `_label`, `_default`, `_type`, `_choices`, `_widget`, `_min`, `_max` from the source. Per-instance writes are allowed and stored in the graph.
 
 ```python
-bg_color: Color = shadow(NodeUISettings.bg_color)
-bg_color: Color = shadow(NodeUISettings.bg_color, label='Node Background')  # override label
-bg_color: Color = shadow("ui.node.bg_color")  # raw key form
+bg_color = shadow(NodeUISettings.bg_color)
+bg_color = shadow(NodeUISettings.bg_color, label='Node Background')  # override label
+bg_color = shadow("ui.node.bg_color")  # raw key form
 ```
 
 ### `watch(src, **kwargs) -> field`
@@ -109,7 +109,7 @@ bg_color: Color = shadow("ui.node.bg_color")  # raw key form
 Read-only mirror of `src`. Same inheritance as `shadow()`. Any write attempt raises `AttributeError`. The field is invisible in settings panels and never serialized.
 
 ```python
-debug_mode: bool = watch(DebugSettings.verbose_logging)
+debug_mode = watch(DebugSettings.verbose_logging)
 ```
 
 ---
@@ -191,8 +191,8 @@ Base class for framework/app-defined settings.
 from haywire.core.settings import FrameworkSettings, field
 
 class ExecutionSettings(FrameworkSettings, namespace='execution'):
-    max_threads: int   = field(4,     label='Max Threads')
-    timeout_ms:  float = field(5000., label='Timeout (ms)')
+    max_threads = field[int](4,     label='Max Threads')
+    timeout_ms = field[float](5000., label='Timeout (ms)')
 ```
 
 - `namespace=` kwarg triggers `__init_subclass__` to wire `_field_key` on every descriptor and queue the class in `_pending_global`.
@@ -210,7 +210,7 @@ from haywire.core.settings.decorator import settings
 
 @settings(namespace='my_lib', label='My Library')
 class MyLibSettings(LibrarySettings):
-    api_url: str = field('https://api.example.com')
+    api_url = field[str]('https://api.example.com')
 ```
 
 - `@settings` sets `class_identity` (required by `BaseRegistry._class_filter`), `class_library`, `_namespace`, and `_field_key` on all descriptors. Without it the class is invisible to the hot-reload registry.

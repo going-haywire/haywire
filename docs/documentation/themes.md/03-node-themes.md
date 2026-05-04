@@ -78,7 +78,7 @@ missing_tok  = theme.get_color('nonexistent')  # ''  — empty string, no error
 |------|--------|
 | **Decorator required** | `@theme(registry_id=...)` must appear before the class |
 | **Unique `registry_id`** | Must not clash with other ids within the same library |
-| **Plain string attributes** | Values are plain class attributes, not `setting()` descriptors |
+| **Plain string attributes** | Values are plain class attributes, not `field()` descriptors |
 | **Undefined tokens** | `get_color()` returns `''` for missing tokens — safe to call unconditionally |
 
 ---

@@ -7,8 +7,8 @@ Subclass inside a @node class body and declare fields with ``field()``:
     @node(node_type=NodeType.DATA)
     class FilterNode(BaseNode):
         class Settings(NodeSettings):
-            strength: float = field(0.5, min=0.0, max=1.0, label='Strength')
-            mode:     str   = field('fast', choices=['fast', 'precise'])
+            strength = field[float](0.5, min=0.0, max=1.0, label='Strength')
+            mode     = field[str]('fast', choices=['fast', 'precise'])
 
 NodeSettings are:
 - Purely local — values never enter the registry

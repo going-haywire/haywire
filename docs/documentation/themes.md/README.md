@@ -76,7 +76,7 @@ ThemeRegistry (BaseRegistry)
 └── NodeTheme subclasses       →  get_color()    →  node renderer tokens
 ```
 
-- `WorkbenchTheme` fields are **plain string class attributes** (not `setting()` descriptors).
+- `WorkbenchTheme` fields are **plain string class attributes** (not `field()` descriptors).
   `__init_subclass__` wraps them into `_FieldProxy` objects collected in `_fields`.
 - `NodeTheme` uses the same mechanism.
 - `ThemeRegistry` follows the same `BaseRegistry` pattern as `NodeRegistry`,

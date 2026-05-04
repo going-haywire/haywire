@@ -10,7 +10,7 @@ class ExecutionSettings(FrameworkSettings):
     """Global preferences controlling graph execution behaviour."""
 
     # Auto-execution
-    auto_execute: bool = field(
+    auto_execute = field[bool](
         True,
         label="Auto Execute",
         description="Automatically execute graph when inputs change",
@@ -18,7 +18,7 @@ class ExecutionSettings(FrameworkSettings):
         order=10,
     )
 
-    execute_on_connect: bool = field(
+    execute_on_connect = field[bool](
         True,
         label="Execute on Connect",
         description="Execute affected nodes when new connections are made",

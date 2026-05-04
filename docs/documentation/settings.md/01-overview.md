@@ -57,7 +57,7 @@ Nodes declare settings as inner classes that inherit from `NodeSettings`. The cl
 
 ```python
 from haywire.core.node import BaseNode, node
-from haywire.core.settings import NodeSettings, setting, Color
+from haywire.core.settings import NodeSettings, field, shadow, watch, Color
 from haywire.core.settings.builtins.ui_node import NodeUISettings
 from haywire.core.settings.builtins.debug import DebugSettings
 
@@ -66,24 +66,24 @@ class MyNode(BaseNode):
 
     class filter(NodeSettings):
         # Local setting — stored in graph, shown in properties panel
-        threshold: float = setting(0.5, min=0.0, max=1.0, label='Threshold')
+        threshold = field[float](0.5, min=0.0, max=1.0, label='Threshold')
 
-        # mirrors= — inherits global default; per-node override shown with reset affordance
-        bg_color: Color = setting(mirrors=NodeUISettings.bg_color)
+        # shadow() — writable mirror of a global field; per-node override shown with reset affordance
+        bg_color = shadow(NodeUISettings.bg_color)
 
-        # mirrors= + read_only=True — read-only cache of a global; invisible in panel
-        verbose: bool = setting(mirrors=DebugSettings.verbose_logging, read_only=True)
+        # watch() — read-only mirror of a global field; invisible in panel, never stored
+        verbose = watch(DebugSettings.verbose_logging)
 
     def worker(self, context):
         result = value * self.filter.threshold   # direct access — no extra indirection
         self.out('result', result)
 ```
 
-The `@node` decorator scans the class body for all `NodeSettings` subclasses, assigns a `_field_key` to each `setting()` descriptor (derived from the node's `registry_key`), and binds each settings instance directly on the node object at construction time.
+The `@node` decorator scans the class body for all `NodeSettings` subclasses, assigns a `_field_key` to each `field()` descriptor (derived from the node's `registry_key`), and binds each settings instance directly on the node object at construction time.
 
 ### Per-Node Resolution Chain (Extended Mode)
 
-When a `SettingsRegistry` is injected, each `setting()` field with a `_field_key` set goes through the full resolution chain:
+When a `SettingsRegistry` is injected, each `field()` descriptor with a `_field_key` set goes through the full resolution chain:
 
 ```
 self.filter.threshold
@@ -113,12 +113,12 @@ Settings instances without a registry (simple mode) skip steps 1–2 and 4–5 �
 
 ## Descriptor Parameters
 
-| Parameter | Behaviour |
-| --------- | --------- |
-| `setting(default)` | Local node setting — stored in graph, shown in panel |
-| `setting(mirrors=FrameworkSettings.field)` | Inherits global value; override shown with reset affordance |
-| `setting(mirrors=..., read_only=True)` | Read-only global cache — invisible in panel, never stored |
-| `setting(..., on_change='method_name')` | Fires `method(value, field_name)` on change |
+| Descriptor | Behaviour |
+| ---------- | --------- |
+| `field[T](default)` | Local node setting — stored in graph, shown in panel |
+| `shadow(FrameworkSettings.field)` | Writable mirror; inherits global value; override shown with reset affordance |
+| `watch(FrameworkSettings.field)` | Read-only mirror — invisible in panel, never stored |
+| `field[T](..., on_change='method_name')` | Fires `method(value, field_name)` on change |
 
 ---
 
@@ -171,7 +171,7 @@ namespace='my_lib'      →   TOML section [my_lib]
 
 ### `_field_key`
 
-The full TOML address of a single field: `{namespace}.{field_attr_name}`. Set on each `setting()` descriptor by `@settings` / `__init_subclass__` (for `FrameworkSettings`/`LibrarySettings`) or by `@node` / `_wire_settings_schemas` (for `NodeSettings`).
+The full TOML address of a single field: `{namespace}.{field_attr_name}`. Set on each `field()` descriptor by `@settings` / `__init_subclass__` (for `FrameworkSettings`/`LibrarySettings`) or by `@node` / `_wire_settings_schemas` (for `NodeSettings`).
 
 ```text
 namespace='execution', field 'max_threads'  →  _field_key='execution.max_threads'
@@ -179,7 +179,7 @@ node registry_key='haybale_core:node:filter', accessor 'params', field 'threshol
     →  _field_key='haybale_core.node.filter.params.threshold'
 ```
 
-`_field_key` is what the `SettingsRegistry` stores, resolves, and what `mirrors=` references. It is the single shared identity between schema, TOML, and registry lookup.
+`_field_key` is what the `SettingsRegistry` stores, resolves, and what `shadow()` / `watch()` reference. It is the single shared identity between schema, TOML, and registry lookup.
 
 ### `registry_key`
 
@@ -195,7 +195,7 @@ namespace='my_lib', library_id='haybale_image'
 ```text
 @settings(namespace='my_lib')          ← sets _namespace on the class
 class MyLibSettings(LibrarySettings):
-    quality: int = setting(85)         ← _field_key = 'my_lib.quality'
+    quality = field[int](85)           ← _field_key = 'my_lib.quality'
                                           (set by @settings on the descriptor)
 
     ↓ BaseRegistry registers the class under:

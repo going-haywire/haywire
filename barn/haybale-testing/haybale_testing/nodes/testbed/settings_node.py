@@ -17,13 +17,13 @@ class SettingsNode(BaseNode):
 
     class example(NodeSettings):
         # --- type_ ---
-        example_string: str = field(
+        example_string = field[str](
             "default string",
             label="Example String",
             description="An example string setting",
             category="type",
         )
-        example_int: int = field(
+        example_int = field[int](
             3,
             min=0,
             max=100,
@@ -31,7 +31,7 @@ class SettingsNode(BaseNode):
             description="An example integer setting",
             category="type",
         )
-        example_float: float = field(
+        example_float = field[float](
             5,
             min=0.0,
             max=1.0,
@@ -40,39 +40,39 @@ class SettingsNode(BaseNode):
             category="type",
             type_=float,
         )
-        example_bool: bool = field(
+        example_bool = field[bool](
             False,
             label="Example Bool",
             description="An example boolean setting",
             category="type",
         )
-        example_choices: str = field(
+        example_choices = field[str](
             "fast",
             choices=["fast", "balanced", "quality"],
             label="Example Choices",
             description="An example choices setting",
             category="type",
         )
-        example_color: Color = field(
+        example_color = field[Color](
             "#00ff00",
             label="Example Color",
             description="An example color setting",
             category="type",
             widget="color",
         )
-        example_vec2i: Vec2i = field(
+        example_vec2i = field[Vec2i](
             [4, 8],
             label="Example Vec2i",
             description="A 2-component integer vector",
             category="type",
         )
-        example_vec3f: Vec3f = field(
+        example_vec3f = field[Vec3f](
             [1.0, 2.0, 3.0],
             label="Example Vec3f",
             description="A 3-component float vector",
             category="type",
         )
-        example_vec4f: Vec4f = field(
+        example_vec4f = field[Vec4f](
             [0.0, 0.0, 0.0, 1.0],
             label="Example Vec4f",
             description="A 4-component float vector (e.g. RGBA or homogeneous coords)",
@@ -80,7 +80,7 @@ class SettingsNode(BaseNode):
         )
 
         # --- read only ---
-        read_only_value: float = field(
+        read_only_value = field[float](
             1.0,
             label="Read-Only Value",
             description="Read-only stored setting",
@@ -89,13 +89,13 @@ class SettingsNode(BaseNode):
         )
 
         # --- stored ---
-        persistent_value: float = field(
+        persistent_value = field[float](
             1.0,
             label="Persistent Value",
             description="Normal stored setting (stored=True by default)",
             category="stored",
         )
-        transient_value: float = field(
+        transient_value = field[float](
             0.0,
             label="Transient Value",
             description="Ephemeral setting excluded from serialization",
@@ -104,40 +104,40 @@ class SettingsNode(BaseNode):
         )
 
         # --- mirrors (shadow = writable, watch = read-only) ---
-        intensity: float = shadow(TestingSettings.default_intensity, label="Intensity", category="mirrors")
-        count_mirror: int = shadow(TestingSettings.default_count, label="Count Mirror", category="mirrors")
-        label_mirror: str = shadow(TestingSettings.default_label, label="Label Mirror", category="mirrors")
-        enabled: bool = shadow(TestingSettings.default_enabled, label="Enabled", category="mirrors")
-        mode: str = shadow(TestingSettings.default_mode, label="Mode", category="mirrors")
-        tint: Color = shadow(TestingSettings.default_color, label="Tint", category="mirrors")
-        offset: Vec2i = shadow(TestingSettings.default_offset, label="Offset", category="mirrors")
-        position: Vec3f = shadow(TestingSettings.default_position, label="Position", category="mirrors")
-        intensity_ro: float = watch(
+        intensity = shadow(TestingSettings.default_intensity, label="Intensity", category="mirrors")
+        count_mirror = shadow(TestingSettings.default_count, label="Count Mirror", category="mirrors")
+        label_mirror = shadow(TestingSettings.default_label, label="Label Mirror", category="mirrors")
+        enabled = shadow(TestingSettings.default_enabled, label="Enabled", category="mirrors")
+        mode = shadow(TestingSettings.default_mode, label="Mode", category="mirrors")
+        tint = shadow(TestingSettings.default_color, label="Tint", category="mirrors")
+        offset = shadow(TestingSettings.default_offset, label="Offset", category="mirrors")
+        position = shadow(TestingSettings.default_position, label="Position", category="mirrors")
+        intensity_ro = watch(
             TestingSettings.default_intensity, label="Intensity (read-only)", category="mirrors"
         )
-        count_ro: int = watch(TestingSettings.default_count, label="Count (read-only)", category="mirrors")
-        label_ro: str = watch(TestingSettings.default_label, label="Label (read-only)", category="mirrors")
-        enabled_ro: bool = watch(
+        count_ro = watch(TestingSettings.default_count, label="Count (read-only)", category="mirrors")
+        label_ro = watch(TestingSettings.default_label, label="Label (read-only)", category="mirrors")
+        enabled_ro = watch(
             TestingSettings.default_enabled, label="Enabled (read-only)", category="mirrors"
         )
-        mode_ro: str = watch(TestingSettings.default_mode, label="Mode (read-only)", category="mirrors")
-        tint_ro: Color = watch(TestingSettings.default_color, label="Tint (read-only)", category="mirrors")
-        offset_ro: Vec2i = watch(
+        mode_ro = watch(TestingSettings.default_mode, label="Mode (read-only)", category="mirrors")
+        tint_ro = watch(TestingSettings.default_color, label="Tint (read-only)", category="mirrors")
+        offset_ro = watch(
             TestingSettings.default_offset, label="Offset (read-only)", category="mirrors"
         )
-        position_ro: Vec3f = watch(
+        position_ro = watch(
             TestingSettings.default_position, label="Position (read-only)", category="mirrors"
         )
 
         # --- validator ---
-        validated_string: str = field(
+        validated_string = field[str](
             "hello",
             label="Validated String",
             description="Must be non-empty",
             category="validator",
             validator=lambda v: isinstance(v, str) and len(v) > 0,
         )
-        clamped_positive: float = field(
+        clamped_positive = field[float](
             1.0,
             min=0.0,
             max=100.0,
@@ -146,7 +146,7 @@ class SettingsNode(BaseNode):
             category="validator",
             validator=lambda v: isinstance(v, (int, float)) and v > 0,
         )
-        even_int: int = field(
+        even_int = field[int](
             4,
             label="Even Integer",
             description="Must be an even integer",

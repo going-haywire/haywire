@@ -5,8 +5,8 @@ Settings — observable setting container for Haywire.
 Subclass and declare fields with ``field()``:
 
     class FilterSettings(Settings):
-        strength: float = field(0.5, min=0.0, max=1.0, label='Strength')
-        mode:     str   = field('fast', choices=['fast', 'precise'])
+        strength = field[float](0.5, min=0.0, max=1.0, label='Strength')
+        mode     = field[str]('fast', choices=['fast', 'precise'])
 
 Simple mode (no registry):
     Direct _local_store lookup.  Zero overhead.  Used by NodeProperties and
@@ -31,7 +31,9 @@ from __future__ import annotations
 import logging
 from typing import Any, Callable, TYPE_CHECKING
 
-from .descriptor import field
+from typing_extensions import dataclass_transform
+
+from .descriptor import field, shadow, watch
 
 if TYPE_CHECKING:
     from haywire.core.settings.registry import SettingsRegistry
@@ -40,6 +42,7 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
+@dataclass_transform(field_specifiers=(field, shadow, watch))
 class Settings:
     """
     Base Settings class for observable settings.

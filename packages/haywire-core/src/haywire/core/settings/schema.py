@@ -41,7 +41,7 @@ class FrameworkSettings(Settings):
 
     Subclass with a namespace= kwarg:
         class ExecutionSettings(FrameworkSettings, namespace='execution'):
-            max_threads: int = field(4, label='Max Threads')
+            max_threads = field[int](4, label='Max Threads')
 
     Registration is automatic.
 
@@ -116,7 +116,7 @@ class LibrarySettings(Settings):
 
         @settings(namespace='my_lib.general', label='My Library')
         class GeneralSettings(LibrarySettings):
-            quality: int = field(80, label='Quality')
+            quality = field[int](80, label='Quality')
 
     Registration is via hot-reload machinery
 

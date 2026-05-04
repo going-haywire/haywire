@@ -6,7 +6,7 @@ Public API for node authors:
     from haywire.core.settings import Settings, field, Color, Icon
 
     class filter(Settings):
-        strength: float = field(0.5, min=0.0, max=1.0, label='Strength')
+        strength = field[float](0.5, min=0.0, max=1.0, label='Strength')
 
 Framework / library internals:
     SettingsRegistry    — TOML resolution chain + LibrarySettings

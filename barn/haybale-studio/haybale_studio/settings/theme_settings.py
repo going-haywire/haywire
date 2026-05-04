@@ -22,7 +22,7 @@ def _workbench_theme_choices():
 class WorkbenchThemeSettings(LibrarySettings):
     """Global settings controlling the active workbench theme."""
 
-    theme: str = field(
+    theme = field[str](
         "",
         label="Workbench Theme",
         description="Active workbench colour theme",
@@ -36,7 +36,7 @@ class WorkbenchThemeSettings(LibrarySettings):
 class NodeThemeSettings(LibrarySettings):
     """Global settings controlling the active node theme."""
 
-    theme: str = field(
+    theme = field[str](
         "default",
         label="Node Theme",
         description="Active node rendering theme",

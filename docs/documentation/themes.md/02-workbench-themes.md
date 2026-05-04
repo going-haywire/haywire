@@ -93,7 +93,7 @@ class OceanDarkTheme(WorkbenchTheme):
 | **Unique `registry_id`** | Must not clash with existing ids within the same library (`haywire-dark`, `haywire-light`). Choose unique class names and let the `registry_id` be automatically derived. |
 | **All fields optional** | Only define fields you want to override from the base class |
 | **Values must be CSS strings** | Hex, rgba, hsl, named colours — anything valid as a CSS colour |
-| **No `setting()` descriptors** | Fields are plain class attributes, not descriptors |
+| **No `field()` descriptors** | Fields are plain class attributes, not descriptors |
 
 ---
 

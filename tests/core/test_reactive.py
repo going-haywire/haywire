@@ -25,22 +25,22 @@ from haywire.core.settings import Settings, field, FieldDescriptor
 
 
 class _Simple(Settings):
-    threshold: float = field(0.5, label="Threshold", min=0.0, max=1.0)
-    verbose: bool = field(False, label="Verbose")
-    name: str = field("default", label="Name")
+    threshold = field[float](0.5, label="Threshold", min=0.0, max=1.0)
+    verbose = field[bool](False, label="Verbose")
+    name = field[str]("default", label="Name")
 
 
 class _WithChoices(Settings):
-    algorithm: str = field("fast", choices=["fast", "accurate"])
-    dynamic: str = field("a", choices=lambda: ["a", "b", "c"])
+    algorithm = field[str]("fast", choices=["fast", "accurate"])
+    dynamic = field[str]("a", choices=lambda: ["a", "b", "c"])
 
 
 class _Parent(Settings):
-    x: int = field(1, label="X")
+    x = field[int](1, label="X")
 
 
 class _Child(_Parent):
-    y: int = field(2, label="Y")
+    y = field[int](2, label="Y")
 
 
 # ---------------------------------------------------------------------------

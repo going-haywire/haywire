@@ -16,9 +16,9 @@ from haywire.core.settings.builtins.ui_node import NodeUISettings
 class QuickStartNode(BaseNode):
 
     class filter(NodeSettings):
-        threshold: float = field(0.5, min=0.0, max=1.0, label='Threshold')
-        bg_color:  Color = shadow(NodeUISettings.bg_color)
-        verbose:   bool  = watch(DebugSettings.verbose_logging)
+        threshold = field[float](0.5, min=0.0, max=1.0, label='Threshold')
+        bg_color = shadow(NodeUISettings.bg_color)
+        verbose = watch(DebugSettings.verbose_logging)
 
     def init(self):
         self.add(FLOAT.as_inlet('value'))
@@ -47,17 +47,17 @@ class MyNode(BaseNode):
 
     class filter(NodeSettings):
         # Local setting — stored in graph when set, shown in properties panel
-        threshold:  float = field(0.5, min=0.0, max=1.0, label='Threshold')
-        algorithm:  str   = field('fast', choices=['fast', 'accurate'], label='Algorithm')
-        bg_color:   Color = field('#ffffff', label='Background Color')
-        verbose:    bool  = field(False, label='Verbose Output')
-        icon:       Icon  = field('star', label='Icon')
+        threshold = field[float](0.5, min=0.0, max=1.0, label='Threshold')
+        algorithm = field[str]('fast', choices=['fast', 'accurate'], label='Algorithm')
+        bg_color = field[Color]('#ffffff', label='Background Color')
+        verbose = field[bool](False, label='Verbose Output')
+        icon = field[Icon]('star', label='Icon')
 
         # shadow() — writable mirror of a global field; per-node override shown with reset affordance
-        node_bg:    Color = shadow(NodeUISettings.bg_color)
+        node_bg = shadow(NodeUISettings.bg_color)
 
         # watch() — read-only mirror of a global field; invisible in panel, never stored
-        debug_mode: bool  = watch(DebugSettings.verbose_logging)
+        debug_mode = watch(DebugSettings.verbose_logging)
 ```
 
 Access in worker code directly via the accessor name:
@@ -91,10 +91,10 @@ A node can declare any number of `NodeSettings` inner classes. Each gets its own
 class ImageFilterNode(BaseNode):
 
     class filter(NodeSettings):
-        threshold: float = field(0.5)
+        threshold = field[float](0.5)
 
     class output(NodeSettings):
-        jpeg_quality: int = field(85, min=1, max=100, label='JPEG Quality')
+        jpeg_quality = field[int](85, min=1, max=100, label='JPEG Quality')
 
     def worker(self, context, img):
         t = self.filter.threshold
@@ -109,10 +109,10 @@ class ImageFilterNode(BaseNode):
 
 ```python
 class filter(NodeSettings):
-    threshold:   float = field(0.5, min=0.0, max=1.0, label='Threshold')
-    algorithm:   str   = field('fast', choices=['fast', 'accurate'], label='Algorithm')
-    color:       Color = field('#ffffff', label='Background')
-    verbose:     bool  = field(False, on_change='hb_on_verbose_change')
+    threshold = field[float](0.5, min=0.0, max=1.0, label='Threshold')
+    algorithm = field[str]('fast', choices=['fast', 'accurate'], label='Algorithm')
+    color = field[Color]('#ffffff', label='Background')
+    verbose = field[bool](False, on_change='hb_on_verbose_change')
 ```
 
 Widget is inferred from type unless overridden:
@@ -130,13 +130,13 @@ Widget is inferred from type unless overridden:
 
 ```python
 # Static list — value shown and stored as-is
-algorithm: str = field('fast', choices=['fast', 'accurate'])
+algorithm = field[str]('fast', choices=['fast', 'accurate'])
 
 # Dict {stored_value: display_label} — label shown, value stored
-algorithm: str = field('fast', choices={'fast': 'Fast Mode', 'accurate': 'High Accuracy'})
+algorithm = field[str]('fast', choices={'fast': 'Fast Mode', 'accurate': 'High Accuracy'})
 
 # Callable — evaluated at render time (use for dynamic lists from a registry)
-theme: str = field('', choices=lambda: get_theme_registry().list_workbench_keys())
+theme = field[str]('', choices=lambda: get_theme_registry().list_workbench_keys())
 ```
 
 The callable form is evaluated fresh on every panel render, so entries added by plugins after startup appear automatically.
@@ -152,17 +152,17 @@ from haywire.core.settings.builtins.debug import DebugSettings
 
 class filter(NodeSettings):
     # Writable — inherits global value by default; user can override per-node
-    bg_color:   Color = shadow(NodeUISettings.bg_color)
+    bg_color = shadow(NodeUISettings.bg_color)
 
     # Read-only — invisible in panel; never stored; value tracks global
-    debug_mode: bool  = watch(DebugSettings.verbose_logging)
+    debug_mode = watch(DebugSettings.verbose_logging)
 ```
 
 Both factories inherit `_label`, `_default`, `_type`, `_choices`, `_widget`, `_min`, and `_max` from the source descriptor automatically. Pass keyword arguments to override any of them:
 
 ```python
 # Override just the label
-node_bg: Color = shadow(NodeUISettings.bg_color, label='Node Background')
+node_bg = shadow(NodeUISettings.bg_color, label='Node Background')
 ```
 
 `watch()` raises `AttributeError` on any write attempt. `shadow()` allows per-instance writes which are stored in the graph.
@@ -170,7 +170,7 @@ node_bg: Color = shadow(NodeUISettings.bg_color, label='Node Background')
 You can also pass a raw string key instead of a descriptor reference:
 
 ```python
-node_bg: Color = shadow("ui.node.bg_color")
+node_bg = shadow("ui.node.bg_color")
 ```
 
 ---
@@ -181,7 +181,7 @@ Triggered when a setting value changes (local set, reset, or global cache invali
 
 ```python
 class filter(NodeSettings):
-    scale: float = field(1.0, label='Scale', on_change='hb_on_scale_change')
+    scale = field[float](1.0, label='Scale', on_change='hb_on_scale_change')
 
 def hb_on_scale_change(self, value: float, field: str = '') -> None:
     # value: new resolved value
@@ -290,14 +290,14 @@ from haywire.core.settings.builtins.debug import DebugSettings
 class SignalProcessorNode(BaseNode):
 
     class filter(NodeSettings):
-        filter_strength: float = field(0.5, min=0.0, max=1.0, label='Filter Strength',
+        filter_strength = field[float](0.5, min=0.0, max=1.0, label='Filter Strength',
                                        on_change='hb_on_filter_change')
-        filter_type:     str   = field('exponential',
+        filter_type = field[str]('exponential',
                                        choices=['none', 'exponential', 'moving_average'],
                                        label='Filter Type')
-        window_size:     int   = field(10, min=2, max=100, label='Window Size')
-        bg_color:        Color = shadow(NodeUISettings.bg_color)
-        verbose:         bool  = watch(DebugSettings.verbose_logging)
+        window_size = field[int](10, min=2, max=100, label='Window Size')
+        bg_color = shadow(NodeUISettings.bg_color)
+        verbose = watch(DebugSettings.verbose_logging)
 
     def init(self):
         self.add(FLOAT.as_inlet('signal'))

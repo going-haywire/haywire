@@ -50,7 +50,7 @@ def settings(namespace: str, label: str = "", description: str = ""):
     Usage:
         @settings(namespace='ui.info')
         class MyLibSettings(LibrarySettings):
-            bg_color: Color = field('#1e1e2e', label='Node Background')
+            bg_color = field[Color]('#1e1e2e', label='Node Background')
 
     Notes:
         the namespace of the field bg_color would be 'my_lib.ui.info.bg_color'

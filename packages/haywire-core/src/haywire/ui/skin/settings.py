@@ -32,7 +32,7 @@ class NodeDefaultSkinSettings(FrameworkSettings, namespace=NAMESPACE_UI_NODE_DEF
     """
 
     # Visibility
-    default_skin: str = field(
+    default_skin = field[str](
         default=_default_skin,
         label="Default NodeSkin",
         description="Current default node skin",
@@ -40,7 +40,7 @@ class NodeDefaultSkinSettings(FrameworkSettings, namespace=NAMESPACE_UI_NODE_DEF
         widget="label",
         order=10,
     )
-    studio_skin: str = field(
+    studio_skin = field[str](
         default=_default_skin,
         label="Default Studio Skin",
         description="Studio default node skin",

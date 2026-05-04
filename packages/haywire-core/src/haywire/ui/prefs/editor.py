@@ -9,7 +9,7 @@ class EditorSettings(FrameworkSettings, namespace="editor"):
     """Global preferences controlling editor interaction and behaviour."""
 
     # Undo/Redo
-    undo_limit: int = field(
+    undo_limit = field[int](
         100,
         label="Undo Limit",
         description="Maximum number of undo steps",
@@ -18,7 +18,7 @@ class EditorSettings(FrameworkSettings, namespace="editor"):
         min=10,
         max=1000,
     )
-    group_undo_actions: bool = field(
+    group_undo_actions = field[bool](
         True,
         label="Group Undo Actions",
         description="Group related actions into single undo step",
@@ -27,10 +27,10 @@ class EditorSettings(FrameworkSettings, namespace="editor"):
     )
 
     # Auto-save
-    auto_save: bool = field(
+    auto_save = field[bool](
         True, label="Auto Save", description="Automatically save changes", category="editor", order=20
     )
-    auto_save_interval_seconds: int = field(
+    auto_save_interval_seconds = field[int](
         60,
         label="Auto Save Interval (s)",
         description="Seconds between auto-saves",
@@ -39,14 +39,14 @@ class EditorSettings(FrameworkSettings, namespace="editor"):
         min=10,
         max=600,
     )
-    create_backups: bool = field(
+    create_backups = field[bool](
         True,
         label="Create Backups",
         description="Create backup files before saving",
         category="editor",
         order=22,
     )
-    max_backups: int = field(
+    max_backups = field[int](
         5,
         label="Max Backups",
         description="Maximum number of backup files to keep",
@@ -57,24 +57,24 @@ class EditorSettings(FrameworkSettings, namespace="editor"):
     )
 
     # Selection and interaction
-    confirm_delete: bool = field(
+    confirm_delete = field[bool](
         True,
         label="Confirm Delete",
         description="Ask for confirmation when deleting nodes",
         category="editor",
         order=30,
     )
-    select_on_create: bool = field(
+    select_on_create = field[bool](
         True, label="Select on Create", description="Select newly created nodes", category="editor", order=31
     )
-    focus_on_create: bool = field(
+    focus_on_create = field[bool](
         True,
         label="Focus on Create",
         description="Pan canvas to show newly created nodes",
         category="editor",
         order=32,
     )
-    multi_select_modifier: str = field(
+    multi_select_modifier = field[str](
         "ctrl",
         label="Multi-Select Modifier",
         description="Key modifier for multi-selection",
@@ -84,7 +84,7 @@ class EditorSettings(FrameworkSettings, namespace="editor"):
     )
 
     # Mouse controls
-    pan_button: str = field(
+    pan_button = field[str](
         "middle",
         label="Pan Mouse Button",
         description="Mouse button for canvas panning",
@@ -92,7 +92,7 @@ class EditorSettings(FrameworkSettings, namespace="editor"):
         order=40,
         choices=["left", "middle", "right"],
     )
-    context_menu_button: str = field(
+    context_menu_button = field[str](
         "right",
         label="Context Menu Button",
         description="Mouse button for context menu",
@@ -100,7 +100,7 @@ class EditorSettings(FrameworkSettings, namespace="editor"):
         order=41,
         choices=["right", "middle"],
     )
-    double_click_action: str = field(
+    double_click_action = field[str](
         "edit",
         label="Double Click Action",
         description="Action when double-clicking a node",
@@ -110,14 +110,14 @@ class EditorSettings(FrameworkSettings, namespace="editor"):
     )
 
     # Clipboard
-    copy_with_connections: bool = field(
+    copy_with_connections = field[bool](
         True,
         label="Copy with Connections",
         description="Include internal connections when copying multiple nodes",
         category="editor",
         order=50,
     )
-    paste_offset: int = field(
+    paste_offset = field[int](
         20,
         label="Paste Offset",
         description="Offset in pixels when pasting nodes",
@@ -128,14 +128,14 @@ class EditorSettings(FrameworkSettings, namespace="editor"):
     )
 
     # Node creation
-    quick_add_enabled: bool = field(
+    quick_add_enabled = field[bool](
         True,
         label="Enable Quick Add",
         description="Enable quick node creation with spacebar",
         category="editor",
         order=60,
     )
-    quick_add_key: str = field(
+    quick_add_key = field[str](
         "space",
         label="Quick Add Key",
         description="Key to open quick add menu",
@@ -143,14 +143,14 @@ class EditorSettings(FrameworkSettings, namespace="editor"):
         order=61,
         choices=["space", "tab", "a"],
     )
-    show_recent_nodes: bool = field(
+    show_recent_nodes = field[bool](
         True,
         label="Show Recent Nodes",
         description="Show recently used nodes in quick add menu",
         category="editor",
         order=62,
     )
-    recent_nodes_count: int = field(
+    recent_nodes_count = field[int](
         10,
         label="Recent Nodes Count",
         description="Number of recent nodes to show",

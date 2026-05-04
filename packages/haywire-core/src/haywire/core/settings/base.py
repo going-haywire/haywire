@@ -70,16 +70,23 @@ class FieldDescriptor:
 
     def __set_name__(self, owner: type, name: str) -> None:
         self._attr_name = name
-        # The annotation may be more specific than what was inferred from the default
-        # (e.g. Vec3f vs plain list, or an explicit type_ that matches the annotation).
-        # Always let the annotation win if it resolves to a concrete type.
+        # Refine _type from a more specific source than the inferred default
+        # (e.g. Vec3f vs plain list). Two refinement sources, in priority order:
+        #   1. Owner class annotation `name: T = field(...)`
+        #   2. Generic parameter on the descriptor `field[T](...)` via __orig_class__
         try:
             hints = typing.get_type_hints(owner)
             hint = hints.get(name)
             if hint is not None and isinstance(hint, type) and hint is not self._type:
                 self._type = hint
+                return
         except Exception:
             pass
+        orig_class = getattr(self, "__orig_class__", None)
+        if orig_class is not None:
+            args = typing.get_args(orig_class)
+            if args and isinstance(args[0], type) and args[0] is not self._type:
+                self._type = args[0]
 
     def __get__(self, obj: object | None, objtype: type | None = None) -> Any:
         if obj is None:

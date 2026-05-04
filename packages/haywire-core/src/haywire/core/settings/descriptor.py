@@ -26,12 +26,14 @@ Convenience factories:
 
 from __future__ import annotations
 
-from typing import Any, Callable
+from typing import Any, Callable, Generic, TypeVar, overload
 
 from .base import FieldDescriptor
 
+T = TypeVar("T")
 
-class field(FieldDescriptor):
+
+class field(FieldDescriptor, Generic[T]):
     """
     Descriptor for a reactive field on a ``Settings`` subclass.
 
@@ -52,7 +54,7 @@ class field(FieldDescriptor):
 
     def __init__(
         self,
-        default: Any = None,
+        default: "T | Callable[[], T]" = None,  # type: ignore[assignment]
         *,
         label: str = "",
         description: str = "",
@@ -132,6 +134,10 @@ class field(FieldDescriptor):
             return True
         return bool(self._validator(value))
 
+    @overload
+    def __get__(self, obj: None, objtype: type | None = None) -> "field[T]": ...
+    @overload
+    def __get__(self, obj: object, objtype: type | None = None) -> T: ...
     def __get__(self, obj: Any, objtype: type | None = None) -> Any:
         if obj is None:
             return self  # class-level access -> descriptor itself
@@ -144,7 +150,7 @@ class field(FieldDescriptor):
         value = obj._local_store.get(self._attr_name, self._default)
         return value() if callable(value) else value
 
-    def __set__(self, obj: Any, value: Any) -> None:
+    def __set__(self, obj: Any, value: T) -> None:
         if self._read_only:
             raise AttributeError(
                 f"'{self._attr_name}' is read-only — it mirrors a global setting "
@@ -162,11 +168,11 @@ class field(FieldDescriptor):
             obj._on_property_change(self._attr_name, value, old, self._on_change)
 
 
-def shadow(src: FieldDescriptor, **kwargs: Any) -> field:
+def shadow(src: "field[T]", **kwargs: Any) -> "field[T]":
     """Writable mirror of *src* field. Inherits src metadata; local writes are allowed."""
     return field(mirrors=src, read_only=False, **kwargs)
 
 
-def watch(src: FieldDescriptor, **kwargs: Any) -> field:
+def watch(src: "field[T]", **kwargs: Any) -> "field[T]":
     """Read-only mirror of *src* field. Inherits src metadata; local writes raise AttributeError."""
     return field(mirrors=src, read_only=True, **kwargs)

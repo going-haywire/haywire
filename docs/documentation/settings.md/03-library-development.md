@@ -1,6 +1,6 @@
 # Library Development Guide
 
-This guide covers how to define `LibrarySettings` for your haybale library and how nodes can reference them via `mirrors=`.
+This guide covers how to define `LibrarySettings` for your haybale library and how nodes can reference them via `shadow()` and `watch()`.
 
 ---
 
@@ -10,17 +10,17 @@ Decorate a `LibrarySettings` subclass with `@settings`. This sets `class_identit
 
 ```python
 # my_lib/settings.py
-from haywire.core.settings import LibrarySettings, setting, Color
+from haywire.core.settings import LibrarySettings, field, shadow, watch, Color
 from haywire.core.settings.decorator import settings
 
 
 @settings(namespace='my_lib', label='My Library')
 class MyLibSettings(LibrarySettings):
-    api_url:           str   = setting('https://api.example.com', label='API URL',          category='connection')
-    api_timeout:       int   = setting(30, min=5, max=300,        label='Timeout (s)',       category='connection')
-    cache_enabled:     bool  = setting(True,                      label='Enable Cache',      category='performance')
-    parallel_requests: int   = setting(4, min=1, max=20,          label='Parallel Requests', category='performance')
-    accent_color:      Color = setting('#3498db',                  label='Accent Color',      category='appearance')
+    api_url = field[str]('https://api.example.com', label='API URL',          category='connection')
+    api_timeout = field[int](30, min=5, max=300,        label='Timeout (s)',       category='connection')
+    cache_enabled = field[bool](True,                      label='Enable Cache',      category='performance')
+    parallel_requests = field[int](4, min=1, max=20,          label='Parallel Requests', category='performance')
+    accent_color = field[Color]('#3498db',                  label='Accent Color',      category='appearance')
 ```
 
 Full keys are derived immediately: `my_lib.api_url`, `my_lib.api_timeout`, etc.
@@ -57,12 +57,12 @@ class MyLibrary(BaseLibrary):
 
 ## Referencing Library Settings from Nodes
 
-Once `MyLibSettings._field_key` is set (at class definition time via `namespace=`), use `mirrors=` in `setting()`:
+Once `MyLibSettings._field_key` is set (at class definition time via `namespace=`), use `shadow()` (writable mirror) or `watch()` (read-only mirror):
 
 ```python
 # my_lib/nodes/fetch_node.py
 from haywire.core.node import BaseNode, node
-from haywire.core.settings import NodeSettings, setting
+from haywire.core.settings import NodeSettings, field, shadow, watch
 from ..settings import MyLibSettings
 
 
@@ -70,15 +70,15 @@ from ..settings import MyLibSettings
 class ApiFetchNode(BaseNode):
 
     class api(NodeSettings):
-        # mirrors= without read_only: user can override per-node; shows reset button in panel
-        api_url:    str = setting(mirrors=MyLibSettings.api_url)
-        api_timeout: int = setting(mirrors=MyLibSettings.api_timeout)
+        # shadow(): writable mirror — user can override per-node; shows reset button in panel
+        api_url = shadow(MyLibSettings.api_url)
+        api_timeout = shadow(MyLibSettings.api_timeout)
 
-        # mirrors= + read_only=True: read-only; invisible in panel; cache invalidated on global change
-        cache_enabled: bool = setting(mirrors=MyLibSettings.cache_enabled, read_only=True)
+        # watch(): read-only mirror — invisible in panel; cache invalidated on global change
+        cache_enabled = watch(MyLibSettings.cache_enabled)
 
         # Local node-only setting
-        endpoint: str = setting('', label='Endpoint')
+        endpoint = field[str]('', label='Endpoint')
 
     def worker(self, context, payload: dict):
         url = f"{self.api.api_url}/{self.api.endpoint}"
@@ -87,7 +87,7 @@ class ApiFetchNode(BaseNode):
         ...
 ```
 
-**Important:** Node classes using `mirrors=MyLibSettings.field` must be defined *after* `MyLibSettings` is defined. The `namespace=` kwarg sets `_field_key` at class evaluation time.
+**Important:** Node classes using `shadow(MyLibSettings.field)` or `watch(MyLibSettings.field)` must be defined *after* `MyLibSettings` is defined. The `namespace=` kwarg sets `_field_key` at class evaluation time.
 
 ---
 
@@ -148,7 +148,7 @@ The workspace tier is layered on top of the global tier. `save_to_toml()` always
 
 ```python
 # haybale_image/settings.py
-from haywire.core.settings import LibrarySettings, setting, Color
+from haywire.core.settings import LibrarySettings, field, shadow, watch, Color
 from haywire.core.settings.decorator import settings
 
 
@@ -156,24 +156,24 @@ from haywire.core.settings.decorator import settings
 class ImageLibSettings(LibrarySettings):
 
     # Quality
-    jpeg_quality:      int  = setting(85, min=1, max=100, label='JPEG Quality',    category='quality', order=10)
-    png_compression:   int  = setting(6,  min=0, max=9,   label='PNG Compression', category='quality', order=20)
-    preserve_metadata: bool = setting(True,               label='Preserve Metadata', category='quality', order=30)
+    jpeg_quality = field[int](85, min=1, max=100, label='JPEG Quality',    category='quality', order=10)
+    png_compression = field[int](6,  min=0, max=9,   label='PNG Compression', category='quality', order=20)
+    preserve_metadata = field[bool](True,               label='Preserve Metadata', category='quality', order=30)
 
     # Processing
-    color_space:      str  = setting('sRGB', choices=['sRGB', 'Adobe RGB', 'Linear'],
+    color_space = field[str]('sRGB', choices=['sRGB', 'Adobe RGB', 'Linear'],
                                      label='Color Space', category='processing', order=10)
-    gpu_acceleration: bool = setting(True, label='GPU Acceleration', category='processing', order=20)
+    gpu_acceleration = field[bool](True, label='GPU Acceleration', category='processing', order=20)
 
     # Resize
-    resize_algorithm: str  = setting('lanczos', choices=['nearest', 'bilinear', 'bicubic', 'lanczos'],
+    resize_algorithm = field[str]('lanczos', choices=['nearest', 'bilinear', 'bicubic', 'lanczos'],
                                      label='Resize Algorithm', category='resize', order=10)
 ```
 
 ```python
 # haybale_image/nodes/resize_node.py
 from haywire.core.node import BaseNode, node
-from haywire.core.settings import NodeSettings, setting
+from haywire.core.settings import NodeSettings, field, shadow, watch
 from ..settings import ImageLibSettings
 
 
@@ -181,9 +181,9 @@ from ..settings import ImageLibSettings
 class ResizeNode(BaseNode):
 
     class resize(NodeSettings):
-        algorithm: str = setting(mirrors=ImageLibSettings.resize_algorithm)
-        width:     int = setting(512, min=1, max=8192, label='Width')
-        height:    int = setting(512, min=1, max=8192, label='Height')
+        algorithm = shadow(ImageLibSettings.resize_algorithm)
+        width = field[int](512, min=1, max=8192, label='Width')
+        height = field[int](512, min=1, max=8192, label='Height')
 
     def worker(self, context, image):
         alg = self.resize.algorithm   # per-node override or global default

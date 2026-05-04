@@ -9,7 +9,7 @@ class EdgeUISettings(FrameworkSettings, namespace="ui.edge"):
     """Global preferences controlling edge routing, width, and animation behaviour."""
 
     # Width
-    width: int = field(
+    width = field[int](
         2,
         label="Edge Width",
         description="Default edge width in pixels",
@@ -18,7 +18,7 @@ class EdgeUISettings(FrameworkSettings, namespace="ui.edge"):
         min=1,
         max=8,
     )
-    width_selected: int = field(
+    width_selected = field[int](
         3,
         label="Selected Edge Width",
         description="Edge width when selected",
@@ -29,7 +29,7 @@ class EdgeUISettings(FrameworkSettings, namespace="ui.edge"):
     )
 
     # Port-color tinting
-    use_port_colors: bool = field(
+    use_port_colors = field[bool](
         True,
         label="Use Port Colors",
         description="Tint edges with the connected port type colour",
@@ -38,7 +38,7 @@ class EdgeUISettings(FrameworkSettings, namespace="ui.edge"):
     )
 
     # Curve
-    curve_style: str = field(
+    curve_style = field[str](
         "bezier",
         label="Curve Style",
         description="How edges are drawn between nodes",
@@ -46,7 +46,7 @@ class EdgeUISettings(FrameworkSettings, namespace="ui.edge"):
         order=20,
         choices=["bezier", "straight", "step", "smoothstep"],
     )
-    curve_tension: float = field(
+    curve_tension = field[float](
         0.5,
         label="Curve Tension",
         description="Tension for bezier curves (0–1)",
@@ -55,7 +55,7 @@ class EdgeUISettings(FrameworkSettings, namespace="ui.edge"):
         min=0.0,
         max=1.0,
     )
-    curve_offset: int = field(
+    curve_offset = field[int](
         50,
         label="Curve Offset",
         description="Control point offset for curves",
@@ -66,14 +66,14 @@ class EdgeUISettings(FrameworkSettings, namespace="ui.edge"):
     )
 
     # Animation
-    animate_flow: bool = field(
+    animate_flow = field[bool](
         False,
         label="Animate Flow",
         description="Show animated flow direction on edges",
         category="ui.edge",
         order=30,
     )
-    animation_speed: float = field(
+    animation_speed = field[float](
         1.0,
         label="Animation Speed",
         description="Speed of flow animation",
@@ -82,7 +82,7 @@ class EdgeUISettings(FrameworkSettings, namespace="ui.edge"):
         min=0.1,
         max=5.0,
     )
-    animate_on_execute: bool = field(
+    animate_on_execute = field[bool](
         True,
         label="Animate on Execute",
         description="Animate edges during execution",

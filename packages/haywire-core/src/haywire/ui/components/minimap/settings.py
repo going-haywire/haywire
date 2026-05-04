@@ -9,15 +9,15 @@ from haywire.core.settings.schema import FrameworkSettings
 class MinimapSettings(FrameworkSettings, namespace=NAMESPACE_UI_MINIMAP):
     """Global preferences controlling the minimap overlay layout and visibility."""
 
-    enabled: bool = field(True, label="Show Minimap", description="Display minimap overview", order=10)
-    position: str = field(
+    enabled = field[bool](True, label="Show Minimap", description="Display minimap overview", order=10)
+    position = field[str](
         "bottom-right",
         label="Minimap Position",
         description="Corner position of minimap",
         order=20,
         choices=["top-left", "top-right", "bottom-left", "bottom-right"],
     )
-    width: int = field(
+    width = field[int](
         200,
         label="Minimap Width",
         description="Width of minimap in pixels",
@@ -25,7 +25,7 @@ class MinimapSettings(FrameworkSettings, namespace=NAMESPACE_UI_MINIMAP):
         min=100,
         max=400,
     )
-    opacity: float = field(
+    opacity = field[float](
         0.88,
         label="Active Opacity",
         description="Opacity when panning/zooming or hovering",
@@ -34,7 +34,7 @@ class MinimapSettings(FrameworkSettings, namespace=NAMESPACE_UI_MINIMAP):
         min=0.1,
         max=1.0,
     )
-    ghost_opacity: float = field(
+    ghost_opacity = field[float](
         0.15,
         label="Ghost Opacity",
         description="Resting opacity when idle",
@@ -43,7 +43,7 @@ class MinimapSettings(FrameworkSettings, namespace=NAMESPACE_UI_MINIMAP):
         min=0.0,
         max=1.0,
     )
-    debug_info: bool = field(
+    debug_info = field[bool](
         False,
         label="Show Debug Info",
         description="Overlay zoom/pan/scale values on the minimap",

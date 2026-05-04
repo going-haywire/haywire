@@ -26,28 +26,28 @@ class NodeProperties(NodeSettings):
     # Visual state
     # -----------------------------------------------------------------
 
-    muted: bool = field(
+    muted = field[bool](
         False,
         label="Muted",
         order=10,
         category="state",
         description="Skip this node during execution",
     )
-    collapsed: bool = field(
+    collapsed = field[bool](
         False,
         label="Collapsed",
         order=20,
         category="state",
         description="Collapse node to show only header",
     )
-    condensed: bool = field(
+    condensed = field[bool](
         False,
         label="Condensed",
         order=30,
         category="state",
         description="Show node in condensed view",
     )
-    pinned: bool = field(
+    pinned = field[bool](
         False,
         label="Pinned",
         order=40,
@@ -59,13 +59,13 @@ class NodeProperties(NodeSettings):
     # Appearance
     # -----------------------------------------------------------------
 
-    skin: str | None = shadow(
+    skin = shadow(
         src=NodeDefaultSkinSettings.studio_skin,
         category="appearance",
         order=10,
     )
 
-    color_override: str | None = field(
+    color_override = field[str | None](
         None,
         label="Color Override",
         order=20,
@@ -78,14 +78,14 @@ class NodeProperties(NodeSettings):
     # Annotation
     # -----------------------------------------------------------------
 
-    comment: str = field(
+    comment = field[str](
         "",
         label="Comment",
         order=10,
         category="annotation",
         description="Comment displayed above the node",
     )
-    show_comment: bool = field(
+    show_comment = field[bool](
         False,
         label="Show Comment",
         order=20,
@@ -97,12 +97,12 @@ class NodeProperties(NodeSettings):
     # Layout (position & dimensions) — not shown in settings panels
     # -----------------------------------------------------------------
 
-    posX: float = field(0.0, order=10, category="layout")
-    posY: float = field(0.0, order=20, category="layout")
-    width: float = field(0.0, order=30, category="layout")
-    height: float = field(0.0, order=40, category="layout")
-    width_min: float = field(-1.0, order=50, category="layout")
-    height_min: float = field(-1.0, order=60, category="layout")
+    posX = field[float](0.0, order=10, category="layout")
+    posY = field[float](0.0, order=20, category="layout")
+    width = field[float](0.0, order=30, category="layout")
+    height = field[float](0.0, order=40, category="layout")
+    width_min = field[float](-1.0, order=50, category="layout")
+    height_min = field[float](-1.0, order=60, category="layout")
 
     # -----------------------------------------------------------------
     # Convenience helpers
