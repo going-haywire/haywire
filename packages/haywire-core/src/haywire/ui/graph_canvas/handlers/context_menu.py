@@ -201,13 +201,6 @@ class SessionContextMenuProvider(IContextMenuProvider):
         popup = self._build_popup(pos)
         self._open_popup = popup
 
-        def _emit_and_close(event):
-            if self._on_emit_event:
-                self._on_emit_event(event)
-            popup.close()
-
-        self._context.metadata["on_emit_event"] = _emit_and_close
-
         def _on_close():
             self._context.context_menu_trigger.value = None
             self._context.active_port.value = None
@@ -216,7 +209,6 @@ class SessionContextMenuProvider(IContextMenuProvider):
             pending = self._open_ctx.pending_connection if self._open_ctx else None
             self._open_ctx = None
             self._open_popup = None
-            self._context.metadata.pop("on_emit_event", None)
             if pending is not None and self._on_emit_sync_event:
                 self._on_emit_sync_event(SyncEdgeConnectResumeEvent())
 
@@ -345,16 +337,25 @@ class SessionContextMenuProvider(IContextMenuProvider):
     # CanvasContextActions
 
     def create_node_at_click(self, registry_key: str) -> None:
-        """Emit NodeCreateRequestEvent at the click's canvas position."""
+        """Emit NodeCreateRequestEvent at the click's canvas position.
+
+        If the menu was opened mid-drag from a pin, the pending_connection
+        dict is forwarded on the event so the visual layer can auto-wire
+        the new node. Mark it consumed so the popup-close path does not
+        also emit SyncEdgeConnectResumeEvent.
+        """
         from haywire.ui.graph_canvas.event_definitions import NodeCreateRequestEvent
 
         if self._open_ctx is None or self._open_ctx.canvas_pos is None:
             return
         x, y = self._open_ctx.canvas_pos
+        pending = self._open_ctx.pending_connection
+        self._open_ctx.pending_connection = None
         self._emit(
             NodeCreateRequestEvent(
                 registryKey=registry_key,
                 position={"x": x, "y": y},
+                pending_connection=pending,
             )
         )
 

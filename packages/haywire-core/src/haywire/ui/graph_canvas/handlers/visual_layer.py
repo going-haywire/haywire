@@ -332,24 +332,25 @@ class VisualLayerHandlers:
             )
             if wrapper:
                 ui.notify(f"Created {event.registryKey} node", type="positive")
-                self._try_auto_wire(wrapper)
+                if event.pending_connection:
+                    self._try_auto_wire(wrapper, event.pending_connection)
             else:
                 ui.notify(f"Failed to create node of type: {event.registryKey}", type="negative")
         except Exception as e:
             logger.error(f"Error creating node: {e}")
             ui.notify(f"Error creating node: {e}", type="negative")
 
-    def _try_auto_wire(self, wrapper) -> None:
+    def _try_auto_wire(self, wrapper, pending: dict) -> None:
         """
-        After node creation, check for a pending_connection in context metadata and
-        auto-wire at least one compatible port exists on the new node.
+        After node creation from a mid-drag context menu, auto-wire the new
+        node to a compatible port on the dragged-from pin's side.
+
+        ``pending`` carries the dragged-from pin's metadata (pin_id, node_id,
+        pin_dir, flow_type, data_type) — see NodeCreateRequestEvent.
 
         TODO: Static port-type introspection (before instantiation) is not yet supported.
         """
         if self.context is None:
-            return
-        pending = self.context.metadata.pop("pending_connection", None)
-        if not pending:
             return
 
         pending_pin_dir = pending.get("pin_dir", "")  # 'inlet' or 'outlet'

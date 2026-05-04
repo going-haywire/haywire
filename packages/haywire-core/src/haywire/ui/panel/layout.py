@@ -2,12 +2,9 @@
 """PanelLayout — layout helper passed to Panel.draw()."""
 
 from contextlib import contextmanager
-from typing import TYPE_CHECKING, Any, Callable
+from typing import Any, Callable
 
 from haywire.ui import elements as hui
-
-if TYPE_CHECKING:
-    from haywire.ui.context import SessionContext
 
 
 class PanelLayout:
@@ -29,15 +26,21 @@ class PanelLayout:
         def draw(self, ctx, layout, actions):
             with layout:
                 hui.section_label("ADVANCED")
-                with hui.expansion_section("Node", context=ctx):
+                with layout.expansion_section("Node"):
                     hui.info_row("Key", node.registry_key)
+
+    The optional ``expansion_state`` dict (passed at construction) is the
+    persistence bag for ``expansion_section``. The owning editor typically
+    holds it as an instance field so collapsed/expanded sections survive
+    rebuilds without leaking into shared session state.
 
     All helper methods delegate to ``hui`` — they are convenience shortcuts,
     not a separate styling layer.
     """
 
-    def __init__(self, container: Any):
+    def __init__(self, container: Any, *, expansion_state: dict[str, bool] | None = None):
         self._container = container
+        self._expansion_state = expansion_state
 
     @property
     def container(self) -> Any:
@@ -108,17 +111,23 @@ class PanelLayout:
         *,
         icon: str | None = None,
         default_open: bool = True,
-        context: "SessionContext | None" = None,
         panel_key: str | None = None,
     ):
         """Collapsible section. Use as a context manager::
 
-        with layout.expansion_section("Details", icon="info", context=ctx):
+        with layout.expansion_section("Details", icon="info", panel_key="details"):
             hui.info_row("Key", node.registry_key)
+
+        Persistence uses the layout's ``expansion_state`` dict (set at
+        construction). Sections without a ``panel_key`` are not persisted.
         """
         with self._container:
             with hui.expansion_section(
-                label, icon=icon, default_open=default_open, context=context, panel_key=panel_key
+                label,
+                icon=icon,
+                default_open=default_open,
+                state=self._expansion_state,
+                panel_key=panel_key,
             ) as exp:
                 yield exp
 

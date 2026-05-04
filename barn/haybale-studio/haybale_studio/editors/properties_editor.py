@@ -8,11 +8,11 @@ from ``default_focuses ∪ registry.get_focuses_for(self)``. Panels are
 mounted via the contract-keyed lookup
 ``get_panels_for(actions_provider, focus)``.
 
-Active-focus state is stored in ``context.metadata['properties_focus']`` (a
-focus ``id`` string). The active focus is never changed automatically — the
-user's last choice is always preserved. The only exception is the very
-first render, when no focus has been set yet and the lowest-order
-*available* focus is used as the default.
+Active-focus state is held per-editor on ``self._active_focus_id`` (a
+focus ``id`` string, or ``None`` if no focus is selected). The active
+focus is never changed automatically once set — the user's last choice
+is always preserved. While it remains ``None``, each refresh tries to
+default to the lowest-order *available* focus (typically AppFocus).
 """
 
 from __future__ import annotations
@@ -42,8 +42,6 @@ if TYPE_CHECKING:
     from nicegui.element import Element
 
 logger = logging.getLogger(__name__)
-
-_FOCUS_KEY = "properties_focus"
 
 
 @editor(
@@ -99,6 +97,12 @@ class PropertiesEditor(BaseEditor):
         self._content: Element | None = None
         self._panel_registry: Optional[PanelRegistry] = panel_registry
         self._context: SessionContext | None = None
+        # Focus id of the currently-active toolbar tab; None when no
+        # focus is selected (initial state, or no available focus).
+        self._active_focus_id: str | None = None
+        # Per-editor expansion-section state, keyed by panel_key. Survives
+        # content rebuilds but stays scoped to this editor instance.
+        self._expansion_state: dict[str, bool] = {}
 
     # ------------------------------------------------------------------
     # BaseEditor interface (poll/draw)
@@ -183,31 +187,29 @@ class PropertiesEditor(BaseEditor):
         selection changes. Default selection picks the lowest-order focus
         that is currently ``available`` (typically AppFocus, order=10).
         """
-        if _FOCUS_KEY in context.metadata:
+        if self._active_focus_id is not None:
             return  # user's choice — never override
 
         for focus in self._compute_toolbar_focuses():
             try:
                 if focus.available(context):
-                    context.metadata[_FOCUS_KEY] = focus.id
+                    self._active_focus_id = focus.id
                     return
             except Exception as exc:  # defensive: a buggy available() shouldn't crash startup
                 logger.warning(f"PropertiesEditor: Focus.available() error in {focus.__name__}: {exc}")
-        context.metadata[_FOCUS_KEY] = None
 
     def _set_active_focus(self, focus_id: str, context: SessionContext) -> None:
         """Called when the user clicks a toolbar button."""
-        context.metadata[_FOCUS_KEY] = focus_id
+        self._active_focus_id = focus_id
         self._rebuild_toolbar(context)
         self._rebuild_content(context)
 
-    def _active_focus(self, context: SessionContext) -> type[Focus] | None:
+    def _active_focus(self) -> type[Focus] | None:
         """Return the currently-active Focus class, or None."""
-        focus_id = context.metadata.get(_FOCUS_KEY)
-        if focus_id is None:
+        if self._active_focus_id is None:
             return None
         for focus in self._compute_toolbar_focuses():
-            if focus.id == focus_id:
+            if focus.id == self._active_focus_id:
                 return focus
         return None
 
@@ -220,7 +222,7 @@ class PropertiesEditor(BaseEditor):
             return
         self._toolbar.clear()
 
-        active_focus_id = context.metadata.get(_FOCUS_KEY)
+        active_focus_id = self._active_focus_id
 
         with self._toolbar:
             for focus in self._compute_toolbar_focuses():
@@ -254,7 +256,7 @@ class PropertiesEditor(BaseEditor):
             return
         self._content.clear()
 
-        focus = self._active_focus(context)
+        focus = self._active_focus()
         if focus is None:
             with self._content:
                 hui.empty_state("Nothing to show", icon=hui.icon.empty_no_selection)
@@ -286,11 +288,11 @@ class PropertiesEditor(BaseEditor):
                     panel_cls.class_identity.label,
                     icon=icon,
                     default_open=default_open,
-                    context=context,
+                    state=self._expansion_state,
                     panel_key=panel_key,
                 ):
                     panel_container = ui.column().classes("w-full gap-1")
-                    layout = PanelLayout(panel_container)
+                    layout = PanelLayout(panel_container, expansion_state=self._expansion_state)
                     try:
                         panel_cls().draw(context, layout, self)
                     except Exception as exc:

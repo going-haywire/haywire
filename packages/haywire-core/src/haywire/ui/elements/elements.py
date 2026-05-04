@@ -23,14 +23,11 @@ from __future__ import annotations
 
 import json as _json
 from contextlib import contextmanager
-from typing import Any, Callable, Optional, TYPE_CHECKING
+from typing import Any, Callable
 
 from nicegui import ui
 
 from haywire.ui.elements.icons import AppIcon
-
-if TYPE_CHECKING:
-    from haywire.ui.context import SessionContext
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Colour & style constants (internal)
@@ -515,14 +512,16 @@ def expansion_section(
     *,
     icon: str | None = None,
     default_open: bool = True,
-    context: Optional["SessionContext"] = None,
+    state: dict[str, bool] | None = None,
     panel_key: str | None = None,
 ):
     """
     A collapsible section for grouped content in property panels.
 
-    If ``context`` and ``panel_key`` are provided, the expansion state is
-    persisted in ``context.metadata`` across rebuilds.
+    If ``state`` and ``panel_key`` are provided, the expansion state is
+    persisted in the caller-owned ``state`` dict across rebuilds. The
+    caller is responsible for the dict's lifetime — typically an instance
+    field on the editor that holds this section.
 
     Visual rules:
     - Bottom border: ``1px solid var(--hw-border)``
@@ -535,17 +534,14 @@ def expansion_section(
 
     Usage::
 
-        with hui.expansion_section("Node", icon="settings", context=ctx,
-                                   panel_key="node:props"):
+        with hui.expansion_section("Node", icon="settings",
+                                   state=self._expansion, panel_key="node:props"):
             # panel content
     """
 
-    # Resolve persisted state
     is_open = default_open
-    exp_state: dict | None = None
-    if context is not None and panel_key:
-        exp_state = context.metadata.setdefault("_hui_expansion", {})
-        is_open = exp_state.get(panel_key, default_open)
+    if state is not None and panel_key:
+        is_open = state.get(panel_key, default_open)
 
     exp = (
         ui.expansion(label, icon=icon, value=is_open)
@@ -554,11 +550,10 @@ def expansion_section(
         .props('header-class="truncate"')
     )
 
-    # Persist state changes
-    if exp_state is not None and panel_key:
+    if state is not None and panel_key:
         exp.on(
             "update:modelValue",
-            lambda e, k=panel_key, s=exp_state: s.update({k: e.args}),
+            lambda e, k=panel_key, s=state: s.update({k: e.args}),
         )
 
     with exp:

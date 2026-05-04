@@ -12,7 +12,7 @@ This module provides:
 import dataclasses
 import time
 from dataclasses import dataclass, field
-from typing import Dict, Any, List, Type
+from typing import Dict, Any, List, Optional, Type
 
 # Global registry for all event types
 GRAPH_EVENT_REGISTRY: Dict[str, Type] = {}
@@ -104,6 +104,10 @@ class UserDragEndEvent(BaseGraphEvent):
 class NodeCreateRequestEvent(BaseGraphEvent):
     registryKey: str
     position: Dict[str, float]  # {x: float, y: float}
+    # Set when the canvas context menu was opened mid-drag from a pin.
+    # The visual-layer handler uses it to auto-wire the new node to a
+    # compatible port. Carries pin_id, node_id, pin_dir, flow_type, data_type.
+    pending_connection: Optional[Dict[str, str]] = None
 
 
 @graph_event("edgeCreated", category="user", description="New connection created")
