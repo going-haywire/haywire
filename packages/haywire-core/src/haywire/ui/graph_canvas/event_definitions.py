@@ -216,7 +216,7 @@ class ContextMenuSelectedEvent(BaseGraphEvent):
 @graph_event(
     "contextMenuCustom",
     category="user",
-    description="Custom-scope context menu triggered via data-hw-custom-menu-scope attribute",
+    description="Custom-scope context menu triggered via data-hw-custom-menu-focus-id attribute",
 )
 @dataclass
 class ContextMenuCustomEvent(BaseGraphEvent):
@@ -231,7 +231,7 @@ class ContextMenuCustomEvent(BaseGraphEvent):
 @graph_event(
     "contextMenuPort",
     category="user",
-    description="Port context menu triggered via data-hw-port-menu-scope attribute",
+    description="Port context menu triggered via data-hw-port-menu-focus-id attribute",
 )
 @dataclass
 class ContextMenuPortEvent(BaseGraphEvent):

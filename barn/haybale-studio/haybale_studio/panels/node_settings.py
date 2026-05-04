@@ -2,7 +2,7 @@
 """
 NodeSettingsPanel — renders all user-defined settings on the selected node.
 
-Appears in the 'settings' scope (tune icon, order=65), one collapsible section per bag.
+Appears under the SettingsFocus, one collapsible section per bag.
 """
 
 from __future__ import annotations
@@ -11,29 +11,32 @@ from typing import TYPE_CHECKING
 
 
 from haywire.ui import elements as hui
+from haywire.ui.panel import Panel, PanelLayout
 from haywire.ui.panel.decorator import panel
-from haywire.ui.panel.base import BasePanel, PanelLayout
 
 from haywire.ui.panel.render_utils import render_settings
+
+from haybale_studio.editors.properties_editor_actions import PropertiesEditorActions
+from haybale_studio.focuses import SettingsFocus
 
 if TYPE_CHECKING:
     from haywire.ui.context import SessionContext
 
 
 @panel(
-    editors="properties",
-    scopes="settings",
+    action=PropertiesEditorActions,
+    focus=SettingsFocus,
     label="Node Settings",
     icon=hui.icon.node_settings,
     order=10,
     default_open=True,
 )
-class NodeSettingsPanel(BasePanel):
+class NodeSettingsPanel(Panel):
     """Discovers and renders all user-defined settings on the selected node."""
 
     @classmethod
-    def poll(cls, context: "SessionContext") -> bool:
-        node = context.active_node
+    def poll(cls, ctx: "SessionContext") -> bool:
+        node = ctx.active_node.value
         return (
             node is not None
             and hasattr(node, "node")
@@ -41,8 +44,13 @@ class NodeSettingsPanel(BasePanel):
             and bool(node.node.list_setting_bags())
         )
 
-    def draw(self, context: "SessionContext", layout: PanelLayout) -> None:
-        node = context.active_node
+    def draw(
+        self,
+        ctx: "SessionContext",
+        layout: PanelLayout,
+        actions: PropertiesEditorActions,
+    ) -> None:
+        node = ctx.active_node.value
 
         bags = node.node.list_setting_bags()
         if not bags:

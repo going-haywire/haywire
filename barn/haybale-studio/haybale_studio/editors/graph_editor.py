@@ -120,11 +120,11 @@ class GraphEditor(BaseEditor):
                 self.wrapper.force_close()
             return
 
-        if context.active_graph is entry.graph and context.active_graph_path == entry.path:
+        if context.active_graph.value is entry.graph and context.active_graph_path.value == entry.path:
             return
 
-        context.active_graph = entry.graph
-        context.active_graph_path = entry.path
+        context.active_graph.value = entry.graph
+        context.active_graph_path.value = entry.path
 
         if session is not None:
             session.signal(ActiveGraphMoved())
@@ -147,10 +147,10 @@ class GraphEditor(BaseEditor):
             self._canvas_manager = None
 
         # Clear selection so PropertiesEditor resets to the graph panel
-        context.active_node = None
-        context.active_edge = None
-        context.selected_nodes = set()
-        context.selected_edges = set()
+        context.active_node.value = None
+        context.active_edge.value = None
+        context.selected_nodes.value = set()
+        context.selected_edges.value = set()
 
         with container:
             with ui.column().classes("w-full gap-0").style("height: 100%; overflow: hidden;"):
@@ -464,7 +464,7 @@ class GraphEditor(BaseEditor):
         old_payload = self.wrapper.payload if self.wrapper is not None else None
         success = app.haystack.save_graph(entry, save_as=save_path)
         if success:
-            context.active_graph_path = save_path
+            context.active_graph_path.value = save_path
             session = context.session
             new_payload = entry.entry_id
             if self.wrapper is not None and old_payload != new_payload:

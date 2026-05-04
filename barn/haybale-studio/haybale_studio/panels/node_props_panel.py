@@ -8,31 +8,39 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from haywire.ui import elements as hui
+from haywire.ui.panel import Panel, PanelLayout
 from haywire.ui.panel.decorator import panel
-from haywire.ui.panel.base import BasePanel, PanelLayout
 from haywire.ui.panel.render_utils import render_settings
+
+from haybale_studio.focuses import NodeFocus
+from haybale_studio.editors.properties_editor_actions import PropertiesEditorActions
 
 if TYPE_CHECKING:
     from haywire.ui.context import SessionContext
 
 
 @panel(
-    editors="properties",
-    scopes="node",
+    action=PropertiesEditorActions,
+    focus=NodeFocus,
     label="Node Properties",
     icon=hui.icon.node_info,
     default_open=False,
     order=10,
 )
-class NodeInfoPanel(BasePanel):
+class NodeInfoPanel(Panel):
     """Displays basic identity information for the selected node."""
 
     @classmethod
-    def poll(cls, context: "SessionContext") -> bool:
-        return context.active_node is not None
+    def poll(cls, ctx: "SessionContext") -> bool:
+        return ctx.active_node.value is not None
 
-    def draw(self, context: "SessionContext", layout: PanelLayout) -> None:
-        node = context.active_node
+    def draw(
+        self,
+        ctx: "SessionContext",
+        layout: PanelLayout,
+        actions: PropertiesEditorActions,
+    ) -> None:
+        node = ctx.active_node.value
         if node is None:
             return
         try:
@@ -47,19 +55,19 @@ class NodeInfoPanel(BasePanel):
 
 
 @panel(
-    editors="properties",
-    scopes="node",
+    action=PropertiesEditorActions,
+    focus=NodeFocus,
     label="Node Properties",
     icon=hui.icon.node,
     order=20,
     default_open=True,
 )
-class NodePropertiesPanel(BasePanel):
+class NodePropertiesPanel(Panel):
     """Displays per-instance node settings (muted, collapsed, pinned, etc.)."""
 
     @classmethod
-    def poll(cls, context: "SessionContext") -> bool:
-        node = context.active_node
+    def poll(cls, ctx: "SessionContext") -> bool:
+        node = ctx.active_node.value
         return (
             node is not None
             and hasattr(node, "node")
@@ -67,8 +75,13 @@ class NodePropertiesPanel(BasePanel):
             and hasattr(node.node, "props")
         )
 
-    def draw(self, context: "SessionContext", layout: PanelLayout) -> None:
-        node_wrapper = context.active_node
+    def draw(
+        self,
+        ctx: "SessionContext",
+        layout: PanelLayout,
+        actions: PropertiesEditorActions,
+    ) -> None:
+        node_wrapper = ctx.active_node.value
         if node_wrapper is None:
             return
         render_settings(node_wrapper.node.props)

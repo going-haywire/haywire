@@ -8,29 +8,37 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from haywire.ui import elements as hui
+from haywire.ui.panel import Panel, PanelLayout
 from haywire.ui.panel.decorator import panel
-from haywire.ui.panel.base import BasePanel, PanelLayout
+
+from haybale_studio.focuses import GraphFocus
+from haybale_studio.editors.properties_editor_actions import PropertiesEditorActions
 
 if TYPE_CHECKING:
     from haywire.ui.context import SessionContext
 
 
 @panel(
-    editors="properties",
-    scopes="graph",
+    action=PropertiesEditorActions,
+    focus=GraphFocus,
     label="Graph Info",
     icon=hui.icon.graph,
     order=10,
 )
-class GraphInfoPanel(BasePanel):
+class GraphInfoPanel(Panel):
     """Displays node and edge counts for the active graph."""
 
     @classmethod
-    def poll(cls, context: "SessionContext") -> bool:
-        return context.active_graph is not None
+    def poll(cls, ctx: "SessionContext") -> bool:
+        return ctx.active_graph.value is not None
 
-    def draw(self, context: "SessionContext", layout: PanelLayout) -> None:
-        graph = context.active_graph
+    def draw(
+        self,
+        ctx: "SessionContext",
+        layout: PanelLayout,
+        actions: PropertiesEditorActions,
+    ) -> None:
+        graph = ctx.active_graph.value
         if graph is None:
             return
         try:

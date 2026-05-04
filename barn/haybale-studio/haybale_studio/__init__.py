@@ -84,16 +84,6 @@ class Library(BaseLibrary):
             registry_cls=NodeRegistry,
         )
 
-        # Register built-in scope descriptors for the PropertiesEditor before
-        # scanning the panels folder so that scope metadata is available when
-        # panel classes referencing those scope IDs are registered.
-        from haybale_studio.editors.scopes import PROPERTIES_SCOPES
-
-        panel_registry = self.get_registry(PanelRegistry)
-        if panel_registry is not None:
-            for descriptor in PROPERTIES_SCOPES:
-                panel_registry.register_scope("properties", descriptor)
-
         self.add_folder_to_registry(
             folder_path=str(base_path / "panels"),
             registry_cls=PanelRegistry,

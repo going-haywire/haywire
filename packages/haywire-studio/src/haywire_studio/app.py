@@ -236,8 +236,8 @@ class HaywireApp:
             context.client._haywire_session_id = haywire_session.session_id
 
             # Set studio theme defaults on context before rendering
-            haywire_session.context.active_workbench_theme_key = "core:theme:workbench:haywire-dark"
-            haywire_session.context.active_node_theme_key = "core:theme:node:default"
+            haywire_session.context.active_workbench_theme_key.value = "core:theme:workbench:haywire-dark"
+            haywire_session.context.active_node_theme_key.value = "core:theme:node:default"
 
             app_shell = AppShell(haywire_session, editor_registry=editor_registry)
             haywire_session.set_shell(app_shell)

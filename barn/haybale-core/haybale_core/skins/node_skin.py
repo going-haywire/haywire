@@ -169,7 +169,7 @@ class NodeSkin(BaseSkin, ABC):
         offset_px = self.CARD_H_PADDING + self.PIN_GUTTER // 2 + self.PIN_PROTRUSION
         pin_offset = f"position: relative; {direction}: -{offset_px}px; cursor: crosshair;"
 
-        port_menu_props = 'data-hw-port-menu-scope="port.info"'
+        port_menu_props = 'data-hw-port-menu-focus-id="port.info"'
 
         if pin.flow_type == FlowType.CONTROL:
             ctrl_color = pin.color
@@ -330,12 +330,11 @@ class NodeSkin(BaseSkin, ABC):
         )
 
     def _render_errors_button(self, errors: List["HaywireException"], node_id: str):
-        """
-        Render a button that signals runtime errors and opens a panel-driven popup on right-click.
+        """Render a badge that signals runtime errors on the node.
 
-        The button stamps data-hw-custom-menu-scope="node.errors" so canvas.vue can
-        intercept a right-click and route it through the normal context-menu pipeline
-        with scope "node.errors", causing NodeErrorsPanel to render in a Popup.
+        Right-click on the badge falls through to the regular node context
+        menu (which contains the Node Errors panel via the dual-host
+        registration). The badge no longer stamps a custom menu attribute.
 
         Args:
             errors: List of runtime errors to display
@@ -347,6 +346,6 @@ class NodeSkin(BaseSkin, ABC):
         btn.classes("text-xl px-2 py-1")
         btn.props("dense flat")
         btn.style("position: absolute; top: -25px;")
-        btn.props(f'data-hw-custom-menu-scope="node.errors" data-node-id="{node_id}"')
+        btn.props(f'data-node-id="{node_id}"')
         with btn:
             ui.badge(str(error_count), color="red").props("floating")

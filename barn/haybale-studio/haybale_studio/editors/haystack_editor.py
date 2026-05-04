@@ -183,7 +183,7 @@ class HaystackEditor(BaseEditor):
                 self._render_entry(entry, context)
 
     def _render_entry(self, entry: "GraphEntry", context: "SessionContext") -> None:
-        is_active = entry.graph is context.active_graph
+        is_active = entry.graph is context.active_graph.value
         is_unsaved = entry.unsaved or entry.path is None
         is_executing = entry.is_executing
 
@@ -338,7 +338,7 @@ class HaystackEditor(BaseEditor):
         and for any dirty-state confirmation flow before invoking this.
         """
         app = context.app
-        is_active = entry.graph is context.active_graph
+        is_active = entry.graph is context.active_graph.value
         removed_id = entry.entry_id  # capture before remove_entry drops
 
         # Stop execution if running (defensive — should already be stopped)
@@ -359,8 +359,8 @@ class HaystackEditor(BaseEditor):
 
         # If it was the active graph, clear the active graph → empty state
         if is_active:
-            context.active_graph = None
-            context.active_graph_path = None
+            context.active_graph.value = None
+            context.active_graph_path.value = None
             if session:
                 session.signal(ActiveGraphMoved())
 
@@ -470,8 +470,8 @@ class HaystackEditor(BaseEditor):
                 success = app.haystack.rename_graph(entry, new_name)
                 if success:
                     session = context.session
-                    if entry.graph is context.active_graph:
-                        context.active_graph_path = entry.path
+                    if entry.graph is context.active_graph.value:
+                        context.active_graph_path.value = entry.path
                         if session:
                             session.signal(ActiveGraphMoved())
                     self._notify_data_mutated(context)
@@ -568,8 +568,8 @@ class HaystackEditor(BaseEditor):
                 success = app.haystack.save_graph(entry, save_as=save_path)
                 if success:
                     session = context.session
-                    if entry.graph is context.active_graph:
-                        context.active_graph_path = save_path
+                    if entry.graph is context.active_graph.value:
+                        context.active_graph_path.value = save_path
                         if session:
                             session.signal(ActiveGraphMoved())
                     self._notify_data_mutated(context)
@@ -671,7 +671,7 @@ class HaystackEditor(BaseEditor):
                     ui.notify("Name cannot be empty", type="warning")
                     return
                 context.app.workspace_manager.snapshot["haystack"] = name
-                context.app.save_workspace(active_graph_path=context.active_graph_path)
+                context.app.save_workspace(active_graph_path=context.active_graph_path.value)
                 self._update_header_title(context)
                 ui.notify(f"Haystack '{name}' saved", type="positive")
                 popup.close()
@@ -731,7 +731,7 @@ class HaystackEditor(BaseEditor):
                     active_entry = entries[0]
 
                 context.app.workspace_manager.snapshot["haystack"] = name
-                context.app.save_workspace(active_graph_path=context.active_graph_path)
+                context.app.save_workspace(active_graph_path=context.active_graph_path.value)
 
                 session = context.session
                 self._notify_data_mutated(context)
@@ -890,7 +890,7 @@ class HaystackEditor(BaseEditor):
                 success = app.haystack.rename_haystack(old_name, new_name)
                 if success:
                     context.app.workspace_manager.snapshot["haystack"] = new_name
-                    context.app.save_workspace(active_graph_path=context.active_graph_path)
+                    context.app.save_workspace(active_graph_path=context.active_graph_path.value)
                     self._update_header_title(context)
                     ui.notify(f"Haystack renamed to '{new_name}'", type="positive")
                     popup.close()

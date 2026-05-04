@@ -88,8 +88,8 @@ class AppShell:
         if wb_theme_key not in valid_keys:
             wb_theme_key = valid_keys[0]
             settings_registry.set_global("workbench.theme", wb_theme_key)
-        context.active_workbench_theme_key = wb_theme_key
-        theme = theme_registry.get_workbench(context.active_workbench_theme_key)
+        context.active_workbench_theme_key.value = wb_theme_key
+        theme = theme_registry.get_workbench(context.active_workbench_theme_key.value)
         vars_str = " ".join(f"{k}: {v};" for k, v in theme.to_css_vars().items())
         return f" :root {{ {vars_str} }}"
 
@@ -109,7 +109,7 @@ class AppShell:
             context = self.session.context
             theme_registry = context.app.library_service.get_theme_registry()
             theme = theme_registry.get_workbench(registry_key)
-            context.active_workbench_theme_key = registry_key
+            context.active_workbench_theme_key.value = registry_key
             for css_var, value in theme.to_css_vars().items():
                 safe_value = value.replace("'", "\\'")
                 ui.run_javascript(f"document.documentElement.style.setProperty('{css_var}', '{safe_value}')")

@@ -648,12 +648,12 @@ export default {
             const target = event.target;
 
 
-            // Check for port-scope context menu (data-hw-port-menu-scope)
+            // Check for port-scope context menu (data-hw-port-menu-focus-id)
             // port_id is taken from data-port-id on the element, falling back to data-pin-id.
             // node_id is resolved by walking up to the nearest [data-node-id] ancestor.
-            const portMenuEl = target.closest('[data-hw-port-menu-scope]');
+            const portMenuEl = target.closest('[data-hw-port-menu-focus-id]');
             if (portMenuEl) {
-                const scope = portMenuEl.getAttribute('data-hw-port-menu-scope');
+                const scope = portMenuEl.getAttribute('data-hw-port-menu-focus-id');
                 const nodeAncestor = portMenuEl.closest('[data-node-id]');
                 const nodeId = nodeAncestor ? nodeAncestor.dataset.nodeId : '';
                 const portId = portMenuEl.dataset.portId || portMenuEl.dataset.pinId
@@ -669,12 +669,12 @@ export default {
                 }
             }
 
-            // Check for custom-scope context menu button (data-hw-custom-menu-scope)
+            // Check for custom-scope context menu button (data-hw-custom-menu-focus-id)
             // These are skin-rendered elements that declare their own panel scope.
             // node_id is resolved by walking up to the nearest [data-node-id] ancestor.
-            const customMenuEl = target.closest('[data-hw-custom-menu-scope]');
+            const customMenuEl = target.closest('[data-hw-custom-menu-focus-id]');
             if (customMenuEl) {
-                const scope = customMenuEl.getAttribute('data-hw-custom-menu-scope');
+                const scope = customMenuEl.getAttribute('data-hw-custom-menu-focus-id');
                 const nodeAncestor = customMenuEl.closest('[data-node-id]');
                 const nodeId = nodeAncestor ? nodeAncestor.dataset.nodeId : '';
                 if (scope && nodeId) {

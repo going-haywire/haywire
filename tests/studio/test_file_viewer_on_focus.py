@@ -6,6 +6,7 @@ from pathlib import Path
 from types import SimpleNamespace
 
 from haywire.ui.context_signals import ActiveFileMoved
+from haywire.ui.reactive import Reactive
 from haybale_studio.editors.file_viewer import FileViewerEditor
 
 
@@ -21,7 +22,7 @@ class _FakeSession:
 def _make_context(existing_active_file=None):
     session = _FakeSession()
     ctx = SimpleNamespace(
-        active_file=existing_active_file,
+        active_file=Reactive(existing_active_file),
         session=session,
     )
     session.context = ctx
@@ -40,7 +41,7 @@ def test_on_focus_sets_active_file_from_payload() -> None:
 
     ed.on_focus(ctx)
 
-    assert ctx.active_file == Path("/tmp/a.txt")
+    assert ctx.active_file.value == Path("/tmp/a.txt")
 
 
 def test_on_focus_fires_active_file_moved() -> None:

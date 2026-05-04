@@ -12,14 +12,14 @@ class FakeApp:
 
 def test_theme_keys_default_to_none():
     ctx = SessionContext(session_id="test-123", app=FakeApp())
-    assert ctx.active_workbench_theme_key is None
-    assert ctx.active_node_theme_key is None
+    assert ctx.active_workbench_theme_key.value is None
+    assert ctx.active_node_theme_key.value is None
 
 
 def test_theme_keys_can_be_set():
     ctx = SessionContext(session_id="test-123", app=FakeApp())
-    ctx.active_workbench_theme_key = "core:theme:workbench:haywire-dark"
-    assert ctx.active_workbench_theme_key == "core:theme:workbench:haywire-dark"
+    ctx.active_workbench_theme_key.value = "core:theme:workbench:haywire-dark"
+    assert ctx.active_workbench_theme_key.value == "core:theme:workbench:haywire-dark"
 
 
 # ---------------------------------------------------------------------------
@@ -29,17 +29,17 @@ def test_theme_keys_can_be_set():
 
 def test_context_menu_trigger_defaults_to_none():
     ctx = SessionContext(session_id="test-123", app=FakeApp())
-    assert ctx.context_menu_trigger is None
+    assert ctx.context_menu_trigger.value is None
 
 
 def test_context_menu_trigger_can_be_set_to_node():
     ctx = SessionContext(session_id="test-123", app=FakeApp())
-    ctx.context_menu_trigger = "node"
-    assert ctx.context_menu_trigger == "node"
+    ctx.context_menu_trigger.value = "node"
+    assert ctx.context_menu_trigger.value == "node"
 
 
 def test_context_menu_trigger_can_be_cleared():
     ctx = SessionContext(session_id="test-123", app=FakeApp())
-    ctx.context_menu_trigger = "edge"
-    ctx.context_menu_trigger = None
-    assert ctx.context_menu_trigger is None
+    ctx.context_menu_trigger.value = "edge"
+    ctx.context_menu_trigger.value = None
+    assert ctx.context_menu_trigger.value is None

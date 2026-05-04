@@ -87,9 +87,9 @@ class FileViewerEditor(BaseEditor):
             return
         payload = self.wrapper.payload
         new_value = Path(payload) if payload else None
-        if getattr(context, "active_file", None) == new_value:
+        if context.active_file.value == new_value:
             return
-        context.active_file = new_value
+        context.active_file.value = new_value
         session = getattr(context, "session", None)
         if session is not None:
             session.signal(ActiveFileMoved())

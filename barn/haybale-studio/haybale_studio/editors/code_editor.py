@@ -110,7 +110,7 @@ class CodeEditor(BaseEditor):
     @staticmethod
     def _codemirror_theme(context: "SessionContext") -> str:
         """Pick a CodeMirror theme that matches the active workbench theme."""
-        theme_key = getattr(context, "active_workbench_theme_key", "core:theme:workbench:haywire-dark")
+        theme_key = context.active_workbench_theme_key.value or "core:theme:workbench:haywire-dark"
         return "vscodeLight" if "light" in theme_key else "vscodeDark"
 
     def draw(self, context: "SessionContext", container: "Element") -> None:

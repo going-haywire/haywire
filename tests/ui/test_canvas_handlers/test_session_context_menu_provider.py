@@ -10,11 +10,16 @@ Verifies that the provider:
 
 from unittest.mock import MagicMock, patch
 
+from haybale_studio.focuses import EdgeFocus, NodeFocus
 from haywire.ui.context import SessionContext
-from haywire.ui.panel.base import BasePanel
+from haywire.ui.graph_canvas.handlers.context_menu import SessionContextMenuProvider
+from haywire.ui.graph_canvas.handlers.context_menu_actions import (
+    EdgeContextActions,
+    NodeContextActions,
+)
+from haywire.ui.panel import Panel
 from haywire.ui.panel.decorator import panel
 from haywire.ui.panel.registry import PanelRegistry
-from haywire.ui.graph_canvas.handlers.context_menu import SessionContextMenuProvider
 
 
 # ---------------------------------------------------------------------------
@@ -65,7 +70,7 @@ def test_on_node_context_sets_trigger_to_node():
 
     provider.on_node_context((10, 20), "node-1")
 
-    assert ctx.context_menu_trigger == "node"
+    assert ctx.context_menu_trigger.value == "node"
 
 
 def test_on_edge_context_sets_trigger_to_edge():
@@ -75,7 +80,7 @@ def test_on_edge_context_sets_trigger_to_edge():
 
     provider.on_edge_context((10, 20), "edge-1", MagicMock(), MagicMock())
 
-    assert ctx.context_menu_trigger == "edge"
+    assert ctx.context_menu_trigger.value == "edge"
 
 
 def test_on_canvas_context_sets_trigger_to_canvas():
@@ -85,7 +90,7 @@ def test_on_canvas_context_sets_trigger_to_canvas():
 
     provider.on_canvas_context((10, 20), (5, 5))
 
-    assert ctx.context_menu_trigger == "canvas"
+    assert ctx.context_menu_trigger.value == "canvas"
 
 
 def test_on_selection_context_sets_trigger_to_selection():
@@ -95,7 +100,7 @@ def test_on_selection_context_sets_trigger_to_selection():
 
     provider.on_selection_context((10, 20), ["n1"], ["e1"])
 
-    assert ctx.context_menu_trigger == "selection"
+    assert ctx.context_menu_trigger.value == "selection"
 
 
 # ---------------------------------------------------------------------------
@@ -109,13 +114,18 @@ def test_panels_that_return_false_from_poll_are_not_drawn():
 
     drawn = []
 
-    @panel(registry_id="always_false_panel", editors="context_menu", scopes="node")
-    class AlwaysFalsePanel(BasePanel):
+    @panel(
+        action=NodeContextActions,
+        focus=NodeFocus,
+        label="Always False",
+        registry_id="always_false_panel",
+    )
+    class AlwaysFalsePanel(Panel):
         @classmethod
         def poll(cls, context):
             return False
 
-        def draw(self, context, layout):
+        def draw(self, ctx, layout, actions):
             drawn.append("AlwaysFalsePanel")
 
     registry._register_class(AlwaysFalsePanel)
@@ -132,13 +142,18 @@ def test_panels_that_return_true_from_poll_are_drawn():
 
     drawn = []
 
-    @panel(registry_id="always_true_panel", editors="context_menu", scopes="node")
-    class AlwaysTruePanel(BasePanel):
+    @panel(
+        action=NodeContextActions,
+        focus=NodeFocus,
+        label="Always True",
+        registry_id="always_true_panel",
+    )
+    class AlwaysTruePanel(Panel):
         @classmethod
         def poll(cls, context):
             return True
 
-        def draw(self, context, layout):
+        def draw(self, ctx, layout, actions):
             drawn.append("AlwaysTruePanel")
 
     registry._register_class(AlwaysTruePanel)
@@ -149,25 +164,30 @@ def test_panels_that_return_true_from_poll_are_drawn():
     assert "AlwaysTruePanel" in drawn
 
 
-def test_panels_for_wrong_scope_are_not_drawn():
+def test_panels_for_wrong_focus_are_not_drawn():
     ctx = make_context()
     registry = PanelRegistry()
 
     drawn = []
 
-    @panel(registry_id="edge_only_panel", editors="context_menu", scopes="edge")
-    class EdgeOnlyPanel(BasePanel):
+    @panel(
+        action=EdgeContextActions,
+        focus=EdgeFocus,
+        label="Edge Only",
+        registry_id="edge_only_panel",
+    )
+    class EdgeOnlyPanel(Panel):
         @classmethod
         def poll(cls, context):
             return True
 
-        def draw(self, context, layout):
+        def draw(self, ctx, layout, actions):
             drawn.append("EdgeOnlyPanel")
 
     registry._register_class(EdgeOnlyPanel)
     provider, _, _ = make_provider(ctx, registry)
 
-    # Trigger node context — should NOT draw edge panel
+    # Trigger node context — should NOT draw edge panel (different focus)
     provider.on_node_context((10, 20), "node-1")
 
     assert drawn == []
@@ -185,13 +205,13 @@ def test_close_callback_clears_context_menu_trigger():
     provider, popup, _ = make_provider(ctx, registry)
 
     provider.on_node_context((10, 20), "node-1")
-    assert ctx.context_menu_trigger == "node"
+    assert ctx.context_menu_trigger.value == "node"
 
     # Simulate popup close — provider must register a close callback on popup
     close_cb = popup.on_close.call_args[0][0]
     close_cb()
 
-    assert ctx.context_menu_trigger is None
+    assert ctx.context_menu_trigger.value is None
 
 
 def test_on_emit_event_is_set_on_context_metadata_before_panels_draw():
@@ -202,14 +222,19 @@ def test_on_emit_event_is_set_on_context_metadata_before_panels_draw():
 
     captured = {}
 
-    @panel(registry_id="capture_emit_panel", editors="context_menu", scopes="node")
-    class CaptureEmitPanel(BasePanel):
+    @panel(
+        action=NodeContextActions,
+        focus=NodeFocus,
+        label="Capture Emit",
+        registry_id="capture_emit_panel",
+    )
+    class CaptureEmitPanel(Panel):
         @classmethod
         def poll(cls, context):
             return True
 
-        def draw(self, context, layout):
-            captured["fn"] = context.metadata.get("on_emit_event")
+        def draw(self, ctx, layout, actions):
+            captured["fn"] = ctx.metadata.get("on_emit_event")
 
     registry._register_class(CaptureEmitPanel)
     provider, popup, _ = make_provider(ctx, registry, on_emit_event=fake_emit)

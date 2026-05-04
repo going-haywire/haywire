@@ -286,7 +286,7 @@ class LazyFileBrowserEditor(BaseEditor):
                 self._tree.deselect()
             return
 
-        context.active_file = path
+        context.active_file.value = path
 
         from haybale_studio.editors.code_editor import EDITABLE_EXTS
 
@@ -325,7 +325,7 @@ class LazyFileBrowserEditor(BaseEditor):
             return
         from haybale_studio.editors.code_editor import CodeEditor
 
-        context.active_file = path
+        context.active_file.value = path
         session.signal(ActiveFileMoved())
         session.lifecycle(
             Reveal(
@@ -341,7 +341,7 @@ class LazyFileBrowserEditor(BaseEditor):
             return
         from haybale_studio.editors.file_viewer import FileViewerEditor
 
-        context.active_file = path
+        context.active_file.value = path
         session.signal(ActiveFileMoved())
         session.lifecycle(
             Reveal(

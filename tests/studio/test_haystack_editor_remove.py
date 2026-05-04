@@ -13,6 +13,7 @@ from haywire.ui.context_signals import (
     GraphDataMutated,
     GraphRemoved,
 )
+from haywire.ui.reactive import Reactive
 
 
 @pytest.fixture
@@ -41,8 +42,8 @@ def editor_and_context():
     context = SimpleNamespace(
         app=app,
         session=session,
-        active_graph=None,
-        active_graph_path=None,
+        active_graph=Reactive(None),
+        active_graph_path=Reactive(None),
     )
     return editor, context, app, haystack
 
@@ -137,13 +138,13 @@ def test_remove_entry_helper_clears_active_graph_when_active(editor_and_context)
     editor, context, app, haystack = editor_and_context
     entry = _make_entry(path="/tmp/a.haywire", unsaved=False)
     # Mark this entry as the active one
-    context.active_graph = entry.graph
-    context.active_graph_path = entry.path
+    context.active_graph.value = entry.graph
+    context.active_graph_path.value = entry.path
 
     with patch("haybale_studio.editors.haystack_editor.ui.notify"):
         editor._remove_entry(entry, context)
 
-    assert context.active_graph is None
-    assert context.active_graph_path is None
+    assert context.active_graph.value is None
+    assert context.active_graph_path.value is None
     emitted_signals = [call.args[0] for call in context.session.signal.call_args_list]
     assert any(isinstance(s, ActiveGraphMoved) for s in emitted_signals)

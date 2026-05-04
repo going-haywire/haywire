@@ -1,107 +1,112 @@
-"""
-Test-only edge action panels for haybale_testing.
+"""Test-only edge action panels for haybale_testing.
 
-Uses editors="test_inspector", scopes="test_edge" to avoid
-clashing with the production editor/scope namespace.
+Phase 1.5: action=TestEdgeContextActions, focus=TestEdgeFocus.
 """
 
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from haywire.ui.panel.base import BasePanel, PanelLayout
-from haywire.ui.panel.decorator import panel
+from nicegui import ui
+
+from haybale_testing.test_actions import TestEdgeContextActions
+from haybale_testing.test_focuses import TestEdgeFocus
 from haywire.ui import elements as hui
+from haywire.ui.panel import Panel
+from haywire.ui.panel.layout import PanelLayout
+from haywire.ui.panel.decorator import panel
 
 if TYPE_CHECKING:
-    from haywire.ui.context import SessionContext
     from haywire.core.edge.edge_wrapper import EdgeWrapperState
+    from haywire.ui.context import SessionContext
 
 
-def _emit(context: "SessionContext", event):
-    fn = context.metadata.get("on_emit_event")
-    if fn:
-        fn(event)
-
-
-def _state(context: "SessionContext") -> "EdgeWrapperState | None":
-    wrapper = context.active_edge
+def _state(ctx: "SessionContext") -> "EdgeWrapperState | None":
+    wrapper = ctx.active_edge.value
     return wrapper.get_state() if wrapper is not None else None
 
 
 @panel(
-    editors="test_inspector",
-    scopes="test_edge",
+    action=TestEdgeContextActions,
+    focus=TestEdgeFocus,
     label="Delete Connection",
-    icon="delete",
+    icon=hui.icon.delete,
     order=10,
 )
-class TestDeleteEdgePanel(BasePanel):
+class TestDeleteEdgePanel(Panel):
     @classmethod
-    def poll(cls, context: "SessionContext") -> bool:
-        return context.active_edge is not None
+    def poll(cls, ctx: "SessionContext") -> bool:
+        return ctx.active_edge.value is not None
 
-    def draw(self, context: "SessionContext", layout: PanelLayout) -> None:
-        from haywire.ui.graph_canvas.event_definitions import UserRemoveEvent
-
-        edge_id = context.active_edge.edge_id
-
-        def _delete():
-            _emit(context, UserRemoveEvent(nodes=[], edges=[edge_id]))
-
-        layout.button("Delete Connection", icon=hui.icon.delete, on_click=_delete)
+    def draw(
+        self,
+        ctx: "SessionContext",
+        layout: PanelLayout,
+        actions: TestEdgeContextActions,
+    ) -> None:
+        edge = ctx.active_edge.value
+        if edge is None:
+            return
+        edge_id = edge.edge_id
+        layout.button(
+            "Delete Connection",
+            icon=hui.icon.delete,
+            on_click=lambda: actions.test_delete_edge(edge_id),
+        )
 
 
 @panel(
-    editors="test_inspector",
-    scopes="test_edge",
+    action=TestEdgeContextActions,
+    focus=TestEdgeFocus,
     label="Inspect Connection",
     icon=hui.icon.node_info,
     order=20,
 )
-class TestInspectEdgePanel(BasePanel):
+class TestInspectEdgePanel(Panel):
     @classmethod
-    def poll(cls, context: "SessionContext") -> bool:
-        return context.active_edge is not None
+    def poll(cls, ctx: "SessionContext") -> bool:
+        return ctx.active_edge.value is not None
 
-    def draw(self, context: "SessionContext", layout: PanelLayout) -> None:
-        from haywire.ui.graph_canvas.connection_info_popup import EdgeInfoPopup
-
-        edge_wrapper = context.active_edge
-        pos = context.metadata.get("context_menu_screen_pos", (100, 100))
-
-        def _inspect():
-            popup = EdgeInfoPopup()
-            popup.show(
-                x=pos[0],
-                y=pos[1],
-                edge_id=edge_wrapper.edge_id,
-                edge=edge_wrapper.edge,
-                state=edge_wrapper.get_state(),
-            )
-
-        layout.button("Inspect Connection", icon=hui.icon.node_info, on_click=_inspect)
+    def draw(
+        self,
+        ctx: "SessionContext",
+        layout: PanelLayout,
+        actions: TestEdgeContextActions,
+    ) -> None:
+        edge = ctx.active_edge.value
+        if edge is None:
+            return
+        edge_id = edge.edge_id
+        layout.button(
+            "Inspect Connection",
+            icon=hui.icon.node_info,
+            on_click=lambda: actions.test_inspect_edge(edge_id),
+        )
 
 
 @panel(
-    editors="test_inspector",
-    scopes="test_edge",
+    action=TestEdgeContextActions,
+    focus=TestEdgeFocus,
     label="Connection Errors",
     icon=hui.icon.error,
     order=0,
 )
-class TestEdgeErrorsPanel(BasePanel):
+class TestEdgeErrorsPanel(Panel):
     @classmethod
-    def poll(cls, context: "SessionContext") -> bool:
-        state = _state(context)
+    def poll(cls, ctx: "SessionContext") -> bool:
+        state = _state(ctx)
         return state is not None and state.get_error() is not None
 
-    def draw(self, context: "SessionContext", layout: PanelLayout) -> None:
-        from nicegui import ui
+    def draw(
+        self,
+        ctx: "SessionContext",
+        layout: PanelLayout,
+        actions: TestEdgeContextActions,
+    ) -> None:
         from haywire.core.errors.haywire_exception import HaywireException
         from haywire.ui.errors.error_info import error_render_detail
 
-        state = _state(context)
+        state = _state(ctx)
         error = state.get_error() if state else None
         if error is None:
             return
@@ -117,22 +122,28 @@ class TestEdgeErrorsPanel(BasePanel):
 
 
 @panel(
-    editors="test_inspector",
-    scopes="test_edge",
+    action=TestEdgeContextActions,
+    focus=TestEdgeFocus,
     label="Connection Path",
     icon=hui.icon.adapter,
     order=15,
 )
-class TestEdgeConnectionPathPanel(BasePanel):
+class TestEdgeConnectionPathPanel(Panel):
     @classmethod
-    def poll(cls, context: "SessionContext") -> bool:
-        wrapper = context.active_edge
+    def poll(cls, ctx: "SessionContext") -> bool:
+        wrapper = ctx.active_edge.value
         return wrapper is not None and wrapper.edge is not None
 
-    def draw(self, context: "SessionContext", layout: PanelLayout) -> None:
-        from nicegui import ui
-
-        edge = context.active_edge.edge
+    def draw(
+        self,
+        ctx: "SessionContext",
+        layout: PanelLayout,
+        actions: TestEdgeContextActions,
+    ) -> None:
+        wrapper = ctx.active_edge.value
+        if wrapper is None or wrapper.edge is None:
+            return
+        edge = wrapper.edge
 
         with layout.container:
             with ui.column().classes("w-full gap-1 p-2"):
@@ -143,22 +154,25 @@ class TestEdgeConnectionPathPanel(BasePanel):
 
 
 @panel(
-    editors="test_inspector",
-    scopes="test_edge",
+    action=TestEdgeContextActions,
+    focus=TestEdgeFocus,
     label="Connection Warnings",
     icon=hui.icon.warning,
     order=5,
 )
-class TestEdgeWarningsPanel(BasePanel):
+class TestEdgeWarningsPanel(Panel):
     @classmethod
-    def poll(cls, context: "SessionContext") -> bool:
-        state = _state(context)
+    def poll(cls, ctx: "SessionContext") -> bool:
+        state = _state(ctx)
         return state is not None and state.has_warning()
 
-    def draw(self, context: "SessionContext", layout: PanelLayout) -> None:
-        from nicegui import ui
-
-        state = _state(context)
+    def draw(
+        self,
+        ctx: "SessionContext",
+        layout: PanelLayout,
+        actions: TestEdgeContextActions,
+    ) -> None:
+        state = _state(ctx)
         if state is None:
             return
 

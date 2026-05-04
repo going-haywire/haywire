@@ -119,7 +119,7 @@ class LibraryOverviewEditor(BaseEditor):
         if self._container is None:
             return
 
-        lib = context.active_library
+        lib = context.active_library.value
         with self._container:
             with (
                 ui.column()
@@ -601,7 +601,7 @@ class LibraryOverviewEditor(BaseEditor):
         context: "SessionContext",
     ):
         """Set context.active_component and fire ACTIVE_COMPONENT_CHANGED."""
-        context.active_component = registry_key
+        context.active_component.value = registry_key
 
         from haybale_studio.editors.library_component_editor import LibraryComponentEditor
 
@@ -617,13 +617,13 @@ class LibraryOverviewEditor(BaseEditor):
     def _enable_library(self, library_id: str, manager, context: "SessionContext"):
         manager.enable_library(library_id)
         ui.notify(f"Enabled: {library_id}", type="positive")
-        context.active_library = self._reload_installed(library_id, manager)
+        context.active_library.value = self._reload_installed(library_id, manager)
         self._notify_library_changed(context)
 
     def _disable_library(self, library_id: str, manager, context: "SessionContext"):
         manager.disable_library(library_id)
         ui.notify(f"Disabled: {library_id}", type="warning")
-        context.active_library = self._reload_installed(library_id, manager)
+        context.active_library.value = self._reload_installed(library_id, manager)
         self._notify_library_changed(context)
 
     def _reload_installed(self, library_id: str, manager) -> LibraryInfo | None:
@@ -709,7 +709,7 @@ class LibraryOverviewEditor(BaseEditor):
             ui.notify(message, type="negative")
 
         # Clear the active library and notify all editors
-        context.active_library = None
+        context.active_library.value = None
         self._notify_library_changed(context)
 
     # ─────────────────────────────────────────────────────────────────────────
@@ -895,7 +895,7 @@ class LibraryOverviewEditor(BaseEditor):
         # Reload the freshly-saved library into context and re-render
         try:
             libs = manager.list_installed()
-            context.active_library = next(
+            context.active_library.value = next(
                 (entry for entry in libs if entry.identity.id == lib.identity.id), None
             )
         except Exception:
@@ -941,7 +941,7 @@ class LibraryOverviewEditor(BaseEditor):
             self._build_graph_patch_dialog(old_library_id, new_name, workspace_root) if success else None
         )
 
-        context.active_library = None
+        context.active_library.value = None
         self._container.clear()
         self._rebuild(context)
 
@@ -1052,7 +1052,7 @@ class LibraryOverviewEditor(BaseEditor):
             # shows the full installed header + tabs on rebuild.
             installed = self._find_installed_by_dist_name(name, manager)
             if installed:
-                context.active_library = installed
+                context.active_library.value = installed
             self._notify_library_changed(context)
         else:
             log.push(f"--- ERROR: {message} ---")

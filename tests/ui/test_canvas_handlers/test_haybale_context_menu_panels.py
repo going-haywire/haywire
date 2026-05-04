@@ -1,18 +1,25 @@
 """
-Tests for haybale-core context menu action panels.
+Tests for haybale-testing context menu action panels.
 
-Verifies registration metadata and poll() contracts for:
-- Node panels: DeleteNode, CopyNode, RedrawNode, RevalidateNode, ResetNode
-- Edge panels: DeleteEdge, InspectEdge, EdgeErrors, EdgeWarnings, EdgeConnectionPath
-- Selection panels: CopySelection, PasteSelection
+Verifies registration metadata (action+focus) and poll() contracts for:
+- Node panels: TestDeleteNode, TestCopyNode, TestRedrawNode, TestRevalidateNode, TestResetNode
+- Edge panels: TestDeleteEdge, TestInspectEdge, TestEdgeErrors, TestEdgeWarnings, TestEdgeConnectionPath
+- Selection panels: TestCopySelection, TestPasteSelection
 """
 
 import pytest
 from unittest.mock import MagicMock
 
-from haywire.ui.panel.base import BasePanel
+from haywire.core.undo.actions.graph_actions import ClipboardData
 from haywire.ui.context import SessionContext
+from haywire.ui.panel import Panel
 
+from haybale_testing.test_actions import (
+    TestEdgeContextActions,
+    TestNodeContextActions,
+    TestSelectionContextActions,
+)
+from haybale_testing.test_focuses import TestEdgeFocus, TestNodeFocus, TestSelectionFocus
 from haybale_testing.panels.test_node_panels import (
     TestDeleteNodePanel as DeleteNodePanel,
     TestCopyNodePanel as CopyNodePanel,
@@ -41,10 +48,10 @@ class FakeApp:
 def make_context(active_node=None, active_edge=None, clipboard=None) -> SessionContext:
     ctx = SessionContext(session_id="test", app=FakeApp())
     ctx.session = MagicMock()
-    ctx.active_node = active_node
-    ctx.active_edge = active_edge
+    ctx.active_node.value = active_node
+    ctx.active_edge.value = active_edge
     if clipboard is not None:
-        ctx.metadata["clipboard"] = clipboard
+        ctx.clipboard.value = clipboard
     return ctx
 
 
@@ -63,8 +70,8 @@ def make_context(active_node=None, active_edge=None, clipboard=None) -> SessionC
         ResetNodePanel,
     ],
 )
-def test_node_action_panel_editor_is_context_menu(panel_cls):
-    assert panel_cls.class_identity.editor_keys == ["test_inspector"]
+def test_node_action_panel_action_is_test_node_context_actions(panel_cls):
+    assert panel_cls.class_identity.action is TestNodeContextActions
 
 
 @pytest.mark.parametrize(
@@ -77,8 +84,8 @@ def test_node_action_panel_editor_is_context_menu(panel_cls):
         ResetNodePanel,
     ],
 )
-def test_node_action_panel_scope_is_node(panel_cls):
-    assert "test_node" in panel_cls.class_identity.scopes
+def test_node_action_panel_focus_is_test_node_focus(panel_cls):
+    assert panel_cls.class_identity.focus is TestNodeFocus
 
 
 @pytest.mark.parametrize(
@@ -91,8 +98,8 @@ def test_node_action_panel_scope_is_node(panel_cls):
         ResetNodePanel,
     ],
 )
-def test_node_action_panels_are_base_panel_subclasses(panel_cls):
-    assert issubclass(panel_cls, BasePanel)
+def test_node_action_panels_are_panel_subclasses(panel_cls):
+    assert issubclass(panel_cls, Panel)
 
 
 # ---------------------------------------------------------------------------
@@ -136,13 +143,13 @@ def test_node_action_panel_poll_false_when_no_node(panel_cls):
 
 
 @pytest.mark.parametrize("panel_cls", [DeleteEdgePanel, InspectEdgePanel])
-def test_edge_action_panel_editor_is_context_menu(panel_cls):
-    assert panel_cls.class_identity.editor_keys == ["test_inspector"]
+def test_edge_action_panel_action_is_test_edge_context_actions(panel_cls):
+    assert panel_cls.class_identity.action is TestEdgeContextActions
 
 
 @pytest.mark.parametrize("panel_cls", [DeleteEdgePanel, InspectEdgePanel])
-def test_edge_action_panel_scope_is_edge(panel_cls):
-    assert "test_edge" in panel_cls.class_identity.scopes
+def test_edge_action_panel_focus_is_test_edge_focus(panel_cls):
+    assert panel_cls.class_identity.focus is TestEdgeFocus
 
 
 # ---------------------------------------------------------------------------
@@ -167,12 +174,12 @@ def test_edge_action_panel_poll_false_when_no_edge(panel_cls):
 # ---------------------------------------------------------------------------
 
 
-def test_edge_errors_panel_editor_is_context_menu():
-    assert EdgeErrorsPanel.class_identity.editor_keys == ["test_inspector"]
+def test_edge_errors_panel_action_is_test_edge_context_actions():
+    assert EdgeErrorsPanel.class_identity.action is TestEdgeContextActions
 
 
-def test_edge_errors_panel_scope_is_edge():
-    assert "test_edge" in EdgeErrorsPanel.class_identity.scopes
+def test_edge_errors_panel_focus_is_test_edge_focus():
+    assert EdgeErrorsPanel.class_identity.focus is TestEdgeFocus
 
 
 def _make_edge_wrapper(error=None, warnings=None, has_edge=True):
@@ -207,12 +214,12 @@ def test_edge_errors_panel_poll_false_when_no_edge():
 # ---------------------------------------------------------------------------
 
 
-def test_edge_warnings_panel_editor_is_context_menu():
-    assert EdgeWarningsPanel.class_identity.editor_keys == ["test_inspector"]
+def test_edge_warnings_panel_action_is_test_edge_context_actions():
+    assert EdgeWarningsPanel.class_identity.action is TestEdgeContextActions
 
 
-def test_edge_warnings_panel_scope_is_edge():
-    assert "test_edge" in EdgeWarningsPanel.class_identity.scopes
+def test_edge_warnings_panel_focus_is_test_edge_focus():
+    assert EdgeWarningsPanel.class_identity.focus is TestEdgeFocus
 
 
 def test_edge_warnings_panel_poll_true_when_warnings_present():
@@ -235,12 +242,12 @@ def test_edge_warnings_panel_poll_false_when_no_edge():
 # ---------------------------------------------------------------------------
 
 
-def test_edge_connection_path_panel_editor_is_context_menu():
-    assert EdgeConnectionPathPanel.class_identity.editor_keys == ["test_inspector"]
+def test_edge_connection_path_panel_action_is_test_edge_context_actions():
+    assert EdgeConnectionPathPanel.class_identity.action is TestEdgeContextActions
 
 
-def test_edge_connection_path_panel_scope_is_edge():
-    assert "test_edge" in EdgeConnectionPathPanel.class_identity.scopes
+def test_edge_connection_path_panel_focus_is_test_edge_focus():
+    assert EdgeConnectionPathPanel.class_identity.focus is TestEdgeFocus
 
 
 def test_edge_connection_path_panel_poll_true_when_edge_with_data():
@@ -264,13 +271,13 @@ def test_edge_connection_path_panel_poll_false_when_edge_has_no_data():
 
 
 @pytest.mark.parametrize("panel_cls", [CopySelectionPanel, PasteSelectionPanel])
-def test_selection_action_panel_editor_is_context_menu(panel_cls):
-    assert panel_cls.class_identity.editor_keys == ["test_inspector"]
+def test_selection_action_panel_action_is_test_selection_context_actions(panel_cls):
+    assert panel_cls.class_identity.action is TestSelectionContextActions
 
 
 @pytest.mark.parametrize("panel_cls", [CopySelectionPanel, PasteSelectionPanel])
-def test_selection_action_panel_scope_is_selection(panel_cls):
-    assert "test_selection" in panel_cls.class_identity.scopes
+def test_selection_action_panel_focus_is_test_selection_focus(panel_cls):
+    assert panel_cls.class_identity.focus is TestSelectionFocus
 
 
 # ---------------------------------------------------------------------------
@@ -280,20 +287,26 @@ def test_selection_action_panel_scope_is_selection(panel_cls):
 
 def test_copy_selection_poll_true_when_nodes_selected():
     ctx = make_context()
-    ctx.selected_nodes = {"n1"}
+    ctx.selected_nodes.value = {"n1"}
     assert CopySelectionPanel.poll(ctx) is True
 
 
 def test_copy_selection_poll_false_when_nothing_selected():
     ctx = make_context()
-    ctx.selected_nodes = set()
-    ctx.selected_edges = set()
+    ctx.selected_nodes.value = set()
+    ctx.selected_edges.value = set()
     assert CopySelectionPanel.poll(ctx) is False
 
 
 def test_paste_selection_poll_true_when_clipboard_has_content():
-    clipboard = MagicMock()
-    clipboard.nodes = ["n1"]
+    clipboard = ClipboardData(
+        nodes=["n1"],
+        edges=[],
+        original_to_new_ids={},
+        bounding_box={"min_x": 0, "min_y": 0, "max_x": 0, "max_y": 0},
+        timestamp=0.0,
+        source_session_id="test",
+    )
     ctx = make_context(clipboard=clipboard)
     assert PasteSelectionPanel.poll(ctx) is True
 

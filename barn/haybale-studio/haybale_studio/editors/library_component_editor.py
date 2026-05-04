@@ -76,9 +76,10 @@ class LibraryComponentEditor(BaseEditor):
     def _rebuild(self, context: "SessionContext") -> None:
         if self._container is None:
             return
-        registry_key = context.active_component
-        if not registry_key and context.active_node is not None:
-            registry_key = context.active_node.registry_key
+        registry_key = context.active_component.value
+        active_node = context.active_node.value
+        if not registry_key and active_node is not None:
+            registry_key = active_node.registry_key
         with self._container:
             if not registry_key:
                 hui.empty_state(
@@ -293,13 +294,13 @@ class LibraryComponentEditor(BaseEditor):
     @staticmethod
     def _codemirror_theme(context: "SessionContext") -> str:
         """Return a CodeMirror theme name that matches the active Haywire workbench theme."""
-        theme_key = getattr(context, "active_workbench_theme_key", "core:theme:workbench:haywire-dark")
+        theme_key = context.active_workbench_theme_key.value or "core:theme:workbench:haywire-dark"
         return "vscodeLight" if "light" in theme_key else "vscodeDark"
 
     def _close(self, context: "SessionContext") -> None:
         """Clear active component and notify listeners."""
         self._code_editor = None
-        context.active_component = None
+        context.active_component.value = None
         session = context.session
         if session is not None:
             session.signal(ActiveComponentMoved())

@@ -1,10 +1,19 @@
 # Migration: legacy `BasePanel` to the new panel contract
 
-> Status: speculative migration plan. Companion to
-> [`spec_panel_contract.md`](spec_panel_contract.md). Inventories the
-> existing `BasePanel` subclasses, maps each to its destination under
-> the new contract, and identifies framework-level work and gaps that
-> have to be resolved during the transition.
+> Status: **Phase 1 + Phase 1.5 complete (2026-05-03 / 2026-05-04).**
+> All production panels and test fixtures run on the new `Panel`
+> contract. 0 `BasePanel` panels remain. The class itself — along
+> with `register_scope`, `get_scopes`, `ScopeDescriptor`,
+> `editors=`/`scopes=` decorator args, the legacy `_index` and
+> dual-mode `_class_filter`, the `metadata['on_emit_event']` bridge,
+> and the `data-hw-*-menu-scope` DOM attributes — is removed.
+> Cross-package layering fixed: `PropertiesEditorActions` moved from
+> `haybale-studio` to `haybale-core`.
+>
+> Companion to [`spec_panel_contract.md`](spec_panel_contract.md).
+> Inventories the existing `BasePanel` subclasses, maps each to its
+> destination under the new contract, and identifies framework-level
+> work and gaps that have to be resolved during the transition.
 >
 > This is not an implementation plan with task breakdowns and
 > sequencing — it's the inventory and gap analysis a real plan would

@@ -752,7 +752,7 @@ From [context_menu.py](../../../packages/haywire-core/src/haywire/ui/graph_canva
 4. On close: clears `context_menu_trigger`, drains the metadata keys.
 
 Panels themselves use the bus too —
-[create_node_panel.py:64-70](../../../barn/haybale-core/haybale_core/panels/context_menu/create_node_panel.py#L64-L70)
+[create_node_panel.py:64-70](../../../barn/haybale-studio/haybale_studio/panels/context_menu/create_node_panel.py#L64-L70)
 sets `context.active_component`, fires `ACTIVE_COMPONENT_CHANGED`, and
 attaches `reveal_editor=LibraryComponentEditor` to the same event.
 
@@ -861,7 +861,7 @@ commits to:
    moves them onto `ContextMenuScope`.
 3. **Co-locate signal+lifecycle at the call site exactly as §8 will
    leave it.** After the bus PR, the
-   [create_node_panel.py:64-70](../../../barn/haybale-core/haybale_core/panels/context_menu/create_node_panel.py#L64-L70)
+   [create_node_panel.py:64-70](../../../barn/haybale-studio/haybale_studio/panels/context_menu/create_node_panel.py#L64-L70)
    site reads as the §8.3 example shows:
 
    ```python

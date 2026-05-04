@@ -1,170 +1,123 @@
 # packages/haywire-core/src/haywire/ui/panel/registry.py
 """
-PanelRegistry for managing panel and scope registrations.
+PanelRegistry for managing panel registrations.
 
-Extends BaseRegistry and maintains:
-- A secondary index by (editor_key, scope_id) for fast panel lookup.
-- A scope index by (editor_id, scope_id) for toolbar metadata.
+Extends BaseRegistry. Panels are looked up via get_panels_for, which
+matches a class's @panel(action=..., focus=...) declaration against
+an actions_provider (structural isinstance check) and a Focus class
+(identity match).
 """
 
 import inspect
 import logging
-from typing import Dict, List, Optional
+from typing import Any, Iterable, List, Optional
 
 from haywire.core.registry.base import BaseRegistry
 from haywire.core.library.identity import LibraryIdentity
 
-from .base import BasePanel
-from .scope import ScopeDescriptor
+from .panel import Panel
 
 logger = logging.getLogger(__name__)
 
 
 class PanelRegistry(BaseRegistry):
-    """
-    Registry of panels and scope descriptors.
+    """Registry of panels.
 
     Extends BaseRegistry for hot-reload support, folder scanning, lifecycle
     events, and snapshot rollback. Provided as a DI singleton by HaywireModule.
 
-    Panels are indexed by (editor_key, scope_id) for fast lookup.  A panel
-    that declares scope=['my_lib', 'node'] appears in both index entries.
-
-    Scopes are registered separately via register_scope() — typically called
-    from BaseLibrary.register_components() before the panels folder is scanned.
-    If a panel references a scope_id that has no registered ScopeDescriptor, it
-    is still indexed and will appear when panels are queried, but get_scopes()
-    will not include that scope in the toolbar.
+    Panels declare action= (Protocol/ABC class) and focus= (Focus subclass)
+    via the @panel decorator. Hosts call get_panels_for(actions_provider,
+    focus) to retrieve panels whose action contract is structurally satisfied
+    by the provider AND whose focus matches.
     """
 
     def __init__(self):
         super().__init__()
-        # (editor_key, scope_id) -> sorted list of panel classes
-        self._index: Dict[tuple, List[type]] = {}
-        # (editor_id, scope_id) -> ScopeDescriptor
-        self._scope_index: Dict[tuple, ScopeDescriptor] = {}
-
-    # ------------------------------------------------------------------
-    # Scope registration
-    # ------------------------------------------------------------------
-
-    def register_scope(self, editor_id: str, descriptor: ScopeDescriptor) -> None:
-        """
-        Register a scope descriptor for a given editor.
-
-        Should be called from BaseLibrary.register_components() before
-        scanning the panels folder, so scope metadata is available when
-        panels referencing that scope are registered.
-
-        Args:
-            editor_id:   Registry ID of the editor (e.g. 'properties').
-            descriptor:  ScopeDescriptor instance defining the tab.
-        """
-        key = (editor_id, descriptor.scope_id)
-        if key in self._scope_index:
-            logger.warning(
-                f"PanelRegistry: scope '{descriptor.scope_id}' for editor '{editor_id}' "
-                f"is already registered — ignoring re-registration. "
-                f"Only one library should own a scope definition."
-            )
-            return
-        self._scope_index[key] = descriptor
-        logger.debug(f"PanelRegistry: Registered scope '{descriptor.scope_id}' for editor '{editor_id}'")
-
-    def get_scopes(self, editor_id: str) -> List[ScopeDescriptor]:
-        """
-        Return all registered scope descriptors for an editor, sorted by order.
-
-        Args:
-            editor_id: Registry ID of the editor (e.g. 'properties').
-
-        Returns:
-            List of ScopeDescriptor instances sorted by ScopeDescriptor.order.
-        """
-        result = [desc for (eid, _), desc in self._scope_index.items() if eid == editor_id]
-        result.sort(key=lambda d: d.order)
-        return result
-
-    # ------------------------------------------------------------------
-    # Panel registration (BaseRegistry overrides)
-    # ------------------------------------------------------------------
 
     def _class_filter(self, cls) -> bool:
-        """Return True if cls is a valid, decorated BasePanel subclass."""
+        """Return True if cls is a valid, decorated Panel subclass."""
         try:
-            return (
-                inspect.isclass(cls)
-                and issubclass(cls, BasePanel)
-                and cls is not BasePanel
-                and hasattr(cls, "class_identity")
-            )
+            if not inspect.isclass(cls):
+                return False
+            if not hasattr(cls, "class_identity"):
+                return False
+            if cls is Panel:
+                return False
+            return issubclass(cls, Panel)
         except TypeError:
             return False
 
     def _register_class(self, cls: type, library_identity: Optional[LibraryIdentity] = None) -> "str | None":
-        """Register a panel class and update the (editor_key, scope_id) index."""
+        """Register a panel class."""
         registry_key = cls.class_identity.registry_key
         result = super()._register(registry_key, cls, library_identity)
         if result:
-            self._index_panel(cls)
-        logger.debug(
-            f"PanelRegistry: Registered '{registry_key}' -> "
-            f"editors={cls.class_identity.editor_keys!r}, "
-            f"scopes={cls.class_identity.scopes!r}"
-        )
+            action = getattr(cls.class_identity, "action", None)
+            focus = getattr(cls.class_identity, "focus", None)
+            logger.debug(
+                f"PanelRegistry: Registered '{registry_key}' -> "
+                f"action={getattr(action, '__name__', '?')}, "
+                f"focus={getattr(focus, '__name__', '?')}"
+            )
         return result
 
     def _unregister_class(self, registry_key: str) -> "type | None":
-        """Unregister a panel class and remove it from the index."""
-        removed = super()._unregister(registry_key)
-        if removed:
-            self._deindex_panel(removed)
-        return removed
+        """Unregister a panel class."""
+        return super()._unregister(registry_key)
 
-    def _index_panel(self, cls: type) -> None:
-        """Add cls to the (editor_key, scope_id) index for every declared editor+scope pair."""
-        for editor_key in cls.class_identity.editor_keys:
-            for scope_id in cls.class_identity.scopes:
-                idx_key = (editor_key, scope_id)
-                if idx_key not in self._index:
-                    self._index[idx_key] = []
-                if cls not in self._index[idx_key]:
-                    self._index[idx_key].append(cls)
-                self._index[idx_key].sort(key=lambda c: c.class_identity.order)
+    # ------------------------------------------------------------------
+    # Contract-centric lookup
+    # ------------------------------------------------------------------
 
-    def _deindex_panel(self, cls: type) -> None:
-        """Remove cls from the index for every declared editor+scope pair."""
-        for editor_key in cls.class_identity.editor_keys:
-            for scope_id in cls.class_identity.scopes:
-                idx_key = (editor_key, scope_id)
-                if idx_key in self._index and cls in self._index[idx_key]:
-                    self._index[idx_key].remove(cls)
+    def get_panels_for(
+        self,
+        actions_provider: Any,
+        focus: type,  # Focus subclass
+    ) -> List[type]:
+        """Return panels whose action contract is satisfied by actions_provider
+        AND whose focus matches the given focus class.
 
-    def get_panels(self, editor_key: str, scope_id: str) -> List[type[BasePanel]]:
+        Sorted by class_identity.order (ascending).
         """
-        Get all panels for a given editor and scope, sorted by order.
-
-        Args:
-            editor_key: Registry key of the editor type.
-            scope_id:   Scope ID string, e.g. 'node', 'graph', 'edge'.
-
-        Returns:
-            List of BasePanel classes sorted by class_identity.order (ascending).
-        """
-        return list(self._index.get((editor_key, scope_id), []))
-
-    def get_all_for_editor(self, editor_key: str) -> Dict[str, List[type[BasePanel]]]:
-        """
-        Get all panels for an editor, grouped by scope_id.
-
-        Args:
-            editor_key: Registry key of the editor type.
-
-        Returns:
-            Dict mapping scope_id -> sorted list of BasePanel classes.
-        """
-        result: Dict[str, List[type[BasePanel]]] = {}
-        for (ek, scope_id), panel_list in self._index.items():
-            if ek == editor_key:
-                result[scope_id] = list(panel_list)
+        result: List[type] = []
+        for cls in self._all_panel_classes():
+            identity = getattr(cls, "class_identity", None)
+            if identity is None:
+                continue
+            action = getattr(identity, "action", None)
+            panel_focus = getattr(identity, "focus", None)
+            if action is None or panel_focus is None:
+                continue
+            if panel_focus is not focus:
+                continue
+            if not isinstance(actions_provider, action):
+                continue
+            result.append(cls)
+        result.sort(key=lambda c: getattr(getattr(c, "class_identity", None), "order", 100))
         return result
+
+    def get_focuses_for(self, actions_provider: Any) -> List[type]:
+        """Return the set of focus classes referenced by any panel whose
+        action contract is satisfied by actions_provider.
+        """
+        focuses: List[type] = []
+        seen: set[type] = set()
+        for cls in self._all_panel_classes():
+            identity = getattr(cls, "class_identity", None)
+            if identity is None:
+                continue
+            action = getattr(identity, "action", None)
+            focus = getattr(identity, "focus", None)
+            if action is None or focus is None:
+                continue
+            if focus in seen:
+                continue
+            if isinstance(actions_provider, action):
+                seen.add(focus)
+                focuses.append(focus)
+        return focuses
+
+    def _all_panel_classes(self) -> Iterable[type]:
+        """Iterate all registered panel classes."""
+        return self._classes.values()

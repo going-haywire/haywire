@@ -9,7 +9,7 @@ registries, factories, and services.
 import os
 import logging
 from pathlib import Path
-from typing import Optional, List
+from typing import Dict, List, Optional
 from injector import Injector, Module, provider, singleton
 
 from ..debug.configurator import LoggingConfigurator
@@ -496,29 +496,23 @@ class LibrarySystemService:
         for editor_key in all_editors:
             print(f"   • {editor_key}")
 
-        # Print registered scopes (grouped by editor)
-        print("\n🗂 Registered Scopes:")
-        editor_ids = {
-            ek
-            for k in panel_registry.list_names()
-            if panel_registry.get(k)
-            for ek in panel_registry.get(k).class_identity.editor_keys
-        }
-        for editor_id in sorted(editor_ids):
-            scopes = panel_registry.get_scopes(editor_id)
-            if not scopes:
-                continue
-            print(f"   {editor_id}:")
-            for scope in scopes:
-                print(f"      • {scope.scope_id}  ({scope.label})")
-
-        # Print registered panels
+        # Print registered panels grouped by focus
         print("\n📋 Registered Panels:")
         all_panels = panel_registry.list_names()
+        by_focus: Dict[str, list] = {}
         for panel_key in all_panels:
             cls = panel_registry.get(panel_key)
-            scope_str = ", ".join(cls.class_identity.scopes) if cls else "?"
-            print(f"   • {panel_key}  [{scope_str}]")
+            if cls is None:
+                continue
+            focus = getattr(cls.class_identity, "focus", None)
+            focus_id = getattr(focus, "id", "?") if focus is not None else "?"
+            by_focus.setdefault(focus_id, []).append((panel_key, cls))
+        for focus_id in sorted(by_focus):
+            print(f"   {focus_id}:")
+            for panel_key, cls in by_focus[focus_id]:
+                action = getattr(cls.class_identity, "action", None)
+                action_name = getattr(action, "__name__", "?") if action is not None else "?"
+                print(f"      • {panel_key}  ({action_name})")
 
         # Print registered themes
         print("\n🌈 Registered Themes:")

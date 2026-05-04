@@ -117,7 +117,7 @@ class NodeSourceEditor(BaseEditor):
     # ------------------------------------------------------------------
 
     def _resolve_target(self, context: "SessionContext") -> None:
-        node = context.active_node
+        node = context.active_node.value
         if node is None:
             self._cls = None
             self._path = None
@@ -195,7 +195,7 @@ class NodeSourceEditor(BaseEditor):
 
     def _render(self, context: "SessionContext") -> None:
         # Empty / error states short-circuit the editor chrome.
-        if context.active_node is None:
+        if context.active_node.value is None:
             hui.empty_state(
                 "Select a node to view its source",
                 icon=hui.icon.node_info,
@@ -310,7 +310,7 @@ class NodeSourceEditor(BaseEditor):
 
     @staticmethod
     def _codemirror_theme(context: "SessionContext") -> str:
-        theme_key = getattr(context, "active_workbench_theme_key", "core:theme:workbench:haywire-dark")
+        theme_key = context.active_workbench_theme_key.value or "core:theme:workbench:haywire-dark"
         return "vscodeLight" if "light" in theme_key else "vscodeDark"
 
     # ------------------------------------------------------------------
@@ -371,7 +371,7 @@ class NodeSourceEditor(BaseEditor):
 
         from haywire.ui.context_signals import ActiveFileMoved, Reveal
 
-        session.context.active_file = self._path
+        session.context.active_file.value = self._path
         session.signal(ActiveFileMoved())
         session.lifecycle(
             Reveal(

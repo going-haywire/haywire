@@ -1,75 +1,68 @@
-"""
-Test-only selection action panels for haybale_testing.
+"""Test-only selection action panels for haybale_testing.
 
-Uses editors="test_inspector", scopes="test_selection" to avoid
-clashing with the production editor/scope namespace.
+Phase 1.5: action=TestSelectionContextActions, focus=TestSelectionFocus.
 """
 
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from haywire.ui.panel.base import BasePanel, PanelLayout
-from haywire.ui.panel.decorator import panel
+from haybale_testing.test_actions import TestSelectionContextActions
+from haybale_testing.test_focuses import TestSelectionFocus
 from haywire.ui import elements as hui
+from haywire.ui.panel import Panel
+from haywire.ui.panel.layout import PanelLayout
+from haywire.ui.panel.decorator import panel
 
 if TYPE_CHECKING:
     from haywire.ui.context import SessionContext
 
 
-def _emit(context: "SessionContext", event):
-    fn = context.metadata.get("on_emit_event")
-    if fn:
-        fn(event)
-
-
 @panel(
-    editors="test_inspector",
-    scopes="test_selection",
+    action=TestSelectionContextActions,
+    focus=TestSelectionFocus,
     label="Copy Selection",
-    icon="content_copy",
+    icon=hui.icon.copy,
     order=10,
 )
-class TestCopySelectionPanel(BasePanel):
+class TestCopySelectionPanel(Panel):
     @classmethod
-    def poll(cls, context: "SessionContext") -> bool:
-        return bool(context.selected_nodes or context.selected_edges)
+    def poll(cls, ctx: "SessionContext") -> bool:
+        return bool(ctx.selected_nodes.value or ctx.selected_edges.value)
 
-    def draw(self, context: "SessionContext", layout: PanelLayout) -> None:
-        from haywire.ui.graph_canvas.event_definitions import UserCopySelectedEvent
-
-        def _copy():
-            _emit(
-                context,
-                UserCopySelectedEvent(
-                    selectedNodes=list(context.selected_nodes),
-                    selectedEdges=list(context.selected_edges),
-                ),
-            )
-
-        layout.button("Copy Selection", icon=hui.icon.copy, on_click=_copy)
+    def draw(
+        self,
+        ctx: "SessionContext",
+        layout: PanelLayout,
+        actions: TestSelectionContextActions,
+    ) -> None:
+        layout.button(
+            "Copy Selection",
+            icon=hui.icon.copy,
+            on_click=actions.test_copy_selection,
+        )
 
 
 @panel(
-    editors="test_inspector",
-    scopes="test_selection",
+    action=TestSelectionContextActions,
+    focus=TestSelectionFocus,
     label="Paste",
     icon=hui.icon.paste,
     order=20,
 )
-class TestPasteSelectionPanel(BasePanel):
+class TestPasteSelectionPanel(Panel):
     @classmethod
-    def poll(cls, context: "SessionContext") -> bool:
-        clipboard = context.metadata.get("clipboard")
-        return clipboard is not None and bool(getattr(clipboard, "nodes", None))
+    def poll(cls, ctx: "SessionContext") -> bool:
+        return ctx.clipboard.value is not None
 
-    def draw(self, context: "SessionContext", layout: PanelLayout) -> None:
-        from haywire.ui.graph_canvas.event_definitions import UserPasteClipboardEvent
-
-        canvas_x = context.metadata.get("canvas_x", 0)
-        canvas_y = context.metadata.get("canvas_y", 0)
-
-        def _paste():
-            _emit(context, UserPasteClipboardEvent(canvasX=canvas_x, canvasY=canvas_y))
-
-        layout.button("Paste", icon=hui.icon.paste, on_click=_paste)
+    def draw(
+        self,
+        ctx: "SessionContext",
+        layout: PanelLayout,
+        actions: TestSelectionContextActions,
+    ) -> None:
+        layout.button(
+            "Paste",
+            icon=hui.icon.paste,
+            on_click=actions.test_paste_at_click,
+        )

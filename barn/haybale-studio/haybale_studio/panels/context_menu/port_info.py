@@ -1,0 +1,50 @@
+"""
+PortInfoPanel — display-only panel showing port info on port right-click.
+
+Phase 1.5: action=PortContextActions (empty marker), focus=PortFocus.
+"""
+
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
+from haybale_studio.focuses import PortFocus
+from haywire.ui import elements as hui
+from haywire.ui.graph_canvas.handlers.context_menu_actions import PortContextActions
+from haywire.ui.panel import Panel
+from haywire.ui.panel.layout import PanelLayout
+from haywire.ui.panel.decorator import panel
+
+if TYPE_CHECKING:
+    from haywire.ui.context import SessionContext
+
+
+@panel(
+    action=PortContextActions,
+    focus=PortFocus,
+    label="Port Info",
+    icon=hui.icon.edge,
+    order=10,
+)
+class PortInfoPanel(Panel):
+    @classmethod
+    def poll(cls, ctx: "SessionContext") -> bool:
+        return ctx.active_port.value is not None
+
+    def draw(
+        self,
+        ctx: "SessionContext",
+        layout: PanelLayout,
+        actions: PortContextActions,
+    ) -> None:
+        port = ctx.active_port.value
+        if port is None:
+            return
+        with layout.container:
+            hui.section_label(port.id)
+            if port.description:
+                hui.label(port.description)
+            hui.info_label(f"Flow: {port.flow_type.value}")
+            if hasattr(port, "_data"):
+                type_key = port._data.get_stored_type().class_identity.registry_key
+                hui.info_label(f"Type: {type_key}")

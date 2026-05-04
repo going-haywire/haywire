@@ -1,6 +1,6 @@
 # haybale_studio/panels/settings_canvas_panels.py
 """
-Canvas-scope settings panels (scope='canvas').
+Canvas-scope settings panels (CanvasFocus).
 
 CanvasSettingsPanel   — grid, zoom, pan behaviour
 NodeUISettingsPanel   — node dimensions, typography, label visibility
@@ -14,115 +14,122 @@ from typing import TYPE_CHECKING
 
 from haywire.ui import elements as hui
 from haywire.ui.components.zoom.settings import EditorPanZoomSettings
+from haywire.ui.panel import Panel, PanelLayout
 from haywire.ui.panel.decorator import panel
-from haywire.ui.panel.base import BasePanel, PanelLayout
 from haywire.ui.panel.render_utils import render_schema
 from haywire.ui.components.minimap.settings import MinimapSettings
 from haywire.ui.prefs.canvas import CanvasSettings
 from haywire.ui.prefs.edge_ui import EdgeUISettings
 
 from haybale_core.settings.node_skin_settings import NodeSkinSettings
+from haybale_studio.editors.properties_editor_actions import PropertiesEditorActions
+from haybale_studio.focuses import CanvasFocus
 
 if TYPE_CHECKING:
     from haywire.ui.context import SessionContext
 
 
 @panel(
-    editors="properties",
-    scopes="canvas",
+    action=PropertiesEditorActions,
+    focus=CanvasFocus,
     label="Canvas",
     icon=hui.icon.canvas,
     order=10,
     default_open=True,
 )
-class CanvasSettingsPanel(BasePanel):
+class CanvasSettingsPanel(Panel):
     """Grid, zoom, pan and background pattern."""
 
-    @classmethod
-    def poll(cls, context: "SessionContext") -> bool:
-        return True
-
-    def draw(self, context: "SessionContext", layout: PanelLayout) -> None:
-        registry = context.app.library_service.get_settings_registry()
+    def draw(
+        self,
+        ctx: "SessionContext",
+        layout: PanelLayout,
+        actions: PropertiesEditorActions,
+    ) -> None:
+        registry = ctx.app.library_service.get_settings_registry()
         render_schema(CanvasSettings, registry)
 
 
 @panel(
-    editors="properties",
-    scopes="canvas",
+    action=PropertiesEditorActions,
+    focus=CanvasFocus,
     label="Skins",
     description="Skin Configuration:Node dimensions, typography and label visibility.",
     icon=hui.icon.skin,
     order=20,
     default_open=False,
 )
-class NodeSkinSettingsPanel(BasePanel):
+class NodeSkinSettingsPanel(Panel):
     """Node dimensions, typography and label visibility."""
 
-    @classmethod
-    def poll(cls, context: "SessionContext") -> bool:
-        return True
-
-    def draw(self, context: "SessionContext", layout: PanelLayout) -> None:
-        registry = context.app.library_service.get_settings_registry()
+    def draw(
+        self,
+        ctx: "SessionContext",
+        layout: PanelLayout,
+        actions: PropertiesEditorActions,
+    ) -> None:
+        registry = ctx.app.library_service.get_settings_registry()
         render_schema(NodeSkinSettings, registry)
 
 
 @panel(
-    editors="properties",
-    scopes="canvas",
+    action=PropertiesEditorActions,
+    focus=CanvasFocus,
     label="Edges",
     icon=hui.icon.edge,
     order=30,
     default_open=False,
 )
-class EdgeUISettingsPanel(BasePanel):
+class EdgeUISettingsPanel(Panel):
     """Edge routing, width and animation behaviour."""
 
-    @classmethod
-    def poll(cls, context: "SessionContext") -> bool:
-        return True
-
-    def draw(self, context: "SessionContext", layout: PanelLayout) -> None:
-        registry = context.app.library_service.get_settings_registry()
+    def draw(
+        self,
+        ctx: "SessionContext",
+        layout: PanelLayout,
+        actions: PropertiesEditorActions,
+    ) -> None:
+        registry = ctx.app.library_service.get_settings_registry()
         render_schema(EdgeUISettings, registry)
 
 
 @panel(
-    editors="properties",
-    scopes="canvas",
+    action=PropertiesEditorActions,
+    focus=CanvasFocus,
     label="Zoom & Pan",
     icon=hui.icon.canvas_zoom_pan,
     order=40,
     default_open=False,
 )
-class EditorZoomPanSettingsPanel(BasePanel):
+class EditorZoomPanSettingsPanel(Panel):
     """Canvas pan/zoom behaviour settings."""
 
-    @classmethod
-    def poll(cls, context: "SessionContext") -> bool:
-        return True
-
-    def draw(self, context: "SessionContext", layout: PanelLayout) -> None:
-        registry = context.app.library_service.get_settings_registry()
+    def draw(
+        self,
+        ctx: "SessionContext",
+        layout: PanelLayout,
+        actions: PropertiesEditorActions,
+    ) -> None:
+        registry = ctx.app.library_service.get_settings_registry()
         render_schema(EditorPanZoomSettings, registry)
 
 
 @panel(
-    editors="properties",
-    scopes="canvas",
+    action=PropertiesEditorActions,
+    focus=CanvasFocus,
     label="Minimap",
     icon=hui.icon.canvas_minimap,
     order=40,
     default_open=False,
 )
-class MinimapSettingsPanel(BasePanel):
+class MinimapSettingsPanel(Panel):
     """Minimap visibility, position and size."""
 
-    @classmethod
-    def poll(cls, context: "SessionContext") -> bool:
-        return True
-
-    def draw(self, context: "SessionContext", layout: PanelLayout) -> None:
-        registry = context.app.library_service.get_settings_registry()
+    def draw(
+        self,
+        ctx: "SessionContext",
+        layout: PanelLayout,
+        actions: PropertiesEditorActions,
+    ) -> None:
+        registry = ctx.app.library_service.get_settings_registry()
         render_schema(MinimapSettings, registry)

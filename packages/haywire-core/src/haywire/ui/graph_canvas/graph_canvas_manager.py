@@ -197,7 +197,8 @@ class GraphCanvasManager:
         return self.selection.selected_edges
 
     def _has_clipboard_content(self) -> bool:
-        return self.selection.clipboard is not None and len(self.selection.clipboard.nodes) > 0
+        clipboard = self._session.context.clipboard.value
+        return clipboard is not None and len(clipboard.nodes) > 0
 
     def cleanup(self):
         """Unsubscribe from graph validation and release resources."""

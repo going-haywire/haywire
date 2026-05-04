@@ -1,14 +1,10 @@
-# packages/haywire-core/src/haywire/ui/panel/base.py
-"""
-Abstract base class and layout helper for Haywire panels.
-"""
+# packages/haywire-core/src/haywire/ui/panel/layout.py
+"""PanelLayout — layout helper passed to Panel.draw()."""
 
-from abc import ABC, abstractmethod
 from contextlib import contextmanager
-from typing import TYPE_CHECKING, ClassVar, Any, Callable
+from typing import TYPE_CHECKING, Any, Callable
 
 from haywire.ui import elements as hui
-from .identity import PanelIdentity
 
 if TYPE_CHECKING:
     from haywire.ui.context import SessionContext
@@ -22,7 +18,7 @@ class PanelLayout:
 
     **Simple mode** — call helpers directly for common design-correct patterns::
 
-        def draw(self, context, layout):
+        def draw(self, ctx, layout, actions):
             layout.section_label("FILES")
             layout.separator()
             layout.empty_state("Nothing selected", icon="folder_open")
@@ -30,10 +26,10 @@ class PanelLayout:
     **Power mode** — use as a context manager to activate the container, then
     call ``hui.*`` functions directly for full design-system access::
 
-        def draw(self, context, layout):
+        def draw(self, ctx, layout, actions):
             with layout:
                 hui.section_label("ADVANCED")
-                with hui.expansion_section("Node", context=context):
+                with hui.expansion_section("Node", context=ctx):
                     hui.info_row("Key", node.registry_key)
 
     All helper methods delegate to ``hui`` — they are convenience shortcuts,
@@ -135,70 +131,3 @@ class PanelLayout:
         """A flat labelled action button, optionally with a leading icon."""
         with self._container:
             return hui.button(text, icon=icon, on_click=on_click)
-
-
-class BasePanel(ABC):
-    """
-    Abstract base class for all panels.
-
-    A panel is a collapsible section that appears inside an editor,
-    filtered by context. Panels are the primary extension point for
-    library developers to add custom UI.
-
-    Class attributes (set by @panel decorator via class_identity):
-        - class_identity.registry_key: Unique registry key.
-        - class_identity.editor_keys: Which editor types this panel belongs to (list).
-        - class_identity.context: Context filter string.
-        - class_identity.label: Display label shown in the panel header.
-        - class_identity.icon: Optional Material icon.
-        - class_identity.order: Sort priority (lower = higher in the list).
-        - class_identity.default_open: Whether the panel starts expanded.
-
-    Lifecycle:
-        1. Editor receives ContextSignal.
-        2. Editor queries PanelRegistry for panels matching its editor_key.
-        3. For each panel, editor calls poll(context).
-        4. If poll() returns True, editor calls draw(context, layout).
-        5. If poll() returns False, panel is hidden.
-    """
-
-    class_identity: ClassVar[PanelIdentity]
-
-    @classmethod
-    def poll(cls, context: "SessionContext") -> bool:
-        """
-        Determine if this panel should be visible given the current context.
-
-        Called every time the context changes. Should be fast — avoid
-        expensive computation here.
-
-        Args:
-            context: Current session context.
-
-        Returns:
-            True if the panel should be shown, False to hide it.
-        """
-        return True
-
-    @abstractmethod
-    def draw(self, context: "SessionContext", layout: PanelLayout) -> None:
-        """
-        Render the panel contents.
-
-        Called when poll() returns True and the panel needs to display.
-        Use the layout helper to add widgets and UI elements.
-
-        Args:
-            context: Current session context.
-            layout: PanelLayout helper for building the UI.
-        """
-        ...
-
-    def on_context_changed(self, context: "SessionContext", layout: PanelLayout) -> None:
-        """
-        Optional incremental update when context changes without full redraw.
-
-        Override for panels that can update in-place rather than fully
-        re-rendering. If not overridden, the editor will clear and re-call draw().
-        """
-        pass

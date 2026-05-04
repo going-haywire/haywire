@@ -1,0 +1,85 @@
+"""
+Node error panels — dual-host (PropertiesEditor + context-menu).
+
+Phase 1.5: split into two explicit per-host classes (matches edge_panels
+pattern). Both render identical content via a shared helper and gate on
+ctx.active_node.value.state.get_errors() being non-empty.
+"""
+
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
+from haybale_studio.focuses import NodeFocus
+from haybale_studio.editors.properties_editor_actions import PropertiesEditorActions
+from haywire.ui import elements as hui
+from haywire.ui.graph_canvas.handlers.context_menu_actions import NodeContextActions
+from haywire.ui.panel import Panel
+from haywire.ui.panel.layout import PanelLayout
+from haywire.ui.panel.decorator import panel
+
+if TYPE_CHECKING:
+    from haywire.ui.context import SessionContext
+
+
+def _node_has_errors(ctx: "SessionContext") -> bool:
+    node = ctx.active_node.value
+    return node is not None and bool(node.state.get_errors())
+
+
+def _render_node_errors(ctx: "SessionContext", layout: PanelLayout) -> None:
+    from haywire.ui.errors.error_info import error_render_detail
+
+    node = ctx.active_node.value
+    if node is None:
+        return
+    errors = node.state.get_errors()
+    with layout.container:
+        for error in errors:
+            error_render_detail(error)
+
+
+@panel(
+    action=PropertiesEditorActions,
+    focus=NodeFocus,
+    label="Node Errors",
+    icon=hui.icon.error,
+    order=0,
+)
+class NodeErrorsPanel(Panel):
+    """Node errors panel for PropertiesEditor."""
+
+    @classmethod
+    def poll(cls, ctx: "SessionContext") -> bool:
+        return _node_has_errors(ctx)
+
+    def draw(
+        self,
+        ctx: "SessionContext",
+        layout: PanelLayout,
+        actions: PropertiesEditorActions,
+    ) -> None:
+        _render_node_errors(ctx, layout)
+
+
+@panel(
+    action=NodeContextActions,
+    focus=NodeFocus,
+    label="Node Errors",
+    icon=hui.icon.error,
+    order=0,
+)
+class ContextMenuNodeErrorsPanel(Panel):
+    """Node errors panel for the context menu (right-click on node)."""
+
+    @classmethod
+    def poll(cls, ctx: "SessionContext") -> bool:
+        return _node_has_errors(ctx)
+
+    def draw(
+        self,
+        ctx: "SessionContext",
+        layout: PanelLayout,
+        actions: NodeContextActions,
+    ) -> None:
+        _render_node_errors(ctx, layout)

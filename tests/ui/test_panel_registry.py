@@ -1,84 +1,86 @@
 # tests/ui/test_panel_registry.py
 """
-Tests for the PanelRegistry and @panel decorator.
+Tests for the PanelRegistry and @panel decorator (Phase 1.5+ contract).
 """
 
+from typing import Protocol, runtime_checkable
+
 import pytest
-from haywire.ui.panel.base import BasePanel
-from haywire.ui.panel.decorator import panel
+
+from haywire.ui.panel import Panel, panel
+from haywire.ui.panel.focus import Focus
 from haywire.ui.panel.registry import PanelRegistry
-from haywire.ui.panel.scope import ScopeDescriptor
 
 
 # ---------------------------------------------------------------------------
-# Minimal concrete panels for testing
+# Test fixtures
 # ---------------------------------------------------------------------------
 
 
-@panel(
-    editors="properties",
-    scopes="node",
-    label="Test Node Panel",
-    icon="info",
-    order=10,
-)
-class _TestNodePanel(BasePanel):
-    def draw(self, context, layout):
+@runtime_checkable
+class _NodeActions(Protocol):
+    def do_node_thing(self) -> None: ...
+
+
+@runtime_checkable
+class _OtherActions(Protocol):
+    def do_other_thing(self) -> None: ...
+
+
+class _NodeFocus(Focus):
+    id = "registry_test_node"
+    label = "Node"
+    icon = "x"
+
+    @classmethod
+    def available(cls, ctx):
+        return True
+
+
+class _GraphFocus(Focus):
+    id = "registry_test_graph"
+    label = "Graph"
+    icon = "y"
+
+    @classmethod
+    def available(cls, ctx):
+        return True
+
+
+@panel(action=_NodeActions, focus=_NodeFocus, label="Test Node Panel A", icon="info", order=10)
+class _TestNodePanelA(Panel):
+    def draw(self, ctx, layout, actions):
         pass
 
 
 @panel(
-    registry_id="test_node_panel_b",
-    editors="properties",
-    scopes="node",
+    action=_NodeActions,
+    focus=_NodeFocus,
     label="Test Node Panel B",
     order=20,
+    registry_id="test_node_panel_b",
 )
-class _TestNodePanelB(BasePanel):
-    def draw(self, context, layout):
+class _TestNodePanelB(Panel):
+    def draw(self, ctx, layout, actions):
         pass
 
 
 @panel(
-    registry_id="test_graph_panel",
-    editors="properties",
-    scopes="graph",
+    action=_NodeActions,
+    focus=_GraphFocus,
     label="Test Graph Panel",
     order=10,
+    registry_id="test_graph_panel",
 )
-class _TestGraphPanel(BasePanel):
-    def draw(self, context, layout):
+class _TestGraphPanel(Panel):
+    def draw(self, ctx, layout, actions):
         pass
 
 
-@panel(
-    registry_id="test_other_editor_panel",
-    editors="other_editor",
-    scopes="node",
-    label="Other Editor Panel",
-    order=10,
-)
-class _TestOtherEditorPanel(BasePanel):
-    def draw(self, context, layout):
-        pass
+class _NotDecoratedPanel(Panel):
+    """Panel subclass without @panel — should NOT pass _class_filter."""
 
-
-@panel(
-    registry_id="test_multi_scope_panel",
-    editors="properties",
-    scopes=["node", "graph"],
-    label="Multi Scope Panel",
-    order=15,
-)
-class _TestMultiScopePanel(BasePanel):
-    def draw(self, context, layout):
-        pass
-
-
-class _NotDecoratedPanel(BasePanel):
-    """BasePanel subclass without @panel — should NOT pass _class_filter."""
-
-    def draw(self, context, layout):
+    def draw(self, ctx, layout, actions):
         pass
 
 
@@ -89,47 +91,58 @@ class _NotDecoratedPanel(BasePanel):
 
 class TestPanelDecorator:
     def test_sets_class_identity(self):
-        assert hasattr(_TestNodePanel, "class_identity")
+        assert hasattr(_TestNodePanelA, "class_identity")
 
     def test_registry_key(self):
-        assert _TestNodePanel.class_identity.registry_key.endswith(":panel:_TestNodePanel")
+        assert _TestNodePanelA.class_identity.registry_key.endswith(":panel:_TestNodePanelA")
 
-    def test_editor_keys_is_list(self):
-        assert _TestNodePanel.class_identity.editor_keys == ["properties"]
+    def test_action(self):
+        assert _TestNodePanelA.class_identity.action is _NodeActions
 
-    def test_scopes_is_list(self):
-        assert _TestNodePanel.class_identity.scopes == ["node"]
-
-    def test_scopes_multi_normalised(self):
-        assert _TestMultiScopePanel.class_identity.scopes == ["node", "graph"]
+    def test_focus(self):
+        assert _TestNodePanelA.class_identity.focus is _NodeFocus
 
     def test_label(self):
-        assert _TestNodePanel.class_identity.label == "Test Node Panel"
+        assert _TestNodePanelA.class_identity.label == "Test Node Panel A"
 
     def test_icon(self):
-        assert _TestNodePanel.class_identity.icon == "info"
+        assert _TestNodePanelA.class_identity.icon == "info"
 
     def test_order(self):
-        assert _TestNodePanel.class_identity.order == 10
+        assert _TestNodePanelA.class_identity.order == 10
 
     def test_does_not_auto_register(self):
         """@panel must NOT register the class in any registry on its own."""
-        assert _TestNodePanel.class_identity is not None
+        assert _TestNodePanelA.class_identity is not None
 
-    def test_rejects_non_base_panel(self):
+    def test_rejects_non_panel(self):
         with pytest.raises(TypeError):
 
-            @panel(registry_id="bad", editors="props", scopes="node")
+            @panel(action=_NodeActions, focus=_NodeFocus, label="Bad")
             class NotAPanel:
                 pass
 
     def test_sets_class_library(self):
-        assert hasattr(_TestNodePanel, "class_library")
+        assert hasattr(_TestNodePanelA, "class_library")
 
 
 # ---------------------------------------------------------------------------
 # PanelRegistry tests
 # ---------------------------------------------------------------------------
+
+
+class _NodeActionsImpl:
+    """Structural impl of _NodeActions used as actions_provider in tests."""
+
+    def do_node_thing(self) -> None:
+        pass
+
+
+class _OtherActionsImpl:
+    """Structural impl of _OtherActions only — does NOT satisfy _NodeActions."""
+
+    def do_other_thing(self) -> None:
+        pass
 
 
 class TestPanelRegistry:
@@ -138,135 +151,71 @@ class TestPanelRegistry:
 
     def test_empty_on_init(self):
         assert self.registry.list_names() == []
-        assert self.registry._index == {}
 
     def test_register_and_get(self):
-        self.registry._register_class(_TestNodePanel, library_identity=None)
-        key = _TestNodePanel.class_identity.registry_key
-        assert self.registry.get(key) is _TestNodePanel
+        self.registry._register_class(_TestNodePanelA, library_identity=None)
+        key = _TestNodePanelA.class_identity.registry_key
+        assert self.registry.get(key) is _TestNodePanelA
 
-    def test_register_updates_primary_index(self):
-        self.registry._register_class(_TestNodePanel, library_identity=None)
-        panels = self.registry.get_panels("properties", "node")
-        assert _TestNodePanel in panels
+    def test_get_panels_for_returns_matching(self):
+        self.registry._register_class(_TestNodePanelA, library_identity=None)
+        self.registry._register_class(_TestGraphPanel, library_identity=None)
+        provider = _NodeActionsImpl()
+        node_panels = self.registry.get_panels_for(actions_provider=provider, focus=_NodeFocus)
+        assert _TestNodePanelA in node_panels
+        assert _TestGraphPanel not in node_panels
 
-    def test_get_panels_sorted_by_order(self):
+    def test_get_panels_for_filters_by_focus(self):
+        self.registry._register_class(_TestNodePanelA, library_identity=None)
+        self.registry._register_class(_TestGraphPanel, library_identity=None)
+        provider = _NodeActionsImpl()
+        graph_panels = self.registry.get_panels_for(actions_provider=provider, focus=_GraphFocus)
+        assert _TestGraphPanel in graph_panels
+        assert _TestNodePanelA not in graph_panels
+
+    def test_get_panels_for_filters_by_action_isinstance(self):
+        self.registry._register_class(_TestNodePanelA, library_identity=None)
+        # _OtherActionsImpl does NOT satisfy _NodeActions structurally.
+        provider = _OtherActionsImpl()
+        panels = self.registry.get_panels_for(actions_provider=provider, focus=_NodeFocus)
+        assert _TestNodePanelA not in panels
+
+    def test_get_panels_for_sorted_by_order(self):
         self.registry._register_class(_TestNodePanelB, library_identity=None)
-        self.registry._register_class(_TestNodePanel, library_identity=None)
-        panels = self.registry.get_panels("properties", "node")
-        assert panels[0] is _TestNodePanel  # order=10
+        self.registry._register_class(_TestNodePanelA, library_identity=None)
+        provider = _NodeActionsImpl()
+        panels = self.registry.get_panels_for(actions_provider=provider, focus=_NodeFocus)
+        assert panels[0] is _TestNodePanelA  # order=10
         assert panels[1] is _TestNodePanelB  # order=20
 
-    def test_get_panels_empty_for_unknown(self):
-        panels = self.registry.get_panels("nonexistent", "node")
-        assert panels == []
-
-    def test_get_panels_filters_by_scope(self):
-        self.registry._register_class(_TestNodePanel, library_identity=None)
+    def test_get_focuses_for_returns_unique_focuses(self):
+        self.registry._register_class(_TestNodePanelA, library_identity=None)
+        self.registry._register_class(_TestNodePanelB, library_identity=None)
         self.registry._register_class(_TestGraphPanel, library_identity=None)
-        node_panels = self.registry.get_panels("properties", "node")
-        graph_panels = self.registry.get_panels("properties", "graph")
-        assert _TestNodePanel in node_panels
-        assert _TestGraphPanel not in node_panels
-        assert _TestGraphPanel in graph_panels
-        assert _TestNodePanel not in graph_panels
+        provider = _NodeActionsImpl()
+        focuses = self.registry.get_focuses_for(actions_provider=provider)
+        assert _NodeFocus in focuses
+        assert _GraphFocus in focuses
+        # _NodeFocus appears for two panels but should be returned once.
+        assert focuses.count(_NodeFocus) == 1
 
-    def test_multi_scope_panel_appears_in_both_scopes(self):
-        self.registry._register_class(_TestMultiScopePanel, library_identity=None)
-        node_panels = self.registry.get_panels("properties", "node")
-        graph_panels = self.registry.get_panels("properties", "graph")
-        assert _TestMultiScopePanel in node_panels
-        assert _TestMultiScopePanel in graph_panels
-
-    def test_get_all_for_editor(self):
-        self.registry._register_class(_TestNodePanel, library_identity=None)
-        self.registry._register_class(_TestGraphPanel, library_identity=None)
-        self.registry._register_class(_TestOtherEditorPanel, library_identity=None)
-        result = self.registry.get_all_for_editor("properties")
-        assert "node" in result
-        assert "graph" in result
-        assert "other_editor" not in str(result)  # panels for other editor not included
-        assert _TestNodePanel in result["node"]
-        assert _TestGraphPanel in result["graph"]
-
-    def test_unregister_removes_from_primary(self):
-        self.registry._register_class(_TestNodePanel, library_identity=None)
-        key = _TestNodePanel.class_identity.registry_key
+    def test_unregister_removes_class(self):
+        self.registry._register_class(_TestNodePanelA, library_identity=None)
+        key = _TestNodePanelA.class_identity.registry_key
         self.registry._unregister_class(key)
         assert not self.registry.has(key)
-
-    def test_unregister_removes_from_index(self):
-        self.registry._register_class(_TestNodePanel, library_identity=None)
-        key = _TestNodePanel.class_identity.registry_key
-        self.registry._unregister_class(key)
-        panels = self.registry.get_panels("properties", "node")
-        assert _TestNodePanel not in panels
-
-    def test_unregister_removes_multi_scope_panel_from_all_scopes(self):
-        self.registry._register_class(_TestMultiScopePanel, library_identity=None)
-        key = _TestMultiScopePanel.class_identity.registry_key
-        self.registry._unregister_class(key)
-        assert _TestMultiScopePanel not in self.registry.get_panels("properties", "node")
-        assert _TestMultiScopePanel not in self.registry.get_panels("properties", "graph")
+        provider = _NodeActionsImpl()
+        panels = self.registry.get_panels_for(actions_provider=provider, focus=_NodeFocus)
+        assert _TestNodePanelA not in panels
 
     def test_class_filter_accepts_decorated_subclass(self):
-        assert self.registry._class_filter(_TestNodePanel) is True
+        assert self.registry._class_filter(_TestNodePanelA) is True
 
-    def test_class_filter_rejects_base_class(self):
-        assert self.registry._class_filter(BasePanel) is False
+    def test_class_filter_rejects_panel_base(self):
+        assert self.registry._class_filter(Panel) is False
 
     def test_class_filter_rejects_undecorated_subclass(self):
         assert self.registry._class_filter(_NotDecoratedPanel) is False
 
     def test_class_filter_rejects_non_class(self):
         assert self.registry._class_filter("not_a_class") is False
-
-
-# ---------------------------------------------------------------------------
-# Scope registration tests
-# ---------------------------------------------------------------------------
-
-
-class TestScopeRegistration:
-    def setup_method(self):
-        self.registry = PanelRegistry()
-
-    def test_register_scope(self):
-        desc = ScopeDescriptor(scope_id="node", label="Node", icon="widgets", order=10)
-        self.registry.register_scope("properties", desc)
-        scopes = self.registry.get_scopes("properties")
-        assert len(scopes) == 1
-        assert scopes[0].scope_id == "node"
-
-    def test_get_scopes_sorted_by_order(self):
-        self.registry.register_scope(
-            "properties", ScopeDescriptor(scope_id="z", label="Z", icon="a", order=50)
-        )
-        self.registry.register_scope(
-            "properties", ScopeDescriptor(scope_id="a", label="A", icon="b", order=10)
-        )
-        scopes = self.registry.get_scopes("properties")
-        assert scopes[0].scope_id == "a"
-        assert scopes[1].scope_id == "z"
-
-    def test_get_scopes_empty_for_unknown_editor(self):
-        scopes = self.registry.get_scopes("nonexistent")
-        assert scopes == []
-
-    def test_get_scopes_filters_by_editor(self):
-        self.registry.register_scope(
-            "properties", ScopeDescriptor(scope_id="node", label="Node", icon="widgets")
-        )
-        self.registry.register_scope("other", ScopeDescriptor(scope_id="node", label="Node", icon="widgets"))
-        scopes = self.registry.get_scopes("properties")
-        assert len(scopes) == 1
-
-    def test_scope_overwrite(self):
-        """Re-registering an existing scope is a no-op — first registration wins."""
-        desc1 = ScopeDescriptor(scope_id="node", label="Old", icon="x")
-        desc2 = ScopeDescriptor(scope_id="node", label="New", icon="y")
-        self.registry.register_scope("properties", desc1)
-        self.registry.register_scope("properties", desc2)
-        scopes = self.registry.get_scopes("properties")
-        assert len(scopes) == 1
-        assert scopes[0].label == "Old"

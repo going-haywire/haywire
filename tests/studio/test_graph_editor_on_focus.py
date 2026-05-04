@@ -7,6 +7,7 @@ from types import SimpleNamespace
 from typing import Optional
 
 from haywire.ui.context_signals import ActiveGraphMoved
+from haywire.ui.reactive import Reactive
 from haybale_studio.editors.graph_editor import GraphEditor
 
 
@@ -48,8 +49,8 @@ def _make_context(entry: Optional[_FakeEntry], existing_active_graph=None):
     session = _FakeSession()
     ctx = SimpleNamespace(
         app=app,
-        active_graph=existing_active_graph,
-        active_graph_path=None,
+        active_graph=Reactive(existing_active_graph),
+        active_graph_path=Reactive(None),
         session=session,
     )
     session.context = ctx
@@ -81,8 +82,8 @@ def test_on_focus_resolves_entry_and_sets_active_graph() -> None:
 
     ed.on_focus(ctx)
 
-    assert ctx.active_graph is g
-    assert ctx.active_graph_path == Path("/tmp/a.haywire")
+    assert ctx.active_graph.value is g
+    assert ctx.active_graph_path.value == Path("/tmp/a.haywire")
 
 
 def test_on_focus_fires_active_graph_moved() -> None:
@@ -107,7 +108,7 @@ def test_on_focus_short_circuits_when_graph_already_active() -> None:
     entry = _FakeEntry(entry_id="/tmp/a.haywire", graph=g, path=Path("/tmp/a.haywire"))
     ctx = _make_context(entry, existing_active_graph=g)
     # Also pre-set active_graph_path to match — the short-circuit requires both.
-    ctx.active_graph_path = Path("/tmp/a.haywire")
+    ctx.active_graph_path.value = Path("/tmp/a.haywire")
     ed = _make_editor_with_payload("/tmp/a.haywire")
 
     ed.on_focus(ctx)
@@ -124,7 +125,7 @@ def test_on_focus_missing_entry_force_closes_via_wrapper() -> None:
     # Editor closes itself via wrapper.force_close — no event emitted.
     assert ctx.session.signals == []
     assert ed.wrapper.force_close_calls == [True]
-    assert ctx.active_graph is None
+    assert ctx.active_graph.value is None
 
 
 def test_on_focus_no_binding_is_noop() -> None:
@@ -135,15 +136,15 @@ def test_on_focus_no_binding_is_noop() -> None:
     ed.on_focus(ctx)
 
     assert ctx.session.signals == []
-    assert ctx.active_graph is None
+    assert ctx.active_graph.value is None
 
 
 def test_on_focus_no_app_is_noop() -> None:
     session = _FakeSession()
     ctx = SimpleNamespace(
         app=None,
-        active_graph=None,
-        active_graph_path=None,
+        active_graph=Reactive(None),
+        active_graph_path=Reactive(None),
         session=session,
     )
     session.context = ctx

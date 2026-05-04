@@ -2,6 +2,8 @@
 PanelIdentity dataclass for the Haywire panel system.
 """
 
+from __future__ import annotations
+
 from dataclasses import dataclass, field
 from typing import Optional
 
@@ -23,12 +25,17 @@ class PanelIdentity(BaseIdentity):
         class_name:   Python class name — set by decorator.
         module:       Python module name — set by decorator.
 
-    Additional attributes:
+    Additional attributes (legacy form — string-keyed):
         editor_keys:  One or more editor registry keys this panel belongs to.
         scopes:       One or more scope IDs this panel appears under.
         icon:         Optional Material Design icon name.
         order:        Sort priority (lower = higher in the panel list).
         default_open: Whether the panel starts expanded.
+
+    New-contract attributes (set when @panel(action=..., focus=...) is used):
+        action: The action Protocol/ABC class this panel is typed against.
+                Hosts use this to dispatch the right actions object to draw().
+        focus:  The Focus subclass discriminator this panel applies to.
     """
 
     editor_keys: list[str] = field(default_factory=list)
@@ -36,3 +43,5 @@ class PanelIdentity(BaseIdentity):
     icon: Optional[str] = None
     order: int = 100
     default_open: bool = True
+    action: Optional[type] = None
+    focus: Optional[type] = None

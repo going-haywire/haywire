@@ -5,6 +5,7 @@ Tests for SelectionHandlers — manages selected_nodes, selected_edges, and clip
 import pytest
 from unittest.mock import MagicMock
 
+from haywire.ui.context import SessionContext
 from haywire.ui.graph_canvas.handlers.selection import SelectionHandlers
 from haywire.ui.graph_canvas.event_definitions import (
     SelectionChangedEvent,
@@ -27,12 +28,20 @@ def graph():
 
 
 @pytest.fixture
-def handler(graph):
+def session():
+    ctx = SessionContext(session_id="test-session", app=MagicMock())
+    s = MagicMock()
+    s.context = ctx
+    return s
+
+
+@pytest.fixture
+def handler(graph, session):
     return SelectionHandlers(
         graph=graph,
         editor=MagicMock(),
         session_id="test-session",
-        session=None,
+        session=session,
     )
 
 
@@ -46,8 +55,8 @@ def test_initial_selection_is_empty(handler):
     assert handler.selected_edges == set()
 
 
-def test_initial_clipboard_is_none(handler):
-    assert handler.clipboard is None
+def test_initial_clipboard_is_none(handler, session):
+    assert session.context.clipboard.value is None
 
 
 # ---------------------------------------------------------------------------
@@ -90,8 +99,8 @@ def test_selection_changed_notifies_session():
     from haywire.ui.context_signals import SelectionMoved
 
     assert isinstance(session.signal.call_args.args[0], SelectionMoved)
-    assert session.context.selected_nodes == {"n1"}
-    assert session.context.selected_edges == {"e1"}
+    assert session.context.selected_nodes.value == {"n1"}
+    assert session.context.selected_edges.value == {"e1"}
 
 
 def test_selection_changed_no_callback_does_not_raise(handler):
@@ -104,28 +113,30 @@ def test_selection_changed_no_callback_does_not_raise(handler):
 # ---------------------------------------------------------------------------
 
 
-def test_copy_stores_clipboard_with_node_ids(handler):
+def test_copy_stores_clipboard_with_node_ids(handler, session):
     handler.process_copy_selection(UserCopySelectedEvent(selectedNodes=["n1", "n2"], selectedEdges=[]))
-    assert handler.clipboard is not None
-    assert "n1" in handler.clipboard.nodes
-    assert "n2" in handler.clipboard.nodes
+    clipboard = session.context.clipboard.value
+    assert clipboard is not None
+    assert "n1" in clipboard.nodes
+    assert "n2" in clipboard.nodes
 
 
-def test_copy_stores_edge_ids(handler):
+def test_copy_stores_edge_ids(handler, session):
     handler.process_copy_selection(UserCopySelectedEvent(selectedNodes=["n1"], selectedEdges=["e1"]))
-    assert "e1" in handler.clipboard.edges
+    assert "e1" in session.context.clipboard.value.edges
 
 
-def test_copy_records_session_id(handler):
+def test_copy_records_session_id(handler, session):
     handler.process_copy_selection(UserCopySelectedEvent(selectedNodes=["n1"], selectedEdges=[]))
-    assert handler.clipboard.source_session_id == "test-session"
+    assert session.context.clipboard.value.source_session_id == "test-session"
 
 
-def test_copy_overwrites_previous_clipboard(handler):
+def test_copy_overwrites_previous_clipboard(handler, session):
     handler.process_copy_selection(UserCopySelectedEvent(selectedNodes=["n1"], selectedEdges=[]))
     handler.process_copy_selection(UserCopySelectedEvent(selectedNodes=["n2"], selectedEdges=[]))
-    assert "n2" in handler.clipboard.nodes
-    assert "n1" not in handler.clipboard.nodes
+    clipboard = session.context.clipboard.value
+    assert "n2" in clipboard.nodes
+    assert "n1" not in clipboard.nodes
 
 
 # ---------------------------------------------------------------------------

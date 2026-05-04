@@ -1,14 +1,35 @@
 # Spec: the panel contract
 
-> Status: speculative spec. Describes the contract panels are written
-> against. This document supersedes the panel-related portions of
+> Status: **Phase 1 + Phase 1.5 complete (2026-05-03 / 2026-05-04).**
+> The contract described here — `Panel` base class,
+> `@panel(action=, focus=, label=, ...)` decorator, `Focus` base class
+> with `id` ClassVar, registry methods `get_panels_for` and
+> `get_focuses_for`, error boundary helper, PropertiesEditor toolbar
+> discovery via `default_focuses ∪ registry.get_focuses_for(self)` —
+> is in place. All production panels and test fixtures run on the new
+> contract. SessionContext fields are reactive cells via the descriptor
+> pattern; `clipboard` is one of them. Five `ContextMenuActions`
+> Protocols + `SessionContextMenuProvider` structurally implement
+> them; per-popup gesture state lives in a private `_OpenMenuContext`
+> dataclass on the provider. Dual-host panels (EdgeErrors,
+> EdgeWarnings, NodeErrors) split into explicit per-host classes
+> sharing module-private helpers. DOM attribute renamed
+> `data-hw-*-menu-scope` → `data-hw-*-menu-focus-id`. Legacy framework
+> code is gone: `BasePanel`, `ScopeDescriptor`, `register_scope`,
+> `get_scopes`, `get_panels`, `get_all_for_editor`, dual-mode
+> `_class_filter`, `_index`, `editors=`/`scopes=` decorator args.
+> `PanelLayout` moved to `panel/layout.py`. `PropertiesEditorActions`
+> moved to `haybale-core` (cross-package layering fixed).
+>
+> Reactive Subscriptions and auto-tracking remain pending Phase 2.
+>
+> This document supersedes the panel-related portions of
 > `spec_panel_A_plus.md`.
 >
 > **Companion documents:**
 >
 > - [`spec_panel_reactivity.md`](spec_panel_reactivity.md) — the
->   reactive mechanism that re-runs panels on state change. Phase 2
->   for implementation; this contract spec is Phase 1.
+>   reactive mechanism that re-runs panels on state change. Phase 2.
 > - [`spec_panel_migration.md`](spec_panel_migration.md) — inventory
 >   of legacy `BasePanel` subclasses, mapping to the new contract,
 >   identified gaps, and suggested migration ordering.

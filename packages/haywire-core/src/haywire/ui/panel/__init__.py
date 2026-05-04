@@ -2,22 +2,31 @@
 """
 Panel system for the Haywire UI framework.
 
-Panels are collapsible sections that appear inside editors, filtered by scope.
-Use the @panel decorator to mark panel classes, PanelRegistry to manage them,
-and ScopeDescriptor to define named scope tabs in panel-consuming editors.
+Panels are collapsible sections that appear inside editors. Each panel
+declares an action contract (Protocol/ABC) and a Focus subclass via the
+@panel decorator. Hosts query PanelRegistry.get_panels_for(actions_provider,
+focus) to retrieve panels that apply.
 """
 
 from .identity import PanelIdentity
-from .base import BasePanel, PanelLayout
-from .decorator import panel
+from .layout import PanelLayout
+from .focus import Focus, all_focuses, focus_by_id
+from .panel import Panel
 from .registry import PanelRegistry
-from .scope import ScopeDescriptor
+
+# Import decorator last so the `panel` name resolves to the decorator function
+# rather than the `.panel` submodule (the `from .panel import Panel` above
+# binds `panel` as a submodule attribute on the package; importing the
+# decorator after that shadows it back to the function).
+from .decorator import panel  # noqa: E402
 
 __all__ = [
     "PanelIdentity",
-    "BasePanel",
     "PanelLayout",
     "panel",
+    "Focus",
+    "all_focuses",
+    "focus_by_id",
+    "Panel",
     "PanelRegistry",
-    "ScopeDescriptor",
 ]

@@ -238,8 +238,8 @@ class LibraryBrowserEditor(BaseEditor):
         )
 
     def _select_library(self, lib, context: "SessionContext"):
-        context.active_library = lib
-        context.active_component = None
+        context.active_library.value = lib
+        context.active_component.value = None
 
         session = context.session
         if session is not None:

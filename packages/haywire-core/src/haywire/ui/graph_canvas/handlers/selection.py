@@ -50,7 +50,6 @@ class SelectionHandlers:
 
         self.selected_nodes: Set[str] = set()
         self.selected_edges: Set[str] = set()
-        self.clipboard: Optional[ClipboardData] = None
 
     @handles_event(SelectionChangedEvent)
     def process_selection_change(self, event: SelectionChangedEvent):
@@ -63,13 +62,13 @@ class SelectionHandlers:
             return
 
         ctx = self._session.context
-        ctx.selected_nodes = self.selected_nodes
-        ctx.selected_edges = self.selected_edges
+        ctx.selected_nodes.value = self.selected_nodes
+        ctx.selected_edges.value = self.selected_edges
 
-        ctx.active_node = (
+        ctx.active_node.value = (
             self.graph.get_node_wrapper(next(iter(self.selected_nodes))) if self.selected_nodes else None
         )
-        ctx.active_edge = (
+        ctx.active_edge.value = (
             self.graph.get_edge_wrapper(next(iter(self.selected_edges))) if self.selected_edges else None
         )
 
@@ -81,9 +80,12 @@ class SelectionHandlers:
         logger.info(
             f"📋 Copying {len(event.selectedNodes)} nodes and {len(event.selectedEdges)} connections"
         )
+        if self._session is None:
+            logger.warning("Copy ignored: no session bound to handler")
+            return
         try:
             bounding_box = self._calculate_selection_bounds(event.selectedNodes)
-            self.clipboard = ClipboardData(
+            self._session.context.clipboard.value = ClipboardData(
                 nodes=event.selectedNodes,
                 edges=event.selectedEdges,
                 original_to_new_ids={},
@@ -99,14 +101,19 @@ class SelectionHandlers:
     @handles_event(UserPasteClipboardEvent)
     def process_paste_clipboard(self, event: UserPasteClipboardEvent):
         """Paste clipboard contents — full implementation pending."""
-        if not self.clipboard:
+        if self._session is None:
+            logger.warning("Paste ignored: no session bound to handler")
+            return
+
+        clipboard = self._session.context.clipboard.value
+        if not clipboard:
             logger.warning("❌ No clipboard content to paste")
             ui.notify("Nothing to paste", type="warning")
             return
 
         logger.info(
-            f"📄 Pasting {len(self.clipboard.nodes)} nodes and "
-            f"{len(self.clipboard.edges)} connections "
+            f"📄 Pasting {len(clipboard.nodes)} nodes and "
+            f"{len(clipboard.edges)} connections "
             f"at ({event.canvasX}, {event.canvasY})"
         )
         # Full paste implementation: editor.paste(clipboard, x, y) — pending
