@@ -5,7 +5,7 @@ from haywire.core.settings import field
 from haywire.core.settings.schema import FrameworkSettings
 
 
-class EditorSettings(FrameworkSettings):
+class EditorSettings(FrameworkSettings, namespace="editor"):
     """Global preferences controlling editor interaction and behaviour."""
 
     # Undo/Redo

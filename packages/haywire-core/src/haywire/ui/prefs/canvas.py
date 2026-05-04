@@ -7,7 +7,7 @@ from haywire.core.settings.schema import FrameworkSettings
 # TODO: Setup Canvas Settings
 
 
-class CanvasSettings(FrameworkSettings):
+class CanvasSettings(FrameworkSettings, namespace="ui.canvas"):
     """Global preferences controlling canvas grid, zoom, and pan behaviour."""
 
     # Background pattern (style, not color)
