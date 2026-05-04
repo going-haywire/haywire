@@ -55,7 +55,6 @@ class SessionContext:
     active_port: Reactive[Optional["DataPort"]] = reactive_field(None)
     selected_nodes: Reactive[Set[str]] = reactive_field(set())
     selected_edges: Reactive[Set[str]] = reactive_field(set())
-    workspace_name: Reactive[str] = reactive_field("default")
     active_library: Reactive[Optional["BaseLibrary"]] = reactive_field(None)
     active_component: Reactive[Optional[str]] = reactive_field(None)
     active_file: Reactive[Optional[Any]] = reactive_field(None)

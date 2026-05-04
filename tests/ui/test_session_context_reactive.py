@@ -52,7 +52,6 @@ def test_all_documented_reactive_fields_are_present():
         "active_port",
         "selected_nodes",
         "selected_edges",
-        "workspace_name",
         "active_library",
         "active_component",
         "active_file",

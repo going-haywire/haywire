@@ -197,9 +197,6 @@ class SessionContext:
     active_library: Optional[Any]       # InstalledLibrary or MarketplaceEntry
     active_component: Optional[Any]     # selected node/widget/renderer metadata
 
-    # Workspace
-    workspace_name: str                 # active preset name
-
     # Extensibility
     metadata: Dict[str, Any]           # shared services + editor-specific state
 ```

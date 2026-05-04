@@ -172,7 +172,6 @@ class SessionContext:
         selected_edges: Set of currently selected edge IDs.
         interaction_mode: What the user is currently doing.
         active_editor: The editor type currently focused.
-        workspace_name: Name of the active workspace preset.
         active_library: Library selected in LibraryBrowser (InstalledLibrary |
             MarketplaceEntry, or None). Drives LibraryDetailEditor.
         active_component: Component selected in LibraryBrowser (node/widget/renderer
@@ -187,7 +186,6 @@ class SessionContext:
     selected_edges: Set[str] = field(default_factory=set)
     interaction_mode: InteractionMode = InteractionMode.IDLE
     active_editor: Optional[str] = None         # editor registry key
-    workspace_name: str = "default"
     active_library: Optional[Any] = None        # InstalledLibrary | MarketplaceEntry
     active_component: Optional[Any] = None      # node/widget/renderer class or metadata
     metadata: Dict[str, Any] = field(default_factory=dict)
