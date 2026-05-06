@@ -3,7 +3,7 @@
 
 from haywire.core.namespaces import CATEGORY_NODE_SKINS, NAMESPACE_UI_NODE_DEFAULT_SKIN
 from haywire.core.settings.schema import FrameworkSettings
-from haywire.core.settings import field
+from haywire.core.settings import setting
 
 
 def _node_skin_choices():
@@ -32,7 +32,7 @@ class NodeDefaultSkinSettings(FrameworkSettings, namespace=NAMESPACE_UI_NODE_DEF
     """
 
     # Visibility
-    default_skin = field[str](
+    default_skin = setting[str](
         default=_default_skin,
         label="Default NodeSkin",
         description="Current default node skin",
@@ -40,7 +40,7 @@ class NodeDefaultSkinSettings(FrameworkSettings, namespace=NAMESPACE_UI_NODE_DEF
         widget="label",
         order=10,
     )
-    studio_skin = field[str](
+    studio_skin = setting[str](
         default=_default_skin,
         label="Default Studio Skin",
         description="Studio default node skin",

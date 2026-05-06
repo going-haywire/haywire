@@ -2,11 +2,11 @@
 """
 Settings — observable setting container for Haywire.
 
-Subclass and declare fields with ``field()``:
+Subclass and declare settings with ``setting()``:
 
     class FilterSettings(Settings):
-        strength = field[float](0.5, min=0.0, max=1.0, label='Strength')
-        mode     = field[str]('fast', choices=['fast', 'precise'])
+        strength = setting[float](0.5, min=0.0, max=1.0, label='Strength')
+        mode     = setting[str]('fast', choices=['fast', 'precise'])
 
 Simple mode (no registry):
     Direct _local_store lookup.  Zero overhead.  Used by NodeProperties and
@@ -14,12 +14,12 @@ Simple mode (no registry):
 
 Extended mode (registry injected by @node decorator):
     Reads go through _resolve() — full resolution chain (TOML tiers).
-    mirrors= on a field links to a FrameworkSettings/LibrarySettings field.
-    read_only=True on a field prevents per-instance writes (watch behaviour).
+    mirrors= on a setting links to a FrameworkSettings/LibrarySettings setting.
+    read_only=True on a setting prevents per-instance writes (watch behaviour).
 
 Supports:
-- Direct attribute access (``obj.field = value``)
-- on_change callbacks (``field(on_change='method_name')``)
+- Direct attribute access (``obj.setting = value``)
+- on_change callbacks (``setting(on_change='method_name')``)
 - Change notification (``obj.subscribe(callback)``)
 - Serialization (``to_dict()`` / ``from_dict()``)
 - Reset (``reset(name)`` / ``reset_all()``)
@@ -33,7 +33,7 @@ from typing import Any, Callable, ClassVar, TYPE_CHECKING
 
 from typing_extensions import dataclass_transform
 
-from .descriptor import field, shadow, watch
+from .descriptor import setting, shadow, watch
 
 if TYPE_CHECKING:
     from haywire.core.settings.registry import SettingsRegistry
@@ -42,12 +42,12 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-@dataclass_transform(field_specifiers=(field, shadow, watch))
+@dataclass_transform(field_specifiers=(setting, shadow, watch))
 class Settings:
     """
     Base Settings class for observable settings.
 
-    Subclasses declare typed fields using ``field()``.  When a
+    Subclasses declare typed settings using ``setting()``.  When a
     ``SettingsRegistry`` is injected (extended mode), ``setting`` fields
     gain full TOML-tier resolution.
     """
@@ -103,7 +103,7 @@ class Settings:
         for descriptor in type(self)._property_fields().values():
             self._subscribe_field(descriptor)
 
-    def _subscribe_field(self, descriptor: field) -> None:
+    def _subscribe_field(self, descriptor: setting) -> None:
         """Subscribe a single field's _mirror_key to the registry (extended mode, no-op if no registry)."""
         if self._registry is None or not descriptor._mirror_key:
             return
@@ -272,11 +272,11 @@ class Settings:
         return key in self._local_store
 
     @classmethod
-    def _property_fields(cls) -> dict[str, field]:
-        """Return all field descriptors defined on this class (walks MRO, base-first)."""
-        result: dict[str, field] = {}
+    def _property_fields(cls) -> dict[str, setting]:
+        """Return all setting descriptors defined on this class (walks MRO, base-first)."""
+        result: dict[str, setting] = {}
         for klass in reversed(cls.__mro__):
             for name, val in klass.__dict__.items():
-                if isinstance(val, field):
+                if isinstance(val, setting):
                     result[name] = val
         return result

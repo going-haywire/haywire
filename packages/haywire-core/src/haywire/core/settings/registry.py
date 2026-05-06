@@ -29,7 +29,7 @@ except ImportError:
 
 from .enums import FieldMode
 from .value import FieldValue
-from .descriptor import field
+from .descriptor import setting
 from ..registry.base import BaseRegistry
 from ..library.identity import LibraryIdentity
 
@@ -101,7 +101,7 @@ class SettingsRegistry(BaseRegistry):
         super().__init__()  # sets up BaseRegistry state: _classes, _dependency_graph, etc.
 
         self._lock = threading.RLock()
-        self._definitions: dict[str, field] = {}
+        self._definitions: dict[str, setting] = {}
 
         # Two-tier global value storage
         self._global_tier_values: dict[str, FieldValue] = {}
@@ -206,7 +206,7 @@ class SettingsRegistry(BaseRegistry):
                 for ref in dead:
                     self._subscribers[ns].remove(ref)
 
-    def _store_definition(self, name: str, descriptor: field, category: str = "root") -> None:
+    def _store_definition(self, name: str, descriptor: setting, category: str = "root") -> None:
         """Store a descriptor in the definitions dict and initialize tier entries."""
         is_new = name not in self._definitions
         self._definitions[name] = descriptor
@@ -491,7 +491,7 @@ class SettingsRegistry(BaseRegistry):
             parts = name.split(".")
             category = ".".join(parts[:-1]) if len(parts) > 1 else "root"
 
-        d = field(
+        d = setting(
             default=default,
             type_=type_,
             label=label,
@@ -668,11 +668,11 @@ class SettingsRegistry(BaseRegistry):
         ui_widget: str | None = None,
         ui_order: int = 0,
         metadata: dict | None = None,
-    ) -> field:
+    ) -> setting:
         """
         Define a custom setting from code (authoritative schema).
 
-        This creates a new field definition not associated to any Settings bag
+        This creates a new setting definition not associated to any Settings bag
         and adds it to the registry, making it available
         for resolution and UI immediately.
 
@@ -681,7 +681,7 @@ class SettingsRegistry(BaseRegistry):
         with self._lock:
             self._toml_defined.discard(name)
 
-            d = field(
+            d = setting(
                 default=default,
                 type_=type_ or (type(default) if default is not None else str),
                 validator=validator,
@@ -723,13 +723,13 @@ class SettingsRegistry(BaseRegistry):
     def has_definition(self, name: str) -> bool:
         return name in self._definitions
 
-    def get_definition(self, name: str) -> field | None:
+    def get_definition(self, name: str) -> setting | None:
         return self._definitions.get(name)
 
-    def all_definitions(self) -> dict[str, field]:
+    def all_definitions(self) -> dict[str, setting]:
         return dict(self._definitions)
 
-    def definitions_by_category(self) -> dict[str, list[field]]:
+    def definitions_by_category(self) -> dict[str, list[setting]]:
         result = {}
         for category, names in self._categories.items():
             defns = [self._definitions[n] for n in names if n in self._definitions]
@@ -890,7 +890,7 @@ class SettingsRegistry(BaseRegistry):
         """
         return list(self._classes.values())
 
-    def definitions_for_schema(self, schema_cls: type) -> dict[str, field]:
+    def definitions_for_schema(self, schema_cls: type) -> dict[str, setting]:
         """
         Return all definitions that belong to *schema_cls*, keyed by full_key.
 

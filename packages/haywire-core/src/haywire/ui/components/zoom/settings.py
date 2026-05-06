@@ -2,14 +2,14 @@
 """Pan/zoom behaviour preference singleton."""
 
 from haywire.core.namespaces import CATEGORY_EDITOR_PAN_ZOOM, NAMESPACE_EDITOR_PAN_ZOOM
-from haywire.core.settings import field
+from haywire.core.settings import setting
 from haywire.core.settings.schema import FrameworkSettings
 
 
 class EditorPanZoomSettings(FrameworkSettings, namespace=NAMESPACE_EDITOR_PAN_ZOOM):
     """Global preferences controlling canvas pan/zoom behaviour."""
 
-    zoom_sensitivity = field[float](
+    zoom_sensitivity = setting[float](
         1.0,
         label="Zoom Sensitivity",
         description="How fast scroll/pinch zooms the canvas",
@@ -18,7 +18,7 @@ class EditorPanZoomSettings(FrameworkSettings, namespace=NAMESPACE_EDITOR_PAN_ZO
         min=0.01,
         max=2.0,
     )
-    pan_sensitivity = field[float](
+    pan_sensitivity = setting[float](
         1.0,
         label="Pan Sensitivity",
         description="How fast two-finger swipe pans the canvas",
@@ -27,7 +27,7 @@ class EditorPanZoomSettings(FrameworkSettings, namespace=NAMESPACE_EDITOR_PAN_ZO
         min=0.1,
         max=5.0,
     )
-    max_zoom = field[float](
+    max_zoom = setting[float](
         1.0,
         label="Maximum Zoom",
         description="Maximum zoom level",

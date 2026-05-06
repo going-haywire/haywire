@@ -1,7 +1,7 @@
 # haywire/ui/prefs/edge_ui.py
 """Edge routing, width, and animation preference singleton."""
 
-from haywire.core.settings import field
+from haywire.core.settings import setting
 from haywire.core.settings.schema import FrameworkSettings
 
 
@@ -9,7 +9,7 @@ class EdgeUISettings(FrameworkSettings, namespace="ui.edge"):
     """Global preferences controlling edge routing, width, and animation behaviour."""
 
     # Width
-    width = field[int](
+    width = setting[int](
         2,
         label="Edge Width",
         description="Default edge width in pixels",
@@ -18,7 +18,7 @@ class EdgeUISettings(FrameworkSettings, namespace="ui.edge"):
         min=1,
         max=8,
     )
-    width_selected = field[int](
+    width_selected = setting[int](
         3,
         label="Selected Edge Width",
         description="Edge width when selected",
@@ -29,7 +29,7 @@ class EdgeUISettings(FrameworkSettings, namespace="ui.edge"):
     )
 
     # Port-color tinting
-    use_port_colors = field[bool](
+    use_port_colors = setting[bool](
         True,
         label="Use Port Colors",
         description="Tint edges with the connected port type colour",
@@ -38,7 +38,7 @@ class EdgeUISettings(FrameworkSettings, namespace="ui.edge"):
     )
 
     # Curve
-    curve_style = field[str](
+    curve_style = setting[str](
         "bezier",
         label="Curve Style",
         description="How edges are drawn between nodes",
@@ -46,7 +46,7 @@ class EdgeUISettings(FrameworkSettings, namespace="ui.edge"):
         order=20,
         choices=["bezier", "straight", "step", "smoothstep"],
     )
-    curve_tension = field[float](
+    curve_tension = setting[float](
         0.5,
         label="Curve Tension",
         description="Tension for bezier curves (0–1)",
@@ -55,7 +55,7 @@ class EdgeUISettings(FrameworkSettings, namespace="ui.edge"):
         min=0.0,
         max=1.0,
     )
-    curve_offset = field[int](
+    curve_offset = setting[int](
         50,
         label="Curve Offset",
         description="Control point offset for curves",
@@ -66,14 +66,14 @@ class EdgeUISettings(FrameworkSettings, namespace="ui.edge"):
     )
 
     # Animation
-    animate_flow = field[bool](
+    animate_flow = setting[bool](
         False,
         label="Animate Flow",
         description="Show animated flow direction on edges",
         category="ui.edge",
         order=30,
     )
-    animation_speed = field[float](
+    animation_speed = setting[float](
         1.0,
         label="Animation Speed",
         description="Speed of flow animation",
@@ -82,7 +82,7 @@ class EdgeUISettings(FrameworkSettings, namespace="ui.edge"):
         min=0.1,
         max=5.0,
     )
-    animate_on_execute = field[bool](
+    animate_on_execute = setting[bool](
         True,
         label="Animate on Execute",
         description="Animate edges during execution",

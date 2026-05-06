@@ -16,7 +16,7 @@ from ..settings import (
     FieldValue,
     FrameworkSettings,
     Settings,
-    field,
+    setting,
     Color,
 )
 
@@ -32,8 +32,8 @@ if TYPE_CHECKING:
 class _TestFrameworkSettings(FrameworkSettings, namespace="test.global"):
     """Minimal FrameworkSettings for unit tests that need registered global keys."""
 
-    verbose_logging = field[bool](False, label="Verbose Logging")
-    font_size = field[int](12, label="Font Size", min=8, max=72)
+    verbose_logging = setting[bool](False, label="Verbose Logging")
+    font_size = setting[int](12, label="Font Size", min=8, max=72)
 
 
 class TestingWidgetSettings(FrameworkSettings, namespace="test.widgets"):
@@ -48,24 +48,24 @@ class TestingWidgetSettings(FrameworkSettings, namespace="test.widgets"):
       - color  → ui.color_input
     """
 
-    flag = field[bool](True, label="Flag", description="Boolean — renders as switch", category="types")
-    count = field[int](
+    flag = setting[bool](True, label="Flag", description="Boolean — renders as switch", category="types")
+    count = setting[int](
         3, min=0, max=10, label="Count", description="Integer — renders as NumberDrag", category="types"
     )
-    ratio = field[float](
+    ratio = setting[float](
         0.5, min=0.0, max=1.0, label="Ratio", description="Float — renders as NumberDrag", category="types"
     )
-    label = field[str](
+    label = setting[str](
         "hello", label="Label", description="String — renders as text input", category="types"
     )
-    mode = field[str](
+    mode = setting[str](
         "fast",
         choices=["fast", "balanced", "quality"],
         label="Mode",
         description="Choices — renders as dropdown",
         category="types",
     )
-    tint = field[Color](
+    tint = setting[Color](
         "#ff0000",
         label="Tint",
         description="Color — renders as color picker",
@@ -185,7 +185,7 @@ def create_test_bag(
 
     Example:
         class MySettings(Settings):
-            strength: float = field(0.5, min=0.0, max=1.0)
+            strength: float = setting(0.5, min=0.0, max=1.0)
 
         registry, bag = create_test_bag(MySettings, predefined_local={'strength': 0.8})
         assert bag.strength == 0.8
@@ -193,9 +193,9 @@ def create_test_bag(
     if bag_cls is None:
 
         class _DefaultTestBag(Settings):
-            bg_color = field[str]("#ffffff", label="Background Color")
-            font_size = field[int](12, min=8, max=72, label="Font Size")
-            verbose = field[bool](False, label="Verbose Mode")
+            bg_color = setting[str]("#ffffff", label="Background Color")
+            font_size = setting[int](12, min=8, max=72, label="Font Size")
+            verbose = setting[bool](False, label="Verbose Mode")
 
         bag_cls = _DefaultTestBag
 

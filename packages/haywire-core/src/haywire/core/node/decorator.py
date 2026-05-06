@@ -27,7 +27,7 @@ def _wire_settings_schemas(node_cls: type[BaseNode], registry_key: str) -> None:
     Conflict check: raises ``ValueError`` at class-definition time if an
     accessor name shadows any existing non-Settings attribute on the node MRO.
     """
-    from haywire.core.settings import NodeSettings, field as field_cls
+    from haywire.core.settings import NodeSettings, setting
 
     bags: dict[str, type] = {}
     ns = registry_key.replace(":", ".")
@@ -39,7 +39,7 @@ def _wire_settings_schemas(node_cls: type[BaseNode], registry_key: str) -> None:
                 continue
             # Set _field_key on every setting descriptor that doesn't already have one
             for field_name, descriptor in val._property_fields().items():
-                if isinstance(descriptor, field_cls) and not descriptor._field_key:
+                if isinstance(descriptor, setting) and not descriptor._field_key:
                     descriptor._field_key = f"{ns}.{name}.{field_name}"
             bags[name] = val
 

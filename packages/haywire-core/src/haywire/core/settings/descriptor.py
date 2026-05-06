@@ -1,6 +1,6 @@
 # haywire/core/settings/descriptor.py
 """
-field — reactive property descriptor.
+setting — reactive property descriptor for Settings subclasses.
 
 Instance-level access reads/writes the value stored in the owning Settings's
 _local_store.  Change notifications are fired via Settings._on_prop_change().
@@ -20,8 +20,8 @@ Two operating modes:
       read_only=True prevents writes (watch behaviour).
 
 Convenience factories:
-    shadow(src, ...)  — writable mirror of src field
-    watch(src, ...)   — read-only mirror of src field
+    shadow(src, ...)  — writable mirror of src setting
+    watch(src, ...)   — read-only mirror of src setting
 """
 
 from __future__ import annotations
@@ -33,7 +33,7 @@ from .base import FieldDescriptor
 T = TypeVar("T")
 
 
-class field(FieldDescriptor, Generic[T]):
+class setting(FieldDescriptor, Generic[T]):
     """
     Descriptor for a reactive field on a ``Settings`` subclass.
 
@@ -135,7 +135,7 @@ class field(FieldDescriptor, Generic[T]):
         return bool(self._validator(value))
 
     @overload
-    def __get__(self, obj: None, objtype: type | None = None) -> "field[T]": ...
+    def __get__(self, obj: None, objtype: type | None = None) -> "setting[T]": ...
     @overload
     def __get__(self, obj: object, objtype: type | None = None) -> T: ...
     def __get__(self, obj: Any, objtype: type | None = None) -> Any:
@@ -168,11 +168,11 @@ class field(FieldDescriptor, Generic[T]):
             obj._on_property_change(self._attr_name, value, old, self._on_change)
 
 
-def shadow(src: "field[T]", **kwargs: Any) -> "field[T]":
-    """Writable mirror of *src* field. Inherits src metadata; local writes are allowed."""
-    return field(mirrors=src, read_only=False, **kwargs)
+def shadow(src: "setting[T]", **kwargs: Any) -> "setting[T]":
+    """Writable mirror of *src* setting. Inherits src metadata; local writes are allowed."""
+    return setting(mirrors=src, read_only=False, **kwargs)
 
 
-def watch(src: "field[T]", **kwargs: Any) -> "field[T]":
-    """Read-only mirror of *src* field. Inherits src metadata; local writes raise AttributeError."""
-    return field(mirrors=src, read_only=True, **kwargs)
+def watch(src: "setting[T]", **kwargs: Any) -> "setting[T]":
+    """Read-only mirror of *src* setting. Inherits src metadata; local writes raise AttributeError."""
+    return setting(mirrors=src, read_only=True, **kwargs)

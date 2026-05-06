@@ -1,7 +1,7 @@
 # tests/core/test_settings/test_hot_reload.py
 """Tests for SettingsRegistry hot-reload: register_schema / unregister."""
 
-from haywire.core.settings import field
+from haywire.core.settings import setting
 from haywire.core.settings.schema import FrameworkSettings, LibrarySettings
 from haywire.core.settings.decorator import settings
 from haywire.core.settings.enums import FieldMode
@@ -14,8 +14,8 @@ from haywire.core.settings.registry import SettingsRegistry
 
 
 class _HotGS(FrameworkSettings, namespace="hot.gs"):
-    alpha = field[int](7, label="Alpha")
-    beta = field[str]("abc", label="Beta")
+    alpha = setting[int](7, label="Alpha")
+    beta = setting[str]("abc", label="Beta")
 
 
 class TestRegisterSchema:
@@ -52,7 +52,7 @@ class TestRegisterSchema:
 
 @settings(namespace="hot.lib")
 class _HotLib(LibrarySettings):
-    rate = field[int](4, min=1, max=20)
+    rate = setting[int](4, min=1, max=20)
 
 
 class TestRegisterLibrarySchema:
