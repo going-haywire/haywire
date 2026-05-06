@@ -16,6 +16,7 @@ from haybale_studio.state.edit_state import EditState
 from haywire.ui.context import SessionContext
 from haywire.ui.panel.focus import Focus
 
+
 class AppFocus(Focus):
     id = "app"
     label = "Application"
@@ -25,6 +26,7 @@ class AppFocus(Focus):
     @classmethod
     def available(cls, ctx: SessionContext) -> bool:
         return True
+
 
 class ExecutionFocus(Focus):
     id = "execution"

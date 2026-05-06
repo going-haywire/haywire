@@ -6,6 +6,7 @@ from haywire.core.state.data_namespace import (
     AppDataNamespace,
     SessionDataNamespace,
 )
+from haywire.core.state.decorator import state
 from haywire.core.state.identity import LibraryStateClassIdentity
 from haywire.core.state.registry import LibraryStateRegistry
 
@@ -18,4 +19,5 @@ __all__ = [
     "LibraryStateRegistry",
     "SessionDataNamespace",
     "SessionState",
+    "state",
 ]

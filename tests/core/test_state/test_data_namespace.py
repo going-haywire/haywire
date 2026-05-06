@@ -71,7 +71,13 @@ class TestAppDataNamespace:
         assert ns.get(NotRegistered) is None
 
     def test_live_lookup_after_swap(self):
-        """Each access reads the current container state — no caching."""
+        """Each access reads the current container state via canonical class.
+
+        After hot-reload, V1 is replaced by V2 under the same registry_key.
+        Lookups via either class object resolve to the current canonical
+        instance — V1 (the now-stale reference) falls back to V2's bag via
+        ``class_identity.registry_key`` matching.
+        """
         from haywire.core.state.identity import LibraryStateClassIdentity
 
         class V1(AppState):
@@ -117,7 +123,9 @@ class TestAppDataNamespace:
                 )
             ]
         )
-        # V1 is no longer in the container.
-        assert ns.get(V1) is None
-        # New access via V2 returns the new instance.
+        # Stale reference V1 resolves to the canonical (V2) instance.
+        assert ns.get(V1) is not None
+        assert ns.get(V1).tag == "v2"
+        # New access via V2 returns the same instance.
         assert ns[V2].tag == "v2"
+        assert ns[V1] is ns[V2]

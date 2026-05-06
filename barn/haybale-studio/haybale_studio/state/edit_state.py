@@ -20,7 +20,7 @@ from __future__ import annotations
 from copy import copy
 from typing import TYPE_CHECKING, Any, Optional, Set
 
-from haywire.core.state import SessionState
+from haywire.core.state import SessionState, state
 from haywire.ui.reactive import Reactive, iter_reactive_fields, reactive_field
 
 if TYPE_CHECKING:
@@ -31,6 +31,7 @@ if TYPE_CHECKING:
     from haywire.core.undo.actions.graph_actions import ClipboardData
 
 
+@state(label="Edit State")
 class EditState(SessionState):
     """Per-session graph-editor state: selection, active items, clipboard."""
 

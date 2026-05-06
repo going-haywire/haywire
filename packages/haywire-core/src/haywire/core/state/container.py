@@ -61,34 +61,37 @@ class LibraryStateContainer:
     # ------------------------------------------------------------------
 
     def __getitem__(self, cls: type[A]) -> A:
-        try:
-            return self._app[cls]  # type: ignore[return-value]
-        except KeyError:
+        canonical = self._resolve_app_class(cls)
+        if canonical is None:
             raise KeyError(
                 f"No AppState instance registered for class {cls.__name__}. "
                 f"Either the owning library is not enabled, or the class is not "
                 f"a registered AppState subclass."
-            ) from None
+            )
+        return self._app[canonical]  # type: ignore[return-value]
 
     def get(self, cls: type[A]) -> A | None:
-        return self._app.get(cls)  # type: ignore[return-value]
+        canonical = self._resolve_app_class(cls)
+        if canonical is None:
+            return None
+        return self._app.get(canonical)  # type: ignore[return-value]
 
     def __contains__(self, cls: type) -> bool:
-        return cls in self._app
+        return self._resolve_app_class(cls) is not None
 
     # ------------------------------------------------------------------
     # Public lookup API — used by SessionDataNamespace
     # ------------------------------------------------------------------
 
     def get_session(self, cls: type[S], session_id: str) -> S:
-        try:
-            bag = self._sessions[cls]
-        except KeyError:
+        canonical = self._resolve_session_class(cls)
+        if canonical is None:
             raise KeyError(
                 f"No SessionState class {cls.__name__} is registered. "
                 f"Either the owning library is not enabled, or the class is not "
                 f"a registered SessionState subclass."
-            ) from None
+            )
+        bag = self._sessions[canonical]
         try:
             return bag[session_id]  # type: ignore[return-value]
         except KeyError:
@@ -98,10 +101,50 @@ class LibraryStateContainer:
             ) from None
 
     def get_session_optional(self, cls: type[S], session_id: str) -> S | None:
-        return self._sessions.get(cls, {}).get(session_id)  # type: ignore[return-value]
+        canonical = self._resolve_session_class(cls)
+        if canonical is None:
+            return None
+        return self._sessions.get(canonical, {}).get(session_id)  # type: ignore[return-value]
 
     def has_session(self, cls: type[S], session_id: str) -> bool:
-        return session_id in self._sessions.get(cls, {})
+        canonical = self._resolve_session_class(cls)
+        if canonical is None:
+            return False
+        return session_id in self._sessions.get(canonical, {})
+
+    # ------------------------------------------------------------------
+    # Stale-class-reference resolution
+    # ------------------------------------------------------------------
+    #
+    # When a state class is hot-reloaded, the container is keyed by the
+    # NEW class object. Callers who imported the class before the reload
+    # still hold the OLD class object. Direct dict-key lookup misses
+    # because dict equality on classes is identity. To stay resilient,
+    # we fall back to matching by ``class_identity.registry_key``: the
+    # stable string handle that survives reload (the new class gets the
+    # same registry_key as the one it replaced).
+
+    def _resolve_app_class(self, cls: type) -> type[AppState] | None:
+        if cls in self._app:
+            return cls  # type: ignore[return-value]
+        return self._resolve_by_registry_key(cls, self._app.keys())
+
+    def _resolve_session_class(self, cls: type) -> type[SessionState] | None:
+        if cls in self._sessions:
+            return cls  # type: ignore[return-value]
+        return self._resolve_by_registry_key(cls, self._sessions.keys())
+
+    @staticmethod
+    def _resolve_by_registry_key(cls: type, candidates):
+        """Find a candidate whose class_identity.registry_key matches cls's."""
+        wanted = getattr(getattr(cls, "class_identity", None), "registry_key", None)
+        if wanted is None:
+            return None
+        for candidate in candidates:
+            existing = getattr(getattr(candidate, "class_identity", None), "registry_key", None)
+            if existing == wanted:
+                return candidate
+        return None
 
     # ------------------------------------------------------------------
     # Session lifecycle — called by SessionManager

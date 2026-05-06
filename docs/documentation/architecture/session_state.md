@@ -47,8 +47,16 @@ class SessionState(LibraryState): # 1 instance per session
 ```
 
 The mental rule is one line: **scope = base class.** Inheritance picks
-multiplicity. No scope attribute, no config string, no decorator
-parameter. The class declaration is the entire scope decision.
+multiplicity. No scope attribute and no config string — the base class
+*is* the scope decision.
+
+State classes use the standard `@state(...)` decorator (consistent with
+`@theme`, `@panel`, `@node`, etc.) to attach identity metadata at
+class-definition time. The decorator does **not** carry a scope
+parameter; scope is auto-detected from the base class. Decoration is
+optional — undecorated `AppState`/`SessionState` subclasses still work,
+because `LibraryStateRegistry` auto-creates a `class_identity` at
+registration time as a fallback.
 
 The framework's container handles both scopes through one machinery —
 same registry events, same hooks, same hot-reload semantics. Only the
@@ -62,14 +70,16 @@ internal storage differs (one map per scope) and the access path
 ### 2.1 Declaration
 
 A `SessionState` is declared just like a `LibraryState` in v1, except
-the base class is `SessionState`:
+the base class is `SessionState` and the `@state(...)` decorator
+attaches identity metadata:
 
 ```python
 # barn/haybale-tracker/haybale_tracker/state/timeline_cursor.py
 
-from haywire.core.state import SessionState
+from haywire.core.state import SessionState, state
 from haywire.ui.reactive import reactive_field
 
+@state(label="Timeline Cursor")
 class TimelineCursor(SessionState):
     """Per-session playback cursor for the tracker UI."""
 
@@ -86,6 +96,11 @@ class TimelineCursor(SessionState):
         """Called when the session ends or the library is disabled."""
         pass
 ```
+
+The decorator is optional. An undecorated `class TimelineCursor(SessionState)`
+also works — `LibraryStateRegistry` derives the same `class_identity` at
+registration time. Decoration is the canonical form for explicit metadata
+(label, description, or a custom `registry_id`).
 
 Same lifecycle hooks (`on_enable`, `on_disable`) as `AppState`, with
 identical signatures and identical duck-typing semantics. Hooks are

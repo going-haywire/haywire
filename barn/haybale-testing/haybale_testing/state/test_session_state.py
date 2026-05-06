@@ -11,10 +11,11 @@ from __future__ import annotations
 from copy import copy
 from typing import Optional
 
-from haywire.core.state import SessionState
+from haywire.core.state import SessionState, state
 from haywire.ui.reactive import Reactive, iter_reactive_fields, reactive_field
 
 
+@state(label="Test Session State")
 class TestSessionState(SessionState):
     """Trivial per-session state with a single reactive field."""
 

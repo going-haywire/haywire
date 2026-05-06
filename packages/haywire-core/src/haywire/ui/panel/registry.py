@@ -78,8 +78,13 @@ class PanelRegistry(BaseRegistry):
         """Return panels whose action contract is satisfied by actions_provider
         AND whose focus matches the given focus class.
 
+        Focus matching is by ``Focus.id`` (the stable identifier), not by
+        class identity — class objects can drift after hot-reload, but ids
+        remain stable.
+
         Sorted by class_identity.order (ascending).
         """
+        wanted_id = getattr(focus, "id", None)
         result: List[type[Panel]] = []
         for cls in self._all_panel_classes():
             identity = getattr(cls, "class_identity", None)
@@ -89,7 +94,7 @@ class PanelRegistry(BaseRegistry):
             panel_focus = getattr(identity, "focus", None)
             if action is None or panel_focus is None:
                 continue
-            if panel_focus is not focus:
+            if getattr(panel_focus, "id", None) != wanted_id:
                 continue
             if not isinstance(actions_provider, action):
                 continue
@@ -100,9 +105,14 @@ class PanelRegistry(BaseRegistry):
     def get_focuses_for(self, actions_provider: Any) -> List[type]:
         """Return the set of focus classes referenced by any panel whose
         action contract is satisfied by actions_provider.
+
+        Deduplicated by ``Focus.id`` rather than class identity, so a
+        single Focus that's been hot-reloaded (and now exists as multiple
+        class objects across panels of different reload generations)
+        appears once in the result.
         """
         focuses: List[type] = []
-        seen: set[type] = set()
+        seen_ids: set[str] = set()
         for cls in self._all_panel_classes():
             identity = getattr(cls, "class_identity", None)
             if identity is None:
@@ -111,10 +121,11 @@ class PanelRegistry(BaseRegistry):
             focus = getattr(identity, "focus", None)
             if action is None or focus is None:
                 continue
-            if focus in seen:
+            focus_id = getattr(focus, "id", None)
+            if focus_id is None or focus_id in seen_ids:
                 continue
             if isinstance(actions_provider, action):
-                seen.add(focus)
+                seen_ids.add(focus_id)
                 focuses.append(focus)
         return focuses
 
