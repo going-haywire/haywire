@@ -1,10 +1,10 @@
-"""Tests for SessionContext.data — the LibraryState access path."""
+"""Tests for SessionContext.app_data (AppState) and SessionContext.data (SessionState)."""
 
 from haywire.core.state import (
-    LibraryState,
+    AppState,
     LibraryStateContainer,
 )
-from haywire.core.state.data_namespace import DataNamespace
+from haywire.core.state.data_namespace import AppDataNamespace, SessionDataNamespace
 from haywire.ui.context import SessionContext
 
 
@@ -15,30 +15,40 @@ class FakeApp:
         self.library_state_container = container
 
 
-class TestSessionContextData:
-    def test_session_context_exposes_data_namespace(self):
+class TestSessionContextAppData:
+    def test_session_context_exposes_app_data_namespace(self):
         container = LibraryStateContainer()
         app = FakeApp(container)
         ctx = SessionContext(session_id="s1", app=app)  # type: ignore[arg-type]
 
-        assert isinstance(ctx.data, DataNamespace)
+        assert isinstance(ctx.app_data, AppDataNamespace)
 
-    def test_session_context_data_resolves_to_container(self):
-        class Pool(LibraryState):
+    def test_app_data_resolves_to_container(self):
+        class Pool(AppState):
             value: int = 42
 
         container = LibraryStateContainer()
-        # Manually plant an instance so we don't need full registry wiring here.
         instance = Pool()
-        container._instances_by_class[Pool] = instance
+        container._app[Pool] = instance  # plant directly for the test
 
         app = FakeApp(container)
         ctx = SessionContext(session_id="s1", app=app)  # type: ignore[arg-type]
 
-        assert ctx.data[Pool] is instance
+        assert ctx.app_data[Pool] is instance
+
+
+class TestSessionContextSessionData:
+    def test_session_context_exposes_data_namespace_bound_to_session_id(self):
+        container = LibraryStateContainer()
+        app = FakeApp(container)
+        ctx = SessionContext(session_id="s1", app=app)  # type: ignore[arg-type]
+
+        assert isinstance(ctx.data, SessionDataNamespace)
+        # Internal: namespace knows its session_id.
+        assert ctx.data._session_id == "s1"
 
     def test_session_context_no_longer_has_metadata(self):
-        """metadata field was removed in favour of LibraryState."""
+        """metadata field removed in v1; this is the regression test."""
         container = LibraryStateContainer()
         app = FakeApp(container)
         ctx = SessionContext(session_id="s1", app=app)  # type: ignore[arg-type]

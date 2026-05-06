@@ -1,7 +1,7 @@
 """Unit tests for LibraryStateRegistry."""
 
 from haywire.core.library.identity import LibraryIdentity
-from haywire.core.state import LibraryState
+from haywire.core.state import AppState, LibraryState
 from haywire.core.state.registry import LibraryStateRegistry
 
 
@@ -25,15 +25,16 @@ def make_lib_identity(lib_id: str = "midi") -> LibraryIdentity:
 
 class TestLibraryStateRegistry:
     def test_class_filter_accepts_subclass(self):
-        class MyState(LibraryState):
+        class MyState(AppState):
             pass
 
         reg = LibraryStateRegistry()
         assert reg._class_filter(MyState) is True
 
-    def test_class_filter_rejects_base_class(self):
+    def test_class_filter_rejects_marker_bases(self):
         reg = LibraryStateRegistry()
         assert reg._class_filter(LibraryState) is False
+        assert reg._class_filter(AppState) is False
 
     def test_class_filter_rejects_unrelated_class(self):
         class Unrelated:
@@ -43,7 +44,7 @@ class TestLibraryStateRegistry:
         assert reg._class_filter(Unrelated) is False
 
     def test_register_class_creates_identity_and_stores_class(self):
-        class MyState(LibraryState):
+        class MyState(AppState):
             pass
 
         reg = LibraryStateRegistry()
@@ -58,7 +59,7 @@ class TestLibraryStateRegistry:
         assert MyState.class_identity.registry_key == "midi:state:MyState"
 
     def test_register_class_is_idempotent_for_same_class(self):
-        class MyState(LibraryState):
+        class MyState(AppState):
             pass
 
         reg = LibraryStateRegistry()
@@ -69,7 +70,7 @@ class TestLibraryStateRegistry:
         assert first_key == second_key
 
     def test_unregister_removes_class(self):
-        class MyState(LibraryState):
+        class MyState(AppState):
             pass
 
         reg = LibraryStateRegistry()

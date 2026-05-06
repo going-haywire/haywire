@@ -1,6 +1,8 @@
 # Spec: SessionState — per-session library-owned runtime state
 
-> Status: **Speculative (v1.1).** Designed via inquisition on 2026-05-06.
+> Status: **v1.1 implemented (2026-05-06).** This document is the canonical
+> reference for SessionState. v1.2 (framework EditState migration) is a
+> separate plan/spec — see Open Questions §9.
 > Builds on the LibraryState v1 system (see [`library_state.md`](library_state.md)).
 >
 > Scope: extends the LibraryState extension point with a second scope —

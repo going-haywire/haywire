@@ -5,7 +5,7 @@ if TYPE_CHECKING:
     from haywire.core.execution.event_source import Trigger
     from haywire.core.execution.vm import HaywireVM, logger
     from haywire.core.node import BaseNode
-    from haywire.core.state.data_namespace import DataNamespace
+    from haywire.core.state.data_namespace import AppDataNamespace
 
 
 @dataclass
@@ -36,9 +36,13 @@ class ExecutionContext:
     """Current frame number"""
     exec_count: Optional[int] = 0
     """Current node execution count for this flow and frame"""
-    data: Optional["DataNamespace"] = None
-    """Class-keyed proxy to the app's LibraryStateContainer. None if the VM
-    was constructed without a container reference (test contexts only)."""
+    app_data: Optional["AppDataNamespace"] = None
+    """Typed proxy to the app's LibraryStateContainer for AppState lookups.
+    None if the VM was constructed without a container reference (test
+    contexts only). ExecutionContext does not have a `data` (SessionState)
+    namespace because graphs run app-globally — the VM has no notion of
+    which UI session triggered execution. See
+    docs/documentation/architecture/session_state.md §2.3."""
 
     def emit_callback(self, event_name: str, payload: Optional[Dict] = None):
         """

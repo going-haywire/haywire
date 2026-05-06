@@ -4,7 +4,7 @@ import pytest
 
 from haywire.core.library.identity import LibraryIdentity
 from haywire.core.registry.lifecycle_event import LifeCycleEvent, LifeCycleEventType
-from haywire.core.state import LibraryState
+from haywire.core.state import AppState
 from haywire.core.state.container import LibraryStateContainer
 from haywire.core.state.registry import LibraryStateRegistry
 
@@ -48,7 +48,7 @@ class TestLibraryStateContainer:
     def test_class_added_event_creates_instance_and_calls_on_enable(self):
         calls: list[str] = []
 
-        class MyState(LibraryState):
+        class MyState(AppState):
             def on_enable(self) -> None:
                 calls.append("enable")
 
@@ -71,7 +71,7 @@ class TestLibraryStateContainer:
     def test_class_removed_event_calls_on_disable_and_drops_instance(self):
         calls: list[str] = []
 
-        class MyState(LibraryState):
+        class MyState(AppState):
             def on_enable(self) -> None:
                 calls.append("enable")
 
@@ -92,7 +92,7 @@ class TestLibraryStateContainer:
     def test_missing_on_enable_is_fine(self):
         """LibraryStates without on_enable are still instantiated."""
 
-        class NoHooks(LibraryState):
+        class NoHooks(AppState):
             pass
 
         container = LibraryStateContainer()
@@ -105,7 +105,7 @@ class TestLibraryStateContainer:
         assert NoHooks in container
 
     def test_getitem_raises_keyerror_when_not_registered(self):
-        class Missing(LibraryState):
+        class Missing(AppState):
             pass
 
         container = LibraryStateContainer()
@@ -113,7 +113,7 @@ class TestLibraryStateContainer:
             _ = container[Missing]
 
     def test_get_returns_none_when_not_registered(self):
-        class Missing(LibraryState):
+        class Missing(AppState):
             pass
 
         container = LibraryStateContainer()
@@ -124,7 +124,7 @@ class TestLibraryStateContainer:
         before the new class is instantiated."""
         calls: list[str] = []
 
-        class V1(LibraryState):
+        class V1(AppState):
             def on_enable(self) -> None:
                 calls.append("v1-enable")
 
@@ -133,7 +133,7 @@ class TestLibraryStateContainer:
 
         # Simulate the registry's behaviour: emit a CLASS_RELOADED event whose
         # affected_class is the NEW version.
-        class V2(LibraryState):
+        class V2(AppState):
             def on_enable(self) -> None:
                 calls.append("v2-enable")
 

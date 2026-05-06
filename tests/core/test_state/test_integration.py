@@ -14,7 +14,7 @@ from haywire.core.registry.lifecycle_event import (
     LifeCycleEventType,
 )
 from haywire.core.state import (
-    LibraryState,
+    AppState,
     LibraryStateContainer,
     LibraryStateRegistry,
 )
@@ -34,7 +34,7 @@ class TestLibraryStateIntegration:
 
         calls: list[str] = []
 
-        class TestPool(LibraryState):
+        class TestPool(AppState):
             def on_enable(self) -> None:
                 calls.append("enable")
 

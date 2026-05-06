@@ -1,15 +1,15 @@
-"""Unit tests for the DataNamespace proxy."""
+"""Unit tests for the AppDataNamespace proxy."""
 
 import pytest
 
 from haywire.core.library.identity import LibraryIdentity
 from haywire.core.registry.lifecycle_event import LifeCycleEvent, LifeCycleEventType
 from haywire.core.state import (
-    DataNamespace,
-    LibraryState,
+    AppState,
     LibraryStateContainer,
     LibraryStateRegistry,
 )
+from haywire.core.state.data_namespace import AppDataNamespace
 
 
 def make_lib_identity() -> LibraryIdentity:
@@ -29,9 +29,9 @@ def make_lib_identity() -> LibraryIdentity:
     )
 
 
-class TestDataNamespace:
+class TestAppDataNamespace:
     def test_getitem_returns_instance(self):
-        class MidiPool(LibraryState):
+        class MidiPool(AppState):
             def __init__(self) -> None:
                 self.devices: list[str] = ["dev0"]
 
@@ -50,34 +50,34 @@ class TestDataNamespace:
             ]
         )
 
-        ns = DataNamespace(container)
+        ns = AppDataNamespace(container)
         result = ns[MidiPool]
         assert isinstance(result, MidiPool)
         assert result.devices == ["dev0"]
 
     def test_getitem_raises_for_unregistered_class(self):
-        class NotRegistered(LibraryState):
+        class NotRegistered(AppState):
             pass
 
-        ns = DataNamespace(LibraryStateContainer())
+        ns = AppDataNamespace(LibraryStateContainer())
         with pytest.raises(KeyError):
             _ = ns[NotRegistered]
 
     def test_get_returns_none_for_unregistered_class(self):
-        class NotRegistered(LibraryState):
+        class NotRegistered(AppState):
             pass
 
-        ns = DataNamespace(LibraryStateContainer())
+        ns = AppDataNamespace(LibraryStateContainer())
         assert ns.get(NotRegistered) is None
 
     def test_live_lookup_after_swap(self):
         """Each access reads the current container state — no caching."""
         from haywire.core.state.identity import LibraryStateClassIdentity
 
-        class V1(LibraryState):
+        class V1(AppState):
             tag = "v1"
 
-        class V2(LibraryState):
+        class V2(AppState):
             tag = "v2"
 
         ident = LibraryStateClassIdentity(
@@ -92,7 +92,7 @@ class TestDataNamespace:
 
         container = LibraryStateContainer()
         lib_id = make_lib_identity()
-        ns = DataNamespace(container)
+        ns = AppDataNamespace(container)
 
         container.on_lifecycle_events(
             [

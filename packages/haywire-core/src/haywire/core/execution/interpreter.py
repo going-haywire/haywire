@@ -76,7 +76,7 @@ class Interpreter:
             global_context: Global execution context passed to all flows
             max_stack_depth: Maximum VM stack depth
             library_state_container: Optional pool of LibraryState instances.
-                Forwarded to the VM so worker functions get exec_ctx.data.
+                Forwarded to the VM so worker functions get exec_ctx.app_data.
         """
         # Core components
         self.assembly_manager = FlowAssemblyManager()

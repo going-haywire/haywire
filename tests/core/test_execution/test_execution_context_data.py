@@ -1,25 +1,25 @@
-"""Tests for ExecutionContext.data — class-keyed LibraryState access."""
+"""Tests for ExecutionContext.app_data — class-keyed AppState access."""
 
 from haywire.core.execution.execution_context import ExecutionContext
-from haywire.core.state import LibraryState, LibraryStateContainer
-from haywire.core.state.data_namespace import DataNamespace
+from haywire.core.state import AppState, LibraryStateContainer
+from haywire.core.state.data_namespace import AppDataNamespace
 
 
 class TestExecutionContextData:
-    def test_data_field_default_none(self):
-        """If no data namespace is provided, the field is None."""
+    def test_app_data_field_default_none(self):
+        """If no app_data namespace is provided, the field is None."""
         ctx = ExecutionContext(global_ctx={}, local_ctx={})
-        assert ctx.data is None
+        assert ctx.app_data is None
 
-    def test_data_field_can_be_set(self):
-        class Pool(LibraryState):
+    def test_app_data_field_can_be_set(self):
+        class Pool(AppState):
             pass
 
         container = LibraryStateContainer()
         instance = Pool()
-        container._instances_by_class[Pool] = instance
+        container._app[Pool] = instance
 
-        ns = DataNamespace(container)
-        ctx = ExecutionContext(global_ctx={}, local_ctx={}, data=ns)
-        assert ctx.data is ns
-        assert ctx.data[Pool] is instance
+        ns = AppDataNamespace(container)
+        ctx = ExecutionContext(global_ctx={}, local_ctx={}, app_data=ns)
+        assert ctx.app_data is ns
+        assert ctx.app_data[Pool] is instance

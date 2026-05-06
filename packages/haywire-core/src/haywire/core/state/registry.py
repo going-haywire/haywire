@@ -14,10 +14,12 @@ import logging
 
 from haywire.core.library.identity import LibraryIdentity
 from haywire.core.registry.base import BaseRegistry
-from haywire.core.state.base import LibraryState
+from haywire.core.state.base import AppState, LibraryState, SessionState
 from haywire.core.state.identity import LibraryStateClassIdentity
 
 logger = logging.getLogger(__name__)
+
+_MARKER_BASES: tuple[type, ...] = (LibraryState, AppState, SessionState)
 
 
 class LibraryStateRegistry(BaseRegistry):
@@ -28,7 +30,7 @@ class LibraryStateRegistry(BaseRegistry):
 
     def _class_filter(self, cls: type) -> bool:
         try:
-            return inspect.isclass(cls) and issubclass(cls, LibraryState) and cls is not LibraryState
+            return inspect.isclass(cls) and issubclass(cls, LibraryState) and cls not in _MARKER_BASES
         except TypeError:
             return False
 

@@ -8,16 +8,17 @@ from unittest.mock import MagicMock
 
 import haywire.core.graph.editor  # noqa: F401 — circular-import guard
 
+from haywire.core.state import LibraryStateContainer
 from haywire.ui.session_manager import SessionManager
 
 
 def test_session_manager_starts_empty():
-    manager = SessionManager()
+    manager = SessionManager(container=LibraryStateContainer())
     assert manager.session_count == 0
 
 
 def test_create_session_registers_session():
-    manager = SessionManager()
+    manager = SessionManager(container=LibraryStateContainer())
     session = manager.create_session(
         project_state=MagicMock(),
         workspace_manager=MagicMock(),
@@ -27,7 +28,7 @@ def test_create_session_registers_session():
 
 
 def test_remove_session_calls_cleanup_and_drops_it():
-    manager = SessionManager()
+    manager = SessionManager(container=LibraryStateContainer())
     session = manager.create_session(
         project_state=MagicMock(),
         workspace_manager=MagicMock(),

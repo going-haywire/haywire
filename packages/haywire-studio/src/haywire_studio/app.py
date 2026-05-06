@@ -119,9 +119,8 @@ class HaywireApp:
 
     def setup_shared_services(self):
         """Setup services shared across all sessions."""
+        from haywire.core.state import LibraryStateContainer
         from haywire.ui.session_manager import SessionManager
-
-        self.session_manager = SessionManager()
 
         # Registries and factories (from DI)
         self.node_registry = self.library_service.get_node_registry()
@@ -129,10 +128,10 @@ class HaywireApp:
         self.skin_factory = self.library_service.get_skin_factory()
         self.adapter_factory = self.library_service.get_adapter_factory()
         self.panel_registry = self.library_service.get_panel_registry()
-
-        from haywire.core.state import LibraryStateContainer
-
         self.library_state_container = self.library_service.injector.get(LibraryStateContainer)
+
+        # SessionManager needs the container to drive attach/detach.
+        self.session_manager = SessionManager(container=self.library_state_container)
 
         # Graph manager — starts empty; graphs are created/opened on demand.
         # Haystack auto-load is deferred to main_page so it can guard against

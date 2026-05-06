@@ -1,8 +1,11 @@
 # Spec: LibraryState — library-owned runtime state
 
-> Status: **v1 implemented (2026-05-06).** This document is the canonical
-> reference for LibraryState. Phase 2 (observable container, reactive
-> auto-tracking) remains pending — see spec_panel_reactivity.md.
+> Status: **v1 implemented (2026-05-06); v1.1 implemented (2026-05-06).**
+> v1.1 introduces `SessionState` as a sibling of `AppState` (the renamed
+> concrete app-global base) under an abstract `LibraryState` marker. See
+> [`session_state.md`](session_state.md) for the per-session scope and
+> [`spec_panel_reactivity.md`](spec_panel_reactivity.md) for the deferred
+> Phase 2 reactive auto-tracking.
 > 
 > Scope: a new extension point for library plugins to declare app-global
 > runtime data structures that are accessible from both UI panels/editors
@@ -19,40 +22,69 @@
 
 ## 1. Mental model
 
-A **LibraryState** is a Python class that a library declares to hold its
-own app-global runtime data. The framework instantiates it once when the
-library is enabled, owns its lifecycle, and exposes the instance through
-a uniform access pattern on both `SessionContext` (UI) and
-`ExecutionContext` (node execution).
+`LibraryState` is the **abstract marker base** that roots the
+library-state extension point. Library authors never subclass it
+directly; they pick one of its two concrete siblings:
 
-LibraryState is characterized by what it **is**:
+- **`AppState`** — one instance, shared across the entire app (every
+  browser session and every VM execution). The subject of this
+  document.
+- **`SessionState`** — one instance per active UI session.
+  Cross-referenced here; see [`session_state.md`](session_state.md) for
+  the full spec.
+
+```python
+class LibraryState:               # abstract marker — never directly subclassed by users
+    ...
+
+class AppState(LibraryState):     # 1 instance, shared across all sessions + executions
+    ...
+
+class SessionState(LibraryState): # 1 instance per session
+    ...
+```
+
+The mental rule is one line: **scope = base class.** Inheritance picks
+multiplicity. No scope attribute, no config string, no decorator
+parameter.
+
+This document is the canonical reference for `AppState`. An **AppState**
+is a Python class that a library declares to hold its own app-global
+runtime data. The framework instantiates it once when the library is
+enabled, owns its lifecycle, and exposes the instance through a uniform
+access pattern on both `SessionContext` (UI, via `ctx.app_data`) and
+`ExecutionContext` (node execution, via `exec_ctx.app_data`).
+
+AppState is characterized by what it **is**:
 
 - App-global. One instance, shared across all browser sessions and the VM.
 - Library-owned. The owning library declares the class, and the
   framework destroys the instance when the library is disabled or
   hot-reloaded.
-- Runtime, not persisted. LibraryState holds volatile state — open
+- Runtime, not persisted. AppState holds volatile state — open
   connections, caches, pools, live device handles, ML models. Persistent
   configuration belongs in `LibrarySettings`.
-- Free in shape. A LibraryState may contain anything: plain Python
+- Free in shape. An AppState may contain anything: plain Python
   attributes, `reactive_field()` cells, nested `LibrarySettings`
   instances, threads, sockets, NumPy arrays. The framework imposes no
   field-level constraints.
 - Accessed by class, not by string. The canonical access pattern is
-  `ctx.data[MidiPool]`. There is no namespace string and no
+  `ctx.app_data[MidiPool]`. There is no namespace string and no
   attribute-style shorthand. The class itself is the unambiguous
-  identifier.
+  identifier. (`SessionState` lookups use `ctx.data` per
+  [`session_state.md`](session_state.md) §2.3.)
 
-LibraryState fills a previously empty slot in the architecture:
+AppState fills a previously empty slot in the architecture:
 
-| concern                              | mechanism                              |
-| ------------------------------------ | -------------------------------------- |
-| persistent app/library config        | `LibrarySettings`, `FrameworkSettings` |
-| per-graph state                      | `graph.variables`                      |
-| per-flow execution state             | `ExecutionContext.local_ctx`           |
-| external system inputs to a flow     | `ExecutionContext.global_ctx`          |
-| per-session UI selection state       | `SessionContext` reactive fields       |
-| **app-global library runtime state** | **`LibraryState`** *(this spec)*       |
+| concern                              | mechanism                                                   |
+| ------------------------------------ | ----------------------------------------------------------- |
+| persistent app/library config        | `LibrarySettings`, `FrameworkSettings`                      |
+| per-graph state                      | `graph.variables`                                           |
+| per-flow execution state             | `ExecutionContext.local_ctx`                                |
+| external system inputs to a flow     | `ExecutionContext.global_ctx`                               |
+| per-session UI selection state       | `SessionContext` reactive fields                            |
+| per-session library runtime state    | `SessionState` (see [`session_state.md`](session_state.md)) |
+| **app-global library runtime state** | **`AppState`** *(this spec)*                                |
 
 ---
 
@@ -60,17 +92,17 @@ LibraryState fills a previously empty slot in the architecture:
 
 ### 2.1 Declaration
 
-A LibraryState is a subclass of `LibraryState` placed in the library's
+An AppState is a subclass of `AppState` placed in the library's
 `state/` folder (or any folder the library registers with
 `LibraryStateRegistry`).
 
 ```python
 # barn/haybale-midi/haybale_midi/state/midi_pool.py
 
-from haywire.core.state import LibraryState
+from haywire.core.state import AppState
 from haywire.ui.reactive import reactive_field
 
-class MidiPool(LibraryState):
+class MidiPool(AppState):
     """Live MIDI device handles and connection state."""
 
     devices = reactive_field([])           # reactive — UI panels rerender on change
@@ -87,7 +119,7 @@ class MidiPool(LibraryState):
         self.connections.clear()
 ```
 
-A library may declare zero, one, or many LibraryState subclasses. Each
+A library may declare zero, one, or many AppState subclasses. Each
 is registered, instantiated, and lifecycle-managed independently.
 
 `on_enable` and `on_disable` are optional. If absent, the framework does
@@ -130,57 +162,65 @@ editors / themes. This mirrors the framework's hot-reload propagation
 chain: `SettingsRegistry → LibraryStateRegistry → NodeRegistry`,
 `PanelRegistry`, `EditorTypeRegistry`. Following the same order in
 `register_components()` keeps initial-load ordering aligned with
-hot-reload propagation, so a `LibraryState` whose `on_enable` reads a
+hot-reload propagation, so an `AppState` whose `on_enable` reads a
 `LibrarySettings()` value finds the schema already wired, and node /
-panel / editor classes that import a `LibraryState` for use as a
-`ctx.data[Cls]` key resolve it during their own scan.
+panel / editor classes that import an `AppState` for use as a
+`ctx.app_data[Cls]` key resolve it during their own scan.
 
-Folder scan discovers every `LibraryState` subclass in the folder and
-registers it. Discovery order within a folder is alphabetical; if one
-LibraryState's `on_enable` depends on another already being initialised,
-the dependent library should declare `dependencies=` on its `@library`
-decorator (the existing inter-library dependency mechanism applies — no
-new ordering machinery is added).
+Folder scan discovers every concrete `LibraryState` subclass
+(`AppState` and `SessionState` alike) in the folder and registers it.
+Discovery order within a folder is alphabetical; if one AppState's
+`on_enable` depends on another already being initialised, the dependent
+library should declare `dependencies=` on its `@library` decorator (the
+existing inter-library dependency mechanism applies — no new ordering
+machinery is added).
 
 ### 2.3 Access
 
-Both `SessionContext` and `ExecutionContext` gain a `data` attribute of
-type `_DataNamespace`. The only access pattern is class-keyed:
+Both `SessionContext` and `ExecutionContext` expose AppState lookups
+through an `app_data` attribute of type `AppDataNamespace`. The only
+access pattern is class-keyed:
 
 ```python
 # From a panel (UI side):
 def draw(self, ctx: SessionContext, layout, actions) -> None:
-    pool = ctx.data[MidiPool]
+    pool = ctx.app_data[MidiPool]
     for device in pool.devices.value:
         layout.label(device.name)
 
 # From a node worker (execution side):
 def worker(self, exec_ctx: ExecutionContext) -> dict:
-    pool = exec_ctx.data[MidiPool]
+    pool = exec_ctx.app_data[MidiPool]
     return {"device_count": len(pool.devices.value)}
 ```
 
-Two access methods are defined on `_DataNamespace`:
+> **Note:** `SessionState` lookups use `ctx.data` (only available on
+> `SessionContext`, not on `ExecutionContext`). See
+> [`session_state.md`](session_state.md) §2.3 for the per-session
+> namespace.
+
+Two access methods are defined on `AppDataNamespace`:
 
 ```python
 def __getitem__(self, key: type[T]) -> T: ...   # raises KeyError if not registered
 def get(self, key: type[T]) -> Optional[T]: ... # returns None if not registered
 ```
 
-Use `ctx.data[Cls]` when the LibraryState is required (the dependency on
-that library is part of the call site's contract; missing it is a bug).
-Use `ctx.data.get(Cls)` when absence is a valid runtime state.
+Use `ctx.app_data[Cls]` when the AppState is required (the dependency
+on that library is part of the call site's contract; missing it is a
+bug). Use `ctx.app_data.get(Cls)` when absence is a valid runtime
+state.
 
 ### 2.4 Type-checking
 
-`_DataNamespace.__getitem__` is generic over `T = TypeVar("T", bound=LibraryState)`,
+`AppDataNamespace.__getitem__` is generic over `T = TypeVar("T", bound=AppState)`,
 so type-checkers (mypy, pyright, pylance) infer the correct type from
 the class argument:
 
 ```python
-ctx.data[MidiPool].devices.value      # type-checker: list[Device]
-ctx.data[MidiPool].nonexistent        # type-checker: error, no attribute
-ctx.data[42]                          # type-checker: error, int isn't type[LibraryState]
+ctx.app_data[MidiPool].devices.value      # type-checker: list[Device]
+ctx.app_data[MidiPool].nonexistent        # type-checker: error, no attribute
+ctx.app_data[42]                          # type-checker: error, int isn't type[AppState]
 ```
 
 This is the same idiom used by `dependency-injector`, FastAPI's
@@ -188,11 +228,11 @@ This is the same idiom used by `dependency-injector`, FastAPI's
 `Session.get`. No codegen, no mypy plugin, no `.pyi` stubs — type
 inference works out of the box on every modern Python toolchain.
 
-There is deliberately no string-keyed access (`ctx.data.midi`) and no
-namespace=` kwarg on the class declaration. Class-keyed access is the
-single canonical path. The trade-off is four extra characters and an
-import per call site, in exchange for full IDE support and zero naming
-ambiguity.
+There is deliberately no string-keyed access (`ctx.app_data.midi`) and
+no `namespace=` kwarg on the class declaration. Class-keyed access is
+the single canonical path. The trade-off is four extra characters and
+an import per call site, in exchange for full IDE support and zero
+naming ambiguity.
 
 ---
 
@@ -205,24 +245,30 @@ management is split between two cooperating components. **Registries
 hold classes, not instances** — that convention is preserved.
 
 - **`LibraryStateRegistry`** is a `BaseRegistry` subclass. It holds
-  *classes* (`LibraryState` subclasses), discovered via folder-scan
-  exactly like `NodeRegistry` finds node classes. It inherits the full
-  hot-reload, dependency-graph, and folder-scan machinery from
-  `BaseRegistry`. It does not instantiate anything.
+  *classes* — both `AppState` and `SessionState` subclasses — discovered
+  via folder-scan exactly like `NodeRegistry` finds node classes. It
+  inherits the full hot-reload, dependency-graph, and folder-scan
+  machinery from `BaseRegistry`. It does not instantiate anything. The
+  marker bases (`LibraryState`, `AppState`, `SessionState`) are excluded
+  by the class filter.
 
-- **`LibraryStateContainer`** holds the *instances* — the "big pool"
-  the user sees through `ctx.data`. Internally a flat
-  `dict[type[LibraryState], LibraryState]`. The container subscribes
-  to the registry's lifecycle events (the same
-  `_batch_event_subscribers` hook `NodeFactory` uses) and reacts:
+- **`LibraryStateContainer`** holds the *instances*. It now stores two
+  scopes side by side: a flat `dict[type[AppState], AppState]` for the
+  app-global pool that this document covers, and a per-session
+  `dict[type[SessionState], dict[str, SessionState]]` for the SessionState
+  scope (see [`session_state.md`](session_state.md) §3 for the
+  per-session lifecycle, eager fanout, and `attach_session` /
+  `detach_session` machinery). The container subscribes to the
+  registry's lifecycle events (the same `_batch_event_subscribers` hook
+  `NodeFactory` uses) and routes by class kind:
 
   ```text
-  on class registered      → cls()  → store instance → call on_enable
-  on class unregistered    → call on_disable → drop instance
+  on AppState class registered     → cls() → store in app pool → call on_enable
+  on AppState class unregistered   → call on_disable → drop from app pool
   ```
 
-  `_DataNamespace[cls]` looks up the instance directly in the
-  container's dict — O(1).
+  `AppDataNamespace[cls]` looks up the instance directly in the app
+  pool dict — O(1).
 
 Both live in the DI graph alongside the existing registries, resolved
 and wired by `LibrarySystemService.initialize()`. No new singleton, no
@@ -231,7 +277,7 @@ new service class — `LibraryStateRegistry` is added the same way
 
 ### 3.2 Enable / disable
 
-The lifecycle of every `LibraryState` instance is bound to its owning
+The lifecycle of every `AppState` instance is bound to its owning
 library's enable/disable cycle, mediated by the registry → container
 subscription:
 
@@ -269,27 +315,27 @@ across class versions) is a class of bug we are not building.
 
 ### 3.4 Order
 
-Folder-scan order within a library is alphabetical. If `LibraryState`
-A in library X depends on `LibraryState` B in library Y being
+Folder-scan order within a library is alphabetical. If `AppState`
+A in library X depends on `AppState` B in library Y being
 initialised first, library X declares `dependencies=["Y"]` on its
 `@library` decorator. The library load order already respects declared
 dependencies, and instance lifecycle is bound to the registry events
 the container subscribes to, so the dependency is transitively
 respected.
 
-Within a single library, if two `LibraryState` subclasses depend on
+Within a single library, if two `AppState` subclasses depend on
 each other's `on_enable` having run, the author should split them
 across sibling libraries or compose them into one class. Cross-
-`LibraryState` dependency ordering inside one library is not
+`AppState` dependency ordering inside one library is not
 supported.
 
 ### 3.5 Observability — VM and other consumers
 
 In v1, **the VM is not informed** when state appears or disappears. It
 doesn't need to be. The VM creates an `ExecutionContext` per flow; the
-context carries a `_DataNamespace` that performs a live container
-lookup on each `ctx.data[Cls]` access. Workers naturally see the
-current state at access time.
+context carries an `AppDataNamespace` that performs a live container
+lookup on each `exec_ctx.app_data[Cls]` access. Workers naturally see
+the current state at access time.
 
 The documented idiom is **look up state at the access site, not via
 long-lived local variables**:
@@ -298,11 +344,11 @@ long-lived local variables**:
 # Recommended — re-resolves on each access:
 def worker(self, exec_ctx):
     for msg in self.props.messages.value:
-        exec_ctx.data[MidiPool].send(msg)
+        exec_ctx.app_data[MidiPool].send(msg)
 
 # Acceptable for short worker bodies — captured at function start:
 def worker(self, exec_ctx):
-    pool = exec_ctx.data[MidiPool]
+    pool = exec_ctx.app_data[MidiPool]
     pool.send(self.props.message.value)
     return {}
 
@@ -310,13 +356,13 @@ def worker(self, exec_ctx):
 # captured reference goes stale on hot-reload:
 class MyPanel(Panel):
     def __init__(self, ctx):
-        self.pool = ctx.data[MidiPool]   # stale after hot-reload — DON'T
+        self.pool = ctx.app_data[MidiPool]   # stale after hot-reload — DON'T
 ```
 
-If a hot-reload occurs mid-flow, the next `ctx.data[Cls]` returns the
-new instance; any local variable still holding the old one has stale
-data, but the strict lifecycle (§3.2) bounds the window to a single
-disable/enable cycle.
+If a hot-reload occurs mid-flow, the next `ctx.app_data[Cls]` returns
+the new instance; any local variable still holding the old one has
+stale data, but the strict lifecycle (§3.2) bounds the window to a
+single disable/enable cycle.
 
 **Phase 2 evolution.** The container will gain an observable surface as
 part of the Phase 2 reactive work
@@ -336,23 +382,23 @@ hook. v1 ships without this surface; v1 consumers re-resolve on access.
 
 ## 4. Reactivity
 
-LibraryState fields are reactive **only when the author opts in via
+AppState fields are reactive **only when the author opts in via
 `reactive_field()`**. Non-reactive attributes are plain Python:
 
 ```python
-class RenderCache(LibraryState):
+class RenderCache(AppState):
     last_clear = reactive_field(0.0)       # reactive
     entries: dict[str, bytes] = {}         # plain
     _lock = threading.Lock()               # plain
 ```
 
 This is identical to how `SessionContext` already declares its fields.
-There is no separate `ReactiveLibraryState` base, no auto-wrapping, no
+There is no separate `ReactiveAppState` base, no auto-wrapping, no
 introspection: the developer's choice per field, fully explicit.
 
 When Phase 2 reactive auto-tracking lands (see
 [`spec_panel_reactivity.md`](spec_panel_reactivity.md)), it will apply
-to `LibraryState` reactive fields with no special-casing — the same
+to `AppState` reactive fields with no special-casing — the same
 `Reactive[T]` cells, the same `.value` reads, the same subscription
 machinery. Library authors learn one reactive primitive and use it
 everywhere.
@@ -364,7 +410,7 @@ is no observable cross-thread bug today.
 
 When Phase 2 reactive subscription machinery lands, thread-safety for
 worker-thread mutations of reactive fields will be addressed uniformly
-across `SessionContext` and `LibraryState` (they use the same primitive).
+across `SessionContext` and `AppState` (they use the same primitive).
 Until then, library authors who mutate `reactive_field` cells from a VM
 worker thread should treat that as an open question with the same
 caveats as mutating `SessionContext` fields from a worker — to be
@@ -372,30 +418,37 @@ resolved by Phase 2.
 
 ---
 
-## 5. Boundary — what LibraryState is NOT for
+## 5. Boundary — what AppState is NOT for
 
-LibraryState fills exactly one slot. The boundary is strict; misuse
+AppState fills exactly one slot. The boundary is strict; misuse
 should be caught in code review.
 
-LibraryState is **not** for:
+AppState is **not** for:
 
-| anti-use                               | use instead                      |
-| -------------------------------------- | -------------------------------- |
-| serializable / persisted configuration | `LibrarySettings`                |
-| per-graph state (graph variables)      | `graph.variables`                |
-| per-flow execution state               | `ExecutionContext.local_ctx`     |
-| external system inputs to a flow       | `ExecutionContext.global_ctx`    |
-| per-session UI state                   | `SessionContext` reactive fields |
-| cross-library coordination protocols   | direct Python imports            |
+| anti-use                               | use instead                                                 |
+| -------------------------------------- | ----------------------------------------------------------- |
+| serializable / persisted configuration | `LibrarySettings`                                           |
+| per-graph state (graph variables)      | `graph.variables`                                           |
+| per-flow execution state               | `ExecutionContext.local_ctx`                                |
+| external system inputs to a flow       | `ExecutionContext.global_ctx`                               |
+| per-session UI state                   | `SessionContext` reactive fields                            |
+| per-session library runtime state      | `SessionState` (see [`session_state.md`](session_state.md)) |
+| cross-library coordination protocols   | direct Python imports                                       |
 
-Per-session state deserves a callout: there is exactly one instance of each `LibraryState`, shared across all sessions. A library author who needs per-session-keyed data implements it inside their LibraryState (`self.per_session: dict[str, Foo]`), keying by `session_id` themselves. The framework does not partition LibraryState by session.
+Per-session state deserves a callout: there is exactly one instance of
+each `AppState`, shared across all sessions. A library author who
+needs per-session-keyed data should declare a `SessionState` instead
+(see [`session_state.md`](session_state.md)). The framework does not
+partition AppState by session; that's what SessionState is for.
 
-### 5.1 Composing LibrarySettings inside LibraryState
+### 5.1 Composing LibrarySettings inside AppState
 
-A `LibraryState` may hold a `LibrarySettings` instance to give it a
+An `AppState` may hold a `LibrarySettings` instance to give it a
 serialised configuration slice. This is the **recommended pattern** for
 any state that has user-tweakable knobs — poll rates, server ports,
-cache sizes — that should persist across runs.
+cache sizes — that should persist across runs. (`SessionState` is
+**prohibited** from composing `LibrarySettings`; see
+[`session_state.md`](session_state.md) §5.2.)
 
 ```python
 @settings(namespace='midi.pool', label='MIDI Pool')
@@ -404,7 +457,7 @@ class MidiSettings(LibrarySettings):
     auto_connect = setting[bool](True, label='Auto-connect on startup')
 
 
-class MidiPool(LibraryState):
+class MidiPool(AppState):
     devices = reactive_field([])
     config: MidiSettings | None = None    # type-annotation only
 
@@ -427,7 +480,8 @@ library enable is:
 1. `register_components()` runs — folder-scans register classes.
 2. `SettingsRegistry` wires every `LibrarySettings` subclass's
    `_registry` attribute.
-3. `LibraryStateRegistry` registers `LibraryState` subclasses.
+3. `LibraryStateRegistry` registers concrete `LibraryState`
+   subclasses (both `AppState` and `SessionState`).
 4. The container instantiates each state class and calls `on_enable`.
 
 `on_enable` is the first lifecycle moment where every settings class
@@ -436,41 +490,62 @@ class body or in `__init__` risks running before step 2 and crashing
 with a `None` registry.
 
 **Hot-reload coordination.** If a `LibrarySettings` schema hot-reloads
-while a `LibraryState` instance holds a `LibrarySettings()` reference,
+while an `AppState` instance holds a `LibrarySettings()` reference,
 the cached reference follows the existing `SettingsRegistry`
-hot-reload semantics — not a `LibraryState` concern. If the
-`LibraryState` itself hot-reloads, `on_disable` runs, the old
+hot-reload semantics — not an `AppState` concern. If the
+`AppState` itself hot-reloads, `on_disable` runs, the old
 `config` reference is dropped, and `on_enable` creates a fresh
 `MidiSettings()` against the current registry. Clean.
 
 This composition keeps the boundary clean (settings persist, state
-doesn't) while giving the LibraryState a single coherent surface to
-its consumers — `ctx.data[MidiPool].config.poll_rate.value` and
-`ctx.data[MidiPool].devices.value` read from the same object.
+doesn't) while giving the AppState a single coherent surface to
+its consumers — `ctx.app_data[MidiPool].config.poll_rate.value` and
+`ctx.app_data[MidiPool].devices.value` read from the same object.
 
 ---
 
 ## 6. Implementation surface
 
-### 6.1 New types
+> The types listed here are the AppState half of the v1.1 taxonomy.
+> Their `SessionState` siblings (`SessionDataNamespace`, the
+> per-session container storage, `attach_session` / `detach_session`,
+> the `LibrarySettings` prohibition) are documented in
+> [`session_state.md`](session_state.md) §6.
 
-- `haywire.core.state.LibraryState` — base class. Optional `on_enable`
-  and `on_disable` methods (duck-typed; absence is fine).
+### 6.1 Types
+
+- `haywire.core.state.LibraryState` — abstract marker base. Never
+  directly subclassed by users; serves as the type root for
+  `LibraryStateRegistry`'s class filter and the union root in internal
+  type hints.
+- `haywire.core.state.AppState` — concrete app-scoped base.
+  Optional `on_enable` and `on_disable` methods (duck-typed; absence
+  is fine).
+- `haywire.core.state.SessionState` — concrete per-session base. See
+  [`session_state.md`](session_state.md).
 - `haywire.core.state.LibraryStateRegistry` — `BaseRegistry` subclass.
-  Holds `LibraryState` *classes*, not instances. `_class_filter`
-  checks `issubclass(cls, LibraryState)`. Inherits hot-reload,
+  Holds concrete `LibraryState` *classes*, not instances. `_class_filter`
+  checks `issubclass(cls, LibraryState)` and excludes the marker bases
+  (`LibraryState`, `AppState`, `SessionState`). Inherits hot-reload,
   dependency-graph, and folder-scan from `BaseRegistry`. Same shape as
   `NodeRegistry`, `PanelRegistry`, etc.
 - `haywire.core.state.LibraryStateContainer` — holds the *instances*.
-  Internal `dict[type[LibraryState], LibraryState]`. Subscribes to
+  Internally splits storage by scope: a flat
+  `dict[type[AppState], AppState]` for the app-global pool, plus the
+  per-session `dict[type[SessionState], dict[str, SessionState]]`
+  documented in [`session_state.md`](session_state.md). Subscribes to
   `LibraryStateRegistry` lifecycle events to instantiate / call
   `on_enable` on class registration, and to call `on_disable` / drop
   the instance on unregistration. Mirrors the `NodeRegistry` →
   `NodeFactory` relationship.
-- `haywire.ui.context._DataNamespace` (or equivalent module) — generic
-  proxy with `__getitem__[T]` and `get[T]`. Holds a reference to the
-  `LibraryStateContainer` and performs live container lookups. Used by
-  both `SessionContext` and `ExecutionContext`.
+- `haywire.ui.context.AppDataNamespace` — generic proxy with
+  `__getitem__[T]` and `get[T]` bound to `AppState`. Holds a reference
+  to the `LibraryStateContainer` and performs live container lookups.
+  Used by both `SessionContext` (as `ctx.app_data`) and
+  `ExecutionContext` (as `exec_ctx.app_data`).
+- `haywire.ui.context.SessionDataNamespace` — sibling proxy bound to
+  `SessionState`; only present on `SessionContext`. See
+  [`session_state.md`](session_state.md) §6.
 
 ### 6.2 Changes to existing types
 
@@ -484,20 +559,22 @@ its consumers — `ctx.data[MidiPool].config.poll_rate.value` and
     `enable_all_libraries()` / hot-reload pipeline drives state
     lifecycle automatically.
 - `SessionContext`:
-  - **add** `data: _DataNamespace` field, populated at construction
+  - **add** `app_data: AppDataNamespace` field, populated at construction
     from the app's container.
+  - **add** `data: SessionDataNamespace` field (per-session lookups).
   - **delete** the unused `metadata: Dict[str, Any]` field. Zero call
-    sites in the current code; superseded by `LibraryState`.
+    sites in the current code; superseded by AppState / SessionState.
 - `ExecutionContext`:
-  - **add** `data: _DataNamespace` field, populated by
+  - **add** `app_data: AppDataNamespace` field, populated by
     `HaywireVM._create_execution_context()` from the container the
-    VM was constructed with.
+    VM was constructed with. (No `data` attribute — graphs run
+    app-globally; see [`session_state.md`](session_state.md) §2.3.)
 - `HaywireVM`:
   - Gain a reference to the `LibraryStateContainer` (via constructor
     argument or DI lookup at construction). No reference to the
     *registry* — the VM only ever needs the live instance pool.
-  - `_create_execution_context()` populates `ExecutionContext.data`
-    with a `_DataNamespace` pointing at the container.
+  - `_create_execution_context()` populates `ExecutionContext.app_data`
+    with an `AppDataNamespace` pointing at the container.
 - `BaseLibrary`:
   - No new behaviour — the existing folder-scan call
     (`add_folder_to_registry(..., LibraryStateRegistry)`) is the only
@@ -512,8 +589,8 @@ its consumers — `ctx.data[MidiPool].config.poll_rate.value` and
 - `HaywireVM.__init__` signature gains a container reference (or
   resolves one via DI). Tests that build a VM directly need updating.
 
-These are the only breaking changes. `ExecutionContext.data` is purely
-additive. Existing libraries that don't use `LibraryState` are
+These are the only breaking changes. `ExecutionContext.app_data` is
+purely additive. Existing libraries that don't use AppState are
 unaffected.
 
 ---
@@ -525,7 +602,7 @@ unaffected.
 ```python
 # barn/haybale-midi/haybale_midi/state/midi_pool.py
 
-class MidiPool(LibraryState):
+class MidiPool(AppState):
     devices = reactive_field([])
 
     def on_enable(self) -> None:
@@ -541,7 +618,7 @@ class MidiPool(LibraryState):
 @panel(focus=GraphFocus, ...)
 class MidiDeviceListPanel(Panel):
     def draw(self, ctx, layout, actions):
-        for device in ctx.data[MidiPool].devices.value:
+        for device in ctx.app_data[MidiPool].devices.value:
             layout.label(device.name)
 ```
 
@@ -550,7 +627,7 @@ class MidiDeviceListPanel(Panel):
 
 class MidiSendNode(BaseNode):
     def worker(self, exec_ctx: ExecutionContext) -> dict:
-        pool = exec_ctx.data[MidiPool]
+        pool = exec_ctx.app_data[MidiPool]
         device_id = self.props.device_id.value
         pool.connections[device_id].send(self.props.message.value)
         return {}
@@ -559,7 +636,7 @@ class MidiSendNode(BaseNode):
 ### 7.2 A render cache (non-reactive, not configurable)
 
 ```python
-class RenderCache(LibraryState):
+class RenderCache(AppState):
     entries: dict[str, bytes] = {}
     max_bytes: int = 256 * 1024 * 1024
 
@@ -576,10 +653,10 @@ No `reactive_field()` because the cache's contents don't drive UI
 re-renders. Consumers call `get_or_compute()` from worker functions.
 No `LibrarySettings` involved because there's nothing to persist.
 
-### 7.3 A LibraryState with composed settings
+### 7.3 An AppState with composed settings
 
 ```python
-class OscBridge(LibraryState):
+class OscBridge(AppState):
     config: OscSettings
     server: OscServer | None = None
 
@@ -595,9 +672,9 @@ class OscBridge(LibraryState):
 ```
 
 `OscSettings` (a `LibrarySettings` subclass) handles persisted config —
-port, address, log level. `OscBridge` (a `LibraryState`) holds the
+port, address, log level. `OscBridge` (an `AppState`) holds the
 runtime server instance. Clean separation, both accessible together via
-`ctx.data[OscBridge]`.
+`ctx.app_data[OscBridge]`.
 
 ---
 
@@ -608,13 +685,13 @@ revisions:
 
 - **Sub-state lifecycle ordering within one library.** Currently
   unsupported (alphabetical folder order). If a real use case appears,
-  add a `depends_on=` ClassVar on LibraryState subclasses.
+  add a `depends_on=` ClassVar on AppState subclasses.
 - **State preservation across hot-reload.** Currently destroyed.
   Optional `on_reload(old_instance)` hook can be added later if a
   library has expensive startup that justifies the migration risk.
 - **Cross-thread reactive writes.** Bound to Phase 2 reactive work; not
-  a LibraryState-specific concern.
-- **`.pyi` stubs / autocomplete on `ctx.data.<TAB>`.** Not provided —
+  an AppState-specific concern.
+- **`.pyi` stubs / autocomplete on `ctx.app_data.<TAB>`.** Not provided —
   class-keyed access is the canonical path and provides full type
   inference without codegen. Revisit only if a string-keyed shorthand
   becomes desirable.

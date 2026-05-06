@@ -1,20 +1,27 @@
-"""Unit tests for the LibraryState base class."""
+"""Unit tests for AppState base class.
 
-from haywire.core.state import LibraryState
+LibraryState (the abstract marker) is implicitly tested via AppState
+(its concrete subclass).
+"""
+
+from haywire.core.state import AppState, LibraryState
 
 
-class TestLibraryStateBase:
+class TestAppStateBase:
+    def test_app_state_is_subclass_of_library_state(self):
+        """AppState must inherit from the abstract marker base."""
+        assert issubclass(AppState, LibraryState)
+
     def test_subclass_can_be_instantiated_with_no_arguments(self):
-        class MyState(LibraryState):
+        class MyState(AppState):
             pass
 
         instance = MyState()
+        assert isinstance(instance, AppState)
         assert isinstance(instance, LibraryState)
 
     def test_on_enable_is_optional(self):
-        """A LibraryState without on_enable can still be instantiated."""
-
-        class NoHooks(LibraryState):
+        class NoHooks(AppState):
             pass
 
         instance = NoHooks()
@@ -23,7 +30,7 @@ class TestLibraryStateBase:
     def test_on_enable_when_defined_is_callable(self):
         calls: list[str] = []
 
-        class WithHooks(LibraryState):
+        class WithHooks(AppState):
             def on_enable(self) -> None:
                 calls.append("enable")
 
@@ -36,9 +43,7 @@ class TestLibraryStateBase:
         assert calls == ["enable", "disable"]
 
     def test_subclass_can_carry_arbitrary_fields(self):
-        """LibraryState imposes no field-level constraints."""
-
-        class FullOfStuff(LibraryState):
+        class FullOfStuff(AppState):
             def __init__(self) -> None:
                 self.devices: list[str] = []
                 self.counter: int = 0

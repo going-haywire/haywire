@@ -53,8 +53,8 @@ class HaywireVM:
             global_context: Global execution context
             max_stack_depth: Maximum loopback stack depth before error
             library_state_container: Container exposing app-global LibraryState
-                instances to worker functions via exec_ctx.data[Cls]. Optional —
-                when None, exec_ctx.data is None.
+                instances to worker functions via exec_ctx.app_data[Cls].
+                Optional — when None, exec_ctx.app_data is None.
         """
         self.global_context = global_context or {}
         self.max_stack_depth = max_stack_depth
@@ -88,10 +88,10 @@ class HaywireVM:
         for var_name, variable in flow.graph_ref.variables.items():
             local_ctx[var_name] = variable.current_value
 
-        from haywire.core.state.data_namespace import DataNamespace
+        from haywire.core.state.data_namespace import AppDataNamespace
 
-        data_namespace: Optional[DataNamespace] = (
-            DataNamespace(self._library_state_container)
+        app_data_namespace: Optional[AppDataNamespace] = (
+            AppDataNamespace(self._library_state_container)
             if self._library_state_container is not None
             else None
         )
@@ -103,7 +103,7 @@ class HaywireVM:
             trigger=trigger,
             vm=self,
             frame_number=frame_number,
-            data=data_namespace,
+            app_data=app_data_namespace,
         )
 
     def call_flow_startup(self, flow: "Flow"):

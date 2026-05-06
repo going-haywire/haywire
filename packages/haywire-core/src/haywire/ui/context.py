@@ -11,9 +11,13 @@ instance-level access yields the `Reactive[T]` container. Read values via
 `.value`; write values via `.value = ...`. Phase 2 layers Subscriptions
 and auto-tracking on top — no read-site changes required for Phase 2.
 
-The `data` attribute is a typed DataNamespace proxy over the app's
-LibraryStateContainer — class-keyed access to library-owned runtime
-state. See docs/documentation/architecture/library_state.md.
+SessionContext exposes two scope-bound proxies over the app's
+LibraryStateContainer:
+
+  - `ctx.app_data[Cls]` — AppState lookups (shared across the app).
+  - `ctx.data[Cls]`     — SessionState lookups (this session's slice).
+
+See docs/documentation/architecture/session_state.md.
 """
 
 from __future__ import annotations
@@ -21,7 +25,7 @@ from __future__ import annotations
 from typing import Any, Optional, Set, TYPE_CHECKING
 
 from haywire.ui.reactive import Reactive, iter_reactive_fields, reactive_field
-from haywire.core.state.data_namespace import DataNamespace
+from haywire.core.state.data_namespace import AppDataNamespace, SessionDataNamespace
 
 if TYPE_CHECKING:
     from haywire.core.edge.edge_wrapper import EdgeWrapper
@@ -40,17 +44,22 @@ class SessionContext:
 
     Reactive fields are accessed as `ctx.<field>.value` (read) or
     `ctx.<field>.value = ...` (write). Plain fields (`session_id`,
-    `app`, `session`, `data`) are non-reactive.
+    `app`, `session`, `app_data`, `data`) are non-reactive.
 
-    `data` is a typed proxy over the app's LibraryStateContainer — see
-    docs/documentation/architecture/library_state.md.
+    `ctx.data`     — typed proxy over the app's LibraryStateContainer for
+                     SessionState lookups, scoped to this session.
+    `ctx.app_data` — typed proxy over the app's LibraryStateContainer for
+                     AppState lookups, shared across the whole app.
+
+    See docs/documentation/architecture/session_state.md.
     """
 
     # --- Plain fields (non-reactive) ---
     session_id: str
     app: "IProjectState"
     session: "Session"  # set by Session.__init__ immediately after construction
-    data: DataNamespace
+    app_data: AppDataNamespace
+    data: SessionDataNamespace
 
     # --- Reactive fields ---
     clipboard: Reactive[Optional["ClipboardData"]] = reactive_field(None)
@@ -73,7 +82,8 @@ class SessionContext:
     def __init__(self, session_id: str, app: "IProjectState") -> None:
         self.session_id = session_id
         self.app = app
-        self.data = DataNamespace(app.library_state_container)
+        self.app_data = AppDataNamespace(app.library_state_container)
+        self.data = SessionDataNamespace(app.library_state_container, session_id)
         # Initialize per-instance Reactive[T] containers for every
         # descriptor on this class. Default values come from
         # reactive_field(initial) declarations above. Mutable defaults
