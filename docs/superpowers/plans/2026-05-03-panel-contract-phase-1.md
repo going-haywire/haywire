@@ -9,9 +9,9 @@
 **Tech Stack:** Python 3.12+, NiceGUI, pytest, mypy, ruff. The codebase uses `uv` for package management.
 
 **Reference specs:**
-- [`docs/speculative/spec_panel_contract.md`](../../speculative/spec_panel_contract.md) — destination contract (the `Panel` base class, `@panel` decorator surface, action Protocol, focus system, layout, lifecycle).
+- [`docs/speculative/spec_panel_contract.md`](../../speculative/archive/spec_panel_contract.md) — destination contract (the `Panel` base class, `@panel` decorator surface, action Protocol, focus system, layout, lifecycle).
 - [`docs/speculative/spec_panel_reactivity.md`](../../speculative/spec_panel_reactivity.md) — Phase 2 mechanism (out of scope here).
-- [`docs/speculative/spec_panel_migration.md`](../../speculative/spec_panel_migration.md) — full inventory of legacy panels (Phase 1 covers a subset).
+- [`docs/speculative/spec_panel_migration.md`](../../speculative/archive/spec_panel_migration.md) — full inventory of legacy panels (Phase 1 covers a subset).
 
 **Phase 1 scope (locked via inquisition 2026-05-03):**
 - 16 panels migrated: 12 PropertiesEditor-only panels in `barn/haybale-core` + 4 in `barn/haybale-studio`.

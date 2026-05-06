@@ -9,8 +9,8 @@
 **Tech Stack:** Python 3.12+, NiceGUI, pytest, mypy, ruff. The codebase uses `uv` for package management.
 
 **Reference specs:**
-- [`docs/speculative/spec_panel_contract.md`](../../speculative/spec_panel_contract.md) — Phase 1 contract (the destination).
-- [`docs/speculative/spec_panel_migration.md`](../../speculative/spec_panel_migration.md) — full inventory.
+- [`docs/speculative/spec_panel_contract.md`](../../speculative/archive/spec_panel_contract.md) — Phase 1 contract (the destination).
+- [`docs/speculative/spec_panel_migration.md`](../../speculative/archive/spec_panel_migration.md) — full inventory.
 
 **Phase 1.5 scope (locked via inquisition 2026-05-04):**
 - 14 context-menu panels migrated to Protocol-per-context.

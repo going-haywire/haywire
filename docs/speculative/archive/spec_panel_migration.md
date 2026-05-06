@@ -10,7 +10,7 @@
 > Cross-package layering fixed: `PropertiesEditorActions` moved from
 > `haybale-studio` to `haybale-core`.
 >
-> Companion to [`spec_panel_contract.md`](spec_panel_contract.md).
+> Companion to [`spec_panel_contract.md`](archive/spec_panel_contract.md).
 > Inventories the existing `BasePanel` subclasses, maps each to its
 > destination under the new contract, and identifies framework-level
 > work and gaps that have to be resolved during the transition.

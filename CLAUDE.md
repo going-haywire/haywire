@@ -10,6 +10,8 @@ When working on architecture or design patterns, do NOT assume singleton pattern
 
 When user runs a slash command or skill, execute it immediately without asking clarifying questions. If the skill loads context, treat it as context — don't interpret it as a user request for configuration.
 
+Before editing any file, read it first. Before modifying a function, grep for all callers. Research before you edit. 
+
 ### Package Layout
 
 - **`packages/haywire-core/`** — publishable core (`import haywire`)

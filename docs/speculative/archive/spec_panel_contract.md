@@ -28,9 +28,9 @@
 >
 > **Companion documents:**
 >
-> - [`spec_panel_reactivity.md`](spec_panel_reactivity.md) — the
+> - [`spec_panel_reactivity.md`](../spec_panel_reactivity.md) — the
 >   reactive mechanism that re-runs panels on state change. Phase 2.
-> - [`spec_panel_migration.md`](spec_panel_migration.md) — inventory
+> - [`spec_panel_migration.md`](../spec_panel_migration.md) — inventory
 >   of legacy `BasePanel` subclasses, mapping to the new contract,
 >   identified gaps, and suggested migration ordering.
 >
@@ -708,7 +708,7 @@ interact with hosts. It does not describe **when** `poll` and `draw`
 re-run — that is the concern of the reactivity layer.
 
 The reactive layer is specified separately in
-[`spec_panel_reactivity.md`](spec_panel_reactivity.md). The two specs
+[`spec_panel_reactivity.md`](../spec_panel_reactivity.md). The two specs
 are intended as Phase 1 (contract) and Phase 2 (reactivity) for
 implementation. Panels written against this contract can be mounted
 under any state-propagation mechanism that re-runs `poll` and `draw`
@@ -748,7 +748,7 @@ The following are deliberately outside this spec:
   focus mappings, identified gaps (no `ContextMenuActions` Protocol;
   unclear `selection` / `node.errors` / `port.info` scopes) and a
   suggested migration ordering are in
-  [`spec_panel_migration.md`](spec_panel_migration.md).
+  [`spec_panel_migration.md`](../spec_panel_migration.md).
 - **Removal of the legacy `register_scope` API.** The class-keyed
   focus design (§4.4) replaces `PanelRegistry.register_scope`,
   `get_scopes`, and the `ScopeDescriptor` plumbing. Removal happens
