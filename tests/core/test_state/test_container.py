@@ -105,16 +105,41 @@ class TestLibraryStateContainer:
         assert NoHooks in container
 
     def test_getitem_raises_keyerror_when_not_registered(self):
+        from haywire.core.state.identity import LibraryStateClassIdentity
+
         class Missing(AppState):
             pass
+
+        # Stamp class_identity so the lookup goes through to the dict —
+        # the dict is empty, so we get the informative KeyError. (Without
+        # class_identity, the failure mode is AttributeError, which is
+        # the documented "caller passed an unregistered class" contract
+        # breach, not the case this test is exercising.)
+        Missing.class_identity = LibraryStateClassIdentity(
+            class_name="Missing",
+            module=__name__,
+            registry_id="Missing",
+            registry_key="test:state:Missing",
+            label="Missing",
+        )
 
         container = LibraryStateContainer()
         with pytest.raises(KeyError):
             _ = container[Missing]
 
     def test_get_returns_none_when_not_registered(self):
+        from haywire.core.state.identity import LibraryStateClassIdentity
+
         class Missing(AppState):
             pass
+
+        Missing.class_identity = LibraryStateClassIdentity(
+            class_name="Missing",
+            module=__name__,
+            registry_id="Missing",
+            registry_key="test:state:Missing",
+            label="Missing",
+        )
 
         container = LibraryStateContainer()
         assert container.get(Missing) is None

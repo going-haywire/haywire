@@ -157,8 +157,18 @@ class TestSessionAttachDetach:
         assert ("disable", "s1") in calls
 
     def test_get_session_optional_returns_none_for_missing(self):
+        from haywire.core.state.identity import LibraryStateClassIdentity
+
         class Cursor(SessionState):
             pass
+
+        Cursor.class_identity = LibraryStateClassIdentity(
+            class_name="Cursor",
+            module=__name__,
+            registry_id="Cursor",
+            registry_key="test:state:Cursor",
+            label="Cursor",
+        )
 
         container = LibraryStateContainer()
         assert container.get_session_optional(Cursor, "nope") is None

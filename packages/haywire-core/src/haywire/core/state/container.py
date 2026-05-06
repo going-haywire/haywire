@@ -1,13 +1,21 @@
 """LibraryStateContainer — owns the LibraryState instance pool.
 
-Subscribes to LibraryStateRegistry batch lifecycle events. Holds two
-scope-keyed maps:
+Subscribes to LibraryStateRegistry batch lifecycle events. Holds three
+internal maps, all keyed by ``class_identity.registry_key``:
 
-  - `_app`      : type[AppState]      → AppState                — singleton per class
-  - `_sessions` : type[SessionState]  → dict[session_id, SessionState] — one per (class, session)
+  - ``_app``: registry_key → AppState (one instance per class)
+  - ``_sessions``: registry_key → dict[session_id, SessionState] (one per (class, session))
+  - ``_class_by_registry_key``: registry_key → live class (used to find
+    the class behind a key for instantiation and reload)
 
-Dispatch decision is `issubclass(cls, SessionState)` at event time. See
-docs/documentation/architecture/session_state.md §3.
+Keying by registry_key (a stable string) rather than by class object
+makes lookups resilient to hot-reload: when a state module is reloaded
+its class object is replaced, but the registry_key stays the same, so
+callers holding a pre-reload class reference still resolve to the
+canonical instance.
+
+Dispatch decision is ``issubclass(cls, SessionState)`` at event time.
+See docs/documentation/architecture/session_state.md §3.
 """
 
 from __future__ import annotations
@@ -47,13 +55,14 @@ class LibraryStateContainer:
     """
 
     def __init__(self) -> None:
-        # App-scoped: one instance per class.
-        self._app: dict[type[AppState], AppState] = {}
-        # Session-scoped: one instance per (class, session_id).
-        self._sessions: dict[type[SessionState], dict[str, SessionState]] = {}
+        # App-scoped: one instance per registered class, keyed by registry_key.
+        self._app: dict[str, AppState] = {}
+        # Session-scoped: one instance per (class, session_id), keyed by registry_key.
+        self._sessions: dict[str, dict[str, SessionState]] = {}
         # Active sessions tracked for fanout on CLASS_ADDED for SessionState classes.
         self._known_session_ids: set[str] = set()
-        # Reverse map: registry_key → class. Used for CLASS_RELOADED to find old class.
+        # registry_key → class. Lets us find the class behind a key for
+        # instantiation (attach_session) and lifecycle (CLASS_RELOADED).
         self._class_by_registry_key: dict[str, type[LibraryState]] = {}
 
     # ------------------------------------------------------------------
@@ -61,37 +70,34 @@ class LibraryStateContainer:
     # ------------------------------------------------------------------
 
     def __getitem__(self, cls: type[A]) -> A:
-        canonical = self._resolve_app_class(cls)
-        if canonical is None:
+        try:
+            return self._app[cls.class_identity.registry_key]  # type: ignore[return-value]
+        except KeyError:
             raise KeyError(
                 f"No AppState instance registered for class {cls.__name__}. "
                 f"Either the owning library is not enabled, or the class is not "
                 f"a registered AppState subclass."
-            )
-        return self._app[canonical]  # type: ignore[return-value]
+            ) from None
 
     def get(self, cls: type[A]) -> A | None:
-        canonical = self._resolve_app_class(cls)
-        if canonical is None:
-            return None
-        return self._app.get(canonical)  # type: ignore[return-value]
+        return self._app.get(cls.class_identity.registry_key)  # type: ignore[return-value]
 
     def __contains__(self, cls: type) -> bool:
-        return self._resolve_app_class(cls) is not None
+        return cls.class_identity.registry_key in self._app
 
     # ------------------------------------------------------------------
     # Public lookup API — used by SessionDataNamespace
     # ------------------------------------------------------------------
 
     def get_session(self, cls: type[S], session_id: str) -> S:
-        canonical = self._resolve_session_class(cls)
-        if canonical is None:
+        try:
+            bag = self._sessions[cls.class_identity.registry_key]
+        except KeyError:
             raise KeyError(
                 f"No SessionState class {cls.__name__} is registered. "
                 f"Either the owning library is not enabled, or the class is not "
                 f"a registered SessionState subclass."
-            )
-        bag = self._sessions[canonical]
+            ) from None
         try:
             return bag[session_id]  # type: ignore[return-value]
         except KeyError:
@@ -101,50 +107,16 @@ class LibraryStateContainer:
             ) from None
 
     def get_session_optional(self, cls: type[S], session_id: str) -> S | None:
-        canonical = self._resolve_session_class(cls)
-        if canonical is None:
+        bag = self._sessions.get(cls.class_identity.registry_key)
+        if bag is None:
             return None
-        return self._sessions.get(canonical, {}).get(session_id)  # type: ignore[return-value]
+        return bag.get(session_id)  # type: ignore[return-value]
 
     def has_session(self, cls: type[S], session_id: str) -> bool:
-        canonical = self._resolve_session_class(cls)
-        if canonical is None:
+        bag = self._sessions.get(cls.class_identity.registry_key)
+        if bag is None:
             return False
-        return session_id in self._sessions.get(canonical, {})
-
-    # ------------------------------------------------------------------
-    # Stale-class-reference resolution
-    # ------------------------------------------------------------------
-    #
-    # When a state class is hot-reloaded, the container is keyed by the
-    # NEW class object. Callers who imported the class before the reload
-    # still hold the OLD class object. Direct dict-key lookup misses
-    # because dict equality on classes is identity. To stay resilient,
-    # we fall back to matching by ``class_identity.registry_key``: the
-    # stable string handle that survives reload (the new class gets the
-    # same registry_key as the one it replaced).
-
-    def _resolve_app_class(self, cls: type) -> type[AppState] | None:
-        if cls in self._app:
-            return cls  # type: ignore[return-value]
-        return self._resolve_by_registry_key(cls, self._app.keys())
-
-    def _resolve_session_class(self, cls: type) -> type[SessionState] | None:
-        if cls in self._sessions:
-            return cls  # type: ignore[return-value]
-        return self._resolve_by_registry_key(cls, self._sessions.keys())
-
-    @staticmethod
-    def _resolve_by_registry_key(cls: type, candidates):
-        """Find a candidate whose class_identity.registry_key matches cls's."""
-        wanted = getattr(getattr(cls, "class_identity", None), "registry_key", None)
-        if wanted is None:
-            return None
-        for candidate in candidates:
-            existing = getattr(getattr(candidate, "class_identity", None), "registry_key", None)
-            if existing == wanted:
-                return candidate
-        return None
+        return session_id in bag
 
     # ------------------------------------------------------------------
     # Session lifecycle — called by SessionManager
@@ -155,7 +127,10 @@ class LibraryStateContainer:
         if session_id in self._known_session_ids:
             return  # idempotent
         self._known_session_ids.add(session_id)
-        for cls, bag in self._sessions.items():
+        for registry_key, bag in self._sessions.items():
+            cls = self._class_by_registry_key.get(registry_key)
+            if cls is None or not issubclass(cls, SessionState):
+                continue
             self._instantiate_session_state(cls, bag, session_id)
 
     def detach_session(self, session_id: str) -> None:
@@ -218,9 +193,9 @@ class LibraryStateContainer:
             # populated _class_by_registry_key. Either way nothing to do.
             return
         if issubclass(old_cls, SessionState):
-            self._remove_session_class(old_cls)
+            self._remove_session_class(event.registry_key)
         elif issubclass(old_cls, AppState):
-            self._remove_app_class(old_cls)
+            self._remove_app_class(event.registry_key)
         else:
             # Defensive: a class admitted via the bypass branch never lands in
             # _class_by_registry_key, so this branch is not reachable in
@@ -238,9 +213,9 @@ class LibraryStateContainer:
         old_cls = self._class_by_registry_key.pop(event.registry_key, None)
         if old_cls is not None:
             if issubclass(old_cls, SessionState):
-                self._remove_session_class(old_cls)
+                self._remove_session_class(event.registry_key)
             elif issubclass(old_cls, AppState):
-                self._remove_app_class(old_cls)
+                self._remove_app_class(event.registry_key)
             else:
                 # Same defensive note as in _remove: bypass classes never reach
                 # _class_by_registry_key, but log if state ever drifts here.
@@ -273,15 +248,15 @@ class LibraryStateContainer:
     # ------------------------------------------------------------------
 
     def _add_app_class(self, cls: type[AppState], registry_key: str) -> None:
-        if cls in self._app:
+        if registry_key in self._app:
             return  # idempotent
         instance = cls()
-        self._app[cls] = instance
+        self._app[registry_key] = instance
         self._class_by_registry_key[registry_key] = cls
         self._call_on_enable(instance)
 
-    def _remove_app_class(self, cls: type[AppState]) -> None:
-        instance = self._app.pop(cls, None)
+    def _remove_app_class(self, registry_key: str) -> None:
+        instance = self._app.pop(registry_key, None)
         if instance is not None:
             self._call_on_disable(instance)
 
@@ -290,17 +265,17 @@ class LibraryStateContainer:
     # ------------------------------------------------------------------
 
     def _add_session_class(self, cls: type[SessionState], registry_key: str) -> None:
-        if cls in self._sessions:
+        if registry_key in self._sessions:
             return  # idempotent
         bag: dict[str, SessionState] = {}
-        self._sessions[cls] = bag
+        self._sessions[registry_key] = bag
         self._class_by_registry_key[registry_key] = cls
         # Fan out across known sessions.
         for sid in self._known_session_ids:
             self._instantiate_session_state(cls, bag, sid)
 
-    def _remove_session_class(self, cls: type[SessionState]) -> None:
-        bag = self._sessions.pop(cls, {})
+    def _remove_session_class(self, registry_key: str) -> None:
+        bag = self._sessions.pop(registry_key, {})
         for inst in bag.values():
             self._call_on_disable(inst)
 

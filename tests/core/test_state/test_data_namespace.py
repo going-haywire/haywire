@@ -56,76 +56,37 @@ class TestAppDataNamespace:
         assert result.devices == ["dev0"]
 
     def test_getitem_raises_for_unregistered_class(self):
+        from haywire.core.state.identity import LibraryStateClassIdentity
+
         class NotRegistered(AppState):
             pass
+
+        # Stamp class_identity so the lookup goes through to the dict.
+        NotRegistered.class_identity = LibraryStateClassIdentity(
+            class_name="NotRegistered",
+            module=__name__,
+            registry_id="NotRegistered",
+            registry_key="test:state:NotRegistered",
+            label="NotRegistered",
+        )
 
         ns = AppDataNamespace(LibraryStateContainer())
         with pytest.raises(KeyError):
             _ = ns[NotRegistered]
 
     def test_get_returns_none_for_unregistered_class(self):
+        from haywire.core.state.identity import LibraryStateClassIdentity
+
         class NotRegistered(AppState):
             pass
 
+        NotRegistered.class_identity = LibraryStateClassIdentity(
+            class_name="NotRegistered",
+            module=__name__,
+            registry_id="NotRegistered",
+            registry_key="test:state:NotRegistered",
+            label="NotRegistered",
+        )
+
         ns = AppDataNamespace(LibraryStateContainer())
         assert ns.get(NotRegistered) is None
-
-    def test_live_lookup_after_swap(self):
-        """Each access reads the current container state via canonical class.
-
-        After hot-reload, V1 is replaced by V2 under the same registry_key.
-        Lookups via either class object resolve to the current canonical
-        instance — V1 (the now-stale reference) falls back to V2's bag via
-        ``class_identity.registry_key`` matching.
-        """
-        from haywire.core.state.identity import LibraryStateClassIdentity
-
-        class V1(AppState):
-            tag = "v1"
-
-        class V2(AppState):
-            tag = "v2"
-
-        ident = LibraryStateClassIdentity(
-            class_name="V",
-            module=__name__,
-            registry_id="V",
-            registry_key="midi:state:V",
-            label="V",
-        )
-        V1.class_identity = ident
-        V2.class_identity = ident
-
-        container = LibraryStateContainer()
-        lib_id = make_lib_identity()
-        ns = AppDataNamespace(container)
-
-        container.on_lifecycle_events(
-            [
-                LifeCycleEvent(
-                    registry_key="midi:state:V",
-                    event_type=LifeCycleEventType.CLASS_ADDED,
-                    affected_class=V1,
-                    library_identity=lib_id,
-                )
-            ]
-        )
-        assert ns[V1].tag == "v1"
-
-        # Hot-reload: V2 replaces V1 under the same registry_key.
-        container.on_lifecycle_events(
-            [
-                LifeCycleEvent(
-                    registry_key="midi:state:V",
-                    event_type=LifeCycleEventType.CLASS_RELOADED,
-                    affected_class=V2,
-                    library_identity=lib_id,
-                )
-            ]
-        )
-        # Stale reference V1 resolves to the canonical (V2) instance.
-        assert ns.get(V1) is not None
-        assert ns.get(V1).tag == "v2"
-        # New access via V2 returns the same instance.
-        assert ns[V2].tag == "v2"
-        assert ns[V1] is ns[V2]

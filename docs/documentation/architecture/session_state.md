@@ -329,6 +329,13 @@ fanned out per session. In-flight per-session state is lost (matches
 v1 semantics; state migration across class versions is explicitly not
 built).
 
+A pre-reload class reference still resolves correctly after a reload:
+``ctx.data[OldClassRef]`` returns the canonical (post-reload) instance.
+The container is keyed by ``class_identity.registry_key`` (a stable
+string), so a stale class reference held by a panel or editor module
+that captured it before the reload still points at the same registered
+state — no special handling required at the call site.
+
 ### 3.5 Construction order
 
 Per-session lifecycle is driven by `SessionManager`. The container

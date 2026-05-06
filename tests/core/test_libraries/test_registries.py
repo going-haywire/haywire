@@ -42,9 +42,10 @@ class TestBaseRegistryClassIdentity:
 
         # And the same class must be the one the container is keyed by,
         # otherwise ctx.data[TestSessionState] lookups via the panel's
-        # reference would KeyError.
+        # reference would KeyError. The container is keyed by
+        # class_identity.registry_key.
         container = library_system.injector.get(LibraryStateContainer)
-        assert panel_class_ref in container._sessions
+        assert panel_class_ref.class_identity.registry_key in container._sessions
 
 
 @pytest.mark.unit

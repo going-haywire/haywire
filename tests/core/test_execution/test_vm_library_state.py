@@ -17,12 +17,23 @@ class TestVMLibraryStateWiring:
         assert ctx.app_data is None
 
     def test_vm_with_container_populates_app_data_namespace(self):
+        from haywire.core.state.identity import LibraryStateClassIdentity
+
         class Pool(AppState):
             pass
 
+        Pool.class_identity = LibraryStateClassIdentity(
+            class_name="Pool",
+            module=__name__,
+            registry_id="Pool",
+            registry_key="test:state:Pool",
+            label="Pool",
+        )
+
         container = LibraryStateContainer()
         instance = Pool()
-        container._app[Pool] = instance
+        container._app[Pool.class_identity.registry_key] = instance
+        container._class_by_registry_key[Pool.class_identity.registry_key] = Pool
 
         vm = HaywireVM(library_state_container=container)
         flow = MagicMock()

@@ -24,12 +24,23 @@ class TestSessionContextAppData:
         assert isinstance(ctx.app_data, AppDataNamespace)
 
     def test_app_data_resolves_to_container(self):
+        from haywire.core.state.identity import LibraryStateClassIdentity
+
         class Pool(AppState):
             value: int = 42
 
+        Pool.class_identity = LibraryStateClassIdentity(
+            class_name="Pool",
+            module=__name__,
+            registry_id="Pool",
+            registry_key="test:state:Pool",
+            label="Pool",
+        )
+
         container = LibraryStateContainer()
         instance = Pool()
-        container._app[Pool] = instance  # plant directly for the test
+        container._app[Pool.class_identity.registry_key] = instance
+        container._class_by_registry_key[Pool.class_identity.registry_key] = Pool
 
         app = FakeApp(container)
         ctx = SessionContext(session_id="s1", app=app)  # type: ignore[arg-type]
