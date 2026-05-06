@@ -23,7 +23,7 @@ from haywire.ui.prefs.edge_ui import EdgeUISettings
 
 from haybale_core.settings.node_skin_settings import NodeSkinSettings
 from haybale_studio.editors.properties_editor_actions import PropertiesEditorActions
-from haybale_studio.focuses import CanvasFocus
+from haybale_studio.panels.focuses import CanvasFocus
 
 if TYPE_CHECKING:
     from haywire.ui.context import SessionContext

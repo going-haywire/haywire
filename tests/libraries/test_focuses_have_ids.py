@@ -6,61 +6,61 @@ from haywire.ui.panel.focus import focus_by_id
 
 def test_node_focus_has_id():
     # Importing the module triggers Focus.__init_subclass__.
-    from haybale_studio.focuses import NodeFocus
+    from haybale_studio.panels.focuses import NodeFocus
 
     assert NodeFocus.id == "node"
     assert focus_by_id("node") is NodeFocus
 
 
 def test_edge_focus_has_id():
-    from haybale_studio.focuses import EdgeFocus
+    from haybale_studio.panels.focuses import EdgeFocus
 
     assert EdgeFocus.id == "edge"
     assert focus_by_id("edge") is EdgeFocus
 
 
 def test_graph_focus_has_id():
-    from haybale_studio.focuses import GraphFocus
+    from haybale_studio.panels.focuses import GraphFocus
 
     assert GraphFocus.id == "graph"
     assert focus_by_id("graph") is GraphFocus
 
 
 def test_port_focus_has_id():
-    from haybale_studio.focuses import PortFocus
+    from haybale_studio.panels.focuses import PortFocus
 
     assert PortFocus.id == "port"
     assert focus_by_id("port") is PortFocus
 
 
 def test_app_focus_has_id():
-    from haybale_studio.focuses import AppFocus
+    from haybale_studio.panels.focuses import AppFocus
 
     assert AppFocus.id == "app"
     assert focus_by_id("app") is AppFocus
 
 
 def test_execution_focus_has_id():
-    from haybale_studio.focuses import ExecutionFocus
+    from haybale_studio.panels.focuses import ExecutionFocus
 
     assert ExecutionFocus.id == "execution"
     assert focus_by_id("execution") is ExecutionFocus
 
 
 def test_canvas_focus_has_id():
-    from haybale_studio.focuses import CanvasFocus
+    from haybale_studio.panels.focuses import CanvasFocus
 
     assert CanvasFocus.id == "canvas"
 
 
 def test_settings_focus_has_id():
-    from haybale_studio.focuses import SettingsFocus
+    from haybale_studio.panels.focuses import SettingsFocus
 
     assert SettingsFocus.id == "settings"
 
 
 def test_selection_focus_has_id():
-    from haybale_studio.focuses import SelectionFocus
+    from haybale_studio.panels.focuses import SelectionFocus
 
     assert SelectionFocus.id == "selection"
     assert focus_by_id("selection") is SelectionFocus
@@ -108,7 +108,7 @@ def _make_ctx_with_edit_stub():
 
 
 def test_selection_focus_available_when_nodes_selected():
-    from haybale_studio.focuses import SelectionFocus
+    from haybale_studio.panels.focuses import SelectionFocus
 
     ctx, edit_stub = _make_ctx_with_edit_stub()
     assert SelectionFocus.available(ctx) is False  # nothing selected
@@ -118,7 +118,7 @@ def test_selection_focus_available_when_nodes_selected():
 
 
 def test_selection_focus_available_when_edges_selected():
-    from haybale_studio.focuses import SelectionFocus
+    from haybale_studio.panels.focuses import SelectionFocus
 
     ctx, edit_stub = _make_ctx_with_edit_stub()
     edit_stub.selected_edges.value = {"edge-1"}

@@ -30,7 +30,7 @@ def _current_context_menu():
 
 
 def _current_focuses():
-    return importlib.import_module("haybale_studio.focuses")
+    return importlib.import_module("haybale_studio.panels.focuses")
 
 
 def _current_actions():

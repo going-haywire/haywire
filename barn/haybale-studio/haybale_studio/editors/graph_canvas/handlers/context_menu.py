@@ -222,7 +222,7 @@ class SessionContextMenuProvider(IContextMenuProvider):
         popup.open()
 
     def on_canvas_context(self, pos, canvas_pos, pending_connection=None):
-        from haybale_studio.focuses import CanvasFocus  # type: ignore[import-untyped]
+        from haybale_studio.panels.focuses import CanvasFocus  # type: ignore[import-untyped]
         from haybale_studio.editors.graph_canvas.handlers.context_menu_actions import CanvasContextActions
 
         self._open_ctx = _OpenMenuContext(
@@ -233,7 +233,7 @@ class SessionContextMenuProvider(IContextMenuProvider):
         self._open_menu(CanvasContextActions, CanvasFocus, pos)
 
     def on_node_context(self, pos, node_id):
-        from haybale_studio.focuses import NodeFocus  # type: ignore[import-untyped]
+        from haybale_studio.panels.focuses import NodeFocus  # type: ignore[import-untyped]
         from haybale_studio.editors.graph_canvas.handlers.context_menu_actions import NodeContextActions
 
         graph = self._context.data[EditState].active_graph.value
@@ -246,7 +246,7 @@ class SessionContextMenuProvider(IContextMenuProvider):
         self._open_menu(NodeContextActions, NodeFocus, pos)
 
     def on_edge_context(self, pos, edge_id, edge, state, at_sink_end=False):
-        from haybale_studio.focuses import EdgeFocus  # type: ignore[import-untyped]
+        from haybale_studio.panels.focuses import EdgeFocus  # type: ignore[import-untyped]
         from haybale_studio.editors.graph_canvas.handlers.context_menu_actions import EdgeContextActions
 
         graph = self._context.data[EditState].active_graph.value
@@ -263,7 +263,7 @@ class SessionContextMenuProvider(IContextMenuProvider):
         self._open_menu(EdgeContextActions, EdgeFocus, pos)
 
     def on_port_context(self, pos, node_id, port_id, scope):
-        from haybale_studio.focuses import PortFocus  # type: ignore[import-untyped]
+        from haybale_studio.panels.focuses import PortFocus  # type: ignore[import-untyped]
         from haybale_studio.editors.graph_canvas.handlers.context_menu_actions import PortContextActions
         from haywire.ui.panel.focus import focus_by_id
 
@@ -282,7 +282,7 @@ class SessionContextMenuProvider(IContextMenuProvider):
         self._open_menu(PortContextActions, focus, pos)
 
     def on_selection_context(self, pos, nodes, edges):
-        from haybale_studio.focuses import SelectionFocus  # type: ignore[import-untyped]
+        from haybale_studio.panels.focuses import SelectionFocus  # type: ignore[import-untyped]
         from haybale_studio.editors.graph_canvas.handlers.context_menu_actions import SelectionContextActions
 
         self._open_ctx = _OpenMenuContext(click_pos=pos)
@@ -294,7 +294,7 @@ class SessionContextMenuProvider(IContextMenuProvider):
         Library authors can declare a custom focus and register panels
         against it; the DOM attribute carries the focus id.
         """
-        from haybale_studio.focuses import NodeFocus  # type: ignore[import-untyped]
+        from haybale_studio.panels.focuses import NodeFocus  # type: ignore[import-untyped]
         from haybale_studio.editors.graph_canvas.handlers.context_menu_actions import NodeContextActions
         from haywire.ui.panel.focus import focus_by_id
 

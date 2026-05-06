@@ -39,10 +39,14 @@ class Focus(ABC):
         focus_id = cls.__dict__["id"]
         if focus_id in _FOCUS_BY_ID:
             existing = _FOCUS_BY_ID[focus_id]
-            raise ValueError(
-                f"Focus id collision: {cls.__module__}.{cls.__name__} and "
-                f"{existing.__module__}.{existing.__name__} both declare id={focus_id!r}"
-            )
+            same_origin = existing.__module__ == cls.__module__ and existing.__qualname__ == cls.__qualname__
+            if not same_origin:
+                raise ValueError(
+                    f"Focus id collision: {cls.__module__}.{cls.__name__} and "
+                    f"{existing.__module__}.{existing.__name__} both declare id={focus_id!r}"
+                )
+            # Same module + qualname: this is a hot-reload re-declaring its own
+            # class. The new class object supersedes the old in _FOCUS_BY_ID.
         _FOCUS_BY_ID[focus_id] = cls
 
     @classmethod

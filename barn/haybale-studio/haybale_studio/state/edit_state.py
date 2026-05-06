@@ -1,10 +1,5 @@
 """EditState — per-session graph-editor selection and clipboard state.
 
-Owns the reactive cluster previously held on SessionContext. Migrated
-out of haywire-core in v1.2 because (a) it is editor-specific, not
-framework-level, and (b) it should participate in the v1.1 SessionState
-mechanism like any other per-session library runtime state.
-
 Read paths:
     edit = ctx.data[EditState]
     if edit.active_node.value is not None:
@@ -13,8 +8,7 @@ Read paths:
 Write paths (only in haybale-studio editors and canvas handlers):
     ctx.data[EditState].active_node.value = wrapper
 
-Note on hot-reload: per docs/documentation/architecture/session_state.md
-§3.4, a CLASS_RELOADED event for EditState re-instantiates per-session
+Note on hot-reload: a CLASS_RELOADED event for EditState re-instantiates per-session
 state, dropping field values. Editing this file is a developer action;
 resetting selection mid-session is acceptable.
 

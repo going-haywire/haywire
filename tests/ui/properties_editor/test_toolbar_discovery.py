@@ -1,5 +1,5 @@
 # tests/ui/properties_editor/test_toolbar_discovery.py
-"""PropertiesEditor toolbar = default_focuses ∪ registry.get_focuses_for(self),
+"""PropertiesEditor toolbar = default_focus_ids ∪ registry.get_focuses_for(self),
 sorted by Focus.order."""
 
 from __future__ import annotations
@@ -48,14 +48,14 @@ class _LibraryProvidedPanel(Panel):
         pass
 
 
-def test_toolbar_includes_default_focuses():
-    """All default_focuses appear in the toolbar regardless of registered panels."""
+def test_toolbar_includes_default_focus_ids():
+    """All default_focus_ids appear in the toolbar regardless of registered panels."""
     from haybale_studio.editors.properties_editor import PropertiesEditor
-    from haybale_studio.focuses import AppFocus
+    from haybale_studio.panels.focuses import AppFocus
 
     editor = PropertiesEditor(panel_registry=PanelRegistry())
     focuses = editor._compute_toolbar_focuses()
-    # AppFocus should be in default_focuses.
+    # AppFocus should be in default_focus_ids.
     assert AppFocus in focuses
 
 
@@ -72,7 +72,7 @@ def test_toolbar_includes_library_focus_via_registry():
 
 def test_toolbar_focuses_are_sorted_by_focus_order():
     from haybale_studio.editors.properties_editor import PropertiesEditor
-    from haybale_studio.focuses import AppFocus, ExecutionFocus
+    from haybale_studio.panels.focuses import AppFocus, ExecutionFocus
 
     editor = PropertiesEditor(panel_registry=PanelRegistry())
     focuses = editor._compute_toolbar_focuses()

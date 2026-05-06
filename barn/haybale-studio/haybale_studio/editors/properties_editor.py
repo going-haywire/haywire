@@ -4,7 +4,7 @@ PropertiesEditor — focus-driven properties sidebar.
 
 Displays a left-hand icon toolbar (one button per Focus) and a content area
 showing panels registered against the active Focus. The toolbar is sourced
-from ``default_focuses ∪ registry.get_focuses_for(self)``. Panels are
+from ``default_focus_ids ∪ registry.get_focuses_for(self)``. Panels are
 mounted via the contract-keyed lookup
 ``get_panels_for(actions_provider, focus)``.
 
@@ -22,8 +22,6 @@ from typing import TYPE_CHECKING, ClassVar, Optional
 
 from nicegui import ui
 
-from haybale_studio.focuses import EdgeFocus, GraphFocus, NodeFocus, PortFocus
-from haybale_studio.focuses import AppFocus, CanvasFocus, ExecutionFocus, SettingsFocus
 from haybale_studio.state.edit_state import EditState
 from haywire.ui import elements as hui
 from haywire.ui.context_signals import (
@@ -34,7 +32,7 @@ from haywire.ui.context_signals import (
 from haywire.ui.editor.base import BaseEditor
 from haywire.ui.editor.decorator import editor
 from haywire.ui.panel.layout import PanelLayout
-from haywire.ui.panel.focus import Focus
+from haywire.ui.panel.focus import Focus, focus_by_id
 from haywire.ui.panel.registry import PanelRegistry
 
 if TYPE_CHECKING:
@@ -55,7 +53,7 @@ class PropertiesEditor(BaseEditor):
     """
     Focus-driven properties editor.
 
-    The left toolbar shows one icon button per Focus class (default_focuses
+    The left toolbar shows one icon button per Focus class (default_focus_ids
     plus any focuses contributed by registered panels). Clicking a button
     makes that Focus active and re-renders the content area with the
     panels belonging to that Focus.
@@ -72,15 +70,19 @@ class PropertiesEditor(BaseEditor):
     #: Built-in focuses every PropertiesEditor instance shows in the toolbar
     #: regardless of which panels are registered. Library-contributed focuses
     #: are merged in at runtime via ``registry.get_focuses_for(self)``.
-    default_focuses: ClassVar[tuple[type[Focus], ...]] = (
-        AppFocus,
-        ExecutionFocus,
-        CanvasFocus,
-        GraphFocus,
-        NodeFocus,
-        SettingsFocus,
-        EdgeFocus,
-        PortFocus,
+    #:
+    #: Stored as ids (not class refs) so hot-reload of focuses.py — which
+    #: replaces the Focus class objects in _FOCUS_BY_ID — doesn't leave this
+    #: editor holding stale references. Resolved via ``focus_by_id`` at use.
+    default_focus_ids: ClassVar[tuple[str, ...]] = (
+        "app",
+        "execution",
+        "canvas",
+        "graph",
+        "node",
+        "settings",
+        "edge",
+        "port",
     )
 
     _RELEVANT_SIGNALS = (SelectionMoved, ActiveGraphMoved, GraphDataMutated)
@@ -173,7 +175,9 @@ class PropertiesEditor(BaseEditor):
 
     def _compute_toolbar_focuses(self) -> list[type[Focus]]:
         """Compute toolbar focuses: default ∪ registry-discovered, sorted by Focus.order."""
-        focuses: set[type[Focus]] = set(self.default_focuses)
+        focuses: set[type[Focus]] = {
+            cls for cls in (focus_by_id(fid) for fid in self.default_focus_ids) if cls is not None
+        }
         if self._panel_registry is not None:
             focuses.update(self._panel_registry.get_focuses_for(actions_provider=self))
         return sorted(focuses, key=lambda f: f.order)

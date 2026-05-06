@@ -11,7 +11,7 @@ from haywire.ui import elements as hui
 from haywire.ui.panel import Panel, PanelLayout
 from haywire.ui.panel.decorator import panel
 
-from haybale_studio.focuses import NodeFocus
+from haybale_studio.panels.focuses import NodeFocus
 from haybale_studio.editors.properties_editor_actions import PropertiesEditorActions
 from haybale_studio.state.edit_state import EditState
 

@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from haybale_studio.focuses import EdgeFocus
+from haybale_studio.panels.focuses import EdgeFocus
 from haybale_studio.state.edit_state import EditState
 from haywire.ui import elements as hui
 from haybale_studio.editors.graph_canvas.handlers.context_menu_actions import EdgeContextActions

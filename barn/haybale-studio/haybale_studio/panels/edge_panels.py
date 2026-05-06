@@ -15,7 +15,7 @@ from typing import TYPE_CHECKING
 
 from nicegui import ui
 
-from haybale_studio.focuses import EdgeFocus
+from haybale_studio.panels.focuses import EdgeFocus
 from haybale_studio.editors.properties_editor_actions import PropertiesEditorActions
 from haybale_studio.state.edit_state import EditState
 from haywire.ui import elements as hui
