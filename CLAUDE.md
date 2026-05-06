@@ -61,5 +61,6 @@ When looking up how a system works (API, parameters, behaviour), check `docs/` f
 - Always run the full test suite (`pytest` or equivalent) after any refactor or multi-file change and confirm all tests pass before presenting work as complete.
 - Call `force_immediate_validation()` after node setup in tests to flush the dirty queue before asserting.
 - In test files, import `haywire.core.graph.editor` before other haywire modules to avoid circular import errors.
+- When patching classes from `barn/haybale-*/` modules in tests, resolve the class and patch target via `importlib.import_module(...)` and `patch.object(module, "Foo", ...)` — top-of-file imports go stale after library bootstrap reloads the module. Reference: `tests/ui/test_canvas_handlers/test_session_context_menu_provider.py`.
 
 /

@@ -20,7 +20,7 @@ from haywire.ui import elements as hui
 from haywire.ui.editor.decorator import editor
 from haywire.ui.editor.base import BaseEditor
 from haywire.ui.context_signals import ActiveGraphMoved, GraphDataMutated
-from haywire.ui.graph_canvas.graph_canvas_manager import GraphCanvasManager
+from haybale_studio.editors.graph_canvas.graph_canvas_manager import GraphCanvasManager
 
 if TYPE_CHECKING:
     from haywire_studio.haystack import GraphEntry

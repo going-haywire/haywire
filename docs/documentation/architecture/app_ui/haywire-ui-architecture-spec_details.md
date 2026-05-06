@@ -1451,7 +1451,7 @@ All new framework files live under `packages/haywire-core/src/haywire/ui/`. All 
 
 ### 4.1 haywire-core
 
-**Prerequisite rename:** The existing `haywire/ui/editor/` folder (graph canvas code) must be renamed to `haywire/ui/graph_canvas/` before the new `editor/` framework folder is created. All imports from `haywire.ui.editor.*` must be updated to `haywire.ui.graph_canvas.*`. This is an atomic operation (Phase 2).
+**Prerequisite rename:** The existing `haywire/ui/editor/` folder (graph canvas code) must be renamed to `haywire/ui/graph_canvas/` before the new `editor/` framework folder is created. All imports from `haywire.ui.editor.*` must be updated to `haybale_studio.editors.graph_canvas.*`. This is an atomic operation (Phase 2).
 
 ```
 packages/haywire-core/src/haywire/ui/
@@ -1614,7 +1614,7 @@ When Session A mutates graph data:
 **Steps:**
 
 1. `git mv packages/haywire-core/src/haywire/ui/editor packages/haywire-core/src/haywire/ui/graph_canvas`
-2. Global search-and-replace all imports from `haywire.ui.editor.` → `haywire.ui.graph_canvas.`
+2. Global search-and-replace all imports from `haywire.ui.editor.` → `haybale_studio.editors.graph_canvas.`
 3. Verify all tests pass
 4. Update `__init__.py` exports if needed
 

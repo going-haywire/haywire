@@ -3,7 +3,7 @@
 Editor framework for the Haywire UI system.
 
 Provides BaseEditor, EditorIdentity, the @editor decorator, and EditorTypeRegistry.
-The graph canvas implementation lives in haywire.ui.graph_canvas.
+The graph canvas implementation lives in haybale_studio.editors.graph_canvas.
 """
 
 from .identity import EditorIdentity

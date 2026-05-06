@@ -1,6 +1,6 @@
 """ContextMenuActions Protocols are runtime_checkable; structural impl satisfies them."""
 
-from haywire.ui.graph_canvas.handlers.context_menu_actions import (
+from haybale_studio.editors.graph_canvas.handlers.context_menu_actions import (
     CanvasContextActions,
     EdgeContextActions,
     NodeContextActions,

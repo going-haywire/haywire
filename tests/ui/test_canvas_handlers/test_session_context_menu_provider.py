@@ -6,20 +6,35 @@ Verifies that the provider:
 - Clears active_port/active_edge when the popup close callback is invoked
 """
 
+import importlib
 from unittest.mock import MagicMock, patch
 
-from haybale_studio.focuses import EdgeFocus, NodeFocus
 from haywire.core.library.identity import LibraryIdentity
 from haywire.core.state import LibraryStateContainer
 from haywire.ui.context import SessionContext
-from haywire.ui.graph_canvas.handlers.context_menu import SessionContextMenuProvider
-from haywire.ui.graph_canvas.handlers.context_menu_actions import (
-    EdgeContextActions,
-    NodeContextActions,
-)
 from haywire.ui.panel import Panel
 from haywire.ui.panel.decorator import panel
 from haywire.ui.panel.registry import PanelRegistry
+
+_CONTEXT_MENU_MODULE = "haybale_studio.editors.graph_canvas.handlers.context_menu"
+
+
+def _current_context_menu():
+    """Return the live context_menu module — survives library hot-reloads.
+
+    Top-of-file imports become stale after `importlib.reload` swaps a new
+    module object into sys.modules. Tests must always read class references
+    and patch targets from the *current* module.
+    """
+    return importlib.import_module(_CONTEXT_MENU_MODULE)
+
+
+def _current_focuses():
+    return importlib.import_module("haybale_studio.focuses")
+
+
+def _current_actions():
+    return importlib.import_module("haybale_studio.editors.graph_canvas.handlers.context_menu_actions")
 
 
 _FAKE_LIBRARY_IDENTITY = LibraryIdentity(
@@ -54,17 +69,20 @@ def make_context(session=None) -> SessionContext:
 
 
 def make_provider(ctx: SessionContext, registry: PanelRegistry, on_emit_event=None):
-    """Build a SessionContextMenuProvider with a patched Popup class."""
+    """Build a SessionContextMenuProvider with a patched Popup class.
+
+    Resolves SessionContextMenuProvider and the patch target from the live
+    module (post-any-reload) — top-of-file imports become stale once the
+    library system reloads context_menu via importlib.reload.
+    """
+    cm = _current_context_menu()
     popup_container = MagicMock()
     popup = MagicMock()
     popup.__enter__ = MagicMock(return_value=popup_container)
     popup.__exit__ = MagicMock(return_value=False)
-    patcher = patch(
-        "haywire.ui.graph_canvas.handlers.context_menu.Popup",
-        return_value=popup,
-    )
+    patcher = patch.object(cm, "Popup", return_value=popup)
     patcher.start()
-    provider = SessionContextMenuProvider(
+    provider = cm.SessionContextMenuProvider(
         context=ctx,
         session=ctx.session,
         panel_registry=registry,
@@ -81,12 +99,14 @@ def make_provider(ctx: SessionContext, registry: PanelRegistry, on_emit_event=No
 def test_panels_that_return_false_from_poll_are_not_drawn():
     ctx = make_context()
     registry = PanelRegistry()
+    actions = _current_actions()
+    focuses = _current_focuses()
 
     drawn = []
 
     @panel(
-        action=NodeContextActions,
-        focus=NodeFocus,
+        action=actions.NodeContextActions,
+        focus=focuses.NodeFocus,
         label="Always False",
         registry_id="always_false_panel",
     )
@@ -109,12 +129,14 @@ def test_panels_that_return_false_from_poll_are_not_drawn():
 def test_panels_that_return_true_from_poll_are_drawn():
     ctx = make_context()
     registry = PanelRegistry()
+    actions = _current_actions()
+    focuses = _current_focuses()
 
     drawn = []
 
     @panel(
-        action=NodeContextActions,
-        focus=NodeFocus,
+        action=actions.NodeContextActions,
+        focus=focuses.NodeFocus,
         label="Always True",
         registry_id="always_true_panel",
     )
@@ -137,12 +159,14 @@ def test_panels_that_return_true_from_poll_are_drawn():
 def test_panels_for_wrong_focus_are_not_drawn():
     ctx = make_context()
     registry = PanelRegistry()
+    actions = _current_actions()
+    focuses = _current_focuses()
 
     drawn = []
 
     @panel(
-        action=EdgeContextActions,
-        focus=EdgeFocus,
+        action=actions.EdgeContextActions,
+        focus=focuses.EdgeFocus,
         label="Edge Only",
         registry_id="edge_only_panel",
     )

@@ -13,8 +13,8 @@ from haybale_studio.focuses import CanvasFocus
 from haywire.core.node.info import NodeInfo
 from haywire.ui import elements as hui
 from haywire.ui.context_signals import ActiveComponentMoved, Reveal
-from haywire.ui.graph_canvas.handlers.context_menu_actions import CanvasContextActions
-from haywire.ui.graph_canvas.node_menu_builder import NodeMenuBuilder
+from haybale_studio.editors.graph_canvas.handlers.context_menu_actions import CanvasContextActions
+from haybale_studio.editors.graph_canvas.node_menu_builder import NodeMenuBuilder
 from haywire.ui.panel import Panel
 from haywire.ui.panel.layout import PanelLayout
 from haywire.ui.panel.decorator import panel

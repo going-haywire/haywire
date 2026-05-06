@@ -18,7 +18,7 @@ from nicegui import ui
 from haybale_studio.focuses import EdgeFocus
 from haybale_studio.editors.properties_editor_actions import PropertiesEditorActions
 from haywire.ui import elements as hui
-from haywire.ui.graph_canvas.handlers.context_menu_actions import EdgeContextActions
+from haybale_studio.editors.graph_canvas.handlers.context_menu_actions import EdgeContextActions
 from haywire.ui.panel import Panel, PanelLayout
 from haywire.ui.panel.decorator import panel
 

@@ -12,15 +12,16 @@ from nicegui import ui
 
 from haywire.core.graph.editor import Editor
 
-from ..components.zoom.pan import ZoomPanContainer
-from ..components.graph.canvas import GraphCanvasVue
+from haywire.ui.components.zoom.pan import ZoomPanContainer
+from haywire.ui.components.graph.canvas import GraphCanvasVue
+from haywire.ui.session import Session
+
 from .event_definitions import BaseGraphEvent, GRAPH_EVENT_REGISTRY
 from .event_handlers import build_event_handler_map
 from .handlers.interaction import InteractionHandlers
 from .handlers.selection import SelectionHandlers
 from .handlers.visual_layer import VisualLayerHandlers
 from .handlers.context_menu import ContextMenuHandlers, SessionContextMenuProvider
-from ..session import Session
 
 logger = logging.getLogger(__name__)
 

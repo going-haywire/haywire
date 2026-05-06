@@ -740,7 +740,7 @@ pattern worth flagging.
 
 ### 8.1 What the pipeline does today
 
-From [context_menu.py](../../../packages/haywire-core/src/haywire/ui/graph_canvas/handlers/context_menu.py):
+From [context_menu.py](../../../barn/haybale-studio/haybale_studio/editors/graph_canvas/handlers/context_menu.py):
 
 1. User right-clicks. `SessionContextMenuProvider._open_menu` sets
    `context.context_menu_trigger = "canvas" | "node" | "edge" | "selection"`.

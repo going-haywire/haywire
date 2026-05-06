@@ -10,7 +10,7 @@ from typing import TYPE_CHECKING
 
 from haybale_studio.focuses import EdgeFocus
 from haywire.ui import elements as hui
-from haywire.ui.graph_canvas.handlers.context_menu_actions import EdgeContextActions
+from haybale_studio.editors.graph_canvas.handlers.context_menu_actions import EdgeContextActions
 from haywire.ui.panel import Panel
 from haywire.ui.panel.layout import PanelLayout
 from haywire.ui.panel.decorator import panel

@@ -9,17 +9,17 @@ IContextMenuProvider. The provider decides how to surface the menu
 import pytest
 from unittest.mock import MagicMock
 
-from haywire.ui.graph_canvas.handlers.context_menu import (
+from haybale_studio.editors.graph_canvas.handlers.context_menu import (
     ContextMenuHandlers,
     IContextMenuProvider,
 )
-from haywire.ui.graph_canvas.event_definitions import (
+from haybale_studio.editors.graph_canvas.event_definitions import (
     ContextMenuCanvasEvent,
     ContextMenuNodeEvent,
     ContextMenuEdgeEvent,
     ContextMenuSelectedEvent,
 )
-from haywire.ui.graph_canvas.event_handlers import build_event_handler_map
+from haybale_studio.editors.graph_canvas.event_handlers import build_event_handler_map
 
 pytestmark = pytest.mark.unit
 

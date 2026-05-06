@@ -8,13 +8,13 @@ events into Editor calls (which handle undo internally).
 import pytest
 from unittest.mock import MagicMock
 
-from haywire.ui.graph_canvas.handlers.interaction import InteractionHandlers
-from haywire.ui.graph_canvas.event_definitions import (
+from haybale_studio.editors.graph_canvas.handlers.interaction import InteractionHandlers
+from haybale_studio.editors.graph_canvas.event_definitions import (
     UserDragStartEvent,
     UserDragUpdateEvent,
     UserDragEndEvent,
 )
-from haywire.ui.graph_canvas.event_handlers import build_event_handler_map
+from haybale_studio.editors.graph_canvas.event_handlers import build_event_handler_map
 
 pytestmark = pytest.mark.unit
 

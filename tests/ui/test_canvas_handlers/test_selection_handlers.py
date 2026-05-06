@@ -6,12 +6,12 @@ import pytest
 from unittest.mock import MagicMock
 
 from haywire.ui.context import SessionContext
-from haywire.ui.graph_canvas.handlers.selection import SelectionHandlers
-from haywire.ui.graph_canvas.event_definitions import (
+from haybale_studio.editors.graph_canvas.handlers.selection import SelectionHandlers
+from haybale_studio.editors.graph_canvas.event_definitions import (
     SelectionChangedEvent,
     UserCopySelectedEvent,
 )
-from haywire.ui.graph_canvas.event_handlers import build_event_handler_map
+from haybale_studio.editors.graph_canvas.event_handlers import build_event_handler_map
 
 pytestmark = pytest.mark.unit
 

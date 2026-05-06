@@ -40,8 +40,8 @@ def test_copy_selection_handler_writes_to_session_context():
 
     from haywire.core.undo.actions.graph_actions import ClipboardData
     from haywire.ui.context import SessionContext
-    from haywire.ui.graph_canvas.event_definitions import UserCopySelectedEvent
-    from haywire.ui.graph_canvas.handlers.selection import SelectionHandlers
+    from haybale_studio.editors.graph_canvas.event_definitions import UserCopySelectedEvent
+    from haybale_studio.editors.graph_canvas.handlers.selection import SelectionHandlers
 
     # Build a SessionContext + Session
     ctx = SessionContext(session_id="t", app=MagicMock())
@@ -77,8 +77,8 @@ def test_paste_clipboard_handler_reads_from_session_context():
 
     from haywire.core.undo.actions.graph_actions import ClipboardData
     from haywire.ui.context import SessionContext
-    from haywire.ui.graph_canvas.event_definitions import UserPasteClipboardEvent
-    from haywire.ui.graph_canvas.handlers.selection import SelectionHandlers
+    from haybale_studio.editors.graph_canvas.event_definitions import UserPasteClipboardEvent
+    from haybale_studio.editors.graph_canvas.handlers.selection import SelectionHandlers
 
     ctx = SessionContext(session_id="t", app=MagicMock())
     session = MagicMock()

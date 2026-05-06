@@ -13,7 +13,7 @@ from typing import TYPE_CHECKING
 from haybale_studio.focuses import NodeFocus
 from haybale_studio.editors.properties_editor_actions import PropertiesEditorActions
 from haywire.ui import elements as hui
-from haywire.ui.graph_canvas.handlers.context_menu_actions import NodeContextActions
+from haybale_studio.editors.graph_canvas.handlers.context_menu_actions import NodeContextActions
 from haywire.ui.panel import Panel
 from haywire.ui.panel.layout import PanelLayout
 from haywire.ui.panel.decorator import panel

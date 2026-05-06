@@ -32,7 +32,7 @@ from haywire.ui.panel.layout import PanelLayout
 from haywire.ui.components.popup import Popup
 
 if TYPE_CHECKING:
-    from haywire.ui.graph_canvas.handlers.visual_layer import VisualLayerHandlers
+    from haybale_studio.editors.graph_canvas.handlers.visual_layer import VisualLayerHandlers
     from haywire.ui.context import SessionContext
     from haywire.ui.session import Session
     from haywire.ui.panel.registry import PanelRegistry
@@ -221,7 +221,7 @@ class SessionContextMenuProvider(IContextMenuProvider):
 
     def on_canvas_context(self, pos, canvas_pos, pending_connection=None):
         from haybale_studio.focuses import CanvasFocus  # type: ignore[import-untyped]
-        from haywire.ui.graph_canvas.handlers.context_menu_actions import CanvasContextActions
+        from haybale_studio.editors.graph_canvas.handlers.context_menu_actions import CanvasContextActions
 
         self._open_ctx = _OpenMenuContext(
             click_pos=pos,
@@ -232,7 +232,7 @@ class SessionContextMenuProvider(IContextMenuProvider):
 
     def on_node_context(self, pos, node_id):
         from haybale_studio.focuses import NodeFocus  # type: ignore[import-untyped]
-        from haywire.ui.graph_canvas.handlers.context_menu_actions import NodeContextActions
+        from haybale_studio.editors.graph_canvas.handlers.context_menu_actions import NodeContextActions
 
         graph = self._context.active_graph.value
         if graph is not None:
@@ -245,7 +245,7 @@ class SessionContextMenuProvider(IContextMenuProvider):
 
     def on_edge_context(self, pos, edge_id, edge, state, at_sink_end=False):
         from haybale_studio.focuses import EdgeFocus  # type: ignore[import-untyped]
-        from haywire.ui.graph_canvas.handlers.context_menu_actions import EdgeContextActions
+        from haybale_studio.editors.graph_canvas.handlers.context_menu_actions import EdgeContextActions
 
         graph = self._context.active_graph.value
         if graph is not None:
@@ -262,7 +262,7 @@ class SessionContextMenuProvider(IContextMenuProvider):
 
     def on_port_context(self, pos, node_id, port_id, scope):
         from haybale_studio.focuses import PortFocus  # type: ignore[import-untyped]
-        from haywire.ui.graph_canvas.handlers.context_menu_actions import PortContextActions
+        from haybale_studio.editors.graph_canvas.handlers.context_menu_actions import PortContextActions
         from haywire.ui.panel.focus import focus_by_id
 
         graph = self._context.active_graph.value
@@ -279,7 +279,7 @@ class SessionContextMenuProvider(IContextMenuProvider):
 
     def on_selection_context(self, pos, nodes, edges):
         from haybale_studio.focuses import SelectionFocus  # type: ignore[import-untyped]
-        from haywire.ui.graph_canvas.handlers.context_menu_actions import SelectionContextActions
+        from haybale_studio.editors.graph_canvas.handlers.context_menu_actions import SelectionContextActions
 
         self._open_ctx = _OpenMenuContext(click_pos=pos)
         self._open_menu(SelectionContextActions, SelectionFocus, pos)
@@ -291,7 +291,7 @@ class SessionContextMenuProvider(IContextMenuProvider):
         against it; the DOM attribute carries the focus id.
         """
         from haybale_studio.focuses import NodeFocus  # type: ignore[import-untyped]
-        from haywire.ui.graph_canvas.handlers.context_menu_actions import NodeContextActions
+        from haybale_studio.editors.graph_canvas.handlers.context_menu_actions import NodeContextActions
         from haywire.ui.panel.focus import focus_by_id
 
         graph = self._context.active_graph.value
@@ -330,7 +330,7 @@ class SessionContextMenuProvider(IContextMenuProvider):
         the new node. Mark it consumed so the popup-close path does not
         also emit SyncEdgeConnectResumeEvent.
         """
-        from haywire.ui.graph_canvas.event_definitions import NodeCreateRequestEvent
+        from haybale_studio.editors.graph_canvas.event_definitions import NodeCreateRequestEvent
 
         if self._open_ctx is None or self._open_ctx.canvas_pos is None:
             return
@@ -347,7 +347,7 @@ class SessionContextMenuProvider(IContextMenuProvider):
 
     def paste_at_click(self) -> None:
         """Emit UserPasteClipboardEvent at the click's canvas position."""
-        from haywire.ui.graph_canvas.event_definitions import UserPasteClipboardEvent
+        from haybale_studio.editors.graph_canvas.event_definitions import UserPasteClipboardEvent
 
         if self._open_ctx is None or self._open_ctx.canvas_pos is None:
             return
@@ -357,34 +357,34 @@ class SessionContextMenuProvider(IContextMenuProvider):
     # NodeContextActions
 
     def delete_node(self, node_id: str) -> None:
-        from haywire.ui.graph_canvas.event_definitions import UserRemoveEvent
+        from haybale_studio.editors.graph_canvas.event_definitions import UserRemoveEvent
 
         self._emit(UserRemoveEvent(nodes=[node_id], edges=[]))
 
     def copy_node(self, node_id: str) -> None:
-        from haywire.ui.graph_canvas.event_definitions import UserCopySelectedEvent
+        from haybale_studio.editors.graph_canvas.event_definitions import UserCopySelectedEvent
 
         self._emit(UserCopySelectedEvent(selectedNodes=[node_id], selectedEdges=[]))
 
     def redraw_node(self, node_id: str) -> None:
-        from haywire.ui.graph_canvas.event_definitions import ElementRedrawEvent
+        from haybale_studio.editors.graph_canvas.event_definitions import ElementRedrawEvent
 
         self._emit(ElementRedrawEvent(nodes=[node_id], edges=[]))
 
     def revalidate_node(self, node_id: str) -> None:
-        from haywire.ui.graph_canvas.event_definitions import ElementRevalidateEvent
+        from haybale_studio.editors.graph_canvas.event_definitions import ElementRevalidateEvent
 
         self._emit(ElementRevalidateEvent(nodes=[node_id], edges=[]))
 
     def reset_node(self, node_id: str) -> None:
-        from haywire.ui.graph_canvas.event_definitions import ElementResetEvent
+        from haybale_studio.editors.graph_canvas.event_definitions import ElementResetEvent
 
         self._emit(ElementResetEvent(nodes=[node_id], edges=[]))
 
     # EdgeContextActions
 
     def delete_edge(self, edge_id: str) -> None:
-        from haywire.ui.graph_canvas.event_definitions import UserRemoveEvent
+        from haybale_studio.editors.graph_canvas.event_definitions import UserRemoveEvent
 
         self._emit(UserRemoveEvent(nodes=[], edges=[edge_id]))
 
@@ -396,7 +396,7 @@ class SessionContextMenuProvider(IContextMenuProvider):
         to compute the anchor pin. Panels never pass these as arguments —
         the provider holds them as gesture state.
         """
-        from haywire.ui.graph_canvas.event_definitions import SyncEdgeReconnectEvent
+        from haybale_studio.editors.graph_canvas.event_definitions import SyncEdgeReconnectEvent
 
         wrapper = self._context.active_edge.value
         if wrapper is None or self._open_ctx is None:
@@ -424,7 +424,7 @@ class SessionContextMenuProvider(IContextMenuProvider):
 
     def copy_selection(self) -> None:
         """Emit UserCopySelectedEvent for the current ctx.selected_nodes/edges."""
-        from haywire.ui.graph_canvas.event_definitions import UserCopySelectedEvent
+        from haybale_studio.editors.graph_canvas.event_definitions import UserCopySelectedEvent
 
         self._emit(
             UserCopySelectedEvent(
