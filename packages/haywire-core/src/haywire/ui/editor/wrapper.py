@@ -132,6 +132,10 @@ class EditorWrapper:
         self._state: EditorWrapperState = EditorWrapperState()
         self._slot: "Optional[Slot]" = slot
 
+        # Cleanup flag — signals cleanup() has run; callers must not access
+        # the wrapper's fields after that. Mirrors Settings._cleaned_up.
+        self._cleaned_up: bool = False
+
         # Subscribe per-key for hot-reload events
         self._registry.add_event_subscriber(self.editor_key, self._on_lifecycle_event)
 
@@ -466,7 +470,13 @@ class EditorWrapper:
     # ------------------------------------------------------------------
 
     def cleanup(self) -> None:
-        """Tear down the wrapper. Idempotent."""
+        """Tear down the wrapper. Idempotent.
+
+        Callers must not access the wrapper's fields after cleanup() returns —
+        the contract is signalled by ``self._cleaned_up = True``.
+        """
+        if self._cleaned_up:
+            return
         try:
             self._registry.remove_event_subscriber(self.editor_key, self._on_lifecycle_event)
         except Exception as exc:
@@ -477,9 +487,6 @@ class EditorWrapper:
             except Exception as exc:
                 logger.warning(f"EditorWrapper '{self.editor_key}': instance.cleanup() raised: {exc}")
             self._instance = None
-        # State and session are nulled here as part of cleanup; downstream code
-        # must not access them after cleanup() is called.
-        self._state = None  # type: ignore[assignment]
-        self._session = None  # type: ignore[assignment]
         self._redraw_callback = None
         self._slot = None
+        self._cleaned_up = True

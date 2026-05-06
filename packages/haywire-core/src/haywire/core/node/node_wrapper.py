@@ -165,6 +165,10 @@ class NodeWrapper:
         # Thread safety
         self._lock = threading.RLock()
 
+        # Cleanup flag — signals that cleanup() has run and callers must not
+        # access the wrapper's fields. Mirrors Settings._cleaned_up.
+        self._cleaned_up: bool = False
+
         # Lifecycle state
         self._state: NodeWrapperState = NodeWrapperState()
 
@@ -514,20 +518,22 @@ class NodeWrapper:
                 self._graph._validation.mark_node_dirty(self._node_id, ChangeReason.NODE_HOT_RELOADED)
 
     def cleanup(self) -> None:
-        """Full cleanup when wrapper is being destroyed"""
+        """Full cleanup when wrapper is being destroyed.
+
+        Callers must not access the wrapper's fields after cleanup() returns —
+        the contract is signalled by ``self._cleaned_up = True``.
+        """
         with self._lock:
+            if self._cleaned_up:
+                return
             # Remove event subscription
             self._node_factory.remove_event_subscriber(self.registry_key, self._on_node_lifecycle_event)
 
-            # State, factory, and graph are nulled here as part of teardown;
-            # callers must not access them after cleanup() is called.
-            self._state = None  # type: ignore[assignment]
             self._node_cls = None
-            self._node_factory = None  # type: ignore[assignment]
             if self._node_instance:
                 self._node_instance._cleanup()
                 self._node_instance = None
-            self._graph = None  # type: ignore[assignment]
+            self._cleaned_up = True
 
     def validate(self) -> List[str]:
         """

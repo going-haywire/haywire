@@ -46,6 +46,10 @@ class BaseWidget(IWidget, ABC):
         # Sub-element references (for complex widgets)
         self._ui_element_refs: Dict[str, Any] = {}
 
+        # Cleanup flag — signals cleanup() has run; callers must not access
+        # the widget's fields after that. Mirrors Settings._cleaned_up.
+        self._cleaned_up: bool = False
+
     @abstractmethod
     def configure_bindings(self) -> None:
         """
@@ -183,7 +187,13 @@ class BaseWidget(IWidget, ABC):
                     binding.activate(self.port, target_element)
 
     def cleanup(self) -> None:
-        """Clean up bindings and resources"""
+        """Clean up bindings and resources.
+
+        Callers must not access the widget's fields after cleanup() returns —
+        the contract is signalled by ``self._cleaned_up = True``.
+        """
+        if self._cleaned_up:
+            return
         print(f"Cleaning up widget: {self.class_identity.registry_key} for element ID: {self.port_id}")
 
         # Deactivate all bindings
@@ -194,6 +204,5 @@ class BaseWidget(IWidget, ABC):
         self._bindings.clear()
         self._ui_element_refs.clear()
 
-        # Clear references
-        self.port = None  # type: ignore[assignment]
         self.ui_element = None
+        self._cleaned_up = True

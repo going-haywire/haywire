@@ -172,6 +172,10 @@ class EdgeWrapper:
         # State management
         self._state = EdgeWrapperState(creation_time=time.time())
 
+        # Cleanup flag — signals cleanup() has run; callers must not access
+        # the wrapper's fields after that. Mirrors Settings._cleaned_up.
+        self._cleaned_up: bool = False
+
         # Create Edge instance in any case
         self._edge = Edge(
             source_node_id=self.source_node_id,
@@ -851,20 +855,20 @@ class EdgeWrapper:
         return self._state.is_valid()
 
     def cleanup(self):
-        """Clean up edge resources"""
-        # Remove from ports before nulling references
+        """Clean up edge resources.
+
+        Callers must not access the wrapper's fields after cleanup() returns —
+        the contract is signalled by ``self._cleaned_up = True``.
+        """
+        if self._cleaned_up:
+            return
+        # Remove from ports before signalling teardown
         self.detach()
 
         # Unsubscribe from adapter factory
         self._adapter_factory.unregister_edge_callback(self._edge_id)
 
-        # Clear references
-        self._first_adapter = None
-        self._source_wrapper = None
-        self._sink_wrapper = None
-        self._outlet_port = None
-        self._inlet_port = None
-        self._edge = None  # type: ignore[assignment]
+        self._cleaned_up = True
 
     def __repr__(self) -> str:
         status = "valid" if self._state.is_valid() else "invalid"

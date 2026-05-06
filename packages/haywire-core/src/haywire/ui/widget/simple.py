@@ -67,6 +67,10 @@ class SimpleWidget(IWidget, ABC):
         # Cleanup callbacks
         self._model_changed_callback: Optional[Callable] = None
         self._ui_changed_callback: Optional[Callable] = None
+
+        # Cleanup flag — signals cleanup() has run; callers must not access
+        # the widget's fields after that. Mirrors Settings._cleaned_up.
+        self._cleaned_up: bool = False
         self.logger = logging.getLogger(__name__)
 
     @abstractmethod
@@ -149,7 +153,13 @@ class SimpleWidget(IWidget, ABC):
         return None
 
     def cleanup(self) -> None:
-        """Clean up subscriptions"""
+        """Clean up subscriptions.
+
+        Callers must not access the widget's fields after cleanup() returns —
+        the contract is signalled by ``self._cleaned_up = True``.
+        """
+        if self._cleaned_up:
+            return
         if self._model_changed_callback and self.port is not None:
             try:
                 self.port._data.on_changed -= self._model_changed_callback
@@ -164,5 +174,5 @@ class SimpleWidget(IWidget, ABC):
 
         self._model_changed_callback = None
         self._ui_changed_callback = None
-        self.port = None  # type: ignore[assignment]
         self.ui_element = None
+        self._cleaned_up = True
