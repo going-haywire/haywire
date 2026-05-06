@@ -1018,8 +1018,20 @@ class BaseNode(NodeData, metaclass=NodeMeta):
     This is useful for nodes under development that should not yet be part of the library.
     """
 
-    class props(NodeProperties):
-        """Per-instance observable props (muted, collapsed, skin, position, …)."""
+    if TYPE_CHECKING:
+        # mypy view: instances expose `props` as a NodeProperties instance.
+        # Without this hint mypy would see only the inner class (below) and
+        # report attribute access as `field[T]` descriptors instead of T.
+        props: NodeProperties
+    else:
+
+        class props(NodeProperties):
+            """Per-instance observable props (muted, collapsed, skin, position, …).
+
+            Inner-class form is the schema declaration discovered by the @node
+            decorator's _wire_settings_schemas. At construction time NodeData.__init__
+            replaces this on the instance with a NodeProperties instance.
+            """
 
     def __init__(self, node_id: str, wrapper: "NodeWrapper"):
         """
@@ -1274,7 +1286,7 @@ class BaseNode(NodeData, metaclass=NodeMeta):
             "node_id": self.node_id,
             "ports": self._serialize_ports(include_data=include_data),
             "settings": {name: getattr(self, name).to_dict() for name in type(self)._settings_bags},
-            "props": self.props.to_dict(),  # type: ignore[call-arg]
+            "props": self.props.to_dict(),
             "store": self._store.to_dict(),
             "identity": asdict(self.identity),
             "library": asdict(self.library),
@@ -1327,7 +1339,7 @@ class BaseNode(NodeData, metaclass=NodeMeta):
 
         # Restore reactive props
         if "props" in data:
-            self.props.from_dict(data["props"])  # type: ignore[call-arg]
+            self.props.from_dict(data["props"])
 
         if "store" in data:
             self._store.from_dict(data["store"])

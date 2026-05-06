@@ -9,7 +9,7 @@ and automatically re-renders when the underlying node class is hot-reloaded.
 """
 
 import logging
-from typing import Any, Callable, Optional, cast
+from typing import Any, Callable, Optional
 
 from nicegui import ui
 from haywire.core.graph.types import ChangeReason
@@ -128,10 +128,7 @@ class UINode:
 
         Note: Must be called within a valid NiceGUI client context.
         """
-        # Cast around the deferred 'props' inner-class shadowing issue:
-        # node.props.skin returns str at runtime via the descriptor, but mypy
-        # sees the field[str] descriptor itself.
-        renderer_name: Optional[str] = cast(Optional[str], self.wrapper.node.props.skin)
+        renderer_name: Optional[str] = self.wrapper.node.props.skin
 
         if renderer_name is None:
             renderer_name = self.factory._skin_registry.get_default_skin_registry_key()

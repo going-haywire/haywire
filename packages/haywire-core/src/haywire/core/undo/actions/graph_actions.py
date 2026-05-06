@@ -186,8 +186,8 @@ class MoveNodesAction(ActionBase):
                 node = wrapper.node
                 self.graph.move_node(
                     node_id,
-                    node.props.posX + self.deltaX,  # type: ignore[operator]
-                    node.props.posY + self.deltaY,  # type: ignore[operator]
+                    node.props.posX + self.deltaX,
+                    node.props.posY + self.deltaY,
                 )
 
     def _undo_impl(self) -> None:
@@ -198,8 +198,8 @@ class MoveNodesAction(ActionBase):
                 node = wrapper.node
                 self.graph.move_node(
                     node_id,
-                    node.props.posX - self.deltaX,  # type: ignore[operator]
-                    node.props.posY - self.deltaY,  # type: ignore[operator]
+                    node.props.posX - self.deltaX,
+                    node.props.posY - self.deltaY,
                 )
 
     def can_merge(self, other) -> bool:

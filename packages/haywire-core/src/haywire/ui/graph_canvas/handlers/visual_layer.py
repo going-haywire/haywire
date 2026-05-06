@@ -11,7 +11,7 @@ Responsible for:
 
 import logging
 import traceback
-from typing import Dict, Optional, Tuple, TYPE_CHECKING, cast
+from typing import Dict, Optional, Tuple, TYPE_CHECKING
 
 from nicegui import ui
 
@@ -99,10 +99,7 @@ class VisualLayerHandlers:
             if reason == ChangeReason.NODE_ADDED:
                 node_wrapper = self.graph.get_node_wrapper(node_id)
                 if node_wrapper and node_id not in self.node_panels:
-                    position = cast(
-                        tuple[float, float],
-                        (node_wrapper.node.props.posX, node_wrapper.node.props.posY),
-                    )
+                    position = (node_wrapper.node.props.posX, node_wrapper.node.props.posY)
                     self.add_node_visual(node_wrapper.node, position)
                     logger.debug(f"  + Added node UI: {node_id}")
 
@@ -116,10 +113,7 @@ class VisualLayerHandlers:
                 if ui_node:
                     moved_wrapper = self.graph.get_node_wrapper(node_id)
                     if moved_wrapper:
-                        new_position = cast(
-                            tuple[float, float],
-                            (moved_wrapper.node.props.posX, moved_wrapper.node.props.posY),
-                        )
+                        new_position = (moved_wrapper.node.props.posX, moved_wrapper.node.props.posY)
                         self.update_node_position(node_id, new_position)
                         logger.debug(f"  ↔ Moved node: {node_id}")
 
