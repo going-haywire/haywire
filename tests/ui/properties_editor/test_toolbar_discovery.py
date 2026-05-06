@@ -4,11 +4,26 @@ sorted by Focus.order."""
 
 from __future__ import annotations
 
+from haywire.core.library.identity import LibraryIdentity
 from haywire.ui.panel import Panel, PanelRegistry, panel
 from haywire.ui.panel.focus import Focus
 
 # Import the editor's actions Protocol so we can register a panel against it.
 from haybale_studio.editors.properties_editor_actions import PropertiesEditorActions
+
+
+_FAKE_LIBRARY_IDENTITY = LibraryIdentity(
+    label="fake",
+    version="0.1",
+    description="test",
+    url="",
+    help_url="",
+    author="",
+    author_url="",
+    folder_path="/tmp/fake",
+    module_name="fake",
+    id="fake",
+)
 
 
 # A library-defined focus that PropertiesEditor doesn't know about by default.
@@ -49,7 +64,7 @@ def test_toolbar_includes_library_focus_via_registry():
     from haybale_studio.editors.properties_editor import PropertiesEditor
 
     reg = PanelRegistry()
-    reg._register_class(_LibraryProvidedPanel)
+    reg._register_class(_LibraryProvidedPanel, _FAKE_LIBRARY_IDENTITY)
     editor = PropertiesEditor(panel_registry=reg)
     focuses = editor._compute_toolbar_focuses()
     assert _LibraryFocus in focuses

@@ -58,9 +58,8 @@ class SimpleWidget(IWidget, ABC):
         """Initialize simple widget"""
         self.port = port
         self.port_id: str = port.id
-        self.config: dict = (
-            port.widget_config if hasattr(port, "widget_config") and port.widget_config else {}
-        )
+        widget_config = port.widget_config if hasattr(port, "widget_config") and port.widget_config else {}
+        self.config: dict = widget_config  # type: ignore[assignment]
 
         # UI element (created during render)
         self.ui_element: ui.element | None = None
@@ -108,6 +107,7 @@ class SimpleWidget(IWidget, ABC):
         """
         Setup bidirectional or unidirectional binding.
         """
+        assert self.ui_element is not None  # render() creates it before calling this
         # Model → View: Subscribe to data field changes
         self._model_changed_callback = lambda _: self._sync_to_view()
         self.port._data.on_changed += self._model_changed_callback
@@ -164,5 +164,5 @@ class SimpleWidget(IWidget, ABC):
 
         self._model_changed_callback = None
         self._ui_changed_callback = None
-        self.port = None
+        self.port = None  # type: ignore[assignment]
         self.ui_element = None

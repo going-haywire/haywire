@@ -14,12 +14,17 @@ from haywire.ui import elements as hui
 class NodeMenuBuilder:
     """Builds hierarchical NiceGUI menus from NodeFactory node information."""
 
-    def __init__(self, node_factory: NodeFactory):
+    def __init__(
+        self,
+        node_factory: NodeFactory,
+        on_node_selected: Callable[[NodeInfo], None],
+        on_context_click: Optional[Callable[[NodeInfo], None]] = None,
+    ):
         self.node_factory = node_factory
+        self._on_node_selected = on_node_selected
+        self._on_context_click = on_context_click
         self._menu_cache: Optional[Dict[str, List[NodeInfo]]] = None
         self._menu_tree_cache: Optional[Dict] = None
-        self._on_node_selected: Optional[Callable[[NodeInfo], None]] = None
-        self._on_context_click: Optional[Callable[[NodeInfo], None]] = None
 
     def invalidate_cache(self):
         """Invalidate menu caches when nodes are hot-reloaded."""
@@ -28,8 +33,6 @@ class NodeMenuBuilder:
 
     def create_node_menu(
         self,
-        on_node_selected: Callable[[NodeInfo], None],
-        on_context_click: Optional[Callable[[NodeInfo], None]] = None,
         recent_nodes: Optional[List[str]] = None,
         show_search: bool = True,
     ) -> ui.column:
@@ -37,18 +40,12 @@ class NodeMenuBuilder:
         Create a complete node menu with optional recent nodes and search.
 
         Args:
-            on_node_selected: Callback when a node is selected (receives NodeInfo)
-            on_context_click: Callback when a node item is right-clicked (receives NodeInfo)
             recent_nodes: List of recently used node registry keys to show at top
             show_search: Whether to include search functionality
 
         Returns:
             ui.column containing the complete menu interface
         """
-        # Store the callbacks for use in search results
-        self._on_node_selected = on_node_selected
-        self._on_context_click = on_context_click
-
         with ui.column().classes("w-full") as menu_container:
             # Search functionality if requested
             if show_search:

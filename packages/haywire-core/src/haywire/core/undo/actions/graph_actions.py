@@ -8,9 +8,9 @@ including node and edge manipulation, positioning, and selection.
 from typing import Optional, Dict, List, Tuple
 from dataclasses import dataclass
 
-from ...node import BaseNode, NodeWrapper
+from ...node import NodeWrapper
 from ...graph.base import BaseGraph
-from ...edge.edge_wrapper import EdgeWrapper, Edge
+from ...edge.edge_wrapper import EdgeWrapper
 from ..base_action import ActionBase, CompositeAction
 
 
@@ -186,8 +186,8 @@ class MoveNodesAction(ActionBase):
                 node = wrapper.node
                 self.graph.move_node(
                     node_id,
-                    node.props.posX + self.deltaX,
-                    node.props.posY + self.deltaY,
+                    node.props.posX + self.deltaX,  # type: ignore[operator]
+                    node.props.posY + self.deltaY,  # type: ignore[operator]
                 )
 
     def _undo_impl(self) -> None:
@@ -198,8 +198,8 @@ class MoveNodesAction(ActionBase):
                 node = wrapper.node
                 self.graph.move_node(
                     node_id,
-                    node.props.posX - self.deltaX,
-                    node.props.posY - self.deltaY,
+                    node.props.posX - self.deltaX,  # type: ignore[operator]
+                    node.props.posY - self.deltaY,  # type: ignore[operator]
                 )
 
     def can_merge(self, other) -> bool:
@@ -240,8 +240,8 @@ class RemoveElementsAction(ActionBase):
     def __init__(
         self,
         graph: BaseGraph,
-        nodes: List[str] = None,
-        edges: List[str] = None,
+        nodes: Optional[List[str]] = None,
+        edges: Optional[List[str]] = None,
         description: Optional[str] = None,
     ):
         """
@@ -385,37 +385,31 @@ class DuplicateNodeAction(CompositeAction):
             offset_x: X offset for the new node position
             offset_y: Y offset for the new node position
         """
-        source_node = graph.get_node_wrapper(source_node_id).node
-        if source_node is None:
-            raise ValueError(f"Source node {source_node_id} not found")
-
-        # Create the duplicated node (this would need proper cloning logic)
-        # For now, we'll assume there's a clone method
-        new_node = self._clone_node(source_node, new_node_id)
-        new_node.props.posX = source_node.props.posX + offset_x
-        new_node.props.posY = source_node.props.posY + offset_y
-
-        # Create the sub-actions
-        actions = [AddNodeAction(graph, new_node, f"Add duplicated node '{new_node_id}'")]
-
-        super().__init__(actions, f"Duplicate node '{source_node_id}' as '{new_node_id}'")
-
-    def _clone_node(self, source_node: BaseNode, new_id: str) -> BaseNode:
-        """Clone a node with a new ID."""
-        # This is a placeholder - actual implementation would depend on the node structure
-        # and would need to properly copy all node properties and state
-        raise NotImplementedError("Node cloning not implemented yet")
+        # NOT YET IMPLEMENTED — scaffolding for a future duplicate feature.
+        # The previous body called _clone_node (NotImplementedError) and passed
+        # a BaseNode instance to AddNodeAction (which expects a registry_key str),
+        # so it would have crashed at runtime regardless. See git history for
+        # the broken sketch.
+        raise NotImplementedError(
+            "DuplicateNodeAction is not yet implemented. "
+            "Requires node cloning and rewiring to AddNodeAction's registry-key API."
+        )
 
 
 @dataclass
 class ClipboardData:
-    """Session-specific clipboard containing actual node and edge instances"""
+    """Session-specific clipboard containing IDs of selected nodes/edges.
 
-    # Core data - actual instances, not serialized data
-    nodes: Dict[str, BaseNode]  # new_node_id -> node_instance
-    edges: Dict[str, Edge]  # new_edge_id -> edge_instance
+    Currently stores IDs only — the paste feature (PasteClipboardAction)
+    is not yet implemented. When implemented, this may be revised to hold
+    actual node/edge instances or serialized state.
+    """
 
-    # Mapping for paste operations
+    # IDs of selected nodes/edges in the source graph
+    nodes: List[str]
+    edges: List[str]
+
+    # Mapping for paste operations (filled in when paste implements id remapping)
     original_to_new_ids: Dict[str, str]  # original_node_id -> new_node_id
 
     # Positioning data
@@ -451,40 +445,13 @@ class PasteClipboardAction(CompositeAction):
             paste_y: Y position where to paste (upper-left corner)
             description: Optional description override
         """
-        self.clipboard_data = clipboard_data
-        self.paste_position = (paste_x, paste_y)
-
-        # Calculate position offset
-        offset_x, offset_y = clipboard_data.get_paste_offset(paste_x, paste_y)
-
-        # Create sub-actions for each node and edge
-        actions = []
-
-        # Add node actions
-        for node_id, node in clipboard_data.nodes.items():
-            # Apply position offset
-            node.props.posX += offset_x
-            node.props.posY += offset_y
-
-            # Set graph reference
-            node.graph = graph
-
-            # Create add node action
-            actions.append(AddNodeAction(graph, node, f"Paste node '{node.identity.label}'"))
-
-        # Add edge actions
-        for edge_id, edge in clipboard_data.edges.items():
-            actions.append(AddEdgeAction(graph, edge, "Paste connection"))
-
-        # Determine description
-        node_count = len(clipboard_data.nodes)
-        edge_count = len(clipboard_data.edges)
-        if description is None:
-            if node_count > 0 and edge_count > 0:
-                description = f"Paste {node_count} nodes and {edge_count} connections"
-            elif node_count > 0:
-                description = f"Paste {node_count} {'node' if node_count == 1 else 'nodes'}"
-            else:
-                description = "Paste clipboard contents"
-
-        super().__init__(actions, description)
+        # NOT YET IMPLEMENTED — scaffolding for a future paste feature.
+        # The previous body passed BaseNode instances to AddNodeAction (expects
+        # registry_key str), assigned `node.graph = graph` (BaseNode has no
+        # `graph` attribute), and called AddEdgeAction(graph, edge, ...) with
+        # the wrong signature. See git history for the broken sketch.
+        raise NotImplementedError(
+            "PasteClipboardAction is not yet implemented. "
+            "Requires AddNodeAction to accept a pre-built node (or use a separate "
+            "instantiate-from-instance action), and a paste-specific edge action."
+        )

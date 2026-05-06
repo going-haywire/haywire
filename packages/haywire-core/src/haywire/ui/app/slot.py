@@ -118,7 +118,7 @@ class Slot(ABC):
         self._active: Optional[EditorWrapper] = None
         self._visible: bool = visible
         self._size: int = size
-        self._area_panel_container: Optional[ui.element] = None
+        self._area_panel_container: Optional[ui.tab_panels] = None
         self._area_parent_box: Optional[ui.element] = None
         self._panels: dict[str, ui.element] = {}
         self._drawn: set[str] = set()
@@ -156,6 +156,9 @@ class Slot(ABC):
 
         editors = []
         for wrapper in self._bindings:
+            if wrapper.editor_cls is None:
+                # Wrapper has no class loaded (registry miss); skip persisting.
+                continue
             opens = getattr(wrapper.editor_cls.class_identity, "opens", OpenBehavior.REQUIRED)
             if opens is OpenBehavior.REQUIRED:
                 continue
@@ -204,13 +207,13 @@ class Slot(ABC):
             key = entry.get("key")
             if not key:
                 continue
-            editor_cls = self._registry.get_by_key(key)
-            if editor_cls is None:
+            snapshot_cls = self._registry.get_by_key(key)
+            if snapshot_cls is None:
                 logger.warning(f"Slot '{self.name}': snapshot editor '{key}' not in registry — skipping")
                 continue
             wrapper = self.add_binding(
                 editor_key=key,
-                editor_cls=editor_cls,
+                editor_cls=snapshot_cls,
                 payload=entry.get("payload"),
                 activate=False,
             )
@@ -561,7 +564,7 @@ class Slot(ABC):
             payload=payload,
             slot=self,
         )
-        wrapper.set_redraw_callback(lambda w=wrapper: self._redraw(w))
+        wrapper.set_redraw_callback(lambda w: self._redraw(w))
         self._bindings.append(wrapper)
         if self._area_panel_container is not None:
             self._create_panel(wrapper)

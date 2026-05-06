@@ -3,9 +3,24 @@
 from typing import Protocol, runtime_checkable
 from unittest.mock import MagicMock
 
+from haywire.core.library.identity import LibraryIdentity
 from haywire.ui.context import SessionContext
 from haywire.ui.panel import Panel, PanelRegistry, panel
 from haywire.ui.panel.focus import Focus
+
+
+_FAKE_LIBRARY_IDENTITY = LibraryIdentity(
+    label="fake",
+    version="0.1",
+    description="test",
+    url="",
+    help_url="",
+    author="",
+    author_url="",
+    folder_path="/tmp/fake",
+    module_name="fake",
+    id="fake",
+)
 
 
 @runtime_checkable
@@ -35,7 +50,7 @@ class _SpeakerPanel(Panel):
 
 def test_full_pipeline_panel_registered_and_queryable():
     reg = PanelRegistry()
-    reg._register_class(_SpeakerPanel)
+    reg._register_class(_SpeakerPanel, _FAKE_LIBRARY_IDENTITY)
 
     class Host:
         def speak(self) -> None:
@@ -48,7 +63,7 @@ def test_full_pipeline_panel_registered_and_queryable():
 
 def test_full_pipeline_focus_discovered_via_registry():
     reg = PanelRegistry()
-    reg._register_class(_SpeakerPanel)
+    reg._register_class(_SpeakerPanel, _FAKE_LIBRARY_IDENTITY)
 
     class Host:
         def speak(self) -> None:

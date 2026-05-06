@@ -76,12 +76,12 @@ class AdapterRegistry(BaseRegistry):
         target_itype = identity.converts_to
 
         # Validate ITypes
-        if source_itype and not issubclass(source_itype, IType):
+        if not issubclass(source_itype, IType):
             raise TypeError(
                 f"Adapter {adapter_cls.__name__} converts_from must be IType subclass, got {source_itype}"
             )
 
-        if target_itype and not issubclass(target_itype, IType):
+        if not issubclass(target_itype, IType):
             raise TypeError(
                 f"Adapter {adapter_cls.__name__} converts_to must be IType subclass, got {target_itype}"
             )
@@ -217,11 +217,14 @@ class AdapterRegistry(BaseRegistry):
         """
         # Direct adapter exists
         if self.has_adapter(source_registry_key, target_registry_key):
-            return [self.get_adapter(source_registry_key, target_registry_key)]
+            adapter = self.get_adapter(source_registry_key, target_registry_key)
+            assert adapter is not None, "has_adapter / get_adapter contract"
+            return [adapter]
 
         # BFS to find shortest chain
-        # Queue: (current_registry_key, chain_so_far)
-        queue: deque[tuple[str, list[BaseAdapter]]] = deque([(source_registry_key, [])])
+        # Queue: (current_registry_key, chain_so_far) where chain elements are
+        # adapter classes (not instances).
+        queue: deque[tuple[str, list[type[BaseAdapter]]]] = deque([(source_registry_key, [])])
         visited = {source_registry_key}
 
         while queue:

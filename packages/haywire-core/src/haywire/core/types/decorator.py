@@ -12,10 +12,9 @@ from dataclasses import asdict
 
 
 from ..library.utils import derive_library_identity, reg_key
-from .base import BaseType
+from .base import BaseType, CompoundType, PrimitiveType
 from .identity import DataTypeIdentity
 from .interface import IType
-from .base import PrimitiveType
 from .utils import normalize_and_validate_default
 
 T = TypeVar("T")
@@ -96,7 +95,7 @@ def type(**kwargs) -> Callable[[Type[T]], Type[T]]:
             )
 
         # Initialize _parameterized_cache for CompoundType if needed
-        if hasattr(inner_cls, "_parameterized_cache"):
+        if issubclass(inner_cls, CompoundType):
             inner_cls._parameterized_cache = {}
 
         # Get library identity and attach (survives hot-reload)
@@ -152,8 +151,7 @@ def type(**kwargs) -> Callable[[Type[T]], Type[T]]:
         )
 
         # Set registry_key (always regenerate for this class)
-        library_id = library_identity.id if library_identity else None
-        identity_dict["registry_key"] = reg_key(library_id, "type", identity_dict["registry_id"])
+        identity_dict["registry_key"] = reg_key(library_identity.id, "type", identity_dict["registry_id"])
 
         # Set source info from the class itself
         identity_dict["class_name"] = inner_cls.__name__

@@ -1,6 +1,6 @@
 import inspect
 import logging
-from typing import Optional
+from typing import Optional, TYPE_CHECKING
 
 from haywire.core.errors.haywire_exception import ErrorSeverity, HaywireException
 from haywire.core.registry.lifecycle_event import LifeCycleEvent
@@ -8,6 +8,9 @@ from haywire.core.library.identity import LibraryIdentity
 from haywire.core.registry.base import BaseRegistry
 
 from .interface import IBaseSkin
+
+if TYPE_CHECKING:
+    from .base import BaseSkin
 
 logger = logging.getLogger(__name__)
 
@@ -22,7 +25,7 @@ class SkinRegistry(BaseRegistry):
         self._error_skin_name: str | None = None
         self._error_priority: int = -1
 
-        self._error_skin: type[IBaseSkin] | None = None
+        self._error_skin: "type[BaseSkin] | None" = None
 
     def _class_filter(self, cls):
         try:
@@ -36,7 +39,7 @@ class SkinRegistry(BaseRegistry):
             return False
 
     def _register_class(
-        self, skin_cls: type[IBaseSkin], library_identity: Optional[LibraryIdentity] = None
+        self, skin_cls: "type[BaseSkin]", library_identity: Optional[LibraryIdentity] = None
     ) -> str | None:
         """
         Register a skin class.
@@ -100,7 +103,7 @@ class SkinRegistry(BaseRegistry):
 
         return super()._register(registry_key, skin_cls, library_identity)
 
-    def _unregister_class(self, registry_key: str) -> type[IBaseSkin] | None:
+    def _unregister_class(self, registry_key: str) -> "type[BaseSkin] | None":
         """Unregister a skin by its registry_key
         Args:
             registry_key: The haywire registry_key of the skin to unregister
@@ -177,7 +180,7 @@ class SkinRegistry(BaseRegistry):
         """Get the error skin registry key"""
         return self._error_skin_name
 
-    def get_skin_event(self, key: str | None) -> type[LifeCycleEvent]:
+    def get_skin_event(self, key: str | None) -> LifeCycleEvent:
         """
         Get last lifecycle skin event by registry key
 

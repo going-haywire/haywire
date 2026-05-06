@@ -3,7 +3,7 @@ from nicegui import ui
 
 from haywire.core.errors.haywire_exception import HaywireException
 from haywire.ui.errors.error_info import error_render_detail
-from haywire.ui.widget.base import BaseWidget
+from haywire.ui.widget.interface import IWidget
 
 
 class UINodeCard:
@@ -30,11 +30,11 @@ class UINodeCard:
         """Get the main NiceGUI card element."""
         return self.ui_card
 
-    def set_widget_instances(self, widget_instances: Dict[str, BaseWidget]):
+    def set_widget_instances(self, widget_instances: Dict[str, IWidget]):
         """Set the widget instances mapping."""
         self.widget_instances = widget_instances
 
-    def get_widget_instance(self, element_id: str) -> Optional["BaseWidget"]:
+    def get_widget_instance(self, element_id: str) -> Optional["IWidget"]:
         """Get a widget instance by element ID."""
         return self.widget_instances.get(element_id)
 

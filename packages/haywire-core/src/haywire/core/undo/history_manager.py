@@ -8,7 +8,7 @@ and action merging.
 
 import time
 import logging
-from typing import List, Optional, Union
+from typing import List, Optional, Union, cast
 from dataclasses import dataclass
 
 from .interfaces import IAction, IHistoryManager
@@ -109,7 +109,7 @@ class HistoryManager(IHistoryManager):
         # Performance tracking
         self._action_count = 0
         self._memory_usage = 0
-        self._last_merge_time = 0
+        self._last_merge_time: float = 0.0
 
     def add_action(self, action: IAction) -> None:
         """
@@ -310,7 +310,7 @@ class HistoryManager(IHistoryManager):
         if not self.history or not self._pending_actions:
             return False
 
-        last_action = self._pending_actions[-1] if self._pending_actions else self._get_last_action()
+        last_action = self._pending_actions[-1]
         if not last_action:
             return False
 
@@ -361,7 +361,9 @@ class HistoryManager(IHistoryManager):
             self.current_index = len(self.history) - 1
         else:
             # Multiple actions, create a group
-            group = ActionGroup(actions=self._pending_actions.copy())
+            group = ActionGroup(
+                actions=cast(List[Union[IAction, ActionGroup]], self._pending_actions.copy())
+            )
             self.history.append(group)
             self.current_index = len(self.history) - 1
 
@@ -408,15 +410,6 @@ class HistoryManager(IHistoryManager):
         self.current_index += 1
         while self.current_index < len(self.history) and isinstance(self.history[self.current_index], Fence):
             self.current_index += 1
-
-    def _get_last_action(self) -> Optional[IAction]:
-        """Get the last action in the history."""
-        for item in reversed(self.history):
-            if isinstance(item, IAction):
-                return item
-            elif isinstance(item, ActionGroup) and item.actions:
-                return item.actions[-1]
-        return None
 
     def _get_item_description(self, item: Union[IAction, ActionGroup, None]) -> str:
         """Get a description for a history item."""

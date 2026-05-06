@@ -27,8 +27,6 @@ class ThemeClassIdentity(BaseIdentity):
 
 
 def theme(
-    cls=None,
-    /,
     *,
     label: str = "",
     description: str = "",
@@ -36,6 +34,9 @@ def theme(
 ):
     """
     Decorator that registers a WorkbenchTheme or NodeTheme subclass.
+
+    Always invoked with parentheses — `@theme(...)` or `@theme()`. The bare
+    `@theme` form (no parens) is not supported.
 
     The theme type ('workbench' or 'node') is auto-detected from the base class —
     no need to specify it explicitly.
@@ -77,8 +78,7 @@ def theme(
         _label = label or _registry_id
 
         library_identity = derive_library_identity(inner_cls)
-        library_id = library_identity.id if library_identity else None
-        _registry_key = reg_key(library_id, f"theme:{theme_type}", _registry_id)
+        _registry_key = reg_key(library_identity.id, f"theme:{theme_type}", _registry_id)
 
         inner_cls.class_identity = ThemeClassIdentity(
             registry_id=_registry_id,
@@ -92,4 +92,4 @@ def theme(
         inner_cls.class_library = library_identity
         return inner_cls
 
-    return decorator if cls is None else decorator(cls)
+    return decorator

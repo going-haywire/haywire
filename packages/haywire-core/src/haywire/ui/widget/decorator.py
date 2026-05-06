@@ -1,4 +1,4 @@
-from typing import Callable, Type, TypeVar, Union
+from typing import Any, Callable, Type, TypeVar
 
 from haywire.core.types.interface import IType
 from haywire.core.library.utils import derive_library_identity, reg_key
@@ -14,9 +14,12 @@ from .identity import WidgetIdentity
 T = TypeVar("T")
 
 
-def widget(cls: Type[T] = None, /, **kwargs) -> Union[Type[T], Callable[[Type[T]], Type[T]]]:
+def widget(**kwargs: Any) -> Callable[[Type[T]], Type[T]]:
     """
     Decorator to register a class as a UI widget.
+
+    Always invoked with parentheses — `@widget(...)`. The bare `@widget`
+    form (no parens) is not supported.
 
     Accepts any WidgetIdentity field as a keyword argument. Common arguments include:
 
@@ -34,27 +37,20 @@ def widget(cls: Type[T] = None, /, **kwargs) -> Union[Type[T], Callable[[Type[T]
     See the WidgetIdentity dataclass for the complete list of available fields.
 
     Usage:
-        # Minimal usage - uses class name for registry_id
-        @widget
-        class MyWidget(BaseWidget): ...
-
         # Common customization
-        @widget(description="Custom widget for text input")
+        @widget(description="Custom widget for text input", compatible_types={STRING})
         class MyWidget(BaseWidget): ...
 
         # Full customization
         @widget(
             description="Advanced text input widget with validation",
-            _is_error=False
+            compatible_types={STRING},
+            _is_error=False,
         )
         class TextWidget(BaseWidget): ...
 
-        # Default widget for specific data types
-        @widget(description="Number input widget")
-        class NumberWidget(BaseWidget): ...
-
         # Error widget
-        @widget(description="Error display widget", _is_error=True)
+        @widget(description="Error display widget", compatible_types=set(), _is_error=True)
         class ErrorWidget(BaseWidget): ...
     """
 
@@ -85,8 +81,7 @@ def widget(cls: Type[T] = None, /, **kwargs) -> Union[Type[T], Callable[[Type[T]
         library_identity = derive_library_identity(inner_cls)
 
         # Auto-derive registry_key
-        library_id = library_identity.id if library_identity else None
-        kwargs["registry_key"] = reg_key(library_id, "widget", kwargs["registry_id"])
+        kwargs["registry_key"] = reg_key(library_identity.id, "widget", kwargs["registry_id"])
 
         # Set source info from the class itself
         kwargs["class_name"] = inner_cls.__name__
@@ -97,4 +92,4 @@ def widget(cls: Type[T] = None, /, **kwargs) -> Union[Type[T], Callable[[Type[T]
         inner_cls.class_library = library_identity
         return inner_cls
 
-    return decorator if cls is None else decorator(cls)
+    return decorator

@@ -9,7 +9,7 @@ registries, factories, and services.
 import os
 import logging
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 from injector import Injector, Module, provider, singleton
 
 from ..debug.configurator import LoggingConfigurator
@@ -266,8 +266,7 @@ class LibrarySystemService:
         settings_registry = self.injector.get(
             SettingsRegistry
         )  # must be first — wires FrameworkSettings._registry and loads TOML
-        self._logging_configurator = LoggingConfigurator()  # applies DebugSettings log levels
-        self._logging_configurator.attach_registry(settings_registry)  # watches for per-library keys
+        self._logging_configurator = LoggingConfigurator(settings_registry)
         library_registry = self.injector.get(LibraryRegistry)
         theme_registry = self.injector.get(ThemeRegistry)
         type_registry = self.injector.get(TypeRegistry)
@@ -591,7 +590,7 @@ class LibrarySystemService:
     # Settings convenience methods
     # =========================================================================
 
-    def get_setting(self, name: str) -> any:
+    def get_setting(self, name: str) -> Any:
         """
         Get a resolved setting value.
 
@@ -605,7 +604,7 @@ class LibrarySystemService:
         value, _ = registry.resolve(name)
         return value
 
-    def set_setting(self, name: str, value: any, override: bool = False) -> None:
+    def set_setting(self, name: str, value: Any, override: bool = False) -> None:
         """
         Set a global setting value.
 
@@ -781,7 +780,7 @@ def get_settings_registry() -> SettingsRegistry:
     return get_library_system().get_settings_registry()
 
 
-def get_setting(name: str) -> any:
+def get_setting(name: str) -> Any:
     """
     Get a resolved setting value.
 

@@ -8,7 +8,7 @@ events, dependency tracking, and snapshot rollback.
 
 import inspect
 import logging
-from typing import Dict, List, Optional
+from typing import Dict, List
 
 from haywire.core.registry.base import BaseRegistry
 from haywire.core.registry.lifecycle_event import LifeCycleEventCallback
@@ -48,17 +48,17 @@ class EditorTypeRegistry(BaseRegistry):
         except TypeError:
             return False
 
-    def _register_class(self, cls: type, library_identity: Optional[LibraryIdentity] = None) -> "str | None":
+    def _register_class(self, cls: type[BaseEditor], library_identity: LibraryIdentity) -> "str | None":
         """Register an editor class by its registry_key."""
         registry_key = cls.class_identity.registry_key
         logger.debug(f"EditorTypeRegistry: Registering '{registry_key}' ({cls.__name__})")
         return super()._register(registry_key, cls, library_identity)
 
-    def _unregister_class(self, registry_key: str) -> "type | None":
+    def _unregister_class(self, registry_key: str) -> "type[BaseEditor] | None":
         """Unregister an editor class by its registry_key."""
         return super()._unregister(registry_key)
 
-    def get_by_key(self, registry_key: str) -> "type | None":
+    def get_by_key(self, registry_key: str) -> "type[BaseEditor] | None":
         """Find an editor class by its full registry_key.
 
         Used by AppShell to resolve workspace editor_key strings to actual
@@ -73,7 +73,7 @@ class EditorTypeRegistry(BaseRegistry):
         """
         return self._classes.get(registry_key)
 
-    def get_by_default_slot(self, slot: str) -> Dict[str, type]:
+    def get_by_default_slot(self, slot: str) -> "Dict[str, type[BaseEditor]]":
         """Get all editor classes suggested for a given default slot.
 
         Args:

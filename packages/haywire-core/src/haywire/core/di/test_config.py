@@ -32,8 +32,8 @@ if TYPE_CHECKING:
 class _TestFrameworkSettings(FrameworkSettings, namespace="test.global"):
     """Minimal FrameworkSettings for unit tests that need registered global keys."""
 
-    verbose_logging: bool = field(False, label="Verbose Logging")
-    font_size: int = field(12, label="Font Size", min=8, max=72)
+    verbose_logging = field[bool](False, label="Verbose Logging")
+    font_size = field[int](12, label="Font Size", min=8, max=72)
 
 
 class TestingWidgetSettings(FrameworkSettings, namespace="test.widgets"):
@@ -48,24 +48,24 @@ class TestingWidgetSettings(FrameworkSettings, namespace="test.widgets"):
       - color  → ui.color_input
     """
 
-    flag: bool = field(True, label="Flag", description="Boolean — renders as switch", category="types")
-    count: int = field(
+    flag = field[bool](True, label="Flag", description="Boolean — renders as switch", category="types")
+    count = field[int](
         3, min=0, max=10, label="Count", description="Integer — renders as NumberDrag", category="types"
     )
-    ratio: float = field(
+    ratio = field[float](
         0.5, min=0.0, max=1.0, label="Ratio", description="Float — renders as NumberDrag", category="types"
     )
-    label: str = field(
+    label = field[str](
         "hello", label="Label", description="String — renders as text input", category="types"
     )
-    mode: str = field(
+    mode = field[str](
         "fast",
         choices=["fast", "balanced", "quality"],
         label="Mode",
         description="Choices — renders as dropdown",
         category="types",
     )
-    tint: Color = field(
+    tint = field[Color](
         "#ff0000",
         label="Tint",
         description="Color — renders as color picker",
@@ -167,7 +167,7 @@ def create_test_settings_registry(
 
 
 def create_test_bag(
-    bag_cls: type = None,
+    bag_cls: type | None = None,
     predefined_local: Optional[dict[str, Any]] = None,
     predefined_global: Optional[dict[str, Any]] = None,
 ) -> tuple["SettingsRegistry", Settings]:
@@ -193,9 +193,9 @@ def create_test_bag(
     if bag_cls is None:
 
         class _DefaultTestBag(Settings):
-            bg_color: str = field("#ffffff", label="Background Color")
-            font_size: int = field(12, min=8, max=72, label="Font Size")
-            verbose: bool = field(False, label="Verbose Mode")
+            bg_color = field[str]("#ffffff", label="Background Color")
+            font_size = field[int](12, min=8, max=72, label="Font Size")
+            verbose = field[bool](False, label="Verbose Mode")
 
         bag_cls = _DefaultTestBag
 

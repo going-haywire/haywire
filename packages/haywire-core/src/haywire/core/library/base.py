@@ -28,6 +28,9 @@ class BaseLibrary(ABC):
     and be decorated with the @library decorator.
     """
 
+    # Set by @library decorator at class definition time
+    class_identity: LibraryIdentity
+
     def __init__(self, file_path: str, enforce_file_watching: bool = False, debounce_delay: float = 0.5):
         self.file_path = file_path
         self.registries: Dict[Type[BaseRegistry], Any] = {}
@@ -40,6 +43,11 @@ class BaseLibrary(ABC):
 
         # Initialize FileWatcher with library folder path
         # Note: library_identity will be passed per-folder in add_watch
+        if self.identity.folder_path is None:
+            raise RuntimeError(
+                f"Library '{self.identity.label}' has no folder_path set on its identity. "
+                "Library registration must populate folder_path before instantiation."
+            )
         self.file_watcher: FileWatcher = FileWatcher(watch_path=self.identity.folder_path)
 
     @property
@@ -173,7 +181,7 @@ class BaseLibrary(ABC):
         self, folder_path: str, registry_cls: Type, exclude_patterns: Optional[List[str]] = None
     ):
         """Inform the registry to add classes from a folder and start watching it if needed"""
-        registry: Type[BaseRegistry] = self.get_registry(registry_cls)
+        registry: BaseRegistry = self.get_registry(registry_cls)
         if registry is None:
             raise ValueError(f"Registry {registry_cls} not found in library {self.identity.label}")
 
@@ -186,7 +194,7 @@ class BaseLibrary(ABC):
         self, folder_path: str, registry_cls: Type, exclude_patterns: Optional[List[str]] = None
     ):
         """Inform the registry to remove classes from a folder and stop watching it if needed"""
-        registry: Type[BaseRegistry] = self.get_registry(registry_cls)
+        registry: BaseRegistry = self.get_registry(registry_cls)
         if registry is None:
             raise ValueError(f"Registry {registry_cls} not found in library {self.identity.label}")
 

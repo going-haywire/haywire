@@ -148,7 +148,7 @@ class FlowAssemblyManager:
         event_types: Dict[str, List[str]] = {}
 
         for node in event_nodes:
-            if hasattr(node, "event_subscription"):
+            if node.event_subscription is not None:
                 key = node.event_subscription.get_subscription_key()
                 if key not in event_types:
                     event_types[key] = []
@@ -200,11 +200,9 @@ class FlowAssemblyManager:
         """
         logger.debug(f"Assembling flow from event node {event_node.node_id}")
 
-        # Get event subscription
-        if event_node and event_node.event_subscription:
-            if event_node.event_subscription is None:
-                raise RuntimeError(f"Event node {event_node.node_id} has no event_subscription")
-
+        # Get event subscription (required for flow assembly)
+        if event_node.event_subscription is None:
+            raise RuntimeError(f"Event node {event_node.node_id} has no event_subscription")
         event_subscription = event_node.event_subscription
 
         # Create flow
@@ -252,25 +250,25 @@ class FlowAssemblyManager:
             flows: List of assembled flows
         """
         # Find all callback edges
-        callback_edges = [
+        callback_edge_list = [
             edge for edge in graph.edge_wrappers.values() if edge._edge_type == FlowType.CALLBACK
         ]
 
-        if not callback_edges:
+        if not callback_edge_list:
             logger.debug("No callback edges found")
             return
 
-        logger.info(f"Found {len(callback_edges)} callback edges connecting flows")
+        logger.info(f"Found {len(callback_edge_list)} callback edges connecting flows")
 
         # Build callback connection map for statistics
         # Maps: source_node_id -> list of target_node_ids
-        callback_edges = {}
+        callback_edges: dict[str, list[str]] = {}
 
         # Build reverse map: target_node_id -> source event subscription
         # This helps show which flows trigger which event nodes
         callback_triggers: dict[str, list[str]] = {}  # target_node_id -> list of source_node_ids
 
-        for edge in callback_edges:
+        for edge in callback_edge_list:
             source_id = edge.source_node_id
             target_id = edge.sink_node_id
 

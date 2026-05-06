@@ -11,7 +11,7 @@ Responsible for:
 
 import logging
 import traceback
-from typing import Dict, Optional, Tuple, TYPE_CHECKING
+from typing import Dict, Optional, Tuple, TYPE_CHECKING, cast
 
 from nicegui import ui
 
@@ -97,10 +97,13 @@ class VisualLayerHandlers:
 
         for node_id, reason in result.nodes.items():
             if reason == ChangeReason.NODE_ADDED:
-                wrapper = self.graph.get_node_wrapper(node_id)
-                if wrapper and node_id not in self.node_panels:
-                    position = (wrapper.node.props.posX, wrapper.node.props.posY)
-                    self.add_node_visual(wrapper.node, position)
+                node_wrapper = self.graph.get_node_wrapper(node_id)
+                if node_wrapper and node_id not in self.node_panels:
+                    position = cast(
+                        tuple[float, float],
+                        (node_wrapper.node.props.posX, node_wrapper.node.props.posY),
+                    )
+                    self.add_node_visual(node_wrapper.node, position)
                     logger.debug(f"  + Added node UI: {node_id}")
 
             elif reason == ChangeReason.NODE_REMOVED:
@@ -111,9 +114,12 @@ class VisualLayerHandlers:
             elif reason == ChangeReason.NODE_MOVED:
                 ui_node = self.node_panels.get(node_id)
                 if ui_node:
-                    wrapper = self.graph.get_node_wrapper(node_id)
-                    if wrapper:
-                        new_position = (wrapper.node.props.posX, wrapper.node.props.posY)
+                    moved_wrapper = self.graph.get_node_wrapper(node_id)
+                    if moved_wrapper:
+                        new_position = cast(
+                            tuple[float, float],
+                            (moved_wrapper.node.props.posX, moved_wrapper.node.props.posY),
+                        )
                         self.update_node_position(node_id, new_position)
                         logger.debug(f"  ↔ Moved node: {node_id}")
 
@@ -125,9 +131,9 @@ class VisualLayerHandlers:
 
         for edge_uuid, reason in result.edges.items():
             if reason == ChangeReason.EDGE_ADDED:
-                wrapper = self.graph.get_edge_wrapper(edge_uuid)
-                if wrapper and edge_uuid not in self.edge_paths:
-                    self.add_edge_visual(wrapper)
+                edge_wrapper = self.graph.get_edge_wrapper(edge_uuid)
+                if edge_wrapper and edge_uuid not in self.edge_paths:
+                    self.add_edge_visual(edge_wrapper)
                     logger.debug(f"  + Added edge UI: {edge_uuid}")
 
             elif reason == ChangeReason.EDGE_REMOVED:
@@ -187,6 +193,7 @@ class VisualLayerHandlers:
         wrapper = self.graph.get_node_wrapper(node_id)
         if not wrapper:
             logger.warning(f"⚠️ ERROR: No wrapper found for node {node_id}, hot reload won't work")
+            return False
 
         with self.canvas_vue:
             with (
@@ -204,7 +211,7 @@ class VisualLayerHandlers:
         logger.debug(f"Successfully added node visual for {node_id}")
         return True
 
-    def refresh_node_visual(self, ui_node: UINode, reason: ChangeReason) -> bool:
+    def refresh_node_visual(self, ui_node: UINode, reason: ChangeReason) -> None:
         """Refresh a node's visual representation."""
         ui_node.refresh(reason)
 

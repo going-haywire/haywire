@@ -3,8 +3,23 @@
 
 from typing import Protocol, runtime_checkable
 
+from haywire.core.library.identity import LibraryIdentity
 from haywire.ui.panel import Panel, PanelRegistry, panel
 from haywire.ui.panel.focus import Focus
+
+
+_FAKE_LIBRARY_IDENTITY = LibraryIdentity(
+    label="fake",
+    version="0.1",
+    description="test",
+    url="",
+    help_url="",
+    author="",
+    author_url="",
+    folder_path="/tmp/fake",
+    module_name="fake",
+    id="fake",
+)
 
 
 @runtime_checkable
@@ -69,7 +84,7 @@ def _registry_with_panels() -> PanelRegistry:
     """Build a registry, manually register the test panels."""
     reg = PanelRegistry()
     for cls in (_PanelA1, _PanelA2, _PanelB1):
-        reg._register_class(cls)
+        reg._register_class(cls, _FAKE_LIBRARY_IDENTITY)
     return reg
 
 

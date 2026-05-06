@@ -30,29 +30,23 @@ class LoggingConfigurator:
     """
     Watches DebugSettings and applies log levels to the Python logging hierarchy.
 
-    Instantiate with no arguments — creates its own DebugSettings instance
-    (requires SettingsRegistry to already be wired). Applies current levels
-    immediately and subscribes for future changes.
-
-    Also subscribes to SettingsRegistry to dynamically handle per-library
-    log level settings registered under debug.library.<lib_id>.log_level.
+    Construct with the SettingsRegistry to wire dynamic debug.library.* keys.
+    Applies current levels immediately and subscribes for future changes.
     """
 
-    def __init__(self, debug_settings: DebugSettings | None = None) -> None:
+    def __init__(
+        self,
+        registry: "SettingsRegistry",
+        debug_settings: DebugSettings | None = None,
+    ) -> None:
         self._settings: DebugSettings = debug_settings if debug_settings is not None else DebugSettings()
 
         # lib_id → module_name for dynamically registered library loggers
         self._library_namespaces: dict[str, str] = {}
-        self._registry: "SettingsRegistry | None" = None
+        self._registry: SettingsRegistry = registry
 
         self._apply_all()
         self._settings.subscribe(self._on_setting_change)
-
-    def attach_registry(self, registry: "SettingsRegistry") -> None:
-        """Attach a SettingsRegistry to handle dynamic debug.library.* keys.
-
-        Called after construction when the registry becomes available.
-        """
         self._attach_registry(registry)
 
     # ------------------------------------------------------------------
@@ -72,7 +66,6 @@ class LoggingConfigurator:
                     self._apply_library_level(key, value)
                 except KeyError:
                     pass
-        self._registry = registry
         registry.subscribe(None, self._on_registry_change)
 
     def _register_library_from_key(self, key: str, registry: "SettingsRegistry") -> None:

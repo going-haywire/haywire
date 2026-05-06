@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Dict, Set, Tuple, List, Optional
 
 from watchdog.observers import Observer
+from watchdog.observers.api import BaseObserver
 from watchdog.events import FileSystemEventHandler
 
 from ..registry.base import HotReloadRegistry, FileChangeEvent, FileEventType
@@ -230,7 +231,7 @@ class FileWatcher:
                        or parent folder containing multiple libraries)
         """
         self.watch_path = watch_path
-        self.observer: Optional[Observer] = None
+        self.observer: Optional[BaseObserver] = None
         self.handler: LibraryFileHandler = LibraryFileHandler()
         self._lock = threading.Lock()
         self._is_started = False

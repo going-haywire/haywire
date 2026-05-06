@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 import nicegui.ui as ui
 
 from haywire.core.types import DataPort
-from haywire.ui.widget.base import BaseWidget
+from haywire.ui.widget.interface import IWidget
 
 
 class IWidgetFactory(ABC):
@@ -13,7 +13,7 @@ class IWidgetFactory(ABC):
     @abstractmethod
     def render_widget(
         self, registry_key: str, port: DataPort, node_id: str
-    ) -> tuple[BaseWidget | None, ui.element]:
+    ) -> tuple[IWidget | None, ui.element]:
         """Render a widget for the given inlet and return the widget instance.
 
         Note: The UI element is automatically added to the current NiceGUI context.
@@ -23,6 +23,6 @@ class IWidgetFactory(ABC):
             port: The data port to render a widget for
             node_id: ID of the node containing this inlet
         Returns:
-            BaseWidget instance or None if widget creation failed
+            IWidget instance or None if widget creation failed
         """
         pass

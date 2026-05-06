@@ -23,7 +23,7 @@ if TYPE_CHECKING:
     from .settings import Settings
 
 try:
-    import toml
+    import toml  # type: ignore[import-untyped]
 except ImportError:
     toml = None
 
@@ -256,8 +256,7 @@ class SettingsRegistry(BaseRegistry):
 
             ns = schema_cls._namespace
             lib = library_identity or derive_library_identity(schema_cls)
-            library_id = lib.id if lib else None
-            reg_key_val = reg_key(library_id, "settings", ns)
+            reg_key_val = reg_key(lib.id, "settings", ns)
             schema_cls.class_identity = SettingsClassIdentity(
                 namespace=ns,
                 registry_id=ns,
@@ -664,7 +663,7 @@ class SettingsRegistry(BaseRegistry):
         category: str = "root",
         min_value: Any = None,
         max_value: Any = None,
-        choices: list | None = None,
+        choices: list | dict | None = None,
         validator: Callable[[Any], bool] | None = None,
         ui_widget: str | None = None,
         ui_order: int = 0,

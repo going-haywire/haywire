@@ -23,8 +23,8 @@ class ExecutionContext:
     """Global context from external system"""
     local_ctx: Dict[str, Any]
     """Local context (graph variables)"""
-    trigger: "Trigger"
-    """Current trigger that activated this flow"""
+    trigger: Optional["Trigger"] = None
+    """Current trigger that activated this flow (None when no specific trigger)"""
     control_pin: Optional[str] = None
     """ID of control inlet that was triggered (for control nodes)"""
     node: Optional["BaseNode"] = None

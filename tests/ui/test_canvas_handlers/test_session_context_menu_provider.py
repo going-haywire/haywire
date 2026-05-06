@@ -9,6 +9,7 @@ Verifies that the provider:
 from unittest.mock import MagicMock, patch
 
 from haybale_studio.focuses import EdgeFocus, NodeFocus
+from haywire.core.library.identity import LibraryIdentity
 from haywire.ui.context import SessionContext
 from haywire.ui.graph_canvas.handlers.context_menu import SessionContextMenuProvider
 from haywire.ui.graph_canvas.handlers.context_menu_actions import (
@@ -18,6 +19,20 @@ from haywire.ui.graph_canvas.handlers.context_menu_actions import (
 from haywire.ui.panel import Panel
 from haywire.ui.panel.decorator import panel
 from haywire.ui.panel.registry import PanelRegistry
+
+
+_FAKE_LIBRARY_IDENTITY = LibraryIdentity(
+    label="fake",
+    version="0.1",
+    description="test",
+    url="",
+    help_url="",
+    author="",
+    author_url="",
+    folder_path="/tmp/fake",
+    module_name="fake",
+    id="fake",
+)
 
 
 # ---------------------------------------------------------------------------
@@ -81,7 +96,7 @@ def test_panels_that_return_false_from_poll_are_not_drawn():
         def draw(self, ctx, layout, actions):
             drawn.append("AlwaysFalsePanel")
 
-    registry._register_class(AlwaysFalsePanel)
+    registry._register_class(AlwaysFalsePanel, _FAKE_LIBRARY_IDENTITY)
     provider, _, _ = make_provider(ctx, registry)
 
     provider.on_node_context((10, 20), "node-1")
@@ -109,7 +124,7 @@ def test_panels_that_return_true_from_poll_are_drawn():
         def draw(self, ctx, layout, actions):
             drawn.append("AlwaysTruePanel")
 
-    registry._register_class(AlwaysTruePanel)
+    registry._register_class(AlwaysTruePanel, _FAKE_LIBRARY_IDENTITY)
     provider, _, _ = make_provider(ctx, registry)
 
     provider.on_node_context((10, 20), "node-1")
@@ -137,7 +152,7 @@ def test_panels_for_wrong_focus_are_not_drawn():
         def draw(self, ctx, layout, actions):
             drawn.append("EdgeOnlyPanel")
 
-    registry._register_class(EdgeOnlyPanel)
+    registry._register_class(EdgeOnlyPanel, _FAKE_LIBRARY_IDENTITY)
     provider, _, _ = make_provider(ctx, registry)
 
     # Trigger node context — should NOT draw edge panel (different focus)

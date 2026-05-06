@@ -12,7 +12,7 @@ keep the slot's wrapper list in sync with the tab bar.
 from __future__ import annotations
 
 import logging
-from typing import ClassVar, Literal, Optional
+from typing import Any, ClassVar, Literal, Optional, cast
 
 from nicegui import ui
 
@@ -64,7 +64,7 @@ class TabSlot(Slot):
             ids = [b.binding_id for b in self._bindings]
             initial = active_id if active_id in ids else (ids[0] if ids else None)
             with (
-                ui.tabs(value=initial, on_change=lambda e: self._on_tab_clicked(e.value))
+                ui.tabs(value=cast(Any, initial), on_change=lambda e: self._on_tab_clicked(e.value))
                 .props("dense align=left")
                 .classes("hw-slot-bar-tabs")
                 .style("flex: 1; min-height: 36px;")
@@ -73,9 +73,14 @@ class TabSlot(Slot):
                     tab_el = ui.tab(name=wrapper.binding_id, label="").props("no-caps")
                     with tab_el:
                         with ui.row().classes("items-center gap-1 no-wrap"):
-                            label = wrapper.label or getattr(
-                                wrapper.editor_cls.class_identity, "label", wrapper.editor_key
-                            )
+                            if wrapper.label:
+                                label = wrapper.label
+                            elif wrapper.editor_cls is not None:
+                                label = getattr(
+                                    wrapper.editor_cls.class_identity, "label", wrapper.editor_key
+                                )
+                            else:
+                                label = wrapper.editor_key
                             if wrapper.state is not None and wrapper.state.is_dirty:
                                 label = f"• {label}"
                             ui.label(label)

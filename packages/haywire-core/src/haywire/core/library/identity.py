@@ -12,8 +12,9 @@ class LibraryIdentity:
     help_url: str
     author: str
     author_url: str
-    # Unique identifier for the library, defaults to label if not set
-    id: str | None = None
+    folder_path: str  # Path to the library folder
+    module_name: str  # Python module name
+    id: str  # Unique identifier for the library
     # List of referenced haywire libraries.
     # For hot reloading to work, the dependencies must be specified.
     # This includes any library whose ``ContextSignal`` subclasses this
@@ -24,8 +25,6 @@ class LibraryIdentity:
     dependencies: list[str] | None = None
     tags: list[str] | None = None  # Searchable tags for marketplace/discovery
     file_watcher: bool = False  # Whether to watch for file changes
-    folder_path: str | None = None  # Path to the library folder, auto set during registration
-    module_name: str | None = None  # Python module name, auto set during registration
 
     def __post_init__(self):
         if self.dependencies is None:

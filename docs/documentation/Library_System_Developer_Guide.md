@@ -257,6 +257,29 @@ lib_one = "my_package.lib_one:Library"
 lib_two = "my_package.lib_two:Library"
 ```
 
+### Decorator Convention: Always Use Parentheses
+
+All component decorators (`@library`, `@node`, `@adapter`, `@skin`, `@widget`,
+`@editor`, `@panel`, `@theme`, `@type`) must be invoked with parentheses,
+even when no arguments are needed:
+
+```python
+# Correct
+@node()
+class EmptyNode(BaseNode): ...
+
+@adapter(converts_from=Temperature, converts_to=FLOAT)
+class TempAdapter(BaseAdapter): ...
+
+# Wrong — bare @decorator form is not supported
+@node
+class EmptyNode(BaseNode): ...
+```
+
+The bare `@decorator` form (without parens) is intentionally unsupported.
+Most component decorators require at least one keyword argument anyway
+(`label=`, `converts_from=`, etc.) so this is rarely visible in practice.
+
 ### Component Registration
 
 In your Library class's `register_components()` method:

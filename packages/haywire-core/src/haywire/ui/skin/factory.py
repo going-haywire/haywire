@@ -72,12 +72,13 @@ class SkinFactory:
 
     # this method is called by UINode to render the node
     def render(
-        self, skin_registry_key: str | None, wrapper: NodeWrapper, _is_error_render: bool = False
+        self, skin_registry_key: str, wrapper: NodeWrapper, _is_error_render: bool = False
     ) -> UINodeCard | None:
         """Render a node with the skin identified by skin_registry_key.
 
-        If no skin_registry_key is provided, the default skin set by
-        the skin registry is used.
+        Callers are responsible for resolving the skin registry key
+        (e.g. falling back to the registry's default skin) before invoking
+        this method.
 
         Args:
             skin_registry_key: The registry key of the skin to use
@@ -135,53 +136,69 @@ class SkinFactory:
 
             error_skin_registry_key = self._skin_registry.get_error_skin_registry_key()
 
+            if error_skin_registry_key is None:
+                # No error skin available — emergency fallback inline
+                ui_nodeCard = UINodeCard()
+                ui_nodeCard.append(error)
+                return ui_nodeCard
+
             # render error (recursive call with error render flag)
             ui_nodeCard = self.render(
                 skin_registry_key=error_skin_registry_key, wrapper=wrapper, _is_error_render=True
             )
 
+            assert ui_nodeCard is not None, "_is_error_render path always returns a UINodeCard"
             ui_nodeCard.append(error)
 
         return ui_nodeCard
 
-    def get_skin_instance(self, registry_key: str) -> BaseSkin | None:
+    def get_skin_instance(self, registry_key: str) -> BaseSkin:
         """
         Get a skin instance for the given element using the skin registry.
         Args:
             registry_key: The registry key to get the skin for
         Returns:
-            BaseSkin | None: The instantiated skin for the registry key or None if not found
+            BaseSkin: The instantiated skin for the registry key
+        Raises:
+            HaywireException: If the skin is not found or fails to instantiate
         """
 
         lc_event = self._skin_registry.get_skin_event(registry_key)
 
         skin_cls: type[BaseSkin] | None = lc_event.affected_class
 
-        if skin_cls is not None:
-            try:
-                if registry_key in self._skin_instance_cache:
-                    return self._skin_instance_cache[registry_key]
-                else:
-                    skin_instance = skin_cls(self._widget_factory)
-                    self._skin_instance_cache[registry_key] = skin_instance
-                    return skin_instance
+        if skin_cls is None:
+            raise HaywireException.create(
+                category="Skin Lookup Error",
+                operation="skin_lookup",
+                message=f"Skin '{registry_key}' not found in registry",
+            ).enrich(
+                registry_key=registry_key,
+                module_name=lc_event.module_name,
+                library_identity=lc_event.library_identity,
+            )
 
-            except Exception as e:
-                # Create detailed error with context about the node instantiation
-                error = HaywireException.from_exception(
-                    exception=e,
-                    category="Skin Instantiation Error",
-                    operation="skin_lookup",
-                    message=f"Failed to instantiate skin '{registry_key}'",
-                ).enrich(
-                    registry_key=registry_key,
-                    module_name=lc_event.module_name,
-                    library_identity=lc_event.library_identity,
-                )
+        try:
+            if registry_key in self._skin_instance_cache:
+                return self._skin_instance_cache[registry_key]
+            skin_instance = skin_cls(self._widget_factory)
+            self._skin_instance_cache[registry_key] = skin_instance
+            return skin_instance
 
-                raise error
+        except Exception as e:
+            # Create detailed error with context about the node instantiation
+            error = HaywireException.from_exception(
+                exception=e,
+                category="Skin Instantiation Error",
+                operation="skin_lookup",
+                message=f"Failed to instantiate skin '{registry_key}'",
+            ).enrich(
+                registry_key=registry_key,
+                module_name=lc_event.module_name,
+                library_identity=lc_event.library_identity,
+            )
 
-        return None
+            raise error
 
     def add_factory_lifecycle_subscriber(
         self, node_id: str, skin_registry_key: str, callback: FactoryEventCallback

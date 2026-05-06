@@ -3,6 +3,8 @@ from collections.abc import Callable
 from enum import Enum
 from typing import Any, Generic, List, Optional, TypeVar
 
+T = TypeVar("T")
+
 
 class BindingMode(Enum):
     """Direction of data flow in a binding"""
@@ -26,7 +28,7 @@ class UpdateTrigger(Enum):
 # ============================================================================
 
 
-class BindingConverter(ABC, Generic[TypeVar("T")]):
+class BindingConverter(ABC, Generic[T]):
     """
     Base class for converting between model and view representations.
     Converters can be stateful and specific to a binding instance.

@@ -99,12 +99,11 @@ def test_on_node_selected_calls_test_create_node_at_click():
     builder_instance = MagicMock()
     captured_callback = {}
 
-    def fake_create_node_menu(on_node_selected, **kwargs):
+    def fake_constructor(node_factory, on_node_selected, **kwargs):
         captured_callback["fn"] = on_node_selected
+        return builder_instance
 
-    builder_instance.create_node_menu.side_effect = fake_create_node_menu
-
-    with patch.object(_PANEL_MODULE, "NodeMenuBuilder", return_value=builder_instance):
+    with patch.object(_PANEL_MODULE, "NodeMenuBuilder", side_effect=fake_constructor):
         CreateNodePanel().draw(ctx, layout, actions)
 
     captured_callback["fn"](SimpleNamespace(identity=SimpleNamespace(registry_key="my_lib/MyNode")))

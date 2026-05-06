@@ -12,7 +12,7 @@ Design Philosophy:
 """
 
 import logging
-from typing import Dict, List, Optional, Tuple, Any
+from typing import List, Optional, Tuple
 from haywire.core.graph.base import BaseGraph
 from haywire.core.edge.edge_wrapper import EdgeWrapper
 from haywire.core.node.node_wrapper import NodeWrapper
@@ -114,7 +114,7 @@ class Editor:
             logger.error(f"Error moving nodes by delta: {e}")
             return False
 
-    def remove_elements(self, nodes: List[str] = None, edges: List[str] = None) -> bool:
+    def remove_elements(self, nodes: List[str], edges: List[str]) -> bool:
         """
         Remove multiple nodes and connections in a single operation.
 
@@ -125,9 +125,6 @@ class Editor:
         Returns:
             True if elements were removed, False otherwise
         """
-        nodes = nodes or []
-        edges = edges or []
-
         if not nodes and not edges:
             return False
 
@@ -250,22 +247,6 @@ class Editor:
     def add_fence(self) -> None:
         """Add a fence to group operations."""
         self.history_manager.add_fence()
-
-    # =============================================================================
-    # GRAPH STATE
-    # =============================================================================
-
-    def get_graph_info(self) -> Dict[str, Any]:
-        """Get information about the current graph state."""
-        return {
-            "graph_id": self.graph.graph_id,
-            "node_count": len(self.graph.node_wrappers),
-            "edge_count": len(self.graph.edge_wrappers),
-            "can_undo": self.can_undo(),
-            "can_redo": self.can_redo(),
-            "history_size": len(self.history_manager.history),
-            "current_history_index": self.history_manager.current_index,
-        }
 
     def is_valid(self) -> bool:
         """Check if the editor is in a valid state."""

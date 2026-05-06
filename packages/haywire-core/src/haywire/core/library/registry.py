@@ -323,21 +323,19 @@ class LibraryRegistry:
         try:
             # Use the existing metadata loading method to get both module and metadata
             module = self._load_module_and_metadata(library_folder_name, library_path)
-            if module and hasattr(module, "Library"):
-                if hasattr(module.Library, "class_identity"):
-                    return module.Library
-                else:
-                    logger.error(
-                        f"Library '{library_folder_name}': "
-                        f"Has no a valid 'class_identity'. "
-                        f"Check if @library decorator is applied to the class in "
-                        f"'__init__.py' at '{library_path}'"
-                    )
-            else:
-                logger.error(
+            if not (module and hasattr(module, "Library")):
+                raise LibraryLoadError(
                     f"Library with folder name '{library_folder_name}': "
                     f"Missing valid 'Library' class in '__init__.py' at '{library_path}'"
                 )
+            if not hasattr(module.Library, "class_identity"):
+                raise LibraryLoadError(
+                    f"Library '{library_folder_name}': "
+                    f"Has no a valid 'class_identity'. "
+                    f"Check if @library decorator is applied to the class in "
+                    f"'__init__.py' at '{library_path}'"
+                )
+            return module.Library
 
         except Exception as e:
             logger.error(
@@ -541,10 +539,13 @@ class LibraryRegistry:
         """Get the order in which libraries were loaded"""
         return self._load_order.copy()
 
-    def get_library_identity(self, library_registry_id: str) -> LibraryIdentity | None:
-        """Get metadata for a library"""
-        library = self._libraries.get(library_registry_id)
-        return library.class_identity if library else None
+    def get_library_identity(self, library_registry_id: str) -> LibraryIdentity:
+        """Get metadata for a library.
+
+        Raises:
+            KeyError: If no library is registered under this id.
+        """
+        return self._libraries[library_registry_id].class_identity
 
     def get_library_source(self, library_id: str) -> str | None:
         """Get the source path for a library"""

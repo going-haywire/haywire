@@ -14,7 +14,7 @@ from typing import Any, Protocol, TYPE_CHECKING
 if TYPE_CHECKING:
     from haywire.core.di.config import LibrarySystemService
     from haywire.ui.session_manager import SessionManager
-    from haywire_studio.library_manager import LibraryManager
+    from haywire_studio.library_manager import LibraryManager  # type: ignore[import-untyped]
 
 
 class IGraphManager(Protocol):

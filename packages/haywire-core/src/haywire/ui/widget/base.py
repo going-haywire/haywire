@@ -34,9 +34,8 @@ class BaseWidget(IWidget, ABC):
         """
         self.port = port
         self.port_id: str = port.id
-        self.config: Dict[str, Any] = (
-            port.widget_config if hasattr(port, "widget_config") and port.widget_config else {}
-        )
+        widget_config = port.widget_config if hasattr(port, "widget_config") and port.widget_config else {}
+        self.config: Dict[str, Any] = widget_config  # type: ignore[assignment]
 
         # UI element (created during render)
         self.ui_element: Optional[Any] = None
@@ -196,5 +195,5 @@ class BaseWidget(IWidget, ABC):
         self._ui_element_refs.clear()
 
         # Clear references
-        self.port = None
+        self.port = None  # type: ignore[assignment]
         self.ui_element = None

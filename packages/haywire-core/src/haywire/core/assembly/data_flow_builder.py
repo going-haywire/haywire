@@ -83,9 +83,9 @@ class DataFlowBuilder:
 
         # Build data flow - convert node IDs to BaseNode instances
         data_flow.execution_sequence = [
-            graph.get_node_wrapper(node_id).node
+            wrapper.node
             for node_id in execution_sequence
-            if graph.get_node_wrapper(node_id) is not None
+            if (wrapper := graph.get_node_wrapper(node_id)) is not None
         ]
         logger.debug(f"Localized data flow built: {len(execution_sequence)} nodes")
 

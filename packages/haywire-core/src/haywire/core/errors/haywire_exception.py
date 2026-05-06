@@ -628,7 +628,7 @@ class HaywireException(Exception):
         filename = None
         line_number = None
         source_line = None
-        source_context: list[str] = []
+        source_context: list[tuple[int, str]] = []
         highlight_span = None
         context_type = "unknown"
         highlighted_item = None
@@ -661,16 +661,18 @@ class HaywireException(Exception):
         elif isinstance(exception, SyntaxError) and hasattr(exception, "filename"):
             filename = exception.filename
             line_number = exception.lineno
-            context_type, source_context, highlighted_item, _ = extract_extended_context(
-                filename, line_number
-            )
+            if filename is not None and line_number is not None:
+                context_type, source_context, highlighted_item, _ = extract_extended_context(
+                    filename, line_number
+                )
 
         elif traceback_frames:
             # Last resort - use last frame
             last_frame = traceback_frames[-1]
             filename = last_frame["file"]
-            line_number = last_frame["line"]
-            source_line = last_frame["code"]
+            line_number = int(last_frame["line"]) if last_frame["line"] is not None else None
+            code_value = last_frame.get("code")
+            source_line = str(code_value) if code_value is not None else None
 
             # Try to get some context
             if filename and line_number:
@@ -1101,7 +1103,7 @@ class HaywireException(Exception):
 
         return "\n".join(lines)
 
-    def debug_traceback(self, lines: list[str], user_frame_index: int) -> str:
+    def debug_traceback(self, lines: list[str], user_frame_index: int) -> None:
         # =======================================================================
         # DEBUG SECTION - Complete traceback analysis
         # =======================================================================

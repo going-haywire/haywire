@@ -124,16 +124,25 @@ class AdapterFactory:
 
         # Case 2: Both compound with same structure (ARRAY→ARRAY, MAP→MAP)
         elif source_is_compound and sink_is_compound and source_base == sink_base:
+            assert issubclass(source_type, CompoundType)
+            assert issubclass(sink_type, CompoundType)
+            source_element = getattr(source_type, "element_type_cls", None)
+            sink_element = getattr(sink_type, "element_type_cls", None)
+            assert source_element is not None and sink_element is not None, (
+                "compound types must have element_type_cls set"
+            )
             first_adapter, error = self._create_element_chain(
                 source_type,
-                getattr(source_type, "element_type_cls", None),
+                source_element,
                 sink_type,
-                getattr(sink_type, "element_type_cls", None),
+                sink_element,
                 max_depth,
             )
 
         # Case 3: Structural transformation (MAP→ARRAY, etc.)
         elif source_is_compound and sink_is_compound:
+            assert issubclass(source_type, CompoundType)
+            assert issubclass(sink_type, CompoundType)
             first_adapter, error = self._create_structural_chain(source_type, sink_type, max_depth)
 
         # Invalid: scalar ↔ compound mismatch

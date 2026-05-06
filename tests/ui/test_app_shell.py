@@ -142,7 +142,7 @@ class _FakeEditorRegistry:
 
 
 def test_on_slot_resize_routes_to_named_slot() -> None:
-    shell = AppShell(session=_FakeSession(), editor_registry=None)
+    shell = AppShell(session=_FakeSession(), editor_registry=_FakeEditorRegistry({}))
     slot = _FakeSlot("bottom")
     shell._managed_slots["bottom"] = slot
     shell._on_slot_resize(SimpleNamespace(args={"slot": "bottom", "size": 275}))
@@ -150,12 +150,12 @@ def test_on_slot_resize_routes_to_named_slot() -> None:
 
 
 def test_on_slot_resize_ignores_unknown_slot() -> None:
-    shell = AppShell(session=_FakeSession(), editor_registry=None)
+    shell = AppShell(session=_FakeSession(), editor_registry=_FakeEditorRegistry({}))
     shell._on_slot_resize(SimpleNamespace(args={"slot": "mystery", "size": 100}))  # no crash
 
 
 def test_on_slot_resize_ignores_malformed_args() -> None:
-    shell = AppShell(session=_FakeSession(), editor_registry=None)
+    shell = AppShell(session=_FakeSession(), editor_registry=_FakeEditorRegistry({}))
     slot = _FakeSlot("bottom")
     shell._managed_slots["bottom"] = slot
     shell._on_slot_resize(SimpleNamespace(args="not a dict"))
@@ -271,7 +271,7 @@ def _make_fake_tab_slot(name: str) -> "_FakeSlot":
 
 
 def test_close_lifecycle_command_closes_matching_tabs_in_every_tab_slot() -> None:
-    shell = AppShell(session=_FakeSession(), editor_registry=None)
+    shell = AppShell(session=_FakeSession(), editor_registry=_FakeEditorRegistry({}))
     main = _make_fake_tab_slot("main")
     bottom = _make_fake_tab_slot("bottom")
     shell._managed_slots["main"] = main

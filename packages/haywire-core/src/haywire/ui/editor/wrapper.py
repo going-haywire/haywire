@@ -126,10 +126,10 @@ class EditorWrapper:
         self.payload = payload
         self.label = label
         self._registry = registry
-        self._session: "Optional[Session]" = session
+        self._session: "Session" = session
         self._instance: "Optional[BaseEditor]" = None
         self._redraw_callback: Optional[Callable[["EditorWrapper"], None]] = None
-        self._state: Optional[EditorWrapperState] = EditorWrapperState()
+        self._state: EditorWrapperState = EditorWrapperState()
         self._slot: "Optional[Slot]" = slot
 
         # Subscribe per-key for hot-reload events
@@ -155,7 +155,7 @@ class EditorWrapper:
     # ------------------------------------------------------------------
 
     @property
-    def state(self) -> Optional[EditorWrapperState]:
+    def state(self) -> EditorWrapperState:
         return self._state
 
     @property
@@ -335,6 +335,7 @@ class EditorWrapper:
                 return
 
         try:
+            assert self._instance is not None
             self._instance.draw(self._session.context, panel)
         except Exception as exc:
             self._state.error_runtime = HaywireException.from_exception(
@@ -355,6 +356,7 @@ class EditorWrapper:
             if not self._instantiate():
                 return
         try:
+            assert self._instance is not None
             self._instance.on_focus(self._session.context)
         except Exception as exc:
             self._state.error_runtime = HaywireException.from_exception(
@@ -422,19 +424,21 @@ class EditorWrapper:
 
         For editor self-initiated paths where the data source vanished
         or the editor has already decided. Calls into the slot directly
-        — no-op if the wrapper isn't attached to a slot (defensive).
+        — no-op if the wrapper isn't attached to a slot. The slot is
+        expected to be a TabSlot (or duck-typed equivalent providing
+        ``close_tab``); non-tab slots have no closable tab semantics.
         """
         if self._slot is None:
             logger.debug(
                 f"EditorWrapper '{self.editor_key}': force_close called but no slot attached; nothing to do."
             )
             return
-        self._slot.close_tab(self.editor_key, self.payload)
+        self._slot.close_tab(self.editor_key, self.payload)  # type: ignore[attr-defined]
 
     def repayload(self, new_payload: Optional[str], new_label: Optional[str] = None) -> None:
         """Update the payload (and optional label) in place.
 
-        When attached to a slot, delegates to ``slot.repayload_tab`` for
+        When attached to a TabSlot, delegates to ``slot.repayload_tab`` for
         DOM-side housekeeping (panel name, set_value, bar refresh, collision
         detection). When detached (e.g. unit tests with no slot), updates
         the wrapper's fields directly so identity helpers like
@@ -450,7 +454,7 @@ class EditorWrapper:
             if new_label is not None:
                 self.label = new_label
             return
-        self._slot.repayload_tab(
+        self._slot.repayload_tab(  # type: ignore[attr-defined]
             self.editor_key,
             self.payload,
             new_payload,
@@ -473,7 +477,9 @@ class EditorWrapper:
             except Exception as exc:
                 logger.warning(f"EditorWrapper '{self.editor_key}': instance.cleanup() raised: {exc}")
             self._instance = None
-        self._state = None
-        self._session = None
+        # State and session are nulled here as part of cleanup; downstream code
+        # must not access them after cleanup() is called.
+        self._state = None  # type: ignore[assignment]
+        self._session = None  # type: ignore[assignment]
         self._redraw_callback = None
         self._slot = None

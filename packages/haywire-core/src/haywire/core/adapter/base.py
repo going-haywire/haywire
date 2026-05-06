@@ -20,9 +20,13 @@ if TYPE_CHECKING:
 T = TypeVar("T")
 
 
-def adapter(cls: Type[T] = None, /, **kwargs) -> Union[Type[T], Callable[[Type[T]], Type[T]]]:
+def adapter(**kwargs: Any) -> Callable[[Type[T]], Type[T]]:
     """
     Decorator to register a class as a type adapter.
+
+    Always invoked with parentheses — `@adapter(...)`. The bare `@adapter`
+    form (no parens) is not supported; `converts_from` and `converts_to`
+    are required.
 
     Accepts any AdapterIdentity field as a keyword argument.
 
@@ -31,10 +35,8 @@ def adapter(cls: Type[T] = None, /, **kwargs) -> Union[Type[T], Callable[[Type[T
             Defaults to class name if not provided.
         description (str, optional): Human-readable description.
             Defaults to empty string.
-        converts_from (type[IType], optional): Source IType class.
-            Defaults to None.
-        converts_to (type[IType], optional): Target IType class.
-            Defaults to None.
+        converts_from (type[IType], required): Source IType class.
+        converts_to (type[IType], required): Target IType class.
         priority (int, optional): Priority (higher = preferred).
             Defaults to 0.
         deprecation_warning (str, optional): Deprecation warning message.
@@ -46,12 +48,12 @@ def adapter(cls: Type[T] = None, /, **kwargs) -> Union[Type[T], Callable[[Type[T
     See the AdapterIdentity dataclass for complete list of fields.
 
     Usage:
-        # Minimal usage
-        @adapter
-        class MyAdapter(BaseAdapter): ...
-
         # Common customization
-        @adapter(description="Temperature to float conversion")
+        @adapter(
+            description="Temperature to float conversion",
+            converts_from=Temperature,
+            converts_to=FLOAT,
+        )
         class MyAdapter(BaseAdapter): ...
 
         # Full customization with IType classes
@@ -85,8 +87,7 @@ def adapter(cls: Type[T] = None, /, **kwargs) -> Union[Type[T], Callable[[Type[T
         library_identity = derive_library_identity(inner_cls)
 
         # Auto-derive registry_key
-        library_id = library_identity.id if library_identity else None
-        kwargs["registry_key"] = reg_key(library_id, "adapter", kwargs["registry_id"])
+        kwargs["registry_key"] = reg_key(library_identity.id, "adapter", kwargs["registry_id"])
 
         # Set source info from the class itself
         kwargs["class_name"] = inner_cls.__name__
@@ -97,10 +98,10 @@ def adapter(cls: Type[T] = None, /, **kwargs) -> Union[Type[T], Callable[[Type[T
         inner_cls.class_library = library_identity
         return inner_cls
 
-    return decorator if cls is None else decorator(cls)
+    return decorator
 
 
-@dataclass
+@dataclass(kw_only=True)
 class AdapterIdentity(BaseIdentity):
     """
     Core identifying attributes of an adapter.
@@ -108,8 +109,8 @@ class AdapterIdentity(BaseIdentity):
     IType-based: converts_from and converts_to are IType classes.
     """
 
-    converts_from: type["IType"] | None = None  # Source IType (FLOAT, Temperature, etc.)
-    converts_to: type["IType"] | None = None  # Target IType (INT, MeshData, etc.)
+    converts_from: type["IType"]  # Source IType (FLOAT, Temperature, etc.)
+    converts_to: type["IType"]  # Target IType (INT, MeshData, etc.)
     priority: int = 0  # Priority (higher = preferred)
 
 
@@ -176,7 +177,7 @@ class IAdapter(ABC):
         return 1
 
     @abstractmethod
-    def test(self, value: any) -> any:
+    def test(self, value: Any) -> Any:
         """
         Tests this adapter with sample data
 
@@ -207,11 +208,11 @@ class ReturnAdapter(IAdapter):
         """Terminal - just return value"""
         return value
 
-    def get_test_value(self) -> any:
+    def get_test_value(self) -> Any:
         """Terminal - always succeeds"""
         return True
 
-    def test(self, value: int) -> any:
+    def test(self, value: int) -> Any:
         return self.execute(value)
 
     def _get_registry_keys(self) -> List[str]:
@@ -281,7 +282,7 @@ class BaseAdapter(IAdapter):
         converted = self.convert(value)
         return self._chain.execute(converted)
 
-    def test(self, value: int) -> any:
+    def test(self, value: int) -> Any:
         return self.execute(value)
 
     def _get_registry_keys(self) -> List[str]:

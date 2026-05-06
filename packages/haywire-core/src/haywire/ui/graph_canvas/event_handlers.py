@@ -16,7 +16,7 @@ def handles_event(*event_classes: Type[BaseGraphEvent]):
     """Decorator to register methods as handlers for specific event classes"""
 
     def decorator(func: Callable):
-        func._handles_event_classes = event_classes
+        setattr(func, "_handles_event_classes", event_classes)
         return func
 
     return decorator

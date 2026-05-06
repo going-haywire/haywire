@@ -101,14 +101,17 @@ class PropertyBinding:
         def on_model_changed(_):
             self._sync_to_view()
 
-        self._element._data.on_changed += on_model_changed
-        self._cleanup_callbacks.append(lambda: self._element._data.on_changed.remove(on_model_changed))
+        assert self._element is not None and self._element._data is not None
+        element_data = self._element._data
+        element_data.on_changed += on_model_changed
+        self._cleanup_callbacks.append(lambda: element_data.on_changed.remove(on_model_changed))
 
         # Initial sync
         on_model_changed(None)
 
     def _sync_to_view(self) -> None:
         """Synchronize model value to view"""
+        assert self._element is not None and self.converter is not None
         try:
             # For primitives and simple cases, use get_value()
             if self.source_property == "value":
@@ -155,9 +158,11 @@ class PropertyBinding:
         else:
             handler = self._create_immediate_handler()
 
-        self._ui_element.on(self.target_event, handler)
+        assert self._ui_element is not None
+        ui_element = self._ui_element
+        ui_element.on(self.target_event, handler)
         self._cleanup_callbacks.append(
-            lambda: self._safe_remove_handler(self._ui_element, self.target_event, handler)
+            lambda: self._safe_remove_handler(ui_element, self.target_event, handler)
         )
 
     def _create_immediate_handler(self) -> Callable:
@@ -187,18 +192,19 @@ class PropertyBinding:
 
     def _sync_to_model(self, view_value: Any) -> None:
         """Synchronize view value to model"""
+        assert self._element is not None and self.converter is not None
         try:
             # Validate
             if self.validation:
                 is_valid, error_msg = self.validation(view_value)
                 if not is_valid:
-                    if self.on_error:
+                    if self.on_error and error_msg is not None:
                         self.on_error(error_msg)
                     return
 
             is_valid, error_msg = self.converter.validate(view_value)
             if not is_valid:
-                if self.on_error:
+                if self.on_error and error_msg is not None:
                     self.on_error(error_msg)
                 return
 
@@ -252,6 +258,7 @@ class PropertyBinding:
         Raises:
             ValueError: If field type doesn't support property updates
         """
+        assert self._element is not None
         field = self._element._data
 
         # Only works for BaseField

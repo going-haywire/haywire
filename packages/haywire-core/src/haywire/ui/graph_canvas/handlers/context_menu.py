@@ -206,7 +206,8 @@ class SessionContextMenuProvider(IContextMenuProvider):
         popup.on_close(_on_close)
 
         panel_classes = self._panel_registry.get_panels_for(actions_provider=self, focus=focus)
-        visible = [cls for cls in panel_classes if cls.poll(self._context)]  # type: ignore[attr-defined]
+
+        visible = [cls for cls in panel_classes if cls.poll(self._context)]
         if not visible:
             return
 

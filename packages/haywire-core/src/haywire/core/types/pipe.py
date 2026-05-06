@@ -66,6 +66,12 @@ class Pipes:
 
     def add_pipe(self, edge_wrapper: EdgeWrapper):
         """Add a pipe connection"""
+        assert edge_wrapper._inlet_port is not None, (
+            "add_pipe requires a valid (linked) edge with inlet wired"
+        )
+        assert edge_wrapper.first_adapter is not None, (
+            "add_pipe requires a valid edge with adapter chain built"
+        )
         uuid = edge_wrapper.edge_id
         self._pipes[uuid] = Pipe(
             outlet_port=self._outlet_port,

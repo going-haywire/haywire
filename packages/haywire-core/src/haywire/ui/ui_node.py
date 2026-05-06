@@ -9,7 +9,7 @@ and automatically re-renders when the underlying node class is hot-reloaded.
 """
 
 import logging
-from typing import Any, Callable, Optional
+from typing import Any, Callable, Optional, cast
 
 from nicegui import ui
 from haywire.core.graph.types import ChangeReason
@@ -49,7 +49,7 @@ class UINode:
         self.factory: SkinFactory = factory
         self.container: ui.element = container
 
-        self._position: Optional[tuple[int, int]] = None
+        self._position: Optional[tuple[float, float]] = None
 
         # Container slot for reliable cleanup
         self.container_slot: Optional[ui.column] = None
@@ -68,14 +68,14 @@ class UINode:
         self.sync_event_emitter: Optional[Callable[[Any], None]] = None
 
     @property
-    def position(self) -> Optional[tuple[int, int]]:
+    def position(self) -> Optional[tuple[float, float]]:
         return self._position
 
     @position.setter
-    def position(self, value: tuple[int, int]):
+    def position(self, value: tuple[float, float]):
         self._position = value
 
-    def set_position(self, position: tuple[int, int]):
+    def set_position(self, position: tuple[float, float]):
         """
         Set the position of the UINode in the UI.
 
@@ -128,7 +128,10 @@ class UINode:
 
         Note: Must be called within a valid NiceGUI client context.
         """
-        renderer_name = self.wrapper.node.props.skin
+        # Cast around the deferred 'props' inner-class shadowing issue:
+        # node.props.skin returns str at runtime via the descriptor, but mypy
+        # sees the field[str] descriptor itself.
+        renderer_name: Optional[str] = cast(Optional[str], self.wrapper.node.props.skin)
 
         if renderer_name is None:
             renderer_name = self.factory._skin_registry.get_default_skin_registry_key()
@@ -185,13 +188,15 @@ class UINode:
                     ).log()
                     _is_error_render = True
                     # we fallback to error skin and hope for the best
-                    renderer_name = self.factory._skin_registry.get_error_skin_registry_key()
+                    renderer_name = (
+                        self.factory._skin_registry.get_error_skin_registry_key() or NO_SKIN_DEFINED
+                    )
 
                 self.current_ui_card = self.factory.render(
                     renderer_name, self.wrapper, _is_error_render=_is_error_render
                 )
 
-                if error:
+                if error and self.current_ui_card is not None:
                     self.current_ui_card.append(error)  # Append error details if any
 
                 self._emit_sync_event_redraw()
@@ -244,20 +249,6 @@ class UINode:
         """
         if self.current_ui_card:
             return self.current_ui_card.get_widget_instance(element_id)
-        return None
-
-    def get_ui_element(self, element_id: str):
-        """
-        Get a UI element by element ID.
-
-        Args:
-            element_id: ID of the UI element
-
-        Returns:
-            UI element or None if not found
-        """
-        if self.current_ui_card:
-            return self.current_ui_card.get_ui_element(element_id)
         return None
 
     def delete(self):

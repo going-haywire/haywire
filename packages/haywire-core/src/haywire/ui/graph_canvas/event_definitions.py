@@ -12,7 +12,7 @@ This module provides:
 import dataclasses
 import time
 from dataclasses import dataclass, field
-from typing import Dict, Any, List, Optional, Type
+from typing import ClassVar, Dict, Any, List, Optional, Type
 
 # Global registry for all event types
 GRAPH_EVENT_REGISTRY: Dict[str, Type] = {}
@@ -42,7 +42,12 @@ class GraphEventMetadata:
 class BaseGraphEvent:
     """Base class without default fields"""
 
-    def to_dict(self, metadata: GraphEventMetadata = None) -> Dict[str, Any]:
+    # Set by @graph_event decorator at class definition time
+    event_type: ClassVar[str]
+    category: ClassVar[str]
+    description: ClassVar[str]
+
+    def to_dict(self, metadata: GraphEventMetadata | None = None) -> Dict[str, Any]:
         if metadata is None:
             metadata = GraphEventMetadata()
 

@@ -4,7 +4,7 @@ Node decorator for registering node classes.
 """
 
 from dataclasses import asdict
-from typing import Callable, Type, TypeVar, Union
+from typing import Any, Callable, Type, TypeVar
 
 from haywire.core.library.utils import derive_library_identity, reg_key
 from haywire.core.node import BaseNode, NodeIdentity, NodeBehaviorFlags, BEHAVIOR_FIELDS
@@ -12,7 +12,7 @@ from haywire.core.node import BaseNode, NodeIdentity, NodeBehaviorFlags, BEHAVIO
 T = TypeVar("T")
 
 
-def _wire_settings_schemas(node_cls: type, registry_key: str) -> None:
+def _wire_settings_schemas(node_cls: type[BaseNode], registry_key: str) -> None:
     """
     Scan the node class body for all ``Settings`` subclasses, assign ``_field_key``
     to their ``setting`` descriptors, and store the result as ``cls._settings_bags``.
@@ -67,9 +67,12 @@ def _wire_settings_schemas(node_cls: type, registry_key: str) -> None:
     node_cls._settings_bags = bags
 
 
-def node(cls: Type[T] = None, /, **kwargs) -> Union[Type[T], Callable[[Type[T]], Type[T]]]:
+def node(**kwargs: Any) -> Callable[[Type[T]], Type[T]]:
     """
     Decorator to register a class as a Haywire node.
+
+    Always invoked with parentheses — `@node(...)` or `@node()`. The bare
+    `@node` form (no parens) is not supported.
 
     Accepts NodeIdentity fields and NodeBehaviorFlags fields as keyword arguments.
     Supports inheritance: child classes inherit parent's identity and behavior,
@@ -239,8 +242,9 @@ def node(cls: Type[T] = None, /, **kwargs) -> Union[Type[T], Callable[[Type[T]],
         library_identity = derive_library_identity(inner_cls)
 
         # Auto-derive registry_key
-        library_id = library_identity.id if library_identity else None
-        identity_kwargs["registry_key"] = reg_key(library_id, "node", identity_kwargs["registry_id"])
+        identity_kwargs["registry_key"] = reg_key(
+            library_identity.id, "node", identity_kwargs["registry_id"]
+        )
 
         # Set source info from the class itself
         identity_kwargs["class_name"] = inner_cls.__name__
@@ -256,4 +260,4 @@ def node(cls: Type[T] = None, /, **kwargs) -> Union[Type[T], Callable[[Type[T]],
 
         return inner_cls
 
-    return decorator if cls is None else decorator(cls)
+    return decorator

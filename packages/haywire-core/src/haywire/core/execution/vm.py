@@ -142,14 +142,15 @@ class HaywireVM:
         """
         if not flow.is_assembled():
             raise RuntimeError(f"Cannot execute flow {flow.flow_id}: not assembled")
+        assert flow.control_graph is not None, "is_assembled() guarantees control_graph is set"
 
         # logger.debug(
         #     f"Starting control flow execution: {flow.flow_id} "
         #     f"(trigger: {trigger.source_key})"
         # )
 
-        # Initialize execution tracking
-        self.execution_count: int = 0
+        # Reset execution tracking for this flow
+        self.execution_count = 0
         loopback_stack: List[str] = []
 
         # Create execution context
@@ -162,7 +163,7 @@ class HaywireVM:
                 self.catch_exception(e, node, "Node on_frame_start() Execution")
 
         # Start from event node
-        current_node_id = flow.get_entry_node_id()
+        current_node_id: Optional[str] = flow.get_entry_node_id()
         current_inlet_id: Optional[str] = None  # Entry has no inlet
 
         # Main execution loop
@@ -227,7 +228,7 @@ class HaywireVM:
         node = node_info.node
 
         # Update context with current node
-        exec_ctx.node_wrapper = node
+        exec_ctx.node = node
 
         if node_info.localized_data_flow:
             # logger.debug(
@@ -260,11 +261,12 @@ class HaywireVM:
 
         return next_outlet_id
 
-    def catch_exception(self, exception: Exception, node: "BaseNode", operation: str) -> Optional[str]:
+    def catch_exception(self, exception: Exception, node: "BaseNode", operation: str) -> None:
         """
         Handle exception during node execution.
 
-        stores the error in the node's runtime errors."""
+        Stores the error in the node's runtime errors.
+        """
 
         error = HaywireException.from_exception(
             exception=exception, operation=operation, message=f"Error executing node '{node.identity.label}'"

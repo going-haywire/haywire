@@ -1,4 +1,4 @@
-from typing import Callable, Type, TypeVar, Union
+from typing import Any, Callable, Type, TypeVar
 
 from haywire.core.library.utils import derive_library_identity, reg_key
 
@@ -11,9 +11,12 @@ from .base import BaseSkin, SkinIdentity
 T = TypeVar("T")
 
 
-def skin(cls: Type[T] = None, /, **kwargs) -> Union[Type[T], Callable[[Type[T]], Type[T]]]:
+def skin(**kwargs: Any) -> Callable[[Type[T]], Type[T]]:
     """
     Decorator to register a class as a node skin.
+
+    Always invoked with parentheses — `@skin(...)` or `@skin()`. The bare
+    `@skin` form (no parens) is not supported.
 
     Accepts any SkinIdentity field as a keyword argument. Common arguments include:
 
@@ -36,7 +39,7 @@ def skin(cls: Type[T] = None, /, **kwargs) -> Union[Type[T], Callable[[Type[T]],
 
     Usage:
         # Minimal usage - uses class name for registry_id
-        @skin
+        @skin()
         class MySkin(BaseSkin): ...
 
         # Common customization
@@ -71,8 +74,7 @@ def skin(cls: Type[T] = None, /, **kwargs) -> Union[Type[T], Callable[[Type[T]],
         library_identity = derive_library_identity(inner_cls)
 
         # Auto-derive registry_key
-        library_id = library_identity.id if library_identity else None
-        kwargs["registry_key"] = reg_key(library_id, "skin", kwargs["registry_id"])
+        kwargs["registry_key"] = reg_key(library_identity.id, "skin", kwargs["registry_id"])
 
         # Set source info from the class itself
         kwargs["class_name"] = inner_cls.__name__
@@ -83,4 +85,4 @@ def skin(cls: Type[T] = None, /, **kwargs) -> Union[Type[T], Callable[[Type[T]],
         inner_cls.class_library = library_identity
         return inner_cls
 
-    return decorator if cls is None else decorator(cls)
+    return decorator

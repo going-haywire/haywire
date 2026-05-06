@@ -10,45 +10,12 @@ import logging
 from typing import Dict, List, Optional
 
 from haywire.core.errors.haywire_exception import HaywireException
-from . import node, BaseNode, NodeRegistry
+from . import BaseNode, NodeRegistry
 from .info import NodeInfo
 
 from ..registry.lifecycle_event import LifeCycleEvent, LifeCycleBatchCallback, LifeCycleEventCallback
 
 logger = logging.getLogger(__name__)
-
-
-# ============================================================================
-#    THIS NODE SHOULD NEVER BE USED FOR INHERITANCE
-#    IT IS THE MOST BASIC NODE THAT SHOULD RUN WITH THE LEAST DEPENDENCIES
-#    IT IS USED AS A FALLBACK BY THE NODE FACTORY
-#    WHEN NO OTHER NODE CAN BE LOADED
-# ============================================================================
-
-# TODO: Write Test for SkeletonNode.
-# This node should always work and be instantiable, including to load arbitray node serializations.
-
-
-@node(
-    label="Skeleton Node",
-    description="A minimal node implementation for fallback purposes",
-    search_tags=[],
-    menu="",
-)
-class __SkeletonNode__(BaseNode):
-    """
-    THIS NODE SHOULD NEVER BE USED FOR INHEITANCE
-    IT IS THE MOST BASIC NODE THAT SHOULD RUN WITH THE LEAST DEPENDENCIES
-    IT IS USED AS A FALLBACK WHEN NO OTHER NODE CAN BE LOADED
-    """
-
-    def init(self) -> None:
-        """No-op initialization"""
-        pass
-
-    def worker(self, context: dict) -> dict | None:
-        """No-op worker"""
-        return None
 
 
 class NodeFactory:
@@ -95,23 +62,29 @@ class NodeFactory:
         """
         Get the node class for a given registry key.
 
+        Fallback chain:
+            1. The actual class from a successful registry event.
+            2. The registered error node (registries/applications register one).
+
         Args:
             registry_key: The registry key of the node to retrieve
+
         Returns:
-            LifeCycleEvent: The lifecycle event for the requested node
+            (node_cls, node_error): The class to instantiate and an optional
+            error describing why the requested class wasn't returned directly.
+
+        Raises:
+            HaywireException: If neither the requested class nor an error node
+                is available — this is a setup error (no error node registered).
         """
-        node_cls = None
-        node_error = None
+        node_cls: type[BaseNode] | None = None
+        node_error: HaywireException | None = None
         node_event = self.node_registry.get_node_lastevent(registry_key)
         if node_event:
             node_cls = node_event.affected_class
             if not node_event.is_successful_event():
                 node_error = node_event.error
         else:
-            node_cls = self.node_registry._get_error_node()
-            if node_cls is None:
-                node_cls = __SkeletonNode__
-
             node_error = HaywireException(
                 message=f"Node with registry key '{registry_key}' not found in registry.",
                 operation="Node Lookup",
@@ -124,6 +97,20 @@ class NodeFactory:
                 ],
             )
 
+        # Fall back to registered error node if no concrete class available.
+        if node_cls is None:
+            node_cls = self.node_registry._get_error_node()
+        if node_cls is None:
+            raise HaywireException(
+                message=(
+                    f"Node lookup failed for '{registry_key}' and no error node is "
+                    f"registered. The application must register an error node with the "
+                    f"node registry to provide a fallback."
+                ),
+                operation="Node Lookup",
+                registry_key=registry_key,
+                category="NodeFactoryConfigurationError",
+            )
         return node_cls, node_error
 
     def _listen_on_lifecycle_event(self, batch: list[LifeCycleEvent]) -> None:
@@ -143,9 +130,10 @@ class NodeFactory:
 
         # Forward to all individual event listeners
         for event in batch:
+            library_label = event.library_identity.label if event.library_identity else "<unknown>"
             logger.info(
                 f"NodeFactory: Node {event.event_type.value} - {event.registry_key} "
-                f"from library '{event.library_identity.label}'"
+                f"from library '{library_label}'"
             )
             if event.registry_key in self._lifecycle_event_subscribers:
                 callbacks = self._lifecycle_event_subscribers[event.registry_key]

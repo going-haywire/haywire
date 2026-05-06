@@ -624,28 +624,22 @@ class Connection:
 ### Example Adapter Definitions
 
 ```python
-@adapter
+@adapter(description="Convert Temperature to FLOAT", converts_from=Temperature, converts_to=FLOAT)
 class TemperatureToFloat(BaseAdapter):
     """Convert Temperature to FLOAT"""
-    
-    @classmethod
-    def can_adapt(cls, source: type, target: type) -> bool:
-        return source == Temperature and target == FLOAT
-    
-    def convert(self, value: Temperature) -> FLOAT:
-        # Temperature extends FLOAT, just return as FLOAT
-        return FLOAT(value=value.value)
 
-@adapter
+    @override
+    def convert(self, value: Temperature) -> float:
+        # Temperature extends FLOAT, just return as FLOAT
+        return value.value
+
+@adapter(description="Convert FLOAT to STRING", converts_from=FLOAT, converts_to=STRING)
 class FloatToString(BaseAdapter):
     """Convert FLOAT to STRING"""
-    
-    @classmethod
-    def can_adapt(cls, source: type, target: type) -> bool:
-        return source == FLOAT and target == STRING
-    
-    def convert(self, value: FLOAT) -> STRING:
-        return STRING(value=str(value.value))
+
+    @override
+    def convert(self, value: float) -> str:
+        return str(value)
 
 # With these registered:
 # Temperature → STRING chain: [Temperature, FLOAT, STRING]

@@ -1,4 +1,4 @@
-from nicegui import element, ui
+from nicegui import ui
 from haywire.ui import elements as hui
 
 from haywire.core.errors.haywire_exception import HaywireException
@@ -110,7 +110,7 @@ def error_render_detail(error: HaywireException) -> ui.element:
     return container
 
 
-def render_error_info(error_info: NodeErrorInfo) -> element:
+def render_error_info(error_info: NodeErrorInfo) -> ui.element:
     """
     Render error information for a node.
 

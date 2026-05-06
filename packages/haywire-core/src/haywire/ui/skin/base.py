@@ -1,5 +1,4 @@
 from abc import ABC, abstractmethod
-from ast import Dict
 from dataclasses import dataclass
 import logging
 
@@ -11,7 +10,7 @@ from haywire.ui.ui_nodecard import UINodeCard
 from haywire.core.node.node_wrapper import NodeWrapper
 from haywire.core.registry.identity import BaseIdentity
 
-from ..widget.base import BaseWidget
+from ..widget.interface import IWidget
 from ..widget.factory_interface import IWidgetFactory
 from .interface import IBaseSkin
 
@@ -47,7 +46,7 @@ class BaseSkin(IBaseSkin, ABC):
             widget_factory: Factory for creating widget instances
         """
         self._widget_factory: IWidgetFactory = widget_factory
-        self._nodeids_widget_instances: Dict[str, Dict[str, BaseWidget]] = {}
+        self._nodeids_widget_instances: dict[str, dict[str, IWidget]] = {}
 
     def _render(self, wrapper: NodeWrapper) -> UINodeCard:
         ui_nodeCard: UINodeCard = UINodeCard()
@@ -109,6 +108,9 @@ class BaseSkin(IBaseSkin, ABC):
         Returns:
             The rendered widget ui_element container, or None if no widget was rendered
         """
+        if port.widget_key is None:
+            return None  # Port has no widget configured
+
         widget_instance, ui_element = self._widget_factory.render_widget(
             registry_key=port.widget_key, port=port, node_id=node_id
         )

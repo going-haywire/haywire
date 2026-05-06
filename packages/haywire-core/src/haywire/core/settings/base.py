@@ -55,8 +55,11 @@ class FieldDescriptor:
     _max: Any = None
     """Maximum allowed value — used as the upper bound for numeric widgets."""
 
-    _choices: list | Callable | None = None
+    _choices: list | dict | Callable | None = None
     """Dropdown options: a static list, a ``{value: label}`` dict, or a callable returning either."""
+
+    _field_key: str = ""
+    """Fully-qualified registry key — set by subclasses in extended mode."""
 
     _widget: str | None = None
     """Explicit widget hint (e.g. ``'color'``) that overrides type-based inference."""

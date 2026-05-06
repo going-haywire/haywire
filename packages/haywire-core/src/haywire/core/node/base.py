@@ -50,6 +50,10 @@ class NodeData:
     class_behavior: NodeBehaviorFlags
     class_library: LibraryIdentity
 
+    def worker(self, context: ExecutionContext, *args: Any, **kwargs: Any) -> "str | None":
+        """Subclass hook — override to define node behaviour. See BaseNode.worker for details."""
+        raise NotImplementedError(f"{type(self).__name__} must override worker()")
+
     def __init__(self, node_id: str, wrapper: NodeWrapper):
         """Initialize unified port collection and management state"""
         from haywire.core.di.context import get_type_registry, get_settings_registry
@@ -631,6 +635,7 @@ class NodeData:
         """
         sections: Dict[str, List[DataPort]] = {}
         for port in self.iter_section_ports(section):
+            assert port.section is not None, "iter_section_ports yields only sectioned ports"
             sections.setdefault(port.section, []).append(port)
         return sections
 
@@ -841,14 +846,26 @@ class NodeData:
     # Worker Signature Analysis and Execution
     # =========================================================================
 
-    def _analyze_worker_signature(self) -> None:
+    def _analyze_worker_signature(self) -> Callable:
         """
-        Analyze worker signature and create optimized extractor.
+        Analyze worker signature and build an optimized executor.
+
         Called after ports are configured (end of initialize or after port changes).
+
+        Returns:
+            Callable taking a context that invokes self.worker with the right
+            unwrapped port values.
+
+        Raises:
+            RuntimeError: If self has no ``worker`` method. Concrete BaseNode
+                subclasses must override ``worker()`` (it is ``@abstractmethod``).
         """
         worker_method = getattr(self, "worker", None)
         if not worker_method:
-            return
+            raise RuntimeError(
+                f"{type(self).__name__} has no worker method. Concrete BaseNode "
+                f"subclasses must override worker()."
+            )
 
         sig = inspect.signature(worker_method)
         params = dict(sig.parameters)
@@ -857,8 +874,7 @@ class NodeData:
 
         if not params:
             # Legacy: no params, call worker(context) directly
-            self._executor = lambda ctx: self.worker(ctx)
-            return
+            return lambda ctx: self.worker(ctx)
 
         # Collect params that have matching ports (in signature order)
         param_names_with_ports = []
@@ -873,7 +889,7 @@ class NodeData:
             if has_port:
                 param_names_with_ports.append(name)
 
-        self._executor = self._create_executor(param_names_with_ports)
+        return self._create_executor(param_names_with_ports)
 
     def _create_executor(self, param_names: List[str]) -> Callable:
         """
@@ -1122,7 +1138,7 @@ class BaseNode(NodeData, metaclass=NodeMeta):
         self.on_validate(context)
 
         if self._executor is None:
-            self._analyze_worker_signature()
+            self._executor = self._analyze_worker_signature()
 
         result = self._executor(context)
 
@@ -1258,7 +1274,7 @@ class BaseNode(NodeData, metaclass=NodeMeta):
             "node_id": self.node_id,
             "ports": self._serialize_ports(include_data=include_data),
             "settings": {name: getattr(self, name).to_dict() for name in type(self)._settings_bags},
-            "props": self.props.to_dict(),
+            "props": self.props.to_dict(),  # type: ignore[call-arg]
             "store": self._store.to_dict(),
             "identity": asdict(self.identity),
             "library": asdict(self.library),
@@ -1311,7 +1327,7 @@ class BaseNode(NodeData, metaclass=NodeMeta):
 
         # Restore reactive props
         if "props" in data:
-            self.props.from_dict(data["props"])
+            self.props.from_dict(data["props"])  # type: ignore[call-arg]
 
         if "store" in data:
             self._store.from_dict(data["store"])

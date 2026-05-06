@@ -17,7 +17,7 @@ class FolderScanMixin:
 
     def folder_scan_for_pyfiles(
         self, library_path: str, exclude_patterns: Optional[List[str]] = None
-    ) -> List[str]:
+    ) -> List[Path]:
         """
         Scan a library directory for Python files, returning filepaths.
 
@@ -139,7 +139,10 @@ class FolderScanMixin:
         return discovered_classes, module
 
     def resolve_module_name(
-        self, file_path: str, library_root: Optional[str] = None, module_prefix: Optional[str] = None
+        self,
+        file_path: str | Path,
+        library_root: Optional[str] = None,
+        module_prefix: Optional[str] = None,
     ) -> Optional[str]:
         """
         Resolve module name from file path relative to library root.
@@ -188,7 +191,7 @@ class FolderScanMixin:
         else:  # File is directly in library root
             return f"{module_prefix}.{rel_path.stem}"
 
-    def _validate_python_file(self, file_path: str) -> bool:
+    def _validate_python_file(self, file_path: str | Path) -> bool:
         """Check if Python file compiles without syntax errors"""
         try:
             with open(file_path, "r", encoding="utf-8") as f:

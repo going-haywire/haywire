@@ -7,7 +7,7 @@ been moved into focused handler classes under handlers/.
 
 import logging
 import traceback
-from typing import Callable, Dict, Optional, Set
+from typing import Callable, Dict, Set
 from nicegui import ui
 
 from haywire.core.graph.editor import Editor
@@ -52,11 +52,8 @@ class GraphCanvasManager:
 
         self.graph = editor.graph
 
-        # Vue component references (set by _setup_canvas)
-        self.canvas_vue: Optional[GraphCanvasVue] = None
-        self.zoom_container: Optional[ZoomPanContainer] = None
-
-        self._setup_canvas()
+        # Vue component references built in _setup_canvas
+        self.zoom_container, self.canvas_vue = self._setup_canvas()
 
         # Build handler objects
         self.visual_layer = VisualLayerHandlers(
@@ -108,22 +105,23 @@ class GraphCanvasManager:
     # Setup
     # =========================================================================
 
-    def _setup_canvas(self):
+    def _setup_canvas(self) -> tuple[ZoomPanContainer, GraphCanvasVue]:
         """Create zoom container and Vue canvas component."""
-        self.zoom_container = (
+        zoom_container = (
             ZoomPanContainer()
             .classes("w-full flex-grow")
             .style("border: 2px solid var(--hw-border);")
             .style("height: 100%;")
         )
 
-        with self.zoom_container.content_container:
-            self.canvas_vue = GraphCanvasVue(
-                zoom_container=self.zoom_container,
+        with zoom_container.content_container:
+            canvas_vue = GraphCanvasVue(
+                zoom_container=zoom_container,
                 on_canvas_event=self._handle_canvas_event,
                 canvas_width=self.graph.canvas_width,
                 canvas_height=self.graph.canvas_height,
             )
+        return zoom_container, canvas_vue
 
     def _validate_handler_coverage(self):
         """Warn if any user event lacks a registered handler."""

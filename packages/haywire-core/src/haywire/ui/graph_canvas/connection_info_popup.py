@@ -132,10 +132,3 @@ class EdgeInfoPopup:
             self._info_popup.close()
             self._info_popup.delete()
             self._info_popup = None
-
-    def _test_adapter_chain(self, edge: Edge):
-        """Handle test execution of adapter chain."""
-        print(f"[ConnectionInfoPopup] Testing adapter chain for edge {edge.edge_id}")
-        print(f"  Chain: {edge.chain_adapter_keys}")
-        # TODO: Implement adapter chain test execution
-        ui.notify(f"Adapter chain test: {edge.chain_adapter_keys}", type="info", position="top")

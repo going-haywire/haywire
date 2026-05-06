@@ -60,7 +60,7 @@ class WidgetRegistry(BaseRegistry):
 
         return unreg
 
-    def get_widget_event(self, key: str | None) -> type[LifeCycleEvent]:
+    def get_widget_event(self, key: str | None) -> LifeCycleEvent:
         """
         Get last lifecycle widget event by registry key
 

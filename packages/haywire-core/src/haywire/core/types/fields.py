@@ -9,7 +9,7 @@ uniform API for different access scenarios.
 from __future__ import annotations
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from typing import Any, Callable, Dict, Generic, TypeVar
+from typing import Any, Callable, Dict, Generic, TypeVar, cast
 
 from haywire.core.types import IType, BaseType, PrimitiveType, Event
 
@@ -77,7 +77,7 @@ class DataField(ABC, Generic[T]):
         """
         pass
 
-    def get_stored_type(self) -> IType:
+    def get_stored_type(self) -> type[IType]:
         """
         Return the type stored in this field.
 
@@ -88,8 +88,7 @@ class DataField(ABC, Generic[T]):
         which types to pass to AdapterFactory for chain creation.
 
         Returns:
-            type: The IType of the instance(s) that is(are) actually stored
-
+            type[IType]: The IType class of the instance(s) that is(are) actually stored.
         """
         return self.type_cls
 
@@ -229,12 +228,16 @@ class PrimitiveField(DataField[T]):
         """
         Serialize primitive field value.
 
-        Delegates to PrimitiveType.to_dict(value) classmethod.
+        Wraps the unwrapped value in a temporary type instance and calls
+        the unified IType.to_dict() instance method.
 
         Returns:
             dict: Serialized representation
         """
-        return self.type_cls.to_dict(self._value)
+        # PrimitiveField stores PrimitiveType[T] subclasses; cast to access
+        # PrimitiveType's value= constructor.
+        primitive_cls = cast("type[PrimitiveType[T]]", self.type_cls)
+        return primitive_cls(value=self._value).to_dict()
 
     def from_dict(self, data: dict) -> None:
         """
@@ -283,14 +286,16 @@ class BaseField(DataField[BaseType]):
         if not isinstance(value, self.type_cls):
             raise TypeError(f"Expected {self.type_cls.__name__}, got {type(value).__name__}")
 
-        self._container = value
+        # type_cls is type[IType] at the base; for BaseField it's always type[BaseType].
+        self._container = cast(BaseType, value)
         self.is_dirty = True
         if self.on_changed.has_observers():
             self.fire(self._container)
 
     def reset(self) -> None:
         """Reset to default value"""
-        self._container = self.type_cls(**self.default_kwargs)
+        # type_cls is type[IType] at the base; for BaseField it's always type[BaseType].
+        self._container = cast(BaseType, self.type_cls(**self.default_kwargs))
         self.is_dirty = True
 
     def has_data(self) -> bool:

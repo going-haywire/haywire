@@ -71,7 +71,7 @@ class LifeCycleEvent:
     affected_class: Optional[Type[Any]]
     """The actual class that was affected (None for REMOVED/FAILED events)"""
 
-    library_identity: LibraryIdentity | None = None
+    library_identity: LibraryIdentity
     """The library where the change occurred"""
 
     # Error information (for failed reloads)
@@ -145,7 +145,7 @@ class LifeCycleEvent:
         this includes:
         CLASS_NOT_FOUND
         """
-        return self.event_type in (LifeCycleEventType.CLASS_NOT_FOUND) or self.affected_class is None
+        return self.event_type == LifeCycleEventType.CLASS_NOT_FOUND or self.affected_class is None
 
     def is_removal(self) -> bool:
         """Check if this event represents a class removal"""
@@ -185,7 +185,7 @@ class LifeCycleEvent:
 
         Useful when propagating events with additional context.
         """
-        data = {
+        data: dict[str, Any] = {
             "registry_key": self.registry_key,
             "event_type": self.event_type,
             "affected_class": self.affected_class,
@@ -218,11 +218,12 @@ class LifeCycleEvent:
 
     def __repr__(self) -> str:
         """Detailed representation for debugging"""
+        library_label = self.library_identity.label if self.library_identity else None
         return (
             f"LifeCycleEvent("
             f"registry_key='{self.registry_key}', "
             f"event_type={self.event_type.value}, "
-            f"library='{self.library_identity.label}', "
+            f"library='{library_label}', "
             f"has_class={self.affected_class is not None}"
             f")"
         )

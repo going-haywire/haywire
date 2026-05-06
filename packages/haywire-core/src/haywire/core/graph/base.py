@@ -424,10 +424,10 @@ class BaseGraph:
             new_w = _CANVAS_MIN_SIZE
             new_h = _CANVAS_MIN_SIZE
         else:
-            max_x = max(w.node.props.posX for w in self.node_wrappers.values())
-            max_y = max(w.node.props.posY for w in self.node_wrappers.values())
-            needed_w = max_x + _CANVAS_EDGE_MARGIN
-            needed_h = max_y + _CANVAS_EDGE_MARGIN
+            max_x = max(w.node.props.posX for w in self.node_wrappers.values())  # type: ignore[type-var]
+            max_y = max(w.node.props.posY for w in self.node_wrappers.values())  # type: ignore[type-var]
+            needed_w = max_x + _CANVAS_EDGE_MARGIN  # type: ignore[operator]
+            needed_h = max_y + _CANVAS_EDGE_MARGIN  # type: ignore[operator]
             steps_w = math.ceil(needed_w / _CANVAS_EXPANSION_STEP)
             steps_h = math.ceil(needed_h / _CANVAS_EXPANSION_STEP)
             new_w = max(_CANVAS_MIN_SIZE, steps_w * _CANVAS_EXPANSION_STEP)

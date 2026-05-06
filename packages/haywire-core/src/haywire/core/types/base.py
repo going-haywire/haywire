@@ -68,12 +68,14 @@ class PrimitiveType(IType, ABC, Generic[T]):
                             cls.element_type_cls = base.__args__[0]
                             break
 
-    def __init__(self, value: T = None, **kwargs):
+    def __init__(self, value: "T | None" = None, **kwargs):
         """
         Initialize primitive with a value.
 
         Args:
-            value: The primitive value to wrap
+            value: The primitive value to wrap. May be None during construction;
+                falls back to kwargs["value"] (from create_default dict unpacking)
+                or to class_identity.default["value"]. Raises if no value resolved.
             **kwargs: For compatibility with create_default dict unpacking
         """
         # Handle keyword arg style from create_default
@@ -93,13 +95,15 @@ class PrimitiveType(IType, ABC, Generic[T]):
         self._value: T = value
 
     @property
-    @final
     def value(self) -> T:
-        """Returns the wrapped primitive value."""
+        """Returns the wrapped primitive value.
+
+        Note: this property is intentionally not subclass-overridable in spirit
+        — subclasses should provide their own typed wrapper around _value.
+        """
         return self._value
 
     @value.setter
-    @final
     def value(self, val: T):
         """Sets the wrapped primitive value."""
         self._value = val
@@ -108,25 +112,17 @@ class PrimitiveType(IType, ABC, Generic[T]):
     # SERIALIZATION - Stub methods for field value persistence
     # ========================================================================
 
-    @classmethod
-    def to_dict(cls, value: T) -> dict:
+    def to_dict(self) -> dict:
         """
-        Serialize primitive value to dictionary.
+        Serialize this primitive to a dictionary.
 
-        Default stub implementation - returns default from @type decorator.
+        Default implementation wraps the unwrapped value as {'value': self._value}.
         Override in subclasses for custom serialization logic.
-
-        Args:
-            value: The unwrapped primitive value (42.0, not FLOAT(42.0))
 
         Returns:
             dict: Serialized representation
         """
-        # Default: return decorator default
-        default_dict = getattr(cls.class_identity, "default", None)
-        if isinstance(default_dict, dict):
-            return default_dict
-        return {}
+        return {"value": self._value}
 
     @classmethod
     def from_dict(cls, data: dict) -> T:
@@ -141,13 +137,18 @@ class PrimitiveType(IType, ABC, Generic[T]):
 
         Returns:
             T: Unwrapped primitive value (42.0, not FLOAT(42.0))
+
+        Raises:
+            ValueError: If no default value is configured on class_identity.
         """
         # Default: return decorator default value
-        value = None
         default_dict = getattr(cls.class_identity, "default", None)
-        if isinstance(default_dict, dict):
-            value = default_dict.get("value")
-        return value
+        if isinstance(default_dict, dict) and "value" in default_dict:
+            return default_dict["value"]
+        raise ValueError(
+            f"{cls.__name__}.from_dict has no value to return: no class_identity.default "
+            f"is configured. Override from_dict in subclasses, or set a default in @type(default=...)."
+        )
 
 
 # ============================================================================
@@ -373,7 +374,7 @@ class CompoundType(BaseType, ABC, Generic[T]):
         class_name = f"{cls.__name__}[{element_type_cls.__name__}]"
 
         # Build attributes dict - only include if they exist on parent
-        attrs = {
+        attrs: dict[str, Any] = {
             "element_type_cls": element_type_cls,
             "field_class": cls.field_class,
             # Share the cache
@@ -390,7 +391,7 @@ class CompoundType(BaseType, ABC, Generic[T]):
         # This prevents ABC/metaclass issues
         metaclass = type(cls)
 
-        parameterized_cls = metaclass(class_name, (cls,), attrs)
+        parameterized_cls = metaclass(class_name, (cls,), attrs)  # type: ignore[misc]
 
         # Cache and return
         cls._parameterized_cache[cache_key] = parameterized_cls

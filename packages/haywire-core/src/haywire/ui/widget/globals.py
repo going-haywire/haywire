@@ -12,13 +12,13 @@ from typing import Dict, Type, Optional, Set, TYPE_CHECKING
 from haywire.core.types.interface import IType
 
 if TYPE_CHECKING:
-    from .base import BaseWidget
+    from .interface import IWidget
 
 # Global widget class lookup
-WIDGET_REGISTRY: Dict[str, Type["BaseWidget"]] = {}
+WIDGET_REGISTRY: Dict[str, Type["IWidget"]] = {}
 
 
-def register_widget_globally(registry_key: str, widget_cls: Type["BaseWidget"]) -> None:
+def register_widget_globally(registry_key: str, widget_cls: Type["IWidget"]) -> None:
     """
     Register a widget class globally for validation purposes.
 
@@ -40,7 +40,7 @@ def unregister_widget_globally(registry_key: str) -> None:
         del WIDGET_REGISTRY[registry_key]
 
 
-def get_widget_class(registry_key: str) -> Optional[Type["BaseWidget"]]:
+def get_widget_class(registry_key: str) -> Optional[Type["IWidget"]]:
     """
     Get widget class by registry key.
 
@@ -98,7 +98,7 @@ def validate_widget_type_compatibility(
     return False, error_msg
 
 
-def list_all_widgets() -> Dict[str, Type["BaseWidget"]]:
+def list_all_widgets() -> Dict[str, Type["IWidget"]]:
     """
     Get all registered widgets.
 

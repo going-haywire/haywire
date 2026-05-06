@@ -26,8 +26,6 @@ from .panel import Panel
 
 
 def panel(
-    cls=None,
-    /,
     *,
     action: Optional[type] = None,
     focus: Optional[type] = None,
@@ -39,6 +37,10 @@ def panel(
     registry_id: Optional[str] = None,
 ):
     """Decorator to mark a class as a panel.
+
+    Always invoked with parentheses — `@panel(...)`. The bare `@panel`
+    form (no parens) is not supported; `action=`, `focus=`, and `label=`
+    are required.
 
     Sets class_identity on the class. Does NOT register the class —
     registration happens when the library calls add_folder() in
@@ -82,8 +84,7 @@ def panel(
         _registry_id = registry_id or inner_cls.__name__
 
         library_identity = derive_library_identity(inner_cls)
-        library_id = library_identity.id if library_identity else None
-        _registry_key = reg_key(library_id, "panel", _registry_id)
+        _registry_key = reg_key(library_identity.id, "panel", _registry_id)
 
         inner_cls.class_identity = PanelIdentity(
             registry_id=_registry_id,
@@ -103,4 +104,4 @@ def panel(
         inner_cls.class_library = library_identity
         return inner_cls
 
-    return decorator if cls is None else decorator(cls)
+    return decorator

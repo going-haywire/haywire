@@ -24,7 +24,7 @@ def _make_registry() -> SettingsRegistry:
 
 def _make_configurator(registry: SettingsRegistry) -> tuple[LoggingConfigurator, DebugSettings]:
     settings = DebugSettings()
-    configurator = LoggingConfigurator(settings)
+    configurator = LoggingConfigurator(registry, settings)
     return configurator, settings
 
 

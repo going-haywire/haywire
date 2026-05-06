@@ -1,6 +1,6 @@
 import inspect
 from pathlib import Path
-from typing import Callable, Type, TypeVar, Union
+from typing import Any, Callable, Type, TypeVar
 
 from .base import BaseLibrary
 from .identity import LibraryIdentity
@@ -12,9 +12,12 @@ from .identity import LibraryIdentity
 T = TypeVar("T")
 
 
-def library(cls: Type[T] | None = None, /, **kwargs) -> Union[Type[T], Callable[[Type[T]], Type[T]]]:
+def library(**kwargs: Any) -> Callable[[Type[T]], Type[T]]:
     """
     Decorator to register a class as a Haywire library.
+
+    Always invoked with parentheses — `@library(...)`. The bare `@library`
+    form (no parens) is not supported; `label=` is required.
 
     Accepts any LibraryIdentity field as a keyword argument. Common arguments include:
 
@@ -86,4 +89,4 @@ def library(cls: Type[T] | None = None, /, **kwargs) -> Union[Type[T], Callable[
         inner_cls.class_identity = LibraryIdentity(**kwargs)
         return inner_cls
 
-    return decorator if cls is None else decorator(cls)
+    return decorator

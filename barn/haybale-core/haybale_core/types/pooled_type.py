@@ -11,7 +11,7 @@ Key changes:
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, TypeVar
 
-from haywire.core.types import type, FlowType, CompoundType, DataField
+from haywire.core.types import type, FlowType, CompoundType, DataField, IType
 from haywire.core.types.enums import PortType
 
 T = TypeVar("T")
@@ -202,7 +202,7 @@ class PooledField(DataField):
         if self.on_changed.has_observers():
             self.fire(dict(self._sources))
 
-    def get_stored_type(self) -> type:
+    def get_stored_type(self) -> "type[IType]":
         # other than most other fields, pooled field actually stores the element type
         return self.type_cls.element_type_cls
 

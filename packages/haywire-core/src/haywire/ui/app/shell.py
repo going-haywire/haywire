@@ -57,14 +57,14 @@ class AppShell:
         - Individual Slot subclasses for their own editor lifecycle
     """
 
-    def __init__(self, session: "Session", editor_registry: Optional["EditorTypeRegistry"] = None):
+    def __init__(self, session: "Session", editor_registry: "EditorTypeRegistry"):
         """
         Create the AppShell.
 
         Args:
             session: The per-session Session object.
-            editor_registry: Optional EditorTypeRegistry for looking up and
-                instantiating editor types. If None, areas show placeholders.
+            editor_registry: EditorTypeRegistry for looking up and
+                instantiating editor types.
         """
         self.session = session
         self._editor_registry = editor_registry
@@ -379,9 +379,7 @@ class AppShell:
             ):
                 # ---------------- Left slot ----------------
                 left_data = snapshot.get("left", {})
-                if left_data.get("active_key") or (
-                    self._editor_registry and self._editor_registry.get_by_default_slot("left")
-                ):
+                if left_data.get("active_key") or self._editor_registry.get_by_default_slot("left"):
                     left_slot = self._build_managed_slot("left", bar_place="left")
                     # Slot wrapper lives inside main_content_row; slot renders bar + area into it.
                     left_wrapper = ui.element("div").style("height: 100%;")
@@ -403,18 +401,14 @@ class AppShell:
                 ):
                     main_col._props["id"] = "hw-slot-main-container"
                     main_data = snapshot.get("main", {})
-                    if main_data.get("editors") or (
-                        self._editor_registry and self._editor_registry.get_by_default_slot("main")
-                    ):
+                    if main_data.get("editors") or self._editor_registry.get_by_default_slot("main"):
                         main_slot = self._build_managed_slot("main", bar_place="top")
                         main_slot.render(main_col)
                     else:
                         ui.label("No editor").classes("hw-text-muted p-4")
 
                     bottom_data = snapshot.get("bottom", {})
-                    if bottom_data.get("editors") or (
-                        self._editor_registry and self._editor_registry.get_by_default_slot("bottom")
-                    ):
+                    if bottom_data.get("editors") or self._editor_registry.get_by_default_slot("bottom"):
                         self._bottom_divider = (
                             ui.element("div")
                             .classes("hw-area-vdivider w-full flex-shrink-0")
@@ -429,9 +423,7 @@ class AppShell:
 
                 # ---------------- Right slot ----------------
                 right_data = snapshot.get("right", {})
-                if right_data.get("active_key") or (
-                    self._editor_registry and self._editor_registry.get_by_default_slot("right")
-                ):
+                if right_data.get("active_key") or self._editor_registry.get_by_default_slot("right"):
                     self._right_divider = (
                         ui.element("div")
                         .classes("hw-area-divider hw-area-divider-right flex-shrink-0")
@@ -460,12 +452,13 @@ class AppShell:
         ):
             ui.label("Haywire").classes("font-bold text-lg hw-text-body")
 
+            def _on_save() -> None:
+                self.session.project_state.save_workspace(shell=self)
+                ui.notify("Workspace saved", position="top-right")
+
             ui.button(
                 icon=hui.icon.save,
-                on_click=lambda: (
-                    self.session.project_state.save_workspace(shell=self),
-                    ui.notify("Workspace saved", position="top-right"),
-                ),
+                on_click=_on_save,
             ).props("flat round dense").tooltip("Save workspace layout")
 
     def _render_statusbar(self) -> None:
@@ -547,17 +540,13 @@ class AppShell:
         from haywire.ui.app.tab_slot import TabSlot
         from haywire.ui.editor.identity import OpenBehavior
 
-        if self._editor_registry is None:
-            logger.warning(f"AppShell: cannot reveal '{editor_key}' — no editor registry")
-            return
-
         editor_cls = self._editor_registry.get_by_key(editor_key)
         if editor_cls is None:
             logger.warning(f"AppShell: reveal_editor '{editor_key}' not found in registry")
             return
 
         slot_name = getattr(editor_cls.class_identity, "default_slot", None)
-        slot = self._managed_slots.get(slot_name)
+        slot = self._managed_slots.get(slot_name) if slot_name else None
         if slot is None:
             logger.warning(
                 f"AppShell: reveal_editor '{editor_key}' targets slot '{slot_name}' "

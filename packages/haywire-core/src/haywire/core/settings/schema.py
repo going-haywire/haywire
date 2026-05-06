@@ -19,7 +19,7 @@ so instantiation with no args produces a fully registry-wired instance.
 """
 
 from __future__ import annotations
-from typing import ClassVar, TYPE_CHECKING
+from typing import TYPE_CHECKING
 
 from haywire.core.settings.settings import Settings
 
@@ -57,9 +57,6 @@ class FrameworkSettings(Settings):
 
     ```
     """
-
-    _namespace: ClassVar[str] = ""
-    _registry: ClassVar["SettingsRegistry | None"] = None
 
     def __init_subclass__(cls, namespace: str = "", **kwargs: object) -> None:
         super().__init_subclass__(**kwargs)
@@ -123,9 +120,6 @@ class LibrarySettings(Settings):
     After registration, cls._registry holds the registry back-reference, so:
         self.settings = GeneralSettings()   # fully wired, no explicit injection
     """
-
-    _namespace: ClassVar[str] = ""
-    _registry: ClassVar["SettingsRegistry | None"] = None
 
     def __init_subclass__(cls, namespace: str = "", **kwargs: object) -> None:
         super().__init_subclass__(**kwargs)

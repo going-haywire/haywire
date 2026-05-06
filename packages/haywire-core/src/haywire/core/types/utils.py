@@ -32,17 +32,14 @@ class PortSpec(TypedDict):
     The node's add() method uses this spec to instantiate the actual DataPort.
     """
 
-    # For compound types: nested type spec
-    element_type: NotRequired[ElementTypeSpec]
-
-    # Port direction
-    is_inlet: bool
-
-    # Port constructor kwargs (id, default, label, widget, etc.)
+    # Port constructor kwargs (id, port_type, default, label, widget, etc.)
     kwargs: Dict[str, Any]
 
+    # Type lineage (recursive for compound types)
+    recipe: ElementTypeSpec
 
-def create_port_spec(type_cls: type["IType"], port_type: PortType, id: str, **kwargs) -> dict:
+
+def create_port_spec(type_cls: type["IType"], port_type: PortType, id: str, **kwargs) -> PortSpec:
     """
     Create a port specification dict.
 
@@ -53,7 +50,7 @@ def create_port_spec(type_cls: type["IType"], port_type: PortType, id: str, **kw
         **kwargs: Port configuration (label, default, widget, etc.)
 
     Returns:
-        dict ready for node.add()
+        PortSpec ready for node.add()
 
     """
 
@@ -72,12 +69,10 @@ def create_port_spec(type_cls: type["IType"], port_type: PortType, id: str, **kw
         **kwargs,  # User overrides
     }
 
-    spec: Dict[str, Any] = {"kwargs": merged_kwargs, "recipe": serialize_element_type(type_cls)}
-
-    return spec
+    return PortSpec(kwargs=merged_kwargs, recipe=serialize_element_type(type_cls))
 
 
-def serialize_element_type(type_cls: type["IType"]) -> dict:
+def serialize_element_type(type_cls: type["IType"]) -> ElementTypeSpec:
     """
     Recursively serialize element type for compound types.
 
@@ -85,7 +80,7 @@ def serialize_element_type(type_cls: type["IType"]) -> dict:
         type_cls: Element type class to serialize
 
     Returns:
-        dict
+        ElementTypeSpec
 
     Examples:
         serialize_element_type(STRING)
@@ -106,7 +101,7 @@ def serialize_element_type(type_cls: type["IType"]) -> dict:
     if not registry_key:
         raise ValueError(f"Type {type_cls.__name__} has no registry_key")
 
-    result: dict[str, Any] = {"registry_key": registry_key}
+    result: ElementTypeSpec = {"registry_key": registry_key}
 
     # Recurse for nested compound types
     if (

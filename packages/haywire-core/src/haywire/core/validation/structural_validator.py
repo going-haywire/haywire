@@ -331,6 +331,7 @@ class StructuralValidator(IStructuralValidator):
         """
         from haywire.core.node.behavior import NodeType
 
+        assert wrapper._source_wrapper is not None  # validator runs after edge wiring
         # Source must be an event node
         if NodeType.EVENT not in wrapper._source_wrapper.node.behavior.node_type:
             return (

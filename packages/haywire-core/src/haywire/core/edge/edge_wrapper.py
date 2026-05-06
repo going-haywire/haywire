@@ -2,7 +2,7 @@ import copy
 import logging
 import time
 from typing import Any, Dict, List, Optional, TYPE_CHECKING
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from ...ui.utils import generate_edge_uuid
 from ..graph.types import ChangeReason
@@ -45,7 +45,7 @@ class EdgeWrapperState:
     """The edge is linked to both ports"""
     is_executing: bool = False
     """Edge is currently transforming data"""
-    warnings: List[str] | None = None
+    warnings: List[str] = field(default_factory=list)
     """main warning message"""
     error_link: Optional[HaywireException] = None
     """port validation error message"""
@@ -152,7 +152,7 @@ class EdgeWrapper:
         self.inletPinFallback: str = f"{self.inlet_port_id}>>root_in"
 
         # Reference to parent graph
-        self._graph: Optional["BaseGraph"] = graph
+        self._graph: "BaseGraph" = graph
 
         from haywire.core.di.context import get_adapter_factory
 
@@ -183,12 +183,12 @@ class EdgeWrapper:
             is_lazy=lazy,
         )
 
-        self._source_type: Optional[IType] = None
+        self._source_type: Optional[type[IType]] = None
 
         # Subscribe to adapter factory for hot reload
         self._adapter_factory.register_edge_callback(self._edge_id, self._on_adapter_lifecycle_event)
 
-        self._structural_validator: Optional["IStructuralValidator"] = self._graph._structural
+        self._structural_validator: "IStructuralValidator" = self._graph._structural
 
     def is_valid(self) -> bool:
         """Check if edge is valid"""
@@ -211,8 +211,14 @@ class EdgeWrapper:
         return self.edge_type == FlowType.DATA
 
     @property
-    def edge(self) -> Optional[Edge]:
-        """Get the Edge instance"""
+    def edge(self) -> Edge:
+        """Get the Edge instance.
+
+        Raises:
+            RuntimeError: If the wrapper has been cleaned up.
+        """
+        if self._edge is None:
+            raise RuntimeError(f"EdgeWrapper '{self._edge_id}' has been cleaned up.")
         return self._edge
 
     @property
@@ -226,7 +232,7 @@ class EdgeWrapper:
         return self._first_adapter
 
     @property
-    def state(self) -> Optional[EdgeWrapperState]:
+    def state(self) -> EdgeWrapperState:
         """Get the Edge state"""
         return self._state
 
@@ -497,22 +503,28 @@ class EdgeWrapper:
     def _build_adapter_chain(self) -> bool:
         """
         Build adapter chain for this edge.
-        Args:
-            rebuild: Whether this is a rebuild (hot reload) or initial build
+
+        Precondition: ``_formal_validation`` has run successfully, which sets
+        ``_inlet_port`` / ``_outlet_port`` and validates the graph reference.
+        ``_adapter_factory`` is set in ``__init__``.
         """
+        assert self._inlet_port is not None
+        assert self._outlet_port is not None
+        assert self._adapter_factory is not None
+        inlet_port = self._inlet_port
+        outlet_port = self._outlet_port
+        adapter_factory = self._adapter_factory
         try:
             # create adapter chain (only for DATA edges)
             if self._edge_type == FlowType.DATA:
                 # Inlet determines what type it needs from outlet
-                sink_type = self._inlet_port._data.get_stored_type()
+                sink_type = inlet_port._data.get_stored_type()
 
-                outlet_field = self._outlet_port._data
+                outlet_field = outlet_port._data
                 source_type = outlet_field.type_cls
 
                 # Create new chain
-                first_adapter, error = self._adapter_factory.create_chain(
-                    source_type, sink_type, self._edge_id
-                )
+                first_adapter, error = adapter_factory.create_chain(source_type, sink_type, self._edge_id)
 
                 if first_adapter:
                     # Check for chain changes on rebuild
@@ -765,10 +777,9 @@ class EdgeWrapper:
                 if event.error:
                     self._state.error_build = event.error
                 else:
-                    self._state.error_build = HaywireException.from_exception(
-                        exception=event.error,
+                    self._state.error_build = HaywireException.create(
                         message=f"Adapter hot reload error on edge {self._edge_id}",
-                        operation="Adapter Hot Reload: {event.event_type}",
+                        operation=f"Adapter Hot Reload: {event.event_type}",
                         category="Adapter Hot Reload Error",
                     ).enrich(
                         library_identity=event.library_identity,
@@ -853,7 +864,7 @@ class EdgeWrapper:
         self._sink_wrapper = None
         self._outlet_port = None
         self._inlet_port = None
-        self._edge = None
+        self._edge = None  # type: ignore[assignment]
 
     def __repr__(self) -> str:
         status = "valid" if self._state.is_valid() else "invalid"

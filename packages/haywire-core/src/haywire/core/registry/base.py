@@ -4,7 +4,7 @@ Base classes for the Haywire library system
 
 from typing import Dict, Any, Optional, Type, List, Tuple
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
+from dataclasses import dataclass, field as dc_field
 from enum import Enum
 import importlib
 from pathlib import Path
@@ -37,13 +37,10 @@ class FileChangeEvent:
     event_type: FileEventType  # 'created', 'modified', 'deleted', 'detected'
     library_identity: LibraryIdentity
     timestamp: float
-    reloaded_modules: set[str] | None = None  # Track modules already reloaded in this event chain
+    reloaded_modules: set[str] = dc_field(default_factory=set)
+    """Track modules already reloaded in this event chain"""
     dependency_event: bool = False  # Whether this event is due to dependency reload
     """indicates if this event is a result of a dependency change (detected by a different registry)"""
-
-    def __post_init__(self):
-        if self.reloaded_modules is None:
-            self.reloaded_modules = set()
 
 
 class HotReloadRegistry(ABC):
@@ -88,7 +85,7 @@ class BaseRegistry(HotReloadRegistry, FolderScanMixin):
         # Direct consumers (factories, etc.)
         self._batch_event_subscribers: List[LifeCycleBatchCallback] = []
 
-        self._dependency_module_errors: Dict[str, HaywireException] = {}
+        self._dependency_module_lifecycle_events: Dict[str, LifeCycleEvent] = {}
         """Track errors during dependency module reloads and store them by registry_key"""
 
         self.logger = logging.getLogger(__name__)
@@ -137,10 +134,12 @@ class BaseRegistry(HotReloadRegistry, FolderScanMixin):
         Returns:
             str: The haywire registry_key of the registered class
         """
+        library_label = library_identity.label if library_identity is not None else "<unknown>"
+
         # Check if class_identity exists
         if not hasattr(cls, "class_identity"):
             raise ValueError(
-                f"Library '{library_identity.label}': Class {cls} does not "
+                f"Library '{library_label}': Class {cls} does not "
                 f"have a class_identity attribute. Cannot register. This is "
                 f"likely due to a missing condition in the implementation of "
                 f"the registry's class filter method."
@@ -149,7 +148,7 @@ class BaseRegistry(HotReloadRegistry, FolderScanMixin):
         # Check for duplicates
         if self.has(registry_key):
             raise ValueError(
-                f"Library '{library_identity.label}': "
+                f"Library '{library_label}': "
                 f"Attempt to register Node '{cls.class_identity.label}' "
                 f"under an existing registry_key '{registry_key}'. "
                 f"This is not allowed. Indication of double use of a node "
@@ -239,9 +238,16 @@ class BaseRegistry(HotReloadRegistry, FolderScanMixin):
         for file_path in file_paths:
             try:
                 if self._validate_python_file(file_path):
-                    module_name = self.resolve_module_name(
+                    resolved = self.resolve_module_name(
                         file_path, library_identity.folder_path, library_identity.module_name
                     )
+                    if resolved is None:
+                        logger.warning(
+                            f"Library '{library_identity.label}': could not resolve module name "
+                            f"for {file_path}. Skipping."
+                        )
+                        continue
+                    module_name = resolved
                     self._on_creation(module_name, library_identity)
 
             except Exception as e:
@@ -288,9 +294,16 @@ class BaseRegistry(HotReloadRegistry, FolderScanMixin):
 
         for file_path in file_paths:
             try:
-                module_name = self.resolve_module_name(
+                resolved = self.resolve_module_name(
                     file_path, library_identity.folder_path, library_identity.module_name
                 )
+                if resolved is None:
+                    logger.warning(
+                        f"Library '{library_identity.label}': could not resolve module name "
+                        f"for {file_path}. Skipping."
+                    )
+                    continue
+                module_name = resolved
                 self._on_delete(module_name, library_identity)
 
             except Exception as e:
@@ -336,9 +349,16 @@ class BaseRegistry(HotReloadRegistry, FolderScanMixin):
 
             # Resolve module name..
             file_path = Path(event.file_path)
-            module_name = self.resolve_module_name(
+            resolved = self.resolve_module_name(
                 file_path, event.library_identity.folder_path, event.library_identity.module_name
             )
+            if resolved is None:
+                self.logger.error(
+                    f"Library '{event.library_identity.label}': could not resolve module name "
+                    f"for {file_path}. Skipping Hot Reloading."
+                )
+                return None
+            module_name = resolved
 
             # ... before validating the file
             if event.event_type != FileEventType.DELETED:  # no need to validate deleted files
@@ -408,12 +428,12 @@ class BaseRegistry(HotReloadRegistry, FolderScanMixin):
                         # we can report its error state to consumers
                         self._queue_lifecycle_event(lc_event)
                     self._notify_batch_event_subscribers()
-                elif event.dependency_event and len(self._dependency_module_errors) > 0:
+                elif event.dependency_event and len(self._dependency_module_lifecycle_events) > 0:
                     # Notify subscribers about dependency reload failure
-                    for lc_event in self._dependency_module_errors.values():
+                    for lc_event in self._dependency_module_lifecycle_events.values():
                         self._queue_lifecycle_event(lc_event)
                     self._notify_batch_event_subscribers()
-                    self._dependency_module_errors.clear()
+                    self._dependency_module_lifecycle_events.clear()
             try:
                 HaywireException.from_exception(
                     exception=e,
@@ -507,7 +527,7 @@ class BaseRegistry(HotReloadRegistry, FolderScanMixin):
         )
 
         # reset dependency errors for this reload
-        self._dependency_module_errors.clear()
+        self._dependency_module_lifecycle_events.clear()
 
         # Step 1: Reload non-managed helper modules first
         for helper_module in reload_plan.non_managed_modules:
@@ -515,7 +535,7 @@ class BaseRegistry(HotReloadRegistry, FolderScanMixin):
                 self._reload_unmanaged_module(helper_module, library_identity, event)
 
         # If any dependency module reloads failed, abort managed module reloads
-        if len(self._dependency_module_errors) > 0:
+        if len(self._dependency_module_lifecycle_events) > 0:
             raise Exception(
                 f"Library '{library_identity.label}': "
                 f"Dependency module reload errors detected. "
@@ -549,6 +569,14 @@ class BaseRegistry(HotReloadRegistry, FolderScanMixin):
             if event:
                 event.reloaded_modules.add(module_name)
         except Exception as e:
+            if event is None:
+                # No source event to associate the dependency error with;
+                # the cascade-tracking dict is keyed by event context.
+                self.logger.warning(
+                    f"Library '{library_identity.label}': failed reloading dependency "
+                    f"module '{module_name}' but no source event provided to track."
+                )
+                return
             managed_modules = self._dependency_graph._find_managed_dependents(module_name)
             for managed_module in managed_modules:
                 error = (
@@ -564,14 +592,14 @@ class BaseRegistry(HotReloadRegistry, FolderScanMixin):
                     .enrich(
                         module_name=managed_module,
                         library_identity=library_identity,
-                        suggestions=(
+                        suggestions=[
                             "Check that the dependency module exists and is correctly installed.",
                             "Ensure that the dependency module is accessible from the Python environment.",
-                        ),
+                        ],
                     )
                     .log(self.logger)
                 )
-                reg_keys = self._module_to_registry_keys.get(managed_module, [None])
+                reg_keys = self._module_to_registry_keys.get(managed_module, [])
                 for key in reg_keys:
                     lc_event = LifeCycleEvent(
                         registry_key=key,
@@ -581,7 +609,7 @@ class BaseRegistry(HotReloadRegistry, FolderScanMixin):
                         module_name=module_name,
                         error=error,
                     )
-                    self._dependency_module_errors[key] = lc_event
+                    self._dependency_module_lifecycle_events[key] = lc_event
 
     def _reload_managed_module(self, module_name: str, library_identity: LibraryIdentity):
         """
@@ -604,7 +632,7 @@ class BaseRegistry(HotReloadRegistry, FolderScanMixin):
             class_names_to_remove = []
             # Simple container for old/new class pairs
 
-            classes_to_reload: List[Tuple[Type[Any], Type[Any]]] = []
+            classes_to_reload: List[Tuple[str, Type[Any]]] = []
 
             # Get registered classes from this module that need to be updated
             class_reg_keys_to_update = self._module_to_registry_keys.get(module_name, [])
@@ -696,7 +724,8 @@ class BaseRegistry(HotReloadRegistry, FolderScanMixin):
 
         except Exception as e:
             logger.error(f"Library '{library_identity.label}': Reload failed for '{module_name}': {e}")
-            self._rollback_snapshot(module_name, snapshot, library_identity)
+            if snapshot is not None:
+                self._rollback_snapshot(module_name, snapshot, library_identity)
             raise
 
     def _on_delete(self, module_name: str, library_identity: LibraryIdentity):
@@ -738,7 +767,11 @@ class BaseRegistry(HotReloadRegistry, FolderScanMixin):
             return None
 
         module = sys.modules[module_name]
-        snapshot = {"module": module, "needs_reregistring": False, "registered_classes": {}}
+        snapshot: Dict[str, Any] = {
+            "module": module,
+            "needs_reregistring": False,
+            "registered_classes": {},
+        }
 
         # Snapshot registered classes from this module
         for hw_name in self._module_to_registry_keys.get(module_name, []):

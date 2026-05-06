@@ -29,7 +29,7 @@ Supports:
 from __future__ import annotations
 
 import logging
-from typing import Any, Callable, TYPE_CHECKING
+from typing import Any, Callable, ClassVar, TYPE_CHECKING
 
 from typing_extensions import dataclass_transform
 
@@ -52,6 +52,12 @@ class Settings:
     gain full TOML-tier resolution.
     """
 
+    # Class-level fallback for subclasses (FrameworkSettings, LibrarySettings)
+    # whose registration machinery writes cls._registry. __init__ shadows this
+    # with an instance attribute when constructed.
+    _registry: "SettingsRegistry | None" = None
+    _namespace: ClassVar[str] = ""
+
     def __init__(self, registry: "SettingsRegistry | None" = None) -> None:
         self._callbacks: list[Callable] = []
         self._local_store: dict[str, Any] = {}  # key → value
@@ -71,6 +77,9 @@ class Settings:
         from haywire.core.settings.enums import FieldMode
 
         registry = self._registry
+        assert (
+            registry is not None
+        )  # _resolve only called from extended mode (descriptor gates on _registry is not None)
         key = mirror_key if mirror_key else field_key
         local_sv = (
             FieldValue(mode=FieldMode.EXPLICIT, value=self._local_store[field_key])
@@ -121,7 +130,7 @@ class Settings:
             if field_key in self._local_store and value.mode != FieldMode.OVERRIDE:
                 continue
             new_val = getattr(self, attr_name)
-            self._on_property_change(attr_name, new_val, None, descriptor._on_change)
+            self._on_property_change(attr_name, new_val, None, descriptor._on_change or "")
 
     # -------------------------------------------------------------------------
     # Subscription

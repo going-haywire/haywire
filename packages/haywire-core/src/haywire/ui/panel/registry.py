@@ -10,7 +10,7 @@ an actions_provider (structural isinstance check) and a Focus class
 
 import inspect
 import logging
-from typing import Any, Iterable, List, Optional
+from typing import Any, Iterable, List
 
 from haywire.core.registry.base import BaseRegistry
 from haywire.core.library.identity import LibraryIdentity
@@ -48,7 +48,7 @@ class PanelRegistry(BaseRegistry):
         except TypeError:
             return False
 
-    def _register_class(self, cls: type, library_identity: Optional[LibraryIdentity] = None) -> "str | None":
+    def _register_class(self, cls: type[Panel], library_identity: LibraryIdentity) -> "str | None":
         """Register a panel class."""
         registry_key = cls.class_identity.registry_key
         result = super()._register(registry_key, cls, library_identity)
@@ -74,13 +74,13 @@ class PanelRegistry(BaseRegistry):
         self,
         actions_provider: Any,
         focus: type,  # Focus subclass
-    ) -> List[type]:
+    ) -> List[type[Panel]]:
         """Return panels whose action contract is satisfied by actions_provider
         AND whose focus matches the given focus class.
 
         Sorted by class_identity.order (ascending).
         """
-        result: List[type] = []
+        result: List[type[Panel]] = []
         for cls in self._all_panel_classes():
             identity = getattr(cls, "class_identity", None)
             if identity is None:

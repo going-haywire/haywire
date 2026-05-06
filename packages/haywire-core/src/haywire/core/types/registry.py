@@ -70,7 +70,7 @@ class TypeRegistry(BaseRegistry):
         except (TypeError, AttributeError):
             return False
 
-    def _register_class(self, type_cls: type, library_identity: LibraryIdentity) -> str | None:
+    def _register_class(self, type_cls: type[IType], library_identity: LibraryIdentity) -> str | None:
         """
         Register a type class with library metadata.
 

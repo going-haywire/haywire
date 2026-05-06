@@ -4,11 +4,26 @@ Tests for the EditorTypeRegistry and @editor decorator.
 """
 
 import pytest
+from haywire.core.library.identity import LibraryIdentity
 from haywire.core.registry.lifecycle_event import LifeCycleEvent, LifeCycleEventType
 from haywire.ui.editor.base import BaseEditor
 from haywire.ui.editor.decorator import editor
 from haywire.ui.editor.identity import OpenBehavior
 from haywire.ui.editor.registry import EditorTypeRegistry
+
+
+_FAKE_LIBRARY_IDENTITY = LibraryIdentity(
+    label="fake",
+    version="0.1",
+    description="test",
+    url="",
+    help_url="",
+    author="",
+    author_url="",
+    folder_path="/tmp/fake",
+    module_name="fake",
+    id="fake",
+)
 
 
 # ---------------------------------------------------------------------------
@@ -102,25 +117,25 @@ class TestEditorTypeRegistry:
         assert self.registry.list_names() == []
 
     def test_register_and_get(self):
-        self.registry._register_class(_TestEditor, library_identity=None)
+        self.registry._register_class(_TestEditor, library_identity=_FAKE_LIBRARY_IDENTITY)
         key = _TestEditor.class_identity.registry_key
         assert self.registry.get(key) is _TestEditor
 
     def test_has_after_register(self):
-        self.registry._register_class(_TestEditor, library_identity=None)
+        self.registry._register_class(_TestEditor, library_identity=_FAKE_LIBRARY_IDENTITY)
         key = _TestEditor.class_identity.registry_key
         assert self.registry.has(key)
 
     def test_unregister_removes_class(self):
-        self.registry._register_class(_TestEditor, library_identity=None)
+        self.registry._register_class(_TestEditor, library_identity=_FAKE_LIBRARY_IDENTITY)
         key = _TestEditor.class_identity.registry_key
         self.registry._unregister_class(key)
         assert not self.registry.has(key)
         assert self.registry.get(key) is None
 
     def test_get_by_default_slot_main(self):
-        self.registry._register_class(_TestEditor, library_identity=None)
-        self.registry._register_class(_TestLeftEditor, library_identity=None)
+        self.registry._register_class(_TestEditor, library_identity=_FAKE_LIBRARY_IDENTITY)
+        self.registry._register_class(_TestLeftEditor, library_identity=_FAKE_LIBRARY_IDENTITY)
         main = self.registry.get_by_default_slot("main")
         left = self.registry.get_by_default_slot("left")
         assert _TestEditor.class_identity.registry_key in main
@@ -128,7 +143,7 @@ class TestEditorTypeRegistry:
         assert _TestLeftEditor.class_identity.registry_key in left
 
     def test_get_by_default_slot_no_results(self):
-        self.registry._register_class(_TestEditor, library_identity=None)
+        self.registry._register_class(_TestEditor, library_identity=_FAKE_LIBRARY_IDENTITY)
         bottom = self.registry.get_by_default_slot("bottom")
         assert len(bottom) == 0
 
@@ -145,7 +160,7 @@ class TestEditorTypeRegistry:
         assert self.registry._class_filter("not_a_class") is False
 
     def test_list_names_returns_registry_keys(self):
-        self.registry._register_class(_TestEditor, library_identity=None)
+        self.registry._register_class(_TestEditor, library_identity=_FAKE_LIBRARY_IDENTITY)
         names = self.registry.list_names()
         assert _TestEditor.class_identity.registry_key in names
 
@@ -233,6 +248,7 @@ class TestPerKeyEventSubscribers:
                 event_type=LifeCycleEventType.CLASS_RELOADED,
                 registry_key="a:editor:1",
                 affected_class=_PlainCls,
+                library_identity=_FAKE_LIBRARY_IDENTITY,
             )
         )
         reg._notify_batch_event_subscribers()
@@ -250,6 +266,7 @@ class TestPerKeyEventSubscribers:
                 event_type=LifeCycleEventType.CLASS_RELOADED,
                 registry_key="other:editor:99",
                 affected_class=_PlainCls,
+                library_identity=_FAKE_LIBRARY_IDENTITY,
             )
         )
         reg._notify_batch_event_subscribers()
@@ -271,6 +288,7 @@ class TestPerKeyEventSubscribers:
                 event_type=LifeCycleEventType.CLASS_RELOADED,
                 registry_key="a:editor:1",
                 affected_class=_PlainCls,
+                library_identity=_FAKE_LIBRARY_IDENTITY,
             )
         )
         reg._notify_batch_event_subscribers()
@@ -296,6 +314,7 @@ class TestPerKeyEventSubscribers:
                 event_type=LifeCycleEventType.CLASS_RELOADED,
                 registry_key="a:editor:1",
                 affected_class=_PlainCls,
+                library_identity=_FAKE_LIBRARY_IDENTITY,
             )
         )
         # Must not raise — exception should be swallowed and logged

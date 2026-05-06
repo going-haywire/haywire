@@ -221,6 +221,21 @@ def test_instantiate_returns_false_when_editor_cls_is_none():
 # ---------------------------------------------------------------------------
 
 from haywire.core.registry.lifecycle_event import LifeCycleEvent, LifeCycleEventType  # noqa: E402
+from haywire.core.library.identity import LibraryIdentity  # noqa: E402
+
+
+_FAKE_LIBRARY_IDENTITY = LibraryIdentity(
+    label="fake",
+    version="0.1",
+    description="test",
+    url="",
+    help_url="",
+    author="",
+    author_url="",
+    folder_path="/tmp/fake",
+    module_name="fake",
+    id="fake",
+)
 
 
 class _NewFakeEditorCls:
@@ -250,6 +265,7 @@ def test_lifecycle_class_reloaded_updates_class_clears_instance_fires_redraw():
         event_type=LifeCycleEventType.CLASS_RELOADED,
         registry_key="fake:editor:1",
         affected_class=_NewFakeEditorCls,
+        library_identity=_FAKE_LIBRARY_IDENTITY,
     )
     w._on_lifecycle_event(event)
 
@@ -278,6 +294,7 @@ def test_lifecycle_class_removed_keeps_instance_sets_error_import():
         event_type=LifeCycleEventType.CLASS_REMOVED,
         registry_key="fake:editor:1",
         affected_class=None,
+        library_identity=_FAKE_LIBRARY_IDENTITY,
     )
     w._on_lifecycle_event(event)
 
@@ -304,6 +321,7 @@ def test_lifecycle_recovery_after_removal_clears_error_and_updates_class():
             event_type=LifeCycleEventType.CLASS_REMOVED,
             registry_key="fake:editor:1",
             affected_class=None,
+            library_identity=_FAKE_LIBRARY_IDENTITY,
         )
     )
     assert w.state.error_import is not None
@@ -317,6 +335,7 @@ def test_lifecycle_recovery_after_removal_clears_error_and_updates_class():
             event_type=LifeCycleEventType.CLASS_ADDED,
             registry_key="fake:editor:1",
             affected_class=_NewFakeEditorCls,
+            library_identity=_FAKE_LIBRARY_IDENTITY,
         )
     )
     assert w.editor_cls is _NewFakeEditorCls
@@ -339,6 +358,7 @@ def test_lifecycle_redraw_callback_safe_when_unset():
             event_type=LifeCycleEventType.CLASS_RELOADED,
             registry_key="fake:editor:1",
             affected_class=_NewFakeEditorCls,
+            library_identity=_FAKE_LIBRARY_IDENTITY,
         )
     )
     assert w.editor_cls is _NewFakeEditorCls
@@ -1014,6 +1034,7 @@ def test_lifecycle_class_reloaded_clears_is_dirty():
         event_type=LifeCycleEventType.CLASS_RELOADED,
         registry_key="fake:editor:1",
         affected_class=_NewFakeEditorCls,
+        library_identity=_FAKE_LIBRARY_IDENTITY,
     )
     w._on_lifecycle_event(event)
 

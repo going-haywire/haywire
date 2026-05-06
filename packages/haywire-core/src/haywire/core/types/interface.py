@@ -103,6 +103,32 @@ class IType(ABC):
         pass
 
     # ========================================================================
+    # SERIALIZATION - Subclasses implement
+    # ========================================================================
+
+    @abstractmethod
+    def to_dict(self) -> Dict[str, Any]:
+        """Serialize this instance to a dict.
+
+        For PrimitiveType: serializes the wrapped value via {'value': self.value}.
+        For BaseType: serializes the instance's state (subclasses define structure).
+        """
+        ...
+
+    @classmethod
+    @abstractmethod
+    def from_dict(cls, data: Dict[str, Any]) -> Any:
+        """Deserialize a dict to a value/instance.
+
+        For PrimitiveType: returns the unwrapped value (T).
+        For BaseType: returns an instance (Self).
+
+        Return type is Any at the IType level because the natural value
+        differs per subclass.
+        """
+        ...
+
+    # ========================================================================
     # FIELD CREATION - Type creates its own field
     # ========================================================================
 

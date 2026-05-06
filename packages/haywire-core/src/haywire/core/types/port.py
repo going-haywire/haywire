@@ -22,7 +22,7 @@ from haywire.core.types.pipe import Pipe, Pipes
 if TYPE_CHECKING:
     from haywire.core.node.node_wrapper import NodeWrapper
     from haywire.core.types.registry import TypeRegistry
-    from haywire.core.node import BaseNode
+    from haywire.core.node import NodeData
 
 
 @dataclass
@@ -57,8 +57,8 @@ class DataPort(DataTypeIdentity):
     port_type: PortType = PortType.UNDEFINED
 
     # Runtime data field (created by type in __post_init__)
-    _data: Optional[DataField] = field(default=None, metadata={"serialize": False})
-    """DataField instance storing port data"""
+    _data: DataField = field(init=False, repr=False, metadata={"serialize": False})
+    """DataField instance storing port data (set in __post_init__)"""
 
     # Type tracking
     type_cls: type[IType] | None = field(default=None, metadata={"serialize": False})
@@ -151,11 +151,17 @@ class DataPort(DataTypeIdentity):
     widget: dict[str, Any] | None = field(default=None, repr=False, metadata={"serialize": False})
     """transient input only field. do not use other then in port creation"""
 
+    widget_key: str | None = field(default=None)
+    """Resolved widget key (set from widget["key"] in __post_init__)"""
+
+    widget_config: dict[str, Any] = field(default_factory=dict)
+    """Widget configuration dict (merged from widget["config"] in __post_init__)"""
+
     # Runtime reference (not serialized)
     _wrapper: Optional["NodeWrapper"] = field(default=None, repr=False, metadata={"serialize": False})
 
-    _node: Optional["BaseNode"] = field(default=None, repr=False, metadata={"serialize": False})
-    """Reference to parent BaseNode (for callbacks)"""
+    _node: Optional["NodeData"] = field(default=None, repr=False, metadata={"serialize": False})
+    """Reference to parent node (for callbacks)"""
 
     def __post_init__(self):
         """
@@ -187,10 +193,13 @@ class DataPort(DataTypeIdentity):
 
             self.widget = None
 
-        # Create data field if needed
-        if self._data is None and self.type_cls is not None:
-            # Type creates its own field!
-            self._data = self.type_cls.create_field(default_override=self.default)
+        # Create data field — DataPort always needs a type_cls to be functional.
+        if self.type_cls is None:
+            raise ValueError(
+                f"DataPort '{self.id}' constructed without type_cls. "
+                f"DataPort instances must be created via from_spec()."
+            )
+        self._data = self.type_cls.create_field(default_override=self.default)
 
         # Hardcoded connection rules based on flow type and direction
         # They cannot be overridden by the user since they are fundamental to how the ports work
@@ -523,7 +532,7 @@ class DataPort(DataTypeIdentity):
 
     @classmethod
     def from_spec(
-        cls, spec: dict, type_registry: "TypeRegistry", wrapper: "NodeWrapper", node: "BaseNode"
+        cls, spec: dict, type_registry: "TypeRegistry", wrapper: "NodeWrapper", node: "NodeData"
     ) -> "DataPort":
         """
         Create a DataPort from a PortSpec dict.
@@ -583,7 +592,11 @@ class DataPort(DataTypeIdentity):
         Returns:
             dict: Serialized port representation
         """
-        result = {"kwargs": {}, "recipe": serialize_element_type(self.type_cls)}
+        assert self.type_cls is not None  # __post_init__ enforces this
+        result: dict[str, Any] = {
+            "kwargs": {},
+            "recipe": serialize_element_type(self.type_cls),
+        }
 
         # Iterate over dataclass fields
         for f in fields(self):

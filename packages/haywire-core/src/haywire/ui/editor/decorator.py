@@ -19,8 +19,6 @@ from .identity import EditorIdentity, OpenBehavior
 
 
 def editor(
-    cls=None,
-    /,
     *,
     label: Optional[str] = None,
     description: str = "",
@@ -31,6 +29,9 @@ def editor(
 ):
     """
     Decorator to mark a class as an editor type.
+
+    Always invoked with parentheses — `@editor(...)` or `@editor()`. The
+    bare `@editor` form (no parens) is not supported.
 
     Sets class_identity on the class. Does NOT register the class —
     registration happens when the library calls add_folder() in
@@ -80,8 +81,7 @@ def editor(
         _label = label or inner_cls.__name__
 
         library_identity = derive_library_identity(inner_cls)
-        library_id = library_identity.id if library_identity else None
-        _registry_key = reg_key(library_id, "editor", _registry_id)
+        _registry_key = reg_key(library_identity.id, "editor", _registry_id)
 
         inner_cls.class_identity = EditorIdentity(
             registry_id=_registry_id,
@@ -97,4 +97,4 @@ def editor(
         inner_cls.class_library = library_identity
         return inner_cls
 
-    return decorator if cls is None else decorator(cls)
+    return decorator

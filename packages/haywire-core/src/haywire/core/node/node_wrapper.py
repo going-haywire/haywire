@@ -175,7 +175,7 @@ class NodeWrapper:
         self._initial_position = position
 
         # Reference to structural validator from graph
-        self._structural_validator: Optional["IStructuralValidator"] = self._graph._structural
+        self._structural_validator: "IStructuralValidator" = self._graph._structural
 
         self._alternate_registry_keys: List[str] = []
         """Alternate registry keys for this node if the specific version is not available"""
@@ -190,8 +190,15 @@ class NodeWrapper:
         Get the current node instance with validation and migration.
         Returns:
             BaseNode: The current node instance
+        Raises:
+            RuntimeError: If the node has not yet been built or has been cleaned up.
         """
         with self._lock:
+            if self._node_instance is None:
+                raise RuntimeError(
+                    f"NodeWrapper '{self.registry_key}' has no node instance "
+                    f"(not built or already cleaned up)."
+                )
             return self._node_instance
 
     def is_valid(self) -> bool:
@@ -199,12 +206,18 @@ class NodeWrapper:
         return self._state.is_valid()
 
     @property
-    def state(self) -> Optional[NodeWrapperState]:
-        """Get the Edge state"""
+    def state(self) -> NodeWrapperState:
+        """Get the wrapper's lifecycle state.
+
+        Raises:
+            RuntimeError: If the wrapper has been cleaned up.
+        """
+        if self._state is None:
+            raise RuntimeError(f"NodeWrapper '{self.registry_key}' state has been cleaned up.")
         return self._state
 
     @property
-    def node_id(self) -> Optional[NodeWrapperState]:
+    def node_id(self) -> str:
         """Get the node id"""
         return self._node_id
 
@@ -241,7 +254,7 @@ class NodeWrapper:
         with self._lock:
             self.registry_key = registry_key
             self._import_node_cls()
-            node_info = self._node_instance._to_dict()
+            node_info = self._node_instance._to_dict() if self._node_instance is not None else None
             self.build(node_info)
             # Tell graph about need for hot reload
             if self._graph:
@@ -274,13 +287,16 @@ class NodeWrapper:
         Returns:
             True if instantiation succeeded, False otherwise
         """
+        if self._node_cls is None:
+            return False
+        node_cls = self._node_cls  # narrowed for the rest of the method
         try:
             if self._node_instance:
                 # TODO: Create Garbage Collection for old instance
                 self._node_instance._cleanup()
                 self._node_instance = None
-            self._node_instance = self._node_cls(self._node_id, self)
-            self._node_instance.props.set_position(self._initial_position)
+            self._node_instance = node_cls(self._node_id, self)
+            self._node_instance.props.set_position(self._initial_position)  # type: ignore[call-arg,arg-type]
             self._state.is_instantiated = True
             self._state.error_instantiate = None
 
@@ -293,10 +309,10 @@ class NodeWrapper:
                 operation="Instantiate Node",
                 message=f"Failed to instantiate node '{self.registry_key}'",
             ).enrich(
-                module_name=self._node_cls.__module__,
+                module_name=node_cls.__module__,
                 registry_key=self.registry_key,
-                class_name=self._node_cls.__name__,
-                library_identity=self._node_cls.class_library,
+                class_name=node_cls.__name__,
+                library_identity=node_cls.class_library,
             )
             self._state.error_instantiate.log()
             self._state.is_instantiated = False
@@ -313,12 +329,16 @@ class NodeWrapper:
         Returns:
             True if initialization succeeded, False otherwise
         """
+        assert self._node_instance is not None, "must be set by _instantiate"
+        assert self._node_cls is not None, "must be set by _import_node_cls"
+        node_instance = self._node_instance
+        node_cls = self._node_cls
         try:
             if node_info:
-                self._node_instance._initialize_from_dict(node_info)
+                node_instance._initialize_from_dict(node_info)
             else:
-                self._node_instance.init()
-            self._node_instance.post_init()
+                node_instance.init()
+            node_instance.post_init()
             self._state.is_initialized = True
             self._state.error_initialize = None
             return True
@@ -330,8 +350,8 @@ class NodeWrapper:
             ).enrich(
                 _node_id=self._node_id,
                 registry_key=self.registry_key,
-                module_name=self._node_cls.__module__,
-                library_identity=self._node_cls.class_library,
+                module_name=node_cls.__module__,
+                library_identity=node_cls.class_library,
             )
             self._state.error_initialize.log()
             self._state.is_initialized = False
@@ -348,6 +368,8 @@ class NodeWrapper:
         Returns:
             True if validation passed, False otherwise
         """
+        assert self._node_cls is not None, "must be set by _import_node_cls"
+        node_cls = self._node_cls
         try:
             # Call structural validator
             (is_valid, error_message, suggestions) = self._structural_validator.validate_node(self)
@@ -360,8 +382,8 @@ class NodeWrapper:
                 self._state.error_structural = HaywireException.create(message=error_message).enrich(
                     node_id=self._node_id,
                     registry_key=self.registry_key,
-                    module_name=self._node_cls.__module__,
-                    library_identity=self._node_cls.class_library,
+                    module_name=node_cls.__module__,
+                    library_identity=node_cls.class_library,
                     operation="Structural Validation",
                     category="Structural Validation Error",
                     suggestions=suggestions,
@@ -378,8 +400,8 @@ class NodeWrapper:
             ).enrich(
                 node_id=self._node_id,
                 registry_key=self.registry_key,
-                module_name=self._node_cls.__module__,
-                library_identity=self._node_cls.class_library,
+                module_name=node_cls.__module__,
+                library_identity=node_cls.class_library,
                 operation="Structural Validation",
                 category="Structural Validation Error",
                 suggestions=[
@@ -497,13 +519,15 @@ class NodeWrapper:
             # Remove event subscription
             self._node_factory.remove_event_subscriber(self.registry_key, self._on_node_lifecycle_event)
 
-            self._state = None
+            # State, factory, and graph are nulled here as part of teardown;
+            # callers must not access them after cleanup() is called.
+            self._state = None  # type: ignore[assignment]
             self._node_cls = None
-            self._node_factory = None
+            self._node_factory = None  # type: ignore[assignment]
             if self._node_instance:
                 self._node_instance._cleanup()
                 self._node_instance = None
-            self._graph = None
+            self._graph = None  # type: ignore[assignment]
 
     def validate(self) -> List[str]:
         """
@@ -543,7 +567,7 @@ class NodeWrapper:
         """
         self._initial_position = (new_x, new_y)
         if self._node_instance:
-            self._node_instance.props.set_position(self._initial_position)
+            self._node_instance.props.set_position(self._initial_position)  # type: ignore[call-arg,arg-type]
 
     def _add_runtime_error(self, error: HaywireException) -> None:
         """
@@ -660,7 +684,7 @@ class NodeWrapper:
             if self._node_instance:
                 self._node_instance.on_saved()
 
-            result = {
+            result: dict[str, Any] = {
                 "node_id": self._node_id,
                 "registry_key": self.registry_key,
                 "position": list(self._initial_position),

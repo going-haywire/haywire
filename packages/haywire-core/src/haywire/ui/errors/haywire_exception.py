@@ -1,5 +1,5 @@
 import os
-from typing import Any
+from typing import Any, cast
 from nicegui import ui
 
 from haywire.ui import elements as hui
@@ -95,6 +95,8 @@ def render_error_details(error: HaywireException, parent_container=None) -> Any:
 
         # Source code section
         if error.has_source_location():
+            assert error.filename is not None  # invariant from has_source_location()
+            assert error.line_number is not None
             with ui.column().classes("w-full p-2").style("border-left: 4px solid var(--hw-border-strong);"):
                 with ui.column().classes("gap-2"):
                     # Source code with context
@@ -104,21 +106,21 @@ def render_error_details(error: HaywireException, parent_container=None) -> Any:
                             first_line_num = error.source_context[0][0] if error.source_context else 1
 
                             # Detect language from filename extension
-                            language = "python"
+                            language = "Python"
                             if error.filename:
                                 ext = os.path.splitext(error.filename)[1].lower()
                                 language_map = {
-                                    ".py": "python",
-                                    ".js": "javascript",
-                                    ".ts": "typescript",
-                                    ".html": "html",
-                                    ".css": "css",
-                                    ".json": "json",
-                                    ".md": "markdown",
-                                    ".yml": "yaml",
-                                    ".yaml": "yaml",
+                                    ".py": "Python",
+                                    ".js": "JavaScript",
+                                    ".ts": "TypeScript",
+                                    ".html": "HTML",
+                                    ".css": "CSS",
+                                    ".json": "JSON",
+                                    ".md": "Markdown",
+                                    ".yml": "YAML",
+                                    ".yaml": "YAML",
                                 }
-                                language = language_map.get(ext, "python")
+                                language = language_map.get(ext, "Python")
 
                             # Build the code string with line numbers
                             max_line_num = first_line_num + len(code_lines) - 1
@@ -148,7 +150,7 @@ def render_error_details(error: HaywireException, parent_container=None) -> Any:
                             with ui.element("div").classes("hw-cm-isolate w-full"):
                                 ui.codemirror(
                                     code_with_numbers,
-                                    language=language,
+                                    language=cast(Any, language),
                                     theme="vscodeDark",
                                 ).classes("w-full").props("readonly")
 

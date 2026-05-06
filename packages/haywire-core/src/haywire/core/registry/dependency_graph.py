@@ -509,7 +509,7 @@ class DependencyGraph:
         """
         try:
             module = sys.modules.get(module_name)
-            if not module or not hasattr(module, "__file__"):
+            if not module or not module.__file__:
                 return set()
 
             file_path = Path(module.__file__)
@@ -534,16 +534,16 @@ class DependencyGraph:
                     # from mylib.nodes import Node
                     if node.module:
                         if node.level > 0:  # Relative import
-                            dep = self._resolve_relative_import(module_name, node.module, node.level)
-                            if dep and self._is_in_scopes(dep, scope_prefixes):
-                                dependencies.add(dep)
+                            resolved = self._resolve_relative_import(module_name, node.module, node.level)
+                            if resolved and self._is_in_scopes(resolved, scope_prefixes):
+                                dependencies.add(resolved)
                         else:  # Absolute import
                             if self._is_in_scopes(node.module, scope_prefixes):
                                 dependencies.add(node.module)
                     elif node.level > 0:  # from . import something
-                        dep = self._resolve_relative_import(module_name, "", node.level)
-                        if dep and self._is_in_scopes(dep, scope_prefixes):
-                            dependencies.add(dep)
+                        resolved = self._resolve_relative_import(module_name, "", node.level)
+                        if resolved and self._is_in_scopes(resolved, scope_prefixes):
+                            dependencies.add(resolved)
 
             return dependencies
 

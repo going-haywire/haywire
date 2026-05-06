@@ -18,7 +18,7 @@ class NodeRegistry(BaseRegistry):
 
     def __init__(self):
         super().__init__()
-        self._error_node: type | None = None
+        self._error_node: type[BaseNode] | None = None
 
     def _class_filter(self, cls):
         """Check if a class is a valid Haywire node class."""

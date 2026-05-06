@@ -60,7 +60,7 @@ def render_settings(obj: "Settings") -> None:
                     _render_reactive_field_row(obj, attr_name, defn)
 
 
-def render_schema(schema_cls: type, registry: "SettingsRegistry") -> None:
+def render_schema(schema_cls: type["Settings"], registry: "SettingsRegistry") -> None:
     """Render only the fields declared on *schema_cls* as labelled form rows.
 
     Uses the schema's own _property_fields() so that keys registered under the
@@ -359,7 +359,7 @@ def _render_widget_impl(defn: "FieldDescriptor", value: Any, make_setter) -> Non
         class _E:
             __slots__ = ("value",)
 
-        nd_ref = [None]
+        nd_ref: list[NumberDrag | None] = [None]
 
         def _on_number_change(e, _h=handler, _c=coerce):
             ev = _E()

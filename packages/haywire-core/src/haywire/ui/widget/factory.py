@@ -24,7 +24,7 @@ class WidgetFactory(IWidgetFactory):
         self.widget_registry: WidgetRegistry = widget_registry
 
         # Customer callbacks for hot reload notifications
-        self._widget_lifecycle_subscribers: set[LifeCycleBatchCallback] = set()
+        self._widget_lifecycle_subscribers: set[NodeIDsBatchCallback] = set()
 
         self.widget_registry.add_batch_event_subscriber(self._on_widget_reloaded)
 
@@ -72,6 +72,8 @@ class WidgetFactory(IWidgetFactory):
 
         try:
             widget_instance, lc_event = self._get_widget(registry_key, port)
+            if widget_instance is None:
+                raise HaywireException.create(message=f"Widget '{registry_key}' not found")
             ui_element = widget_instance.render()
 
         except Exception as error:
@@ -106,7 +108,8 @@ class WidgetFactory(IWidgetFactory):
 
             return None, ui_element
 
-        self._widget_regkey_to_nodeids.setdefault(port.widget_key, set()).add(node_id)
+        if port.widget_key is not None:
+            self._widget_regkey_to_nodeids.setdefault(port.widget_key, set()).add(node_id)
 
         return widget_instance, ui_element
 

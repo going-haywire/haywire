@@ -7,7 +7,7 @@ Owns: selected_nodes, selected_edges, clipboard.
 import logging
 import time
 import traceback
-from typing import Optional, Set, TYPE_CHECKING
+from typing import Optional, Set, TYPE_CHECKING, cast
 
 from nicegui import ui
 
@@ -125,11 +125,17 @@ class SelectionHandlers:
         if not node_ids:
             return {"min_x": 0, "min_y": 0, "max_x": 0, "max_y": 0}
 
-        positions = []
+        positions: list[tuple[float, float]] = []
         for node_id in node_ids:
             wrapper = self.graph.get_node_wrapper(node_id)
             if wrapper and wrapper.node:
-                positions.append((wrapper.node.props.posX, wrapper.node.props.posY))
+                # Deferred 'props' inner-class issue: cast props.posX/Y to float.
+                positions.append(
+                    (
+                        cast(float, wrapper.node.props.posX),
+                        cast(float, wrapper.node.props.posY),
+                    )
+                )
 
         if not positions:
             return {"min_x": 0, "min_y": 0, "max_x": 0, "max_y": 0}

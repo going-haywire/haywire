@@ -75,6 +75,8 @@ class IconSlot(Slot):
 
         # One icon button per wrapper, highlighting the active one.
         for wrapper in self._bindings:
+            if wrapper.editor_cls is None:
+                continue  # Wrapper without registered class — render no icon
             icon = wrapper.editor_cls.class_identity.icon
             label = wrapper.editor_cls.class_identity.label
             is_active = self._active is wrapper

@@ -60,13 +60,12 @@ class CreateNodePanel(Panel):
                 ctx.session.lifecycle(Reveal(editor=LibraryComponentEditor))
 
         with layout:
-            builder = NodeMenuBuilder(node_factory)
-            builder.create_node_menu(
+            builder = NodeMenuBuilder(
+                node_factory,
                 on_node_selected=_on_node_selected,
                 on_context_click=_on_context_click,
-                recent_nodes=[],
-                show_search=True,
             )
+            builder.create_node_menu(recent_nodes=[], show_search=True)
 
 
 @panel(
