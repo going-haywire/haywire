@@ -53,17 +53,20 @@ class SessionContext:
     data: DataNamespace
 
     # --- Reactive fields ---
+    clipboard: Reactive[Optional["ClipboardData"]] = reactive_field(None)
+
     active_graph: Reactive[Optional["BaseGraph"]] = reactive_field(None)
     active_node: Reactive[Optional["NodeWrapper"]] = reactive_field(None)
     active_edge: Reactive[Optional["EdgeWrapper"]] = reactive_field(None)
     active_port: Reactive[Optional["DataPort"]] = reactive_field(None)
     selected_nodes: Reactive[Set[str]] = reactive_field(set())
     selected_edges: Reactive[Set[str]] = reactive_field(set())
+    active_graph_path: Reactive[Optional[Any]] = reactive_field(None)
+
+    active_file: Reactive[Optional[Any]] = reactive_field(None)
     active_library: Reactive[Optional["BaseLibrary"]] = reactive_field(None)
     active_component: Reactive[Optional[str]] = reactive_field(None)
-    active_file: Reactive[Optional[Any]] = reactive_field(None)
-    clipboard: Reactive[Optional["ClipboardData"]] = reactive_field(None)
-    active_graph_path: Reactive[Optional[Any]] = reactive_field(None)
+
     active_workbench_theme_key: Reactive[Optional[str]] = reactive_field(None)
     active_node_theme_key: Reactive[Optional[str]] = reactive_field(None)
 
