@@ -36,7 +36,7 @@ class NumberWidget(SimpleWidget):
     """
 
     def create_element(self) -> Any:
-        props = self.config.get("properties", {})
+        props = self._config.get("properties", {})
         kwargs: dict[str, Any] = {"value": 0}
 
         for prop in ["min", "max", "step", "precision", "prefix", "suffix", "sensitivity"]:
@@ -66,7 +66,7 @@ class TextWidget(SimpleWidget):
     """
 
     def create_element(self) -> Any:
-        props = self.config.get("properties", {})
+        props = self._config.get("properties", {})
         kwargs = {"value": ""}
 
         for prop in ["label", "placeholder", "password"]:
@@ -94,7 +94,7 @@ class CheckboxWidget(SimpleWidget):
     """
 
     def create_element(self) -> Any:
-        props = self.config.get("properties", {})
+        props = self._config.get("properties", {})
         kwargs = {"value": False}
 
         if "text" in props:
@@ -121,7 +121,7 @@ class SwitchWidget(SimpleWidget):
     """
 
     def create_element(self) -> Any:
-        props = self.config.get("properties", {})
+        props = self._config.get("properties", {})
         kwargs = {"value": False}
 
         if "text" in props:
@@ -150,7 +150,7 @@ class SliderWidget(SimpleWidget):
     """
 
     def create_element(self) -> Any:
-        props = self.config.get("properties", {})
+        props = self._config.get("properties", {})
         kwargs = {
             "value": 0,
             "min": props.get("min", 0),
@@ -161,7 +161,7 @@ class SliderWidget(SimpleWidget):
         return ui.slider(**kwargs).classes("w-full text-xs").props("label-always")
 
     def get_default_value(self) -> float:
-        props = self.config.get("properties", {})
+        props = self._config.get("properties", {})
         return float(props.get("min", 0))
 
 
@@ -183,7 +183,7 @@ class SelectWidget(SimpleWidget):
     """
 
     def create_element(self) -> Any:
-        props = self.config.get("properties", {})
+        props = self._config.get("properties", {})
         kwargs = {"options": props.get("options", []), "value": None}
 
         for prop in ["clearable", "multiple"]:
@@ -212,7 +212,7 @@ class KnobWidget(SimpleWidget):
     """
 
     def create_element(self) -> Any:
-        props = self.config.get("properties", {})
+        props = self._config.get("properties", {})
         kwargs = {"value": 0, "show_value": True}
 
         for prop in ["min", "max", "step", "color", "size"]:

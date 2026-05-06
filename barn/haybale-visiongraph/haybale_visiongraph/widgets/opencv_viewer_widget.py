@@ -58,7 +58,7 @@ class OpencvViewerWidget(IWidget):
         """
         self.port = port
         self.port_id: str = port.id
-        self.config: dict = (
+        self._config: dict = (
             port.widget_config if hasattr(port, "widget_config") and port.widget_config else {}
         )
 
@@ -80,7 +80,7 @@ class OpencvViewerWidget(IWidget):
             Container with the streaming viewer
         """
         # Extract configuration
-        props = self.config.get("properties", {})
+        props = self._config.get("properties", {})
         quality = props.get("quality", 80)
         width = props.get("width", "100%")
         height = props.get("height", "auto")

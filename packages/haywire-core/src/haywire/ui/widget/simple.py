@@ -59,7 +59,7 @@ class SimpleWidget(IWidget, ABC):
         self.port = port
         self.port_id: str = port.id
         widget_config = port.widget_config if hasattr(port, "widget_config") and port.widget_config else {}
-        self.config: dict = widget_config  # type: ignore[assignment]
+        self._config: dict = widget_config
 
         # UI element (created during render)
         self.ui_element: ui.element | None = None
