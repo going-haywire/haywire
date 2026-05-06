@@ -5,6 +5,7 @@ Tests for SelectionHandlers — manages selected_nodes, selected_edges, and clip
 import pytest
 from unittest.mock import MagicMock
 
+from haywire.core.state import LibraryStateContainer
 from haywire.ui.context import SessionContext
 from haybale_studio.editors.graph_canvas.handlers.selection import SelectionHandlers
 from haybale_studio.editors.graph_canvas.event_definitions import (
@@ -28,11 +29,32 @@ def graph():
 
 
 @pytest.fixture
-def session():
-    ctx = SessionContext(session_id="test-session", app=MagicMock())
+def session_with_edit(register_edit_state):
+    """A real SessionContext + container with EditState registered.
+
+    Returns ``(session, EditState)`` so tests can read/write
+    ``session.context.data[EditState]`` against the container's class
+    reference (survives library hot-reloads).
+    """
+    container = LibraryStateContainer()
+    sid = "test-session"
+    EditStateCls = register_edit_state(container, sid)
+    app = MagicMock()
+    app.library_state_container = container
+    ctx = SessionContext(session_id=sid, app=app)
     s = MagicMock()
     s.context = ctx
-    return s
+    return s, EditStateCls
+
+
+@pytest.fixture
+def session(session_with_edit):
+    return session_with_edit[0]
+
+
+@pytest.fixture
+def edit_state_cls(session_with_edit):
+    return session_with_edit[1]
 
 
 @pytest.fixture
@@ -55,8 +77,8 @@ def test_initial_selection_is_empty(handler):
     assert handler.selected_edges == set()
 
 
-def test_initial_clipboard_is_none(handler, session):
-    assert session.context.clipboard.value is None
+def test_initial_clipboard_is_none(handler, session, edit_state_cls):
+    assert session.context.data[edit_state_cls].clipboard.value is None
 
 
 # ---------------------------------------------------------------------------
@@ -82,16 +104,22 @@ def test_selection_changed_replaces_previous(handler):
     assert handler.selected_edges == {"e1"}
 
 
-def test_selection_changed_notifies_session():
+def test_selection_changed_notifies_session(register_edit_state):
+    container = LibraryStateContainer()
+    sid = "s"
+    EditStateCls = register_edit_state(container, sid)
+    app = MagicMock()
+    app.library_state_container = container
+    ctx = SessionContext(session_id=sid, app=app)
     session = MagicMock()
-    session.context = MagicMock()
+    session.context = ctx
     graph = MagicMock()
     graph.get_node_wrapper.return_value = MagicMock()
     graph.get_edge_wrapper.return_value = MagicMock()
     handler = SelectionHandlers(
         graph=graph,
         editor=MagicMock(),
-        session_id="s",
+        session_id=sid,
         session=session,
     )
     handler.process_selection_change(SelectionChangedEvent(selectedNodes=["n1"], selectedEdges=["e1"]))
@@ -99,8 +127,9 @@ def test_selection_changed_notifies_session():
     from haywire.ui.context_signals import SelectionMoved
 
     assert isinstance(session.signal.call_args.args[0], SelectionMoved)
-    assert session.context.selected_nodes.value == {"n1"}
-    assert session.context.selected_edges.value == {"e1"}
+    edit = ctx.data[EditStateCls]
+    assert edit.selected_nodes.value == {"n1"}
+    assert edit.selected_edges.value == {"e1"}
 
 
 def test_selection_changed_no_callback_does_not_raise(handler):
@@ -113,28 +142,28 @@ def test_selection_changed_no_callback_does_not_raise(handler):
 # ---------------------------------------------------------------------------
 
 
-def test_copy_stores_clipboard_with_node_ids(handler, session):
+def test_copy_stores_clipboard_with_node_ids(handler, session, edit_state_cls):
     handler.process_copy_selection(UserCopySelectedEvent(selectedNodes=["n1", "n2"], selectedEdges=[]))
-    clipboard = session.context.clipboard.value
+    clipboard = session.context.data[edit_state_cls].clipboard.value
     assert clipboard is not None
     assert "n1" in clipboard.nodes
     assert "n2" in clipboard.nodes
 
 
-def test_copy_stores_edge_ids(handler, session):
+def test_copy_stores_edge_ids(handler, session, edit_state_cls):
     handler.process_copy_selection(UserCopySelectedEvent(selectedNodes=["n1"], selectedEdges=["e1"]))
-    assert "e1" in session.context.clipboard.value.edges
+    assert "e1" in session.context.data[edit_state_cls].clipboard.value.edges
 
 
-def test_copy_records_session_id(handler, session):
+def test_copy_records_session_id(handler, session, edit_state_cls):
     handler.process_copy_selection(UserCopySelectedEvent(selectedNodes=["n1"], selectedEdges=[]))
-    assert session.context.clipboard.value.source_session_id == "test-session"
+    assert session.context.data[edit_state_cls].clipboard.value.source_session_id == "test-session"
 
 
-def test_copy_overwrites_previous_clipboard(handler, session):
+def test_copy_overwrites_previous_clipboard(handler, session, edit_state_cls):
     handler.process_copy_selection(UserCopySelectedEvent(selectedNodes=["n1"], selectedEdges=[]))
     handler.process_copy_selection(UserCopySelectedEvent(selectedNodes=["n2"], selectedEdges=[]))
-    clipboard = session.context.clipboard.value
+    clipboard = session.context.data[edit_state_cls].clipboard.value
     assert "n2" in clipboard.nodes
     assert "n1" not in clipboard.nodes
 

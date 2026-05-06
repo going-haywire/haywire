@@ -13,6 +13,7 @@ from haywire.ui.panel.decorator import panel
 
 from haybale_studio.focuses import NodeFocus
 from haybale_studio.editors.properties_editor_actions import PropertiesEditorActions
+from haybale_studio.state.edit_state import EditState
 
 if TYPE_CHECKING:
     from haywire.ui.context import SessionContext
@@ -31,7 +32,7 @@ class NodePortsPanel(Panel):
 
     @classmethod
     def poll(cls, ctx: "SessionContext") -> bool:
-        return ctx.active_node.value is not None
+        return ctx.data[EditState].active_node.value is not None
 
     def draw(
         self,
@@ -39,7 +40,7 @@ class NodePortsPanel(Panel):
         layout: PanelLayout,
         actions: PropertiesEditorActions,
     ) -> None:
-        node = ctx.active_node.value
+        node = ctx.data[EditState].active_node.value
         if node is None:
             return
         try:

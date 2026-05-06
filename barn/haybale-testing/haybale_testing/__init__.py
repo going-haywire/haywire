@@ -11,6 +11,7 @@ from haywire.core.library.decorator import library
 from haywire.core.adapter.registry import AdapterRegistry
 from haywire.core.node.registry import NodeRegistry
 from haywire.core.settings.registry import SettingsRegistry
+from haywire.core.state import LibraryStateRegistry
 from haywire.core.types.registry import TypeRegistry
 
 from haywire.ui.panel.registry import PanelRegistry
@@ -67,6 +68,19 @@ class Library(BaseLibrary):
 
         # Register panels
         self.add_folder_to_registry(folder_path=str(base_path / "panels"), registry_cls=PanelRegistry)
+
+        # Register state LAST — deliberately adversarial ordering. Panels
+        # registered above eagerly import TestSessionState, so by the time
+        # state/ is scanned the module is already in sys.modules. This is
+        # the placement that broke pre-fix: BaseRegistry._on_creation used
+        # to force-reload the module, producing a second class object and
+        # leaving the panel's reference stale. The fix makes class
+        # identity stable regardless of scan order. See
+        # tests/core/test_libraries/test_registries.py.
+        self.add_folder_to_registry(
+            folder_path=str(base_path / "state"),
+            registry_cls=LibraryStateRegistry,
+        )
 
     def validate(self) -> bool:
         """Validate that the test library is properly structured"""

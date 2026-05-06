@@ -653,10 +653,10 @@ def panel(
         class TransformPanel(BasePanel):
             @classmethod
             def poll(cls, ctx):
-                return ctx.active_node is not None
+                return ctx.data[EditState].active_node.value is not None
 
             def draw(self, ctx, layout):
-                node = ctx.active_node
+                node = ctx.data[EditState].active_node.value
                 layout.widget('number', node.settings.x, label="X")
     """
     def decorator(inner_cls):

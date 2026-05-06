@@ -1,7 +1,7 @@
 """reactive_field(): a descriptor whose access mode determines its return type.
 
-- Class-level access (e.g., SessionContext.active_node) → ReactivePath.
-- Instance-level access (e.g., ctx.active_node) → Reactive[T] container.
+- Class-level access (e.g., SomeState.some_field) → ReactivePath.
+- Instance-level access (e.g., state.some_field) → Reactive[T] container.
 
 The class hosting reactive_field() descriptors is responsible for
 initializing the per-instance Reactive[T] containers in __init__ /

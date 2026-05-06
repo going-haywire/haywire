@@ -34,6 +34,7 @@ from haywire.ui.context_signals import (
 from haywire.ui.components.popup import Popup
 
 from haybale_studio.editors.graph_editor import GraphEditor
+from haybale_studio.state.edit_state import EditState
 
 if TYPE_CHECKING:
     from haywire.ui.context import SessionContext
@@ -68,7 +69,7 @@ class HaystackEditor(BaseEditor):
     One entry per open file or new unnamed graph.  Clicking an entry fires
     EDITOR_FOCUSED with reveal_editor=GraphEditor and reveal_payload=entry.entry_id.
     The shell reveals the matching tab, then GraphEditor.on_focus updates
-    context.active_graph / active_graph_path and broadcasts ACTIVE_GRAPH_CHANGED.
+    context.data[EditState].active_graph / active_graph_path and broadcasts ACTIVE_GRAPH_CHANGED.
 
     The "+" header button calls app.haystack.create_new() and fires
     EDITOR_FOCUSED with reveal_editor=GraphEditor to activate the
@@ -183,7 +184,7 @@ class HaystackEditor(BaseEditor):
                 self._render_entry(entry, context)
 
     def _render_entry(self, entry: "GraphEntry", context: "SessionContext") -> None:
-        is_active = entry.graph is context.active_graph.value
+        is_active = entry.graph is context.data[EditState].active_graph.value
         is_unsaved = entry.unsaved or entry.path is None
         is_executing = entry.is_executing
 
@@ -338,7 +339,7 @@ class HaystackEditor(BaseEditor):
         and for any dirty-state confirmation flow before invoking this.
         """
         app = context.app
-        is_active = entry.graph is context.active_graph.value
+        is_active = entry.graph is context.data[EditState].active_graph.value
         removed_id = entry.entry_id  # capture before remove_entry drops
 
         # Stop execution if running (defensive — should already be stopped)
@@ -359,8 +360,9 @@ class HaystackEditor(BaseEditor):
 
         # If it was the active graph, clear the active graph → empty state
         if is_active:
-            context.active_graph.value = None
-            context.active_graph_path.value = None
+            edit_state = context.data[EditState]
+            edit_state.active_graph.value = None
+            edit_state.active_graph_path.value = None
             if session:
                 session.signal(ActiveGraphMoved())
 
@@ -470,8 +472,8 @@ class HaystackEditor(BaseEditor):
                 success = app.haystack.rename_graph(entry, new_name)
                 if success:
                     session = context.session
-                    if entry.graph is context.active_graph.value:
-                        context.active_graph_path.value = entry.path
+                    if entry.graph is context.data[EditState].active_graph.value:
+                        context.data[EditState].active_graph_path.value = entry.path
                         if session:
                             session.signal(ActiveGraphMoved())
                     self._notify_data_mutated(context)
@@ -568,8 +570,8 @@ class HaystackEditor(BaseEditor):
                 success = app.haystack.save_graph(entry, save_as=save_path)
                 if success:
                     session = context.session
-                    if entry.graph is context.active_graph.value:
-                        context.active_graph_path.value = save_path
+                    if entry.graph is context.data[EditState].active_graph.value:
+                        context.data[EditState].active_graph_path.value = save_path
                         if session:
                             session.signal(ActiveGraphMoved())
                     self._notify_data_mutated(context)
@@ -671,7 +673,7 @@ class HaystackEditor(BaseEditor):
                     ui.notify("Name cannot be empty", type="warning")
                     return
                 context.app.workspace_manager.snapshot["haystack"] = name
-                context.app.save_workspace(active_graph_path=context.active_graph_path.value)
+                context.app.save_workspace(active_graph_path=context.data[EditState].active_graph_path.value)
                 self._update_header_title(context)
                 ui.notify(f"Haystack '{name}' saved", type="positive")
                 popup.close()
@@ -731,7 +733,7 @@ class HaystackEditor(BaseEditor):
                     active_entry = entries[0]
 
                 context.app.workspace_manager.snapshot["haystack"] = name
-                context.app.save_workspace(active_graph_path=context.active_graph_path.value)
+                context.app.save_workspace(active_graph_path=context.data[EditState].active_graph_path.value)
 
                 session = context.session
                 self._notify_data_mutated(context)
@@ -890,7 +892,9 @@ class HaystackEditor(BaseEditor):
                 success = app.haystack.rename_haystack(old_name, new_name)
                 if success:
                     context.app.workspace_manager.snapshot["haystack"] = new_name
-                    context.app.save_workspace(active_graph_path=context.active_graph_path.value)
+                    context.app.save_workspace(
+                        active_graph_path=context.data[EditState].active_graph_path.value
+                    )
                     self._update_header_title(context)
                     ui.notify(f"Haystack renamed to '{new_name}'", type="positive")
                     popup.close()

@@ -14,6 +14,7 @@ from haywire.ui.panel.render_utils import render_settings
 
 from haybale_studio.focuses import NodeFocus
 from haybale_studio.editors.properties_editor_actions import PropertiesEditorActions
+from haybale_studio.state.edit_state import EditState
 
 if TYPE_CHECKING:
     from haywire.ui.context import SessionContext
@@ -32,7 +33,7 @@ class NodeInfoPanel(Panel):
 
     @classmethod
     def poll(cls, ctx: "SessionContext") -> bool:
-        return ctx.active_node.value is not None
+        return ctx.data[EditState].active_node.value is not None
 
     def draw(
         self,
@@ -40,7 +41,7 @@ class NodeInfoPanel(Panel):
         layout: PanelLayout,
         actions: PropertiesEditorActions,
     ) -> None:
-        node = ctx.active_node.value
+        node = ctx.data[EditState].active_node.value
         if node is None:
             return
         try:
@@ -67,7 +68,7 @@ class NodePropertiesPanel(Panel):
 
     @classmethod
     def poll(cls, ctx: "SessionContext") -> bool:
-        node = ctx.active_node.value
+        node = ctx.data[EditState].active_node.value
         return (
             node is not None
             and hasattr(node, "node")
@@ -81,7 +82,7 @@ class NodePropertiesPanel(Panel):
         layout: PanelLayout,
         actions: PropertiesEditorActions,
     ) -> None:
-        node_wrapper = ctx.active_node.value
+        node_wrapper = ctx.data[EditState].active_node.value
         if node_wrapper is None:
             return
         render_settings(node_wrapper.node.props)

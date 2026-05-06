@@ -9,6 +9,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from haybale_studio.focuses import PortFocus
+from haybale_studio.state.edit_state import EditState
 from haywire.ui import elements as hui
 from haybale_studio.editors.graph_canvas.handlers.context_menu_actions import PortContextActions
 from haywire.ui.panel import Panel
@@ -29,7 +30,7 @@ if TYPE_CHECKING:
 class PortInfoPanel(Panel):
     @classmethod
     def poll(cls, ctx: "SessionContext") -> bool:
-        return ctx.active_port.value is not None
+        return ctx.data[EditState].active_port.value is not None
 
     def draw(
         self,
@@ -37,7 +38,7 @@ class PortInfoPanel(Panel):
         layout: PanelLayout,
         actions: PortContextActions,
     ) -> None:
-        port = ctx.active_port.value
+        port = ctx.data[EditState].active_port.value
         if port is None:
             return
         with layout.container:

@@ -1,6 +1,50 @@
+import importlib
+
 import pytest
 from haywire.core.di.config import LibrarySystemService
 from haywire.core.graph.base import BaseGraph
+from haywire.core.state import LibraryStateContainer
+
+
+@pytest.mark.integration
+class TestBaseRegistryClassIdentity:
+    """Regression: BaseRegistry._on_creation must not force-reload modules.
+
+    The haybale-testing library deliberately registers ``state/`` LAST in
+    its ``register_components()``. The panels registered before it
+    eagerly import ``TestSessionState`` at module-load time, so by the
+    time state/ is scanned the module is already in ``sys.modules``.
+
+    Pre-fix, ``_on_creation`` called ``module_scan_for_classes`` with
+    ``force_reload=True``, which deleted the module from ``sys.modules``
+    and re-imported it — producing a fresh class object. The panel's
+    captured reference was stale; the registry/container held a different
+    class. ``ctx.data[TestSessionState]`` (using the panel's reference)
+    keyed into a container keyed by the post-reload class → KeyError.
+
+    Post-fix, the initial scan does not force-reload. Class identity
+    survives the scan regardless of the order in which folders register.
+    """
+
+    def test_panel_pre_imported_class_matches_registered_class(self, library_system: LibrarySystemService):
+        """Panel's eager import resolves to the same class the container holds."""
+        # Resolve via the panel module — same path production code takes.
+        panel_module = importlib.import_module("haybale_testing.panels.test_session_state_panel")
+        panel_class_ref = panel_module.TestSessionState
+
+        # Resolve via the canonical state module path.
+        state_module = importlib.import_module("haybale_testing.state.test_session_state")
+        state_class_ref = state_module.TestSessionState
+
+        # If _on_creation ever force-reloads again, these would be
+        # distinct class objects.
+        assert panel_class_ref is state_class_ref
+
+        # And the same class must be the one the container is keyed by,
+        # otherwise ctx.data[TestSessionState] lookups via the panel's
+        # reference would KeyError.
+        container = library_system.injector.get(LibraryStateContainer)
+        assert panel_class_ref in container._sessions
 
 
 @pytest.mark.unit

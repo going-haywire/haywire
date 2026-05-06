@@ -28,11 +28,13 @@ class Panel(ABC):
 
     Subclasses are decorated with `@panel(...)` and inherit from `Panel`:
 
-        @panel(action=PropertiesEditorActions, focus=NodeFocus, label="My Panel")
+        @panel(action=MyEditorActions, focus=MyFocus, label="My Panel")
         class MyPanel(Panel):
             @classmethod
             def poll(cls, ctx: SessionContext) -> bool:
-                return ctx.active_node.value is not None
+                # Library-defined SessionState read; the field set lives in
+                # the library's SessionState subclass, not on SessionContext.
+                return ctx.data[MyLibState].active_item.value is not None
 
             def draw(self, ctx, layout, actions):
                 ...

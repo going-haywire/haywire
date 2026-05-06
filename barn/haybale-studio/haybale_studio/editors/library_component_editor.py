@@ -24,6 +24,8 @@ from haywire.ui.context_signals import (
     ThemeMoved,
 )
 
+from haybale_studio.state.edit_state import EditState
+
 if TYPE_CHECKING:
     from haywire.ui.context import SessionContext
     from haywire.ui.context_signals import ContextSignal
@@ -77,7 +79,7 @@ class LibraryComponentEditor(BaseEditor):
         if self._container is None:
             return
         registry_key = context.active_component.value
-        active_node = context.active_node.value
+        active_node = context.data[EditState].active_node.value
         if not registry_key and active_node is not None:
             registry_key = active_node.registry_key
         with self._container:

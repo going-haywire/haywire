@@ -16,6 +16,8 @@ from haywire.ui.components.zoom.pan import ZoomPanContainer
 from haywire.ui.components.graph.canvas import GraphCanvasVue
 from haywire.ui.session import Session
 
+from haybale_studio.state.edit_state import EditState
+
 from .event_definitions import BaseGraphEvent, GRAPH_EVENT_REGISTRY
 from .event_handlers import build_event_handler_map
 from .handlers.interaction import InteractionHandlers
@@ -196,7 +198,7 @@ class GraphCanvasManager:
         return self.selection.selected_edges
 
     def _has_clipboard_content(self) -> bool:
-        clipboard = self._session.context.clipboard.value
+        clipboard = self._session.context.data[EditState].clipboard.value
         return clipboard is not None and len(clipboard.nodes) > 0
 
     def cleanup(self):

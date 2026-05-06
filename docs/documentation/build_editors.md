@@ -64,7 +64,7 @@ class MyInfoEditor(BaseEditor):
             return
         if self._status_label is None:
             return
-        node = context.active_node
+        node = context.data[EditState].active_node.value
         if node:
             self._status_label.text = f'Active: {getattr(node, "name", str(node))}'
         else:
@@ -211,7 +211,7 @@ Optional. Only relevant for editors placed in the Middle area's tab bar. Return 
 
 ```python
 def get_tab_label(self, context) -> str:
-    graph = context.active_graph
+    graph = context.data[EditState].active_graph.value
     return graph.name if graph else 'Graph'
 ```
 
@@ -304,7 +304,7 @@ Use **incremental update** (modify element attributes) when only values change:
 ```python
 def on_context_changed(self, event, context) -> None:
     if event.change_type == ContextChangeType.DATA_MUTATED:
-        node = context.active_node
+        node = context.data[EditState].active_node.value
         self._name_label.text = getattr(node, 'name', '—') if node else '—'
 ```
 
@@ -329,8 +329,8 @@ def on_context_changed(self, event, context) -> None:
 Access `SessionContext` attributes directly:
 
 ```python
-node  = context.active_node     # NodeWrapper or None
-graph = context.active_graph    # HaywireGraph or None
+node  = context.data[EditState].active_node.value     # NodeWrapper or None
+graph = context.data[EditState].active_graph.value    # HaywireGraph or None
 lib   = context.active_library  # InstalledLibrary, MarketplaceEntry, or None
 mode  = context.interaction_mode
 ```
@@ -485,7 +485,7 @@ def render(self, container, context) -> None:
         self._list = ui.column().classes('w-full')  # ← saved for later use
 ```
 
-**Let context drive visibility, not internal flags.** Avoid maintaining separate `_is_node_selected` booleans. Read from `context.active_node` directly in `on_context_changed`.
+**Let context drive visibility, not internal flags.** Avoid maintaining separate `_is_node_selected` booleans. Read from `context.data[EditState].active_node.value` directly in `on_context_changed`.
 
 **One rebuild strategy per editor.** Decide upfront whether your editor does full rebuilds or incremental updates. Mixed strategies are hard to maintain. For simple editors, full clear + rebuild is fine. For complex editors with expensive renders, invest in targeted updates.
 

@@ -353,8 +353,9 @@ class EditorWrapper:
 
         Lazy-instantiates the editor if needed so first-activation always
         fires on_focus before draw — editors rely on this ordering to set
-        up session context (e.g. GraphEditor updates context.active_graph).
-        No-op if instantiation fails (placeholder will render on draw).
+        up session context (e.g., a graph editor updates its
+        library-supplied SessionState). No-op if instantiation fails
+        (placeholder will render on draw).
         """
         if self._instance is None:
             if not self._instantiate():

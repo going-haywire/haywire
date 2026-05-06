@@ -4,9 +4,10 @@ Root pytest configuration with DI fixtures.
 Provides fixtures for different test scopes and scenarios.
 """
 
+import importlib
 import pytest
 from pathlib import Path
-from typing import Generator
+from typing import Callable, Generator
 from injector import Injector
 
 from haywire.core.di.test_config import create_test_injector, create_test_library_system
@@ -22,6 +23,7 @@ from haywire.core.node.factory import NodeFactory
 from haywire.core.adapter.registry import AdapterRegistry
 from haywire.core.adapter.factory import AdapterFactory
 from haywire.core.types.registry import TypeRegistry
+from haywire.core.state import LibraryStateContainer
 from haywire.core.undo.interfaces import IHistoryManager
 from haywire.core.undo.history_manager import HistoryManager
 from haywire.core.undo.config import UndoConfig
@@ -201,3 +203,30 @@ def integration_node_registry(library_system) -> NodeRegistry:
 def integration_node_factory(library_system) -> NodeFactory:
     """Get node factory with all libraries loaded."""
     return library_system.get_node_factory()
+
+
+# ==============================================================================
+# EditState Fixture (v1.2 — see docs/prd/v1.2-edit-state-migration.md)
+# ==============================================================================
+
+
+_EDIT_STATE_MODULE = "haybale_studio.state.edit_state"
+
+
+@pytest.fixture
+def register_edit_state() -> Callable[[LibraryStateContainer, str], type]:
+    """Register EditState into a LibraryStateContainer for tests.
+
+    Returns a helper that takes a container and a session id, registers
+    EditState as a session-scoped class, and attaches the session so
+    ``container.get_session(EditState, sid)`` returns an instance
+    immediately.
+    """
+
+    def _register(container: LibraryStateContainer, session_id: str) -> type:
+        edit_state_cls = importlib.import_module(_EDIT_STATE_MODULE).EditState
+        container._add_session_class(edit_state_cls, "studio:state:EditState")
+        container.attach_session(session_id)
+        return edit_state_cls
+
+    return _register

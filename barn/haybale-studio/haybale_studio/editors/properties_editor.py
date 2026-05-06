@@ -24,6 +24,7 @@ from nicegui import ui
 
 from haybale_studio.focuses import EdgeFocus, GraphFocus, NodeFocus, PortFocus
 from haybale_studio.focuses import AppFocus, CanvasFocus, ExecutionFocus, SettingsFocus
+from haybale_studio.state.edit_state import EditState
 from haywire.ui import elements as hui
 from haywire.ui.context_signals import (
     ActiveGraphMoved,
@@ -127,9 +128,10 @@ class PropertiesEditor(BaseEditor):
         ``actions`` parameter."""
         if self._context is None:
             return
-        self._context.active_node.value = None
-        self._context.active_edge.value = None
-        self._context.active_port.value = None
+        edit_state = self._context.data[EditState]
+        edit_state.active_node.value = None
+        edit_state.active_edge.value = None
+        edit_state.active_port.value = None
 
     # ------------------------------------------------------------------
     # Layout construction (called once on render)

@@ -91,8 +91,10 @@ class BaseEditor(ABC):
         to any events this hook broadcasts.
 
         The default implementation is a no-op. Editors that own session
-        state (e.g. GraphEditor owns context.active_graph) override this
-        to update the context and broadcast the corresponding event.
+        state (via a library-supplied SessionState — e.g., a graph editor
+        whose library owns an ``active_graph`` field on its SessionState)
+        override this to update the state and broadcast the corresponding
+        event.
 
         Read ``self.wrapper.payload`` for this instance's identity.
 

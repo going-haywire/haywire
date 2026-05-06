@@ -21,6 +21,7 @@ from haywire.ui.editor.decorator import editor
 from haywire.ui.editor.base import BaseEditor
 from haywire.ui.context_signals import ActiveGraphMoved, GraphDataMutated
 from haybale_studio.editors.graph_canvas.graph_canvas_manager import GraphCanvasManager
+from haybale_studio.state.edit_state import EditState
 
 if TYPE_CHECKING:
     from haywire_studio.haystack import GraphEntry
@@ -91,7 +92,7 @@ class GraphEditor(BaseEditor):
         """Claim ownership of session state when this tab becomes active.
 
         Resolves ``self.wrapper.payload`` (the entry key) via the haystack
-        and, if the entry exists, updates ``context.active_graph`` +
+        and, if the entry exists, updates ``context.data[EditState].active_graph`` +
         ``active_graph_path`` and broadcasts ``ACTIVE_GRAPH_CHANGED`` so
         panels (properties, minimap, execution controls) refresh.
 
@@ -120,11 +121,12 @@ class GraphEditor(BaseEditor):
                 self.wrapper.force_close()
             return
 
-        if context.active_graph.value is entry.graph and context.active_graph_path.value == entry.path:
+        edit_state = context.data[EditState]
+        if edit_state.active_graph.value is entry.graph and edit_state.active_graph_path.value == entry.path:
             return
 
-        context.active_graph.value = entry.graph
-        context.active_graph_path.value = entry.path
+        edit_state.active_graph.value = entry.graph
+        edit_state.active_graph_path.value = entry.path
 
         if session is not None:
             session.signal(ActiveGraphMoved())
@@ -147,10 +149,11 @@ class GraphEditor(BaseEditor):
             self._canvas_manager = None
 
         # Clear selection so PropertiesEditor resets to the graph panel
-        context.active_node.value = None
-        context.active_edge.value = None
-        context.selected_nodes.value = set()
-        context.selected_edges.value = set()
+        edit_state = context.data[EditState]
+        edit_state.active_node.value = None
+        edit_state.active_edge.value = None
+        edit_state.selected_nodes.value = set()
+        edit_state.selected_edges.value = set()
 
         with container:
             with ui.column().classes("w-full gap-0").style("height: 100%; overflow: hidden;"):
@@ -464,7 +467,7 @@ class GraphEditor(BaseEditor):
         old_payload = self.wrapper.payload if self.wrapper is not None else None
         success = app.haystack.save_graph(entry, save_as=save_path)
         if success:
-            context.active_graph_path.value = save_path
+            context.data[EditState].active_graph_path.value = save_path
             session = context.session
             new_payload = entry.entry_id
             if self.wrapper is not None and old_payload != new_payload:

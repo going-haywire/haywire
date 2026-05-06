@@ -520,7 +520,8 @@ def test_on_focus_no_op_without_instance():
 
 def test_on_focus_lazy_instantiates_when_instance_missing():
     """on_focus must lazy-instantiate so editors can update session context
-    on first activation (e.g. GraphEditor.on_focus sets context.active_graph)."""
+    on first activation (e.g. GraphEditor.on_focus sets
+    ``ctx.data[EditState].active_graph``)."""
     reg = EditorTypeRegistry()
     session = _make_session()
     w = EditorWrapper(

@@ -3,7 +3,9 @@
 from typing import Protocol, runtime_checkable
 from unittest.mock import MagicMock
 
+from haybale_studio.state.edit_state import EditState
 from haywire.core.library.identity import LibraryIdentity
+from haywire.core.state import LibraryStateContainer
 from haywire.ui.context import SessionContext
 from haywire.ui.panel import Panel, PanelRegistry, panel
 from haywire.ui.panel.focus import Focus
@@ -42,7 +44,7 @@ class _LoudFocus(Focus):
 class _SpeakerPanel(Panel):
     @classmethod
     def poll(cls, ctx):
-        return ctx.active_node.value is not None
+        return ctx.data[EditState].active_node.value is not None
 
     def draw(self, ctx, layout, actions):
         pass
@@ -73,11 +75,17 @@ def test_full_pipeline_focus_discovered_via_registry():
     assert _LoudFocus in focuses
 
 
-def test_panel_poll_is_classmethod_and_reads_session_context():
-    ctx = SessionContext(session_id="t", app=MagicMock())
+def test_panel_poll_is_classmethod_and_reads_session_context(register_edit_state):
+    container = LibraryStateContainer()
+    sid = "t"
+    EditStateCls = register_edit_state(container, sid)
+
+    app = MagicMock()
+    app.library_state_container = container
+    ctx = SessionContext(session_id=sid, app=app)
 
     # No active node — poll returns False.
     assert _SpeakerPanel.poll(ctx) is False
 
-    ctx.active_node.value = MagicMock()
+    ctx.data[EditStateCls].active_node.value = MagicMock()
     assert _SpeakerPanel.poll(ctx) is True

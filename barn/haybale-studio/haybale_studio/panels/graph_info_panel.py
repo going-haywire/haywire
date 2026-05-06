@@ -13,6 +13,7 @@ from haywire.ui.panel.decorator import panel
 
 from haybale_studio.focuses import GraphFocus
 from haybale_studio.editors.properties_editor_actions import PropertiesEditorActions
+from haybale_studio.state.edit_state import EditState
 
 if TYPE_CHECKING:
     from haywire.ui.context import SessionContext
@@ -30,7 +31,7 @@ class GraphInfoPanel(Panel):
 
     @classmethod
     def poll(cls, ctx: "SessionContext") -> bool:
-        return ctx.active_graph.value is not None
+        return ctx.data[EditState].active_graph.value is not None
 
     def draw(
         self,
@@ -38,7 +39,7 @@ class GraphInfoPanel(Panel):
         layout: PanelLayout,
         actions: PropertiesEditorActions,
     ) -> None:
-        graph = ctx.active_graph.value
+        graph = ctx.data[EditState].active_graph.value
         if graph is None:
             return
         try:

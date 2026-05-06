@@ -9,6 +9,7 @@ from typing import TYPE_CHECKING
 
 from nicegui import ui
 
+from haybale_studio.state.edit_state import EditState
 from haybale_testing.test_actions import TestEdgeContextActions
 from haybale_testing.test_focuses import TestEdgeFocus
 from haywire.ui import elements as hui
@@ -22,7 +23,7 @@ if TYPE_CHECKING:
 
 
 def _state(ctx: "SessionContext") -> "EdgeWrapperState | None":
-    wrapper = ctx.active_edge.value
+    wrapper = ctx.data[EditState].active_edge.value
     return wrapper.get_state() if wrapper is not None else None
 
 
@@ -36,7 +37,7 @@ def _state(ctx: "SessionContext") -> "EdgeWrapperState | None":
 class TestDeleteEdgePanel(Panel):
     @classmethod
     def poll(cls, ctx: "SessionContext") -> bool:
-        return ctx.active_edge.value is not None
+        return ctx.data[EditState].active_edge.value is not None
 
     def draw(
         self,
@@ -44,7 +45,7 @@ class TestDeleteEdgePanel(Panel):
         layout: PanelLayout,
         actions: TestEdgeContextActions,
     ) -> None:
-        edge = ctx.active_edge.value
+        edge = ctx.data[EditState].active_edge.value
         if edge is None:
             return
         edge_id = edge.edge_id
@@ -65,7 +66,7 @@ class TestDeleteEdgePanel(Panel):
 class TestInspectEdgePanel(Panel):
     @classmethod
     def poll(cls, ctx: "SessionContext") -> bool:
-        return ctx.active_edge.value is not None
+        return ctx.data[EditState].active_edge.value is not None
 
     def draw(
         self,
@@ -73,7 +74,7 @@ class TestInspectEdgePanel(Panel):
         layout: PanelLayout,
         actions: TestEdgeContextActions,
     ) -> None:
-        edge = ctx.active_edge.value
+        edge = ctx.data[EditState].active_edge.value
         if edge is None:
             return
         edge_id = edge.edge_id
@@ -131,7 +132,7 @@ class TestEdgeErrorsPanel(Panel):
 class TestEdgeConnectionPathPanel(Panel):
     @classmethod
     def poll(cls, ctx: "SessionContext") -> bool:
-        wrapper = ctx.active_edge.value
+        wrapper = ctx.data[EditState].active_edge.value
         return wrapper is not None and wrapper.edge is not None
 
     def draw(
@@ -140,7 +141,7 @@ class TestEdgeConnectionPathPanel(Panel):
         layout: PanelLayout,
         actions: TestEdgeContextActions,
     ) -> None:
-        wrapper = ctx.active_edge.value
+        wrapper = ctx.data[EditState].active_edge.value
         if wrapper is None or wrapper.edge is None:
             return
         edge = wrapper.edge

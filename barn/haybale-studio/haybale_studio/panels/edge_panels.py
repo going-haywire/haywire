@@ -17,6 +17,7 @@ from nicegui import ui
 
 from haybale_studio.focuses import EdgeFocus
 from haybale_studio.editors.properties_editor_actions import PropertiesEditorActions
+from haybale_studio.state.edit_state import EditState
 from haywire.ui import elements as hui
 from haybale_studio.editors.graph_canvas.handlers.context_menu_actions import EdgeContextActions
 from haywire.ui.panel import Panel, PanelLayout
@@ -28,7 +29,7 @@ if TYPE_CHECKING:
 
 
 def _state_from_context(ctx: "SessionContext") -> "EdgeWrapperState | None":
-    wrapper = ctx.active_edge.value
+    wrapper = ctx.data[EditState].active_edge.value
     return wrapper.get_state() if wrapper is not None else None
 
 
@@ -184,7 +185,7 @@ class ContextMenuEdgeWarningsPanel(Panel):
 class DeleteEdgePanel(Panel):
     @classmethod
     def poll(cls, ctx: "SessionContext") -> bool:
-        return ctx.active_edge.value is not None
+        return ctx.data[EditState].active_edge.value is not None
 
     def draw(
         self,
@@ -192,7 +193,7 @@ class DeleteEdgePanel(Panel):
         layout: PanelLayout,
         actions: EdgeContextActions,
     ) -> None:
-        edge = ctx.active_edge.value
+        edge = ctx.data[EditState].active_edge.value
         if edge is None:
             return
         edge_id = edge.edge_id
@@ -221,7 +222,7 @@ class DeleteEdgePanel(Panel):
 class ExecutionStatisticsEdgePanel(Panel):
     @classmethod
     def poll(cls, ctx: "SessionContext") -> bool:
-        return ctx.active_edge.value is not None
+        return ctx.data[EditState].active_edge.value is not None
 
     def draw(
         self,
@@ -229,7 +230,7 @@ class ExecutionStatisticsEdgePanel(Panel):
         layout: PanelLayout,
         actions: PropertiesEditorActions,
     ) -> None:
-        edge_wrapper = ctx.active_edge.value
+        edge_wrapper = ctx.data[EditState].active_edge.value
         state = edge_wrapper.get_state()
         with (
             ui.card()
@@ -257,7 +258,7 @@ class ExecutionStatisticsEdgePanel(Panel):
 class ConnectionPathEdgePanel(Panel):
     @classmethod
     def poll(cls, ctx: "SessionContext") -> bool:
-        return ctx.active_edge.value is not None
+        return ctx.data[EditState].active_edge.value is not None
 
     def draw(
         self,
@@ -265,7 +266,7 @@ class ConnectionPathEdgePanel(Panel):
         layout: PanelLayout,
         actions: PropertiesEditorActions,
     ) -> None:
-        edge_wrapper = ctx.active_edge.value
+        edge_wrapper = ctx.data[EditState].active_edge.value
         with (
             ui.card()
             .classes("w-full p-3")

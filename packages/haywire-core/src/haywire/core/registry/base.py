@@ -468,9 +468,12 @@ class BaseRegistry(HotReloadRegistry, FolderScanMixin):
         if module_name is None:
             return  # Skip processing if validation failed
 
-        added_classes, _ = self.module_scan_for_classes(
-            module_name, library_identity, self._class_filter, True
-        )
+        # force_reload=False: if the module is already in sys.modules
+        # (because some earlier import path loaded it), keep that class
+        # object — re-importing would produce a fresh class and leave
+        # any pre-existing references stale. Hot-reload of changed
+        # files goes through _reload_managed_module, not here.
+        added_classes, _ = self.module_scan_for_classes(module_name, library_identity, self._class_filter)
         if added_classes:
             # Get tracking scopes from library dependencies
             scope_prefixes = self._get_tracking_scopes(library_identity)

@@ -62,10 +62,10 @@ class MyNodeInfoPanel(BasePanel):
 
     @classmethod
     def poll(cls, context) -> bool:
-        return context.active_node is not None
+        return context.data[EditState].active_node.value is not None
 
     def draw(self, context, layout: PanelLayout) -> None:
-        node = context.active_node
+        node = context.data[EditState].active_node.value
         layout.label(f'Name: {getattr(node, "name", "?")}')
         layout.label(f'ID:   {getattr(node, "node_id", "?")}')
         layout.separator()
@@ -144,7 +144,7 @@ Called before every render cycle to determine whether the panel should be shown.
 @classmethod
 def poll(cls, context) -> bool:
     # Show only when a node is selected AND it has output ports
-    node = context.active_node
+    node = context.data[EditState].active_node.value
     if node is None:
         return False
     outlets = node.get_ports(is_port_type=PortType.OUTLET)
@@ -163,8 +163,8 @@ vary visibility per scope:
 def poll(cls, context) -> bool:
     active_scope = context.metadata.get('properties_scope')
     if active_scope == 'node':
-        return context.active_node is not None and isinstance(
-            context.active_node.node, MyLibNode
+        return context.data[EditState].active_node.value is not None and isinstance(
+            context.data[EditState].active_node.value.node, MyLibNode
         )
     return True   # always visible in other scopes
 ```
@@ -176,7 +176,7 @@ An `ui.expansion` wrapper is provided automatically by the host editor — do no
 
 ```python
 def draw(self, context, layout: PanelLayout) -> None:
-    node = context.active_node
+    node = context.data[EditState].active_node.value
     with layout.column():
         layout.label(f'Outlets: {len(node.outlets)}')
         for outlet in node.outlets:
@@ -204,7 +204,7 @@ Optional incremental update hook. Called when a context change event fires and t
 def on_context_changed(self, context, layout) -> None:
     # Update the node name label without rebuilding the whole panel
     if self._name_label:
-        node = context.active_node
+        node = context.data[EditState].active_node.value
         self._name_label.text = getattr(node, 'name', '?') if node else '?'
 ```
 
@@ -246,7 +246,7 @@ layout.widget(widget_key: str, port: Any, **config) -> Any
 
 ```python
 def draw(self, context, layout: PanelLayout) -> None:
-    node = context.active_node
+    node = context.data[EditState].active_node.value
 
     # Simple labels
     layout.label(f'Class: {type(node).__name__}')
@@ -290,7 +290,7 @@ The `layout.widget()` method renders a registered Haywire widget for a given por
 
 ```python
 def draw(self, context, layout: PanelLayout) -> None:
-    node = context.active_node
+    node = context.data[EditState].active_node.value
     for port in getattr(node, 'config_ports', []):
         layout.label(port.id)
         layout.widget(port.widget_key or 'default', port)
@@ -318,9 +318,9 @@ Registered by `haybale-studio` in its `register_components()`:
 | `execution` | `play_circle`   | Execution      | always                             |
 | `canvas`    | `grid_on`       | Canvas & Nodes | always                             |
 | `debug`     | `bug_report`    | Debug          | always                             |
-| `graph`     | `account_tree`  | Graph          | `context.active_graph` is not None |
-| `node`      | `widgets`       | Node           | `context.active_node` is not None  |
-| `edge`      | `cable`         | Edge           | `context.active_edge` is not None  |
+| `graph`     | `account_tree`  | Graph          | `context.data[EditState].active_graph.value` is not None |
+| `node`      | `widgets`       | Node           | `context.data[EditState].active_node.value` is not None  |
+| `edge`      | `cable`         | Edge           | `context.data[EditState].active_edge.value` is not None  |
 
 The PropertiesEditor only auto-switches scope when the current scope becomes unavailable (e.g. the user deselects a node while on the `node` tab). Manual navigation always takes
 priority.
@@ -352,7 +352,7 @@ Panels contributing to the context menu popup work identically to properties pan
 class DeleteNodePanel(BasePanel):
     @classmethod
     def poll(cls, context) -> bool:
-        return context.active_node is not None
+        return context.data[EditState].active_node.value is not None
 
     def draw(self, context, layout: PanelLayout) -> None:
         ...
@@ -407,8 +407,8 @@ class MyLibRenderSettingsPanel(BasePanel):
         active_scope = context.metadata.get('properties_scope')
         if active_scope == 'node':
             # Only show for nodes that belong to this library
-            return context.active_node is not None and isinstance(
-                context.active_node.node, MyLibNode
+            return context.data[EditState].active_node.value is not None and isinstance(
+                context.data[EditState].active_node.value.node, MyLibNode
             )
         return True   # always visible in the my_lib tab
 
@@ -494,7 +494,7 @@ Use `layout.expansion()` inside `draw()` to group related fields when a panel ha
 
 ```python
 def draw(self, context, layout: PanelLayout) -> None:
-    node = context.active_node
+    node = context.data[EditState].active_node.value
 
     layout.label(f'Name: {node.name}')
 
@@ -655,7 +655,7 @@ class NodeMetricsPanel(BasePanel): ...
 ```python
 @classmethod
 def poll(cls, context) -> bool:
-    node = context.active_node
+    node = context.data[EditState].active_node.value
     return node is not None and hasattr(node, 'config_ports') and bool(node.config_ports)
 ```
 
@@ -703,7 +703,7 @@ class NodeMetricsPanel(BasePanel):
     @classmethod
     def poll(cls, context: "SessionContext") -> bool:
         """Only show when a node is selected and has execution metrics."""
-        node = context.active_node
+        node = context.data[EditState].active_node.value
         if node is None:
             return False
         # Only show if the node has been executed at least once
@@ -711,7 +711,7 @@ class NodeMetricsPanel(BasePanel):
         return metrics is not None
 
     def draw(self, context: "SessionContext", layout: PanelLayout) -> None:
-        node    = context.active_node
+        node    = context.data[EditState].active_node.value
         metrics = getattr(node, 'execution_metrics', {})
 
         call_count   = metrics.get('call_count', 0)
@@ -784,7 +784,7 @@ Node skins can attach a context-menu popup to **any rendered element** without w
 
 2. **Python pipeline resolves the node.** `ContextMenuHandlers` dispatches the event to
    `IContextMenuProvider.on_custom_context(pos, node_id, scope)`. The
-   `SessionContextMenuProvider` implementation sets `context.active_node` and then calls `_open_menu(scope, pos)` — the same path used by all other context menu triggers.
+   `SessionContextMenuProvider` implementation sets `context.data[EditState].active_node.value` and then calls `_open_menu(scope, pos)` — the same path used by all other context menu triggers.
 
 3. **PanelRegistry serves the panels.** `_open_menu` calls
    `panel_registry.get_panels('context_menu', scope)`, which returns all panels registered for that `(editor_key, scope_id)` pair. Panels that pass `poll()` are drawn into a floating `Popup`.
@@ -816,11 +816,11 @@ class MyCustomPanel(BasePanel):
 
     @classmethod
     def poll(cls, context) -> bool:
-        return context.active_node is not None
+        return context.data[EditState].active_node.value is not None
 
     def draw(self, context, layout: PanelLayout) -> None:
         from nicegui import ui
-        node = context.active_node
+        node = context.data[EditState].active_node.value
         with layout._container:
             ui.label(f'Node: {node.node_id}')
 ```
@@ -853,8 +853,8 @@ class ReportErrorPanel(BasePanel):
     @classmethod
     def poll(cls, context) -> bool:
         return (
-            context.active_node is not None
-            and bool(context.active_node.state.get_errors())
+            context.data[EditState].active_node.value is not None
+            and bool(context.data[EditState].active_node.value.state.get_errors())
         )
 
     def draw(self, context, layout: PanelLayout) -> None:
@@ -867,7 +867,7 @@ All panels matching the scope are rendered together in `order` sequence inside t
 
 ## 14. Port Context Menu Triggers
 
-Any skin element can open a port-aware context menu popup by carrying `data-hw-port-menu-scope="<scope>"`. The mechanism is identical to the custom menu in chapter 13, but the Python pipeline additionally resolves the `DataPort` and exposes it as `context.active_port` so panels can inspect port metadata directly.
+Any skin element can open a port-aware context menu popup by carrying `data-hw-port-menu-scope="<scope>"`. The mechanism is identical to the custom menu in chapter 13, but the Python pipeline additionally resolves the `DataPort` and exposes it as `context.data[EditState].active_port.value` so panels can inspect port metadata directly.
 
 ### Port menu pipeline
 
@@ -877,7 +877,7 @@ Any skin element can open a port-aware context menu popup by carrying `data-hw-p
 
 3. **`nodeId` resolution.** Same as the custom menu: `canvas.vue` walks up to the nearest `[data-node-id]` ancestor.
 
-4. **Python pipeline resolves port and node.** `ContextMenuHandlers` dispatches to `IContextMenuProvider.on_port_context(pos, node_id, port_id, scope)`. `SessionContextMenuProvider` sets `context.active_node` and `context.active_port` (a `DataPort` from `wrapper.node.ports[port_id]`), then calls `_open_menu(scope, pos)`. When the popup closes, `context.active_port` is cleared automatically.
+4. **Python pipeline resolves port and node.** `ContextMenuHandlers` dispatches to `IContextMenuProvider.on_port_context(pos, node_id, port_id, scope)`. `SessionContextMenuProvider` sets `context.data[EditState].active_node.value` and `context.data[EditState].active_port.value` (a `DataPort` from `wrapper.node.ports[port_id]`), then calls `_open_menu(scope, pos)`. When the popup closes, `context.data[EditState].active_port.value` is cleared automatically.
 
 5. **PanelRegistry serves the panels.** Same as all other context menu types — `panel_registry.get_panels('context_menu', scope)`.
 
@@ -934,21 +934,21 @@ class MyPortPanel(BasePanel):
 
     @classmethod
     def poll(cls, context) -> bool:
-        return context.active_port is not None
+        return context.data[EditState].active_port.value is not None
 
     def draw(self, context, layout: PanelLayout) -> None:
         from nicegui import ui
-        port = context.active_port
-        node = context.active_node
+        port = context.data[EditState].active_port.value
+        node = context.data[EditState].active_node.value
         with layout._container:
             ui.label(f'Port: {port.id} on {node.node_id}')
 ```
 
 Place the file anywhere inside your library's `panels/` folder. No extra registration call is needed.
 
-### What `context.active_port` contains
+### What `context.data[EditState].active_port.value` contains
 
-`context.active_port` is a `DataPort` instance (`haywire.core.node.base.DataPort`). It exposes the full port metadata: `id`, `flow_type`, `port_type`, `color`, `widget_key`, and the underlying data descriptor. `context.active_node` is also set, so both the node and the port are available simultaneously in `poll()` and `draw()`.
+`context.data[EditState].active_port.value` is a `DataPort` instance (`haywire.core.node.base.DataPort`). It exposes the full port metadata: `id`, `flow_type`, `port_type`, `color`, `widget_key`, and the underlying data descriptor. `context.data[EditState].active_node.value` is also set, so both the node and the port are available simultaneously in `poll()` and `draw()`.
 
 ### Extending an existing port scope
 
@@ -965,7 +965,7 @@ Multiple panels can register for the same `(editor, scope)` pair and are rendere
 class DisconnectPortPanel(BasePanel):
     @classmethod
     def poll(cls, context) -> bool:
-        return context.active_port is not None
+        return context.data[EditState].active_port.value is not None
 
     def draw(self, context, layout: PanelLayout) -> None:
         layout.button('Disconnect all edges', on_click=lambda: ...)

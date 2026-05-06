@@ -25,17 +25,22 @@ from haybale_testing.panels.test_create_node_panel import TestCreateNodePanel as
 _PANEL_MODULE = sys.modules[CreateNodePanel.__module__]
 
 
-class FakeApp:
-    workspace_root = "/tmp"
-    library_service = None
-    node_factory = None
-    library_state_container = LibraryStateContainer()
+def _make_app(container: LibraryStateContainer) -> object:
+    app = MagicMock()
+    app.workspace_root = "/tmp"
+    app.library_service = None
+    app.node_factory = None
+    app.library_state_container = container
+    return app
 
 
-def make_context() -> SessionContext:
-    ctx = SessionContext(session_id="test", app=FakeApp())
+def make_context(register_edit_state) -> tuple[SessionContext, type]:
+    container = LibraryStateContainer()
+    sid = "test"
+    EditStateCls = register_edit_state(container, sid)
+    ctx = SessionContext(session_id=sid, app=_make_app(container))
     ctx.session = MagicMock()
-    return ctx
+    return ctx, EditStateCls
 
 
 # ---------------------------------------------------------------------------
@@ -60,14 +65,14 @@ def test_create_node_panel_is_panel_subclass():
 # ---------------------------------------------------------------------------
 
 
-def test_create_node_panel_poll_always_true():
-    ctx = make_context()
+def test_create_node_panel_poll_always_true(register_edit_state):
+    ctx, _ = make_context(register_edit_state)
     assert CreateNodePanel.poll(ctx) is True
 
 
-def test_create_node_panel_poll_true_when_node_selected():
-    ctx = make_context()
-    ctx.active_node.value = MagicMock()
+def test_create_node_panel_poll_true_when_node_selected(register_edit_state):
+    ctx, EditStateCls = make_context(register_edit_state)
+    ctx.data[EditStateCls].active_node.value = MagicMock()
     assert CreateNodePanel.poll(ctx) is True
 
 
@@ -76,8 +81,8 @@ def test_create_node_panel_poll_true_when_node_selected():
 # ---------------------------------------------------------------------------
 
 
-def test_create_node_panel_draw_calls_node_menu_builder():
-    ctx = make_context()
+def test_create_node_panel_draw_calls_node_menu_builder(register_edit_state):
+    ctx, _ = make_context(register_edit_state)
     ctx.app.node_factory = MagicMock()
 
     layout = MagicMock(spec=PanelLayout)
@@ -91,9 +96,9 @@ def test_create_node_panel_draw_calls_node_menu_builder():
     builder_mock.create_node_menu.assert_called_once()
 
 
-def test_on_node_selected_calls_test_create_node_at_click():
+def test_on_node_selected_calls_test_create_node_at_click(register_edit_state):
     """Selecting a node info must call actions.test_create_node_at_click with the registry key."""
-    ctx = make_context()
+    ctx, _ = make_context(register_edit_state)
     ctx.app.node_factory = MagicMock()
 
     layout = MagicMock(spec=PanelLayout)

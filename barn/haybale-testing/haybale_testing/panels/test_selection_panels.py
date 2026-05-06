@@ -7,6 +7,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from haybale_studio.state.edit_state import EditState
 from haybale_testing.test_actions import TestSelectionContextActions
 from haybale_testing.test_focuses import TestSelectionFocus
 from haywire.ui import elements as hui
@@ -28,7 +29,8 @@ if TYPE_CHECKING:
 class TestCopySelectionPanel(Panel):
     @classmethod
     def poll(cls, ctx: "SessionContext") -> bool:
-        return bool(ctx.selected_nodes.value or ctx.selected_edges.value)
+        edit = ctx.data[EditState]
+        return bool(edit.selected_nodes.value or edit.selected_edges.value)
 
     def draw(
         self,
@@ -53,7 +55,7 @@ class TestCopySelectionPanel(Panel):
 class TestPasteSelectionPanel(Panel):
     @classmethod
     def poll(cls, ctx: "SessionContext") -> bool:
-        return ctx.clipboard.value is not None
+        return ctx.data[EditState].clipboard.value is not None
 
     def draw(
         self,

@@ -11,6 +11,7 @@ Add your custom components in the corresponding folders:
 - themes/     — workbench and node themes
 - panels/     — custom UI panels
 - editors/    — custom UI editors
+- state/      — per-session library state (SessionState subclasses)
 """
 
 from pathlib import Path
@@ -20,6 +21,7 @@ from haywire.core.library.decorator import library
 from haywire.core.adapter.registry import AdapterRegistry
 from haywire.core.node.registry import NodeRegistry
 from haywire.core.settings.registry import SettingsRegistry
+from haywire.core.state import LibraryStateRegistry
 from haywire.core.types.registry import TypeRegistry
 
 from haywire.ui.editor.registry import EditorTypeRegistry
@@ -48,6 +50,20 @@ class Library(BaseLibrary):
     def register_components(self):
         """Register all components with the global registries."""
         base_path = Path(__file__).parent
+
+        # state/ MUST be scanned first. Panel and editor modules in later
+        # scans transitively import classes from state/ (e.g. EditState).
+        # Once a state module is in sys.modules, the state/ scan's
+        # force_reload would replace the class object — leaving any
+        # already-imported references stale. The container would then key
+        # on the new class while writers held the old one, causing
+        # KeyError on ctx.data[StateClass] lookups. Registering state/
+        # first means every later import resolves to the same class
+        # the container holds.
+        self.add_folder_to_registry(
+            folder_path=str(base_path / "state"),
+            registry_cls=LibraryStateRegistry,
+        )
 
         self.add_folder_to_registry(
             folder_path=str(base_path / "settings"),

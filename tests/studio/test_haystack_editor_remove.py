@@ -39,11 +39,31 @@ def editor_and_context():
         session_manager=None,
     )
 
+    # _remove_entry reads/writes is_active via
+    # ctx.data[EditState].active_graph. Build a fake `data` whose
+    # `[EditState]` lookup yields a stub with real Reactive fields,
+    # regardless of the EditState class identity passed (important after
+    # library hot-reload swaps in a new class object).
+    edit_stub = SimpleNamespace(
+        active_graph=Reactive(None),
+        active_graph_path=Reactive(None),
+        active_node=Reactive(None),
+        active_edge=Reactive(None),
+        active_port=Reactive(None),
+        selected_nodes=Reactive(set()),
+        selected_edges=Reactive(set()),
+        clipboard=Reactive(None),
+    )
+    data = MagicMock()
+    data.__getitem__.return_value = edit_stub
+    data.edit_stub = edit_stub
+
     context = SimpleNamespace(
         app=app,
         session=session,
         active_graph=Reactive(None),
         active_graph_path=Reactive(None),
+        data=data,
     )
     return editor, context, app, haystack
 
@@ -137,14 +157,16 @@ def test_remove_entry_helper_fires_graph_removed_signal_and_close_command(editor
 def test_remove_entry_helper_clears_active_graph_when_active(editor_and_context):
     editor, context, app, haystack = editor_and_context
     entry = _make_entry(path="/tmp/a.haywire", unsaved=False)
-    # Mark this entry as the active one
-    context.active_graph.value = entry.graph
-    context.active_graph_path.value = entry.path
+    # Mark this entry as the active one — the reader sources active_graph
+    # from EditState (post-C3).
+    edit = context.data.edit_stub
+    edit.active_graph.value = entry.graph
+    edit.active_graph_path.value = entry.path
 
     with patch("haybale_studio.editors.haystack_editor.ui.notify"):
         editor._remove_entry(entry, context)
 
-    assert context.active_graph.value is None
-    assert context.active_graph_path.value is None
+    assert edit.active_graph.value is None
+    assert edit.active_graph_path.value is None
     emitted_signals = [call.args[0] for call in context.session.signal.call_args_list]
     assert any(isinstance(s, ActiveGraphMoved) for s in emitted_signals)

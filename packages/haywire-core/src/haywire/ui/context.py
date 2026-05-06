@@ -22,18 +22,13 @@ See docs/documentation/architecture/session_state.md.
 
 from __future__ import annotations
 
-from typing import Any, Optional, Set, TYPE_CHECKING
+from typing import Any, Optional, TYPE_CHECKING
 
 from haywire.ui.reactive import Reactive, iter_reactive_fields, reactive_field
 from haywire.core.state.data_namespace import AppDataNamespace, SessionDataNamespace
 
 if TYPE_CHECKING:
-    from haywire.core.edge.edge_wrapper import EdgeWrapper
-    from haywire.core.graph.base import BaseGraph
     from haywire.core.library.base import BaseLibrary
-    from haywire.core.node.base import DataPort
-    from haywire.core.node.node_wrapper import NodeWrapper
-    from haywire.core.undo.actions.graph_actions import ClipboardData
     from haywire.ui.protocols import IProjectState
     from haywire.ui.session import Session
 
@@ -51,6 +46,11 @@ class SessionContext:
     `ctx.app_data` — typed proxy over the app's LibraryStateContainer for
                      AppState lookups, shared across the whole app.
 
+    Editor-specific reactive state (graph-editor selection, clipboard,
+    etc.) does not live here — it lives on a library-owned
+    ``SessionState``. See ``haybale_studio.state.edit_state.EditState``;
+    access via ``ctx.data[EditState].active_node.value``.
+
     See docs/documentation/architecture/session_state.md.
     """
 
@@ -62,16 +62,6 @@ class SessionContext:
     data: SessionDataNamespace
 
     # --- Reactive fields ---
-    clipboard: Reactive[Optional["ClipboardData"]] = reactive_field(None)
-
-    active_graph: Reactive[Optional["BaseGraph"]] = reactive_field(None)
-    active_node: Reactive[Optional["NodeWrapper"]] = reactive_field(None)
-    active_edge: Reactive[Optional["EdgeWrapper"]] = reactive_field(None)
-    active_port: Reactive[Optional["DataPort"]] = reactive_field(None)
-    selected_nodes: Reactive[Set[str]] = reactive_field(set())
-    selected_edges: Reactive[Set[str]] = reactive_field(set())
-    active_graph_path: Reactive[Optional[Any]] = reactive_field(None)
-
     active_file: Reactive[Optional[Any]] = reactive_field(None)
     active_library: Reactive[Optional["BaseLibrary"]] = reactive_field(None)
     active_component: Reactive[Optional[str]] = reactive_field(None)

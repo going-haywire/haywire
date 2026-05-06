@@ -5,10 +5,40 @@ from __future__ import annotations
 from pathlib import Path
 from types import SimpleNamespace
 from typing import Optional
+from unittest.mock import MagicMock
 
 from haywire.ui.context_signals import ActiveGraphMoved
 from haywire.ui.reactive import Reactive
 from haybale_studio.editors.graph_editor import GraphEditor
+
+
+def _make_data_with_edit_state(initial_active_graph=None, initial_active_graph_path=None):
+    """Build a fake ``ctx.data`` whose ``[EditState]`` lookup yields a stub.
+
+    GraphEditor.on_focus reads and writes via
+    ``ctx.data[EditState].active_graph``. Returns a MagicMock whose
+    ``__getitem__`` (regardless of the EditState class identity passed —
+    important after library hot-reload swaps in a new class object)
+    returns a SimpleNamespace whose ``.active_graph`` and
+    ``.active_graph_path`` are real Reactive[T] instances. Tests read
+    assertions against this stub.
+    """
+    edit_stub = SimpleNamespace(
+        active_graph=Reactive(initial_active_graph),
+        active_graph_path=Reactive(initial_active_graph_path),
+        active_node=Reactive(None),
+        active_edge=Reactive(None),
+        active_port=Reactive(None),
+        selected_nodes=Reactive(set()),
+        selected_edges=Reactive(set()),
+        clipboard=Reactive(None),
+    )
+    data = MagicMock()
+    data.__getitem__.return_value = edit_stub
+    # Expose the stub directly so callers can use it without importing
+    # EditState (and re-resolving across reloads).
+    data.edit_stub = edit_stub
+    return data
 
 
 class _FakeEntry:
@@ -47,11 +77,18 @@ def _make_context(entry: Optional[_FakeEntry], existing_active_graph=None):
         haystack.register(entry)
     app = SimpleNamespace(haystack=haystack)
     session = _FakeSession()
+    # GraphEditor.on_focus reads/writes active_graph via
+    # ctx.data[EditState]. Build a fake `data` whose `[EditState]` lookup
+    # yields a stub with real Reactive fields.
+    data = _make_data_with_edit_state(
+        initial_active_graph=existing_active_graph,
+    )
     ctx = SimpleNamespace(
         app=app,
         active_graph=Reactive(existing_active_graph),
         active_graph_path=Reactive(None),
         session=session,
+        data=data,
     )
     session.context = ctx
     return ctx
@@ -82,8 +119,9 @@ def test_on_focus_resolves_entry_and_sets_active_graph() -> None:
 
     ed.on_focus(ctx)
 
-    assert ctx.active_graph.value is g
-    assert ctx.active_graph_path.value == Path("/tmp/a.haywire")
+    edit = ctx.data.edit_stub
+    assert edit.active_graph.value is g
+    assert edit.active_graph_path.value == Path("/tmp/a.haywire")
 
 
 def test_on_focus_fires_active_graph_moved() -> None:
@@ -108,7 +146,8 @@ def test_on_focus_short_circuits_when_graph_already_active() -> None:
     entry = _FakeEntry(entry_id="/tmp/a.haywire", graph=g, path=Path("/tmp/a.haywire"))
     ctx = _make_context(entry, existing_active_graph=g)
     # Also pre-set active_graph_path to match — the short-circuit requires both.
-    ctx.active_graph_path.value = Path("/tmp/a.haywire")
+    # Reader sources from EditState (post-C3).
+    ctx.data.edit_stub.active_graph_path.value = Path("/tmp/a.haywire")
     ed = _make_editor_with_payload("/tmp/a.haywire")
 
     ed.on_focus(ctx)
@@ -125,7 +164,7 @@ def test_on_focus_missing_entry_force_closes_via_wrapper() -> None:
     # Editor closes itself via wrapper.force_close — no event emitted.
     assert ctx.session.signals == []
     assert ed.wrapper.force_close_calls == [True]
-    assert ctx.active_graph.value is None
+    assert ctx.data.edit_stub.active_graph.value is None
 
 
 def test_on_focus_no_binding_is_noop() -> None:
@@ -136,7 +175,7 @@ def test_on_focus_no_binding_is_noop() -> None:
     ed.on_focus(ctx)
 
     assert ctx.session.signals == []
-    assert ctx.active_graph.value is None
+    assert ctx.data.edit_stub.active_graph.value is None
 
 
 def test_on_focus_no_app_is_noop() -> None:
@@ -146,6 +185,7 @@ def test_on_focus_no_app_is_noop() -> None:
         active_graph=Reactive(None),
         active_graph_path=Reactive(None),
         session=session,
+        data=_make_data_with_edit_state(),
     )
     session.context = ctx
     ed = _make_editor_with_payload("/tmp/a.haywire")

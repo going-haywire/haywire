@@ -30,6 +30,7 @@ from ..event_definitions import (
 from ..event_handlers import handles_event
 from haywire.ui.panel.layout import PanelLayout
 from haywire.ui.components.popup import Popup
+from haybale_studio.state.edit_state import EditState
 
 if TYPE_CHECKING:
     from haybale_studio.editors.graph_canvas.handlers.visual_layer import VisualLayerHandlers
@@ -194,8 +195,9 @@ class SessionContextMenuProvider(IContextMenuProvider):
         self._open_popup = popup
 
         def _on_close():
-            self._context.active_port.value = None
-            self._context.active_edge.value = None
+            edit_state = self._context.data[EditState]
+            edit_state.active_port.value = None
+            edit_state.active_edge.value = None
             # Resume drag if pending_connection wasn't consumed
             pending = self._open_ctx.pending_connection if self._open_ctx else None
             self._open_ctx = None
@@ -234,11 +236,11 @@ class SessionContextMenuProvider(IContextMenuProvider):
         from haybale_studio.focuses import NodeFocus  # type: ignore[import-untyped]
         from haybale_studio.editors.graph_canvas.handlers.context_menu_actions import NodeContextActions
 
-        graph = self._context.active_graph.value
+        graph = self._context.data[EditState].active_graph.value
         if graph is not None:
             wrapper = graph.get_node_wrapper(node_id)
             if wrapper is not None:
-                self._context.active_node.value = wrapper
+                self._context.data[EditState].active_node.value = wrapper
 
         self._open_ctx = _OpenMenuContext(click_pos=pos)
         self._open_menu(NodeContextActions, NodeFocus, pos)
@@ -247,11 +249,11 @@ class SessionContextMenuProvider(IContextMenuProvider):
         from haybale_studio.focuses import EdgeFocus  # type: ignore[import-untyped]
         from haybale_studio.editors.graph_canvas.handlers.context_menu_actions import EdgeContextActions
 
-        graph = self._context.active_graph.value
+        graph = self._context.data[EditState].active_graph.value
         if graph is not None:
             wrapper = graph.get_edge_wrapper(edge_id)
             if wrapper is not None:
-                self._context.active_edge.value = wrapper
+                self._context.data[EditState].active_edge.value = wrapper
 
         self._open_ctx = _OpenMenuContext(
             click_pos=pos,
@@ -265,12 +267,14 @@ class SessionContextMenuProvider(IContextMenuProvider):
         from haybale_studio.editors.graph_canvas.handlers.context_menu_actions import PortContextActions
         from haywire.ui.panel.focus import focus_by_id
 
-        graph = self._context.active_graph.value
+        graph = self._context.data[EditState].active_graph.value
         if graph is not None:
             wrapper = graph.get_node_wrapper(node_id)
             if wrapper is not None:
-                self._context.active_node.value = wrapper
-                self._context.active_port.value = wrapper.node.ports.get(port_id)
+                port = wrapper.node.ports.get(port_id)
+                edit_state = self._context.data[EditState]
+                edit_state.active_node.value = wrapper
+                edit_state.active_port.value = port
 
         self._open_ctx = _OpenMenuContext(click_pos=pos)
         # Resolve the focus from the DOM-supplied id; fall back to PortFocus.
@@ -294,11 +298,11 @@ class SessionContextMenuProvider(IContextMenuProvider):
         from haybale_studio.editors.graph_canvas.handlers.context_menu_actions import NodeContextActions
         from haywire.ui.panel.focus import focus_by_id
 
-        graph = self._context.active_graph.value
+        graph = self._context.data[EditState].active_graph.value
         if graph is not None:
             wrapper = graph.get_node_wrapper(node_id)
             if wrapper is not None:
-                self._context.active_node.value = wrapper
+                self._context.data[EditState].active_node.value = wrapper
 
         self._open_ctx = _OpenMenuContext(click_pos=pos)
         focus = focus_by_id(scope) or NodeFocus
@@ -391,14 +395,14 @@ class SessionContextMenuProvider(IContextMenuProvider):
     def reconnect_active_edge(self) -> None:
         """Emit SyncEdgeReconnectEvent for the active edge.
 
-        Reads `ctx.active_edge.value` (the edge to reconnect) and
-        `self._open_ctx.edge_reconnect_end` (which end was right-clicked)
+        Reads `ctx.data[EditState].active_edge.value` (the edge to reconnect)
+        and `self._open_ctx.edge_reconnect_end` (which end was right-clicked)
         to compute the anchor pin. Panels never pass these as arguments —
         the provider holds them as gesture state.
         """
         from haybale_studio.editors.graph_canvas.event_definitions import SyncEdgeReconnectEvent
 
-        wrapper = self._context.active_edge.value
+        wrapper = self._context.data[EditState].active_edge.value
         if wrapper is None or self._open_ctx is None:
             return
 
@@ -423,13 +427,14 @@ class SessionContextMenuProvider(IContextMenuProvider):
     # SelectionContextActions
 
     def copy_selection(self) -> None:
-        """Emit UserCopySelectedEvent for the current ctx.selected_nodes/edges."""
+        """Emit UserCopySelectedEvent for the current ctx.data[EditState] selection."""
         from haybale_studio.editors.graph_canvas.event_definitions import UserCopySelectedEvent
 
+        edit = self._context.data[EditState]
         self._emit(
             UserCopySelectedEvent(
-                selectedNodes=list(self._context.selected_nodes.value),
-                selectedEdges=list(self._context.selected_edges.value),
+                selectedNodes=list(edit.selected_nodes.value),
+                selectedEdges=list(edit.selected_edges.value),
             )
         )
 

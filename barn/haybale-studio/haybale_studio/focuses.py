@@ -1,12 +1,13 @@
 # barn/haybale-core/haybale_core/focuses.py
 """Selection-state Focus classes — live with their semantic owner.
 
-Each focus reads from a SessionContext reactive field to determine
+Each focus reads from EditState (per-session library state) to determine
 availability.
 """
 
 from __future__ import annotations
 
+from haybale_studio.state.edit_state import EditState
 from haywire.ui.context import SessionContext
 from haywire.ui.panel.focus import Focus
 
@@ -52,7 +53,7 @@ class SettingsFocus(Focus):
 
     @classmethod
     def available(cls, ctx: SessionContext) -> bool:
-        return ctx.active_node.value is not None
+        return ctx.data[EditState].active_node.value is not None
 
 
 class GraphFocus(Focus):
@@ -63,7 +64,7 @@ class GraphFocus(Focus):
 
     @classmethod
     def available(cls, ctx: SessionContext) -> bool:
-        return ctx.active_graph.value is not None
+        return ctx.data[EditState].active_graph.value is not None
 
 
 class NodeFocus(Focus):
@@ -74,7 +75,7 @@ class NodeFocus(Focus):
 
     @classmethod
     def available(cls, ctx: SessionContext) -> bool:
-        return ctx.active_node.value is not None
+        return ctx.data[EditState].active_node.value is not None
 
 
 class EdgeFocus(Focus):
@@ -85,7 +86,7 @@ class EdgeFocus(Focus):
 
     @classmethod
     def available(cls, ctx: SessionContext) -> bool:
-        return ctx.active_edge.value is not None
+        return ctx.data[EditState].active_edge.value is not None
 
 
 class PortFocus(Focus):
@@ -96,7 +97,7 @@ class PortFocus(Focus):
 
     @classmethod
     def available(cls, ctx: SessionContext) -> bool:
-        return ctx.active_port.value is not None
+        return ctx.data[EditState].active_port.value is not None
 
 
 class SelectionFocus(Focus):
@@ -107,4 +108,5 @@ class SelectionFocus(Focus):
 
     @classmethod
     def available(cls, ctx: SessionContext) -> bool:
-        return bool(ctx.selected_nodes.value) or bool(ctx.selected_edges.value)
+        edit = ctx.data[EditState]
+        return bool(edit.selected_nodes.value) or bool(edit.selected_edges.value)

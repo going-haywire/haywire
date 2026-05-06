@@ -694,51 +694,44 @@ After v1.1, `ctx.data` exists on `SessionContext` but is empty until a
 library registers a `SessionState`. Libraries can immediately start
 declaring SessionState classes.
 
-### 8.2 v1.2 (separate spec/plan) — framework migration
+### 8.2 v1.2 — graph-editor migration (LANDED)
 
-v1.2 introduces the framework's own built-in SessionState — `EditState`
-— and migrates the graph-editor reactive cluster off of direct
-`SessionContext` fields.
+v1.2 landed in commits ``ebe5275..C5`` on branch ``v1.2-edit-state``.
+``EditState`` lives in haybale-studio
+(``barn/haybale-studio/haybale_studio/state/edit_state.py``) — *not* as
+a framework built-in — and the 8 graph-editor reactive fields moved off
+``SessionContext``. Read paths look like
+``ctx.data[EditState].active_node.value``; writes go to the same.
 
-Out of scope for this spec; covered in a follow-up plan after v1.1
-lands. The migration is purely mechanical (rewrite ~50 call sites of
-`ctx.active_node.value` to `ctx.data[EditState].active_node.value`)
-and benefits from being reviewable as its own PR.
+The fields that moved:
 
-The fields targeted for migration in v1.2:
-
-```
+```text
 active_graph
+active_graph_path
 active_node
 active_edge
 active_port
 selected_nodes
 selected_edges
-active_graph_path
+clipboard
 ```
 
-Other reactive fields on `SessionContext` (`active_library`,
-`active_component`, `active_file`, `active_workbench_theme_key`,
-`active_node_theme_key`, `clipboard`) stay as direct fields in v1.2 —
-they're not part of the graph-editor cluster.
+Other reactive fields on ``SessionContext`` (``active_library``,
+``active_component``, ``active_file``, ``active_workbench_theme_key``,
+``active_node_theme_key``) stay as direct fields — they're
+session-level, not editor-level.
+
+The migration was purely mechanical (no behavior change). See
+``docs/prd/v1.2-edit-state-migration.md`` for the commit-by-commit
+plan.
 
 ---
 
-## 9. Open questions for v1.2
+## 9. Open questions
 
-1. **Call-site refactor scope.** ~50 call sites read selection state
-   directly (`ctx.active_node.value`). The v1.2 plan needs a clear list
-   and a mechanical refactor strategy (sed-like search/replace, or
-   AST-based codemod, or task-by-task).
-2. **Should `EditState` be reactive-aware before Phase 2 lands?** v1.2
-   migration would expose more `Reactive[T]` reads in non-panel code
-   paths (canvas handlers, etc.). The Phase 1 `.value` shape works
-   today, but Phase 2's auto-tracking lands on top — the migration
-   should anticipate this.
-3. **Optional extension: a per-graph or per-editor-instance scope.**
-   Q13 settled as "strict; not endorsed." If demand surfaces during
-   v1.2 work, designing a third scope (`GraphState` or similar) is a
-   v1.3+ conversation, not a v1.2 one.
+1. **Optional extension: a per-graph or per-editor-instance scope.**
+   Q13 settled as "strict; not endorsed." If demand surfaces, designing
+   a third scope (``GraphState`` or similar) is a v1.3+ conversation.
 
 ---
 

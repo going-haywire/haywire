@@ -10,6 +10,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from haybale_studio.focuses import NodeFocus
+from haybale_studio.state.edit_state import EditState
 from haywire.ui import elements as hui
 from haybale_studio.editors.graph_canvas.handlers.context_menu_actions import NodeContextActions
 from haywire.ui.panel import Panel
@@ -30,7 +31,7 @@ if TYPE_CHECKING:
 class DeleteNodePanel(Panel):
     @classmethod
     def poll(cls, ctx: "SessionContext") -> bool:
-        return ctx.active_node.value is not None
+        return ctx.data[EditState].active_node.value is not None
 
     def draw(
         self,
@@ -38,7 +39,7 @@ class DeleteNodePanel(Panel):
         layout: PanelLayout,
         actions: NodeContextActions,
     ) -> None:
-        node = ctx.active_node.value
+        node = ctx.data[EditState].active_node.value
         if node is None:
             return
         node_id = node.node_id
@@ -59,7 +60,7 @@ class DeleteNodePanel(Panel):
 class CopyNodePanel(Panel):
     @classmethod
     def poll(cls, ctx: "SessionContext") -> bool:
-        return ctx.active_node.value is not None
+        return ctx.data[EditState].active_node.value is not None
 
     def draw(
         self,
@@ -67,7 +68,7 @@ class CopyNodePanel(Panel):
         layout: PanelLayout,
         actions: NodeContextActions,
     ) -> None:
-        node = ctx.active_node.value
+        node = ctx.data[EditState].active_node.value
         if node is None:
             return
         node_id = node.node_id
@@ -88,7 +89,7 @@ class CopyNodePanel(Panel):
 class RedrawNodePanel(Panel):
     @classmethod
     def poll(cls, ctx: "SessionContext") -> bool:
-        return ctx.active_node.value is not None
+        return ctx.data[EditState].active_node.value is not None
 
     def draw(
         self,
@@ -96,7 +97,7 @@ class RedrawNodePanel(Panel):
         layout: PanelLayout,
         actions: NodeContextActions,
     ) -> None:
-        node = ctx.active_node.value
+        node = ctx.data[EditState].active_node.value
         if node is None:
             return
         node_id = node.node_id
@@ -117,7 +118,7 @@ class RedrawNodePanel(Panel):
 class RevalidateNodePanel(Panel):
     @classmethod
     def poll(cls, ctx: "SessionContext") -> bool:
-        return ctx.active_node.value is not None
+        return ctx.data[EditState].active_node.value is not None
 
     def draw(
         self,
@@ -125,7 +126,7 @@ class RevalidateNodePanel(Panel):
         layout: PanelLayout,
         actions: NodeContextActions,
     ) -> None:
-        node = ctx.active_node.value
+        node = ctx.data[EditState].active_node.value
         if node is None:
             return
         node_id = node.node_id
@@ -146,7 +147,7 @@ class RevalidateNodePanel(Panel):
 class ResetNodePanel(Panel):
     @classmethod
     def poll(cls, ctx: "SessionContext") -> bool:
-        return ctx.active_node.value is not None
+        return ctx.data[EditState].active_node.value is not None
 
     def draw(
         self,
@@ -154,7 +155,7 @@ class ResetNodePanel(Panel):
         layout: PanelLayout,
         actions: NodeContextActions,
     ) -> None:
-        node = ctx.active_node.value
+        node = ctx.data[EditState].active_node.value
         if node is None:
             return
         node_id = node.node_id

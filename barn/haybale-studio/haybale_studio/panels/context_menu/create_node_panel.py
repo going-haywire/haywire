@@ -10,6 +10,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from haybale_studio.focuses import CanvasFocus
+from haybale_studio.state.edit_state import EditState
 from haywire.core.node.info import NodeInfo
 from haywire.ui import elements as hui
 from haywire.ui.context_signals import ActiveComponentMoved, Reveal
@@ -84,7 +85,7 @@ class CanvasPasteSelectionPanel(Panel):
 
     @classmethod
     def poll(cls, ctx: "SessionContext") -> bool:
-        return ctx.clipboard.value is not None
+        return ctx.data[EditState].clipboard.value is not None
 
     def draw(
         self,

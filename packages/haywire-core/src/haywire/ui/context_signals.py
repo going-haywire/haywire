@@ -126,7 +126,7 @@ class ContextSignal:
 
 @dataclass(frozen=True)
 class ActiveGraphMoved(ContextSignal):
-    """``context.active_graph`` / ``active_graph_path`` moved."""
+    """The active graph (a library-owned SessionState field) moved."""
 
 
 @dataclass(frozen=True)
@@ -154,10 +154,11 @@ class SelectionMoved(ContextSignal):
     """
     Node/edge selection moved on the canvas.
 
-    Carries no payload: subscribers read ``context.selected_nodes`` /
-    ``active_node`` for ``Subject.SELF``, or
-    ``session_manager.get(peer_id).context.selected_nodes`` for peer
-    subjects (pointer-by-default rule, §6.3).
+    Carries no payload: subscribers read the selection from the library's
+    SessionState (e.g. ``ctx.data[MyLibState].selected_nodes`` /
+    ``active_node`` for ``Subject.SELF``), or the analogous fields on
+    ``session_manager.get(peer_id).context`` for peer subjects
+    (pointer-by-default rule, §6.3).
     """
 
 

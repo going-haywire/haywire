@@ -2,8 +2,9 @@
 NodeSourceEditor — source code of the currently selected graph node.
 
 Right-slot, REQUIRED editor that mirrors a slice of session state
-(``context.active_node``). Behaves as a viewer when the owning library
-is not EDITABLE; opens up to a full save-capable editor when it is.
+(``context.data[EditState].active_node``). Behaves as a viewer when the
+owning library is not EDITABLE; opens up to a full save-capable editor
+when it is.
 
 Editing model:
 
@@ -32,6 +33,8 @@ from haywire.ui.context_signals import SelectionMoved, ThemeMoved
 from haywire.ui.editor.base import BaseEditor
 from haywire.ui.editor.decorator import editor
 
+from haybale_studio.state.edit_state import EditState
+
 if TYPE_CHECKING:
     from haywire.core.registry.lifecycle_event import LifeCycleEvent
     from haywire.ui.context import SessionContext
@@ -49,7 +52,7 @@ logger = logging.getLogger(__name__)
     description="Source code of the currently selected graph node.",
 )
 class NodeSourceEditor(BaseEditor):
-    """Source viewer/editor that follows ``context.active_node``."""
+    """Source viewer/editor that follows ``context.data[EditState].active_node``."""
 
     _RELEVANT_SIGNALS = (SelectionMoved, ThemeMoved)
 
@@ -117,7 +120,7 @@ class NodeSourceEditor(BaseEditor):
     # ------------------------------------------------------------------
 
     def _resolve_target(self, context: "SessionContext") -> None:
-        node = context.active_node.value
+        node = context.data[EditState].active_node.value
         if node is None:
             self._cls = None
             self._path = None
@@ -195,7 +198,7 @@ class NodeSourceEditor(BaseEditor):
 
     def _render(self, context: "SessionContext") -> None:
         # Empty / error states short-circuit the editor chrome.
-        if context.active_node.value is None:
+        if context.data[EditState].active_node.value is None:
             hui.empty_state(
                 "Select a node to view its source",
                 icon=hui.icon.node_info,

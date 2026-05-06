@@ -6,6 +6,7 @@ fixtures don't appear under production focus tabs.
 
 from __future__ import annotations
 
+from haybale_studio.state.edit_state import EditState
 from haywire.ui.context import SessionContext
 from haywire.ui.panel.focus import Focus
 
@@ -29,7 +30,7 @@ class TestNodeFocus(Focus):
 
     @classmethod
     def available(cls, ctx: SessionContext) -> bool:
-        return ctx.active_node.value is not None
+        return ctx.data[EditState].active_node.value is not None
 
 
 class TestEdgeFocus(Focus):
@@ -40,7 +41,7 @@ class TestEdgeFocus(Focus):
 
     @classmethod
     def available(cls, ctx: SessionContext) -> bool:
-        return ctx.active_edge.value is not None
+        return ctx.data[EditState].active_edge.value is not None
 
 
 class TestSelectionFocus(Focus):
@@ -51,4 +52,5 @@ class TestSelectionFocus(Focus):
 
     @classmethod
     def available(cls, ctx: SessionContext) -> bool:
-        return bool(ctx.selected_nodes.value) or bool(ctx.selected_edges.value)
+        edit = ctx.data[EditState]
+        return bool(edit.selected_nodes.value) or bool(edit.selected_edges.value)

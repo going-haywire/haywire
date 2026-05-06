@@ -59,13 +59,27 @@ _FAKE_LIBRARY_IDENTITY = LibraryIdentity(
 class FakeApp:
     workspace_root = "/tmp"
     library_service = None
-    library_state_container = LibraryStateContainer()
+
+    def __init__(self) -> None:
+        # Per-instance container so the EditState registration in
+        # make_context() doesn't bleed across tests.
+        self.library_state_container = LibraryStateContainer()
 
 
-def make_context(session=None) -> SessionContext:
-    ctx = SessionContext(session_id="test-session", app=FakeApp())
+def make_context(register_edit_state, session=None) -> tuple[SessionContext, type]:
+    """Build a SessionContext with EditState registered for one session.
+
+    Returns ``(ctx, EditState)`` so callers can resolve ``ctx.data[EditState]``
+    against the same class reference the container saw (survives library
+    hot-reloads).
+    """
+    app = FakeApp()
+    sid = "test-session"
+    EditStateCls = register_edit_state(app.library_state_container, sid)
+
+    ctx = SessionContext(session_id=sid, app=app)
     ctx.session = session or MagicMock()
-    return ctx
+    return ctx, EditStateCls
 
 
 def make_provider(ctx: SessionContext, registry: PanelRegistry, on_emit_event=None):
@@ -96,8 +110,8 @@ def make_provider(ctx: SessionContext, registry: PanelRegistry, on_emit_event=No
 # ---------------------------------------------------------------------------
 
 
-def test_panels_that_return_false_from_poll_are_not_drawn():
-    ctx = make_context()
+def test_panels_that_return_false_from_poll_are_not_drawn(register_edit_state):
+    ctx, _ = make_context(register_edit_state)
     registry = PanelRegistry()
     actions = _current_actions()
     focuses = _current_focuses()
@@ -126,8 +140,8 @@ def test_panels_that_return_false_from_poll_are_not_drawn():
     assert drawn == []
 
 
-def test_panels_that_return_true_from_poll_are_drawn():
-    ctx = make_context()
+def test_panels_that_return_true_from_poll_are_drawn(register_edit_state):
+    ctx, _ = make_context(register_edit_state)
     registry = PanelRegistry()
     actions = _current_actions()
     focuses = _current_focuses()
@@ -156,8 +170,8 @@ def test_panels_that_return_true_from_poll_are_drawn():
     assert "AlwaysTruePanel" in drawn
 
 
-def test_panels_for_wrong_focus_are_not_drawn():
-    ctx = make_context()
+def test_panels_for_wrong_focus_are_not_drawn(register_edit_state):
+    ctx, _ = make_context(register_edit_state)
     registry = PanelRegistry()
     actions = _current_actions()
     focuses = _current_focuses()
@@ -192,11 +206,12 @@ def test_panels_for_wrong_focus_are_not_drawn():
 # ---------------------------------------------------------------------------
 
 
-def test_close_callback_clears_active_port_and_edge():
+def test_close_callback_clears_active_port_and_edge(register_edit_state):
     session = MagicMock()
-    ctx = make_context(session=session)
-    ctx.active_port.value = MagicMock()
-    ctx.active_edge.value = MagicMock()
+    ctx, EditStateCls = make_context(register_edit_state, session=session)
+    edit = ctx.data[EditStateCls]
+    edit.active_port.value = MagicMock()
+    edit.active_edge.value = MagicMock()
     registry = PanelRegistry()
     provider, popup, _ = make_provider(ctx, registry)
 
@@ -206,5 +221,5 @@ def test_close_callback_clears_active_port_and_edge():
     close_cb = popup.on_close.call_args[0][0]
     close_cb()
 
-    assert ctx.active_port.value is None
-    assert ctx.active_edge.value is None
+    assert edit.active_port.value is None
+    assert edit.active_edge.value is None

@@ -66,25 +66,60 @@ def test_selection_focus_has_id():
     assert focus_by_id("selection") is SelectionFocus
 
 
-def test_selection_focus_available_when_nodes_selected():
+def _make_ctx_with_edit_stub():
+    """Build a stand-in SessionContext-shaped object whose ``data[EditState]``
+    yields a stub with real Reactive fields.
+
+    Bypasses the LibraryStateContainer class-identity check (the test's
+    ``EditState`` reference may be a different class object than the one
+    ``SelectionFocus.available`` resolves to after library hot-reload).
+    """
+    from types import SimpleNamespace
     from unittest.mock import MagicMock
 
-    from haybale_studio.focuses import SelectionFocus
-    from haywire.ui.context import SessionContext
+    from haywire.ui.reactive import Reactive
 
-    ctx = SessionContext(session_id="t", app=MagicMock())
+    edit_stub = SimpleNamespace(
+        active_graph=Reactive(None),
+        active_graph_path=Reactive(None),
+        active_node=Reactive(None),
+        active_edge=Reactive(None),
+        active_port=Reactive(None),
+        selected_nodes=Reactive(set()),
+        selected_edges=Reactive(set()),
+        clipboard=Reactive(None),
+    )
+    data = MagicMock()
+    data.__getitem__.return_value = edit_stub
+
+    return SimpleNamespace(
+        active_graph=Reactive(None),
+        active_graph_path=Reactive(None),
+        active_node=Reactive(None),
+        active_edge=Reactive(None),
+        active_port=Reactive(None),
+        selected_nodes=Reactive(set()),
+        selected_edges=Reactive(set()),
+        clipboard=Reactive(None),
+        data=data,
+        app=MagicMock(),
+        session_id="t",
+    ), edit_stub
+
+
+def test_selection_focus_available_when_nodes_selected():
+    from haybale_studio.focuses import SelectionFocus
+
+    ctx, edit_stub = _make_ctx_with_edit_stub()
     assert SelectionFocus.available(ctx) is False  # nothing selected
 
-    ctx.selected_nodes.value = {"node-1"}
+    edit_stub.selected_nodes.value = {"node-1"}
     assert SelectionFocus.available(ctx) is True
 
 
 def test_selection_focus_available_when_edges_selected():
-    from unittest.mock import MagicMock
-
     from haybale_studio.focuses import SelectionFocus
-    from haywire.ui.context import SessionContext
 
-    ctx = SessionContext(session_id="t", app=MagicMock())
-    ctx.selected_edges.value = {"edge-1"}
+    ctx, edit_stub = _make_ctx_with_edit_stub()
+    edit_stub.selected_edges.value = {"edge-1"}
     assert SelectionFocus.available(ctx) is True

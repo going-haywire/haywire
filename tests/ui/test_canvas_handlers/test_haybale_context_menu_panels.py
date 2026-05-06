@@ -44,17 +44,31 @@ from haybale_testing.panels.test_selection_panels import (
 class FakeApp:
     workspace_root = "/tmp"
     library_service = None
-    library_state_container = LibraryStateContainer()
+
+    def __init__(self) -> None:
+        self.library_state_container = LibraryStateContainer()
 
 
-def make_context(active_node=None, active_edge=None, clipboard=None) -> SessionContext:
-    ctx = SessionContext(session_id="test", app=FakeApp())
+def make_context(
+    register_edit_state, active_node=None, active_edge=None, clipboard=None
+) -> tuple[SessionContext, type]:
+    """Build a SessionContext with EditState registered and seeded.
+
+    Returns ``(ctx, EditState)`` so callers can resolve
+    ``ctx.data[EditState]`` against the same class reference the
+    container saw (survives library hot-reloads).
+    """
+    app = FakeApp()
+    sid = "test"
+    EditStateCls = register_edit_state(app.library_state_container, sid)
+    ctx = SessionContext(session_id=sid, app=app)
     ctx.session = MagicMock()
-    ctx.active_node.value = active_node
-    ctx.active_edge.value = active_edge
+    edit = ctx.data[EditStateCls]
+    edit.active_node.value = active_node
+    edit.active_edge.value = active_edge
     if clipboard is not None:
-        ctx.clipboard.value = clipboard
-    return ctx
+        edit.clipboard.value = clipboard
+    return ctx, EditStateCls
 
 
 # ---------------------------------------------------------------------------
@@ -119,8 +133,8 @@ def test_node_action_panels_are_panel_subclasses(panel_cls):
         ResetNodePanel,
     ],
 )
-def test_node_action_panel_poll_true_when_node_active(panel_cls):
-    ctx = make_context(active_node=MagicMock())
+def test_node_action_panel_poll_true_when_node_active(panel_cls, register_edit_state):
+    ctx, _ = make_context(register_edit_state, active_node=MagicMock())
     assert panel_cls.poll(ctx) is True
 
 
@@ -134,8 +148,8 @@ def test_node_action_panel_poll_true_when_node_active(panel_cls):
         ResetNodePanel,
     ],
 )
-def test_node_action_panel_poll_false_when_no_node(panel_cls):
-    ctx = make_context(active_node=None)
+def test_node_action_panel_poll_false_when_no_node(panel_cls, register_edit_state):
+    ctx, _ = make_context(register_edit_state, active_node=None)
     assert panel_cls.poll(ctx) is False
 
 
@@ -160,14 +174,14 @@ def test_edge_action_panel_focus_is_test_edge_focus(panel_cls):
 
 
 @pytest.mark.parametrize("panel_cls", [DeleteEdgePanel, InspectEdgePanel])
-def test_edge_action_panel_poll_true_when_edge_active(panel_cls):
-    ctx = make_context(active_edge=MagicMock())
+def test_edge_action_panel_poll_true_when_edge_active(panel_cls, register_edit_state):
+    ctx, _ = make_context(register_edit_state, active_edge=MagicMock())
     assert panel_cls.poll(ctx) is True
 
 
 @pytest.mark.parametrize("panel_cls", [DeleteEdgePanel, InspectEdgePanel])
-def test_edge_action_panel_poll_false_when_no_edge(panel_cls):
-    ctx = make_context(active_edge=None)
+def test_edge_action_panel_poll_false_when_no_edge(panel_cls, register_edit_state):
+    ctx, _ = make_context(register_edit_state, active_edge=None)
     assert panel_cls.poll(ctx) is False
 
 
@@ -196,18 +210,20 @@ def _make_edge_wrapper(error=None, warnings=None, has_edge=True):
     return wrapper
 
 
-def test_edge_errors_panel_poll_true_when_state_has_error():
-    ctx = make_context(active_edge=_make_edge_wrapper(error=Exception("type mismatch")))
+def test_edge_errors_panel_poll_true_when_state_has_error(register_edit_state):
+    ctx, _ = make_context(
+        register_edit_state, active_edge=_make_edge_wrapper(error=Exception("type mismatch"))
+    )
     assert EdgeErrorsPanel.poll(ctx) is True
 
 
-def test_edge_errors_panel_poll_false_when_no_error():
-    ctx = make_context(active_edge=_make_edge_wrapper(error=None))
+def test_edge_errors_panel_poll_false_when_no_error(register_edit_state):
+    ctx, _ = make_context(register_edit_state, active_edge=_make_edge_wrapper(error=None))
     assert EdgeErrorsPanel.poll(ctx) is False
 
 
-def test_edge_errors_panel_poll_false_when_no_edge():
-    ctx = make_context(active_edge=None)
+def test_edge_errors_panel_poll_false_when_no_edge(register_edit_state):
+    ctx, _ = make_context(register_edit_state, active_edge=None)
     assert EdgeErrorsPanel.poll(ctx) is False
 
 
@@ -224,18 +240,18 @@ def test_edge_warnings_panel_focus_is_test_edge_focus():
     assert EdgeWarningsPanel.class_identity.focus is TestEdgeFocus
 
 
-def test_edge_warnings_panel_poll_true_when_warnings_present():
-    ctx = make_context(active_edge=_make_edge_wrapper(warnings=["slow adapter"]))
+def test_edge_warnings_panel_poll_true_when_warnings_present(register_edit_state):
+    ctx, _ = make_context(register_edit_state, active_edge=_make_edge_wrapper(warnings=["slow adapter"]))
     assert EdgeWarningsPanel.poll(ctx) is True
 
 
-def test_edge_warnings_panel_poll_false_when_no_warnings():
-    ctx = make_context(active_edge=_make_edge_wrapper(warnings=[]))
+def test_edge_warnings_panel_poll_false_when_no_warnings(register_edit_state):
+    ctx, _ = make_context(register_edit_state, active_edge=_make_edge_wrapper(warnings=[]))
     assert EdgeWarningsPanel.poll(ctx) is False
 
 
-def test_edge_warnings_panel_poll_false_when_no_edge():
-    ctx = make_context(active_edge=None)
+def test_edge_warnings_panel_poll_false_when_no_edge(register_edit_state):
+    ctx, _ = make_context(register_edit_state, active_edge=None)
     assert EdgeWarningsPanel.poll(ctx) is False
 
 
@@ -252,18 +268,18 @@ def test_edge_connection_path_panel_focus_is_test_edge_focus():
     assert EdgeConnectionPathPanel.class_identity.focus is TestEdgeFocus
 
 
-def test_edge_connection_path_panel_poll_true_when_edge_with_data():
-    ctx = make_context(active_edge=_make_edge_wrapper())
+def test_edge_connection_path_panel_poll_true_when_edge_with_data(register_edit_state):
+    ctx, _ = make_context(register_edit_state, active_edge=_make_edge_wrapper())
     assert EdgeConnectionPathPanel.poll(ctx) is True
 
 
-def test_edge_connection_path_panel_poll_false_when_no_edge():
-    ctx = make_context(active_edge=None)
+def test_edge_connection_path_panel_poll_false_when_no_edge(register_edit_state):
+    ctx, _ = make_context(register_edit_state, active_edge=None)
     assert EdgeConnectionPathPanel.poll(ctx) is False
 
 
-def test_edge_connection_path_panel_poll_false_when_edge_has_no_data():
-    ctx = make_context(active_edge=_make_edge_wrapper(has_edge=False))
+def test_edge_connection_path_panel_poll_false_when_edge_has_no_data(register_edit_state):
+    ctx, _ = make_context(register_edit_state, active_edge=_make_edge_wrapper(has_edge=False))
     assert EdgeConnectionPathPanel.poll(ctx) is False
 
 
@@ -287,20 +303,21 @@ def test_selection_action_panel_focus_is_test_selection_focus(panel_cls):
 # ---------------------------------------------------------------------------
 
 
-def test_copy_selection_poll_true_when_nodes_selected():
-    ctx = make_context()
-    ctx.selected_nodes.value = {"n1"}
+def test_copy_selection_poll_true_when_nodes_selected(register_edit_state):
+    ctx, EditStateCls = make_context(register_edit_state)
+    ctx.data[EditStateCls].selected_nodes.value = {"n1"}
     assert CopySelectionPanel.poll(ctx) is True
 
 
-def test_copy_selection_poll_false_when_nothing_selected():
-    ctx = make_context()
-    ctx.selected_nodes.value = set()
-    ctx.selected_edges.value = set()
+def test_copy_selection_poll_false_when_nothing_selected(register_edit_state):
+    ctx, EditStateCls = make_context(register_edit_state)
+    edit = ctx.data[EditStateCls]
+    edit.selected_nodes.value = set()
+    edit.selected_edges.value = set()
     assert CopySelectionPanel.poll(ctx) is False
 
 
-def test_paste_selection_poll_true_when_clipboard_has_content():
+def test_paste_selection_poll_true_when_clipboard_has_content(register_edit_state):
     clipboard = ClipboardData(
         nodes=["n1"],
         edges=[],
@@ -309,10 +326,10 @@ def test_paste_selection_poll_true_when_clipboard_has_content():
         timestamp=0.0,
         source_session_id="test",
     )
-    ctx = make_context(clipboard=clipboard)
+    ctx, _ = make_context(register_edit_state, clipboard=clipboard)
     assert PasteSelectionPanel.poll(ctx) is True
 
 
-def test_paste_selection_poll_false_when_clipboard_empty():
-    ctx = make_context(clipboard=None)
+def test_paste_selection_poll_false_when_clipboard_empty(register_edit_state):
+    ctx, _ = make_context(register_edit_state, clipboard=None)
     assert PasteSelectionPanel.poll(ctx) is False
