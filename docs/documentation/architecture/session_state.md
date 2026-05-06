@@ -726,22 +726,16 @@ they're not part of the graph-editor cluster.
 
 ## 9. Open questions for v1.2
 
-1. **Framework registration mechanism.** `EditState` is owned by
-   haywire-core, not by a library. v1.2 needs a registration path
-   parallel to how `FrameworkSettings` is registered against a
-   framework identity. Worth designing explicitly — possibly a
-   `register_framework_state()` call in `LibrarySystemService.initialize`
-   alongside the existing `register_framework_settings()`.
-2. **Call-site refactor scope.** ~50 call sites read selection state
+1. **Call-site refactor scope.** ~50 call sites read selection state
    directly (`ctx.active_node.value`). The v1.2 plan needs a clear list
    and a mechanical refactor strategy (sed-like search/replace, or
    AST-based codemod, or task-by-task).
-3. **Should `EditState` be reactive-aware before Phase 2 lands?** v1.2
+2. **Should `EditState` be reactive-aware before Phase 2 lands?** v1.2
    migration would expose more `Reactive[T]` reads in non-panel code
    paths (canvas handlers, etc.). The Phase 1 `.value` shape works
    today, but Phase 2's auto-tracking lands on top — the migration
    should anticipate this.
-4. **Optional extension: a per-graph or per-editor-instance scope.**
+3. **Optional extension: a per-graph or per-editor-instance scope.**
    Q13 settled as "strict; not endorsed." If demand surfaces during
    v1.2 work, designing a third scope (`GraphState` or similar) is a
    v1.3+ conversation, not a v1.2 one.
