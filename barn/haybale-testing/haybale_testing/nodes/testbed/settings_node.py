@@ -117,14 +117,10 @@ class SettingsNode(BaseNode):
         )
         count_ro = watch(TestingSettings.default_count, label="Count (read-only)", category="mirrors")
         label_ro = watch(TestingSettings.default_label, label="Label (read-only)", category="mirrors")
-        enabled_ro = watch(
-            TestingSettings.default_enabled, label="Enabled (read-only)", category="mirrors"
-        )
+        enabled_ro = watch(TestingSettings.default_enabled, label="Enabled (read-only)", category="mirrors")
         mode_ro = watch(TestingSettings.default_mode, label="Mode (read-only)", category="mirrors")
         tint_ro = watch(TestingSettings.default_color, label="Tint (read-only)", category="mirrors")
-        offset_ro = watch(
-            TestingSettings.default_offset, label="Offset (read-only)", category="mirrors"
-        )
+        offset_ro = watch(TestingSettings.default_offset, label="Offset (read-only)", category="mirrors")
         position_ro = watch(
             TestingSettings.default_position, label="Position (read-only)", category="mirrors"
         )

@@ -10,6 +10,7 @@ Verifies registration metadata (action+focus) and poll() contracts for:
 import pytest
 from unittest.mock import MagicMock
 
+from haywire.core.state import LibraryStateContainer
 from haywire.core.undo.actions.graph_actions import ClipboardData
 from haywire.ui.context import SessionContext
 from haywire.ui.panel import Panel
@@ -43,6 +44,7 @@ from haybale_testing.panels.test_selection_panels import (
 class FakeApp:
     workspace_root = "/tmp"
     library_service = None
+    library_state_container = LibraryStateContainer()
 
 
 def make_context(active_node=None, active_edge=None, clipboard=None) -> SessionContext:

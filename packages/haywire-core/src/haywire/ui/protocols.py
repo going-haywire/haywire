@@ -15,6 +15,7 @@ if TYPE_CHECKING:
     from haywire.core.di.config import LibrarySystemService
     from haywire.ui.session_manager import SessionManager
     from haywire_studio.library_manager import LibraryManager  # type: ignore[import-untyped]
+    from haywire.core.state import LibraryStateContainer
 
 
 class IGraphManager(Protocol):
@@ -45,3 +46,5 @@ class IProjectState(Protocol):
     node_registry: Any  # NodeRegistry
     node_factory: Any  # NodeFactory
     library_manager: "LibraryManager"
+    library_state_container: "LibraryStateContainer"
+    """Pool of live LibraryState instances. See docs/documentation/architecture/library_state.md."""

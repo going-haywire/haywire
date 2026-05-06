@@ -23,6 +23,7 @@ if TYPE_CHECKING:
     from haywire.core.execution.flow import Flow
     from haywire.core.execution.event_source import Trigger
     from haywire.core.node import BaseNode
+    from haywire.core.state import LibraryStateContainer
 
 logger = logging.getLogger(__name__)
 
@@ -39,13 +40,21 @@ class HaywireVM:
     5. Handling callbacks between flows
     """
 
-    def __init__(self, global_context: Optional[Dict[str, Any]] = None, max_stack_depth: int = 1000):
+    def __init__(
+        self,
+        global_context: Optional[Dict[str, Any]] = None,
+        max_stack_depth: int = 1000,
+        library_state_container: Optional["LibraryStateContainer"] = None,
+    ):
         """
         Initialize VM.
 
         Args:
             global_context: Global execution context
             max_stack_depth: Maximum loopback stack depth before error
+            library_state_container: Container exposing app-global LibraryState
+                instances to worker functions via exec_ctx.data[Cls]. Optional —
+                when None, exec_ctx.data is None.
         """
         self.global_context = global_context or {}
         self.max_stack_depth = max_stack_depth
@@ -53,6 +62,7 @@ class HaywireVM:
 
         # Callback manager reference (set by interpreter)
         self.callback_manager: Optional[CallbackManager] = None
+        self._library_state_container = library_state_container
 
         logger.debug("HaywireVM initialized")
 
@@ -78,6 +88,14 @@ class HaywireVM:
         for var_name, variable in flow.graph_ref.variables.items():
             local_ctx[var_name] = variable.current_value
 
+        from haywire.core.state.data_namespace import DataNamespace
+
+        data_namespace: Optional[DataNamespace] = (
+            DataNamespace(self._library_state_container)
+            if self._library_state_container is not None
+            else None
+        )
+
         # Build and return complete execution context
         return ExecutionContext(
             global_ctx=self.global_context,
@@ -85,6 +103,7 @@ class HaywireVM:
             trigger=trigger,
             vm=self,
             frame_number=frame_number,
+            data=data_namespace,
         )
 
     def call_flow_startup(self, flow: "Flow"):

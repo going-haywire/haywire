@@ -5,6 +5,7 @@ if TYPE_CHECKING:
     from haywire.core.execution.event_source import Trigger
     from haywire.core.execution.vm import HaywireVM, logger
     from haywire.core.node import BaseNode
+    from haywire.core.state.data_namespace import DataNamespace
 
 
 @dataclass
@@ -35,6 +36,9 @@ class ExecutionContext:
     """Current frame number"""
     exec_count: Optional[int] = 0
     """Current node execution count for this flow and frame"""
+    data: Optional["DataNamespace"] = None
+    """Class-keyed proxy to the app's LibraryStateContainer. None if the VM
+    was constructed without a container reference (test contexts only)."""
 
     def emit_callback(self, event_name: str, payload: Optional[Dict] = None):
         """

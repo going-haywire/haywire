@@ -130,6 +130,10 @@ class HaywireApp:
         self.adapter_factory = self.library_service.get_adapter_factory()
         self.panel_registry = self.library_service.get_panel_registry()
 
+        from haywire.core.state import LibraryStateContainer
+
+        self.library_state_container = self.library_service.injector.get(LibraryStateContainer)
+
         # Graph manager — starts empty; graphs are created/opened on demand.
         # Haystack auto-load is deferred to main_page so it can guard against
         # multiple sessions reconnecting to an already-populated haystack.

@@ -1,7 +1,8 @@
 # Spec: LibraryState — library-owned runtime state
 
-> Status: **Speculative.** Not yet implemented. Designed via inquisition
-> on 2026-05-06.
+> Status: **v1 implemented (2026-05-06).** This document is the canonical
+> reference for LibraryState. Phase 2 (observable container, reactive
+> auto-tracking) remains pending — see spec_panel_reactivity.md.
 > 
 > Scope: a new extension point for library plugins to declare app-global
 > runtime data structures that are accessible from both UI panels/editors

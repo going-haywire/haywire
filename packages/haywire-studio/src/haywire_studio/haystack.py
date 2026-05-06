@@ -103,9 +103,12 @@ class GraphEntry:
         if self.is_executing:
             return
 
+        from haywire.core.di.config import get_library_system
         from haywire.core.execution.interpreter import Interpreter
+        from haywire.core.state import LibraryStateContainer
 
-        self.interpreter = Interpreter()
+        library_state_container = get_library_system().injector.get(LibraryStateContainer)
+        self.interpreter = Interpreter(library_state_container=library_state_container)
         self.interpreter.load_graph(self.graph)
         self.interpreter.start_execution()
         logger.info(f"Execution started for graph '{self.display_name}'")

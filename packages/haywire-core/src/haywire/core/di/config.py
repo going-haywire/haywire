@@ -28,6 +28,7 @@ from ..adapter.factory import AdapterFactory
 from ..types.registry import TypeRegistry
 from ..node.factory import NodeFactory
 from ..settings import SettingsRegistry
+from ..state import LibraryStateContainer, LibraryStateRegistry
 from .context import (
     set_node_factory,
     set_adapter_factory,
@@ -173,6 +174,22 @@ class HaywireModule(Module):
 
     @provider
     @singleton
+    def provide_library_state_registry(self) -> LibraryStateRegistry:
+        """Provide singleton LibraryStateRegistry — class registry for LibraryState subclasses."""
+        return LibraryStateRegistry()
+
+    @provider
+    @singleton
+    def provide_library_state_container(self) -> LibraryStateContainer:
+        """Provide singleton LibraryStateContainer — instance pool for LibraryStates.
+
+        Subscription to LibraryStateRegistry events is wired in
+        LibrarySystemService.initialize().
+        """
+        return LibraryStateContainer()
+
+    @provider
+    @singleton
     def provide_node_factory(self, node_registry: NodeRegistry) -> NodeFactory:
         """Provide NodeFactory as pure utility."""
         factory = NodeFactory(node_registry)
@@ -276,6 +293,9 @@ class LibrarySystemService:
         skin_registry = self.injector.get(SkinRegistry)
         panel_registry = self.injector.get(PanelRegistry)
         editor_registry = self.injector.get(EditorTypeRegistry)
+        library_state_registry = self.injector.get(LibraryStateRegistry)
+        library_state_container = self.injector.get(LibraryStateContainer)
+        library_state_registry.add_batch_event_subscriber(library_state_container.on_lifecycle_events)
         self.injector.get(AdapterFactory)  # sets ambient context for EdgeWrapper
         self.injector.get(NodeFactory)  # sets ambient context for NodeWrapper
 
@@ -289,6 +309,7 @@ class LibrarySystemService:
         library_registry.add_class_registry(SkinRegistry, skin_registry)
         library_registry.add_class_registry(PanelRegistry, panel_registry)
         library_registry.add_class_registry(EditorTypeRegistry, editor_registry)
+        library_registry.add_class_registry(LibraryStateRegistry, library_state_registry)
 
         # Set up registry subscribers for cross-registry updates
         # this ensures that when new types are added,
@@ -305,6 +326,10 @@ class LibrarySystemService:
         settings_registry.add_registry_subscriber(skin_registry)
         settings_registry.add_registry_subscriber(panel_registry)
         settings_registry.add_registry_subscriber(editor_registry)
+        settings_registry.add_registry_subscriber(library_state_registry)
+        library_state_registry.add_registry_subscriber(node_registry)
+        library_state_registry.add_registry_subscriber(panel_registry)
+        library_state_registry.add_registry_subscriber(editor_registry)
 
         print("\n🔍 Scanning for libraries...")
         library_registry.scan_for_libraries()

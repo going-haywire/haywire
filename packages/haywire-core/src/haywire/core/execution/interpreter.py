@@ -17,6 +17,7 @@ import logging
 if TYPE_CHECKING:
     from haywire.core.graph.base import BaseGraph
     from haywire.core.execution.flow import Flow
+    from haywire.core.state import LibraryStateContainer
 
 from haywire.core.assembly.flow_assembly_manager import FlowAssemblyManager
 from haywire.core.execution.vm import HaywireVM
@@ -62,17 +63,28 @@ class Interpreter:
         interpreter.stop_execution()
     """
 
-    def __init__(self, global_context: Optional[Dict[str, Any]] = None, max_stack_depth: int = 1000):
+    def __init__(
+        self,
+        global_context: Optional[Dict[str, Any]] = None,
+        max_stack_depth: int = 1000,
+        library_state_container: Optional["LibraryStateContainer"] = None,
+    ):
         """
         Initialize interpreter.
 
         Args:
             global_context: Global execution context passed to all flows
             max_stack_depth: Maximum VM stack depth
+            library_state_container: Optional pool of LibraryState instances.
+                Forwarded to the VM so worker functions get exec_ctx.data.
         """
         # Core components
         self.assembly_manager = FlowAssemblyManager()
-        self.vm = HaywireVM(global_context=global_context, max_stack_depth=max_stack_depth)
+        self.vm = HaywireVM(
+            global_context=global_context,
+            max_stack_depth=max_stack_depth,
+            library_state_container=library_state_container,
+        )
         self.callback_manager = CallbackManager()
 
         # Wire callback manager to VM

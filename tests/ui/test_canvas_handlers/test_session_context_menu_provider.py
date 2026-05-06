@@ -10,6 +10,7 @@ from unittest.mock import MagicMock, patch
 
 from haybale_studio.focuses import EdgeFocus, NodeFocus
 from haywire.core.library.identity import LibraryIdentity
+from haywire.core.state import LibraryStateContainer
 from haywire.ui.context import SessionContext
 from haywire.ui.graph_canvas.handlers.context_menu import SessionContextMenuProvider
 from haywire.ui.graph_canvas.handlers.context_menu_actions import (
@@ -43,6 +44,7 @@ _FAKE_LIBRARY_IDENTITY = LibraryIdentity(
 class FakeApp:
     workspace_root = "/tmp"
     library_service = None
+    library_state_container = LibraryStateContainer()
 
 
 def make_context(session=None) -> SessionContext:

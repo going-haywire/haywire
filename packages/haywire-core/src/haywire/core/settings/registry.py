@@ -428,7 +428,9 @@ class SettingsRegistry(BaseRegistry):
             self._auto_define(name, parsed)
 
         if "value" in parsed and parsed.get("mode") != SettingMode.INHERIT:
-            tier_dict[name] = SettingValue(mode=parsed.get("mode", SettingMode.EXPLICIT), value=parsed["value"])
+            tier_dict[name] = SettingValue(
+                mode=parsed.get("mode", SettingMode.EXPLICIT), value=parsed["value"]
+            )
 
     def _parse_config_dict(self, name: str, config: dict) -> dict:
         """Parse a configuration dict from TOML."""

@@ -11,16 +11,17 @@ instance-level access yields the `Reactive[T]` container. Read values via
 `.value`; write values via `.value = ...`. Phase 2 layers Subscriptions
 and auto-tracking on top — no read-site changes required for Phase 2.
 
-The `metadata` dict remains a plain dict in Phase 1; Phase 1.5 lifts
-context-menu gesture state to typed fields on the host (see
-spec_panel_migration.md §4).
+The `data` attribute is a typed DataNamespace proxy over the app's
+LibraryStateContainer — class-keyed access to library-owned runtime
+state. See docs/documentation/architecture/library_state.md.
 """
 
 from __future__ import annotations
 
-from typing import Any, Dict, Optional, Set, TYPE_CHECKING
+from typing import Any, Optional, Set, TYPE_CHECKING
 
 from haywire.ui.reactive import Reactive, iter_reactive_fields, reactive_field
+from haywire.core.state.data_namespace import DataNamespace
 
 if TYPE_CHECKING:
     from haywire.core.edge.edge_wrapper import EdgeWrapper
@@ -39,14 +40,17 @@ class SessionContext:
 
     Reactive fields are accessed as `ctx.<field>.value` (read) or
     `ctx.<field>.value = ...` (write). Plain fields (`session_id`,
-    `app`, `session`, `metadata`) are non-reactive.
+    `app`, `session`, `data`) are non-reactive.
+
+    `data` is a typed proxy over the app's LibraryStateContainer — see
+    docs/documentation/architecture/library_state.md.
     """
 
     # --- Plain fields (non-reactive) ---
     session_id: str
     app: "IProjectState"
     session: "Session"  # set by Session.__init__ immediately after construction
-    metadata: Dict[str, Any]
+    data: DataNamespace
 
     # --- Reactive fields ---
     active_graph: Reactive[Optional["BaseGraph"]] = reactive_field(None)
@@ -66,7 +70,7 @@ class SessionContext:
     def __init__(self, session_id: str, app: "IProjectState") -> None:
         self.session_id = session_id
         self.app = app
-        self.metadata = {}
+        self.data = DataNamespace(app.library_state_container)
         # Initialize per-instance Reactive[T] containers for every
         # descriptor on this class. Default values come from
         # reactive_field(initial) declarations above. Mutable defaults

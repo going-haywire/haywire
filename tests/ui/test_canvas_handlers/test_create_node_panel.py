@@ -13,6 +13,7 @@ from types import SimpleNamespace
 
 from unittest.mock import MagicMock, patch
 
+from haywire.core.state import LibraryStateContainer
 from haywire.ui.context import SessionContext
 from haywire.ui.panel import Panel
 from haywire.ui.panel.layout import PanelLayout
@@ -28,6 +29,7 @@ class FakeApp:
     workspace_root = "/tmp"
     library_service = None
     node_factory = None
+    library_state_container = LibraryStateContainer()
 
 
 def make_context() -> SessionContext:

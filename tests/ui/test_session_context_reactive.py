@@ -62,11 +62,3 @@ def test_all_documented_reactive_fields_are_present():
     for name in expected_fields:
         attr = getattr(ctx, name)
         assert isinstance(attr, Reactive), f"{name} is not Reactive: {type(attr)}"
-
-
-def test_metadata_is_still_a_plain_dict():
-    """metadata stays as a dict for now (Phase 1.5 lifts gesture state to typed fields)."""
-    ctx = _make_ctx()
-    assert isinstance(ctx.metadata, dict)
-    ctx.metadata["k"] = "v"
-    assert ctx.metadata["k"] == "v"
