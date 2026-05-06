@@ -57,7 +57,7 @@ Nodes declare settings as inner classes that inherit from `NodeSettings`. The cl
 
 ```python
 from haywire.core.node import BaseNode, node
-from haywire.core.settings import NodeSettings, field, shadow, watch, Color
+from haywire.core.settings import NodeSettings, setting, shadow, watch, Color
 from haywire.core.settings.builtins.ui_node import NodeUISettings
 from haywire.core.settings.builtins.debug import DebugSettings
 
@@ -66,12 +66,12 @@ class MyNode(BaseNode):
 
     class filter(NodeSettings):
         # Local setting — stored in graph, shown in properties panel
-        threshold = field[float](0.5, min=0.0, max=1.0, label='Threshold')
+        threshold = setting[float](0.5, min=0.0, max=1.0, label='Threshold')
 
-        # shadow() — writable mirror of a global field; per-node override shown with reset affordance
+        # shadow() — writable mirror of a global setting; per-node override shown with reset affordance
         bg_color = shadow(NodeUISettings.bg_color)
 
-        # watch() — read-only mirror of a global field; invisible in panel, never stored
+        # watch() — read-only mirror of a global setting; invisible in panel, never stored
         verbose = watch(DebugSettings.verbose_logging)
 
     def worker(self, context):
@@ -79,11 +79,11 @@ class MyNode(BaseNode):
         self.out('result', result)
 ```
 
-The `@node` decorator scans the class body for all `NodeSettings` subclasses, assigns a `_field_key` to each `field()` descriptor (derived from the node's `registry_key`), and binds each settings instance directly on the node object at construction time.
+The `@node` decorator scans the class body for all `NodeSettings` subclasses, assigns a `_setting_key` to each `setting()` descriptor (derived from the node's `registry_key`), and binds each settings instance directly on the node object at construction time.
 
 ### Per-Node Resolution Chain (Extended Mode)
 
-When a `SettingsRegistry` is injected, each `field()` descriptor with a `_field_key` set goes through the full resolution chain:
+When a `SettingsRegistry` is injected, each `setting()` descriptor with a `_setting_key` set goes through the full resolution chain:
 
 ```
 self.filter.threshold
@@ -115,10 +115,10 @@ Settings instances without a registry (simple mode) skip steps 1–2 and 4–5 �
 
 | Descriptor | Behaviour |
 | ---------- | --------- |
-| `field[T](default)` | Local node setting — stored in graph, shown in panel |
-| `shadow(FrameworkSettings.field)` | Writable mirror; inherits global value; override shown with reset affordance |
-| `watch(FrameworkSettings.field)` | Read-only mirror — invisible in panel, never stored |
-| `field[T](..., on_change='method_name')` | Fires `method(value, field_name)` on change |
+| `setting[T](default)` | Local node setting — stored in graph, shown in panel |
+| `shadow(FrameworkSettings.setting)` | Writable mirror; inherits global value; override shown with reset affordance |
+| `watch(FrameworkSettings.setting)` | Read-only mirror — invisible in panel, never stored |
+| `setting[T](..., on_change='method_name')` | Fires `method(value, field_name)` on change |
 
 ---
 
@@ -156,7 +156,7 @@ The outer key is the **settings accessor name**. The inner dict maps attr name �
 
 ---
 
-## Key Identifiers: namespace, _field_key, registry_key, and panel routing
+## Key Identifiers: namespace, _setting_key, registry_key, and panel routing
 
 Four identifiers cooperate to connect a settings field from its class definition all the way to a panel in the UI. Understanding how they relate prevents confusion.
 
@@ -169,17 +169,17 @@ namespace='execution'   →   TOML section [execution]
 namespace='my_lib'      →   TOML section [my_lib]
 ```
 
-### `_field_key`
+### `_setting_key`
 
-The full TOML address of a single field: `{namespace}.{field_attr_name}`. Set on each `field()` descriptor by `@settings` / `__init_subclass__` (for `FrameworkSettings`/`LibrarySettings`) or by `@node` / `_wire_settings_schemas` (for `NodeSettings`).
+The full TOML address of a single field: `{namespace}.{field_attr_name}`. Set on each `setting()` descriptor by `@settings` / `__init_subclass__` (for `FrameworkSettings`/`LibrarySettings`) or by `@node` / `_wire_settings_schemas` (for `NodeSettings`).
 
 ```text
-namespace='execution', field 'max_threads'  →  _field_key='execution.max_threads'
+namespace='execution', field 'max_threads'  →  _setting_key='execution.max_threads'
 node registry_key='haybale_core:node:filter', accessor 'params', field 'threshold'
-    →  _field_key='haybale_core.node.filter.params.threshold'
+    →  _setting_key='haybale_core.node.filter.params.threshold'
 ```
 
-`_field_key` is what the `SettingsRegistry` stores, resolves, and what `shadow()` / `watch()` reference. It is the single shared identity between schema, TOML, and registry lookup.
+`_setting_key` is what the `SettingsRegistry` stores, resolves, and what `shadow()` / `watch()` reference. It is the single shared identity between schema, TOML, and registry lookup.
 
 ### `registry_key`
 
@@ -195,21 +195,21 @@ namespace='my_lib', library_id='haybale_image'
 ```text
 @settings(namespace='my_lib')          ← sets _namespace on the class
 class MyLibSettings(LibrarySettings):
-    quality = field[int](85)           ← _field_key = 'my_lib.quality'
+    quality = setting[int](85)           ← _setting_key = 'my_lib.quality'
                                           (set by @settings on the descriptor)
 
     ↓ BaseRegistry registers the class under:
     registry_key = 'haybale_image:settings:my_lib'
 
     ↓ SettingsRegistry stores the field under:
-    _field_key = 'my_lib.quality'
+    _setting_key = 'my_lib.quality'
 
     ↓ TOML resolution reads from:
     [my_lib]
     quality = 90
 ```
 
-For `NodeSettings` the chain is different — `_field_key` is node-scoped and never entered into the registry as a schema field; it is only used for TOML-tier resolution of that node's local overrides.
+For `NodeSettings` the chain is different — `_setting_key` is node-scoped and never entered into the registry as a schema field; it is only used for TOML-tier resolution of that node's local overrides.
 
 ### Panel routing and `scope`
 

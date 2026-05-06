@@ -21,7 +21,7 @@ from nicegui import ui
 from haywire.ui.components.graph.canvas import GraphCanvasVue
 from haywire.ui.components.zoom.pan import ZoomPanContainer
 from haywire.ui.panel.render_utils import render_settings, render_schema
-from haywire.core.settings.enums import FieldMode
+from haywire.core.settings.enums import SettingMode
 
 if TYPE_CHECKING:
     from haywire.core.settings.registry import SettingsRegistry
@@ -168,7 +168,7 @@ def register_routes(library_service) -> None:
                 coerced = raw_value.lower() in ("true", "1", "yes")
             else:
                 coerced = type_(raw_value)
-            registry.set_global(key, coerced, FieldMode.EXPLICIT)
+            registry.set_global(key, coerced, SettingMode.EXPLICIT)
             return JSONResponse({"ok": True, "key": key, "value": coerced})
         except Exception as exc:
             return JSONResponse({"error": str(exc)}, status_code=500)

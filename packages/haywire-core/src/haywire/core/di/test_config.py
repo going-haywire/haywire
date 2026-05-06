@@ -12,8 +12,8 @@ from injector import Injector
 
 from ..settings import (
     SettingsRegistry,
-    FieldMode,
-    FieldValue,
+    SettingMode,
+    SettingValue,
     FrameworkSettings,
     Settings,
     setting,
@@ -158,10 +158,10 @@ def create_test_settings_registry(
     if predefined_settings:
         for name, value in predefined_settings.items():
             if registry.has_definition(name):
-                registry.set_global(name, value, FieldMode.EXPLICIT, tier="global")
+                registry.set_global(name, value, SettingMode.EXPLICIT, tier="global")
             else:
                 registry.define(name, value)
-                registry.set_global(name, value, FieldMode.EXPLICIT, tier="global")
+                registry.set_global(name, value, SettingMode.EXPLICIT, tier="global")
 
     return registry
 
@@ -201,7 +201,7 @@ def create_test_bag(
 
     registry = create_test_settings_registry(predefined_settings=predefined_global)
     bag = bag_cls(registry=registry)
-    bag._subscribe_fields()
+    bag._subscribe_settings()
 
     if predefined_local:
         for name, value in predefined_local.items():
@@ -232,7 +232,7 @@ class SettingsTestContext:
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         for name, original in self._original_values.items():
-            if original is None or original.mode == FieldMode.INHERIT:
+            if original is None or original.mode == SettingMode.INHERIT:
                 self.registry.reset_global(name, tier="workspace")
             else:
                 self.registry.set_global(name, original.value, original.mode, tier="workspace")
@@ -241,12 +241,12 @@ class SettingsTestContext:
     def set(self, name: str, value: Any) -> None:
         """Set a setting value (SET mode)."""
         self._save_original(name)
-        self.registry.set_global(name, value, FieldMode.EXPLICIT)
+        self.registry.set_global(name, value, SettingMode.EXPLICIT)
 
     def set_override(self, name: str, value: Any) -> None:
         """Set a setting value with OVERRIDE mode."""
         self._save_original(name)
-        self.registry.set_global(name, value, FieldMode.OVERRIDE)
+        self.registry.set_global(name, value, SettingMode.OVERRIDE)
 
     def reset(self, name: str) -> None:
         """Reset a setting to AUTO."""
@@ -256,4 +256,4 @@ class SettingsTestContext:
     def _save_original(self, name: str) -> None:
         if name not in self._original_values:
             sv = self.registry.get_global(name)
-            self._original_values[name] = FieldValue(mode=sv.mode, value=sv.value) if sv else None
+            self._original_values[name] = SettingValue(mode=sv.mode, value=sv.value) if sv else None

@@ -29,7 +29,7 @@ class NodeSettings(Settings):
     Base class for node-local settings.
 
     Declare as an inner class on a @node class.  The @node decorator assigns
-    ``_field_key`` to each ``field()`` descriptor, and the node instance
+    ``_setting_key`` to each ``field()`` descriptor, and the node instance
     injects the registry at construction for mirror/read_only resolution.
 
     NodeSettings are never registered with SettingsRegistry.

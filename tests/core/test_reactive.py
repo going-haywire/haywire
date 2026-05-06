@@ -12,11 +12,11 @@ Coverage:
 - .choices property resolves callables
 - _prop_fields() walks MRO correctly
 - Inheritance: subclass adds fields, parent fields preserved
-- FieldDescriptor is the base class of setting
+- SettingDescriptor is the base class of setting
 """
 
 import pytest
-from haywire.core.settings import Settings, setting, FieldDescriptor
+from haywire.core.settings import Settings, setting, SettingDescriptor
 
 
 # ---------------------------------------------------------------------------
@@ -290,22 +290,22 @@ class TestReset:
 
 class TestPropFields:
     def test_returns_all_settings(self):
-        fields = _Simple._property_fields()
+        fields = _Simple._property_settings()
         assert "threshold" in fields
         assert "verbose" in fields
         assert "name" in fields
 
     def test_non_settings_excluded(self):
-        fields = _Simple._property_fields()
+        fields = _Simple._property_settings()
         assert "_callbacks" not in fields
 
     def test_child_includes_parent_fields(self):
-        fields = _Child._property_fields()
+        fields = _Child._property_settings()
         assert "x" in fields
         assert "y" in fields
 
     def test_parent_fields_not_polluted_by_child(self):
-        parent_fields = _Parent._property_fields()
+        parent_fields = _Parent._property_settings()
         assert "y" not in parent_fields
 
     def test_child_inherits_parent_defaults(self):
@@ -351,14 +351,14 @@ class TestInheritance:
 
 
 # ---------------------------------------------------------------------------
-# FieldDescriptor — shared ancestor
+# SettingDescriptor — shared ancestor
 # ---------------------------------------------------------------------------
 
 
-class TestFieldDescriptorAncestry:
+class TestSettingDescriptorAncestry:
     def test_setting_is_field_descriptor(self):
-        assert issubclass(setting, FieldDescriptor)
-        assert isinstance(_Simple.threshold, FieldDescriptor)
+        assert issubclass(setting, SettingDescriptor)
+        assert isinstance(_Simple.threshold, SettingDescriptor)
 
     def test_setting_subclasses_only(self):
-        assert issubclass(setting, FieldDescriptor)
+        assert issubclass(setting, SettingDescriptor)

@@ -6,21 +6,21 @@ This guide covers how to define `LibrarySettings` for your haybale library and h
 
 ## Creating a `LibrarySettings` Class
 
-Decorate a `LibrarySettings` subclass with `@settings`. This sets `class_identity` (required by `BaseRegistry` for hot-reload discovery), `class_library`, `_namespace`, and `_field_key` on every descriptor.
+Decorate a `LibrarySettings` subclass with `@settings`. This sets `class_identity` (required by `BaseRegistry` for hot-reload discovery), `class_library`, `_namespace`, and `_setting_key` on every descriptor.
 
 ```python
 # my_lib/settings.py
-from haywire.core.settings import LibrarySettings, field, shadow, watch, Color
+from haywire.core.settings import LibrarySettings, setting, shadow, watch, Color
 from haywire.core.settings.decorator import settings
 
 
 @settings(namespace='my_lib', label='My Library')
 class MyLibSettings(LibrarySettings):
-    api_url = field[str]('https://api.example.com', label='API URL',          category='connection')
-    api_timeout = field[int](30, min=5, max=300,        label='Timeout (s)',       category='connection')
-    cache_enabled = field[bool](True,                      label='Enable Cache',      category='performance')
-    parallel_requests = field[int](4, min=1, max=20,          label='Parallel Requests', category='performance')
-    accent_color = field[Color]('#3498db',                  label='Accent Color',      category='appearance')
+    api_url = setting[str]('https://api.example.com', label='API URL',          category='connection')
+    api_timeout = setting[int](30, min=5, max=300,        label='Timeout (s)',       category='connection')
+    cache_enabled = setting[bool](True,                      label='Enable Cache',      category='performance')
+    parallel_requests = setting[int](4, min=1, max=20,          label='Parallel Requests', category='performance')
+    accent_color = setting[Color]('#3498db',                  label='Accent Color',      category='appearance')
 ```
 
 Full keys are derived immediately: `my_lib.api_url`, `my_lib.api_timeout`, etc.
@@ -57,12 +57,12 @@ class MyLibrary(BaseLibrary):
 
 ## Referencing Library Settings from Nodes
 
-Once `MyLibSettings._field_key` is set (at class definition time via `namespace=`), use `shadow()` (writable mirror) or `watch()` (read-only mirror):
+Once `MyLibSettings._setting_key` is set (at class definition time via `namespace=`), use `shadow()` (writable mirror) or `watch()` (read-only mirror):
 
 ```python
 # my_lib/nodes/fetch_node.py
 from haywire.core.node import BaseNode, node
-from haywire.core.settings import NodeSettings, field, shadow, watch
+from haywire.core.settings import NodeSettings, setting, shadow, watch
 from ..settings import MyLibSettings
 
 
@@ -78,7 +78,7 @@ class ApiFetchNode(BaseNode):
         cache_enabled = watch(MyLibSettings.cache_enabled)
 
         # Local node-only setting
-        endpoint = field[str]('', label='Endpoint')
+        endpoint = setting[str]('', label='Endpoint')
 
     def worker(self, context, payload: dict):
         url = f"{self.api.api_url}/{self.api.endpoint}"
@@ -87,7 +87,7 @@ class ApiFetchNode(BaseNode):
         ...
 ```
 
-**Important:** Node classes using `shadow(MyLibSettings.field)` or `watch(MyLibSettings.field)` must be defined *after* `MyLibSettings` is defined. The `namespace=` kwarg sets `_field_key` at class evaluation time.
+**Important:** Node classes using `shadow(MyLibSettings.setting)` or `watch(MyLibSettings.setting)` must be defined *after* `MyLibSettings` is defined. The `namespace=` kwarg sets `_setting_key` at class evaluation time.
 
 ---
 
@@ -148,7 +148,7 @@ The workspace tier is layered on top of the global tier. `save_to_toml()` always
 
 ```python
 # haybale_image/settings.py
-from haywire.core.settings import LibrarySettings, field, shadow, watch, Color
+from haywire.core.settings import LibrarySettings, setting, shadow, watch, Color
 from haywire.core.settings.decorator import settings
 
 
@@ -156,24 +156,24 @@ from haywire.core.settings.decorator import settings
 class ImageLibSettings(LibrarySettings):
 
     # Quality
-    jpeg_quality = field[int](85, min=1, max=100, label='JPEG Quality',    category='quality', order=10)
-    png_compression = field[int](6,  min=0, max=9,   label='PNG Compression', category='quality', order=20)
-    preserve_metadata = field[bool](True,               label='Preserve Metadata', category='quality', order=30)
+    jpeg_quality = setting[int](85, min=1, max=100, label='JPEG Quality',    category='quality', order=10)
+    png_compression = setting[int](6,  min=0, max=9,   label='PNG Compression', category='quality', order=20)
+    preserve_metadata = setting[bool](True,               label='Preserve Metadata', category='quality', order=30)
 
     # Processing
-    color_space = field[str]('sRGB', choices=['sRGB', 'Adobe RGB', 'Linear'],
+    color_space = setting[str]('sRGB', choices=['sRGB', 'Adobe RGB', 'Linear'],
                                      label='Color Space', category='processing', order=10)
-    gpu_acceleration = field[bool](True, label='GPU Acceleration', category='processing', order=20)
+    gpu_acceleration = setting[bool](True, label='GPU Acceleration', category='processing', order=20)
 
     # Resize
-    resize_algorithm = field[str]('lanczos', choices=['nearest', 'bilinear', 'bicubic', 'lanczos'],
+    resize_algorithm = setting[str]('lanczos', choices=['nearest', 'bilinear', 'bicubic', 'lanczos'],
                                      label='Resize Algorithm', category='resize', order=10)
 ```
 
 ```python
 # haybale_image/nodes/resize_node.py
 from haywire.core.node import BaseNode, node
-from haywire.core.settings import NodeSettings, field, shadow, watch
+from haywire.core.settings import NodeSettings, setting, shadow, watch
 from ..settings import ImageLibSettings
 
 
@@ -182,8 +182,8 @@ class ResizeNode(BaseNode):
 
     class resize(NodeSettings):
         algorithm = shadow(ImageLibSettings.resize_algorithm)
-        width = field[int](512, min=1, max=8192, label='Width')
-        height = field[int](512, min=1, max=8192, label='Height')
+        width = setting[int](512, min=1, max=8192, label='Width')
+        height = setting[int](512, min=1, max=8192, label='Height')
 
     def worker(self, context, image):
         alg = self.resize.algorithm   # per-node override or global default

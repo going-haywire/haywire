@@ -72,7 +72,7 @@ div                                  ← error container (populated on validatio
 
 ## Mirror Fields
 
-A mirror field declares `mirrors=SomeLibrarySettings.some_field` on its descriptor. When rendered via `render_reactive()`:
+A mirror field declares `mirrors=SomeLibrarySettings.some_setting` on its descriptor. When rendered via `render_reactive()`:
 
 - If not locally overridden: displays the resolved global value, label has no prefix
 - If locally overridden: label gets a `•` prefix, a `restart_alt` button appears

@@ -4,7 +4,7 @@
 from haywire.core.settings import setting
 from haywire.core.settings.schema import FrameworkSettings, LibrarySettings
 from haywire.core.settings.decorator import settings
-from haywire.core.settings.enums import FieldMode
+from haywire.core.settings.enums import SettingMode
 from haywire.core.settings.registry import SettingsRegistry
 
 
@@ -33,7 +33,7 @@ class TestRegisterSchema:
         registry = SettingsRegistry()
         registry.register_schema(_HotGS)
 
-        registry.set_global("hot.gs.alpha", 42, FieldMode.EXPLICIT)
+        registry.set_global("hot.gs.alpha", 42, SettingMode.EXPLICIT)
         val, _ = registry.resolve("hot.gs.alpha")
         assert val == 42
 
@@ -80,7 +80,7 @@ class TestHotReloadCycle:
     def test_fields_gone_after_unregister(self):
         registry = SettingsRegistry()
         registry.register_schema(_HotGS)
-        registry.set_global("hot.gs.alpha", 42, FieldMode.EXPLICIT)
+        registry.set_global("hot.gs.alpha", 42, SettingMode.EXPLICIT)
 
         # Simulate unregister (library removal)
         registry_key = _HotGS.class_identity.registry_key
@@ -92,7 +92,7 @@ class TestHotReloadCycle:
     def test_re_register_restores_defaults(self):
         registry = SettingsRegistry()
         registry.register_schema(_HotGS)
-        registry.set_global("hot.gs.alpha", 42, FieldMode.EXPLICIT)
+        registry.set_global("hot.gs.alpha", 42, SettingMode.EXPLICIT)
 
         registry_key = _HotGS.class_identity.registry_key
         registry._unregister_class(registry_key)

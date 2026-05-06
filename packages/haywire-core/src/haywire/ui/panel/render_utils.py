@@ -12,13 +12,13 @@ from typing import TYPE_CHECKING, Any
 from nicegui import ui
 
 from haywire.ui import elements as hui
-from haywire.core.settings.enums import FieldMode
+from haywire.core.settings.enums import SettingMode
 from haywire.core.settings.types import get_vec_meta
 from haywire.ui.components.number.drag import NumberDrag
 
 if TYPE_CHECKING:
     from haywire.core.settings.registry import SettingsRegistry
-    from haywire.core.settings import Settings, FieldDescriptor
+    from haywire.core.settings import Settings, SettingDescriptor
 
 _ROW_CLASSES = "w-full items-center justify-between gap-0 px-2"
 _LABEL_CLASSES = "text-xs min-w-0 truncate sf-label"
@@ -38,7 +38,7 @@ def render_settings(obj: "Settings") -> None:
     - Fields with ``mirrors=`` that are locally overridden show a reset-to-global button.
     """
 
-    fields = type(obj)._property_fields()
+    fields = type(obj)._property_settings()
     # Exclude read-only fields from rendering
     visible_fields = {name: defn for name, defn in fields.items() if not defn._read_only}
     if not visible_fields:
@@ -63,15 +63,15 @@ def render_settings(obj: "Settings") -> None:
 def render_schema(schema_cls: type["Settings"], registry: "SettingsRegistry") -> None:
     """Render only the fields declared on *schema_cls* as labelled form rows.
 
-    Uses the schema's own _property_fields() so that keys registered under the
+    Uses the schema's own _property_settings() so that keys registered under the
     same namespace prefix by other code (e.g. dynamic library keys) are not
     accidentally included.
     """
-    prop_fields = schema_cls._property_fields()
+    prop_fields = schema_cls._property_settings()
     defns = {
-        defn._field_key: defn
+        defn._setting_key: defn
         for defn in prop_fields.values()
-        if defn._field_key and registry.has_definition(defn._field_key)
+        if defn._setting_key and registry.has_definition(defn._setting_key)
     }
     if not defns:
         ui.label("No fields defined.").classes("text-xs hw-text-muted px-2 py-1")
@@ -79,7 +79,7 @@ def render_schema(schema_cls: type["Settings"], registry: "SettingsRegistry") ->
 
     sorted_defns = sorted(
         defns.values(),
-        key=lambda d: ("" if d._category.lower() == "root" else d._category, d._order, d._field_key),
+        key=lambda d: ("" if d._category.lower() == "root" else d._category, d._order, d._setting_key),
     )
     _render_definitions(sorted_defns, registry)
 
@@ -99,7 +99,7 @@ def render_keys(prefix: str, registry: "SettingsRegistry") -> None:
 
     sorted_defns = sorted(
         defns.values(),
-        key=lambda d: ("" if d._category.lower() == "root" else d._category, d._order, d._field_key),
+        key=lambda d: ("" if d._category.lower() == "root" else d._category, d._order, d._setting_key),
     )
     _render_definitions(sorted_defns, registry)
 
@@ -110,7 +110,7 @@ def _render_definitions(sorted_defns: list, registry: "SettingsRegistry") -> Non
         for category, group in _group_by_category(sorted_defns):
             with hui.category_group(category):
                 for defn in group:
-                    key = defn._field_key
+                    key = defn._setting_key
                     try:
                         value, _ = registry.resolve(key)
                     except KeyError:
@@ -144,7 +144,7 @@ def _render_field_row(label_text: str, description: str, defn, value, make_sette
         _render_widget_impl(defn, value, make_setter)
 
 
-def _render_reactive_field_row(obj: "Settings", attr_name: str, defn: "FieldDescriptor") -> None:
+def _render_reactive_field_row(obj: "Settings", attr_name: str, defn: "SettingDescriptor") -> None:
     """Render a single reactive field row, with optional reset button for mirrored fields."""
 
     @ui.refreshable
@@ -285,7 +285,7 @@ def _float_step_from_default(default: Any) -> float:
     return 10 ** -(decimals + 1)
 
 
-def _render_widget_impl(defn: "FieldDescriptor", value: Any, make_setter) -> None:
+def _render_widget_impl(defn: "SettingDescriptor", value: Any, make_setter) -> None:
     """Shared widget dispatch. make_setter(coerce) -> on_change handler."""
     # Escape for safe embedding in props strings (newlines etc. break ast.literal_eval)
     str_value = (str(value) if value is not None else "").encode("unicode_escape").decode()
@@ -442,7 +442,7 @@ def _make_reactive_setter(obj: "Settings", attr_name: str, error_container=None,
                 return
 
             # Check validator before setting — descriptors silently reject invalid values
-            descriptor = type(obj)._property_fields().get(attr_name)
+            descriptor = type(obj)._property_settings().get(attr_name)
             if descriptor is not None and not descriptor.validate(coerced):
                 if error_container is not None:
                     error_container.clear()
@@ -478,7 +478,7 @@ def _make_setter(registry: "SettingsRegistry", key: str, coerce):
             val = coerce(e.value)
             if val is None:
                 return
-            registry.set_global(key, val, FieldMode.EXPLICIT)
+            registry.set_global(key, val, SettingMode.EXPLICIT)
             registry.save_to_toml_debounced()
         except Exception:
             pass

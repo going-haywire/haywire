@@ -1,6 +1,6 @@
 # haywire/core/settings/base.py
 """
-FieldDescriptor — shared base for all property descriptors.
+SettingDescriptor — shared base for all property descriptors.
 
 Provides the metadata contract that UI panels rely on: _default, _type,
 _label, _description, _category, _order, _min, _max, _choices, _widget,
@@ -16,7 +16,7 @@ import typing
 from typing import Any, Callable
 
 
-class FieldDescriptor:
+class SettingDescriptor:
     """
     Common ancestor for all property descriptors.
 
@@ -58,7 +58,7 @@ class FieldDescriptor:
     _choices: list | dict | Callable | None = None
     """Dropdown options: a static list, a ``{value: label}`` dict, or a callable returning either."""
 
-    _field_key: str = ""
+    _setting_key: str = ""
     """Fully-qualified registry key — set by subclasses in extended mode."""
 
     _widget: str | None = None

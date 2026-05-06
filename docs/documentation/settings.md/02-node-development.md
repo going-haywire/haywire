@@ -8,7 +8,7 @@ This guide covers how to use `self.cache`, `self.store`, and node settings when 
 
 ```python
 from haywire.core.node import BaseNode, node
-from haywire.core.settings import NodeSettings, field, shadow, watch, Color
+from haywire.core.settings import NodeSettings, setting, shadow, watch, Color
 from haywire.core.settings.builtins.debug import DebugSettings
 from haywire.core.settings.builtins.ui_node import NodeUISettings
 
@@ -16,7 +16,7 @@ from haywire.core.settings.builtins.ui_node import NodeUISettings
 class QuickStartNode(BaseNode):
 
     class filter(NodeSettings):
-        threshold = field[float](0.5, min=0.0, max=1.0, label='Threshold')
+        threshold = setting[float](0.5, min=0.0, max=1.0, label='Threshold')
         bg_color = shadow(NodeUISettings.bg_color)
         verbose = watch(DebugSettings.verbose_logging)
 
@@ -40,23 +40,23 @@ class QuickStartNode(BaseNode):
 Node settings are declared as an inner class that inherits from `NodeSettings`. The class name becomes the **accessor name** — the attribute you use to access settings directly on the node instance.
 
 ```python
-from haywire.core.settings import NodeSettings, field, shadow, watch, Color, Icon
+from haywire.core.settings import NodeSettings, setting, shadow, watch, Color, Icon
 
 @node(label="My Node")
 class MyNode(BaseNode):
 
     class filter(NodeSettings):
         # Local setting — stored in graph when set, shown in properties panel
-        threshold = field[float](0.5, min=0.0, max=1.0, label='Threshold')
-        algorithm = field[str]('fast', choices=['fast', 'accurate'], label='Algorithm')
-        bg_color = field[Color]('#ffffff', label='Background Color')
-        verbose = field[bool](False, label='Verbose Output')
-        icon = field[Icon]('star', label='Icon')
+        threshold = setting[float](0.5, min=0.0, max=1.0, label='Threshold')
+        algorithm = setting[str]('fast', choices=['fast', 'accurate'], label='Algorithm')
+        bg_color = setting[Color]('#ffffff', label='Background Color')
+        verbose = setting[bool](False, label='Verbose Output')
+        icon = setting[Icon]('star', label='Icon')
 
-        # shadow() — writable mirror of a global field; per-node override shown with reset affordance
+        # shadow() — writable mirror of a global setting; per-node override shown with reset affordance
         node_bg = shadow(NodeUISettings.bg_color)
 
-        # watch() — read-only mirror of a global field; invisible in panel, never stored
+        # watch() — read-only mirror of a global setting; invisible in panel, never stored
         debug_mode = watch(DebugSettings.verbose_logging)
 ```
 
@@ -68,7 +68,7 @@ def worker(self, context, value: float):
     verbose   = self.filter.debug_mode
 ```
 
-### Namespace and `_field_key`
+### Namespace and `_setting_key`
 
 The `@node` decorator automatically derives a namespace from the node's `registry_key` by replacing `:` with `.`:
 
@@ -91,10 +91,10 @@ A node can declare any number of `NodeSettings` inner classes. Each gets its own
 class ImageFilterNode(BaseNode):
 
     class filter(NodeSettings):
-        threshold = field[float](0.5)
+        threshold = setting[float](0.5)
 
     class output(NodeSettings):
-        jpeg_quality = field[int](85, min=1, max=100, label='JPEG Quality')
+        jpeg_quality = setting[int](85, min=1, max=100, label='JPEG Quality')
 
     def worker(self, context, img):
         t = self.filter.threshold
@@ -105,14 +105,14 @@ class ImageFilterNode(BaseNode):
 
 ---
 
-## `field()` Parameters
+## `setting()` Parameters
 
 ```python
 class filter(NodeSettings):
-    threshold = field[float](0.5, min=0.0, max=1.0, label='Threshold')
-    algorithm = field[str]('fast', choices=['fast', 'accurate'], label='Algorithm')
-    color = field[Color]('#ffffff', label='Background')
-    verbose = field[bool](False, on_change='hb_on_verbose_change')
+    threshold = setting[float](0.5, min=0.0, max=1.0, label='Threshold')
+    algorithm = setting[str]('fast', choices=['fast', 'accurate'], label='Algorithm')
+    color = setting[Color]('#ffffff', label='Background')
+    verbose = setting[bool](False, on_change='hb_on_verbose_change')
 ```
 
 Widget is inferred from type unless overridden:
@@ -130,18 +130,18 @@ Widget is inferred from type unless overridden:
 
 ```python
 # Static list — value shown and stored as-is
-algorithm = field[str]('fast', choices=['fast', 'accurate'])
+algorithm = setting[str]('fast', choices=['fast', 'accurate'])
 
 # Dict {stored_value: display_label} — label shown, value stored
-algorithm = field[str]('fast', choices={'fast': 'Fast Mode', 'accurate': 'High Accuracy'})
+algorithm = setting[str]('fast', choices={'fast': 'Fast Mode', 'accurate': 'High Accuracy'})
 
 # Callable — evaluated at render time (use for dynamic lists from a registry)
-theme = field[str]('', choices=lambda: get_theme_registry().list_workbench_keys())
+theme = setting[str]('', choices=lambda: get_theme_registry().list_workbench_keys())
 ```
 
 The callable form is evaluated fresh on every panel render, so entries added by plugins after startup appear automatically.
 
-### Mirroring global fields: `shadow()` and `watch()`
+### Mirroring global settings: `shadow()` and `watch()`
 
 Use `shadow()` for a **writable** mirror and `watch()` for a **read-only** mirror of a `FrameworkSettings` or `LibrarySettings` field:
 
@@ -181,7 +181,7 @@ Triggered when a setting value changes (local set, reset, or global cache invali
 
 ```python
 class filter(NodeSettings):
-    scale = field[float](1.0, label='Scale', on_change='hb_on_scale_change')
+    scale = setting[float](1.0, label='Scale', on_change='hb_on_scale_change')
 
 def hb_on_scale_change(self, value: float, field: str = '') -> None:
     # value: new resolved value
@@ -282,7 +282,7 @@ Only locally-overridden values are serialized. `watch()` fields and fields at th
 
 ```python
 from haywire.core.node import BaseNode, node
-from haywire.core.settings import NodeSettings, field, shadow, watch, Color
+from haywire.core.settings import NodeSettings, setting, shadow, watch, Color
 from haywire.core.settings.builtins.ui_node import NodeUISettings
 from haywire.core.settings.builtins.debug import DebugSettings
 
@@ -290,12 +290,12 @@ from haywire.core.settings.builtins.debug import DebugSettings
 class SignalProcessorNode(BaseNode):
 
     class filter(NodeSettings):
-        filter_strength = field[float](0.5, min=0.0, max=1.0, label='Filter Strength',
+        filter_strength = setting[float](0.5, min=0.0, max=1.0, label='Filter Strength',
                                        on_change='hb_on_filter_change')
-        filter_type = field[str]('exponential',
+        filter_type = setting[str]('exponential',
                                        choices=['none', 'exponential', 'moving_average'],
                                        label='Filter Type')
-        window_size = field[int](10, min=2, max=100, label='Window Size')
+        window_size = setting[int](10, min=2, max=100, label='Window Size')
         bg_color = shadow(NodeUISettings.bg_color)
         verbose = watch(DebugSettings.verbose_logging)
 

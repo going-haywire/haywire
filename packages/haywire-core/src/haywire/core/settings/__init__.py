@@ -19,9 +19,9 @@ Framework / library internals:
 from .settings import Settings
 from .node_settings import NodeSettings
 from .descriptor import setting, shadow, watch
-from .base import FieldDescriptor
-from .enums import FieldMode
-from .value import FieldValue
+from .base import SettingDescriptor
+from .enums import SettingMode
+from .value import SettingValue
 from .types import Color, Icon, Vec2i, Vec3i, Vec4i, Vec2f, Vec3f, Vec4f, get_vec_meta
 from .registry import SettingsRegistry
 from .schema import LibrarySettings, FrameworkSettings
@@ -34,7 +34,7 @@ __all__ = [
     "setting",
     "shadow",
     "watch",
-    "FieldDescriptor",
+    "SettingDescriptor",
     "Color",
     "Icon",
     "Vec2i",
@@ -45,8 +45,8 @@ __all__ = [
     "Vec4f",
     "get_vec_meta",
     # Framework internals
-    "FieldMode",
-    "FieldValue",
+    "SettingMode",
+    "SettingValue",
     "SettingsRegistry",
     "LibrarySettings",
     "FrameworkSettings",

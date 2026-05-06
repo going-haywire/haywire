@@ -14,12 +14,12 @@ T = TypeVar("T")
 
 def _wire_settings_schemas(node_cls: type[BaseNode], registry_key: str) -> None:
     """
-    Scan the node class body for all ``Settings`` subclasses, assign ``_field_key``
+    Scan the node class body for all ``Settings`` subclasses, assign ``_setting_key``
     to their ``setting`` descriptors, and store the result as ``cls._settings_bags``.
 
     The accessor name is the inner class name in the node class body.
 
-    ``_field_key`` format::
+    ``_setting_key`` format::
 
         '{registry_key_dotted}.{settings_name}.{field_name}'
         e.g. 'haybale_core.node.transform.filter.strength'
@@ -37,10 +37,10 @@ def _wire_settings_schemas(node_cls: type[BaseNode], registry_key: str) -> None:
         for name, val in klass.__dict__.items():
             if not (isinstance(val, type) and issubclass(val, NodeSettings) and val is not NodeSettings):
                 continue
-            # Set _field_key on every setting descriptor that doesn't already have one
-            for field_name, descriptor in val._property_fields().items():
-                if isinstance(descriptor, setting) and not descriptor._field_key:
-                    descriptor._field_key = f"{ns}.{name}.{field_name}"
+            # Set _setting_key on every setting descriptor that doesn't already have one
+            for field_name, descriptor in val._property_settings().items():
+                if isinstance(descriptor, setting) and not descriptor._setting_key:
+                    descriptor._setting_key = f"{ns}.{name}.{field_name}"
             bags[name] = val
 
     # Conflict check — must not shadow existing attributes on the MRO

@@ -18,10 +18,10 @@ Every node instance exposes three containers:
 
 ## Settings: Descriptor-Based Schema
 
-Settings are declared as an inner `class node(NodeSettings)` using `field()`, `shadow()`, and `watch()` descriptors:
+Settings are declared as an inner `class node(NodeSettings)` using `setting()`, `shadow()`, and `watch()` descriptors:
 
 ```python
-from haywire.core.settings import NodeSettings, field, shadow, watch, Color
+from haywire.core.settings import NodeSettings, setting, shadow, watch, Color
 from haywire.core.settings.builtins.ui_node import NodeUISettings
 from haywire.core.settings.builtins.debug import DebugSettings
 
@@ -29,7 +29,7 @@ class MyNode(BaseNode):
 
     class node(NodeSettings):
         # Local setting — stored in graph, shown in panel
-        threshold = field[float](0.5, min=0.0, max=1.0, label='Threshold')
+        threshold = setting[float](0.5, min=0.0, max=1.0, label='Threshold')
 
         # shadow() — writable mirror; inherits global default; per-node override with reset affordance
         bg_color = shadow(NodeUISettings.bg_color)

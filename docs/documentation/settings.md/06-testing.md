@@ -92,12 +92,12 @@ def test_reset_falls_back_to_default():
 ### Custom schema
 
 ```python
-from haywire.core.settings import Settings, field, shadow, watch, Color
+from haywire.core.settings import Settings, setting, shadow, watch, Color
 
 
 class MySettings(Settings):
-    threshold = field[float](0.5, min=0.0, max=1.0, label='Threshold')
-    color = field[Color]('#ffffff', label='Color')
+    threshold = setting[float](0.5, min=0.0, max=1.0, label='Threshold')
+    color = setting[Color]('#ffffff', label='Color')
 
 
 def test_custom_settings():
@@ -113,11 +113,11 @@ def test_custom_settings():
 ### Testing on_change callbacks
 
 ```python
-from haywire.core.settings import Settings, field, shadow, watch
+from haywire.core.settings import Settings, setting, shadow, watch
 
 
 class SettingsWithCallback(Settings):
-    scale = field[float](1.0, on_change='_on_scale')
+    scale = setting[float](1.0, on_change='_on_scale')
 
     def __init__(self, registry=None):
         super().__init__(registry)
@@ -143,11 +143,11 @@ def test_on_change_not_fired_same_value():
 
 ```python
 def test_round_trip():
-    from haywire.core.settings import Settings, field, shadow, watch
+    from haywire.core.settings import Settings, setting, shadow, watch
 
     class MySettings(Settings):
-        threshold = field[float](0.5)
-        mode = field[str]('fast')
+        threshold = setting[float](0.5)
+        mode = setting[str]('fast')
 
     s = MySettings()
     s.threshold = 0.8
@@ -214,14 +214,14 @@ Always use `use_temp_settings=True` to avoid reading from `~/.haywire/settings.t
 
 ```python
 from haywire.core.node import BaseNode, node
-from haywire.core.settings import NodeSettings, field, shadow, watch
+from haywire.core.settings import NodeSettings, setting, shadow, watch
 
 
 def test_node_settings_direct_access():
     @node(label='Test Node')
     class _TestNode(BaseNode):
         class filter(NodeSettings):
-            threshold = field[float](0.7)
+            threshold = setting[float](0.7)
 
     wrapper = type('W', (), {'node_id': 'w1', 'notify': lambda *a: None})()
     n = _TestNode('n1', wrapper)
@@ -236,7 +236,7 @@ def test_node_settings_serialization():
     @node(label='Serial Node')
     class _SerialNode(BaseNode):
         class filter(NodeSettings):
-            strength = field[float](0.5)
+            strength = setting[float](0.5)
 
     wrapper = type('W', (), {'node_id': 'w1', 'notify': lambda *a: None})()
     n = _SerialNode('n1', wrapper)

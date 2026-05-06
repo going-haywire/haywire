@@ -83,7 +83,7 @@ class NodeData:
         _registry = get_settings_registry()
         for _bag_name, _bag_cls in type(self)._settings_bags.items():
             _bag_instance: Settings = _bag_cls(registry=_registry)
-            _bag_instance._subscribe_fields()
+            _bag_instance._subscribe_settings()
             object.__setattr__(self, _bag_name, _bag_instance)
 
         # Cache (transient, NOT serialized)

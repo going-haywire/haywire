@@ -5,7 +5,7 @@ Tests for FrameworkSettings and LibrarySettings rebased on Settings.
 Verifies:
 - FrameworkSettings/LibrarySettings extend Settings (setting descriptor works)
 - _prop_fields() returns expected descriptors
-- namespace= kwarg sets _field_key on all settings
+- namespace= kwarg sets _setting_key on all settings
 - Deep inheritance (subclassing a GS/LS subclass) raises TypeError
 - Class-level access returns the setting descriptor (for mirrors=)
 - Registry reads _prop_fields() correctly
@@ -37,18 +37,18 @@ class TestFrameworkSettingsExtendsSettings:
             alpha = setting[int](7, label="Alpha")
             beta = setting[str]("hello", label="Beta")
 
-        fields = BarGS._property_fields()
+        fields = BarGS._property_settings()
         assert "alpha" in fields
         assert "beta" in fields
         assert isinstance(fields["alpha"], setting)
         assert isinstance(fields["beta"], setting)
 
-    def test_namespace_sets_field_key(self):
+    def test_namespace_sets_setting_key(self):
         class NsGS(FrameworkSettings, namespace="ns.test"):
             val = setting[float](3.14)
 
-        fields = NsGS._property_fields()
-        assert fields["val"]._field_key == "ns.test.val"
+        fields = NsGS._property_settings()
+        assert fields["val"]._setting_key == "ns.test.val"
 
     def test_class_level_access_returns_descriptor(self):
         """Class-level access returns the setting descriptor (used for mirrors=)."""
@@ -58,15 +58,15 @@ class TestFrameworkSettingsExtendsSettings:
 
         assert isinstance(ClsGS.count, setting)
 
-    def test_no_namespace_does_not_set_field_key(self):
-        """Without namespace=, _field_key is empty (set by decorator or register_schema)."""
+    def test_no_namespace_does_not_set_setting_key(self):
+        """Without namespace=, _setting_key is empty (set by decorator or register_schema)."""
 
         class NoNsGS(FrameworkSettings):
             val = setting[int](5)
 
-        fields = NoNsGS._property_fields()
-        # _field_key should NOT be set since no namespace
-        assert fields["val"]._field_key == ""
+        fields = NoNsGS._property_settings()
+        # _setting_key should NOT be set since no namespace
+        assert fields["val"]._setting_key == ""
 
 
 # ---------------------------------------------------------------------------
@@ -82,7 +82,7 @@ class TestLibrarySettingsExtendsSettings:
         class FooLS(LibrarySettings):
             rate = setting[int](4, min=1, max=20)
 
-        fields = FooLS._property_fields()
+        fields = FooLS._property_settings()
         assert "rate" in fields
         assert isinstance(fields["rate"], setting)
 
@@ -180,17 +180,17 @@ class TestRegistryReadsPropFields:
         finally:
             os.unlink(path)
 
-    def test_settings_decorator_sets_field_keys(self):
-        """@settings decorator sets _field_key on all settings via _prop_fields()."""
+    def test_settings_decorator_sets_setting_keys(self):
+        """@settings decorator sets _setting_key on all settings via _prop_fields()."""
 
         @settings(namespace="dec.ls")
         class DecLS(LibrarySettings):
             speed = setting[float](1.0)
             mode = setting[str]("fast")
 
-        fields = DecLS._property_fields()
-        assert fields["speed"]._field_key == "dec.ls.speed"
-        assert fields["mode"]._field_key == "dec.ls.mode"
+        fields = DecLS._property_settings()
+        assert fields["speed"]._setting_key == "dec.ls.speed"
+        assert fields["mode"]._setting_key == "dec.ls.mode"
 
     def test_no_setting_descriptor_in_codebase(self):
         """SettingDescriptor no longer exists — importing it raises ImportError."""

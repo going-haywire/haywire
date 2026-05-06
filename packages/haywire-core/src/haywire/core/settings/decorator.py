@@ -38,7 +38,7 @@ def settings(namespace: str, label: str = "", description: str = ""):
     Decorator for library settings classes.
 
     Sets class_identity (required by BaseRegistry), class_library (for hot-reload),
-    _namespace, and _field_key on all descriptor fields (namespace known at decoration time).
+    _namespace, and _setting_key on all descriptor fields (namespace known at decoration time).
 
     Args:
         namespace:   Dot-separated sub-namespace (e.g. 'ui.info').
@@ -90,9 +90,9 @@ def settings(namespace: str, label: str = "", description: str = ""):
         inner_cls._namespace = namespace
         inner_cls.class_library = library_identity
 
-        # Set _field_key on all prop descriptors (namespace known at decoration time)
-        for name, descriptor in inner_cls._property_fields().items():
-            descriptor._field_key = f"{namespace}.{name}"
+        # Set _setting_key on all prop descriptors (namespace known at decoration time)
+        for name, descriptor in inner_cls._property_settings().items():
+            descriptor._setting_key = f"{namespace}.{name}"
 
         return inner_cls
 

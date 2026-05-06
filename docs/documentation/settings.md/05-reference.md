@@ -6,12 +6,12 @@ Complete API documentation for the Haywire settings system.
 
 ## Enums
 
-### `FieldMode`
+### `SettingMode`
 
 ```python
-from haywire.core.settings import FieldMode
+from haywire.core.settings import SettingMode
 
-class FieldMode(Enum):
+class SettingMode(Enum):
     INHERIT  = auto()  # No opinion — defer to next tier up
     EXPLICIT = auto()  # Deliberate value — wins unless OVERRIDEd
     OVERRIDE = auto()  # Forced — wins over everything below
@@ -33,7 +33,7 @@ Icon  = str  # material icon name — implies icon-picker widget
 ## Node-Author API
 
 ```python
-from haywire.core.settings import NodeSettings, field, shadow, watch, Color, Icon
+from haywire.core.settings import NodeSettings, setting, shadow, watch, Color, Icon
 ```
 
 ### `NodeSettings`
@@ -44,20 +44,20 @@ Base class for node-local settings. Declare as an inner class on a `@node` class
 @node(label="My Node")
 class MyNode(BaseNode):
     class filter(NodeSettings):
-        threshold = field[float](0.5, min=0.0, max=1.0, label='Threshold')
+        threshold = setting[float](0.5, min=0.0, max=1.0, label='Threshold')
 ```
 
-`NodeSettings` are never registered with `SettingsRegistry`. The `@node` decorator assigns `_field_key` to each descriptor, and the node instance injects the registry for mirror/watch resolution.
+`NodeSettings` are never registered with `SettingsRegistry`. The `@node` decorator assigns `_setting_key` to each descriptor, and the node instance injects the registry for mirror/watch resolution.
 
-### `field(default=None, *, ...)`
+### `setting(default=None, *, ...)`
 
-Declare a field on a `NodeSettings`, `FrameworkSettings`, or `LibrarySettings` class.
+Declare a setting on a `NodeSettings`, `FrameworkSettings`, or `LibrarySettings` class.
 
 ```python
-threshold = field[float](0.5, min=0.0, max=1.0, label='Threshold')
-algorithm = field[str]('fast', choices=['fast', 'accurate'])
-color = field[Color]('#ffffff', label='Background')
-verbose = field[bool](False, on_change='hb_on_verbose_change')
+threshold = setting[float](0.5, min=0.0, max=1.0, label='Threshold')
+algorithm = setting[str]('fast', choices=['fast', 'accurate'])
+color = setting[Color]('#ffffff', label='Background')
+verbose = setting[bool](False, on_change='hb_on_verbose_change')
 ```
 
 | Parameter | Type | Description |
@@ -71,7 +71,7 @@ verbose = field[bool](False, on_change='hb_on_verbose_change')
 | `choices` | `list \| dict \| Callable \| None` | Dropdown options |
 | `widget` | `str \| None` | Explicit widget hint |
 | `on_change` | `str \| None` | Node method name called on change |
-| `mirrors` | `FieldDescriptor \| str \| None` | Source descriptor or full key to mirror |
+| `mirrors` | `SettingDescriptor \| str \| None` | Source descriptor or full key to mirror |
 | `read_only` | `bool` | If `True`, instance writes raise `AttributeError` |
 | `type_` | `type \| None` | Explicit type (inferred from default if omitted) |
 | `stored` | `bool` | If `False`, excluded from serialization |
@@ -83,8 +83,8 @@ Descriptor attributes (set after construction):
 | Attribute | Set by | Description |
 | --------- | ------ | ----------- |
 | `_attr_name` | `__set_name__` | Python attribute name on the class |
-| `_field_key` | `@node` / `namespace=` | Full dot-notation key for TOML resolution |
-| `_mirror_key` | `mirrors=` | Full key of the mirrored global field |
+| `_setting_key` | `@node` / `namespace=` | Full dot-notation key for TOML resolution |
+| `_mirror_key` | `mirrors=` | Full key of the mirrored global setting |
 
 #### `choices` — three accepted forms
 
@@ -94,7 +94,7 @@ Descriptor attributes (set after construction):
 | `{'a': 'Label A', 'b': 'Label B'}` | Dict `{stored_value: display_label}` |
 | `lambda: [...]` or `lambda: {...}` | Callable — evaluated at render time |
 
-### `shadow(src, **kwargs) -> field`
+### `shadow(src, **kwargs) -> setting`
 
 Writable mirror of `src`. Inherits `_label`, `_default`, `_type`, `_choices`, `_widget`, `_min`, `_max` from the source. Per-instance writes are allowed and stored in the graph.
 
@@ -104,7 +104,7 @@ bg_color = shadow(NodeUISettings.bg_color, label='Node Background')  # override 
 bg_color = shadow("ui.node.bg_color")  # raw key form
 ```
 
-### `watch(src, **kwargs) -> field`
+### `watch(src, **kwargs) -> setting`
 
 Read-only mirror of `src`. Same inheritance as `shadow()`. Any write attempt raises `AttributeError`. The field is invisible in settings panels and never serialized.
 
@@ -188,14 +188,14 @@ Returns all user-declared settings instances for this node.
 Base class for framework/app-defined settings.
 
 ```python
-from haywire.core.settings import FrameworkSettings, field
+from haywire.core.settings import FrameworkSettings, setting
 
 class ExecutionSettings(FrameworkSettings, namespace='execution'):
-    max_threads = field[int](4,     label='Max Threads')
-    timeout_ms = field[float](5000., label='Timeout (ms)')
+    max_threads = setting[int](4,     label='Max Threads')
+    timeout_ms = setting[float](5000., label='Timeout (ms)')
 ```
 
-- `namespace=` kwarg triggers `__init_subclass__` to wire `_field_key` on every descriptor and queue the class in `_pending_global`.
+- `namespace=` kwarg triggers `__init_subclass__` to wire `_setting_key` on every descriptor and queue the class in `_pending_global`.
 - `SettingsRegistry.__init__` drains `_pending_global` and writes `cls._registry = self`.
 - After registration, `ExecutionSettings()` with no args is fully registry-wired.
 - Deep inheritance (subclassing a `FrameworkSettings` subclass) is blocked.
@@ -205,15 +205,15 @@ class ExecutionSettings(FrameworkSettings, namespace='execution'):
 Base class for library plugin-defined settings. Must be decorated with `@settings`.
 
 ```python
-from haywire.core.settings import LibrarySettings, field
+from haywire.core.settings import LibrarySettings, setting
 from haywire.core.settings.decorator import settings
 
 @settings(namespace='my_lib', label='My Library')
 class MyLibSettings(LibrarySettings):
-    api_url = field[str]('https://api.example.com')
+    api_url = setting[str]('https://api.example.com')
 ```
 
-- `@settings` sets `class_identity` (required by `BaseRegistry._class_filter`), `class_library`, `_namespace`, and `_field_key` on all descriptors. Without it the class is invisible to the hot-reload registry.
+- `@settings` sets `class_identity` (required by `BaseRegistry._class_filter`), `class_library`, `_namespace`, and `_setting_key` on all descriptors. Without it the class is invisible to the hot-reload registry.
 - Registration is via `BaseRegistry` hot-reload machinery (inherited by `SettingsRegistry`).
 - After registration, `cls._registry` is set and `MyLibSettings()` is fully wired.
 - Deep inheritance is blocked.
@@ -241,7 +241,7 @@ Sets on the class:
 - `class_identity: SettingsClassIdentity` — `namespace`, `registry_key`, `label`
 - `_namespace: str`
 - `_auto_register: bool = True`
-- `_field_key` on each descriptor field
+- `_setting_key` on each descriptor field
 
 ---
 
@@ -259,21 +259,21 @@ registry = get_settings_registry()
 
 Explicitly register a `FrameworkSettings` or `LibrarySettings` class. Also writes `cls._registry = self`.
 
-### `define(name, default, type_=None, label=None, description='', category='root', metadata=None, **kwargs) -> field`
+### `define(name, default, type_=None, label=None, description='', category='root', metadata=None, **kwargs) -> setting`
 
-Programmatically define a setting. `metadata` is stored on the returned `field` descriptor as `._metadata`.
+Programmatically define a setting. `metadata` is stored on the returned `setting` descriptor as `._metadata`.
 
 ### `has_definition(name) -> bool`
 
-### `get_definition(name) -> field | None`
+### `get_definition(name) -> setting | None`
 
-### `all_definitions() -> dict[str, field]`
+### `all_definitions() -> dict[str, setting]`
 
-### `get_global(name) -> FieldValue`
+### `get_global(name) -> SettingValue`
 
-Returns `FieldValue(mode=INHERIT)` if the key is unknown.
+Returns `SettingValue(mode=INHERIT)` if the key is unknown.
 
-### `set_global(name, value, mode=FieldMode.EXPLICIT) -> None`
+### `set_global(name, value, mode=SettingMode.EXPLICIT) -> None`
 
 ### `reset_global(name) -> None`
 
@@ -283,7 +283,7 @@ Reset to `INHERIT`.
 
 Returns `(value, source)` where source is one of `'global_override'`, `'workspace_override'`, `'local'`, `'workspace'`, `'global'`, `'default'`.
 
-- `local`: optional `FieldValue` representing the per-instance override.
+- `local`: optional `SettingValue` representing the per-instance override.
 
 ### `load_from_toml(path, tier='workspace', watch=False) -> None`
 

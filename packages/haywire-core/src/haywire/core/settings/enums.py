@@ -6,7 +6,7 @@ Enums for the settings system.
 from enum import Enum, auto
 
 
-class FieldMode(Enum):
+class SettingMode(Enum):
     """How a setting value should be resolved."""
 
     INHERIT = auto()  # No opinion — defer to next tier up

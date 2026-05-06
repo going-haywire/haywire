@@ -37,7 +37,7 @@ from .descriptor import setting, shadow, watch
 
 if TYPE_CHECKING:
     from haywire.core.settings.registry import SettingsRegistry
-    from haywire.core.settings.value import FieldValue
+    from haywire.core.settings.value import SettingValue
 
 logger = logging.getLogger(__name__)
 
@@ -73,8 +73,8 @@ class Settings:
         Full resolution chain (extended mode):
             global OVERRIDE > workspace OVERRIDE > local SET > workspace SET > global SET > default
         """
-        from haywire.core.settings.value import FieldValue
-        from haywire.core.settings.enums import FieldMode
+        from haywire.core.settings.value import SettingValue
+        from haywire.core.settings.enums import SettingMode
 
         registry = self._registry
         assert (
@@ -82,7 +82,7 @@ class Settings:
         )  # _resolve only called from extended mode (descriptor gates on _registry is not None)
         key = mirror_key if mirror_key else field_key
         local_sv = (
-            FieldValue(mode=FieldMode.EXPLICIT, value=self._local_store[field_key])
+            SettingValue(mode=SettingMode.EXPLICIT, value=self._local_store[field_key])
             if field_key in self._local_store
             else None
         )
@@ -98,18 +98,18 @@ class Settings:
         except KeyError:
             return _resolve_default(self._local_store.get(field_key, default))
 
-    def _subscribe_fields(self) -> None:
-        """Subscribe all fields that have a _mirror_key. Delegates to _subscribe_field."""
-        for descriptor in type(self)._property_fields().values():
-            self._subscribe_field(descriptor)
+    def _subscribe_settings(self) -> None:
+        """Subscribe all fields that have a _mirror_key. Delegates to _subscribe_setting."""
+        for descriptor in type(self)._property_settings().values():
+            self._subscribe_setting(descriptor)
 
-    def _subscribe_field(self, descriptor: setting) -> None:
+    def _subscribe_setting(self, descriptor: setting) -> None:
         """Subscribe a single field's _mirror_key to the registry (extended mode, no-op if no registry)."""
         if self._registry is None or not descriptor._mirror_key:
             return
         self._registry.subscribe(descriptor._mirror_key, self._on_field_change)
 
-    def _on_field_change(self, full_key: str, value: "FieldValue") -> None:
+    def _on_field_change(self, full_key: str, value: "SettingValue") -> None:
         """
         Dispatched by the registry when a mirrored field's effective value changes.
 
@@ -119,15 +119,15 @@ class Settings:
 
         A global OVERRIDE beats all local values, so the callback always fires then.
         """
-        from haywire.core.settings.enums import FieldMode
+        from haywire.core.settings.enums import SettingMode
 
         if self._cleaned_up:
             return
-        for attr_name, descriptor in type(self)._property_fields().items():
+        for attr_name, descriptor in type(self)._property_settings().items():
             if descriptor._mirror_key != full_key:
                 continue
-            field_key = descriptor._field_key or attr_name
-            if field_key in self._local_store and value.mode != FieldMode.OVERRIDE:
+            field_key = descriptor._setting_key or attr_name
+            if field_key in self._local_store and value.mode != SettingMode.OVERRIDE:
                 continue
             new_val = getattr(self, attr_name)
             self._on_property_change(attr_name, new_val, None, descriptor._on_change or "")
@@ -140,7 +140,7 @@ class Settings:
         """Register ``callback(name, value, old)`` called on any setting change."""
         if callback not in self._callbacks:
             self._callbacks.append(callback)
-        self._subscribe_fields()
+        self._subscribe_settings()
 
     def unsubscribe(self, callback: Callable) -> None:
         """Remove a previously registered callback."""
@@ -183,14 +183,14 @@ class Settings:
         Simple mode: any field whose current value differs from its default.
         read_only (mirrored) fields are never serialized.
         """
-        fields = type(self)._property_fields()
+        fields = type(self)._property_settings()
         result: dict = {}
         for name, descriptor in fields.items():
             if descriptor._read_only:
                 continue
             if not descriptor._stored:
                 continue
-            key = descriptor._field_key if descriptor._field_key else name
+            key = descriptor._setting_key if descriptor._setting_key else name
             if key in self._local_store:
                 val = self._local_store[key]
                 if val != descriptor._default:
@@ -214,7 +214,7 @@ class Settings:
         Unknown keys are silently ignored (forward compatibility).
         read_only fields are silently skipped.
         """
-        fields = type(self)._property_fields()
+        fields = type(self)._property_settings()
         for attr_name, value in data.items():
             if attr_name not in fields:
                 continue
@@ -222,7 +222,7 @@ class Settings:
             if descriptor._read_only:
                 continue
             if silent:
-                key = descriptor._field_key if descriptor._field_key else attr_name
+                key = descriptor._setting_key if descriptor._setting_key else attr_name
                 self._local_store[key] = value
             else:
                 setattr(self, attr_name, value)
@@ -233,11 +233,11 @@ class Settings:
 
     def reset(self, name: str) -> None:
         """Reset a single field to its descriptor default (removes local override)."""
-        fields = type(self)._property_fields()
+        fields = type(self)._property_settings()
         if name not in fields:
             raise KeyError(f"No setting '{name}' on {type(self).__name__}")
         descriptor = fields[name]
-        key = descriptor._field_key if descriptor._field_key else name
+        key = descriptor._setting_key if descriptor._setting_key else name
         if key in self._local_store:
             old = self._local_store.pop(key)
             new = descriptor._default
@@ -246,7 +246,7 @@ class Settings:
 
     def reset_all(self) -> None:
         """Reset all fields to their defaults (clear all local overrides)."""
-        for name in type(self)._property_fields():
+        for name in type(self)._property_settings():
             self.reset(name)
 
     # -------------------------------------------------------------------------
@@ -264,15 +264,15 @@ class Settings:
 
     def is_locally_set(self, name: str) -> bool:
         """Return True if *name* has a local instance override."""
-        fields = type(self)._property_fields()
+        fields = type(self)._property_settings()
         if name not in fields:
             return False
         descriptor = fields[name]
-        key = descriptor._field_key if descriptor._field_key else name
+        key = descriptor._setting_key if descriptor._setting_key else name
         return key in self._local_store
 
     @classmethod
-    def _property_fields(cls) -> dict[str, setting]:
+    def _property_settings(cls) -> dict[str, setting]:
         """Return all setting descriptors defined on this class (walks MRO, base-first)."""
         result: dict[str, setting] = {}
         for klass in reversed(cls.__mro__):

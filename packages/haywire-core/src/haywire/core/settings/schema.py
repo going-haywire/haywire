@@ -77,18 +77,18 @@ class FrameworkSettings(Settings):
         if namespace:
             cls._namespace = namespace
 
-            for name, val in cls._property_fields().items():
+            for name, val in cls._property_settings().items():
                 if val._mirror_key:
                     raise TypeError(
                         f"mirrors= is not allowed in FrameworkSettings: '{cls.__name__}.{name}'. "
                         f"Use plain field() without mirrors=, shadow(), or watch()."
                     )
-                val._field_key = f"{namespace}.{name}"
+                val._setting_key = f"{namespace}.{name}"
                 # we need to set _mirror_key because in this class it is in fact
                 # a mirror of itself for resolution and subscription purposes
                 # we don't want the user to set mirrors because this would
                 # silently break the resolution and subscription machinery
-                val._mirror_key = val._field_key
+                val._mirror_key = val._setting_key
 
             # Self-registration: queue or register immediately
             if FrameworkSettings._registry is not None:
@@ -100,9 +100,9 @@ class FrameworkSettings(Settings):
 
     def __init__(self) -> None:
         super().__init__(registry=type(self)._registry)
-        for descriptor in type(self)._property_fields().values():
+        for descriptor in type(self)._property_settings().values():
             if descriptor._on_change:
-                self._subscribe_field(descriptor)
+                self._subscribe_setting(descriptor)
 
 
 class LibrarySettings(Settings):
@@ -136,23 +136,23 @@ class LibrarySettings(Settings):
         if namespace:
             cls._namespace = namespace
 
-            for name, val in cls._property_fields().items():
+            for name, val in cls._property_settings().items():
                 if val._mirror_key:
                     raise TypeError(
                         f"mirrors= is not allowed in LibrarySettings: '{cls.__name__}.{name}'. "
                         f"Use plain field() without mirrors=, shadow(), or watch()."
                     )
-                val._field_key = f"{namespace}.{name}"
+                val._setting_key = f"{namespace}.{name}"
                 # we need to set _mirror_key because in this class it is in fact
                 # a mirror of itself for resolution and subscription purposes
                 # we don't want the user to set mirrors because this would
                 # silently break the resolution and subscription machinery
-                val._mirror_key = val._field_key
+                val._mirror_key = val._setting_key
 
         # No registry touch here — registration handled by BaseRegistry hot-reload path
 
     def __init__(self) -> None:
         super().__init__(registry=type(self)._registry)
-        for descriptor in type(self)._property_fields().values():
+        for descriptor in type(self)._property_settings().values():
             if descriptor._on_change:
-                self._subscribe_field(descriptor)
+                self._subscribe_setting(descriptor)
