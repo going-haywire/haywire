@@ -107,19 +107,39 @@ class Library(BaseLibrary):
     def register_components(self) -> None:
         base_path = Path(__file__).parent
 
+        # Recommended folder-scan order — matches the framework's
+        # registry-subscriber chain (settings → state → consumers):
+        self.add_folder_to_registry(
+            folder_path=str(base_path / "settings"),
+            registry_cls=SettingsRegistry,
+        )
         self.add_folder_to_registry(
             folder_path=str(base_path / "state"),
             registry_cls=LibraryStateRegistry,
         )
-        # ... other registrations
+        self.add_folder_to_registry(
+            folder_path=str(base_path / "nodes"),
+            registry_cls=NodeRegistry,
+        )
+        # ... panels, editors, themes, etc.
 ```
 
+**Recommended folder-scan order:** settings → state → nodes / panels /
+editors / themes. This mirrors the framework's hot-reload propagation
+chain: `SettingsRegistry → LibraryStateRegistry → NodeRegistry`,
+`PanelRegistry`, `EditorTypeRegistry`. Following the same order in
+`register_components()` keeps initial-load ordering aligned with
+hot-reload propagation, so a `LibraryState` whose `on_enable` reads a
+`LibrarySettings()` value finds the schema already wired, and node /
+panel / editor classes that import a `LibraryState` for use as a
+`ctx.data[Cls]` key resolve it during their own scan.
+
 Folder scan discovers every `LibraryState` subclass in the folder and
-registers it. Discovery order is alphabetical; if one LibraryState's
-`on_enable` depends on another already being initialised, the dependent
-library should declare `dependencies=` on its `@library` decorator (the
-existing inter-library dependency mechanism applies — no new ordering
-machinery is added).
+registers it. Discovery order within a folder is alphabetical; if one
+LibraryState's `on_enable` depends on another already being initialised,
+the dependent library should declare `dependencies=` on its `@library`
+decorator (the existing inter-library dependency mechanism applies — no
+new ordering machinery is added).
 
 ### 2.3 Access
 
