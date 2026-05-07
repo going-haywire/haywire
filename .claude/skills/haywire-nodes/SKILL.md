@@ -9,9 +9,14 @@ Read the following documentation files in order and use them as the authoritativ
 
 ## Files to read
 
-1. `internals/documentation/Creating_Nodes.md` — full guide to writing `@node` decorated classes: `init()`, `worker()`, node types, menu paths, lifecycle callbacks
-2. `internals/documentation/Defining_DataPorts_inside_Nodes.md` — `self.add()` calls, port directions (inlet/outlet/config), `FlowType`, `allow_multiple`, `on_change`, `on_connect`, `on_disconnect`
-3. `internals/documentation/Defining_DataTypes.md` — `PrimitiveType`, `BaseType`, `CompoundType`, child→parent passthrough, adapter chains, `PooledType`
+1. `docs/components/nodes/node-canon.md` — `@node` decorated classes, lifecycle hooks (`init`, `post_init`, `on_startup`, `on_validate`, `worker`, `on_frame_start`/`end`, `on_shutdown`, `on_saved`, `on_teardown`), worker contract (parameter-name = inlet ID), return values, `rejig()` for dynamic ports, groups & sections, `hb_*` prefix convention
+2. `docs/components/ports/port-canon.md` — `as_inlet` / `as_outlet` / `as_config`, port flags, primitive vs `ArrayType[T]` vs `PooledType[T]`, worker access patterns (`self.value(id)`, `self.out(id, v)`, `self.ports[id].is_linked()`), connection-state checks, common pitfalls
+3. `docs/components/datatypes/datatype-canon.md` — `@type` decorator, `PrimitiveType[T]`, `BaseType` (`@dataclass`), `CompoundType[T]` (`ArrayType`, `PooledType`), child→parent passthrough, `default` dict format, custom `field_class` for type coercion, derived primitives
+
+Optional context (load if the task touches them):
+
+- `docs/components/adapters/adapter-canon.md` — type-pair adapters with `@adapter`, `BaseAdapter.convert()`, chain resolution
+- `docs/components/widgets/widget-canon.md` — UI widgets bound to types via `compatible_types`
 
 ## After reading
 

@@ -9,20 +9,25 @@ Read the following documentation files in order and use them as the authoritativ
 
 ## Files to read
 
-1. `internals/documentation/build_editors.md` — how to create a `BaseEditor` subclass, the `@editor` decorator, registration in `app.py`, and how editors interact with `SessionContext`
-2. `internals/documentation/build_panels.md` — how to create a `BasePanel` subclass, the `@panel` decorator, poll/draw lifecycle, and panel-to-editor binding
-3. `internals/documentation/architecture/haywire_app.md` — overall `HaywireApp` structure: shared services, session lifecycle, `project_state` wiring
-4. `internals/documentation/architecture/app_ui/haywire-ui-architecture-spec_details.md` — detailed spec of the full workspace layout (AppShell, areas, tabs, ActivityBar, ContextBar, WorkspaceState, WorkspaceManager)
+1. `docs/components/editors/editor-canon.md` — `@editor` decorator (`label`, `default_slot`, `opens` — `OpenBehavior` enum: `REQUIRED` / `ON_CONTEXT` / `ON_PAYLOAD`), `BaseEditor` lifecycle (`render(container, context)`, `on_focus(slot, context)`, `on_context_changed(event, context)`, `cleanup`), context-driven rendering
+2. `docs/components/panels/panel-canon.md` — `@panel(editor='...', focus=...)` decorator, `BasePanel` lifecycle (`poll(cls, context)` classmethod, `draw(self, context, layout)` instance method), `PanelLayout` API, `Focus` classes (`NodeFocus` / `EdgeFocus` / `GraphFocus`), ordering, panel-aware editor hosting
+3. `docs/architecture/studio/studio-arch.md` — the studio as a product: 4-slot layout (Left / Main / Right / Bottom), TopBar / ActivityBar / ContextBar / StatusBar, `WorkspaceState` + presets, `Session` + `SessionContext`, context events, cross-session broadcast
+
+Optional context (load if the task touches them):
+
+- `docs/architecture/session-and-state/session-and-state-arch.md` — `AppState` / `SessionState` taxonomy, `LibraryStateRegistry`, container subscription, lifecycle
+- `docs/reference/design-guide.md` — visual / UX rules, design tokens, `hui` API patterns
 
 ## After reading
 
 Summarise in 6–10 bullet points:
-- The `@editor` / `@panel` decorator contract (what fields are required, what they do)
-- The `BaseEditor.render(container, context)` and `on_context_changed(event, context)` contract
-- How editors are registered (`_editor_registry._register_class()` in `setup_shared_services()`)
-- How middle-area tab switching works (`context.metadata['middle_tabs'].set_value(...)`)
-- What `SessionContext` carries and how `context.metadata` is used for app-specific state
-- How `ContextChangedEvent` / `ContextChangeType` is used to broadcast state changes
-- Any gotchas called out in the docs (NiceGUI slot context rules, per-session vs shared state, etc.)
+- The `@editor` / `@panel` decorator contract — `default_slot` constraints (Left/Right are `REQUIRED`-only), `opens` enum, `editor=` + `focus=` for panels
+- `BaseEditor.render(container, context)` and `on_context_changed(event, context)` contract — keep `on_context_changed` fast, filter by `event.change_type`
+- `BasePanel.poll(cls, context)` (classmethod, fast) vs `draw(self, context, layout)` (instance, called only after poll=True)
+- The 4-slot layout (Left / Main / Right / Bottom) and which `default_slot` each editor targets
+- `SessionContext` fields (`active_node`, `active_edge`, etc.) and the two state namespaces — `ctx.app_data[Cls]` (AppState) and `ctx.data[Cls]` (SessionState)
+- `ContextChangedEvent` flow + `reveal_editor` field (NOT the old `metadata['main_tabs']` / `metadata['bottom_tabs']` shims — those were removed)
+- `EditorTypeRegistry` / `PanelRegistry` are `BaseRegistry` subclasses → hot-reload aware; new classes picked up at next render boundary
+- NiceGUI slot context rules: only call `ui.*` inside `render()` / `draw()`; don't cache `ctx.app_data[Cls]` in long-lived `__init__` (stale on hot-reload)
 
 Then proceed with the user's task using these patterns as the guide.

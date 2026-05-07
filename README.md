@@ -118,9 +118,10 @@ Haywire is organized as a **uv workspace monorepo**:
 haywire-repo/
 ├── pyproject.toml                  # workspace root (not a package itself)
 ├── uv.lock
+├── mkdocs.yml                      # docs site config (Material theme)
 ├── tests/                          # framework tests
 ├── playground/                     # scratch scripts and experiments
-├── internals/
+├── docs/                           # published documentation (perspective-organised)
 ├── scripts/
 ├── saves/
 │

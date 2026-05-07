@@ -9,8 +9,13 @@ Read the following documentation files in order and use them as the authoritativ
 
 ## Files to read
 
-1. `internals/documentation/Library_System_Developer_Guide.md` — practical guide: `@library` decorator, `BaseLibrary`, `register_components()`, `pyproject.toml` entry points, hot-reload via `file_watcher=True`
-2. `internals/documentation/architecture/Library_System_Technical_Reference.md` — technical reference: `LibraryRegistry`, `NodeRegistry`, `SkinRegistry`, discovery via `importlib.metadata`, `LibraryManager` runtime install/uninstall, disable/enable lifecycle
+1. `docs/components/libraries/library-canon.md` — practical guide: `@library` decorator, `BaseLibrary`, `register_components()`, hot-reload via `file_watcher=True`, the `Library` class authoring contract
+2. `docs/components/haybale-package/haybale-package-canon.md` — packaging: `pyproject.toml` entry points, folder layout, `haybale-` naming, install/build/publish workflow, `marketplace.toml` distribution
+3. `docs/architecture/library-system/library-system-arch.md` — runtime infrastructure: `LibraryRegistry`, `LibraryDiscovery`, `LibraryIdentity`, `FileWatcher`, install-type detection, registry-of-registries pattern, hot-reload pipeline
+4. `docs/architecture/library-manager/library-manager-arch.md` — studio's package-manager UI internals: install pipeline, marketplace feed mechanism, source viewer, doc rendering
+
+Note on the **five meanings of "library"** in haywire (see `docs/reference/glossary.md` "Library — five distinct meanings"):
+1 = `BaseLibrary` (authoring) → file 1; 2 = Library System (runtime) → file 3; 3 = Haybale package (distribution) → file 2; 4 = Library Manager (studio UI) → file 4; 5 = LibrarySettings/LibraryState → see `docs/components/{settings,states}/` canons.
 
 ## After reading
 

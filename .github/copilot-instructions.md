@@ -18,9 +18,10 @@ Haywire is a Blueprint-inspired visual programming system that combines **execut
 haywire-repo/
 ├── pyproject.toml                          # workspace root (NOT a package)
 ├── uv.lock
+├── mkdocs.yml                              # docs site config (Material theme)
 ├── tests/                                  # tests for haywire-core
 ├── playground/                             # scratch/experiment scripts
-├── internals/
+├── docs/                                   # published documentation
 ├── scripts/
 ├── saves/
 │

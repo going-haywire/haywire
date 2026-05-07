@@ -9,10 +9,8 @@ Read the following documentation files in order and use them as the authoritativ
 
 ## Files to read
 
-1. `internals/documentation/settings.md/01-overview.md` — architecture overview: three containers (NodeSettings, LibrarySettings, FrameworkSettings), resolution chain (OVERRIDE > local > global SET > default), Settings, TOML tiers
-2. `internals/documentation/settings.md/02-node-development.md` — adding settings to a node: `class node(NodeSettings)`, `setting()` descriptor, attribute access via `self.settings.field`, `on_change` callbacks, `self.cache`, `self.store`, serialization
-3. `internals/documentation/settings.md/03-library-development.md` — library-level settings: `@settings(namespace=...)`, `class MyLibSettings(LibrarySettings)`, `shadow()` and `watch()` in node Settings, TOML config format, accessing via registry
-4. `internals/documentation/settings.md/05-reference.md` — complete API: `Color`/`Icon` type aliases, all descriptor constructor params, `SettingsRegistry` methods, `Settings` methods, `SettingInfo` fields, resolution algorithm
+1. `docs/components/settings/setting-canon.md` — authoring guide: three Settings classes (`NodeSettings` / `LibrarySettings` / `FrameworkSettings`), three descriptors (`setting()` / `shadow()` / `watch()`), the inner-class accessor pattern, `on_change` callbacks, the three per-node containers (`cache` / `store` / settings), panel rendering rules, complete worked example with all concepts
+2. `docs/architecture/settings/settings-arch.md` — framework mechanics: six-step resolution chain, `SettingsRegistry`, `_pending_global` auto-registration, the four key identifiers (`namespace`, `_setting_key`, `registry_key`, `scope`), TOML format, hot-reload behaviour, mirror cache invalidation, full registry API reference, test utilities (`create_test_settings_registry`, `create_test_bag`, `SettingsTestContext`), Playwright UI harness
 
 ## After reading
 

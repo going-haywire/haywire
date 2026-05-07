@@ -9,8 +9,13 @@ Read the following documentation files in order and use them as the authoritativ
 
 ## Files to read
 
-1. `internals/documentation/Assembly_Execution_System.md` — Graph → Assembly → Flow → VM pipeline: `LocalizedDataFlow`, topological sort, VM two-stack model (done-stack + loopback-stack), lazy bitmasks (`EVAL_MASK`, `LAZY_MASK`), reassembly triggers
-2. `internals/documentation/architecture/Edge_connections.md` — three-tier edge lifecycle (`link()` → `unlink()` → `detach()`), two-tier port storage (`_linked_edges` + `_all_edges`), asymmetric displacement, lazy propagation, `resolve_dirty_data()`, `pull_lazy()`, deferred `on_change`
+1. `docs/architecture/execution/assembly/assembly-arch.md` — Graph → Assembly → Flow pipeline: `FlowAssemblyManager`, event-node identification, `LocalizedDataFlow`, lazy bitmasks (`EVAL_MASK`, `LAZY_MASK`), JIT reassembly triggers
+2. `docs/architecture/execution/edges/edges-arch.md` — 4-stage `EdgeWrapper.build()` pipeline, three-tier edge lifecycle (`link()` → `unlink()` → `detach()`), two-tier port storage (`_linked_edges` + `_all_edges`), asymmetric displacement, lazy propagation, `resolve_dirty_data()`, `pull_lazy()`, deferred `on_change`, `ValidationManager` priority system
+
+Optional context (load if the task needs it):
+
+- `docs/architecture/execution/callbacks/callbacks-arch.md` — `FlowType.CALLBACK` edges, cross-flow triggers, edge-based vs string-based mode, assembly-time wiring
+- `docs/architecture/hot-reload/hot-reload-arch.md` — file watcher → registry events → wrapper rebuild → graph revalidation; how hot-reload affects edges and flows
 
 ## After reading
 

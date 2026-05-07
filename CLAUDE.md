@@ -51,10 +51,17 @@ uv run mypy packages/haywire-core/src/       # type checking
 
 ## Documentation
 
-When looking up how a system works (API, parameters, behaviour), check `internals/` first before reading source code.
+When looking up how a system works (API, parameters, behaviour), check `docs/` first before reading source code. Layout:
+
+- `docs/components/<area>/<area>-canon.md` — extension-point authoring guides (nodes, types, ports, adapters, settings, widgets, themes, editors, panels, states, libraries, haybale-package).
+- `docs/architecture/<area>/<area>-arch.md` — framework internals (execution pipeline, library system, hot-reload, settings resolution, session/state, studio).
+- `docs/reference/glossary.md` — canonical vocabulary, including the five distinct meanings of "library".
+- `docs/reference/design-guide.md` — visual / UX rules and design tokens.
+
+Run `uv run mkdocs serve` to preview the published site at `http://127.0.0.1:8000`.
 
 ## UI Style Guidelines
-`internals/documentation/design/haywire_ui_design_guide.md` contains guidelines for UI design and implementation. Follow these when implementing new UI features or refactoring existing ones.
+`docs/reference/design-guide.md` contains guidelines for UI design and implementation. Follow these when implementing new UI features or refactoring existing ones.
 
 ## Testing
 
