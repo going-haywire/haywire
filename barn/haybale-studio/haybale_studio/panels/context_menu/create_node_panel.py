@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from haybale_studio.panels.focuses import CanvasFocus
+from haybale_studio.focuses import CanvasFocus
 from haybale_studio.state.edit_state import EditState
 from haywire.core.node.info import NodeInfo
 from haywire.ui import elements as hui

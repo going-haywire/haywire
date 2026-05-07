@@ -51,7 +51,7 @@ class _LibraryProvidedPanel(Panel):
 def test_toolbar_includes_default_focus_ids():
     """All default_focus_ids appear in the toolbar regardless of registered panels."""
     from haybale_studio.editors.properties_editor import PropertiesEditor
-    from haybale_studio.panels.focuses import AppFocus
+    from haybale_studio.focuses import AppFocus
 
     editor = PropertiesEditor(panel_registry=PanelRegistry())
     focuses = editor._compute_toolbar_focuses()
@@ -72,7 +72,7 @@ def test_toolbar_includes_library_focus_via_registry():
 
 def test_toolbar_focuses_are_sorted_by_focus_order():
     from haybale_studio.editors.properties_editor import PropertiesEditor
-    from haybale_studio.panels.focuses import AppFocus, ExecutionFocus
+    from haybale_studio.focuses import AppFocus, ExecutionFocus
 
     editor = PropertiesEditor(panel_registry=PanelRegistry())
     focuses = editor._compute_toolbar_focuses()

@@ -20,7 +20,7 @@ from haywire.ui.skin.settings import NodeDefaultSkinSettings
 from haywire.ui.prefs.editor import EditorSettings
 
 from haybale_studio.editors.properties_editor_actions import PropertiesEditorActions
-from haybale_studio.panels.focuses import AppFocus
+from haybale_studio.focuses import AppFocus
 
 if TYPE_CHECKING:
     from haywire.ui.context import SessionContext

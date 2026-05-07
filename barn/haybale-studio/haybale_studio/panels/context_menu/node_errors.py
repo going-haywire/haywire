@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from haybale_studio.panels.focuses import NodeFocus
+from haybale_studio.focuses import NodeFocus
 from haybale_studio.editors.properties_editor_actions import PropertiesEditorActions
 from haybale_studio.state.edit_state import EditState
 from haywire.ui import elements as hui

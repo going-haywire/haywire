@@ -19,7 +19,7 @@ from haywire.core.namespaces import NAMESPACE_LIBRARY_LOG
 from haywire.core.debug.debug_settings import DebugSettings
 
 from haybale_studio.editors.properties_editor_actions import PropertiesEditorActions
-from haybale_studio.panels.focuses import ExecutionFocus
+from haybale_studio.focuses import ExecutionFocus
 
 if TYPE_CHECKING:
     from haywire.ui.context import SessionContext

@@ -324,12 +324,13 @@ class LibrarySystemService:
 
         settings_registry.add_registry_subscriber(node_registry)
         settings_registry.add_registry_subscriber(skin_registry)
-        settings_registry.add_registry_subscriber(panel_registry)
         settings_registry.add_registry_subscriber(editor_registry)
+        settings_registry.add_registry_subscriber(panel_registry)
         settings_registry.add_registry_subscriber(library_state_registry)
+
         library_state_registry.add_registry_subscriber(node_registry)
-        library_state_registry.add_registry_subscriber(panel_registry)
         library_state_registry.add_registry_subscriber(editor_registry)
+        library_state_registry.add_registry_subscriber(panel_registry)
 
         print("\n🔍 Scanning for libraries...")
         library_registry.scan_for_libraries()

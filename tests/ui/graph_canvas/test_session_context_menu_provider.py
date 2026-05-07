@@ -283,7 +283,7 @@ def test_reconnect_active_edge_no_active_edge_is_noop():
 def test_open_menu_creates_open_ctx_with_click_pos():
     """_open_menu records click_pos in _open_ctx."""
     from haybale_studio.editors.graph_canvas.handlers.context_menu_actions import NodeContextActions
-    from haybale_studio.panels.focuses import NodeFocus
+    from haybale_studio.focuses import NodeFocus
 
     provider = _make_provider()
     # _open_menu opens a Popup which requires NiceGUI runtime — patch it.
@@ -298,7 +298,7 @@ def test_open_menu_creates_open_ctx_with_click_pos():
 def test_open_menu_clears_open_ctx_on_close(monkeypatch):
     """When the popup's on_close fires, _open_ctx is set to None."""
     from haybale_studio.editors.graph_canvas.handlers.context_menu_actions import NodeContextActions
-    from haybale_studio.panels.focuses import NodeFocus
+    from haybale_studio.focuses import NodeFocus
 
     provider = _make_provider()
     popup = MagicMock()

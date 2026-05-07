@@ -17,7 +17,7 @@ from haywire.ui.panel.decorator import panel
 from haywire.ui.panel.render_utils import render_settings
 
 from haybale_studio.editors.properties_editor_actions import PropertiesEditorActions
-from haybale_studio.panels.focuses import SettingsFocus
+from haybale_studio.focuses import SettingsFocus
 from haybale_studio.state.edit_state import EditState
 
 if TYPE_CHECKING:

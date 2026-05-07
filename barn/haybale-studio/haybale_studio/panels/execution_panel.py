@@ -15,7 +15,7 @@ from haywire.ui.panel.decorator import panel
 from haywire.ui.panel.render_utils import render_schema
 
 from haybale_studio.editors.properties_editor_actions import PropertiesEditorActions
-from haybale_studio.panels.focuses import ExecutionFocus
+from haybale_studio.focuses import ExecutionFocus
 
 if TYPE_CHECKING:
     from haywire.ui.context import SessionContext
