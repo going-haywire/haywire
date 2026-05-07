@@ -2307,10 +2307,10 @@ Expected: clean lint/format, no new mypy errors, all tests pass, coverage stable
 Run:
 
 ```bash
-grep -rn "EditorBinding" packages/ barn/ tests/ docs/ 2>/dev/null
+grep -rn "EditorBinding" packages/ barn/ tests/ internals/ 2>/dev/null
 ```
 
-Expected: no matches in production code; possibly some matches in `docs/` describing past architecture (acceptable). If any production code still references `EditorBinding`, fix it.
+Expected: no matches in production code; possibly some matches in `internals/` describing past architecture (acceptable). If any production code still references `EditorBinding`, fix it.
 
 - [ ] **Step 10.3: Search for residual `self.binding` references**
 
@@ -2373,7 +2373,7 @@ If nothing to clean, skip.
 
 ---
 
-Plan complete and saved to `docs/superpowers/plans/2026-04-25-editor-wrapper-refactor.md`. Two execution options:
+Plan complete and saved to `internals/superpowers/plans/2026-04-25-editor-wrapper-refactor.md`. Two execution options:
 
 **1. Subagent-Driven (recommended)** - I dispatch a fresh subagent per task, review between tasks, fast iteration
 

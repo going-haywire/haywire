@@ -634,7 +634,7 @@ documented path.
 
 §6 sketches the boundary, but a real codebase will accumulate edge
 cases. The boundary should be an evolving documentation artifact
-in `docs/documentation/` once the reactive layer is implemented and
+in `internals/documentation/` once the reactive layer is implemented and
 real usage is observed.
 
 ---
@@ -693,7 +693,7 @@ reactive migration is roughly:
    reactive.
 
 Per-step gates (test suite green, smoke test passing) are in
-`docs/superpowers/` per the project's existing roadmap conventions.
+`internals/superpowers/` per the project's existing roadmap conventions.
 
 ### 8.4 What NOT to build
 

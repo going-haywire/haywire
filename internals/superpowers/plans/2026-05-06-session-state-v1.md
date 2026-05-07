@@ -8,7 +8,7 @@
 
 **Tech Stack:** Python 3.10+, existing haywire BaseRegistry framework, pytest, mypy, ruff.
 
-**Source spec:** [`docs/documentation/architecture/session_state.md`](../../documentation/architecture/session_state.md). v1.1 only — the framework migration of `active_node`/`selected_nodes`/etc. into a built-in `EditState` SessionState is deferred to v1.2.
+**Source spec:** [`internals/documentation/architecture/session_state.md`](../../documentation/architecture/session_state.md). v1.1 only — the framework migration of `active_node`/`selected_nodes`/etc. into a built-in `EditState` SessionState is deferred to v1.2.
 
 ---
 
@@ -49,8 +49,8 @@
 | `tests/core/test_state/test_container.py` | Migrate `class MyState(LibraryState)` → `class MyState(AppState)` |
 | `tests/core/test_state/test_di_wiring.py` | (Imports may need updating once container changes ship) |
 | `tests/core/test_state/test_integration.py` | Migrate `class TestPool(LibraryState)` → `class TestPool(AppState)` |
-| `docs/documentation/architecture/library_state.md` | Update cross-references and prose to reflect new taxonomy (`LibraryState` abstract marker; `AppState` is the concrete app base); link to `session_state.md` |
-| `docs/documentation/architecture/session_state.md` | Status header updated to "v1.1 implemented" once Task 9 verifies green |
+| `internals/documentation/architecture/library_state.md` | Update cross-references and prose to reflect new taxonomy (`LibraryState` abstract marker; `AppState` is the concrete app base); link to `session_state.md` |
+| `internals/documentation/architecture/session_state.md` | Status header updated to "v1.1 implemented" once Task 9 verifies green |
 
 ---
 
@@ -84,7 +84,7 @@ one of the concrete scope bases:
   - `SessionState` — one instance per UI session.
 
 The mental rule is one line: *scope = base class*. Inheritance picks
-multiplicity. See docs/documentation/architecture/session_state.md.
+multiplicity. See internals/documentation/architecture/session_state.md.
 """
 
 from __future__ import annotations
@@ -111,7 +111,7 @@ class AppState(LibraryState):
     framework calls optional `on_enable()` after instantiation and
     optional `on_disable()` before teardown.
 
-    See docs/documentation/architecture/library_state.md.
+    See internals/documentation/architecture/library_state.md.
     """
 
 
@@ -294,7 +294,7 @@ extended to:
 Open `packages/haywire-core/src/haywire/core/state/__init__.py`. Change to:
 
 ```python
-"""Library-owned runtime state — see docs/documentation/architecture/library_state.md."""
+"""Library-owned runtime state — see internals/documentation/architecture/library_state.md."""
 
 from haywire.core.state.base import AppState, LibraryState
 from haywire.core.state.container import LibraryStateContainer
@@ -503,7 +503,7 @@ class SessionState(LibraryState):
     settings are app-global, sessions are per-session. The
     ``__init_subclass__`` check below catches this at class-definition time.
 
-    See docs/documentation/architecture/session_state.md.
+    See internals/documentation/architecture/session_state.md.
     """
 
     session_id: str   # set by the container before on_enable runs
@@ -567,7 +567,7 @@ def _flatten_annotation(ann: object) -> list[object]:
 In `packages/haywire-core/src/haywire/core/state/__init__.py`:
 
 ```python
-"""Library-owned runtime state — see docs/documentation/architecture/library_state.md."""
+"""Library-owned runtime state — see internals/documentation/architecture/library_state.md."""
 
 from haywire.core.state.base import AppState, LibraryState, SessionState
 from haywire.core.state.container import LibraryStateContainer
@@ -631,7 +631,7 @@ __init_subclass__ rejects fields whose annotation references
 LibrarySettings (bare, Optional, or Union form) — composing global
 settings inside per-session state is a semantic contradiction. Caught
 at class-definition time with a clear error pointing at the offending
-field. See docs/documentation/architecture/session_state.md §5.2."
+field. See internals/documentation/architecture/session_state.md §5.2."
 ```
 
 ---
@@ -907,7 +907,7 @@ scope-keyed maps:
   - `_sessions` : type[SessionState]  → dict[session_id, SessionState] — one per (class, session)
 
 Dispatch decision is `issubclass(cls, SessionState)` at event time. See
-docs/documentation/architecture/session_state.md §3.
+internals/documentation/architecture/session_state.md §3.
 """
 
 from __future__ import annotations
@@ -1217,7 +1217,7 @@ self.session_id is stamped on every SessionState instance between cls()
 and on_enable(). cls() exceptions are logged and skipped — they don't
 break session creation.
 
-See docs/documentation/architecture/session_state.md §3."
+See internals/documentation/architecture/session_state.md §3."
 ```
 
 ---
@@ -1352,7 +1352,7 @@ type-check error at the call site. Each access does a live container
 lookup — no caching. Phase 2 reactive auto-tracking will subscribe
 through the container, not these proxies.
 
-See docs/documentation/architecture/session_state.md §2.3.
+See internals/documentation/architecture/session_state.md §2.3.
 """
 
 from __future__ import annotations
@@ -1413,7 +1413,7 @@ DataNamespace = AppDataNamespace
 In `packages/haywire-core/src/haywire/core/state/__init__.py`:
 
 ```python
-"""Library-owned runtime state — see docs/documentation/architecture/library_state.md."""
+"""Library-owned runtime state — see internals/documentation/architecture/library_state.md."""
 
 from haywire.core.state.base import AppState, LibraryState, SessionState
 from haywire.core.state.container import LibraryStateContainer
@@ -1482,7 +1482,7 @@ DataNamespace stays as a deprecated alias of AppDataNamespace for the
 duration of the v1.1 transition. The public canonical name is
 AppDataNamespace; the alias exists only to ease the rename diff.
 
-See docs/documentation/architecture/session_state.md §2.3."
+See internals/documentation/architecture/session_state.md §2.3."
 ```
 
 ---
@@ -1559,7 +1559,7 @@ d) **Update the class docstring** (around line 37–47). The current docstring m
     `ctx.app_data` — typed proxy over the app's LibraryStateContainer for
                      AppState lookups, shared across the whole app.
 
-    See docs/documentation/architecture/session_state.md.
+    See internals/documentation/architecture/session_state.md.
     """
 ```
 
@@ -1568,7 +1568,7 @@ e) **Update the module docstring** (around lines 14–17). Current text:
 ```
 The `data` attribute is a typed DataNamespace proxy over the app's
 LibraryStateContainer — class-keyed access to library-owned runtime
-state. See docs/documentation/architecture/library_state.md.
+state. See internals/documentation/architecture/library_state.md.
 ```
 
 Replace with:
@@ -1580,7 +1580,7 @@ LibraryStateContainer:
   - `ctx.app_data[Cls]` — AppState lookups (shared across the app).
   - `ctx.data[Cls]`     — SessionState lookups (this session's slice).
 
-See docs/documentation/architecture/session_state.md.
+See internals/documentation/architecture/session_state.md.
 ```
 
 - [ ] **Step 3: Update existing `tests/ui/test_session_context_data.py`**
@@ -1684,7 +1684,7 @@ SessionContext now exposes two scope-bound namespaces:
 The old ctx.data (AppState) is renamed to ctx.app_data. Internal callers
 updated. Test file restructured to cover both namespaces.
 
-See docs/documentation/architecture/session_state.md §2.3."
+See internals/documentation/architecture/session_state.md §2.3."
 ```
 
 ---
@@ -1728,7 +1728,7 @@ to:
     contexts only). ExecutionContext does not have a `data` (SessionState)
     namespace because graphs run app-globally — the VM has no notion of
     which UI session triggered execution. See
-    docs/documentation/architecture/session_state.md §2.3."""
+    internals/documentation/architecture/session_state.md §2.3."""
 ```
 
 - [ ] **Step 2: Update `HaywireVM._create_execution_context`**
@@ -1829,7 +1829,7 @@ that node graphs are app-scoped, not session-scoped. Trying to read
 exec_ctx.data is now an AttributeError caught statically by the type
 checker.
 
-See docs/documentation/architecture/session_state.md §2.3."
+See internals/documentation/architecture/session_state.md §2.3."
 ```
 
 ---
@@ -2093,7 +2093,7 @@ so UI tears down first, SessionState second.
 HaywireApp.setup_shared_services reordered so the container is resolved
 before SessionManager is constructed.
 
-See docs/documentation/architecture/session_state.md §3.5."
+See internals/documentation/architecture/session_state.md §3.5."
 ```
 
 ---
@@ -2292,12 +2292,12 @@ If none, that's fine — execution was tested via the unit tests in Tasks 6 + 8.
 ## Task 10: Documentation updates
 
 **Files:**
-- Modify: `docs/documentation/architecture/library_state.md`
-- Modify: `docs/documentation/architecture/session_state.md`
+- Modify: `internals/documentation/architecture/library_state.md`
+- Modify: `internals/documentation/architecture/session_state.md`
 
 - [ ] **Step 1: Update `library_state.md` cross-references**
 
-Open `docs/documentation/architecture/library_state.md`. Update the status block at the top:
+Open `internals/documentation/architecture/library_state.md`. Update the status block at the top:
 
 Find:
 
@@ -2328,7 +2328,7 @@ Then walk the body of the doc and update wherever it says "subclass of `LibraryS
 
 - [ ] **Step 2: Update `session_state.md` status header**
 
-Open `docs/documentation/architecture/session_state.md`. Change the status block:
+Open `internals/documentation/architecture/session_state.md`. Change the status block:
 
 Find:
 
@@ -2349,7 +2349,7 @@ Use today's actual date (replace "today's date" with the value from `date +%Y-%m
 - [ ] **Step 3: Verify cross-references resolve**
 
 ```bash
-grep -rn "session_state\.md\|library_state\.md" docs/ packages/ tests/ --include="*.md" --include="*.py" | grep -v "spec_library_state\|spec_session_state"
+grep -rn "session_state\.md\|library_state\.md" internals/ packages/ tests/ --include="*.md" --include="*.py" | grep -v "spec_library_state\|spec_session_state"
 ```
 
 Confirm every reference points at a file that exists. No broken links.
@@ -2357,8 +2357,8 @@ Confirm every reference points at a file that exists. No broken links.
 - [ ] **Step 4: Commit**
 
 ```bash
-git add docs/documentation/architecture/library_state.md \
-        docs/documentation/architecture/session_state.md
+git add internals/documentation/architecture/library_state.md \
+        internals/documentation/architecture/session_state.md
 git commit -m "docs(state): mark SessionState v1.1 implemented; update library_state cross-refs
 
 library_state.md now reflects the new taxonomy: LibraryState as

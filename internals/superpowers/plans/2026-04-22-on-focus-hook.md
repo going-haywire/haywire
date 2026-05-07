@@ -34,8 +34,8 @@
 - Modify: `barn/haybale-studio/tests/` — any integration tests that simulate graph opens must be updated to expect `EDITOR_FOCUSED` + `ACTIVE_GRAPH_CHANGED` instead of `OPEN_GRAPH_REQUESTED`.
 
 **Docs:**
-- Modify: `docs/documentation/build_editors.md` — remove `context_field` doc; add `on_focus` section.
-- Modify: `docs/UBIQUITOUS_LANGUAGE.md` — remove `context_field` entry; add `on_focus` entry.
+- Modify: `internals/documentation/build_editors.md` — remove `context_field` doc; add `on_focus` section.
+- Modify: `internals/UBIQUITOUS_LANGUAGE.md` — remove `context_field` entry; add `on_focus` entry.
 - Modify: `.codemap/modules/core-ui.md` — remove `context_field` mention.
 
 ---
@@ -1433,11 +1433,11 @@ git commit -m "refactor(shell): delete _follow_main_tab_context + context_field 
 ## Task 7: Update documentation
 
 **Files:**
-- Modify: `docs/documentation/build_editors.md`
-- Modify: `docs/UBIQUITOUS_LANGUAGE.md`
+- Modify: `internals/documentation/build_editors.md`
+- Modify: `internals/UBIQUITOUS_LANGUAGE.md`
 - Modify: `.codemap/modules/core-ui.md`
 
-- [ ] **Step 7.1: Update `docs/documentation/build_editors.md`**
+- [ ] **Step 7.1: Update `internals/documentation/build_editors.md`**
 
 Find the `context_field` section (around lines 86, 117–120). Remove the `context_field='active_graph_path'` example from any code block and delete the paragraph explaining `context_field`.
 
@@ -1472,7 +1472,7 @@ If `on_focus` raises, the slot logs the error and swallows it so a buggy
 editor can't wedge the UI.
 ```
 
-- [ ] **Step 7.2: Update `docs/UBIQUITOUS_LANGUAGE.md`**
+- [ ] **Step 7.2: Update `internals/UBIQUITOUS_LANGUAGE.md`**
 
 Remove the `context_field` glossary entry (around line 176). Add an `on_focus` entry in the appropriate alphabetical position:
 
@@ -1491,7 +1491,7 @@ Find the `context_field` bullet (around line 173). Remove it. If the adjacent bu
 - [ ] **Step 7.4: Commit**
 
 ```bash
-git add docs/ .codemap/
+git add internals/ .codemap/
 git commit -m "docs: document on_focus hook; remove context_field references"
 ```
 

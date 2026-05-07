@@ -36,10 +36,10 @@
 - `tests/studio/test_library_overview_on_context.py` — new file, E2E for LibraryOverview on-demand.
 
 **Docs:**
-- `docs/documentation/build_editors.md`
-- `docs/UBIQUITOUS_LANGUAGE.md`
-- `docs/documentation/architecture/app_ui/haywire-ui-architecture-spec_details.md`
-- `docs/documentation/architecture/haywire_app.md`
+- `internals/documentation/build_editors.md`
+- `internals/UBIQUITOUS_LANGUAGE.md`
+- `internals/documentation/architecture/app_ui/haywire-ui-architecture-spec_details.md`
+- `internals/documentation/architecture/haywire_app.md`
 - `.codemap/modules/core-ui.md`
 - `.codemap/modules/haybale-studio.md`
 
@@ -1699,23 +1699,23 @@ git commit -m "refactor(library_overview): declare opens=on_context (singleton o
 
 ---
 
-## Task 14: Update `docs/documentation/build_editors.md`
+## Task 14: Update `internals/documentation/build_editors.md`
 
 **Files:**
-- Modify: `docs/documentation/build_editors.md`
+- Modify: `internals/documentation/build_editors.md`
 
 - [ ] **Step 1: Read the current document to find insertion points**
 
 Run: `uv run pytest tests/ui/test_editor_registry.py -v` to re-confirm the decorator shape is what the docs should describe.
 
-Read `docs/documentation/build_editors.md` to find:
+Read `internals/documentation/build_editors.md` to find:
 - The `@editor` signature example around line 80-90.
 - The "reveal" / "switching tabs" section around line 325-346.
 - The `default_slot` guidance around line 453.
 
 - [ ] **Step 2: Update the `@editor` signature example**
 
-In `docs/documentation/build_editors.md`, find the signature around line 85 and replace the relevant lines with:
+In `internals/documentation/build_editors.md`, find the signature around line 85 and replace the relevant lines with:
 
 ```python
 @editor(
@@ -1795,20 +1795,20 @@ be triggered (`on_context` / `on_payload`). Workspace configs override
 - [ ] **Step 6: Commit**
 
 ```bash
-git add docs/documentation/build_editors.md
+git add internals/documentation/build_editors.md
 git commit -m "docs(build_editors): document opens kwarg and context_field"
 ```
 
 ---
 
-## Task 15: Update `docs/UBIQUITOUS_LANGUAGE.md`
+## Task 15: Update `internals/UBIQUITOUS_LANGUAGE.md`
 
 **Files:**
-- Modify: `docs/UBIQUITOUS_LANGUAGE.md`
+- Modify: `internals/UBIQUITOUS_LANGUAGE.md`
 
 - [ ] **Step 1: Find the right section**
 
-Read `docs/UBIQUITOUS_LANGUAGE.md` and locate the section that covers editor terms (near the `default_slot` / `"middle" vs "main"` entries around line 241).
+Read `internals/UBIQUITOUS_LANGUAGE.md` and locate the section that covers editor terms (near the `default_slot` / `"middle" vs "main"` entries around line 241).
 
 - [ ] **Step 2: Add glossary entries**
 
@@ -1837,16 +1837,16 @@ Insert after the existing editor-related definitions:
 - [ ] **Step 3: Commit**
 
 ```bash
-git add docs/UBIQUITOUS_LANGUAGE.md
+git add internals/UBIQUITOUS_LANGUAGE.md
 git commit -m "docs(glossary): add OpenBehavior, payload (tab), context_field"
 ```
 
 ---
 
-## Task 16: Update `docs/documentation/architecture/app_ui/haywire-ui-architecture-spec_details.md`
+## Task 16: Update `internals/documentation/architecture/app_ui/haywire-ui-architecture-spec_details.md`
 
 **Files:**
-- Modify: `docs/documentation/architecture/app_ui/haywire-ui-architecture-spec_details.md`
+- Modify: `internals/documentation/architecture/app_ui/haywire-ui-architecture-spec_details.md`
 
 - [ ] **Step 1: Read the relevant `@editor` examples**
 
@@ -1854,7 +1854,7 @@ Read the spec document's `@editor` examples at lines 374-377 and 1173-1176 to co
 
 - [ ] **Step 2: Update both `@editor` examples**
 
-In `docs/documentation/architecture/app_ui/haywire-ui-architecture-spec_details.md`, find:
+In `internals/documentation/architecture/app_ui/haywire-ui-architecture-spec_details.md`, find:
 
 ```python
     label='Graph Editor',
@@ -1894,20 +1894,20 @@ Search the document for the phrases "auto-populate" or "auto populates" and upda
 - [ ] **Step 4: Commit**
 
 ```bash
-git add docs/documentation/architecture/app_ui/haywire-ui-architecture-spec_details.md
+git add internals/documentation/architecture/app_ui/haywire-ui-architecture-spec_details.md
 git commit -m "docs(architecture): update spec with opens + new auto-populate/persistence rules"
 ```
 
 ---
 
-## Task 17: Update `docs/documentation/architecture/haywire_app.md`
+## Task 17: Update `internals/documentation/architecture/haywire_app.md`
 
 **Files:**
-- Modify: `docs/documentation/architecture/haywire_app.md`
+- Modify: `internals/documentation/architecture/haywire_app.md`
 
 - [ ] **Step 1: Find `@editor` references**
 
-Run: `uv run grep -n "@editor" docs/documentation/architecture/haywire_app.md` (or use Grep tool).
+Run: `uv run grep -n "@editor" internals/documentation/architecture/haywire_app.md` (or use Grep tool).
 
 - [ ] **Step 2: Update any `@editor` signature examples**
 
@@ -1916,7 +1916,7 @@ For each `@editor(...)` example in the file, add the `opens` kwarg appropriate t
 - [ ] **Step 3: Commit**
 
 ```bash
-git add docs/documentation/architecture/haywire_app.md
+git add internals/documentation/architecture/haywire_app.md
 git commit -m "docs(haywire_app): include opens in @editor examples"
 ```
 

@@ -30,7 +30,7 @@ No backward-compat shims. The old methods are deleted outright.
 
 ## Non-goals
 
-- **No renames.** The ubiquitous-language glossary (`docs/documentation/design/ubiquitous_terms.md` lines 117, 151, 243) explicitly rejects calling this concept "Workspace" or "Session"; `Haystack` stays `Haystack`, `HaystackEditor` stays `HaystackEditor`.
+- **No renames.** The ubiquitous-language glossary (`internals/documentation/design/ubiquitous_terms.md` lines 117, 151, 243) explicitly rejects calling this concept "Workspace" or "Session"; `Haystack` stays `Haystack`, `HaystackEditor` stays `HaystackEditor`.
 - **No beforeunload warning.** Warning the user before they close the browser tab with an unsaved Haystack is a worthwhile follow-up, but it has its own browser quirks (message customization limits, interaction gating) and deserves a separate spec.
 - **No change to Haystack persistence.** Startup still loads `workspace_state.haystack`; unsaved in-memory entries (`__new_N__`, `__untitled__`) still do not survive restart. This matches standard text-editor behaviour.
 - **No change to the file browser's click behaviour.** Clicking a `.haywire` file still adds it to the Haystack and opens a tab. Under the clearer mental model ("Haystack is the live registry, a saved haystack TOML is a separate artifact"), this is no longer a "silent add" to a persisted thing — it's expected.

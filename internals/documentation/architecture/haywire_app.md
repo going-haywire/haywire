@@ -216,7 +216,7 @@ particular editor as part of firing a context event, set `reveal_editor` on
 the `ContextChangedEvent` to the target editor's `registry_key`. The AppShell
 orchestrator resolves the hosting slot (left, right, main, or bottom) from
 the editor's registration and switches it before running the poll/draw cycle.
-See `docs/documentation/build_editors.md` § *Driving Other Slots* for details.
+See `internals/documentation/build_editors.md` § *Driving Other Slots* for details.
 
 Editors and panels should always access services via `context.metadata` rather than storing their own references, since this keeps them session-safe.
 

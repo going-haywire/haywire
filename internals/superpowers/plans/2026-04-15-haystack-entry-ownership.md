@@ -8,7 +8,7 @@
 
 **Tech Stack:** Python 3.12+, NiceGUI, pytest. Follows existing haywire reactive-events + Popup patterns.
 
-**Spec:** `docs/superpowers/specs/2026-04-15-haystack-entry-ownership-design.md` (commit `0e5d06e`).
+**Spec:** `internals/superpowers/specs/2026-04-15-haystack-entry-ownership-design.md` (commit `0e5d06e`).
 
 ---
 

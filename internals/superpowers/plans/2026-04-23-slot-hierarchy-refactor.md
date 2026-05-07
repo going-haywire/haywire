@@ -2795,4 +2795,4 @@ If anything in the smoke test surfaced an issue, fix inline and commit with a `f
 
 ---
 
-**Plan complete and saved to `docs/superpowers/plans/2026-04-23-slot-hierarchy-refactor.md`.**
+**Plan complete and saved to `internals/superpowers/plans/2026-04-23-slot-hierarchy-refactor.md`.**

@@ -1682,7 +1682,7 @@ No gaps.
 
 ---
 
-Plan complete and saved to `docs/superpowers/plans/2026-04-25-close-consent-and-event-cleanup.md`. Two execution options:
+Plan complete and saved to `internals/superpowers/plans/2026-04-25-close-consent-and-event-cleanup.md`. Two execution options:
 
 **1. Subagent-Driven (recommended)** - I dispatch a fresh subagent per task, review between tasks, fast iteration
 

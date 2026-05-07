@@ -744,7 +744,7 @@ Other reactive fields on ``SessionContext`` (``active_library``,
 session-level, not editor-level.
 
 The migration was purely mechanical (no behavior change). See
-``docs/prd/v1.2-edit-state-migration.md`` for the commit-by-commit
+``internals/prd/v1.2-edit-state-migration.md`` for the commit-by-commit
 plan.
 
 ---

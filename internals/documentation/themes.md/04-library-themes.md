@@ -139,7 +139,7 @@ and create partial overrides:
 
 ```
 my-haybale/
-└── docs/
+└── internals/
     └── themes/
         ├── mylib-dark.toml     # all tokens for dark theme
         └── mylib-nodes.toml    # all tokens for node theme

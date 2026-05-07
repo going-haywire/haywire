@@ -8,7 +8,7 @@
 
 **Tech Stack:** Python 3.10+, `injector` DI library, existing haywire BaseRegistry framework, pytest.
 
-**Source spec:** [`docs/speculative/spec_library_state.md`](../../speculative/spec_library_state.md). v1 only — Phase 2 observable container is bound to the broader `spec_panel_reactivity.md` work and is out of scope.
+**Source spec:** [`internals/speculative/spec_library_state.md`](../../speculative/spec_library_state.md). v1 only — Phase 2 observable container is bound to the broader `spec_panel_reactivity.md` work and is out of scope.
 
 ---
 
@@ -130,7 +130,7 @@ Expected: FAIL with `ModuleNotFoundError: No module named 'haywire.core.state'` 
 Write to `packages/haywire-core/src/haywire/core/state/__init__.py`:
 
 ```python
-"""Library-owned runtime state — see docs/speculative/spec_library_state.md."""
+"""Library-owned runtime state — see internals/speculative/spec_library_state.md."""
 
 from haywire.core.state.base import LibraryState
 
@@ -148,7 +148,7 @@ is enabled, owns its lifecycle, and exposes the instance through a uniform
 class-keyed access pattern on both SessionContext (UI) and ExecutionContext
 (node execution).
 
-See docs/speculative/spec_library_state.md for the full design.
+See internals/speculative/spec_library_state.md for the full design.
 """
 
 from __future__ import annotations
@@ -188,7 +188,7 @@ Introduces haywire.core.state.LibraryState as the base for library-owned
 app-global runtime state. Optional on_enable/on_disable lifecycle hooks
 are duck-typed.
 
-See docs/speculative/spec_library_state.md."
+See internals/speculative/spec_library_state.md."
 ```
 
 ---
@@ -277,7 +277,7 @@ class LibraryStateClassIdentity(BaseIdentity):
 Modify `packages/haywire-core/src/haywire/core/state/__init__.py` to also export the identity:
 
 ```python
-"""Library-owned runtime state — see docs/speculative/spec_library_state.md."""
+"""Library-owned runtime state — see internals/speculative/spec_library_state.md."""
 
 from haywire.core.state.base import LibraryState
 from haywire.core.state.identity import LibraryStateClassIdentity
@@ -483,7 +483,7 @@ class LibraryStateRegistry(BaseRegistry):
 Update `packages/haywire-core/src/haywire/core/state/__init__.py`:
 
 ```python
-"""Library-owned runtime state — see docs/speculative/spec_library_state.md."""
+"""Library-owned runtime state — see internals/speculative/spec_library_state.md."""
 
 from haywire.core.state.base import LibraryState
 from haywire.core.state.identity import LibraryStateClassIdentity
@@ -720,7 +720,7 @@ Subscribes to LibraryStateRegistry batch lifecycle events. Mirrors the
 NodeRegistry → NodeFactory pattern: registry holds classes, container holds
 instances.
 
-See docs/speculative/spec_library_state.md §3.
+See internals/speculative/spec_library_state.md §3.
 """
 
 from __future__ import annotations
@@ -866,7 +866,7 @@ class LibraryStateContainer:
 Update `packages/haywire-core/src/haywire/core/state/__init__.py`:
 
 ```python
-"""Library-owned runtime state — see docs/speculative/spec_library_state.md."""
+"""Library-owned runtime state — see internals/speculative/spec_library_state.md."""
 
 from haywire.core.state.base import LibraryState
 from haywire.core.state.container import LibraryStateContainer
@@ -1101,7 +1101,7 @@ class DataNamespace:
 Update `packages/haywire-core/src/haywire/core/state/__init__.py`:
 
 ```python
-"""Library-owned runtime state — see docs/speculative/spec_library_state.md."""
+"""Library-owned runtime state — see internals/speculative/spec_library_state.md."""
 
 from haywire.core.state.base import LibraryState
 from haywire.core.state.container import LibraryStateContainer
@@ -1452,7 +1452,7 @@ with:
     `app`, `session`, `data`) are non-reactive.
 
     `data` is a typed proxy over the app's LibraryStateContainer — see
-    docs/speculative/spec_library_state.md.
+    internals/speculative/spec_library_state.md.
     """
 ```
 
@@ -2271,20 +2271,20 @@ Expected: App starts, library system initializes, no errors related to LibrarySt
 ## Task 15: Documentation updates
 
 **Files:**
-- Modify: `docs/speculative/spec_library_state.md` (move from speculative to documentation now that v1 is implemented)
+- Modify: `internals/speculative/spec_library_state.md` (move from speculative to documentation now that v1 is implemented)
 
 - [ ] **Step 1: Move the spec out of speculative**
 
 Run:
 
 ```bash
-mkdir -p docs/documentation/architecture
-git mv docs/speculative/spec_library_state.md docs/documentation/architecture/library_state.md
+mkdir -p internals/documentation/architecture
+git mv internals/speculative/spec_library_state.md internals/documentation/architecture/library_state.md
 ```
 
 - [ ] **Step 2: Update the status note**
 
-Open `docs/documentation/architecture/library_state.md`. Find the status block at the top:
+Open `internals/documentation/architecture/library_state.md`. Find the status block at the top:
 
 ```markdown
 > Status: **Speculative.** Not yet implemented. Designed via inquisition
@@ -2304,15 +2304,15 @@ Replace with (using today's date):
 Run:
 
 ```bash
-grep -rn "spec_library_state.md" docs/ packages/ --include="*.md" --include="*.py" 2>/dev/null
+grep -rn "spec_library_state.md" internals/ packages/ --include="*.md" --include="*.py" 2>/dev/null
 ```
 
-Update any references that still point at `docs/speculative/spec_library_state.md` to the new path `docs/documentation/architecture/library_state.md`. The known references are inside the spec itself (relative links to companion docs) and in source-code comments inserted by Tasks 1, 4, 5, 7, 9 referring to the spec. Update them.
+Update any references that still point at `internals/speculative/spec_library_state.md` to the new path `internals/documentation/architecture/library_state.md`. The known references are inside the spec itself (relative links to companion docs) and in source-code comments inserted by Tasks 1, 4, 5, 7, 9 referring to the spec. Update them.
 
 - [ ] **Step 4: Commit**
 
 ```bash
-git add docs/documentation/architecture/library_state.md docs/speculative/
+git add internals/documentation/architecture/library_state.md internals/speculative/
 git add packages/  # if any source comments were updated
 git commit -m "docs(state): promote LibraryState spec from speculative to documentation
 

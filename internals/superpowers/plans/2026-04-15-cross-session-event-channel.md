@@ -8,7 +8,7 @@
 
 **Tech Stack:** Python 3, pytest, NiceGUI. No new dependencies.
 
-**Design spec:** [docs/superpowers/specs/2026-04-15-cross-session-event-channel-design.md](../specs/2026-04-15-cross-session-event-channel-design.md)
+**Design spec:** [internals/superpowers/specs/2026-04-15-cross-session-event-channel-design.md](../specs/2026-04-15-cross-session-event-channel-design.md)
 
 ---
 
@@ -1423,7 +1423,7 @@ PY
 
 Expected: NO matches in `tests/`, `packages/`, or `barn/`. Any hits indicate missed migration sites — return to the relevant earlier task and fix.
 
-(Matches in `docs/` are acceptable — those are historical design docs, not code.)
+(Matches in `internals/` are acceptable — those are historical design docs, not code.)
 
 - [ ] **Step 3: Fix each failing test**
 
@@ -1519,7 +1519,7 @@ PY
 
 Expected: `CLEAN`.
 
-(Again, matches in `docs/` are acceptable — historical specs.)
+(Again, matches in `internals/` are acceptable — historical specs.)
 
 - [ ] **Step 3: No commit needed — verification only**
 
@@ -1531,6 +1531,6 @@ Expected: `CLEAN`.
 - `uv run ruff check .` — clean
 - `uv run ruff format --check .` — clean
 - `uv run mypy packages/haywire-core/src/` — clean
-- Grep returns no matches outside `docs/` for: `broadcast_data_mutation`, `validation_subscriber`, `session_attach`, `session_detach`, `entry.sessions`, `sessions_for_entry`
+- Grep returns no matches outside `internals/` for: `broadcast_data_mutation`, `validation_subscriber`, `session_attach`, `session_detach`, `entry.sessions`, `sessions_for_entry`
 - Manual smoke test (Task 9) passes
 - All commits in order, each task is a single coherent commit

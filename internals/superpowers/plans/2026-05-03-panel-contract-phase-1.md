@@ -9,9 +9,9 @@
 **Tech Stack:** Python 3.12+, NiceGUI, pytest, mypy, ruff. The codebase uses `uv` for package management.
 
 **Reference specs:**
-- [`docs/speculative/spec_panel_contract.md`](../../speculative/archive/spec_panel_contract.md) — destination contract (the `Panel` base class, `@panel` decorator surface, action Protocol, focus system, layout, lifecycle).
-- [`docs/speculative/spec_panel_reactivity.md`](../../speculative/spec_panel_reactivity.md) — Phase 2 mechanism (out of scope here).
-- [`docs/speculative/spec_panel_migration.md`](../../speculative/archive/spec_panel_migration.md) — full inventory of legacy panels (Phase 1 covers a subset).
+- [`internals/speculative/spec_panel_contract.md`](../../speculative/archive/spec_panel_contract.md) — destination contract (the `Panel` base class, `@panel` decorator surface, action Protocol, focus system, layout, lifecycle).
+- [`internals/speculative/spec_panel_reactivity.md`](../../speculative/spec_panel_reactivity.md) — Phase 2 mechanism (out of scope here).
+- [`internals/speculative/spec_panel_migration.md`](../../speculative/archive/spec_panel_migration.md) — full inventory of legacy panels (Phase 1 covers a subset).
 
 **Phase 1 scope (locked via inquisition 2026-05-03):**
 - 16 panels migrated: 12 PropertiesEditor-only panels in `barn/haybale-core` + 4 in `barn/haybale-studio`.
@@ -799,7 +799,7 @@ BREAKING: every read/write of a SessionContext field now goes through
 .value. Subsequent commits update all call sites.
 
 Phase 1 of the panel-contract migration. See
-docs/superpowers/plans/2026-05-03-panel-contract-phase-1.md."
+internals/superpowers/plans/2026-05-03-panel-contract-phase-1.md."
 ```
 
 ---
@@ -2572,8 +2572,8 @@ Verify no regressions in any panel.
 ### Task 17: Update spec docs to reflect Phase 1 completion
 
 **Files:**
-- Modify: `docs/speculative/spec_panel_contract.md`
-- Modify: `docs/speculative/spec_panel_migration.md`
+- Modify: `internals/speculative/spec_panel_contract.md`
+- Modify: `internals/speculative/spec_panel_migration.md`
 
 - [ ] **Step 1: Update spec_panel_contract.md status**
 
@@ -2592,7 +2592,7 @@ Mark migrated panels as done; note remaining work for Phase 1.5.
 - [ ] **Step 3: Commit**
 
 ```bash
-git add docs/speculative/spec_panel_contract.md docs/speculative/spec_panel_migration.md
+git add internals/speculative/spec_panel_contract.md internals/speculative/spec_panel_migration.md
 git commit -m "docs(spec): mark Phase 1 of panel-contract migration as complete"
 ```
 

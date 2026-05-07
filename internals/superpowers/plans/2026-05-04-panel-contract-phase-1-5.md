@@ -9,8 +9,8 @@
 **Tech Stack:** Python 3.12+, NiceGUI, pytest, mypy, ruff. The codebase uses `uv` for package management.
 
 **Reference specs:**
-- [`docs/speculative/spec_panel_contract.md`](../../speculative/archive/spec_panel_contract.md) — Phase 1 contract (the destination).
-- [`docs/speculative/spec_panel_migration.md`](../../speculative/archive/spec_panel_migration.md) — full inventory.
+- [`internals/speculative/spec_panel_contract.md`](../../speculative/archive/spec_panel_contract.md) — Phase 1 contract (the destination).
+- [`internals/speculative/spec_panel_migration.md`](../../speculative/archive/spec_panel_migration.md) — full inventory.
 
 **Phase 1.5 scope (locked via inquisition 2026-05-04):**
 - 14 context-menu panels migrated to Protocol-per-context.
@@ -187,7 +187,7 @@ the verbs valid in that context. The provider implements all five
 structurally on a single class.
 
 Phase 1.5 of the panel-contract migration. See
-docs/superpowers/plans/2026-05-04-panel-contract-phase-1-5.md.
+internals/superpowers/plans/2026-05-04-panel-contract-phase-1-5.md.
 """
 
 from __future__ import annotations
@@ -2979,8 +2979,8 @@ Run: `uv run haywire`. Walk through every right-click context. Verify all panels
 ### Task 33: Update spec docs to mark Phase 1.5 complete
 
 **Files:**
-- Modify: `docs/speculative/spec_panel_contract.md`
-- Modify: `docs/speculative/spec_panel_migration.md`
+- Modify: `internals/speculative/spec_panel_contract.md`
+- Modify: `internals/speculative/spec_panel_migration.md`
 
 - [ ] **Step 1: Update the contract spec status header** to indicate Phase 1.5 complete (all panels migrated, legacy infrastructure removed).
 
@@ -2989,7 +2989,7 @@ Run: `uv run haywire`. Walk through every right-click context. Verify all panels
 - [ ] **Step 3: Commit**
 
 ```bash
-git add docs/speculative/spec_panel_contract.md docs/speculative/spec_panel_migration.md
+git add internals/speculative/spec_panel_contract.md internals/speculative/spec_panel_migration.md
 git commit -m "docs(spec): mark Phase 1.5 of panel-contract migration as complete"
 ```
 
