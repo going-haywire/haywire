@@ -120,7 +120,7 @@ haywire-repo/
 ├── uv.lock
 ├── tests/                          # framework tests
 ├── playground/                     # scratch scripts and experiments
-├── docs/
+├── internals/
 ├── scripts/
 ├── saves/
 │

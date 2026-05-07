@@ -9,9 +9,9 @@ Read the following documentation files in order and use them as the authoritativ
 
 ## Files to read
 
-1. `docs/documentation/Creating_Nodes.md` — full guide to writing `@node` decorated classes: `init()`, `worker()`, node types, menu paths, lifecycle callbacks
-2. `docs/documentation/Defining_DataPorts_inside_Nodes.md` — `self.add()` calls, port directions (inlet/outlet/config), `FlowType`, `allow_multiple`, `on_change`, `on_connect`, `on_disconnect`
-3. `docs/documentation/Defining_DataTypes.md` — `PrimitiveType`, `BaseType`, `CompoundType`, child→parent passthrough, adapter chains, `PooledType`
+1. `internals/documentation/Creating_Nodes.md` — full guide to writing `@node` decorated classes: `init()`, `worker()`, node types, menu paths, lifecycle callbacks
+2. `internals/documentation/Defining_DataPorts_inside_Nodes.md` — `self.add()` calls, port directions (inlet/outlet/config), `FlowType`, `allow_multiple`, `on_change`, `on_connect`, `on_disconnect`
+3. `internals/documentation/Defining_DataTypes.md` — `PrimitiveType`, `BaseType`, `CompoundType`, child→parent passthrough, adapter chains, `PooledType`
 
 ## After reading
 

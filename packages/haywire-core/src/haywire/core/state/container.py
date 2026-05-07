@@ -15,7 +15,7 @@ callers holding a pre-reload class reference still resolve to the
 canonical instance.
 
 Dispatch decision is ``issubclass(cls, SessionState)`` at event time.
-See docs/documentation/architecture/session_state.md §3.
+See internals/documentation/architecture/session_state.md §3.
 """
 
 from __future__ import annotations

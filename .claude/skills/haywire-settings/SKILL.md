@@ -9,10 +9,10 @@ Read the following documentation files in order and use them as the authoritativ
 
 ## Files to read
 
-1. `docs/documentation/settings.md/01-overview.md` — architecture overview: three containers (NodeSettings, LibrarySettings, FrameworkSettings), resolution chain (OVERRIDE > local > global SET > default), Settings, TOML tiers
-2. `docs/documentation/settings.md/02-node-development.md` — adding settings to a node: `class node(NodeSettings)`, `setting()` descriptor, attribute access via `self.settings.field`, `on_change` callbacks, `self.cache`, `self.store`, serialization
-3. `docs/documentation/settings.md/03-library-development.md` — library-level settings: `@settings(namespace=...)`, `class MyLibSettings(LibrarySettings)`, `shadow()` and `watch()` in node Settings, TOML config format, accessing via registry
-4. `docs/documentation/settings.md/05-reference.md` — complete API: `Color`/`Icon` type aliases, all descriptor constructor params, `SettingsRegistry` methods, `Settings` methods, `SettingInfo` fields, resolution algorithm
+1. `internals/documentation/settings.md/01-overview.md` — architecture overview: three containers (NodeSettings, LibrarySettings, FrameworkSettings), resolution chain (OVERRIDE > local > global SET > default), Settings, TOML tiers
+2. `internals/documentation/settings.md/02-node-development.md` — adding settings to a node: `class node(NodeSettings)`, `setting()` descriptor, attribute access via `self.settings.field`, `on_change` callbacks, `self.cache`, `self.store`, serialization
+3. `internals/documentation/settings.md/03-library-development.md` — library-level settings: `@settings(namespace=...)`, `class MyLibSettings(LibrarySettings)`, `shadow()` and `watch()` in node Settings, TOML config format, accessing via registry
+4. `internals/documentation/settings.md/05-reference.md` — complete API: `Color`/`Icon` type aliases, all descriptor constructor params, `SettingsRegistry` methods, `Settings` methods, `SettingInfo` fields, resolution algorithm
 
 ## After reading
 

@@ -10,6 +10,6 @@ class NodeIdentity(BaseIdentity):
     search_tags: list[str] = field(default_factory=lambda: ["add", "sub", "math", "vector"])
     menu: str = "misc/custom"
     help_md: str | None = None
-    help_url: str = "https://haywire.io/docs/node-help"
+    help_url: str = "https://haywire.io/internals/node-help"
     _is_error: bool = False
     _error_priority: int = 0

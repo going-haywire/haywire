@@ -19,7 +19,7 @@ Two channels flow through the AppShell:
   Sent via ``Session.lifecycle(...)``. Local-only: peer sessions own
   their own workspace state.
 
-See ``docs/speculative/context_events_simplification.md`` for the design
+See ``internals/speculative/context_events_simplification.md`` for the design
 rationale.
 """
 

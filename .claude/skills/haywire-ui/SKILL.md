@@ -9,10 +9,10 @@ Read the following documentation files in order and use them as the authoritativ
 
 ## Files to read
 
-1. `docs/documentation/build_editors.md` — how to create a `BaseEditor` subclass, the `@editor` decorator, registration in `app.py`, and how editors interact with `SessionContext`
-2. `docs/documentation/build_panels.md` — how to create a `BasePanel` subclass, the `@panel` decorator, poll/draw lifecycle, and panel-to-editor binding
-3. `docs/documentation/architecture/haywire_app.md` — overall `HaywireApp` structure: shared services, session lifecycle, `project_state` wiring
-4. `docs/documentation/architecture/app_ui/haywire-ui-architecture-spec_details.md` — detailed spec of the full workspace layout (AppShell, areas, tabs, ActivityBar, ContextBar, WorkspaceState, WorkspaceManager)
+1. `internals/documentation/build_editors.md` — how to create a `BaseEditor` subclass, the `@editor` decorator, registration in `app.py`, and how editors interact with `SessionContext`
+2. `internals/documentation/build_panels.md` — how to create a `BasePanel` subclass, the `@panel` decorator, poll/draw lifecycle, and panel-to-editor binding
+3. `internals/documentation/architecture/haywire_app.md` — overall `HaywireApp` structure: shared services, session lifecycle, `project_state` wiring
+4. `internals/documentation/architecture/app_ui/haywire-ui-architecture-spec_details.md` — detailed spec of the full workspace layout (AppShell, areas, tabs, ActivityBar, ContextBar, WorkspaceState, WorkspaceManager)
 
 ## After reading
 

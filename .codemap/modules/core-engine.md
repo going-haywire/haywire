@@ -147,7 +147,7 @@ haywire/core/
 **On-demand**:
 - `assembly/` — only when working on graph-to-execution pipeline
 - `execution/vm.py` — only when debugging execution behaviour
-- `settings/` — only when working on the settings system (see docs/documentation/settings.md/)
+- `settings/` — only when working on the settings system (see internals/documentation/settings.md/)
 - `debug/` — only when working on logging/debug configuration
 - `undo/` — only when working on undo/redo
 - `adapter/` — only when working on cross-type conversions

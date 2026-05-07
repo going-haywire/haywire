@@ -84,7 +84,7 @@ def node(**kwargs: Any) -> Callable[[Type[T]], Type[T]]:
         search_tags (list[str]): Tags for searching/filtering. Default: []
         menu (str): Menu category path (e.g., 'math/arithmetic'). Default: 'misc/custom'
         help_md (str): Markdown help content. Default: None
-        help_url (str): URL to documentation. Default: 'https://haywire.io/docs/node-help'
+        help_url (str): URL to documentation. Default: 'https://haywire.io/internals/node-help'
         registry_id (str): Unique identifier within library. Default set to class name
         _is_error (bool): Whether this is an error handler node. Default: False
         _error_priority (int): Priority for error handling. Default: 0

@@ -20,7 +20,7 @@ haywire-repo/
 ├── uv.lock
 ├── tests/                                  # tests for haywire-core
 ├── playground/                             # scratch/experiment scripts
-├── docs/
+├── internals/
 ├── scripts/
 ├── saves/
 │

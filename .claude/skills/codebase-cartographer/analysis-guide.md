@@ -16,7 +16,7 @@ Before writing anything, gather these signals:
 3. **Entry points** — `main.*`, `index.*`, `app.*`, `server.*`, CLI
    definitions, Dockerfile `CMD`/`ENTRYPOINT`.
 4. **Existing docs** — `README.md`, `CONTRIBUTING.md`, `ARCHITECTURE.md`,
-   `CLAUDE.md`, `docs/` folder.
+   `CLAUDE.md`, `internals/` folder.
 5. **CI config** — `.github/workflows/`, `Makefile`, `Justfile`, etc.
    These reveal the build/test/deploy pipeline and often name the
    important directories.
@@ -132,7 +132,7 @@ when asked than to bloat every context window with it.
 
 **Go:**
 - Each top-level `cmd/` entry is a module.
-- Each `internal/` or `pkg/` package is a module.
+- Each `internals/` or `pkg/` package is a module.
 
 **Rust:**
 - Each workspace crate is a module.

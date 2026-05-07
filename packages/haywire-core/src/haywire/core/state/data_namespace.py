@@ -12,7 +12,7 @@ type-check error at the call site. Each access does a live container
 lookup — no caching. Phase 2 reactive auto-tracking will subscribe
 through the container, not these proxies.
 
-See docs/documentation/architecture/session_state.md §2.3.
+See internals/documentation/architecture/session_state.md §2.3.
 """
 
 from __future__ import annotations

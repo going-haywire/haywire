@@ -14,7 +14,7 @@ if [ -z "$1" ] || [ -z "$2" ] || [ -z "$3" ]; then
   echo "  output_markdown_file - Path to the output markdown file"
   echo ""
   echo "Example:"
-  echo "  $0 ./src py ./docs/distilled.md"
+  echo "  $0 ./src py ./internals/distilled.md"
   exit 1
 fi
 

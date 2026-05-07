@@ -1,4 +1,4 @@
-"""Library-owned runtime state — see docs/documentation/architecture/library_state.md."""
+"""Library-owned runtime state — see internals/documentation/architecture/library_state.md."""
 
 from haywire.core.state.base import AppState, LibraryState, SessionState
 from haywire.core.state.container import LibraryStateContainer

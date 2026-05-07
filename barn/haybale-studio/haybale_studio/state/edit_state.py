@@ -12,7 +12,7 @@ Note on hot-reload: a CLASS_RELOADED event for EditState re-instantiates per-ses
 state, dropping field values. Editing this file is a developer action;
 resetting selection mid-session is acceptable.
 
-See docs/documentation/architecture/session_state.md.
+See internals/documentation/architecture/session_state.md.
 """
 
 from __future__ import annotations

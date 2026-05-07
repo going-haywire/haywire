@@ -9,8 +9,8 @@ Read the following documentation files in order and use them as the authoritativ
 
 ## Files to read
 
-1. `docs/documentation/Library_System_Developer_Guide.md` — practical guide: `@library` decorator, `BaseLibrary`, `register_components()`, `pyproject.toml` entry points, hot-reload via `file_watcher=True`
-2. `docs/documentation/architecture/Library_System_Technical_Reference.md` — technical reference: `LibraryRegistry`, `NodeRegistry`, `SkinRegistry`, discovery via `importlib.metadata`, `LibraryManager` runtime install/uninstall, disable/enable lifecycle
+1. `internals/documentation/Library_System_Developer_Guide.md` — practical guide: `@library` decorator, `BaseLibrary`, `register_components()`, `pyproject.toml` entry points, hot-reload via `file_watcher=True`
+2. `internals/documentation/architecture/Library_System_Technical_Reference.md` — technical reference: `LibraryRegistry`, `NodeRegistry`, `SkinRegistry`, discovery via `importlib.metadata`, `LibraryManager` runtime install/uninstall, disable/enable lifecycle
 
 ## After reading
 

@@ -9,8 +9,8 @@ Read the following documentation files in order and use them as the authoritativ
 
 ## Files to read
 
-1. `docs/documentation/Assembly_Execution_System.md` — Graph → Assembly → Flow → VM pipeline: `LocalizedDataFlow`, topological sort, VM two-stack model (done-stack + loopback-stack), lazy bitmasks (`EVAL_MASK`, `LAZY_MASK`), reassembly triggers
-2. `docs/documentation/architecture/Edge_connections.md` — three-tier edge lifecycle (`link()` → `unlink()` → `detach()`), two-tier port storage (`_linked_edges` + `_all_edges`), asymmetric displacement, lazy propagation, `resolve_dirty_data()`, `pull_lazy()`, deferred `on_change`
+1. `internals/documentation/Assembly_Execution_System.md` — Graph → Assembly → Flow → VM pipeline: `LocalizedDataFlow`, topological sort, VM two-stack model (done-stack + loopback-stack), lazy bitmasks (`EVAL_MASK`, `LAZY_MASK`), reassembly triggers
+2. `internals/documentation/architecture/Edge_connections.md` — three-tier edge lifecycle (`link()` → `unlink()` → `detach()`), two-tier port storage (`_linked_edges` + `_all_edges`), asymmetric displacement, lazy propagation, `resolve_dirty_data()`, `pull_lazy()`, deferred `on_change`
 
 ## After reading
 

@@ -6,7 +6,7 @@ argument-hint: "[library-path]"
 
 # Generate Haybale Library Documentation
 
-Generate `OVERVIEW.md` (discovery tier), `QUICKREF.md` (usage reference), and per-component docs under `docs/` for a haybale library.
+Generate `OVERVIEW.md` (discovery tier), `QUICKREF.md` (usage reference), and per-component docs under `internals/` for a haybale library.
 
 ## 1. Locate the library
 
@@ -24,7 +24,7 @@ After locating `library_path` (the package root, containing `pyproject.toml`), d
 - **Flat structure** — if `library_path/__init__.py` exists: `module_path = library_path`
 - **Package structure** — if `library_path/pyproject.toml` exists without a top-level `__init__.py`: scan one level deep for a subdirectory that contains `__init__.py`. Use that subdirectory as `module_path`. (E.g., `library_path/haybale_visiongraph/` for haybale-visiongraph.)
 
-All documentation output (OVERVIEW.md, QUICKREF.md, docs/) is written to `module_path`, not `library_path`. Component source files (nodes/, widgets/, etc.) are read from `module_path` subdirectories.
+All documentation output (OVERVIEW.md, QUICKREF.md, internals/) is written to `module_path`, not `library_path`. Component source files (nodes/, widgets/, etc.) are read from `module_path` subdirectories.
 
 ## 2. Sync docstrings (preprocess)
 
@@ -161,12 +161,12 @@ Write to `module_path/QUICKREF.md`.
 
 ### 4c. Per-component docs (incremental)
 
-Write to `module_path/docs/nodes/{ClassName}.md` and `module_path/docs/widgets/{ClassName}.md`.
+Write to `module_path/internals/nodes/{ClassName}.md` and `module_path/internals/widgets/{ClassName}.md`.
 
 For each node and widget:
 
 1. Compute the sha256 hash of the source `.py` file (first 12 hex chars)
-2. Check if `module_path/docs/nodes/{ClassName}.md` (or `docs/widgets/`) exists
+2. Check if `module_path/internals/nodes/{ClassName}.md` (or `internals/widgets/`) exists
 3. If the file exists, read its first line and parse the stored hash
 4. **If hashes match**: skip this component — do not write
 5. **If hashes differ or file is absent**: write the full component doc with the hash comment as the first line
@@ -174,7 +174,7 @@ For each node and widget:
 The hash comment format is: `<!-- source: {relative/path.py} | sha256: {12-char-hash} -->`
 where `{relative/path.py}` is relative to `module_path` (e.g. `nodes/start_web_cam_stream_node.py`).
 
-Create `module_path/docs/nodes/` and `module_path/docs/widgets/` directories as needed.
+Create `module_path/internals/nodes/` and `module_path/internals/widgets/` directories as needed.
 
 ### Rules
 - Always overwrite `module_path/OVERVIEW.md` and `module_path/QUICKREF.md` completely

@@ -17,7 +17,7 @@ LibraryStateContainer:
   - `ctx.app_data[Cls]` — AppState lookups (shared across the app).
   - `ctx.data[Cls]`     — SessionState lookups (this session's slice).
 
-See docs/documentation/architecture/session_state.md.
+See internals/documentation/architecture/session_state.md.
 """
 
 from __future__ import annotations
@@ -51,7 +51,7 @@ class SessionContext:
     ``SessionState``. See ``haybale_studio.state.edit_state.EditState``;
     access via ``ctx.data[EditState].active_node.value``.
 
-    See docs/documentation/architecture/session_state.md.
+    See internals/documentation/architecture/session_state.md.
     """
 
     # --- Plain fields (non-reactive) ---

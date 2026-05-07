@@ -47,4 +47,4 @@ class IProjectState(Protocol):
     node_factory: Any  # NodeFactory
     library_manager: "LibraryManager"
     library_state_container: "LibraryStateContainer"
-    """Pool of live LibraryState instances. See docs/documentation/architecture/library_state.md."""
+    """Pool of live LibraryState instances. See internals/documentation/architecture/library_state.md."""

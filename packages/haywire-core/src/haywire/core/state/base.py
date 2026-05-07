@@ -7,7 +7,7 @@ one of the concrete scope bases:
   - `SessionState` — one instance per UI session.
 
 The mental rule is one line: *scope = base class*. Inheritance picks
-multiplicity. See docs/documentation/architecture/session_state.md.
+multiplicity. See internals/documentation/architecture/session_state.md.
 """
 
 from __future__ import annotations
@@ -34,7 +34,7 @@ class AppState(LibraryState):
     framework calls optional `on_enable()` after instantiation and
     optional `on_disable()` before teardown.
 
-    See docs/documentation/architecture/library_state.md.
+    See internals/documentation/architecture/library_state.md.
     """
 
 
@@ -50,7 +50,7 @@ class SessionState(LibraryState):
     settings are app-global, sessions are per-session. The
     ``__init_subclass__`` check below catches this at class-definition time.
 
-    See docs/documentation/architecture/session_state.md.
+    See internals/documentation/architecture/session_state.md.
     """
 
     session_id: str  # set by the container before on_enable runs

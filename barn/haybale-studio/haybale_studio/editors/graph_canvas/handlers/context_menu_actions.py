@@ -5,7 +5,7 @@ the verbs valid in that context. The provider implements all five
 structurally on a single class.
 
 Phase 1.5 of the panel-contract migration. See
-docs/superpowers/plans/2026-05-04-panel-contract-phase-1-5.md.
+internals/superpowers/plans/2026-05-04-panel-contract-phase-1-5.md.
 """
 
 from __future__ import annotations

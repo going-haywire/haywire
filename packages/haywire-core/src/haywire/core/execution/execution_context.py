@@ -42,7 +42,7 @@ class ExecutionContext:
     contexts only). ExecutionContext does not have a `data` (SessionState)
     namespace because graphs run app-globally — the VM has no notion of
     which UI session triggered execution. See
-    docs/documentation/architecture/session_state.md §2.3."""
+    internals/documentation/architecture/session_state.md §2.3."""
 
     def emit_callback(self, event_name: str, payload: Optional[Dict] = None):
         """

@@ -51,10 +51,10 @@ uv run mypy packages/haywire-core/src/       # type checking
 
 ## Documentation
 
-When looking up how a system works (API, parameters, behaviour), check `docs/` first before reading source code.
+When looking up how a system works (API, parameters, behaviour), check `internals/` first before reading source code.
 
 ## UI Style Guidelines
-`docs/documentation/design/haywire_ui_design_guide.md` contains guidelines for UI design and implementation. Follow these when implementing new UI features or refactoring existing ones.
+`internals/documentation/design/haywire_ui_design_guide.md` contains guidelines for UI design and implementation. Follow these when implementing new UI features or refactoring existing ones.
 
 ## Testing
 
