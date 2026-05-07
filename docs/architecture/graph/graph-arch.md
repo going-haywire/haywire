@@ -1,6 +1,6 @@
 ---
 status: placeholder
-template: impl-spec
+doc_template: impl-spec
 scope: The Graph as data structure: variables, validation pipeline, graph-nodes, haystacks, serialization
 see-also:
   - ../../archive/whitepaper/Haywire_design.md
@@ -25,7 +25,7 @@ see-also:
 
 When migrating, draw from:
 
-- [internals/documentation/Haywire_design.md](../../archive/whitepaper/Haywire_design.md)
+- [Haywire_design.md (whitepaper)](../../archive/whitepaper/Haywire_design.md)
 
 ## TODO
 

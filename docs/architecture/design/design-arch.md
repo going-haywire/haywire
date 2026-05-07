@@ -1,9 +1,8 @@
 ---
 status: placeholder
-template: system-reference
+doc_template: system-reference
 scope: UI design guide, naming, hui rules, design tokens
 see-also:
-  - ../../../internals/documentation/design/haywire-ui-design-guide.md
 ---
 
 # Design — Architecture
@@ -23,7 +22,7 @@ see-also:
 
 When migrating, draw from:
 
-- [internals/documentation/design/haywire-ui-design-guide.md](../../../internals/documentation/design/haywire-ui-design-guide.md)
+- (source: see git history — `haywire-ui-design-guide.md`, now in `docs/reference/design-guide.md`)
 
 ## TODO
 

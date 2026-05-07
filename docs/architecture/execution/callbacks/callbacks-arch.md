@@ -1,6 +1,6 @@
 ---
 status: draft
-template: impl-spec
+doc_template: impl-spec
 scope: Callback edge system — cross-flow triggers, FlowType.CALLBACK semantics, CallbackManager, assembly-time wiring
 see-also:
   - ../edges/edges-arch.md
@@ -17,7 +17,7 @@ A **callback** is a cross-flow trigger: one Flow emits an event, and a sibling F
 
 Callbacks are not Edges that participate in execution. They are **assembly-time wiring**: a CALLBACK edge between an emitter outlet and a listener-event-node's inlet tells the assembler "hook this listener up to fire when the emitter writes." Once assembled, the runtime callback machinery handles dispatch — there is no edge to traverse during execution.
 
-This is the third leg of haywire's connection types — see [reference/glossary §Flow Types & Port Kinds](../../../reference/glossary.md#flow-types--port-kinds):
+This is the third leg of haywire's connection types — see [reference/glossary §Flow Types & Port Kinds](../../../reference/glossary.md#flow-types-port-kinds):
 
 | Connection | Purpose | Lifetime |
 |---|---|---|

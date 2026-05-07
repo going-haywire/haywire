@@ -1,6 +1,6 @@
 ---
 status: draft
-template: canonical-example
+doc_template: canonical-example
 scope: Packaging a Haybale — pyproject.toml shape, folder layout, entry points, install/build/publish workflow
 see-also:
   - ../libraries/library-canon.md
@@ -13,7 +13,7 @@ see-also:
 
 ## 1. What it solves
 
-A **Haybale package** is the distribution unit of a haywire library — a Python package whose `pyproject.toml` declares an entry point under `haywire.libraries`, containing exactly one `BaseLibrary` subclass. It is meaning **#3** of the five "library" concepts in haywire (see [reference/glossary §Library — five distinct meanings](../../reference/glossary.md#library--five-distinct-meanings)).
+A **Haybale package** is the distribution unit of a haywire library — a Python package whose `pyproject.toml` declares an entry point under `haywire.libraries`, containing exactly one `BaseLibrary` subclass. It is meaning **#3** of the five "library" concepts in haywire (see [reference/glossary §Library — five distinct meanings](../../reference/glossary.md#library-five-distinct-meanings)).
 
 You package a haybale when you want to:
 

@@ -1,9 +1,8 @@
 ---
 status: placeholder
-template: impl-spec
+doc_template: impl-spec
 scope: NiceGUI integration, hui module, slot stacks, reactive rendering pipeline
 see-also:
-  - ../../../../internals/documentation/architecture/app_ui/haywire-ui-architecture-spec_details.md
 ---
 
 # Rendering — Architecture
@@ -25,7 +24,7 @@ see-also:
 
 When migrating, draw from:
 
-- [internals/documentation/architecture/app_ui/haywire-ui-architecture-spec_details.md](../../../../internals/documentation/architecture/app_ui/haywire-ui-architecture-spec_details.md)
+- (source: see git history — 1757-line `haywire-ui-architecture-spec_details.md`; primary mining target for filling this placeholder)
 
 ## TODO
 

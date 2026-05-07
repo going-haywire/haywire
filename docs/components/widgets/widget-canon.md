@@ -1,6 +1,6 @@
 ---
 status: draft
-template: canonical-example
+doc_template: canonical-example
 scope: Authoring widgets — SimpleWidget / BaseWidget subclasses, the @widget decorator, type binding, lifecycle
 see-also:
   - ../datatypes/datatype-canon.md
@@ -141,7 +141,6 @@ from haywire.ui.components.number.drag import NumberDrag
 
 from haybale_core.types.specs import FLOAT, INT, STRING
 
-
 # ── 1. Number widget — the bread-and-butter SimpleWidget ──────────────
 
 @widget(
@@ -172,7 +171,6 @@ class NumberWidget(SimpleWidget):
 
     def get_default_value(self) -> float:
         return 0.0
-
 
 # ── 2. Read-only display widget — IS_READONLY = True ──────────────────
 
@@ -216,12 +214,10 @@ class FormattedDisplayWidget(SimpleWidget):
     def get_default_value(self) -> float:
         return 0.0
 
-
 # ── 3. Choices-driven widget for a custom primitive type ──────────────
 # (The MathOperation type itself lives in my_lib/types/, see datatype-canon.md.)
 
 from ..types.math_operation import MathOperation
-
 
 @widget(
     description='Select a math operation',
@@ -246,12 +242,10 @@ class MathOperationWidget(SimpleWidget):
     def get_default_value(self) -> str:
         return 'add'
 
-
 # ── 4. Library registration ───────────────────────────────────────────
 # my_lib/__init__.py
 from haywire.core.library.base import BaseLibrary
 from haywire.core.library.decorator import library
-
 
 @library(label='My Lib', file_watcher=True)
 class Library(BaseLibrary):
@@ -267,12 +261,10 @@ class Library(BaseLibrary):
     def validate(self) -> bool:
         return True
 
-
 # ── 5. Using the widgets from a node ──────────────────────────────────
 
 from haywire.core.node.base import BaseNode
 from haywire.core.node.decorator import node
-
 
 @node(label='Calculator', menu='math')
 class CalculatorNode(BaseNode):

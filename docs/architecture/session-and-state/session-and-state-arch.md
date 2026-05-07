@@ -1,6 +1,6 @@
 ---
 status: draft
-template: impl-spec
+doc_template: impl-spec
 scope: LibraryStateRegistry, LibraryStateContainer, lifecycle pipeline, session attach/detach, hot-reload coordination
 see-also:
   - ../../components/states/state-canon.md

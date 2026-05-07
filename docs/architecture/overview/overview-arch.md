@@ -1,6 +1,6 @@
 ---
 status: placeholder
-template: system-reference
+doc_template: system-reference
 scope: End-to-end tour of haywire as a system; links into all other architecture folders
 see-also:
   - ../../archive/whitepaper/Haywire_design.md
@@ -23,7 +23,7 @@ see-also:
 
 When migrating, draw from:
 
-- [internals/documentation/Haywire_design.md](../../archive/whitepaper/Haywire_design.md)
+- [Haywire_design.md (whitepaper)](../../archive/whitepaper/Haywire_design.md)
 
 ## TODO
 

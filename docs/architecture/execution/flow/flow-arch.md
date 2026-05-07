@@ -1,6 +1,6 @@
 ---
 status: placeholder
-template: impl-spec
+doc_template: impl-spec
 scope: Flow as runtime structure; control flow vs localized data flow
 see-also:
   - ../../../archive/whitepaper/Haywire_design.md
@@ -25,7 +25,7 @@ see-also:
 
 When migrating, draw from:
 
-- [internals/documentation/Haywire_design.md](../../../archive/whitepaper/Haywire_design.md)
+- [Haywire_design.md (whitepaper)](../../../archive/whitepaper/Haywire_design.md)
 
 ## TODO
 

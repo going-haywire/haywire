@@ -1,6 +1,6 @@
 ---
 status: draft
-template: impl-spec
+doc_template: impl-spec
 scope: Studio's in-app package-manager UI — LibraryManager, marketplace.toml feed mechanism, install/uninstall/edit pipeline
 see-also:
   - ../library-system/library-system-arch.md

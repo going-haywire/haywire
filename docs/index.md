@@ -15,4 +15,3 @@ Or browse:
 - **[Reference](reference/)** — glossary, design guide, API
 - **[Archive](archive/)** — foundational historical material (e.g. the original whitepaper)
 
-See [STRUCTURE.md](STRUCTURE.md) for the conventions every contributor follows.

@@ -1,6 +1,6 @@
 ---
 status: draft
-template: canonical-example
+doc_template: canonical-example
 scope: Authoring ports — as_inlet / as_outlet / as_config, primitive vs array vs pooled, worker access, port flags
 see-also:
   - ../nodes/node-canon.md
@@ -131,7 +131,6 @@ from haywire.core.node.base import BaseNode
 from haywire.core.node.decorator import node
 from haywire.core.node.behavior import NodeType
 from haywire.core.execution.execution_context import ExecutionContext
-
 
 @node(
     label='Multi-Source Aggregator',

@@ -1,6 +1,6 @@
 ---
 status: placeholder
-template: canonical-example
+doc_template: canonical-example
 scope: Authoring node skins (visual variants of a node's rendering)
 see-also:
   []

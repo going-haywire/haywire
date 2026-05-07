@@ -1,6 +1,6 @@
 ---
 status: draft
-template: impl-spec
+doc_template: impl-spec
 scope: Cross-cutting hot-reload pipeline — FileWatcher → BaseRegistry events → wrapper rebuild → graph revalidation
 see-also:
   - ../library-system/library-system-arch.md
@@ -53,7 +53,7 @@ _notify_registry_subscribers()              [Cross-registry cascade]
 [Cascade reload]                            [Dependent nodes rebuilt]
 ```
 
-Visual diagram preserved in [internals/archive/Hot_Reload_Diagrams.md](../../../internals/archive/Architecture/Hot_Reload/Hot_Reload_Diagrams.md) (and [internals/archive/diagrams.md](../../../internals/archive/diagrams.md) for the EdgeWrapper → UIEdge cascade).
+The original ASCII diagrams (`Hot_Reload_Diagrams.md` and `diagrams.md`) are recoverable via git history.
 
 ### 2.2 What runs when
 
@@ -123,7 +123,7 @@ When a node hot-reloads, its attached edges need to re-resolve port references a
 5. `_test()` runs the chain against a sample value; on failure, edge transitions to non-functional and gets unlinked.
 6. On success, `link()` registers at the new ports — including any displaced/re-enableable edges in `_all_edges`.
 
-See [edges §3.7](../execution/edges/edges-arch.md#37-hot-reload-coordination--node-rebuild) for full mechanics.
+See [edges §3.7](../execution/edges/edges-arch.md#37-hot-reload-coordination-node-rebuild) for full mechanics.
 
 ### 3.4 Flow reassembly
 

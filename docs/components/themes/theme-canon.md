@@ -1,6 +1,6 @@
 ---
 status: draft
-template: canonical-example
+doc_template: canonical-example
 scope: Authoring WorkbenchTheme and NodeTheme subclasses, registering them in a library, hot-reload behaviour
 see-also:
   - ../skins/skin-canon.md
@@ -148,7 +148,6 @@ A library `haybale-blueprint` ships a paired set: a `BlueprintWorkbenchTheme` (f
 from haywire.ui.themes.workbench import WorkbenchTheme
 from haywire.ui.themes.decorator import theme
 
-
 @theme(label='Blueprint — Dark')
 class BlueprintWorkbenchTheme(WorkbenchTheme):
     """Full workbench theme. Every token explicitly set."""
@@ -220,7 +219,6 @@ class BlueprintWorkbenchTheme(WorkbenchTheme):
     console_bg   = '#060d18'
     console_text = '#4ade80'
 
-
 # Partial override demonstrating subclassing — only red accents differ.
 @theme(label='Blueprint — Red Accent')
 class BlueprintRedAccentTheme(BlueprintWorkbenchTheme):
@@ -237,7 +235,6 @@ class BlueprintRedAccentTheme(BlueprintWorkbenchTheme):
 # haybale_blueprint/themes/node.py
 from haywire.ui.themes.node_theme import NodeTheme
 from haywire.ui.themes.decorator import theme
-
 
 @theme(label='Blueprint — Nodes')
 class BlueprintNodeTheme(NodeTheme):
@@ -270,7 +267,6 @@ from .themes.workbench import (
     BlueprintRedAccentTheme,
 )
 from .themes.node import BlueprintNodeTheme
-
 
 @library(label='Blueprint Theme', file_watcher=True)
 class Library(BaseLibrary):

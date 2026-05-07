@@ -198,3 +198,5 @@ saves/*.*
 
 # Dev-mode graphs (local testing only, not part of the repo)
 graphs/*.json
+# MkDocs build output
+site/

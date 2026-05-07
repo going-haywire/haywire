@@ -1,6 +1,6 @@
 ---
 status: draft
-template: canonical-example
+doc_template: canonical-example
 scope: Authoring AppState / SessionState classes — @state decorator, on_enable / on_disable, ctx.app_data and ctx.data access
 see-also:
   - ../../architecture/session-and-state/session-and-state-arch.md
@@ -41,7 +41,6 @@ class MidiPool(AppState):        register_components(self):     observes registr
    def on_enable(self): ...           folder=base/'state',         store → on_enable()
    def on_disable(self): ...          registry_cls=                on unregister:
                                       LibraryStateRegistry)        on_disable() → drop
-
 
 Worker / panel reads
 ────────────────────
@@ -189,11 +188,9 @@ A library `haybale_midi` that exercises both scopes: an `AppState` (`MidiPool`) 
 from haywire.core.state import AppState, state
 from haywire.ui.reactive import reactive_field
 
-
 # Companion settings (covered in components/settings/setting-canon.md).
 # Lives in the same library so on_enable can find the wired registry.
 from ..settings import MidiSettings
-
 
 @state(label='MIDI Device Pool')
 class MidiPool(AppState):
@@ -229,7 +226,6 @@ class MidiPool(AppState):
 from haywire.core.state import SessionState, state
 from haywire.ui.reactive import reactive_field
 
-
 @state(label='MIDI Selection (session)')
 class MidiSelection(SessionState):
     """Per-session state — each browser session has its own selected
@@ -258,7 +254,6 @@ from haywire.core.library.decorator import library
 from haywire.core.settings.registry import SettingsRegistry
 from haywire.core.state import LibraryStateRegistry
 from haywire.core.node.registry import NodeRegistry
-
 
 @library(
     id='midi',
@@ -295,7 +290,6 @@ class Library(BaseLibrary):
 
 from haywire.ui.panel import Panel, panel
 
-
 @panel(focus=GraphFocus, label='MIDI Devices')
 class MidiDeviceListPanel(Panel):
     def draw(self, ctx, layout, actions):
@@ -319,7 +313,6 @@ class MidiDeviceListPanel(Panel):
 # haybale_midi/nodes/midi_send.py — Execution side
 
 from haywire.core.execution.execution_context import ExecutionContext
-
 
 @node(label='MIDI Send')
 class MidiSendNode(BaseNode):

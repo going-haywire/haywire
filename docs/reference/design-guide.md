@@ -1,6 +1,6 @@
 ---
 status: draft
-template: design-guide
+doc_template: design-guide
 scope: Visual / UX rules, do/don't, design tokens, component patterns, layout primitives, accessibility, anti-patterns
 see-also:
   - glossary.md

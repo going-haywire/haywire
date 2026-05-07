@@ -1,6 +1,6 @@
 ---
 status: draft
-template: impl-spec
+doc_template: impl-spec
 scope: EdgeWrapper lifecycle, the 4-stage build pipeline, two-tier port storage, adapter chains, lazy propagation, dirty model
 see-also:
   - ../../../components/adapters/adapter-canon.md
@@ -208,7 +208,7 @@ The `Pipes` class owns all data transport — both eager push (`propagate()`) an
 4. Edge `_formal_validation()` refreshes port references from the new node instance.
 5. Edge `link()` registers at the new port objects.
 
-The full hot-reload pipeline (file watcher → import → registry events → wrapper rebuild → graph revalidation) lives in [architecture/hot-reload](../../hot-reload/hot-reload-arch.md). The visual diagram in [internals/archive/diagrams.md](../../../../internals/archive/diagrams.md) shows the EdgeWrapper → UIEdge → GraphCanvasVue cascade for state-change events.
+The full hot-reload pipeline (file watcher → import → registry events → wrapper rebuild → graph revalidation) lives in [architecture/hot-reload](../../hot-reload/hot-reload-arch.md). The original visual diagram (`diagrams.md`) for the EdgeWrapper → UIEdge → GraphCanvasVue cascade is recoverable via git history.
 
 ## 4. Boundary
 

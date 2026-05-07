@@ -1,6 +1,6 @@
 ---
 status: placeholder
-template: perspective-index
+doc_template: perspective-index
 scope: User perspective: writing nodes, types, ports, adapters, settings, widgets
 ---
 
@@ -8,7 +8,7 @@ scope: User perspective: writing nodes, types, ports, adapters, settings, widget
 
 *This is a placeholder. Curated reading order has not yet been written.*
 
-Per [STRUCTURE.md](../../STRUCTURE.md) §5, this page will list which `components/` and `architecture/` stories a user reader should walk through and in what order.
+This page will list which `components/` and `architecture/` stories a user reader should walk through and in what order.
 
 ## TODO
 

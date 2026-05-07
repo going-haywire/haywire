@@ -1,9 +1,8 @@
 ---
 status: draft
-template: glossary
+doc_template: glossary
 scope: Canonical haywire vocabulary; ubiquitous language with disambiguation
 see-also:
-  - ../STRUCTURE.md
 ---
 
 # Glossary

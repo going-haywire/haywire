@@ -1,6 +1,6 @@
 ---
 status: placeholder
-template: perspective-index
+doc_template: perspective-index
 scope: Advanced perspective: editors, panels, themes, skins, states, libraries, haybale packaging
 ---
 
@@ -8,7 +8,7 @@ scope: Advanced perspective: editors, panels, themes, skins, states, libraries, 
 
 *This is a placeholder. Curated reading order has not yet been written.*
 
-Per [STRUCTURE.md](../../STRUCTURE.md) §5, this page will list which `components/` and `architecture/` stories a advanced reader should walk through and in what order.
+This page will list which `components/` and `architecture/` stories a advanced reader should walk through and in what order.
 
 ## TODO
 

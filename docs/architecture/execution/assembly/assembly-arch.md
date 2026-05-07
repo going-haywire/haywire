@@ -1,6 +1,6 @@
 ---
 status: draft
-template: impl-spec
+doc_template: impl-spec
 scope: Graph→Flow assembly pipeline — FlowAssemblyManager, validation, event-node identification, control-flow + localized data-flow construction, JIT reassembly
 see-also:
   - ../flow/flow-arch.md
@@ -103,7 +103,7 @@ After this completes, `assembled_flows[flow_id] = Flow` for every Flow, and the 
 
 ### 3.2 Just-in-time reassembly
 
-When the graph mutates, only affected Flows reassemble. The dirty-tracking is owned by `ValidationManager` (see [edges §3.6](../edges/edges-arch.md#36-validationmanager--debounced-batch-processing)) which marks `dirty_flows` based on `ChangeReason`.
+When the graph mutates, only affected Flows reassemble. The dirty-tracking is owned by `ValidationManager` (see [edges §3.6](../edges/edges-arch.md#36-validationmanager-debounced-batch-processing)) which marks `dirty_flows` based on `ChangeReason`.
 
 Reasons that trigger reassembly:
 

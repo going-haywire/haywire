@@ -1,6 +1,6 @@
 ---
 status: draft
-template: canonical-example
+doc_template: canonical-example
 scope: Authoring node classes — BaseNode, @node decorator, lifecycle hooks, worker function, dynamic reconfiguration
 see-also:
   - ../ports/port-canon.md
@@ -110,7 +110,6 @@ from haywire.core.node.base import BaseNode
 from haywire.core.node.decorator import node
 from haywire.core.node.behavior import NodeType
 from haywire.core.execution.execution_context import ExecutionContext
-
 
 @node(
     label='Range Filter',

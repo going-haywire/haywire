@@ -6,14 +6,13 @@ site_url: https://haywire.dev/docs/
 # artefacts that are NOT part of the published site.
 docs_dir: docs
 
-# Exclude planning/audit material from the rendered site. They live in docs/
-# for proximity to the structure plan but should not appear in published nav.
+# Exclude migration audit tables from the rendered site (they reference deleted
+# archive paths and are interesting only as historical record).
 exclude_docs: |
-  STRUCTURE.md
   audit-internals.md
   audit-survivors.md
 
-# Material for MkDocs theme — see STRUCTURE.md §2.
+# Material for MkDocs theme.
 # Zensical migration is the planned upgrade path; structure stays compatible.
 theme:
   name: material
@@ -77,9 +76,9 @@ markdown_extensions:
 plugins:
   - search
 
-# Per STRUCTURE.md §5, perspectives are navigational entry points.
-# components/ holds extension-point stories; architecture/ holds system
-# internals; reference/ holds shared truth (glossary, design guide).
+# Perspectives are navigational entry points; components/ holds extension-point
+# stories; architecture/ holds system internals; reference/ holds shared truth
+# (glossary, design guide).
 nav:
   - Home: index.md
 

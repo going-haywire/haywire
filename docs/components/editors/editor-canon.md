@@ -1,6 +1,6 @@
 ---
 status: draft
-template: canonical-example
+doc_template: canonical-example
 scope: Authoring editors — BaseEditor subclass, @editor decorator, render / on_context_changed lifecycle, OpenBehavior tab modes
 see-also:
   - ../panels/panel-canon.md
@@ -117,11 +117,9 @@ from haywire.ui.editor.base import BaseEditor
 from haywire.ui.editor.decorator import editor
 from haywire.ui.context_events import ContextChangeType
 
-
 # Companion AppState that holds the log buffer. Lives across sessions
 # so all tabs see the same log. See components/states/state-canon.md.
 from ..state.log_buffer import LogBuffer
-
 
 @editor(
     label='Log Viewer',

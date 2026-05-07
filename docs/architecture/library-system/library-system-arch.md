@@ -1,6 +1,6 @@
 ---
 status: draft
-template: system-reference
+doc_template: system-reference
 scope: Runtime infrastructure that discovers, loads, and tracks libraries — LibraryRegistry, LibraryDiscovery, LibraryIdentity, FileWatcher
 see-also:
   - ../library-manager/library-manager-arch.md

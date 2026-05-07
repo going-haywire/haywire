@@ -1,6 +1,6 @@
 ---
 status: draft
-template: canonical-example
+doc_template: canonical-example
 scope: Authoring settings — NodeSettings, LibrarySettings, the setting() / shadow() / watch() descriptors, on_change, panel integration
 see-also:
   - ../../architecture/settings/settings-arch.md
@@ -32,7 +32,6 @@ class filter(NodeSettings):    @node decorator scans inner      self.filter.thre
    threshold = setting[float]    classes, sets _setting_key,        ↓ resolution chain
    bg = shadow(NodeUI.bg_color)  binds settings instance to        (see architecture)
                                  self.<accessor_name>            → unwrapped value
-
 
 @settings(namespace='my_lib')  BaseRegistry hot-reload picks    self.api.url, etc.
 class MyLibSettings(            up the class; sets cls._registry   - via shadow/watch
@@ -197,7 +196,6 @@ A worked example exercising every concept above: a library `image_lib` with its 
 from haywire.core.settings import LibrarySettings, setting, shadow, watch, Color
 from haywire.core.settings.decorator import settings
 
-
 @settings(namespace='image_lib', label='Image Processing')
 class ImageLibSettings(LibrarySettings):
     """Library-wide defaults — backed by ~/.haywire/settings.toml.
@@ -216,14 +214,12 @@ class ImageLibSettings(LibrarySettings):
         True, label='GPU Acceleration', category='processing',
     )
 
-
 # image_lib/nodes/resize.py
 from haywire.core.node import BaseNode, node
 from haywire.core.settings import NodeSettings, setting, shadow, watch
 from haywire.core.settings.builtins.debug import DebugSettings
 from haywire.core.settings.builtins.ui_node import NodeUISettings
 from ..settings import ImageLibSettings
-
 
 @node(label='Resize Image', menu='image/transform')
 class ResizeNode(BaseNode):

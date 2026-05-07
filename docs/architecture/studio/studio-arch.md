@@ -1,6 +1,6 @@
 ---
 status: draft
-template: system-reference
+doc_template: system-reference
 scope: The studio as a product — AppShell, Workspace, Sessions, slots, editors, panels, context-driven rendering
 see-also:
   - app-shell/app-shell-arch.md

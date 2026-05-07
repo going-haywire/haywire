@@ -1,6 +1,6 @@
 ---
 status: draft
-template: impl-spec
+doc_template: impl-spec
 scope: Settings framework — three-tier model, SettingsRegistry, six-step resolution chain, TOML format, FrameworkSettings, test utilities
 see-also:
   - ../../components/settings/setting-canon.md

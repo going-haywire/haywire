@@ -1,6 +1,6 @@
 ---
 status: draft
-template: canonical-example
+doc_template: canonical-example
 scope: Authoring panels — BasePanel subclass, @panel decorator, poll / draw lifecycle, scopes, PanelLayout API, Focus-based hosting
 see-also:
   - ../editors/editor-canon.md
@@ -140,7 +140,6 @@ from haywire.ui.focus import NodeFocus
 
 # A Focus-aware AppState (see components/states/state-canon.md)
 from ..state.metrics_cache import MetricsCache
-
 
 @panel(
     editor='properties',     # Host editor's registry_id

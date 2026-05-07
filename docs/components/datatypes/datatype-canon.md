@@ -1,6 +1,6 @@
 ---
 status: draft
-template: canonical-example
+doc_template: canonical-example
 scope: Authoring IType subclasses (PrimitiveType / BaseType) and registering them with the type registry via @type
 see-also:
   - ../../architecture/execution/edges/edges-arch.md
@@ -74,7 +74,6 @@ from haywire.core.types.decorator import type
 from haywire.core.data.fields import PrimitiveField
 from haywire.core.data.enums import FlowType
 
-
 # ── A complex type ─────────────────────────────────────────────────────
 
 @type(
@@ -107,7 +106,6 @@ class Color(BaseType):
             b=int(h[4:6], 16) / 255.0,
         )
 
-
 # ── A primitive variant with type coercion ─────────────────────────────
 
 @type(
@@ -122,7 +120,6 @@ class Alpha(PrimitiveType[float]):
     to a FLOAT inlet with no additional adapter."""
     pass
 
-
 class AlphaField(PrimitiveField):
     """Guarantees stored value is a Python float and clamped to 0..1."""
     def set_value(self, value, source_id=None):
@@ -131,7 +128,6 @@ class AlphaField(PrimitiveField):
 
 # Assign AFTER both classes exist
 Alpha.field_class = AlphaField
-
 
 # ── An adapter (full coverage lives in components/adapters) ────────────
 # Adapters belong in components/adapters/adapter-canon.md. Shown briefly
@@ -151,7 +147,6 @@ class ColorToStringAdapter(BaseAdapter):
 
     def get_test_value(self) -> Color:
         return Color(r=1.0, g=0.5, b=0.0)
-
 
 # ── Using the type in a node ───────────────────────────────────────────
 

@@ -1,6 +1,6 @@
 ---
 status: draft
-template: canonical-example
+doc_template: canonical-example
 scope: Authoring a Library — BaseLibrary subclass, @library decorator, register_components, validate, hot-reload
 see-also:
   - ../haybale-package/haybale-package-canon.md
@@ -15,7 +15,7 @@ see-also:
 
 A **Library** (the haywire `BaseLibrary` subclass, decorated with `@library`) is the plugin protocol that contributes nodes, types, adapters, widgets, skins, themes, and settings to a running haywire app. As an author, you write one Library class per haybale package — the framework discovers it through the `pyproject.toml` entry point, calls `register_components()` to populate the global registries, and (optionally) starts a file watcher so your changes hot-reload without restart.
 
-This is meaning **#1** of the five "library" concepts in haywire (see [reference/glossary §Library — five distinct meanings](../../reference/glossary.md#library--five-distinct-meanings)). For the runtime infrastructure that *uses* your Library class (LibraryRegistry, LibraryDiscovery, FileWatcher), see [architecture/library-system](../../architecture/library-system/library-system-arch.md). For packaging a Library as a distributable Haybale package (pyproject layout, entry points, publishing), see [components/haybale-package](../haybale-package/haybale-package-canon.md).
+This is meaning **#1** of the five "library" concepts in haywire (see [reference/glossary §Library — five distinct meanings](../../reference/glossary.md#library-five-distinct-meanings)). For the runtime infrastructure that *uses* your Library class (LibraryRegistry, LibraryDiscovery, FileWatcher), see [architecture/library-system](../../architecture/library-system/library-system-arch.md). For packaging a Library as a distributable Haybale package (pyproject layout, entry points, publishing), see [components/haybale-package](../haybale-package/haybale-package-canon.md).
 
 ## 2. How it fits
 
@@ -139,7 +139,6 @@ from haywire.ui.widget.registry import WidgetRegistry
 from haywire.ui.skin.registry import SkinRegistry
 from haywire.ui.themes.registry import ThemeRegistry
 
-
 @library(
     label='My Library',
     id='haybale_mylib',                 # Stable across versions —
@@ -211,7 +210,6 @@ class Library(BaseLibrary):
         if missing:
             return False
         return True
-
 
 # Required: the entry point in pyproject.toml points at this name
 __all__ = ['Library']

@@ -1,6 +1,6 @@
 ---
 status: placeholder
-template: impl-spec
+doc_template: impl-spec
 scope: EVAL_MASK / LAZY_MASK algorithm, ON_VALIDATION_LAZY hooks, reassembly conditions
 see-also:
   - ../../../archive/whitepaper/Haywire_design.md
@@ -25,7 +25,7 @@ see-also:
 
 When migrating, draw from:
 
-- [internals/documentation/Haywire_design.md](../../../archive/whitepaper/Haywire_design.md)
+- [Haywire_design.md (whitepaper)](../../../archive/whitepaper/Haywire_design.md)
 
 ## TODO
 

@@ -1,6 +1,6 @@
 ---
 status: draft
-template: canonical-example
+doc_template: canonical-example
 scope: Authoring type-pair adapters with @adapter, BaseAdapter / IAdapter, the convert / get_test_value / execute contract, chain assembly
 see-also:
   - ../datatypes/datatype-canon.md
@@ -119,7 +119,6 @@ from haybale_core.types.specs import STRING
 from ..types.color import Color
 from ..types.temperature import Temperature   # @type-decorated PrimitiveType[float]
 
-
 # ── 1. Color → STRING (hex export) ─────────────────────────────────────
 
 @adapter(
@@ -140,7 +139,6 @@ class ColorToStringAdapter(BaseAdapter):
         # branch of convert(); here all four channels are non-default.
         return Color(r=1.0, g=0.5, b=0.0, a=0.8)
 
-
 # ── 2. STRING → Color (hex import) ─────────────────────────────────────
 
 @adapter(
@@ -159,7 +157,6 @@ class StringToColorAdapter(BaseAdapter):
 
     def get_test_value(self) -> str:
         return '#ff8000'
-
 
 # ── 3. Temperature → Color (cross-domain conversion) ───────────────────
 

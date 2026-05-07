@@ -1,10 +1,10 @@
 # Internals Audit — Survivors
 
-Files from the heuristic audit that you marked **good** or **check** — i.e. *not* dropped. Use this list to decide where each doc lands in the new structure (see [STRUCTURE.md](STRUCTURE.md)) and what kind of content it actually is.
+Files from the heuristic audit that you marked **good** or **check** — i.e. *not* dropped. Use this list to decide where each doc lands in the new structure (see STRUCTURE.md) and what kind of content it actually is.
 
 **47** survivors. Source triage: [audit-internals.md](audit-internals.md).
 
-> **Migration complete (2026-05-07).** All 47 survivors migrated; every row marked **✅ DONE**. The `~~strikethrough~~` source paths point at `../internals/archive/…` which was deleted after migration (see [STRUCTURE.md §11 / §12](STRUCTURE.md#11-archive-policy)). To recover the original source content, use `git log --follow <docs/destination>` — git tracks the renames-then-delete and the source text is reachable through history.
+> **Migration complete (2026-05-07).** All 47 survivors migrated; every row marked **✅ DONE**. The `~~strikethrough~~` source paths point at `../internals/archive/…` which was deleted after migration (see STRUCTURE.md §11 / §12). To recover the original source content, use `git log --follow <docs/destination>` — git tracks the renames-then-delete and the source text is reachable through history.
 
 ## Content-type legend
 
@@ -103,4 +103,4 @@ Pick one type per file in the **Type** column. Multiple types acceptable as `glo
 
 ## Out of scope
 
-Files marked `drop` in [audit-internals.md](audit-internals.md) are not listed here. They go to `internals/archive/` per [STRUCTURE.md](STRUCTURE.md) §11. **Do not lose this triage** — re-running the audit script overwrites it. If you change your mind on a dropped file, edit the source `audit-internals.md` and rebuild.
+Files marked `drop` in [audit-internals.md](audit-internals.md) are not listed here. They go to `internals/archive/` per STRUCTURE.md §11. **Do not lose this triage** — re-running the audit script overwrites it. If you change your mind on a dropped file, edit the source `audit-internals.md` and rebuild.

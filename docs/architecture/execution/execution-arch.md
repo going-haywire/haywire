@@ -1,9 +1,8 @@
 ---
 status: placeholder
-template: system-reference
+doc_template: system-reference
 scope: Umbrella: how a Graph becomes runtime behaviour. Indexes the six sub-stories
 see-also:
-  - ../../../internals/documentation/Assembly_Execution_System.md
   - ../../archive/whitepaper/Haywire_design.md
 ---
 
@@ -24,8 +23,8 @@ see-also:
 
 When migrating, draw from:
 
-- [internals/documentation/Assembly_Execution_System.md](../../../internals/documentation/Assembly_Execution_System.md)
-- [internals/documentation/Haywire_design.md](../../archive/whitepaper/Haywire_design.md)
+- (source: see git history — `Assembly_Execution_System.md`, content folded into `architecture/execution/assembly/assembly-arch.md`)
+- [Haywire_design.md (whitepaper)](../../archive/whitepaper/Haywire_design.md)
 
 ## TODO
 

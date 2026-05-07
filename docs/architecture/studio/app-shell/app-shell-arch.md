@@ -1,9 +1,8 @@
 ---
 status: placeholder
-template: impl-spec
+doc_template: impl-spec
 scope: Studio top chrome, menus, command palette
 see-also:
-  - ../../../../internals/documentation/architecture/haywire_app.md
 ---
 
 # App Shell — Architecture
@@ -25,7 +24,7 @@ see-also:
 
 When migrating, draw from:
 
-- [internals/documentation/architecture/haywire_app.md](../../../../internals/documentation/architecture/haywire_app.md)
+- (source: see git history — `haywire_app.md`, content folded into `docs/architecture/studio/studio-arch.md`)
 
 ## TODO
 

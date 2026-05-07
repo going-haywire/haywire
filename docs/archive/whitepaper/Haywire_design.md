@@ -315,7 +315,6 @@ These are the basic building blocks of a Haywire graph:
 - Have **only** [Data-pins](#pin-system) (no control pins)
 - Examples: Lightweight algorithms, math operations, data transformations
 
-
 ### Event Nodes
 
 - Entry points for starting execution of flows

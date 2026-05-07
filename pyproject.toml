@@ -37,6 +37,7 @@ dev = [
     "haybale-testing",
     "haybale-visiongraph",
     "haybale-TEST_A",
+    "mkdocs-material>=9.7.6",
 ]
 
 [tool.ruff]
