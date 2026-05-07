@@ -1,0 +1,136 @@
+site_name: Haywire Documentation
+site_description: A Blueprint-inspired visual programming system — dual-flow control + data, library plugin model, hot-reload-first development.
+site_url: https://haywire.dev/docs/
+
+# All published content lives in docs/. internals/ holds working/historical
+# artefacts that are NOT part of the published site.
+docs_dir: docs
+
+# Exclude planning/audit material from the rendered site. They live in docs/
+# for proximity to the structure plan but should not appear in published nav.
+exclude_docs: |
+  STRUCTURE.md
+  audit-internals.md
+  audit-survivors.md
+
+# Material for MkDocs theme — see STRUCTURE.md §2.
+# Zensical migration is the planned upgrade path; structure stays compatible.
+theme:
+  name: material
+  features:
+    - navigation.instant
+    - navigation.tracking
+    - navigation.tabs
+    - navigation.tabs.sticky
+    - navigation.sections
+    - navigation.expand
+    - navigation.indexes
+    - navigation.top
+    - search.highlight
+    - search.suggest
+    - content.code.copy
+    - content.code.annotate
+    - content.tabs.link
+    - toc.follow
+  palette:
+    - media: '(prefers-color-scheme: light)'
+      scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - media: '(prefers-color-scheme: dark)'
+      scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  font:
+    text: Inter
+    code: JetBrains Mono
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - def_list
+  - footnotes
+  - md_in_html
+  - tables
+  - toc:
+      permalink: true
+  - pymdownx.details
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.tasklist:
+      custom_checkbox: true
+  - pymdownx.tilde
+
+plugins:
+  - search
+
+# Per STRUCTURE.md §5, perspectives are navigational entry points.
+# components/ holds extension-point stories; architecture/ holds system
+# internals; reference/ holds shared truth (glossary, design guide).
+nav:
+  - Home: index.md
+
+  - Perspectives:
+      - User (node author): welcome/user/index.md
+      - Advanced (workbench extender): welcome/advanced/index.md
+      - Core (system architect): welcome/core/index.md
+
+  - Components:
+      - Nodes: components/nodes/node-canon.md
+      - Datatypes: components/datatypes/datatype-canon.md
+      - Ports: components/ports/port-canon.md
+      - Adapters: components/adapters/adapter-canon.md
+      - Settings: components/settings/setting-canon.md
+      - Widgets: components/widgets/widget-canon.md
+      - Skins: components/skins/skin-canon.md
+      - Themes: components/themes/theme-canon.md
+      - Editors: components/editors/editor-canon.md
+      - Panels: components/panels/panel-canon.md
+      - States: components/states/state-canon.md
+      - Libraries: components/libraries/library-canon.md
+      - Haybale package: components/haybale-package/haybale-package-canon.md
+
+  - Architecture:
+      - Overview: architecture/overview/overview-arch.md
+      - Design: architecture/design/design-arch.md
+      - Graph: architecture/graph/graph-arch.md
+      - Execution:
+          - Overview: architecture/execution/execution-arch.md
+          - Assembly: architecture/execution/assembly/assembly-arch.md
+          - Edges: architecture/execution/edges/edges-arch.md
+          - Flow: architecture/execution/flow/flow-arch.md
+          - Virtual machine: architecture/execution/virtual-machine/virtual-machine-arch.md
+          - Lazy evaluation: architecture/execution/lazy-evaluation/lazy-evaluation-arch.md
+          - Callbacks: architecture/execution/callbacks/callbacks-arch.md
+      - Library system: architecture/library-system/library-system-arch.md
+      - Library manager: architecture/library-manager/library-manager-arch.md
+      - Hot-reload: architecture/hot-reload/hot-reload-arch.md
+      - Settings: architecture/settings/settings-arch.md
+      - Session and state: architecture/session-and-state/session-and-state-arch.md
+      - Studio:
+          - Overview: architecture/studio/studio-arch.md
+          - App shell: architecture/studio/app-shell/app-shell-arch.md
+          - Workspace: architecture/studio/workspace/workspace-arch.md
+          - Canvas: architecture/studio/canvas/canvas-arch.md
+          - Rendering: architecture/studio/rendering/rendering-arch.md
+
+  - Reference:
+      - Index: reference/index.md
+      - Glossary: reference/glossary.md
+      - Design guide: reference/design-guide.md
+
+  - Archive:
+      - Whitepaper: archive/whitepaper/Haywire_design.md

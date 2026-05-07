@@ -51,67 +51,68 @@ PRDs, plans, archives, and superseded specs do **not** live in `docs/`.
 
 ## 4. `docs/` layout
 
-```
+Each component/architecture folder contains one `<area>-canon.md` or
+`<area>-arch.md` file (see §6). Folder name and filename mirror each
+other so the URL is `…/components/nodes/node-canon` etc.
+
+```text
 docs/
   index.md                              ← landing page; "Pick a perspective."
-  STRUCTURE.md                          ← this file (becomes contributor guide)
+  STRUCTURE.md                          ← this file (contributor guide)
+  audit-internals.md                    ← heuristic triage of legacy docs
+  audit-survivors.md                    ← survivors with content-type tags
 
   welcome/                              ← per-perspective entry points
-    user/index.md                       ← curated reading order for node authors
-    advanced/index.md                   ← curated reading order for workbench extenders
-    core/index.md                       ← curated reading order for system architects
+    user/index.md                       ← reading order for node authors
+    advanced/index.md                   ← reading order for workbench extenders
+    core/index.md                       ← reading order for system architects
 
-  components/                           ← extension points: things authored against haywire
-    nodes/                              ← node classes, lifecycle, worker function
-    datatypes/                          ← IType subclasses, type registry
-    ports/                              ← port flags, pin configurations, dynamic ports
-    adapters/                           ← type-pair adapters, adapter registry
-    settings/                           ← @setting on nodes / libraries / framework
-    widgets/                            ← UI widgets bound to types
-    skins/                              ← node skins (visual variants)
-    themes/                             ← WorkbenchTheme & NodeTheme authoring
-    editors/                            ← editor classes plugged into the workspace
-    panels/                             ← panel classes used inside editors/canvas
-    states/                             ← @state decorator: app/session-lifecycle state
+  components/                           ← extension points
+    nodes/node-canon.md
+    datatypes/datatype-canon.md
+    ports/port-canon.md
+    adapters/adapter-canon.md
+    settings/setting-canon.md
+    widgets/widget-canon.md
+    skins/skin-canon.md
+    themes/theme-canon.md
+    editors/editor-canon.md
+    panels/panel-canon.md
+    states/state-canon.md               ← @state decorator: app/session-lifecycle state
                                           owned by editors/panels for metadata throughout
                                           the lifecycle of the app and its browser sessions
-    libraries/                          ← BaseLibrary, @library, register_components()
-    haybale-package/                    ← packaging a Haybale: pyproject entry_points, layout
+    libraries/library-canon.md
+    haybale-package/haybale-package-canon.md
 
-  architecture/                         ← system internals: how the framework is built
-    overview/                           ← short end-to-end tour with links into folders
-    design/                             ← UI design guide, naming, hui rules
+  architecture/                         ← system internals
+    overview/overview-arch.md           ← end-to-end tour (system-reference)
+    design/design-arch.md               ← UI design guide, naming, hui rules
 
-    graph/                              ← the Graph as data structure
-      01-overview.md
-      02-variables.md
-      03-validation-pipeline.md
-      04-graph-nodes-subgraphs-abstractions-modules.md
-      05-haystacks.md
-      06-serialization.md               ← JSON load/save, recipe format, version migration
+    graph/graph-arch.md                 ← Graph as data structure (impl-spec)
 
     execution/                          ← how a Graph becomes runtime behaviour
-      assembly/                         ← graph→flow pipeline
-      edges/                            ← edge wrapper, adapter chains, hooks vs pipes
-      flow/                             ← Flow as runtime structure, control vs data
-      virtual-machine/                  ← VM, stacks, execution context, pause/resume
-      lazy-evaluation/                  ← EVAL_MASK / LAZY_MASK algorithm
-      callbacks/                        ← callback system, cross-flow triggers
+      execution-arch.md                 ← umbrella (system-reference)
+      assembly/assembly-arch.md         ← graph→flow pipeline
+      edges/edges-arch.md               ← edge wrapper, adapter chains, hooks vs pipes
+      flow/flow-arch.md                 ← control flow vs localized data flow
+      virtual-machine/virtual-machine-arch.md
+      lazy-evaluation/lazy-evaluation-arch.md
+      callbacks/callbacks-arch.md
 
-    library-system/                     ← LibraryRegistry, LibraryDiscovery, LibraryIdentity
-    library-manager/                    ← studio's package-manager UI internals
-    hot-reload/                         ← cross-cutting reload mechanics
-    settings/                           ← resolution chain, registries, three-tier model
-    session-and-state/                  ← session lifecycle, undo/redo, persistence
+    library-system/library-system-arch.md     ← runtime infrastructure
+    library-manager/library-manager-arch.md   ← studio's package-manager UI
+    hot-reload/hot-reload-arch.md             ← cross-cutting reload mechanics
+    settings/settings-arch.md                 ← resolution chain, three-tier model
+    session-and-state/session-and-state-arch.md
+
     studio/                             ← the studio as a product
-      01-overview.md                    ← AppShell + Workspace + Sessions + canvas
-      app-shell/                        ← top chrome, menus, command palette
-      workspace/                        ← Sessions, multi-editor, layout
-      canvas/                           ← graph canvas, minimap, zoom/pan
-      rendering/                        ← NiceGUI integration, hui, slot stacks
+      studio-arch.md                    ← umbrella (system-reference)
+      app-shell/app-shell-arch.md
+      workspace/workspace-arch.md
+      canvas/canvas-arch.md
+      rendering/rendering-arch.md
 
   reference/                            ← shared truth layer
-    index.md
     glossary.md                         ← from internals/UBIQUITOUS_LANGUAGE.md
     design-guide.md                     ← from haywire-ui-design-guide.md
     api/                                ← future: mkdocstrings auto-generated
@@ -135,14 +136,81 @@ reading orders.
 
 ## 6. Story format
 
-A **story** is a folder. Inside:
+A **story** is a folder containing **one canonical file**. The filename
+is `<area>-canon.md` for `components/` and `<area>-arch.md` for
+`architecture/`. The folder gives every story a stable URL; the single
+file inside it carries all the content.
 
-- `01-overview.md` — what the system is, why it exists
-- `02-…md`, `03-…md`, … — chapters in reading order
-- final chapter is usually `NN-reference.md` for API/mechanics
+Rationale: the codebase is moving fast and the dominant reader is an
+LLM. One example per concept = one update per API change. Multiple
+chapters or multiple examples multiply maintenance work.
 
-Single-page topics use a folder with one `01-overview.md`. The folder
-gives every story the same shape and a stable URL.
+If a story grows too large for one file, split into chapters
+(`01-…md`, `02-…md`) inside the same folder — but only when the file
+genuinely cannot stay readable as one piece.
+
+### 6.1 Three templates
+
+Every canon/arch file declares its template in YAML frontmatter. There
+are three:
+
+**`canonical-example`** (used by every `components/<area>/<area>-canon.md`)
+
+```text
+1. What it solves      — capability statement, one paragraph
+2. How it fits         — dependencies, where this sits in the system
+3. Important concepts  — named entities and rules an author needs
+4. One comprehensive   — a single worked example exercising every
+   example                concept above
+```
+
+**`impl-spec`** (used by single-subsystem architecture folders;
+proven shape from `library_state.md`)
+
+```text
+1. Mental model        — what this subsystem is, one paragraph
+2. Contract            — declaration / registration / access / invariants
+3. Lifecycle           — creation, hot-reload, ordering, observability
+4. Boundary            — what this is NOT for
+5. Examples            — concrete worked cases
+6. Open questions      — what remains undecided
+```
+
+**`system-reference`** (used by multi-component umbrella folders;
+proven shape from `Library_System_Technical_Reference.md`)
+
+```text
+1. Overview            — what the system is
+2. Components          — numbered subsystems with file/class refs
+3. Data flow           — end-to-end sequences across components
+4. Performance / errors / boundaries — operational concerns
+```
+
+Picking rule: a folder describing **one bounded subsystem with a
+mental model and a contract** uses `impl-spec`. A folder describing
+**a multi-component system or umbrella** uses `system-reference`. When
+in doubt, default to `impl-spec`.
+
+### 6.2 Frontmatter
+
+Every canon/arch file has YAML frontmatter:
+
+```yaml
+---
+status: placeholder | draft | current
+template: canonical-example | impl-spec | system-reference
+scope: <one-line scope statement>
+see-also:
+  - <relative path to source material in internals/>
+---
+```
+
+`status: placeholder` means the file has only the template stub.
+`status: draft` means content has been written but not verified
+against the codebase. `status: current` means the content has been
+verified.
+
+Search for `status: placeholder` to find the work list.
 
 ## 7. Disambiguating "Library"
 
@@ -199,34 +267,85 @@ are assembled into adapter chains when edges are created.
 
 ## 11. Archive policy
 
-Two archive locations, with a clear rule:
+One archive location:
 
-- **`docs/archive/`** — foundational, citable historical artefacts
-  (notably `Haywire_design.md`, the original whitepaper). Published.
-- **`internals/archive/`** — superseded internal designs, old specs,
-  deleted-but-historical plans (`speculative/archive/`,
-  `Architecture/history/`, retired PRDs). Not published.
+- **`docs/archive/`** — foundational, citable historical artefacts.
+  Currently holds the original whitepaper (`Haywire_design.md` and
+  its `HayWire_Diagram.drawio` source). Published.
+
+Internal-historical material (dropped audits, superseded specs,
+retired plans) was deleted on disk after migration completed. The full
+history is preserved in git — `git log --follow <docs-file>` traces
+back through the renames into the original sources. Use git instead
+of an on-disk archive; the canon/arch docs in `docs/` are the truth.
 
 ## 12. Migration strategy
 
-1. **Audit** every file in `internals/` (the legacy `docs/`):
-   classify as current / outdated-fixable / obsolete / historical.
-2. **Move foundational artefacts** to `docs/archive/`.
-3. **Move historical noise** to `internals/archive/`.
-4. **For each surviving doc**, identify its destination folder in this
-   plan. Multiple docs may merge into one story; long docs may split
-   across chapters.
-5. **Write missing stories.** Major gaps identified during the
-   interview:
-   - `architecture/graph/` — Graph as a first-class concept
-   - `architecture/execution/{virtual-machine,lazy-evaluation,callbacks}/`
-   - `architecture/studio/` — studio as a product
-   - `components/states/` — `@state` decorator and friends
-   - `components/haybale-package/` — packaging story
-   - `architecture/library-manager/` — studio package-manager UI
-6. **Build `mkdocs.yml`** referencing the new paths.
-7. **Drop `internals/Architecture/` and `internals/documentation/`** once
-   drained.
+The migration ran in three phases. **All three are now complete.**
+Remaining work is content authoring for the placeholder files —
+tracked as `status: placeholder` in frontmatter and surfaced in the
+TOC.
+
+### Phase 0 — Audit and scaffold (DONE)
+
+- Heuristic audit of every file in `internals/`. Results in
+  [`audit-internals.md`](audit-internals.md) (triage: good / check /
+  drop) and [`audit-survivors.md`](audit-survivors.md) (47 survivors
+  with content-type categorisation).
+- Every folder in §4 was scaffolded with one placeholder file
+  (`<area>-canon.md` or `<area>-arch.md`) using the §6 templates and
+  §6.2 frontmatter.
+
+### Phase 1 — Migrate (DONE — 47 of 47 survivors)
+
+All 47 surviving source files have been migrated. The full triage with
+destination links and verification findings is recorded in
+[`audit-survivors.md`](audit-survivors.md) — every row marked
+**✅ DONE**.
+
+Migration outcome — 23 canon/arch files filled with verified content
+(`status: draft`):
+
+- **Components**: nodes, datatypes, ports, adapters, settings, widgets,
+  themes, editors, panels, states, libraries, haybale-package
+- **Architecture**: library-system, library-manager, hot-reload,
+  settings, session-and-state, studio (umbrella), execution/edges,
+  execution/assembly, execution/callbacks
+- **Reference**: glossary, design-guide
+
+Verification findings (codebase as ground truth) recorded in
+`audit-survivors.md` notes column.
+
+### Phase 2 — Cleanup (DONE)
+
+- All 75 source files migrated to canonical destinations and then
+  deleted from disk. Git tracks them as `RD` (renamed-then-deleted),
+  preserving full history — `git log --follow <docs-file>` traces back
+  through the original sources.
+- The `internals/` top-level directory was removed entirely.
+- The whitepaper (`Haywire_design.md` + `HayWire_Diagram.drawio`) is
+  preserved in `docs/archive/whitepaper/` as a citable foundational
+  artefact (per §11).
+- `mkdocs.yml` written at repo root with the perspective-organised
+  navigation per §5.
+
+### Remaining placeholders (TODO list — 16 files)
+
+Visible by `grep -rl 'status: placeholder' docs/`:
+
+- `architecture/overview/`, `architecture/design/`, `architecture/graph/`
+- `architecture/execution/{execution,flow,virtual-machine,lazy-evaluation}/`
+- `architecture/studio/{app-shell,workspace,canvas,rendering}/`
+- `components/skins/`
+- `welcome/{user,advanced,core}/index.md`
+
+Source material for these placeholders is preserved in git history.
+Use `git log --follow <placeholder>` to find the renamed-and-deleted
+sources that informed the see-also links. Notably, the original
+1757-line `haywire-ui-architecture-spec_details.md` (cited from the
+four `studio/` sub-folder placeholders) is recoverable via git; pick
+the file's last-content commit before the bulk rename to read it in
+context.
 
 ## 13. Out of scope for this plan
 
@@ -256,7 +375,9 @@ Numbered Q's reference the structured interview that produced this plan.
 - **Q10**: six subfolders under `architecture/execution/`.
 - **Q11**: `Haywire_design.md` is preserved as the original whitepaper.
 - **Q12**: two archive locations: `docs/archive/` (foundational) and
-  `internals/archive/` (historical noise).
+  `internals/archive/` (historical noise). *(Superseded after migration:
+  `internals/archive/` was deleted; git history serves as the
+  historical archive — see §11 / §12 phase 2.)*
 - **Q13**: `components/states/` documents `@state` for editors/panels
   managing app & session lifecycle metadata; graph variables and
   session UI state live in architecture.
@@ -268,3 +389,20 @@ Numbered Q's reference the structured interview that produced this plan.
   with runtime mechanics covered under `architecture/execution/edges/`.
 - **Q18**: this file (single STRUCTURE.md plan) — scaffolding stubs and
   `mkdocs.yml` happen in a later pass.
+- **Q19**: components folders are authors-guide territory; short
+  recipes and tutorials live as chapters *inside* the canon file, not
+  as separate folder types.
+- **Q20**: components canonical-example template adopted: 4 parts
+  (what it solves / how it fits / important concepts / one example).
+  One file per component for maintenance economy under a moving
+  codebase and an LLM-dominant audience.
+- **Q21**: architecture has two templates — `impl-spec` for single
+  bounded subsystems, `system-reference` for multi-component umbrellas.
+  Picked per folder; both proven in the existing corpus.
+- **Q22**: every folder gets scaffolded with a placeholder canon/arch
+  file now; placeholders stay visible in the TOC as the TODO list.
+- **Q23**: filename conventions — `<area>-canon.md` for components,
+  `<area>-arch.md` for architecture (template declared in
+  frontmatter). Source archive was `internals/archive/`; foundational
+  artefacts go to `docs/archive/`. *(Superseded after migration:
+  `internals/archive/` was deleted — see §11.)*
