@@ -27,6 +27,11 @@ class LibraryFileHandler(FileSystemEventHandler):
     def __init__(self):
         # folder_path -> (library_identity, registry, debounce_delay)
         self.folder_mappings: Dict[str, Tuple[LibraryIdentity, HotReloadRegistry, float]] = {}
+        # library_root_path -> (library_identity, [registries], debounce_delay)
+        # Fallback for files under the library root that don't match any
+        # folder_mapping. Each registry decides via its own dependency graph
+        # whether the changed file is relevant.
+        self.root_fallbacks: Dict[str, Tuple[LibraryIdentity, List[HotReloadRegistry], float]] = {}
         # (file_path, registry_id) -> FileChangeEvent
         self.pending_events: Dict[Tuple[str, int], FileChangeEvent] = {}
         # (file_path, registry_id) -> timer
@@ -62,21 +67,54 @@ class LibraryFileHandler(FileSystemEventHandler):
             if folder_path in self.folder_mappings:
                 del self.folder_mappings[folder_path]
 
+    def add_root_fallback(
+        self,
+        root_path: str,
+        library_identity: LibraryIdentity,
+        registries: List[HotReloadRegistry],
+        debounce_delay: float = 0.5,
+    ):
+        """
+        Register a library root as a fallback for files not covered by any folder_mapping.
+
+        Files matching the root but no folder_mapping will be dispatched to all
+        provided registries as dependency events. Each registry decides via its
+        own dependency graph whether the file is relevant.
+        """
+        with self._lock:
+            self.root_fallbacks[root_path] = (library_identity, list(registries), debounce_delay)
+
+    def remove_root_fallback(self, root_path: str):
+        """Unregister a library-root fallback"""
+        with self._lock:
+            if root_path in self.root_fallbacks:
+                del self.root_fallbacks[root_path]
+
     def _get_matching_registries(
         self, file_path: str
-    ) -> List[Tuple[LibraryIdentity, HotReloadRegistry, float]]:
+    ) -> List[Tuple[LibraryIdentity, HotReloadRegistry, float, bool]]:
         """
         Find all registries that should receive events for this file.
 
         Returns:
-            List of (library_identity, registry, debounce_delay) tuples
-            for matching folders
+            List of (library_identity, registry, debounce_delay, is_dependency)
+            tuples. is_dependency=True for root-fallback matches; the registry
+            should treat the event as a dependency change.
         """
-        matches = []
+        matches: List[Tuple[LibraryIdentity, HotReloadRegistry, float, bool]] = []
         for folder_path, mapping in self.folder_mappings.items():
             if file_path.startswith(folder_path):
                 library_identity, registry, debounce_delay = mapping
-                matches.append((library_identity, registry, debounce_delay))
+                matches.append((library_identity, registry, debounce_delay, False))
+
+        if matches:
+            return matches
+
+        for root_path, fallback in self.root_fallbacks.items():
+            if file_path.startswith(root_path):
+                library_identity, registries, debounce_delay = fallback
+                for registry in registries:
+                    matches.append((library_identity, registry, debounce_delay, True))
         return matches
 
     def on_modified(self, event):
@@ -161,7 +199,7 @@ class LibraryFileHandler(FileSystemEventHandler):
             return  # File not in any watched folder
 
         with self._lock:
-            for library_identity, registry, debounce_delay in matching_registries:
+            for library_identity, registry, debounce_delay, is_dependency in matching_registries:
                 registry_id = id(registry)
                 event_key = (file_path, registry_id)
 
@@ -175,6 +213,7 @@ class LibraryFileHandler(FileSystemEventHandler):
                     event_type=event_type,
                     library_identity=library_identity,
                     timestamp=time.time(),
+                    dependency_event=is_dependency,
                 )
 
                 # Store latest event for this registry
@@ -210,6 +249,7 @@ class LibraryFileHandler(FileSystemEventHandler):
             self.pending_events.clear()
             self._atomic_write_suppress.clear()
             self._known_files.clear()
+            self.root_fallbacks.clear()
 
 
 class FileWatcher:
@@ -272,6 +312,31 @@ class FileWatcher:
         rel_path = folder_path[len(self.watch_path) :] or "/"
         logger.info(
             f"Library '{library_identity.label}': Unregistered folder '{rel_path}' from hot reload events."
+        )
+
+    def add_root_fallback(
+        self,
+        root_path: str,
+        library_identity: LibraryIdentity,
+        registries: List[HotReloadRegistry],
+        debounce_delay: float = 0.5,
+    ):
+        """
+        Register a library-root fallback so files outside any watched folder
+        can still trigger dependency reloads if a registry's dependency graph
+        knows them.
+        """
+        self.handler.add_root_fallback(root_path, library_identity, registries, debounce_delay)
+        logger.info(
+            f"Library '{library_identity.label}': Registered root fallback "
+            f"with {len(registries)} registries for hot reload dependency events."
+        )
+
+    def remove_root_fallback(self, root_path: str, library_identity: LibraryIdentity):
+        """Unregister a library-root fallback"""
+        self.handler.remove_root_fallback(root_path)
+        logger.info(
+            f"Library '{library_identity.label}': Unregistered root fallback from hot reload events."
         )
 
     def start(self):

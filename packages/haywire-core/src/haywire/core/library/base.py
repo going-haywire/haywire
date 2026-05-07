@@ -170,10 +170,21 @@ class BaseLibrary(ABC):
         for registry_cls, (folder_path, exclude_patterns) in self._registry_folders.items():
             self._register_folder(folder_path, registry_cls, exclude_patterns)
 
+        if self.enforce_file_watching or self.identity.file_watcher:
+            self.file_watcher.add_root_fallback(
+                self.identity.folder_path,
+                self.identity,
+                list(self.registries.values()),
+                self.debounce_delay,
+            )
+
     def _detach_from_registries(self):
         """Remove ALL library classes from their registries"""
         for registry_cls, (folder_path, exclude_patterns) in self._registry_folders.items():
             self._unregister_folder(folder_path, registry_cls, exclude_patterns)
+
+        if self.enforce_file_watching or self.identity.file_watcher:
+            self.file_watcher.remove_root_fallback(self.identity.folder_path, self.identity)
 
         self.file_watcher.stop()
 
