@@ -13,7 +13,7 @@ from haybale_studio.focuses import NodeFocus
 from haybale_studio.state.edit_state import EditState
 from haywire.ui import elements as hui
 from haybale_studio.editors.graph_canvas.handlers.context_menu_actions import NodeContextActions
-from haywire.ui.panel import Panel
+from haywire.ui.panel import BasePanel
 from haywire.ui.panel.layout import PanelLayout
 from haywire.ui.panel.decorator import panel
 
@@ -28,7 +28,7 @@ if TYPE_CHECKING:
     icon=hui.icon.delete,
     order=10,
 )
-class DeleteNodePanel(Panel):
+class DeleteNodePanel(BasePanel):
     @classmethod
     def poll(cls, ctx: "SessionContext") -> bool:
         return ctx.data[EditState].active_node.value is not None
@@ -57,7 +57,7 @@ class DeleteNodePanel(Panel):
     icon=hui.icon.copy,
     order=20,
 )
-class CopyNodePanel(Panel):
+class CopyNodePanel(BasePanel):
     @classmethod
     def poll(cls, ctx: "SessionContext") -> bool:
         return ctx.data[EditState].active_node.value is not None
@@ -86,7 +86,7 @@ class CopyNodePanel(Panel):
     icon=hui.icon.refresh,
     order=30,
 )
-class RedrawNodePanel(Panel):
+class RedrawNodePanel(BasePanel):
     @classmethod
     def poll(cls, ctx: "SessionContext") -> bool:
         return ctx.data[EditState].active_node.value is not None
@@ -115,7 +115,7 @@ class RedrawNodePanel(Panel):
     icon=hui.icon.node_status,
     order=40,
 )
-class RevalidateNodePanel(Panel):
+class RevalidateNodePanel(BasePanel):
     @classmethod
     def poll(cls, ctx: "SessionContext") -> bool:
         return ctx.data[EditState].active_node.value is not None
@@ -144,7 +144,7 @@ class RevalidateNodePanel(Panel):
     icon=hui.icon.reset,
     order=50,
 )
-class ResetNodePanel(Panel):
+class ResetNodePanel(BasePanel):
     @classmethod
     def poll(cls, ctx: "SessionContext") -> bool:
         return ctx.data[EditState].active_node.value is not None

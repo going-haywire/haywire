@@ -11,7 +11,7 @@ from typing import TYPE_CHECKING
 
 
 from haywire.ui import elements as hui
-from haywire.ui.panel import Panel, PanelLayout
+from haywire.ui.panel import BasePanel, PanelLayout
 from haywire.ui.panel.decorator import panel
 
 from haywire.ui.panel.render_utils import render_settings
@@ -32,7 +32,7 @@ if TYPE_CHECKING:
     order=10,
     default_open=True,
 )
-class NodeSettingsPanel(Panel):
+class NodeSettingsPanel(BasePanel):
     """Discovers and renders all user-defined settings on the selected node."""
 
     @classmethod

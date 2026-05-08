@@ -13,7 +13,7 @@ from unittest.mock import MagicMock
 from haywire.core.state import LibraryStateContainer
 from haywire.core.undo.actions.graph_actions import ClipboardData
 from haywire.ui.context import SessionContext
-from haywire.ui.panel import Panel
+from haywire.ui.panel import BasePanel
 
 from haybale_testing.test_actions import (
     TestEdgeContextActions,
@@ -115,7 +115,7 @@ def test_node_action_panel_focus_is_test_node_focus(panel_cls):
     ],
 )
 def test_node_action_panels_are_panel_subclasses(panel_cls):
-    assert issubclass(panel_cls, Panel)
+    assert issubclass(panel_cls, BasePanel)
 
 
 # ---------------------------------------------------------------------------

@@ -16,7 +16,7 @@ from typing import TYPE_CHECKING
 from haybale_testing.state import TestSessionState
 from haybale_testing.test_actions import TestCanvasContextActions
 from haybale_testing.test_focuses import TestCanvasFocus
-from haywire.ui.panel import Panel
+from haywire.ui.panel import BasePanel
 from haywire.ui.panel.decorator import panel
 from haywire.ui.panel.layout import PanelLayout
 
@@ -30,7 +30,7 @@ if TYPE_CHECKING:
     label="Test SessionState Panel",
     order=99,
 )
-class TestSessionStatePanel(Panel):
+class TestSessionStatePanel(BasePanel):
     """Reads TestSessionState.counter — exists to anchor the eager import."""
 
     @classmethod

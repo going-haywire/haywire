@@ -11,7 +11,7 @@ focus) to retrieve panels that apply.
 from .identity import PanelIdentity
 from .layout import PanelLayout
 from .focus import Focus, all_focuses, focus_by_id
-from .panel import Panel
+from .base import BasePanel
 from .registry import PanelRegistry
 
 # Import decorator last so the `panel` name resolves to the decorator function
@@ -23,10 +23,10 @@ from .decorator import panel  # noqa: E402
 __all__ = [
     "PanelIdentity",
     "PanelLayout",
-    "panel",
+    "base",
     "Focus",
     "all_focuses",
     "focus_by_id",
-    "Panel",
+    "BasePanel",
     "PanelRegistry",
 ]

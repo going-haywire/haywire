@@ -8,7 +8,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from haywire.ui import elements as hui
-from haywire.ui.panel import Panel, PanelLayout
+from haywire.ui.panel import BasePanel, PanelLayout
 from haywire.ui.panel.decorator import panel
 from haywire.ui.panel.render_utils import render_settings
 
@@ -28,7 +28,7 @@ if TYPE_CHECKING:
     default_open=False,
     order=10,
 )
-class NodeInfoPanel(Panel):
+class NodeInfoPanel(BasePanel):
     """Displays basic identity information for the selected node."""
 
     @classmethod
@@ -63,7 +63,7 @@ class NodeInfoPanel(Panel):
     order=20,
     default_open=True,
 )
-class NodePropertiesPanel(Panel):
+class NodePropertiesPanel(BasePanel):
     """Displays per-instance node settings (muted, collapsed, pinned, etc.)."""
 
     @classmethod

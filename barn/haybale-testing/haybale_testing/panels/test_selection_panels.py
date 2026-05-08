@@ -11,7 +11,7 @@ from haybale_studio.state.edit_state import EditState
 from haybale_testing.test_actions import TestSelectionContextActions
 from haybale_testing.test_focuses import TestSelectionFocus
 from haywire.ui import elements as hui
-from haywire.ui.panel import Panel
+from haywire.ui.panel import BasePanel
 from haywire.ui.panel.layout import PanelLayout
 from haywire.ui.panel.decorator import panel
 
@@ -26,7 +26,7 @@ if TYPE_CHECKING:
     icon=hui.icon.copy,
     order=10,
 )
-class TestCopySelectionPanel(Panel):
+class TestCopySelectionPanel(BasePanel):
     @classmethod
     def poll(cls, ctx: "SessionContext") -> bool:
         edit = ctx.data[EditState]
@@ -52,7 +52,7 @@ class TestCopySelectionPanel(Panel):
     icon=hui.icon.paste,
     order=20,
 )
-class TestPasteSelectionPanel(Panel):
+class TestPasteSelectionPanel(BasePanel):
     @classmethod
     def poll(cls, ctx: "SessionContext") -> bool:
         return ctx.data[EditState].clipboard.value is not None

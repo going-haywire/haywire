@@ -476,7 +476,7 @@ def test_add_binding_creates_panel_and_optionally_activates(monkeypatch) -> None
     slot.add_binding(editor_key="a:e:2", editor_cls=_FakeEditor, activate=True)
     w2 = slot.find_binding("a:e:2")
 
-    # Panel was created for the new binding.
+    # BasePanel was created for the new binding.
     assert [name for name, _ in panel_created] == ["a:e:1", "a:e:2"]
     # Active switched; tab_panels value reflects it.
     assert slot.active_key == "a:e:2"

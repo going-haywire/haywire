@@ -11,7 +11,7 @@ from haybale_studio.state.edit_state import EditState
 from haybale_testing.test_actions import TestNodeContextActions
 from haybale_testing.test_focuses import TestNodeFocus
 from haywire.ui import elements as hui
-from haywire.ui.panel import Panel
+from haywire.ui.panel import BasePanel
 from haywire.ui.panel.layout import PanelLayout
 from haywire.ui.panel.decorator import panel
 
@@ -26,7 +26,7 @@ if TYPE_CHECKING:
     icon=hui.icon.delete,
     order=10,
 )
-class TestDeleteNodePanel(Panel):
+class TestDeleteNodePanel(BasePanel):
     @classmethod
     def poll(cls, ctx: "SessionContext") -> bool:
         return ctx.data[EditState].active_node.value is not None
@@ -55,7 +55,7 @@ class TestDeleteNodePanel(Panel):
     icon=hui.icon.copy,
     order=20,
 )
-class TestCopyNodePanel(Panel):
+class TestCopyNodePanel(BasePanel):
     @classmethod
     def poll(cls, ctx: "SessionContext") -> bool:
         return ctx.data[EditState].active_node.value is not None
@@ -84,7 +84,7 @@ class TestCopyNodePanel(Panel):
     icon=hui.icon.refresh,
     order=30,
 )
-class TestRedrawNodePanel(Panel):
+class TestRedrawNodePanel(BasePanel):
     @classmethod
     def poll(cls, ctx: "SessionContext") -> bool:
         return ctx.data[EditState].active_node.value is not None
@@ -113,7 +113,7 @@ class TestRedrawNodePanel(Panel):
     icon=hui.icon.refresh,
     order=40,
 )
-class TestRevalidateNodePanel(Panel):
+class TestRevalidateNodePanel(BasePanel):
     @classmethod
     def poll(cls, ctx: "SessionContext") -> bool:
         return ctx.data[EditState].active_node.value is not None
@@ -142,7 +142,7 @@ class TestRevalidateNodePanel(Panel):
     icon=hui.icon.reset,
     order=50,
 )
-class TestResetNodePanel(Panel):
+class TestResetNodePanel(BasePanel):
     @classmethod
     def poll(cls, ctx: "SessionContext") -> bool:
         return ctx.data[EditState].active_node.value is not None

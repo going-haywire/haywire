@@ -7,7 +7,7 @@ from haybale_studio.state.edit_state import EditState
 from haywire.core.library.identity import LibraryIdentity
 from haywire.core.state import LibraryStateContainer
 from haywire.ui.context import SessionContext
-from haywire.ui.panel import Panel, PanelRegistry, panel
+from haywire.ui.panel import BasePanel, PanelRegistry, panel
 from haywire.ui.panel.focus import Focus
 
 
@@ -41,7 +41,7 @@ class _LoudFocus(Focus):
 
 
 @panel(action=_Verbose, focus=_LoudFocus, label="Speaker")
-class _SpeakerPanel(Panel):
+class _SpeakerPanel(BasePanel):
     @classmethod
     def poll(cls, ctx):
         return ctx.data[EditState].active_node.value is not None

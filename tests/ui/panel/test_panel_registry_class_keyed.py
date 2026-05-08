@@ -4,7 +4,7 @@
 from typing import Protocol, runtime_checkable
 
 from haywire.core.library.identity import LibraryIdentity
-from haywire.ui.panel import Panel, PanelRegistry, panel
+from haywire.ui.panel import BasePanel, PanelRegistry, panel
 from haywire.ui.panel.focus import Focus
 
 
@@ -53,19 +53,19 @@ class _FocusTwo(Focus):
 
 
 @panel(action=_ActionsA, focus=_FocusOne, label="A1")
-class _PanelA1(Panel):
+class _PanelA1(BasePanel):
     def draw(self, ctx, layout, actions):
         pass
 
 
 @panel(action=_ActionsA, focus=_FocusTwo, label="A2")
-class _PanelA2(Panel):
+class _PanelA2(BasePanel):
     def draw(self, ctx, layout, actions):
         pass
 
 
 @panel(action=_ActionsB, focus=_FocusOne, label="B1")
-class _PanelB1(Panel):
+class _PanelB1(BasePanel):
     def draw(self, ctx, layout, actions):
         pass
 
@@ -121,12 +121,12 @@ def test_get_focuses_for_returns_focuses_referenced_by_compatible_panels():
 
 
 # ---------------------------------------------------------------------------
-# Regression test: folder-scan registration accepts new-contract Panel subclasses
+# Regression test: folder-scan registration accepts new-contract BasePanel subclasses
 # ---------------------------------------------------------------------------
 
 
 def test_class_filter_accepts_decorated_panel_subclass():
-    """Regression: PanelRegistry._class_filter must accept Panel subclasses
+    """Regression: PanelRegistry._class_filter must accept BasePanel subclasses
     decorated with @panel. Without this, the folder scanner silently skips
     every panel at startup."""
     reg = PanelRegistry()
@@ -137,7 +137,7 @@ def test_class_filter_accepts_decorated_panel_subclass():
 
 def test_class_filter_rejects_panel_base_itself():
     reg = PanelRegistry()
-    assert reg._class_filter(Panel) is False
+    assert reg._class_filter(BasePanel) is False
 
 
 def test_class_filter_rejects_unrelated_class():

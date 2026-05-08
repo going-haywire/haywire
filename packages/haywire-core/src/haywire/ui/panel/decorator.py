@@ -9,7 +9,7 @@ register_components(), following the same pattern as @renderer and @widget.
 Usage::
 
     @panel(action=PropertiesEditorActions, focus=NodeFocus, label='Transform')
-    class TransformPanel(Panel):
+    class TransformPanel(BasePanel):
         def draw(self, ctx, layout, actions):
             ...
 """
@@ -22,7 +22,7 @@ from haywire.core.library.utils import derive_library_identity, reg_key
 
 from .focus import Focus
 from .identity import PanelIdentity
-from .panel import Panel
+from .base import BasePanel
 
 
 def panel(
@@ -62,7 +62,7 @@ def panel(
     Raises:
         ValueError: If action=, focus=, or label= is missing.
         TypeError:  If action is not a class, focus is not a Focus subclass,
-                    or the decorated class is not a Panel subclass.
+                    or the decorated class is not a BasePanel subclass.
     """
     if action is None:
         raise ValueError("@panel requires action= (Protocol or ABC class).")
@@ -78,8 +78,8 @@ def panel(
         raise ValueError("@panel requires label=.")
 
     def decorator(inner_cls):
-        if not issubclass(inner_cls, Panel):
-            raise TypeError(f"@panel can only be applied to Panel subclasses, got {inner_cls}")
+        if not issubclass(inner_cls, BasePanel):
+            raise TypeError(f"@panel can only be applied to BasePanel subclasses, got {inner_cls}")
 
         _registry_id = registry_id or inner_cls.__name__
 

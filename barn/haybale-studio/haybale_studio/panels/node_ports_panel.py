@@ -8,7 +8,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from haywire.ui import elements as hui
-from haywire.ui.panel import Panel, PanelLayout
+from haywire.ui.panel import BasePanel, PanelLayout
 from haywire.ui.panel.decorator import panel
 
 from haybale_studio.focuses import NodeFocus
@@ -27,7 +27,7 @@ if TYPE_CHECKING:
     default_open=False,
     order=20,
 )
-class NodePortsPanel(Panel):
+class NodePortsPanel(BasePanel):
     """Displays the inlet, outlet, and config ports of the selected node."""
 
     @classmethod

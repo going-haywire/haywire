@@ -15,7 +15,7 @@ from haybale_studio.editors.properties_editor_actions import PropertiesEditorAct
 from haybale_studio.state.edit_state import EditState
 from haywire.ui import elements as hui
 from haybale_studio.editors.graph_canvas.handlers.context_menu_actions import NodeContextActions
-from haywire.ui.panel import Panel
+from haywire.ui.panel import BasePanel
 from haywire.ui.panel.layout import PanelLayout
 from haywire.ui.panel.decorator import panel
 
@@ -47,7 +47,7 @@ def _render_node_errors(ctx: "SessionContext", layout: PanelLayout) -> None:
     icon=hui.icon.error,
     order=0,
 )
-class NodeErrorsPanel(Panel):
+class NodeErrorsPanel(BasePanel):
     """Node errors panel for PropertiesEditor."""
 
     @classmethod
@@ -70,7 +70,7 @@ class NodeErrorsPanel(Panel):
     icon=hui.icon.error,
     order=0,
 )
-class ContextMenuNodeErrorsPanel(Panel):
+class ContextMenuNodeErrorsPanel(BasePanel):
     """Node errors panel for the context menu (right-click on node)."""
 
     @classmethod

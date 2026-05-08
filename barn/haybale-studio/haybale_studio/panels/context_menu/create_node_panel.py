@@ -16,7 +16,7 @@ from haywire.ui import elements as hui
 from haywire.ui.context_signals import ActiveComponentMoved, Reveal
 from haybale_studio.editors.graph_canvas.handlers.context_menu_actions import CanvasContextActions
 from haybale_studio.editors.graph_canvas.node_menu_builder import NodeMenuBuilder
-from haywire.ui.panel import Panel
+from haywire.ui.panel import BasePanel
 from haywire.ui.panel.layout import PanelLayout
 from haywire.ui.panel.decorator import panel
 
@@ -31,7 +31,7 @@ if TYPE_CHECKING:
     icon=hui.icon.add,
     order=0,
 )
-class CreateNodePanel(Panel):
+class CreateNodePanel(BasePanel):
     """Render the hierarchical node-creation menu with search on canvas right-click."""
 
     @classmethod
@@ -76,7 +76,7 @@ class CreateNodePanel(Panel):
     icon=hui.icon.paste,
     order=10,
 )
-class CanvasPasteSelectionPanel(Panel):
+class CanvasPasteSelectionPanel(BasePanel):
     """Paste panel in the canvas context.
 
     Companion to SelectionPasteSelectionPanel for the selection context.

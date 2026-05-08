@@ -12,7 +12,7 @@ from unittest.mock import MagicMock, patch
 from haywire.core.library.identity import LibraryIdentity
 from haywire.core.state import LibraryStateContainer
 from haywire.ui.context import SessionContext
-from haywire.ui.panel import Panel
+from haywire.ui.panel import BasePanel
 from haywire.ui.panel.decorator import panel
 from haywire.ui.panel.registry import PanelRegistry
 
@@ -124,7 +124,7 @@ def test_panels_that_return_false_from_poll_are_not_drawn(register_edit_state):
         label="Always False",
         registry_id="always_false_panel",
     )
-    class AlwaysFalsePanel(Panel):
+    class AlwaysFalsePanel(BasePanel):
         @classmethod
         def poll(cls, context):
             return False
@@ -154,7 +154,7 @@ def test_panels_that_return_true_from_poll_are_drawn(register_edit_state):
         label="Always True",
         registry_id="always_true_panel",
     )
-    class AlwaysTruePanel(Panel):
+    class AlwaysTruePanel(BasePanel):
         @classmethod
         def poll(cls, context):
             return True
@@ -184,7 +184,7 @@ def test_panels_for_wrong_focus_are_not_drawn(register_edit_state):
         label="Edge Only",
         registry_id="edge_only_panel",
     )
-    class EdgeOnlyPanel(Panel):
+    class EdgeOnlyPanel(BasePanel):
         @classmethod
         def poll(cls, context):
             return True

@@ -12,7 +12,7 @@ from haybale_studio.focuses import PortFocus
 from haybale_studio.state.edit_state import EditState
 from haywire.ui import elements as hui
 from haybale_studio.editors.graph_canvas.handlers.context_menu_actions import PortContextActions
-from haywire.ui.panel import Panel
+from haywire.ui.panel import BasePanel
 from haywire.ui.panel.layout import PanelLayout
 from haywire.ui.panel.decorator import panel
 
@@ -27,7 +27,7 @@ if TYPE_CHECKING:
     icon=hui.icon.edge,
     order=10,
 )
-class PortInfoPanel(Panel):
+class PortInfoPanel(BasePanel):
     @classmethod
     def poll(cls, ctx: "SessionContext") -> bool:
         return ctx.data[EditState].active_port.value is not None

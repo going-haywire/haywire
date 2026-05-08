@@ -14,7 +14,7 @@ from typing import TYPE_CHECKING
 
 from haywire.ui import elements as hui
 from haywire.ui.components.zoom.settings import EditorPanZoomSettings
-from haywire.ui.panel import Panel, PanelLayout
+from haywire.ui.panel import BasePanel, PanelLayout
 from haywire.ui.panel.decorator import panel
 from haywire.ui.panel.render_utils import render_schema
 from haywire.ui.components.minimap.settings import MinimapSettings
@@ -37,7 +37,7 @@ if TYPE_CHECKING:
     order=10,
     default_open=True,
 )
-class CanvasSettingsPanel(Panel):
+class CanvasSettingsPanel(BasePanel):
     """Grid, zoom, pan and background pattern."""
 
     def draw(
@@ -59,7 +59,7 @@ class CanvasSettingsPanel(Panel):
     order=20,
     default_open=False,
 )
-class NodeSkinSettingsPanel(Panel):
+class NodeSkinSettingsPanel(BasePanel):
     """Node dimensions, typography and label visibility."""
 
     def draw(
@@ -80,7 +80,7 @@ class NodeSkinSettingsPanel(Panel):
     order=30,
     default_open=False,
 )
-class EdgeUISettingsPanel(Panel):
+class EdgeUISettingsPanel(BasePanel):
     """Edge routing, width and animation behaviour."""
 
     def draw(
@@ -101,7 +101,7 @@ class EdgeUISettingsPanel(Panel):
     order=40,
     default_open=False,
 )
-class EditorZoomPanSettingsPanel(Panel):
+class EditorZoomPanSettingsPanel(BasePanel):
     """Canvas pan/zoom behaviour settings."""
 
     def draw(
@@ -122,7 +122,7 @@ class EditorZoomPanSettingsPanel(Panel):
     order=40,
     default_open=False,
 )
-class MinimapSettingsPanel(Panel):
+class MinimapSettingsPanel(BasePanel):
     """Minimap visibility, position and size."""
 
     def draw(

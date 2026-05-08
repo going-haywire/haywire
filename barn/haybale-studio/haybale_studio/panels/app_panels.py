@@ -11,7 +11,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from haywire.ui import elements as hui
-from haywire.ui.panel import Panel, PanelLayout
+from haywire.ui.panel import BasePanel, PanelLayout
 from haywire.ui.panel.decorator import panel
 from haywire.ui.panel.render_utils import render_schema
 
@@ -34,7 +34,7 @@ if TYPE_CHECKING:
     order=10,
     default_open=True,
 )
-class ThemeSettingsPanel(Panel):
+class ThemeSettingsPanel(BasePanel):
     """Active workbench and node themes."""
 
     def draw(
@@ -56,7 +56,7 @@ class ThemeSettingsPanel(Panel):
     order=20,
     default_open=False,
 )
-class NodeSkinDefaultPanel(Panel):
+class NodeSkinDefaultPanel(BasePanel):
     """Node Default Skins."""
 
     def draw(
@@ -77,7 +77,7 @@ class NodeSkinDefaultPanel(Panel):
     order=30,
     default_open=False,
 )
-class EditorSettingsPanel(Panel):
+class EditorSettingsPanel(BasePanel):
     """Undo, auto-save, interaction, clipboard and node-creation behaviour."""
 
     def draw(

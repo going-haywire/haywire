@@ -1,5 +1,5 @@
 # packages/haywire-core/src/haywire/ui/panel/panel.py
-"""Panel — the new contract base class.
+"""BasePanel — the new contract base class.
 
 Phase 1 contract:
   - poll(cls, ctx) -> bool: classmethod; default True. Host evaluates
@@ -23,7 +23,7 @@ if TYPE_CHECKING:
     from haywire.ui.panel.identity import PanelIdentity
 
 
-class Panel(ABC):
+class BasePanel(ABC):
     """Base class for new-contract panels.
 
     Subclasses are decorated with `@panel(...)` and inherit from `Panel`:

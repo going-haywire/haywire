@@ -15,7 +15,7 @@ from typing import Any, Iterable, List
 from haywire.core.registry.base import BaseRegistry
 from haywire.core.library.identity import LibraryIdentity
 
-from .panel import Panel
+from .base import BasePanel
 
 logger = logging.getLogger(__name__)
 
@@ -42,13 +42,13 @@ class PanelRegistry(BaseRegistry):
                 return False
             if not hasattr(cls, "class_identity"):
                 return False
-            if cls is Panel:
+            if cls is BasePanel:
                 return False
-            return issubclass(cls, Panel)
+            return issubclass(cls, BasePanel)
         except TypeError:
             return False
 
-    def _register_class(self, cls: type[Panel], library_identity: LibraryIdentity) -> "str | None":
+    def _register_class(self, cls: type[BasePanel], library_identity: LibraryIdentity) -> "str | None":
         """Register a panel class."""
         registry_key = cls.class_identity.registry_key
         result = super()._register(registry_key, cls, library_identity)
@@ -74,7 +74,7 @@ class PanelRegistry(BaseRegistry):
         self,
         actions_provider: Any,
         focus: type,  # Focus subclass
-    ) -> List[type[Panel]]:
+    ) -> List[type[BasePanel]]:
         """Return panels whose action contract is satisfied by actions_provider
         AND whose focus matches the given focus class.
 
@@ -85,7 +85,7 @@ class PanelRegistry(BaseRegistry):
         Sorted by class_identity.order (ascending).
         """
         wanted_id = getattr(focus, "id", None)
-        result: List[type[Panel]] = []
+        result: List[type[BasePanel]] = []
         for cls in self._all_panel_classes():
             identity = getattr(cls, "class_identity", None)
             if identity is None:

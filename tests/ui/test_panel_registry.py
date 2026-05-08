@@ -7,7 +7,7 @@ from typing import Protocol, runtime_checkable
 
 import pytest
 
-from haywire.ui.panel import Panel, panel
+from haywire.ui.panel import BasePanel, panel
 from haywire.ui.panel.focus import Focus
 from haywire.ui.panel.registry import PanelRegistry
 
@@ -48,7 +48,7 @@ class _GraphFocus(Focus):
 
 
 @panel(action=_NodeActions, focus=_NodeFocus, label="Test Node Panel A", icon="info", order=10)
-class _TestNodePanelA(Panel):
+class _TestNodePanelA(BasePanel):
     def draw(self, ctx, layout, actions):
         pass
 
@@ -60,7 +60,7 @@ class _TestNodePanelA(Panel):
     order=20,
     registry_id="test_node_panel_b",
 )
-class _TestNodePanelB(Panel):
+class _TestNodePanelB(BasePanel):
     def draw(self, ctx, layout, actions):
         pass
 
@@ -72,12 +72,12 @@ class _TestNodePanelB(Panel):
     order=10,
     registry_id="test_graph_panel",
 )
-class _TestGraphPanel(Panel):
+class _TestGraphPanel(BasePanel):
     def draw(self, ctx, layout, actions):
         pass
 
 
-class _NotDecoratedPanel(Panel):
+class _NotDecoratedPanel(BasePanel):
     """Panel subclass without @panel — should NOT pass _class_filter."""
 
     def draw(self, ctx, layout, actions):
@@ -212,7 +212,7 @@ class TestPanelRegistry:
         assert self.registry._class_filter(_TestNodePanelA) is True
 
     def test_class_filter_rejects_panel_base(self):
-        assert self.registry._class_filter(Panel) is False
+        assert self.registry._class_filter(BasePanel) is False
 
     def test_class_filter_rejects_undecorated_subclass(self):
         assert self.registry._class_filter(_NotDecoratedPanel) is False

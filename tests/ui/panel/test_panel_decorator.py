@@ -5,7 +5,7 @@ from typing import Protocol, runtime_checkable
 
 import pytest
 
-from haywire.ui.panel import Panel, panel
+from haywire.ui.panel import BasePanel, panel
 from haywire.ui.panel.focus import Focus
 
 
@@ -30,7 +30,7 @@ def test_panel_with_action_and_focus_validates_and_sets_identity():
         focus=_DummyFocus,
         label="My Panel",
     )
-    class P(Panel):
+    class P(BasePanel):
         def draw(self, ctx, layout, actions):
             pass
 
@@ -47,7 +47,7 @@ def test_panel_action_must_be_a_class():
             focus=_DummyFocus,
             label="Bad",
         )
-        class P(Panel):
+        class P(BasePanel):
             def draw(self, ctx, layout, actions):
                 pass
 
@@ -63,7 +63,7 @@ def test_panel_focus_must_subclass_focus():
             focus=_NotAFocus,  # type: ignore[arg-type]
             label="Bad",
         )
-        class P(Panel):
+        class P(BasePanel):
             def draw(self, ctx, layout, actions):
                 pass
 
@@ -72,7 +72,7 @@ def test_panel_action_is_required():
     with pytest.raises(ValueError, match="action"):
 
         @panel(focus=_DummyFocus, label="No action")
-        class P(Panel):
+        class P(BasePanel):
             def draw(self, ctx, layout, actions):
                 pass
 
@@ -81,7 +81,7 @@ def test_panel_focus_is_required():
     with pytest.raises(ValueError, match="focus"):
 
         @panel(action=_DummyActions, label="No focus")
-        class P(Panel):
+        class P(BasePanel):
             def draw(self, ctx, layout, actions):
                 pass
 
@@ -94,6 +94,6 @@ def test_panel_label_is_required():
             focus=_DummyFocus,
             # label missing
         )
-        class P(Panel):
+        class P(BasePanel):
             def draw(self, ctx, layout, actions):
                 pass

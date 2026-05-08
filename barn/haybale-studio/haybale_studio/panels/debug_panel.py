@@ -12,7 +12,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from haywire.ui import elements as hui
-from haywire.ui.panel import Panel, PanelLayout
+from haywire.ui.panel import BasePanel, PanelLayout
 from haywire.ui.panel.decorator import panel
 from haywire.ui.panel.render_utils import render_schema, render_keys
 from haywire.core.namespaces import NAMESPACE_LIBRARY_LOG
@@ -33,7 +33,7 @@ if TYPE_CHECKING:
     order=20,
     default_open=False,
 )
-class DebugSettingsPanel(Panel):
+class DebugSettingsPanel(BasePanel):
     """Logging, execution visibility, visual debugging and data inspection."""
 
     def draw(

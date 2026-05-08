@@ -8,7 +8,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from haywire.ui import elements as hui
-from haywire.ui.panel import Panel, PanelLayout
+from haywire.ui.panel import BasePanel, PanelLayout
 from haywire.ui.panel.decorator import panel
 
 from haybale_studio.focuses import GraphFocus
@@ -26,7 +26,7 @@ if TYPE_CHECKING:
     icon=hui.icon.graph,
     order=10,
 )
-class GraphInfoPanel(Panel):
+class GraphInfoPanel(BasePanel):
     """Displays node and edge counts for the active graph."""
 
     @classmethod

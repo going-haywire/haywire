@@ -10,7 +10,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from haywire.ui import elements as hui
-from haywire.ui.panel import Panel, PanelLayout
+from haywire.ui.panel import BasePanel, PanelLayout
 from haywire.ui.panel.decorator import panel
 from haywire.ui.panel.render_utils import render_schema
 
@@ -29,7 +29,7 @@ if TYPE_CHECKING:
     order=10,
     default_open=True,
 )
-class ExecutionSettingsPanel(Panel):
+class ExecutionSettingsPanel(BasePanel):
     """Auto-execute, timeouts, parallelism, caching and error handling."""
 
     def draw(

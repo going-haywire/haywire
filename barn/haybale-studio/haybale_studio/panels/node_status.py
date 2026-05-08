@@ -8,7 +8,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from haywire.ui import elements as hui
-from haywire.ui.panel import Panel, PanelLayout
+from haywire.ui.panel import BasePanel, PanelLayout
 from haywire.ui.panel.decorator import panel
 
 from haybale_studio.focuses import NodeFocus
@@ -27,7 +27,7 @@ if TYPE_CHECKING:
     order=30,
     default_open=False,
 )
-class NodeStatusPanel(Panel):
+class NodeStatusPanel(BasePanel):
     """Displays the validation and lifecycle status of the selected node."""
 
     @classmethod

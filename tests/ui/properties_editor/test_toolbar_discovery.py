@@ -5,7 +5,7 @@ sorted by Focus.order."""
 from __future__ import annotations
 
 from haywire.core.library.identity import LibraryIdentity
-from haywire.ui.panel import Panel, PanelRegistry, panel
+from haywire.ui.panel import BasePanel, PanelRegistry, panel
 from haywire.ui.panel.focus import Focus
 
 # Import the editor's actions Protocol so we can register a panel against it.
@@ -43,7 +43,7 @@ class _LibraryFocus(Focus):
     focus=_LibraryFocus,
     label="Library Panel",
 )
-class _LibraryProvidedPanel(Panel):
+class _LibraryProvidedPanel(BasePanel):
     def draw(self, ctx, layout, actions):
         pass
 

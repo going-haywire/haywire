@@ -15,7 +15,7 @@ from unittest.mock import MagicMock, patch
 
 from haywire.core.state import LibraryStateContainer
 from haywire.ui.context import SessionContext
-from haywire.ui.panel import Panel
+from haywire.ui.panel import BasePanel
 from haywire.ui.panel.layout import PanelLayout
 
 from haybale_testing.test_actions import TestCanvasContextActions
@@ -57,7 +57,7 @@ def test_create_node_panel_focus_is_test_canvas_focus():
 
 
 def test_create_node_panel_is_panel_subclass():
-    assert issubclass(CreateNodePanel, Panel)
+    assert issubclass(CreateNodePanel, BasePanel)
 
 
 # ---------------------------------------------------------------------------

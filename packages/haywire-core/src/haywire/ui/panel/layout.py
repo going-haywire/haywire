@@ -1,5 +1,5 @@
 # packages/haywire-core/src/haywire/ui/panel/layout.py
-"""PanelLayout — layout helper passed to Panel.draw()."""
+"""PanelLayout — layout helper passed to BasePanel.draw()."""
 
 from contextlib import contextmanager
 from typing import Any, Callable

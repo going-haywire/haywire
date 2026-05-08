@@ -13,7 +13,7 @@ from haybale_studio.state.edit_state import EditState
 from haybale_testing.test_actions import TestEdgeContextActions
 from haybale_testing.test_focuses import TestEdgeFocus
 from haywire.ui import elements as hui
-from haywire.ui.panel import Panel
+from haywire.ui.panel import BasePanel
 from haywire.ui.panel.layout import PanelLayout
 from haywire.ui.panel.decorator import panel
 
@@ -34,7 +34,7 @@ def _state(ctx: "SessionContext") -> "EdgeWrapperState | None":
     icon=hui.icon.delete,
     order=10,
 )
-class TestDeleteEdgePanel(Panel):
+class TestDeleteEdgePanel(BasePanel):
     @classmethod
     def poll(cls, ctx: "SessionContext") -> bool:
         return ctx.data[EditState].active_edge.value is not None
@@ -63,7 +63,7 @@ class TestDeleteEdgePanel(Panel):
     icon=hui.icon.node_info,
     order=20,
 )
-class TestInspectEdgePanel(Panel):
+class TestInspectEdgePanel(BasePanel):
     @classmethod
     def poll(cls, ctx: "SessionContext") -> bool:
         return ctx.data[EditState].active_edge.value is not None
@@ -92,7 +92,7 @@ class TestInspectEdgePanel(Panel):
     icon=hui.icon.error,
     order=0,
 )
-class TestEdgeErrorsPanel(Panel):
+class TestEdgeErrorsPanel(BasePanel):
     @classmethod
     def poll(cls, ctx: "SessionContext") -> bool:
         state = _state(ctx)
@@ -129,7 +129,7 @@ class TestEdgeErrorsPanel(Panel):
     icon=hui.icon.adapter,
     order=15,
 )
-class TestEdgeConnectionPathPanel(Panel):
+class TestEdgeConnectionPathPanel(BasePanel):
     @classmethod
     def poll(cls, ctx: "SessionContext") -> bool:
         wrapper = ctx.data[EditState].active_edge.value
@@ -161,7 +161,7 @@ class TestEdgeConnectionPathPanel(Panel):
     icon=hui.icon.warning,
     order=5,
 )
-class TestEdgeWarningsPanel(Panel):
+class TestEdgeWarningsPanel(BasePanel):
     @classmethod
     def poll(cls, ctx: "SessionContext") -> bool:
         state = _state(ctx)

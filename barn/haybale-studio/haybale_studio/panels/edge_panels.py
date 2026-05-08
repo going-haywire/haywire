@@ -20,7 +20,7 @@ from haybale_studio.editors.properties_editor_actions import PropertiesEditorAct
 from haybale_studio.state.edit_state import EditState
 from haywire.ui import elements as hui
 from haybale_studio.editors.graph_canvas.handlers.context_menu_actions import EdgeContextActions
-from haywire.ui.panel import Panel, PanelLayout
+from haywire.ui.panel import BasePanel, PanelLayout
 from haywire.ui.panel.decorator import panel
 
 if TYPE_CHECKING:
@@ -76,7 +76,7 @@ def _render_edge_warnings(state: "EdgeWrapperState | None") -> None:
     icon=hui.icon.error,
     order=0,
 )
-class EdgeErrorsPanel(Panel):
+class EdgeErrorsPanel(BasePanel):
     """Edge errors panel for PropertiesEditor."""
 
     @classmethod
@@ -100,7 +100,7 @@ class EdgeErrorsPanel(Panel):
     icon=hui.icon.error,
     order=0,
 )
-class ContextMenuEdgeErrorsPanel(Panel):
+class ContextMenuEdgeErrorsPanel(BasePanel):
     """Edge errors panel for the context menu (right-click on edge)."""
 
     @classmethod
@@ -129,7 +129,7 @@ class ContextMenuEdgeErrorsPanel(Panel):
     icon=hui.icon.warning,
     order=5,
 )
-class EdgeWarningsPanel(Panel):
+class EdgeWarningsPanel(BasePanel):
     """Edge warnings panel for PropertiesEditor."""
 
     @classmethod
@@ -153,7 +153,7 @@ class EdgeWarningsPanel(Panel):
     icon=hui.icon.warning,
     order=5,
 )
-class ContextMenuEdgeWarningsPanel(Panel):
+class ContextMenuEdgeWarningsPanel(BasePanel):
     """Edge warnings panel for the context menu."""
 
     @classmethod
@@ -182,7 +182,7 @@ class ContextMenuEdgeWarningsPanel(Panel):
     icon=hui.icon.delete,
     order=30,
 )
-class DeleteEdgePanel(Panel):
+class DeleteEdgePanel(BasePanel):
     @classmethod
     def poll(cls, ctx: "SessionContext") -> bool:
         return ctx.data[EditState].active_edge.value is not None
@@ -219,7 +219,7 @@ class DeleteEdgePanel(Panel):
     default_open=False,
     order=40,
 )
-class ExecutionStatisticsEdgePanel(Panel):
+class ExecutionStatisticsEdgePanel(BasePanel):
     @classmethod
     def poll(cls, ctx: "SessionContext") -> bool:
         return ctx.data[EditState].active_edge.value is not None
@@ -255,7 +255,7 @@ class ExecutionStatisticsEdgePanel(Panel):
     default_open=False,
     order=50,
 )
-class ConnectionPathEdgePanel(Panel):
+class ConnectionPathEdgePanel(BasePanel):
     @classmethod
     def poll(cls, ctx: "SessionContext") -> bool:
         return ctx.data[EditState].active_edge.value is not None

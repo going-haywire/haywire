@@ -12,7 +12,7 @@ from haybale_studio.focuses import EdgeFocus
 from haybale_studio.state.edit_state import EditState
 from haywire.ui import elements as hui
 from haybale_studio.editors.graph_canvas.handlers.context_menu_actions import EdgeContextActions
-from haywire.ui.panel import Panel
+from haywire.ui.panel import BasePanel
 from haywire.ui.panel.layout import PanelLayout
 from haywire.ui.panel.decorator import panel
 
@@ -27,7 +27,7 @@ if TYPE_CHECKING:
     icon=hui.icon.edge,
     order=10,
 )
-class ReconnectEdgePanel(Panel):
+class ReconnectEdgePanel(BasePanel):
     """Removes the edge and starts a new connection drag from the anchor pin.
 
     The provider's reconnect_active_edge action reads the active edge
