@@ -9,8 +9,7 @@ docs_dir: docs
 # Exclude migration audit tables from the rendered site (they reference deleted
 # archive paths and are interesting only as historical record).
 exclude_docs: |
-  audit-internals.md
-  audit-survivors.md
+
 
 # Material for MkDocs theme.
 # Zensical migration is the planned upgrade path; structure stays compatible.
@@ -91,7 +90,6 @@ nav:
   - Components:
       - Nodes: components/nodes/node-canon.md
       - Datatypes: components/datatypes/datatype-canon.md
-      - Ports: components/ports/port-canon.md
       - Adapters: components/adapters/adapter-canon.md
       - Settings: components/settings/setting-canon.md
       - Widgets: components/widgets/widget-canon.md
@@ -105,6 +103,7 @@ nav:
 
   - Guides:
       - Node roles: guides/node-roles.md
+      - Ports: guides/ports.md
 
   - Architecture:
       - Overview: architecture/overview/overview-arch.md

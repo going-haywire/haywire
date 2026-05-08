@@ -10,7 +10,7 @@ Read the following documentation files in order and use them as the authoritativ
 ## Files to read
 
 1. `docs/components/nodes/node-canon.md` — `@node` decorated classes, lifecycle hooks (`init`, `post_init`, `on_startup`, `on_validate`, `worker`, `on_frame_start`/`end`, `on_shutdown`, `on_saved`, `on_teardown`), worker contract (parameter-name = inlet ID), return values, `rejig()` for dynamic ports, groups & sections, `hb_*` prefix convention
-2. `docs/components/ports/port-canon.md` — `as_inlet` / `as_outlet` / `as_config`, port flags, primitive vs `ArrayType[T]` vs `PooledType[T]`, worker access patterns (`self.value(id)`, `self.out(id, v)`, `self.ports[id].is_linked()`), connection-state checks, common pitfalls
+2. `docs/guides/ports.md` — `as_inlet` / `as_outlet` / `as_config`, port flags, primitive vs `ArrayType[T]` vs `PooledType[T]`, worker access patterns (`self.value(id)`, `self.out(id, v)`, `self.ports[id].is_linked()`), connection-state checks, common pitfalls
 3. `docs/components/datatypes/datatype-canon.md` — `@type` decorator, `PrimitiveType[T]`, `BaseType` (`@dataclass`), `CompoundType[T]` (`ArrayType`, `PooledType`), child→parent passthrough, `default` dict format, custom `field_class` for type coercion, derived primitives
 
 Optional context (load if the task touches them):

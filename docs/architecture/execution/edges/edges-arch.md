@@ -4,7 +4,7 @@ doc_template: impl-spec
 scope: EdgeWrapper lifecycle, the 4-stage build pipeline, two-tier port storage, adapter chains, lazy propagation, dirty model
 see-also:
   - ../../../components/adapters/adapter-canon.md
-  - ../../../components/ports/port-canon.md
+  - ../../../guides/ports.md
   - ../../hot-reload/hot-reload-arch.md
   - ../assembly/assembly-arch.md
   - ../../../reference/glossary.md

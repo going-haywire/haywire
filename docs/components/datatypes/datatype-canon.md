@@ -197,7 +197,7 @@ What this example exercises:
 | `as_inlet` / `as_outlet` | inside `MixColorsNode.init()` |
 | Default `to_dict` / `from_dict` (no override needed) | `Color`'s simple dataclass |
 
-For everything ports-related (`as_config`, `on_change`, `on_connect`, port reconfiguration), see [components/ports](../ports/port-canon.md). For the worker function and node lifecycle, see [components/nodes](../nodes/node-canon.md).
+For everything ports-related (`as_config`, `on_change`, `on_connect`, port reconfiguration), see [guides/ports](../../guides/ports.md). For the worker function and node lifecycle, see [components/nodes](../nodes/node-canon.md).
 
 ---
 

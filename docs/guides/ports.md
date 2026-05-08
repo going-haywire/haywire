@@ -1,16 +1,16 @@
 ---
 status: draft
-doc_template: canonical-example
+doc_template: guide
 scope: Authoring ports — as_inlet / as_outlet / as_config, primitive vs array vs pooled, worker access, port flags
 see-also:
-  - ../nodes/node-canon.md
-  - ../datatypes/datatype-canon.md
-  - ../widgets/widget-canon.md
-  - ../../architecture/execution/edges/edges-arch.md
-  - ../../reference/glossary.md
+  - ../components/nodes/node-canon.md
+  - ../components/datatypes/datatype-canon.md
+  - ../components/widgets/widget-canon.md
+  - ../architecture/execution/edges/edges-arch.md
+  - ../reference/glossary.md
 ---
 
-# Port — Canonical Example
+# Ports — Authoring Guide
 
 ## 1. What it solves
 
@@ -39,7 +39,7 @@ FLOAT (IType cls)   →   FLOAT.as_inlet(    →   DataPort instance
 
 `as_inlet` / `as_outlet` / `as_config` return **port specs** (dicts). `self.add(spec)` consumes the spec, builds the `DataPort`, attaches its matching `DataField`, and registers it under `self.ports[id]`. From the worker, you access values via `self.value(id)` and `self.out(id, value)`.
 
-**Boundaries.** What types exist and how to define them lives in [components/datatypes](../datatypes/datatype-canon.md). What widgets are bound to ports lives in [components/widgets](../widgets/widget-canon.md). The node lifecycle that calls your worker lives in [components/nodes](../nodes/node-canon.md). The runtime mechanics of edge build / adapter chain construction live in [architecture/execution/edges](../../architecture/execution/edges/edges-arch.md).
+**Boundaries.** What types exist and how to define them lives in [components/datatypes](../components/datatypes/datatype-canon.md). What widgets are bound to ports lives in [components/widgets](../components/widgets/widget-canon.md). The node lifecycle that calls your worker lives in [components/nodes](../components/nodes/node-canon.md). The runtime mechanics of edge build / adapter chain construction live in [architecture/execution/edges](../architecture/execution/edges/edges-arch.md).
 
 ## 3. Important concepts
 
@@ -67,7 +67,7 @@ FLOAT (IType cls)   →   FLOAT.as_inlet(    →   DataPort instance
 | `on_disconnect` | `str` | Name of a node method to call when an edge disconnects |
 | `store_data` | `bool` | Override whether values persist on graph save |
 
-The `on_change` callback is what you wire to a `hb_*` reconfigure method when a config port should rebuild dynamic ports. See [components/nodes](../nodes/node-canon.md) §3 for the rejig pattern.
+The `on_change` callback is what you wire to a `hb_*` reconfigure method when a config port should rebuild dynamic ports. See [components/nodes](../components/nodes/node-canon.md) §3 for the rejig pattern.
 
 **Three port shapes per type.** Every datatype gives you three connection shapes:
 
@@ -120,7 +120,7 @@ inlet.data.get_source_ids()    # ['node_a', 'node_b', 'node_c']
 - `with self.group(GROUP.as_inlet('advanced', label='Advanced'))` — a collapsible UI container; child ports are hidden when collapsed but connections survive via ghost pins. Groups can nest.
 - `with self.section('validation')` — moves child ports off the node body and into a property-panel section.
 
-Both are explained in [components/nodes](../nodes/node-canon.md) §3.
+Both are explained in [components/nodes](../components/nodes/node-canon.md) §3.
 
 ## 4. One comprehensive example
 
@@ -262,7 +262,7 @@ What this example exercises:
 | `self.out(id, value)` (no wrapping) | result, per_source, above_threshold, source_count |
 | `on_change` callback hooks (`hb_*` convention) | `hb_threshold_changed` |
 
-For declarative settings instead of config ports, see [components/settings](../settings/setting-canon.md). For the lifecycle hooks that surround `worker()` (`init`, `post_init`, `on_validate`, etc.), see [components/nodes](../nodes/node-canon.md). For the dynamic `rejig()` pattern that adds and removes ports based on a config value, see [components/nodes §3](../nodes/node-canon.md#3-important-concepts).
+For declarative settings instead of config ports, see [components/settings](../components/settings/setting-canon.md). For the lifecycle hooks that surround `worker()` (`init`, `post_init`, `on_validate`, etc.), see [components/nodes](../components/nodes/node-canon.md). For the dynamic `rejig()` pattern that adds and removes ports based on a config value, see [components/nodes §3](../components/nodes/node-canon.md#3-important-concepts).
 
 ---
 

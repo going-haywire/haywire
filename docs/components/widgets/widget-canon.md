@@ -4,7 +4,7 @@ doc_template: canonical-example
 scope: Authoring widgets — SimpleWidget / BaseWidget subclasses, the @widget decorator, type binding, lifecycle
 see-also:
   - ../datatypes/datatype-canon.md
-  - ../ports/port-canon.md
+  - ../../guides/ports.md
   - ../adapters/adapter-canon.md
   - ../../reference/glossary.md
 ---
@@ -44,7 +44,7 @@ Two base classes cover the surface:
 
 Both implement `IWidget`. The `@widget` decorator attaches `class_identity` (used by `WidgetRegistry` for hot-reload) and registers `compatible_types` (which datatypes the widget accepts).
 
-**Boundaries.** What datatypes *are* lives in [components/datatypes](../datatypes/datatype-canon.md). How a port binds a widget at creation time (the `widget_key` / `widget_config` kwargs on `as_inlet`) lives in [components/ports](../ports/port-canon.md). The runtime layer that converts values between incompatible types lives in [components/adapters](../adapters/adapter-canon.md) and [architecture/execution/edges](../../architecture/execution/edges/edges-arch.md).
+**Boundaries.** What datatypes *are* lives in [components/datatypes](../datatypes/datatype-canon.md). How a port binds a widget at creation time (the `widget_key` / `widget_config` kwargs on `as_inlet`) lives in [guides/ports](../../guides/ports.md). The runtime layer that converts values between incompatible types lives in [components/adapters](../adapters/adapter-canon.md) and [architecture/execution/edges](../../architecture/execution/edges/edges-arch.md).
 
 ## 3. Important concepts
 
@@ -318,7 +318,7 @@ What this example exercises:
 | Library registration via `BaseLibrary` (hot-reload aware) | `Library.register_components` |
 | Per-port `widget_key` + `widget_config` overrides | `CalculatorNode.init` |
 
-For datatype authoring (including the `MathOperation` derived primitive used here), see [components/datatypes](../datatypes/datatype-canon.md). For the underlying port surface (`as_inlet`, `widget_config`, `widget_key`), see [components/ports](../ports/port-canon.md). For type-pair adapters (used when an outlet of one type connects to an inlet of a different type), see [components/adapters](../adapters/adapter-canon.md).
+For datatype authoring (including the `MathOperation` derived primitive used here), see [components/datatypes](../datatypes/datatype-canon.md). For the underlying port surface (`as_inlet`, `widget_config`, `widget_key`), see [guides/ports](../../guides/ports.md). For type-pair adapters (used when an outlet of one type connects to an inlet of a different type), see [components/adapters](../adapters/adapter-canon.md).
 
 ---
 

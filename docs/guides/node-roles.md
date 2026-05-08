@@ -4,7 +4,7 @@ doc_template: guide
 scope: Worked examples of each node role — CONTROL (multi-pin dispatch), DATA (pure compute), EVENT (with matching emitter), LOOPBACK (round-trip with break)
 see-also:
   - ../components/nodes/node-canon.md
-  - ../components/ports/port-canon.md
+  - ./ports.md
   - ../architecture/execution/callbacks/callbacks-arch.md
   - ../reference/glossary.md
 ---
@@ -189,8 +189,8 @@ class EmitPingNode(BaseNode):
 
 **What the pair shows:**
 
-- **`allow_multiple_links=True`** on the listener's CALLBACK outlet lets many emitters target the same listener (port detail in [port-canon](../components/ports/port-canon.md)).
-- **`PooledType[CALLBACK].as_inlet(...)`** on the emitter collects all connected listener IDs into a dict (port detail in [port-canon](../components/ports/port-canon.md)).
+- **`allow_multiple_links=True`** on the listener's CALLBACK outlet lets many emitters target the same listener (port detail in [guides/ports](./ports.md)).
+- **`PooledType[CALLBACK].as_inlet(...)`** on the emitter collects all connected listener IDs into a dict (port detail in [guides/ports](./ports.md)).
 - **`context.emit_callback(event_name=..., payload=...)`** dispatches to subscribers.
 - **`context.trigger.payload`** delivers the emitter's payload to the listener's worker.
 

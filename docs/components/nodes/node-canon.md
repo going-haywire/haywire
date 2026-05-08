@@ -3,7 +3,7 @@ status: draft
 doc_template: canonical-example
 scope: Authoring node classes — BaseNode, @node decorator, lifecycle hooks, worker function, dynamic reconfiguration
 see-also:
-  - ../ports/port-canon.md
+  - ../../guides/ports.md
   - ../datatypes/datatype-canon.md
   - ../settings/setting-canon.md
   - ../../guides/node-roles.md
@@ -39,13 +39,13 @@ BaseNode subclass   →    NodeRegistry      →    NodeWrapper
 
 The class you write is the *blueprint*. At runtime, a `NodeWrapper` owns the live instance, manages its lifecycle, and proxies it into the VM. You never instantiate `NodeWrapper` directly — the framework does, when a node is added to a graph or hot-reloaded.
 
-**Boundaries.** Port creation primitives (`as_inlet`, `as_outlet`, `as_config`, primitive vs array vs pooled access) live in [components/ports](../ports/port-canon.md). Datatypes (`@type`, IType subclasses) live in [components/datatypes](../datatypes/datatype-canon.md). Settings declared on a node go in [components/settings](../settings/setting-canon.md). The VM that runs your worker lives in [architecture/execution/virtual-machine](../../architecture/execution/virtual-machine/virtual-machine-arch.md).
+**Boundaries.** Port creation primitives (`as_inlet`, `as_outlet`, `as_config`, primitive vs array vs pooled access) live in [guides/ports](../../guides/ports.md). Datatypes (`@type`, IType subclasses) live in [components/datatypes](../datatypes/datatype-canon.md). Settings declared on a node go in [components/settings](../settings/setting-canon.md). The VM that runs your worker lives in [architecture/execution/virtual-machine](../../architecture/execution/virtual-machine/virtual-machine-arch.md).
 
 ## 3. Important concepts
 
 **The `@node` decorator.** Attaches identity metadata: `label`, `description`, `menu` (canvas menu path), `search_tags`, `node_type` (`NodeType.CONTROL` / `NodeType.DATA` / etc.). The decorator's `node_type` argument sets the default execution role; the actual role is inferred from the EXEC ports declared in `init()`.
 
-**`init()` declares ports.** Called once when the node is first instantiated. Use `self.add(...)` with port specs from the type system: `EXEC.as_inlet('trigger')`, `FLOAT.as_inlet('value', default=0.0)`, `MyComplexType.as_outlet('result')`. Port creation surface lives in [components/ports](../ports/port-canon.md). 
+**`init()` declares ports.** Called once when the node is first instantiated. Use `self.add(...)` with port specs from the type system: `EXEC.as_inlet('trigger')`, `FLOAT.as_inlet('value', default=0.0)`, `MyComplexType.as_outlet('result')`. Port creation surface lives in [guides/ports](../../guides/ports.md). 
 
 **IMPORTANT**: When a node is deserialized (loaded for a graph) its ports are instantiated from disc and the **`init()`** method is **NOT** called. What is called though is the **`post_init()`** method. Thus the **`init()`** should only define those ports that are needed when the node is instantiated awnew or reset.
 
@@ -239,7 +239,7 @@ What this example exercises:
 | `on_validate()` for input checks | the min/max validation |
 | `on_startup` / `on_shutdown` / `on_teardown` lifecycle | hook signatures shown |
 
-For the port creation surface (everything `as_inlet` / `as_outlet` / `as_config` accepts, primitive vs array vs pooled, worker access patterns), see [components/ports](../ports/port-canon.md). For declarative settings on the node (instead of config ports), see [components/settings](../settings/setting-canon.md).
+For the port creation surface (everything `as_inlet` / `as_outlet` / `as_config` accepts, primitive vs array vs pooled, worker access patterns), see [guides/ports](../../guides/ports.md). For declarative settings on the node (instead of config ports), see [components/settings](../settings/setting-canon.md).
 
 For worked examples of each role — CONTROL multi-pin dispatch, DATA pure compute, EVENT with the matching emitter, LOOPBACK round-trip with break — see [guides/node-roles](../../guides/node-roles.md).
 

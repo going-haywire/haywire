@@ -84,7 +84,7 @@ Last reviewed: 2026-05-08 (commit `1755185f`)
 | packages/haywire-core/src/haywire/ui/panel/focus.py | 02bf9acf6514eba46e572d16aebe78d102fcb983 |
 | packages/haywire-core/src/haywire/ui/panel/panel.py | 923e8525dcd23ecb80603cab84b3406a5702e379 |
 
-## docs/components/ports/port-canon.md
+## docs/guides/ports.md
 
 Last reviewed: 2026-05-08 (commit `1755185f`)
 
@@ -325,16 +325,6 @@ Review pending: 2026-05-08 (doc-hash `d6c82ea00f3fe487d2fd476a0f1f0828eb628bb3`)
 
 
 ## docs/archive/whitepaper/Haywire_design.md
-
-No review needed: 2026-05-08
-
-
-## docs/audit-internals.md
-
-No review needed: 2026-05-08
-
-
-## docs/audit-survivors.md
 
 No review needed: 2026-05-08
 

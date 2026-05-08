@@ -36,7 +36,7 @@ The word **library** appears five times in haywire with five different meanings.
 | **NodeWrapper** | The live runtime instance of a node inside a running graph; wraps the user-defined node class | Node instance (ambiguous — use NodeWrapper for the runtime object, Node for the class) |
 | **Edge** | A directed connection between an outlet on one node and an inlet on another. See [architecture/execution/edges](../architecture/execution/edges/edges-arch.md) | Connection, wire, link (use only as a verb: "to link an edge") |
 | **EdgeWrapper** | The runtime edge object that owns the `link/unlink/detach` lifecycle and the `is_lazy` flag | — |
-| **Port** | A typed, directional connection point on a node — either an inlet or an outlet. See [components/ports](../components/ports/port-canon.md) | Pin (avoid for data ports), socket |
+| **Port** | A typed, directional connection point on a node — either an inlet or an outlet. See [guides/ports](../guides/ports.md) | Pin (avoid for data ports), socket |
 | **Inlet** | A port that receives data or control into a node | Input, sink port |
 | **Outlet** | A port that emits data or control from a node | Output, source port |
 | **Pin** | Acceptable synonym for an EXEC (control) port specifically | — |
