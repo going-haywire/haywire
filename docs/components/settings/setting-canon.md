@@ -70,7 +70,7 @@ Use `cache` for "lost on restart, fine"; `store` for "must survive saves, hidden
 | `shadow(GlobalSettings.field)` | Writable mirror of a global setting. Inherits the source's label/default/type/widget/min/max. Per-node writes are allowed and stored as overrides. Panel shows a `•` prefix and a reset button when locally overridden. |
 | `watch(GlobalSettings.field)` | Read-only mirror. Invisible in panel, never stored. Tracks the global value reactively. Any write attempt raises `AttributeError`. |
 
-`shadow()` and `watch()` accept either a descriptor reference (`shadow(NodeUISettings.bg_color)`) or a raw key string (`shadow("ui.node.bg_color")`).
+`shadow()` and `watch()` accept either a descriptor reference (`shadow(CanvasSettings.snap_to_grid)`) or a raw key string (`shadow("ui.canvas.snap_to_grid")`).
 
 **The accessor name.** A node's `class filter(NodeSettings):` becomes `self.filter` on every instance. The class name is the accessor name — pick descriptive ones (`filter`, `output`, `api`). Multiple accessors per node are allowed; each gets its own `_setting_key` namespace.
 
@@ -217,8 +217,8 @@ class ImageLibSettings(LibrarySettings):
 # image_lib/nodes/resize.py
 from haywire.core.node import BaseNode, node
 from haywire.core.settings import NodeSettings, setting, shadow, watch
-from haywire.core.settings.builtins.debug import DebugSettings
-from haywire.core.settings.builtins.ui_node import NodeUISettings
+from haywire.core.debug.debug_settings import DebugSettings
+from haywire.ui.prefs.canvas import CanvasSettings
 from ..settings import ImageLibSettings
 
 @node(label='Resize Image', menu='image/transform')
@@ -245,12 +245,12 @@ class ResizeNode(BaseNode):
         algorithm = shadow(ImageLibSettings.resize_algorithm)
 
         # shadow() with label override — same source, custom display
-        node_bg = shadow(NodeUISettings.bg_color, label='Node Background')
+        snap_grid = shadow(CanvasSettings.snap_to_grid, label='Snap to Grid')
 
         # watch() — read-only mirror; invisible in panel, never stored,
         # tracks the global value reactively
         gpu = watch(ImageLibSettings.gpu_acceleration)
-        verbose = watch(DebugSettings.verbose_logging)
+        log_to_file = watch(DebugSettings.log_to_file)
 
         # Read-only label-style display field
         info = setting[str]('Configure dimensions above', widget='label', read_only=True)
@@ -291,7 +291,7 @@ class ResizeNode(BaseNode):
         r = self.resize
         o = self.output
 
-        if r.verbose:
+        if r.log_to_file:
             context.log(f'Resize {r.width}x{r.height} algo={r.algorithm}')
 
         # Counters live in store (persistent, hidden)
@@ -325,8 +325,8 @@ What this example exercises:
 | Multiple `NodeSettings` accessors on one node | `class resize`, `class output` |
 | Local `setting()` with `on_change` and `validator` | `width`, `height` |
 | `shadow()` of a `LibrarySettings` field | `algorithm`, `quality` |
-| `shadow()` with a label override | `node_bg = shadow(NodeUISettings.bg_color, label='...')` |
-| `watch()` for a read-only mirror | `gpu`, `verbose` |
+| `shadow()` with a label override | `snap_grid = shadow(CanvasSettings.snap_to_grid, label='...')` |
+| `watch()` for a read-only mirror | `gpu`, `log_to_file` |
 | `read_only=True` + `widget='label'` for display-only | `info` |
 | `validator=` rejecting invalid input | `width` (must be even and > 0) |
 | `on_change` callback with `hb_*` prefix | `hb_on_size_change` |
@@ -351,10 +351,10 @@ class MyNode(BaseNode):
         threshold = setting[float](0.5, min=0.0, max=1.0, label='Threshold')
 
         # Writable mirror (per-node override OK)
-        bg = shadow(NodeUISettings.bg_color)
+        snap = shadow(CanvasSettings.snap_to_grid)
 
         # Read-only mirror (invisible, never stored)
-        debug = watch(DebugSettings.verbose_logging)
+        log_to_file = watch(DebugSettings.log_to_file)
 ```
 
 ### Reset / introspect

@@ -1,5 +1,5 @@
 ---
-status: draft
+status: stale
 doc_template: canonical-example
 scope: Authoring editors — BaseEditor subclass, @editor decorator, render / on_context_changed lifecycle, OpenBehavior tab modes
 see-also:
@@ -10,6 +10,15 @@ see-also:
 ---
 
 # Editor — Canonical Example
+
+!!! warning "This page is stale"
+    The lifecycle described below does not match the current `BaseEditor` ([packages/haywire-core/src/haywire/ui/editor/base.py](../../../packages/haywire-core/src/haywire/ui/editor/base.py)):
+
+    - **Method names**: this doc says `render(container, context)` and `on_context_changed(event, context)`. The real API is `draw(context, container)` (abstract) and `poll(context, signal) -> bool` (returns True to request a redraw).
+    - **Module name**: `haywire.ui.context_events` was renamed to `haywire.ui.context_signals`. `ContextChangedEvent` / `ContextChangeType` were replaced by `ContextSignal` subclasses; filtering is `isinstance(signal, SignalType)`, not enum comparison.
+    - **Redraw model**: the orchestrator clears the container before each `draw()` call and uses `poll()` as the redraw decision — there is no incremental update.
+
+    Until rewritten, treat the high-level concepts (editors are full-slot UI, one instance per slot per session, hot-reload via `EditorTypeRegistry`) as still load-bearing, but verify any code-level claim against the source.
 
 ## 1. What it solves
 

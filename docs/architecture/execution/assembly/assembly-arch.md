@@ -74,9 +74,12 @@ The validation is structural; per-edge validation happens in `EdgeWrapper.build(
 Every assembled Flow carries metadata exposed via `interpreter.get_statistics()`:
 
 ```python
-stats['assembly']['flow_count']       # number of Flows
-stats['assembly']['callback_edges']   # count of FlowType.CALLBACK edges
-stats['assembly']['callback_topology'] # {emitter_id: [listener_flow_id, ...]}
+stats['assembly']['total_flows']       # number of assembled Flows
+stats['assembly']['dirty_flows']       # Flows pending re-assembly
+stats['assembly']['callback_edges']    # total FlowType.CALLBACK edges
+stats['assembly']['callback_topology'] # {'emitters': N, 'listeners': N,
+                                       #  'edges': {emitter_id: [target_id, ...]},
+                                       #  'triggers': {target_id: [emitter_id, ...]}}
 ```
 
 Useful for debugging — confirm a graph assembled the expected Flow count and callback topology.

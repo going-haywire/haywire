@@ -47,7 +47,7 @@ Adapters live in [components/adapters](../adapters/adapter-canon.md); how the ch
 
 **`default` dict.** Constructor kwargs for the default instance. For primitives: `{'value': <val>}` (or just the bare value, which the decorator auto-wraps). For `@dataclass` complex types: `{'attr1': v1, 'attr2': v2}` — keys must match the dataclass fields.
 
-**`flow_type`.** One of `FlowType.DATA`, `FlowType.CONTROL`, `FlowType.CALLBACK`, or `FlowType.NONE`. `DATA` is the default and the common case. `CONTROL`/`CALLBACK` mark the type as a non-data signal — these get no widget and no meaningful default.
+**`flow_type`.** One of `FlowType.DATA`, `FlowType.CONTROL`, `FlowType.CALLBACK`, or `FlowType.NONE`. The framework default is `NONE`; ordinary value-carrying datatypes set `DATA` explicitly (the common case). `CONTROL`/`CALLBACK` mark the type as a non-data signal — these get no widget and no meaningful default.
 
 **Inheritance.** A derived type inherits its parent's full identity (`color`, `widget_key`, `flow_type`, …) and overrides only the parameters you pass to its `@type`. Derived types are **automatically compatible with ancestors** for connections — child→parent works as a passthrough; child→sibling-of-parent walks up to the parent's adapter; parent→child still requires an explicit adapter.
 
@@ -192,7 +192,7 @@ What this example exercises:
 | Inheritance compatibility | `Alpha` (a FLOAT-like) auto-compatible with FLOAT |
 | `default` as constructor kwargs (complex) | `Color`'s `default={'r': …, 'g': …, …}` |
 | `default` auto-wrap (primitive) | `Alpha`'s `default={'value': 1.0}`; node-side `default=0.5` |
-| `flow_type=FlowType.DATA` | implicit on both |
+| `flow_type=FlowType.DATA` | explicit on both (framework default is `NONE`) |
 | Adapter pairing (full coverage in [components/adapters](../adapters/adapter-canon.md)) | `ColorToStringAdapter` |
 | `as_inlet` / `as_outlet` | inside `MixColorsNode.init()` |
 | Default `to_dict` / `from_dict` (no override needed) | `Color`'s simple dataclass |

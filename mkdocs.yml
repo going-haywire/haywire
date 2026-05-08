@@ -77,7 +77,8 @@ plugins:
   - search
 
 # Perspectives are navigational entry points; components/ holds extension-point
-# stories; architecture/ holds system internals; reference/ holds shared truth
+# stories; guides/ holds cross-component patterns and worked examples;
+# architecture/ holds system internals; reference/ holds shared truth
 # (glossary, design guide).
 nav:
   - Home: index.md
@@ -101,6 +102,9 @@ nav:
       - States: components/states/state-canon.md
       - Libraries: components/libraries/library-canon.md
       - Haybale package: components/haybale-package/haybale-package-canon.md
+
+  - Guides:
+      - Node roles: guides/node-roles.md
 
   - Architecture:
       - Overview: architecture/overview/overview-arch.md

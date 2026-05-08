@@ -60,7 +60,6 @@ class ControlSwitch(BaseNode):
     def hb_change(self, *args, **kwargs) -> None:
         from haybale_core.widgets.basic_widgets import SelectWidget, NumberWidget
         from ..types.specs import FLOAT, INT, STRING
-
         with self.rejig(exclude=["exec", "true", "false", "DataType", "test"]):
             if self.value("DataType") == "int":
                 self.add(

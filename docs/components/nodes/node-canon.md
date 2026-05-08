@@ -6,6 +6,7 @@ see-also:
   - ../ports/port-canon.md
   - ../datatypes/datatype-canon.md
   - ../settings/setting-canon.md
+  - ../../guides/node-roles.md
   - ../../architecture/execution/virtual-machine/virtual-machine-arch.md
   - ../../reference/glossary.md
 ---
@@ -44,7 +45,12 @@ The class you write is the *blueprint*. At runtime, a `NodeWrapper` owns the liv
 
 **The `@node` decorator.** Attaches identity metadata: `label`, `description`, `menu` (canvas menu path), `search_tags`, `node_type` (`NodeType.CONTROL` / `NodeType.DATA` / etc.). The decorator's `node_type` argument sets the default execution role; the actual role is inferred from the EXEC ports declared in `init()`.
 
-**`init()` declares ports.** Called once when the node is first instantiated. Use `self.add(...)` with port specs from the type system: `EXEC.as_inlet('trigger')`, `FLOAT.as_inlet('value', default=0.0)`, `MyComplexType.as_outlet('result')`. Port creation surface lives in [components/ports](../ports/port-canon.md).
+**`init()` declares ports.** Called once when the node is first instantiated. Use `self.add(...)` with port specs from the type system: `EXEC.as_inlet('trigger')`, `FLOAT.as_inlet('value', default=0.0)`, `MyComplexType.as_outlet('result')`. Port creation surface lives in [components/ports](../ports/port-canon.md). 
+
+**IMPORTANT**: When a node is deserialized (loaded for a graph) its ports are instantiated from disc and the **`init()`** method is **NOT** called. What is called though is the **`post_init()`** method. Thus the **`init()`** should only define those ports that are needed when the node is instantiated awnew or reset.
+
+**`post_init()`** should be used to perform any additional setup that cannot be done through deserialization, such as instantiating classes. Do not use it for performative operations or as a preparation for the worker execution - the on_startup() method should be used for that purpose.
+
 
 **Lifecycle hooks (called by the VM in this order).**
 
@@ -154,11 +160,18 @@ class RangeFilter(BaseNode):
                                     widget=NumberWidget.config()))
 
     def post_init(self):
-        # Wire up the dynamic ports for the initial mode value.
-        self.hb_reconfigure()
+        # Wire up the dynamic ports for the initial mode value. After
+        # deserialization the dynamic 'value' port is already present, so we
+        # only rebuild it when it's missing (i.e. on a fresh instantiation).
+        try:
+            self.value("value")
+        except KeyError:
+            self.hb_reconfigure()
 
     # hb_* prefix → guaranteed safe across haywire framework updates
     def hb_reconfigure(self, *args, **kwargs):
+        # This method is called when the 'mode' changes. It shows the prefered
+        # way how to manage dynamic
         from ..types.specs import INT, FLOAT
         from haybale_core.widgets.basic_widgets import NumberWidget
 
@@ -180,9 +193,12 @@ class RangeFilter(BaseNode):
     def on_validate(self, context: ExecutionContext):
         # Optional pre-flight check before worker runs.
         if self.value('min') > self.value('max'):
+            pass
             # Set error state — this surfaces in the UI.
-            from haywire.ui.error_info import NodeErrorInfo
-            self.error_info = NodeErrorInfo(message='min must be <= max')
+            # TODO: Nice idea: create a mechanism to allow the user to post a 
+            # runtime error - currently not supported though
+            # from haywire.ui.error_info import NodeErrorInfo
+            # self.error_info = NodeErrorInfo(message='min must be <= max')
 
     def worker(
         self,
@@ -224,6 +240,8 @@ What this example exercises:
 | `on_startup` / `on_shutdown` / `on_teardown` lifecycle | hook signatures shown |
 
 For the port creation surface (everything `as_inlet` / `as_outlet` / `as_config` accepts, primitive vs array vs pooled, worker access patterns), see [components/ports](../ports/port-canon.md). For declarative settings on the node (instead of config ports), see [components/settings](../settings/setting-canon.md).
+
+For worked examples of each role — CONTROL multi-pin dispatch, DATA pure compute, EVENT with the matching emitter, LOOPBACK round-trip with break — see [guides/node-roles](../../guides/node-roles.md).
 
 ---
 

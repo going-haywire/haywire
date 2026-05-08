@@ -1,5 +1,5 @@
 ---
-status: draft
+status: stale
 doc_template: system-reference
 scope: The studio as a product — AppShell, Workspace, Sessions, slots, editors, panels, context-driven rendering
 see-also:
@@ -14,6 +14,15 @@ see-also:
 ---
 
 # Studio — Architecture
+
+!!! warning "This page is stale"
+    Substantial portions of this doc describe a previous architecture and are out of sync with the current code:
+
+    - The `WorkspaceState` dataclass and named-preset system described here no longer exists. The current `WorkspaceManager` ([packages/haywire-core/src/haywire/ui/workspace/manager.py](../../../packages/haywire-core/src/haywire/ui/workspace/manager.py)) is dumb JSON persistence over a raw `snapshot: dict` — it does not own presets, does not interpret slot structure, and has no `active_preset`.
+    - The `SessionContext` field list (lines 164–177) is wrong. Selection state (`active_node`, `active_edge`, `selected_nodes`, `selected_edges`) now lives on `EditState`, a `SessionState` in `haybale-studio` ([barn/haybale-studio/haybale_studio/state/edit_state.py](../../../barn/haybale-studio/haybale_studio/state/edit_state.py)). Read it via `ctx.data[EditState].active_node.value`.
+    - References to ContextBar/ActivityBar/Panels updating `WorkspaceState.*.active_tab_key` or `SessionContext.active_node` directly are wired around the old design.
+
+    Until rewritten, treat the boundary diagrams and concept names as load-bearing and the field-level claims as untrustworthy. The execution / settings / state architecture docs are unaffected.
 
 ## 1. Overview
 

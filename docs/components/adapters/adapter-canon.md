@@ -112,8 +112,7 @@ A `Color` datatype (RGBA dataclass, defined in [datatype-canon §4](../datatypes
 ```python
 # my_lib/adapters/color_adapters.py
 
-from haywire.core.adapter.base import BaseAdapter
-from haywire.core.adapter.decorator import adapter   # exported from .base too
+from haywire.core.adapter.base import BaseAdapter, adapter
 from haybale_core.types.specs import STRING
 
 from ..types.color import Color

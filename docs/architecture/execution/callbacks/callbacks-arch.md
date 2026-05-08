@@ -170,4 +170,4 @@ for emitter_id, listener_flows in stats['callback_topology'].items():
 - `src/haywire/core/assembly/flow_assembly_manager.py` — `_process_callback_edges()`
 - `src/haywire/core/execution/callback_manager.py` — `CallbackManager` (runtime dispatch)
 - `src/haywire/core/execution/interpreter.py` — `Interpreter` (per-graph; owns the CallbackManager)
-- `barn/haybale-core/haybale_core/nodes/control/callback_event.py` — `CallbackEvent` listener event-node
+- `src/haywire/core/execution/event_source.py` — `CallbackEvent` listener event-node (framework class; library nodes import it)

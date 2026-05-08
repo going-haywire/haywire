@@ -232,12 +232,16 @@ registry.load_from_toml('~/.haywire/settings.toml', tier='global')
 registry.load_from_toml('<workspace>/.haywire/settings.toml', tier='workspace')
 registry.save_to_toml()  # writes workspace tier
 
-# Subscribe (cache-invalidation hook for mirror fields)
-def on_namespace_change(name, value, old):
-    print(f'{name} changed from {old} to {value}')
+# Subscribe (cache-invalidation hook for mirror fields).
+# `namespace=None` fires on every key; 'execution' fires on any
+# 'execution.*' key; 'execution.max_threads' fires only on that exact key.
+# Pass a plain callable — the registry stores it as a weakref internally,
+# so the caller must keep a strong reference (hold `self`, or assign the
+# function to a module-level name).
+def on_namespace_change(key, value):
+    print(f'{key} = {value}')
 
-import weakref
-registry.subscribe_namespace('execution', weakref.WeakMethod(on_namespace_change))
+registry.subscribe('execution', on_namespace_change)
 ```
 
 ### 5.2 Resolution chain in practice
@@ -330,7 +334,7 @@ value, source = registry.resolve('ui.node.bg_color')
 # → ('#ffffff', 'default')
 ```
 
-`register_builtins=False` skips registering `NodeUISettings` / `EdgeUISettings` / `DebugSettings` / `ExecutionSettings` / `EditorSettings` — useful when testing in pure isolation.
+The framework's built-in `FrameworkSettings` schemas live under `haywire.ui.prefs` (`CanvasSettings`, `EdgeUISettings`, `EditorSettings`), `haywire.core.execution.settings` (`ExecutionSettings`), and `haywire.core.debug.debug_settings` (`DebugSettings`), plus skin/minimap/zoom variants under `haywire.ui.*`. `create_test_settings_registry` accepts a `register_builtins` parameter for opt-out, but at the time of writing the parameter is not yet wired through the function body — pass `predefined_settings` if you need specific keys pre-defined.
 
 ### 6.2 `create_test_bag(bag_cls=None, predefined_local=None, predefined_global=None)`
 

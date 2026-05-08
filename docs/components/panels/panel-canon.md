@@ -1,7 +1,7 @@
 ---
 status: draft
 doc_template: canonical-example
-scope: Authoring panels — BasePanel subclass, @panel decorator, poll / draw lifecycle, scopes, PanelLayout API, Focus-based hosting
+scope: Authoring panels — Panel subclass, @panel decorator, poll / draw lifecycle, scopes, PanelLayout API, Focus-based hosting
 see-also:
   - ../editors/editor-canon.md
   - ../states/state-canon.md
@@ -28,7 +28,7 @@ This separation means:
 
 ```text
 @panel(editor=..., focus=...)        PanelRegistry              Host editor
-class MyPanel(BasePanel):             registers                  (e.g. PropertiesEditor)
+class MyPanel(Panel):             registers                  (e.g. PropertiesEditor)
     @classmethod                      via @panel decorator        ↓ at render time:
     def poll(cls, context): ...                                   for each registered panel:
     def draw(self, context,                                         if poll(context): True
@@ -83,19 +83,22 @@ return context.app_data[MyState].is_active.value         # AppState-driven
 return False                                             # never visible (debugging)
 ```
 
-**`PanelLayout` API — what `draw` gets.** A thin wrapper over NiceGUI that encodes the design-system rules ([reference/design-guide](../../reference/design-guide.md) §8). Common methods:
+**`PanelLayout` API — what `draw` gets.** A thin wrapper over the `hui` design-system primitives ([reference/design-guide](../../reference/design-guide.md) §8) bound to the panel's container. Common methods:
 
 | Method | Purpose |
 |---|---|
-| `layout.label(text)` | Plain text line |
-| `layout.section(label='...')` | Sub-heading + indented children |
-| `layout.row()` / `layout.column()` | Inline horizontal / vertical containers |
-| `layout.button(label, on_click=...)` | Standard button |
-| `layout.separator()` | Visual divider |
-| `layout.field(label, widget)` | Field row with label |
-| `layout.info_bar(text, icon=...)` | Compact info row |
+| `layout.label(text)` | Body-tier text label (`--hw-text-body`) |
+| `layout.section_label(text)` | Uppercase tracking label that separates groups |
+| `layout.section_divider(text=None)` | Visual break between sections, optional label |
+| `layout.separator()` | Plain themed horizontal rule |
+| `layout.panel_header(title, icon=...)` | Slim header bar; context manager for trailing action buttons |
+| `layout.expansion_section(label, icon=..., default_open=True, panel_key=...)` | Collapsible context manager with persisted open/closed state |
+| `layout.button(text, icon=..., on_click=...)` | Flat labelled action button |
+| `layout.icon_action(icon, tooltip=..., on_click=...)` | Icon-only action button |
+| `layout.empty_state(message, icon=..., hint=...)` | Centred placeholder for panels with no content |
+| `layout.error_label(text)` / `layout.warning_label(text)` | Tinted message labels |
 
-You can also drop into raw NiceGUI inside `draw()` (`with layout.column(): ui.label(...)`) — `PanelLayout` doesn't restrict you, it just provides the design-system shortcuts.
+You can also drop into raw NiceGUI or call `hui.*` helpers directly inside `draw()` — `PanelLayout` doesn't restrict you, it just binds common helpers to the panel's container so you don't have to enter it manually.
 
 **Scopes — Focus classes.** A scope is the visibility filter. The Properties editor's `ScopeToolbar` shows tabs (Node / Graph / Edge); each tab is a scope. A panel's `scope=NodeFocus` means "show me when the Node tab is active." Multiple scopes: `scope=[NodeFocus, GraphFocus]`.
 
@@ -118,11 +121,11 @@ Custom scopes are possible — register a Focus subclass in your library and use
 **Imports** (verified against codebase 2026-05):
 
 ```python
-from haywire.ui.panel.base import BasePanel, PanelLayout
+from haywire.ui.panel import Panel, PanelLayout
 from haywire.ui.panel.decorator import panel
 
 # Built-in focuses
-from haywire.ui.focus import NodeFocus, EdgeFocus, GraphFocus
+from haybale_studio.focuses import NodeFocus, EdgeFocus, GraphFocus
 ```
 
 **Hot-reload.** `PanelRegistry` extends `BaseRegistry`. New panel classes are picked up at the host editor's next render boundary. Existing panel instances are re-instantiated on the next `poll → draw` cycle.
@@ -134,9 +137,11 @@ A worked example exercising every authoring concept: a `NodeMetricsPanel` that l
 ```python
 # my_lib/panels/node_metrics.py
 
-from haywire.ui.panel.base import BasePanel, PanelLayout
+from nicegui import ui
+
+from haywire.ui.panel import Panel, PanelLayout
 from haywire.ui.panel.decorator import panel
-from haywire.ui.focus import NodeFocus
+from haybale_studio.focuses import NodeFocus
 
 # A Focus-aware AppState (see components/states/state-canon.md)
 from ..state.metrics_cache import MetricsCache
@@ -150,7 +155,7 @@ from ..state.metrics_cache import MetricsCache
     default_open=False,      # Collapsed by default — metrics are advanced
     description='Computed performance metrics for the active node',
 )
-class NodeMetricsPanel(BasePanel):
+class NodeMetricsPanel(Panel):
     """Sub-section of the Properties editor. Visible when a node is
     selected; renders cached metrics from MetricsCache (AppState)."""
 
@@ -170,36 +175,34 @@ class NodeMetricsPanel(BasePanel):
         cache = context.app_data[MetricsCache]
         metrics = cache.for_node(node.node_id)
 
-        # ── Header — overall summary ──────────────────────────────────
+        # ── Empty state — no metrics yet ──────────────────────────────
         if metrics is None:
-            layout.info_bar(
+            layout.empty_state(
                 f'No metrics yet for {node.name}',
                 icon='hourglass_empty',
             )
             return
 
-        # ── Section 1: Execution stats ────────────────────────────────
-        with layout.section('Execution', icon='timer'):
-            with layout.row():
+        # ── Section 1: Execution stats (collapsible, persisted) ──────
+        with layout.expansion_section('Execution', icon='timer', panel_key='execution'):
+            with ui.row():
                 layout.label('Runs:')
                 layout.label(str(metrics.run_count))
-            with layout.row():
+            with ui.row():
                 layout.label('Avg. duration:')
                 layout.label(f'{metrics.avg_duration_ms:.2f} ms')
-            with layout.row():
+            with ui.row():
                 layout.label('p99:')
                 layout.label(f'{metrics.p99_ms:.2f} ms')
 
-        layout.separator()
-
-        # ── Section 2: Data flow ─────────────────────────────────────
-        with layout.section('Data flow'):
-            with layout.row():
-                layout.label('Inlets dirty:')
-                layout.label(str(metrics.inlet_dirty_count))
-            with layout.row():
-                layout.label('Outlets fired:')
-                layout.label(str(metrics.outlet_fire_count))
+        # ── Section 2: Data flow (flat label — short list) ───────────
+        layout.section_label('Data flow')
+        with ui.row():
+            layout.label('Inlets dirty:')
+            layout.label(str(metrics.inlet_dirty_count))
+        with ui.row():
+            layout.label('Outlets fired:')
+            layout.label(str(metrics.outlet_fire_count))
 
         layout.separator()
 
@@ -229,11 +232,12 @@ What this example exercises:
 | `poll(cls, context)` as classmethod, fast visibility check | `poll` |
 | Filtering on `context.active_node` and a custom node attribute | `poll` body |
 | Reading AppState with `context.app_data[Cls]` | `draw` body |
-| `layout.section('...', icon=...)` for nested sub-headings | `draw` |
-| `layout.row()` / `layout.column()` for inline layout | `draw` |
+| `layout.expansion_section('...', icon=..., panel_key=...)` for collapsible sub-sections | `draw` |
+| `layout.section_label('...')` for flat group separators | `draw` |
+| Raw `ui.row()` for inline horizontal layout | `draw` |
 | `layout.label(...)` for text rows | `draw` |
 | `layout.separator()` for visual division | `draw` |
-| `layout.info_bar(...)` for the empty/loading state | `draw` |
+| `layout.empty_state(...)` for the empty/loading state | `draw` |
 | `layout.button(label, icon, on_click)` for actions | `draw` |
 | `hb_*` private helper convention | `hb_clear_for` |
 | Mutating AppState from a panel callback (auto re-render) | `hb_clear_for` |
@@ -247,7 +251,7 @@ For the host Properties editor (a panel-aware editor in `haywire-core`), see [co
 ### Authoring checklist
 
 - [ ] `@panel(editor='...', focus=FocusClass)` — both required
-- [ ] Inherit from `BasePanel`
+- [ ] Inherit from `Panel`
 - [ ] Implement `poll(cls, context) -> bool` — fast visibility check
 - [ ] Implement `draw(self, context, layout)` — render content
 - [ ] Set `order=` deliberately (100+ for library panels)
@@ -258,9 +262,9 @@ For the host Properties editor (a panel-aware editor in `haywire-core`), see [co
 ### Imports
 
 ```python
-from haywire.ui.panel.base import BasePanel, PanelLayout
+from haywire.ui.panel import Panel, PanelLayout
 from haywire.ui.panel.decorator import panel
-from haywire.ui.focus import NodeFocus, EdgeFocus, GraphFocus
+from haybale_studio.focuses import NodeFocus, EdgeFocus, GraphFocus
 ```
 
 ### Built-in scopes (Properties editor)
