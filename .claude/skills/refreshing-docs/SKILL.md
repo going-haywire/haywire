@@ -15,70 +15,27 @@ Keep `docs/` in sync with the source files it cites. The freshness ledger lives 
 - When the user asks: "refresh docs", "are the docs stale", "update docs after this change".
 - Do **not** invoke for trivial code edits that obviously don't touch documented surfaces (formatting-only, internal helper renames in private modules) — the META check will catch real drift on the next intentional run.
 
-## Workflow
+## How the two phases relate
 
-The skill runs in two phases. Phase 1 ensures every doc page has a META section (so nothing is silently untracked); Phase 2 detects and repairs drift in tracked docs.
-
-### Phase 1 — Coverage
-
-Three section states track every doc page:
+Phase 1 (Coverage) ensures every doc page has a META section so nothing is silently untracked. Three section states are possible per doc:
 
 - **`Last reviewed: <date>` + source table** — actively tracked; freshness check applies (Phase 2).
 - **`No review needed: <date>`** — permanent exemption; doc has no source-code dependencies AND is complete.
 - **`Review pending: <date> (doc-hash <hash>)`** — placeholder/stub doc; re-checked each run when the doc itself changes.
 
-```
-1a. Run check_coverage.py
-        → list of doc paths that have NO META section
-1b. Run check_pending.py
-        → list of pending docs whose own tree-hash has changed
-          (these need re-classification)
+Phase 2 (Staleness) detects and repairs drift in tracked docs by comparing recorded tree-hashes against HEAD, classifying each diff into one of three bands, and either auto-editing (Bands A/B) or flagging for human review (Band C).
 
-2. For each doc from 1a OR 1b:
-       a. Dispatch Explore subagent with the prompt in coverage_classifier.md.
-          Subagent reads the doc and returns:
-            verdict: R (review-needed), N (no-review-needed), or P (pending)
-            sources: list of repo-relative paths (R only)
-       b. Verify proposed source paths exist at HEAD.
-       c. Sanity-check against calibration rules in coverage_classifier.md
-          (subagent has known biases — over-citing by name-presence,
-           missing files where claims are most concrete).
-       d. Show the user the proposal: verdict + reasoning + sources.
-       e. On approval:
-            R → update_meta.py --create <doc> <sources...>
-            N → update_meta.py --no-review <doc>
-            P → update_meta.py --pending <doc>
-       f. For 1b re-classifications: if the section already exists as
-          P and the verdict is still P, --pending refreshes the date
-          and doc-hash idempotently. If the verdict has changed (P→R
-          or P→N), the existing pending section must be removed first
-          before the new --create or --no-review runs.
-       g. On rejection or edit: adjust per user instruction, then run.
-```
+The supporting files:
 
-Coverage decisions are editorial — the user owns the call. Never auto-create META sections without approval; an empty or wrong section is worse than no section.
+- [coverage_classifier.md](coverage_classifier.md) — Phase 1 subagent prompt + calibration rules for R/N/P.
+- [classifier.md](classifier.md) — Phase 2 three-band drift decision tree.
+- [scripts/check_coverage.py](scripts/check_coverage.py) — lists uncovered doc pages.
+- [scripts/check_pending.py](scripts/check_pending.py) — lists pending docs whose content has changed.
+- [scripts/check_freshness.py](scripts/check_freshness.py) — emits stale source rows.
+- [scripts/update_meta.py](scripts/update_meta.py) — rewrites META (`--create` / `--no-review` / `--pending` / row update).
+- [scripts/meta.py](scripts/meta.py) — shared parsing primitives (the META.md grammar lives here; edit this when the grammar evolves).
 
-### Phase 2 — Staleness
-
-```
-1. Run check_freshness.py
-       → JSON list of stale rows: { doc, source, recorded_hash, current_hash }
-2. For each stale row:
-       a. git diff <recorded_hash>..HEAD -- <source>
-       b. Read the cited doc page.
-       c. Classify the change (see classifier.md).
-       d. Band A → apply mechanical edit, log it.
-       e. Band B → apply edit per the constrained shape rules, log it.
-       f. Band C → record "pending human review" in the run log; no edit.
-3. Run update_meta.py for every row whose doc is now in sync (Bands A, B,
-   and any C rows the user resolves before exit).
-4. Print summary: coverage gaps resolved, counts per band, doc pages
-   edited, pending C rows.
-5. If anything was edited, stage the changes and propose a commit message
-   ("docs: refresh from META staleness check") — let the user commit.
-```
-
-## The three bands (summary)
+## The three bands (Phase 2 summary)
 
 Full decision tree in [classifier.md](classifier.md). At a glance:
 
@@ -97,59 +54,61 @@ Full decision tree in [classifier.md](classifier.md). At a glance:
 
 **Default on ambiguity: C.** The classifier should err on the side of human review. We are inside git; the cost of a false-C is one extra glance from a human, the cost of a false-B is a wrong edit committed silently.
 
-## Quick-start
-
-Read this file (you're here). Then load whichever phase reference is relevant:
-
-- [coverage_classifier.md](coverage_classifier.md) — for Phase 1 (subagent prompt + calibration rules for R/N classification).
-- [classifier.md](classifier.md) — for Phase 2 (three-band drift decision tree).
-
-The four scripts are short — read them once before first use:
-
-- [check_coverage.py](check_coverage.py) — lists uncovered doc pages.
-- [check_pending.py](check_pending.py) — lists pending docs whose content has changed.
-- [check_freshness.py](check_freshness.py) — emits stale source rows.
-- [update_meta.py](update_meta.py) — rewrites META (--create / --no-review / --pending / row update).
+## Procedure
 
 ### 1. Coverage check (Phase 1)
 
 ```bash
-uv run python .claude/skills/refreshing-docs/check_coverage.py
-uv run python .claude/skills/refreshing-docs/check_pending.py
+uv run python .claude/skills/refreshing-docs/scripts/check_coverage.py
+uv run python .claude/skills/refreshing-docs/scripts/check_pending.py
 ```
 
-`check_coverage` prints docs with no META section at all. `check_pending` prints docs marked "Review pending" whose own content has changed since the pending mark — these need re-classification (the placeholder may now have real content). Empty output from both means coverage is complete — skip to step 2.
+`check_coverage` prints docs with no META section at all. `check_pending` prints docs marked "Review pending" whose own content has changed since the pending mark — these need re-classification. Empty output from both means coverage is complete; skip to step 2.
 
 For each doc from either output, follow the workflow in [coverage_classifier.md](coverage_classifier.md): dispatch a subagent with the prompt template, verify proposed paths exist, sanity-check against the calibration rules, show the user the proposal, and on approval run:
 
 ```bash
 # R verdict (review-needed):
-uv run python .claude/skills/refreshing-docs/update_meta.py --create <doc> <sources...>
+uv run python .claude/skills/refreshing-docs/scripts/update_meta.py --create <doc> <sources...>
 
 # N verdict (no-review-needed):
-uv run python .claude/skills/refreshing-docs/update_meta.py --no-review <doc>
+uv run python .claude/skills/refreshing-docs/scripts/update_meta.py --no-review <doc>
 
 # P verdict (pending):
-uv run python .claude/skills/refreshing-docs/update_meta.py --pending <doc>
+uv run python .claude/skills/refreshing-docs/scripts/update_meta.py --pending <doc>
 ```
 
-If there are many docs (>5), do them sequentially with the user — batch approval is risky for editorial calls.
+Coverage decisions are editorial — the user owns the call. Never auto-create META sections without approval; an empty or wrong section is worse than no section. If there are many docs (>5), do them sequentially with the user — batch approval is risky for editorial calls.
 
-For pending docs that are STILL pending after re-classification, `--pending` is idempotent: it just refreshes the date and doc-hash. For pending docs whose verdict has changed (P→R or P→N), the existing pending section must be removed first; this is a manual step (edit `.docmeta/META.md` to remove the section) before `--create` or `--no-review` runs.
+**Re-classifying a pending doc.** When `check_pending` surfaces a doc and the new verdict is:
+
+- Still **P** — `--pending` is idempotent; rerun it to refresh date and doc-hash.
+- **R** — pass `--replace-pending` to overwrite the pending section in one step:
+  ```bash
+  uv run python .claude/skills/refreshing-docs/scripts/update_meta.py --create --replace-pending <doc> <sources...>
+  ```
+- **N** — same flag with `--no-review`:
+  ```bash
+  uv run python .claude/skills/refreshing-docs/scripts/update_meta.py --no-review --replace-pending <doc>
+  ```
+
+Without `--replace-pending`, `--create` and `--no-review` refuse to overwrite an existing section — that's the safety default for cases where you'd otherwise be silently clobbering a tracked or no-review entry.
 
 ### 2. Staleness check (Phase 2)
 
 ```bash
-uv run python .claude/skills/refreshing-docs/check_freshness.py
+uv run python .claude/skills/refreshing-docs/scripts/check_freshness.py
 ```
 
-Emits one JSON object per line on stdout (newline-delimited JSON, easy to iterate). Empty output means nothing is stale — done.
+Emits one JSON object per line on stdout (newline-delimited JSON). Empty output means nothing is stale — done.
 
 Each row looks like:
 
 ```json
 {"doc": "docs/components/nodes/node-canon.md", "source": "barn/haybale-core/haybale_core/nodes/switch.py", "recorded_hash": "abc123...", "current_hash": "def456..."}
 ```
+
+`current_hash` is `null` if the source file was removed from HEAD — the classifier treats this as a removal (R3).
 
 ### 3. Classify and act, row by row
 
@@ -161,14 +120,14 @@ git diff <recorded_hash>..HEAD -- <source>
 
 Then read the doc page and apply the [classifier rules](classifier.md). Take the band's action.
 
-When you make an edit, **note it in a run log** you keep in working memory — at the end you'll print a summary and the META updates depend on which docs are now in sync.
+When you make an edit, **note it in a run log** you keep in working memory — at the end you'll print a summary, and the META updates depend on which docs are now in sync.
 
 ### 4. Update META
 
 After all edits, for every row whose doc is now in sync (i.e. the doc was edited to reflect the new source state, OR the source change was hash-only and didn't need a doc edit):
 
 ```bash
-uv run python .claude/skills/refreshing-docs/update_meta.py <doc_path> <source_path>
+uv run python .claude/skills/refreshing-docs/scripts/update_meta.py <doc_path> <source_path>
 ```
 
 This rewrites the matching row in `.docmeta/META.md` with the current tree-hash and bumps the doc's "Last reviewed" header.
@@ -211,9 +170,9 @@ Stage changes (`git add docs/ .docmeta/META.md`) and propose a commit message �
 - Not a CI gate — it's a human-invoked refresh step. (CI integration is a later question; the manual flow stands alone.)
 - Not generic — paths, conventions, and the META schema are Haywire-specific. Don't try to use this elsewhere without porting.
 
-## Maintaining the META file
+## Bootstrapping a new doc page manually
 
-When a new doc is created that cites barn or framework sources, add a section to `.docmeta/META.md` describing it. The format is:
+The skill's `update_meta.py --create` is the normal path. For reference, the section format is:
 
 ```markdown
 ## <relative-doc-path>
@@ -223,7 +182,6 @@ Last reviewed: YYYY-MM-DD (commit `<short-sha>`)
 | Source path | Tree-hash at review |
 |---|---|
 | <path> | <full-tree-hash> |
-| <path> | <full-tree-hash> |
 ```
 
-Tree-hashes are obtained via `git rev-parse HEAD:<path>`. The skill's `update_meta.py` does this for you on refresh, but the **initial entry** for a brand-new doc page is added manually (or, if the new doc is part of the same session that ran the skill, by an extra invocation: `update_meta.py --create <doc> <source> [<source> ...]`).
+Tree-hashes come from `git rev-parse HEAD:<path>`. Use this only when bootstrapping or recovering — the script does it correctly every time.
