@@ -15,7 +15,7 @@ from .base import BasePanel
 from .registry import PanelRegistry
 
 # Import decorator last so the `panel` name resolves to the decorator function
-# rather than the `.panel` submodule (the `from .panel import Panel` above
+# rather than the `.panel` submodule (the `from .panel import BasePanel` above
 # binds `panel` as a submodule attribute on the package; importing the
 # decorator after that shadows it back to the function).
 from .decorator import panel  # noqa: E402

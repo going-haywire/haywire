@@ -1,7 +1,7 @@
 # Spec: the panel contract
 
 > Status: **Phase 1 + Phase 1.5 complete (2026-05-03 / 2026-05-04).**
-> The contract described here — `Panel` base class,
+> The contract described here — `BasePanel` base class,
 > `@panel(action=, focus=, label=, ...)` decorator, `Focus` base class
 > with `id` ClassVar, registry methods `get_panels_for` and
 > `get_focuses_for`, error boundary helper, PropertiesEditor toolbar
@@ -72,7 +72,7 @@ describes only the panel half of that seam.
 ### 2.1 The `@panel` decorator
 
 A panel is a class decorated with `@panel` that inherits from
-`Panel`. The decorator carries the panel's metadata; the class
+`BasePanel`. The decorator carries the panel's metadata; the class
 defines its behavior.
 
 ```python
@@ -84,7 +84,7 @@ defines its behavior.
     order=10,
     default_open=False,
 )
-class NodePropertiesPanel(Panel):
+class NodePropertiesPanel(BasePanel):
 
     @classmethod
     def poll(cls, ctx: SessionContext) -> bool:
@@ -127,16 +127,16 @@ a class; `focus` must subclass `Focus`. Cross-validation between
 `action` and the host providing it is not performed at decoration —
 mismatches surface at mount time (§8).
 
-### 2.2 The `Panel` base class
+### 2.2 The `BasePanel` base class
 
-`Panel` is the panel base class. Panels read from the universal
+`BasePanel` is the panel base class. Panels read from the universal
 `SessionContext` — the single shared state object every host exposes
 to its panels.
 
 ```python
-from haywire.ui.panel import Panel
+from haywire.ui.panel import BasePanel
 
-class NodePropertiesPanel(Panel):
+class NodePropertiesPanel(BasePanel):
     ...
 ```
 
@@ -147,7 +147,7 @@ either lifted to `SessionContext` or exposed as a reactive property
 on the action object. The framework does not provide a host-specific
 context channel.
 
-`Panel` provides two methods, both intended to be overridden:
+`BasePanel` provides two methods, both intended to be overridden:
 
 - `poll(cls, ctx: SessionContext) -> bool` — classmethod returning
   whether the panel should currently be visible. Default: `True`.
@@ -643,7 +643,7 @@ the EdgeFocus tab of any host that supports a "Deletable" surface:
 
 ```python
 from typing import Protocol, runtime_checkable
-from haywire.ui.panel import Panel, panel
+from haywire.ui.panel import BasePanel, panel
 from haybale_core.focuses import EdgeFocus
 from haywire.ui import elements as hui
 
@@ -658,7 +658,7 @@ class Deletable(Protocol):
     icon=hui.icon.error,
     order=10,
 )
-class ConnectionErrorsPanel(Panel):
+class ConnectionErrorsPanel(BasePanel):
 
     @classmethod
     def poll(cls, ctx: SessionContext) -> bool:
@@ -753,7 +753,7 @@ The following are deliberately outside this spec:
 ## 12. Glossary
 
 - **Panel**: a class decorated with `@panel`, inheriting from
-  `Panel`, providing `poll(ctx)` and `draw(ctx, layout, actions)`.
+  `BasePanel`, providing `poll(ctx)` and `draw(ctx, layout, actions)`.
 - **Host**: an object that mounts panels. Implements one or more
   action contracts; provides the universal `SessionContext` and a
   `PanelLayout` to its panels; manages panel lifecycle.

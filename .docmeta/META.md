@@ -75,14 +75,14 @@ Last reviewed: 2026-05-08 (commit `1755185f`)
 
 ## docs/components/panels/panel-canon.md
 
-Last reviewed: 2026-05-08 (commit `1755185f`)
+Last reviewed: 2026-05-08 (commit `15feb7dc`)
 
 | Source path | Tree-hash at review |
 |---|---|
-| packages/haywire-core/src/haywire/ui/panel/layout.py | 8495ec4c198c9054bd6c8dcf7e2789417c38f707 |
-| packages/haywire-core/src/haywire/ui/panel/decorator.py | 0998def91d4e82c2d0e2a07a41f940d7f0814b97 |
+| packages/haywire-core/src/haywire/ui/panel/layout.py | cb229895b9a7f7d0efc7f5d0930637f22c3dc445 |
+| packages/haywire-core/src/haywire/ui/panel/decorator.py | 72ea7909ee23ab250444eeb2141128349a9f43aa |
 | packages/haywire-core/src/haywire/ui/panel/focus.py | 02bf9acf6514eba46e572d16aebe78d102fcb983 |
-| packages/haywire-core/src/haywire/ui/panel/panel.py | 923e8525dcd23ecb80603cab84b3406a5702e379 |
+| packages/haywire-core/src/haywire/ui/panel/base.py | 6eaf52f9abdf97d1951f9d2138eca89c15915f4d |
 
 ## docs/guides/ports.md
 
@@ -304,7 +304,7 @@ Review pending: 2026-05-08 (doc-hash `26027cb17b44b445db8ba4bd2a7a414755d27632`)
 
 ## docs/architecture/studio/studio-arch.md
 
-Last reviewed: 2026-05-08 (commit `4ec472bd`)
+Last reviewed: 2026-05-08 (commit `15feb7dc`)
 
 | Source path | Tree-hash at review |
 |---|---|
@@ -316,10 +316,7 @@ Last reviewed: 2026-05-08 (commit `4ec472bd`)
 | packages/haywire-core/src/haywire/ui/app/shell.py | 8601264f36aa1adbda611a9977bdc406bd1a599b |
 | packages/haywire-core/src/haywire/ui/app/slot.py | 40cbfda5b6df404139bdefc5ec35085aebba8ee6 |
 | packages/haywire-core/src/haywire/ui/editor/registry.py | ddac8ed301b75e4407af316579449c4567f80187 |
-| packages/haywire-core/src/haywire/ui/panel/registry.py | cfd3e119c6901b943fac64d119206074ed009dbf |
-
-
-## docs/architecture/studio/workspace/workspace-arch.md
+| packages/haywire-core/src/haywire/ui/panel/registry.py | f40446e3fb5839e90427fd35e3efe99d2faeb1b3 |## docs/architecture/studio/workspace/workspace-arch.md
 
 Review pending: 2026-05-08 (doc-hash `d6c82ea00f3fe487d2fd476a0f1f0828eb628bb3`)
 

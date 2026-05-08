@@ -133,7 +133,7 @@ def worker(self, exec_ctx):
     pool.send(self.props.message.value)
 
 # AVOID — stale after hot-reload
-class MyPanel(Panel):
+class MyPanel(BasePanel):
     def __init__(self, ctx):
         self.pool = ctx.app_data[MidiPool]   # don't
 ```
@@ -288,10 +288,10 @@ class Library(BaseLibrary):
 ```python
 # haybale_midi/panels/device_list.py — UI side reading both scopes
 
-from haywire.ui.panel import Panel, panel
+from haywire.ui.panel import BasePanel, panel
 
 @panel(focus=GraphFocus, label='MIDI Devices')
-class MidiDeviceListPanel(Panel):
+class MidiDeviceListPanel(BasePanel):
     def draw(self, ctx, layout, actions):
         # AppState — same instance for everyone
         pool = ctx.app_data[MidiPool]

@@ -137,7 +137,7 @@ Lifecycle commands are **local-only**. Peer sessions decide what tabs they have 
 Editors fill slots; panels fill the inside of panel-aware editors. Both register via DI registries:
 
 - `EditorTypeRegistry` — `BaseEditor` subclasses, decorated with `@editor(...)`. Registered by libraries via `add_folder_to_registry(folder_path=..., registry_cls=EditorTypeRegistry)` in `register_components()`. Built-in framework editors (currently none — all editors live in `haybale-studio` or other libraries) would bootstrap via `register_builtin_editors()`.
-- `PanelRegistry` — `Panel` subclasses, decorated with `@panel(editor=..., focus=...)`. Registered the same way. Panel-aware editors (e.g. `PropertiesEditor`) call `panel_registry.get_panels_for(actions_provider=self, focus=...)` to retrieve panels that apply.
+- `PanelRegistry` — `BasePanel` subclasses, decorated with `@panel(action=..., focus=...)`. Registered the same way. Panel-aware editors (e.g. `PropertiesEditor`) call `panel_registry.get_panels_for(actions_provider=self, focus=...)`, which filters panels by structural `isinstance(actions_provider, action)` and by `Focus.id` match.
 
 For the editor authoring surface — `BaseEditor`, the `draw`/`poll` lifecycle, `OpenBehavior` modes, slot constraints — see [components/editors](../../components/editors/editor-canon.md). For the panel surface — `@panel`, `Focus` classes, `PanelLayout` — see [components/panels](../../components/panels/panel-canon.md).
 

@@ -26,10 +26,10 @@ if TYPE_CHECKING:
 class BasePanel(ABC):
     """Base class for new-contract panels.
 
-    Subclasses are decorated with `@panel(...)` and inherit from `Panel`:
+    Subclasses are decorated with `@panel(...)` and inherit from `BasePanel`:
 
         @panel(action=MyEditorActions, focus=MyFocus, label="My Panel")
-        class MyPanel(Panel):
+        class MyPanel(BasePanel):
             @classmethod
             def poll(cls, ctx: SessionContext) -> bool:
                 # Library-defined SessionState read; the field set lives in
