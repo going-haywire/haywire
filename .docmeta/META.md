@@ -310,11 +310,6 @@ No review needed: 2026-05-08
 No review needed: 2026-05-08
 
 
-## docs/architecture/studio/workspace/workspace-arch.md
-
-No review needed: 2026-05-08
-
-
 ## docs/archive/whitepaper/Haywire_design.md
 
 No review needed: 2026-05-08
@@ -374,4 +369,9 @@ Last reviewed: 2026-05-08 (commit `9fd3b73f`)
 | packages/haywire-core/src/haywire/core/library/identity.py | 8ec6524b947929199a5d05feb65a08911e6d1785 |
 | packages/haywire-core/src/haywire/core/library/file_watcher.py | 10352d91608ddd8db72458bbaf034b18758bd4f7 |
 | packages/haywire-core/src/haywire/ui/editor/identity.py | d4e85fb2f67c778b194157dc4b435521464153fd |
+
+
+## docs/architecture/studio/workspace/workspace-arch.md
+
+Review pending: 2026-05-08 (doc-hash `d6c82ea00f3fe487d2fd476a0f1f0828eb628bb3`)
 
