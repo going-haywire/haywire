@@ -26,13 +26,18 @@ Last reviewed: 2026-05-08 (commit `1755185f`)
 
 ## docs/components/editors/editor-canon.md
 
-Last reviewed: 2026-05-08 (commit `1755185f`)
+Last reviewed: 2026-05-08 (commit `4ec472bd`)
 
 | Source path | Tree-hash at review |
 |---|---|
-| packages/haywire-core/src/haywire/ui/editor/base.py | 2fa35f87e1642578f1e3a8a7c01e3a2477ee4660 |
+| packages/haywire-core/src/haywire/ui/editor/identity.py | d4e85fb2f67c778b194157dc4b435521464153fd |
 | packages/haywire-core/src/haywire/ui/editor/decorator.py | d8dc81c7db92b270ee9c2a9101571b9b9ae84c21 |
-| packages/haywire-core/src/haywire/ui/editor/identity.py | d4e85fb2f67c778b194157dc4b435521464153fd |## docs/components/haybale-package/haybale-package-canon.md
+| packages/haywire-core/src/haywire/ui/editor/base.py | 2fa35f87e1642578f1e3a8a7c01e3a2477ee4660 |
+| packages/haywire-core/src/haywire/ui/context_signals.py | 803dec8b0e3e22ff24bf0e320184d4c8f374bf27 |
+| barn/haybale-studio/haybale_studio/editors/properties_editor.py | 9ed0388241eb2357ade58341c3aec1ab5a285acf |
+
+
+## docs/components/haybale-package/haybale-package-canon.md
 
 Last reviewed: 2026-05-08 (commit `1755185f`)
 
@@ -77,7 +82,9 @@ Last reviewed: 2026-05-08 (commit `1755185f`)
 | packages/haywire-core/src/haywire/ui/panel/layout.py | 8495ec4c198c9054bd6c8dcf7e2789417c38f707 |
 | packages/haywire-core/src/haywire/ui/panel/decorator.py | 0998def91d4e82c2d0e2a07a41f940d7f0814b97 |
 | packages/haywire-core/src/haywire/ui/panel/focus.py | 02bf9acf6514eba46e572d16aebe78d102fcb983 |
-| packages/haywire-core/src/haywire/ui/panel/panel.py | 923e8525dcd23ecb80603cab84b3406a5702e379 |## docs/components/ports/port-canon.md
+| packages/haywire-core/src/haywire/ui/panel/panel.py | 923e8525dcd23ecb80603cab84b3406a5702e379 |
+
+## docs/components/ports/port-canon.md
 
 Last reviewed: 2026-05-08 (commit `1755185f`)
 
@@ -100,7 +107,9 @@ Last reviewed: 2026-05-08 (commit `1755185f`)
 | packages/haywire-core/src/haywire/core/settings/settings.py | 213537acbf6887cd2eeb422da504be7de7c47fa0 |
 | packages/haywire-core/src/haywire/core/settings/decorator.py | 7e0173787848f7568c4bcb1e9e29608417f377a7 |
 | packages/haywire-core/src/haywire/core/settings/node_settings.py | e19fb2d3ba6893748038c2c03e4b6b5fe2806b10 |
-| packages/haywire-core/src/haywire/core/debug/debug_settings.py | 15cbf69930c9070cbf171870d647a354889c19d1 |## docs/components/skins/skin-canon.md
+| packages/haywire-core/src/haywire/core/debug/debug_settings.py | 15cbf69930c9070cbf171870d647a354889c19d1 |
+
+## docs/components/skins/skin-canon.md
 
 Review pending: 2026-05-08 (doc-hash `ecade26c24085485df43a1db8e9c476313b57537`)
 
@@ -155,7 +164,9 @@ Last reviewed: 2026-05-08 (commit `1755185f`)
 |---|---|
 | packages/haywire-core/src/haywire/core/assembly/flow_assembly_manager.py | 6b00d94858508dcbabca8b468c3160b9fb07da2d |
 | packages/haywire-core/src/haywire/core/execution/interpreter.py | a4f7f6a640b3f390572e50165b96ac65c463309c |
-| packages/haywire-core/src/haywire/core/graph/validation.py | 1486c87d22bf163ee20994247b96ad5e4093a7be |## docs/architecture/execution/callbacks/callbacks-arch.md
+| packages/haywire-core/src/haywire/core/graph/validation.py | 1486c87d22bf163ee20994247b96ad5e4093a7be |
+
+## docs/architecture/execution/callbacks/callbacks-arch.md
 
 Last reviewed: 2026-05-08 (commit `1755185f`)
 
@@ -165,7 +176,9 @@ Last reviewed: 2026-05-08 (commit `1755185f`)
 | packages/haywire-core/src/haywire/core/execution/callback_manager.py | 0c90c499b5427a6ff07748d32c4be5a17e311e33 |
 | packages/haywire-core/src/haywire/core/execution/interpreter.py | a4f7f6a640b3f390572e50165b96ac65c463309c |
 | packages/haywire-core/src/haywire/core/execution/event_source.py | 6cc8f2480bd678aec95ff9aad671d5d331e26e09 |
-| packages/haywire-core/src/haywire/core/types/enums.py | d037c44c474db74a349a81c7c78a7f90909a90e5 |## docs/architecture/execution/edges/edges-arch.md
+| packages/haywire-core/src/haywire/core/types/enums.py | d037c44c474db74a349a81c7c78a7f90909a90e5 |
+
+## docs/architecture/execution/edges/edges-arch.md
 
 Last reviewed: 2026-05-08 (commit `1755185f`)
 
@@ -230,7 +243,9 @@ Last reviewed: 2026-05-08 (commit `1755185f`)
 | Source path | Tree-hash at review |
 |---|---|
 | packages/haywire-studio/src/haywire_studio/library_manager.py | 08f91de411c1a07aeab663c6445d415648a106ae |
-| packages/haywire-core/src/haywire/core/library/install_type.py | 220e67617c05db549bae05fa3bd51178d0eac8ee |## docs/architecture/library-system/library-system-arch.md
+| packages/haywire-core/src/haywire/core/library/install_type.py | 220e67617c05db549bae05fa3bd51178d0eac8ee |
+
+## docs/architecture/library-system/library-system-arch.md
 
 Last reviewed: 2026-05-08 (commit `1755185f`)
 
@@ -270,7 +285,9 @@ Last reviewed: 2026-05-08 (commit `1755185f`)
 | packages/haywire-core/src/haywire/core/settings/enums.py | fc12fa9b90f1a92d4966c750af88316412240566 |
 | packages/haywire-core/src/haywire/core/settings/registry.py | d0f623be2eac2c6d70fca83f8ccf9fd24bb31f3e |
 | packages/haywire-core/src/haywire/core/settings/settings.py | 213537acbf6887cd2eeb422da504be7de7c47fa0 |
-| packages/haywire-core/src/haywire/core/di/test_config.py | a09639d73e1486b4a0c1165848d8cec7b8d689a4 |## docs/architecture/studio/app-shell/app-shell-arch.md
+| packages/haywire-core/src/haywire/core/di/test_config.py | a09639d73e1486b4a0c1165848d8cec7b8d689a4 |
+
+## docs/architecture/studio/app-shell/app-shell-arch.md
 
 Review pending: 2026-05-08 (doc-hash `70788c54320aa4f3d68dd8205b09ea8237817bb3`)
 
@@ -287,16 +304,22 @@ Review pending: 2026-05-08 (doc-hash `26027cb17b44b445db8ba4bd2a7a414755d27632`)
 
 ## docs/architecture/studio/studio-arch.md
 
-Last reviewed: 2026-05-08 (commit `1755185f`)
+Last reviewed: 2026-05-08 (commit `4ec472bd`)
 
 | Source path | Tree-hash at review |
 |---|---|
-| packages/haywire-core/src/haywire/ui/context.py | e811c755b0b32a996ecb4cdbe0caabe06f04469e |
 | packages/haywire-core/src/haywire/ui/session.py | 41084b9011bea3b3aa7d473ccfecb23f892dda76 |
+| packages/haywire-core/src/haywire/ui/session_manager.py | 4d2ff9ca480284bb9038d8d6409adee881046186 |
 | packages/haywire-core/src/haywire/ui/workspace/manager.py | f1296aea2acf43de431e845c00c544c16d722127 |
+| packages/haywire-core/src/haywire/ui/context_signals.py | 803dec8b0e3e22ff24bf0e320184d4c8f374bf27 |
+| packages/haywire-core/src/haywire/ui/context.py | e811c755b0b32a996ecb4cdbe0caabe06f04469e |
 | packages/haywire-core/src/haywire/ui/app/shell.py | 8601264f36aa1adbda611a9977bdc406bd1a599b |
+| packages/haywire-core/src/haywire/ui/app/slot.py | 40cbfda5b6df404139bdefc5ec35085aebba8ee6 |
 | packages/haywire-core/src/haywire/ui/editor/registry.py | ddac8ed301b75e4407af316579449c4567f80187 |
-| packages/haywire-core/src/haywire/ui/panel/registry.py | cfd3e119c6901b943fac64d119206074ed009dbf |## docs/architecture/studio/workspace/workspace-arch.md
+| packages/haywire-core/src/haywire/ui/panel/registry.py | cfd3e119c6901b943fac64d119206074ed009dbf |
+
+
+## docs/architecture/studio/workspace/workspace-arch.md
 
 Review pending: 2026-05-08 (doc-hash `d6c82ea00f3fe487d2fd476a0f1f0828eb628bb3`)
 
@@ -375,4 +398,3 @@ Review pending: 2026-05-08 (doc-hash `5c5c8dd534e070f7272e8bf9cdf213855e819b2f`)
 ## docs/welcome/user/index.md
 
 Review pending: 2026-05-08 (doc-hash `06f3ffdd16874752fd31fb7a256272c3b67b1168`)
-

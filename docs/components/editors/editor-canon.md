@@ -1,7 +1,7 @@
 ---
-status: stale
+status: draft
 doc_template: canonical-example
-scope: Authoring editors — BaseEditor subclass, @editor decorator, render / on_context_changed lifecycle, OpenBehavior tab modes
+scope: Authoring editors — BaseEditor subclass, @editor decorator, poll/draw lifecycle, ContextSignal filtering, Reveal/Close lifecycle commands, OpenBehavior tab modes
 see-also:
   - ../panels/panel-canon.md
   - ../states/state-canon.md
@@ -11,277 +11,242 @@ see-also:
 
 # Editor — Canonical Example
 
-!!! warning "This page is stale"
-    The lifecycle described below does not match the current `BaseEditor` ([packages/haywire-core/src/haywire/ui/editor/base.py](../../../packages/haywire-core/src/haywire/ui/editor/base.py)):
-
-    - **Method names**: this doc says `render(container, context)` and `on_context_changed(event, context)`. The real API is `draw(context, container)` (abstract) and `poll(context, signal) -> bool` (returns True to request a redraw).
-    - **Module name**: `haywire.ui.context_events` was renamed to `haywire.ui.context_signals`. `ContextChangedEvent` / `ContextChangeType` were replaced by `ContextSignal` subclasses; filtering is `isinstance(signal, SignalType)`, not enum comparison.
-    - **Redraw model**: the orchestrator clears the container before each `draw()` call and uses `poll()` as the redraw decision — there is no incremental update.
-
-    Until rewritten, treat the high-level concepts (editors are full-slot UI, one instance per slot per session, hot-reload via `EditorTypeRegistry`) as still load-bearing, but verify any code-level claim against the source.
-
 ## 1. What it solves
 
-An **editor** is a full-slot UI component in the haywire studio. As an author, you write a class that inherits from `BaseEditor`, decorate it with `@editor(...)`, implement `render()` to build its NiceGUI UI into a provided container, and implement `on_context_changed()` to react when the session state changes. One instance per slot per session.
+An **editor** is a self-contained UI module that fills one slot of the studio's workspace layout. As an author, you write a class that inherits from `BaseEditor`, decorate it with `@editor(...)`, implement `draw(context, container)` to build its NiceGUI subtree into a provided container, and optionally implement `poll(context, signal) -> bool` to request a redraw when relevant state moves.
 
-Editors are the primary extension point for adding workspace UI. Once registered (your library's `register_components()` picks it up automatically via `EditorTypeRegistry`), the editor can be assigned to a slot in any workspace preset and reacts to selection / interaction events through the shared `SessionContext`.
+Editors are the primary extension point for adding workspace UI. Once your library's `register_components()` calls `add_folder_to_registry(..., EditorTypeRegistry)`, the editor is auto-discovered and available in any workspace where its `default_slot` is hostable. The studio binds editor instances to slots lazily, one per session.
 
-The lifecycle is: instance is created when the slot first renders → `render(container, context)` builds the NiceGUI subtree once → `on_context_changed(event, context)` runs every time the session state mutates → `cleanup()` runs when the slot switches to a different editor.
+The lifecycle is: instance is constructed when its wrapper first occupies a slot → the orchestrator calls `draw(context, container)` to build the subtree → on every `ContextSignal` the orchestrator calls `poll(context, signal)`; if it returns `True`, the orchestrator clears the container and calls `draw()` again → `cleanup()` runs when the editor is permanently removed.
+
+The redraw model is *clear-and-redraw*, not incremental. The orchestrator clears the NiceGUI element subtree before each `draw()` call. Editors that need cheaper redraws should keep the panel-mounting work behind a local cache and rebuild only the parts that actually changed; the heavy lifting belongs in panels (which have their own `poll`/`draw` cycle within an editor's container).
 
 ## 2. How it fits
 
 ```text
-@editor(label=..., default_slot=...)    EditorTypeRegistry             AppShell
-class MyEditor(BaseEditor):              registers class                instantiates per slot
-    def render(self, container,          on register_components()       calls render(),
-              context): ...                                              subscribes
-    def on_context_changed(                                              on_context_changed
-        self, event, context): ...                                       to session events
+@editor(label=..., default_slot=...)    EditorTypeRegistry             AppShell + slot
+class MyEditor(BaseEditor):              registers class                instantiates per slot;
+    def draw(self, context,              on register_components()       calls draw() once,
+             container): ...                                             then poll()/draw()
+    def poll(self, context,                                              on each ContextSignal
+             signal): ...
 ```
 
-Editors *host* panels (in panel-aware editors like `PropertiesEditor`) but they don't own panel content — that's [components/panels](../panels/panel-canon.md). Editors don't render themselves into the canvas — that's the studio's job. They render into the *container* AppShell hands them.
+Editors *host* panels (in panel-aware editors like `PropertiesEditor`) but they don't own panel content — that's [components/panels](../panels/panel-canon.md). Editors don't render themselves into the canvas — that's the studio's job. They render into the NiceGUI `Element` that AppShell hands to `draw()`.
 
-**Boundaries.** What slots are, how the AppShell works, the workspace preset system — see [architecture/studio](../../architecture/studio/studio-arch.md). Panels — see [components/panels](../panels/panel-canon.md). Library/session state accessed inside editors — see [components/states](../states/state-canon.md).
+**Boundaries.** What slots are, how the AppShell works, the workspace snapshot system — see [architecture/studio](../../architecture/studio/studio-arch.md). Panels — see [components/panels](../panels/panel-canon.md). Library/session state accessed inside editors (e.g. `EditState` for selection) — see [components/states](../states/state-canon.md). Signal classes and lifecycle commands — see `haywire/ui/context_signals.py`.
 
 ## 3. Important concepts
 
-**The `@editor` decorator.** Required on every editor class. Sets `class_identity` (an `EditorIdentity` dataclass), `class_library` (derived from the module), and computes the `registry_key` as `<library_id>:editor:<registry_id>`.
+**The `@editor` decorator.** Required on every editor class. Sets `class_identity` (an `EditorIdentity` dataclass) and `class_library` (derived from the module). Computes `registry_key` as `<library_id>:editor:<registry_id>`.
 
 | Parameter | Required | Default | Purpose |
 |---|---|---|---|
-| `label` | yes | — | Display name in tabs and tooltips |
-| `default_slot` | yes | — | `'left'` / `'right'` / `'main'` / `'bottom'` |
-| `icon` | no | — | Material icon for the bar |
+| `label` | no | class name | Display name in tabs and tooltips |
+| `default_slot` | no | `'main'` | `'left'` / `'right'` / `'main'` / `'bottom'` |
+| `icon` | no | `'extension'` | Material Design icon name |
 | `opens` | no | `'required'` | `'required'` / `'on_context'` / `'on_payload'` — see below |
 | `description` | no | `''` | Tooltip / accessibility text |
 | `registry_id` | no | class name | Unique short ID within the library |
 
+`@editor()` must be invoked with parentheses; the bare `@editor` form raises at class-definition time.
+
 **`OpenBehavior` — how tabs come into being.** Three values:
 
-- **`required`** — the shell guarantees one tab at startup. Uncloseable. Use for persistent panels (left/right side editors, main graph editor).
-- **`on_context`** — singleton tab, on-demand. Content mirrors a slice of session context (e.g. `active_library`); a `reveal_editor=...` event opens it. Closeable, not persisted across restart.
-- **`on_payload`** — per-payload tab, on-demand. Tab identity comes from `binding.payload`; N distinct payloads → N distinct tabs. Closeable, persisted across restart.
+- **`required`** — the shell guarantees exactly one auto-populated tab at startup. Uncloseable. Use for persistent panels: side editors, the main graph editor.
+- **`on_context`** — singleton tab, on-demand. Content mirrors a slice of session context (e.g. `active_library`); a `Reveal` lifecycle command opens it. Closeable.
+- **`on_payload`** — per-payload tab, on-demand. The payload is both the tab's identity and its content source; N distinct payloads → N distinct tabs. Closeable.
 
 **Slot constraints.** `default_slot='left'` and `'right'` only support `opens='required'`. Bars don't have a tab structure to host on-demand or multi-instance editors. The decorator raises `ValueError` at class-definition time if you try.
 
-**`render(container, context)`.** Called once when the editor first occupies its slot. Build the NiceGUI subtree inside `container`. The base class handles `with container:` for you — your code starts inside the slot.
+**`draw(self, context, container)`** is the only abstract method. The orchestrator calls it on first slot assignment and again whenever `poll()` returns `True`. Before each call the orchestrator **clears** `container` — your code starts inside an empty NiceGUI element. Use `with container:` (or store children of one of `container`'s descendants) to build into it.
 
 ```python
-def render(self, container, context):
+def draw(self, context: SessionContext, container: Element) -> None:
     with container:
         ui.label('My Editor').classes('text-lg p-4')
         self._content = ui.column().classes('gap-2 p-4')
 ```
 
-Store references to UI elements you'll later mutate as instance attributes (`self._content`, `self._status_label`).
+Store references to UI elements you'll later mutate as instance attributes — but remember they live only until the next `draw()` call, since the container is cleared between draws.
 
-**`on_context_changed(event, context)`.** Called whenever the session state mutates. The `event` is a `ContextChangedEvent` with a `change_type` field; the `context` is the live `SessionContext`. Filter by event kind:
+**`poll(self, context, signal) -> bool`** decides whether the editor needs a full redraw. Default returns `False` (never redraw). Filter by signal class with plain `isinstance`:
 
 ```python
-def on_context_changed(self, event, context):
-    if event.change_type != ContextChangeType.SELECTION_CHANGED:
-        return
-    node = context.data[EditState].active_node.value
-    self._status_label.text = f'Active: {node.name if node else "None"}'
+_RELEVANT_SIGNALS = (SelectionMoved, ActiveGraphMoved, GraphDataMutated)
+
+def poll(self, context: SessionContext, signal: ContextSignal) -> bool:
+    return isinstance(signal, self._RELEVANT_SIGNALS)
 ```
 
-The handler runs synchronously in the event-dispatch chain. Keep it fast. Long-running work goes in `asyncio.create_task` or a panel-internal `reactive_field`.
+`poll()` runs synchronously on every signal. Keep it cheap — no I/O, no AppState walks, no expensive predicates. A typical implementation is a tuple of relevant signal types and a single `isinstance` check.
 
-**`on_focus(self, slot, context)`.** Called by `Slot._activate` when the binding transitions from not-active to active. Override to mutate context and broadcast the corresponding event when this editor takes ownership of a slice of session state (e.g. `GraphEditor` setting `active_graph`). Not all editors need this.
+**`on_focus(self, context)`** is called when the editor's wrapper becomes the active tab in its slot — on initial render, on programmatic `Slot.switch_to`, on user tab-click, or via `Slot.add_binding(activate=True)`. **Not** called when the user re-clicks the already-active tab. Runs **before** `draw()` on the newly-activated wrapper, so any context mutations this hook performs are visible to that draw and to any signals the hook broadcasts. Default is a no-op. Editors that own a slice of session state (e.g. a graph editor that updates `active_graph` when its tab becomes active) override this. Read `self.wrapper.payload` to disambiguate this instance from siblings.
 
-**`cleanup(self)`.** Called when the slot switches to a different editor. Release subscriptions, stop background tasks, drop UI element references. The base class implementation is empty — override only if you have something to release.
+**`cleanup(self)`** runs when the editor is permanently removed (slot reassigned, hot-reload eviction). Release subscriptions, cancel timers, drop UI references. Default is a no-op.
 
-**Reading and writing context.** `SessionContext` exposes:
+**`get_tab_label(self, context) -> str`** lets a tabbed editor (`opens='on_payload'`) return a dynamic label per instance. Default returns `self.class_identity.label`. Multi-instance editors typically derive the label from `self.wrapper.payload`.
 
-- Direct fields: `context.active_node`, `context.active_edge`, `context.selected_nodes`, `context.interaction_mode`.
-- Library state: `context.app_data[Cls]` (AppState) and `context.data[Cls]` (SessionState — see [components/states](../states/state-canon.md)).
+**`async handle_close_request(self) -> bool`** gates tab close. The slot awaits this when the user clicks the X. Return `True` to allow close, `False` to veto. Editors with unsaved state typically pop a save/discard/cancel dialog and `await` the user's choice. Default returns `True` (always allow). Read `self.wrapper.state.is_dirty` if your editor uses the framework's dirty-state tracking.
 
-Mutations broadcast automatically when you go through the session's `notify_context_changed` API.
+**Reading and writing context.** `SessionContext` carries a small set of reactive fields (`active_file`, `active_library`, `active_component`, theme keys) and two namespaces:
 
-**Driving other slots — `reveal_editor`.** A `ContextChangedEvent` can include `reveal_editor=<editor_key>`. The AppShell sees this and switches the hosting slot to that editor as part of the same dispatch. Use for "click a library entry → open its detail editor in the right slot" flows.
+- `context.app_data[Cls]` — `AppState` lookups, shared across all sessions.
+- `context.data[Cls]` — `SessionState` lookups, scoped to this session. Selection state lives here. For the graph canvas, that's `EditState` (in `haybale-studio`):
 
-**Imports** (verified against codebase 2026-05):
+```python
+from haybale_studio.state.edit_state import EditState
+
+node = context.data[EditState].active_node.value     # NodeWrapper or None
+```
+
+See [components/states](../states/state-canon.md) for the full state model.
+
+**Driving other slots — the lifecycle channel.** To open or focus a tab in another slot, send a `Reveal` lifecycle command on `context.session`:
+
+```python
+from haywire.ui.context_signals import Reveal
+
+context.session.lifecycle(Reveal(
+    editor=LibraryDetailEditor,
+    payload=library_id,    # for opens='on_payload'
+))
+```
+
+The orchestrator resolves `editor.class_identity.default_slot` and routes the command. Use `Close(payload=...)` to close every tab bound to a payload across all slots (e.g. when a graph entry is removed from the haystack).
+
+Lifecycle commands are local-only — peer sessions own their own workspace state. Cross-session synchronization is the job of the signal channel (set `cross_session: ClassVar[bool] = True` on a signal subclass to fan it out via `SessionManager.broadcast_signal`).
+
+**Imports.**
 
 ```python
 from haywire.ui.editor.base import BaseEditor
 from haywire.ui.editor.decorator import editor
 from haywire.ui.editor.identity import OpenBehavior   # for code that inspects the enum
-from haywire.ui.context_events import ContextChangeType, ContextChangedEvent
+from haywire.ui.context_signals import (
+    ContextSignal,
+    SelectionMoved, ActiveGraphMoved, GraphDataMutated,   # observations
+    Reveal, Close,                                        # lifecycle commands
+)
 ```
 
-**Hot-reload.** `EditorTypeRegistry` extends `BaseRegistry`. New editor classes are picked up at the next render boundary; existing instances don't swap mid-render (NiceGUI element teardown is risky). Switch slots to force a fresh instance.
+`context_signals` is the unified module — earlier code referenced `context_events`; that name was retired.
+
+**Hot-reload.** `EditorTypeRegistry` extends `BaseRegistry`. When an editor class is reloaded, the orchestrator evicts cached instances, calls `cleanup()`, and re-instantiates + `draw()` for any visible bindings. Subscribers that hold a reference to the old class object would see `isinstance()` checks fail spuriously after a reload — this is why library authors who declare their own signal classes that other libraries subscribe to must list the signal-declaring library in their own `LibraryIdentity.dependencies`.
 
 ## 4. One comprehensive example
 
-A worked example exercising every authoring concept: a `LogViewerEditor` for the bottom slot that shows a streaming log of context-change events, with filtering, an `on_focus` hook, and proper cleanup. Demonstrates `default_slot='bottom'`, `opens='on_context'`, panel-aware bottom-slot integration, NiceGUI async patterns, and reading both AppState and direct context.
+The studio's `PropertiesEditor` ([barn/haybale-studio/haybale_studio/editors/properties_editor.py](../../../barn/haybale-studio/haybale_studio/editors/properties_editor.py)) exercises every authoring concept: `default_slot='right'` with implicit `opens='required'`, `isinstance`-based signal filtering, a two-column `draw()` layout, panel-hosting via `PanelRegistry.get_panels_for(actions_provider, focus)`, an action protocol that panels call back into (`clear_selection`), reading `EditState` from `context.data`, and per-instance state preserved across redraws.
+
+The salient excerpts:
 
 ```python
-# my_lib/editors/log_viewer.py
+# barn/haybale-studio/haybale_studio/editors/properties_editor.py
 
-from collections import deque
-from typing import Any
 from nicegui import ui
 
+from haybale_studio.state.edit_state import EditState
+from haywire.ui import elements as hui
+from haywire.ui.context_signals import (
+    ActiveGraphMoved,
+    GraphDataMutated,
+    SelectionMoved,
+)
 from haywire.ui.editor.base import BaseEditor
 from haywire.ui.editor.decorator import editor
-from haywire.ui.context_events import ContextChangeType
+from haywire.ui.panel.layout import PanelLayout
+from haywire.ui.panel.focus import Focus, focus_by_id
+from haywire.ui.panel.registry import PanelRegistry
 
-# Companion AppState that holds the log buffer. Lives across sessions
-# so all tabs see the same log. See components/states/state-canon.md.
-from ..state.log_buffer import LogBuffer
 
 @editor(
-    label='Log Viewer',
-    icon='subject',
-    default_slot='bottom',
-    opens='on_context',           # Singleton tab; opens on-demand
-    description='Streaming log of session events',
+    label="Properties",
+    icon=hui.icon.node_settings,
+    default_slot="right",
+    description="Context-sensitive property panels for the active selection.",
 )
-class LogViewerEditor(BaseEditor):
-    """Bottom-slot editor showing a live log of context changes.
-    Demonstrates lifecycle, async UI, and AppState consumption."""
+class PropertiesEditor(BaseEditor):
+    """Focus-driven properties editor: focus toolbar + panel content."""
 
-    def __init__(self):
-        # Local UI state — populated in render()
-        self._table: ui.table | None = None
-        self._filter_input: ui.input | None = None
-        self._filter: str = ''
+    # Tuple of signal types this editor reacts to. Anything else: poll() returns False.
+    _RELEVANT_SIGNALS = (SelectionMoved, ActiveGraphMoved, GraphDataMutated)
 
-        # Local view buffer. Capped to avoid unbounded growth.
-        self._rows: deque[dict[str, Any]] = deque(maxlen=200)
+    # Per-instance state — survives across redraws because the editor instance
+    # is reused; the *container* is cleared by the orchestrator, the Python
+    # object is not. Initialise in __init__, never in draw().
+    def __init__(self, panel_registry: PanelRegistry | None = None) -> None:
+        self._container: Element | None = None
+        self._toolbar: Element | None = None
+        self._content: Element | None = None
+        self._panel_registry = panel_registry
+        self._context: SessionContext | None = None
+        self._active_focus_id: str | None = None
+        self._expansion_state: dict[str, bool] = {}
 
-    # ── Lifecycle ─────────────────────────────────────────────────────
+    # --- BaseEditor lifecycle ---------------------------------------------
 
-    def render(self, container, context) -> None:
-        """Called once when the editor first occupies its slot.
-        Build the entire UI subtree here."""
-        with container:
-            ui.label('Session Event Log').classes('text-md font-bold p-2')
+    def poll(self, context: SessionContext, signal: ContextSignal) -> bool:
+        # Cheap predicate. Runs on every signal.
+        return isinstance(signal, self._RELEVANT_SIGNALS)
 
-            # Filter bar — typing updates self._filter immediately
-            self._filter_input = ui.input(
-                placeholder='Filter…',
-                on_change=self._on_filter_change,
-            ).classes('w-full px-2')
+    def draw(self, context: SessionContext, container: Element) -> None:
+        # Container is empty when draw() starts — the orchestrator cleared it.
+        self._container = container
+        self._context = context
+        if self._panel_registry is None:
+            # Pull the registry from DI on first draw. Tests inject directly.
+            self._panel_registry = context.app.library_service.get_panel_registry()
+        self._build_layout(context)
 
-            # Table — rendered with current AppState contents
-            self._table = ui.table(
-                columns=[
-                    {'name': 'time', 'label': 'Time', 'field': 'time'},
-                    {'name': 'kind', 'label': 'Kind', 'field': 'kind'},
-                    {'name': 'detail', 'label': 'Detail', 'field': 'detail'},
-                ],
-                rows=[],
-                row_key='time',
-            ).classes('w-full')
+    # --- Action protocol — called BACK INTO this editor by panels --------
 
-            ui.button('Clear', icon='clear', on_click=self._on_clear).classes('m-2')
-
-        # Initial sync — pull existing entries from AppState
-        self._refresh_from_buffer(context)
-
-    def on_focus(self, slot, context) -> None:
-        """Called when the bottom slot switches TO this editor.
-        Refresh the view to catch up with anything that happened while
-        we were inactive."""
-        self._refresh_from_buffer(context)
-
-    def on_context_changed(self, event, context) -> None:
-        """Append a row for every context change."""
-        # Filter by event kind — we only care about a few
-        if event.change_type not in (
-            ContextChangeType.SELECTION_CHANGED,
-            ContextChangeType.GRAPH_LOADED,
-            ContextChangeType.DATA_MUTATED,
-        ):
+    def clear_selection(self) -> None:
+        """Implements PropertiesEditorActions; panels call self.actions.clear_selection()."""
+        if self._context is None:
             return
+        edit_state = self._context.data[EditState]
+        edit_state.active_node.value = None
+        edit_state.active_edge.value = None
+        edit_state.active_port.value = None
 
-        # Append to local view + AppState (for cross-session visibility)
-        row = {
-            'time': self._now(),
-            'kind': event.change_type.name,
-            'detail': self._describe(event),
-        }
-        self._rows.append(row)
+    # --- Layout construction (called once per draw) ----------------------
 
-        # Push into AppState so other tabs see the same log
-        buf = context.app_data[LogBuffer]
-        buf.append(row)
+    def _build_layout(self, context: SessionContext) -> None:
+        with self._container:
+            with ui.row().classes("w-full h-full gap-0"):
+                self._toolbar = ui.column().classes("gap-0").style(
+                    "width: 36px; min-width: 36px; overflow-y: auto;"
+                )
+                self._content = ui.column().classes("flex-1 gap-0")
+        self._refresh(context)
 
-        # Re-render if our table is mounted (and we're the active editor)
-        if self._table is not None:
-            self._sync_table()
+    def _refresh(self, context: SessionContext) -> None:
+        # Toolbar and content are rebuilt together — this is the editor's
+        # internal "redraw" hook, called after structural changes (active
+        # focus moved). Container-level redraw is the orchestrator's job.
+        self._rebuild_toolbar(context)
+        self._rebuild_content(context)
 
-    def cleanup(self) -> None:
-        """Called when the slot switches to a different editor.
-        Drop UI references; nothing async to release in this editor."""
-        self._table = None
-        self._filter_input = None
-        self._rows.clear()
-
-    # ── Local helpers — hb_* prefix would also be valid ────────────────
-
-    def _on_filter_change(self, e):
-        self._filter = (e.value or '').lower()
-        self._sync_table()
-
-    def _on_clear(self):
-        self._rows.clear()
-        self._sync_table()
-
-    def _sync_table(self):
-        """Apply the filter and update the table rows."""
-        if self._table is None:
-            return
-        if self._filter:
-            visible = [r for r in self._rows
-                       if self._filter in r['kind'].lower()
-                       or self._filter in r['detail'].lower()]
-        else:
-            visible = list(self._rows)
-        self._table.rows = visible
-        self._table.update()
-
-    def _refresh_from_buffer(self, context):
-        """Pull existing rows from AppState — runs in render() and
-        on_focus() to catch up after slot switches."""
-        buf = context.app_data[LogBuffer]
-        self._rows.clear()
-        for row in buf.recent(200):
-            self._rows.append(row)
-        self._sync_table()
-
-    @staticmethod
-    def _now() -> str:
-        from datetime import datetime
-        return datetime.now().strftime('%H:%M:%S.%f')[:-3]
-
-    @staticmethod
-    def _describe(event) -> str:
-        bits = []
-        if hasattr(event, 'node_id') and event.node_id:
-            bits.append(f'node={event.node_id}')
-        if hasattr(event, 'edge_id') and event.edge_id:
-            bits.append(f'edge={event.edge_id}')
-        return ' '.join(bits) or '—'
+    # _rebuild_toolbar / _rebuild_content omitted for brevity — see source.
 ```
 
 What this example exercises:
 
 | Concept | Where |
 |---|---|
-| `@editor(label, icon, default_slot, opens, description)` decorator | top of class |
-| `default_slot='bottom'` with `opens='on_context'` | decorator |
-| `BaseEditor` lifecycle: `render`, `on_focus`, `on_context_changed`, `cleanup` | each method |
-| Filtering events by `change_type` | `on_context_changed` |
-| Reading AppState (`ctx.app_data[LogBuffer]`) | `on_context_changed`, `_refresh_from_buffer` |
-| Storing UI element references on `self` for later mutation | `self._table`, `self._filter_input` |
-| Local-state separation (`_filter`, `_rows`) from session context | every helper |
-| Re-syncing on `on_focus` after slot switches | `on_focus` |
-| Releasing references in `cleanup` | `cleanup` |
-| `hb_*` / `_*` private helper convention | `_sync_table`, `_on_filter_change` |
+| `@editor(label, icon, default_slot='right', description)` — implicit `opens='required'` | top of class |
+| `class_identity` and `class_library` set automatically by the decorator | (set on the class object) |
+| Per-instance state initialised in `__init__`, persisted across redraws | `_active_focus_id`, `_expansion_state` |
+| Tuple of `ContextSignal` classes for cheap `isinstance` filtering | `_RELEVANT_SIGNALS` |
+| `poll(context, signal) -> bool` returns `True` to request redraw | `poll` |
+| `draw(context, container)` builds the subtree; container starts cleared | `draw` |
+| Pulling DI dependencies from `context.app` on first draw | `context.app.library_service.get_panel_registry()` |
+| Reading `SessionState` (selection lives on `EditState`, not `SessionContext`) | `clear_selection` |
+| Editor-as-actions-provider: panels call back into the editor | `clear_selection` (Protocol implementation) |
+| Hosting panels via `PanelRegistry.get_panels_for(actions_provider, focus)` | `_rebuild_content` (full source) |
+| Per-instance UI references (`_toolbar`, `_content`) re-fetched on each `draw` | layout fields |
 
-For the panels that *might* be hosted inside a panel-aware editor variant of this, see [components/panels](../panels/panel-canon.md). For the AppState `LogBuffer` declaration, see [components/states](../states/state-canon.md).
+For the `Focus` and `Panel` extension points the editor hosts, see [components/panels](../panels/panel-canon.md). For the `EditState` reactive state model, see [components/states](../states/state-canon.md). For the orchestrator that owns slots and routes signals, see [architecture/studio](../../architecture/studio/studio-arch.md).
 
 ---
 
@@ -289,14 +254,17 @@ For the panels that *might* be hosted inside a panel-aware editor variant of thi
 
 ### Authoring checklist
 
-- [ ] `@editor(label='...', default_slot='...')` — both required
+- [ ] `@editor(label='...', default_slot='...')` — both have sensible defaults; set them deliberately
 - [ ] Choose `opens='required'` / `'on_context'` / `'on_payload'`
-- [ ] Inherit from `BaseEditor`
-- [ ] Implement `render(self, container, context)` — build the subtree
-- [ ] Implement `on_context_changed(self, event, context)` — react
-- [ ] Optional: `on_focus(self, slot, context)` for slot-activation behaviour
-- [ ] Optional: `cleanup(self)` if you have async tasks or subscriptions to release
-- [ ] Filter `on_context_changed` by `event.change_type` — keep handlers fast
+- [ ] Inherit from `BaseEditor`; implement `draw(self, context, container)` — required
+- [ ] Override `poll(self, context, signal) -> bool` — default `False`; return `True` for relevant signals
+- [ ] Initialise instance state in `__init__`; container/UI refs re-fetched in `draw()`
+- [ ] Use a tuple of `ContextSignal` classes + one `isinstance` for cheap `poll()` filtering
+- [ ] Optional: `on_focus(self, context)` — runs *before* `draw()` on the newly-activated wrapper
+- [ ] Optional: `cleanup(self)` — release subscriptions / timers
+- [ ] Optional: `get_tab_label(self, context)` — dynamic per-payload label
+- [ ] Optional: `async handle_close_request(self)` — veto/save dialog before tab close
+- [ ] Drive other slots with `context.session.lifecycle(Reveal(editor=..., payload=...))`
 
 ### Imports
 
@@ -304,7 +272,11 @@ For the panels that *might* be hosted inside a panel-aware editor variant of thi
 from haywire.ui.editor.base import BaseEditor
 from haywire.ui.editor.decorator import editor
 from haywire.ui.editor.identity import OpenBehavior
-from haywire.ui.context_events import ContextChangeType, ContextChangedEvent
+from haywire.ui.context_signals import (
+    ContextSignal,
+    SelectionMoved, ActiveGraphMoved, GraphDataMutated,
+    Reveal, Close,
+)
 ```
 
 ### Slot rules
