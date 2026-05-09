@@ -43,9 +43,7 @@ class MathOP(BaseNode):
         self.add(FLOAT.as_outlet(id="result", label="Result"))
 
     # --8<-- [start:math_op_worker]
-    def worker(
-        self, context: ExecutionContext, value_a: float, value_b: float, operator: str
-    ) -> dict | None:
+    def worker(self, context: ExecutionContext, value_a: float, value_b: float, operator: str) -> str | None:
         result = 0.0
         if operator == MathOPs.ADD.value:
             result = value_a + value_b

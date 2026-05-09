@@ -65,6 +65,6 @@ class TestCustomCallbackNode(BaseNode):
             self.event_subscription = CallbackEvent(event_name=callback_name)
 
     def worker(self, context: ExecutionContext) -> str | None:
-        payload = context.trigger.payload
+        payload = context.trigger.payload if context.trigger else None
         self.out("payload", payload)
         return "triggered"

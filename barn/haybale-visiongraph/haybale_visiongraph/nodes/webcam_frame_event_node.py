@@ -63,7 +63,7 @@ class WebcamFrameEventNode(BaseNode):
     def worker(self, context: ExecutionContext) -> Optional[str]:
         """Process incoming frame callback"""
         # Extract payload from trigger
-        payload = context.trigger.payload
+        payload = context.trigger.payload if context.trigger else None
 
         if not isinstance(payload, dict):
             return None

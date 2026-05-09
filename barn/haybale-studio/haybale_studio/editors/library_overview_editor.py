@@ -190,6 +190,7 @@ class LibraryOverviewEditor(BaseEditor):
             author = installed_lib.identity.author
             tags = installed_lib.identity.tags or (marketplace_pkg.tags if marketplace_pkg else []) or []
         else:
+            assert marketplace_pkg is not None
             name = marketplace_pkg.label or marketplace_pkg.name
             version = marketplace_pkg.version
             description = marketplace_pkg.description
@@ -252,7 +253,7 @@ class LibraryOverviewEditor(BaseEditor):
                             if marketplace_pkg:
                                 src_color = "blue" if marketplace_pkg.source == "pypi" else "purple"
                                 hui.tag(marketplace_pkg.source, color=src_color)
-                            if update_available:
+                            if update_available and marketplace_pkg:
                                 hui.tag(f"v{marketplace_pkg.version} available", color="orange")
 
                     # ── Action buttons ─────────────────────────────────────────

@@ -14,16 +14,10 @@
     "editors": []
   },
   "main": {
-    "active_key": "studio:editor:CodeEditor::/Volumes/Ddrive/06_open_tracking_tool/haywire/haywire-repo/barn/haybale-core/haybale_core/nodes/begin_play.py",
+    "active_key": null,
     "visible": true,
     "size": 300,
-    "editors": [
-      {
-        "key": "studio:editor:CodeEditor",
-        "payload": "/Volumes/Ddrive/06_open_tracking_tool/haywire/haywire-repo/barn/haybale-core/haybale_core/nodes/begin_play.py",
-        "label": "begin_play.py"
-      }
-    ]
+    "editors": []
   },
   "bottom": {
     "active_key": "studio:editor:TerminalEditor",

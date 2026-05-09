@@ -3,7 +3,7 @@ Basic type conversion adapters
 """
 
 import random
-from typing import override
+from typing_extensions import override
 
 from haywire.core.adapter.base import BaseAdapter
 from haywire.core.adapter.base import adapter

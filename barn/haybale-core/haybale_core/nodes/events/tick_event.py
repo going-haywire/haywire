@@ -43,7 +43,7 @@ class TickEventNode(BaseNode):
         self.event_subscription = CallbackEvent(event_name=self.node_id)
 
     def worker(self, context: ExecutionContext) -> str | None:
-        payload = context.trigger.payload
+        payload = context.trigger.payload if context.trigger else None
         delta = payload.get("delta_time", 0.016) if payload else 0.016
         self.out("delta_time", delta)
         return "exec"

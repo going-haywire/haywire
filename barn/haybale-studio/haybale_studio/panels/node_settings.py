@@ -52,6 +52,8 @@ class NodeSettingsPanel(BasePanel):
         actions: PropertiesEditorActions,
     ) -> None:
         node = ctx.data[EditState].active_node.value
+        if node is None:
+            return
 
         bags = node.node.list_setting_bags()
         if not bags:

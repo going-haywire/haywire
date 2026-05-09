@@ -212,12 +212,12 @@ class NodeSkin(BaseSkin, ABC):
                             or ICONS.FIBER_SMART_RECORD
                         )
                 else:
-                    if issubclass(pin.type_cls, CompoundType):
+                    if pin.type_cls and issubclass(pin.type_cls, CompoundType):
                         data_icon = pin._data.get_stored_type().class_identity.icon_in or ICONS.VIEW_DAY
                     else:
                         data_icon = pin._data.get_stored_type().class_identity.icon_in or ICONS.MY_LOCATION
             else:
-                if issubclass(pin.type_cls, CompoundType):
+                if pin.type_cls and issubclass(pin.type_cls, CompoundType):
                     data_icon = pin._data.get_stored_type().class_identity.icon_out_multi or ICONS.VIEW_DAY
                 else:
                     data_icon = pin._data.get_stored_type().class_identity.icon_out_multi or ICONS.CIRCLE

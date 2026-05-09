@@ -114,6 +114,6 @@ class EdgeLinkTestNode(BaseNode):
         """Request a redraw of the node in the UI."""
         self.wrapper.redraw()
 
-    def worker(self, context: ExecutionContext) -> dict | None:
+    def worker(self, context: ExecutionContext) -> str | None:
         """Execute the node - return the constant value"""
         return None

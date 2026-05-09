@@ -67,13 +67,12 @@ class TextWidget(SimpleWidget):
 
     def create_element(self) -> Any:
         props = self._config.get("properties", {})
-        kwargs = {"value": ""}
-
-        for prop in ["label", "placeholder", "password"]:
-            if prop in props:
-                kwargs[prop] = props[prop]
-
-        return ui.input(**kwargs).classes("w-full")
+        return ui.input(
+            value="",
+            label=props.get("label", ""),
+            placeholder=props.get("placeholder", ""),
+            password=props.get("password", False),
+        ).classes("w-full")
 
     def get_default_value(self) -> str:
         return ""
@@ -95,12 +94,10 @@ class CheckboxWidget(SimpleWidget):
 
     def create_element(self) -> Any:
         props = self._config.get("properties", {})
-        kwargs = {"value": False}
-
-        if "text" in props:
-            kwargs["text"] = props["text"]
-
-        return ui.checkbox(**kwargs).classes("w-full")
+        return ui.checkbox(
+            value=False,
+            text=props.get("text", ""),
+        ).classes("w-full")
 
     def get_default_value(self) -> bool:
         return False
@@ -122,12 +119,10 @@ class SwitchWidget(SimpleWidget):
 
     def create_element(self) -> Any:
         props = self._config.get("properties", {})
-        kwargs = {"value": False}
-
-        if "text" in props:
-            kwargs["text"] = props["text"]
-
-        return ui.switch(**kwargs).classes("w-full text-xs")
+        return ui.switch(
+            value=False,
+            text=props.get("text", ""),
+        ).classes("w-full text-xs")
 
     def get_default_value(self) -> bool:
         return False
@@ -213,15 +208,16 @@ class KnobWidget(SimpleWidget):
 
     def create_element(self) -> Any:
         props = self._config.get("properties", {})
-        kwargs = {"value": 0, "show_value": True}
-
-        for prop in ["min", "max", "step", "color", "size"]:
-            if prop in props:
-                kwargs[prop] = props[prop]
-
         with ui.row().classes("w-full justify-center text-xs"):
-            knob = ui.knob(**kwargs)
-
+            knob = ui.knob(
+                value=0,
+                show_value=True,
+                min=props.get("min", 0),
+                max=props.get("max", 1),
+                step=props.get("step", 0.01),
+                color=props.get("color", "primary"),
+                size=props.get("size", "60px"),
+            )
         return knob.classes("w-32 h-32")
 
     def get_default_value(self) -> float:

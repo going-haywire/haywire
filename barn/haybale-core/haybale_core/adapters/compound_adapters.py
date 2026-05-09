@@ -1,4 +1,5 @@
-from typing import Any, List, override
+from typing import Any, List
+from typing_extensions import override
 
 from haywire.core.adapter.base import adapter, BaseAdapter
 

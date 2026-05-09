@@ -20,9 +20,8 @@ from haywire.core.types import PrimitiveType, PrimitiveField
 class TEST_INT(PrimitiveType[int]):
     """Integer data type"""
 
-    @classmethod
-    def to_dict(cls, value: int) -> dict:
-        return {"value": int(value)}
+    def to_dict(self) -> dict:
+        return {"value": int(self._value)}
 
     @classmethod
     def from_dict(cls, data: dict) -> int:
@@ -54,9 +53,8 @@ TEST_INT.field_class = TEST_INTField
 class TEST_FLOAT(PrimitiveType[float]):
     """Float data type"""
 
-    @classmethod
-    def to_dict(cls, value: float) -> dict:
-        return {"value": float(value)}
+    def to_dict(self) -> dict:
+        return {"value": float(self._value)}
 
     @classmethod
     def from_dict(cls, data: dict) -> float:
@@ -90,9 +88,8 @@ TEST_FLOAT.field_class = TEST_FLOATField
 class TEST_STRING(PrimitiveType[str]):
     """String data type"""
 
-    @classmethod
-    def to_dict(cls, value: str) -> dict:
-        return {"value": str(value)}
+    def to_dict(self) -> dict:
+        return {"value": str(self._value)}
 
     @classmethod
     def from_dict(cls, data: dict) -> str:
@@ -114,9 +111,8 @@ class TEST_STRING(PrimitiveType[str]):
 class TEST_BOOL(PrimitiveType[bool]):
     """Boolean data type"""
 
-    @classmethod
-    def to_dict(cls, value: bool) -> dict:
-        return {"value": bool(value)}
+    def to_dict(self) -> dict:
+        return {"value": bool(self._value)}
 
     @classmethod
     def from_dict(cls, data: dict) -> bool:

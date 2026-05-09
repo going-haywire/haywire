@@ -53,13 +53,13 @@ class TestingSettings(LibrarySettings):
         widget="color",
     )
     default_offset = setting[Vec2i](
-        [0, 0],
+        Vec2i([0, 0]),
         label="Default Offset",
         description="Library-wide 2D integer offset used by test nodes",
         category="root",
     )
     default_position = setting[Vec3f](
-        [0.0, 0.0, 0.0],
+        Vec3f([0.0, 0.0, 0.0]),
         label="Default Position",
         description="Library-wide 3D float position used by test nodes",
         category="root",

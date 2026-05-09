@@ -53,7 +53,7 @@ class CreateNodePanel(BasePanel):
             actions.create_node_at_click(node_info.identity.registry_key)
 
         def _on_context_click(node_info: NodeInfo) -> None:
-            if ctx.app.library_manager.is_installed(node_info.library.id):
+            if node_info.library is not None and ctx.app.library_manager.is_installed(node_info.library.id):
                 from haybale_studio.editors.library_component_editor import LibraryComponentEditor
 
                 ctx.active_component.value = node_info.identity.registry_key

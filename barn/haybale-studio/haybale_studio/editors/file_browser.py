@@ -24,7 +24,6 @@ import copy
 from pathlib import Path
 from typing import TYPE_CHECKING, Optional
 
-from haywire_studio.app import HaywireApp
 from nicegui import ui
 
 from haywire.ui import elements as hui
@@ -305,7 +304,7 @@ class LazyFileBrowserEditor(BaseEditor):
     def _open_graph_file(self, path: Path, context: "SessionContext") -> None:
         from haybale_studio.editors.graph_editor import GraphEditor
 
-        app: "HaywireApp" = context.app
+        app = context.app
         session = context.session
         if app is None or session is None or not hasattr(app, "haystack"):
             return

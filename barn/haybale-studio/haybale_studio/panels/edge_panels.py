@@ -41,9 +41,7 @@ def _has_edge_warnings(state: "EdgeWrapperState | None") -> bool:
     return state is not None and state.has_warning()
 
 
-def _render_edge_errors(state: "EdgeWrapperState | None") -> None:
-    if not _has_edge_errors(state):
-        return
+def _render_edge_errors(state: "EdgeWrapperState") -> None:
     from haywire.core.errors.haywire_exception import HaywireException
     from haywire.ui.errors.error_info import error_render_detail
 
@@ -55,9 +53,7 @@ def _render_edge_errors(state: "EdgeWrapperState | None") -> None:
             hui.error_label(str(error)).classes("whitespace-pre-wrap break-words")
 
 
-def _render_edge_warnings(state: "EdgeWrapperState | None") -> None:
-    if not _has_edge_warnings(state):
-        return
+def _render_edge_warnings(state: "EdgeWrapperState") -> None:
     with ui.column().classes("w-full gap-1 p-2"):
         hui.warning_label("Warnings").classes("font-semibold")
         for warning in state.warnings:
@@ -89,8 +85,11 @@ class EdgeErrorsPanel(BasePanel):
         layout: PanelLayout,
         actions: PropertiesEditorActions,
     ) -> None:
+        state = _state_from_context(ctx)
+        if state is None:
+            return
         with layout.container:
-            _render_edge_errors(_state_from_context(ctx))
+            _render_edge_errors(state)
 
 
 @panel(
@@ -113,8 +112,11 @@ class ContextMenuEdgeErrorsPanel(BasePanel):
         layout: PanelLayout,
         actions: EdgeContextActions,
     ) -> None:
+        state = _state_from_context(ctx)
+        if state is None:
+            return
         with layout.container:
-            _render_edge_errors(_state_from_context(ctx))
+            _render_edge_errors(state)
 
 
 # ---------------------------------------------------------------------------
@@ -142,8 +144,11 @@ class EdgeWarningsPanel(BasePanel):
         layout: PanelLayout,
         actions: PropertiesEditorActions,
     ) -> None:
+        state = _state_from_context(ctx)
+        if state is None:
+            return
         with layout.container:
-            _render_edge_warnings(_state_from_context(ctx))
+            _render_edge_warnings(state)
 
 
 @panel(
@@ -166,8 +171,11 @@ class ContextMenuEdgeWarningsPanel(BasePanel):
         layout: PanelLayout,
         actions: EdgeContextActions,
     ) -> None:
+        state = _state_from_context(ctx)
+        if state is None:
+            return
         with layout.container:
-            _render_edge_warnings(_state_from_context(ctx))
+            _render_edge_warnings(state)
 
 
 # ---------------------------------------------------------------------------
@@ -231,6 +239,8 @@ class ExecutionStatisticsEdgePanel(BasePanel):
         actions: PropertiesEditorActions,
     ) -> None:
         edge_wrapper = ctx.data[EditState].active_edge.value
+        if edge_wrapper is None:
+            return
         state = edge_wrapper.get_state()
         with (
             ui.card()
@@ -267,6 +277,8 @@ class ConnectionPathEdgePanel(BasePanel):
         actions: PropertiesEditorActions,
     ) -> None:
         edge_wrapper = ctx.data[EditState].active_edge.value
+        if edge_wrapper is None:
+            return
         with (
             ui.card()
             .classes("w-full p-3")

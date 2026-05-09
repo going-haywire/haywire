@@ -50,36 +50,16 @@ class OpencvViewerWidget(IWidget):
     """
 
     def __init__(self, port: "DataPort"):
-        """
-        Initialize the OpenCV viewer widget.
-
-        Args:
-            port: DataPort containing FRAME data
-        """
-        self.port = port
+        self.port: "DataPort" = port
         self.port_id: str = port.id
         self._config: dict = (
             port.widget_config if hasattr(port, "widget_config") and port.widget_config else {}
         )
-
-        # UI elements
         self.ui_element: Optional[Any] = None
         self._backend: Optional[StreamingBackend] = None
-
-        # Callback for model changes
         self._model_changed_callback: Optional[Any] = None
 
     def render(self) -> Any:
-        """
-        Render the streaming viewer widget.
-
-        Reuses the existing StreamingViewer across redraws so the browser's
-        MJPEG connection stays alive.
-
-        Returns:
-            Container with the streaming viewer
-        """
-        # Extract configuration
         props = self._config.get("properties", {})
         quality = props.get("quality", 80)
         width = props.get("width", "100%")
@@ -95,115 +75,57 @@ class OpencvViewerWidget(IWidget):
                 quality=quality, frame_queue_size=frame_queue_size, block_on_full=block_on_full
             )
 
-        # (Re-)create the NiceGUI element pointing at the existing endpoint.
         with ui.card().classes("w-full") as container:
             StreamingViewer(self._backend).style(f"width: {width}; height: {height};")
 
         self.ui_element = container
 
-        # (Re-)setup binding to port changes
         self._setup_binding()
-
-        # Initial sync: try to display current frame if available
         self._sync_frame_to_viewer()
-
-        # Cleanup on disconnect
-        if hasattr(self.ui_element, "client"):
-            self.ui_element.client.on_disconnect(lambda: self.full_cleanup())
 
         return self.ui_element
 
     def _setup_binding(self) -> None:
-        """Setup binding to listen for frame updates from the port"""
-        # Subscribe to port value changes
         self._model_changed_callback = lambda _: self._sync_frame_to_viewer()
         self.port._data.on_changed += self._model_changed_callback
 
     def _sync_frame_to_viewer(self) -> None:
-        """
-        Synchronize the port's FRAME value to the streaming viewer.
-
-        Extracts the numpy array from the FRAME object and streams it
-        to the viewer component.
-        """
-        if self._backend is None:
-            return
-
-        # Don't try to stream if viewer is shutting down
-        if not self._backend._is_running:
+        if self._backend is None or not self._backend._is_running:
             return
 
         try:
-            # Get the frame from the port
             frame = self.port.get_value()
-
             if frame is None:
                 return
 
-            # Extract numpy array from FRAME object
-            # Handle both FRAME objects and raw numpy arrays
             if hasattr(frame, "data"):
-                # It's a FRAME object
                 frame_data = frame.data
             elif isinstance(frame, np.ndarray):
-                # It's already a numpy array
                 frame_data = frame
             else:
-                # Unknown type
                 return
 
-            # Validate the frame data
-            if frame_data is None or not isinstance(frame_data, np.ndarray):
+            if frame_data is None or not isinstance(frame_data, np.ndarray) or frame_data.size == 0:
                 return
 
-            if frame_data.size == 0:
-                return
-
-            # Stream the frame to the viewer
             self._backend.stream(frame_data)
 
         except Exception as e:
-            # Silently fail - don't crash the UI on streaming errors
-            # Only log if viewer is still supposed to be running
             if self._backend and self._backend._is_running:
                 print(f"[OpencvViewerWidget] Error streaming frame: {e}")
 
     def cleanup(self) -> None:
-        """Clean up bindings and UI references for redraw.
-
-        The StreamingViewer is kept alive so the browser's MJPEG connection
-        survives node redraws.  Call ``full_cleanup()`` to tear down everything
-        (e.g. on browser disconnect or node deletion).
-        """
-        # Unsubscribe from port changes
-        if self._model_changed_callback and self.port:
+        if self._model_changed_callback:
             try:
                 self.port._data.on_changed -= self._model_changed_callback
             except Exception as e:
                 print(f"[OpencvViewerWidget] Port cleanup warning: {e}")
-
-        # Clear binding/UI references but keep streaming_viewer alive
         self._model_changed_callback = None
         self.ui_element = None
 
-    def full_cleanup(self) -> None:
-        """Destroy everything including the StreamingViewer and its route."""
-        # Clean up the streaming viewer
         if self._backend:
             try:
                 self._backend.cleanup()
             except Exception as e:
                 print(f"[OpencvViewerWidget] Viewer cleanup warning: {e}")
             self._backend = None
-
-        # Unsubscribe from port changes
-        if self._model_changed_callback and self.port:
-            try:
-                self.port._data.on_changed -= self._model_changed_callback
-            except Exception as e:
-                print(f"[OpencvViewerWidget] Port cleanup warning: {e}")
-
-        # Clear all references
-        self._model_changed_callback = None
-        self.ui_element = None
-        self.port = None

@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from typing import Any, Dict, TypeVar
+from typing import Any, Dict, List, Optional, Type, TypeVar
 
 from haywire.core.types import type, FlowType, DataField, CompoundType
 from haywire.ui import elements as hui
@@ -40,7 +40,7 @@ class MapsStringType(CompoundType[T]):
     - _configure_port: No special configuration needed
     """
 
-    field_class = None  # Will be set to ArrayField after it's defined
+    field_class: "Optional[Type[DataField]]" = None  # Will be set to MapsStringField after it's defined
 
     # No hook overrides needed - uses defaults from IType!
     # Allows inlets, outlets, and configs
@@ -69,7 +69,7 @@ class MapsStringField(DataField):
     Transfer: Dict[str, T] (unwrapped)
     """
 
-    _items: Dict[str, T] = field(default_factory=dict, init=False, repr=False)
+    _items: Dict[str, Any] = field(default_factory=dict, init=False, repr=False)
 
     def __post_init__(self):
         """Initialize complex field with default instance"""
@@ -79,7 +79,7 @@ class MapsStringField(DataField):
         initial_dict = self.default_kwargs.get("value", {})
         self._items = initial_dict
 
-    def get_value(self) -> Dict[str, T]:
+    def get_value(self) -> Dict[str, Any]:
         """
         Get dict for worker access.
 
@@ -88,7 +88,7 @@ class MapsStringField(DataField):
             or
             [MeshData(...), MeshData(...)]  # Complex types as-is
         """
-        return list(self._items)
+        return dict(self._items)
 
     def set_value(self, value: Any, source_id: str | None = None) -> None:
         """
@@ -104,7 +104,7 @@ class MapsStringField(DataField):
             # Stored: [1.0, 2.0, 3.0]
         """
         if not isinstance(value, dict):
-            raise TypeError(f"MapsStringField requires dict, got {type(value).__name__}")
+            raise TypeError(f"MapsStringField requires dict, got {value.__class__.__name__}")
 
         self._items = value
         self.is_dirty = True
@@ -125,7 +125,7 @@ class MapsStringField(DataField):
     # ARRAY-SPECIFIC HELPERS
     # ========================================================================
 
-    def get_item(self, index: int) -> T:
+    def get_item(self, index: str) -> Any:
         """Get specific item by index"""
         return self._items[index]
 

@@ -532,7 +532,11 @@ class DataPort(DataTypeIdentity):
 
     @classmethod
     def from_spec(
-        cls, spec: dict, type_registry: "TypeRegistry", wrapper: "NodeWrapper", node: "NodeData"
+        cls,
+        spec: dict,
+        type_registry: "TypeRegistry",
+        wrapper: "NodeWrapper",
+        node: "NodeData",
     ) -> "DataPort":
         """
         Create a DataPort from a PortSpec dict.

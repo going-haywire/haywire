@@ -21,9 +21,8 @@ from haywire.core.types import type, FlowType, PrimitiveType, PrimitiveField, Ba
 class GROUP(PrimitiveType[bool]):
     """Group data type"""
 
-    @classmethod
-    def to_dict(cls, value: bool) -> dict:
-        return {"value": bool(value)}
+    def to_dict(self) -> dict:
+        return {"value": bool(self._value)}
 
     @classmethod
     def from_dict(cls, data: dict) -> bool:
@@ -45,9 +44,8 @@ class GROUP(PrimitiveType[bool]):
 class INT(PrimitiveType[int]):
     """Integer data type"""
 
-    @classmethod
-    def to_dict(cls, value: int) -> dict:
-        return {"value": int(value)}
+    def to_dict(self) -> dict:
+        return {"value": int(self._value)}
 
     @classmethod
     def from_dict(cls, data: dict) -> int:
@@ -79,9 +77,8 @@ INT.field_class = INTField
 class FLOAT(PrimitiveType[float]):
     """Float data type"""
 
-    @classmethod
-    def to_dict(cls, value: float) -> dict:
-        return {"value": float(value)}
+    def to_dict(self) -> dict:
+        return {"value": float(self._value)}
 
     @classmethod
     def from_dict(cls, data: dict) -> float:
@@ -115,9 +112,8 @@ FLOAT.field_class = FLOATField
 class STRING(PrimitiveType[str]):
     """String data type"""
 
-    @classmethod
-    def to_dict(cls, value: str) -> dict:
-        return {"value": str(value)}
+    def to_dict(self) -> dict:
+        return {"value": str(self._value)}
 
     @classmethod
     def from_dict(cls, data: dict) -> str:
@@ -139,9 +135,8 @@ class STRING(PrimitiveType[str]):
 class BOOL(PrimitiveType[bool]):
     """Boolean data type"""
 
-    @classmethod
-    def to_dict(cls, value: bool) -> dict:
-        return {"value": bool(value)}
+    def to_dict(self) -> dict:
+        return {"value": bool(self._value)}
 
     @classmethod
     def from_dict(cls, data: dict) -> bool:
@@ -163,11 +158,10 @@ class BOOL(PrimitiveType[bool]):
 class BYTES(PrimitiveType[bytes]):
     """Bytes data type"""
 
-    @classmethod
-    def to_dict(cls, value: bytes) -> dict:
+    def to_dict(self) -> dict:
         import base64
 
-        return {"value": base64.b64encode(value).decode("ascii")}
+        return {"value": base64.b64encode(self._value).decode("ascii")}
 
     @classmethod
     def from_dict(cls, data: dict) -> bytes:
@@ -191,9 +185,8 @@ class BYTES(PrimitiveType[bytes]):
 class LIST(PrimitiveType[list]):
     """List data type"""
 
-    @classmethod
-    def to_dict(cls, value: list) -> dict:
-        return {"value": list(value)}
+    def to_dict(self) -> dict:
+        return {"value": list(self._value)}
 
     @classmethod
     def from_dict(cls, data: dict) -> list:
@@ -210,9 +203,8 @@ class LIST(PrimitiveType[list]):
 class DICT(PrimitiveType[dict]):
     """Dictionary data type"""
 
-    @classmethod
-    def to_dict(cls, value: dict) -> dict:
-        return {"value": dict(value)}
+    def to_dict(self) -> dict:
+        return {"value": dict(self._value)}
 
     @classmethod
     def from_dict(cls, data: dict) -> dict:

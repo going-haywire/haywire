@@ -9,7 +9,7 @@ and a Source tab (CodeMirror with optional save for editable libraries).
 
 import inspect
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Literal
 
 from haywire.core.library.info import LibraryInfo
 from nicegui import ui
@@ -36,7 +36,7 @@ class _WidgetPreviewPort:
     """Minimal mock port used to render a live widget preview without a real binding."""
 
     id = "preview"
-    widget_config = {}
+    widget_config: dict = {}
 
 
 @editor(
@@ -125,9 +125,7 @@ class LibraryComponentEditor(BaseEditor):
                     pass
             _install_type = getattr(lib, "install_type", None) if lib else None
             is_editable = (
-                _install_type.name == "EDITABLE"
-                if hasattr(_install_type, "name")
-                else _install_type == "EDITABLE"
+                getattr(_install_type, "name", None) == "EDITABLE" if _install_type is not None else False
             )
 
             # height:100% + flex column so tab_panels can fill remaining space
@@ -238,6 +236,7 @@ class LibraryComponentEditor(BaseEditor):
                                         ).classes("text-xs hw-text-dim")
 
                     if t_source:
+                        assert src_file is not None
                         with ui.tab_panel(t_source).style(
                             "height: 100%; padding: 0;"
                             " display: flex; flex-direction: column; overflow: hidden;"
@@ -294,7 +293,7 @@ class LibraryComponentEditor(BaseEditor):
                 ui.label(str(exc)).classes("text-xs font-mono hw-text-dim")
 
     @staticmethod
-    def _codemirror_theme(context: "SessionContext") -> str:
+    def _codemirror_theme(context: "SessionContext") -> Literal["vscodeLight", "vscodeDark"]:
         """Return a CodeMirror theme name that matches the active Haywire workbench theme."""
         theme_key = context.active_workbench_theme_key.value or "core:theme:workbench:haywire-dark"
         return "vscodeLight" if "light" in theme_key else "vscodeDark"

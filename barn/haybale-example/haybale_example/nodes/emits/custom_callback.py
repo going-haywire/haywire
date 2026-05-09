@@ -87,7 +87,7 @@ class CustomCallbackNode(BaseNode):
 
     def worker(self, context: ExecutionContext) -> str | None:
         # Extract payload from trigger
-        payload = context.trigger.payload
+        payload = context.trigger.payload if context.trigger else None
 
         self.out("payload", payload)
         return "triggered"

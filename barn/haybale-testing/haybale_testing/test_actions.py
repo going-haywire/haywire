@@ -12,14 +12,14 @@ from typing import Protocol, runtime_checkable
 
 @runtime_checkable
 class TestCanvasContextActions(Protocol):
-    __test__ = False  # not a pytest test class
+    __test__: bool = False  # not a pytest test class
 
     def test_create_node_at_click(self, registry_key: str) -> None: ...
 
 
 @runtime_checkable
 class TestNodeContextActions(Protocol):
-    __test__ = False
+    __test__: bool = False
 
     def test_delete_node(self, node_id: str) -> None: ...
     def test_copy_node(self, node_id: str) -> None: ...
@@ -30,7 +30,7 @@ class TestNodeContextActions(Protocol):
 
 @runtime_checkable
 class TestEdgeContextActions(Protocol):
-    __test__ = False
+    __test__: bool = False
 
     def test_delete_edge(self, edge_id: str) -> None: ...
     def test_inspect_edge(self, edge_id: str) -> None: ...
@@ -38,7 +38,7 @@ class TestEdgeContextActions(Protocol):
 
 @runtime_checkable
 class TestSelectionContextActions(Protocol):
-    __test__ = False
+    __test__: bool = False
 
     def test_copy_selection(self) -> None: ...
     def test_paste_at_click(self) -> None: ...

@@ -24,7 +24,7 @@ from __future__ import annotations
 import inspect
 import logging
 from pathlib import Path
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, Literal, Optional
 
 from nicegui import ui
 
@@ -312,7 +312,7 @@ class NodeSourceEditor(BaseEditor):
             ).style("flex: 1; min-height: 0; width: 100%; height: 100%;")
 
     @staticmethod
-    def _codemirror_theme(context: "SessionContext") -> str:
+    def _codemirror_theme(context: "SessionContext") -> Literal["vscodeLight", "vscodeDark"]:
         theme_key = context.active_workbench_theme_key.value or "core:theme:workbench:haywire-dark"
         return "vscodeLight" if "light" in theme_key else "vscodeDark"
 

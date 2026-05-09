@@ -35,6 +35,8 @@ def _render_node_errors(ctx: "SessionContext", layout: PanelLayout) -> None:
     if node is None:
         return
     errors = node.state.get_errors()
+    if not errors:
+        return
     with layout.container:
         for error in errors:
             error_render_detail(error)

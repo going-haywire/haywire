@@ -6,7 +6,6 @@ from .testbed.edge_link_test import EdgeLinkTestNode
 from .testbed.emit_callback_node import TestEmitCallbackNode
 from .testbed.math_op_node import TestAddFloatNode
 from .testbed.settings_node import SettingsNode
-from .testbed.settings_node import example
 from .testbed.test_performance import PerformanceTester
 
 
@@ -20,5 +19,4 @@ __all__ = [
     "TestBeginPlayNode",
     "TestCustomCallbackNode",
     "TestEmitCallbackNode",
-    "example",
 ]

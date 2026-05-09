@@ -22,19 +22,36 @@ class VecMeta(NamedTuple):
 _VEC_META: dict = {}
 
 
-def _make_vec(length: int, element_type: type, labels: tuple) -> type:
-    """Create a list subtype that carries vector metadata."""
-    cls = type(f"_Vec{length}{'i' if element_type is int else 'f'}", (list,), {})
-    _VEC_META[cls] = VecMeta(length=length, element_type=element_type, labels=labels)
-    return cls
+class Vec2i(list):
+    pass
 
 
-Vec2i = _make_vec(2, int, ("X", "Y"))
-Vec3i = _make_vec(3, int, ("X", "Y", "Z"))
-Vec4i = _make_vec(4, int, ("W", "X", "Y", "Z"))
-Vec2f = _make_vec(2, float, ("X", "Y"))
-Vec3f = _make_vec(3, float, ("X", "Y", "Z"))
-Vec4f = _make_vec(4, float, ("W", "X", "Y", "Z"))
+class Vec3i(list):
+    pass
+
+
+class Vec4i(list):
+    pass
+
+
+class Vec2f(list):
+    pass
+
+
+class Vec3f(list):
+    pass
+
+
+class Vec4f(list):
+    pass
+
+
+_VEC_META[Vec2i] = VecMeta(length=2, element_type=int, labels=("X", "Y"))
+_VEC_META[Vec3i] = VecMeta(length=3, element_type=int, labels=("X", "Y", "Z"))
+_VEC_META[Vec4i] = VecMeta(length=4, element_type=int, labels=("W", "X", "Y", "Z"))
+_VEC_META[Vec2f] = VecMeta(length=2, element_type=float, labels=("X", "Y"))
+_VEC_META[Vec3f] = VecMeta(length=3, element_type=float, labels=("X", "Y", "Z"))
+_VEC_META[Vec4f] = VecMeta(length=4, element_type=float, labels=("W", "X", "Y", "Z"))
 
 
 def get_vec_meta(type_: type) -> "VecMeta | None":

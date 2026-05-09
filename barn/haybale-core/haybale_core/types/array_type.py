@@ -8,7 +8,7 @@ Key changes:
 """
 
 from dataclasses import dataclass, field
-from typing import Any, List, TypeVar
+from typing import TYPE_CHECKING, Any, List, Optional, Type, TypeVar
 
 from haywire.core.types import type, FlowType, DataField, CompoundType
 
@@ -51,7 +51,7 @@ class ArrayType(CompoundType[T]):
     - _configure_port: Sets flow type based on element type
     """
 
-    field_class = None  # Will be set to ArrayField after it's defined
+    field_class: "Optional[Type[DataField]]" = None  # Will be set to ArrayField after it's defined
 
     # Allows inlets, outlets, and configs
 
@@ -115,7 +115,7 @@ class ArrayField(DataField):
     Transfer: List[T] (unwrapped)
     """
 
-    _items: List[T] = field(default_factory=list, init=False, repr=False)
+    _items: List[Any] = field(default_factory=list, init=False, repr=False)
 
     def __post_init__(self):
         """Initialize complex field with default instance"""
@@ -125,7 +125,7 @@ class ArrayField(DataField):
         initial_list = self.default_kwargs.get("value", [])
         self._items = initial_list
 
-    def get_value(self) -> List[T]:
+    def get_value(self) -> List[Any]:
         """
         Get list for worker access.
 
@@ -150,7 +150,7 @@ class ArrayField(DataField):
             # Stored: [1.0, 2.0, 3.0]
         """
         if not isinstance(value, list):
-            raise TypeError(f"ArrayField requires list, got {type(value).__name__}")
+            raise TypeError(f"ArrayField requires list, got {value.__class__.__name__}")
 
         self._items = value
         self.is_dirty = True
@@ -159,8 +159,7 @@ class ArrayField(DataField):
 
     def reset(self) -> None:
         """Reset to default array"""
-        initial_list = self.default_kwargs.get("value", [])
-        self._items = self._unwrap_items(initial_list)
+        self._items = self.default_kwargs.get("value", [])
         self.is_dirty = True
 
     def has_data(self) -> bool:
@@ -171,7 +170,7 @@ class ArrayField(DataField):
     # ARRAY-SPECIFIC HELPERS
     # ========================================================================
 
-    def get_item(self, index: int) -> T:
+    def get_item(self, index: int) -> Any:
         """Get specific item by index"""
         return self._items[index]
 

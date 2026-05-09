@@ -1,4 +1,5 @@
 from haywire.core.node import node, BaseNode, NodeType
+from haywire.core.execution.execution_context import ExecutionContext
 from haybale_core.types import STRING
 
 from haywire.core.settings import NodeSettings, setting, shadow, watch, Color, Vec2i, Vec3f, Vec4f
@@ -61,19 +62,19 @@ class SettingsNode(BaseNode):
             widget="color",
         )
         example_vec2i = setting[Vec2i](
-            [4, 8],
+            Vec2i([4, 8]),
             label="Example Vec2i",
             description="A 2-component integer vector",
             category="type",
         )
         example_vec3f = setting[Vec3f](
-            [1.0, 2.0, 3.0],
+            Vec3f([1.0, 2.0, 3.0]),
             label="Example Vec3f",
             description="A 3-component float vector",
             category="type",
         )
         example_vec4f = setting[Vec4f](
-            [0.0, 0.0, 0.0, 1.0],
+            Vec4f([0.0, 0.0, 0.0, 1.0]),
             label="Example Vec4f",
             description="A 4-component float vector (e.g. RGBA or homogeneous coords)",
             category="type",
@@ -162,6 +163,6 @@ class SettingsNode(BaseNode):
         print(f"Post-init: clamped_positive = {self.example.clamped_positive}")
         print(f"Post-init: even_int = {self.example.even_int}")
 
-    def worker(self, context: dict) -> dict | None:
+    def worker(self, context: ExecutionContext) -> str | None:
         """Execute the node - display the input value"""
         return None

@@ -31,6 +31,7 @@ from haywire.ui.context_signals import (
 )
 from haywire.ui.editor.base import BaseEditor
 from haywire.ui.editor.decorator import editor
+from haywire.ui.panel.base import BasePanel
 from haywire.ui.panel.layout import PanelLayout
 from haywire.ui.panel.focus import Focus, focus_by_id
 from haywire.ui.panel.registry import PanelRegistry
@@ -251,7 +252,7 @@ class PropertiesEditor(BaseEditor):
     # Content rendering
     # ------------------------------------------------------------------
 
-    def _mount_panels_for_active_focus(self, focus: type[Focus]) -> list[type]:
+    def _mount_panels_for_active_focus(self, focus: type[Focus]) -> list[type[BasePanel]]:
         """Mount panels matching the active focus via the contract-keyed lookup."""
         if self._panel_registry is None:
             return []

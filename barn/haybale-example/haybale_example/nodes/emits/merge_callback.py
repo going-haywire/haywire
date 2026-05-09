@@ -78,6 +78,7 @@ class MergeCallbackNode(BaseNode):
 
     def worker(self, context: ExecutionContext) -> str | None:
         # Extract payload from trigger
-        self.cache.store[context.trigger.source_key] = context.trigger.payload
+        if context.trigger:
+            self.cache.store[context.trigger.source_key] = context.trigger.payload
 
         return "triggered"

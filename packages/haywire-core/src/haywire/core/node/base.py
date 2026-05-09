@@ -1,7 +1,7 @@
 from __future__ import annotations
 import inspect
 import re
-from typing import TYPE_CHECKING, Iterator, Set, Any, Callable, ClassVar, Dict, List, Optional, TypeVar
+from typing import TYPE_CHECKING, Iterator, Set, Any, Callable, ClassVar, Dict, List, Optional, TypeVar, cast
 from dataclasses import asdict
 from abc import abstractmethod
 from contextlib import contextmanager
@@ -12,7 +12,7 @@ from haywire.core.node.properties import NodeProperties  # re-exported for type 
 from ..types.enums import FlowType, PortType
 from ..execution.execution_context import ExecutionContext
 from ..library.identity import LibraryIdentity
-from ..types import DataPort
+from ..types import DataPort, PortSpec
 from .behavior import NodeBehaviorFlags
 from .user_data import NodeCache, NodeStore
 from haywire.core.settings import Settings
@@ -196,7 +196,7 @@ class NodeData:
     # Port Addition and Management
     # =========================================================================
 
-    def add(self, spec: dict) -> DataPort:
+    def add(self, spec: "dict[Any, Any] | PortSpec") -> DataPort:
         """
         Add a port (inlet or outlet) to the node with automatic hierarchy tracking.
 
@@ -236,7 +236,7 @@ class NodeData:
                 self.add(FLOAT.as_inlet('tolerance'))  # Auto-assigned to section
         """
         # Resolve spec to port instance if needed
-        port = DataPort.from_spec(spec, self._type_registry, self.wrapper, self)
+        port = DataPort.from_spec(cast(dict, spec), self._type_registry, self.wrapper, self)
 
         # Set parent from current group stack
         if self._group_stack:
@@ -987,7 +987,7 @@ class NodeData:
         # Recreate each port from PortSpec
         for port_id, spec in ports_data.items():
             # Use same instantiation path as add()
-            port = DataPort.from_spec(spec, self._type_registry, self.wrapper, self)
+            port = DataPort.from_spec(cast(dict, spec), self._type_registry, self.wrapper, self)
 
             # Add directly to collection (skip add() to preserve order from spec)
             self.ports[port.id] = port

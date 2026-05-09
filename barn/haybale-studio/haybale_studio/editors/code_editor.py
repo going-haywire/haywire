@@ -13,7 +13,7 @@ when closing a dirty tab.
 from __future__ import annotations
 
 from pathlib import Path
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, Literal, Optional
 
 from nicegui import ui
 
@@ -31,7 +31,22 @@ if TYPE_CHECKING:
 # Map file extension → CodeMirror language string. None means "no language
 # extension" (plain text). Extensions not present here are not opened by the
 # code editor — they fall through to FileViewerEditor.
-_LANGUAGE_BY_EXT: dict[str, Optional[str]] = {
+CmLanguage = Literal[
+    "Markdown",
+    "Python",
+    "JSON",
+    "TOML",
+    "YAML",
+    "JavaScript",
+    "TypeScript",
+    "CSS",
+    "HTML",
+    "XML",
+    "Shell",
+]
+CmTheme = Literal["vscodeLight", "vscodeDark"]
+
+_LANGUAGE_BY_EXT: dict[str, Optional[CmLanguage]] = {
     ".md": "Markdown",
     ".py": "Python",
     ".json": "JSON",
@@ -87,7 +102,7 @@ class CodeEditor(BaseEditor):
             return None
         return Path(self.wrapper.payload)
 
-    def _language_for(self, path: Optional[Path]) -> Optional[str]:
+    def _language_for(self, path: Optional[Path]) -> Optional[CmLanguage]:
         if path is None:
             return None
         return _LANGUAGE_BY_EXT.get(path.suffix.lower())
@@ -108,7 +123,7 @@ class CodeEditor(BaseEditor):
         return isinstance(signal, ThemeMoved)
 
     @staticmethod
-    def _codemirror_theme(context: "SessionContext") -> str:
+    def _codemirror_theme(context: "SessionContext") -> CmTheme:
         """Pick a CodeMirror theme that matches the active workbench theme."""
         theme_key = context.active_workbench_theme_key.value or "core:theme:workbench:haywire-dark"
         return "vscodeLight" if "light" in theme_key else "vscodeDark"
@@ -217,7 +232,7 @@ class CodeEditor(BaseEditor):
             with ui.tab_panel("preview").style("padding: 1rem; height: 100%; overflow: auto;"):
                 self._preview = ui.markdown(self._content).classes("w-full text-sm")
 
-    def _make_codemirror(self, context: "SessionContext", language: Optional[str]) -> ui.codemirror:
+    def _make_codemirror(self, context: "SessionContext", language: Optional[CmLanguage]) -> ui.codemirror:
         return ui.codemirror(
             value=self._content,
             language=language,

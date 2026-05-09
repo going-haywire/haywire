@@ -36,13 +36,16 @@ class ValidatedNumberWidget(BaseWidget):
 
     def create_element(self) -> Any:
         props = self._config.get("properties", {})
-        kwargs = {"value": 0}
-
-        for prop in ["label", "min", "max", "step", "precision", "prefix", "suffix"]:
-            if prop in props:
-                kwargs[prop] = props[prop]
-
-        return ui.number(**kwargs).classes("w-full")
+        return ui.number(
+            value=0,
+            label=props.get("label", ""),
+            min=props.get("min"),
+            max=props.get("max"),
+            step=props.get("step", 1),
+            precision=props.get("precision"),
+            prefix=props.get("prefix", ""),
+            suffix=props.get("suffix", ""),
+        ).classes("w-full")
 
 
 @widget(description="Temperature with unit conversion", compatible_types=[Temperature])
@@ -83,13 +86,12 @@ class TemperatureWidget(BaseWidget):
     def create_element(self) -> Any:
         with ui.column().classes("w-full"):
             # Main input
-            number_kwargs = {
-                "value": 0,
-                "suffix": "°C" if self.unit == "celsius" else "°F",
-                "step": 0.1,
-                "precision": 1,
-            }
-            temp_input = ui.number(**number_kwargs).classes("w-full")
+            temp_input = ui.number(
+                value=0,
+                suffix="°C" if self.unit == "celsius" else "°F",
+                step=0.1,
+                precision=1,
+            ).classes("w-full")
 
             # Conversion display
             self.conversion_label = ui.label("").classes("text-sm text-gray-500")

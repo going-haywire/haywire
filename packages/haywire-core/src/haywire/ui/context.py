@@ -28,7 +28,7 @@ from haywire.ui.reactive import Reactive, iter_reactive_fields, reactive_field
 from haywire.core.state.data_namespace import AppDataNamespace, SessionDataNamespace
 
 if TYPE_CHECKING:
-    from haywire.core.library.base import BaseLibrary
+    from haywire.core.library.info import LibraryInfo
     from haywire.ui.protocols import IProjectState
     from haywire.ui.session import Session
 
@@ -63,7 +63,7 @@ class SessionContext:
 
     # --- Reactive fields ---
     active_file: Reactive[Optional[Any]] = reactive_field(None)
-    active_library: Reactive[Optional["BaseLibrary"]] = reactive_field(None)
+    active_library: Reactive[Optional["LibraryInfo"]] = reactive_field(None)
     active_component: Reactive[Optional[str]] = reactive_field(None)
 
     active_workbench_theme_key: Reactive[Optional[str]] = reactive_field(None)

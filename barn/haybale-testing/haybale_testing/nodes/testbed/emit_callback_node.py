@@ -64,16 +64,17 @@ class TestEmitCallbackNode(BaseNode):
         edge_callbacks: dict,
         custom_callback_name: str,
         payload: float,
-    ) -> dict | None:
+    ) -> str | None:
+        payload_dict = {"value": payload}
         if mode_switch:
-            context.emit_callback(event_name=custom_callback_name, payload=payload)
+            context.emit_callback(event_name=custom_callback_name, payload=payload_dict)
         else:
             if sequential_mode:
                 edge_callback = list(edge_callbacks.values())[self.callback_index]
                 self.callback_index = (self.callback_index + 1) % len(edge_callbacks)
-                context.emit_callback(event_name=edge_callback, payload=payload)
+                context.emit_callback(event_name=edge_callback, payload=payload_dict)
             else:
                 for edge_callback in edge_callbacks.values():
-                    context.emit_callback(event_name=edge_callback, payload=payload)
+                    context.emit_callback(event_name=edge_callback, payload=payload_dict)
 
         return "exec"

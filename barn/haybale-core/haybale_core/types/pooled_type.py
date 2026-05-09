@@ -9,7 +9,7 @@ Key changes:
 """
 
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, TypeVar
+from typing import Any, Dict, List, Optional, Type, TypeVar
 
 from haywire.core.types import type, FlowType, CompoundType, DataField, IType
 from haywire.core.types.enums import PortType
@@ -59,7 +59,7 @@ class PooledType(CompoundType[T]):
     - _configure_port: Overridden to set allow_multiple_links
     """
 
-    field_class = None  # Will be set to PooledField after it's defined
+    field_class: "Optional[Type[DataField]]" = None  # Will be set to PooledField after it's defined
 
     # ========================================================================
     # HOOKS - Override to customize behavior
@@ -142,7 +142,7 @@ class PooledField(DataField):
     Transfer: Not allowed (inlet-only)
     """
 
-    _sources: Dict[str, T] = field(default_factory=dict, init=False, repr=False)
+    _sources: Dict[str, Any] = field(default_factory=dict, init=False, repr=False)
     _default_kwargs: Dict[str, Any] = field(default_factory=dict)
 
     def __post_init__(self):
@@ -156,7 +156,7 @@ class PooledField(DataField):
         else:
             self._sources = {}
 
-    def get_value(self) -> Dict[str, T]:
+    def get_value(self) -> Dict[str, Any]:
         """
         Get dict of all source values.
 
@@ -202,9 +202,11 @@ class PooledField(DataField):
         if self.on_changed.has_observers():
             self.fire(dict(self._sources))
 
-    def get_stored_type(self) -> "type[IType]":
+    def get_stored_type(self) -> Type[IType]:
         # other than most other fields, pooled field actually stores the element type
-        return self.type_cls.element_type_cls
+        element_type = self.type_cls.element_type_cls
+        assert element_type is not None
+        return element_type
 
     def reset(self) -> None:
         """Clear all sources"""
@@ -231,7 +233,7 @@ class PooledField(DataField):
             self.is_dirty = True
             self.fire(dict(self._sources))
 
-    def get_values_list(self) -> List[T]:
+    def get_values_list(self) -> List[Any]:
         """
         Get values as list (for iteration).
 

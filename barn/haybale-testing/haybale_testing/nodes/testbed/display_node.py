@@ -1,4 +1,5 @@
 from haywire.core.node import node, BaseNode, NodeType
+from haywire.core.execution.execution_context import ExecutionContext
 from haybale_core.types import FLOAT, STRING
 
 
@@ -26,9 +27,6 @@ class DisplayNode(BaseNode):
         )
         self.add(FLOAT.as_outlet("result", label="Result"))
 
-    def worker(self, context: dict) -> dict | None:
+    def worker(self, context: ExecutionContext) -> str | None:
         """Execute the node - display the input value"""
-        input_value = context.get("input_value")
-        if input_value is not None:
-            print(f"Display Node [{self.node_id}]: {input_value}")
         return None
