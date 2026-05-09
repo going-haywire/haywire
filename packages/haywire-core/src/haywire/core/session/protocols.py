@@ -8,7 +8,6 @@ objects, avoiding circular imports while providing full IDE type resolution.
 
 from __future__ import annotations
 
-from pathlib import Path
 from typing import Any, Protocol, TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -16,25 +15,6 @@ if TYPE_CHECKING:
     from haywire.core.session.session_manager import SessionManager
     from haywire_studio.library_manager import LibraryManager  # type: ignore[import-untyped]
     from haywire.core.state import LibraryStateContainer
-
-
-class IGraphManager(Protocol):
-    """
-    Structural interface for graph file management.
-
-    Haystack in haywire-studio satisfies this protocol without inheriting from it.
-    Factory args are typed as Any to avoid importing the studio-specific GraphFactory
-    type alias into haywire.ui.
-    """
-
-    def open_graph(self, path: Path) -> Any: ...
-    def create_new(self) -> Any: ...
-    def save_graph(self, entry: Any, save_as: Any = None) -> bool: ...
-    def remove_entry(self, entry: Any) -> bool: ...
-    def all_entries(self) -> Any: ...
-    def unsaved_entries(self) -> Any: ...
-    def list_haystacks(self) -> Any: ...
-    def list_graph_files(self) -> Any: ...
 
 
 class IProjectState(Protocol):
@@ -47,7 +27,6 @@ class IProjectState(Protocol):
     library_service: "LibrarySystemService"
     workspace_root: str
     session_manager: "SessionManager"
-    haystack: IGraphManager
     node_registry: Any  # NodeRegistry
     node_factory: Any  # NodeFactory
     library_manager: "LibraryManager"

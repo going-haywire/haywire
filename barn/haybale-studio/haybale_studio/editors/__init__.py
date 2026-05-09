@@ -1,8 +1,6 @@
 from .code_editor import CodeEditor
 from .file_browser import LazyFileBrowserEditor
 from .file_viewer import FileViewerEditor
-from .graph_editor import GraphEditor
-from .haystack_editor import HaystackEditor
 from .library_browser_editor import LibraryBrowserEditor
 from .library_component_editor import _WidgetPreviewPort
 from .library_component_editor import LibraryComponentEditor
@@ -17,8 +15,6 @@ from .terminal_editor import TerminalEditor
 __all__ = [
     "CodeEditor",
     "FileViewerEditor",
-    "GraphEditor",
-    "HaystackEditor",
     "LazyFileBrowserEditor",
     "LibraryBrowserEditor",
     "LibraryComponentEditor",

@@ -33,6 +33,7 @@ from ..session.session_manager import SessionManager
 from .context import (
     set_node_factory,
     set_adapter_factory,
+    set_library_state_container,
     set_type_registry,
     set_settings_registry,
     set_session_manager,
@@ -187,8 +188,13 @@ class HaywireModule(Module):
 
         Subscription to LibraryStateRegistry events is wired in
         LibrarySystemService.initialize().
+
+        Also publishes via set_library_state_container() so AppState authors
+        can read it from ambient context (e.g. for constructing Interpreters).
         """
-        return LibraryStateContainer()
+        container = LibraryStateContainer()
+        set_library_state_container(container)
+        return container
 
     @provider
     @singleton
@@ -312,6 +318,7 @@ class LibrarySystemService:
         library_state_registry.add_batch_event_subscriber(library_state_container.on_lifecycle_events)
         self.injector.get(AdapterFactory)  # sets ambient context for EdgeWrapper
         self.injector.get(NodeFactory)  # sets ambient context for NodeWrapper
+        self.injector.get(SessionManager)  # sets ambient context for AppState.on_enable
 
         # Link registries to library registry for management
         library_registry.add_class_registry(ThemeRegistry, theme_registry)

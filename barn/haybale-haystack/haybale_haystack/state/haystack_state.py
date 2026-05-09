@@ -1,0 +1,363 @@
+"""HaystackState — AppState replacing the old studio.haystack.Haystack class.
+
+In-memory registry of open graphs. One instance per app, shared across
+sessions. Dependencies are resolved from the ambient DI context in
+``on_enable`` rather than constructor arguments — this is the contract
+``LibraryStateContainer`` enforces (it instantiates AppState classes
+with ``cls()``, no args).
+
+Three structural changes vs the legacy Haystack:
+
+1. Subclass ``AppState``; instantiated by ``LibraryStateContainer``.
+2. ``on_enable`` resolves dependencies from ambient context.
+3. Validation broadcast goes directly via ``SessionManager`` — no
+   editor or library-bridge intermediary.
+
+Behavioral parity with legacy ``haywire_studio.haystack.Haystack`` is
+maintained for every public method documented in the carve-out plan
+(create_new, open_graph, save_graph, rename_graph, remove_entry,
+get_by_id, get_by_path, get_by_graph, all_entries, has_unsaved,
+unsaved_entries, list_haystacks, list_graph_files, rename_haystack,
+delete_haystack). Haystack file load/dump are now provided by free
+functions in ``persistence.py``; thin wrappers here forward to them.
+"""
+
+from __future__ import annotations
+
+import logging
+from pathlib import Path
+from typing import TYPE_CHECKING, Optional
+
+from haywire.core.state.base import AppState
+from haywire.core.state.decorator import state
+
+from haybale_haystack.graph_entry import GraphEntry
+
+if TYPE_CHECKING:
+    from haywire.core.graph.base import BaseGraph
+    from haywire.core.graph.editor import Editor
+    from haywire.core.graph.validation import ValidationResult
+    from haywire.core.node.factory import NodeFactory
+    from haywire.core.session.session_manager import SessionManager
+    from haywire.core.state import LibraryStateContainer
+
+    from haybale_haystack.settings.haystack_settings import HaystackSettings
+
+logger = logging.getLogger(__name__)
+
+
+@state(label="Haystack State")
+class HaystackState(AppState):
+    """In-memory registry of open graphs (one entry per file path).
+
+    Replaces ``haywire_studio.haystack.Haystack``. Dependencies are
+    resolved from the ambient DI context inside ``on_enable``; the
+    no-arg constructor is required by ``LibraryStateContainer``.
+    """
+
+    def __init__(self) -> None:
+        super().__init__()
+        self._entries: dict[str, GraphEntry] = {}
+
+        # Dependencies resolved in on_enable.
+        self._session_manager: Optional[SessionManager] = None
+        self._workspace_root: Optional[Path] = None
+        self._node_factory: Optional[NodeFactory] = None
+        self._library_state_container: Optional[LibraryStateContainer] = None
+        self._haystack_settings: Optional[HaystackSettings] = None
+
+    # ------------------------------------------------------------------
+    # AppState lifecycle
+    # ------------------------------------------------------------------
+
+    def on_enable(self) -> None:
+        """Resolve ambient dependencies; rehydrate from settings."""
+        from haywire.core.di.context import (
+            get_library_state_container,
+            get_node_factory,
+            get_session_manager,
+            get_workspace_root,
+        )
+
+        self._session_manager = get_session_manager()
+        self._workspace_root = get_workspace_root()
+        self._node_factory = get_node_factory()
+        self._library_state_container = get_library_state_container()
+
+        # HaystackSettings is a LibrarySettings — once registered,
+        # ``HaystackSettings()`` returns a fully-wired instance.
+        from haybale_haystack.settings.haystack_settings import HaystackSettings
+
+        try:
+            self._haystack_settings = HaystackSettings()
+        except Exception as exc:
+            logger.warning(f"HaystackState: failed to instantiate HaystackSettings: {exc}")
+            self._haystack_settings = None
+
+        # Tripwire: accessing private _registry is not ideal, but it is the only
+        # available signal that the settings class was registered before on_enable
+        # fired. If this warning appears, the registration order in __init__.py
+        # is wrong (settings/ must be registered before state/).
+        if self._haystack_settings is not None and self._haystack_settings._registry is None:
+            logger.warning(
+                "HaystackState.on_enable: HaystackSettings instance has no registry "
+                "(settings/ not yet registered?). last_haystack_name and new_counter "
+                "will fall to defaults and not persist."
+            )
+
+        # Rehydrate from last_haystack_name (best-effort).
+        if self._haystack_settings is not None:
+            last = self._haystack_settings.last_haystack_name
+            if last:
+                try:
+                    from haybale_haystack.persistence import load_haystack
+
+                    load_haystack(self, self._workspace_root, last)
+                    logger.info(f"HaystackState: rehydrated from '{last}'")
+                except Exception as exc:
+                    logger.error(f"HaystackState: failed to rehydrate '{last}': {exc}")
+
+    def on_disable(self) -> None:
+        """Stop execution on every entry and clear the registry."""
+        for entry in list(self._entries.values()):
+            try:
+                entry.stop_execution()
+            except Exception as exc:
+                logger.warning(
+                    f"HaystackState.on_disable: stop_execution failed for {entry.display_name}: {exc}"
+                )
+        self._entries.clear()
+
+    # ------------------------------------------------------------------
+    # Validation handler — legacy parity with Haystack._on_entry_validation
+    # ------------------------------------------------------------------
+
+    def _on_entry_validation(self, entry: GraphEntry, result: "ValidationResult") -> None:
+        """Stop execution if reassembly is required, mark unsaved, broadcast.
+
+        Mirrors the three concerns from the legacy Haystack:
+
+        1. Stop execution when the result requires graph reassembly.
+        2. Mark the entry unsaved if nodes or edges changed.
+        3. Broadcast ``GraphDataMutated`` so peer sessions refresh.
+        """
+        if entry.is_executing and result.has_changes() and result.graph is not None:
+            if result.graph.requires_graph_reassembly():
+                entry.stop_execution()
+
+        if bool(result.nodes or result.edges):
+            entry.unsaved = True
+            if self._session_manager is not None:
+                from haywire.core.session.context_signals import GraphDataMutated
+
+                try:
+                    self._session_manager.broadcast_signal(GraphDataMutated(), origin_session_id="")
+                except Exception as exc:
+                    logger.warning(f"HaystackState: validation broadcast failed: {exc}")
+
+    # ------------------------------------------------------------------
+    # Graph factory (private; mirrors legacy app._graph_factory)
+    # ------------------------------------------------------------------
+
+    def _make_graph_and_editor(self, graph_id: str, name: str) -> tuple["BaseGraph", "Editor"]:
+        """Construct a fresh (BaseGraph, Editor) pair for this state's deps."""
+        from haywire.core.graph.base import BaseGraph
+        from haywire.core.graph.editor import Editor
+        from haywire.core.undo.config import DEVELOPMENT_CONFIG
+
+        assert self._node_factory is not None, "on_enable must run before _make_graph_and_editor"
+        graph = BaseGraph(graph_id, name)
+        editor = Editor(graph, self._node_factory, undo_config=DEVELOPMENT_CONFIG)
+        return graph, editor
+
+    # ------------------------------------------------------------------
+    # Graph lifecycle
+    # ------------------------------------------------------------------
+
+    def create_new(self) -> GraphEntry:
+        """Create a new untitled graph entry.
+
+        Sets ``_unsaved_id = "__unsaved_N__"`` (with N drawn from
+        ``HaystackSettings.new_counter``) and advances the counter.
+        """
+        if self._haystack_settings is None:
+            raise RuntimeError("HaystackState.create_new called before on_enable wired settings")
+        counter = self._haystack_settings.new_counter
+        entry_id = f"__unsaved_{counter}__"
+        name = f"Untitled {counter}"
+        self._haystack_settings.new_counter = counter + 1
+
+        graph, editor = self._make_graph_and_editor(entry_id, name)
+        entry = GraphEntry(graph=graph, editor=editor, path=None, _unsaved_id=entry_id)
+        # entry_id == _unsaved_id when path is None (see GraphEntry.entry_id)
+        self._entries[entry.entry_id] = entry
+        self._subscribe_validation(entry)
+        logger.info(f"HaystackState: created new entry '{name}' ({entry_id})")
+        return entry
+
+    def open_graph(self, path: Path) -> GraphEntry:
+        """Open a .haywire file, reusing the existing entry if loaded.
+
+        On first open: constructs graph/editor, calls
+        ``graph.load_from_file`` then ``graph.force_validation`` to flush
+        the load-time validation queue *before* subscribing the handler
+        (otherwise loaded-state events would mark the entry unsaved).
+        """
+        entry_id = str(path)
+        existing = self._entries.get(entry_id)
+        if existing is not None:
+            return existing
+
+        graph, editor = self._make_graph_and_editor(path.stem, str(path))
+        graph.load_from_file(str(path))
+        graph.force_validation()
+        entry = GraphEntry(graph=graph, editor=editor, path=path, unsaved=False)
+        self._entries[entry_id] = entry
+        self._subscribe_validation(entry)
+        logger.info(f"HaystackState: opened {path}")
+        return entry
+
+    def save_graph(self, entry: GraphEntry, save_as: Optional[Path] = None) -> bool:
+        """Save the entry to disk. Returns True on success.
+
+        If ``save_as`` is provided and differs from ``entry.path``, the
+        entry is re-keyed in the registry under the new path.
+        """
+        target = save_as or entry.path
+        if target is None:
+            return False  # untitled with no explicit path
+
+        success = entry.graph.save_to_file(str(target))
+        if success:
+            entry.unsaved = False
+            if save_as is not None and save_as != entry.path:
+                old_id = entry.entry_id
+                self._entries.pop(old_id, None)
+                entry.path = save_as
+                self._entries[entry.entry_id] = entry
+        return success
+
+    def rename_graph(self, entry: GraphEntry, new_name: str) -> bool:
+        """Rename the underlying file (same directory, new stem)."""
+        if entry.path is None:
+            return False
+        new_path = entry.path.with_stem(new_name)
+        if new_path == entry.path:
+            return True
+        if new_path.exists():
+            return False  # refuse to overwrite
+
+        try:
+            entry.path.rename(new_path)
+        except OSError:
+            return False
+
+        old_id = entry.entry_id
+        self._entries.pop(old_id, None)
+        entry.path = new_path
+        self._entries[entry.entry_id] = entry
+        entry.unsaved = False
+        return True
+
+    def remove_entry(self, entry: GraphEntry) -> bool:
+        """Stop execution and drop the entry from the registry.
+
+        Does NOT delete the file on disk.
+        """
+        try:
+            entry.stop_execution()
+        except Exception as exc:
+            logger.warning(f"HaystackState.remove_entry: stop_execution failed: {exc}")
+        if entry.entry_id in self._entries and self._entries[entry.entry_id] is entry:
+            del self._entries[entry.entry_id]
+            return True
+        return False
+
+    # ------------------------------------------------------------------
+    # Lookups
+    # ------------------------------------------------------------------
+
+    def get_by_id(self, entry_id: str) -> Optional[GraphEntry]:
+        return self._entries.get(entry_id)
+
+    def get_by_path(self, path: Path) -> Optional[GraphEntry]:
+        return self._entries.get(str(path))
+
+    def get_by_graph(self, graph: object) -> Optional[GraphEntry]:
+        for entry in self._entries.values():
+            if entry.graph is graph:
+                return entry
+        return None
+
+    def all_entries(self) -> list[GraphEntry]:
+        """Return a list of all open entries (snapshot).
+
+        Note: legacy Haystack returned a dict; PR2 review mandated a
+        list. ``persistence.py`` and tests expect a list.
+        """
+        return list(self._entries.values())
+
+    # ------------------------------------------------------------------
+    # Unsaved checks
+    # ------------------------------------------------------------------
+
+    def has_unsaved(self) -> bool:
+        """True if any entry has unsaved changes or no file path."""
+        return any(e.unsaved or e.path is None for e in self._entries.values())
+
+    def unsaved_entries(self) -> list[GraphEntry]:
+        """Entries with unsaved changes or no file path."""
+        return [e for e in self._entries.values() if e.unsaved or e.path is None]
+
+    # ------------------------------------------------------------------
+    # Haystack file management — thin wrappers over persistence.*
+    # ------------------------------------------------------------------
+
+    def list_haystacks(self) -> list[str]:
+        from haybale_haystack.persistence import list_haystacks as _list
+
+        if self._workspace_root is None:
+            return []
+        return _list(self._workspace_root)
+
+    def list_graph_files(self) -> list[Path]:
+        """Scan ``<workspace>/graphs/`` recursively for .haywire files."""
+        if self._workspace_root is None:
+            return []
+        graphs_dir = self._workspace_root / "graphs"
+        if not graphs_dir.is_dir():
+            return []
+        return sorted(p for p in graphs_dir.rglob("*.haywire") if p.is_file())
+
+    def rename_haystack(self, old_name: str, new_name: str) -> bool:
+        from haybale_haystack.persistence import rename_haystack as _rename
+
+        if self._workspace_root is None:
+            return False
+        return _rename(self._workspace_root, old_name, new_name)
+
+    def delete_haystack(self, name: str) -> bool:
+        from haybale_haystack.persistence import delete_haystack as _delete
+
+        if self._workspace_root is None:
+            return False
+        return _delete(self._workspace_root, name)
+
+    # ------------------------------------------------------------------
+    # Internal helpers
+    # ------------------------------------------------------------------
+
+    def _subscribe_validation(self, entry: GraphEntry) -> None:
+        """Subscribe ``_on_entry_validation`` to this entry's graph.
+
+        Defensively skips if the graph has no subscribe_to_validation
+        method (e.g. test mocks). Does not store the callback for
+        unsubscribe — legacy parity, plus the entry's lifetime is
+        bounded by ``remove_entry``/``on_disable``.
+        """
+        try:
+            entry.graph.subscribe_to_validation(
+                lambda result, _entry=entry: self._on_entry_validation(_entry, result)  # type: ignore[misc]
+            )
+        except AttributeError:
+            pass

@@ -10,9 +10,9 @@ Each panel polls on the right-clicked file's extension, sets active_file
 and fires ActiveFileMoved on click (so editors that follow active_file
 keep working), then calls ``actions.reveal(editor_cls, payload, label)``.
 
-The third file-context-menu panel (OpenInGraphEditorPanel for .haywire)
-lives in its own module ``open_in_graph_editor.py`` because PR2 moves
-it into the new haybale-haystack library.
+The third file-context-menu panel (OpenInHaystackPanel for .haywire)
+lives in ``haybale-haystack`` (``haybale_haystack/panels/open_in_haystack.py``)
+because it depends on HaystackState, which is owned by that library.
 """
 
 from __future__ import annotations

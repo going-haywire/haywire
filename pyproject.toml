@@ -18,6 +18,7 @@ haybale-example = { workspace = true }
 haybale-testing = { workspace = true }
 haybale-visiongraph = { workspace = true }
 haybale-TEST_A = { workspace = true }
+haybale-haystack = { workspace = true }
 
 [dependency-groups]
 dev = [
@@ -37,6 +38,7 @@ dev = [
     "haybale-testing",
     "haybale-visiongraph",
     "haybale-TEST_A",
+    "haybale-haystack",
     "mkdocs-material>=9.7.6",
 ]
 
@@ -51,6 +53,7 @@ mypy_path = [
     "barn/haybale-example",
     "barn/haybale-visiongraph",
     "barn/haybale-TEST_A",
+    "barn/haybale-haystack",
 ]
 
 [[tool.mypy.overrides]]

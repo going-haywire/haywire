@@ -19,7 +19,7 @@ from haywire.core.session.reactive import Reactive
 @pytest.fixture
 def editor_and_context():
     """Return (editor, context, app, haystack) with a real HaystackEditor."""
-    from haybale_studio.editors.haystack_editor import HaystackEditor
+    from haybale_haystack.editors.haystack_editor import HaystackEditor
 
     editor = HaystackEditor()
     haystack = MagicMock()
@@ -58,12 +58,20 @@ def editor_and_context():
     data.__getitem__.return_value = edit_stub
     data.edit_stub = edit_stub
 
+    # Post-PR2: the editor calls ``ctx.app_data[HaystackState]`` instead
+    # of ``app.haystack``. Make the AppDataNamespace stub return the same
+    # haystack mock for any class key, so the existing assertions still
+    # work without needing to import HaystackState here.
+    app_data = MagicMock()
+    app_data.__getitem__.return_value = haystack
+
     context = SimpleNamespace(
         app=app,
         session=session,
         active_graph=Reactive(None),
         active_graph_path=Reactive(None),
         data=data,
+        app_data=app_data,
     )
     return editor, context, app, haystack
 
@@ -124,7 +132,7 @@ def test_remove_executing_entry_blocked_before_dialog(editor_and_context):
 
     with (
         patch.object(editor, "_open_remove_confirm_dialog") as mock_dialog,
-        patch("haybale_studio.editors.haystack_editor.ui.notify") as mock_notify,
+        patch("haybale_haystack.editors.haystack_editor.ui.notify") as mock_notify,
     ):
         editor._on_entry_delete(entry, context)
 
@@ -138,7 +146,7 @@ def test_remove_entry_helper_fires_graph_removed_signal_and_close_command(editor
     editor, context, app, haystack = editor_and_context
     entry = _make_entry(path="/tmp/a.haywire", unsaved=False)
 
-    with patch("haybale_studio.editors.haystack_editor.ui.notify"):
+    with patch("haybale_haystack.editors.haystack_editor.ui.notify"):
         editor._remove_entry(entry, context)
 
     # Signal channel: GraphRemoved (cross-session observation, no payload)
@@ -163,7 +171,7 @@ def test_remove_entry_helper_clears_active_graph_when_active(editor_and_context)
     edit.active_graph.value = entry.graph
     edit.active_graph_path.value = entry.path
 
-    with patch("haybale_studio.editors.haystack_editor.ui.notify"):
+    with patch("haybale_haystack.editors.haystack_editor.ui.notify"):
         editor._remove_entry(entry, context)
 
     assert edit.active_graph.value is None

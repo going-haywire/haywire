@@ -30,6 +30,7 @@ if TYPE_CHECKING:
     from ..types.registry import TypeRegistry
     from ..settings import SettingsRegistry
     from ..session.session_manager import SessionManager
+    from ..state import LibraryStateContainer
 
 
 _node_factory: Optional["NodeFactory"] = None
@@ -38,6 +39,7 @@ _type_registry: Optional["TypeRegistry"] = None
 _settings_registry: Optional["SettingsRegistry"] = None
 _session_manager: Optional["SessionManager"] = None
 _workspace_root: Optional[Path] = None
+_library_state_container: Optional["LibraryStateContainer"] = None
 
 
 # ---------------------------------------------------------------------------
@@ -74,6 +76,11 @@ def set_workspace_root(path) -> None:
     """Set the ambient workspace root. Accepts str or Path."""
     global _workspace_root
     _workspace_root = Path(path)
+
+
+def set_library_state_container(container: "LibraryStateContainer") -> None:
+    global _library_state_container
+    _library_state_container = container
 
 
 # ---------------------------------------------------------------------------
@@ -130,3 +137,12 @@ def get_workspace_root() -> Path:
             "Ensure HaywireApp has been initialised before requesting it."
         )
     return _workspace_root
+
+
+def get_library_state_container() -> "LibraryStateContainer":
+    if _library_state_container is None:
+        raise RuntimeError(
+            "LibraryStateContainer not set in ambient context. "
+            "Ensure HaywireApp has been initialised before requesting it."
+        )
+    return _library_state_container

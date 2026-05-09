@@ -9,7 +9,7 @@ from unittest.mock import MagicMock
 
 from haywire.core.session.context_signals import ActiveGraphMoved
 from haywire.core.session.reactive import Reactive
-from haybale_studio.editors.graph_editor import GraphEditor
+from haybale_haystack.editors.graph_editor import GraphEditor
 
 
 def _make_data_with_edit_state(initial_active_graph=None, initial_active_graph_path=None):
@@ -75,7 +75,6 @@ def _make_context(entry: Optional[_FakeEntry], existing_active_graph=None):
     haystack = _FakeHaystack()
     if entry is not None:
         haystack.register(entry)
-    app = SimpleNamespace(haystack=haystack)
     session = _FakeSession()
     # GraphEditor.on_focus reads/writes active_graph via
     # ctx.data[EditState]. Build a fake `data` whose `[EditState]` lookup
@@ -83,12 +82,17 @@ def _make_context(entry: Optional[_FakeEntry], existing_active_graph=None):
     data = _make_data_with_edit_state(
         initial_active_graph=existing_active_graph,
     )
+    # Post-PR2: on_focus calls ctx.app_data.get(HaystackState) instead of
+    # getattr(app, "haystack", None). Wire a MagicMock whose .get() returns
+    # the fake haystack for any key.
+    app_data = MagicMock()
+    app_data.get.return_value = haystack
     ctx = SimpleNamespace(
-        app=app,
         active_graph=Reactive(existing_active_graph),
         active_graph_path=Reactive(None),
         session=session,
         data=data,
+        app_data=app_data,
     )
     session.context = ctx
     return ctx
@@ -178,14 +182,17 @@ def test_on_focus_no_binding_is_noop() -> None:
     assert ctx.data.edit_stub.active_graph.value is None
 
 
-def test_on_focus_no_app_is_noop() -> None:
+def test_on_focus_no_haystack_state_is_noop() -> None:
+    """When ctx.app_data.get(HaystackState) returns None, on_focus is a no-op."""
     session = _FakeSession()
+    app_data = MagicMock()
+    app_data.get.return_value = None
     ctx = SimpleNamespace(
-        app=None,
         active_graph=Reactive(None),
         active_graph_path=Reactive(None),
         session=session,
         data=_make_data_with_edit_state(),
+        app_data=app_data,
     )
     session.context = ctx
     ed = _make_editor_with_payload("/tmp/a.haywire")

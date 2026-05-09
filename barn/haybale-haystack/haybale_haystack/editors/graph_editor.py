@@ -1,4 +1,4 @@
-# packages/haywire-app/src/haywire_studio/editors/graph_editor.py
+# barn/haybale-haystack/haybale_haystack/editors/graph_editor.py
 """
 GraphEditor — wraps GraphCanvasManager as a BaseEditor.
 
@@ -22,9 +22,10 @@ from haywire.ui.editor.base import BaseEditor
 from haywire.core.session.context_signals import ActiveGraphMoved, GraphDataMutated
 from haybale_studio.editors.graph_canvas.graph_canvas_manager import GraphCanvasManager
 from haybale_studio.state.edit_state import EditState
+from haybale_haystack.state.haystack_state import HaystackState
 
 if TYPE_CHECKING:
-    from haywire_studio.haystack import GraphEntry
+    from haybale_haystack.graph_entry import GraphEntry
     from haywire.core.session.context import SessionContext
     from haywire.core.session.context_signals import ContextSignal
     from nicegui.element import Element
@@ -106,12 +107,11 @@ class GraphEditor(BaseEditor):
         if self.wrapper is None or self.wrapper.payload is None:
             return
         payload = self.wrapper.payload
-        app = getattr(context, "app", None)
-        haystack = getattr(app, "haystack", None) if app is not None else None
-        if haystack is None:
+        haystack_state = context.app_data.get(HaystackState)
+        if haystack_state is None:
             return
 
-        entry = haystack.get_by_id(payload)
+        entry = haystack_state.get_by_id(payload)
         session = getattr(context, "session", None)
         if entry is None:
             # Graph entry vanished from the haystack — close ourselves.
@@ -240,12 +240,12 @@ class GraphEditor(BaseEditor):
         identity; the session-level ``active_graph_path`` is no longer
         consulted here.
         """
-        app = self._project_state
-        if app is None or not hasattr(app, "haystack"):
-            return None
         if self.wrapper is None or self.wrapper.payload is None:
             return None
-        return app.haystack.get_by_id(self.wrapper.payload)
+        haystack_state = context.app_data.get(HaystackState)
+        if haystack_state is None:
+            return None
+        return haystack_state.get_by_id(self.wrapper.payload)
 
     # ------------------------------------------------------------------
     # ------------------------------------------------------------------
@@ -325,7 +325,8 @@ class GraphEditor(BaseEditor):
     def _save_graph(self, context: "SessionContext") -> None:
         """Save the active graph; opens Save-As dialog if no path exists yet."""
         app = context.app
-        if app is None or not hasattr(app, "haystack"):
+        haystack_state = context.app_data.get(HaystackState)
+        if haystack_state is None:
             ui.notify("Graph manager not available", type="warning")
             return
 
@@ -336,7 +337,7 @@ class GraphEditor(BaseEditor):
 
         if entry.path is not None:
             # Already has a path — just overwrite it
-            success = app.haystack.save_graph(entry)
+            success = haystack_state.save_graph(entry)
             if success:
                 ui.notify(f"Saved: {entry.path.name}", type="positive", position="top-right")
                 self._update_header(context)
@@ -430,8 +431,8 @@ class GraphEditor(BaseEditor):
 
     def _do_save_as(self, context: "SessionContext", dialog) -> None:
         """Execute the Save-As from within the dialog."""
-        app = context.app
-        if app is None:
+        haystack_state = context.app_data.get(HaystackState)
+        if haystack_state is None:
             ui.notify("App not available", type="warning")
             return
 
@@ -465,7 +466,7 @@ class GraphEditor(BaseEditor):
             return  # stay in the dialog
 
         old_payload = self.wrapper.payload if self.wrapper is not None else None
-        success = app.haystack.save_graph(entry, save_as=save_path)
+        success = haystack_state.save_graph(entry, save_as=save_path)
         if success:
             context.data[EditState].active_graph_path.value = save_path
             session = context.session

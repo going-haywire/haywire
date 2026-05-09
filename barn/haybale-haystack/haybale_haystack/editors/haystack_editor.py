@@ -1,4 +1,4 @@
-# packages/haywire-app/src/haywire_studio/editors/graph_manager_editor.py
+# barn/haybale-haystack/haybale_haystack/editors/haystack_editor.py
 """
 HaystackEditor — open-graphs list for the left area.
 
@@ -33,13 +33,14 @@ from haywire.core.session.context_signals import (
 )
 from haywire.ui.components.popup import Popup
 
-from haybale_studio.editors.graph_editor import GraphEditor
+from haybale_haystack.state.haystack_state import HaystackState
+from haybale_haystack.editors.graph_editor import GraphEditor
 from haybale_studio.state.edit_state import EditState
 
 if TYPE_CHECKING:
     from haywire.core.session.context import SessionContext
     from haywire.core.session.context_signals import ContextSignal
-    from haywire_studio.haystack import GraphEntry
+    from haybale_haystack.graph_entry import GraphEntry
     from nicegui.element import Element
 
 
@@ -71,7 +72,7 @@ class HaystackEditor(BaseEditor):
     The shell reveals the matching tab, then GraphEditor.on_focus updates
     context.data[EditState].active_graph / active_graph_path and broadcasts ACTIVE_GRAPH_CHANGED.
 
-    The "+" header button calls app.haystack.create_new() and fires
+    The "+" header button calls HaystackState.create_new() and fires
     EDITOR_FOCUSED with reveal_editor=GraphEditor to activate the
     freshly created entry.
     """
@@ -168,19 +169,20 @@ class HaystackEditor(BaseEditor):
         self._list_container.clear()
 
         app = context.app
-        if app is None or not hasattr(app, "haystack"):
+        if app is None:
             with self._list_container:
                 ui.label("Graph manager not available").classes("text-xs hw-text-dim p-2 italic")
             return
 
-        entries = app.haystack.all_entries()
+        hs = context.app_data[HaystackState]
+        entries = hs.all_entries()
 
         with self._list_container:
             self._render_add_bar(context)
             if not entries:
                 ui.label("No graphs open").classes("text-xs hw-text-dim p-2 italic")
                 return
-            for entry in entries.values():
+            for entry in entries:
                 self._render_entry(entry, context)
 
     def _render_entry(self, entry: "GraphEntry", context: "SessionContext") -> None:
@@ -279,12 +281,13 @@ class HaystackEditor(BaseEditor):
     def _on_entry_save(self, entry: "GraphEntry", context: "SessionContext") -> None:
         """Save a graph; opens save-as dialog if untitled."""
         app = context.app
-        if app is None or not hasattr(app, "haystack"):
+        if app is None:
             ui.notify("Graph manager not available", type="warning")
             return
 
+        hs = context.app_data[HaystackState]
         if entry.path is not None:
-            success = app.haystack.save_graph(entry)
+            success = hs.save_graph(entry)
             if success:
                 ui.notify(f"Saved: {entry.path.name}", type="positive", position="top-right")
                 self._notify_data_mutated(context)
@@ -298,7 +301,7 @@ class HaystackEditor(BaseEditor):
     def _on_entry_save_as(self, entry: "GraphEntry", context: "SessionContext") -> None:
         """Always open the save-as dialog."""
         app = context.app
-        if app is None or not hasattr(app, "haystack"):
+        if app is None:
             ui.notify("Graph manager not available", type="warning")
             return
         self._open_save_as_dialog(app, entry, context)
@@ -320,7 +323,7 @@ class HaystackEditor(BaseEditor):
             ui.notify("Stop execution before removing", type="warning")
             return
         app = context.app
-        if app is None or not hasattr(app, "haystack"):
+        if app is None:
             ui.notify("Graph manager not available", type="warning")
             return
 
@@ -335,10 +338,9 @@ class HaystackEditor(BaseEditor):
         """Tear down a graph entry: stop execution, remove, notify.
 
         Pre-condition: ``entry`` is not executing and the haystack is available.
-        Callers are responsible for the ``is_executing`` / ``hasattr`` guards
+        Callers are responsible for the ``is_executing`` guard
         and for any dirty-state confirmation flow before invoking this.
         """
-        app = context.app
         is_active = entry.graph is context.data[EditState].active_graph.value
         removed_id = entry.entry_id  # capture before remove_entry drops
 
@@ -346,7 +348,8 @@ class HaystackEditor(BaseEditor):
         entry.stop_execution()
 
         # Remove from haystack
-        app.haystack.remove_entry(entry)
+        hs = context.app_data[HaystackState]
+        hs.remove_entry(entry)
 
         session = context.session
         if session is not None:
@@ -399,7 +402,8 @@ class HaystackEditor(BaseEditor):
             ui.label("What would you like to do?").classes("text-sm hw-text-dim")
 
             def _save_and_remove():
-                success = app.haystack.save_graph(entry)
+                hs = context.app_data[HaystackState]
+                success = hs.save_graph(entry)
                 if success:
                     self._notify_data_mutated(context)
                     self._remove_entry(entry, context)
@@ -464,12 +468,13 @@ class HaystackEditor(BaseEditor):
                     return
 
                 app = context.app
-                if app is None or not hasattr(app, "haystack"):
+                if app is None:
                     ui.notify("Graph manager not available", type="warning")
                     popup.close()
                     return
 
-                success = app.haystack.rename_graph(entry, new_name)
+                hs = context.app_data[HaystackState]
+                success = hs.rename_graph(entry, new_name)
                 if success:
                     session = context.session
                     if entry.graph is context.data[EditState].active_graph.value:
@@ -567,7 +572,8 @@ class HaystackEditor(BaseEditor):
                     exists_warning.set_visibility(True)
                     return
 
-                success = app.haystack.save_graph(entry, save_as=save_path)
+                hs = context.app_data[HaystackState]
+                success = hs.save_graph(entry, save_as=save_path)
                 if success:
                     session = context.session
                     if entry.graph is context.data[EditState].active_graph.value:
@@ -596,10 +602,11 @@ class HaystackEditor(BaseEditor):
         """Create a new unnamed graph and activate it."""
         app: IProjectState = context.app
         session = context.session
-        if app is None or session is None or not hasattr(app, "haystack"):
+        if app is None or session is None:
             return
 
-        entry = app.haystack.create_new()
+        hs = context.app_data[HaystackState]
+        entry = hs.create_new()
         session.lifecycle(
             Reveal(
                 editor=GraphEditor,
@@ -642,12 +649,12 @@ class HaystackEditor(BaseEditor):
     def _on_save_haystack(self, context: "SessionContext") -> None:
         """Save the current set of open graphs as a haystack."""
         app: IProjectState = context.app
-        if app is None or not hasattr(app, "haystack"):
+        if app is None:
             ui.notify("Graph manager not available", type="warning")
             return
 
-        gm = app.haystack
-        haystacks = gm.list_haystacks()
+        hs = context.app_data[HaystackState]
+        haystacks = hs.list_haystacks()
 
         popup = Popup(
             title="Save Haystack",
@@ -672,8 +679,19 @@ class HaystackEditor(BaseEditor):
                 if not name:
                     ui.notify("Name cannot be empty", type="warning")
                     return
+                # Task 9 will remove the haystack save from app.save_workspace;
+                # this is the new authoritative call site for haystack TOML
+                # persistence. Until Task 9 lands, save_workspace also writes
+                # the same TOML — the duplicate write is harmless (verified in
+                # Task 4 that the schema matches legacy).
+                from haybale_haystack import persistence
+                from haywire.core.di.context import get_workspace_root
+
+                active_path = context.data[EditState].active_graph_path.value
+                persistence.dump_haystack(hs, get_workspace_root(), name, active_path=active_path)
+
                 context.app.workspace_manager.snapshot["haystack"] = name
-                context.app.save_workspace(active_graph_path=context.data[EditState].active_graph_path.value)
+                context.app.save_workspace(active_graph_path=active_path)
                 self._update_header_title(context)
                 ui.notify(f"Haystack '{name}' saved", type="positive")
                 popup.close()
@@ -685,18 +703,18 @@ class HaystackEditor(BaseEditor):
     def _on_load_haystack(self, context: "SessionContext") -> None:
         """Load a haystack, replacing all currently open graphs."""
         app: IProjectState = context.app
-        if app is None or not hasattr(app, "haystack"):
+        if app is None:
             ui.notify("Graph manager not available", type="warning")
             return
 
-        gm = app.haystack
-        haystacks = gm.list_haystacks()
+        hs = context.app_data[HaystackState]
+        haystacks = hs.list_haystacks()
 
         if not haystacks:
             ui.notify("No haystacks found", type="info")
             return
 
-        unsaved = gm.unsaved_entries()
+        unsaved = hs.unsaved_entries()
 
         popup = Popup(
             title="Load Haystack",
@@ -723,14 +741,29 @@ class HaystackEditor(BaseEditor):
 
             def _do_load():
                 name = haystack_select.value
-                entries, active_rel = gm.load_haystack(name)
 
-                active_entry = None
-                if active_rel:
-                    ws_root = Path(app.workspace_root)
-                    active_entry = gm.get_by_path(ws_root / active_rel)
-                if active_entry is None and entries:
-                    active_entry = entries[0]
+                # persistence.load_haystack does NOT clear the existing entries
+                # — that responsibility was deliberately moved to the caller
+                # when the I/O was extracted into pure helpers. Clear the
+                # registry first so the loaded set replaces, not appends.
+                for existing in list(hs.all_entries()):
+                    hs.remove_entry(existing)
+
+                from haybale_haystack import persistence
+                from haywire.core.di.context import get_workspace_root
+
+                workspace_root = get_workspace_root()
+                active_path = persistence.load_haystack(hs, workspace_root, name)
+
+                # Resolve the active entry from the returned absolute path,
+                # falling back to the first entry if missing/None.
+                active_entry: Optional["GraphEntry"] = None
+                if active_path is not None:
+                    active_entry = hs.get_by_path(active_path)
+                if active_entry is None:
+                    entries = hs.all_entries()
+                    if entries:
+                        active_entry = entries[0]
 
                 context.app.workspace_manager.snapshot["haystack"] = name
                 context.app.save_workspace(active_graph_path=context.data[EditState].active_graph_path.value)
@@ -761,16 +794,16 @@ class HaystackEditor(BaseEditor):
     def _on_open_graph(self, context: "SessionContext") -> None:
         """Open a dialog to pick an existing .haywire file to add to the haystack."""
         app = context.app
-        if app is None or not hasattr(app, "haystack"):
+        if app is None:
             ui.notify("Graph manager not available", type="warning")
             return
 
-        gm = app.haystack
+        hs = context.app_data[HaystackState]
         workspace_root = Path(getattr(app, "workspace_root", str(Path.home())))
 
         # Scan for all .haywire files, excluding those already open
-        all_files = gm.list_graph_files()
-        open_paths = {entry.path for entry in gm.all_entries().values() if entry.path is not None}
+        all_files = hs.list_graph_files()
+        open_paths = {entry.path for entry in hs.all_entries() if entry.path is not None}
         available = [f for f in all_files if f not in open_paths]
 
         if not available:
@@ -812,12 +845,12 @@ class HaystackEditor(BaseEditor):
 
                 path = options[selected]
                 session = context.session
-                if session is None or not hasattr(app, "haystack"):
+                if session is None:
                     ui.notify("Graph manager not available", type="warning")
                     popup.close()
                     return
 
-                entry = app.haystack.open_graph(path)
+                entry = hs.open_graph(path)
                 session.lifecycle(
                     Reveal(
                         editor=GraphEditor,
@@ -884,12 +917,13 @@ class HaystackEditor(BaseEditor):
                     return
 
                 app = context.app
-                if app is None or not hasattr(app, "haystack"):
+                if app is None:
                     ui.notify("Graph manager not available", type="warning")
                     popup.close()
                     return
 
-                success = app.haystack.rename_haystack(old_name, new_name)
+                hs = context.app_data[HaystackState]
+                success = hs.rename_haystack(old_name, new_name)
                 if success:
                     context.app.workspace_manager.snapshot["haystack"] = new_name
                     context.app.save_workspace(

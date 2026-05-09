@@ -1,15 +1,15 @@
 """
 HaywireApp — main application entry point.
 
-Manages shared services (graph manager, libraries) and per-session UI shells.
+Manages shared services (libraries) and per-session UI shells.
 Each browser connection gets its own Session and AppShell; all sessions share
-the same library registry and Haystack.
+the same library registry.
 
 Execution is per-graph: each GraphEntry owns its own Interpreter,
 started/stopped via entry.start_execution() / entry.stop_execution().
 
-On startup the last-used haystack (if any) is auto-loaded from
-``workspace_state.json``.  Otherwise the app starts with no graphs open.
+Haystack lifecycle (open graphs, auto-load on startup) is handled by
+HaystackState, accessed via ctx.app_data[HaystackState].
 """
 
 import os
@@ -36,7 +36,12 @@ logger = logging.getLogger(__name__)
 
 
 class HaywireApp:
-    """Main Haywire application."""
+    """Main Haywire application.
+
+    Constructs shared services (library system, session manager, workspace manager)
+    and registers per-session UI shells.  Graph/haystack lifecycle is delegated
+    to HaystackState (accessed via ctx.app_data[HaystackState]).
+    """
 
     def __init__(self, workspace_root: str | None = None):
         self.workspace_root = workspace_root or os.getcwd()
@@ -68,14 +73,7 @@ class HaywireApp:
         print(f"  Cleaning up {self.session_manager.session_count} sessions...")
         self.session_manager.cleanup_all()
 
-        # 2. Clean up graph manager (stops per-graph interpreters, clears entries)
-        try:
-            if hasattr(self, "haystack"):
-                self.haystack.cleanup()
-        except Exception as e:
-            print(f"  Error cleaning up graph manager: {e}")
-
-        # 3. Clean up console bridge
+        # 2. Clean up console bridge
         try:
             bridge = get_bridge()
             bridge.log_elements.clear()
@@ -83,7 +81,7 @@ class HaywireApp:
         except Exception as e:
             print(f"  Error cleaning up console bridge: {e}")
 
-        # 4. Cleanup library system
+        # 3. Cleanup library system
         try:
             if hasattr(self.library_service, "cleanup"):
                 self.library_service.cleanup()
@@ -155,17 +153,6 @@ class HaywireApp:
         # also publishes it via set_session_manager() into the ambient context.
         self.session_manager = self.library_service.injector.get(SessionManager)
 
-        # Graph manager — starts empty; graphs are created/opened on demand.
-        # Haystack auto-load is deferred to main_page so it can guard against
-        # multiple sessions reconnecting to an already-populated haystack.
-        from .haystack import Haystack
-
-        self.haystack = Haystack(
-            workspace_root=Path(self.workspace_root),
-            graph_factory=self._graph_factory,
-            session_manager=self.session_manager,
-        )
-
         from haywire.core.session.workspace.manager import WorkspaceManager
 
         self.workspace_manager = WorkspaceManager(project_path=Path(self.workspace_root))
@@ -183,7 +170,7 @@ class HaywireApp:
         print("Shared services configured successfully.")
 
     # ------------------------------------------------------------------
-    # Graph factory (shared by Haystack)
+    # Graph factory
     # ------------------------------------------------------------------
 
     def _graph_factory(self, graph_id: str, name: str) -> tuple[BaseGraph, Editor]:
@@ -192,39 +179,20 @@ class HaywireApp:
         e = Editor(g, self.node_factory, undo_config=self.undo_config)
         return g, e
 
-    # ------------------------------------------------------------------
-    # Haystack auto-load
-    # ------------------------------------------------------------------
-
-    def try_load_startup_haystack(self) -> None:
-        """Load the last-used haystack on startup (if configured)."""
-        haystack_name = self.workspace_manager.snapshot.get("haystack")
-        if not haystack_name:
-            return
-        if self.haystack.all_entries():
-            return
-        try:
-            self.haystack.load_haystack(haystack_name)
-            logger.info(f"Startup haystack '{haystack_name}' loaded")
-        except Exception as exc:
-            logger.warning(f"Failed to load startup haystack '{haystack_name}': {exc}")
-
     def save_workspace(self, shell=None, active_graph_path=None) -> None:
-        """Save haystack and workspace snapshot atomically.
+        """Save workspace snapshot atomically.
 
         Args:
             shell: The active AppShell. When provided, collects the current slot
                 snapshot from it. When None, re-saves the existing snapshot.
-            active_graph_path: Path of the currently active graph to store in
-                the haystack TOML.
+            active_graph_path: Path of the currently active graph (unused here;
+                retained for call-site compatibility — callers that need to persist
+                haystack state call persistence.dump_haystack before this).
         """
-        haystack_name = self.workspace_manager.snapshot.get("haystack") or "default"
-        self.haystack.save_haystack(haystack_name, active_graph_path=active_graph_path)
         snapshot = self.workspace_manager.snapshot.copy()
         if shell is not None:
             slot_data = shell.collect_snapshot()
             snapshot.update(slot_data)
-            snapshot["haystack"] = haystack_name
         self.workspace_manager.save(snapshot)
 
     # ------------------------------------------------------------------
@@ -247,10 +215,6 @@ class HaywireApp:
             print(f"Creating UI for session: {context.client.id[:8]}")
 
             editor_registry = self.library_service.injector.get(EditorTypeRegistry)
-
-            # Only load haystack on first session connect
-            if not self.haystack.all_entries():
-                self.try_load_startup_haystack()
 
             haywire_session = self.session_manager.create_session(
                 project_state=self,
