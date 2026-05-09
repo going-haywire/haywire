@@ -126,197 +126,37 @@ from haywire.ui.widget.decorator import widget
 from haywire.ui.widget.interface import IWidget
 ```
 
-## 4. One comprehensive example
+## 4. Live example from the codebase
 
-A widget exercising every concept above: a `NumberWidget` (the primary primitive widget; `SimpleWidget`-based with full config-driven properties) plus a read-only `FormattedDisplayWidget` (display-only, also `SimpleWidget`-based), plus a `MathOperationWidget` (uses `compatible_types` with a derived primitive `MathOperation` type and the `choices`-driven select pattern). All registered through a library.
+Source: [`barn/haybale-example/haybale_example/widgets/knob_widget.py`](../../../barn/haybale-example/haybale_example/widgets/knob_widget.py)
+
+`KnobWidget` — a `SimpleWidget` binding a `ui.knob` element to `FLOAT` or `INT` ports. Demonstrates the full `SimpleWidget` authoring surface: `@widget` decorator with `compatible_types`, `create_element()` reading `self._config`, and `get_default_value()`:
 
 ```python
-# my_lib/widgets/inputs.py
-from typing import Any
-from nicegui import ui
+--8<-- "barn/haybale-example/haybale_example/widgets/knob_widget.py:knob_widget"
+```
 
-from haywire.ui.widget.simple import SimpleWidget
-from haywire.ui.widget.decorator import widget
-from haywire.ui.components.number.drag import NumberDrag
+Using it from a node's `init()`:
 
-from haybale_core.types import FLOAT, INT, STRING
-
-# ── 1. Number widget — the bread-and-butter SimpleWidget ──────────────
-
-@widget(
-    description='Blender-style number input',
-    compatible_types=[FLOAT, INT],
-)
-class NumberWidget(SimpleWidget):
-    """
-    Drag horizontally to change value, click to type, arrow buttons on hover.
-    Driven entirely by widget_config:
-
-      NumberWidget.config(properties={
-          'min': 0, 'max': 200, 'step': 0.5, 'precision': 2,
-      })
-    """
-
-    # UI_PROPERTY/UI_EVENT use the SimpleWidget defaults ('value' / 'update:modelValue')
-    # IS_READONLY is False by default → two-way binding active
-
-    def create_element(self) -> Any:
-        # widget_config is forwarded to NumberDrag — pass-through pattern
-        props = self._config.get('properties', {})
-        kwargs: dict[str, Any] = {'value': 0}
-        for prop in ['min', 'max', 'step', 'precision', 'prefix', 'suffix']:
-            if prop in props:
-                kwargs[prop] = props[prop]
-        return NumberDrag(**kwargs).classes('w-full')
-
-    def get_default_value(self) -> float:
-        return 0.0
-
-# ── 2. Read-only display widget — IS_READONLY = True ──────────────────
-
-@widget(
-    description='Formatted display of a numeric value',
-    compatible_types=[FLOAT, INT],
-)
-class FormattedDisplayWidget(SimpleWidget):
-    """
-    Read-only widget for outlet display. Demonstrates IS_READONLY:
-    no view-to-model handler is registered, so user can't change the
-    rendered value through the UI (just as well — it's an outlet).
-
-    widget_config:
-      - 'format': a Python format string (default '{:.2f}')
-      - 'unit': suffix to append (e.g. ' kg')
-    """
-
-    UI_PROPERTY = 'text'           # ui.label uses .text, not .value
-    IS_READONLY = True             # no view-to-model binding
-
-    def create_element(self) -> Any:
-        return ui.label('0').classes('text-right font-mono')
-
-    def _sync_to_view(self) -> None:
-        # Override _sync_to_view to format the value before writing to .text.
-        # SimpleWidget's default _sync_to_view writes the raw value; we want
-        # a formatted string instead.
-        value = self.port.get_value()
-        if value is None:
-            value = self.get_default_value()
-        props = self._config.get('properties', {})
-        fmt = props.get('format', '{:.2f}')
-        unit = props.get('unit', '')
-        try:
-            text = fmt.format(value) + unit
-        except (TypeError, ValueError):
-            text = str(value)
-        self.ui_element.text = text
-
-    def get_default_value(self) -> float:
-        return 0.0
-
-# ── 3. Choices-driven widget for a custom primitive type ──────────────
-# (The MathOperation type itself lives in my_lib/types/, see datatype-canon.md.)
-
-from ..types.math_operation import MathOperation
-
-@widget(
-    description='Select a math operation',
-    compatible_types=[MathOperation],
-)
-class MathOperationWidget(SimpleWidget):
-    """
-    Drop-down widget for a derived STRING primitive whose values come from
-    the type's `choices` parameter.
-
-    Demonstrates:
-      - widget tied to a *custom* datatype, not a built-in primitive
-      - reading choices from widget_config (could also come from the type)
-    """
-
-    def create_element(self) -> Any:
-        props = self._config.get('properties', {})
-        # Allow per-port override of options; fall back to the operation enum
-        options = props.get('options', ['add', 'subtract', 'multiply', 'divide'])
-        return ui.select(options=options, value=options[0]).classes('w-full')
-
-    def get_default_value(self) -> str:
-        return 'add'
-
-# ── 4. Library registration ───────────────────────────────────────────
-# my_lib/__init__.py
-from haywire.core.library.base import BaseLibrary
-from haywire.core.library.decorator import library
-
-@library(label='My Lib', file_watcher=True)
-class Library(BaseLibrary):
-    """register_components scans the widgets/ folder and the @widget
-    decorator on each class registers it with WidgetRegistry."""
-
-    def register_components(self, registries):
-        # WidgetRegistry is auto-populated via BaseRegistry hot-reload —
-        # no explicit register call needed for @widget-decorated classes
-        # in the widgets/ folder.
-        pass
-
-    def validate(self) -> bool:
-        return True
-
-# ── 5. Using the widgets from a node ──────────────────────────────────
-
-from haywire.core.node.base import BaseNode
-from haywire.core.node.decorator import node
-
-@node(label='Calculator', menu='math')
-class CalculatorNode(BaseNode):
-
-    def init(self):
-        # Use NumberWidget with custom config
-        self.add(FLOAT.as_inlet(
-            'a', label='A',
-            widget_key='my_lib:widget:NumberWidget',
-            widget_config={
-                'properties': {'min': -100, 'max': 100, 'step': 0.1, 'precision': 2},
-            },
-        ))
-        self.add(FLOAT.as_inlet(
-            'b', label='B',
-            widget_key='my_lib:widget:NumberWidget',
-            widget_config={'properties': {'min': -100, 'max': 100, 'step': 0.1}},
-        ))
-
-        # Custom-type port → MathOperationWidget is auto-selected because
-        # MathOperation is in compatible_types
-        self.add(MathOperation.as_inlet('op', label='Operation'))
-
-        # Outlet uses the read-only display widget
-        self.add(FLOAT.as_outlet(
-            'result',
-            widget_key='my_lib:widget:FormattedDisplayWidget',
-            widget_config={'properties': {'format': '{:.3f}', 'unit': ''}},
-        ))
-
-    def worker(self, context, a: float, b: float, op: str):
-        result = {
-            'add': a + b, 'subtract': a - b,
-            'multiply': a * b, 'divide': a / b if b else 0.0,
-        }[op]
-        self.out('result', result)
+```python
+self.add(FLOAT.as_inlet(
+    'angle',
+    label='Angle',
+    widget=KnobWidget.config(properties={'min': 0, 'max': 360, 'step': 1, 'color': 'teal'}),
+))
 ```
 
 What this example exercises:
 
 | Concept | Where |
 |---|---|
-| `@widget(compatible_types=[...])` decorator | every widget class |
-| `SimpleWidget` for two-way primitive binding | `NumberWidget` |
-| `widget_config['properties']` driving element kwargs | `NumberWidget.create_element` |
-| `get_default_value()` override | every widget |
-| `IS_READONLY = True` for display-only widgets | `FormattedDisplayWidget` |
-| Overriding `UI_PROPERTY` (here `'text'` for `ui.label`) | `FormattedDisplayWidget` |
-| Overriding `_sync_to_view` to format the value | `FormattedDisplayWidget` |
-| Widget tied to a custom datatype | `MathOperationWidget` for `MathOperation` |
-| Library registration via `BaseLibrary` (hot-reload aware) | `Library.register_components` |
-| Per-port `widget_key` + `widget_config` overrides | `CalculatorNode.init` |
+| `@widget(compatible_types=[FLOAT, INT])` decorator | class decoration |
+| `SimpleWidget` subclass for two-way primitive binding | `KnobWidget(SimpleWidget)` |
+| `create_element()` returning a NiceGUI element | `ui.knob(...)` |
+| `self._config.get('properties', {})` driving element kwargs | `min`, `max`, `step`, `color`, `size` |
+| `get_default_value()` override | returns `0.0` |
+| `UI_PROPERTY` / `UI_EVENT` at defaults (`'value'` / `'update:modelValue'`) | not overridden — knob uses the defaults |
+| `T.config(properties={...})` call-site pattern | usage example above |
 
 For datatype authoring (including the `MathOperation` derived primitive used here), see [components/datatypes](../datatypes/datatype-canon.md). For the underlying port surface (`as_inlet`, `widget_config`, `widget_key`), see [guides/ports](../../guides/ports.md). For type-pair adapters (used when an outlet of one type connects to an inlet of a different type), see [components/adapters](../adapters/adapter-canon.md).
 

@@ -122,145 +122,52 @@ inlet.data.get_source_ids()    # ['node_a', 'node_b', 'node_c']
 
 Both are explained in [components/nodes](../components/nodes/node-canon.md) §3.
 
-## 4. One comprehensive example
+## 4. Live examples from the codebase
 
-A worked example exercising every port shape, callback, and worker access pattern: a `MultiSourceAggregator` node that accepts a single threshold (primitive inlet), an array of weights (array inlet), a pool of incoming values (pooled inlet), a label (config), and emits a result + a log array. It uses `on_change` to recompute on threshold changes and `is_linked()` to detect optional connections.
+### Port shapes — declaration
+
+Source: [`barn/haybale-testing/haybale_testing/nodes/testbed/edge_link_test.py`](../../barn/haybale-testing/haybale_testing/nodes/testbed/edge_link_test.py)
+
+`EdgeLinkTestNode` exercises every port shape in `init()`: primitive inlets and outlets, `ArrayType[T]` outlets, `PooledType[T]` inlets, and `EXEC` for control flow. It is purpose-built as a connection testbed, so its `worker` is intentionally empty:
 
 ```python
-from haywire.core.node.base import BaseNode
-from haywire.core.node.decorator import node
-from haywire.core.node.behavior import NodeType
-from haywire.core.execution.execution_context import ExecutionContext
-
-@node(
-    label='Multi-Source Aggregator',
-    description='Aggregates a pool of values weighted by an array',
-    menu='math/aggregate',
-    search_tags=['aggregate', 'pool', 'weight'],
-    node_type=NodeType.DATA,
-)
-class MultiSourceAggregator(BaseNode):
-
-    def init(self):
-        from ..types.specs import FLOAT, INT, STRING, BOOL
-        from haywire.core.types.array_type import ArrayType
-        from haywire.core.types.pooled_type import PooledType
-        from haybale_core.widgets.basic_widgets import NumberWidget
-
-        # ── Primitive inlet with default and on_change callback ───────
-        self.add(FLOAT.as_inlet(
-            'threshold',
-            label='Threshold',
-            default=0.5,
-            widget=NumberWidget.config(),
-            on_change='hb_threshold_changed',
-        ))
-
-        # ── Array inlet (one connection, list of typed values) ────────
-        self.add(ArrayType[FLOAT].as_inlet(
-            'weights',
-            label='Weights',
-            default=[1.0, 1.0, 1.0],
-        ))
-
-        # ── Pooled inlet (multiple connections, dict to worker) ───────
-        # PooledType is inlet-only — as_outlet would raise.
-        self.add(PooledType[FLOAT].as_inlet(
-            'values',
-            label='Values to Aggregate',
-        ))
-
-        # ── Config port (no pin on canvas, only in property panel) ────
-        self.add(STRING.as_config(
-            'label',
-            label='Label',
-            default='aggregator',
-        ))
-
-        # ── Optional inlet — used only when connected ─────────────────
-        self.add(FLOAT.as_inlet(
-            'gain',
-            label='Gain (optional)',
-            default=1.0,
-        ))
-
-        # ── Outlets: a primitive, an array, a flag ────────────────────
-        self.add(FLOAT.as_outlet('result', label='Aggregated result'))
-        self.add(ArrayType[FLOAT].as_outlet('per_source', label='Per-source values'))
-        self.add(BOOL.as_outlet('above_threshold', label='Above threshold?'))
-        self.add(INT.as_outlet('source_count', label='Source count'))
-
-    # hb_* prefix → safe across framework updates
-    def hb_threshold_changed(self, *args, **kwargs):
-        # Could trigger UI refresh, log, etc. Called whenever 'threshold'
-        # is edited from the property panel.
-        pass
-
-    def worker(
-        self,
-        context: ExecutionContext,
-        threshold: float = 0.5,
-        weights: list = None,
-        values: dict = None,    # pooled — dict[source_id, value]
-        gain: float = 1.0,
-    ) -> str | None:
-        """
-        Demonstrates all worker access patterns.
-
-        - threshold, weights, values, gain → arrive by named parameter
-        - 'label' (config) → read with self.value('label')
-        - 'gain' optionality → checked with self.ports['gain'].is_linked()
-        """
-        # Read a config port that wasn't bound by parameter:
-        label = self.value('label')
-
-        # Detect whether an optional inlet is actually connected.
-        # is_linked() is the canonical API — older docs may show
-        # is_connected, which doesn't exist.
-        gain_active = self.ports['gain'].is_linked()
-        effective_gain = gain if gain_active else 1.0
-
-        # Pooled value comes in as a dict; default for safety.
-        values = values or {}
-        weights = weights or []
-
-        # Aggregate: weighted sum, falling back to equal weights.
-        per_source = []
-        for i, (src_id, v) in enumerate(values.items()):
-            w = weights[i] if i < len(weights) else 1.0
-            per_source.append(v * w * effective_gain)
-
-        result = sum(per_source) if per_source else 0.0
-
-        # Pooled access also exposes helpers via the underlying field.
-        # Equivalent to len(values), shown for completeness.
-        source_count = len(self.ports['values'].data.get_source_ids())
-
-        # Write all outlets — never wrap; just pass the raw value.
-        self.out('result', result)
-        self.out('per_source', per_source)
-        self.out('above_threshold', result > threshold)
-        self.out('source_count', source_count)
-
-        # Optional debug — uses the config port we read above.
-        # context.log_debug(f'{label}: aggregated {source_count} sources -> {result:.3f}')
+--8<-- "barn/haybale-testing/haybale_testing/nodes/testbed/edge_link_test.py:edge_link_test_node"
 ```
 
-What this example exercises:
+What this example covers for port shapes:
 
 | Concept | Where it shows up |
 |---|---|
-| Primitive inlet with `default` and `on_change` | `threshold` |
-| Array inlet (`ArrayType[FLOAT]`) with default list | `weights` |
-| Pooled inlet (`PooledType[FLOAT]`, inlet-only) | `values` |
-| Config port (no canvas pin) | `label` |
-| Multiple outlets in different shapes | `result`, `per_source`, `above_threshold`, `source_count` |
-| Worker parameter binding by name | `threshold`, `weights`, `values`, `gain` |
-| `self.value(id)` for non-bound ports | `self.value('label')` |
-| `self.ports[id].is_linked()` for optional inlets | `self.ports['gain'].is_linked()` |
-| Pooled field helpers | `self.ports['values'].data.get_source_ids()` |
-| `self.out(id, value)` (no wrapping) | result, per_source, above_threshold, source_count |
-| `on_change` callback hooks (`hb_*` convention) | `hb_threshold_changed` |
+| Primitive inlet / outlet | `TEST_BOOL`, `TEST_INT`, `TEST_FLOAT`, `TEST_STRING` |
+| Derived type inlet (hierarchy) | `TEST_TEMPERATURE` — subtype of `FLOAT` |
+| `PooledType[T].as_inlet(...)` (inlet-only) | `pooled_bool_inlet`, `pooled_int_inlet`, etc. |
+| `ArrayType[T].as_outlet(...)` | `array_bool_outlet`, `array_int_outlet`, etc. |
+| `PooledType[ArrayType[T]].as_inlet(...)` | `pooled_array_string_inlet` — nested shapes |
+| `EXEC` inlet + outlet | `execute_inlet`, `execute_out` |
+| `CALLBACK` inlet + outlet | `callback_inlet`, `callback_outlet` |
+
+### Pooled worker access
+
+Source: [`barn/haybale-testing/haybale_testing/nodes/testbed/emit_callback_node.py`](../../barn/haybale-testing/haybale_testing/nodes/testbed/emit_callback_node.py)
+
+`TestEmitCallbackNode` shows how a pooled inlet is consumed in a worker: the value arrives as a `dict`, iterated to dispatch to multiple listeners. It also demonstrates `on_change` on a pooled inlet, `post_init()` for non-serializable state, and `GROUP.as_config` for a collapsible config section:
+
+```python
+--8<-- "barn/haybale-testing/haybale_testing/nodes/testbed/emit_callback_node.py:test_emit_callback_node"
+```
+
+What this example covers for worker access:
+
+| Concept | Where it shows up |
+|---|---|
+| `PooledType[CALLBACK].as_inlet(...)` | `edge_callback` — collects multiple listener IDs |
+| Pooled value arrives as `dict` in worker | `edge_callbacks` parameter, iterated with `.values()` |
+| `on_change='printout'` on a pooled inlet | called when connections change |
+| `GROUP.as_config(...)` collapsible config section | `mode_switch` group with `custom_callback_name` |
+| `STRING.as_config(...)` inside a group | `custom_callback_name` — panel-only, no canvas pin |
+| `post_init()` for non-serializable state | `self.callback_index = 0` |
+| Worker named parameter binding | `mode_switch`, `sequential_mode`, `edge_callbacks`, etc. |
+| `context.emit_callback(event_name=..., payload=...)` | dispatches to all or one listener |
 
 For declarative settings instead of config ports, see [components/settings](../components/settings/setting-canon.md). For the lifecycle hooks that surround `worker()` (`init`, `post_init`, `on_validate`, etc.), see [components/nodes](../components/nodes/node-canon.md). For the dynamic `rejig()` pattern that adds and removes ports based on a config value, see [components/nodes §3](../components/nodes/node-canon.md#3-important-concepts).
 

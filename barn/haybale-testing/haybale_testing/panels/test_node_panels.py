@@ -19,6 +19,7 @@ if TYPE_CHECKING:
     from haywire.ui.context import SessionContext
 
 
+# --8<-- [start:test_delete_node_panel]
 @panel(
     action=TestNodeContextActions,
     focus=TestNodeFocus,
@@ -46,6 +47,9 @@ class TestDeleteNodePanel(BasePanel):
             icon=hui.icon.delete,
             on_click=lambda: actions.test_delete_node(node_id),
         )
+
+
+# --8<-- [end:test_delete_node_panel]
 
 
 @panel(

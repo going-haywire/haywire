@@ -67,7 +67,7 @@ haybale-mylib/                  ← git repo / pip distribution name
     themes/
 ```
 
-You can omit any subfolder you don't use. The `Library.register_components()` method makes one `add_folder_to_registry()` call per category (see [components/libraries §4](../libraries/library-canon.md#4-one-comprehensive-example)).
+You can omit any subfolder you don't use. The `Library.register_components()` method makes one `add_folder_to_registry()` call per category (see [components/libraries §4](../libraries/library-canon.md#4-live-example-from-the-codebase)).
 
 **Two valid layouts: package or flat.** *Package* layout is what you want for any distributable library — `haybale-mylib/` contains a `pyproject.toml` and the Python module nested below it. *Flat* layout (the Python module sitting alone in a directory, no `pyproject.toml`) is only useful for ad-hoc libraries loaded via the framework's `library_paths` config — they get the `FOLDER` install type and skip the pip layer entirely. Use package layout unless you have a specific reason not to.
 
@@ -127,7 +127,7 @@ Creates `<project>/.haywire/marketplace.toml` and a `libs/haybale-<name>/` skele
 
 ## 4. One comprehensive example
 
-A complete haybale `haybale-image` exercising every packaging concept: package layout, entry point, build configuration, dependency declaration, all six conventional subfolders (the `Library` class lives in [components/libraries §4](../libraries/library-canon.md#4-one-comprehensive-example)), the README format the library manager renders, and a recommended `marketplace.toml` snippet for distribution.
+A complete haybale `haybale-image` exercising every packaging concept: package layout, entry point, build configuration, dependency declaration, all six conventional subfolders (the `Library` class lives in [components/libraries §4](../libraries/library-canon.md#4-live-example-from-the-codebase)), the README format the library manager renders, and a recommended `marketplace.toml` snippet for distribution.
 
 ### Folder layout
 

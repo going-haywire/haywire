@@ -14,11 +14,11 @@ see-also:
 
 ## 1. Mental model
 
-Hot-reload is the framework's response to a `.py` file change in a library that has `file_watcher=True`. It re-imports the changed module, re-registers any decorated classes from that module under their existing `registry_key`s, and rebuilds every wrapper that referenced the old class so user code sees only the new class.
+Hot-reload is the framework's response to a `.py` file change in a library that has `file_watcher=True`. It re-imports the changed module, re-registers any decorated classes from that module under their existing `registry_key`s, and allows thus every wrapper to rebuild the referenced class on the spot.
 
 It is a **cross-cutting** subsystem: every registry (NodeRegistry, EdgeRegistry, AdapterRegistry, WidgetRegistry, SkinRegistry, ThemeRegistry, SettingsRegistry, LibraryStateRegistry, EditorTypeRegistry, PanelRegistry) subscribes to the same `BaseRegistry` event pipeline. Hot-reload doesn't know what kind of class is reloading — it just fires events; consumers (factories, wrappers, the graph) handle the rebuild for their own concerns.
 
-The discipline is: **rebuild every wrapper that references a reloaded class** so user code sees only the new class. Memory grows on each reload (Python keeps stale module references in `sys.modules`); restart is the only cleanup.
+The discipline is: **every wrapper rebuilds references of a reloaded class** so user code sees only the new class. Managed modules are evicted from `sys.modules` before re-import (`del sys.modules[name]` in `folder_scan.py`), so the module object is replaced — not accumulated. Closures and direct attribute references to old classes can still pin memory, but the module slot itself is reused.
 
 ## 2. Contract
 
@@ -53,8 +53,6 @@ _notify_registry_subscribers()              [Cross-registry cascade]
 [Cascade reload]                            [Dependent nodes rebuilt]
 ```
 
-The original ASCII diagrams (`Hot_Reload_Diagrams.md` and `diagrams.md`) are recoverable via git history.
-
 ### 2.2 What runs when
 
 | Trigger | Mechanism |
@@ -67,15 +65,18 @@ The original ASCII diagrams (`Hot_Reload_Diagrams.md` and `diagrams.md`) are rec
 
 ### 2.3 What hot-reload does NOT unload
 
-Hot-reload **does not** unload the *old* module. Python's import system keeps stale references in:
+Hot-reload **does not** fully unload the *old* module, but it does replace it in `sys.modules`. The managed reload path (`_reload_managed_module`) calls `module_scan_for_classes` with `force_reload=True`, which does:
 
-- `sys.modules`
-- closures captured by long-lived callbacks
-- direct attribute references (`some_obj.cached_class = OldClass`)
+```python
+if force_reload and module_name in sys.modules:
+    del sys.modules[module_name]   # evict stale entry
+importlib.import_module(module_name)  # fresh import replaces it
+```
 
-The framework's discipline is to *rebuild* every wrapper so user code sees only the new class — the old class still exists in memory but nothing references it for execution. Memory grows on each reload. Restart is the only true cleanup.
+So the `sys.modules` slot is reused, not accumulated. What can still pin old class objects in memory:
 
-This is by design — full module unload would mean killing every reference, including in-flight computations and callback closures, which is a class of bug we are not building.
+- Closures captured by long-lived callbacks
+- Direct attribute references (`some_obj.cached_class = OldClass`)
 
 ## 3. Lifecycle
 
@@ -110,7 +111,7 @@ After reload:
   edges.rebuild()                  # 4-stage edge build against new port objects
 ```
 
-Recipes are how user data survives reload. A node's port configuration, `setting()` overrides, and `cache`/`store` containers are all preserved by serialising and re-applying. State (in `LibraryStateRegistry`) is *not* preserved — see §3.5.
+Recipes are how user data survives reload. A node's port configuration, `setting()` overrides, and `store` containers are all preserved by serialising and re-applying. `cache` containers are *not* preserved — see §3.5.
 
 ### 3.3 Edge revalidation
 
@@ -158,10 +159,8 @@ NodeTheme reload is similar but the canvas re-fetches `theme.get_color()` for af
 
 Hot-reload is **not**:
 
-- A **debugger** — set breakpoints in your IDE, not via reload.
-- A **state migration tool** — `LibraryState.on_enable` runs against a fresh class; in-flight state is lost.
 - A **safe mechanism for production code** — file watching is `EDITABLE` / `FOLDER` install only ([library-system §2.3](../library-system/library-system-arch.md#23-installtype-enum)). Pip-from-wheel installs (`REGULAR`) have no live source path.
-- A **module-unloading tool** — Python keeps the old module in `sys.modules`. Memory grows on each reload; restart for cleanup.
+- A **module-unloading tool** — The managed path evicts and replaces the module in `sys.modules`, but old class objects held by closures or direct references remain in memory until GC collects them. Restart is the most thorough cleanup.
 
 ## 5. Examples
 
@@ -219,7 +218,7 @@ State reload is fast for cheap `on_enable` and slow for expensive ones (hardware
 
 ## 6. Open questions
 
-- **Stale module unload.** Python's import system keeps old modules in `sys.modules`. A real unload mechanism would solve memory growth but is out of scope.
+- **Stale class reference cleanup.** Managed modules are evicted from `sys.modules` before re-import, so the slot is reused. Old class objects held by closures or direct attribute references (`some_obj.cls = OldClass`) are not actively hunted down — they survive until GC. A reference-audit pass after each reload could catch stragglers, but is not implemented.
 - **Granular flow reassembly.** Currently any change inside a Flow's reachable set rebuilds the whole Flow. Could rebuild only the affected localized data-flow subtree.
 - **State migration hook.** `LibraryState.on_reload(old_instance)` could let authors carry forward expensive-to-rebuild state across class versions. Currently destroyed by design.
 - **Hot-reload of editor / panel classes.** New classes are picked up at next render; existing instances don't swap mid-render. Would be useful for live UI development but requires careful slot/binding lifecycle handling.

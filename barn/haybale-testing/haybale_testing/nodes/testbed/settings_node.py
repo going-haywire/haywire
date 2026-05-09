@@ -16,6 +16,7 @@ from haybale_testing.settings.testing import TestingSettings
 class SettingsNode(BaseNode):
     """Node that exercises all setting() — suppress spurious delete test."""
 
+    # --8<-- [start:settings_node_class]
     class example(NodeSettings):
         # --- type_ ---
         example_string = setting[str](
@@ -151,6 +152,8 @@ class SettingsNode(BaseNode):
             type_=int,
             validator=lambda v: isinstance(v, int) and v % 2 == 0,
         )
+
+    # --8<-- [end:settings_node_class]
 
     def init(self):
         self.add(STRING.as_outlet("settings", label="Settings", default="default value"))

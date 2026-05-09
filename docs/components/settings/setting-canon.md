@@ -187,152 +187,41 @@ The outer key is the accessor name; the inner dict maps field name → locally-s
 
 **Important ordering rule for `shadow()` / `watch()` between modules.** A node class using `shadow(MyLibSettings.api_url)` must be **defined after** `MyLibSettings`. The `@settings(namespace='my_lib')` decorator sets `_setting_key` on each descriptor at class evaluation time; if your node imports `MyLibSettings` later, that's fine — but if both live in the same module, declaration order matters.
 
-## 4. One comprehensive example
+## 4. Live examples from the codebase
 
-A worked example exercising every concept above: a library `image_lib` with its own `LibrarySettings`, plus a `ResizeNode` that uses local settings, a `shadow()` mirror with override capability, a `watch()` mirror for a read-only global flag, an `on_change` callback, and a `validator`. Demonstrates worker access for all three plus `cache` and `store` containers.
+**LibrarySettings** — source: [`barn/haybale-testing/haybale_testing/settings/testing.py`](../../../barn/haybale-testing/haybale_testing/settings/testing.py)
+
+`TestingSettings` demonstrates the full `@settings` / `LibrarySettings` surface: `float`, `int`, `str`, `bool`, `Color`, `Vec2i`, `Vec3f` field types, `min`/`max`, `choices`, `category`, `widget`:
 
 ```python
-# image_lib/settings.py
-from haywire.core.settings import LibrarySettings, setting, shadow, watch, Color
-from haywire.core.settings.decorator import settings
-
-@settings(namespace='image_lib', label='Image Processing')
-class ImageLibSettings(LibrarySettings):
-    """Library-wide defaults — backed by ~/.haywire/settings.toml.
-    Auto-registered by BaseRegistry hot-reload when the library loads."""
-    jpeg_quality = setting[int](
-        85, min=1, max=100,
-        label='JPEG Quality', category='quality', order=10,
-    )
-    resize_algorithm = setting[str](
-        'lanczos',
-        choices=['nearest', 'bilinear', 'bicubic', 'lanczos'],
-        label='Resize Algorithm', category='resize', order=10,
-    )
-    accent_color = setting[Color]('#3498db', label='Accent', category='appearance')
-    gpu_acceleration = setting[bool](
-        True, label='GPU Acceleration', category='processing',
-    )
-
-# image_lib/nodes/resize.py
-from haywire.core.node import BaseNode, node
-from haywire.core.settings import NodeSettings, setting, shadow, watch
-from haywire.core.debug.debug_settings import DebugSettings
-from haywire.ui.prefs.canvas import CanvasSettings
-from ..settings import ImageLibSettings
-
-@node(label='Resize Image', menu='image/transform')
-class ResizeNode(BaseNode):
-    """Exercises every authoring concept."""
-
-    # ── Primary settings group ────────────────────────────────────────
-    class resize(NodeSettings):
-        # Local — stored in graph when set, shown in panel
-        width = setting[int](
-            512, min=1, max=8192,
-            label='Width', category='dimensions', order=10,
-            on_change='hb_on_size_change',
-            validator=lambda v: v > 0 and v % 2 == 0,  # reject odd values
-        )
-        height = setting[int](
-            512, min=1, max=8192,
-            label='Height', category='dimensions', order=20,
-            on_change='hb_on_size_change',
-        )
-
-        # shadow() — writable mirror of a library default; per-node override OK.
-        # Panel shows '•' and a reset button when overridden.
-        algorithm = shadow(ImageLibSettings.resize_algorithm)
-
-        # shadow() with label override — same source, custom display
-        snap_grid = shadow(CanvasSettings.snap_to_grid, label='Snap to Grid')
-
-        # watch() — read-only mirror; invisible in panel, never stored,
-        # tracks the global value reactively
-        gpu = watch(ImageLibSettings.gpu_acceleration)
-        log_to_file = watch(DebugSettings.log_to_file)
-
-        # Read-only label-style display field
-        info = setting[str]('Configure dimensions above', widget='label', read_only=True)
-
-    # ── Secondary settings group (separate accessor) ──────────────────
-    class output(NodeSettings):
-        quality = shadow(ImageLibSettings.jpeg_quality)
-        preserve_metadata = setting[bool](
-            True, label='Preserve EXIF', category='quality',
-        )
-
-    def init(self):
-        from haybale_core.types import FLOAT
-        self.add(FLOAT.as_inlet('image'))
-        self.add(FLOAT.as_outlet('result'))
-
-        # cache: transient — lost on save/load
-        self.cache.last_dimensions = None
-        self.cache.scaler = None
-
-        # store: persistent — survives save/load, hidden from UI
-        self.store.frames_processed = 0
-        self.store.cumulative_pixels = 0
-
-    # hb_* prefix → safe across framework updates
-    def hb_on_size_change(self, value: int, field: str = ''):
-        # Invalidate cached scaler when dimensions change. This fires on:
-        # - direct local set: self.resize.width = 1024
-        # - reset: self.resize.reset('width')
-        # - upstream global change for shadow fields: not applicable here
-        #   (width is local, not a mirror)
-        self.cache.scaler = None
-        self.cache.last_dimensions = (self.resize.width, self.resize.height)
-
-    def worker(self, context, image):
-        # Direct access via the accessor name. Resolution chain runs
-        # transparently — see architecture/settings for the full chain.
-        r = self.resize
-        o = self.output
-
-        if r.log_to_file:
-            context.log(f'Resize {r.width}x{r.height} algo={r.algorithm}')
-
-        # Counters live in store (persistent, hidden)
-        self.store.frames_processed += 1
-        self.store.cumulative_pixels += r.width * r.height
-
-        # Memoise the scaler in cache (transient, lost on restart)
-        if self.cache.scaler is None:
-            self.cache.scaler = self._build_scaler(r.algorithm, r.width, r.height)
-
-        # GPU flag is a watch() mirror — read-only; reflects the live global
-        result = self.cache.scaler.run(image, gpu=r.gpu)
-
-        # Write outlet, never wrap
-        self.out('result', result)
-
-    def _build_scaler(self, algo, w, h):
-        # Implementation detail — could touch the global accent colour
-        # for diagnostic overlays via direct registry access:
-        # from image_lib.settings import ImageLibSettings
-        # accent = ImageLibSettings().accent_color
-        return _make_scaler(algo, w, h)
+--8<-- "barn/haybale-testing/haybale_testing/settings/testing.py:testing_settings"
 ```
 
-What this example exercises:
+**NodeSettings with every descriptor** — source: [`barn/haybale-testing/haybale_testing/nodes/testbed/settings_node.py`](../../../barn/haybale-testing/haybale_testing/nodes/testbed/settings_node.py)
+
+`SettingsNode.example` exercises every `setting()` type, `read_only`, `stored=False`, `shadow()`, `watch()`, and `validator` in one inner class:
+
+```python
+--8<-- "barn/haybale-testing/haybale_testing/nodes/testbed/settings_node.py:settings_node_class"
+```
+
+What these examples exercise:
 
 | Concept | Where it shows up |
 |---|---|
-| `LibrarySettings` with `@settings(namespace=...)` | `ImageLibSettings` |
-| `setting()` with `choices`, `min`/`max`, `category`, `order` | `jpeg_quality`, `resize_algorithm` |
-| Multiple `NodeSettings` accessors on one node | `class resize`, `class output` |
-| Local `setting()` with `on_change` and `validator` | `width`, `height` |
-| `shadow()` of a `LibrarySettings` field | `algorithm`, `quality` |
-| `shadow()` with a label override | `snap_grid = shadow(CanvasSettings.snap_to_grid, label='...')` |
-| `watch()` for a read-only mirror | `gpu`, `log_to_file` |
-| `read_only=True` + `widget='label'` for display-only | `info` |
-| `validator=` rejecting invalid input | `width` (must be even and > 0) |
-| `on_change` callback with `hb_*` prefix | `hb_on_size_change` |
-| Worker access via accessor name | `self.resize.width`, `self.output.quality` |
-| `self.cache` for transient state | `self.cache.scaler`, `self.cache.last_dimensions` |
-| `self.store` for persistent hidden state | `self.store.frames_processed` |
+| `@settings(namespace=..., label=...)` on `LibrarySettings` | `TestingSettings` |
+| `setting[float]` with `min`/`max` | `default_intensity` |
+| `setting[int]` with `min`/`max` | `default_count` |
+| `setting[str]` plain and with `choices` | `default_label`, `default_mode` |
+| `setting[bool]` | `default_enabled` |
+| `setting[Color]` with `widget='color'` | `default_color` |
+| `setting[Vec2i]` / `setting[Vec3f]` | `default_offset`, `default_position` |
+| `read_only=True` — panel skips the field | `read_only_value` |
+| `stored=False` — excluded from serialization | `transient_value` |
+| `shadow()` — writable mirror, per-node override OK | `intensity`, `count_mirror`, … |
+| `watch()` — read-only mirror, invisible in panel | `intensity_ro`, `count_ro`, … |
+| `validator=` — rejects invalid values before write | `validated_string`, `clamped_positive`, `even_int` |
+| Multiple field types in one `NodeSettings` inner class | `class example(NodeSettings)` |
 
 For the resolution chain, registry mechanics, and TOML format, see [architecture/settings](../../architecture/settings/settings-arch.md). For non-node code that needs reactive access to `ImageLibSettings`, instantiate the class directly — `cls._registry` is auto-wired after the library loads, and `subscribe(callback)` gives you change notifications.
 

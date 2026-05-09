@@ -61,141 +61,40 @@ Adapters live in [components/adapters](../adapters/adapter-canon.md); how the ch
 
 **`@adapter`-paired types.** If two types should interop, write an adapter in [components/adapters](../adapters/adapter-canon.md). The adapter system chains automatically: `INT → FLOAT` and `FLOAT → STRING` together yield `INT → STRING` for free, no explicit chain adapter needed.
 
-## 4. One comprehensive example
+## 4. Live examples from the codebase
 
-A worked example that exercises every concept above: a `Color` complex type with one derived primitive variant, a custom field for coercion, an adapter, and node usage.
+Source: [`barn/haybale-example/haybale_example/types/`](../../../barn/haybale-example/haybale_example/types/)
+
+**Derived primitive type** — `Temperature` extends `FLOAT` with a custom widget binding. Inherits all FLOAT adapters automatically; a `Temperature` outlet connects to any `FLOAT` inlet with no extra adapter:
 
 ```python
-# my_library/types/color.py
-
-from dataclasses import dataclass
-from haywire.core.types.base import BaseType, PrimitiveType
-from haywire.core.types.decorator import type
-from haywire.core.data.fields import PrimitiveField
-from haywire.core.data.enums import FlowType
-
-# ── A complex type ─────────────────────────────────────────────────────
-
-@type(
-    label='Color',
-    description='RGBA color, channels in 0.0 – 1.0',
-    color='#e91e63',
-    flow_type=FlowType.DATA,
-    default={'r': 0.0, 'g': 0.0, 'b': 0.0, 'a': 1.0},
-)
-@dataclass
-class Color(BaseType):
-    """RGBA color. Default to_dict / from_dict via dataclasses.asdict work
-    out of the box because every attribute is JSON-serializable."""
-    r: float = 0.0
-    g: float = 0.0
-    b: float = 0.0
-    a: float = 1.0
-
-    def to_hex(self) -> str:
-        return '#{:02x}{:02x}{:02x}'.format(
-            int(self.r * 255), int(self.g * 255), int(self.b * 255)
-        )
-
-    @classmethod
-    def from_hex(cls, hex_str: str) -> 'Color':
-        h = hex_str.lstrip('#')
-        return cls(
-            r=int(h[0:2], 16) / 255.0,
-            g=int(h[2:4], 16) / 255.0,
-            b=int(h[4:6], 16) / 255.0,
-        )
-
-# ── A primitive variant with type coercion ─────────────────────────────
-
-@type(
-    label='Alpha',
-    description='Single-channel opacity in 0.0 – 1.0',
-    color='#9e9e9e',
-    default={'value': 1.0},  # overrides parent's default
-)
-class Alpha(PrimitiveType[float]):
-    """Specialisation of FLOAT (would inherit from FLOAT in real code).
-    Inherits FLOAT's adapters automatically: an Alpha outlet can connect
-    to a FLOAT inlet with no additional adapter."""
-    pass
-
-class AlphaField(PrimitiveField):
-    """Guarantees stored value is a Python float and clamped to 0..1."""
-    def set_value(self, value, source_id=None):
-        v = float(value)
-        return super().set_value(max(0.0, min(1.0, v)), source_id)
-
-# Assign AFTER both classes exist
-Alpha.field_class = AlphaField
-
-# ── An adapter (full coverage lives in components/adapters) ────────────
-# Adapters belong in components/adapters/adapter-canon.md. Shown briefly
-# here only to make the round-trip example complete.
-
-from haywire.core.adapter.base import BaseAdapter, adapter
-from haybale_core.types import STRING
-
-@adapter(
-    description='Convert Color to hex string',
-    converts_from=Color,
-    converts_to=STRING,
-)
-class ColorToStringAdapter(BaseAdapter):
-    def convert(self, value: Color) -> str:
-        return value.to_hex()
-
-    def get_test_value(self) -> Color:
-        return Color(r=1.0, g=0.5, b=0.0)
-
-# ── Using the type in a node ───────────────────────────────────────────
-
-from haywire.core.node.base import BaseNode
-from haywire.core.node.decorator import node
-from haywire.core.execution.execution_context import ExecutionContext
-from haybale_core.types import FLOAT
-
-@node(label='Mix Colors', menu='color/operations')
-class MixColorsNode(BaseNode):
-    def init(self):
-        # Complex type with a non-default initial value
-        self.add(Color.as_inlet('color_a', label='Color A',
-                                default={'r': 1.0, 'g': 0.0, 'b': 0.0, 'a': 1.0}))
-        self.add(Color.as_inlet('color_b', label='Color B',
-                                default={'r': 0.0, 'g': 0.0, 'b': 1.0, 'a': 1.0}))
-        # Primitive — bare value is auto-wrapped to {'value': 0.5}
-        self.add(FLOAT.as_inlet('mix', label='Mix Factor', default=0.5))
-        # Variant — its custom field clamps the value at field-set time
-        self.add(Alpha.as_inlet('opacity', default=1.0))
-        self.add(Color.as_outlet('result', label='Result'))
-
-    def worker(self, context: ExecutionContext,
-               color_a: Color, color_b: Color,
-               mix: float = 0.5, opacity: float = 1.0):
-        t = max(0.0, min(1.0, mix))
-        result = Color(
-            r=color_a.r * (1 - t) + color_b.r * t,
-            g=color_a.g * (1 - t) + color_b.g * t,
-            b=color_a.b * (1 - t) + color_b.b * t,
-            a=opacity,  # already clamped by AlphaField
-        )
-        self.out('result', result)
+--8<-- "barn/haybale-example/haybale_example/types/specs.py:temperature_type"
 ```
 
-What this example exercises:
+**Derived type with widget and enum choices** — `MathOPSelector` extends `STRING` and pins a `SelectWidget` with a fixed option list at the type level:
+
+```python
+--8<-- "barn/haybale-example/haybale_example/types/math.py:math_op_selector"
+```
+
+**Compound type** — `MapsStringType` is a `CompoundType[T]` for string-keyed maps. Demonstrates the compound category: parameterisable (`MapsStringType[FLOAT]`), custom `field_class` assigned post-definition, no `value` property (compound types are descriptors, not instances):
+
+```python
+--8<-- "barn/haybale-example/haybale_example/types/maps_string_type.py:maps_string_type"
+```
+
+What these examples exercise:
 
 | Concept | Where it shows up |
 |---|---|
-| `@type` on `BaseType` with `@dataclass` | `Color` |
-| `@type` on `PrimitiveType[T]` | `Alpha` |
-| Custom `field_class` for type coercion | `AlphaField`, assigned post-definition |
-| Inheritance compatibility | `Alpha` (a FLOAT-like) auto-compatible with FLOAT |
-| `default` as constructor kwargs (complex) | `Color`'s `default={'r': …, 'g': …, …}` |
-| `default` auto-wrap (primitive) | `Alpha`'s `default={'value': 1.0}`; node-side `default=0.5` |
-| `flow_type=FlowType.DATA` | explicit on both (framework default is `NONE`) |
-| Adapter pairing (full coverage in [components/adapters](../adapters/adapter-canon.md)) | `ColorToStringAdapter` |
-| `as_inlet` / `as_outlet` | inside `MixColorsNode.init()` |
-| Default `to_dict` / `from_dict` (no override needed) | `Color`'s simple dataclass |
+| `@type` on a derived `PrimitiveType` (FLOAT subclass) | `Temperature` |
+| Inherited widget binding from parent | `Temperature` inherits FLOAT's field |
+| Per-type `widget_key` + `widget_config` | `Temperature`, `MathOPSelector` |
+| `@type` on a derived STRING with enum choices | `MathOPSelector` |
+| `default` as bare value (auto-wrapped to `{'value': ...}`) | `MathOPSelector` |
+| `CompoundType[T]` for parameterisable collection types | `MapsStringType` |
+| `field_class` assigned post-definition | `MapsStringType.field_class = MapsStringField` |
+| `flow_type=FlowType.DATA` explicit | all three |
 
 For everything ports-related (`as_config`, `on_change`, `on_connect`, port reconfiguration), see [guides/ports](../../guides/ports.md). For the worker function and node lifecycle, see [components/nodes](../nodes/node-canon.md).
 

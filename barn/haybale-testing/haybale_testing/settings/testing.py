@@ -6,6 +6,7 @@ from haywire.core.settings import setting, Color, Vec2i, Vec3f
 from haywire.core.settings.decorator import settings
 
 
+# --8<-- [start:testing_settings]
 @settings(namespace="testing", label="Testing")
 class TestingSettings(LibrarySettings):
     """Global defaults for the testing library."""
@@ -64,3 +65,6 @@ class TestingSettings(LibrarySettings):
         description="Library-wide 3D float position used by test nodes",
         category="root",
     )
+
+
+# --8<-- [end:testing_settings]

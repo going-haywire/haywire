@@ -7,6 +7,7 @@ from haybale_core.types import ArrayType
 from ..types.maps_string_type import MapsStringType
 
 
+# --8<-- [start:maps_string_array_adapter]
 @adapter(
     label="MapsString to Array",
     description="Transform MapsString elements (MapsStringType[str, X] → ArrayType[Y])",
@@ -36,23 +37,16 @@ class MapsStringArrayAdapter(BaseAdapter):
 
     @override
     def convert(self, values: Dict[str, Any]) -> List[Any]:
-        """
-        Transform each element or pass through.
-
-        Args:
-            values: List of source elements
-
-        Returns:
-            List of transformed elements
-        """
         return list(values.values())
 
     @override
     def get_test_value(self):
-        # Get list from chain and convert to dictionary with unique keys
         array_values = self._chain.get_test_value()
         return {f"key_{i}": value for i, value in enumerate(array_values)}
 
     @override
     def get_test_repetitions(self):
         return 2
+
+
+# --8<-- [end:maps_string_array_adapter]

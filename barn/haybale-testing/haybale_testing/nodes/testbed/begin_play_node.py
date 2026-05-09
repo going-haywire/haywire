@@ -3,6 +3,7 @@ from haywire.core.execution.execution_context import ExecutionContext
 from haywire.core.node import node, BaseNode, NodeType
 
 
+# --8<-- [start:test_begin_play_node]
 @node(
     label="Test Begin Play",
     description="Test version of BeginPlay — triggered once when execution starts",
@@ -27,3 +28,6 @@ class TestBeginPlayNode(BaseNode):
 
         self.out("timestamp", time.time())
         return "exec"
+
+
+# --8<-- [end:test_begin_play_node]

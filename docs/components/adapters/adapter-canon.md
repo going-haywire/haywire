@@ -105,124 +105,57 @@ from haywire.core.adapter.base import BaseAdapter, IAdapter, adapter
 from haywire.core.adapter.registry import AdapterRegistry
 ```
 
-## 4. One comprehensive example
+## 4. Live examples from the codebase
 
-A `Color` datatype (RGBA dataclass, defined in [datatype-canon §4](../datatypes/datatype-canon.md#4-one-comprehensive-example)) that needs three pieces of interop: convert *to* a hex string for export, convert *from* a hex string for import, and a `Temperature → Color` adapter that maps temperature values to a heat-map colour. Together they exercise inheritance-based chaining (`Color → STRING` works directly through `ColorToStringAdapter`; `STRING → Color` directly; chained conversions through `FLOAT → STRING` aren't needed because `Color` already knows hex), plus an explicit cross-domain adapter (`Temperature → Color`).
+Source: [`barn/haybale-testing/haybale_testing/adapters/test_adapters.py`](../../../barn/haybale-testing/haybale_testing/adapters/test_adapters.py)
+
+Three single-step adapters that form a chain: `TEST_BOOL → TEST_INT → TEST_FLOAT → TEST_STRING`. The framework assembles multi-hop chains automatically — no explicit `TEST_BOOL → TEST_STRING` adapter is needed.
+
+**Bool → Int:**
 
 ```python
-# my_lib/adapters/color_adapters.py
-
-from haywire.core.adapter.base import BaseAdapter, adapter
-from haybale_core.types import STRING
-
-from ..types.color import Color
-from ..types.temperature import Temperature   # @type-decorated PrimitiveType[float]
-
-# ── 1. Color → STRING (hex export) ─────────────────────────────────────
-
-@adapter(
-    description='Convert Color to hex string (#rrggbb)',
-    converts_from=Color,
-    converts_to=STRING,
-    priority=10,
-)
-class ColorToStringAdapter(BaseAdapter):
-    """Outlet of type Color can connect to inlet of type STRING."""
-
-    def convert(self, value: Color) -> str:
-        # Color.to_hex() defined on the datatype (see datatype-canon §4)
-        return value.to_hex()
-
-    def get_test_value(self) -> Color:
-        # Sample for edge sample-testing. Pick a value that exercises every
-        # branch of convert(); here all four channels are non-default.
-        return Color(r=1.0, g=0.5, b=0.0, a=0.8)
-
-# ── 2. STRING → Color (hex import) ─────────────────────────────────────
-
-@adapter(
-    description='Convert hex string (#rrggbb) to Color',
-    converts_from=STRING,
-    converts_to=Color,
-    priority=10,
-)
-class StringToColorAdapter(BaseAdapter):
-    """Inverse of ColorToStringAdapter. Together they make Color and STRING
-    fully interchangeable on edges (in both directions)."""
-
-    def convert(self, value: str) -> Color:
-        # Color.from_hex() defined on the datatype (see datatype-canon §4)
-        return Color.from_hex(value)
-
-    def get_test_value(self) -> str:
-        return '#ff8000'
-
-# ── 3. Temperature → Color (cross-domain conversion) ───────────────────
-
-@adapter(
-    description='Map temperature to a blue–red gradient colour',
-    converts_from=Temperature,
-    converts_to=Color,
-)
-class TemperatureToColorAdapter(BaseAdapter):
-    """A non-trivial conversion — clearly not an inheritance passthrough.
-    Maps Celsius temperatures linearly into a 0..255 hue range. Demonstrates:
-      - convert() containing real domain logic
-      - get_test_value() picking a representative input
-      - get_test_repetitions() = 3 because we want to exercise the
-        clipping branches (cold, hot, mid) in the connection-time test.
-    """
-
-    COLD = 0.0   # °C → fully blue
-    HOT  = 100.0 # °C → fully red
-
-    def convert(self, value: float) -> Color:
-        # Temperature is a PrimitiveType[float]; convert receives the
-        # unwrapped float, not a Temperature instance.
-        t = max(self.COLD, min(self.HOT, value))
-        # Linear interpolation in RGB
-        ratio = (t - self.COLD) / (self.HOT - self.COLD)
-        r = ratio
-        b = 1.0 - ratio
-        return Color(r=r, g=0.0, b=b, a=1.0)
-
-    def get_test_value(self) -> float:
-        # Mid-range sample exercises the interpolation branch
-        return 50.0
-
-    def get_test_repetitions(self) -> int:
-        # The test harness will pick three sample values across the range
-        # for connection-time testing (not strictly necessary here since
-        # convert() is deterministic, shown for completeness).
-        return 3
+--8<-- "barn/haybale-testing/haybale_testing/adapters/test_adapters.py:bool_to_int_adapter"
 ```
 
-What this example exercises:
+**Int → Float:**
+
+```python
+--8<-- "barn/haybale-testing/haybale_testing/adapters/test_adapters.py:int_to_float_adapter"
+```
+
+**Float → String:**
+
+```python
+--8<-- "barn/haybale-testing/haybale_testing/adapters/test_adapters.py:float_to_string_adapter"
+```
+
+**Compound type adapter** — `MapsStringType → ArrayType` from [`barn/haybale-example/haybale_example/adapters/compound_adapters.py`](../../../barn/haybale-example/haybale_example/adapters/compound_adapters.py). Demonstrates a cross-category conversion with `get_test_value()` delegating to the chain and `get_test_repetitions()` set above 1:
+
+```python
+--8<-- "barn/haybale-example/haybale_example/adapters/compound_adapters.py:maps_string_array_adapter"
+```
+
+What these examples exercise:
 
 | Concept | Where |
 |---|---|
-| `@adapter(converts_from=, converts_to=)` decorator | every adapter class |
-| Source and target as `IType` *classes*, not instances | `converts_from=Color`, `converts_from=Temperature` |
-| `priority=` to disambiguate when multiple adapters match | `ColorToStringAdapter`, `StringToColorAdapter` |
+| `@adapter(converts_from=, converts_to=)` decorator | every class |
 | `convert()` operating on unwrapped values | every class |
 | `get_test_value()` returning a sample of the source type | every class |
-| `get_test_repetitions()` for non-trivial conversions | `TemperatureToColorAdapter` |
-| Two adapters forming a bidirectional pair | Color↔STRING (export and import) |
-| Cross-domain conversion (not just type widening) | `Temperature → Color` |
-| Convert on a derived primitive's unwrapped float | `TemperatureToColorAdapter.convert(self, value: float)` |
+| `get_test_repetitions()` above 1 | `MapsStringArrayAdapter` |
+| Automatic chain assembly (`BOOL → INT → FLOAT → STRING`) | the three test adapters together |
+| Cross-category conversion (compound → array) | `MapsStringArrayAdapter` |
+| `get_test_value()` delegating to `self._chain` | `MapsStringArrayAdapter` |
 
-**Chain implications.** With these three adapters registered:
+**Chain implications** for the test adapters:
 
 | Connection | Resolved chain | Why |
 |---|---|---|
-| `Color outlet → STRING inlet` | `[ColorToStringAdapter]` | direct |
-| `STRING outlet → Color inlet` | `[StringToColorAdapter]` | direct |
-| `Temperature outlet → FLOAT inlet` | `[]` (passthrough) | Temperature inherits FLOAT |
-| `Temperature outlet → Color inlet` | `[TemperatureToColorAdapter]` | direct |
-| `Temperature outlet → STRING inlet` | `[TemperatureToColorAdapter, ColorToStringAdapter]` | chained |
-| `FLOAT outlet → Color inlet` | rejected | no adapter — not every float is a valid Temperature |
-
-The last row is intentional — `FLOAT → Color` is *not* automatic just because we have `Temperature → Color`. Going from an ancestor (`FLOAT`) to a descendant (`Temperature`) always requires an explicit adapter, because the framework can't safely assume every float is a valid temperature.
+| `TEST_BOOL → TEST_INT` | `[BoolToIntAdapter]` | direct |
+| `TEST_INT → TEST_FLOAT` | `[IntToFloatAdapter]` | direct |
+| `TEST_FLOAT → TEST_STRING` | `[FloatToStringAdapter]` | direct |
+| `TEST_BOOL → TEST_STRING` | `[BoolToInt, IntToFloat, FloatToString]` | auto-chained |
+| `TEST_STRING → TEST_BOOL` | rejected | no reverse adapters registered |
 
 For datatype declaration (the `Color` and `Temperature` classes themselves), see [components/datatypes](../datatypes/datatype-canon.md). For the edge build pipeline that consumes these adapters at connection time, see [architecture/execution/edges](../../architecture/execution/edges/edges-arch.md).
 

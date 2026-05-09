@@ -104,7 +104,7 @@ FlowAssemblyManager.assemble_graph(graph)
 
 After this completes, `assembled_flows[flow_id] = Flow` for every Flow, and the Interpreter can register them.
 
-### 3.2 Just-in-time reassembly
+### 3.2 Just-in-time reassembly (NOT YET IMPLEMENTED)
 
 When the graph mutates, only affected Flows reassemble. The dirty-tracking is owned by `ValidationManager` (see [edges §3.6](../edges/edges-arch.md#36-validationmanager-debounced-batch-processing)) which marks `dirty_flows` based on `ChangeReason`.
 

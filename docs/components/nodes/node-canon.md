@@ -107,137 +107,32 @@ with self.rejig(exclude=['exec', 'true', 'false', 'DataType']):
 
 **Settings inner classes.** A node can declare one or more `NodeSettings` inner classes for declarative settings (with `setting()`, `shadow()`, `watch()`). Full coverage in [components/settings](../settings/setting-canon.md).
 
-## 4. One comprehensive example
+## 4. Live examples from the codebase
 
-A worked example that exercises every concept above: a control-flow `RangeFilter` node that switches between INT and FLOAT mode based on a config port, exercises rejig and groups, demonstrates the full lifecycle, and uses a `hb_*` helper.
+**DATA node — `MathOP`** from [`barn/haybale-example/haybale_example/nodes/math_op.py`](../../../barn/haybale-example/haybale_example/nodes/math_op.py). Demonstrates the minimal node skeleton: `@node` decorator, `init()` declaring ports, and `worker()` reading named inlet parameters and writing an outlet:
 
 ```python
-from haywire.core.node.base import BaseNode
-from haywire.core.node.decorator import node
-from haywire.core.node.behavior import NodeType
-from haywire.core.execution.execution_context import ExecutionContext
-
-@node(
-    label='Range Filter',
-    description='Filters a value by range; mode is configurable',
-    menu='math/filters',
-    search_tags=['filter', 'range', 'clamp'],
-    node_type=NodeType.CONTROL,
-)
-class RangeFilter(BaseNode):
-    """
-    Single comprehensive example: control-flow node that:
-      - declares static and dynamic ports
-      - reconfigures itself when a config port changes (rejig)
-      - groups optional ports under a collapsible header
-      - branches control flow based on its computation
-      - uses an hb_* helper that survives hot-reload
-    """
-
-    def init(self):
-        from ..types.specs import EXEC, INT, FLOAT, STRING, GROUP
-        from haybale_core.widgets.basic_widgets import SelectWidget, NumberWidget
-
-        # Static ports — these are excluded from rejig
-        self.add(EXEC.as_inlet('exec', label='Execute'))
-        self.add(EXEC.as_outlet('in_range', label='In range'))
-        self.add(EXEC.as_outlet('out_of_range', label='Out of range'))
-
-        # Config port — change triggers hb_reconfigure
-        self.add(STRING.as_config(
-            'mode', label='Mode',
-            widget=SelectWidget.config(properties={'options': ['int', 'float']}),
-            default='int',
-            on_change='hb_reconfigure',
-        ))
-
-        # Group: optional bounds. Collapsed by default in UI; ghost pins
-        # preserve connections when collapsed.
-        with self.group(GROUP.as_inlet('bounds', label='Bounds')):
-            self.add(FLOAT.as_inlet('min', label='Min', default=0.0,
-                                    widget=NumberWidget.config()))
-            self.add(FLOAT.as_inlet('max', label='Max', default=100.0,
-                                    widget=NumberWidget.config()))
-
-    def post_init(self):
-        # Wire up the dynamic ports for the initial mode value. After
-        # deserialization the dynamic 'value' port is already present, so we
-        # only rebuild it when it's missing (i.e. on a fresh instantiation).
-        try:
-            self.value("value")
-        except KeyError:
-            self.hb_reconfigure()
-
-    # hb_* prefix → guaranteed safe across haywire framework updates
-    def hb_reconfigure(self, *args, **kwargs):
-        # This method is called when the 'mode' changes. It shows the prefered
-        # way how to manage dynamic
-        from ..types.specs import INT, FLOAT
-        from haybale_core.widgets.basic_widgets import NumberWidget
-
-        # Rejig only the dynamic value port. Static ports (exec, in_range,
-        # out_of_range, mode, min, max, bounds) are preserved.
-        with self.rejig(exclude=['exec', 'in_range', 'out_of_range',
-                                 'mode', 'min', 'max', 'bounds']):
-            if self.value('mode') == 'int':
-                self.add(INT.as_inlet('value', label='Value',
-                                      widget=NumberWidget.config()))
-            else:
-                self.add(FLOAT.as_inlet('value', label='Value',
-                                        widget=NumberWidget.config()))
-
-    def on_startup(self, context: ExecutionContext):
-        # Place to acquire resources. Called once when the flow starts.
-        pass
-
-    def on_validate(self, context: ExecutionContext):
-        # Optional pre-flight check before worker runs.
-        if self.value('min') > self.value('max'):
-            pass
-            # Set error state — this surfaces in the UI.
-            # TODO: Nice idea: create a mechanism to allow the user to post a 
-            # runtime error - currently not supported though
-            # from haywire.ui.error_info import NodeErrorInfo
-            # self.error_info = NodeErrorInfo(message='min must be <= max')
-
-    def worker(
-        self,
-        context: ExecutionContext,
-        value: float = 0.0,
-        min: float = 0.0,
-        max: float = 100.0,
-    ) -> str | None:
-        """Parameter names match inlet IDs. Inlet values arrive unwrapped.
-        Returns the EXEC outlet ID to follow next."""
-        if min <= value <= max:
-            return 'in_range'
-        return 'out_of_range'
-
-    def on_shutdown(self, context: ExecutionContext):
-        # Release any resources acquired in on_startup.
-        pass
-
-    def on_teardown(self):
-        # Final cleanup when the node is unloaded (e.g. on hot-reload).
-        pass
+--8<-- "barn/haybale-example/haybale_example/nodes/math_op.py:math_op_class"
 ```
 
-What this example exercises:
+**Dynamic ports — `DynamicPortTestNode`** from [`barn/haybale-testing/haybale_testing/nodes/testbed/dynamic_port_test.py`](../../../barn/haybale-testing/haybale_testing/nodes/testbed/dynamic_port_test.py). Demonstrates `on_change` triggering a `hb_*` helper, `with self.rejig(include=...)` for pattern-matched port replacement, and building dynamic port sets in a helper method:
+
+```python
+--8<-- "barn/haybale-testing/haybale_testing/nodes/testbed/dynamic_port_test.py:dynamic_port_test_node"
+```
+
+What these examples exercise:
 
 | Concept | Where it shows up |
 |---|---|
-| `@node(node_type=NodeType.CONTROL)` | decoration |
-| `init()` declares static and grouped ports | `EXEC`, `STRING.as_config`, `GROUP` |
-| `post_init()` for non-serializable setup | calls `hb_reconfigure()` |
-| `on_change='hb_reconfigure'` triggers dynamic ports | `mode` config port |
-| `with self.rejig(exclude=...)` preserves static ports | inside `hb_reconfigure` |
-| `with self.group(...)` for collapsible UI | `bounds` group |
-| `hb_*` prefix for custom methods | `hb_reconfigure` |
-| `worker()` with named inlet params | `value`, `min`, `max` |
-| Worker returns EXEC outlet ID | `'in_range'` / `'out_of_range'` |
-| `self.value('id')` to read | `self.value('mode')`, `self.value('min')` |
-| `on_validate()` for input checks | the min/max validation |
-| `on_startup` / `on_shutdown` / `on_teardown` lifecycle | hook signatures shown |
+| `@node(node_type=NodeType.DATA)` | both nodes |
+| `init()` declaring ports with `self.add(...)` | both nodes |
+| `worker()` with named inlet params | `MathOP` — `value_a`, `value_b`, `operator` |
+| `self.out('id', value)` to write outlets | `MathOP` — `self.out("result", result)` |
+| `on_change='hb_reconfigure'` on a config port | `DynamicPortTestNode` — `port_count` |
+| `with self.rejig(include=r'^dynamic_')` | `DynamicPortTestNode` — regex-matched replacement |
+| `hb_*` prefix for custom helpers | `DynamicPortTestNode` — `hb_reconfigure` |
+| `self.value('id')` inside a callback | `DynamicPortTestNode` — `self.value("port_count")` |
 
 For the port creation surface (everything `as_inlet` / `as_outlet` / `as_config` accepts, primitive vs array vs pooled, worker access patterns), see [guides/ports](../../guides/ports.md). For declarative settings on the node (instead of config ports), see [components/settings](../settings/setting-canon.md).
 

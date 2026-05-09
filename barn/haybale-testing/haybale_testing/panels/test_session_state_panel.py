@@ -24,6 +24,7 @@ if TYPE_CHECKING:
     from haywire.ui.context import SessionContext
 
 
+# --8<-- [start:test_session_state_panel]
 @panel(
     action=TestCanvasContextActions,
     focus=TestCanvasFocus,
@@ -45,3 +46,6 @@ class TestSessionStatePanel(BasePanel):
     ) -> None:
         counter = ctx.data[TestSessionState].counter.value
         layout.label(f"counter: {counter}")
+
+
+# --8<-- [end:test_session_state_panel]

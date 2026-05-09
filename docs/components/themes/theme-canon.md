@@ -139,169 +139,36 @@ A library can register any number of workbench and node themes. `registry_id` va
 
 No author code is needed — the framework handles the loop.
 
-## 4. One comprehensive example
+## 4. Live examples from the codebase
 
-A library `haybale-blueprint` ships a paired set: a `BlueprintWorkbenchTheme` (full token list demonstrating every category), a partial `BlueprintRedAccentTheme` (subclass overriding only the accent colours), a `BlueprintNodeTheme` (full node tokens), and the registration hookup. All decorations exercise `@theme`, all hot-reload paths are wired through `register_components()`.
+Source: [`barn/haybale-testing/haybale_testing/themes/`](../../../barn/haybale-testing/haybale_testing/themes/)
+
+**WorkbenchTheme** — `TestDarkTheme` sets every token category (backgrounds, borders, text, accents, status, node chrome, edges, canvas, topbar, sidebars, panels, statusbar, console). `TestLightTheme` inherits from `WorkbenchTheme` directly and overrides only the values that differ from a light palette — demonstrating partial subclassing:
 
 ```python
-# haybale_blueprint/themes/workbench.py
-from haywire.ui.themes.workbench import WorkbenchTheme
-from haywire.ui.themes.decorator import theme
-
-@theme(label='Blueprint — Dark')
-class BlueprintWorkbenchTheme(WorkbenchTheme):
-    """Full workbench theme. Every token explicitly set."""
-
-    # Backgrounds
-    bg_page    = '#060d18'
-    bg_surface = '#0f1c2e'
-    bg_sidebar = '#0d1726'
-    bg_elevated = '#162337'
-    bg_overlay = 'rgba(0,0,0,0.6)'
-    bg_input   = '#0a0f1a'
-
-    # Borders
-    border        = 'rgba(255,255,255,0.08)'
-    border_strong = '#2a4a6a'
-
-    # Text
-    text_body      = 'rgba(200,220,255,0.9)'
-    text_muted     = 'rgba(200,220,255,0.55)'
-    text_dim       = 'rgba(200,220,255,0.45)'
-    text_expansion = 'rgba(200,220,255,0.75)'
-    text_on_accent = '#ffffff'
-
-    # Accent
-    accent        = '#3498db'
-    accent_hover  = '#5dade2'
-    accent_active = '#1f6aa5'
-
-    # Status
-    danger  = '#e74c3c'
-    warning = '#f39c12'
-    success = '#2ecc71'
-    info    = '#3498db'
-
-    # Node chrome (cascaded into node body via CSS tokens)
-    node_bg          = '#0f1c2e'
-    node_border      = '#1a3050'
-    node_header_bg   = '#162337'
-    node_header_text = 'rgba(200,220,255,0.9)'
-    node_selected    = '#3498db'
-    node_shadow      = 'rgba(0,0,0,0.5)'
-
-    # Edges
-    edge_default  = '#2a4a6a'
-    edge_selected = '#3498db'
-
-    # Canvas
-    canvas_bg   = '#060d18'
-    canvas_grid = '#0d1726'
-
-    # TopBar
-    topbar_bg   = '#0a0f1a'
-    topbar_text = 'rgba(200,220,255,0.9)'
-
-    # Sidebars / ActivityBar
-    sidebar_bg          = '#060d18'
-    sidebar_icon        = '#3a5a7a'
-    sidebar_icon_active = '#3498db'
-
-    # Panels
-    panel_bg   = '#0f1c2e'
-    panel_text = 'rgba(200,220,255,0.87)'
-
-    # StatusBar
-    statusbar_bg   = '#0a2040'
-    statusbar_text = 'rgba(200,220,255,0.7)'
-
-    # Console
-    console_bg   = '#060d18'
-    console_text = '#4ade80'
-
-# Partial override demonstrating subclassing — only red accents differ.
-@theme(label='Blueprint — Red Accent')
-class BlueprintRedAccentTheme(BlueprintWorkbenchTheme):
-    """Inherits every token from BlueprintWorkbenchTheme; overrides only
-    the four accent-related ones. Demonstrates partial themes."""
-    accent        = '#e74c3c'
-    accent_hover  = '#ec7063'
-    accent_active = '#c0392b'
-    node_selected = '#e74c3c'
-    edge_selected = '#e74c3c'
+--8<-- "barn/haybale-testing/haybale_testing/themes/workbench.py:test_dark_theme"
 ```
 
 ```python
-# haybale_blueprint/themes/node.py
-from haywire.ui.themes.node_theme import NodeTheme
-from haywire.ui.themes.decorator import theme
-
-@theme(label='Blueprint — Nodes')
-class BlueprintNodeTheme(NodeTheme):
-    """Full node theme — paired with BlueprintWorkbenchTheme above.
-    Independent of workbench themes; user can mix freely."""
-
-    header_bg        = '#0d2137'
-    header_text      = '#a0d8ef'
-    body_bg          = '#091929'
-    body_text        = '#c0e0f8'
-    border           = '#1a3a5c'
-    border_selected  = '#00bfff'
-    port_inlet       = '#00aaff'
-    port_outlet      = '#ff6600'
-    port_exec_inlet  = '#ffffff'
-    port_exec_outlet = '#ffffff'
-    error_bg         = '#1f0a0a'
-    error_border     = '#ff4444'
-    muted_opacity    = '0.4'
+--8<-- "barn/haybale-testing/haybale_testing/themes/workbench.py:test_light_theme"
 ```
+
+**NodeTheme** — `TestNodeTheme` sets all node-specific tokens. Independent of workbench themes; users mix freely:
 
 ```python
-# haybale_blueprint/__init__.py
-from haywire.core.library.base import BaseLibrary
-from haywire.core.library.decorator import library
-from haywire.ui.themes.registry import ThemeRegistry
-
-from .themes.workbench import (
-    BlueprintWorkbenchTheme,
-    BlueprintRedAccentTheme,
-)
-from .themes.node import BlueprintNodeTheme
-
-@library(label='Blueprint Theme', file_watcher=True)
-class Library(BaseLibrary):
-    """Hot-reload enabled — editing any theme file applies the change live
-    via the BaseRegistry hot-reload pipeline."""
-
-    def register_components(self, registries):
-        theme_registry = registries.get(ThemeRegistry)
-        if theme_registry is None:
-            return
-
-        # Multiple workbench themes from one library
-        theme_registry.register_workbench(BlueprintWorkbenchTheme)
-        theme_registry.register_workbench(BlueprintRedAccentTheme)
-
-        # Plus a node theme
-        theme_registry.register_node_theme(BlueprintNodeTheme)
-
-    def validate(self) -> bool:
-        return True
+--8<-- "barn/haybale-testing/haybale_testing/themes/node.py:test_node_theme"
 ```
 
-What this example exercises:
+What these examples exercise:
 
 | Concept | Where it shows up |
 |---|---|
-| Full `WorkbenchTheme` covering every token category | `BlueprintWorkbenchTheme` |
-| Partial subclass overriding only specific tokens | `BlueprintRedAccentTheme(BlueprintWorkbenchTheme)` |
-| Full `NodeTheme` with all node-specific tokens | `BlueprintNodeTheme` |
+| Full `WorkbenchTheme` covering every token category | `TestDarkTheme` |
+| Second `WorkbenchTheme` variant in the same file | `TestLightTheme` |
 | `@theme(label=...)` decorator on every class | all three |
-| Plain string attributes (not `field()` descriptors) | every token assignment |
-| Imports from canonical module paths | `haywire.ui.themes.workbench`, `haywire.ui.themes.node_theme`, `haywire.ui.themes.decorator`, `haywire.ui.themes.registry` |
-| Registration via `register_components()` | `Library.register_components` |
-| Multiple themes per library | three classes registered |
-| Hot-reload via `file_watcher=True` | `@library(file_watcher=True)` |
+| Plain string attributes (not descriptors) | every token assignment |
+| Full `NodeTheme` with all node-specific tokens | `TestNodeTheme` |
+| Imports from canonical module paths | `haywire.ui.themes.workbench`, `haywire.ui.themes.node_theme`, `haywire.ui.themes.decorator` |
 
 **Active theme selection** (user-side, in their TOML):
 

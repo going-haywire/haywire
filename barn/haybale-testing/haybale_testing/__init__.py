@@ -20,6 +20,7 @@ from haywire.ui.themes.registry import ThemeRegistry
 from haywire.ui.widget.registry import WidgetRegistry
 
 
+# --8<-- [start:testing_library]
 @library(
     label="Testing",
     id="testing",
@@ -85,6 +86,9 @@ class Library(BaseLibrary):
     def validate(self) -> bool:
         """Validate that the test library is properly structured"""
         return True
+
+
+# --8<-- [end:testing_library]
 
 
 # Export for entry point discovery

@@ -7,6 +7,7 @@ from haywire.core.execution.execution_context import ExecutionContext
 from haywire.core.node import node, BaseNode, NodeType
 
 
+# --8<-- [start:edge_link_test_node]
 @node(
     label="Edge Link TestNode",
     search_tags=["testing", "edge", "link", "inlet", "outlet", "connection", "adapter"],
@@ -117,3 +118,6 @@ class EdgeLinkTestNode(BaseNode):
     def worker(self, context: ExecutionContext) -> str | None:
         """Execute the node - return the constant value"""
         return None
+
+
+# --8<-- [end:edge_link_test_node]

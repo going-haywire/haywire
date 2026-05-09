@@ -157,143 +157,35 @@ from haybale_studio.editors.properties_editor_actions import PropertiesEditorAct
 
 **Hot-reload.** `PanelRegistry` extends `BaseRegistry`. New panel classes are picked up at the host editor's next render boundary. Existing panel instances are re-instantiated on the next `poll → draw` cycle. Focus ids are the stable lookup key, so reloads don't break scope tabs.
 
-## 4. One comprehensive example
+## 4. Live examples from the codebase
 
-A worked example exercising every authoring concept: a `NodeMetricsPanel` that mounts in any editor satisfying `PropertiesEditorActions`, appears under the Node focus, polls for visibility based on active node, displays cached metrics with a custom collapsible section, exercises `PanelLayout` thoroughly, and reads both `EditState` and a custom `AppState`.
+Source: [`barn/haybale-testing/haybale_testing/panels/`](../../../barn/haybale-testing/haybale_testing/panels/)
+
+**Simple action panel** — `TestDeleteNodePanel` from [`test_node_panels.py`](../../../barn/haybale-testing/haybale_testing/panels/test_node_panels.py). Demonstrates the minimal panel skeleton: `@panel` decorator, `poll()` checking `EditState`, `draw()` calling `layout.button()` and dispatching through the action contract:
 
 ```python
-# my_lib/panels/node_metrics.py
-
-from __future__ import annotations
-
-from typing import TYPE_CHECKING
-
-from nicegui import ui
-
-from haywire.ui.panel import BasePanel, PanelLayout
-from haywire.ui.panel.decorator import panel
-
-from haybale_studio.focuses import NodeFocus
-from haybale_studio.editors.properties_editor_actions import PropertiesEditorActions
-from haybale_studio.state.edit_state import EditState
-
-# A custom AppState (see components/states/state-canon.md)
-from ..state.metrics_cache import MetricsCache
-
-if TYPE_CHECKING:
-    from haywire.ui.context import SessionContext
-
-
-@panel(
-    action=PropertiesEditorActions,  # mount in any editor satisfying this Protocol
-    focus=NodeFocus,                 # visible when the Node focus is active
-    label='Node Metrics',
-    icon='analytics',
-    order=200,                       # after the built-in node panels (which are 0–99)
-    default_open=False,              # collapsed by default — metrics are advanced
-    description='Computed performance metrics for the active node',
-)
-class NodeMetricsPanel(BasePanel):
-    """Sub-section of the Properties editor. Visible when a node is
-    selected; renders cached metrics from MetricsCache (AppState)."""
-
-    @classmethod
-    def poll(cls, ctx: "SessionContext") -> bool:
-        """Visibility check — runs on every context change.
-        Keep it cheap: no I/O, no AppState computations."""
-        node = ctx.data[EditState].active_node.value
-        if node is None:
-            return False
-        # Optional narrowing: only show for nodes the metrics cache covers
-        return getattr(node, 'metrics_eligible', True)
-
-    def draw(
-        self,
-        ctx: "SessionContext",
-        layout: PanelLayout,
-        actions: PropertiesEditorActions,
-    ) -> None:
-        """Render the panel. Only called when poll() returned True.
-        The host editor wraps this in a ui.expansion automatically."""
-        node = ctx.data[EditState].active_node.value
-        cache = ctx.app_data[MetricsCache]
-        metrics = cache.for_node(node.node_id)
-
-        # ── Empty state — no metrics yet ──────────────────────────────
-        if metrics is None:
-            layout.empty_state(
-                f'No metrics yet for {node.name}',
-                icon='hourglass_empty',
-            )
-            return
-
-        # ── Section 1: Execution stats (collapsible, persisted) ──────
-        with layout.expansion_section('Execution', icon='timer', panel_key='execution'):
-            with ui.row():
-                layout.label('Runs:')
-                layout.label(str(metrics.run_count))
-            with ui.row():
-                layout.label('Avg. duration:')
-                layout.label(f'{metrics.avg_duration_ms:.2f} ms')
-            with ui.row():
-                layout.label('p99:')
-                layout.label(f'{metrics.p99_ms:.2f} ms')
-
-        # ── Section 2: Data flow (flat label — short list) ───────────
-        layout.section_label('Data flow')
-        with ui.row():
-            layout.label('Inlets dirty:')
-            layout.label(str(metrics.inlet_dirty_count))
-        with ui.row():
-            layout.label('Outlets fired:')
-            layout.label(str(metrics.outlet_fire_count))
-
-        layout.separator()
-
-        # ── Action: clear the cache for this node, then call back into
-        #    the host to clear selection (uses the action contract) ───
-        layout.button(
-            'Clear metrics & deselect',
-            icon='clear',
-            on_click=lambda: self.hb_clear_for(node, cache, actions),
-        )
-
-    # hb_* prefix → safe across framework updates
-    def hb_clear_for(
-        self,
-        node,
-        cache: MetricsCache,
-        actions: PropertiesEditorActions,
-    ) -> None:
-        """Custom helper. Note: clearing AppState mutations propagate
-        automatically because MetricsCache.entries is a reactive_field.
-        Then we call back into the host through the action contract."""
-        cache.clear_for(node.node_id)
-        actions.clear_selection()
-        # No need to redraw manually — selection change emits a signal
-        # the parent editor uses to re-poll/draw.
+--8<-- "barn/haybale-testing/haybale_testing/panels/test_node_panels.py:test_delete_node_panel"
 ```
 
-What this example exercises:
+**SessionState-reading panel** — `TestSessionStatePanel` from [`test_session_state_panel.py`](../../../barn/haybale-testing/haybale_testing/panels/test_session_state_panel.py). Demonstrates `poll()` reading a `SessionState` reactive field and `draw()` displaying it with `layout.label()`:
+
+```python
+--8<-- "barn/haybale-testing/haybale_testing/panels/test_session_state_panel.py:test_session_state_panel"
+```
+
+What these examples exercise:
 
 | Concept | Where |
 |---|---|
-| `@panel(action=..., focus=NodeFocus, …)` | top of class |
-| `order=200` placing after built-in node panels | decorator |
-| `default_open=False` for advanced/secondary content | decorator |
-| `poll(cls, ctx)` as classmethod, fast visibility check | `poll` |
-| Reading `ctx.data[EditState].active_node.value` | `poll` body |
-| Reading `AppState` with `ctx.app_data[Cls]` | `draw` body |
-| `draw(self, ctx, layout, actions)` 3-arg signature | `draw` |
-| `layout.expansion_section('...', icon=..., panel_key=...)` for collapsible sub-sections | `draw` |
-| `layout.section_label('...')` for flat group separators | `draw` |
-| Raw `ui.row()` for inline horizontal layout | `draw` |
-| `layout.label(...)` for text rows | `draw` |
-| `layout.separator()` for visual division | `draw` |
-| `layout.empty_state(...)` for the empty/loading state | `draw` |
-| `layout.button(label, icon, on_click)` for actions | `draw` |
-| `actions.clear_selection()` — calling back into the host through the action Protocol | `hb_clear_for` |
-| `hb_*` private helper convention | `hb_clear_for` |
+| `@panel(action=..., focus=..., label=..., order=...)` | both panels |
+| `poll(cls, ctx)` as `@classmethod` | both panels |
+| `ctx.data[Cls].reactive_field.value` in `poll` | both panels |
+| `draw(self, ctx, layout, actions)` 3-arg signature | both panels |
+| `layout.button(label, icon, on_click)` | `TestDeleteNodePanel` |
+| Dispatching through the action contract | `actions.test_delete_node(node_id)` |
+| `layout.label(text)` | `TestSessionStatePanel` |
+| Reading `SessionState` via `ctx.data[Cls]` | `TestSessionStatePanel` |
+| `TYPE_CHECKING` guard for `SessionContext` import | both panels |
 
 For the host Properties editor (a panel-aware editor in `haybale-studio`), see [components/editors](../editors/editor-canon.md). For the AppState that backs the metrics, see [components/states](../states/state-canon.md). For the `PanelLayout` design-system primitives in detail, see [reference/design-guide](../../reference/design-guide.md) §8.
 

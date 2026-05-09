@@ -119,100 +119,14 @@ __all__ = ['Library']
 
 **The Library *class* is what the entry point points at — not an instance.** The framework instantiates it.
 
-## 4. One comprehensive example
+## 4. Live example from the codebase
 
-A worked example exercising every authoring concept: a library `haybale_mylib` that contributes nodes, types, adapters, and widgets, enables hot-reload, includes custom validation, declares dependencies, and registers all six component categories from their conventional folder layout.
+Source: [`barn/haybale-testing/haybale_testing/__init__.py`](../../../barn/haybale-testing/haybale_testing/__init__.py)
+
+`haybale_testing` is the framework's own test library — it registers all nine component categories (types, adapters, themes, widgets, skins, settings, nodes, panels, state), enables hot-reload, and includes a `validate()` that always passes. It is the most complete `Library` subclass in the codebase:
 
 ```python
-# haybale_mylib/__init__.py
-
-from pathlib import Path
-
-from haywire.core.library.base import BaseLibrary
-from haywire.core.library.decorator import library
-
-# Each registry lives with its component package — not under library/
-from haywire.core.node.registry import NodeRegistry
-from haywire.core.types.registry import TypeRegistry
-from haywire.core.adapter.registry import AdapterRegistry
-from haywire.ui.widget.registry import WidgetRegistry
-from haywire.ui.skin.registry import SkinRegistry
-from haywire.ui.themes.registry import ThemeRegistry
-
-@library(
-    label='My Library',
-    id='haybale_mylib',                 # Stable across versions —
-                                        # becomes the prefix on every registry_key.
-    version='1.0.0',
-    description='Demonstration library — exercises every component category.',
-    dependencies=['haybale_core'],      # Currently informational only.
-    file_watcher=True,                  # Enable hot-reload.
-    url='https://github.com/me/haybale-mylib',
-    help_url='https://github.com/me/haybale-mylib/blob/main/README.md',
-    author='Author Name',
-    author_url='https://example.com',
-)
-class Library(BaseLibrary):
-    """One Library class per haybale package. Discovered via the
-    pyproject.toml entry-point under [project.entry-points."haywire.libraries"]."""
-
-    def register_components(self):
-        """Called once by LibraryRegistry after the @library decorator has
-        wired up class_identity. Each call below scans a folder and lets
-        @-decorated classes self-register."""
-        base = Path(__file__).parent
-
-        # ── Per-folder registration ────────────────────────────────────
-        # The folder layout is convention; you can use any layout, but
-        # the conventional one (nodes/, types/, adapters/, widgets/,
-        # skins/, themes/) is what library tools assume.
-
-        self.add_folder_to_registry(
-            folder_path=str(base / 'types'),
-            registry_cls=TypeRegistry,
-        )
-        self.add_folder_to_registry(
-            folder_path=str(base / 'adapters'),
-            registry_cls=AdapterRegistry,
-        )
-        self.add_folder_to_registry(
-            folder_path=str(base / 'nodes'),
-            registry_cls=NodeRegistry,
-            exclude_patterns=['test_', '__'],   # Skip test files
-        )
-        self.add_folder_to_registry(
-            folder_path=str(base / 'widgets'),
-            registry_cls=WidgetRegistry,
-        )
-        self.add_folder_to_registry(
-            folder_path=str(base / 'skins'),
-            registry_cls=SkinRegistry,
-        )
-        self.add_folder_to_registry(
-            folder_path=str(base / 'themes'),
-            registry_cls=ThemeRegistry,
-        )
-
-        # ── Settings registration ──────────────────────────────────────
-        # @settings-decorated LibrarySettings classes register themselves
-        # via the BaseRegistry hot-reload pipeline; nothing to do here
-        # unless you explicitly want a register_schema() call.
-        # See components/settings/setting-canon.md for details.
-
-    def validate(self) -> bool:
-        """Sanity check — return False to abort loading. The framework
-        logs the failure and skips this library; other libraries continue
-        to load normally."""
-        base = Path(__file__).parent
-        # Require the conventional folders to exist
-        required = ['types', 'adapters', 'nodes', 'widgets', 'skins', 'themes']
-        missing = [f for f in required if not (base / f).exists()]
-        if missing:
-            return False
-        return True
-
-# Required: the entry point in pyproject.toml points at this name
-__all__ = ['Library']
+--8<-- "barn/haybale-testing/haybale_testing/__init__.py:testing_library"
 ```
 
 The companion `pyproject.toml` (full coverage in [components/haybale-package](../haybale-package/haybale-package-canon.md)):
@@ -240,12 +154,11 @@ What this example exercises:
 | Concept | Where |
 |---|---|
 | `@library(label=..., id=..., version=..., file_watcher=True)` | decoration |
-| Stable `id=` — becomes prefix of every component's `registry_key` | `id='haybale_mylib'` |
+| Stable `id=` — becomes prefix of every component's `registry_key` | `id='testing'` |
 | Required parens on every component decorator | `@library(...)` |
 | `BaseLibrary` subclass with the two required hooks | `Library(BaseLibrary)` |
-| `register_components` calling `add_folder_to_registry` per category | six calls, one per folder |
-| `exclude_patterns` to skip test files | `nodes/` |
-| Real `validate()` logic (returns `False` if structure broken) | required-folder check |
+| `register_components` calling `add_folder_to_registry` per category | nine calls, one per folder |
+| `validate()` returning `True` unconditionally | `def validate(self) -> bool` |
 | `__all__` exporting the Library class for the entry point | last line |
 | Imports from canonical paths (not the obsolete `library/library` / `library/registries/`) | every import |
 | Hot-reload via `file_watcher=True` | `@library(file_watcher=True)` |

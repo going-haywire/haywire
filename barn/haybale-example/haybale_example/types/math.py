@@ -19,6 +19,7 @@ class MathOPs(Enum):
         return [e.name for e in cls]
 
 
+# --8<-- [start:math_op_selector]
 @type(
     label="Simple Operations",
     description="Simple mathematical operations for one or two float values",
@@ -32,3 +33,6 @@ class MathOPSelector(STRING):
     """
 
     pass
+
+
+# --8<-- [end:math_op_selector]

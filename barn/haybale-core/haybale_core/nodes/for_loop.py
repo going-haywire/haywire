@@ -8,6 +8,7 @@ from haywire.core.node import node, BaseNode, NodeType
 from haywire.core.execution.execution_context import ExecutionContext
 
 
+# --8<-- [start:for_loop_node]
 @node(
     label="For Loop",
     description="Iterate with start, end, and step control",
@@ -147,3 +148,6 @@ class ForLoopNode(BaseNode):
         # Continue loop - output current index
         self.out("index", current_index)
         return "loop_body"
+
+
+# --8<-- [end:for_loop_node]

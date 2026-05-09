@@ -10,6 +10,7 @@ from haywire.core.execution.execution_context import ExecutionContext
 from haywire.core.node import node, BaseNode, NodeType
 
 
+# --8<-- [start:dynamic_port_test_node]
 @node(
     label="Dynamic Port TestNode",
     search_tags=["testing", "dynamic", "push", "pop", "reconfigure"],
@@ -63,3 +64,6 @@ class DynamicPortTestNode(BaseNode):
 
     def worker(self, context: ExecutionContext) -> str | None:
         return None
+
+
+# --8<-- [end:dynamic_port_test_node]
