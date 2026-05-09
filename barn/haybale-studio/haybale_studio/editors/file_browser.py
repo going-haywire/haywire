@@ -29,7 +29,7 @@ from nicegui import ui
 from haywire.ui import elements as hui
 from haywire.ui.editor.base import BaseEditor
 from haywire.ui.editor.decorator import editor
-from haywire.core.session.context_signals import ActiveFileMoved, Reveal
+from haywire.core.session.context_signals import ActiveFileMoved
 
 if TYPE_CHECKING:
     from haywire.core.session.context import SessionContext
@@ -68,7 +68,6 @@ class LazyFileBrowserEditor(BaseEditor):
             ".git",
         }
     )
-    _GRAPH_EXTS: frozenset = frozenset({".haywire"})
 
     def __init__(self):
         self._root_path: Optional[Path] = None
@@ -330,6 +329,14 @@ class LazyFileBrowserEditor(BaseEditor):
         provider.on_file_context(pos=(screen_x, screen_y), path=path)
 
     def _on_select(self, node_id: Optional[str], context: "SessionContext") -> None:
+        """Left-click handler.
+
+        Files: select the file (set ``active_file`` and fire
+        ``ActiveFileMoved``). No editor opens — that's right-click's job
+        via the file context menu.
+
+        Folders: toggle expansion. Sentinel rows: load the next batch.
+        """
         if not node_id:
             return
 
@@ -353,70 +360,14 @@ class LazyFileBrowserEditor(BaseEditor):
                 self._tree.deselect()
             return
 
+        # File click — select-only. Editors that follow ``active_file``
+        # (e.g. NodeSourceEditor's "follow active file" mode) react via
+        # the ActiveFileMoved signal. To OPEN the file, the user
+        # right-clicks and picks an editor from the context menu.
         context.active_file.value = path
-
-        from haybale_studio.editors.code_editor import EDITABLE_EXTS
-
-        ext = path.suffix.lower()
-        if ext in self._GRAPH_EXTS:
-            self._open_graph_file(path, context)
-        elif ext in EDITABLE_EXTS:
-            self._open_in_code_editor(path, context)
-        else:
-            self._open_in_file_viewer(path, context)
-
-    # ------------------------------------------------------------------
-    # routing — same payload contract as FileBrowserEditor
-    # ------------------------------------------------------------------
-
-    def _open_graph_file(self, path: Path, context: "SessionContext") -> None:
-        from haybale_studio.editors.graph_editor import GraphEditor
-
-        app = context.app
         session = context.session
-        if app is None or session is None or not hasattr(app, "haystack"):
-            return
-
-        entry = app.haystack.open_graph(path)
-        session.lifecycle(
-            Reveal(
-                editor=GraphEditor,
-                payload=entry.entry_id,
-                label=entry.display_name,
-            )
-        )
-
-    def _open_in_code_editor(self, path: Path, context: "SessionContext") -> None:
-        session = context.session
-        if session is None:
-            return
-        from haybale_studio.editors.code_editor import CodeEditor
-
-        context.active_file.value = path
-        session.signal(ActiveFileMoved())
-        session.lifecycle(
-            Reveal(
-                editor=CodeEditor,
-                payload=str(path),
-                label=path.name,
-            )
-        )
-
-    def _open_in_file_viewer(self, path: Path, context: "SessionContext") -> None:
-        session = context.session
-        if session is None:
-            return
-        from haybale_studio.editors.file_viewer import FileViewerEditor
-
-        context.active_file.value = path
-        session.signal(ActiveFileMoved())
-        session.lifecycle(
-            Reveal(
-                editor=FileViewerEditor,
-                payload=str(path),
-                label=path.name,
-            )
-        )
+        if session is not None:
+            session.signal(ActiveFileMoved())
 
     def _refresh(self, context: "SessionContext") -> None:
         """Drop all caches and rebuild from the workspace root down."""
