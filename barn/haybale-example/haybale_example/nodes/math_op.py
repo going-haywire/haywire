@@ -9,10 +9,11 @@ from haywire.core.node import node, BaseNode, NodeType
 from haybale_example.types.math import MathOPs
 
 
+# --8<-- [start:math_op_class]
 @node(
     label="Math Operation",
     search_tags=["math", "value", "single", "basic", "operation"],
-    menu="math/basic",
+    menu="examples/math/basic",
     node_type=NodeType.DATA,
 )
 class MathOP(BaseNode):
@@ -20,7 +21,7 @@ class MathOP(BaseNode):
 
     def init(self):
         from haybale_example.types.math import MathOPSelector
-        from haybale_core.types.specs import (
+        from haybale_core.types import (
             FLOAT,
         )
         from haybale_core.widgets.basic_widgets import (
@@ -41,6 +42,7 @@ class MathOP(BaseNode):
 
         self.add(FLOAT.as_outlet(id="result", label="Result"))
 
+    # --8<-- [start:math_op_worker]
     def worker(
         self, context: ExecutionContext, value_a: float, value_b: float, operator: str
     ) -> dict | None:
@@ -59,3 +61,8 @@ class MathOP(BaseNode):
         # result = 1 / 0
         self.out("result", result)
         return None
+
+    # --8<-- [end:math_op_worker]
+
+
+# --8<-- [end:math_op_class]

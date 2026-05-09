@@ -1,5 +1,5 @@
 from haywire.core.node import node, BaseNode, NodeType
-from haybale_core.types.specs import FLOAT, STRING
+from haybale_core.types import FLOAT, STRING
 
 
 @node(

@@ -32,9 +32,8 @@ class TickEmitNode(BaseNode):
     """
 
     def init(self):
-        from ..types.specs import EXEC, FLOAT, CALLBACK
-        from ..types.pooled_type import PooledType
-        from haybale_core.widgets.basic_widgets import NumberWidget
+        from haybale_core.types import EXEC, FLOAT, CALLBACK, PooledType
+        from haybale_core.widgets import NumberWidget
 
         # Control inputs
         self.add(EXEC.as_inlet("start", label="Start"))

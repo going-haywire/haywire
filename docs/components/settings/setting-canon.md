@@ -263,7 +263,7 @@ class ResizeNode(BaseNode):
         )
 
     def init(self):
-        from haybale_core.types.specs import FLOAT
+        from haybale_core.types import FLOAT
         self.add(FLOAT.as_inlet('image'))
         self.add(FLOAT.as_outlet('result'))
 

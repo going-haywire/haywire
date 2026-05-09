@@ -1,1 +1,6 @@
-"""Custom types for the example library."""
+from .frame_type import FRAME
+
+
+__all__ = [
+    "FRAME",
+]

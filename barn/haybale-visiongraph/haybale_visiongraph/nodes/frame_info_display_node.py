@@ -37,7 +37,7 @@ class WebcamFrameInfoDisplayNode(BaseNode):
     """
 
     def init(self):
-        from haybale_core.types.specs import EXEC, STRING, INT, FLOAT
+        from haybale_core.types import EXEC, STRING, INT, FLOAT
         from haybale_core.widgets.basic_widgets import SimpleLabelWidget
         from haybale_visiongraph.types.frame_type import FRAME
         from haybale_visiongraph.widgets.opencv_viewer_widget import OpencvViewerWidget

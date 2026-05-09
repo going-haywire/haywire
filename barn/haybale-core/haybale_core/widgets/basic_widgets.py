@@ -9,7 +9,7 @@ from haywire.ui.widget.decorator import widget
 from haywire.ui.widget.simple import SimpleWidget
 from haywire.ui.components.number.drag import NumberDrag
 
-from haybale_core.types.specs import BOOL, FLOAT, INT, STRING
+from haybale_core.types import BOOL, FLOAT, INT, STRING
 
 
 @widget(description="Fast number input widget", compatible_types=[FLOAT, INT])

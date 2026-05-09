@@ -23,9 +23,9 @@ def _create_graph_with_math(graph: BaseGraph) -> BaseGraph:
     Returns:
         The populated graph
     """
-    from haybale_core.nodes.begin_play import BeginPlayNode
-    from haybale_test_a.nodes.print_node import PrintMessageNode
-    from haybale_example.nodes.math_op import MathOP
+    from haybale_core.nodes import BeginPlayNode
+    from haybale_core.nodes import PrintTerminalMessageNode
+    from haybale_example.nodes import MathOP
 
     begin_play = graph.create_node_wrapper(
         BeginPlayNode.class_identity.registry_key,
@@ -33,7 +33,7 @@ def _create_graph_with_math(graph: BaseGraph) -> BaseGraph:
     )
     
     print_msg = graph.create_node_wrapper(
-        PrintMessageNode.class_identity.registry_key,
+        PrintTerminalMessageNode.class_identity.registry_key,
         position=(300, 100)
     )
     
@@ -162,7 +162,7 @@ def example_sequence_flow():
     """
     Example with sequence: BeginPlay → PrintMessage → PrintMessage
     """
-    from haybale_core.nodes.begin_play import BeginPlayNode
+    from haybale_core.nodes.events.begin_play import BeginPlayNode
     from haybale_test_a.nodes.print_node import PrintMessageNode
     
     # Create graph
@@ -224,9 +224,9 @@ def example_callback_string_based():
     Both nodes configured with matching callback name strings.
     No callback edge - connection happens via string matching.
     """
-    from haybale_core.nodes.begin_play import BeginPlayNode
-    from haybale_core.nodes.archive.custom_callback import CustomCallbackNode
-    from haybale_core.nodes.archive.emit_callback import EmitCallbackNode
+    from haybale_core.nodes.events.begin_play import BeginPlayNode
+    from haybale_example.nodes.emits.custom_callback import CustomCallbackNode
+    from haybale_example.nodes.emits.emit_callback import EmitCallbackNode
     from haybale_test_a.nodes.print_node import PrintMessageNode
     
     # Create graph
@@ -321,9 +321,9 @@ def example_callback_edge_based():
     Event name (CustomCallback's node_id) propagates through the edge automatically
     via the pipe mechanism.
     """
-    from haybale_core.nodes.begin_play import BeginPlayNode
-    from haybale_core.nodes.archive.custom_callback import CustomCallbackNode
-    from haybale_core.nodes.archive.emit_callback import EmitCallbackNode
+    from haybale_core.nodes.events.begin_play import BeginPlayNode
+    from haybale_example.nodes.emits.custom_callback import CustomCallbackNode
+    from haybale_example.nodes.emits.emit_callback import EmitCallbackNode
     from haybale_test_a.nodes.print_node import PrintMessageNode
     
     # Create graph
@@ -425,7 +425,7 @@ def example_external_events():
     """
     Example with external events (e.g., keyboard input)
     """
-    from haybale_core.nodes.begin_play import BeginPlayNode
+    from haybale_core.nodes.events.begin_play import BeginPlayNode
     from haybale_test_a.nodes.print_node import PrintMessageNode
     
     # Create graph

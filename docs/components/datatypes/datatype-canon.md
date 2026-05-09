@@ -134,7 +134,7 @@ Alpha.field_class = AlphaField
 # here only to make the round-trip example complete.
 
 from haywire.core.adapter.base import BaseAdapter, adapter
-from haybale_core.types.specs import STRING
+from haybale_core.types import STRING
 
 @adapter(
     description='Convert Color to hex string',
@@ -153,7 +153,7 @@ class ColorToStringAdapter(BaseAdapter):
 from haywire.core.node.base import BaseNode
 from haywire.core.node.decorator import node
 from haywire.core.execution.execution_context import ExecutionContext
-from haybale_core.types.specs import FLOAT
+from haybale_core.types import FLOAT
 
 @node(label='Mix Colors', menu='color/operations')
 class MixColorsNode(BaseNode):

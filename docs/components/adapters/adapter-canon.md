@@ -113,7 +113,7 @@ A `Color` datatype (RGBA dataclass, defined in [datatype-canon §4](../datatypes
 # my_lib/adapters/color_adapters.py
 
 from haywire.core.adapter.base import BaseAdapter, adapter
-from haybale_core.types.specs import STRING
+from haybale_core.types import STRING
 
 from ..types.color import Color
 from ..types.temperature import Temperature   # @type-decorated PrimitiveType[float]

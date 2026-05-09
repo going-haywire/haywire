@@ -24,7 +24,7 @@
               "label": "Execute",
               "description": "Signal for controlling execution flow between nodes",
               "class_name": "EXEC",
-              "module": "haybale_core.types.specs",
+              "module": "haybale_core.types",
               "flow_type": "control",
               "default": {},
               "store_strategy": 14,
@@ -44,7 +44,7 @@
               "label": "Start Time",
               "description": "Decimal numberer",
               "class_name": "FLOAT",
-              "module": "haybale_core.types.specs",
+              "module": "haybale_core.types",
               "flow_type": "data",
               "default": {
                 "value": 0.0
@@ -134,7 +134,7 @@
               "label": "Start",
               "description": "Signal for controlling execution flow between nodes",
               "class_name": "EXEC",
-              "module": "haybale_core.types.specs",
+              "module": "haybale_core.types",
               "flow_type": "control",
               "default": {},
               "store_strategy": 2,
@@ -155,7 +155,7 @@
               "label": "Stop",
               "description": "Signal for controlling execution flow between nodes",
               "class_name": "EXEC",
-              "module": "haybale_core.types.specs",
+              "module": "haybale_core.types",
               "flow_type": "control",
               "default": {},
               "store_strategy": 2,
@@ -177,7 +177,7 @@
               "label": "Target FPS",
               "description": "Decimal numberer",
               "class_name": "FLOAT",
-              "module": "haybale_core.types.specs",
+              "module": "haybale_core.types",
               "flow_type": "data",
               "default": {
                 "value": 60.0
@@ -210,7 +210,7 @@
               "label": "Trigger",
               "description": "Multi-source aggregation",
               "class_name": "PooledType",
-              "module": "haybale_core.types.pooled_type",
+              "module": "haybale_core.types",
               "flow_type": "callback",
               "default": {
                 "value": {}
@@ -239,7 +239,7 @@
               "label": "Started",
               "description": "Signal for controlling execution flow between nodes",
               "class_name": "EXEC",
-              "module": "haybale_core.types.specs",
+              "module": "haybale_core.types",
               "flow_type": "control",
               "default": {},
               "store_strategy": 14,
@@ -260,7 +260,7 @@
               "label": "Stopped",
               "description": "Signal for controlling execution flow between nodes",
               "class_name": "EXEC",
-              "module": "haybale_core.types.specs",
+              "module": "haybale_core.types",
               "flow_type": "control",
               "default": {},
               "store_strategy": 14,
@@ -347,7 +347,7 @@
               "label": "Listen",
               "description": "Signal for callback execution between nodes",
               "class_name": "CALLBACK",
-              "module": "haybale_core.types.specs",
+              "module": "haybale_core.types",
               "flow_type": "callback",
               "default": {
                 "value": "TickEventNode_f06e7bcb"
@@ -372,7 +372,7 @@
               "label": "Execute",
               "description": "Signal for controlling execution flow between nodes",
               "class_name": "EXEC",
-              "module": "haybale_core.types.specs",
+              "module": "haybale_core.types",
               "flow_type": "control",
               "default": {},
               "store_strategy": 14,
@@ -393,7 +393,7 @@
               "label": "Delta Time",
               "description": "Decimal numberer",
               "class_name": "FLOAT",
-              "module": "haybale_core.types.specs",
+              "module": "haybale_core.types",
               "flow_type": "data",
               "default": {
                 "value": 0.0
@@ -484,7 +484,7 @@
               "label": "Execute",
               "description": "Signal for controlling execution flow between nodes",
               "class_name": "EXEC",
-              "module": "haybale_core.types.specs",
+              "module": "haybale_core.types",
               "flow_type": "control",
               "default": {},
               "store_strategy": 2,
@@ -505,7 +505,7 @@
               "label": "Start",
               "description": "Whole number",
               "class_name": "INT",
-              "module": "haybale_core.types.specs",
+              "module": "haybale_core.types",
               "flow_type": "data",
               "default": {
                 "value": 0
@@ -531,7 +531,7 @@
               "label": "End",
               "description": "Whole number",
               "class_name": "INT",
-              "module": "haybale_core.types.specs",
+              "module": "haybale_core.types",
               "flow_type": "data",
               "default": {
                 "value": 10
@@ -557,7 +557,7 @@
               "label": "Step",
               "description": "Whole number",
               "class_name": "INT",
-              "module": "haybale_core.types.specs",
+              "module": "haybale_core.types",
               "flow_type": "data",
               "default": {
                 "value": 1
@@ -583,7 +583,7 @@
               "label": "Break",
               "description": "Signal for controlling execution flow between nodes",
               "class_name": "EXEC",
-              "module": "haybale_core.types.specs",
+              "module": "haybale_core.types",
               "flow_type": "control",
               "default": {},
               "store_strategy": 2,
@@ -605,7 +605,7 @@
               "label": "Loop Body",
               "description": "Signal for controlling execution flow between nodes",
               "class_name": "EXEC",
-              "module": "haybale_core.types.specs",
+              "module": "haybale_core.types",
               "flow_type": "control",
               "default": {},
               "store_strategy": 14,
@@ -627,7 +627,7 @@
               "label": "Index",
               "description": "Whole number",
               "class_name": "INT",
-              "module": "haybale_core.types.specs",
+              "module": "haybale_core.types",
               "flow_type": "data",
               "default": {
                 "value": 0
@@ -653,7 +653,7 @@
               "label": "Completed",
               "description": "Signal for controlling execution flow between nodes",
               "class_name": "EXEC",
-              "module": "haybale_core.types.specs",
+              "module": "haybale_core.types",
               "flow_type": "control",
               "default": {},
               "store_strategy": 14,
@@ -739,7 +739,7 @@
               "label": "Execute",
               "description": "Signal for controlling execution flow between nodes",
               "class_name": "EXEC",
-              "module": "haybale_core.types.specs",
+              "module": "haybale_core.types",
               "flow_type": "control",
               "default": {},
               "store_strategy": 2,
@@ -760,7 +760,7 @@
               "label": "Data Type",
               "description": "Text data",
               "class_name": "STRING",
-              "module": "haybale_core.types.specs",
+              "module": "haybale_core.types",
               "flow_type": "data",
               "default": {
                 "value": "int"
@@ -796,7 +796,7 @@
               "label": "True",
               "description": "Signal for controlling execution flow between nodes",
               "class_name": "EXEC",
-              "module": "haybale_core.types.specs",
+              "module": "haybale_core.types",
               "flow_type": "control",
               "default": {},
               "store_strategy": 14,
@@ -817,7 +817,7 @@
               "label": "False",
               "description": "Signal for controlling execution flow between nodes",
               "class_name": "EXEC",
-              "module": "haybale_core.types.specs",
+              "module": "haybale_core.types",
               "flow_type": "control",
               "default": {},
               "store_strategy": 14,
@@ -838,7 +838,7 @@
               "label": "Test",
               "description": "Whole number",
               "class_name": "INT",
-              "module": "haybale_core.types.specs",
+              "module": "haybale_core.types",
               "flow_type": "data",
               "default": {
                 "value": 0
@@ -864,7 +864,7 @@
               "label": "Condition",
               "description": "Text data",
               "class_name": "STRING",
-              "module": "haybale_core.types.specs",
+              "module": "haybale_core.types",
               "default": {
                 "value": "=="
               },
@@ -901,7 +901,7 @@
               "label": "Compare",
               "description": "Decimal numberer",
               "class_name": "FLOAT",
-              "module": "haybale_core.types.specs",
+              "module": "haybale_core.types",
               "flow_type": "data",
               "default": {
                 "value": 0.0
@@ -927,7 +927,7 @@
               "label": "With",
               "description": "Decimal numberer",
               "class_name": "FLOAT",
-              "module": "haybale_core.types.specs",
+              "module": "haybale_core.types",
               "flow_type": "data",
               "default": {
                 "value": 0.0
@@ -1052,7 +1052,7 @@
               "label": "Value A",
               "description": "Decimal numberer",
               "class_name": "FLOAT",
-              "module": "haybale_core.types.specs",
+              "module": "haybale_core.types",
               "flow_type": "data",
               "default": {
                 "value": 0.0
@@ -1078,7 +1078,7 @@
               "label": "Value B",
               "description": "Decimal numberer",
               "class_name": "FLOAT",
-              "module": "haybale_core.types.specs",
+              "module": "haybale_core.types",
               "flow_type": "data",
               "default": {
                 "value": 0.0
@@ -1104,7 +1104,7 @@
               "label": "Result",
               "description": "Decimal numberer",
               "class_name": "FLOAT",
-              "module": "haybale_core.types.specs",
+              "module": "haybale_core.types",
               "flow_type": "data",
               "default": {
                 "value": 0.0
@@ -1197,7 +1197,7 @@
               "label": "Execution Signal",
               "description": "Signal for controlling execution flow between nodes",
               "class_name": "EXEC",
-              "module": "haybale_core.types.specs",
+              "module": "haybale_core.types",
               "flow_type": "control",
               "default": {},
               "store_strategy": 2,
@@ -1218,7 +1218,7 @@
               "label": "Execution Signal",
               "description": "Signal for controlling execution flow between nodes",
               "class_name": "EXEC",
-              "module": "haybale_core.types.specs",
+              "module": "haybale_core.types",
               "flow_type": "control",
               "default": {},
               "store_strategy": 14,
@@ -1239,7 +1239,7 @@
               "label": "String",
               "description": "Text data",
               "class_name": "STRING",
-              "module": "haybale_core.types.specs",
+              "module": "haybale_core.types",
               "flow_type": "data",
               "default": {
                 "value": "Hello, World!"

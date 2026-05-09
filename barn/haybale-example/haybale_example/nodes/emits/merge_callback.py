@@ -6,7 +6,7 @@ from haywire.core.node import node, BaseNode, NodeType
 @node(
     label="Merge Callback",
     description="Listens for a specified number of callbacks from other flows",
-    menu="event/callback",
+    menu="examples/event/callback",
     search_tags=["callback", "listen", "event", "custom"],
     node_type=NodeType.EVENT,
 )
@@ -24,7 +24,7 @@ class MergeCallbackNode(BaseNode):
 
     def init(self):
         # Config for callback name
-        from ...types.specs import INT
+        from haybale_core.types import INT
         from haybale_core.widgets.basic_widgets import NumberWidget
 
         self.add(
@@ -53,7 +53,7 @@ class MergeCallbackNode(BaseNode):
 
     def hb_reconfigure(self, number_of_callbacks: int = 1):
         """Reconfigure the node based on current settings."""
-        from ...types.specs import EXEC, CALLBACK, FLOAT
+        from haybale_core.types import EXEC, CALLBACK, FLOAT
 
         self.cache.store = {}
 

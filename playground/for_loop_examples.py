@@ -78,9 +78,9 @@ def example_basic_loop():
                      ↓
                  Completed → PrintMessage("Done!")
     """
-    from haybale_core.nodes.begin_play import BeginPlayNode
-    from haybale_core.nodes.print_terminal import PrintTerminalMessageNode
-    from haybale_core.nodes.for_loop import ForLoopNode
+    from haybale_core.nodes import BeginPlayNode
+    from haybale_core.nodes import PrintTerminalMessageNode
+    from haybale_core.nodes import ForLoopNode
     
     graph = BaseGraph(graph_id='basic_loop', name='Basic Loop Example')
     
@@ -165,9 +165,9 @@ def example_backward_loop():
     Flow:
     BeginPlay → ForLoop(10, 0, -1) → PrintMessage → [loop back]
     """
-    from haybale_core.nodes.begin_play import BeginPlayNode
-    from haybale_core.nodes.print_terminal import PrintTerminalMessageNode
-    from haybale_core.nodes.for_loop import ForLoopNode
+    from haybale_core.nodes import BeginPlayNode
+    from haybale_core.nodes import PrintTerminalMessageNode
+    from haybale_core.nodes import ForLoopNode
     
     graph = BaseGraph(graph_id='backward_loop', name='Backward Loop Example')
     
@@ -236,9 +236,9 @@ def example_loop_with_step():
     
     Outputs: 0, 2, 4, 6, 8
     """
-    from haybale_core.nodes.begin_play import BeginPlayNode
-    from haybale_core.nodes.print_terminal import PrintTerminalMessageNode
-    from haybale_core.nodes.for_loop import ForLoopNode
+    from haybale_core.nodes import BeginPlayNode
+    from haybale_core.nodes import PrintTerminalMessageNode
+    from haybale_core.nodes import ForLoopNode
     
     graph = BaseGraph(graph_id='step_loop', name='Loop with Step Example')
     
@@ -307,10 +307,10 @@ def example_loop_with_math():
     
     Outputs: 1, 4, 9, 16, 25
     """
-    from haybale_core.nodes.begin_play import BeginPlayNode
-    from haybale_core.nodes.print_terminal import PrintTerminalMessageNode
-    from haybale_example.nodes.math_op import MathOP
-    from haybale_core.nodes.for_loop import ForLoopNode
+    from haybale_core.nodes import BeginPlayNode
+    from haybale_core.nodes import PrintTerminalMessageNode
+    from haybale_example.nodes import MathOP
+    from haybale_core.nodes import ForLoopNode
     
     graph = BaseGraph(graph_id='loop_math', name='Loop with Math Example')
     

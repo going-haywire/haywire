@@ -2,7 +2,7 @@ from typing import Any, Dict, List, override
 
 from haywire.core.adapter.base import adapter, BaseAdapter
 
-from haybale_core.types.array_type import ArrayType
+from haybale_core.types import ArrayType
 from ..types.maps_string_type import MapsStringType
 
 

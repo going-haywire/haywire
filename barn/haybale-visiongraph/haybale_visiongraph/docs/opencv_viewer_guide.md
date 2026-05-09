@@ -150,7 +150,7 @@ from haywire.core.execution.execution_context import ExecutionContext
 class FrameDisplayNode(BaseNode):
     
     def init(self):
-        from haybale_core.types.specs import EXEC
+        from haybale_core.types import EXEC
         from haybale_visiongraph.types.frame_type import FRAME
         from haybale_visiongraph.widgets.opencv_viewer_widget import OpencvViewerWidget
         

@@ -14,7 +14,7 @@ class TestCustomCallbackNode(BaseNode):
     """Test-only event node that listens for custom callbacks."""
 
     def init(self):
-        from haybale_core.types.specs import GROUP, EXEC, CALLBACK, STRING, FLOAT
+        from haybale_core.types import GROUP, EXEC, CALLBACK, STRING, FLOAT
         from haybale_core.widgets.basic_widgets import TextWidget, SelectWidget
 
         with self.group(

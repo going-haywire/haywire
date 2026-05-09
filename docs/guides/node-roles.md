@@ -30,7 +30,7 @@ from haywire.core.node import node, BaseNode, NodeType
 )
 class CounterNode(BaseNode):
     def init(self):
-        from haybale_core.types.specs import EXEC, INT
+        from haybale_core.types import EXEC, INT
 
         self.add(EXEC.as_inlet('increment', label='Increment'))
         self.add(EXEC.as_inlet('reset', label='Reset'))
@@ -68,7 +68,7 @@ from haywire.core.node import node, BaseNode, NodeType
 )
 class AddNode(BaseNode):
     def init(self):
-        from haybale_core.types.specs import FLOAT
+        from haybale_core.types import FLOAT
         from haybale_core.widgets.basic_widgets import NumberWidget
 
         self.add(FLOAT.as_inlet('a', label='A', default=0.0, widget=NumberWidget.config()))
@@ -102,7 +102,7 @@ from haywire.core.node import node, BaseNode, NodeType
 )
 class BeginPlayNode(BaseNode):
     def init(self):
-        from haybale_core.types.specs import EXEC, FLOAT
+        from haybale_core.types import EXEC, FLOAT
 
         self.add(EXEC.as_outlet('exec', label='Execute'))
         self.add(FLOAT.as_outlet('timestamp', label='Start Time'))
@@ -137,7 +137,7 @@ from haywire.core.node import node, BaseNode, NodeType
 )
 class OnPingNode(BaseNode):
     def init(self):
-        from haybale_core.types.specs import EXEC, CALLBACK, STRING
+        from haybale_core.types import EXEC, CALLBACK, STRING
 
         # Outlet broadcasts this listener's ID; many emitters can wire to it.
         self.add(CALLBACK.as_outlet(
@@ -171,8 +171,8 @@ from haywire.core.node import node, BaseNode, NodeType
 )
 class EmitPingNode(BaseNode):
     def init(self):
-        from haybale_core.types.specs import EXEC, CALLBACK, STRING
-        from haybale_core.types.pooled_type import PooledType
+        from haybale_core.types import EXEC, CALLBACK, STRING
+        from haybale_core.types import PooledType
 
         self.add(EXEC.as_inlet('exec', label='Execute'))
         self.add(STRING.as_inlet('message', default='hello', label='Message'))
@@ -213,7 +213,7 @@ from haywire.core.node import node, BaseNode, NodeType
 )
 class RepeatNode(BaseNode):
     def init(self):
-        from haybale_core.types.specs import EXEC, INT
+        from haybale_core.types import EXEC, INT
         from haybale_core.widgets.basic_widgets import NumberWidget
 
         self.add(EXEC.as_inlet('execute', label='Execute'))

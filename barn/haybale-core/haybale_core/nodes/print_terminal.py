@@ -11,7 +11,7 @@ class PrintTerminalMessageNode(BaseNode):
     """Simple control node that prints a message"""
 
     def init(self):
-        from haybale_core.types.specs import EXEC, STRING
+        from haybale_core.types import EXEC, STRING
 
         # Control flow
         self.add(EXEC.as_inlet("exec"))

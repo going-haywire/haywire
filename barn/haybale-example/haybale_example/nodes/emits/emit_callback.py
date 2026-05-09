@@ -5,7 +5,7 @@ from haywire.core.node import node, BaseNode, NodeType
 @node(
     label="Emit Callback",
     description="Emits a callback to trigger event nodes in other flows",
-    menu="emit/callback",
+    menu="examples/emit/callback",
     search_tags=["callback", "emit", "trigger", "event"],
     node_type=NodeType.CONTROL,
 )
@@ -23,8 +23,8 @@ class EmitCallbackNode(BaseNode):
     """
 
     def init(self):
-        from ...types.specs import EXEC, STRING, FLOAT, CALLBACK, GROUP, BOOL
-        from ...types.pooled_type import PooledType
+        from haybale_core.types import EXEC, STRING, FLOAT, CALLBACK, GROUP, BOOL
+        from haybale_core.types import PooledType
         from haybale_core.widgets.basic_widgets import SwitchWidget, TextWidget
 
         # Control input

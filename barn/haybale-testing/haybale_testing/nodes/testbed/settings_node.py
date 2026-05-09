@@ -1,5 +1,5 @@
 from haywire.core.node import node, BaseNode, NodeType
-from haybale_core.types.specs import STRING
+from haybale_core.types import STRING
 
 from haywire.core.settings import NodeSettings, setting, shadow, watch, Color, Vec2i, Vec3f, Vec4f
 from haybale_testing.settings.testing import TestingSettings

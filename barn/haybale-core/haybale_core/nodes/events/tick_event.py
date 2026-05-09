@@ -23,7 +23,7 @@ class TickEventNode(BaseNode):
     """
 
     def init(self):
-        from ..types.specs import EXEC, FLOAT, CALLBACK
+        from haybale_core.types import EXEC, FLOAT, CALLBACK
 
         # Callback outlet — broadcasts this node's listener ID
         self.add(

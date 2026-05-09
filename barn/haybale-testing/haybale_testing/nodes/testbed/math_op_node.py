@@ -13,7 +13,7 @@ class TestAddFloatNode(BaseNode):
     """Test-only data node that adds two float values."""
 
     def init(self):
-        from haybale_core.types.specs import FLOAT
+        from haybale_core.types import FLOAT
 
         self.add(FLOAT.as_inlet(id="value_a", label="Value A", default=0.0))
         self.add(FLOAT.as_inlet(id="value_b", label="Value B", default=0.0))

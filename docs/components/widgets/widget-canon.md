@@ -139,7 +139,7 @@ from haywire.ui.widget.simple import SimpleWidget
 from haywire.ui.widget.decorator import widget
 from haywire.ui.components.number.drag import NumberDrag
 
-from haybale_core.types.specs import FLOAT, INT, STRING
+from haybale_core.types import FLOAT, INT, STRING
 
 # ── 1. Number widget — the bread-and-butter SimpleWidget ──────────────
 

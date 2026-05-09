@@ -24,7 +24,7 @@
               "label": "Execute",
               "description": "Signal for controlling execution flow between nodes",
               "class_name": "EXEC",
-              "module": "haybale_core.types.specs",
+              "module": "haybale_core.types",
               "flow_type": "control",
               "default": {},
               "store_strategy": 14,
@@ -44,7 +44,7 @@
               "label": "Start Time",
               "description": "Decimal numberer",
               "class_name": "FLOAT",
-              "module": "haybale_core.types.specs",
+              "module": "haybale_core.types",
               "flow_type": "data",
               "default": {
                 "value": 0.0
@@ -134,7 +134,7 @@
               "label": "Start",
               "description": "Signal for controlling execution flow between nodes",
               "class_name": "EXEC",
-              "module": "haybale_core.types.specs",
+              "module": "haybale_core.types",
               "flow_type": "control",
               "default": {},
               "store_strategy": 2,
@@ -155,7 +155,7 @@
               "label": "Stop",
               "description": "Signal for controlling execution flow between nodes",
               "class_name": "EXEC",
-              "module": "haybale_core.types.specs",
+              "module": "haybale_core.types",
               "flow_type": "control",
               "default": {},
               "store_strategy": 2,
@@ -177,7 +177,7 @@
               "label": "Camera Index",
               "description": "Whole number",
               "class_name": "INT",
-              "module": "haybale_core.types.specs",
+              "module": "haybale_core.types",
               "flow_type": "data",
               "default": {
                 "value": 0
@@ -210,7 +210,7 @@
               "label": "Width (0=auto)",
               "description": "Whole number",
               "class_name": "INT",
-              "module": "haybale_core.types.specs",
+              "module": "haybale_core.types",
               "flow_type": "data",
               "default": {
                 "value": 0
@@ -243,7 +243,7 @@
               "label": "Height (0=auto)",
               "description": "Whole number",
               "class_name": "INT",
-              "module": "haybale_core.types.specs",
+              "module": "haybale_core.types",
               "flow_type": "data",
               "default": {
                 "value": 0
@@ -276,7 +276,7 @@
               "label": "FPS (0=auto)",
               "description": "Whole number",
               "class_name": "INT",
-              "module": "haybale_core.types.specs",
+              "module": "haybale_core.types",
               "flow_type": "data",
               "default": {
                 "value": 0
@@ -309,7 +309,7 @@
               "label": "Frame Skip",
               "description": "Whole number",
               "class_name": "INT",
-              "module": "haybale_core.types.specs",
+              "module": "haybale_core.types",
               "flow_type": "data",
               "default": {
                 "value": 1
@@ -342,7 +342,7 @@
               "label": "Trigger",
               "description": "Multi-source aggregation",
               "class_name": "PooledType",
-              "module": "haybale_core.types.pooled_type",
+              "module": "haybale_core.types",
               "flow_type": "callback",
               "default": {
                 "value": {}
@@ -371,7 +371,7 @@
               "label": "Status",
               "description": "Text data",
               "class_name": "STRING",
-              "module": "haybale_core.types.specs",
+              "module": "haybale_core.types",
               "flow_type": "data",
               "default": {
                 "value": "Idle"
@@ -397,7 +397,7 @@
               "label": "Started",
               "description": "Signal for controlling execution flow between nodes",
               "class_name": "EXEC",
-              "module": "haybale_core.types.specs",
+              "module": "haybale_core.types",
               "flow_type": "control",
               "default": {},
               "store_strategy": 14,
@@ -418,7 +418,7 @@
               "label": "Stopped",
               "description": "Signal for controlling execution flow between nodes",
               "class_name": "EXEC",
-              "module": "haybale_core.types.specs",
+              "module": "haybale_core.types",
               "flow_type": "control",
               "default": {},
               "store_strategy": 14,
@@ -506,7 +506,7 @@
               "label": "Listen",
               "description": "Signal for callback execution between nodes",
               "class_name": "CALLBACK",
-              "module": "haybale_core.types.specs",
+              "module": "haybale_core.types",
               "flow_type": "callback",
               "default": {
                 "value": "WebcamFrameEventNode_a450f436"
@@ -530,7 +530,7 @@
               "label": "Frame Ready",
               "description": "Signal for controlling execution flow between nodes",
               "class_name": "EXEC",
-              "module": "haybale_core.types.specs",
+              "module": "haybale_core.types",
               "flow_type": "control",
               "default": {},
               "store_strategy": 14,
@@ -579,7 +579,7 @@
               "label": "Timestamp (s)",
               "description": "Decimal numberer",
               "class_name": "FLOAT",
-              "module": "haybale_core.types.specs",
+              "module": "haybale_core.types",
               "flow_type": "data",
               "default": {
                 "value": 0.0
@@ -605,7 +605,7 @@
               "label": "Frame Number",
               "description": "Whole number",
               "class_name": "INT",
-              "module": "haybale_core.types.specs",
+              "module": "haybale_core.types",
               "flow_type": "data",
               "default": {
                 "value": 0
@@ -631,7 +631,7 @@
               "label": "Width",
               "description": "Whole number",
               "class_name": "INT",
-              "module": "haybale_core.types.specs",
+              "module": "haybale_core.types",
               "flow_type": "data",
               "default": {
                 "value": 0
@@ -657,7 +657,7 @@
               "label": "Height",
               "description": "Whole number",
               "class_name": "INT",
-              "module": "haybale_core.types.specs",
+              "module": "haybale_core.types",
               "flow_type": "data",
               "default": {
                 "value": 0
@@ -750,7 +750,7 @@
               "label": "Analyze Frame",
               "description": "Signal for controlling execution flow between nodes",
               "class_name": "EXEC",
-              "module": "haybale_core.types.specs",
+              "module": "haybale_core.types",
               "flow_type": "control",
               "default": {},
               "store_strategy": 2,
@@ -808,7 +808,7 @@
               "label": "Frame Info",
               "description": "Text data",
               "class_name": "STRING",
-              "module": "haybale_core.types.specs",
+              "module": "haybale_core.types",
               "default": {
                 "value": "No frame yet"
               },
@@ -833,7 +833,7 @@
               "label": "Frame Ready",
               "description": "Signal for controlling execution flow between nodes",
               "class_name": "EXEC",
-              "module": "haybale_core.types.specs",
+              "module": "haybale_core.types",
               "flow_type": "control",
               "default": {},
               "store_strategy": 14,
@@ -882,7 +882,7 @@
               "label": "Timestamp (s)",
               "description": "Decimal numberer",
               "class_name": "FLOAT",
-              "module": "haybale_core.types.specs",
+              "module": "haybale_core.types",
               "flow_type": "data",
               "default": {
                 "value": 0.0
@@ -908,7 +908,7 @@
               "label": "Frame Number",
               "description": "Whole number",
               "class_name": "INT",
-              "module": "haybale_core.types.specs",
+              "module": "haybale_core.types",
               "flow_type": "data",
               "default": {
                 "value": 0
@@ -934,7 +934,7 @@
               "label": "Width",
               "description": "Whole number",
               "class_name": "INT",
-              "module": "haybale_core.types.specs",
+              "module": "haybale_core.types",
               "flow_type": "data",
               "default": {
                 "value": 0
@@ -960,7 +960,7 @@
               "label": "Height",
               "description": "Whole number",
               "class_name": "INT",
-              "module": "haybale_core.types.specs",
+              "module": "haybale_core.types",
               "flow_type": "data",
               "default": {
                 "value": 0
@@ -1054,7 +1054,7 @@
               "label": "Analyze Frame",
               "description": "Signal for controlling execution flow between nodes",
               "class_name": "EXEC",
-              "module": "haybale_core.types.specs",
+              "module": "haybale_core.types",
               "flow_type": "control",
               "default": {},
               "store_strategy": 2,
@@ -1112,7 +1112,7 @@
               "label": "Frame Info",
               "description": "Text data",
               "class_name": "STRING",
-              "module": "haybale_core.types.specs",
+              "module": "haybale_core.types",
               "default": {
                 "value": "No frame yet"
               },
@@ -1137,7 +1137,7 @@
               "label": "Frame Ready",
               "description": "Signal for controlling execution flow between nodes",
               "class_name": "EXEC",
-              "module": "haybale_core.types.specs",
+              "module": "haybale_core.types",
               "flow_type": "control",
               "default": {},
               "store_strategy": 14,
@@ -1186,7 +1186,7 @@
               "label": "Timestamp (s)",
               "description": "Decimal numberer",
               "class_name": "FLOAT",
-              "module": "haybale_core.types.specs",
+              "module": "haybale_core.types",
               "flow_type": "data",
               "default": {
                 "value": 0.0
@@ -1212,7 +1212,7 @@
               "label": "Frame Number",
               "description": "Whole number",
               "class_name": "INT",
-              "module": "haybale_core.types.specs",
+              "module": "haybale_core.types",
               "flow_type": "data",
               "default": {
                 "value": 0
@@ -1238,7 +1238,7 @@
               "label": "Width",
               "description": "Whole number",
               "class_name": "INT",
-              "module": "haybale_core.types.specs",
+              "module": "haybale_core.types",
               "flow_type": "data",
               "default": {
                 "value": 0
@@ -1264,7 +1264,7 @@
               "label": "Height",
               "description": "Whole number",
               "class_name": "INT",
-              "module": "haybale_core.types.specs",
+              "module": "haybale_core.types",
               "flow_type": "data",
               "default": {
                 "value": 0
@@ -1358,7 +1358,7 @@
               "label": "Analyze Frame",
               "description": "Signal for controlling execution flow between nodes",
               "class_name": "EXEC",
-              "module": "haybale_core.types.specs",
+              "module": "haybale_core.types",
               "flow_type": "control",
               "default": {},
               "store_strategy": 2,
@@ -1416,7 +1416,7 @@
               "label": "Frame Info",
               "description": "Text data",
               "class_name": "STRING",
-              "module": "haybale_core.types.specs",
+              "module": "haybale_core.types",
               "default": {
                 "value": "No frame yet"
               },
@@ -1441,7 +1441,7 @@
               "label": "Frame Ready",
               "description": "Signal for controlling execution flow between nodes",
               "class_name": "EXEC",
-              "module": "haybale_core.types.specs",
+              "module": "haybale_core.types",
               "flow_type": "control",
               "default": {},
               "store_strategy": 14,
@@ -1490,7 +1490,7 @@
               "label": "Timestamp (s)",
               "description": "Decimal numberer",
               "class_name": "FLOAT",
-              "module": "haybale_core.types.specs",
+              "module": "haybale_core.types",
               "flow_type": "data",
               "default": {
                 "value": 0.0
@@ -1516,7 +1516,7 @@
               "label": "Frame Number",
               "description": "Whole number",
               "class_name": "INT",
-              "module": "haybale_core.types.specs",
+              "module": "haybale_core.types",
               "flow_type": "data",
               "default": {
                 "value": 0
@@ -1542,7 +1542,7 @@
               "label": "Width",
               "description": "Whole number",
               "class_name": "INT",
-              "module": "haybale_core.types.specs",
+              "module": "haybale_core.types",
               "flow_type": "data",
               "default": {
                 "value": 0
@@ -1568,7 +1568,7 @@
               "label": "Height",
               "description": "Whole number",
               "class_name": "INT",
-              "module": "haybale_core.types.specs",
+              "module": "haybale_core.types",
               "flow_type": "data",
               "default": {
                 "value": 0

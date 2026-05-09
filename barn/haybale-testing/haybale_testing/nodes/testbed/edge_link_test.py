@@ -23,9 +23,9 @@ class EdgeLinkTestNode(BaseNode):
     """
 
     def init(self):
-        from haybale_core.types.array_type import ArrayType
-        from haybale_core.types.pooled_type import PooledType
-        from haybale_core.types.specs import CALLBACK, EXEC
+        from haybale_core.types import ArrayType
+        from haybale_core.types import PooledType
+        from haybale_core.types import CALLBACK, EXEC
         from haybale_testing.types.test_types import (
             TEST_BOOL,
             TEST_FLOAT,

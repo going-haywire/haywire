@@ -35,7 +35,7 @@ class WebcamFrameEventNode(BaseNode):
     """
 
     def init(self):
-        from haybale_core.types.specs import EXEC, INT, FLOAT, CALLBACK
+        from haybale_core.types import EXEC, INT, FLOAT, CALLBACK
         from ..types.frame_type import FRAME
 
         # Declare callback interest

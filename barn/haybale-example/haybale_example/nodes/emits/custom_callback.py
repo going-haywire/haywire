@@ -7,7 +7,7 @@ from haywire.core.node import node, BaseNode, NodeType
 @node(
     label="Custom Callback",
     description="Listens for custom callbacks from other flows",
-    menu="event/callback",
+    menu="examples/event/callback",
     search_tags=["callback", "listen", "event", "custom"],
     node_type=NodeType.EVENT,
 )
@@ -24,8 +24,8 @@ class CustomCallbackNode(BaseNode):
     """
 
     def init(self):
-        from ...types.specs import GROUP, EXEC, CALLBACK, STRING, FLOAT
-        from haybale_core.widgets.basic_widgets import TextWidget
+        from haybale_core.types import GROUP, EXEC, CALLBACK, STRING, FLOAT
+        from haybale_core.widgets import TextWidget
 
         # Config for callback name
         with self.group(

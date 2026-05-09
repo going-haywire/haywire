@@ -23,7 +23,7 @@ class PerformanceTester(BaseNode):
 
     def init(self):
         # Control output
-        from haybale_core.types.specs import EXEC, INT
+        from haybale_core.types import EXEC, INT
 
         self.add(EXEC.as_inlet("exec", label="Execute"))
 
@@ -43,7 +43,7 @@ class PerformanceTester(BaseNode):
 
     def my_change(self, *args, **kwargs) -> None:
         from haybale_core.widgets.basic_widgets import NumberWidget
-        from haybale_core.types.specs import FLOAT
+        from haybale_core.types import FLOAT
 
         with self.rejig(exclude=["exec", "trigger", "port_count"]):
             for i in range(self.value("port_count")):

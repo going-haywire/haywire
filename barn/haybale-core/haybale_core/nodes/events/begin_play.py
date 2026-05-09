@@ -20,7 +20,7 @@ class BeginPlayNode(BaseNode):
     """
 
     def init(self):
-        from ..types.specs import EXEC, FLOAT
+        from haybale_core.types import EXEC, FLOAT
 
         # Control output
         self.add(EXEC.as_outlet("exec", label="Execute"))

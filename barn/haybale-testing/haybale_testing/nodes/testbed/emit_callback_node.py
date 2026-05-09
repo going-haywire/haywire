@@ -13,8 +13,8 @@ class TestEmitCallbackNode(BaseNode):
     """Test-only control node that emits a named callback."""
 
     def init(self):
-        from haybale_core.types.specs import EXEC, STRING, FLOAT, CALLBACK, GROUP, BOOL
-        from haybale_core.types.pooled_type import PooledType
+        from haybale_core.types import EXEC, STRING, FLOAT, CALLBACK, GROUP, BOOL
+        from haybale_core.types import PooledType
         from haybale_core.widgets.basic_widgets import SwitchWidget, TextWidget
 
         self.add(EXEC.as_inlet("execute", label="Execute"))

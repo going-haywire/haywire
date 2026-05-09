@@ -40,8 +40,8 @@ class StartWebcamStreamNode(BaseNode):
     """
 
     def init(self):
-        from haybale_core.types.specs import EXEC, STRING, INT, CALLBACK
-        from haybale_core.types.pooled_type import PooledType
+        from haybale_core.types import EXEC, STRING, INT, CALLBACK
+        from haybale_core.types import PooledType
         from haybale_core.widgets.basic_widgets import NumberWidget, SimpleLabelWidget
 
         # Control inputs
