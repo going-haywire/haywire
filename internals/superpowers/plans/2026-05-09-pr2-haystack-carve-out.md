@@ -9,10 +9,29 @@
 **Tech Stack:** Python 3.12, NiceGUI/Quasar, `pytest`, the haywire library system (entry-points + folder scanning).
 
 **Prerequisites:** PR 1 must be merged. PR 1 provides:
+
 - `haywire.core.session.session_manager.SessionManager` (and the ambient `get_session_manager()`)
 - `haywire.core.di.context.get_workspace_root()`
 - `FileBrowserState`, `FileFocus`, `FileBrowserActions`, `SessionFileMenuProvider` (the file context menu infrastructure)
 - The shell-upstream disconnect flow (no impact on this PR but a stability prerequisite)
+
+---
+
+## Drift from PR 1 — read first
+
+PR 1 ended up doing a few things differently from this plan's original assumptions. Updated below in the affected tasks; summary here so you don't trip over them mid-implementation:
+
+1. **`OpenInGraphEditorPanel` already exists.** PR 1 created it at `barn/haybale-studio/haybale_studio/panels/context_menu/open_in_graph_editor.py` (currently calling `app.haystack.open_graph(path)`). **Task 11 is a MIGRATION** (git-mv + rename class to `OpenInHaystackPanel` + swap to `ctx.app_data[HaystackState]`), NOT a from-scratch creation.
+
+2. **Two more file-context-menu panels exist** in `panels/context_menu/file_actions.py` (`OpenInCodeEditorPanel`, `OpenInFileViewerPanel`). These **stay in haybale-studio** — do not move them.
+
+3. **FileBrowser left-click routing is GONE.** Task 12's deletion work (`_open_graph_file`, `_open_in_code_editor`, `_open_in_file_viewer`, `_GRAPH_EXTS`) was already completed in PR 1. Task 12 is now a verification step, not a deletion task.
+
+4. **`IProjectState` is at `haywire.core.session.protocols`.** PR 1 elevated it. The legacy shim at `haywire/ui/protocols.py` does NOT exist — Task 9's "update the shim" sub-step should be deleted.
+
+5. **`HaystackState` API needs four extra methods** that the legacy `Haystack` exposed and `HaystackEditor` calls today: `list_haystacks()`, `list_graph_files()`, `rename_haystack(old_name, new_name)`, `delete_haystack(name)`. Tasks 6 and 7 below have been updated to include them.
+
+6. **`HaywireApp.save_workspace()` calls `self.haystack.save_haystack(...)`.** This method ties workspace-snapshot save to haystack save in one atomic operation. Today's HaystackEditor calls `context.app.save_workspace(...)`. After the carve-out, the haystack-save half must move into the editor (calling `persistence.dump_haystack(...)` directly), leaving `save_workspace` as workspace-snapshot-only. Task 7 covers this.
 
 ---
 
@@ -1067,7 +1086,13 @@ Key API:
   - rename_graph(entry: GraphEntry, new_name: str) -> bool
   - remove_entry(entry: GraphEntry) -> bool
   - get_by_id(entry_id: str) -> GraphEntry | None
+  - get_by_path(path: Path) -> GraphEntry | None
   - all_entries() -> list[GraphEntry]
+  - unsaved_entries() -> list[GraphEntry]
+  - list_haystacks() -> list[str]                 # delegates to persistence.list_haystacks
+  - list_graph_files() -> list[Path]              # scans <workspace>/graphs/ for *.haywire
+  - rename_haystack(old_name, new_name) -> bool   # delegates to persistence.rename_haystack
+  - delete_haystack(name: str) -> bool            # delegates to persistence.delete_haystack
 """
 
 from __future__ import annotations
@@ -1275,6 +1300,33 @@ class HaystackState(AppState):
         return [e for e in self._entries.values() if e.unsaved]
 
     # ------------------------------------------------------------------
+    # Haystack file management — thin wrappers over persistence.* helpers
+    # so HaystackEditor doesn't need to know about workspace_root.
+    # ------------------------------------------------------------------
+
+    def list_haystacks(self) -> list[str]:
+        """Return the names of all saved haystacks under workspace_root."""
+        from haybale_haystack.persistence import list_haystacks
+        return list_haystacks(self._workspace_root)
+
+    def list_graph_files(self) -> list[Path]:
+        """Scan <workspace_root>/graphs/ for all .haywire files."""
+        graphs_dir = self._workspace_root / "graphs"
+        if not graphs_dir.is_dir():
+            return []
+        return sorted(p for p in graphs_dir.rglob("*.haywire") if p.is_file())
+
+    def rename_haystack(self, old_name: str, new_name: str) -> bool:
+        """Rename a saved haystack file. Returns True on success."""
+        from haybale_haystack.persistence import rename_haystack
+        return rename_haystack(self._workspace_root, old_name, new_name)
+
+    def delete_haystack(self, name: str) -> bool:
+        """Delete a saved haystack file. Returns True if a file was removed."""
+        from haybale_haystack.persistence import delete_haystack
+        return delete_haystack(self._workspace_root, name)
+
+    # ------------------------------------------------------------------
     # Validation subscription / broadcast (Q5C)
     # ------------------------------------------------------------------
 
@@ -1357,9 +1409,45 @@ hs = ctx.app_data[HaystackState]
 # Then use hs.create_new(), hs.open_graph(...), etc.
 ```
 
-Find every `from haywire.ui.protocols import IProjectState` and update to `from haywire.core.session.protocols import IProjectState`. Type annotations like `app: IProjectState = context.app` continue to work (the protocol is structural).
+**`IProjectState` import — already correct.** PR 1 elevated `IProjectState` to `haywire.core.session.protocols` and updated this file's import. Verify with `grep -n "from haywire.\(core.session\|ui\).protocols" barn/haybale-haystack/haybale_haystack/editors/haystack_editor.py` — expected: only `haywire.core.session.protocols`. No update needed.
 
-The old `haystack_editor.py` was around 900 lines with many call sites. Do this systematically: search for `app.haystack`, list every match, and rewrite each.
+The old `haystack_editor.py` was around 900 lines with many call sites. Do this systematically: search for `app.haystack`, list every match, and rewrite each. The full set today (verified by `grep "app\.haystack\." barn/haybale-studio/haybale_studio/editors/haystack_editor.py`) is:
+
+| Method called on `app.haystack` | Migration target |
+| --- | --- |
+| `all_entries()`, `create_new()`, `open_graph(p)`, `save_graph(e, save_as=)`, `remove_entry(e)`, `rename_graph(e, n)`, `unsaved_entries()`, `get_by_path(p)` | `ctx.app_data[HaystackState].X(...)` (1:1 rename) |
+| `list_haystacks()`, `list_graph_files()`, `rename_haystack(o, n)`, `delete_haystack(n)` | `ctx.app_data[HaystackState].X(...)` — these are the methods added to HaystackState in Task 6 |
+| `load_haystack(name)` (returns `(entries, active_rel)`) | **Different shape!** `persistence.load_haystack(state, root, name)` mutates state and returns None. The editor's load flow needs restructuring: clear current entries, call `persistence.load_haystack(...)`, then look up the active entry by path separately. See "Special case: load_haystack restructure" below. |
+
+**Special case: `_on_save_haystack` → `context.app.save_workspace(...)` (line ~676 in legacy editor).** Today's flow is:
+
+1. Editor button calls `context.app.save_workspace(active_graph_path=...)`.
+2. `HaywireApp.save_workspace()` (in `packages/haywire-studio/src/haywire_studio/app.py:212`) calls `self.haystack.save_haystack(name, active_graph_path=...)` AND saves the workspace JSON snapshot.
+
+After the carve-out the `self.haystack` arm is gone. Restructure the editor's save flow to:
+
+1. Resolve `hs = ctx.app_data[HaystackState]` and read the workspace_root via `from haywire.core.di.context import get_workspace_root`.
+2. Get the haystack name from `ctx.app.workspace_manager.snapshot.get("haystack") or "default"`.
+3. Call `persistence.dump_haystack(hs, get_workspace_root(), name)` directly.
+4. Call `ctx.app.save_workspace(active_graph_path=...)` — which after Task 9 deletion only does the workspace JSON snapshot (no haystack call).
+
+The legacy `save_haystack` method took an `active_graph_path` parameter that gets stored in the TOML; if the new `persistence.dump_haystack` from Task 4 doesn't already record it, extend it to do so (1-line change in `persistence.py`).
+
+**Special case: `_on_load_haystack` → `gm.load_haystack(name)` returning `(entries, active_rel)`.** Today's editor uses both return values. Post-carve-out the editor must:
+
+1. Resolve `hs = ctx.app_data[HaystackState]`.
+2. Stop and clear all current entries (call `hs.remove_entry(e)` for each, or extend `HaystackState` with a `clear()` method).
+3. Call `persistence.load_haystack(hs, get_workspace_root(), name)` to repopulate.
+4. Read the active entry from the loaded TOML separately (extend `persistence.load_haystack` to return the active path, OR have it write the active path into a side channel like `HaystackSettings.last_active_path`, OR move that responsibility into the editor by re-reading the TOML).
+
+The cleanest option is to extend `persistence.load_haystack` to return `Optional[Path]` (the active path), making the editor's call site:
+
+```python
+active_path = persistence.load_haystack(hs, get_workspace_root(), name)
+if active_path:
+    active_entry = hs.get_by_path(active_path)
+    # ... reveal it
+```
 
 - [ ] **Step 3: Run any existing haystack-editor tests**
 
@@ -1419,7 +1507,7 @@ return ctx.app_data[HaystackState].get_by_id(self.wrapper.payload)
 
 If `ctx` isn't accessible at the call site (e.g. it's in a method that only takes `app`), figure out how to thread `ctx` through — likely the method has access to the full session context elsewhere.
 
-Also update `from haywire.ui.protocols import IProjectState` → `from haywire.core.session.protocols import IProjectState`.
+**`IProjectState` import — already correct.** PR 1 elevated `IProjectState` to `haywire.core.session.protocols` and updated this file's import. Verify with `grep -n "from haywire.\(core.session\|ui\).protocols" barn/haybale-haystack/haybale_haystack/editors/graph_editor.py` — expected: only `haywire.core.session.protocols`. No update needed.
 
 - [ ] **Step 3: Update or move associated tests**
 
@@ -1479,7 +1567,9 @@ Verify nothing else in the codebase uses `IGraphManager`:
 grep -rn "IGraphManager" packages/ barn/ --include="*.py"
 ```
 
-If the only references are the definition and the (now-deleted) `IProjectState.haystack` annotation, delete the `IGraphManager` class. Update the corresponding shim in `packages/haywire-core/src/haywire/ui/protocols.py` to drop the `IGraphManager` re-export.
+If the only references are the definition and the (now-deleted) `IProjectState.haystack` annotation, delete the `IGraphManager` class.
+
+(There is no shim file at `packages/haywire-core/src/haywire/ui/protocols.py` to update — PR 1's import-cleanup pass removed the entire `haywire/ui/{session,session_manager,context,context_signals,protocols,reactive,workspace}` shim layer. The class lives only at `haywire.core.session.protocols`.)
 
 - [ ] **Step 3: Drop the `haystack` attribute from `HaywireApp`**
 
@@ -1503,7 +1593,6 @@ If anything fails referencing `app.haystack` or `IGraphManager`, that file needs
 
 ```bash
 git add packages/haywire-core/src/haywire/core/session/protocols.py \
-        packages/haywire-core/src/haywire/ui/protocols.py \
         packages/haywire-studio/src/haywire_studio/app.py
 git commit -m "refactor: drop IProjectState.haystack and IGraphManager
 
@@ -1559,13 +1648,26 @@ The haystack.py file no longer has any consumers."
 
 ## Phase 6 — Add the "Open in Haystack" file-context-menu panel (Q1cA)
 
-### Task 11: Implement and register the panel
+### Task 11: Migrate `OpenInGraphEditorPanel` from haybale-studio to haybale-haystack
 
 **Files:**
-- Create: `barn/haybale-haystack/haybale_haystack/panels/open_in_haystack.py`
+- Source (move): `barn/haybale-studio/haybale_studio/panels/context_menu/open_in_graph_editor.py` (CREATED IN PR 1)
+- Destination: `barn/haybale-haystack/haybale_haystack/panels/open_in_haystack.py`
+- Update: `barn/haybale-studio/haybale_studio/panels/__init__.py` (drop the `OpenInGraphEditorPanel` import line)
 - Test: `barn/haybale-haystack/tests/test_open_in_haystack_panel.py`
 
-This panel uses the PR 1 file-context-menu infrastructure: `@panel(action=FileBrowserActions, focus=FileFocus, label=...)`, polling on `FileBrowserState.right_clicked_file.suffix == ".haywire"`, draw renders one button that calls `actions.reveal(GraphEditor, entry.entry_id, entry.display_name)`.
+**This is a MIGRATION, not a from-scratch creation.** PR 1 anticipated this move: it created `open_in_graph_editor.py` as a single-class file with a header comment explicitly noting "PR 2 moves this file into the new haybale-haystack library." The PR 2 work for this task is:
+
+1. `git mv` the file to its new location.
+2. Rename the class from `OpenInGraphEditorPanel` → `OpenInHaystackPanel`. Update the `label=` from `"Open in Graph Editor"` → `"Open in Haystack"` (it's a Haystack-specific action now, named for what it does, not the editor it opens).
+3. Swap `app.haystack.open_graph(path)` → `ctx.app_data[HaystackState].open_graph(path)`.
+4. Swap `from haybale_studio.editors.graph_editor import GraphEditor` → `from haybale_haystack.editors.graph_editor import GraphEditor` (Task 8 already moved GraphEditor).
+5. Drop the `OpenInGraphEditorPanel` re-export line from `barn/haybale-studio/haybale_studio/panels/__init__.py`.
+6. Update the file's module docstring to reflect the migration is complete (drop the "PR2 will move this" sentence).
+
+The two SIBLING file-context-menu panels (`OpenInCodeEditorPanel`, `OpenInFileViewerPanel`) **stay in haybale-studio** in `panels/context_menu/file_actions.py` — they don't depend on Haystack and shouldn't move. Don't touch them.
+
+The implementation skeleton below shows the FINAL state of the file at its new location. Follow Steps 1–6 above; the code block in Step 3 is the target, not a from-scratch template.
 
 - [ ] **Step 1: Write the failing test**
 
