@@ -55,7 +55,7 @@ Optional: `@library(file_watcher=True)` enables hot-reload — the framework sta
 |---|---|---|---|
 | `label` | yes | — | Human-readable display name |
 | `id` | no | derived from `label` | Unique identifier (becomes part of every component's `registry_key`) |
-| `version` | no | `'1.0.0'` | Semantic version |
+| `version` | no | `'1.0.0'` | Semantic version — see SemVer guidance below |
 | `description` | no | `''` | Description for the library manager UI |
 | `file_watcher` | no | `False` | Enable hot-reload via filesystem observer |
 | `dependencies` | no | `[]` | List of required library IDs (currently informational only — load order is by discovery priority, not dependency graph) |
@@ -63,6 +63,27 @@ Optional: `@library(file_watcher=True)` enables hot-reload — the framework sta
 | `help_url` | no | `''` | Documentation URL |
 | `author` | no | `''` | Author name |
 | `author_url` | no | `''` | Author homepage |
+
+**SemVer for the `version` field.** Follow [Semantic Versioning](https://semver.org/) when publishing updates:
+
+| Bump | When |
+|---|---|
+| **MAJOR** (1.0.0 → 2.0.0) | Breaking changes — renamed nodes, changed port types, removed components |
+| **MINOR** (1.0.0 → 1.1.0) | New features, backward-compatible — added nodes, optional fields |
+| **PATCH** (1.0.0 → 1.0.1) | Bug fixes only, no API changes |
+
+Keep `version=` in the `@library(...)` decorator in sync with the `version` field in `pyproject.toml` — they are independent strings; mismatching them confuses the library manager UI.
+
+**Naming conventions.** Each of the four names in a haybale project has its own casing rule:
+
+| Name | Convention | Example |
+| --- | --- | --- |
+| Pip distribution name (`name` in `pyproject.toml`) | `haybale-<lowercase-hyphenated>` | `haybale-image-tools` |
+| Python module name (importable package folder) | `haybale_<lowercase_underscored>` | `haybale_image_tools` |
+| Library `id` field | lowercase, underscores OK; should match module name without `haybale_` prefix | `image_tools` |
+| Display `label` field | Human-readable, title-case | `"Image Tools"` |
+
+The `id` is stable across releases — it becomes the prefix for every component's `registry_key` (e.g., `image_tools:node:Resize`). Changing it after publishing breaks saved graphs.
 
 **The `id` parameter is load-bearing.** It becomes the prefix for every component's `registry_key` — `haybale_mylib:node:my_node`, `haybale_mylib:widget:NumberWidget`, etc. The convention is to match the Python module name (`my_lib` if your package is `my_lib/`); changing it after the library has been published breaks any saved graphs that reference component keys.
 
@@ -97,6 +118,23 @@ from haywire.ui.themes.registry import ThemeRegistry
 
 (Older docs reference `haywire.core.library.library` and `haywire.core.library.registries.reg_*` — those paths are out of date; registries live with the component, not under the library subpackage.)
 
+**All ten registries and their folder conventions.** Each call to `add_folder_to_registry()` targets one registry class. The full set available to a library author:
+
+| Registry class | Import path | Folder convention | What it registers |
+| --- | --- | --- | --- |
+| `NodeRegistry` | `haywire.core.node.registry` | `nodes/` | `@node`-decorated classes |
+| `TypeRegistry` | `haywire.core.types.registry` | `types/` | `@type`-decorated classes |
+| `AdapterRegistry` | `haywire.core.adapter.registry` | `adapters/` | `@adapter`-decorated classes |
+| `WidgetRegistry` | `haywire.ui.widget.registry` | `widgets/` | `@widget`-decorated classes |
+| `SkinRegistry` | `haywire.ui.skin.registry` | `skins/` | skin classes |
+| `ThemeRegistry` | `haywire.ui.themes.registry` | `themes/` | `WorkbenchTheme` / `NodeTheme` subclasses |
+| `SettingsRegistry` | `haywire.core.settings.registry` | `settings/` | `@settings`-decorated `LibrarySettings` classes |
+| `LibraryStateRegistry` | `haywire.core.state` | `state/` | `AppState` / `SessionState` subclasses |
+| `EditorTypeRegistry` | `haywire.ui.editor.registry` | `editors/` | `@editor`-decorated classes |
+| `PanelRegistry` | `haywire.ui.panel.registry` | `panels/` | `@panel`-decorated classes |
+
+Most libraries only need the first six. `SettingsRegistry`, `LibraryStateRegistry`, `EditorTypeRegistry`, and `PanelRegistry` are needed for libraries that contribute studio UI or persistent state. See `barn/haybale-studio/haybale_studio/__init__.py` for the canonical example that registers all ten. The architecture-side view (how `LibraryRegistry` routes into each registry at startup) is in [architecture/library-system §2.2](../../architecture/library-system/library-system-arch.md#22-libraryregistry-haywirecorelibrary).
+
 **Hot-reload.** When `file_watcher=True`, the framework starts a `watchdog` observer rooted at your library's source directory. On any `.py` change:
 
 1. The `BaseRegistry._on_change` pipeline re-imports the changed module.
@@ -104,7 +142,7 @@ from haywire.ui.themes.registry import ThemeRegistry
 3. Existing wrappers (NodeWrapper, EdgeWrapper) rebuild from their recipes against the new class.
 4. The graph revalidates; the UI re-renders.
 
-Hot-reload only works for **editable** installs (`uv pip install -e .`) or **folder-loaded** libraries — `REGULAR` (pip-installed-from-wheel) installs don't have a writable source path, so the file watcher has nothing to watch. See [architecture/library-system](../../architecture/library-system/library-system-arch.md) for the install-type rules and [architecture/hot-reload](../../architecture/hot-reload/hot-reload-arch.md) for the full pipeline.
+Hot-reload only works for **editable** installs (`uv pip install -e .`) or **folder-loaded** libraries — `REGULAR` (pip-installed-from-wheel) installs don't have a writable source path, so the file watcher has nothing to watch. Note that `file_watcher=True` on the decorator is a **per-library switch**; the system-level switch `enable_file_watching` in `create_library_system_service()` must also be `True` (it is `True` by default in `haywire-studio`) — if it is `False`, no hot-reload fires regardless of the decorator. See [architecture/library-system §5](../../architecture/library-system/library-system-arch.md#5-programmatic-embedding) for the `enable_file_watching` and `debounce_delay` parameters, and [architecture/hot-reload](../../architecture/hot-reload/hot-reload-arch.md) for the full pipeline.
 
 **`__all__` is required.** Export the `Library` class so the entry point can find it:
 
@@ -119,7 +157,58 @@ __all__ = ['Library']
 
 **The Library *class* is what the entry point points at — not an instance.** The framework instantiates it.
 
-## 4. Live example from the codebase
+## 4. Minimal working example
+
+The smallest valid Library class — one registry call, `validate()` that always passes:
+
+```python
+# haybale_minimal/__init__.py — the minimum viable Library
+
+from pathlib import Path
+
+from haywire.core.library.base import BaseLibrary
+from haywire.core.library.decorator import library
+from haywire.core.node.registry import NodeRegistry
+
+
+@library(label='Minimal', id='minimal')
+class Library(BaseLibrary):
+    def register_components(self):
+        self.add_folder_to_registry(
+            folder_path=str(Path(__file__).parent / 'nodes'),
+            registry_cls=NodeRegistry,
+        )
+
+    def validate(self) -> bool:
+        return True
+
+
+__all__ = ['Library']
+```
+
+The matching minimal `pyproject.toml`:
+
+```toml
+[project]
+name = "haybale-minimal"
+version = "1.0.0"
+requires-python = ">=3.10"
+dependencies = ["haywire-core>=0.1.0"]
+
+[project.entry-points."haywire.libraries"]
+minimal = "haybale_minimal:Library"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["haybale_minimal"]
+```
+
+For a maximally complete example that registers all ten component categories, see below.
+
+## 5. Live example from the codebase
 
 Source: [`barn/haybale-testing/haybale_testing/__init__.py`](../../../barn/haybale-testing/haybale_testing/__init__.py)
 
@@ -203,3 +292,67 @@ from haywire.ui.themes.registry import ThemeRegistry
 | Changing `id=` after publishing | Breaks saved graphs that reference `<old_id>:node:my_node` |
 | `file_watcher=True` on a non-editable install | No effect — pip-from-wheel installs have no watchable source |
 | Importing the `Library` class from a submodule of the same package | Causes circular imports — register decorators handle discovery |
+
+---
+
+## Troubleshooting
+
+### Library not discovered
+
+The library does not appear in the canvas node menu or the library manager UI.
+
+1. **Verify the package is installed:**
+
+   ```bash
+   uv pip list | grep haybale-
+   ```
+
+   If your library is missing, run `uv pip install -e .` (editable) or `uv pip install .` from the library's directory.
+
+2. **Check the entry point is registered:**
+
+   ```bash
+   python -c "from importlib.metadata import entry_points; print([ep.name for ep in entry_points(group='haywire.libraries')])"
+   ```
+
+   Your library's entry-point name (the key in `[project.entry-points."haywire.libraries"]`) should appear. If it does not, the package was not installed with entry-point metadata — re-install it.
+
+3. **Verify the Library class loads:**
+
+   ```bash
+   python -c "from haybale_mylib import Library; print(Library.class_identity)"
+   ```
+
+   Replace `haybale_mylib` with your module name. An import error here means the module is broken independently of Haywire.
+
+4. **Watch app startup logs** — look for lines like `✓ Found pip install: haybale-mylib` (found) or `ERROR: Failed to load entry point …` (entry point found but the import raised). A `LibraryLoadError` in the logs means the library was discovered but failed during `register_components()` or `validate()`.
+
+### Hot-reload not working
+
+File edits do not trigger a canvas refresh.
+
+1. **Confirm editable install:**
+
+   ```bash
+   uv pip list --editable | grep haybale-
+   ```
+
+   Regular (non-editable) installs have no live source path — the file watcher has nothing to watch.
+
+2. **Confirm `file_watcher=True` in the `@library` decorator:**
+
+   ```python
+   @library(label='My Library', id='my_library', file_watcher=True)
+   ```
+
+   Without this, no watcher is started for this library regardless of system settings.
+
+3. **Confirm the system-level switch is on** — in `haywire-studio` this is controlled by `enable_file_watching` in `app.py` (defaults to `True` in development mode). If you embedded Haywire via `create_library_system_service()`, make sure you passed `enable_file_watching=True` (the default). When it is `False`, no hot-reload fires for any library.
+
+4. **Check for silent reload failures** — a syntax error in a reloaded module causes the reload to fail silently (the old class version stays registered). After saving a file, check the app logs for `ERROR` lines. Fix the syntax error and save again.
+
+### Same library loaded from the wrong source
+
+The library manager shows the right library but you are editing the wrong copy.
+
+Check the **Source** path printed at startup for each library (e.g., `Source: /path/to/haybale_mylib`). If it points to `site-packages` instead of your development checkout, you have two copies installed — one editable and one regular. Uninstall the regular copy (`uv pip uninstall haybale-mylib`) and re-install as editable (`uv pip install -e .`).

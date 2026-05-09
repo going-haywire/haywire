@@ -67,7 +67,7 @@ haybale-mylib/                  ← git repo / pip distribution name
     themes/
 ```
 
-You can omit any subfolder you don't use. The `Library.register_components()` method makes one `add_folder_to_registry()` call per category (see [components/libraries §4](../libraries/library-canon.md#4-live-example-from-the-codebase)).
+You can omit any subfolder you don't use. The `Library.register_components()` method makes one `add_folder_to_registry()` call per category (see [components/libraries §5](../libraries/library-canon.md#5-live-example-from-the-codebase)).
 
 **Two valid layouts: package or flat.** *Package* layout is what you want for any distributable library — `haybale-mylib/` contains a `pyproject.toml` and the Python module nested below it. *Flat* layout (the Python module sitting alone in a directory, no `pyproject.toml`) is only useful for ad-hoc libraries loaded via the framework's `library_paths` config — they get the `FOLDER` install type and skip the pip layer entirely. Use package layout unless you have a specific reason not to.
 
@@ -127,7 +127,7 @@ Creates `<project>/.haywire/marketplace.toml` and a `libs/haybale-<name>/` skele
 
 ## 4. One comprehensive example
 
-A complete haybale `haybale-image` exercising every packaging concept: package layout, entry point, build configuration, dependency declaration, all six conventional subfolders (the `Library` class lives in [components/libraries §4](../libraries/library-canon.md#4-live-example-from-the-codebase)), the README format the library manager renders, and a recommended `marketplace.toml` snippet for distribution.
+A complete haybale `haybale-image` exercising every packaging concept: package layout, entry point, build configuration, dependency declaration, all six conventional subfolders (the `Library` class lives in [components/libraries §5](../libraries/library-canon.md#5-live-example-from-the-codebase)), the README format the library manager renders, and a recommended `marketplace.toml` snippet for distribution.
 
 ### Folder layout
 
@@ -154,7 +154,8 @@ haybale-image/
 │   │   └── __init__.py
 │   ├── themes/
 │   │   └── __init__.py
-│   └── settings.py              ← @settings(LibrarySettings) classes
+│   └── settings/
+│       └── settings.py          ← @settings(LibrarySettings) classes
 └── tests/
     ├── conftest.py
     └── test_resize.py
@@ -267,13 +268,23 @@ python -m build
 # 4. Verify the built wheel installs cleanly
 uv pip install dist/haybale_image-1.0.0-py3-none-any.whl
 
-# 5. Publish to PyPI (after `uv pip install twine`)
+# 5. Optional dry run — upload to Test PyPI first to validate metadata + wheel
+#    (requires a separate https://test.pypi.org account)
+python -m twine upload --repository testpypi dist/*
+uv pip install --index-url https://test.pypi.org/simple/ \
+               --extra-index-url https://pypi.org/simple/ \
+               haybale-image
+# (the --extra-index-url lets pip resolve `haywire-core` and other deps from real PyPI)
+
+# 6. Publish to PyPI (after `uv pip install twine`)
 python -m twine upload dist/*
 
-# 6. Tag the release in git
+# 7. Tag the release in git
 git tag v1.0.0
 git push origin v1.0.0
 ```
+
+**Test PyPI vs PyPI.** Test PyPI is a separate service at `https://test.pypi.org` with its own user accounts and package namespace; uploads there are throwaway. Use it to validate that your `pyproject.toml` metadata is correct, the wheel is well-formed, and the install works end-to-end before burning a version number on real PyPI (versions can't be re-uploaded once published).
 
 ### Distribution via `marketplace.toml`
 
@@ -325,6 +336,8 @@ What this example exercises:
 | Both `source = "git"` (subdirectory) and `source = "pypi"` snippet variants | distribution |
 
 For the `Library` class that lives in `__init__.py`, see [components/libraries](../libraries/library-canon.md). For the framework that loads your published package at app startup, see [architecture/library-system](../../architecture/library-system/library-system-arch.md). For the studio's library manager UI that consumes the marketplace snippet, see [architecture/library-manager](../../architecture/library-manager/library-manager-arch.md).
+
+If you need to embed the Haywire library system programmatically (in a script, headless tool, or integration test) without launching the studio app, see [architecture/library-system §5 — Programmatic embedding](../../architecture/library-system/library-system-arch.md#5-programmatic-embedding).
 
 ---
 

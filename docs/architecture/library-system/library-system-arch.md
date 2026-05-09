@@ -89,6 +89,13 @@ Frozen dataclass attached as `class_library` on every component class. Carries t
 
 A `watchdog`-based file-system observer started per library when `file_watcher=True`. On any `.py` change inside the library's source directory, it triggers the [hot-reload](../hot-reload/hot-reload-arch.md) pipeline: re-import the module, re-register components, rebuild affected node and edge wrappers, revalidate the graph.
 
+Two switches gate file watching at different scopes:
+
+- `@library(file_watcher=True)` — per-library decorator field. Off by default. Tells `LibraryRegistry` to attach a watcher when this library is loaded.
+- `enable_file_watching: bool` — system-level switch passed to `create_library_system_service(...)` / `create_haywire_injector(...)` (see §5). Defaults to `True`. When `False`, no library gets a watcher regardless of the per-library decorator.
+
+The debounce delay (how long the watcher waits after the last `.py` change before triggering a reload) is hardcoded to **0.5 s** in `provide_library_registry` and is not currently a tunable parameter of the public API. If you need a different debounce, call `LibraryRegistry.enable_file_watching(debounce_delay=X, force=True)` directly after constructing the injector.
+
 ### 2.6 `BaseLibrary` and `@library` (`haywire/core/library/base.py`, `decorator.py`)
 
 Authoring surface — see [components/libraries](../../components/libraries/library-canon.md). The architecture-relevant facts:
@@ -203,3 +210,60 @@ A haybale library is a Python package with:
 3. Implements `register_components()` (mandatory) and `validate()` (returns `bool`).
 
 See [components/libraries](../../components/libraries/library-canon.md) for the full authoring story and [components/haybale-package](../../components/haybale-package/haybale-package-canon.md) for packaging and distribution.
+
+## 5. Programmatic embedding
+
+Two factory functions in `packages/haywire-core/src/haywire/core/di/config.py` let you embed the library system outside the studio app — for headless scripts, integration tests, or alternative front-ends.
+
+### `create_library_system_service(...)` — most callers
+
+Convenience factory that creates the DI injector, constructs a `LibrarySystemService`, and runs `service.initialize()` in one call. Use this when you want a fully-loaded library system ready to read from.
+
+```python
+from haywire.core.di.config import create_library_system_service
+
+service = create_library_system_service(
+    workspace_root='/path/to/project',  # or None to auto-detect
+    library_paths=['/path/to/extra/libs'],  # additional folder-loaded libraries
+    enable_file_watching=True,              # hot-reload (default True)
+    settings_path='~/.haywire/settings.toml',  # global settings (default)
+    watch_settings=True,                    # reload settings on file change (default True)
+)
+
+# At this point all entry-point libraries are discovered and registered.
+node_registry = service.get_node_registry()
+panel_registry = service.get_panel_registry()
+# ... etc.
+```
+
+### `create_haywire_injector(...)` — when you need the injector itself
+
+Returns the raw DI `Injector` without initializing the library system. Use this when you want to wire your own services on top, or when you need to defer `service.initialize()` until later in your bootstrap. Same parameter list as `create_library_system_service` (minus the auto-initialization).
+
+```python
+from haywire.core.di.config import create_haywire_injector
+from haywire.core.di.config import LibrarySystemService
+
+injector = create_haywire_injector(
+    workspace_root='/path/to/project',
+    enable_file_watching=False,  # disable hot-reload in CI
+)
+
+# Wire your own services here, then initialize the library system:
+service = injector.get(LibrarySystemService)
+service.initialize()
+```
+
+### Parameter reference (both functions)
+
+| Parameter | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `workspace_root` | `Optional[str]` | `None` (auto-detect) | Project root used for `barn/` discovery and workspace settings. |
+| `library_paths` | `Optional[List[str]]` | `None` | Extra folders scanned for `FOLDER`-install libraries (no pyproject required). |
+| `enable_file_watching` | `bool` | `True` | System-level hot-reload switch. Set `False` in CI / tests to keep the suite deterministic. |
+| `settings_path` | `Optional[str]` | `~/.haywire/settings.toml` | Path to the global settings file. |
+| `watch_settings` | `bool` | `True` | Whether to reload settings TOML on file change. |
+
+**For tests:** pass `enable_file_watching=False` and `watch_settings=False` to keep the watchdog observer from leaking threads across test runs. Tests that need to exercise hot-reload should construct the watcher explicitly via `LibraryRegistry.enable_file_watching(...)` after the test setup is complete.
+
+**Embedding outside `haywire-studio`:** the service has no UI dependency — it's pure registry plumbing. You can use it in a Jupyter notebook, a Discord bot, or a CLI runner that loads libraries and reads `node_registry.list_nodes()` without touching NiceGUI.
