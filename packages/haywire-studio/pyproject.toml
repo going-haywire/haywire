@@ -34,3 +34,10 @@ packages = ["src/haywire_studio"]
 include = [
     "src/haywire_studio/",
 ]
+
+[tool.mypy]
+python_version = "3.10"
+
+[[tool.mypy.overrides]]
+module = ["toml", "haywire.*"]
+ignore_missing_imports = true

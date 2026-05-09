@@ -15,6 +15,7 @@ import sys
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import Any
 
 from haywire.core.library.registry import LibraryRegistry
 from haywire.core.library.info import LibraryInfo
@@ -48,7 +49,8 @@ def _set_decorator_list_field(content: str, field: str, values: list[str]) -> st
     if "    file_watcher=" in content:
         return content.replace("    file_watcher=", insert_line + "    file_watcher=", 1)
     # Fallback: insert before the closing )\nclass line
-    return re.sub(r"(\n\)\nclass )", f"\n    {field}={value_repr},\g<1>", content, count=1)
+    replacement = f"\n    {field}={value_repr}," + r"\g<1>"
+    return re.sub(r"(\n\)\nclass )", replacement, content, count=1)
 
 
 @dataclass
@@ -140,6 +142,7 @@ class LibraryManager:
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.STDOUT,
         )
+        assert proc.stdout is not None
         last_lines: list[str] = []
         async for line in proc.stdout:
             text = line.decode().rstrip()
@@ -211,7 +214,7 @@ class LibraryManager:
         new_name: str,
         workspace_root: str,
         on_output: Callable[[str], None],
-        new_identity: dict[str, str] | None = None,
+        new_identity: dict[str, Any] | None = None,
     ) -> tuple[bool, str]:
         """Rename the project's local library to a new name.
 
@@ -274,8 +277,8 @@ class LibraryManager:
         url_val = _id.get("url", "")
         author_val = _id.get("author", "")
         author_url_val = _id.get("author_url", "")
-        tags_list = _id.get("tags") or []
-        deps_list = _id.get("dependencies") or []
+        tags_list: list[str] = _id.get("tags") or []
+        deps_list: list[str] = _id.get("dependencies") or []
 
         # --- 3. Disable old library ---
         on_output(f"Disabling {library_id}...")
@@ -381,6 +384,7 @@ class LibraryManager:
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.STDOUT,
         )
+        assert proc.stdout is not None
         async for line in proc.stdout:
             on_output(line.decode().rstrip())
         await proc.wait()
@@ -482,8 +486,9 @@ class LibraryManager:
         """
         cache: dict[str, str | None] = {}
         for dist in importlib.metadata.distributions():
-            owner_name = dist.metadata.get("Name", "") or ""
-            for req in dist.metadata.get_all("Requires-Dist") or []:
+            meta: Any = dist.metadata
+            owner_name = meta.get("Name", "") or ""
+            for req in meta.get_all("Requires-Dist") or []:
                 req_name = re.split(r"[>=<!;\s\[]", req)[0]
                 req_norm = re.sub(r"[-_.]+", "_", req_name).lower()
                 if req_norm and req_norm not in cache:
@@ -583,7 +588,7 @@ class LibraryManager:
         self,
         library_id: str,
         workspace_root: str,
-        identity: dict[str, str],
+        identity: dict[str, Any],
     ) -> tuple[bool, str]:
         """Update identity metadata in __init__.py and marketplace.toml.
 
@@ -617,8 +622,8 @@ class LibraryManager:
         url_val = identity.get("url", "")
         author_val = identity.get("author", "")
         author_url_val = identity.get("author_url", "")
-        tags_list = identity.get("tags") or []
-        deps_list = identity.get("dependencies") or []
+        tags_list: list[str] = identity.get("tags") or []
+        deps_list: list[str] = identity.get("dependencies") or []
 
         # Update __init__.py decorator fields
         try:

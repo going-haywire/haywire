@@ -12,6 +12,7 @@ multiplicity. See internals/documentation/architecture/session_state.md.
 
 from __future__ import annotations
 
+from haywire.core.library.identity import LibraryIdentity
 from haywire.core.state.identity import LibraryStateClassIdentity
 
 
@@ -24,6 +25,7 @@ class LibraryState:
     """
 
     class_identity: LibraryStateClassIdentity
+    class_library: LibraryIdentity
 
 
 class AppState(LibraryState):

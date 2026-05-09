@@ -25,7 +25,7 @@ DEFAULT_GLOBAL_CONFIG = {
     },
 }
 
-DEFAULT_MARKETPLACE = {
+DEFAULT_MARKETPLACE: dict[str, list] = {
     "sources": [
         # Future: official marketplace URL
         # {'name': 'official', 'url': 'https://haywire.dev/marketplace.toml'},

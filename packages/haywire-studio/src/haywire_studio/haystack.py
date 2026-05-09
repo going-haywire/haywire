@@ -40,7 +40,7 @@ import toml
 from haywire.ui.context_signals import GraphDataMutated
 
 if TYPE_CHECKING:
-    from haywire.core.graph.base import HaywireGraph
+    from haywire.core.graph.base import BaseGraph as HaywireGraph
     from haywire.core.execution.interpreter import Interpreter
     from haywire.core.graph.editor import Editor
     from haywire.core.graph.validation import ValidationResult
@@ -118,6 +118,7 @@ class GraphEntry:
         if not self.is_executing:
             return
 
+        assert self.interpreter is not None
         try:
             self.interpreter.stop_execution()
         except Exception as e:
@@ -196,7 +197,7 @@ class Haystack:
         entry = GraphEntry(graph=graph, editor=editor, path=None, _unsaved_id=entry_id)
         self._entries[entry_id] = entry
         entry.graph.subscribe_to_validation(
-            lambda result, _entry=entry: self._on_entry_validation(_entry, result)
+            lambda result, _entry=entry: self._on_entry_validation(_entry, result)  # type: ignore[misc]
         )
         return entry
 
@@ -224,7 +225,7 @@ class Haystack:
             entry = GraphEntry(graph=graph, editor=editor, path=path)
             self._entries[entry_id] = entry
             entry.graph.subscribe_to_validation(
-                lambda result, _entry=entry: self._on_entry_validation(_entry, result)
+                lambda result, _entry=entry: self._on_entry_validation(_entry, result)  # type: ignore[misc]
             )
         return entry
 
@@ -464,7 +465,7 @@ class Haystack:
             entry = GraphEntry(graph=graph, editor=editor, path=abs_path)
             self._entries[key] = entry
             entry.graph.subscribe_to_validation(
-                lambda result, _entry=entry: self._on_entry_validation(_entry, result)
+                lambda result, _entry=entry: self._on_entry_validation(_entry, result)  # type: ignore[misc]
             )
             opened.append(entry)
 

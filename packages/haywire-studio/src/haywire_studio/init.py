@@ -12,6 +12,7 @@ import re
 import subprocess
 import sys
 from pathlib import Path
+from typing import Any
 
 import toml
 
@@ -46,7 +47,8 @@ def _generate_project_pyproject(name: str, dev_repo: str | None = None) -> str:
             Adds [tool.uv.sources] pointing to local editable packages.
     """
     lib_name = f"haybale-{name}"
-    data = {
+    sources: dict[str, dict[str, object]] = {lib_name: {"workspace": True}}
+    data: dict[str, Any] = {
         "project": {
             "name": name,
             "version": "0.1.0",
@@ -61,15 +63,13 @@ def _generate_project_pyproject(name: str, dev_repo: str | None = None) -> str:
                 "workspace": {
                     "members": ["barn/*"],
                 },
-                "sources": {
-                    lib_name: {"workspace": True},
-                },
+                "sources": sources,
             },
         },
     }
 
     if dev_repo:
-        data["tool"]["uv"]["sources"].update(
+        sources.update(
             {
                 "haywire-studio": {"path": f"{dev_repo}/packages/haywire-studio", "editable": True},
                 "haywire-core": {"path": f"{dev_repo}/packages/haywire-core", "editable": True},

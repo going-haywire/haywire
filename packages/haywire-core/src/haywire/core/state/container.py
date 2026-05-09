@@ -82,7 +82,7 @@ class LibraryStateContainer:
     def get(self, cls: type[A]) -> A | None:
         return self._app.get(cls.class_identity.registry_key)  # type: ignore[return-value]
 
-    def __contains__(self, cls: type) -> bool:
+    def __contains__(self, cls: type[LibraryState]) -> bool:
         return cls.class_identity.registry_key in self._app
 
     # ------------------------------------------------------------------

@@ -40,6 +40,13 @@ dev = [
     "mkdocs-material>=9.7.6",
 ]
 
+[tool.mypy]
+python_version = "3.10"
+
+[[tool.mypy.overrides]]
+module = ["toml", "haywire.*", "haybale.*", "haybale_studio.*", "nicegui.*"]
+ignore_missing_imports = true
+
 [tool.ruff]
 line-length = 109
 exclude = ["playground/"]

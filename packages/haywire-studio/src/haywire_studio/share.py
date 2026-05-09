@@ -146,7 +146,9 @@ def share_library(library_path: str | None):
     else:
         remote_url = None
 
+    subdirectory: Path | str
     if remote_url:
+        assert git_root is not None
         https_url = _ssh_to_https(remote_url)
         # Strip trailing .git for cleaner URLs
         https_url = https_url.removesuffix(".git")
@@ -169,6 +171,7 @@ def share_library(library_path: str | None):
     docs_url = ""
     if remote_url and module_dir:
         # https_url already computed above (stripped .git suffix)
+        assert git_root is not None
         module_rel = module_dir.relative_to(git_root)
         if "github.com" in https_url:
             raw_base = https_url.replace("github.com", "raw.githubusercontent.com")

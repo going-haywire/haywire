@@ -33,7 +33,7 @@ logger = logging.getLogger(__name__)
 class HaywireApp:
     """Main Haywire application."""
 
-    def __init__(self, workspace_root: str = None):
+    def __init__(self, workspace_root: str | None = None):
         self.workspace_root = workspace_root or os.getcwd()
         print(f"Haywire workspace: {self.workspace_root}")
         print("Setting up Haywire application...")
