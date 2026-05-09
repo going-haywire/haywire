@@ -27,8 +27,25 @@ Before editing any file, read it first. Before modifying a function, grep for al
 - **`tests/`** — pytest test suite (100% coverage)
 - **`docs`** — markdown documentation
 
+## Documentation
 
-## Commands
+When looking up how a system works (API, parameters, behaviour), check `docs/` first before reading source code. Layout:
+
+- `docs/components/<area>/<area>-canon.md` — extension-point authoring guides (nodes, types, ports, adapters, settings, widgets, themes, editors, panels, states, libraries, haybale-package).
+- `docs/architecture/<area>/<area>-arch.md` — framework internals (execution pipeline, library system, hot-reload, settings resolution, session/state, studio).
+- `docs/reference/glossary.md` — canonical vocabulary, including the five distinct meanings of "library".
+- `docs/reference/design-guide.md` — contains guidelines for UI design / UX rules and design tokens. Follow these when implementing new UI features or refactoring existing ones.
+
+Run `uv run mkdocs serve` to preview the published site at `http://127.0.0.1:8000`.
+
+
+## Testing
+
+- Always run the full test suite (`pytest` or equivalent) after any refactor or multi-file change and confirm all tests pass before presenting work as complete.
+- Call `force_immediate_validation()` after node setup in tests to flush the dirty queue before asserting.
+- In test files, import `haywire.core.graph.editor` before other haywire modules to avoid circular import errors.
+
+### Commands
 
 ```sh
 # Run the app
@@ -48,25 +65,6 @@ uv run ruff check .                          # lint (line-length = 109)
 uv run ruff format .                         # format
 uv run mypy packages/haywire-core/src/       # type checking
 ```
-
-## Documentation
-
-When looking up how a system works (API, parameters, behaviour), check `docs/` first before reading source code. Layout:
-
-- `docs/components/<area>/<area>-canon.md` — extension-point authoring guides (nodes, types, ports, adapters, settings, widgets, themes, editors, panels, states, libraries, haybale-package).
-- `docs/architecture/<area>/<area>-arch.md` — framework internals (execution pipeline, library system, hot-reload, settings resolution, session/state, studio).
-- `docs/reference/glossary.md` — canonical vocabulary, including the five distinct meanings of "library".
-- `docs/reference/design-guide.md` — contains guidelines for UI design / UX rules and design tokens. Follow these when implementing new UI features or refactoring existing ones.
-
-Run `uv run mkdocs serve` to preview the published site at `http://127.0.0.1:8000`.
-
-
-## Testing
-
-- Always run the full test suite (`pytest` or equivalent) after any refactor or multi-file change and confirm all tests pass before presenting work as complete.
-- Call `force_immediate_validation()` after node setup in tests to flush the dirty queue before asserting.
-- In test files, import `haywire.core.graph.editor` before other haywire modules to avoid circular import errors.
-- When patching classes from `barn/haybale-*/` modules in tests, resolve the class and patch target via `importlib.import_module(...)` and `patch.object(module, "Foo", ...)` — top-of-file imports go stale after library bootstrap reloads the module. Reference: `tests/ui/test_canvas_handlers/test_session_context_menu_provider.py`.
 
 ## Traps and gotchas
 
