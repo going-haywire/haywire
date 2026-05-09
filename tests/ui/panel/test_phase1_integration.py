@@ -6,7 +6,7 @@ from unittest.mock import MagicMock
 from haybale_studio.state.edit_state import EditState
 from haywire.core.library.identity import LibraryIdentity
 from haywire.core.state import LibraryStateContainer
-from haywire.ui.context import SessionContext
+from haywire.core.session.context import SessionContext
 from haywire.ui.panel import BasePanel, PanelRegistry, panel
 from haywire.ui.panel.focus import Focus
 

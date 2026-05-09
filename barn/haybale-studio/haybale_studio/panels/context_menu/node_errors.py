@@ -20,7 +20,7 @@ from haywire.ui.panel.layout import PanelLayout
 from haywire.ui.panel.decorator import panel
 
 if TYPE_CHECKING:
-    from haywire.ui.context import SessionContext
+    from haywire.core.session.context import SessionContext
 
 
 def _node_has_errors(ctx: "SessionContext") -> bool:

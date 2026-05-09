@@ -13,8 +13,8 @@ from __future__ import annotations
 
 from typing import Any, Generic, Iterator, TypeVar
 
-from haywire.ui.reactive.path import ReactivePath
-from haywire.ui.reactive.reactive import Reactive
+from haywire.core.session.reactive.path import ReactivePath
+from haywire.core.session.reactive.reactive import Reactive
 
 T = TypeVar("T")
 

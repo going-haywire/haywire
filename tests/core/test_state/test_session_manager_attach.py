@@ -4,7 +4,7 @@ around session creation / removal."""
 from unittest.mock import MagicMock
 
 from haywire.core.state import LibraryStateContainer, SessionState
-from haywire.ui.session_manager import SessionManager
+from haywire.core.session.session_manager import SessionManager
 
 
 class TestSessionManagerAttachDetach:

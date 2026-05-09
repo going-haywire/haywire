@@ -1,6 +1,6 @@
 """iter_reactive_fields walks a class's MRO and yields (name, initial) per descriptor."""
 
-from haywire.ui.reactive import Reactive, iter_reactive_fields, reactive_field
+from haywire.core.session.reactive import Reactive, iter_reactive_fields, reactive_field
 
 
 def test_iter_yields_each_descriptor():

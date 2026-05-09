@@ -32,7 +32,7 @@ from haywire.ui.editor.registry import EditorTypeRegistry
 from haywire.ui.panel.registry import PanelRegistry
 from haywire.ui.skin.registry import SkinRegistry
 from haywire.ui.themes import ThemeRegistry
-from haywire.ui.context_signals import (
+from haywire.core.session.context_signals import (
     ActiveComponentMoved,
     ActiveLibraryMoved,
     LibraryCatalogChanged,
@@ -45,8 +45,8 @@ from haywire_studio.library_manager import LibraryManager, MarketplaceEntry
 from haywire.ui.widget.registry import WidgetRegistry
 
 if TYPE_CHECKING:
-    from haywire.ui.context import SessionContext
-    from haywire.ui.context_signals import ContextSignal
+    from haywire.core.session.context import SessionContext
+    from haywire.core.session.context_signals import ContextSignal
     from nicegui.element import Element
 
 

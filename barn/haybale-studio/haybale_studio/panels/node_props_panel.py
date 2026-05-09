@@ -17,7 +17,7 @@ from haybale_studio.editors.properties_editor_actions import PropertiesEditorAct
 from haybale_studio.state.edit_state import EditState
 
 if TYPE_CHECKING:
-    from haywire.ui.context import SessionContext
+    from haywire.core.session.context import SessionContext
 
 
 @panel(

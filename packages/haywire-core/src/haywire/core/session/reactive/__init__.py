@@ -10,8 +10,8 @@ Phase 1 ships:
 Phase 2 will add Subscription, auto-tracking, and @reads verification.
 """
 
-from haywire.ui.reactive.descriptor import iter_reactive_fields, reactive_field
-from haywire.ui.reactive.path import ReactivePath
-from haywire.ui.reactive.reactive import Reactive
+from haywire.core.session.reactive.descriptor import iter_reactive_fields, reactive_field
+from haywire.core.session.reactive.path import ReactivePath
+from haywire.core.session.reactive.reactive import Reactive
 
 __all__ = ["Reactive", "ReactivePath", "reactive_field", "iter_reactive_fields"]

@@ -29,11 +29,13 @@ from ..types.registry import TypeRegistry
 from ..node.factory import NodeFactory
 from ..settings import SettingsRegistry
 from ..state import LibraryStateContainer, LibraryStateRegistry
+from ..session.session_manager import SessionManager
 from .context import (
     set_node_factory,
     set_adapter_factory,
     set_type_registry,
     set_settings_registry,
+    set_session_manager,
 )
 
 
@@ -187,6 +189,18 @@ class HaywireModule(Module):
         LibrarySystemService.initialize().
         """
         return LibraryStateContainer()
+
+    @provider
+    @singleton
+    def provide_session_manager(self, container: LibraryStateContainer) -> SessionManager:
+        """Provide singleton SessionManager.
+
+        Also publishes the instance to the ambient DI context so deep callers
+        (AppState.on_enable) can read it without constructor injection.
+        """
+        manager = SessionManager(container=container)
+        set_session_manager(manager)
+        return manager
 
     @provider
     @singleton

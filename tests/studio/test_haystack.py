@@ -90,7 +90,7 @@ def test_new_entry_subscribes_validation_callback(tmp_path: Path) -> None:
     assert entry.unsaved is True
     sm.broadcast_signal.assert_called_once()
     # Confirm the broadcast carries the new GraphDataMutated signal type.
-    from haywire.ui.context_signals import GraphDataMutated
+    from haywire.core.session.context_signals import GraphDataMutated
 
     args, kwargs = sm.broadcast_signal.call_args
     assert isinstance(args[0], GraphDataMutated)

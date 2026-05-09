@@ -1,8 +1,8 @@
-# tests/ui/test_workspace_state.py
+# tests/core/test_session/test_workspace_state.py
 """Tests for the simplified WorkspaceManager (dumb file I/O)."""
 
 import json
-from haywire.ui.workspace.manager import WorkspaceManager
+from haywire.core.session.workspace.manager import WorkspaceManager
 
 
 class TestWorkspaceManagerLoad:

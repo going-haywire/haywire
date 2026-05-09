@@ -19,7 +19,7 @@ from haywire.ui.panel.decorator import panel
 
 if TYPE_CHECKING:
     from haywire.core.edge.edge_wrapper import EdgeWrapperState
-    from haywire.ui.context import SessionContext
+    from haywire.core.session.context import SessionContext
 
 
 def _state(ctx: "SessionContext") -> "EdgeWrapperState | None":

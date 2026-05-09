@@ -18,7 +18,7 @@ from haywire.ui import elements as hui
 
 from haywire.ui.editor.decorator import editor
 from haywire.ui.editor.base import BaseEditor
-from haywire.ui.context_signals import (
+from haywire.core.session.context_signals import (
     ActiveComponentMoved,
     SelectionMoved,
     ThemeMoved,
@@ -27,8 +27,8 @@ from haywire.ui.context_signals import (
 from haybale_studio.state.edit_state import EditState
 
 if TYPE_CHECKING:
-    from haywire.ui.context import SessionContext
-    from haywire.ui.context_signals import ContextSignal
+    from haywire.core.session.context import SessionContext
+    from haywire.core.session.context_signals import ContextSignal
     from nicegui.element import Element
 
 

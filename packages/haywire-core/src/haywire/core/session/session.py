@@ -1,4 +1,4 @@
-# packages/haywire-core/src/haywire/ui/session.py
+# packages/haywire-core/src/haywire/core/session/session.py
 """
 Session class representing a single browser connection in the Haywire UI system.
 """
@@ -7,15 +7,14 @@ from typing import Callable, Optional, TYPE_CHECKING
 import uuid
 import logging
 
-from .context import SessionContext
-from .context_signals import ContextSignal, LifecycleCommand
-from .workspace.manager import WorkspaceManager
+from haywire.core.session.context import SessionContext
+from haywire.core.session.context_signals import ContextSignal, LifecycleCommand
+from haywire.core.session.workspace.manager import WorkspaceManager
 
 logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
-    from haywire.ui.app.shell import AppShell
-    from haywire.ui.session_manager import SessionManager
+    from haywire.core.session.session_manager import SessionManager
 
 
 class Session:
@@ -57,23 +56,19 @@ class Session:
         self.session_id = str(uuid.uuid4())
         self.project_state = project_state
         self.workspace_manager: WorkspaceManager = workspace_manager
-        self._session_manager: SessionManager = session_manager
+        self._session_manager: "SessionManager" = session_manager
 
         self.context = SessionContext(session_id=self.session_id, app=project_state)
         self.context.session = self
 
-        # Two-callback wiring set by AppShell. Bound to
-        # AppShell._on_signal / _on_lifecycle.
+        # Two-callback wiring. Signal and lifecycle are bound to
+        # AppShell._on_signal / _on_lifecycle by the AppShell at startup.
+        # AppShell teardown is driven upstream by studio.app.on_disconnect
+        # (Q7A: shell-upstream model) — Session is not involved.
         self._signal_callback: Optional[Callable[[ContextSignal], None]] = None
         self._lifecycle_callback: Optional[Callable[[LifecycleCommand], None]] = None
 
-        self._shell: Optional["AppShell"] = None
-
         logger.info(f"Session created: {self.session_id}")
-
-    def set_shell(self, shell: "AppShell") -> None:
-        """Register the AppShell that owns this session's slots."""
-        self._shell = shell
 
     def set_signal_orchestrator(self, callback: Callable[[ContextSignal], None]) -> None:
         """Register the AppShell._on_signal handler.
@@ -152,13 +147,12 @@ class Session:
                 logger.error(f"Session {self.session_id}: dispatch_signal error: {e}")
 
     def cleanup(self) -> None:
-        """Clean up all editor instances and managed slots.
+        """Tear down per-session state.
 
-        Called when the browser session disconnects.
+        Clears the signal/lifecycle callback slots. AppShell teardown is
+        driven upstream by studio.app.on_disconnect (Q7A: shell-upstream
+        model) — Session is not involved in chrome cleanup.
         """
-        if self._shell is not None:
-            self._shell.cleanup()
-            self._shell = None
         self._signal_callback = None
         self._lifecycle_callback = None
         logger.info(f"Session cleaned up: {self.session_id}")

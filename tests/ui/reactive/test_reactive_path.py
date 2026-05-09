@@ -1,6 +1,6 @@
 """ReactivePath identifies one reactive field on a class. Phase 1: data only."""
 
-from haywire.ui.reactive import ReactivePath
+from haywire.core.session.reactive import ReactivePath
 
 
 def test_reactive_path_identity():

@@ -77,7 +77,7 @@ def _make_ctx_with_edit_stub():
     from types import SimpleNamespace
     from unittest.mock import MagicMock
 
-    from haywire.ui.reactive import Reactive
+    from haywire.core.session.reactive import Reactive
 
     edit_stub = SimpleNamespace(
         active_graph=Reactive(None),

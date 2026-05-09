@@ -21,7 +21,7 @@ from copy import copy
 from typing import TYPE_CHECKING, Any, Optional, Set
 
 from haywire.core.state import SessionState, state
-from haywire.ui.reactive import Reactive, iter_reactive_fields, reactive_field
+from haywire.core.session.reactive import Reactive, iter_reactive_fields, reactive_field
 
 if TYPE_CHECKING:
     from haywire.core.edge.edge_wrapper import EdgeWrapper

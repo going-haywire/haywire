@@ -37,14 +37,14 @@ import logging
 
 import toml
 
-from haywire.ui.context_signals import GraphDataMutated
+from haywire.core.session.context_signals import GraphDataMutated
 
 if TYPE_CHECKING:
     from haywire.core.graph.base import BaseGraph as HaywireGraph
     from haywire.core.execution.interpreter import Interpreter
     from haywire.core.graph.editor import Editor
     from haywire.core.graph.validation import ValidationResult
-    from haywire.ui.session_manager import SessionManager
+    from haywire.core.session.session_manager import SessionManager
 
 logger = logging.getLogger(__name__)
 

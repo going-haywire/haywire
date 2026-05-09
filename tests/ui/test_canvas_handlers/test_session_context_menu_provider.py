@@ -11,7 +11,7 @@ from unittest.mock import MagicMock, patch
 
 from haywire.core.library.identity import LibraryIdentity
 from haywire.core.state import LibraryStateContainer
-from haywire.ui.context import SessionContext
+from haywire.core.session.context import SessionContext
 from haywire.ui.panel import BasePanel
 from haywire.ui.panel.decorator import panel
 from haywire.ui.panel.registry import PanelRegistry
@@ -85,16 +85,20 @@ def make_context(register_edit_state, session=None) -> tuple[SessionContext, typ
 def make_provider(ctx: SessionContext, registry: PanelRegistry, on_emit_event=None):
     """Build a SessionContextMenuProvider with a patched Popup class.
 
-    Resolves SessionContextMenuProvider and the patch target from the live
-    module (post-any-reload) — top-of-file imports become stale once the
-    library system reloads context_menu via importlib.reload.
+    Resolves SessionContextMenuProvider from the live module (post-any-reload)
+    — top-of-file imports become stale once the library system reloads
+    context_menu via importlib.reload.
+
+    Popup is patched on the base module because SessionContextMenuProvider now
+    inherits _open_menu (and the Popup instantiation) from BaseContextMenuProvider.
     """
     cm = _current_context_menu()
+    base_module = importlib.import_module("haybale_studio.editors._context_menu_base")
     popup_container = MagicMock()
     popup = MagicMock()
     popup.__enter__ = MagicMock(return_value=popup_container)
     popup.__exit__ = MagicMock(return_value=False)
-    patcher = patch.object(cm, "Popup", return_value=popup)
+    patcher = patch.object(base_module, "Popup", return_value=popup)
     patcher.start()
     provider = cm.SessionContextMenuProvider(
         context=ctx,

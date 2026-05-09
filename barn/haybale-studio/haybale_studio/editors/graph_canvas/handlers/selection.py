@@ -18,13 +18,13 @@ from ..event_definitions import (
 )
 from ..event_handlers import handles_event
 from haywire.core.undo.actions.graph_actions import ClipboardData
-from haywire.ui.context_signals import SelectionMoved
+from haywire.core.session.context_signals import SelectionMoved
 from haybale_studio.state.edit_state import EditState
 
 if TYPE_CHECKING:
     from haywire.core.graph.editor import Editor
     from haywire.core.graph.base import BaseGraph
-    from haywire.ui.session import Session
+    from haywire.core.session.session import Session
 
 logger = logging.getLogger(__name__)
 

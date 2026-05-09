@@ -1,5 +1,5 @@
-# packages/haywire-core/src/haywire/ui/context_signals.py
-# (renamed from context_events.py — see implementation plan step 1)
+# packages/haywire-core/src/haywire/core/session/context_signals.py
+# (moved from haywire.ui.context_signals — shim left at old location)
 """
 Context signals and lifecycle commands for the Haywire UI system.
 

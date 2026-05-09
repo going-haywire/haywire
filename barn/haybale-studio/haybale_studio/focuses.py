@@ -1,20 +1,9 @@
-"""Selection-state Focus classes — live with their semantic owner.
-
-Each focus reads from EditState (per-session library state) to determine
-availability.
-
-Located in ``panels/`` so the registry's hot-reload dependency detection
-treats this module as part of the same scan unit as the panels that
-consume it. When a transitive dependency (e.g. EditState) changes, the
-panels' managed-module reload picks this file up via the standard scan
-path rather than as a free-floating helper.
-"""
-
 from __future__ import annotations
 
 from haybale_studio.state.edit_state import EditState
-from haywire.ui.context import SessionContext
+from haywire.core.session.context import SessionContext
 from haywire.ui.panel.focus import Focus
+
 
 class AppFocus(Focus):
     id = "app"

@@ -20,7 +20,7 @@ import pytest
 
 import haywire.core.graph.editor  # noqa: F401 — circular-import guard
 
-from haywire.ui.context_signals import (
+from haywire.core.session.context_signals import (
     ActiveComponentMoved,
     ActiveFileMoved,
     ActiveGraphMoved,
@@ -37,8 +37,8 @@ from haywire.ui.context_signals import (
     ThemeMoved,
 )
 from haywire.core.state import LibraryStateContainer
-from haywire.ui.session import Session
-from haywire.ui.session_manager import SessionManager
+from haywire.core.session.session import Session
+from haywire.core.session.session_manager import SessionManager
 
 
 # ----------------------------------------------------------------------

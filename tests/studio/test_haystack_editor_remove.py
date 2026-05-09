@@ -7,13 +7,13 @@ import pytest
 
 import haywire.core.graph.editor  # noqa: F401 -- circular-import guard
 
-from haywire.ui.context_signals import (
+from haywire.core.session.context_signals import (
     ActiveGraphMoved,
     Close,
     GraphDataMutated,
     GraphRemoved,
 )
-from haywire.ui.reactive import Reactive
+from haywire.core.session.reactive import Reactive
 
 
 @pytest.fixture

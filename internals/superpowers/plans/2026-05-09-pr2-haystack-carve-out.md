@@ -1621,7 +1621,7 @@ def test_panel_polls_false_when_no_right_click():
 def test_panel_decorator_metadata():
     from haybale_haystack.panels.open_in_haystack import OpenInHaystackPanel
     from haybale_studio.editors.file_browser_menu.actions import FileBrowserActions
-    from haybale_studio.focuses.file_focus import FileFocus
+    from haybale_studio.file_focus import FileFocus
 
     ident = OpenInHaystackPanel.class_identity
     assert ident.action is FileBrowserActions
@@ -1659,7 +1659,7 @@ from haywire.ui.panel.layout import PanelLayout
 from haywire.ui.panel.decorator import panel
 from haywire.ui import elements as hui
 
-from haybale_studio.focuses.file_focus import FileFocus
+from haybale_studio.file_focus import FileFocus
 from haybale_studio.state.file_browser_state import FileBrowserState
 from haybale_studio.editors.file_browser_menu.actions import FileBrowserActions
 

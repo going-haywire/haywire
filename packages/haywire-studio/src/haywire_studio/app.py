@@ -15,14 +15,19 @@ On startup the last-used haystack (if any) is auto-loaded from
 import os
 import logging
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from nicegui import ui, app
+
+if TYPE_CHECKING:
+    from haywire.ui.app.shell import AppShell
 
 # Core imports
 from haywire.core.graph.editor import Editor
 from haywire.core.graph.base import BaseGraph
 from haywire.core.undo.config import DEVELOPMENT_CONFIG
 from haywire.core.di.config import create_library_system_service, set_library_system, set_global_injector
+from haywire.core.di.context import set_workspace_root
 
 # UI imports
 from haywire.ui.console_bridge import get_bridge
@@ -35,6 +40,7 @@ class HaywireApp:
 
     def __init__(self, workspace_root: str | None = None):
         self.workspace_root = workspace_root or os.getcwd()
+        set_workspace_root(self.workspace_root)
         print(f"Haywire workspace: {self.workspace_root}")
         print("Setting up Haywire application...")
 
@@ -42,6 +48,7 @@ class HaywireApp:
         self.setup_shared_services()
 
         self._is_shutting_down = False
+        self._shells: dict[str, "AppShell"] = {}
 
         app.on_disconnect(self.on_disconnect)
         app.on_shutdown(self.on_app_shutdown)
@@ -86,13 +93,27 @@ class HaywireApp:
         print("Application shutdown complete")
 
     def on_disconnect(self, client):
-        """Handle client disconnect."""
+        """Handle client disconnect.
+
+        Shell-upstream model (Q7A): tear down the AppShell first, then
+        detach the session. SessionManager.remove_session does only state
+        cleanup now — UI cleanup is the shell's responsibility.
+        """
         if self._is_shutting_down:
             return
         session_id = getattr(client, "_haywire_session_id", None)
-        if session_id:
-            print(f"Client disconnected, cleaning up session {session_id[:8]}")
-            self.session_manager.remove_session(session_id)
+        if not session_id:
+            return
+        print(f"Client disconnected, cleaning up session {session_id[:8]}")
+
+        shell = self._shells.pop(session_id, None)
+        if shell is not None:
+            try:
+                shell.cleanup()
+            except Exception as e:
+                print(f"  Error cleaning up shell for session {session_id[:8]}: {e}")
+
+        self.session_manager.remove_session(session_id)
 
     # ------------------------------------------------------------------
     # Shared services setup
@@ -120,7 +141,7 @@ class HaywireApp:
     def setup_shared_services(self):
         """Setup services shared across all sessions."""
         from haywire.core.state import LibraryStateContainer
-        from haywire.ui.session_manager import SessionManager
+        from haywire.core.session.session_manager import SessionManager
 
         # Registries and factories (from DI)
         self.node_registry = self.library_service.get_node_registry()
@@ -130,8 +151,9 @@ class HaywireApp:
         self.panel_registry = self.library_service.get_panel_registry()
         self.library_state_container = self.library_service.injector.get(LibraryStateContainer)
 
-        # SessionManager needs the container to drive attach/detach.
-        self.session_manager = SessionManager(container=self.library_state_container)
+        # SessionManager comes from the DI container; provide_session_manager()
+        # also publishes it via set_session_manager() into the ambient context.
+        self.session_manager = self.library_service.injector.get(SessionManager)
 
         # Graph manager — starts empty; graphs are created/opened on demand.
         # Haystack auto-load is deferred to main_page so it can guard against
@@ -144,7 +166,7 @@ class HaywireApp:
             session_manager=self.session_manager,
         )
 
-        from haywire.ui.workspace.manager import WorkspaceManager
+        from haywire.core.session.workspace.manager import WorkspaceManager
 
         self.workspace_manager = WorkspaceManager(project_path=Path(self.workspace_root))
 
@@ -243,7 +265,7 @@ class HaywireApp:
             haywire_session.context.active_node_theme_key.value = "core:theme:node:default"
 
             app_shell = AppShell(haywire_session, editor_registry=editor_registry)
-            haywire_session.set_shell(app_shell)
+            self._shells[haywire_session.session_id] = app_shell
             app_shell.render()
 
     # ------------------------------------------------------------------

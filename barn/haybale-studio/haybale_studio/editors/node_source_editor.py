@@ -29,7 +29,7 @@ from typing import TYPE_CHECKING, Literal, Optional
 from nicegui import ui
 
 from haywire.ui import elements as hui
-from haywire.ui.context_signals import SelectionMoved, ThemeMoved
+from haywire.core.session.context_signals import SelectionMoved, ThemeMoved
 from haywire.ui.editor.base import BaseEditor
 from haywire.ui.editor.decorator import editor
 
@@ -37,8 +37,8 @@ from haybale_studio.state.edit_state import EditState
 
 if TYPE_CHECKING:
     from haywire.core.registry.lifecycle_event import LifeCycleEvent
-    from haywire.ui.context import SessionContext
-    from haywire.ui.context_signals import ContextSignal
+    from haywire.core.session.context import SessionContext
+    from haywire.core.session.context_signals import ContextSignal
     from nicegui.element import Element
 
 
@@ -372,7 +372,7 @@ class NodeSourceEditor(BaseEditor):
         # how file_browser does it.
         from haybale_studio.editors.code_editor import CodeEditor
 
-        from haywire.ui.context_signals import ActiveFileMoved, Reveal
+        from haywire.core.session.context_signals import ActiveFileMoved, Reveal
 
         session.context.active_file.value = self._path
         session.signal(ActiveFileMoved())

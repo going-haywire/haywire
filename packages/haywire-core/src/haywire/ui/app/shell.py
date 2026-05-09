@@ -22,7 +22,7 @@ from typing import Literal, Optional, TYPE_CHECKING
 from nicegui import ui
 
 from haywire.ui import elements as hui
-from haywire.ui.context_signals import (
+from haywire.core.session.context_signals import (
     Close,
     ContextSignal,
     LifecycleCommand,
@@ -35,7 +35,7 @@ logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
     from haywire.ui.editor.registry import EditorTypeRegistry
-    from haywire.ui.session import Session
+    from haywire.core.session.session import Session
 
 
 class AppShell:

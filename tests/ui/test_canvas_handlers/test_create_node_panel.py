@@ -14,7 +14,7 @@ from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
 from haywire.core.state import LibraryStateContainer
-from haywire.ui.context import SessionContext
+from haywire.core.session.context import SessionContext
 from haywire.ui.panel import BasePanel
 from haywire.ui.panel.layout import PanelLayout
 

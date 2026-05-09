@@ -1,6 +1,6 @@
 """Phase 1: Reactive[T] is a value holder. No tracking yet."""
 
-from haywire.ui.reactive import Reactive
+from haywire.core.session.reactive import Reactive
 
 
 def test_reactive_holds_initial_value():

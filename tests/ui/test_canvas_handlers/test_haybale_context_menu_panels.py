@@ -12,7 +12,7 @@ from unittest.mock import MagicMock
 
 from haywire.core.state import LibraryStateContainer
 from haywire.core.undo.actions.graph_actions import ClipboardData
-from haywire.ui.context import SessionContext
+from haywire.core.session.context import SessionContext
 from haywire.ui.panel import BasePanel
 
 from haybale_testing.test_actions import (

@@ -19,7 +19,7 @@ from nicegui import ui
 if TYPE_CHECKING:
     from haywire.ui.editor.base import BaseEditor
     from haywire.ui.editor.registry import EditorTypeRegistry
-    from haywire.ui.session import Session
+    from haywire.core.session.session import Session
     from haywire.ui.app.slot import Slot
     from haywire.core.registry.lifecycle_event import LifeCycleEvent
     from nicegui.element import Element

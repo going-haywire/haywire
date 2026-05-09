@@ -21,7 +21,7 @@ from haywire.ui.panel.decorator import panel
 from haywire.ui.panel.layout import PanelLayout
 
 if TYPE_CHECKING:
-    from haywire.ui.context import SessionContext
+    from haywire.core.session.context import SessionContext
 
 
 # --8<-- [start:test_session_state_panel]

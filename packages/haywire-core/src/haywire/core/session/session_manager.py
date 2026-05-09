@@ -13,10 +13,10 @@ from dataclasses import replace
 from typing import Dict, Optional, TYPE_CHECKING
 
 from haywire.core.state import LibraryStateContainer
-from haywire.ui.context_signals import ContextSignal, Subject
+from haywire.core.session.context_signals import ContextSignal, Subject
 
 if TYPE_CHECKING:
-    from haywire.ui.session import Session
+    from haywire.core.session.session import Session
 
 
 logger = logging.getLogger(__name__)
@@ -56,7 +56,7 @@ class SessionManager:
         Returns:
             The newly created Session.
         """
-        from haywire.ui.session import Session
+        from haywire.core.session.session import Session
 
         session = Session(session_manager=self, **session_kwargs)
         self._sessions[session.session_id] = session

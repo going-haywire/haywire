@@ -29,10 +29,10 @@ from nicegui import ui
 from haywire.ui import elements as hui
 from haywire.ui.editor.base import BaseEditor
 from haywire.ui.editor.decorator import editor
-from haywire.ui.context_signals import ActiveFileMoved, Reveal
+from haywire.core.session.context_signals import ActiveFileMoved, Reveal
 
 if TYPE_CHECKING:
-    from haywire.ui.context import SessionContext
+    from haywire.core.session.context import SessionContext
     from nicegui.element import Element
 
 
@@ -81,6 +81,8 @@ class LazyFileBrowserEditor(BaseEditor):
         # Map node id (filesystem path string) → node dict in _root_nodes,
         # so a sentinel click can find its parent and replace its children.
         self._nodes_by_id: dict[str, dict] = {}
+        # Lazily-constructed per-session file context-menu provider.
+        self._menu_provider = None
 
     # ------------------------------------------------------------------
     # render
@@ -156,6 +158,34 @@ class LazyFileBrowserEditor(BaseEditor):
                 )
                 .props("dense no-transition")
                 .classes("w-full text-sm hw-file-tree")
+            )
+            # Wire right-click on individual tree nodes via Quasar's
+            # default-header scoped slot.  The slot scope exposes `props.key`
+            # (the node id string) and the native event via `$event`.
+            # We emit a custom "node-context" event up to the q-tree so the
+            # Python side can receive it as a single handler, avoiding the
+            # need to attach a per-node Python callback.
+            self._tree.add_slot(
+                "default-header",
+                """
+                <div style="display:contents"
+                     @contextmenu.prevent="$emit('node-context', {
+                         key: props.key,
+                         x: $event.clientX,
+                         y: $event.clientY
+                     })">
+                    {{ props.node.label }}
+                </div>
+                """,
+            )
+            self._tree.on(
+                "node-context",
+                lambda e: self._on_node_context(
+                    e.args.get("key") if isinstance(e.args, dict) else None,
+                    float(e.args.get("x", 0)) if isinstance(e.args, dict) else 0.0,
+                    float(e.args.get("y", 0)) if isinstance(e.args, dict) else 0.0,
+                    context,
+                ),
             )
 
     # ------------------------------------------------------------------
@@ -260,6 +290,35 @@ class LazyFileBrowserEditor(BaseEditor):
     # ------------------------------------------------------------------
     # event handlers
     # ------------------------------------------------------------------
+
+    def _ensure_menu_provider(self, context: "SessionContext"):
+        """Lazily construct and cache the file context-menu provider for this session."""
+        if self._menu_provider is None:
+            from haybale_studio.editors.file_browser_menu.provider import SessionFileMenuProvider
+
+            panel_registry = context.app.panel_registry  # type: ignore[union-attr]
+            self._menu_provider = SessionFileMenuProvider(
+                context=context,
+                session=context.session,  # type: ignore[arg-type]
+                panel_registry=panel_registry,
+            )
+        return self._menu_provider
+
+    def _on_node_context(
+        self,
+        node_id: Optional[str],
+        screen_x: float,
+        screen_y: float,
+        context: "SessionContext",
+    ) -> None:
+        """User right-clicked a tree node — open the file context menu."""
+        if not node_id or node_id.endswith(_LOAD_MORE_ID):
+            return
+        path = Path(node_id)
+        if not path.is_file():
+            return  # Folders don't get a context menu yet
+        provider = self._ensure_menu_provider(context)
+        provider.on_file_context(pos=(screen_x, screen_y), path=path)
 
     def _on_select(self, node_id: Optional[str], context: "SessionContext") -> None:
         if not node_id:

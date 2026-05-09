@@ -21,6 +21,7 @@ Write (in DI providers only):
     set_node_factory(factory)
 """
 
+from pathlib import Path
 from typing import TYPE_CHECKING, Optional
 
 if TYPE_CHECKING:
@@ -28,12 +29,15 @@ if TYPE_CHECKING:
     from ..adapter.factory import AdapterFactory
     from ..types.registry import TypeRegistry
     from ..settings import SettingsRegistry
+    from ..session.session_manager import SessionManager
 
 
 _node_factory: Optional["NodeFactory"] = None
 _adapter_factory: Optional["AdapterFactory"] = None
 _type_registry: Optional["TypeRegistry"] = None
 _settings_registry: Optional["SettingsRegistry"] = None
+_session_manager: Optional["SessionManager"] = None
+_workspace_root: Optional[Path] = None
 
 
 # ---------------------------------------------------------------------------
@@ -59,6 +63,17 @@ def set_type_registry(registry: "TypeRegistry") -> None:
 def set_settings_registry(registry: "SettingsRegistry") -> None:
     global _settings_registry
     _settings_registry = registry
+
+
+def set_session_manager(manager: "SessionManager") -> None:
+    global _session_manager
+    _session_manager = manager
+
+
+def set_workspace_root(path) -> None:
+    """Set the ambient workspace root. Accepts str or Path."""
+    global _workspace_root
+    _workspace_root = Path(path)
 
 
 # ---------------------------------------------------------------------------
@@ -97,3 +112,21 @@ def get_settings_registry() -> "SettingsRegistry":
             "Ensure DI is initialised before constructing nodes."
         )
     return _settings_registry
+
+
+def get_session_manager() -> "SessionManager":
+    if _session_manager is None:
+        raise RuntimeError(
+            "SessionManager not set in ambient context. "
+            "Ensure HaywireApp has been initialised before requesting it."
+        )
+    return _session_manager
+
+
+def get_workspace_root() -> Path:
+    if _workspace_root is None:
+        raise RuntimeError(
+            "workspace_root not set in ambient context. "
+            "Ensure HaywireApp has been initialised before requesting it."
+        )
+    return _workspace_root

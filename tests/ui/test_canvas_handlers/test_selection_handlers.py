@@ -6,7 +6,7 @@ import pytest
 from unittest.mock import MagicMock
 
 from haywire.core.state import LibraryStateContainer
-from haywire.ui.context import SessionContext
+from haywire.core.session.context import SessionContext
 from haybale_studio.editors.graph_canvas.handlers.selection import SelectionHandlers
 from haybale_studio.editors.graph_canvas.event_definitions import (
     SelectionChangedEvent,
@@ -124,7 +124,7 @@ def test_selection_changed_notifies_session(register_edit_state):
     )
     handler.process_selection_change(SelectionChangedEvent(selectedNodes=["n1"], selectedEdges=["e1"]))
     session.signal.assert_called_once()
-    from haywire.ui.context_signals import SelectionMoved
+    from haywire.core.session.context_signals import SelectionMoved
 
     assert isinstance(session.signal.call_args.args[0], SelectionMoved)
     edit = ctx.data[EditStateCls]

@@ -24,13 +24,13 @@ from __future__ import annotations
 
 from typing import Any, Optional, TYPE_CHECKING
 
-from haywire.ui.reactive import Reactive, iter_reactive_fields, reactive_field
+from haywire.core.session.reactive import Reactive, iter_reactive_fields, reactive_field
 from haywire.core.state.data_namespace import AppDataNamespace, SessionDataNamespace
 
 if TYPE_CHECKING:
     from haywire.core.library.info import LibraryInfo
-    from haywire.ui.protocols import IProjectState
-    from haywire.ui.session import Session
+    from haywire.core.session.protocols import IProjectState
+    from haywire.core.session.session import Session
 
 
 class SessionContext:

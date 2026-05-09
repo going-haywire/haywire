@@ -1,7 +1,7 @@
 """Tests for SessionContext."""
 
 from haywire.core.state import LibraryStateContainer
-from haywire.ui.context import SessionContext
+from haywire.core.session.context import SessionContext
 
 
 class FakeApp:

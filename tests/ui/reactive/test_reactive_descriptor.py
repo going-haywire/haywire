@@ -1,6 +1,6 @@
 """reactive_field() — class access yields ReactivePath; instance access yields Reactive[T]."""
 
-from haywire.ui.reactive import Reactive, ReactivePath, iter_reactive_fields, reactive_field
+from haywire.core.session.reactive import Reactive, ReactivePath, iter_reactive_fields, reactive_field
 
 
 class _ExampleContext:

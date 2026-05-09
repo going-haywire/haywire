@@ -5,7 +5,7 @@ from haywire.core.state import (
     LibraryStateContainer,
 )
 from haywire.core.state.data_namespace import AppDataNamespace, SessionDataNamespace
-from haywire.ui.context import SessionContext
+from haywire.core.session.context import SessionContext
 
 
 class FakeApp:

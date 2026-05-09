@@ -20,7 +20,7 @@ from haywire.core.state import (
     SessionState,
 )
 from haywire.core.state.data_namespace import SessionDataNamespace
-from haywire.ui.session_manager import SessionManager
+from haywire.core.session.session_manager import SessionManager
 
 
 @pytest.mark.integration

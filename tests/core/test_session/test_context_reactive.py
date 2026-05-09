@@ -1,4 +1,4 @@
-# tests/ui/test_session_context_reactive.py
+# tests/core/test_session/test_context_reactive.py
 """SessionContext fields are reactive.
 
 Class access yields ReactivePath; instance access yields Reactive[T].
@@ -14,8 +14,8 @@ representative example.
 
 from unittest.mock import MagicMock
 
-from haywire.ui.context import SessionContext
-from haywire.ui.reactive import Reactive, ReactivePath
+from haywire.core.session.context import SessionContext
+from haywire.core.session.reactive import Reactive, ReactivePath
 
 
 def _make_ctx() -> SessionContext:

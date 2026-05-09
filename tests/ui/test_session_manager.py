@@ -9,7 +9,7 @@ from unittest.mock import MagicMock
 import haywire.core.graph.editor  # noqa: F401 — circular-import guard
 
 from haywire.core.state import LibraryStateContainer
-from haywire.ui.session_manager import SessionManager
+from haywire.core.session.session_manager import SessionManager
 
 
 def test_session_manager_starts_empty():

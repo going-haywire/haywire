@@ -19,8 +19,8 @@ from .identity import EditorIdentity
 
 if TYPE_CHECKING:
     from haywire.ui.editor.wrapper import EditorWrapper
-    from haywire.ui.context import SessionContext
-    from haywire.ui.context_signals import ContextSignal
+    from haywire.core.session.context import SessionContext
+    from haywire.core.session.context_signals import ContextSignal
     from nicegui.element import Element
 
 

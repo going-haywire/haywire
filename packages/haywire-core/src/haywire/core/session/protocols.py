@@ -1,4 +1,4 @@
-# packages/haywire-core/src/haywire/ui/protocols.py
+# packages/haywire-core/src/haywire/core/session/protocols.py
 """
 Structural protocols for the Haywire UI system.
 
@@ -13,7 +13,7 @@ from typing import Any, Protocol, TYPE_CHECKING
 
 if TYPE_CHECKING:
     from haywire.core.di.config import LibrarySystemService
-    from haywire.ui.session_manager import SessionManager
+    from haywire.core.session.session_manager import SessionManager
     from haywire_studio.library_manager import LibraryManager  # type: ignore[import-untyped]
     from haywire.core.state import LibraryStateContainer
 
@@ -53,3 +53,4 @@ class IProjectState(Protocol):
     library_manager: "LibraryManager"
     library_state_container: "LibraryStateContainer"
     """Pool of live LibraryState instances. See internals/documentation/architecture/library_state.md."""
+    panel_registry: Any  # PanelRegistry — set by HaywireApp.setup_shared_services()

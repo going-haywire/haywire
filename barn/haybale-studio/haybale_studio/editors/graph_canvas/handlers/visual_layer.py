@@ -41,7 +41,7 @@ if TYPE_CHECKING:
     from haywire.core.graph.base import BaseGraph
     from haywire.ui.skin.factory import SkinFactory
     from haywire.ui.components.graph.canvas import GraphCanvasVue
-    from haywire.ui.context import SessionContext
+    from haywire.core.session.context import SessionContext
 
 logger = logging.getLogger(__name__)
 

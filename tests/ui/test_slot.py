@@ -3,7 +3,7 @@
 from types import SimpleNamespace
 
 from haywire.ui.app.tab_slot import TabSlot
-from haywire.ui.context_signals import SelectionMoved
+from haywire.core.session.context_signals import SelectionMoved
 from haywire.ui.editor.wrapper import EditorWrapper
 
 

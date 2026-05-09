@@ -18,7 +18,7 @@ from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING, Any, ClassVar
 
 if TYPE_CHECKING:
-    from haywire.ui.context import SessionContext
+    from haywire.core.session.context import SessionContext
     from haywire.ui.panel.layout import PanelLayout
     from haywire.ui.panel.identity import PanelIdentity
 

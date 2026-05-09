@@ -41,9 +41,9 @@ from haywire.ui.editor.registry import EditorTypeRegistry
 from haywire.ui.editor.wrapper import EditorWrapper
 
 if TYPE_CHECKING:
-    from haywire.ui.context_signals import ContextSignal
+    from haywire.core.session.context_signals import ContextSignal
     from haywire.ui.editor.base import BaseEditor
-    from haywire.ui.session import Session
+    from haywire.core.session.session import Session
 
 logger = logging.getLogger(__name__)
 

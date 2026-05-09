@@ -28,14 +28,13 @@ from ..event_definitions import (
     SyncEdgeConnectResumeEvent,
 )
 from ..event_handlers import handles_event
-from haywire.ui.panel.layout import PanelLayout
-from haywire.ui.components.popup import Popup
 from haybale_studio.state.edit_state import EditState
+from haybale_studio.editors._context_menu_base import BaseContextMenuProvider
 
 if TYPE_CHECKING:
     from haybale_studio.editors.graph_canvas.handlers.visual_layer import VisualLayerHandlers
-    from haywire.ui.context import SessionContext
-    from haywire.ui.session import Session
+    from haywire.core.session.context import SessionContext
+    from haywire.core.session.session import Session
     from haywire.ui.panel.registry import PanelRegistry
 
 logger = logging.getLogger(__name__)
@@ -141,7 +140,7 @@ class _OpenMenuContext:
 # ---------------------------------------------------------------------------
 
 
-class SessionContextMenuProvider(IContextMenuProvider):
+class SessionContextMenuProvider(IContextMenuProvider, BaseContextMenuProvider):
     """
     Panel-driven IContextMenuProvider implementation.
 
@@ -152,6 +151,8 @@ class SessionContextMenuProvider(IContextMenuProvider):
        matching panels into a Popup produced by popup_factory.
     3. Registers a close callback that clears active_port/active_edge and
        resumes any pending edge-drag connection.
+
+    Inherits popup/registry/poll/draw machinery from BaseContextMenuProvider.
     """
 
     def __init__(
@@ -162,25 +163,28 @@ class SessionContextMenuProvider(IContextMenuProvider):
         on_emit_event: Optional[Callable] = None,
         on_emit_sync_event: Optional[Callable] = None,
     ):
-        self._context = context
-        self._session = session
-        self._panel_registry = panel_registry
+        super().__init__(context, session, panel_registry)
         self._on_emit_event = on_emit_event
         self._on_emit_sync_event = on_emit_sync_event
         self._open_ctx: Optional[_OpenMenuContext] = None  # per-popup gesture state
-        self._open_popup: Optional[Popup] = None  # currently-open menu popup, closed after any action
-
-    def _build_popup(self, pos: Tuple[float, float]):
-        """Build a Popup at the given position. Extracted for testability."""
-        return Popup(position_x=pos[0], position_y=pos[1], backdrop_click_close=True)
 
     def _open_menu(
         self,
         action: type,
         focus: type,  # type[Focus] but loose to avoid circular import
         pos: Tuple[float, float],
+        on_close: Optional[Callable[[], None]] = None,
     ) -> None:
-        """Common logic: build popup, query panels for (action, focus), draw."""
+        """Canvas-specific _open_menu: manage gesture state, then delegate to base.
+
+        The _open_ctx gesture state is populated by intent handlers before
+        calling this method; here we ensure it exists and update click_pos,
+        then pass the canvas-specific cleanup as an on_close to the base.
+
+        The ``on_close`` parameter is accepted for signature compatibility with
+        the base; canvas intent methods do not use it (they rely on the
+        canvas-specific ``_on_close`` defined below).
+        """
         # Open _OpenMenuContext for this popup; the intent handlers above
         # (on_canvas_context, on_node_context, etc.) populated the rest of
         # its fields before calling _open_menu.
@@ -191,35 +195,18 @@ class SessionContextMenuProvider(IContextMenuProvider):
         else:
             self._open_ctx.click_pos = pos
 
-        popup = self._build_popup(pos)
-        self._open_popup = popup
-
-        def _on_close():
+        def _on_close() -> None:
             edit_state = self._context.data[EditState]
             edit_state.active_port.value = None
             edit_state.active_edge.value = None
             # Resume drag if pending_connection wasn't consumed
             pending = self._open_ctx.pending_connection if self._open_ctx else None
             self._open_ctx = None
-            self._open_popup = None
+            # Note: base's _wrapped_on_close clears self._open_popup; don't duplicate it here.
             if pending is not None and self._on_emit_sync_event:
                 self._on_emit_sync_event(SyncEdgeConnectResumeEvent())
 
-        popup.on_close(_on_close)
-
-        panel_classes = self._panel_registry.get_panels_for(actions_provider=self, focus=focus)
-
-        visible = [cls for cls in panel_classes if cls.poll(self._context)]
-        if not visible:
-            return
-
-        layout = PanelLayout(popup.content)
-        for cls in visible:
-            try:
-                cls().draw(self._context, layout, self)
-            except Exception as exc:
-                logger.exception(f"Error drawing context menu panel {cls.__name__}: {exc}")
-        popup.open()
+        super()._open_menu(action, focus, pos, on_close=_on_close)
 
     def on_canvas_context(self, pos, canvas_pos, pending_connection=None):
         from haybale_studio.focuses import CanvasFocus

@@ -21,7 +21,7 @@ from haybale_studio.focuses import SettingsFocus
 from haybale_studio.state.edit_state import EditState
 
 if TYPE_CHECKING:
-    from haywire.ui.context import SessionContext
+    from haywire.core.session.context import SessionContext
 
 
 @panel(

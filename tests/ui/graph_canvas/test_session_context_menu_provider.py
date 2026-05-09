@@ -3,8 +3,8 @@
 from types import SimpleNamespace
 from unittest.mock import MagicMock
 
-from haywire.ui.context import SessionContext
-from haywire.ui.reactive import Reactive
+from haywire.core.session.context import SessionContext
+from haywire.core.session.reactive import Reactive
 from haybale_studio.editors.graph_canvas.handlers.context_menu import (
     SessionContextMenuProvider,
     _OpenMenuContext,

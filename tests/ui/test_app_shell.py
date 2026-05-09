@@ -17,7 +17,7 @@ from types import SimpleNamespace
 
 import haywire.core.graph.editor as graph_editor_module
 from haywire.ui.app.shell import AppShell
-from haywire.ui.context_signals import Close, Reveal
+from haywire.core.session.context_signals import Close, Reveal
 from haywire.ui.editor.identity import OpenBehavior
 
 

@@ -10,7 +10,7 @@ from unittest.mock import MagicMock
 
 from haywire.core.state import LibraryStateContainer
 from haywire.core.undo.actions.graph_actions import ClipboardData
-from haywire.ui.context import SessionContext
+from haywire.core.session.context import SessionContext
 
 
 def _make_ctx_with_edit_state(register_edit_state):

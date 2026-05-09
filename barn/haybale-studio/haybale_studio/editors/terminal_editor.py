@@ -22,7 +22,7 @@ from haywire.ui.editor.decorator import editor
 from haywire.ui.editor.base import BaseEditor
 
 if TYPE_CHECKING:
-    from haywire.ui.context import SessionContext
+    from haywire.core.session.context import SessionContext
     from nicegui.element import Element
 
 

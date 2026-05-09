@@ -14,7 +14,7 @@ from haywire.core.graph.editor import Editor
 
 from haywire.ui.components.zoom.pan import ZoomPanContainer
 from haywire.ui.components.graph.canvas import GraphCanvasVue
-from haywire.ui.session import Session
+from haywire.core.session.session import Session
 
 from haybale_studio.state.edit_state import EditState
 

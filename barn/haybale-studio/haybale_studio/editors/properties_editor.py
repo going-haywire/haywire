@@ -24,7 +24,7 @@ from nicegui import ui
 
 from haybale_studio.state.edit_state import EditState
 from haywire.ui import elements as hui
-from haywire.ui.context_signals import (
+from haywire.core.session.context_signals import (
     ActiveGraphMoved,
     GraphDataMutated,
     SelectionMoved,
@@ -37,8 +37,8 @@ from haywire.ui.panel.focus import Focus, focus_by_id
 from haywire.ui.panel.registry import PanelRegistry
 
 if TYPE_CHECKING:
-    from haywire.ui.context import SessionContext
-    from haywire.ui.context_signals import ContextSignal
+    from haywire.core.session.context import SessionContext
+    from haywire.core.session.context_signals import ContextSignal
     from nicegui.element import Element
 
 logger = logging.getLogger(__name__)
