@@ -159,33 +159,42 @@ class LazyFileBrowserEditor(BaseEditor):
                 .props("dense no-transition")
                 .classes("w-full text-sm hw-file-tree")
             )
-            # Wire right-click on individual tree nodes via Quasar's
-            # default-header scoped slot.  The slot scope exposes `props.key`
-            # (the node id string) and the native event via `$event`.
-            # We emit a custom "node-context" event up to the q-tree so the
-            # Python side can receive it as a single handler, avoiding the
-            # need to attach a per-node Python callback.
+            # Wire right-click on individual tree nodes.  Quasar's q-tree
+            # doesn't expose a per-node contextmenu signal, and emitting from
+            # inside a scoped slot with `$emit('node-context', …)` doesn't
+            # reliably bubble out of the q-tree component.  Instead we:
+            #   1. Tag each node's header `<div>` in the default-header slot
+            #      with `data-file-key` (the node id, i.e. the path string).
+            #   2. Attach a single `contextmenu` listener to the q-tree's
+            #      outer element with a JS arg-extractor that walks
+            #      `event.target.closest('[data-file-key]')` to find which
+            #      row was clicked, plus reads clientX/clientY.
             self._tree.add_slot(
                 "default-header",
                 """
-                <div style="display:contents"
-                     @contextmenu.prevent="$emit('node-context', {
-                         key: props.key,
-                         x: $event.clientX,
-                         y: $event.clientY
-                     })">
+                <div :data-file-key="props.key" style="display:contents">
                     {{ props.node.label }}
                 </div>
                 """,
             )
             self._tree.on(
-                "node-context",
+                "contextmenu",
                 lambda e: self._on_node_context(
                     e.args.get("key") if isinstance(e.args, dict) else None,
                     float(e.args.get("x", 0)) if isinstance(e.args, dict) else 0.0,
                     float(e.args.get("y", 0)) if isinstance(e.args, dict) else 0.0,
                     context,
                 ),
+                js_handler="""(event) => {
+                    event.preventDefault();
+                    const el = event.target.closest('[data-file-key]');
+                    if (!el) return;
+                    emit({
+                        key: el.getAttribute('data-file-key'),
+                        x: event.clientX,
+                        y: event.clientY,
+                    });
+                }""",
             )
 
     # ------------------------------------------------------------------
