@@ -23,6 +23,9 @@ from .node_settings import NodeSettingsPanel
 from .node_status import NodeStatusPanel
 from .context_menu.create_node_panel import CreateNodePanel
 from .context_menu.create_node_panel import CanvasPasteSelectionPanel
+from .context_menu.file_actions import OpenInCodeEditorPanel
+from .context_menu.file_actions import OpenInFileViewerPanel
+from .context_menu.open_in_graph_editor import OpenInGraphEditorPanel
 from .context_menu.edge_actions import ReconnectEdgePanel
 from .context_menu.node_actions import DeleteNodePanel
 from .context_menu.node_actions import CopyNodePanel
@@ -66,6 +69,9 @@ __all__ = [
     "NodeSkinDefaultPanel",
     "NodeSkinSettingsPanel",
     "NodeStatusPanel",
+    "OpenInCodeEditorPanel",
+    "OpenInFileViewerPanel",
+    "OpenInGraphEditorPanel",
     "PortInfoPanel",
     "ReconnectEdgePanel",
     "RedrawNodePanel",
