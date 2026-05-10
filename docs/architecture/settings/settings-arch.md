@@ -172,6 +172,8 @@ All inherit from `Settings` (`packages/haywire-core/src/haywire/core/settings/se
 | `LibrarySettings` | `settings/schema.py` | Via `BaseRegistry` hot-reload machinery (`_class_filter` picks up `class_identity`) | Set when the registry processes the class on library load |
 | `NodeSettings` | `settings/node_settings.py` | Never registered as a *class* — settings *instances* are bound per-node by `@node` | Per-instance: `__init__` accepts `registry`; `@node` injects it from the node's wrapper |
 
+Field descriptors on `FrameworkSettings` and `LibrarySettings` are auto-promoted to `persistent_setting` (a `setting` subclass that routes writes through `registry.set_global` + `save_to_toml_debounced`). The swap happens during field setup — in `__init_subclass__` for the class-signature `namespace=` form, and in the `@settings` decorator for the decorator form. `NodeSettings` fields are NOT promoted; node-local settings persist with the graph, not the workspace TOML, so `_local_store`-only semantics is correct for them.
+
 Deep inheritance (subclassing a `FrameworkSettings` or `LibrarySettings` subclass) is blocked by `__init_subclass__` to keep namespaces clean.
 
 ### 6.2 The four key identifiers
@@ -184,7 +186,7 @@ Four identifiers cooperate to thread a setting from class definition to TOML to 
 namespace='execution'   →   TOML section [execution]
 ```
 
-**`_setting_key`** — full TOML address of one field: `{namespace}.{field_attr_name}`. Set on each `setting()` descriptor by `@settings` / `__init_subclass__` (for global schemas) or by `@node` / `_wire_settings_schemas` (for `NodeSettings`).
+**`_setting_key`** — full TOML address of one field: `{namespace}.{field_attr_name}`. Set on each `setting()` descriptor by `@settings` / `__init_subclass__` (for global schemas) or by `@node` / `_wire_settings_schemas` (for `NodeSettings`). For `FrameworkSettings` and `LibrarySettings`, the same setup pass also swaps the descriptor's `__class__` to `persistent_setting` so writes route through the registry (see [6.3 The write path](#63-the-write-path)).
 
 ```text
 namespace='execution', field 'max_threads'
@@ -213,6 +215,62 @@ namespace='my_lib', library_id='haybale_image'
 
 There is no `scope=` attribute on any settings class.
 
+### 6.3 The write path
+
+Section 4 traced how a `setting` value is *read* through the tier chain. Writes are simpler but have a comparable structural twist: which descriptor handles `__set__` depends on the schema class.
+
+#### `setting.__set__` — instance-local
+
+For `NodeSettings` and any plain `Settings` subclass, `setting.__set__` is the descriptor that runs. It writes to `obj._local_store[key]` and fires `_on_property_change` to notify subscribers. The registry is not consulted; the write is invisible to peer instances and is never serialised to the workspace TOML.
+
+#### `persistent_setting.__set__` — registry-backed
+
+For `FrameworkSettings` and `LibrarySettings`, the descriptor is promoted to `persistent_setting` (a `setting` subclass) during field setup. Its `__set__` routes writes through the registry:
+
+```python
+# Roughly:
+registry.set_global(setting_key, value, SettingMode.EXPLICIT)
+registry.save_to_toml_debounced()
+```
+
+Two consequences flow from this:
+
+- The value lands in the registry's workspace tier, so a freshly-constructed peer instance sees it on its next read.
+- `save_to_toml_debounced` schedules a write to `<workspace>/.haywire/settings.toml`, so the value survives restart.
+
+The author never sees `persistent_setting`. They write `settings.field = value`; the framework's class swap ensures the right descriptor runs transparently:
+
+```python
+# Library settings panel writes this:
+my_settings.api_url = "https://example.com"
+
+# Because api_url's descriptor was promoted to persistent_setting at
+# class-definition time, this call fans out to:
+#   registry.set_global('my_lib.api_url', 'https://example.com', EXPLICIT)
+#   registry.save_to_toml_debounced()
+# …rather than writing to _local_store.
+```
+
+#### Three places the class swap happens
+
+Field descriptors get their `__class__` rewritten to `persistent_setting` in three places, depending on how the schema is registered:
+
+1. `FrameworkSettings.__init_subclass__` — when a subclass uses class-signature `namespace=`.
+2. `LibrarySettings.__init_subclass__` — same, for library-side schemas using the class-signature form.
+3. `@settings(namespace=...)` decorator — the canonical pattern for `LibrarySettings`.
+
+All three paths iterate `cls._property_settings()` and set `descriptor._setting_key` + `descriptor._mirror_key` + `descriptor.__class__ = persistent_setting` in one pass. Keeping the three paths in sync matters: missing the swap in one path silently restores the `_local_store`-only semantics for any schema registered through that path.
+
+#### Why the descriptor does NOT call `_on_property_change`
+
+`persistent_setting.__set__` deliberately omits the `_on_property_change` call that the base `setting` makes. `registry.set_global` fires `_notify_subscribers` → `_on_field_change` → `_on_property_change` on the owning instance via the subscription path; calling it a second time directly from the descriptor would double-fire every subscriber callback (UI redraws, IPC, file writes — anything non-idempotent misbehaves).
+
+#### Fallback when no registry is wired
+
+In test fixtures or unsaved workspaces, `persistent_setting.__set__` may run on an instance whose `_registry` is `None` or whose `_setting_key` is empty. In both cases it delegates to `super().__set__` — the base `setting`'s local-store write — so existing test fixtures and simple-mode usage are unaffected.
+
+A related guard sits in `save_to_toml_debounced` itself: when the registry has no workspace path configured (unsaved workspace), the debounce is a no-op rather than scheduling a timer whose firing would raise an error on a background thread. `set_global` still updates the in-memory workspace tier, so cross-instance visibility works even without disk persistence.
+
 ## 7. Lifecycle
 
 ### 7.1 Registration and `_pending_global`
@@ -225,6 +283,7 @@ Module imports FrameworkSettings subclass
 __init_subclass__ runs:
   - validates namespace=
   - sets _setting_key on every descriptor
+  - swaps each descriptor's __class__ to persistent_setting
   - appends class to schema._pending_global queue
   ↓
 ... (later, possibly minutes) ...
@@ -238,7 +297,7 @@ SettingsRegistry.__init__:
 Now FooSettings() with no args is fully registry-wired.
 ```
 
-`LibrarySettings` registers via the `BaseRegistry` hot-reload pipeline when the owning library loads (see [architecture/library-system](../library-system/library-system-arch.md)). The `@settings` decorator sets `class_identity`, which is what `BaseRegistry._class_filter` looks for.
+`LibrarySettings` registers via the `BaseRegistry` hot-reload pipeline when the owning library loads (see [architecture/library-system](../library-system/library-system-arch.md)). The `@settings` decorator sets `class_identity`, which is what `BaseRegistry._class_filter` looks for. The decorator also performs the descriptor `__class__ = persistent_setting` swap that `LibrarySettings.__init_subclass__` would do for the class-signature `namespace=` form — both paths must keep their field-setup loops symmetric.
 
 ### 7.2 Hot-reload behaviour
 
