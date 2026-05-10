@@ -13,19 +13,12 @@ Resolution priority:
 """
 
 from __future__ import annotations
+from typing import TYPE_CHECKING, Any, Callable, Iterator, Type
 import threading
 import logging
 import weakref
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Callable, Iterator, Type
-
-if TYPE_CHECKING:
-    from .settings import Settings
-
-try:
-    import toml  # type: ignore[import-untyped]
-except ImportError:
-    toml = None
+import toml
 
 from .enums import SettingMode
 from .value import SettingValue
@@ -33,6 +26,8 @@ from .descriptor import setting
 from ..registry.base import BaseRegistry
 from ..library.identity import LibraryIdentity
 
+if TYPE_CHECKING:
+    from .settings import Settings
 
 logger = logging.getLogger(__name__)
 
@@ -319,10 +314,6 @@ class SettingsRegistry(BaseRegistry):
                    'workspace' — set via UI, saved by save_to_toml() (<workspace>/.haywire/settings.toml)
             watch: If True, hot-reload on file changes.
         """
-        if toml is None:
-            logger.warning("toml package not installed, cannot load settings file")
-            return
-
         path = Path(path).expanduser().resolve()
 
         if tier == "global":
@@ -553,10 +544,6 @@ class SettingsRegistry(BaseRegistry):
         Only the workspace tier is saved — the global tier is hand-edited by the user
         and is never overwritten by the application.  Only non-AUTO values are written.
         """
-        if toml is None:
-            logger.warning("toml package not installed, cannot save settings file")
-            return
-
         path = Path(path).expanduser().resolve() if path else self._workspace_path
         if not path:
             raise ValueError("No workspace path configured and no path argument provided")

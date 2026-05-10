@@ -16,7 +16,11 @@ Design:
 
 import logging
 from dataclasses import dataclass
-from typing import Any, Callable, Optional, Tuple, TYPE_CHECKING
+from typing import Any, Callable, Optional, Tuple
+
+from haywire.core.session.context import SessionContext
+from haywire.core.session.session import Session
+from haywire.ui.panel.registry import PanelRegistry
 
 from ..event_definitions import (
     ContextMenuCanvasEvent,
@@ -30,12 +34,8 @@ from ..event_definitions import (
 from ..event_handlers import handles_event
 from haybale_studio.state.edit_state import EditState
 from haybale_studio.editors._context_menu_base import BaseContextMenuProvider
+from haybale_studio.editors.graph_canvas.handlers.visual_layer import VisualLayerHandlers
 
-if TYPE_CHECKING:
-    from haybale_studio.editors.graph_canvas.handlers.visual_layer import VisualLayerHandlers
-    from haywire.core.session.context import SessionContext
-    from haywire.core.session.session import Session
-    from haywire.ui.panel.registry import PanelRegistry
 
 logger = logging.getLogger(__name__)
 

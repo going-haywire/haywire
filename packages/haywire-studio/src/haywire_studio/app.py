@@ -19,9 +19,6 @@ from typing import TYPE_CHECKING
 
 from nicegui import ui, app
 
-if TYPE_CHECKING:
-    from haywire.ui.app.shell import AppShell
-
 # Core imports
 from haywire.core.graph.editor import Editor
 from haywire.core.graph.base import BaseGraph
@@ -31,6 +28,9 @@ from haywire.core.di.context import set_workspace_root
 
 # UI imports
 from haywire.ui.console_bridge import get_bridge
+
+if TYPE_CHECKING:
+    from haywire.ui.app.shell import AppShell
 
 logger = logging.getLogger(__name__)
 
