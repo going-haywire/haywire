@@ -32,19 +32,15 @@ from haywire.core.state.base import AppState
 from haywire.core.state.decorator import state
 
 from haybale_haystack.graph_entry import GraphEntry
-
-if TYPE_CHECKING:
-    from haywire.core.graph.base import BaseGraph
-    from haywire.core.graph.editor import Editor
-    from haywire.core.graph.validation import ValidationResult
-    from haywire.core.node.factory import NodeFactory
-    from haywire.core.session.session_manager import SessionManager
-    from haywire.core.state import LibraryStateContainer
-
-    from haybale_haystack.settings.haystack_settings import HaystackSettings
+from haywire.core.graph.base import BaseGraph
+from haywire.core.graph.editor import Editor
+from haywire.core.graph.validation import ValidationResult
+from haywire.core.node.factory import NodeFactory
+from haywire.core.session.session_manager import SessionManager
+from haywire.core.state import LibraryStateContainer
+from haybale_haystack.settings.haystack_settings import HaystackSettings
 
 logger = logging.getLogger(__name__)
-
 
 @state(label="Haystack State")
 class HaystackState(AppState):
