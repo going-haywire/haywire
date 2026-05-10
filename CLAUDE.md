@@ -45,6 +45,21 @@ Run `uv run mkdocs serve` to preview the published site at `http://127.0.0.1:800
 - Call `force_immediate_validation()` after node setup in tests to flush the dirty queue before asserting.
 - In test files, import `haywire.core.graph.editor` before other haywire modules to avoid circular import errors.
 
+### Pre-edit baseline
+
+Before any **substantial** change — multi-file refactors, signature changes, type-system edits, anything where post-edit failures would be hard to attribute — establish a baseline first:
+
+```sh
+# Lint + type-check the area about to be touched (faster than the
+# full repo and surfaces only the relevant pre-existing noise).
+uv run ruff check <path/to/file_or_dir>
+uv run mypy <path/to/file_or_dir>
+```
+
+The code base has no errors - if this is not the case - initialze an error fix session interactively with the user. After your edit, re-run the same commands. Anything new is yours.
+
+For trivial edits (a one-line fix, a rename inside one file, a docstring), this baseline step is unnecessary
+
 ### Commands
 
 ```sh
