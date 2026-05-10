@@ -92,11 +92,11 @@ class LibraryOverviewEditor(BaseEditor):
     """
 
     def __init__(self):
-        self._container = None
+        self._container: "Element | None" = None
         # Fixed (non-scrolling) sub-container — header + metadata + tabs bar
-        self._fixed = None
+        self._fixed: "ui.column | None" = None
         # Scrollable sub-container — tab panels / placeholder
-        self._scroll = None
+        self._scroll: "ui.column | None" = None
 
     # ─────────────────────────────────────────────────────────────────────────
     # Public editor interface
@@ -166,6 +166,12 @@ class LibraryOverviewEditor(BaseEditor):
         - installed_lib + pkg → marketplace header with installed badges + tabs
         - pkg only            → marketplace header + Install button, no tabs
         """
+        # _rebuild() creates _fixed and _scroll before calling this method —
+        # narrow them here so the body can use the columns directly.
+        assert self._fixed is not None and self._scroll is not None, (
+            "_render_center called before _rebuild created the sub-containers"
+        )
+
         # Resolve registries from context
         app = context.app
         svc = app.library_service
@@ -901,6 +907,9 @@ class LibraryOverviewEditor(BaseEditor):
             )
         except Exception:
             pass
+        # _do_update_identity is wired from a button drawn during draw(),
+        # so _container has been set by then.
+        assert self._container is not None
         self._container.clear()
         self._rebuild(context)
 
@@ -943,6 +952,9 @@ class LibraryOverviewEditor(BaseEditor):
         )
 
         context.active_library.value = None
+        # _do_rename is wired from a button drawn during draw(), so
+        # _container has been set by then.
+        assert self._container is not None
         self._container.clear()
         self._rebuild(context)
 
