@@ -22,10 +22,10 @@ from nicegui import ui
 
 from haywire.ui import elements as hui
 from haywire.ui.editor import BaseEditor, editor
-from haywire.core.session.protocols import IProjectState
-from haywire.core.session.context import SessionContext
-from haywire.core.session.signals_and_lifecycle import ContextSignal
-from haywire.core.session.signals_and_lifecycle import (
+from haywire.core.session import (
+    IProjectState,
+    SessionContext,
+    ContextSignal,
     ActiveGraphMoved,
     BroadcastClose,
     Close,
@@ -34,14 +34,13 @@ from haywire.core.session.signals_and_lifecycle import (
 )
 from haywire.ui.components.popup import Popup
 
+from haybale_studio.state.edit_state import EditState
 from haybale_haystack.signals import HaystackReloaded, HaystackTeardown
 from haybale_haystack.state.haystack_state import HaystackState
 from haybale_haystack.editors.graph_editor import GraphEditor
-from haybale_studio.state.edit_state import EditState
 from haybale_haystack.graph_entry import GraphEntry
 
 logger = logging.getLogger(__name__)
-
 
 def _workspace_rel_path(path: Path, workspace_root: "Path | None") -> str:
     """Return path relative to workspace_root when possible, else absolute path."""
