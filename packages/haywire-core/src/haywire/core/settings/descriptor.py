@@ -34,22 +34,134 @@ T = TypeVar("T")
 
 
 class setting(SettingDescriptor, Generic[T]):
-    """
-    Descriptor for a reactive field on a ``Settings`` subclass.
+    """Reactive field descriptor for a ``Settings`` subclass.
 
-    **choices** = can be a list of valid values, a dict of {value: label},
-        or a callable that returns either of those.
-    **widget** =...
-    **on_change** = is the name of a method on the OWNING Settings instance,
-        called when the field value changes.
-        **For callbacks that are outside the OWNING Settings instance,
-        use the subscribe method on the OWNING Settings instance.**
-    **mirrors** = can be a string field key or a class-level descriptor access (SettingDescriptor)
-        to mirror another field's value and metadata.
-        **It is recommended to use the shadow() and watch() factories instead of setting mirrors= directly.**
-    **read_only** = True makes the field a read-only mirror (watch);
-    **validator** = is a callable that accepts a value and returns True if it's valid
-        (used for validating the default value).
+    Declare fields on a ``Settings`` subclass to get reactive, typed
+    properties with optional UI auto-rendering, validation, mirroring,
+    and persistence::
+
+        class MySettings(LibrarySettings):
+            threshold = setting[float](0.5, min=0.0, max=1.0, label='Threshold')
+            mode = setting[str]('fast', choices=['fast', 'precise'], label='Mode')
+
+    On ``FrameworkSettings`` and ``LibrarySettings`` subclasses the
+    descriptor's class is auto-promoted to ``persistent_setting`` during
+    registration, so writes route through the registry's workspace tier
+    (visible to peer instances, persisted to ``.haywire/settings.toml``).
+    On ``NodeSettings`` and plain ``Settings``, writes go to the
+    instance's ``_local_store`` only. Authors declare ``setting[T](...)``
+    either way — the framework picks the right behaviour.
+    See ``docs/architecture/settings/settings-arch.md`` §6.3 for the full
+    write-path picture.
+
+    Parameters
+    ----------
+    default
+        Initial value for the field. Can be a literal of type ``T`` or a
+        zero-argument callable returning ``T`` (for late-binding / dynamic
+        defaults). When a ``validator`` is set, the default is checked at
+        construction time and ``ValueError`` is raised if it fails.
+
+    label : str
+        Human-readable name shown in the UI. If empty, auto-renderers fall
+        back to the attribute name. Display-only; no functional effect.
+
+    description : str
+        Help text surfaced as a tooltip / inline help by the auto-renderer
+        (``render_schema``). Display-only.
+
+    category : str
+        Grouping key for auto-rendered panels — fields with the same
+        category cluster under one section header. Defaults to ``"root"``
+        (no nesting).
+
+    order : int
+        Sort key within a category. Lower numbers render first. Defaults to 0.
+
+    min, max
+        Bounds passed to numeric widgets (``NumberDrag``). UI-only — NOT
+        enforced on direct writes. Use ``validator`` if you need runtime
+        enforcement.
+
+    choices
+        Valid values for the field. Three forms:
+
+        * ``list[T]`` — values shown and stored verbatim.
+        * ``dict[T, str]`` — keys are the stored values, values are the
+          displayed labels.
+        * ``Callable[[], list | dict]`` — evaluated at render time. Use for
+          dynamic lists that depend on registry state (e.g. enumerate
+          installed themes).
+
+        Presence of ``choices=`` makes the auto-renderer use a ``ui.select``
+        widget regardless of type. Not enforced on direct writes — use
+        ``validator`` for enforcement.
+
+    widget : str or None
+        Optional widget override. Two recognised values:
+
+        * ``"label"`` — read-only ``ui.label``.
+        * ``"color"`` — ``ui.color_input``.
+
+        ``None`` (default) means auto-dispatch by ``type_`` and the presence
+        of ``choices=``:
+
+        1. ``choices`` set → ``ui.select``
+        2. ``type_ is bool`` → ``ui.switch``
+        3. ``type_ in (int, float)`` → ``NumberDrag`` (honours ``min``/``max``)
+        4. otherwise → text input with expand-to-modal button
+
+    on_change : str or None
+        Name of a method on the **owning** ``Settings`` instance, called when
+        the value changes. Dispatched as ``method(value, name)``; falls back
+        to ``method(value)`` if the two-arg form raises ``TypeError``.
+
+        For callbacks defined outside the owning class, use
+        ``Settings.subscribe(callback)`` instead — that callback receives
+        ``(name, value, old)``.
+
+    mirrors : SettingDescriptor or str or None
+        Marks this field as a mirror of another setting. Two forms:
+
+        * A ``SettingDescriptor`` reference — e.g.
+          ``mirrors=NodeSkinSettings.studio_skin``. Inherits label,
+          description, choices, widget, and type from the source at
+          construction time; the source's setting key is resolved lazily.
+        * A plain string key — e.g.
+          ``mirrors="ui.node.default.skin.studio_skin"``. Use only when
+          a descriptor reference is unavailable.
+
+        **Prefer the ``shadow()`` and ``watch()`` factories** over
+        constructing ``setting(mirrors=..., read_only=...)`` directly.
+
+    read_only : bool
+        When ``True``, ``__set__`` raises ``AttributeError`` — the field is
+        a read-only mirror (use ``watch()``). When ``False`` with
+        ``mirrors=``, the field is a writable mirror (use ``shadow()``) whose
+        local override beats the global value.
+
+    type_ : type or None
+        Explicit Python type. Defaults to ``type(default)`` if ``default`` is
+        a value, or ``object`` if ``default`` is ``None`` or a callable. The
+        auto-renderer uses this to pick a widget. Override when the default
+        doesn't disambiguate (e.g. ``type_=Color`` for hex strings, or
+        ``type_=float`` when ``default=None``).
+
+    stored : bool
+        When ``False``, the field is omitted from ``to_dict()``
+        serialisation. Use for ephemeral fields that shouldn't persist to
+        disk. Defaults to ``True``.
+
+    validator : Callable or None
+        Callable ``(value) -> bool`` returning ``True`` if the value is
+        valid. Called from ``__set__`` (silently ignores invalid writes) AND
+        at construction time on the default (raises ``ValueError`` if the
+        default itself fails validation).
+
+    metadata : dict or None
+        Free-form dict for application-specific metadata. The framework
+        doesn't consult it; downstream code (custom renderers, introspection)
+        can store anything here. Defaults to ``{}``.
     """
 
     def __init__(
