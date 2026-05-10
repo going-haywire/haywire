@@ -1,4 +1,7 @@
-graphs = []
+[[graphs]]
+path = "graphs/webcam.haywire"
+execute = false
 
 [haystack]
 name = "Master"
+active_graph = "graphs/webcam.haywire"

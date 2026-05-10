@@ -2,7 +2,7 @@
   "name": "default",
   "haystack": "Master",
   "left": {
-    "active_key": "studio:editor:HaystackEditor",
+    "active_key": "studio:editor:LazyFileBrowserEditor",
     "visible": true,
     "size": 241,
     "editors": []
@@ -14,10 +14,16 @@
     "editors": []
   },
   "main": {
-    "active_key": null,
+    "active_key": "haystack:editor:GraphEditor::/Volumes/Ddrive/06_open_tracking_tool/haywire/haywire-repo/graphs/webcam.haywire",
     "visible": true,
     "size": 300,
-    "editors": []
+    "editors": [
+      {
+        "key": "haystack:editor:GraphEditor",
+        "payload": "/Volumes/Ddrive/06_open_tracking_tool/haywire/haywire-repo/graphs/webcam.haywire",
+        "label": "webcam.haywire"
+      }
+    ]
   },
   "bottom": {
     "active_key": "studio:editor:TerminalEditor",
