@@ -17,7 +17,7 @@ class ErrorNode(BaseNode):
     """Special node to represent nodes that couldn't be loaded properly"""
 
     def init(self):
-        self.props.skin =  "core:skin:ErrorNodeSkin"
+        self.props.skin = "core:skin:ErrorNodeSkin"
 
     def worker(self, context: ExecutionContext) -> str | None:
         """Error nodes don't execute - they just display error information"""
