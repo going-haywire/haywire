@@ -1,9 +1,8 @@
-# packages/haywire-core/src/haywire/core/session/context_signals.py
-# (moved from haywire.ui.context_signals — shim left at old location)
+# packages/haywire-core/src/haywire/core/session/signals_and_lifecycle.py
 """
 Context signals and lifecycle commands for the Haywire UI system.
 
-Two channels flow through the AppShell:
+This module hosts both halves of the session dispatch story:
 
 - **Signal channel** — observations. ``ContextSignal`` subclasses describe
   state moves on the session (selection changed, active graph switched,
@@ -15,9 +14,11 @@ Two channels flow through the AppShell:
 - **Lifecycle channel** — commands. ``LifecycleCommand`` subclasses
   describe imperative mutations of the workspace tree (which editor
   instances exist, in which slot, which is in front). ``Reveal`` brings
-  an editor to the front; ``Close`` removes tabs bound to a payload.
-  Sent via ``Session.lifecycle(...)``. Local-only: peer sessions own
-  their own workspace state.
+  an editor to the front; ``Close`` removes tabs bound to a payload in
+  the issuing session; ``BroadcastClose`` does the same across every
+  session. Sent via ``Session.lifecycle(...)``. Local-by-default;
+  subclasses opt into cross-session fan-out by setting
+  ``cross_session: ClassVar[bool] = True`` (mirroring ``ContextSignal``).
 
 See ``internals/speculative/context_events_simplification.md`` for the design
 rationale.
@@ -175,21 +176,6 @@ class GraphDataMutated(ContextSignal):
 
 
 @dataclass(frozen=True)
-class GraphRemoved(ContextSignal):
-    """
-    A haystack entry was removed. Cross-session — peer sessions need
-    to refresh views derived from the haystack.
-
-    Carries no payload (pointer-by-default rule, §6.3): receivers
-    re-read the haystack to discover what's still there. Tab-close
-    routing is a *separate* lifecycle command (``Close``) emitted by
-    the originating session.
-    """
-
-    cross_session: ClassVar[bool] = True
-
-
-@dataclass(frozen=True)
 class LibraryCatalogChanged(ContextSignal):
     """
     The set / state of installed libraries changed (install, uninstall,
@@ -277,13 +263,11 @@ class Close(LifecycleCommand):
     """Close every tab bound to ``payload`` across all slots.
 
     Routed as fan-out: the orchestrator asks every slot to close any
-    tab whose binding matches ``payload``. Used when the underlying
-    entity for a multi-instance editor goes away (e.g. a graph entry
-    is removed from the haystack) and tabs that pointed at it should
-    close.
-
-    Local-only — peer sessions decide what tabs *they* have open in
-    response to the corresponding observation signal (e.g. ``GraphRemoved``).
+    tab whose binding matches ``payload``. Used for session-local
+    close decisions (e.g. dismissing a tab from a confirmation dialog
+    in *this* session). For close decisions that follow from a global
+    fact — the underlying entity is gone for everyone — use
+    :class:`BroadcastClose` instead, which fans out to every session.
 
     Attributes:
         payload: The binding payload (e.g. a graph entry id). Slots

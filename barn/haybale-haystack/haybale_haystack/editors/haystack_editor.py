@@ -24,12 +24,11 @@ from nicegui import ui
 from haywire.ui import elements as hui
 from haywire.ui.editor.base import BaseEditor
 from haywire.ui.editor.decorator import editor
-from haywire.core.session.context_signals import (
+from haywire.core.session.signals_and_lifecycle import (
     ActiveGraphMoved,
     BroadcastClose,
     Close,
     GraphDataMutated,
-    GraphRemoved,
     Reveal,
 )
 from haywire.ui.components.popup import Popup
@@ -41,7 +40,7 @@ from haybale_studio.state.edit_state import EditState
 
 if TYPE_CHECKING:
     from haywire.core.session.context import SessionContext
-    from haywire.core.session.context_signals import ContextSignal
+    from haywire.core.session.signals_and_lifecycle import ContextSignal
     from haybale_haystack.graph_entry import GraphEntry
     from nicegui.element import Element
 
@@ -433,10 +432,10 @@ class HaystackEditor(BaseEditor):
             # GraphEditor open on this entry, and the entity is gone for
             # everyone. BroadcastClose is the cross-session sibling of
             # Close — each session's AppShell handles it locally.
+            # Peer haystack-derived views (the list, etc.) refresh via
+            # the GraphDataMutated broadcast that HaystackState.remove_entry
+            # fires — no separate observation signal needed.
             session.lifecycle(BroadcastClose(payload=removed_id))
-            # Cross-session observation: peer sessions refresh their
-            # haystack-derived views (list, properties, etc.).
-            session.signal(GraphRemoved())
 
         # If it was the active graph, clear the active graph → empty state
         if is_active:

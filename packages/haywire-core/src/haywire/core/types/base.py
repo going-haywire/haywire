@@ -1,6 +1,6 @@
 from __future__ import annotations
 from abc import ABC
-from typing import Any, Generic, TypeVar, final, TYPE_CHECKING
+from typing import Any, Generic, TypeVar, TYPE_CHECKING
 from typing_extensions import Self
 
 from .interface import IType

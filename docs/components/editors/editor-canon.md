@@ -36,7 +36,7 @@ class MyEditor(BaseEditor):              registers class                instanti
 
 Editors *host* panels (in panel-aware editors like `PropertiesEditor`) but they don't own panel content — that's [components/panels](../panels/panel-canon.md). Editors don't render themselves into the canvas — that's the studio's job. They render into the NiceGUI `Element` that AppShell hands to `draw()`.
 
-**Boundaries.** What slots are, how the AppShell works, the workspace snapshot system — see [architecture/studio](../../architecture/studio/studio-arch.md). Panels — see [components/panels](../panels/panel-canon.md). Library/session state accessed inside editors (e.g. `EditState` for selection) — see [components/states](../states/state-canon.md). Signal classes and lifecycle commands — see `haywire/ui/context_signals.py`.
+**Boundaries.** What slots are, how the AppShell works, the workspace snapshot system — see [architecture/studio](../../architecture/studio/studio-arch.md). Panels — see [components/panels](../panels/panel-canon.md). Library/session state accessed inside editors (e.g. `EditState` for selection) — see [components/states](../states/state-canon.md). Signal classes and lifecycle commands — see `haywire/core/session/signals_and_lifecycle.py`.
 
 ## 3. Important concepts
 
@@ -122,7 +122,7 @@ See [components/states](../states/state-canon.md) for the full state model.
 **Driving other slots — the lifecycle channel.** To open or focus a tab in another slot, send a `Reveal` lifecycle command on `context.session`:
 
 ```python
-from haywire.ui.context_signals import Reveal
+from haywire.core.session.signals_and_lifecycle import Reveal
 
 context.session.lifecycle(Reveal(
     editor=LibraryDetailEditor,
@@ -135,7 +135,7 @@ The orchestrator resolves `editor.class_identity.default_slot` and routes the co
 Lifecycle commands are **local by default** — session-scoped UI actions like `Reveal`-on-click belong to the issuing session. Subclasses can opt into cross-session fan-out by setting `cross_session: ClassVar[bool] = True` (mirroring `ContextSignal`); `Session.lifecycle()` checks the class flag and routes via `SessionManager.broadcast_lifecycle` so every session's AppShell receives the command. Use this for fact-driven imperatives where the underlying entity is gone for everyone — `BroadcastClose(payload=...)` is the built-in: close matching tabs in **every** session.
 
 ```python
-from haywire.ui.context_signals import BroadcastClose
+from haywire.core.session.signals_and_lifecycle import BroadcastClose
 
 # Underlying entry removed everywhere — close any GraphEditor tab bound
 # to it, in this session AND every peer session.
@@ -150,14 +150,12 @@ context.session.lifecycle(BroadcastClose(payload=entry_id))
 from haywire.ui.editor.base import BaseEditor
 from haywire.ui.editor.decorator import editor
 from haywire.ui.editor.identity import OpenBehavior   # for code that inspects the enum
-from haywire.ui.context_signals import (
+from haywire.core.session.signals_and_lifecycle import (
     ContextSignal,
     SelectionMoved, ActiveGraphMoved, GraphDataMutated,   # observations
     Reveal, Close, BroadcastClose,                        # lifecycle commands
 )
 ```
-
-`context_signals` is the unified module — earlier code referenced `context_events`; that name was retired.
 
 **Hot-reload.** `EditorTypeRegistry` extends `BaseRegistry`. When an editor class is reloaded, the orchestrator evicts cached instances, calls `cleanup()`, and re-instantiates + `draw()` for any visible bindings. Subscribers that hold a reference to the old class object would see `isinstance()` checks fail spuriously after a reload — this is why library authors who declare their own signal classes that other libraries subscribe to must list the signal-declaring library in their own `LibraryIdentity.dependencies`.
 
@@ -174,7 +172,7 @@ from nicegui import ui
 
 from haybale_studio.state.edit_state import EditState
 from haywire.ui import elements as hui
-from haywire.ui.context_signals import (
+from haywire.core.session.signals_and_lifecycle import (
     ActiveGraphMoved,
     GraphDataMutated,
     SelectionMoved,
@@ -301,7 +299,7 @@ For the `Focus` and `Panel` extension points the editor hosts, see [components/p
 from haywire.ui.editor.base import BaseEditor
 from haywire.ui.editor.decorator import editor
 from haywire.ui.editor.identity import OpenBehavior
-from haywire.ui.context_signals import (
+from haywire.core.session.signals_and_lifecycle import (
     ContextSignal,
     SelectionMoved, ActiveGraphMoved, GraphDataMutated,
     Reveal, Close, BroadcastClose,

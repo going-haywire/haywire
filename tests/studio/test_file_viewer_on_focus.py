@@ -5,7 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 from types import SimpleNamespace
 
-from haywire.core.session.context_signals import ActiveFileMoved
+from haywire.core.session.signals_and_lifecycle import ActiveFileMoved
 from haywire.core.session.reactive import Reactive
 from haybale_studio.editors.file_viewer import FileViewerEditor
 

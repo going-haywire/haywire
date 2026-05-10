@@ -8,7 +8,7 @@ import uuid
 import logging
 
 from haywire.core.session.context import SessionContext
-from haywire.core.session.context_signals import ContextSignal, LifecycleCommand
+from haywire.core.session.signals_and_lifecycle import ContextSignal, LifecycleCommand
 from haywire.core.session.workspace.manager import WorkspaceManager
 
 logger = logging.getLogger(__name__)

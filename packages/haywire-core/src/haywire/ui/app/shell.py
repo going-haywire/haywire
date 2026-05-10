@@ -22,7 +22,7 @@ from typing import Literal, Optional, TYPE_CHECKING
 from nicegui import ui
 
 from haywire.ui import elements as hui
-from haywire.core.session.context_signals import (
+from haywire.core.session.signals_and_lifecycle import (
     Close,
     ContextSignal,
     LifecycleCommand,

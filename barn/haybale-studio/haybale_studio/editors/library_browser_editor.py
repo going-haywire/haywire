@@ -16,7 +16,7 @@ from nicegui import ui
 from haywire.ui import elements as hui
 from haywire.ui.editor.decorator import editor
 from haywire.ui.editor.base import BaseEditor
-from haywire.core.session.context_signals import (
+from haywire.core.session.signals_and_lifecycle import (
     ActiveLibraryMoved,
     LibraryCatalogChanged,
     Reveal,
@@ -24,7 +24,7 @@ from haywire.core.session.context_signals import (
 
 if TYPE_CHECKING:
     from haywire.core.session.context import SessionContext
-    from haywire.core.session.context_signals import ContextSignal
+    from haywire.core.session.signals_and_lifecycle import ContextSignal
     from nicegui.element import Element
 
 logger = logging.getLogger(__name__)

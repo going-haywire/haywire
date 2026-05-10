@@ -29,4 +29,5 @@ __all__ = [
     "focus_by_id",
     "BasePanel",
     "PanelRegistry",
+    "panel",
 ]

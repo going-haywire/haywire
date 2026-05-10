@@ -81,7 +81,7 @@ Graph integration:
 - `graph.add_edge_wrapper()` → `edge_wrapper.link()`
 - `graph.remove_edge_wrapper()` → `edge_wrapper.detach()`
 
-The graph no longer owns port-linking logic — it's decentralised in `EdgeWrapper`.
+Port-linking logic lives in `EdgeWrapper`, not `Graph` — each edge owns its own link/detach lifecycle.
 
 ## 3. Lifecycle
 

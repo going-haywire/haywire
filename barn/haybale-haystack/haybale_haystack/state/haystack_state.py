@@ -171,7 +171,7 @@ class HaystackState(AppState):
         """
         if self._session_manager is None:
             return
-        from haywire.core.session.context_signals import GraphDataMutated
+        from haywire.core.session.signals_and_lifecycle import GraphDataMutated
 
         try:
             self._session_manager.broadcast_signal(GraphDataMutated(), origin_session_id="")

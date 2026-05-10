@@ -33,7 +33,7 @@ Last reviewed: 2026-05-08 (commit `4ec472bd`)
 | packages/haywire-core/src/haywire/ui/editor/identity.py | d4e85fb2f67c778b194157dc4b435521464153fd |
 | packages/haywire-core/src/haywire/ui/editor/decorator.py | d8dc81c7db92b270ee9c2a9101571b9b9ae84c21 |
 | packages/haywire-core/src/haywire/ui/editor/base.py | 2fa35f87e1642578f1e3a8a7c01e3a2477ee4660 |
-| packages/haywire-core/src/haywire/ui/context_signals.py | 803dec8b0e3e22ff24bf0e320184d4c8f374bf27 |
+| packages/haywire-core/src/haywire/core/session/signals_and_lifecycle.py | 803dec8b0e3e22ff24bf0e320184d4c8f374bf27 |
 | barn/haybale-studio/haybale_studio/editors/properties_editor.py | 9ed0388241eb2357ade58341c3aec1ab5a285acf |
 
 
@@ -311,7 +311,7 @@ Last reviewed: 2026-05-08 (commit `15feb7dc`)
 | packages/haywire-core/src/haywire/ui/session.py | 41084b9011bea3b3aa7d473ccfecb23f892dda76 |
 | packages/haywire-core/src/haywire/ui/session_manager.py | 4d2ff9ca480284bb9038d8d6409adee881046186 |
 | packages/haywire-core/src/haywire/ui/workspace/manager.py | f1296aea2acf43de431e845c00c544c16d722127 |
-| packages/haywire-core/src/haywire/ui/context_signals.py | 803dec8b0e3e22ff24bf0e320184d4c8f374bf27 |
+| packages/haywire-core/src/haywire/core/session/signals_and_lifecycle.py | 803dec8b0e3e22ff24bf0e320184d4c8f374bf27 |
 | packages/haywire-core/src/haywire/ui/context.py | e811c755b0b32a996ecb4cdbe0caabe06f04469e |
 | packages/haywire-core/src/haywire/ui/app/shell.py | 8601264f36aa1adbda611a9977bdc406bd1a599b |
 | packages/haywire-core/src/haywire/ui/app/slot.py | 40cbfda5b6df404139bdefc5ec35085aebba8ee6 |

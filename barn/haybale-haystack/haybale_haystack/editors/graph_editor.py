@@ -19,7 +19,7 @@ from nicegui import ui
 from haywire.ui import elements as hui
 from haywire.ui.editor.decorator import editor
 from haywire.ui.editor.base import BaseEditor
-from haywire.core.session.context_signals import ActiveGraphMoved, GraphDataMutated
+from haywire.core.session.signals_and_lifecycle import ActiveGraphMoved, GraphDataMutated
 from haybale_studio.editors.graph_canvas.graph_canvas_manager import GraphCanvasManager
 from haybale_studio.state.edit_state import EditState
 from haybale_haystack.state.haystack_state import HaystackState
@@ -27,7 +27,7 @@ from haybale_haystack.state.haystack_state import HaystackState
 if TYPE_CHECKING:
     from haybale_haystack.graph_entry import GraphEntry
     from haywire.core.session.context import SessionContext
-    from haywire.core.session.context_signals import ContextSignal
+    from haywire.core.session.signals_and_lifecycle import ContextSignal
     from nicegui.element import Element
 
 logger = logging.getLogger(__name__)

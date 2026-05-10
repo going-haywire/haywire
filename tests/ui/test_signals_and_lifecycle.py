@@ -4,7 +4,7 @@ Covers:
 - ContextSignal base class (frozen, default subject, cross_session ClassVar,
   is_local / is_from_peer predicates)
 - Subject value object (SELF singleton, peer factory, equality)
-- Concrete signal classes (cross_session flags; GraphRemoved is payload-less)
+- Concrete signal classes (cross_session flags)
 - LifecycleCommand subclasses: Reveal, Close
 - Session.signal() local-only routing for cross_session=False signals
 - Session.signal() + SessionManager.broadcast_signal for cross_session=True
@@ -20,7 +20,7 @@ import pytest
 
 import haywire.core.graph.editor  # noqa: F401 — circular-import guard
 
-from haywire.core.session.context_signals import (
+from haywire.core.session.signals_and_lifecycle import (
     ActiveComponentMoved,
     ActiveFileMoved,
     ActiveGraphMoved,
@@ -28,7 +28,6 @@ from haywire.core.session.context_signals import (
     Close,
     ContextSignal,
     GraphDataMutated,
-    GraphRemoved,
     LibraryCatalogChanged,
     LifecycleCommand,
     Reveal,
@@ -86,7 +85,6 @@ def test_context_signal_cross_session_defaults_false():
 def test_cross_session_signals_declared_correctly():
     assert GraphDataMutated.cross_session is True
     assert LibraryCatalogChanged.cross_session is True
-    assert GraphRemoved.cross_session is True
 
 
 def test_is_local_and_is_from_peer():
@@ -103,16 +101,6 @@ def test_signal_is_frozen():
     s = SelectionMoved()
     with pytest.raises(FrozenInstanceError):
         s.subject = Subject.peer("x")  # type: ignore[misc]
-
-
-def test_graph_removed_is_payload_less():
-    """GraphRemoved is a pointer-only observation (§6.3). Tab-close
-    routing is a separate ``Close`` lifecycle command emitted by the
-    originating session.
-    """
-    g = GraphRemoved()
-    assert g.cross_session is True
-    assert g.subject == Subject.SELF
 
 
 # ----------------------------------------------------------------------

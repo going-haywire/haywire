@@ -3,7 +3,7 @@ from typing import Any, Callable
 import nicegui.ui as ui
 
 from haywire.core.errors.haywire_exception import HaywireException
-from haywire.core.registry.lifecycle_event import LifeCycleEvent, LifeCycleBatchCallback
+from haywire.core.registry.lifecycle_event import LifeCycleEvent
 from haywire.core.types import DataPort
 from haywire.ui.widget.interface import IWidget
 from haywire.ui.widget.registry import WidgetRegistry

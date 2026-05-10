@@ -13,7 +13,7 @@ from dataclasses import replace
 from typing import Dict, Optional, TYPE_CHECKING
 
 from haywire.core.state import LibraryStateContainer
-from haywire.core.session.context_signals import ContextSignal, LifecycleCommand, Subject
+from haywire.core.session.signals_and_lifecycle import ContextSignal, LifecycleCommand, Subject
 
 if TYPE_CHECKING:
     from haywire.core.session.session import Session

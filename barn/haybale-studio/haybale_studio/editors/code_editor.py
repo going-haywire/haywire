@@ -18,13 +18,13 @@ from typing import TYPE_CHECKING, Literal, Optional
 from nicegui import ui
 
 from haywire.ui import elements as hui
-from haywire.core.session.context_signals import ThemeMoved
+from haywire.core.session.signals_and_lifecycle import ThemeMoved
 from haywire.ui.editor.base import BaseEditor
 from haywire.ui.editor.decorator import editor
 
 if TYPE_CHECKING:
     from haywire.core.session.context import SessionContext
-    from haywire.core.session.context_signals import ContextSignal
+    from haywire.core.session.signals_and_lifecycle import ContextSignal
     from nicegui.element import Element
 
 

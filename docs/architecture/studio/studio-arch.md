@@ -110,7 +110,7 @@ This separation keeps the framework's `SessionContext` stable while each library
 
 ### 2.5 Two channels — signals and lifecycle commands
 
-The studio has two complementary channels (`packages/haywire-core/src/haywire/ui/context_signals.py`):
+The studio has two complementary channels (`packages/haywire-core/src/haywire/core/session/signals_and_lifecycle.py`):
 
 **Signal channel — observations.** `ContextSignal` subclasses describe a state move that already happened. Anyone may emit; the orchestrator fans out to every editor in the session via `Session.signal(s)`. Each slot calls `on_signal(...)` on **every** wrapper (the side-effect channel — fires regardless of which tab is active) and `redraw_on_signal(...) -> bool` on the **active** wrapper, redrawing if it returns `True`. Subscribers filter with plain `isinstance(signal, SignalType)`.
 
@@ -118,10 +118,10 @@ The base class is `ContextSignal`; concrete subclasses include:
 
 - **Workbench / focus** — `ActiveFileMoved`, `ActiveLibraryMoved`, `ActiveComponentMoved`, `ActiveGraphMoved`.
 - **Selection** — `SelectionMoved`.
-- **Data + lifecycle** — `GraphDataMutated`, `GraphRemoved`, `LibraryCatalogChanged`.
+- **Data + lifecycle** — `GraphDataMutated`, `LibraryCatalogChanged`.
 - **Theme** — `ThemeMoved`.
 
-Cross-session routing is a per-class property: set `cross_session: ClassVar[bool] = True` on a subclass and `Session.signal(...)` delegates to `SessionManager.broadcast_signal(...)` instead of dispatching locally. The transport stamps `subject = Subject.peer(origin_id)` on non-origin sessions so peer subscribers can distinguish "*this* session moved" from "*another* session moved." Among the built-ins, `GraphDataMutated`, `GraphRemoved`, and `LibraryCatalogChanged` are cross-session; the rest are local-only.
+Cross-session routing is a per-class property: set `cross_session: ClassVar[bool] = True` on a subclass and `Session.signal(...)` delegates to `SessionManager.broadcast_signal(...)` instead of dispatching locally. The transport stamps `subject = Subject.peer(origin_id)` on non-origin sessions so peer subscribers can distinguish "*this* session moved" from "*another* session moved." Among the built-ins, `GraphDataMutated` and `LibraryCatalogChanged` are cross-session; the rest are local-only.
 
 Library authors who declare their own signal classes that other libraries subscribe to **must** list the signal-declaring library in their own `LibraryIdentity.dependencies`, so hot-reload reloads them as a pair. Without this, an `isinstance` check after a library reload can spuriously return `False` when the subscriber holds a stale class reference.
 

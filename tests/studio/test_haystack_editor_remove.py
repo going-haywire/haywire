@@ -7,11 +7,10 @@ import pytest
 
 import haywire.core.graph.editor  # noqa: F401 -- circular-import guard
 
-from haywire.core.session.context_signals import (
+from haywire.core.session.signals_and_lifecycle import (
     ActiveGraphMoved,
     BroadcastClose,
     Close,
-    GraphRemoved,
 )
 from haywire.core.session.reactive import Reactive
 
@@ -166,20 +165,18 @@ def test_remove_executing_entry_blocked_before_dialog(editor_and_context):
     assert any("Stop execution" in str(c) for c in mock_notify.call_args_list)
 
 
-def test_remove_entry_helper_fires_graph_removed_signal_and_close_command(editor_and_context):
+def test_remove_entry_helper_fires_broadcast_close(editor_and_context):
+    """_remove_entry issues a BroadcastClose so peer GraphEditor tabs close.
+
+    GraphDataMutated cross-session refresh is broadcast by
+    HaystackState.remove_entry itself (via session_manager.broadcast_signal),
+    not via the editor — this mock-haystack test doesn't observe that path.
+    """
     editor, context, app, haystack = editor_and_context
     entry = _make_entry(path="/tmp/a.haywire", unsaved=False)
 
     with patch("haybale_haystack.editors.haystack_editor.ui.notify"):
         editor._remove_entry(entry, context)
-
-    # Signal channel: GraphRemoved (the editor still fires this for
-    # cross-session view refresh that isn't tied to mutator semantics).
-    # GraphDataMutated is now broadcast by HaystackState.remove_entry
-    # itself via session_manager.broadcast_signal, not via the editor's
-    # session.signal — so this mock-haystack test doesn't observe it.
-    emitted_signals = [call.args[0] for call in context.session.signal.call_args_list]
-    assert any(isinstance(s, GraphRemoved) for s in emitted_signals)
 
     # Lifecycle channel: a BroadcastClose for the removed entry — peer
     # sessions might have a GraphEditor open on the same entry, and the

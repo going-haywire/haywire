@@ -8,7 +8,7 @@ Key changes:
 """
 
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Any, List, Optional, Type, TypeVar
+from typing import Any, List, Optional, Type, TypeVar
 
 from haywire.core.types import type, FlowType, DataField, CompoundType
 

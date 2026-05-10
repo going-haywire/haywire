@@ -18,7 +18,7 @@ from ..event_definitions import (
 )
 from ..event_handlers import handles_event
 from haywire.core.undo.actions.graph_actions import ClipboardData
-from haywire.core.session.context_signals import SelectionMoved
+from haywire.core.session.signals_and_lifecycle import SelectionMoved
 from haybale_studio.state.edit_state import EditState
 
 if TYPE_CHECKING:

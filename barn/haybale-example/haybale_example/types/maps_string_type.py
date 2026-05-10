@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional, Type, TypeVar
+from typing import Any, Dict, Optional, Type, TypeVar
 
 from haywire.core.types import type, FlowType, DataField, CompoundType
 from haywire.ui import elements as hui

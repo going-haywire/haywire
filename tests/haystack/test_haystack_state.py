@@ -73,7 +73,7 @@ def test_create_new_broadcasts_graph_data_mutated(state_with_mocked_deps):
     matter which entry-point added the entry (HaystackEditor +,
     file-browser panel, persistence rehydration, future call sites).
     """
-    from haywire.core.session.context_signals import GraphDataMutated
+    from haywire.core.session.signals_and_lifecycle import GraphDataMutated
 
     state = state_with_mocked_deps
     state._session_manager.broadcast_signal.reset_mock()
@@ -252,7 +252,7 @@ def test_validation_callback_marks_entry_unsaved_and_broadcasts(state_with_mocke
     state._session_manager.broadcast_signal.assert_called_once()
     args, kwargs = state._session_manager.broadcast_signal.call_args
     # First arg is a GraphDataMutated; origin_session_id keyword.
-    from haywire.core.session.context_signals import GraphDataMutated
+    from haywire.core.session.signals_and_lifecycle import GraphDataMutated
 
     assert isinstance(args[0], GraphDataMutated)
     assert kwargs.get("origin_session_id") == ""

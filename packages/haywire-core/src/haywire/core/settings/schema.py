@@ -24,7 +24,7 @@ from typing import TYPE_CHECKING
 from haywire.core.settings.settings import Settings
 
 if TYPE_CHECKING:
-    from haywire.core.settings.registry import SettingsRegistry
+    pass
 
 
 # Module-level queue: FrameworkSettings subclasses defined before the registry exists
