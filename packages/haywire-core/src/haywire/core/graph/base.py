@@ -842,11 +842,11 @@ class BaseGraph:
         self._validation.force_immediate_validation()
 
         # Now cleanup all wrappers
-        for wrapper in self.node_wrappers.values():
-            wrapper.cleanup()
+        for node_wrapper in self.node_wrappers.values():
+            node_wrapper.cleanup()
 
-        for wrapper in self.edge_wrappers.values():
-            wrapper.cleanup()
+        for edge_wrapper in self.edge_wrappers.values():
+            edge_wrapper.cleanup()
 
         # Clear all data structures
         self.node_wrappers.clear()

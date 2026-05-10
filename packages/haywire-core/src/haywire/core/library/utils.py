@@ -11,19 +11,21 @@ def derive_library_identity(cls: Type) -> LibraryIdentity:
     """
     Derive full LibraryIdentity by finding the parent Library class.
 
-    returns the complete LibraryIdentity object
-    This is used by type decorators to set the
-    class_library attribute at decoration time,
-    which survives hot-reloads.
+    Used by type decorators to set the class_library attribute at
+    decoration time, which survives hot-reloads.
 
-    Walks up the module hierarchy looking for a Library class with class_identity
-    attribute. Uses sys.modules to avoid re-importing.
+    Walks up the module hierarchy looking for a Library class with
+    class_identity attribute. Uses sys.modules to avoid re-importing.
+    Falls back to the synthetic ``__system__`` identity for classes
+    that don't live under a Library — so the return value is always a
+    valid LibraryIdentity, never None.
 
     Args:
         cls: The class to find the library for
 
     Returns:
-        LibraryIdentity | None: Library identity if found, None if unable to determine
+        LibraryIdentity: Either the resolved library identity or the
+        ``__system__`` fallback for unparented classes.
 
     Example:
         For a type at haywire.libraries.core.types.specs.FLOAT:

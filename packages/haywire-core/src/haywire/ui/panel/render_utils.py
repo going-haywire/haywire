@@ -18,7 +18,7 @@ from haywire.ui.components.number.drag import NumberDrag
 
 if TYPE_CHECKING:
     from haywire.core.settings.registry import SettingsRegistry
-    from haywire.core.settings import Settings, SettingDescriptor
+    from haywire.core.settings import Settings, setting
 
 _ROW_CLASSES = "w-full items-center justify-between gap-0 px-2"
 _LABEL_CLASSES = "text-xs min-w-0 truncate sf-label"
@@ -144,7 +144,7 @@ def _render_field_row(label_text: str, description: str, defn, value, make_sette
         _render_widget_impl(defn, value, make_setter)
 
 
-def _render_reactive_field_row(obj: "Settings", attr_name: str, defn: "SettingDescriptor") -> None:
+def _render_reactive_field_row(obj: "Settings", attr_name: str, defn: "setting") -> None:
     """Render a single reactive field row, with optional reset button for mirrored fields."""
 
     @ui.refreshable
@@ -156,6 +156,10 @@ def _render_reactive_field_row(obj: "Settings", attr_name: str, defn: "SettingDe
             label_text = f"• {label_text}"
 
         def _render_label():
+            def _on_reset_click():
+                obj.reset(attr_name)
+                row_content.refresh()
+
             with ui.row().classes("items-center gap-0 shrink-0 sf-label"):
                 lbl = ui.label(label_text).classes("text-xs truncate")
                 if defn._description:
@@ -163,7 +167,7 @@ def _render_reactive_field_row(obj: "Settings", attr_name: str, defn: "SettingDe
                 if is_locally_overridden:
                     ui.button(icon=hui.icon.reset).props("flat dense size=xs").tooltip(
                         "Reset to global default"
-                    ).on("click", lambda _o=obj, _n=attr_name: (_o.reset(_n), row_content.refresh()))
+                    ).on("click", _on_reset_click)
 
         vec_meta = get_vec_meta(defn._type)
         if vec_meta is not None:
@@ -229,6 +233,7 @@ def _render_vec_field_rows(
 
     class _E:
         __slots__ = ("value",)
+        value: list
 
     def _make_component_setter(idx, _cv=current, _ms=make_setter, _c=coerce):
         handler = _ms(lambda v: v)
@@ -285,7 +290,7 @@ def _float_step_from_default(default: Any) -> float:
     return 10 ** -(decimals + 1)
 
 
-def _render_widget_impl(defn: "SettingDescriptor", value: Any, make_setter) -> None:
+def _render_widget_impl(defn: "setting", value: Any, make_setter) -> None:
     """Shared widget dispatch. make_setter(coerce) -> on_change handler."""
     # Escape for safe embedding in props strings (newlines etc. break ast.literal_eval)
     str_value = (str(value) if value is not None else "").encode("unicode_escape").decode()
@@ -358,6 +363,7 @@ def _render_widget_impl(defn: "SettingDescriptor", value: Any, make_setter) -> N
 
         class _E:
             __slots__ = ("value",)
+            value: Any
 
         nd_ref: list[NumberDrag | None] = [None]
 

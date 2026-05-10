@@ -279,7 +279,7 @@ class NodeData:
         return port
 
     @contextmanager
-    def group(self, spec: dict):
+    def group(self, spec: "dict[Any, Any] | PortSpec"):
         """
         Context manager for creating collapsible port groups.
 

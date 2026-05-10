@@ -53,12 +53,13 @@ class DataField(ABC, Generic[T]):
     # ========================================================================
 
     @abstractmethod
-    def get_value(self) -> T:
+    def get_value(self) -> T | None:
         """
         Get value for worker/binding access.
 
         Returns data in most convenient form:
-        - PrimitiveField: Unwrapped primitive (42.0)
+        - PrimitiveField: Unwrapped primitive (42.0), or None if no
+          default was registered and no value has been set yet.
         - BaseField: BaseType instance (MeshData(...))
         - CompoundField: Container (dict, list, etc.)
         """
@@ -180,19 +181,22 @@ class PrimitiveField(DataField[T]):
 
     """
 
-    _value: T = field(init=False, repr=False)
-    _default: T = field(init=False, repr=False)
+    _value: T | None = field(init=False, repr=False)
+    _default: T | None = field(init=False, repr=False)
 
     def __post_init__(self):
         """Initialize primitive field with default value"""
         super().__post_init__()
 
-        # Extract and store unwrapped primitive
+        # Extract and store unwrapped primitive. ``default_kwargs`` may not
+        # carry a "value" key — primitive types are allowed to be created
+        # without an explicit default; ``has_data()`` returns False until a
+        # set_value() call lands.
         self._default = self.default_kwargs.get("value")
         self._value = self._default
 
-    def get_value(self) -> T:
-        """Get unwrapped primitive - O(1) direct access"""
+    def get_value(self) -> T | None:
+        """Get unwrapped primitive - O(1) direct access. None when unset."""
         return self._value
 
     def set_value(self, value: Any, source_id: str | None = None) -> None:
@@ -275,7 +279,8 @@ class BaseField(DataField[BaseType]):
         """Initialize complex field with default instance"""
         super().__post_init__()
 
-        self._container = self.type_cls(**self.default_kwargs)
+        # type_cls is type[IType] at the base; for BaseField it's always type[BaseType].
+        self._container = cast(BaseType, self.type_cls(**self.default_kwargs))
 
     def get_value(self) -> BaseType:
         """Get instance"""

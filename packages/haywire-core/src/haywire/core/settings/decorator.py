@@ -72,11 +72,11 @@ def settings(namespace: str, label: str = "", description: str = ""):
         _registry_id = inner_cls.__name__
 
         library_identity = derive_library_identity(inner_cls)
-        library_id = library_identity.id if library_identity else None
+        library_id = library_identity.id
 
         registry_key = reg_key(library_id, "settings", _registry_id)
 
-        full_namespace = library_id + "." + namespace if library_id else namespace
+        full_namespace = library_id + "." + namespace
 
         inner_cls.class_identity = SettingsClassIdentity(
             namespace=full_namespace,

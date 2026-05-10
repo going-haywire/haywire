@@ -149,12 +149,12 @@ class PooledField(DataField):
         """Initialize pooled field."""
         super().__post_init__()
 
-        # Initialize from default if provided
+        # Optional debug seed: callers normally don't pass a default — pooled
+        # ports get filled by source connections at runtime. The "value" key
+        # is kept as an escape hatch for simulating sources during debugging
+        # or tests. Stored as-is, matching ``set_value``.
         initial_dict = self._default_kwargs.get("value", {})
-        if initial_dict:
-            self._sources = {k: self._unwrap_value(v) for k, v in initial_dict.items()}
-        else:
-            self._sources = {}
+        self._sources = dict(initial_dict)
 
     def get_value(self) -> Dict[str, Any]:
         """
