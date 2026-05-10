@@ -97,12 +97,14 @@ def camel_to_dot_case(CamelCaseString: str) -> str:
     return result.lower()
 
 
-def format_external_exception(exclude_modules=None):
+def format_external_exception(exclude_modules=None) -> str:
     """Format the current exception, by default excluding frames from this module"""
     if exclude_modules is None:
         exclude_modules = [__name__.split(".")[-1]]  # Exclude this module
 
     exc_type, exc_value, exc_tb = sys.exc_info()
+    if exc_type is None:
+        return ""
     tb_list = traceback.extract_tb(exc_tb)
 
     filtered_frames = []

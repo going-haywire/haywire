@@ -22,6 +22,7 @@ def app_under_test():
     app = HaywireApp.__new__(HaywireApp)
     app._is_shutting_down = False
     app._shells = {}
+    app._client_to_session = {}
     app.session_manager = MagicMock()
     return app
 
@@ -37,7 +38,8 @@ def test_disconnect_calls_shell_cleanup_then_remove_session(app_under_test):
     app_under_test.session_manager = parent.session_manager
 
     client = MagicMock()
-    client._haywire_session_id = sid
+    client.id = "client-abc"
+    app_under_test._client_to_session[client.id] = sid
     app_under_test.on_disconnect(client)
 
     # Shell cleanup MUST run before SessionManager removes the session.
@@ -49,22 +51,26 @@ def test_disconnect_calls_shell_cleanup_then_remove_session(app_under_test):
     )
     # And the shell entry is gone from the dict.
     assert sid not in app_under_test._shells
+    # The client→session mapping is consumed (popped) on disconnect.
+    assert client.id not in app_under_test._client_to_session
 
 
 def test_disconnect_with_no_shell_still_removes_session(app_under_test):
     """If there's no shell (race or buggy state), still detach the session."""
     sid = "noshell0"
     client = MagicMock()
-    client._haywire_session_id = sid
+    client.id = "client-noshell"
+    app_under_test._client_to_session[client.id] = sid
     app_under_test.on_disconnect(client)
 
     app_under_test.session_manager.remove_session.assert_called_once_with(sid)
 
 
 def test_disconnect_without_session_id_is_noop(app_under_test):
-    """A client with no _haywire_session_id (e.g. failed handshake) is skipped."""
+    """A client with no mapping (e.g. failed handshake) is skipped."""
     client = MagicMock()
-    client._haywire_session_id = None
+    client.id = "client-unmapped"
+    # _client_to_session doesn't contain this client.id
     app_under_test.on_disconnect(client)
 
     app_under_test.session_manager.remove_session.assert_not_called()
@@ -77,7 +83,8 @@ def test_disconnect_during_shutdown_skips(app_under_test):
     app_under_test._shells[sid] = shell
 
     client = MagicMock()
-    client._haywire_session_id = sid
+    client.id = "client-shutdown"
+    app_under_test._client_to_session[client.id] = sid
     app_under_test.on_disconnect(client)
 
     shell.cleanup.assert_not_called()

@@ -76,7 +76,7 @@ class UIEdge:
             sync_event_emitter: Function to emit sync events to Vue
         """
         self.wrapper: EdgeWrapper = wrapper
-        self.sync_event_emitter = sync_event_emitter
+        self.sync_event_emitter: Callable[[BaseGraphEvent], None] = sync_event_emitter
 
         # Generate unique ID for this UIEdge
         self.ui_edge_id = wrapper.edge_id
@@ -99,7 +99,6 @@ class UIEdge:
         Returns:
             EdgeVisualState with appropriate styling
         """
-
         # State: INVALID (highest priority)
         if not self.wrapper.is_valid():
             return EdgeVisualState(
@@ -188,19 +187,18 @@ class UIEdge:
         """
         Clean up UIEdge resources.
 
-        Similar to UINode.cleanup() pattern.
+        Callers (visual_layer) pop the UIEdge from ``edge_paths`` before
+        calling cleanup, so no external reader can fetch this instance
+        afterwards. The wrapper reference is dropped naturally when this
+        UIEdge itself is garbage-collected.
         """
-        # Clear references
-        self.wrapper = None
-        self.sync_event_emitter = None
         self._current_visual_state = None
-
         logger.debug(f"🔗 UIEdge cleaned up: {self.ui_edge_id}")
 
     def is_valid(self) -> bool:
         """Check if connection is in valid state"""
-        return self.wrapper.is_valid() if self.wrapper else False
+        return self.wrapper.is_valid()
 
     def get_edge_id(self) -> str:
         """Get the edge ID"""
-        return self.wrapper.edge_id if self.wrapper else ""
+        return self.wrapper.edge_id

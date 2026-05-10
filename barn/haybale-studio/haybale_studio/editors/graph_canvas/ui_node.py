@@ -284,11 +284,7 @@ class UINode:
         # Clear references
         self.current_ui_card = None
 
-        # Unsubscribe from wrapper changes
-
         logger.info(f".. Done 🔌 Cleaning up UINode {self._node_id}.")
-
-        self.wrapper = None
 
     def is_rendered(self) -> bool:
         """Check if the node is currently rendered."""

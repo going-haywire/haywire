@@ -865,7 +865,10 @@ class EdgeWrapper:
         # Remove from ports before signalling teardown
         self.detach()
 
-        # Unsubscribe from adapter factory
+        # Unsubscribe from adapter factory. ``_adapter_factory`` is set in
+        # ``__init__`` and only nulled by GC — assert non-None to narrow the
+        # type for mypy (matches the pattern at line 517).
+        assert self._adapter_factory is not None
         self._adapter_factory.unregister_edge_callback(self._edge_id)
 
         self._cleaned_up = True

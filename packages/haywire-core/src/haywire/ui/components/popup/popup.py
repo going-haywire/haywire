@@ -70,11 +70,11 @@ class Popup(ui.element, component="popup.vue"):
     def __enter__(self):
         return self._content.__enter__()
 
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        result = self._content.__exit__(exc_type, exc_val, exc_tb)
+    def __exit__(self, exc_type, exc_val, exc_tb) -> None:
+        self._content.__exit__(exc_type, exc_val, exc_tb)
         if self._escape_close:
             ui.keyboard(self._handle_escape_key)
-        return result
+        return None
 
     # ------------------------------------------------------------------
     # Public API (mirrors old Popup)

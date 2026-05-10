@@ -612,7 +612,7 @@ class SettingsRegistry(BaseRegistry):
 
         class ConfigHandler(FileSystemEventHandler):
             def __init__(self):
-                self._debounce_time = 0
+                self._debounce_time: float = 0.0
 
             def on_modified(self, event):
                 import time

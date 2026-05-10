@@ -484,7 +484,7 @@ class ContextMenuHandlers:
         elif isinstance(event, ContextMenuEdgeEvent):
             logger.debug(f"Edge context menu for {event.edge_id} at ({event.screenX}, {event.screenY})")
             ui_edge = self.visual_layer.get_edge(event.edge_id)
-            if ui_edge and ui_edge.wrapper:
+            if ui_edge is not None:
                 self.provider.on_edge_context(
                     (event.screenX, event.screenY),
                     event.edge_id,

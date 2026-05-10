@@ -54,6 +54,10 @@ class HaywireApp:
 
         self._is_shutting_down = False
         self._shells: dict[str, "AppShell"] = {}
+        # Maps NiceGUI client.id → haywire session_id so on_disconnect can
+        # resolve which session to tear down without monkey-patching the
+        # Client object.
+        self._client_to_session: dict[str, str] = {}
 
         app.on_disconnect(self.on_disconnect)
         app.on_shutdown(self.on_app_shutdown)
@@ -99,7 +103,7 @@ class HaywireApp:
         """
         if self._is_shutting_down:
             return
-        session_id = getattr(client, "_haywire_session_id", None)
+        session_id = self._client_to_session.pop(client.id, None)
         if not session_id:
             return
         print(f"Client disconnected, cleaning up session {session_id[:8]}")
@@ -221,8 +225,9 @@ class HaywireApp:
                 workspace_manager=self.workspace_manager,
             )
 
-            # Store session ID on NiceGUI Client for disconnect lookup
-            context.client._haywire_session_id = haywire_session.session_id
+            # Map this client to its session so on_disconnect can resolve
+            # which session to tear down.
+            self._client_to_session[context.client.id] = haywire_session.session_id
 
             # Set studio theme defaults on context before rendering
             haywire_session.context.active_workbench_theme_key.value = "core:theme:workbench:haywire-dark"

@@ -13,9 +13,10 @@ execution nodes) does not overwhelm the browser with DOM updates.
 import logging
 import threading
 from collections import deque
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 
 from nicegui import ui
+from nicegui.timer import Timer
 
 from haywire.ui import elements as hui
 from haywire.ui.editor.decorator import editor
@@ -43,7 +44,7 @@ class _LogHandler(logging.Handler):
         self._log = log_element
         self._buffer: deque[str] = deque(maxlen=self._MAX_BUFFERED)
         self._lock = threading.Lock()
-        self._timer = ui.timer(self._FLUSH_INTERVAL, self.flush)
+        self._timer: Optional[Timer] = ui.timer(self._FLUSH_INTERVAL, self.flush)
 
     def emit(self, record: logging.LogRecord) -> None:
         try:
