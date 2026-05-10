@@ -24,8 +24,10 @@ Relationship to AppShell:
   wrapper. The slot handles everything inside its area — container
   clear, instance lazy-create, draw.
 * On every ``ContextSignal``, the shell calls
-  ``slot.handle_signal(signal)`` on each slot to run the poll/draw
-  gate on the active wrapper.
+  ``slot.handle_signal(signal)`` on each slot. The slot fans the
+  signal to ``on_signal`` on every wrapper (side-effect channel,
+  active or not), then calls ``redraw_on_signal`` on the active
+  wrapper and redraws if it returns True.
 """
 
 from __future__ import annotations
@@ -65,8 +67,9 @@ class Slot(ABC):
         * ``switch_to(key)`` changes the active wrapper, clears the area,
           re-draws the new active wrapper's editor. Returns ``True`` only
           when the active key actually changed.
-        * ``handle_signal(signal)`` runs the poll/draw gate on the
-          active wrapper. No-op when there is no active wrapper.
+        * ``handle_signal(signal)`` runs ``on_signal`` on every wrapper
+          (side-effect channel) and ``redraw_on_signal`` on the active
+          wrapper, redrawing if the latter returns True.
         * ``set_visible(visible)`` toggles the area container visibility.
 
     Instance state:
@@ -606,10 +609,27 @@ class Slot(ABC):
     # ------------------------------------------------------------------
 
     def handle_signal(self, signal: "ContextSignal") -> None:
-        """Forward a signal to the active wrapper's poll/redraw gate."""
+        """Dispatch a signal across this slot's wrappers.
+
+        Two channels:
+
+        * ``on_signal`` fires on EVERY wrapper, active or not. Lets
+          editors run side effects (close stale tabs, mark themselves
+          stale for next focus, clear caches) even while backgrounded.
+          Per-wrapper exceptions are absorbed by the wrapper's own
+          error capture — one editor's failure can't block sibling
+          delivery.
+        * ``redraw_on_signal`` fires only on the active wrapper. If it
+          returns True the slot redraws (clear container, draw again).
+          Backgrounded wrappers don't redraw — they catch up on
+          ``on_focus`` when the user reactivates them.
+        """
+        for wrapper in self._bindings:
+            wrapper.on_signal(signal)
+
         if self._active is None or self._area_panel_container is None:
             return
-        if self._active.poll(signal):
+        if self._active.redraw_on_signal(signal):
             self._redraw(self._active)
 
     # ------------------------------------------------------------------

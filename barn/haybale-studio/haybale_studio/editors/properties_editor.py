@@ -109,10 +109,10 @@ class PropertiesEditor(BaseEditor):
         self._expansion_state: dict[str, bool] = {}
 
     # ------------------------------------------------------------------
-    # BaseEditor interface (poll/draw)
+    # BaseEditor interface (redraw_on_signal/draw)
     # ------------------------------------------------------------------
 
-    def poll(self, context: SessionContext, signal: ContextSignal) -> bool:
+    def redraw_on_signal(self, context: SessionContext, signal: ContextSignal) -> bool:
         return isinstance(signal, self._RELEVANT_SIGNALS)
 
     def draw(self, context: SessionContext, container: Element) -> None:

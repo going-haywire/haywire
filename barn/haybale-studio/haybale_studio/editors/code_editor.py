@@ -118,7 +118,7 @@ class CodeEditor(BaseEditor):
     # rendering
     # ------------------------------------------------------------------
 
-    def poll(self, context: "SessionContext", signal: "ContextSignal") -> bool:
+    def redraw_on_signal(self, context: "SessionContext", signal: "ContextSignal") -> bool:
         """Redraw on workbench-theme change so CodeMirror picks up the new theme."""
         return isinstance(signal, ThemeMoved)
 

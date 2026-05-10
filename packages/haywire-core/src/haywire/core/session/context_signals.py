@@ -221,9 +221,12 @@ class ThemeMoved(ContextSignal):
 # They are not observations — they don't fan out to "anyone who cares";
 # they are routed by AppShell to the slot(s) that can carry them out.
 #
-# All lifecycle commands are local-only: peer sessions own their own
-# workspace state, and one session cannot reach into another's tab order.
-# Cross-session synchronization is the job of the signal channel.
+# Lifecycle commands are local-by-default: session-scoped UI actions
+# (e.g. ``Reveal`` a panel because the user clicked) belong to the
+# issuing session. Subclasses can opt into cross-session fan-out by
+# setting ``cross_session: ClassVar[bool] = True`` — used for
+# fact-driven imperatives where the underlying entity is gone and every
+# session's tabs bound to it must close (e.g. ``BroadcastClose``).
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -233,7 +236,15 @@ class LifecycleCommand:
     Subclasses describe a specific mutation of the workspace tree.
     Routing is per-subclass: ``Reveal`` is point-to-point (one slot),
     ``Close`` is fan-out across slots.
+
+    Cross-session routing is a class-level property mirroring
+    ``ContextSignal``: set ``cross_session: ClassVar[bool] = True`` on a
+    subclass to have ``Session.lifecycle(...)`` dispatch the command to
+    every session via ``SessionManager.broadcast_lifecycle``. The default
+    is local-only.
     """
+
+    cross_session: ClassVar[bool] = False
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -280,3 +291,22 @@ class Close(LifecycleCommand):
     """
 
     payload: str
+
+
+@dataclass(frozen=True, kw_only=True)
+class BroadcastClose(Close):
+    """Cross-session ``Close``: fan tab-close out to every session.
+
+    Used for fact-driven imperatives where the underlying entity has
+    gone away (e.g. an entry was removed from a haystack, or the
+    haystack itself was torn down by a library hot-reload). Each
+    receiving session asks its own AppShell to close every wrapper whose
+    payload matches; sessions with no matching tab are unaffected.
+
+    Prefer ``Close`` for session-local UI actions (e.g. a confirmation
+    dialog the user dismissed in this tab). ``BroadcastClose`` is the
+    right choice only when the close decision follows from a global
+    fact rather than a session-local interaction.
+    """
+
+    cross_session: ClassVar[bool] = True

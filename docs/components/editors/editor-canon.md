@@ -1,7 +1,7 @@
 ---
 status: draft
 doc_template: canonical-example
-scope: Authoring editors — BaseEditor subclass, @editor decorator, poll/draw lifecycle, ContextSignal filtering, Reveal/Close lifecycle commands, OpenBehavior tab modes
+scope: Authoring editors — BaseEditor subclass, @editor decorator, on_signal/redraw_on_signal/draw lifecycle, ContextSignal filtering, Reveal/Close/BroadcastClose lifecycle commands, OpenBehavior tab modes
 see-also:
   - ../panels/panel-canon.md
   - ../states/state-canon.md
@@ -13,11 +13,11 @@ see-also:
 
 ## 1. What it solves
 
-An **editor** is a self-contained UI module that fills one slot of the studio's workspace layout. As an author, you write a class that inherits from `BaseEditor`, decorate it with `@editor(...)`, implement `draw(context, container)` to build its NiceGUI subtree into a provided container, and optionally implement `poll(context, signal) -> bool` to request a redraw when relevant state moves.
+An **editor** is a self-contained UI module that fills one slot of the studio's workspace layout. As an author, you write a class that inherits from `BaseEditor`, decorate it with `@editor(...)`, implement `draw(context, container)` to build its NiceGUI subtree into a provided container, and optionally implement `redraw_on_signal(context, signal) -> bool` to request a redraw when relevant state moves and/or `on_signal(context, signal)` to run side effects regardless of whether this editor is the active tab.
 
 Editors are the primary extension point for adding workspace UI. Once your library's `register_components()` calls `add_folder_to_registry(..., EditorTypeRegistry)`, the editor is auto-discovered and available in any workspace where its `default_slot` is hostable. The studio binds editor instances to slots lazily, one per session.
 
-The lifecycle is: instance is constructed when its wrapper first occupies a slot → the orchestrator calls `draw(context, container)` to build the subtree → on every `ContextSignal` the orchestrator calls `poll(context, signal)`; if it returns `True`, the orchestrator clears the container and calls `draw()` again → `cleanup()` runs when the editor is permanently removed.
+The lifecycle is: instance is constructed when its wrapper first occupies a slot → the orchestrator calls `draw(context, container)` to build the subtree → on every `ContextSignal` the orchestrator calls `on_signal(context, signal)` on **every** wrapper in the slot (active or not), then calls `redraw_on_signal(context, signal)` only on the **active** wrapper; if that returns `True`, the orchestrator clears the container and calls `draw()` again → `cleanup()` runs when the editor is permanently removed.
 
 The redraw model is *clear-and-redraw*, not incremental. The orchestrator clears the NiceGUI element subtree before each `draw()` call. Editors that need cheaper redraws should keep the panel-mounting work behind a local cache and rebuild only the parts that actually changed; the heavy lifting belongs in panels (which have their own `poll`/`draw` cycle within an editor's container).
 
@@ -27,9 +27,11 @@ The redraw model is *clear-and-redraw*, not incremental. The orchestrator clears
 @editor(label=..., default_slot=...)    EditorTypeRegistry             AppShell + slot
 class MyEditor(BaseEditor):              registers class                instantiates per slot;
     def draw(self, context,              on register_components()       calls draw() once,
-             container): ...                                             then poll()/draw()
-    def poll(self, context,                                              on each ContextSignal
-             signal): ...
+             container): ...                                             then on_signal() on
+    def on_signal(self, context,                                         every wrapper +
+                  signal): ...                                           redraw_on_signal()
+    def redraw_on_signal(self, context,                                  on the active one,
+                         signal) -> bool: ...                            redrawing if True.
 ```
 
 Editors *host* panels (in panel-aware editors like `PropertiesEditor`) but they don't own panel content — that's [components/panels](../panels/panel-canon.md). Editors don't render themselves into the canvas — that's the studio's job. They render into the NiceGUI `Element` that AppShell hands to `draw()`.
@@ -59,7 +61,7 @@ Editors *host* panels (in panel-aware editors like `PropertiesEditor`) but they 
 
 **Slot constraints.** `default_slot='left'` and `'right'` only support `opens='required'`. Bars don't have a tab structure to host on-demand or multi-instance editors. The decorator raises `ValueError` at class-definition time if you try.
 
-**`draw(self, context, container)`** is the only abstract method. The orchestrator calls it on first slot assignment and again whenever `poll()` returns `True`. Before each call the orchestrator **clears** `container` — your code starts inside an empty NiceGUI element. Use `with container:` (or store children of one of `container`'s descendants) to build into it.
+**`draw(self, context, container)`** is the only abstract method. The orchestrator calls it on first slot assignment and again whenever `redraw_on_signal()` returns `True`. Before each call the orchestrator **clears** `container` — your code starts inside an empty NiceGUI element. Use `with container:` (or store children of one of `container`'s descendants) to build into it.
 
 ```python
 def draw(self, context: SessionContext, container: Element) -> None:
@@ -70,16 +72,31 @@ def draw(self, context: SessionContext, container: Element) -> None:
 
 Store references to UI elements you'll later mutate as instance attributes — but remember they live only until the next `draw()` call, since the container is cleared between draws.
 
-**`poll(self, context, signal) -> bool`** decides whether the editor needs a full redraw. Default returns `False` (never redraw). Filter by signal class with plain `isinstance`:
+**`redraw_on_signal(self, context, signal) -> bool`** decides whether the editor needs a full redraw. Default returns `False` (never redraw). Fires only on the **active** wrapper in the slot — backgrounded wrappers can't be redrawn into a hidden panel meaningfully, so they catch up on `on_focus`. Filter by signal class with plain `isinstance`:
 
 ```python
 _RELEVANT_SIGNALS = (SelectionMoved, ActiveGraphMoved, GraphDataMutated)
 
-def poll(self, context: SessionContext, signal: ContextSignal) -> bool:
+def redraw_on_signal(self, context: SessionContext, signal: ContextSignal) -> bool:
     return isinstance(signal, self._RELEVANT_SIGNALS)
 ```
 
-`poll()` runs synchronously on every signal. Keep it cheap — no I/O, no AppState walks, no expensive predicates. A typical implementation is a tuple of relevant signal types and a single `isinstance` check.
+`redraw_on_signal()` runs synchronously on every signal delivered to the active wrapper. Keep it cheap — no I/O, no AppState walks, no expensive predicates. A typical implementation is a tuple of relevant signal types and a single `isinstance` check. **Do not run side effects here** — it's a pure decision function. Side effects belong in `on_signal`.
+
+**`on_signal(self, context, signal) -> None`** is the side-effect channel. It fires on **every** wrapper in the slot regardless of active state — including backgrounded tabs. Default is a no-op. Use it when something must happen even while the editor isn't visible:
+
+- closing tabs in response to an entity removal (e.g. a HaystackEditor responding to a teardown signal by issuing local `Close(payload=...)` lifecycle commands);
+- marking the editor stale so the next `on_focus`/`draw` re-reads underlying state;
+- clearing in-memory caches.
+
+```python
+def on_signal(self, context: SessionContext, signal: ContextSignal) -> None:
+    if isinstance(signal, MyTeardownSignal):
+        for eid in signal.entry_ids:
+            context.session.lifecycle(Close(payload=eid))
+```
+
+`on_signal` runs for every signal on every wrapper, so it's on the hot path in the same way `redraw_on_signal` is — keep it cheap and side-effect-only. Don't trigger redraws from here; if a redraw is also warranted, return `True` from `redraw_on_signal` (which fires only on the active wrapper, where redraws are meaningful).
 
 **`on_focus(self, context)`** is called when the editor's wrapper becomes the active tab in its slot — on initial render, on programmatic `Slot.switch_to`, on user tab-click, or via `Slot.add_binding(activate=True)`. **Not** called when the user re-clicks the already-active tab. Runs **before** `draw()` on the newly-activated wrapper, so any context mutations this hook performs are visible to that draw and to any signals the hook broadcasts. Default is a no-op. Editors that own a slice of session state (e.g. a graph editor that updates `active_graph` when its tab becomes active) override this. Read `self.wrapper.payload` to disambiguate this instance from siblings.
 
@@ -113,9 +130,19 @@ context.session.lifecycle(Reveal(
 ))
 ```
 
-The orchestrator resolves `editor.class_identity.default_slot` and routes the command. Use `Close(payload=...)` to close every tab bound to a payload across all slots (e.g. when a graph entry is removed from the haystack).
+The orchestrator resolves `editor.class_identity.default_slot` and routes the command. Use `Close(payload=...)` to close every tab bound to a payload across all slots in the issuing session (e.g. a session-local "discard" action).
 
-Lifecycle commands are local-only — peer sessions own their own workspace state. Cross-session synchronization is the job of the signal channel (set `cross_session: ClassVar[bool] = True` on a signal subclass to fan it out via `SessionManager.broadcast_signal`).
+Lifecycle commands are **local by default** — session-scoped UI actions like `Reveal`-on-click belong to the issuing session. Subclasses can opt into cross-session fan-out by setting `cross_session: ClassVar[bool] = True` (mirroring `ContextSignal`); `Session.lifecycle()` checks the class flag and routes via `SessionManager.broadcast_lifecycle` so every session's AppShell receives the command. Use this for fact-driven imperatives where the underlying entity is gone for everyone — `BroadcastClose(payload=...)` is the built-in: close matching tabs in **every** session.
+
+```python
+from haywire.ui.context_signals import BroadcastClose
+
+# Underlying entry removed everywhere — close any GraphEditor tab bound
+# to it, in this session AND every peer session.
+context.session.lifecycle(BroadcastClose(payload=entry_id))
+```
+
+`BroadcastClose` is a subclass of `Close`, so AppShell's `_close_payload` handles it identically — the only difference is dispatch scope. Prefer `Close` for session-local UI actions; reserve `BroadcastClose` for cases where the close decision follows from a global fact rather than a session-local interaction.
 
 **Imports.**
 
@@ -126,7 +153,7 @@ from haywire.ui.editor.identity import OpenBehavior   # for code that inspects t
 from haywire.ui.context_signals import (
     ContextSignal,
     SelectionMoved, ActiveGraphMoved, GraphDataMutated,   # observations
-    Reveal, Close,                                        # lifecycle commands
+    Reveal, Close, BroadcastClose,                        # lifecycle commands
 )
 ```
 
@@ -168,7 +195,7 @@ from haywire.ui.panel.registry import PanelRegistry
 class PropertiesEditor(BaseEditor):
     """Focus-driven properties editor: focus toolbar + panel content."""
 
-    # Tuple of signal types this editor reacts to. Anything else: poll() returns False.
+    # Tuple of signal types this editor reacts to. Anything else: redraw_on_signal() returns False.
     _RELEVANT_SIGNALS = (SelectionMoved, ActiveGraphMoved, GraphDataMutated)
 
     # Per-instance state — survives across redraws because the editor instance
@@ -185,8 +212,8 @@ class PropertiesEditor(BaseEditor):
 
     # --- BaseEditor lifecycle ---------------------------------------------
 
-    def poll(self, context: SessionContext, signal: ContextSignal) -> bool:
-        # Cheap predicate. Runs on every signal.
+    def redraw_on_signal(self, context: SessionContext, signal: ContextSignal) -> bool:
+        # Cheap predicate. Runs on every signal delivered to the active wrapper.
         return isinstance(signal, self._RELEVANT_SIGNALS)
 
     def draw(self, context: SessionContext, container: Element) -> None:
@@ -238,7 +265,7 @@ What this example exercises:
 | `class_identity` and `class_library` set automatically by the decorator | (set on the class object) |
 | Per-instance state initialised in `__init__`, persisted across redraws | `_active_focus_id`, `_expansion_state` |
 | Tuple of `ContextSignal` classes for cheap `isinstance` filtering | `_RELEVANT_SIGNALS` |
-| `poll(context, signal) -> bool` returns `True` to request redraw | `poll` |
+| `redraw_on_signal(context, signal) -> bool` returns `True` to request redraw (active wrapper only) | `redraw_on_signal` |
 | `draw(context, container)` builds the subtree; container starts cleared | `draw` |
 | Pulling DI dependencies from `context.app` on first draw | `context.app.library_service.get_panel_registry()` |
 | Reading `SessionState` (selection lives on `EditState`, not `SessionContext`) | `clear_selection` |
@@ -257,14 +284,16 @@ For the `Focus` and `Panel` extension points the editor hosts, see [components/p
 - [ ] `@editor(label='...', default_slot='...')` — both have sensible defaults; set them deliberately
 - [ ] Choose `opens='required'` / `'on_context'` / `'on_payload'`
 - [ ] Inherit from `BaseEditor`; implement `draw(self, context, container)` — required
-- [ ] Override `poll(self, context, signal) -> bool` — default `False`; return `True` for relevant signals
+- [ ] Override `redraw_on_signal(self, context, signal) -> bool` — default `False`; return `True` for signals that warrant a redraw of the active wrapper
+- [ ] Override `on_signal(self, context, signal) -> None` only when you need side effects that must run while the editor is backgrounded (e.g. closing tabs in response to a teardown signal)
 - [ ] Initialise instance state in `__init__`; container/UI refs re-fetched in `draw()`
-- [ ] Use a tuple of `ContextSignal` classes + one `isinstance` for cheap `poll()` filtering
+- [ ] Use a tuple of `ContextSignal` classes + one `isinstance` for cheap `redraw_on_signal()` filtering
 - [ ] Optional: `on_focus(self, context)` — runs *before* `draw()` on the newly-activated wrapper
 - [ ] Optional: `cleanup(self)` — release subscriptions / timers
 - [ ] Optional: `get_tab_label(self, context)` — dynamic per-payload label
 - [ ] Optional: `async handle_close_request(self)` — veto/save dialog before tab close
 - [ ] Drive other slots with `context.session.lifecycle(Reveal(editor=..., payload=...))`
+- [ ] Use `BroadcastClose(payload=...)` instead of `Close(payload=...)` when the underlying entity is gone for every session, not just yours
 
 ### Imports
 
@@ -275,7 +304,7 @@ from haywire.ui.editor.identity import OpenBehavior
 from haywire.ui.context_signals import (
     ContextSignal,
     SelectionMoved, ActiveGraphMoved, GraphDataMutated,
-    Reveal, Close,
+    Reveal, Close, BroadcastClose,
 )
 ```
 

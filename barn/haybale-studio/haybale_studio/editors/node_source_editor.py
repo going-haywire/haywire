@@ -85,7 +85,7 @@ class NodeSourceEditor(BaseEditor):
     # BaseEditor interface
     # ------------------------------------------------------------------
 
-    def poll(self, context: "SessionContext", signal: "ContextSignal") -> bool:
+    def redraw_on_signal(self, context: "SessionContext", signal: "ContextSignal") -> bool:
         # While the user is editing, freeze the buffer against selection
         # churn. Theme changes still redraw so CodeMirror picks up the
         # new colors — but theme changes are expected to be rare and the

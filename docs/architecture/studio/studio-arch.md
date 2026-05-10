@@ -112,7 +112,7 @@ This separation keeps the framework's `SessionContext` stable while each library
 
 The studio has two complementary channels (`packages/haywire-core/src/haywire/ui/context_signals.py`):
 
-**Signal channel — observations.** `ContextSignal` subclasses describe a state move that already happened. Anyone may emit; the orchestrator fans out to every editor in the session via `Session.signal(s)`. Subscribers (editors' `poll()` methods) filter with plain `isinstance(signal, SignalType)`.
+**Signal channel — observations.** `ContextSignal` subclasses describe a state move that already happened. Anyone may emit; the orchestrator fans out to every editor in the session via `Session.signal(s)`. Each slot calls `on_signal(...)` on **every** wrapper (the side-effect channel — fires regardless of which tab is active) and `redraw_on_signal(...) -> bool` on the **active** wrapper, redrawing if it returns `True`. Subscribers filter with plain `isinstance(signal, SignalType)`.
 
 The base class is `ContextSignal`; concrete subclasses include:
 
@@ -128,9 +128,10 @@ Library authors who declare their own signal classes that other libraries subscr
 **Lifecycle channel — commands.** `LifecycleCommand` subclasses describe imperative mutations of the workspace tree. They are point-to-point or fan-out, not observations.
 
 - `Reveal(editor=Cls, payload=..., label=...)` — bring an editor to the front. The orchestrator resolves `editor.class_identity.default_slot` and routes to that slot. If the slot is not hostable in the active workspace, the reveal is dropped with a warning. `payload` disambiguates multi-instance editors (`opens='on_payload'`); when supplied, the orchestrator switches to the specific `(editor_key, payload)` tab rather than the first matching binding.
-- `Close(payload=...)` — close every tab bound to `payload` across all slots. Used when the underlying entity for a multi-instance editor goes away (e.g. a graph entry is removed from the haystack).
+- `Close(payload=...)` — close every tab bound to `payload` across all slots in the issuing session. Used for session-local close decisions.
+- `BroadcastClose(payload=...)` — cross-session sibling of `Close`. Fans the close out to every session's AppShell so any matching tab disappears everywhere. Used when the underlying entity is gone for everyone (e.g. a graph entry was removed from the haystack, or the haystack itself was torn down by a library hot-reload).
 
-Lifecycle commands are **local-only**. Peer sessions decide what tabs they have open in response to the corresponding observation signal (e.g. a peer hearing `GraphRemoved` issues its own local `Close` if it had tabs pointing at the removed entry). One session cannot reach into another's tab order.
+Lifecycle commands are **local by default**. Session-scoped UI actions (e.g. `Reveal` a panel because the user clicked) belong to the issuing session — peer sessions own their own workspace state. Subclasses opt into cross-session fan-out by setting `cross_session: ClassVar[bool] = True` (mirroring `ContextSignal`); `Session.lifecycle()` checks the class flag and routes to `SessionManager.broadcast_lifecycle(...)` instead of dispatching locally. `BroadcastClose` is the only built-in that opts in. Use it for fact-driven imperatives where every session's tabs bound to a given payload must close; reserve `Close` for session-local actions.
 
 ### 2.6 Editors and panels
 
@@ -139,7 +140,7 @@ Editors fill slots; panels fill the inside of panel-aware editors. Both register
 - `EditorTypeRegistry` — `BaseEditor` subclasses, decorated with `@editor(...)`. Registered by libraries via `add_folder_to_registry(folder_path=..., registry_cls=EditorTypeRegistry)` in `register_components()`. Built-in framework editors (currently none — all editors live in `haybale-studio` or other libraries) would bootstrap via `register_builtin_editors()`.
 - `PanelRegistry` — `BasePanel` subclasses, decorated with `@panel(action=..., focus=...)`. Registered the same way. Panel-aware editors (e.g. `PropertiesEditor`) call `panel_registry.get_panels_for(actions_provider=self, focus=...)`, which filters panels by structural `isinstance(actions_provider, action)` and by `Focus.id` match.
 
-For the editor authoring surface — `BaseEditor`, the `draw`/`poll` lifecycle, `OpenBehavior` modes, slot constraints — see [components/editors](../../components/editors/editor-canon.md). For the panel surface — `@panel`, `Focus` classes, `PanelLayout` — see [components/panels](../../components/panels/panel-canon.md).
+For the editor authoring surface — `BaseEditor`, the `draw`/`on_signal`/`redraw_on_signal` lifecycle, `OpenBehavior` modes, slot constraints — see [components/editors](../../components/editors/editor-canon.md). For the panel surface — `@panel`, `Focus` classes, `PanelLayout` — see [components/panels](../../components/panels/panel-canon.md).
 
 ## 3. Data flow
 
@@ -172,7 +173,9 @@ User clicks a node in the graph canvas
       └─ AppShell._on_signal(signal)
           └─ for slot in (left, right, main, bottom):
               └─ slot.handle_signal(signal)
-                  └─ active_wrapper.editor.poll(ctx, signal)
+                  ├─ for wrapper in slot._bindings:
+                  │     └─ wrapper.editor.on_signal(ctx, signal)   # side effects, all wrappers
+                  └─ active_wrapper.editor.redraw_on_signal(ctx, signal)
                       ├─ True  → slot clears area, calls editor.draw(ctx, area)
                       └─ False → no-op
 ```
@@ -203,7 +206,7 @@ Each session holds editor instances, slots, a `WorkspaceManager`, and a `Session
 
 ### 4.2 Signal amplification
 
-A single signal is delivered to every active wrapper in every slot — a cheap `poll()` per editor. Editors that use a tuple of relevant signal classes plus one `isinstance` check (the `_RELEVANT_SIGNALS` pattern, see editor-canon §3) keep this O(slots · editors) under a millisecond. Editors that do work in `poll()` itself — I/O, AppState walks, expensive predicates — will dominate the dispatch path. The contract is: *`poll()` is cheap; the heavy work goes in `draw()`, gated on `poll()` returning `True`.*
+A single signal is delivered to **every wrapper** in every slot via `on_signal` (side-effect channel) and to the **active** wrapper in each slot via `redraw_on_signal` (redraw decision). Editors that use a tuple of relevant signal classes plus one `isinstance` check (the `_RELEVANT_SIGNALS` pattern, see editor-canon §3) keep this O(slots · wrappers) under a millisecond. Editors that do work in `on_signal`/`redraw_on_signal` themselves — I/O, AppState walks, expensive predicates — will dominate the dispatch path. The contract is: *both hooks are cheap; the heavy work goes in `draw()`, gated on `redraw_on_signal()` returning `True`.* Side effects in `on_signal` should also be cheap — typically issuing a few lifecycle commands, flipping a flag, or doing a single isinstance check.
 
 ### 4.3 Hot-reload
 

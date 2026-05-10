@@ -42,6 +42,7 @@ from haybale_haystack.settings.haystack_settings import HaystackSettings
 
 logger = logging.getLogger(__name__)
 
+
 @state(label="Haystack State")
 class HaystackState(AppState):
     """In-memory registry of open graphs (one entry per file path).
@@ -113,8 +114,38 @@ class HaystackState(AppState):
                 except Exception as exc:
                     logger.error(f"HaystackState: failed to rehydrate '{last}': {exc}")
 
+        # Announce that the haystack is back. HaystackEditor reacts by
+        # re-rendering its list against the (new) registry. Cross-session,
+        # so peer sessions also refresh.
+        if self._session_manager is not None:
+            from haybale_haystack.signals import HaystackReloaded
+
+            try:
+                self._session_manager.broadcast_signal(HaystackReloaded(), origin_session_id="")
+            except Exception as exc:
+                logger.warning(f"HaystackState.on_enable: HaystackReloaded broadcast failed: {exc}")
+
     def on_disable(self) -> None:
-        """Stop execution on every entry and clear the registry."""
+        """Announce teardown, stop execution on every entry, clear the registry.
+
+        Order matters: snapshot the entry_ids and broadcast
+        ``HaystackTeardown`` BEFORE clearing, so HaystackEditor receivers
+        can issue a local ``Close(payload=eid)`` for each vanishing tab.
+        Receivers don't peek at the (about-to-be-cleared) registry — the
+        signal payload is the source of truth for the teardown set.
+        """
+        entry_ids = tuple(self._entries.keys())
+
+        if self._session_manager is not None and entry_ids:
+            from haybale_haystack.signals import HaystackTeardown
+
+            try:
+                self._session_manager.broadcast_signal(
+                    HaystackTeardown(entry_ids=entry_ids), origin_session_id=""
+                )
+            except Exception as exc:
+                logger.warning(f"HaystackState.on_disable: HaystackTeardown broadcast failed: {exc}")
+
         for entry in list(self._entries.values()):
             try:
                 entry.stop_execution()
@@ -123,6 +154,29 @@ class HaystackState(AppState):
                     f"HaystackState.on_disable: stop_execution failed for {entry.display_name}: {exc}"
                 )
         self._entries.clear()
+
+    # ------------------------------------------------------------------
+    # Broadcast helpers
+    # ------------------------------------------------------------------
+
+    def _broadcast_data_mutated(self) -> None:
+        """Fire ``GraphDataMutated`` cross-session.
+
+        Called from every mutator (``create_new``, ``open_graph``,
+        ``save_graph``, ``rename_graph``, ``remove_entry``) and from
+        the per-entry validation handler. Centralising the broadcast
+        here means every haystack-mutating call site notifies peer
+        sessions automatically — no need for individual UI handlers
+        to remember.
+        """
+        if self._session_manager is None:
+            return
+        from haywire.core.session.context_signals import GraphDataMutated
+
+        try:
+            self._session_manager.broadcast_signal(GraphDataMutated(), origin_session_id="")
+        except Exception as exc:
+            logger.warning(f"HaystackState: GraphDataMutated broadcast failed: {exc}")
 
     # ------------------------------------------------------------------
     # Validation handler — legacy parity with Haystack._on_entry_validation
@@ -143,13 +197,7 @@ class HaystackState(AppState):
 
         if bool(result.nodes or result.edges):
             entry.unsaved = True
-            if self._session_manager is not None:
-                from haywire.core.session.context_signals import GraphDataMutated
-
-                try:
-                    self._session_manager.broadcast_signal(GraphDataMutated(), origin_session_id="")
-                except Exception as exc:
-                    logger.warning(f"HaystackState: validation broadcast failed: {exc}")
+            self._broadcast_data_mutated()
 
     # ------------------------------------------------------------------
     # Graph factory (private; mirrors legacy app._graph_factory)
@@ -189,6 +237,7 @@ class HaystackState(AppState):
         self._entries[entry.entry_id] = entry
         self._subscribe_validation(entry)
         logger.info(f"HaystackState: created new entry '{name}' ({entry_id})")
+        self._broadcast_data_mutated()
         return entry
 
     def open_graph(self, path: Path) -> GraphEntry:
@@ -211,6 +260,7 @@ class HaystackState(AppState):
         self._entries[entry_id] = entry
         self._subscribe_validation(entry)
         logger.info(f"HaystackState: opened {path}")
+        self._broadcast_data_mutated()
         return entry
 
     def save_graph(self, entry: GraphEntry, save_as: Optional[Path] = None) -> bool:
@@ -231,6 +281,7 @@ class HaystackState(AppState):
                 self._entries.pop(old_id, None)
                 entry.path = save_as
                 self._entries[entry.entry_id] = entry
+            self._broadcast_data_mutated()
         return success
 
     def rename_graph(self, entry: GraphEntry, new_name: str) -> bool:
@@ -253,6 +304,7 @@ class HaystackState(AppState):
         entry.path = new_path
         self._entries[entry.entry_id] = entry
         entry.unsaved = False
+        self._broadcast_data_mutated()
         return True
 
     def remove_entry(self, entry: GraphEntry) -> bool:
@@ -266,6 +318,7 @@ class HaystackState(AppState):
             logger.warning(f"HaystackState.remove_entry: stop_execution failed: {exc}")
         if entry.entry_id in self._entries and self._entries[entry.entry_id] is entry:
             del self._entries[entry.entry_id]
+            self._broadcast_data_mutated()
             return True
         return False
 

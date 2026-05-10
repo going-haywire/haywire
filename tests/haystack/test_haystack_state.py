@@ -65,6 +65,27 @@ def test_create_new_increments_counter_and_adds_entry(state_with_mocked_deps):
     assert state._haystack_settings.new_counter == initial_counter + 1
 
 
+def test_create_new_broadcasts_graph_data_mutated(state_with_mocked_deps):
+    """Every mutator broadcasts GraphDataMutated cross-session.
+
+    Centralising this in HaystackState (rather than at every UI call
+    site) ensures peer sessions always observe haystack changes — no
+    matter which entry-point added the entry (HaystackEditor +,
+    file-browser panel, persistence rehydration, future call sites).
+    """
+    from haywire.core.session.context_signals import GraphDataMutated
+
+    state = state_with_mocked_deps
+    state._session_manager.broadcast_signal.reset_mock()
+
+    state.create_new()
+
+    state._session_manager.broadcast_signal.assert_called_once()
+    args, kwargs = state._session_manager.broadcast_signal.call_args
+    assert isinstance(args[0], GraphDataMutated)
+    assert kwargs.get("origin_session_id") == ""
+
+
 def test_create_new_registers_entry_under_entry_id(state_with_mocked_deps):
     state = state_with_mocked_deps
     entry = state.create_new()
@@ -213,6 +234,9 @@ def test_validation_callback_marks_entry_unsaved_and_broadcasts(state_with_mocke
     # __unsaved_N__ id and path=None mark them as untitled. The validation
     # callback flips entry.unsaved on actual node/edge changes.
     assert entry.unsaved is False
+    # create_new() itself broadcasts (every mutator does). Reset so this
+    # test only observes what _on_entry_validation broadcasts.
+    state._session_manager.broadcast_signal.reset_mock()
 
     # Build a result with .nodes/.edges truthy and has_changes True.
     result = MagicMock()
@@ -237,6 +261,10 @@ def test_validation_callback_marks_entry_unsaved_and_broadcasts(state_with_mocke
 def test_validation_callback_no_broadcast_when_no_changes(state_with_mocked_deps):
     state = state_with_mocked_deps
     entry = state.create_new()
+    # create_new() now broadcasts GraphDataMutated itself (every mutator
+    # does). Reset the mock so this test only observes what
+    # _on_entry_validation does with no-change results.
+    state._session_manager.broadcast_signal.reset_mock()
 
     result = MagicMock()
     result.has_changes.return_value = False

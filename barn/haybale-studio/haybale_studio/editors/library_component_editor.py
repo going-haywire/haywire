@@ -55,7 +55,7 @@ class LibraryComponentEditor(BaseEditor):
         self._container = None
         self._code_editor = None  # ui.codemirror reference for live theme updates
 
-    def poll(self, context: "SessionContext", signal: "ContextSignal") -> bool:
+    def redraw_on_signal(self, context: "SessionContext", signal: "ContextSignal") -> bool:
         return isinstance(signal, (ActiveComponentMoved, SelectionMoved, ThemeMoved))
 
     def draw(self, context: "SessionContext", container: "Element") -> None:

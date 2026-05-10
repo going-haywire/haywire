@@ -26,6 +26,7 @@ from haywire.ui.editor.base import BaseEditor
 from haywire.ui.editor.decorator import editor
 from haywire.core.session.context_signals import (
     ActiveGraphMoved,
+    BroadcastClose,
     Close,
     GraphDataMutated,
     GraphRemoved,
@@ -33,6 +34,7 @@ from haywire.core.session.context_signals import (
 )
 from haywire.ui.components.popup import Popup
 
+from haybale_haystack.signals import HaystackReloaded, HaystackTeardown
 from haybale_haystack.state.haystack_state import HaystackState
 from haybale_haystack.editors.graph_editor import GraphEditor
 from haybale_studio.state.edit_state import EditState
@@ -83,11 +85,53 @@ class HaystackEditor(BaseEditor):
         self._rename_haystack_menu_item = None
 
     # ------------------------------------------------------------------
-    # poll / draw
+    # signal hooks / draw
     # ------------------------------------------------------------------
 
-    def poll(self, context: "SessionContext", signal: "ContextSignal") -> bool:
-        return isinstance(signal, (ActiveGraphMoved, GraphDataMutated))
+    def on_signal(self, context: "SessionContext", signal: "ContextSignal") -> None:
+        """Side-effect hook — fires on every wrapper, active or not.
+
+        HaystackTeardown must run regardless of focus: when the
+        haystack is hot-reloaded while this editor is backgrounded,
+        the GraphEditor tabs in this session still need to be closed.
+        Issuing the local ``Close(payload=eid)`` lifecycle commands
+        from here (rather than from ``redraw_on_signal``) makes the
+        cleanup independent of which left-slot tab the user happens
+        to have active.
+        """
+        if isinstance(signal, HaystackTeardown):
+            self._on_haystack_teardown(context, signal)
+
+    def redraw_on_signal(self, context: "SessionContext", signal: "ContextSignal") -> bool:
+        """Pure decision: should the active HaystackEditor redraw?
+
+        Backgrounded HaystackEditor instances catch up via on_focus,
+        which already calls ``_render_list``. No need to redraw an
+        invisible panel.
+        """
+        return isinstance(signal, (ActiveGraphMoved, GraphDataMutated, HaystackReloaded))
+
+    def _on_haystack_teardown(self, context: "SessionContext", signal: "HaystackTeardown") -> None:
+        """Translate the teardown fact into local tab-close lifecycle commands.
+
+        Each session's HaystackEditor receives the cross-session
+        HaystackTeardown signal and issues a local ``Close(payload=eid)``
+        for every vanishing entry_id. AppShell fans the close across this
+        session's TabSlots; sessions with no matching tab are unaffected.
+        Local (not BroadcastClose) because the signal already broadcast
+        and each session is reacting in parallel — broadcasting again
+        would loop.
+        """
+        session = context.session
+        if session is None:
+            return
+        for eid in signal.entry_ids:
+            if not eid:
+                continue
+            try:
+                session.lifecycle(Close(payload=eid))
+            except Exception as exc:
+                logger.warning(f"HaystackEditor: Close({eid}) failed during teardown: {exc}")
 
     def on_focus(self, context: "SessionContext") -> None:
         """Refresh the header title and entry list on activation.
@@ -202,11 +246,18 @@ class HaystackEditor(BaseEditor):
         if is_executing:
             row_style = "border-left: 3px solid var(--hw-success);"
 
+        # Capture entry_id (string) rather than the GraphEntry object so
+        # handlers re-resolve through the live HaystackState. After a
+        # haystack hot-reload the captured entry would otherwise point at
+        # a disposed GraphEntry — clicking play would spawn an orphan
+        # interpreter the new registry never sees.
+        eid = entry.entry_id
+
         with (
             ui.row()
             .classes(row_classes)
             .style(row_style)
-            .on("click", lambda e, en=entry: self._on_select(en, context))
+            .on("click", lambda e, eid=eid: self._on_select(eid, context))
         ):
             # Dirty dot — amber when unsaved, hidden when clean
             if is_unsaved:
@@ -222,13 +273,13 @@ class HaystackEditor(BaseEditor):
                 hui.icon_action(
                     "stop",
                     tooltip="Stop execution",
-                    on_click=lambda en=entry: self._on_stop_execution(en, context),
+                    on_click=lambda eid=eid: self._on_stop_execution(eid, context),
                 )
             else:
                 hui.icon_action(
                     hui.icon.resume,
                     tooltip="Start execution",
-                    on_click=lambda en=entry: self._on_start_execution(en, context),
+                    on_click=lambda eid=eid: self._on_start_execution(eid, context),
                 )
 
             # Name + subtitle
@@ -258,31 +309,48 @@ class HaystackEditor(BaseEditor):
                     with ui.menu():
                         ui.menu_item(
                             "Save",
-                            on_click=lambda en=entry: self._on_entry_save(en, context),
+                            on_click=lambda eid=eid: self._on_entry_save(eid, context),
                         )
                         ui.menu_item(
                             "Save as…",
-                            on_click=lambda en=entry: self._on_entry_save_as(en, context),
+                            on_click=lambda eid=eid: self._on_entry_save_as(eid, context),
                         )
                         ui.menu_item(
                             "Rename…",
-                            on_click=lambda en=entry: self._on_entry_rename(en, context),
+                            on_click=lambda eid=eid: self._on_entry_rename(eid, context),
                         )
                         ui.separator()
                         ui.menu_item(
                             "Remove",
-                            on_click=lambda en=entry: self._on_entry_delete(en, context),
+                            on_click=lambda eid=eid: self._on_entry_delete(eid, context),
                         )
 
     # ------------------------------------------------------------------
     # per-entry file actions
     # ------------------------------------------------------------------
 
-    def _on_entry_save(self, entry: "GraphEntry", context: "SessionContext") -> None:
+    def _resolve_entry(self, entry_id: str, context: "SessionContext") -> "Optional[GraphEntry]":
+        """Re-resolve a captured entry_id against the live HaystackState.
+
+        Returns None and notifies the user if the entry is gone (e.g. the
+        haystack was hot-reloaded since the row was rendered). All row
+        handlers go through this so a stale lambda click can never act
+        on a disposed GraphEntry.
+        """
+        hs = context.app_data[HaystackState]
+        entry = hs.get_by_id(entry_id)
+        if entry is None:
+            ui.notify("Graph no longer available — list refreshed", type="info", position="top-right")
+        return entry
+
+    def _on_entry_save(self, entry_id: str, context: "SessionContext") -> None:
         """Save a graph; opens save-as dialog if untitled."""
         app = context.app
         if app is None:
             ui.notify("Graph manager not available", type="warning")
+            return
+        entry = self._resolve_entry(entry_id, context)
+        if entry is None:
             return
 
         hs = context.app_data[HaystackState]
@@ -290,7 +358,6 @@ class HaystackEditor(BaseEditor):
             success = hs.save_graph(entry)
             if success:
                 ui.notify(f"Saved: {entry.path.name}", type="positive", position="top-right")
-                self._notify_data_mutated(context)
             else:
                 ui.notify("Save failed", type="negative", position="top-right")
             return
@@ -298,27 +365,36 @@ class HaystackEditor(BaseEditor):
         # No path — open save-as dialog
         self._open_save_as_dialog(app, entry, context)
 
-    def _on_entry_save_as(self, entry: "GraphEntry", context: "SessionContext") -> None:
+    def _on_entry_save_as(self, entry_id: str, context: "SessionContext") -> None:
         """Always open the save-as dialog."""
         app = context.app
         if app is None:
             ui.notify("Graph manager not available", type="warning")
             return
+        entry = self._resolve_entry(entry_id, context)
+        if entry is None:
+            return
         self._open_save_as_dialog(app, entry, context)
 
-    def _on_entry_rename(self, entry: "GraphEntry", context: "SessionContext") -> None:
+    def _on_entry_rename(self, entry_id: str, context: "SessionContext") -> None:
         """Rename: inline edit for file-backed graphs, save-as for untitled."""
+        entry = self._resolve_entry(entry_id, context)
+        if entry is None:
+            return
         if entry.is_executing:
             ui.notify("Stop execution before renaming", type="warning")
             return
         if entry.path is None:
-            # Untitled → redirect to save-as
-            self._on_entry_save_as(entry, context)
+            # Untitled → redirect to save-as (re-resolve again inside)
+            self._on_entry_save_as(entry_id, context)
             return
         self._open_rename_dialog(entry, context)
 
-    def _on_entry_delete(self, entry: "GraphEntry", context: "SessionContext") -> None:
+    def _on_entry_delete(self, entry_id: str, context: "SessionContext") -> None:
         """Remove a graph entry; prompt for dirty entries before discarding."""
+        entry = self._resolve_entry(entry_id, context)
+        if entry is None:
+            return
         if entry.is_executing:
             ui.notify("Stop execution before removing", type="warning")
             return
@@ -353,12 +429,13 @@ class HaystackEditor(BaseEditor):
 
         session = context.session
         if session is not None:
-            # Local lifecycle command: close every tab in this session
-            # bound to the removed entry.
-            session.lifecycle(Close(payload=removed_id))
+            # Fan tab-close to every session: peer sessions might have a
+            # GraphEditor open on this entry, and the entity is gone for
+            # everyone. BroadcastClose is the cross-session sibling of
+            # Close — each session's AppShell handles it locally.
+            session.lifecycle(BroadcastClose(payload=removed_id))
             # Cross-session observation: peer sessions refresh their
-            # haystack-derived views (and emit their own Close from
-            # their tab tracking if they have one).
+            # haystack-derived views (list, properties, etc.).
             session.signal(GraphRemoved())
 
         # If it was the active graph, clear the active graph → empty state
@@ -370,7 +447,6 @@ class HaystackEditor(BaseEditor):
                 session.signal(ActiveGraphMoved())
 
         ui.notify(f"Removed: {entry.display_name}", type="info", position="top-right")
-        self._notify_data_mutated(context)
 
     # ------------------------------------------------------------------
     # remove confirmation dialog
@@ -405,7 +481,6 @@ class HaystackEditor(BaseEditor):
                 hs = context.app_data[HaystackState]
                 success = hs.save_graph(entry)
                 if success:
-                    self._notify_data_mutated(context)
                     self._remove_entry(entry, context)
                     popup.close()
                 else:
@@ -481,7 +556,6 @@ class HaystackEditor(BaseEditor):
                         context.data[EditState].active_graph_path.value = entry.path
                         if session:
                             session.signal(ActiveGraphMoved())
-                    self._notify_data_mutated(context)
                     ui.notify(f"Renamed to: {entry.path.name}", type="positive", position="top-right")
                     popup.close()
                 else:
@@ -580,7 +654,6 @@ class HaystackEditor(BaseEditor):
                         context.data[EditState].active_graph_path.value = save_path
                         if session:
                             session.signal(ActiveGraphMoved())
-                    self._notify_data_mutated(context)
                     ui.notify(f"Saved: {save_path.name}", type="positive", position="top-right")
                     popup.close()
                     if on_success is not None:
@@ -615,10 +688,13 @@ class HaystackEditor(BaseEditor):
             )
         )
 
-    def _on_select(self, entry: "GraphEntry", context: "SessionContext") -> None:
+    def _on_select(self, entry_id: str, context: "SessionContext") -> None:
         """Activate an existing graph entry."""
         session = context.session
         if session is None:
+            return
+        entry = self._resolve_entry(entry_id, context)
+        if entry is None:
             return
         session.lifecycle(
             Reveal(
@@ -632,13 +708,19 @@ class HaystackEditor(BaseEditor):
     # execution actions
     # ------------------------------------------------------------------
 
-    def _on_start_execution(self, entry: "GraphEntry", context: "SessionContext") -> None:
+    def _on_start_execution(self, entry_id: str, context: "SessionContext") -> None:
         """Start execution on a graph entry."""
+        entry = self._resolve_entry(entry_id, context)
+        if entry is None:
+            return
         entry.start_execution()
         self._notify_data_mutated(context)
 
-    def _on_stop_execution(self, entry: "GraphEntry", context: "SessionContext") -> None:
+    def _on_stop_execution(self, entry_id: str, context: "SessionContext") -> None:
         """Stop execution on a graph entry."""
+        entry = self._resolve_entry(entry_id, context)
+        if entry is None:
+            return
         entry.stop_execution()
         self._notify_data_mutated(context)
 
@@ -769,7 +851,6 @@ class HaystackEditor(BaseEditor):
                 context.app.save_workspace(active_graph_path=context.data[EditState].active_graph_path.value)
 
                 session = context.session
-                self._notify_data_mutated(context)
                 if active_entry is not None and session is not None:
                     session.lifecycle(
                         Reveal(
@@ -941,7 +1022,14 @@ class HaystackEditor(BaseEditor):
         popup.open()
 
     def _notify_data_mutated(self, context: "SessionContext") -> None:
-        """Fire GraphDataMutated to refresh the graph list across all sessions."""
+        """Fire ``GraphDataMutated`` cross-session.
+
+        Used for non-mutating UI events that nonetheless want every
+        HaystackEditor to redraw — currently just start/stop execution
+        (the executing flag is per-row chrome, not a registry change).
+        Mutating call sites don't need this: ``HaystackState`` itself
+        broadcasts ``GraphDataMutated`` from every mutator.
+        """
         session = context.session
         if session:
             session.signal(GraphDataMutated())

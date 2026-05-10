@@ -13,7 +13,7 @@ from dataclasses import replace
 from typing import Dict, Optional, TYPE_CHECKING
 
 from haywire.core.state import LibraryStateContainer
-from haywire.core.session.context_signals import ContextSignal, Subject
+from haywire.core.session.context_signals import ContextSignal, LifecycleCommand, Subject
 
 if TYPE_CHECKING:
     from haywire.core.session.session import Session
@@ -140,6 +140,43 @@ class SessionManager:
                 failed.append(session_id)
         if failed:
             logger.warning(f"SessionManager: {len(failed)} session(s) failed during broadcast_signal")
+
+    def broadcast_lifecycle(self, command: LifecycleCommand, origin_session_id: str) -> None:
+        """Fan a LifecycleCommand out to every registered session.
+
+        Used for fact-driven imperatives where every session must react —
+        e.g. ``BroadcastClose`` when an underlying entity has gone away
+        (haystack reload, cross-session graph removal). Each receiving
+        session's AppShell handles the command locally; sessions with
+        no matching tab are unaffected.
+
+        Per-peer exceptions are swallowed and logged — a subscriber
+        raising in one session does not abort delivery to others, mirroring
+        ``broadcast_signal``.
+
+        Args:
+            command: The LifecycleCommand to fan out. Must have
+                ``type(command).cross_session is True``; callers normally
+                reach this path via ``Session.lifecycle()``.
+            origin_session_id: The session_id that issued the command,
+                or ``""`` when the command originates outside any
+                session (e.g. a hot-reload broadcast from an AppState).
+        """
+        failed = []
+        for session_id, session in list(self._sessions.items()):
+            try:
+                session._dispatch_lifecycle(command)
+            except Exception as e:
+                logger.warning(
+                    f"SessionManager: broadcast_lifecycle failed for session {session_id[:8]}: {e}"
+                )
+                failed.append(session_id)
+        if failed:
+            logger.warning(f"SessionManager: {len(failed)} session(s) failed during broadcast_lifecycle")
+        # origin_session_id is accepted for API symmetry with broadcast_signal
+        # but lifecycle commands carry no Subject field — no per-receiver
+        # stamping is needed.
+        del origin_session_id
 
     def cleanup_all(self) -> None:
         """Clean up all sessions (call on application shutdown)."""

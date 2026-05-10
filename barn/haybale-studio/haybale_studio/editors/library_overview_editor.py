@@ -102,7 +102,7 @@ class LibraryOverviewEditor(BaseEditor):
     # Public editor interface
     # ─────────────────────────────────────────────────────────────────────────
 
-    def poll(self, context: "SessionContext", signal: "ContextSignal") -> bool:
+    def redraw_on_signal(self, context: "SessionContext", signal: "ContextSignal") -> bool:
         # Today's LIBRARY_STATE_CHANGED filter widens to both replacement
         # signal classes during migration (§11.2 editorial decision #6).
         return isinstance(signal, (ActiveLibraryMoved, LibraryCatalogChanged))

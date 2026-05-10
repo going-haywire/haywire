@@ -38,7 +38,11 @@ class Session:
       ``subject = Subject.peer(origin_id)`` on non-origin sessions.
     - ``session.lifecycle(cmd: LifecycleCommand)`` — imperative
       mutation of the workspace tree (``Reveal`` brings an editor to
-      the front, ``Close`` removes tabs bound to a payload). Local-only.
+      the front, ``Close`` removes tabs bound to a payload). Local by
+      default; if ``type(cmd).cross_session is True`` (e.g.
+      ``BroadcastClose``) delegates to
+      ``SessionManager.broadcast_lifecycle`` so every session's AppShell
+      receives the command.
     """
 
     def __init__(
@@ -116,16 +120,27 @@ class Session:
                 logger.error(f"Session {self.session_id}: signal callback error: {e}")
 
     def lifecycle(self, command: LifecycleCommand) -> None:
-        """Issue a lifecycle command (local-only).
+        """Issue a lifecycle command.
 
-        Routes through the AppShell, which dispatches per-command:
-        ``Reveal`` is point-to-point (one slot resolved from
-        ``editor.class_identity.default_slot``); ``Close`` is fan-out
-        across slots.
+        Routing depends on ``type(command).cross_session``:
+
+        - ``False`` (default, local-only): synchronously calls the
+          registered lifecycle callback (the AppShell) which dispatches
+          per-command — ``Reveal`` is point-to-point (one slot resolved
+          from ``editor.class_identity.default_slot``); ``Close`` is
+          fan-out across slots.
+        - ``True`` (cross-session, e.g. ``BroadcastClose``): delegates
+          to ``SessionManager.broadcast_lifecycle`` which dispatches the
+          command to every session (including this one). Each session's
+          AppShell handles the command locally.
 
         Args:
-            command: A LifecycleCommand subclass (Reveal / Close).
+            command: A LifecycleCommand subclass.
         """
+        if type(command).cross_session:
+            self._session_manager.broadcast_lifecycle(command, origin_session_id=self.session_id)
+            return
+
         if self._lifecycle_callback is not None:
             try:
                 self._lifecycle_callback(command)
@@ -145,6 +160,20 @@ class Session:
                 self._signal_callback(signal)
             except Exception as e:
                 logger.error(f"Session {self.session_id}: dispatch_signal error: {e}")
+
+    def _dispatch_lifecycle(self, command: LifecycleCommand) -> None:
+        """Internal: deliver a lifecycle command originating elsewhere
+        (e.g. a peer broadcast) without re-triggering broadcast.
+
+        Called by ``SessionManager.broadcast_lifecycle`` on each receiving
+        session. Bypasses the cross_session check on purpose — the broadcast
+        is already happening.
+        """
+        if self._lifecycle_callback is not None:
+            try:
+                self._lifecycle_callback(command)
+            except Exception as e:
+                logger.error(f"Session {self.session_id}: dispatch_lifecycle error: {e}")
 
     def cleanup(self) -> None:
         """Tear down per-session state.

@@ -67,7 +67,7 @@ class FileViewerEditor(BaseEditor):
             return None
         return Path(self.wrapper.payload)
 
-    def poll(self, context: "SessionContext", signal: "ContextSignal") -> bool:
+    def redraw_on_signal(self, context: "SessionContext", signal: "ContextSignal") -> bool:
         """Each FileViewer instance is pinned to one file via its wrapper
         payload. ActiveFileMoved signals don't drive redraws — a different
         file means a different tab.

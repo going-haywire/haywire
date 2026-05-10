@@ -81,7 +81,7 @@ class GraphEditor(BaseEditor):
     # poll / draw
     # ------------------------------------------------------------------
 
-    def poll(self, context: "SessionContext", signal: "ContextSignal") -> bool:
+    def redraw_on_signal(self, context: "SessionContext", signal: "ContextSignal") -> bool:
         # Each GraphEditor instance is pinned to one graph via its binding
         # payload. ActiveGraphMoved now just means "some tab became the
         # foreground" — this instance's own graph hasn't changed, so there

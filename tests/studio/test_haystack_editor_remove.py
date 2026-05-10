@@ -9,8 +9,8 @@ import haywire.core.graph.editor  # noqa: F401 -- circular-import guard
 
 from haywire.core.session.context_signals import (
     ActiveGraphMoved,
+    BroadcastClose,
     Close,
-    GraphDataMutated,
     GraphRemoved,
 )
 from haywire.core.session.reactive import Reactive
@@ -97,9 +97,10 @@ def _make_entry(
 def test_remove_clean_entry_skips_dialog_and_removes(editor_and_context):
     editor, context, app, haystack = editor_and_context
     entry = _make_entry(path="/tmp/a.haywire", unsaved=False)
+    haystack.get_by_id = MagicMock(return_value=entry)
 
     with patch.object(editor, "_open_remove_confirm_dialog") as mock_dialog:
-        editor._on_entry_delete(entry, context)
+        editor._on_entry_delete(entry.entry_id, context)
 
     mock_dialog.assert_not_called()
     haystack.remove_entry.assert_called_once_with(entry)
@@ -108,9 +109,10 @@ def test_remove_clean_entry_skips_dialog_and_removes(editor_and_context):
 def test_remove_dirty_file_backed_entry_opens_dialog(editor_and_context):
     editor, context, app, haystack = editor_and_context
     entry = _make_entry(path="/tmp/a.haywire", unsaved=True)
+    haystack.get_by_id = MagicMock(return_value=entry)
 
     with patch.object(editor, "_open_remove_confirm_dialog") as mock_dialog:
-        editor._on_entry_delete(entry, context)
+        editor._on_entry_delete(entry.entry_id, context)
 
     mock_dialog.assert_called_once_with(entry, context)
     haystack.remove_entry.assert_not_called()
@@ -119,22 +121,44 @@ def test_remove_dirty_file_backed_entry_opens_dialog(editor_and_context):
 def test_remove_untitled_entry_opens_dialog(editor_and_context):
     editor, context, app, haystack = editor_and_context
     entry = _make_entry(path=None, unsaved=False)
+    haystack.get_by_id = MagicMock(return_value=entry)
 
     with patch.object(editor, "_open_remove_confirm_dialog") as mock_dialog:
-        editor._on_entry_delete(entry, context)
+        editor._on_entry_delete(entry.entry_id, context)
 
     mock_dialog.assert_called_once_with(entry, context)
 
 
-def test_remove_executing_entry_blocked_before_dialog(editor_and_context):
+def test_remove_stale_entry_id_does_not_crash_or_remove(editor_and_context):
+    """A row click after the haystack was hot-reloaded resolves to None.
+
+    Re-resolution via _resolve_entry returns None and notifies — the
+    handler bails before remove_entry is called. No crash, no orphan.
+    """
     editor, context, app, haystack = editor_and_context
-    entry = _make_entry(path="/tmp/a.haywire", unsaved=True, is_executing=True)
+    haystack.get_by_id = MagicMock(return_value=None)
 
     with (
         patch.object(editor, "_open_remove_confirm_dialog") as mock_dialog,
         patch("haybale_haystack.editors.haystack_editor.ui.notify") as mock_notify,
     ):
-        editor._on_entry_delete(entry, context)
+        editor._on_entry_delete("__unsaved_42__", context)
+
+    mock_dialog.assert_not_called()
+    haystack.remove_entry.assert_not_called()
+    assert any("no longer available" in str(c).lower() for c in mock_notify.call_args_list)
+
+
+def test_remove_executing_entry_blocked_before_dialog(editor_and_context):
+    editor, context, app, haystack = editor_and_context
+    entry = _make_entry(path="/tmp/a.haywire", unsaved=True, is_executing=True)
+    haystack.get_by_id = MagicMock(return_value=entry)
+
+    with (
+        patch.object(editor, "_open_remove_confirm_dialog") as mock_dialog,
+        patch("haybale_haystack.editors.haystack_editor.ui.notify") as mock_notify,
+    ):
+        editor._on_entry_delete(entry.entry_id, context)
 
     mock_dialog.assert_not_called()
     haystack.remove_entry.assert_not_called()
@@ -149,16 +173,22 @@ def test_remove_entry_helper_fires_graph_removed_signal_and_close_command(editor
     with patch("haybale_haystack.editors.haystack_editor.ui.notify"):
         editor._remove_entry(entry, context)
 
-    # Signal channel: GraphRemoved (cross-session observation, no payload)
-    # and GraphDataMutated (via _notify_data_mutated, also cross-session).
+    # Signal channel: GraphRemoved (the editor still fires this for
+    # cross-session view refresh that isn't tied to mutator semantics).
+    # GraphDataMutated is now broadcast by HaystackState.remove_entry
+    # itself via session_manager.broadcast_signal, not via the editor's
+    # session.signal — so this mock-haystack test doesn't observe it.
     emitted_signals = [call.args[0] for call in context.session.signal.call_args_list]
     assert any(isinstance(s, GraphRemoved) for s in emitted_signals)
-    assert any(isinstance(s, GraphDataMutated) for s in emitted_signals)
 
-    # Lifecycle channel: a Close command for the removed entry, local-only.
+    # Lifecycle channel: a BroadcastClose for the removed entry — peer
+    # sessions might have a GraphEditor open on the same entry, and the
+    # entity is gone for everyone. BroadcastClose is-a Close, so the
+    # isinstance(_, Close) check still holds for shared dispatch logic.
     emitted_commands = [call.args[0] for call in context.session.lifecycle.call_args_list]
     close_commands = [c for c in emitted_commands if isinstance(c, Close)]
     assert len(close_commands) == 1
+    assert isinstance(close_commands[0], BroadcastClose)
     assert close_commands[0].payload == entry.entry_id
 
 

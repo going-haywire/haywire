@@ -33,7 +33,7 @@ class EditorWrapperState:
 
     Mirrors the shape of NodeWrapperState but with editor-specific phases.
     Editors have no init/structural/test phases — only import, instantiate,
-    and runtime (covering draw/on_focus/poll).
+    and runtime (covering draw/on_focus/on_signal/redraw_on_signal).
     """
 
     is_imported: bool = True
@@ -287,7 +287,7 @@ class EditorWrapper:
     def _instantiate(self) -> bool:
         """Lazy-instantiate the editor instance from editor_cls.
 
-        Called internally on first runtime entry point (draw/on_focus/poll)
+        Called internally on first runtime entry point (draw/on_focus/on_signal/redraw_on_signal)
         in Task 6. Captures construction errors into state.error_instantiate.
 
         Returns:
@@ -370,21 +370,42 @@ class EditorWrapper:
                 message=f"on_focus() raised in editor '{self.editor_key}'",
             ).enrich(registry_key=self.editor_key)
 
-    def poll(self, event: Any) -> bool:
-        """Ask the editor whether it needs a redraw.
+    def on_signal(self, event: Any) -> None:
+        """Forward a signal to the editor's side-effect hook.
 
-        Returns False if no instance exists or poll raised. Errors are
-        captured into state.error_runtime.
+        Fires for every wrapper regardless of active state. No-op if no
+        instance exists yet (a wrapper that has never been drawn cannot
+        have side-effect logic running). Errors are captured into
+        state.error_runtime — never propagated, so one editor cannot
+        break delivery to its siblings.
+        """
+        if self._instance is None:
+            return
+        try:
+            self._instance.on_signal(self._session.context, event)
+        except Exception as exc:
+            self._state.error_runtime = HaywireException.from_exception(
+                exception=exc,
+                operation="Editor on_signal",
+                message=f"on_signal() raised in editor '{self.editor_key}'",
+            ).enrich(registry_key=self.editor_key)
+
+    def redraw_on_signal(self, event: Any) -> bool:
+        """Ask the active-tab editor whether it needs a redraw.
+
+        Returns False if no instance exists or the call raised. Errors
+        are captured into state.error_runtime. Only called by the slot
+        for the active wrapper — backgrounded wrappers don't redraw.
         """
         if self._instance is None:
             return False
         try:
-            return bool(self._instance.poll(self._session.context, event))
+            return bool(self._instance.redraw_on_signal(self._session.context, event))
         except Exception as exc:
             self._state.error_runtime = HaywireException.from_exception(
                 exception=exc,
-                operation="Editor Poll",
-                message=f"poll() raised in editor '{self.editor_key}'",
+                operation="Editor redraw_on_signal",
+                message=f"redraw_on_signal() raised in editor '{self.editor_key}'",
             ).enrich(registry_key=self.editor_key)
             return False
 
@@ -397,7 +418,7 @@ class EditorWrapper:
         No-op-allows when there's no instance — a broken or unloaded
         wrapper has nothing to ask. If ``handle_close_request`` raises,
         the error is captured into ``state.error_runtime`` (consistent
-        with draw/on_focus/poll) and the close is allowed — better to
+        with draw/on_focus/on_signal/redraw_on_signal) and the close is allowed — better to
         lose veto than strand the user with an unclosable tab.
         """
         if self._instance is None:
