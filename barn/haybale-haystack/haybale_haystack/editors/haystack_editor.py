@@ -16,14 +16,15 @@ and DATA_MUTATED (to reflect unsaved/modified state).
 
 import logging
 from pathlib import Path
-from typing import TYPE_CHECKING, Callable, Optional
+from typing import Callable, Optional
 
-from haywire.core.session.protocols import IProjectState
 from nicegui import ui
 
 from haywire.ui import elements as hui
-from haywire.ui.editor.base import BaseEditor
-from haywire.ui.editor.decorator import editor
+from haywire.ui.editor import BaseEditor, editor
+from haywire.core.session.protocols import IProjectState
+from haywire.core.session.context import SessionContext
+from haywire.core.session.signals_and_lifecycle import ContextSignal
 from haywire.core.session.signals_and_lifecycle import (
     ActiveGraphMoved,
     BroadcastClose,
@@ -37,13 +38,7 @@ from haybale_haystack.signals import HaystackReloaded, HaystackTeardown
 from haybale_haystack.state.haystack_state import HaystackState
 from haybale_haystack.editors.graph_editor import GraphEditor
 from haybale_studio.state.edit_state import EditState
-
-if TYPE_CHECKING:
-    from haywire.core.session.context import SessionContext
-    from haywire.core.session.signals_and_lifecycle import ContextSignal
-    from haybale_haystack.graph_entry import GraphEntry
-    from nicegui.element import Element
-
+from haybale_haystack.graph_entry import GraphEntry
 
 logger = logging.getLogger(__name__)
 
@@ -151,7 +146,7 @@ class HaystackEditor(BaseEditor):
         if self._list_container is not None:
             self._render_list(context)
 
-    def draw(self, context: "SessionContext", container: "Element") -> None:
+    def draw(self, context: "SessionContext", container: ui.element) -> None:
         with container:
             with ui.column().classes("w-full h-full gap-0"):
                 self._render_header(context)

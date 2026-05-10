@@ -1,5 +1,5 @@
 [debug]
-log_level = "WARNING"
+log_level = "INFO"
 log_library = ""
 log_node = ""
 log_to_file = false
