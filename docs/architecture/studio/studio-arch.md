@@ -53,7 +53,7 @@ The `AppShell` (`packages/haywire-core/src/haywire/ui/app/shell.py`) is the layo
 
 ### 2.2 Workspaces
 
-A **workspace snapshot** is a plain JSON dict — one key per slot name plus a `"haystack"` key — persisted to `.haywire/workspace_state.json` per project. The `WorkspaceManager` (`packages/haywire-core/src/haywire/ui/workspace/manager.py`) is intentionally dumb:
+A **workspace snapshot** is a plain JSON dict — one key per slot name — persisted to `.haywire/workspace_state.json` per project. (Earlier versions also stored a `"haystack"` key naming the active haystack TOML; that responsibility moved to `HaystackSettings.last_haystack_name` in the haybale-haystack library.) The `WorkspaceManager` (`packages/haywire-core/src/haywire/ui/workspace/manager.py`) is intentionally dumb:
 
 - `WorkspaceManager.snapshot: dict` — the raw dict loaded from disk, or `{}` if the file is missing or unparseable.
 - `WorkspaceManager.save(snapshot)` — write the dict to disk and update `self.snapshot`.
@@ -196,7 +196,7 @@ Session A: user edits a node's setting
                   └─ Subscribers see signal.is_from_peer() == True
 ```
 
-Cross-session signals never carry payload data either. Receivers re-read the relevant state from the shared project — for `GraphDataMutated` that's the graph in `app.haystack.entries[<graph_id>]`. For `Subject.peer(...)` cases, peer state can be reached through `session_manager.get_session(peer_id).context`.
+Cross-session signals never carry payload data either. Receivers re-read the relevant state from the shared project — for `GraphDataMutated` that's the entry in `ctx.app_data[HaystackState].get_by_id(<entry_id>)`. For `Subject.peer(...)` cases, peer state can be reached through `session_manager.get_session(peer_id).context`.
 
 ## 4. Performance, errors, and boundaries
 
@@ -218,7 +218,7 @@ The signal-class-reload caveat applies here too: subscribers that hold a referen
 
 The studio layer does not own:
 
-- **Graph data** — that lives in `app.haystack` (the project's multi-graph registry).
+- **Graph data** — that lives in `HaystackState` (the multi-graph registry, accessed via `ctx.app_data[HaystackState]`) — an `AppState` defined by the haybale-haystack library, not the studio.
 - **Library state** — that lives in `LibraryStateContainer`, accessed via `ctx.data[Cls]` / `ctx.app_data[Cls]`.
 - **Settings resolution** — that's `SettingsRegistry` (see [architecture/settings](../settings/settings-arch.md)).
 - **Execution** — interpreters and assembly run server-side, independent of UI presence.
