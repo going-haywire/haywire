@@ -44,15 +44,14 @@ class setting(SettingDescriptor, Generic[T]):
             threshold = setting[float](0.5, min=0.0, max=1.0, label='Threshold')
             mode = setting[str]('fast', choices=['fast', 'precise'], label='Mode')
 
-    On ``FrameworkSettings`` and ``LibrarySettings`` subclasses the
-    descriptor's class is auto-promoted to ``persistent_setting`` during
-    registration, so writes route through the registry's workspace tier
-    (visible to peer instances, persisted to ``.haywire/settings.toml``).
+    On ``FrameworkSettings`` and ``LibrarySettings`` ,writes go through
+    the registry's workspace tier and persist to ``.haywire/settings.toml``).
+
     On ``NodeSettings`` and plain ``Settings``, writes go to the
-    instance's ``_local_store`` only. Authors declare ``setting[T](...)``
-    either way — the framework picks the right behaviour.
-    See ``docs/architecture/settings/settings-arch.md`` §6.3 for the full
-    write-path picture.
+    instance's ``_local_store`` only and are stored with the Graph. 
+    
+    Authors declare ``setting[T](...)`` either way — the framework 
+    picks the right behaviour.
 
     Parameters
     ----------
@@ -135,10 +134,8 @@ class setting(SettingDescriptor, Generic[T]):
         constructing ``setting(mirrors=..., read_only=...)`` directly.
 
     read_only : bool
-        When ``True``, ``__set__`` raises ``AttributeError`` — the field is
-        a read-only mirror (use ``watch()``). When ``False`` with
-        ``mirrors=``, the field is a writable mirror (use ``shadow()``) whose
-        local override beats the global value.
+        When ``True``, the field is read-only and raises ``AttributeError`
+        if one does anyway
 
     type_ : type or None
         Explicit Python type. Defaults to ``type(default)`` if ``default`` is
@@ -148,9 +145,9 @@ class setting(SettingDescriptor, Generic[T]):
         ``type_=float`` when ``default=None``).
 
     stored : bool
-        When ``False``, the field is omitted from ``to_dict()``
-        serialisation. Use for ephemeral fields that shouldn't persist to
-        disk. Defaults to ``True``.
+        When ``False``, the field is omitted from serialisation / saveing. 
+        Use for ephemeral fields that shouldn't persist to disk. 
+        Defaults to ``True``.
 
     validator : Callable or None
         Callable ``(value) -> bool`` returning ``True`` if the value is
@@ -325,8 +322,8 @@ class persistent_setting(setting, Generic[T]):
         # registry.set_global fires _notify_subscribers → owning instance's
         # _on_field_change → _on_property_change. We MUST NOT also call
         # _on_property_change ourselves here, or subscribers fire twice.
-        registry.set_global(self._setting_key, value)
-        registry.save_to_toml_debounced()
+        if self._stored:
+            registry.set_global(self._setting_key, value)
 
 
 def shadow(src: "setting[T]", **kwargs: Any) -> "setting[T]":
