@@ -339,3 +339,380 @@ def test_on_enable_logs_warning_when_settings_registry_unwired(caplog):
         )
     finally:
         HaystackSettings._registry = original_registry
+
+
+def test_save_haystack_calls_persistence_and_updates_last_name(
+    state_with_mocked_deps, tmp_path, monkeypatch
+):
+    """save_haystack delegates to persistence.dump_haystack and records the name in settings."""
+    state = state_with_mocked_deps
+    state._workspace_root = tmp_path
+
+    dumped = {}
+
+    def fake_dump(s, root, name, active_path=None):
+        dumped["name"] = name
+        dumped["root"] = root
+        dumped["active_path"] = active_path
+        return root / "haystacks" / f"{name}.toml"
+
+    monkeypatch.setattr("haybale_haystack.persistence.dump_haystack", fake_dump)
+
+    active = tmp_path / "graphs" / "foo.haywire"
+    result = state.save_haystack("session1", active_path=active)
+
+    assert dumped == {"name": "session1", "root": tmp_path, "active_path": active}
+    assert state._haystack_settings.last_haystack_name == "session1"
+    assert result == tmp_path / "haystacks" / "session1.toml"
+
+
+def test_save_haystack_without_active_path(state_with_mocked_deps, tmp_path, monkeypatch):
+    """active_path is optional; default None propagates through."""
+    state = state_with_mocked_deps
+    state._workspace_root = tmp_path
+
+    captured = {}
+
+    def fake_dump(s, root, name, active_path=None):
+        captured["active_path"] = active_path
+        return root / "haystacks" / f"{name}.toml"
+
+    monkeypatch.setattr("haybale_haystack.persistence.dump_haystack", fake_dump)
+
+    result = state.save_haystack("session1")
+    assert captured["active_path"] is None
+    assert state._haystack_settings.last_haystack_name == "session1"
+    assert result == tmp_path / "haystacks" / "session1.toml"
+
+
+def test_load_haystack_calls_persistence_and_updates_last_name(
+    state_with_mocked_deps, tmp_path, monkeypatch
+):
+    """load_haystack delegates to persistence.load_haystack and records the name in settings."""
+    state = state_with_mocked_deps
+    state._workspace_root = tmp_path
+
+    # Create the TOML file so source.exists() returns True (required for last_haystack_name
+    # to be updated — the guard was added to prevent poisoning on missing-file loads).
+    haystacks_dir = tmp_path / "haystacks"
+    haystacks_dir.mkdir()
+    (haystacks_dir / "session1.toml").write_text("")
+
+    expected_active = tmp_path / "graphs" / "foo.haywire"
+
+    def fake_load(s, root, name):
+        return expected_active
+
+    monkeypatch.setattr("haybale_haystack.persistence.load_haystack", fake_load)
+
+    result = state.load_haystack("session1")
+
+    assert result == expected_active
+    assert state._haystack_settings.last_haystack_name == "session1"
+
+
+def test_load_haystack_missing_file_does_not_update_last_name(state_with_mocked_deps, tmp_path):
+    """If the named haystack TOML does not exist, last_haystack_name must NOT
+    be updated — otherwise the next on_enable would try to rehydrate from a
+    file that doesn't exist."""
+    state = state_with_mocked_deps
+    state._workspace_root = tmp_path
+    state._haystack_settings.last_haystack_name = "previous"
+
+    # No haystacks/ directory created — file is missing.
+    result = state.load_haystack("nonexistent")
+
+    assert result is None
+    assert state._haystack_settings.last_haystack_name == "previous"
+
+
+def test_start_execution_calls_entry_method(state_with_mocked_deps):
+    """HaystackState.start_execution forwards to entry.start_execution."""
+    state = state_with_mocked_deps
+    entry = MagicMock()
+
+    state.start_execution(entry)
+
+    entry.start_execution.assert_called_once_with()
+
+
+def test_stop_execution_calls_entry_method(state_with_mocked_deps):
+    """HaystackState.stop_execution forwards to entry.stop_execution."""
+    state = state_with_mocked_deps
+    entry = MagicMock()
+
+    state.stop_execution(entry)
+
+    entry.stop_execution.assert_called_once_with()
+
+
+def test_autosave_if_continuous_off_does_nothing(state_with_mocked_deps, tmp_path, monkeypatch):
+    state = state_with_mocked_deps
+    state._workspace_root = tmp_path
+    state._haystack_settings.autosave = "off"
+    state._haystack_settings.last_haystack_name = "session1"
+
+    called = []
+    monkeypatch.setattr(
+        "haybale_haystack.persistence.dump_haystack",
+        lambda *a, **k: called.append((a, k)),
+    )
+
+    state._autosave_if_continuous()
+    assert called == []
+
+
+def test_autosave_if_continuous_on_exit_does_nothing(state_with_mocked_deps, tmp_path, monkeypatch):
+    """on_exit fires from on_disable, NOT from this helper."""
+    state = state_with_mocked_deps
+    state._workspace_root = tmp_path
+    state._haystack_settings.autosave = "on_exit"
+    state._haystack_settings.last_haystack_name = "session1"
+
+    called = []
+    monkeypatch.setattr(
+        "haybale_haystack.persistence.dump_haystack",
+        lambda *a, **k: called.append((a, k)),
+    )
+
+    state._autosave_if_continuous()
+    assert called == []
+
+
+def test_autosave_if_continuous_dumps_when_enabled(state_with_mocked_deps, tmp_path, monkeypatch):
+    state = state_with_mocked_deps
+    state._workspace_root = tmp_path
+    state._haystack_settings.autosave = "continuous"
+    state._haystack_settings.last_haystack_name = "session1"
+
+    captured = {}
+
+    def fake_dump(s, root, name, active_path=None):
+        captured["name"] = name
+        captured["active_path"] = active_path
+        return root / "haystacks" / f"{name}.toml"
+
+    monkeypatch.setattr("haybale_haystack.persistence.dump_haystack", fake_dump)
+
+    state._autosave_if_continuous()
+    assert captured["name"] == "session1"
+    # continuous-mode dumps must NOT include active_graph.
+    assert captured["active_path"] is None
+
+
+def test_autosave_if_continuous_skips_when_no_last_name(state_with_mocked_deps, tmp_path, monkeypatch):
+    state = state_with_mocked_deps
+    state._workspace_root = tmp_path
+    state._haystack_settings.autosave = "continuous"
+    state._haystack_settings.last_haystack_name = ""
+
+    called = []
+    monkeypatch.setattr(
+        "haybale_haystack.persistence.dump_haystack",
+        lambda *a, **k: called.append((a, k)),
+    )
+
+    state._autosave_if_continuous()
+    assert called == []
+
+
+def test_autosave_if_continuous_skips_when_settings_missing(state_with_mocked_deps, tmp_path, monkeypatch):
+    """Defensive: tests/dev environments may have _haystack_settings = None."""
+    state = state_with_mocked_deps
+    state._workspace_root = tmp_path
+    state._haystack_settings = None
+
+    called = []
+    monkeypatch.setattr(
+        "haybale_haystack.persistence.dump_haystack",
+        lambda *a, **k: called.append((a, k)),
+    )
+
+    state._autosave_if_continuous()
+    assert called == []
+
+
+def test_autosave_if_continuous_skips_when_no_workspace_root(state_with_mocked_deps, monkeypatch):
+    """Defensive: a HaystackState whose workspace_root never got wired (test fixture
+    short-circuit, on_enable failed, etc.) must not attempt a TOML write."""
+    state = state_with_mocked_deps
+    state._workspace_root = None
+    state._haystack_settings.autosave = "continuous"
+    state._haystack_settings.last_haystack_name = "session1"
+
+    called = []
+    monkeypatch.setattr(
+        "haybale_haystack.persistence.dump_haystack",
+        lambda *a, **k: called.append((a, k)),
+    )
+
+    state._autosave_if_continuous()
+    assert called == []
+
+
+@pytest.fixture
+def state_in_continuous_mode(state_with_mocked_deps, tmp_path):
+    """state_with_mocked_deps + autosave=continuous + a named haystack."""
+    state = state_with_mocked_deps
+    state._workspace_root = tmp_path
+    state._haystack_settings.autosave = "continuous"
+    state._haystack_settings.last_haystack_name = "session1"
+    return state
+
+
+def _patch_dump(monkeypatch):
+    """Capture every persistence.dump_haystack call into a list."""
+    calls: list[dict] = []
+
+    def fake_dump(s, root, name, active_path=None):
+        calls.append({"name": name, "active_path": active_path})
+        return root / "haystacks" / f"{name}.toml"
+
+    monkeypatch.setattr("haybale_haystack.persistence.dump_haystack", fake_dump)
+    return calls
+
+
+def test_create_new_triggers_continuous_autosave(state_in_continuous_mode, monkeypatch):
+    calls = _patch_dump(monkeypatch)
+    state_in_continuous_mode.create_new()
+    assert any(c["name"] == "session1" and c["active_path"] is None for c in calls)
+
+
+def test_open_graph_triggers_continuous_autosave(state_in_continuous_mode, tmp_path, monkeypatch):
+    calls = _patch_dump(monkeypatch)
+    p = tmp_path / "graphs" / "foo.haywire"
+    p.parent.mkdir(parents=True, exist_ok=True)
+    p.write_text("")  # empty .haywire — load_from_file is mocked via the factory below
+
+    # NodeFactory is a MagicMock from the fixture, and BaseGraph.load_from_file
+    # will be called on a real BaseGraph; for this test we just need open_graph
+    # to fire the autosave hook regardless of file content.
+    with (
+        patch("haywire.core.graph.base.BaseGraph.load_from_file"),
+        patch("haywire.core.graph.base.BaseGraph.force_validation"),
+    ):
+        state_in_continuous_mode.open_graph(p)
+
+    assert any(c["name"] == "session1" for c in calls)
+
+
+def test_save_graph_triggers_continuous_autosave(state_in_continuous_mode, tmp_path, monkeypatch):
+    calls = _patch_dump(monkeypatch)
+    state = state_in_continuous_mode
+    entry = state.create_new()
+    entry.graph = MagicMock()
+    entry.graph.save_to_file.return_value = True
+
+    target = tmp_path / "graphs" / "foo.haywire"
+    state.save_graph(entry, save_as=target)
+    assert any(c["name"] == "session1" for c in calls)
+
+
+def test_remove_entry_triggers_continuous_autosave(state_in_continuous_mode, monkeypatch):
+    calls = _patch_dump(monkeypatch)
+    state = state_in_continuous_mode
+    entry = state.create_new()
+    calls.clear()  # ignore the create_new call
+
+    state.remove_entry(entry)
+    assert any(c["name"] == "session1" for c in calls)
+
+
+def test_rename_graph_triggers_continuous_autosave(state_in_continuous_mode, tmp_path, monkeypatch):
+    calls = _patch_dump(monkeypatch)
+    state = state_in_continuous_mode
+    p = tmp_path / "graphs" / "foo.haywire"
+    p.parent.mkdir(parents=True, exist_ok=True)
+    p.write_text("")
+    entry = MagicMock()
+    entry.path = p
+    entry.entry_id = str(p)
+    state._entries[entry.entry_id] = entry
+    calls.clear()
+
+    state.rename_graph(entry, "bar")
+    assert any(c["name"] == "session1" for c in calls)
+
+
+def test_start_execution_triggers_continuous_autosave(state_in_continuous_mode, monkeypatch):
+    calls = _patch_dump(monkeypatch)
+    entry = MagicMock()
+    state_in_continuous_mode.start_execution(entry)
+    assert any(c["name"] == "session1" for c in calls)
+
+
+def test_stop_execution_triggers_continuous_autosave(state_in_continuous_mode, monkeypatch):
+    calls = _patch_dump(monkeypatch)
+    entry = MagicMock()
+    state_in_continuous_mode.stop_execution(entry)
+    assert any(c["name"] == "session1" for c in calls)
+
+
+def test_on_disable_dumps_when_autosave_is_on_exit(state_with_mocked_deps, tmp_path, monkeypatch):
+    state = state_with_mocked_deps
+    state._workspace_root = tmp_path
+    state._haystack_settings.autosave = "on_exit"
+    state._haystack_settings.last_haystack_name = "session1"
+
+    captured = {}
+
+    def fake_dump(s, root, name, active_path=None):
+        captured["name"] = name
+        captured["active_path"] = active_path
+        return root / "haystacks" / f"{name}.toml"
+
+    monkeypatch.setattr("haybale_haystack.persistence.dump_haystack", fake_dump)
+
+    state.on_disable()
+    assert captured["name"] == "session1"
+    assert captured["active_path"] is None  # on_disable has no session context
+
+
+def test_on_disable_does_not_dump_when_autosave_is_off(state_with_mocked_deps, tmp_path, monkeypatch):
+    state = state_with_mocked_deps
+    state._workspace_root = tmp_path
+    state._haystack_settings.autosave = "off"
+    state._haystack_settings.last_haystack_name = "session1"
+
+    called = []
+    monkeypatch.setattr(
+        "haybale_haystack.persistence.dump_haystack",
+        lambda *a, **k: called.append((a, k)),
+    )
+
+    state.on_disable()
+    assert called == []
+
+
+def test_on_disable_does_not_dump_when_autosave_is_continuous(state_with_mocked_deps, tmp_path, monkeypatch):
+    """Continuous mode handles dumps via per-mutator hooks; on_disable should NOT
+    additionally fire — it would be a redundant write at shutdown."""
+    state = state_with_mocked_deps
+    state._workspace_root = tmp_path
+    state._haystack_settings.autosave = "continuous"
+    state._haystack_settings.last_haystack_name = "session1"
+
+    called = []
+    monkeypatch.setattr(
+        "haybale_haystack.persistence.dump_haystack",
+        lambda *a, **k: called.append((a, k)),
+    )
+
+    state.on_disable()
+    assert called == []
+
+
+def test_on_disable_skips_when_last_name_empty(state_with_mocked_deps, tmp_path, monkeypatch):
+    state = state_with_mocked_deps
+    state._workspace_root = tmp_path
+    state._haystack_settings.autosave = "on_exit"
+    state._haystack_settings.last_haystack_name = ""
+
+    called = []
+    monkeypatch.setattr(
+        "haybale_haystack.persistence.dump_haystack",
+        lambda *a, **k: called.append((a, k)),
+    )
+
+    state.on_disable()
+    assert called == []

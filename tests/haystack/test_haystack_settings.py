@@ -39,3 +39,35 @@ def test_can_set_and_read_last_haystack_name():
         assert s.last_haystack_name == "my_session"
     finally:
         HaystackSettings._registry = None
+
+
+def test_default_autosave_is_off():
+    from haybale_haystack.settings.haystack_settings import HaystackSettings
+
+    s = HaystackSettings()
+    assert s.autosave == "off"
+
+
+def test_can_set_and_read_autosave():
+    from haybale_haystack.settings.haystack_settings import HaystackSettings
+    from haywire.core.settings.registry import SettingsRegistry
+
+    registry = SettingsRegistry()
+    registry.register_schema(HaystackSettings)
+    HaystackSettings._registry = registry
+    try:
+        s = HaystackSettings()
+        s.autosave = "continuous"
+        assert s.autosave == "continuous"
+        s.autosave = "on_exit"
+        assert s.autosave == "on_exit"
+    finally:
+        HaystackSettings._registry = None
+
+
+def test_autosave_choices_are_off_on_exit_continuous():
+    """The schema must declare the three valid options so UI selects can enumerate them."""
+    from haybale_haystack.settings.haystack_settings import HaystackSettings
+
+    field = HaystackSettings.__dict__["autosave"]
+    assert set(field.choices or []) == {"off", "on_exit", "continuous"}

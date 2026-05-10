@@ -42,6 +42,7 @@ from haybale_haystack.graph_entry import GraphEntry
 
 logger = logging.getLogger(__name__)
 
+
 def _workspace_rel_path(path: Path, workspace_root: "Path | None") -> str:
     """Return path relative to workspace_root when possible, else absolute path."""
     if workspace_root is not None:
@@ -706,7 +707,8 @@ class HaystackEditor(BaseEditor):
         entry = self._resolve_entry(entry_id, context)
         if entry is None:
             return
-        entry.start_execution()
+        hs = context.app_data[HaystackState]
+        hs.start_execution(entry)
         self._notify_data_mutated(context)
 
     def _on_stop_execution(self, entry_id: str, context: "SessionContext") -> None:
@@ -714,7 +716,8 @@ class HaystackEditor(BaseEditor):
         entry = self._resolve_entry(entry_id, context)
         if entry is None:
             return
-        entry.stop_execution()
+        hs = context.app_data[HaystackState]
+        hs.stop_execution(entry)
         self._notify_data_mutated(context)
 
     # ------------------------------------------------------------------
@@ -754,19 +757,9 @@ class HaystackEditor(BaseEditor):
                 if not name:
                     ui.notify("Name cannot be empty", type="warning")
                     return
-                # Task 9 will remove the haystack save from app.save_workspace;
-                # this is the new authoritative call site for haystack TOML
-                # persistence. Until Task 9 lands, save_workspace also writes
-                # the same TOML — the duplicate write is harmless (verified in
-                # Task 4 that the schema matches legacy).
-                from haybale_haystack import persistence
-                from haywire.core.di.context import get_workspace_root
-
                 active_path = context.data[EditState].active_graph_path.value
-                persistence.dump_haystack(hs, get_workspace_root(), name, active_path=active_path)
+                hs.save_haystack(name, active_path=active_path)
 
-                context.app.workspace_manager.snapshot["haystack"] = name
-                context.app.save_workspace(active_graph_path=active_path)
                 self._update_header_title(context)
                 ui.notify(f"Haystack '{name}' saved", type="positive")
                 popup.close()
@@ -817,18 +810,13 @@ class HaystackEditor(BaseEditor):
             def _do_load():
                 name = haystack_select.value
 
-                # persistence.load_haystack does NOT clear the existing entries
-                # — that responsibility was deliberately moved to the caller
-                # when the I/O was extracted into pure helpers. Clear the
-                # registry first so the loaded set replaces, not appends.
+                # hs.load_haystack does NOT clear existing entries — that
+                # responsibility lives at the caller. Clear first so the
+                # loaded set replaces, not appends.
                 for existing in list(hs.all_entries()):
                     hs.remove_entry(existing)
 
-                from haybale_haystack import persistence
-                from haywire.core.di.context import get_workspace_root
-
-                workspace_root = get_workspace_root()
-                active_path = persistence.load_haystack(hs, workspace_root, name)
+                active_path = hs.load_haystack(name)
 
                 # Resolve the active entry from the returned absolute path,
                 # falling back to the first entry if missing/None.
@@ -839,9 +827,6 @@ class HaystackEditor(BaseEditor):
                     entries = hs.all_entries()
                     if entries:
                         active_entry = entries[0]
-
-                context.app.workspace_manager.snapshot["haystack"] = name
-                context.app.save_workspace(active_graph_path=context.data[EditState].active_graph_path.value)
 
                 session = context.session
                 if active_entry is not None and session is not None:
@@ -944,11 +929,21 @@ class HaystackEditor(BaseEditor):
     # ------------------------------------------------------------------
 
     def _get_active_haystack_name(self, context: "SessionContext") -> Optional[str]:
-        """Return the name of the currently loaded haystack, or None."""
-        app = context.app
-        if app is not None and hasattr(app, "workspace_manager"):
-            return app.workspace_manager.snapshot.get("haystack")
-        return None
+        """Return the currently-active haystack name (or None).
+
+        Reads ``HaystackSettings.last_haystack_name`` — that is the
+        authoritative location after PR2's carve-out (Q1-A). The legacy
+        ``workspace_manager.snapshot["haystack"]`` key is no longer
+        consulted here.
+        """
+        from haybale_haystack.settings.haystack_settings import HaystackSettings
+
+        try:
+            settings = HaystackSettings()
+        except Exception:
+            return None
+        name = settings.last_haystack_name
+        return name or None
 
     def _update_rename_haystack_enabled(self, context: "SessionContext") -> None:
         """Enable/disable the Rename Haystack menu item based on whether a haystack is loaded."""
@@ -999,10 +994,14 @@ class HaystackEditor(BaseEditor):
                 hs = context.app_data[HaystackState]
                 success = hs.rename_haystack(old_name, new_name)
                 if success:
-                    context.app.workspace_manager.snapshot["haystack"] = new_name
-                    context.app.save_workspace(
-                        active_graph_path=context.data[EditState].active_graph_path.value
-                    )
+                    # Keep last_haystack_name in lockstep with the rename — without
+                    # this, the next on_enable would try to rehydrate from the OLD
+                    # name (whose TOML was just renamed) and warn-and-skip.
+                    if (
+                        hs._haystack_settings is not None
+                        and hs._haystack_settings.last_haystack_name == old_name
+                    ):
+                        hs._haystack_settings.last_haystack_name = new_name
                     self._update_header_title(context)
                     ui.notify(f"Haystack renamed to '{new_name}'", type="positive")
                     popup.close()
