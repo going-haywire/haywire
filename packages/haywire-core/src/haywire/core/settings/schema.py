@@ -21,6 +21,7 @@ so instantiation with no args produces a fully registry-wired instance.
 from __future__ import annotations
 from typing import TYPE_CHECKING
 
+from haywire.core.settings.descriptor import persistent_setting
 from haywire.core.settings.settings import Settings
 
 if TYPE_CHECKING:
@@ -89,6 +90,7 @@ class FrameworkSettings(Settings):
                 # we don't want the user to set mirrors because this would
                 # silently break the resolution and subscription machinery
                 val._mirror_key = val._setting_key
+                val.__class__ = persistent_setting
 
             # Self-registration: queue or register immediately
             if FrameworkSettings._registry is not None:
@@ -148,6 +150,7 @@ class LibrarySettings(Settings):
                 # we don't want the user to set mirrors because this would
                 # silently break the resolution and subscription machinery
                 val._mirror_key = val._setting_key
+                val.__class__ = persistent_setting
 
         # No registry touch here — registration handled by BaseRegistry hot-reload path
 

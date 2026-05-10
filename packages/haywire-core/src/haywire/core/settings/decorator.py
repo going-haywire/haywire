@@ -62,6 +62,7 @@ def settings(namespace: str, label: str = "", description: str = ""):
     def decorator(inner_cls):
         # Lazy import to avoid circular dependency (schema imports descriptors)
         from haywire.core.settings.schema import LibrarySettings, FrameworkSettings  # noqa: PLC0415
+        from haywire.core.settings.descriptor import persistent_setting  # noqa: PLC0415
 
         if not issubclass(inner_cls, (LibrarySettings, FrameworkSettings)):
             raise TypeError(
@@ -90,9 +91,14 @@ def settings(namespace: str, label: str = "", description: str = ""):
         inner_cls._namespace = namespace
         inner_cls.class_library = library_identity
 
-        # Set _setting_key on all prop descriptors (namespace known at decoration time)
+        # Set _setting_key on all prop descriptors (namespace known at decoration time).
+        # Also promote each descriptor to persistent_setting so writes route through
+        # the registry's workspace tier — matches the symmetric path in
+        # FrameworkSettings/LibrarySettings.__init_subclass__ for class-signature
+        # namespaces.
         for name, descriptor in inner_cls._property_settings().items():
             descriptor._setting_key = f"{namespace}.{name}"
+            descriptor.__class__ = persistent_setting
 
         return inner_cls
 

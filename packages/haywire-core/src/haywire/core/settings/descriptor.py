@@ -168,6 +168,55 @@ class setting(SettingDescriptor, Generic[T]):
             obj._on_property_change(self._attr_name, value, old, self._on_change)
 
 
+class persistent_setting(setting, Generic[T]):
+    """A `setting` whose writes persist through the registry's workspace tier.
+
+    Used by FrameworkSettings and LibrarySettings — every field declared on
+    those schemas is auto-promoted to persistent_setting by their
+    __init_subclass__. Instantiating this class directly bypasses the
+    registration machinery and is unsupported; declare fields as
+    ``setting[T](...)`` and let the parent class promote them.
+
+    Behavior change vs `setting`:
+        Writes call ``registry.set_global(setting_key, value)`` followed by
+        ``registry.save_to_toml_debounced()``. The registry then fires
+        change notifications to subscribers (including the owning Settings
+        instance), so this class deliberately does NOT call
+        ``_on_property_change`` itself — that would double-fire every
+        callback.
+
+    Falls back to ``super().__set__`` (parent's local-store write) when the
+    instance has no registry wired (e.g. test fixtures in simple mode) or
+    when the field has no namespaced ``_setting_key``. This preserves
+    backwards compatibility with tests that construct schemas without a
+    registry.
+    """
+
+    def __set__(self, obj: Any, value: T) -> None:
+        if self._read_only:
+            raise AttributeError(
+                f"'{self._attr_name}' is read-only — it mirrors a global setting "
+                f"and cannot be set per-instance."
+            )
+
+        if not self.validate(value):
+            return
+
+        registry = getattr(obj, "_registry", None)
+        if registry is None or not self._setting_key:
+            # No registry wired (test fixture / simple mode), or no
+            # namespaced key — fall back to local-store write so existing
+            # behaviour is preserved.
+            super().__set__(obj, value)
+            return
+
+        # registry.set_global fires _notify_subscribers → owning instance's
+        # _on_field_change → _on_property_change. We MUST NOT also call
+        # _on_property_change ourselves here, or subscribers fire twice.
+        registry.set_global(self._setting_key, value)
+        registry.save_to_toml_debounced()
+
+
 def shadow(src: "setting[T]", **kwargs: Any) -> "setting[T]":
     """Writable mirror of *src* setting. Inherits src metadata; local writes are allowed."""
     return setting(mirrors=src, read_only=False, **kwargs)

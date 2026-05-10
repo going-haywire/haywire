@@ -529,7 +529,15 @@ class SettingsRegistry(BaseRegistry):
         Each call resets the timer so that the file write only happens
         once the caller stops requesting saves for ``_SAVE_DEBOUNCE`` seconds.
         Useful during continuous interactions like drag-to-change widgets.
+
+        No-op when there is no workspace path configured AND no path is
+        passed in — there is nowhere to persist to (unsaved workspace, or
+        test fixture). In-memory tier values still update via set_global;
+        only the disk write is skipped.
         """
+        if path is None and self._workspace_path is None:
+            return
+
         timer = getattr(self, "_save_timer", None)
         if timer is not None:
             timer.cancel()
