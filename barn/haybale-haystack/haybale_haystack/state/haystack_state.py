@@ -55,6 +55,7 @@ class HaystackState(AppState):
     def __init__(self) -> None:
         super().__init__()
         self._entries: dict[str, GraphEntry] = {}
+        self._haystack_dirty: bool = False
 
         # Dependencies resolved in on_enable.
         self._session_manager: Optional[SessionManager] = None
@@ -103,13 +104,17 @@ class HaystackState(AppState):
             )
 
         # Rehydrate from last_haystack_name (best-effort).
+        # Use self.load_haystack — not the free persistence.load_haystack —
+        # so _haystack_dirty is cleared at the end. The free function calls
+        # state.open_graph per entry, each of which marks dirty; without
+        # the wrapping clear the haystack would appear permanently dirty
+        # from the moment startup completes even though the in-memory set
+        # exactly mirrors the TOML.
         if self._haystack_settings is not None:
             last = self._haystack_settings.last_haystack_name
             if last:
                 try:
-                    from haybale_haystack.persistence import load_haystack
-
-                    load_haystack(self, self._workspace_root, last)
+                    self.load_haystack(last)
                     logger.info(f"HaystackState: rehydrated from '{last}'")
                 except Exception as exc:
                     logger.error(f"HaystackState: failed to rehydrate '{last}': {exc}")
@@ -257,6 +262,7 @@ class HaystackState(AppState):
         self._subscribe_validation(entry)
         logger.info(f"HaystackState: created new entry '{name}' ({entry_id})")
         self._broadcast_data_mutated()
+        self._mark_haystack_dirty()
         self._autosave_if_continuous()
         return entry
 
@@ -281,6 +287,7 @@ class HaystackState(AppState):
         self._subscribe_validation(entry)
         logger.info(f"HaystackState: opened {path}")
         self._broadcast_data_mutated()
+        self._mark_haystack_dirty()
         self._autosave_if_continuous()
         return entry
 
@@ -303,6 +310,7 @@ class HaystackState(AppState):
                 entry.path = save_as
                 self._entries[entry.entry_id] = entry
             self._broadcast_data_mutated()
+            self._mark_haystack_dirty()
             self._autosave_if_continuous()
         return success
 
@@ -327,6 +335,7 @@ class HaystackState(AppState):
         self._entries[entry.entry_id] = entry
         entry.unsaved = False
         self._broadcast_data_mutated()
+        self._mark_haystack_dirty()
         self._autosave_if_continuous()
         return True
 
@@ -342,6 +351,7 @@ class HaystackState(AppState):
         if entry.entry_id in self._entries and self._entries[entry.entry_id] is entry:
             del self._entries[entry.entry_id]
             self._broadcast_data_mutated()
+            self._mark_haystack_dirty()
             self._autosave_if_continuous()
             return True
         return False
@@ -357,11 +367,13 @@ class HaystackState(AppState):
     def start_execution(self, entry: GraphEntry) -> None:
         """Start execution on *entry*, then fire continuous autosave."""
         entry.start_execution()
+        self._mark_haystack_dirty()
         self._autosave_if_continuous()
 
     def stop_execution(self, entry: GraphEntry) -> None:
         """Stop execution on *entry*, then fire continuous autosave."""
         entry.stop_execution()
+        self._mark_haystack_dirty()
         self._autosave_if_continuous()
 
     # ------------------------------------------------------------------
@@ -411,6 +423,10 @@ class HaystackState(AppState):
         are wired, updates ``HaystackSettings.last_haystack_name = name``
         so the next ``on_enable`` rehydrates from the same file.
 
+        Clears ``_haystack_dirty`` and broadcasts ``GraphDataMutated`` so
+        the HaystackEditor re-renders and removes the header's dirty
+        indicator + save icon.
+
         Returns the path to the written TOML file.
         """
         from haybale_haystack import persistence
@@ -419,6 +435,10 @@ class HaystackState(AppState):
         target = persistence.dump_haystack(self, self._workspace_root, name, active_path=active_path)
         if self._haystack_settings is not None:
             self._haystack_settings.last_haystack_name = name
+        self._haystack_dirty = False
+        # State transitioned (dirty → clean); broadcast so HaystackEditor
+        # redraws and the header chrome reflects the new clean state.
+        self._broadcast_data_mutated()
         return target
 
     def load_haystack(self, name: str) -> Optional[Path]:
@@ -444,6 +464,9 @@ class HaystackState(AppState):
         active = persistence.load_haystack(self, self._workspace_root, name)
         if source.exists() and self._haystack_settings is not None:
             self._haystack_settings.last_haystack_name = name
+        # After a fresh load the in-memory set matches the TOML by
+        # definition — any prior dirty signal is now stale.
+        self._haystack_dirty = False
         return active
 
     # ------------------------------------------------------------------
@@ -483,6 +506,19 @@ class HaystackState(AppState):
     # ------------------------------------------------------------------
     # Internal helpers
     # ------------------------------------------------------------------
+
+    def _mark_haystack_dirty(self) -> None:
+        """Mark the haystack-set as diverged from the saved TOML.
+
+        Set whenever a mutator changes the registry shape or execution
+        state — the same trigger set as ``_autosave_if_continuous``,
+        because both react to "the file on disk no longer matches what
+        we have in memory." Cleared in ``save_haystack``.
+
+        Consumed by HaystackEditor to show a dirty indicator + save
+        icon on the haystack header.
+        """
+        self._haystack_dirty = True
 
     def _autosave_if_continuous(self) -> None:
         """Dump the haystack TOML if continuous-mode autosave is enabled.

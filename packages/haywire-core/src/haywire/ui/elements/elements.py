@@ -53,7 +53,10 @@ _LIST_HOVER_CLASS = "hw-list-item-hover"
 
 
 @contextmanager
-def panel_header(title: str, *, icon: str | None = None):
+def panel_header(
+    title: str, *, 
+    icon: str | None = None,
+    is_dirty: bool = False):
     """
     A slim bar at the top of a panel with title, optional icon, and space for
     action buttons.  Use as a context manager — place action buttons inside.
@@ -83,6 +86,10 @@ def panel_header(title: str, *, icon: str | None = None):
     with row:
         if icon:
             ui.icon(icon, size="16px").classes("hw-text-dim")
+        if is_dirty:
+            ui.element("div").classes("w-2 h-2 rounded-full flex-shrink-0 bg-amber-400").style(
+                "border: 1px solid var(--hw-border);"
+            )
         ui.label(title).classes("text-sm font-medium hw-text-body truncate flex-1")
         yield row
 

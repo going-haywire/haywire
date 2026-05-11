@@ -5,6 +5,10 @@ log_node = ""
 log_to_file = false
 log_ui = ""
 
+[haystack]
+last_haystack_name = "Master"
+new_counter = 5
+
 [workbench]
 theme = "studio:theme:workbench:HaywireDarkTheme"
 
@@ -16,8 +20,11 @@ zoom_sensitivity = 0.56
 
 [ui.minimap]
 debug_info = false
-enabled = false
+enabled = true
 ghost_opacity = 0.2
 opacity = 0.5
 position = "bottom-right"
 width = 116
+
+[debug.library.core]
+log_level = ""

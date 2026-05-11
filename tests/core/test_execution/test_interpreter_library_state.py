@@ -1,7 +1,7 @@
 """Tests verifying Interpreter forwards LibraryStateContainer to its VM."""
 
 from haywire.core.execution.interpreter import Interpreter
-from haywire.core.state import LibraryStateContainer
+from haywire.core.state import LibraryStateContainer, LibraryStateRegistry
 
 
 class TestInterpreterLibraryState:
@@ -10,6 +10,6 @@ class TestInterpreterLibraryState:
         assert interpreter.vm._library_state_container is None
 
     def test_interpreter_forwards_container_to_vm(self):
-        container = LibraryStateContainer()
+        container = LibraryStateContainer(LibraryStateRegistry())
         interpreter = Interpreter(library_state_container=container)
         assert interpreter.vm._library_state_container is container

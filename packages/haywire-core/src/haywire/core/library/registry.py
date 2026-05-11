@@ -3,7 +3,7 @@ import sys
 import importlib
 import traceback
 from types import ModuleType
-from typing import Any, Dict, Optional, Type
+from typing import Any, Callable, Dict, List, Optional, Type
 from pathlib import Path
 import logging
 
@@ -55,6 +55,20 @@ class LibraryRegistry:
         self.load_core_libraries = False  # Load core libraries from src/haywire/libraries
         self.load_pip_packages = True  # Load from pip installed packages
         self.core_libraries_path: Optional[str] = None  # Set during initialization
+
+        # Post-enable callbacks: fired AFTER library.enable() returns
+        # successfully. Used by LibraryStateContainer to learn "library X
+        # has finished registering all its components" so it can catch up
+        # on that library's state classes — the key timing point that
+        # avoids the load-order race (see internals/superpowers/plans/...
+        # state-container-late-subscription).
+        self._library_enabled_callbacks: List[Callable[[BaseLibrary], None]] = []
+        # Post-disable callbacks: mirror of the above, fired AFTER
+        # library.disable() returns. By that point the CLASS_REMOVED events
+        # from _detach_from_registries have drained; the callback is used by
+        # LibraryStateContainer to drop the library id from its filter set
+        # so events for the (now-disabled) library are subsequently rejected.
+        self._library_disabled_callbacks: List[Callable[[BaseLibrary], None]] = []
 
     def _register(self, library_instance: Any):
         """Register a library instance with its path"""
@@ -112,10 +126,76 @@ class LibraryRegistry:
         self.debounce_delay = debounce_delay
         self.enforce_file_watching = force
 
+    def add_library_disabled_callback(self, callback: Callable[[BaseLibrary], None]) -> None:
+        """Register a callback fired AFTER each library's disable() returns.
+
+        Mirror of ``add_library_enabled_callback``. Used by
+        ``LibraryStateContainer`` to drop the library id from its
+        ``_enabled_library_ids`` set so subsequent events for the (now
+        disabled) library are rejected by the filter.
+
+        Multiple subscribers allowed; callbacks fire in registration order.
+        Callbacks that raise are logged but don't propagate.
+        """
+        self._library_disabled_callbacks.append(callback)
+
+    def _fire_library_disabled(self, library: BaseLibrary) -> None:
+        """Invoke every post-disable callback for *library*.
+
+        Called as the last thing in ``disable_library`` after
+        ``library.disable()`` has returned (i.e. after on_library_disable,
+        _detach_from_registries, file_watcher.stop()). At this point the
+        CLASS_REMOVED events from the registry have already drained and
+        the container's instance dicts no longer hold this library's
+        state instances.
+        """
+        for callback in self._library_disabled_callbacks:
+            try:
+                callback(library)
+            except Exception as exc:
+                logger.error(
+                    f"Library '{library.identity.label}': post-disable callback {callback!r} raised: {exc}",
+                    exc_info=True,
+                )
+
+    def add_library_enabled_callback(self, callback: Callable[[BaseLibrary], None]) -> None:
+        """Register a callback fired AFTER each library's enable() returns successfully.
+
+        Used by ``LibraryStateContainer`` to learn when a library has finished
+        registering all its components (types, nodes, panels, state classes,
+        editors), so it can safely query the state registry for that library's
+        state classes and call ``on_enable`` on them. Doing this per-library
+        AFTER the library's own ``enable()`` returns is what avoids the
+        load-order race where a state ``on_enable`` would otherwise fire
+        mid-enable, before the library's other components were available.
+
+        Multiple subscribers are allowed; callbacks fire in registration order.
+        Callbacks that raise are logged but don't stop subsequent callbacks
+        from running, and don't propagate to the ``enable_*`` caller.
+        """
+        self._library_enabled_callbacks.append(callback)
+
+    def _fire_library_enabled(self, library: BaseLibrary) -> None:
+        """Invoke every post-enable callback for *library*.
+
+        Called as the VERY LAST thing in enable_library / enable_all_libraries,
+        after library.enable() has completed (register_components +
+        _attach_to_registries + on_library_enable + file_watcher.start()).
+        """
+        for callback in self._library_enabled_callbacks:
+            try:
+                callback(library)
+            except Exception as exc:
+                logger.error(
+                    f"Library '{library.identity.label}': post-enable callback {callback!r} raised: {exc}",
+                    exc_info=True,
+                )
+
     def enable_all_libraries(self):
         """Enable file watching for all loaded libraries"""
         for library in self._libraries.values():
             library.enable()
+            self._fire_library_enabled(library)
 
     def enable_library(self, library_registry_id: str) -> bool:
         """Enable a specific library"""
@@ -123,6 +203,7 @@ class LibraryRegistry:
         if library:
             library.enable()
             logger.info(f"Library '{library.identity.label}': Enabled")
+            self._fire_library_enabled(library)
             return True
         return False
 
@@ -132,6 +213,7 @@ class LibraryRegistry:
         if library:
             library.disable()
             logger.info(f"Library '{library.identity.label}': Disabled")
+            self._fire_library_disabled(library)
             return True
         return False
 

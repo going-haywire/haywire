@@ -13,7 +13,7 @@ from types import SimpleNamespace
 
 from unittest.mock import MagicMock, patch
 
-from haywire.core.state import LibraryStateContainer
+from haywire.core.state import LibraryStateContainer, LibraryStateRegistry
 from haywire.core.session.context import SessionContext
 from haywire.ui.panel import BasePanel
 from haywire.ui.panel.layout import PanelLayout
@@ -35,7 +35,7 @@ def _make_app(container: LibraryStateContainer) -> object:
 
 
 def make_context(register_edit_state) -> tuple[SessionContext, type]:
-    container = LibraryStateContainer()
+    container = LibraryStateContainer(LibraryStateRegistry())
     sid = "test"
     EditStateCls = register_edit_state(container, sid)
     ctx = SessionContext(session_id=sid, app=_make_app(container))

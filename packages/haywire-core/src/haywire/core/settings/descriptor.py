@@ -26,9 +26,12 @@ Convenience factories:
 
 from __future__ import annotations
 
-from typing import Any, Callable, Generic, TypeVar, overload
+from typing import TYPE_CHECKING, Any, Callable, Generic, TypeVar, overload
 
 from .base import SettingDescriptor
+
+if TYPE_CHECKING:
+    from haywire.core.settings.registry import SettingsRegistry
 
 T = TypeVar("T")
 
@@ -48,9 +51,9 @@ class setting(SettingDescriptor, Generic[T]):
     the registry's workspace tier and persist to ``.haywire/settings.toml``).
 
     On ``NodeSettings`` and plain ``Settings``, writes go to the
-    instance's ``_local_store`` only and are stored with the Graph. 
-    
-    Authors declare ``setting[T](...)`` either way — the framework 
+    instance's ``_local_store`` only and are stored with the Graph.
+
+    Authors declare ``setting[T](...)`` either way — the framework
     picks the right behaviour.
 
     Parameters
@@ -145,8 +148,9 @@ class setting(SettingDescriptor, Generic[T]):
         ``type_=float`` when ``default=None``).
 
     stored : bool
-        When ``False``, the field is omitted from serialisation / saveing. 
-        Use for ephemeral fields that shouldn't persist to disk. 
+        When ``False``, the field is omitted from serialisation.
+        Use for ephemeral fields that shouldn't persist to disk.
+        Has no effect in LibryarySetting and FrameworkSetting.
         Defaults to ``True``.
 
     validator : Callable or None
@@ -311,7 +315,7 @@ class persistent_setting(setting, Generic[T]):
         if not self.validate(value):
             return
 
-        registry = getattr(obj, "_registry", None)
+        registry: "SettingsRegistry | None" = getattr(obj, "_registry", None)
         if registry is None or not self._setting_key:
             # No registry wired (test fixture / simple mode), or no
             # namespaced key — fall back to local-store write so existing
@@ -322,8 +326,8 @@ class persistent_setting(setting, Generic[T]):
         # registry.set_global fires _notify_subscribers → owning instance's
         # _on_field_change → _on_property_change. We MUST NOT also call
         # _on_property_change ourselves here, or subscribers fire twice.
-        if self._stored:
-            registry.set_global(self._setting_key, value)
+        registry.set_global(self._setting_key, value)
+        registry.save_to_toml_debounced()
 
 
 def shadow(src: "setting[T]", **kwargs: Any) -> "setting[T]":

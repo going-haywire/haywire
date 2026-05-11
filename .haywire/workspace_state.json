@@ -2,13 +2,13 @@
   "name": "default",
   "haystack": "Master",
   "left": {
-    "active_key": "studio:editor:LazyFileBrowserEditor",
+    "active_key": "haystack:editor:HaystackEditor",
     "visible": true,
     "size": 241,
     "editors": []
   },
   "right": {
-    "active_key": "studio:editor:LibraryComponentEditor",
+    "active_key": "studio:editor:PropertiesEditor",
     "visible": true,
     "size": 369,
     "editors": []

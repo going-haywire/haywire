@@ -43,13 +43,12 @@ class Library(BaseLibrary):
     def register_components(self):
         base_path = Path(__file__).parent
 
-        # settings/ first — BaseRegistry fires the lifecycle batch event at the end
-        # of EACH folder scan, so HaystackState.on_enable runs immediately after
-        # state/ is registered. If settings/ were registered after state/, the
-        # HaystackSettings() call inside on_enable would construct with _registry=None
-        # (silent "simple mode"), losing last_haystack_name rehydration and
-        # new_counter persistence. Import order is unaffected; modules are already
-        # importable before registration.
+        # Within-library folder ordering no longer matters for the
+        # HaystackState rehydrate path: LibraryStateContainer.on_library_enabled
+        # is called by LibraryRegistry only AFTER this library's enable()
+        # returns, so HaystackSettings (in settings/) is always wired by the
+        # time HaystackState.on_enable fires. Keeping settings/ first is just
+        # convention.
         self.add_folder_to_registry(
             folder_path=str(base_path / "settings"),
             registry_cls=SettingsRegistry,

@@ -28,6 +28,14 @@ class LibraryStateRegistry(BaseRegistry):
     Registry key format: '{library_id}:state:{class_name}'.
     """
 
+    def __init__(self) -> None:
+        super().__init__()
+        # registry_key -> library_id. Maintained alongside BaseRegistry._classes
+        # so get_classes_for_library can answer in O(n) without peeking at
+        # base-registry internals (_regkey_to_last_lifecycle_event would also
+        # work but isn't populated when tests call _register_class directly).
+        self._regkey_to_library_id: dict[str, str] = {}
+
     def _class_filter(self, cls: type) -> bool:
         try:
             return inspect.isclass(cls) and issubclass(cls, LibraryState) and cls not in _MARKER_BASES
@@ -52,7 +60,42 @@ class LibraryStateRegistry(BaseRegistry):
         if self.has(registry_key) and self.get(registry_key) is cls:
             return registry_key
 
-        return super()._register(registry_key, cls, library_identity)
+        result = super()._register(registry_key, cls, library_identity)
+        if result is not None:
+            self._regkey_to_library_id[result] = library_identity.id
+        return result
 
     def _unregister_class(self, registry_key: str) -> type | None:
+        self._regkey_to_library_id.pop(registry_key, None)
         return super()._unregister(registry_key)
+
+    def get_classes_for_library(self, library_identity: LibraryIdentity) -> dict[str, type[LibraryState]]:
+        """Return all registered state classes that belong to *library_identity*.
+
+        Used by ``LibraryStateContainer.on_library_enabled`` to catch up
+        after a library finishes enabling: query this registry for every
+        state class the library contributed, then process them as if
+        ``CLASS_ADDED`` events had fired.
+
+        Filters by ``library_identity.id`` (string comparison, not object
+        identity) so hot-reload of the identity object doesn't cause
+        false misses.
+
+        Args:
+            library_identity: The library to filter by.
+
+        Returns:
+            dict mapping ``registry_key`` → class. Empty if the library
+            has registered no state classes (or if it isn't enabled at all).
+        """
+        target_id = library_identity.id
+        result: dict[str, type[LibraryState]] = {}
+        for registry_key, lib_id in self._regkey_to_library_id.items():
+            if lib_id != target_id:
+                continue
+            cls = self._classes.get(registry_key)
+            if cls is None:
+                # Class was registered then removed — skip.
+                continue
+            result[registry_key] = cls
+        return result

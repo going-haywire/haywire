@@ -35,7 +35,7 @@ from haywire.core.session.signals_and_lifecycle import (
     Subject,
     ThemeMoved,
 )
-from haywire.core.state import LibraryStateContainer
+from haywire.core.state import LibraryStateContainer, LibraryStateRegistry
 from haywire.core.session.session import Session
 from haywire.core.session.session_manager import SessionManager
 
@@ -285,7 +285,7 @@ def test_signal_runs_before_lifecycle_when_called_in_order():
 def test_broadcast_signal_stamps_peer_subject_on_non_origin_sessions():
     """Origin session receives signal with subject=SELF; every other
     session receives the same signal with subject=peer(origin_id)."""
-    sm = SessionManager(container=LibraryStateContainer())
+    sm = SessionManager(container=LibraryStateContainer(LibraryStateRegistry()))
     origin = sm.create_session(project_state=MagicMock(), workspace_manager=MagicMock())
     peer_a = sm.create_session(project_state=MagicMock(), workspace_manager=MagicMock())
     peer_b = sm.create_session(project_state=MagicMock(), workspace_manager=MagicMock())
@@ -310,7 +310,7 @@ def test_broadcast_signal_stamps_peer_subject_on_non_origin_sessions():
 
 def test_broadcast_signal_swallows_per_peer_exceptions():
     """A subscriber raising in one session does not abort delivery to others."""
-    sm = SessionManager(container=LibraryStateContainer())
+    sm = SessionManager(container=LibraryStateContainer(LibraryStateRegistry()))
     origin = sm.create_session(project_state=MagicMock(), workspace_manager=MagicMock())
     bad = sm.create_session(project_state=MagicMock(), workspace_manager=MagicMock())
     good = sm.create_session(project_state=MagicMock(), workspace_manager=MagicMock())
@@ -332,7 +332,7 @@ def test_broadcast_signal_swallows_per_peer_exceptions():
 def test_session_signal_end_to_end_with_session_manager():
     """A cross_session=True signal emitted via Session.signal() flows to
     every peer's signal callback with correct subject stamping."""
-    sm = SessionManager(container=LibraryStateContainer())
+    sm = SessionManager(container=LibraryStateContainer(LibraryStateRegistry()))
     origin = sm.create_session(project_state=MagicMock(), workspace_manager=MagicMock())
     peer = sm.create_session(project_state=MagicMock(), workspace_manager=MagicMock())
 

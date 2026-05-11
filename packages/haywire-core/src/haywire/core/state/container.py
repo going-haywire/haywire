@@ -21,10 +21,15 @@ See internals/documentation/architecture/session_state.md §3.
 from __future__ import annotations
 
 import logging
-from typing import TypeVar
+from typing import TYPE_CHECKING, TypeVar
 
 from haywire.core.registry.lifecycle_event import LifeCycleEvent, LifeCycleEventType
 from haywire.core.state.base import AppState, LibraryState, SessionState
+from haywire.core.state.registry import LibraryStateRegistry
+
+if TYPE_CHECKING:
+    from haywire.core.library.base import BaseLibrary
+    from haywire.core.library.registry import LibraryRegistry
 
 logger = logging.getLogger(__name__)
 
@@ -54,7 +59,10 @@ class LibraryStateContainer:
       - detach_session(sid) → for each registered SessionState class, on_disable + drop
     """
 
-    def __init__(self) -> None:
+    def __init__(self, state_registry: LibraryStateRegistry) -> None:
+        # Held-by-construction so on_library_enabled doesn't need to be called
+        # with the registry every time. Container queries it during catch-up.
+        self._state_registry = state_registry
         # App-scoped: one instance per registered class, keyed by registry_key.
         self._app: dict[str, AppState] = {}
         # Session-scoped: one instance per (class, session_id), keyed by registry_key.
@@ -64,6 +72,12 @@ class LibraryStateContainer:
         # registry_key → class. Lets us find the class behind a key for
         # instantiation (attach_session) and lifecycle (CLASS_RELOADED).
         self._class_by_registry_key: dict[str, type[LibraryState]] = {}
+        # Library ids the container has been told about via on_library_enabled.
+        # Events whose library_identity.id is NOT in this set are dropped by
+        # on_lifecycle_events — they belong to a library whose enable() is still
+        # in progress, and acting on them now risks calling on_enable before the
+        # rest of the library's components (types, nodes, …) are registered.
+        self._enabled_library_ids: set[str] = set()
 
     # ------------------------------------------------------------------
     # Public lookup API — used by AppDataNamespace
@@ -149,10 +163,133 @@ class LibraryStateContainer:
 
     def on_lifecycle_events(self, events: list[LifeCycleEvent]) -> None:
         for event in events:
+            # Drop events for libraries we haven't been told about yet
+            # (see _enabled_library_ids docstring on __init__). During startup,
+            # CLASS_ADDED events for every library fire before any library is
+            # marked enabled; the container would otherwise instantiate state
+            # mid-library-load. The catch-up in on_library_enabled replays
+            # those classes once the library is fully enabled.
+            if event.library_identity.id not in self._enabled_library_ids:
+                continue
             try:
                 self._dispatch(event)
             except Exception as exc:
                 logger.error("LibraryStateContainer error handling %s: %s", event, exc, exc_info=True)
+
+    # ------------------------------------------------------------------
+    # Lifecycle wiring — called once by LibrarySystemService.initialize
+    # AFTER enable_all_libraries() has returned.
+    # ------------------------------------------------------------------
+
+    def bind_to_lifecycle(self, library_registry: "LibraryRegistry") -> None:
+        """Subscribe to the three channels the container reacts to.
+
+        Called by the orchestrator (``LibrarySystemService.initialize``)
+        once at startup, AFTER ``enable_all_libraries()`` has returned —
+        timing matters: subscribing before would cause the container to
+        process CLASS_ADDED events fired during each library's enable(),
+        which is the load-order race this whole machinery exists to fix.
+
+        Subscribes to:
+          1. State registry batch events — for future hot-reload of
+             classes within already-enabled libraries.
+          2. Library-enabled callback — for the startup catch-up loop
+             and for future hot-installed libraries.
+          3. Library-disabled callback — to drop the library id from
+             ``_enabled_library_ids`` so subsequent events for it are
+             filtered out.
+        """
+        self._state_registry.add_batch_event_subscriber(self.on_lifecycle_events)
+        library_registry.add_library_enabled_callback(self.on_library_enabled)
+        library_registry.add_library_disabled_callback(self.on_library_disabled)
+
+    # ------------------------------------------------------------------
+    # Per-library catch-up — called by LibraryRegistry after library.enable()
+    # ------------------------------------------------------------------
+
+    def on_library_enabled(self, library: "BaseLibrary") -> None:
+        """Catch up after *library* finished enabling.
+
+        Queries the held state registry for every state class belonging to
+        this library and instantiates / wires each as if a ``CLASS_ADDED``
+        event had fired. Then records the library id so future hot-reload
+        events for its classes pass the filter in ``on_lifecycle_events``.
+
+        Synthesizes ``CLASS_ADDED`` events and routes through ``_dispatch``
+        so AppState vs SessionState branching reuses the existing path.
+
+        Idempotent: a second call with the same library is a no-op for
+        already-instantiated classes (``_add_app_class`` /
+        ``_add_session_class`` early-return when the registry_key is
+        already present).
+
+        Re-enable: when a library is disabled and then enabled again, the
+        previous disable has cleared the library id from
+        ``_enabled_library_ids`` (via ``on_library_disabled``), so the
+        CLASS_ADDED events fired during the new ``enable()``'s
+        ``_attach_to_registries`` are dropped by the filter. This catch-up
+        then re-instantiates the state classes — mirroring first-time
+        enable behaviour exactly.
+        """
+        # Mark BEFORE dispatching so the synthetic events pass the filter.
+        self._mark_library_enabled(library.identity.id)
+        classes = self._state_registry.get_classes_for_library(library.identity)
+        for registry_key, cls in classes.items():
+            event = LifeCycleEvent(
+                registry_key=registry_key,
+                event_type=LifeCycleEventType.CLASS_ADDED,
+                affected_class=cls,
+                library_identity=library.identity,
+            )
+            try:
+                self._dispatch(event)
+            except Exception as exc:
+                logger.error(
+                    "LibraryStateContainer catch-up failed for %s in library %s: %s",
+                    cls.__name__,
+                    library.identity.label,
+                    exc,
+                    exc_info=True,
+                )
+
+    def on_library_disabled(self, library: "BaseLibrary") -> None:
+        """Drop *library*'s id from ``_enabled_library_ids`` after its
+        ``disable()`` completes.
+
+        Timing: the CLASS_REMOVED events fired during ``library.disable()``
+        have already drained through ``on_lifecycle_events`` by the time
+        ``LibraryRegistry`` fires the disabled callback (callback runs as
+        the last step of ``disable_library`` AFTER ``library.disable()``
+        returns). At that point the container's ``_app`` / ``_sessions``
+        dicts no longer hold any of the library's instances, so dropping
+        the id is the only remaining bookkeeping.
+
+        After this call, any further events carrying this library's id
+        are dropped by the filter — including the CLASS_ADDED events
+        that fire when the library is re-enabled later. The re-enable
+        catch-up via ``on_library_enabled`` is what re-instantiates the
+        state classes, mirroring first-time enable.
+        """
+        self._mark_library_disabled(library.identity.id)
+
+    def _mark_library_enabled(self, library_id: str) -> None:
+        """Record that *library_id* is enabled so events for it pass the filter.
+
+        Called by ``on_library_enabled`` for production use. Tests that drive
+        ``on_lifecycle_events`` directly without going through a real
+        ``BaseLibrary`` / ``LibraryRegistry`` use this lower-level marker.
+        """
+        self._enabled_library_ids.add(library_id)
+
+    def _mark_library_disabled(self, library_id: str) -> None:
+        """Mirror of ``_mark_library_enabled``. Removes *library_id* from the
+        set so subsequent events for that library are dropped.
+
+        Called by ``on_library_disabled`` for production use. Tests use this
+        lower-level marker when bypassing ``BaseLibrary`` / ``LibraryRegistry``.
+        Idempotent — ``set.discard`` silently no-ops if the id isn't present.
+        """
+        self._enabled_library_ids.discard(library_id)
 
     def _dispatch(self, event: LifeCycleEvent) -> None:
         et = event.event_type

@@ -5,7 +5,7 @@ Tests for SelectionHandlers — manages selected_nodes, selected_edges, and clip
 import pytest
 from unittest.mock import MagicMock
 
-from haywire.core.state import LibraryStateContainer
+from haywire.core.state import LibraryStateContainer, LibraryStateRegistry
 from haywire.core.session.context import SessionContext
 from haybale_studio.editors.graph_canvas.handlers.selection import SelectionHandlers
 from haybale_studio.editors.graph_canvas.event_definitions import (
@@ -36,7 +36,7 @@ def session_with_edit(register_edit_state):
     ``session.context.data[EditState]`` against the container's class
     reference (survives library hot-reloads).
     """
-    container = LibraryStateContainer()
+    container = LibraryStateContainer(LibraryStateRegistry())
     sid = "test-session"
     EditStateCls = register_edit_state(container, sid)
     app = MagicMock()
@@ -105,7 +105,7 @@ def test_selection_changed_replaces_previous(handler):
 
 
 def test_selection_changed_notifies_session(register_edit_state):
-    container = LibraryStateContainer()
+    container = LibraryStateContainer(LibraryStateRegistry())
     sid = "s"
     EditStateCls = register_edit_state(container, sid)
     app = MagicMock()

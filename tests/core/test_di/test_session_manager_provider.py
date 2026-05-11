@@ -9,9 +9,9 @@ def test_provider_returns_session_manager():
 
     from haywire.core.di.config import HaywireModule
     from haywire.core.session.session_manager import SessionManager
-    from haywire.core.state import LibraryStateContainer
+    from haywire.core.state import LibraryStateContainer, LibraryStateRegistry
 
-    container = LibraryStateContainer()
+    container = LibraryStateContainer(LibraryStateRegistry())
     module = HaywireModule(workspace_root="/tmp/test")
     sm = module.provide_session_manager(container)
 
@@ -27,9 +27,9 @@ def test_provider_publishes_to_ambient_context():
 
     from haywire.core.di.config import HaywireModule
     from haywire.core.di.context import get_session_manager
-    from haywire.core.state import LibraryStateContainer
+    from haywire.core.state import LibraryStateContainer, LibraryStateRegistry
 
-    container = LibraryStateContainer()
+    container = LibraryStateContainer(LibraryStateRegistry())
     module = HaywireModule(workspace_root="/tmp/test")
     sm = module.provide_session_manager(container)
 

@@ -1,7 +1,7 @@
 """Tests for ExecutionContext.app_data — class-keyed AppState access."""
 
 from haywire.core.execution.execution_context import ExecutionContext
-from haywire.core.state import AppState, LibraryStateContainer
+from haywire.core.state import AppState, LibraryStateContainer, LibraryStateRegistry
 from haywire.core.state.data_namespace import AppDataNamespace
 
 
@@ -25,7 +25,7 @@ class TestExecutionContextData:
             label="Pool",
         )
 
-        container = LibraryStateContainer()
+        container = LibraryStateContainer(LibraryStateRegistry())
         instance = Pool()
         container._app[Pool.class_identity.registry_key] = instance
         container._class_by_registry_key[Pool.class_identity.registry_key] = Pool

@@ -3,7 +3,7 @@
 from unittest.mock import MagicMock
 
 from haywire.core.execution.vm import HaywireVM
-from haywire.core.state import AppState, LibraryStateContainer
+from haywire.core.state import AppState, LibraryStateContainer, LibraryStateRegistry
 from haywire.core.state.data_namespace import AppDataNamespace
 
 
@@ -30,7 +30,7 @@ class TestVMLibraryStateWiring:
             label="Pool",
         )
 
-        container = LibraryStateContainer()
+        container = LibraryStateContainer(LibraryStateRegistry())
         instance = Pool()
         container._app[Pool.class_identity.registry_key] = instance
         container._class_by_registry_key[Pool.class_identity.registry_key] = Pool

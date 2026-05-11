@@ -147,10 +147,26 @@ class SettingsRegistry(BaseRegistry):
         )
 
     def _register_class(self, cls: Type, library_identity: LibraryIdentity) -> str | None:
-        """Register schema class fields then store class in BaseRegistry."""
+        """Register schema class fields then store class in BaseRegistry.
+
+        After registering the fields, re-reads both TOML files (global +
+        workspace) for the keys this schema declared. This restores any
+        on-disk values for these fields — necessary on re-registration
+        (library disable→enable, hot-reload) because
+        ``_unregister_schema_fields`` clears the in-memory tier entries
+        while the TOML files keep their values.
+        """
         registry_key = cls.class_identity.registry_key
         self._register_schema_fields(cls)
         cls._registry = self
+        # Collect this schema's setting keys and re-read both TOML files
+        # so on-disk values survive disable→re-enable / hot-reload cycles.
+        schema_keys: set[str] = {d._setting_key for d in cls._property_settings().values() if d._setting_key}
+        if schema_keys:
+            if self._global_path is not None and self._global_path.exists():
+                self._repopulate_from_toml_for_keys(schema_keys, self._global_path, tier="global")
+            if self._workspace_path is not None and self._workspace_path.exists():
+                self._repopulate_from_toml_for_keys(schema_keys, self._workspace_path, tier="workspace")
         return super()._register(registry_key, cls, library_identity or FRAMEWORK_IDENTITY)
 
     def _unregister_class(self, registry_key: str) -> type | None:
@@ -370,6 +386,50 @@ class SettingsRegistry(BaseRegistry):
 
             self._notify_changes(old_effective)
             logger.info(f"Loaded {len(flat)} settings from {path} into {tier} tier")
+
+    def _repopulate_from_toml_for_keys(self, keys: set[str], path: Path, tier: str = "workspace") -> None:
+        """Restore TOML values for *keys* in *tier* without touching other keys.
+
+        Used by ``_register_class`` to re-hydrate the in-memory tier dict
+        for a schema's fields after it's re-registered (library
+        disable→re-enable, hot-reload). ``_unregister_schema_fields``
+        clears the tier entries when a schema leaves the registry; this
+        method puts them back from the on-disk TOML when the schema
+        comes back.
+
+        Unlike ``_reload_from_file``, this does NOT reset other keys'
+        tier values or clear ``_toml_defined``. Only the entries whose
+        flattened key is in *keys* are applied.
+
+        Silently skips if the file can't be parsed — best-effort restore.
+        """
+        try:
+            with open(path, "r") as f:
+                data = toml.load(f)
+        except Exception as e:
+            logger.error(f"Failed to parse settings file for key repopulate: {e}")
+            return
+
+        tier_dict = self._workspace_tier_values if tier == "workspace" else self._global_tier_values
+
+        with self._lock:
+            old_effective = {
+                name: (self._effective_value(name).mode, self._effective_value(name).value)
+                for name in keys
+                if name in self._definitions
+            }
+
+            flat = self._flatten_toml(data)
+            applied = 0
+            for name, entry in flat.items():
+                if name not in keys:
+                    continue
+                self._process_entry(name, entry, tier_dict)
+                applied += 1
+
+            self._notify_changes(old_effective)
+            if applied:
+                logger.debug(f"Repopulated {applied} setting(s) from {path} into {tier} tier")
 
     def _flatten_toml(self, data: dict, prefix: str = "") -> dict[str, Any]:
         """

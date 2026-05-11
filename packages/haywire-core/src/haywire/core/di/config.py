@@ -183,16 +183,20 @@ class HaywireModule(Module):
 
     @provider
     @singleton
-    def provide_library_state_container(self) -> LibraryStateContainer:
+    def provide_library_state_container(self, state_registry: LibraryStateRegistry) -> LibraryStateContainer:
         """Provide singleton LibraryStateContainer — instance pool for LibraryStates.
 
-        Subscription to LibraryStateRegistry events is wired in
-        LibrarySystemService.initialize().
+        Holds the state_registry so on_library_enabled / catch-up can query
+        it without an extra argument every call. Subscription to event
+        channels is wired separately by LibrarySystemService.initialize()
+        via container.bind_to_lifecycle(library_registry), AFTER
+        enable_all_libraries() has returned (timing matters: subscribing
+        earlier would defeat the load-order fix).
 
         Also publishes via set_library_state_container() so AppState authors
         can read it from ambient context (e.g. for constructing Interpreters).
         """
-        container = LibraryStateContainer()
+        container = LibraryStateContainer(state_registry)
         set_library_state_container(container)
         return container
 
@@ -315,7 +319,9 @@ class LibrarySystemService:
         editor_registry = self.injector.get(EditorTypeRegistry)
         library_state_registry = self.injector.get(LibraryStateRegistry)
         library_state_container = self.injector.get(LibraryStateContainer)
-        library_state_registry.add_batch_event_subscriber(library_state_container.on_lifecycle_events)
+        # NOTE: container subscription + library_enabled callback + startup
+        # catch-up are wired AFTER enable_all_libraries() below, not here.
+        # See "Wire LibraryStateContainer to events ..." section.
         self.injector.get(AdapterFactory)  # sets ambient context for EdgeWrapper
         self.injector.get(NodeFactory)  # sets ambient context for NodeWrapper
         self.injector.get(SessionManager)  # sets ambient context for AppState.on_enable
@@ -358,6 +364,23 @@ class LibrarySystemService:
 
         print("\n⚡ Enabling libraries...")
         library_registry.enable_all_libraries()
+
+        # Wire LibraryStateContainer to lifecycle events — AFTER
+        # enable_all_libraries() so the container doesn't process
+        # CLASS_ADDED events for any library while that library's own
+        # enable() is still in progress. State on_enable hooks fire only
+        # when ALL libraries have registered their types/nodes/panels/
+        # settings — the fix for the load-order race.
+        library_state_container.bind_to_lifecycle(library_registry)
+        # Startup catch-up: drive the enabled callback for every library
+        # already enabled in the loop above. Order follows
+        # library_registry insertion order (= discovery order from
+        # scan_for_libraries). Future hot-installed libraries reach
+        # on_library_enabled via the callback registered by
+        # bind_to_lifecycle, so this loop is only needed for the libraries
+        # that were enabled before bind_to_lifecycle subscribed.
+        for library in library_registry._libraries.values():
+            library_state_container.on_library_enabled(library)
 
         # Print detailed library discovery results
         self._print_library_discovery_results()

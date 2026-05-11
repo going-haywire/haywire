@@ -36,8 +36,9 @@ class TestAppDataNamespace:
                 self.devices: list[str] = ["dev0"]
 
         reg = LibraryStateRegistry()
-        container = LibraryStateContainer()
+        container = LibraryStateContainer(LibraryStateRegistry())
         lib_id = make_lib_identity()
+        container._mark_library_enabled(lib_id.id)
         reg._register_class(MidiPool, lib_id)
         container.on_lifecycle_events(
             [
@@ -70,7 +71,7 @@ class TestAppDataNamespace:
             label="NotRegistered",
         )
 
-        ns = AppDataNamespace(LibraryStateContainer())
+        ns = AppDataNamespace(LibraryStateContainer(LibraryStateRegistry()))
         with pytest.raises(KeyError):
             _ = ns[NotRegistered]
 
@@ -88,5 +89,5 @@ class TestAppDataNamespace:
             label="NotRegistered",
         )
 
-        ns = AppDataNamespace(LibraryStateContainer())
+        ns = AppDataNamespace(LibraryStateContainer(LibraryStateRegistry()))
         assert ns.get(NotRegistered) is None

@@ -22,7 +22,7 @@ import importlib
 
 import pytest
 
-from haywire.core.state import LibraryStateContainer, SessionState
+from haywire.core.state import LibraryStateContainer, LibraryStateRegistry, SessionState
 
 _EDIT_STATE_MODULE = "haybale_studio.state.edit_state"
 
@@ -91,7 +91,7 @@ class TestEditStateContainerLifecycle:
     """
 
     def test_attach_session_creates_instance(self, register_edit_state):
-        container = LibraryStateContainer()
+        container = LibraryStateContainer(LibraryStateRegistry())
         sid = "session-1"
         EditState = register_edit_state(container, sid)
 
@@ -100,7 +100,7 @@ class TestEditStateContainerLifecycle:
         assert instance.session_id == sid
 
     def test_two_sessions_get_independent_instances(self, register_edit_state):
-        container = LibraryStateContainer()
+        container = LibraryStateContainer(LibraryStateRegistry())
         sid_a = "session-a"
         sid_b = "session-b"
         EditState = register_edit_state(container, sid_a)
@@ -114,7 +114,7 @@ class TestEditStateContainerLifecycle:
         assert b.session_id == sid_b
 
     def test_detach_session_drops_instance(self, register_edit_state):
-        container = LibraryStateContainer()
+        container = LibraryStateContainer(LibraryStateRegistry())
         sid = "session-detach"
         EditState = register_edit_state(container, sid)
         assert container.has_session(EditState, sid)

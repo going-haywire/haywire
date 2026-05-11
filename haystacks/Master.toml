@@ -8,3 +8,4 @@ execute = false
 
 [haystack]
 name = "Master"
+active_graph = "graphs/loop.haywire"

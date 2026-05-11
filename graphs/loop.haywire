@@ -5,14 +5,14 @@
   "version": "1.0.0",
   "author": "",
   "created_at": null,
-  "modified_at": "2026-04-22T15:48:57.424296",
+  "modified_at": "2026-05-11T23:12:01.774278",
   "nodes": {
     "BeginPlayNode_8d7335c8": {
       "node_id": "BeginPlayNode_8d7335c8",
       "registry_key": "core:node:BeginPlayNode",
       "position": [
-        932.8622402208181,
-        1058.4045795498905
+        936.7521107244153,
+        1050.2518374418269
       ],
       "node_data": {
         "node_id": "BeginPlayNode_8d7335c8",
@@ -66,23 +66,23 @@
         },
         "settings": {
           "props": {
-            "posX": 932.8622402208181,
-            "posY": 1058.4045795498905
+            "posX": 936.7521107244153,
+            "posY": 1050.2518374418269
           }
         },
         "props": {
-          "posX": 932.8622402208181,
-          "posY": 1058.4045795498905
+          "posX": 936.7521107244153,
+          "posY": 1050.2518374418269
         },
         "store": {},
         "identity": {
           "registry_id": "BeginPlayNode",
           "registry_key": "core:node:BeginPlayNode",
-          "label": "Begin Player One",
+          "label": "Begin Player",
           "description": "Triggered once when execution starts",
           "deprecation_warning": "",
           "class_name": "BeginPlayNode",
-          "module": "haybale_core.nodes.begin_play",
+          "module": "haybale_core.nodes.events.begin_play",
           "search_tags": [
             "start",
             "init",
@@ -91,7 +91,7 @@
           ],
           "menu": "event/runtime",
           "help_md": null,
-          "help_url": "https://haywire.io/docs/node-help",
+          "help_url": "https://haywire.io/internals/node-help",
           "_is_error": false,
           "_error_priority": 0
         },
@@ -103,6 +103,8 @@
           "help_url": "https://github.com/maybites/haywire",
           "author": "maybites",
           "author_url": "https://maybites.ch",
+          "folder_path": "/Volumes/Ddrive/06_open_tracking_tool/haywire/haywire-repo/barn/haybale-core/haybale_core",
+          "module_name": "haybale_core",
           "id": "core",
           "dependencies": [],
           "tags": [
@@ -111,9 +113,7 @@
             "widgets",
             "skins"
           ],
-          "file_watcher": false,
-          "folder_path": "/Volumes/Ddrive/06_open_tracking_tool/haywire/haywire-repo/barn/haybale-core/haybale_core",
-          "module_name": "haybale_core"
+          "file_watcher": false
         }
       }
     },
@@ -121,8 +121,8 @@
       "node_id": "TickEmitNode_8accf22d",
       "registry_key": "core:node:TickEmitNode",
       "position": [
-        1314.109665527604,
-        1036.2417466120328
+        1304.384948158642,
+        1042.0765770334099
       ],
       "node_data": {
         "node_id": "TickEmitNode_8accf22d",
@@ -277,13 +277,13 @@
         },
         "settings": {
           "props": {
-            "posX": 1314.109665527604,
-            "posY": 1036.2417466120328
+            "posX": 1304.384948158642,
+            "posY": 1042.0765770334099
           }
         },
         "props": {
-          "posX": 1314.109665527604,
-          "posY": 1036.2417466120328
+          "posX": 1304.384948158642,
+          "posY": 1042.0765770334099
         },
         "store": {},
         "identity": {
@@ -293,7 +293,7 @@
           "description": "Emits tick callbacks at a configurable framerate",
           "deprecation_warning": "",
           "class_name": "TickEmitNode",
-          "module": "haybale_core.nodes.tick_emit",
+          "module": "haybale_core.nodes.emits.tick_emit",
           "search_tags": [
             "tick",
             "frame",
@@ -304,7 +304,7 @@
           ],
           "menu": "emit/runtime",
           "help_md": null,
-          "help_url": "https://haywire.io/docs/node-help",
+          "help_url": "https://haywire.io/internals/node-help",
           "_is_error": false,
           "_error_priority": 0
         },
@@ -316,6 +316,8 @@
           "help_url": "https://github.com/maybites/haywire",
           "author": "maybites",
           "author_url": "https://maybites.ch",
+          "folder_path": "/Volumes/Ddrive/06_open_tracking_tool/haywire/haywire-repo/barn/haybale-core/haybale_core",
+          "module_name": "haybale_core",
           "id": "core",
           "dependencies": [],
           "tags": [
@@ -324,9 +326,7 @@
             "widgets",
             "skins"
           ],
-          "file_watcher": false,
-          "folder_path": "/Volumes/Ddrive/06_open_tracking_tool/haywire/haywire-repo/barn/haybale-core/haybale_core",
-          "module_name": "haybale_core"
+          "file_watcher": false
         }
       }
     },
@@ -431,7 +431,7 @@
           "description": "Triggered periodically by a connected TickEmitNode",
           "deprecation_warning": "",
           "class_name": "TickEventNode",
-          "module": "haybale_core.nodes.tick",
+          "module": "haybale_core.nodes.events.tick_event",
           "search_tags": [
             "frame",
             "update",
@@ -441,7 +441,7 @@
           ],
           "menu": "event/runtime",
           "help_md": null,
-          "help_url": "https://haywire.io/docs/node-help",
+          "help_url": "https://haywire.io/internals/node-help",
           "_is_error": false,
           "_error_priority": 0
         },
@@ -453,6 +453,8 @@
           "help_url": "https://github.com/maybites/haywire",
           "author": "maybites",
           "author_url": "https://maybites.ch",
+          "folder_path": "/Volumes/Ddrive/06_open_tracking_tool/haywire/haywire-repo/barn/haybale-core/haybale_core",
+          "module_name": "haybale_core",
           "id": "core",
           "dependencies": [],
           "tags": [
@@ -461,9 +463,7 @@
             "widgets",
             "skins"
           ],
-          "file_watcher": false,
-          "folder_path": "/Volumes/Ddrive/06_open_tracking_tool/haywire/haywire-repo/barn/haybale-core/haybale_core",
-          "module_name": "haybale_core"
+          "file_watcher": false
         }
       }
     },
@@ -696,7 +696,7 @@
           ],
           "menu": "control/loops",
           "help_md": null,
-          "help_url": "https://haywire.io/docs/node-help",
+          "help_url": "https://haywire.io/internals/node-help",
           "_is_error": false,
           "_error_priority": 0
         },
@@ -708,6 +708,8 @@
           "help_url": "https://github.com/maybites/haywire",
           "author": "maybites",
           "author_url": "https://maybites.ch",
+          "folder_path": "/Volumes/Ddrive/06_open_tracking_tool/haywire/haywire-repo/barn/haybale-core/haybale_core",
+          "module_name": "haybale_core",
           "id": "core",
           "dependencies": [],
           "tags": [
@@ -716,9 +718,7 @@
             "widgets",
             "skins"
           ],
-          "file_watcher": false,
-          "folder_path": "/Volumes/Ddrive/06_open_tracking_tool/haywire/haywire-repo/barn/haybale-core/haybale_core",
-          "module_name": "haybale_core"
+          "file_watcher": false
         }
       }
     },
@@ -864,7 +864,7 @@
               "label": "Condition",
               "description": "Text data",
               "class_name": "STRING",
-              "module": "haybale_core.types",
+              "module": "haybale_core.types.specs",
               "default": {
                 "value": "=="
               },
@@ -885,7 +885,7 @@
               },
               "id": "condition",
               "port_type": "config",
-              "order": 14
+              "order": 26
             },
             "recipe": {
               "registry_key": "core:type:STRING"
@@ -901,7 +901,7 @@
               "label": "Compare",
               "description": "Decimal numberer",
               "class_name": "FLOAT",
-              "module": "haybale_core.types",
+              "module": "haybale_core.types.specs",
               "flow_type": "data",
               "default": {
                 "value": 0.0
@@ -911,7 +911,7 @@
               "widget_key": "core:widget:NumberWidget",
               "id": "compare",
               "port_type": "inlet",
-              "order": 15
+              "order": 27
             },
             "recipe": {
               "registry_key": "core:type:FLOAT"
@@ -927,7 +927,7 @@
               "label": "With",
               "description": "Decimal numberer",
               "class_name": "FLOAT",
-              "module": "haybale_core.types",
+              "module": "haybale_core.types.specs",
               "flow_type": "data",
               "default": {
                 "value": 0.0
@@ -937,7 +937,7 @@
               "widget_key": "core:widget:NumberWidget",
               "id": "with",
               "port_type": "inlet",
-              "order": 16
+              "order": 28
             },
             "recipe": {
               "registry_key": "core:type:FLOAT"
@@ -974,7 +974,7 @@
           ],
           "menu": "control/switch",
           "help_md": null,
-          "help_url": "https://haywire.io/docs/node-help",
+          "help_url": "https://haywire.io/internals/node-help",
           "_is_error": false,
           "_error_priority": 0
         },
@@ -986,6 +986,8 @@
           "help_url": "https://github.com/maybites/haywire",
           "author": "maybites",
           "author_url": "https://maybites.ch",
+          "folder_path": "/Volumes/Ddrive/06_open_tracking_tool/haywire/haywire-repo/barn/haybale-core/haybale_core",
+          "module_name": "haybale_core",
           "id": "core",
           "dependencies": [],
           "tags": [
@@ -994,9 +996,7 @@
             "widgets",
             "skins"
           ],
-          "file_watcher": false,
-          "folder_path": "/Volumes/Ddrive/06_open_tracking_tool/haywire/haywire-repo/barn/haybale-core/haybale_core",
-          "module_name": "haybale_core"
+          "file_watcher": false
         }
       }
     },
@@ -1150,9 +1150,9 @@
             "basic",
             "operation"
           ],
-          "menu": "math/basic",
+          "menu": "examples/math/basic",
           "help_md": null,
-          "help_url": "https://haywire.io/docs/node-help",
+          "help_url": "https://haywire.io/internals/node-help",
           "_is_error": false,
           "_error_priority": 0
         },
@@ -1164,6 +1164,8 @@
           "help_url": "https://docs.github.io/haywire_library",
           "author": "Example Author",
           "author_url": "https://author_url",
+          "folder_path": "/Volumes/Ddrive/06_open_tracking_tool/haywire/haywire-repo/barn/haybale-example/haybale_example",
+          "module_name": "haybale_example",
           "id": "example",
           "dependencies": [
             "haybale_core",
@@ -1174,9 +1176,7 @@
             "demo",
             "tutorial"
           ],
-          "file_watcher": false,
-          "folder_path": "/Volumes/Ddrive/06_open_tracking_tool/haywire/haywire-repo/barn/haybale-example/haybale_example",
-          "module_name": "haybale_example"
+          "file_watcher": false
         }
       }
     },
@@ -1285,7 +1285,7 @@
           ],
           "menu": "testing/utils",
           "help_md": null,
-          "help_url": "https://haywire.io/docs/node-help",
+          "help_url": "https://haywire.io/internals/node-help",
           "_is_error": false,
           "_error_priority": 0
         },
@@ -1297,6 +1297,8 @@
           "help_url": "https://github.com/maybites/haywire",
           "author": "maybites",
           "author_url": "https://maybites.ch",
+          "folder_path": "/Volumes/Ddrive/06_open_tracking_tool/haywire/haywire-repo/barn/haybale-core/haybale_core",
+          "module_name": "haybale_core",
           "id": "core",
           "dependencies": [],
           "tags": [
@@ -1305,9 +1307,7 @@
             "widgets",
             "skins"
           ],
-          "file_watcher": false,
-          "folder_path": "/Volumes/Ddrive/06_open_tracking_tool/haywire/haywire-repo/barn/haybale-core/haybale_core",
-          "module_name": "haybale_core"
+          "file_watcher": false
         }
       }
     }

@@ -10,7 +10,7 @@ import importlib
 from unittest.mock import MagicMock, patch
 
 from haywire.core.library.identity import LibraryIdentity
-from haywire.core.state import LibraryStateContainer
+from haywire.core.state import LibraryStateContainer, LibraryStateRegistry
 from haywire.core.session.context import SessionContext
 from haywire.ui.panel import BasePanel
 from haywire.ui.panel.decorator import panel
@@ -63,7 +63,7 @@ class FakeApp:
     def __init__(self) -> None:
         # Per-instance container so the EditState registration in
         # make_context() doesn't bleed across tests.
-        self.library_state_container = LibraryStateContainer()
+        self.library_state_container = LibraryStateContainer(LibraryStateRegistry())
 
 
 def make_context(register_edit_state, session=None) -> tuple[SessionContext, type]:

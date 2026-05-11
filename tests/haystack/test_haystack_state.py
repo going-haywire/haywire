@@ -716,3 +716,121 @@ def test_on_disable_skips_when_last_name_empty(state_with_mocked_deps, tmp_path,
 
     state.on_disable()
     assert called == []
+
+
+# ---------------------------------------------------------------------------
+# HaystackState._haystack_dirty flag
+# ---------------------------------------------------------------------------
+
+
+def test_haystack_dirty_starts_false(state_with_mocked_deps):
+    assert state_with_mocked_deps._haystack_dirty is False
+
+
+def test_create_new_marks_haystack_dirty(state_with_mocked_deps):
+    state = state_with_mocked_deps
+    state.create_new()
+    assert state._haystack_dirty is True
+
+
+def test_save_haystack_clears_dirty(state_with_mocked_deps, tmp_path, monkeypatch):
+    state = state_with_mocked_deps
+    state._workspace_root = tmp_path
+    state.create_new()
+    assert state._haystack_dirty is True
+
+    monkeypatch.setattr(
+        "haybale_haystack.persistence.dump_haystack",
+        lambda s, root, name, active_path=None: root / "haystacks" / f"{name}.toml",
+    )
+    state.save_haystack("session1")
+    assert state._haystack_dirty is False
+
+
+def test_load_haystack_clears_dirty(state_with_mocked_deps, tmp_path, monkeypatch):
+    state = state_with_mocked_deps
+    state._workspace_root = tmp_path
+    state._haystack_dirty = True  # pretend we had pending changes
+
+    # persistence.load_haystack returns None for missing file; we still
+    # expect the dirty flag to clear because we set last_name to a known
+    # value via the load path.
+    haystacks_dir = tmp_path / "haystacks"
+    haystacks_dir.mkdir()
+    (haystacks_dir / "session1.toml").write_text('[haystack]\nname = "session1"\n')
+    state.load_haystack("session1")
+    assert state._haystack_dirty is False
+
+
+def test_open_graph_marks_haystack_dirty(state_with_mocked_deps, tmp_path):
+    state = state_with_mocked_deps
+    state._workspace_root = tmp_path
+    p = tmp_path / "graphs" / "foo.haywire"
+    p.parent.mkdir(parents=True, exist_ok=True)
+    p.write_text("")
+    from unittest.mock import patch
+
+    with (
+        patch("haywire.core.graph.base.BaseGraph.load_from_file"),
+        patch("haywire.core.graph.base.BaseGraph.force_validation"),
+    ):
+        state.open_graph(p)
+    assert state._haystack_dirty is True
+
+
+def test_remove_entry_marks_haystack_dirty(state_with_mocked_deps, tmp_path, monkeypatch):
+    state = state_with_mocked_deps
+    state._workspace_root = tmp_path
+    entry = state.create_new()
+    # Clear dirty so we know remove_entry sets it again.
+    state._haystack_dirty = False
+    state.remove_entry(entry)
+    assert state._haystack_dirty is True
+
+
+def test_rename_graph_marks_haystack_dirty(state_with_mocked_deps, tmp_path):
+    from unittest.mock import MagicMock
+
+    state = state_with_mocked_deps
+    state._workspace_root = tmp_path
+    p = tmp_path / "graphs" / "foo.haywire"
+    p.parent.mkdir(parents=True, exist_ok=True)
+    p.write_text("")
+    entry = MagicMock()
+    entry.path = p
+    entry.entry_id = str(p)
+    state._entries[entry.entry_id] = entry
+    state._haystack_dirty = False
+    state.rename_graph(entry, "bar")
+    assert state._haystack_dirty is True
+
+
+def test_save_graph_marks_haystack_dirty(state_with_mocked_deps, tmp_path):
+    from unittest.mock import MagicMock
+
+    state = state_with_mocked_deps
+    state._workspace_root = tmp_path
+    entry = state.create_new()
+    entry.graph = MagicMock()
+    entry.graph.save_to_file.return_value = True
+    state._haystack_dirty = False
+    state.save_graph(entry, save_as=tmp_path / "graphs" / "foo.haywire")
+    assert state._haystack_dirty is True
+
+
+def test_start_execution_marks_haystack_dirty(state_with_mocked_deps):
+    from unittest.mock import MagicMock
+
+    state = state_with_mocked_deps
+    state._haystack_dirty = False
+    state.start_execution(MagicMock())
+    assert state._haystack_dirty is True
+
+
+def test_stop_execution_marks_haystack_dirty(state_with_mocked_deps):
+    from unittest.mock import MagicMock
+
+    state = state_with_mocked_deps
+    state._haystack_dirty = False
+    state.stop_execution(MagicMock())
+    assert state._haystack_dirty is True

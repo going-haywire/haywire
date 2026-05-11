@@ -1,6 +1,6 @@
 """Tests for SessionContext."""
 
-from haywire.core.state import LibraryStateContainer
+from haywire.core.state import LibraryStateContainer, LibraryStateRegistry
 from haywire.core.session.context import SessionContext
 
 
@@ -9,7 +9,7 @@ class FakeApp:
 
     workspace_root = "/tmp"
     library_service = None
-    library_state_container = LibraryStateContainer()
+    library_state_container = LibraryStateContainer(LibraryStateRegistry())
 
 
 def test_theme_keys_default_to_none():

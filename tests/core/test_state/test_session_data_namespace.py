@@ -35,8 +35,9 @@ class TestSessionDataNamespace:
             position = 0.0
 
         reg = LibraryStateRegistry()
-        container = LibraryStateContainer()
+        container = LibraryStateContainer(LibraryStateRegistry())
         lib_id = make_lib_identity()
+        container._mark_library_enabled(lib_id.id)
         reg._register_class(TimelineCursor, lib_id)
         container.on_lifecycle_events(
             [
@@ -74,7 +75,7 @@ class TestSessionDataNamespace:
             label="NotRegistered",
         )
 
-        ns = SessionDataNamespace(LibraryStateContainer(), "anysid")
+        ns = SessionDataNamespace(LibraryStateContainer(LibraryStateRegistry()), "anysid")
         with pytest.raises(KeyError):
             _ = ns[NotRegistered]
 
@@ -92,7 +93,7 @@ class TestSessionDataNamespace:
             label="NotRegistered",
         )
 
-        ns = SessionDataNamespace(LibraryStateContainer(), "anysid")
+        ns = SessionDataNamespace(LibraryStateContainer(LibraryStateRegistry()), "anysid")
         assert ns.get(NotRegistered) is None
 
     def test_contains_reflects_per_session_membership(self):
@@ -100,8 +101,9 @@ class TestSessionDataNamespace:
             pass
 
         reg = LibraryStateRegistry()
-        container = LibraryStateContainer()
+        container = LibraryStateContainer(LibraryStateRegistry())
         lib_id = make_lib_identity()
+        container._mark_library_enabled(lib_id.id)
         reg._register_class(Cursor, lib_id)
         container.on_lifecycle_events(
             [

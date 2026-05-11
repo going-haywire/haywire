@@ -5,7 +5,7 @@ from unittest.mock import MagicMock
 
 from haybale_studio.state.edit_state import EditState
 from haywire.core.library.identity import LibraryIdentity
-from haywire.core.state import LibraryStateContainer
+from haywire.core.state import LibraryStateContainer, LibraryStateRegistry
 from haywire.core.session.context import SessionContext
 from haywire.ui.panel import BasePanel, PanelRegistry, panel
 from haywire.ui.panel.focus import Focus
@@ -76,7 +76,7 @@ def test_full_pipeline_focus_discovered_via_registry():
 
 
 def test_panel_poll_is_classmethod_and_reads_session_context(register_edit_state):
-    container = LibraryStateContainer()
+    container = LibraryStateContainer(LibraryStateRegistry())
     sid = "t"
     EditStateCls = register_edit_state(container, sid)
 

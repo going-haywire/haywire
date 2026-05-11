@@ -3,7 +3,7 @@ around session creation / removal."""
 
 from unittest.mock import MagicMock
 
-from haywire.core.state import LibraryStateContainer, SessionState
+from haywire.core.state import LibraryStateContainer, LibraryStateRegistry, SessionState
 from haywire.core.session.session_manager import SessionManager
 
 
@@ -15,7 +15,7 @@ class TestSessionManagerAttachDetach:
         return {"project_state": project_state, "workspace_manager": MagicMock()}
 
     def test_create_session_attaches_to_container(self):
-        container = LibraryStateContainer()
+        container = LibraryStateContainer(LibraryStateRegistry())
         manager = SessionManager(container=container)
 
         session = manager.create_session(**self._make_session_kwargs(container))
@@ -23,7 +23,7 @@ class TestSessionManagerAttachDetach:
         assert session.session_id in container._known_session_ids
 
     def test_remove_session_detaches_from_container(self):
-        container = LibraryStateContainer()
+        container = LibraryStateContainer(LibraryStateRegistry())
         manager = SessionManager(container=container)
         session = manager.create_session(**self._make_session_kwargs(container))
 
@@ -52,7 +52,7 @@ class TestSessionManagerAttachDetach:
         # Plant the SessionState class directly onto the container so we don't
         # need the registry plumbing for this unit test. (Integration test
         # exercises the registry path in Task 8.)
-        container = LibraryStateContainer()
+        container = LibraryStateContainer(LibraryStateRegistry())
         key = TimelineCursor.class_identity.registry_key
         container._sessions[key] = {}
         container._class_by_registry_key[key] = TimelineCursor
@@ -83,7 +83,7 @@ class TestSessionManagerAttachDetach:
             label="Cursor",
         )
 
-        container = LibraryStateContainer()
+        container = LibraryStateContainer(LibraryStateRegistry())
         key = Cursor.class_identity.registry_key
         container._sessions[key] = {}
         container._class_by_registry_key[key] = Cursor

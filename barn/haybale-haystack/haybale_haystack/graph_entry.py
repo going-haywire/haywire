@@ -57,9 +57,14 @@ class GraphEntry:
 
     @property
     def display_name(self) -> str:
-        """Human-readable name for UI labels."""
+        """Human-readable name for UI labels.
+
+        For file-backed entries returns the stem (no extension); for
+        untitled entries returns the graph's ``name`` attribute or
+        ``"Untitled"``.
+        """
         if self.path is not None:
-            return self.path.name
+            return self.path.stem
         return getattr(self.graph, "name", None) or "Untitled"
 
     @property

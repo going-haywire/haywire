@@ -74,8 +74,9 @@ class TestAppScopeRegression:
             pass
 
         reg = LibraryStateRegistry()
-        container = LibraryStateContainer()
+        container = LibraryStateContainer(LibraryStateRegistry())
         lib_id = make_lib_identity()
+        container._mark_library_enabled(lib_id.id)
         reg._register_class(Pool, lib_id)
 
         container.on_lifecycle_events([make_added_event(Pool, lib_id)])
@@ -92,8 +93,9 @@ class TestSessionAttachDetach:
                 calls.append(("enable", self.session_id))
 
         reg = LibraryStateRegistry()
-        container = LibraryStateContainer()
+        container = LibraryStateContainer(LibraryStateRegistry())
         lib_id = make_lib_identity()
+        container._mark_library_enabled(lib_id.id)
 
         # Attach two sessions BEFORE class is registered.
         container.attach_session("s1")
@@ -122,8 +124,9 @@ class TestSessionAttachDetach:
                 calls.append(self.session_id)
 
         reg = LibraryStateRegistry()
-        container = LibraryStateContainer()
+        container = LibraryStateContainer(LibraryStateRegistry())
         lib_id = make_lib_identity()
+        container._mark_library_enabled(lib_id.id)
 
         # Register class first; no sessions yet.
         reg._register_class(Cursor, lib_id)
@@ -146,8 +149,9 @@ class TestSessionAttachDetach:
                 calls.append(("disable", self.session_id))
 
         reg = LibraryStateRegistry()
-        container = LibraryStateContainer()
+        container = LibraryStateContainer(LibraryStateRegistry())
         lib_id = make_lib_identity()
+        container._mark_library_enabled(lib_id.id)
         reg._register_class(Cursor, lib_id)
         container.on_lifecycle_events([make_added_event(Cursor, lib_id)])
         container.attach_session("s1")
@@ -170,7 +174,7 @@ class TestSessionAttachDetach:
             label="Cursor",
         )
 
-        container = LibraryStateContainer()
+        container = LibraryStateContainer(LibraryStateRegistry())
         assert container.get_session_optional(Cursor, "nope") is None
 
 
@@ -186,8 +190,9 @@ class TestSessionScopeHotReload:
                 calls.append(("disable", self.session_id))
 
         reg = LibraryStateRegistry()
-        container = LibraryStateContainer()
+        container = LibraryStateContainer(LibraryStateRegistry())
         lib_id = make_lib_identity()
+        container._mark_library_enabled(lib_id.id)
         reg._register_class(Cursor, lib_id)
         container.on_lifecycle_events([make_added_event(Cursor, lib_id)])
         container.attach_session("s1")
@@ -228,8 +233,9 @@ class TestSessionScopeHotReload:
         V1.class_identity = ident
         V2.class_identity = ident
 
-        container = LibraryStateContainer()
+        container = LibraryStateContainer(LibraryStateRegistry())
         lib_id = make_lib_identity()
+        container._mark_library_enabled(lib_id.id)
         container.on_lifecycle_events([make_added_event(V1, lib_id)])
         container.attach_session("s1")
         # Initial enable.
@@ -265,8 +271,9 @@ class TestDirectLibraryStateSubclass:
             label="Bad",
         )
 
-        container = LibraryStateContainer()
+        container = LibraryStateContainer(LibraryStateRegistry())
         lib_id = make_lib_identity()
+        container._mark_library_enabled(lib_id.id)
 
         with caplog.at_level(logging.WARNING):
             container.on_lifecycle_events([make_added_event(Bad, lib_id)])

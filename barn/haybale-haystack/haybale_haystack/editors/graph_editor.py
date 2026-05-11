@@ -261,11 +261,11 @@ class GraphEditor(BaseEditor):
             self._graph_name_label.text = "No graph"
             self._graph_name_label.classes(remove="hw-text-body hw-text-muted", add="hw-text-dim")
         elif entry.path is not None:
-            self._graph_name_label.text = ("● " if entry.unsaved else "") + entry.path.name
+            self._graph_name_label.text = ("● " if entry.unsaved else "") + self._workspace_rel(entry.path)
             self._graph_name_label.classes(remove="hw-text-muted hw-text-dim", add="hw-text-body")
         else:
             # Unnamed / not-yet-saved graph
-            self._graph_name_label.text = "● " + entry.display_name
+            self._graph_name_label.text = "● not saved"
             self._graph_name_label.classes(remove="hw-text-body hw-text-dim", add="hw-text-muted")
         self._update_undo_redo_buttons(entry)
         self._sync_tab_dirty(entry)
@@ -321,6 +321,19 @@ class GraphEditor(BaseEditor):
         root = Path(getattr(app, "workspace_root", str(Path.home())))
         graphs_dir = root / "graphs"
         return graphs_dir if graphs_dir.is_dir() else root
+
+    def _workspace_rel(self, path: Path) -> str:
+        """Return ``path`` relative to the project workspace_root, or its full
+        path string when ``path`` lies outside the workspace.
+        """
+        app = self._project_state
+        if app is not None:
+            root = Path(getattr(app, "workspace_root", str(Path.home())))
+            try:
+                return str(path.relative_to(root))
+            except ValueError:
+                pass
+        return str(path)
 
     def _save_graph(self, context: "SessionContext") -> None:
         """Save the active graph; opens Save-As dialog if no path exists yet."""

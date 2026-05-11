@@ -61,6 +61,12 @@ class TestSessionStateIntegration:
             folder_path="",
         )
 
+        # Mark the test library as enabled so the container's event filter
+        # admits its events. In production this happens via
+        # LibraryRegistry.on_library_enabled after library.enable() returns;
+        # this test bypasses LibraryRegistry and drives events directly.
+        container._mark_library_enabled(lib_id.id)
+
         # Register the class via the same path a real library would use.
         key = registry._register_class(TimelineCursor, lib_id)
         assert key is not None

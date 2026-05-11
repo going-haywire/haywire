@@ -57,6 +57,12 @@ class TestLibraryStateIntegration:
             folder_path="",
         )
 
+        # Mark the test library as enabled so the container's event filter
+        # admits its events. In production this happens via
+        # LibraryRegistry.on_library_enabled after library.enable() returns;
+        # this test bypasses LibraryRegistry and drives events directly.
+        container._mark_library_enabled(lib_id.id)
+
         # Register the class — that puts it in the registry's _classes dict.
         key = registry._register_class(TestPool, lib_id)
         assert key is not None
