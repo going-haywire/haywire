@@ -12,7 +12,8 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from haywire.ui import elements as hui
-from haywire.ui.panel import BasePanel, PanelLayout, panel, render_schema
+from haywire.ui.panel import BasePanel, PanelLayout, panel
+from haywire.ui.panel.render_utils import render_schema
 
 from haybale_haystack.settings.haystack_settings import HaystackSettings
 from haybale_studio.editors.properties_editor_actions import PropertiesEditorActions

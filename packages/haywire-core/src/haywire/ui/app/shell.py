@@ -135,7 +135,7 @@ class AppShell:
             " .hw-slot-bar-tabs .q-tab--active { color: var(--hw-text-body) !important; }"
             " .hw-slot-bar-tabs .q-tab__indicator { background: var(--hw-accent) !important; }"
             " .hw-slot-bar-tabs .q-tab__label { font-size: 12px; }"
-            # Activity/context bar buttons
+            # Generic toolbar buttons (hui.toolbar_button helper).
             " .hw-shell-toolbar-btn {"
             "   color: var(--hw-text-muted) !important;"
             "   border-radius: 10px;"
@@ -151,6 +151,41 @@ class AppShell:
             "   color: var(--hw-accent) !important;"
             "   box-shadow: inset 0 0 0 1px var(--hw-accent);"
             " }"
+            # Vertical icon-bar tabs (IconSlot) — Quasar q-tabs in vertical
+            # orientation. Uses the same muted/body/accent palette as the
+            # horizontal tab bar (.hw-slot-bar-tabs above). The indicator
+            # side (left vs right edge of the active tab) is controlled by
+            # the q-tabs `indicator-color` and `align` props plus a class
+            # variant on the bar itself.
+            # Force vertical layout: NiceGUI's q-tabs in vertical mode
+            # leaves q-tabs__content with `row no-wrap` flex classes, so
+            # the tabs render horizontally clipped inside a narrow bar.
+            # We override to a column and center each tab horizontally.
+            " .hw-icon-bar-tabs.q-tabs--vertical {"
+            "   flex-direction: column !important;"
+            "   align-items: stretch !important;"
+            " }"
+            " .hw-icon-bar-tabs.q-tabs--vertical .q-tabs__content {"
+            "   flex-direction: column !important;"
+            "   align-items: stretch !important;"
+            "   width: 100%;"
+            " }"
+            " .hw-icon-bar-tabs .q-tab { color: var(--hw-text-muted) !important;"
+            "   min-height: 40px; padding: 0;"
+            "   width: 100%;"
+            " }"
+            " .hw-icon-bar-tabs .q-tab__content {"
+            "   justify-content: center !important;"
+            "   width: 100%;"
+            " }"
+            # An empty q-tab__label still occupies layout space inside the
+            # `row no-wrap` content, shifting the icon left of true centre.
+            # Remove it from the flow when we render icon-only tabs.
+            " .hw-icon-bar-tabs .q-tab__label { display: none !important; }"
+            " .hw-icon-bar-tabs .q-tab:hover { color: var(--hw-text-body) !important; }"
+            " .hw-icon-bar-tabs .q-tab--active { color: var(--hw-text-body) !important; }"
+            " .hw-icon-bar-tabs .q-tab__indicator { background: var(--hw-accent) !important; }"
+            " .hw-icon-bar-tabs .q-tab__icon { font-size: 22px; }"
             # All editor area containers and their child text.
             # .hw-cm-isolate wrappers (CodeMirror editors) are excluded so that
             # the CodeMirror theme controls all token colours uncontested.

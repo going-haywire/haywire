@@ -107,6 +107,21 @@ def _install_ui_fakes(monkeypatch):
         created.append(("button", c))
         return c
 
+    def _fake_tabs(*_a, **_k):
+        c = _FakeContainer()
+        c.on_change = _k.get("on_change")
+        c.value = _k.get("value")
+        created.append(("tabs", c))
+        return c
+
+    def _fake_tab(*_a, **_k):
+        c = _FakeContainer()
+        c.name = _k.get("name") or (_a[0] if _a else None)
+        c.icon = _k.get("icon")
+        c._props = {"name": c.name}
+        created.append(("tab", c))
+        return c
+
     def _fake_separator(*_a, **_k):
         return _FakeContainer()
 
@@ -119,6 +134,8 @@ def _install_ui_fakes(monkeypatch):
     monkeypatch.setattr(mod.ui, "row", _fake_row)
     monkeypatch.setattr(mod.ui, "column", _fake_col)
     monkeypatch.setattr(mod.ui, "button", _fake_button)
+    monkeypatch.setattr(mod.ui, "tabs", _fake_tabs)
+    monkeypatch.setattr(mod.ui, "tab", _fake_tab)
     monkeypatch.setattr(mod.ui, "separator", _fake_separator)
     monkeypatch.setattr(mod.ui, "icon", _fake_icon)
     monkeypatch.setattr(slot_mod.ui, "tab_panels", _fake_tab_panels)
@@ -157,10 +174,14 @@ def test_icon_slot_renders_row_with_bar_and_area(monkeypatch):
     assert "tab_panels" in kinds
 
 
-def test_icon_slot_bar_click_switches_active_binding(monkeypatch):
-    """Clicking an icon swaps the active binding. The legacy
+def test_icon_slot_bar_change_switches_active_binding(monkeypatch):
+    """Selecting a tab swaps the active binding. The legacy
     WORKSPACE_CHANGED emission was deleted (Q6A) — on_focus runs via
-    Slot._activate during switch_to, no separate bus event is needed."""
+    Slot._activate during switch_to, no separate bus event is needed.
+
+    Drives the q-tabs change handler directly with the target tab element,
+    mirroring how NiceGUI delivers ``on_change`` events.
+    """
     created = _install_ui_fakes(monkeypatch)
     a = _editor_cls("a")
     b = _editor_cls("b")
@@ -178,10 +199,15 @@ def test_icon_slot_bar_click_switches_active_binding(monkeypatch):
     slot._active = slot.find_binding("a")
     slot.render(_FakeContainer())
 
-    buttons = [c for (kind, c) in created if kind == "button" and getattr(c, "icon", None) == "ic"]
-    # Two icon buttons rendered (one per binding).
-    assert len(buttons) >= 2
-    buttons[1].on_click()  # click the 'b' icon
+    tabs_container = next(c for (kind, c) in created if kind == "tabs")
+    tab_elements = [c for (kind, c) in created if kind == "tab"]
+    assert len(tab_elements) == 2, "one tab per wrapper expected"
+
+    # Simulate a Quasar value-change event: the payload's `value` is the
+    # selected ui.tab element, not its name string.
+    tab_b = next(t for t in tab_elements if t.name == "b")
+    event = SimpleNamespace(value=tab_b)
+    tabs_container.on_change(event)
 
     assert slot.active_key == "b"
     # No signal is emitted by the slot itself for the switch — on_focus
