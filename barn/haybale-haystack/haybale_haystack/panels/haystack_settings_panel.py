@@ -12,13 +12,11 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from haywire.ui import elements as hui
-from haywire.ui.panel import BasePanel, PanelLayout
-from haywire.ui.panel.decorator import panel
-from haywire.ui.panel.render_utils import render_schema
+from haywire.ui.panel import BasePanel, PanelLayout, panel, render_schema
 
 from haybale_haystack.settings.haystack_settings import HaystackSettings
 from haybale_studio.editors.properties_editor_actions import PropertiesEditorActions
-from haybale_studio.focuses import AppFocus
+from haybale_studio.focuses import ExecutionFocus
 
 if TYPE_CHECKING:
     from haywire.core.session.context import SessionContext
@@ -26,7 +24,7 @@ if TYPE_CHECKING:
 
 @panel(
     action=PropertiesEditorActions,
-    focus=AppFocus,
+    focus=ExecutionFocus,
     label="Haystack",
     icon=hui.icon.save,
     order=80,

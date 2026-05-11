@@ -39,6 +39,7 @@ from typing import Any, Callable, ClassVar, Literal, Optional, TYPE_CHECKING
 
 from nicegui import ui
 
+from haywire.core.registry.lifecycle_event import LifeCycleEvent, LifeCycleEventType
 from haywire.ui.editor.registry import EditorTypeRegistry
 from haywire.ui.editor.wrapper import EditorWrapper
 
@@ -130,14 +131,8 @@ class Slot(ABC):
         self._show_fold_toggle = show_fold_toggle
         self._bar_container: Optional[ui.element] = None
         self._fold_button: Optional[ui.element] = None
-        # See :meth:`_capture_tab_client`. None in tests that skip rendering.
         self._tab_client: Any = None
-        # See :meth:`_on_class_added`. The slot subscribes to batch lifecycle
-        # events only to react to CLASS_ADDED for REQUIRED editors that
-        # belong in this slot's default position. Per-key dispatch (used by
-        # EditorWrapper) covers RELOADED / REMOVED for already-tracked keys
-        # but cannot fire for keys no wrapper subscribes to yet.
-        self._registry.add_batch_event_subscriber(self._on_class_added)
+        self._registry.add_batch_event_subscriber(self._on_lifecycle_events)
 
     _ORIENTATION: ClassVar[Literal["horizontal", "vertical"]]
 
@@ -712,36 +707,52 @@ class Slot(ABC):
         return True
 
     # ------------------------------------------------------------------
-    # Registry batch events (CLASS_ADDED only)
+    # Registry batch events
     # ------------------------------------------------------------------
 
-    def _on_class_added(self, events: list) -> None:
-        """Auto-attach REQUIRED editors registered after the slot was populated.
+    def _on_lifecycle_events(self, events: list[LifeCycleEvent]) -> None:
+        """React to registry lifecycle events at the slot level.
 
-        Existing wrappers self-subscribe per-key for RELOADED / REMOVED
-        events. CLASS_ADDED for a brand-new editor key has no per-key
-        subscriber yet, so the slot listens to the batch stream and
-        creates a wrapper iff the new class is REQUIRED in this slot's
-        default position. Non-REQUIRED editors stay dormant until
-        explicitly opened (e.g. via reveal).
+        RELOADED is handled entirely at the wrapper level (class swap +
+        redraw callback) — the slot doesn't act on it.
         """
-        from haywire.core.registry.lifecycle_event import LifeCycleEventType
         from haywire.ui.editor.identity import OpenBehavior
 
+        bar_dirty = False
+
         for event in events:
-            if event.event_type != LifeCycleEventType.CLASS_ADDED:
-                continue
-            cls = event.affected_class
-            if cls is None:
-                continue
-            if getattr(cls.class_identity, "default_slot", None) != self.name:
-                continue
-            opens = getattr(cls.class_identity, "opens", OpenBehavior.REQUIRED)
-            if opens is not OpenBehavior.REQUIRED:
-                continue
-            if self.find_binding(event.registry_key) is not None:
-                continue
-            self.add_binding(editor_key=event.registry_key, editor_cls=cls)
+            event_type = event.event_type
+
+            if event_type == LifeCycleEventType.CLASS_ADDED:
+                cls = event.affected_class
+                if cls is None:
+                    continue
+                if getattr(cls.class_identity, "default_slot", None) != self.name:
+                    continue
+                opens = getattr(cls.class_identity, "opens", OpenBehavior.REQUIRED)
+                if opens is not OpenBehavior.REQUIRED:
+                    continue
+                if self.find_binding(event.registry_key) is not None:
+                    continue
+                self.add_binding(editor_key=event.registry_key, editor_cls=cls)
+                bar_dirty = True
+
+            elif event_type == LifeCycleEventType.CLASS_REMOVED:
+                # Iterate a snapshot of payloads since remove_binding mutates
+                # self._bindings underneath us.
+                payloads = [
+                    wrapper.payload for wrapper in self._bindings if wrapper.editor_key == event.registry_key
+                ]
+                for payload in payloads:
+                    removed = self.remove_binding(event.registry_key, payload=payload)
+                    if removed is not None:
+                        bar_dirty = True
+                        logger.info(
+                            f"Slot '{self.name}': removed wrapper '{removed.binding_id}' "
+                            f"(CLASS_REMOVED for '{event.registry_key}')"
+                        )
+
+        if bar_dirty:
             self._refresh_bar()
 
     # ------------------------------------------------------------------
@@ -751,9 +762,9 @@ class Slot(ABC):
     def cleanup(self) -> None:
         """Tear down all wrappers. Idempotent."""
         try:
-            self._registry.remove_batch_event_subscriber(self._on_class_added)
+            self._registry.remove_batch_event_subscriber(self._on_lifecycle_events)
         except Exception as exc:
-            logger.warning(f"Slot '{self.name}': failed to unsubscribe class-added listener: {exc}")
+            logger.warning(f"Slot '{self.name}': failed to unsubscribe lifecycle listener: {exc}")
         for wrapper in list(self._bindings):
             wrapper.set_redraw_callback(None)
             wrapper.cleanup()
