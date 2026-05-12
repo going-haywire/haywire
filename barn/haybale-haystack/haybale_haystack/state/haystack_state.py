@@ -82,25 +82,21 @@ class HaystackState(AppState):
         self._node_factory = get_node_factory()
         self._library_state_container = get_library_state_container()
 
-        # HaystackSettings is a LibrarySettings — once registered,
-        # ``HaystackSettings()`` returns a fully-wired instance.
+        # HaystackSettings is a LibrarySettings — its cls._registry is wired by
+        # SettingsRegistry when the owning library's settings folder is scanned
+        # during library.enable(). LibraryStateContainer guarantees on_enable
+        # runs after that, so instantiation here is contractually fully wired.
+        # See docs/components/settings/setting-canon.md §3a.
         from haybale_haystack.settings.haystack_settings import HaystackSettings
 
-        try:
-            self._haystack_settings = HaystackSettings()
-        except Exception as exc:
-            logger.warning(f"HaystackState: failed to instantiate HaystackSettings: {exc}")
-            self._haystack_settings = None
-
-        # Tripwire: accessing private _registry is not ideal, but it is the only
-        # available signal that the settings class was registered before on_enable
-        # fired. If this warning appears, the registration order in __init__.py
-        # is wrong (settings/ must be registered before state/).
-        if self._haystack_settings is not None and self._haystack_settings._registry is None:
-            logger.warning(
-                "HaystackState.on_enable: HaystackSettings instance has no registry "
-                "(settings/ not yet registered?). last_haystack_name and new_counter "
-                "will fall to defaults and not persist."
+        self._haystack_settings = HaystackSettings()
+        if self._haystack_settings._registry is None:
+            raise RuntimeError(
+                "HaystackState.on_enable: HaystackSettings has no registry. "
+                "This violates the LibrarySettings/AppState lifecycle contract — "
+                "cls._registry should have been wired by library.enable() before "
+                "on_enable fires. HaystackState cannot function without persisted "
+                "settings."
             )
 
         # Rehydrate from last_haystack_name (best-effort).

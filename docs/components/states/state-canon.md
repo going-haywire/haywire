@@ -153,7 +153,9 @@ class TimelineCursor(SessionState):
         load_cursor_for(self.session_id)
 ```
 
-**Composing `LibrarySettings` inside `AppState`.** Recommended pattern for state with persisted, user-tweakable knobs (poll rate, port, cache size). Instantiate the settings *in `on_enable`*, not `__init__` or class body — `LibrarySettings()` requires `cls._registry` to be wired by `SettingsRegistry`, which happens after class registration but before `on_enable` fires.
+**Composing `LibrarySettings` inside `AppState`.** Recommended pattern for state with persisted, user-tweakable knobs (poll rate, port, cache size). Both `__init__` and `on_enable` are safe instantiation sites — the container will not call either before the owning library's `enable()` has finished registering its `LibrarySettings` classes (see [settings: startup timing](../settings/setting-canon.md#startup-timing)). The `on_enable` placement is preferred as a matter of code discipline: it groups every resolved dependency (`SessionManager`, workspace root, settings) at one lifecycle point, makes the field types non-`Optional`-by-convention symmetric across all deps, and keeps `__init__` cheap.
+
+Class body instantiation is unsafe — at module import time the `SettingsRegistry` may not exist yet.
 
 **`SessionState` is prohibited from composing `LibrarySettings`.** Per-session state shouldn't read persisted singleton settings — if both apply to the same concern, hold the settings on a sibling `AppState` and reference it through `ctx.app_data[...]`.
 
@@ -393,7 +395,7 @@ Use `[Cls]` when the dependency is required (raises `KeyError`); `.get(Cls)` whe
 |---|---|
 | Inheriting from `LibraryState` directly | The marker is excluded by the registry filter; nothing is registered |
 | Reading `self.session_id` in `__init__` | Not stamped yet — read in `on_enable` or later |
-| Instantiating `LibrarySettings()` in class body or `__init__` | `cls._registry` not yet wired — crashes with a `None` registry |
+| Instantiating `LibrarySettings()` at class/module body | `SettingsRegistry` may not exist at import time — crashes with a `None` registry |
 | Caching `ctx.app_data[Cls]` in a long-lived `__init__` | Reference goes stale on hot-reload |
 | Composing `LibrarySettings` inside a `SessionState` | Prohibited — per-session state must not read persisted settings |
 | Trying `exec_ctx.data` in a worker | Doesn't exist — graphs run app-globally |

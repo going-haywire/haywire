@@ -263,7 +263,9 @@ All three paths iterate `cls._property_settings()` and set `descriptor._setting_
 
 #### Why the descriptor does NOT call `_on_property_change`
 
-`persistent_setting.__set__` deliberately omits the `_on_property_change` call that the base `setting` makes. `registry.set_global` fires `_notify_subscribers` → `_on_field_change` → `_on_property_change` on the owning instance via the subscription path; calling it a second time directly from the descriptor would double-fire every subscriber callback (UI redraws, IPC, file writes — anything non-idempotent misbehaves).
+`persistent_setting.__set__` deliberately omits the `_on_property_change` call that the base `setting` makes. `registry.set_global` fans out to every subscriber registered for that namespace — including the writing instance, if it subscribed via `Settings.subscribe(...)`. The chain there is `_notify_subscribers → _on_field_change → _on_property_change → user callback`. If the descriptor also called `_on_property_change` directly, any subscribed user callback would fire twice for the same write.
+
+Instances that never subscribed receive no callback either way — neither from the descriptor nor from the registry. That is intentional: the writer just performed the write, so it does not need to be told what changed. Code that does want to react to its own writes (e.g. a panel that re-renders) must call `Settings.subscribe(...)` to opt in.
 
 #### Fallback when no registry is wired
 
@@ -286,7 +288,7 @@ __init_subclass__ runs:
   - swaps each descriptor's __class__ to persistent_setting
   - appends class to schema._pending_global queue
   ↓
-... (later, possibly minutes) ...
+... (later in startup, when DI assembles the registry) ...
   ↓
 SettingsRegistry.__init__:
   - calls _drain_pending_global()
@@ -311,16 +313,20 @@ When a library reloads (file watcher detects a `.py` change):
 
 The hot-reload pipeline at large is documented in [architecture/hot-reload](../hot-reload/hot-reload-arch.md).
 
-### 7.3 Mirror cache invalidation (`shadow()` / `watch()`)
+### 7.3 Change notification (`shadow()` / `watch()`)
 
-Mirror fields cache the resolved global value to avoid re-resolving on every read. When the global value changes:
+There is no cached resolved value — `setting.__get__` calls `obj._resolve()` → `registry.resolve()` on every read. What the framework propagates is *change callbacks*, not cache invalidations.
 
-1. `SettingsRegistry.set_global()` (or `set_override`) detects the change.
-2. The registry walks `_namespace_subscribers` (a weakref dict keyed by namespace) and fires invalidation callbacks.
-3. Each mirror field's cached value is invalidated; the next read re-resolves through the chain.
-4. If the field has an `on_change` callback on its node, that callback fires with the new value.
+The flow when a global value changes:
 
-`Settings._subscribe_mirrors()` sets up the weakref subscriptions; called automatically by `BaseNode` after settings construction. `Settings.cleanup()` releases them on node removal.
+1. `SettingsRegistry.set_global()` updates the in-memory tier and calls `_notify_subscribers`.
+2. `_notify_subscribers` walks `self._subscribers` — a dict of `namespace → list[weakref[callback]]` — and fires every callback whose namespace prefix matches the changed key.
+3. For a `Settings` instance that has subscribed via `Settings.subscribe(user_callback)`, the registry-side callback is the instance's `_on_field_change`. It identifies which mirrored field changed, re-reads the resolved value through the chain, and calls `_on_property_change` → `user_callback`.
+4. If the field has an `on_change` method on its node, `_on_property_change` calls it with the new value.
+
+Important: callbacks fire only for instances that have explicitly called `Settings.subscribe(...)`. An instance that holds settings but never subscribed will not receive notifications when other code changes the underlying TOML value — its next read will resolve to the new value, but no callback runs in the meantime.
+
+`Settings._subscribe_settings()` (plural — wires every field with a `_mirror_key`) and `_subscribe_setting()` (singular — wires one field) set up the weakref subscriptions; both are called from `Settings.subscribe()`. `Settings.cleanup()` clears the local callback list and marks the instance as torn down; the registry-side weakrefs are dropped when the instance is garbage-collected.
 
 ### 7.4 Serialisation
 
@@ -367,7 +373,7 @@ registry.load_from_toml('~/.haywire/settings.toml', tier='global')
 registry.load_from_toml('<workspace>/.haywire/settings.toml', tier='workspace')
 registry.save_to_toml()  # writes workspace tier
 
-# Subscribe (cache-invalidation hook for mirror fields).
+# Subscribe (change-notification hook).
 # `namespace=None` fires on every key; 'execution' fires on any
 # 'execution.*' key; 'execution.max_threads' fires only on that exact key.
 # Pass a plain callable — the registry stores it as a weakref internally,

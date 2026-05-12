@@ -56,11 +56,11 @@ Use `cache` for "lost on restart, fine"; `store` for "must survive saves, hidden
 
 **The three Settings classes.** All three inherit from `Settings`. Pick by scope:
 
-| Class | Where you declare it | Registered? | Per-instance? |
+| Class | Where you declare it | Persisted to | Instances |
 |---|---|---|---|
-| `NodeSettings` | Inner class on a `@node` class | No (per-instance binding) | Yes — one per node instance |
-| `LibrarySettings` | `@settings`-decorated class in your library | Yes (via `BaseRegistry` hot-reload) | Singleton-ish; instances auto-wire to the registry |
-| `FrameworkSettings` | Framework-internal only | Yes (auto-registers via `_pending_global`) | Singleton-ish |
+| `NodeSettings` | Inner class on a `@node` class | Graph file (only overrides) | One per node, owned by the node |
+| `LibrarySettings` | `@settings`-decorated class in your library | Workspace / global TOML | Construct as many as you need — they share state via the registry |
+| `FrameworkSettings` | Framework-internal only | Workspace / global TOML | Construct as many as you need — they share state via the registry |
 
 **Three descriptor types — `setting()`, `shadow()`, `watch()`.** All three are declared at class level on a Settings subclass:
 
@@ -186,6 +186,97 @@ The outer key is the accessor name; the inner dict maps field name → locally-s
 **LibrarySettings registration.** A `@settings`-decorated class is picked up by `BaseRegistry`'s hot-reload machinery automatically when the library loads. No explicit `register_schema()` call is needed in normal usage. (For explicit registration in a `register_components()` override, see the LibrarySettings section in the example below.)
 
 **Important ordering rule for `shadow()` / `watch()` between modules.** A node class using `shadow(MyLibSettings.api_url)` must be **defined after** `MyLibSettings`. The `@settings(namespace='my_lib')` decorator sets `_setting_key` on each descriptor at class evaluation time; if your node imports `MyLibSettings` later, that's fine — but if both live in the same module, declaration order matters.
+
+## 3a. Using `LibrarySettings` from a State, Editor, or Panel
+
+Hold a `LibrarySettings` instance the same way you'd hold any other dependency: construct it once, read fields off it. No injection, no setup call.
+
+```python
+from haybale_mylib.settings import MyLibSettings
+
+class MyState(AppState):
+    def on_enable(self):
+        self.settings = MyLibSettings()
+        # use it:
+        port = self.settings.port
+        # writes persist to workspace TOML automatically:
+        self.settings.port = 8080
+```
+
+That's the whole API. Reads resolve through the chain (default → global → workspace → local override); writes go straight to the workspace TOML.
+
+### Where you can construct it
+
+| Location | OK? |
+|---|---|
+| `AppState.__init__` or `on_enable` | Yes |
+| `Editor.__init__` or any editor method | Yes |
+| `Panel.__init__` or any panel method | Yes |
+| Inside a node worker, callback, or event handler | Yes |
+| Module/class top level (at import time) | **No** — see below |
+
+The rule: any code that runs *after* the owning library finishes loading can construct that library's settings. Everything listed above runs later than that, so you don't need to think about timing.
+
+### What doesn't work, and why
+
+**Module/class top level.** This runs at import time, before the library has loaded:
+
+```python
+from haybale_mylib.settings import MyLibSettings
+
+class MyPanel(Panel):
+    settings = MyLibSettings()   # ✗ runs at class-definition time
+
+settings = MyLibSettings()       # ✗ runs at module import time
+```
+
+These do **not** crash — and that's the danger. You get a silently degraded instance: reads always return defaults, writes don't persist to TOML, and the instance is never upgraded once the library loads. Your settings appear to "work" in dev (defaults look fine) and quietly lose user data in production.
+
+Move the call into a method (`__init__`, `on_enable`, a render method — anything that runs later) and it works correctly.
+
+### Using one library's settings from another library
+
+If your library reads settings from a sibling library, declare it as a dependency:
+
+```python
+@library(id="my_lib", dependencies=["other_lib"], ...)
+class Library(BaseLibrary):
+    ...
+```
+
+This is enough — the framework will load `other_lib` first, so by the time your code runs you can construct `OtherLibSettings()` like any other. Without the `dependencies=` entry, load order is undefined.
+
+### Multiple holders are fine
+
+Constructing `MyLibSettings()` in a State and again in an Editor (or anywhere else) gives you two separate instances — there's no singleton. That's intentional and safe: the persisted values live on the shared registry, not on the instances. A write through one holder is visible to the other on its next read.
+
+```python
+# In MyState.on_enable:
+self.settings = MyLibSettings()
+self.settings.port = 8080         # routed through the registry → workspace TOML
+
+# In MyEditor.on_enable (any time, before or after):
+self.settings = MyLibSettings()
+print(self.settings.port)         # → 8080 (resolved fresh from the registry)
+```
+
+Each holder subscribes independently if it wants change notifications — there's no cross-instance piggybacking.
+
+### Subscribing to changes
+
+If you want to react to a setting being changed (by the user, by another panel, by a TOML edit), subscribe:
+
+```python
+def on_enable(self):
+    self.settings = MyLibSettings()
+    self.settings.subscribe(self._on_setting_changed)
+
+def _on_setting_changed(self, name, value, old):
+    if name == 'port':
+        self.reconnect()
+```
+
+The callback fires on any change — local writes, global writes from other places, TOML reload. You only get notifications while you hold a reference to your settings instance, so keep it on `self`.
 
 ## 4. Live examples from the codebase
 
