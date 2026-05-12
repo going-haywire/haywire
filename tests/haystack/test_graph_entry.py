@@ -36,7 +36,7 @@ def test_entry_id_uses_unsaved_id_for_unsaved():
     assert entry.entry_id == "__unsaved_1__"
 
 
-def test_display_name_uses_path_name_when_set():
+def test_display_name_uses_path_stem_when_set():
     from haybale_haystack.graph_entry import GraphEntry
 
     entry = GraphEntry(
@@ -45,8 +45,8 @@ def test_display_name_uses_path_name_when_set():
         path=Path("/tmp/MyName.haywire"),
         unsaved=False,
     )
-    # Legacy behaviour: display_name returns path.name (full filename, not stem)
-    assert entry.display_name == "MyName.haywire"
+    # display_name returns path.stem — the filename without the .haywire extension.
+    assert entry.display_name == "MyName"
 
 
 def test_display_name_falls_back_to_graph_name():

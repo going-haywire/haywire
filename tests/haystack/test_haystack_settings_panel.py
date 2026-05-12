@@ -14,20 +14,20 @@ def test_panel_is_a_basepanel():
     assert issubclass(HaystackSettingsPanel, BasePanel)
 
 
-def test_panel_pinned_to_app_focus_via_decorator():
+def test_panel_pinned_to_execution_focus_via_decorator():
     """The @panel decorator stamps focus/action/label onto the class."""
     from haybale_haystack.panels.haystack_settings_panel import HaystackSettingsPanel
-    from haybale_studio.focuses import AppFocus
+    from haybale_studio.focuses import ExecutionFocus
     from haybale_studio.editors.properties_editor_actions import PropertiesEditorActions
 
     ident = HaystackSettingsPanel.class_identity
-    assert ident.focus is AppFocus
+    assert ident.focus is ExecutionFocus
     assert ident.action is PropertiesEditorActions
     assert ident.label == "Haystack"
 
 
 def test_panel_poll_returns_true():
-    """AppFocus is always available, so the panel always polls true."""
+    """The panel polls true under the default mock context."""
     from haybale_haystack.panels.haystack_settings_panel import HaystackSettingsPanel
 
     ctx = MagicMock()

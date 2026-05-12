@@ -93,57 +93,85 @@ def _make_entry(
     )
 
 
-def test_remove_clean_entry_skips_dialog_and_removes(editor_and_context):
+def test_remove_clean_entry_opens_confirm_with_stays_on_disk_wording(editor_and_context):
+    """Clean entries get a confirm modal that calls out the file stays on disk."""
     editor, context, app, haystack = editor_and_context
     entry = _make_entry(path="/tmp/a.haywire", unsaved=False)
     haystack.get_by_id = MagicMock(return_value=entry)
 
-    with patch.object(editor, "_open_remove_confirm_dialog") as mock_dialog:
+    with patch("haybale_haystack.editors.haystack_editor.confirm_modal") as mock_modal:
         editor._on_entry_delete(entry.entry_id, context)
 
-    mock_dialog.assert_not_called()
+    mock_modal.assert_called_once()
+    kwargs = mock_modal.call_args.kwargs
+    assert "stays on disk" in kwargs["message"].lower()
+    assert kwargs["confirm_label"] == "Remove"
+    # The handler must not have removed the entry yet — that's the on_confirm callback's job.
+    haystack.remove_entry.assert_not_called()
+
+
+def test_remove_clean_entry_on_confirm_callback_removes(editor_and_context):
+    """Invoking the on_confirm callback supplied to confirm_modal removes the entry."""
+    editor, context, app, haystack = editor_and_context
+    entry = _make_entry(path="/tmp/a.haywire", unsaved=False)
+    haystack.get_by_id = MagicMock(return_value=entry)
+
+    with (
+        patch("haybale_haystack.editors.haystack_editor.confirm_modal") as mock_modal,
+        patch("haybale_haystack.editors.haystack_editor.ui.notify"),
+    ):
+        editor._on_entry_delete(entry.entry_id, context)
+        on_confirm = mock_modal.call_args.kwargs["on_confirm"]
+        on_confirm()
+
     haystack.remove_entry.assert_called_once_with(entry)
 
 
-def test_remove_dirty_file_backed_entry_opens_dialog(editor_and_context):
+def test_remove_dirty_file_backed_entry_uses_discard_wording(editor_and_context):
     editor, context, app, haystack = editor_and_context
     entry = _make_entry(path="/tmp/a.haywire", unsaved=True)
     haystack.get_by_id = MagicMock(return_value=entry)
 
-    with patch.object(editor, "_open_remove_confirm_dialog") as mock_dialog:
+    with patch("haybale_haystack.editors.haystack_editor.confirm_modal") as mock_modal:
         editor._on_entry_delete(entry.entry_id, context)
 
-    mock_dialog.assert_called_once_with(entry, context)
+    mock_modal.assert_called_once()
+    kwargs = mock_modal.call_args.kwargs
+    assert "unsaved changes" in kwargs["message"].lower()
+    assert kwargs["confirm_label"] == "Discard"
     haystack.remove_entry.assert_not_called()
 
 
-def test_remove_untitled_entry_opens_dialog(editor_and_context):
+def test_remove_untitled_entry_uses_never_saved_wording(editor_and_context):
     editor, context, app, haystack = editor_and_context
     entry = _make_entry(path=None, unsaved=False)
     haystack.get_by_id = MagicMock(return_value=entry)
 
-    with patch.object(editor, "_open_remove_confirm_dialog") as mock_dialog:
+    with patch("haybale_haystack.editors.haystack_editor.confirm_modal") as mock_modal:
         editor._on_entry_delete(entry.entry_id, context)
 
-    mock_dialog.assert_called_once_with(entry, context)
+    mock_modal.assert_called_once()
+    kwargs = mock_modal.call_args.kwargs
+    assert "never been saved" in kwargs["message"].lower()
+    assert kwargs["confirm_label"] == "Discard"
 
 
 def test_remove_stale_entry_id_does_not_crash_or_remove(editor_and_context):
     """A row click after the haystack was hot-reloaded resolves to None.
 
     Re-resolution via _resolve_entry returns None and notifies — the
-    handler bails before remove_entry is called. No crash, no orphan.
+    handler bails before confirm_modal is called. No crash, no orphan.
     """
     editor, context, app, haystack = editor_and_context
     haystack.get_by_id = MagicMock(return_value=None)
 
     with (
-        patch.object(editor, "_open_remove_confirm_dialog") as mock_dialog,
+        patch("haybale_haystack.editors.haystack_editor.confirm_modal") as mock_modal,
         patch("haybale_haystack.editors.haystack_editor.ui.notify") as mock_notify,
     ):
         editor._on_entry_delete("__unsaved_42__", context)
 
-    mock_dialog.assert_not_called()
+    mock_modal.assert_not_called()
     haystack.remove_entry.assert_not_called()
     assert any("no longer available" in str(c).lower() for c in mock_notify.call_args_list)
 
@@ -154,12 +182,12 @@ def test_remove_executing_entry_blocked_before_dialog(editor_and_context):
     haystack.get_by_id = MagicMock(return_value=entry)
 
     with (
-        patch.object(editor, "_open_remove_confirm_dialog") as mock_dialog,
+        patch("haybale_haystack.editors.haystack_editor.confirm_modal") as mock_modal,
         patch("haybale_haystack.editors.haystack_editor.ui.notify") as mock_notify,
     ):
         editor._on_entry_delete(entry.entry_id, context)
 
-    mock_dialog.assert_not_called()
+    mock_modal.assert_not_called()
     haystack.remove_entry.assert_not_called()
     # The guard message should have been shown
     assert any("Stop execution" in str(c) for c in mock_notify.call_args_list)

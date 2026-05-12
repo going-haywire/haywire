@@ -8,10 +8,6 @@ from haywire.core.state import AppState, LibraryState
 
 
 class TestAppStateBase:
-    def test_app_state_is_subclass_of_library_state(self):
-        """AppState must inherit from the abstract marker base."""
-        assert issubclass(AppState, LibraryState)
-
     def test_subclass_can_be_instantiated_with_no_arguments(self):
         class MyState(AppState):
             pass

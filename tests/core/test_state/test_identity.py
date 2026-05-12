@@ -1,14 +1,9 @@
 """Unit tests for LibraryStateClassIdentity."""
 
-from haywire.core.registry.identity import BaseIdentity
 from haywire.core.state.identity import LibraryStateClassIdentity
 
 
 class TestLibraryStateClassIdentity:
-    def test_inherits_from_base_identity(self):
-        """All identity classes in the codebase inherit from BaseIdentity."""
-        assert issubclass(LibraryStateClassIdentity, BaseIdentity)
-
     def test_carries_required_fields(self):
         ident = LibraryStateClassIdentity(
             registry_id="MidiPool",

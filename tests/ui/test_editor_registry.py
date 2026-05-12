@@ -66,9 +66,6 @@ class _NotDecoratedEditor(BaseEditor):
 
 
 class TestEditorDecorator:
-    def test_sets_class_identity(self):
-        assert hasattr(_TestEditor, "class_identity")
-
     def test_registry_key(self):
         # reg_key format: "{library_id}:editor:{registry_id}"
         assert _TestEditor.class_identity.registry_key.endswith(":editor:test_editor")

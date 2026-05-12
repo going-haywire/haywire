@@ -12,10 +12,6 @@ from injector import Injector
 class TestSmoke:
     """Basic smoke tests."""
 
-    def test_pytest_works(self):
-        """Test that pytest is working."""
-        assert True
-
     def test_di_injector_fixture(self, test_injector: Injector):
         """Test that DI injector fixture works."""
         assert test_injector is not None

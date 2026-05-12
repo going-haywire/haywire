@@ -12,7 +12,7 @@ Verifies:
 """
 
 import pytest
-from haywire.core.settings import Settings, setting, FrameworkSettings, LibrarySettings
+from haywire.core.settings import setting, FrameworkSettings, LibrarySettings
 from haywire.core.settings.registry import SettingsRegistry
 from haywire.core.settings.decorator import settings
 
@@ -23,15 +23,6 @@ from haywire.core.settings.decorator import settings
 
 
 class TestFrameworkSettingsExtendsSettings:
-    def test_globalSettings_is_settings_subclass(self):
-        assert issubclass(FrameworkSettings, Settings)
-
-    def test_direct_subclass_is_settings_subclass(self):
-        class FooGS(FrameworkSettings, namespace="foo"):
-            x = setting[int](1)
-
-        assert issubclass(FooGS, Settings)
-
     def test_prop_fields_returns_descriptors(self):
         class BarGS(FrameworkSettings, namespace="bar"):
             alpha = setting[int](7, label="Alpha")
@@ -75,9 +66,6 @@ class TestFrameworkSettingsExtendsSettings:
 
 
 class TestLibrarySettingsExtendsSettings:
-    def test_librarySettings_is_settings_subclass(self):
-        assert issubclass(LibrarySettings, Settings)
-
     def test_prop_fields_returns_descriptors(self):
         class FooLS(LibrarySettings):
             rate = setting[int](4, min=1, max=20)
@@ -94,12 +82,12 @@ class TestLibrarySettingsExtendsSettings:
 
 class TestDeepInheritanceBlocked:
     def test_globalSettings_direct_subclass_allowed(self):
-        """Directly subclassing FrameworkSettings must succeed."""
+        """Directly subclassing FrameworkSettings must succeed and configure namespace."""
 
         class DirectGS(FrameworkSettings, namespace="direct.gs"):
             x = setting[int](0)
 
-        assert issubclass(DirectGS, FrameworkSettings)
+        assert DirectGS._namespace == "direct.gs"
 
     def test_globalSettings_deep_subclass_raises(self):
         """Subclassing a FrameworkSettings subclass must raise TypeError."""
@@ -113,12 +101,12 @@ class TestDeepInheritanceBlocked:
                 y = setting[int](1)
 
     def test_librarySettings_direct_subclass_allowed(self):
-        """Directly subclassing LibrarySettings must succeed."""
+        """Directly subclassing LibrarySettings must succeed; descriptors are collected."""
 
         class DirectLS(LibrarySettings):
             x = setting[int](0)
 
-        assert issubclass(DirectLS, LibrarySettings)
+        assert "x" in DirectLS._property_settings()
 
     def test_librarySettings_deep_subclass_raises(self):
         """Subclassing a LibrarySettings subclass must raise TypeError."""

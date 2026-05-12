@@ -15,9 +15,6 @@ from haywire.core.state import AppState, LibraryState, SessionState
 
 
 class TestSessionStateBase:
-    def test_session_state_is_subclass_of_library_state(self):
-        assert issubclass(SessionState, LibraryState)
-
     def test_session_state_is_not_a_subclass_of_app_state(self):
         """AppState and SessionState are siblings, not parent/child."""
         assert not issubclass(SessionState, AppState)

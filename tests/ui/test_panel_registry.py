@@ -90,9 +90,6 @@ class _NotDecoratedPanel(BasePanel):
 
 
 class TestPanelDecorator:
-    def test_sets_class_identity(self):
-        assert hasattr(_TestNodePanelA, "class_identity")
-
     def test_registry_key(self):
         assert _TestNodePanelA.class_identity.registry_key.endswith(":panel:_TestNodePanelA")
 
