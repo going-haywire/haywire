@@ -62,7 +62,8 @@ class HaystackState(AppState):
         self._workspace_root: Optional[Path] = None
         self._node_factory: Optional[NodeFactory] = None
         self._library_state_container: Optional[LibraryStateContainer] = None
-        self._haystack_settings: Optional[HaystackSettings] = None
+
+        self._haystack_settings: HaystackSettings = HaystackSettings()
 
     # ------------------------------------------------------------------
     # AppState lifecycle
@@ -82,23 +83,6 @@ class HaystackState(AppState):
         self._node_factory = get_node_factory()
         self._library_state_container = get_library_state_container()
 
-        # HaystackSettings is a LibrarySettings — its cls._registry is wired by
-        # SettingsRegistry when the owning library's settings folder is scanned
-        # during library.enable(). LibraryStateContainer guarantees on_enable
-        # runs after that, so instantiation here is contractually fully wired.
-        # See docs/components/settings/setting-canon.md §3a.
-        from haybale_haystack.settings.haystack_settings import HaystackSettings
-
-        self._haystack_settings = HaystackSettings()
-        if self._haystack_settings._registry is None:
-            raise RuntimeError(
-                "HaystackState.on_enable: HaystackSettings has no registry. "
-                "This violates the LibrarySettings/AppState lifecycle contract — "
-                "cls._registry should have been wired by library.enable() before "
-                "on_enable fires. HaystackState cannot function without persisted "
-                "settings."
-            )
-
         # Rehydrate from last_haystack_name (best-effort).
         # Use self.load_haystack — not the free persistence.load_haystack —
         # so _haystack_dirty is cleared at the end. The free function calls
@@ -106,14 +90,13 @@ class HaystackState(AppState):
         # the wrapping clear the haystack would appear permanently dirty
         # from the moment startup completes even though the in-memory set
         # exactly mirrors the TOML.
-        if self._haystack_settings is not None:
-            last = self._haystack_settings.last_haystack_name
-            if last:
-                try:
-                    self.load_haystack(last)
-                    logger.info(f"HaystackState: rehydrated from '{last}'")
-                except Exception as exc:
-                    logger.error(f"HaystackState: failed to rehydrate '{last}': {exc}")
+        last = self._haystack_settings.last_haystack_name
+        if last:
+            try:
+                self.load_haystack(last)
+                logger.info(f"HaystackState: rehydrated from '{last}'")
+            except Exception as exc:
+                logger.error(f"HaystackState: failed to rehydrate '{last}': {exc}")
 
         # Announce that the haystack is back. HaystackEditor reacts by
         # re-rendering its list against the (new) registry. Cross-session,
@@ -135,24 +118,7 @@ class HaystackState(AppState):
         Receivers don't peek at the (about-to-be-cleared) registry — the
         signal payload is the source of truth for the teardown set.
 
-        On-exit autosave (``HaystackSettings.autosave == 'on_exit'``)
-        runs first so the TOML captures the registry as it was before
-        teardown. Continuous mode does NOT also dump here — its
-        per-mutator hooks have kept the file current.
         """
-        if (
-            self._haystack_settings is not None
-            and self._haystack_settings.autosave == "on_exit"
-            and self._haystack_settings.last_haystack_name
-            and self._workspace_root is not None
-        ):
-            from haybale_haystack import persistence
-
-            name = self._haystack_settings.last_haystack_name
-            try:
-                persistence.dump_haystack(self, self._workspace_root, name)
-            except Exception as exc:
-                logger.warning(f"HaystackState.on_disable: on-exit autosave failed for '{name}': {exc}")
 
         entry_ids = tuple(self._entries.keys())
 
@@ -244,8 +210,6 @@ class HaystackState(AppState):
         Sets ``_unsaved_id = "__unsaved_N__"`` (with N drawn from
         ``HaystackSettings.new_counter``) and advances the counter.
         """
-        if self._haystack_settings is None:
-            raise RuntimeError("HaystackState.create_new called before on_enable wired settings")
         counter = self._haystack_settings.new_counter
         entry_id = f"__unsaved_{counter}__"
         name = f"Untitled {counter}"
@@ -259,7 +223,6 @@ class HaystackState(AppState):
         logger.info(f"HaystackState: created new entry '{name}' ({entry_id})")
         self._broadcast_data_mutated()
         self._mark_haystack_dirty()
-        self._autosave_if_continuous()
         return entry
 
     def open_graph(self, path: Path) -> GraphEntry:
@@ -284,7 +247,6 @@ class HaystackState(AppState):
         logger.info(f"HaystackState: opened {path}")
         self._broadcast_data_mutated()
         self._mark_haystack_dirty()
-        self._autosave_if_continuous()
         return entry
 
     def save_graph(self, entry: GraphEntry, save_as: Optional[Path] = None) -> bool:
@@ -307,7 +269,6 @@ class HaystackState(AppState):
                 self._entries[entry.entry_id] = entry
             self._broadcast_data_mutated()
             self._mark_haystack_dirty()
-            self._autosave_if_continuous()
         return success
 
     def rename_graph(self, entry: GraphEntry, new_name: str) -> bool:
@@ -332,7 +293,6 @@ class HaystackState(AppState):
         entry.unsaved = False
         self._broadcast_data_mutated()
         self._mark_haystack_dirty()
-        self._autosave_if_continuous()
         return True
 
     def remove_entry(self, entry: GraphEntry) -> bool:
@@ -348,29 +308,21 @@ class HaystackState(AppState):
             del self._entries[entry.entry_id]
             self._broadcast_data_mutated()
             self._mark_haystack_dirty()
-            self._autosave_if_continuous()
             return True
         return False
 
     # ------------------------------------------------------------------
     # Execution wrappers — UI call sites route through these so the
-    # state observes start/stop transitions (continuous autosave hook).
-    # persistence.load_haystack still calls entry.start_execution()
-    # directly during rehydrate — that is the one path that should NOT
-    # trigger an autosave write back to the TOML.
+    # state observes start/stop transitions.
     # ------------------------------------------------------------------
 
     def start_execution(self, entry: GraphEntry) -> None:
-        """Start execution on *entry*, then fire continuous autosave."""
         entry.start_execution()
         self._mark_haystack_dirty()
-        self._autosave_if_continuous()
 
     def stop_execution(self, entry: GraphEntry) -> None:
-        """Stop execution on *entry*, then fire continuous autosave."""
         entry.stop_execution()
         self._mark_haystack_dirty()
-        self._autosave_if_continuous()
 
     # ------------------------------------------------------------------
     # Lookups
@@ -429,8 +381,7 @@ class HaystackState(AppState):
 
         assert self._workspace_root is not None, "save_haystack requires on_enable to have run"
         target = persistence.dump_haystack(self, self._workspace_root, name, active_path=active_path)
-        if self._haystack_settings is not None:
-            self._haystack_settings.last_haystack_name = name
+        self._haystack_settings.last_haystack_name = name
         self._haystack_dirty = False
         # State transitioned (dirty → clean); broadcast so HaystackEditor
         # redraws and the header chrome reflects the new clean state.
@@ -442,8 +393,7 @@ class HaystackState(AppState):
 
         Returns the absolute path of the haystack's stored ``active_graph``
         (if any), so callers can route a ``Reveal`` to that entry. If the
-        load succeeded and settings are wired, updates
-        ``HaystackSettings.last_haystack_name = name``.
+        load succeeded, updates ``HaystackSettings.last_haystack_name = name``.
 
         Note: caller is responsible for clearing existing entries first if
         the desired semantics are "replace" rather than "merge". Mirrors
@@ -458,7 +408,7 @@ class HaystackState(AppState):
         # a name whose TOML doesn't exist and warn-and-skip).
         source = persistence.haystack_path(self._workspace_root, name)
         active = persistence.load_haystack(self, self._workspace_root, name)
-        if source.exists() and self._haystack_settings is not None:
+        if source.exists():
             self._haystack_settings.last_haystack_name = name
         # After a fresh load the in-memory set matches the TOML by
         # definition — any prior dirty signal is now stale.
@@ -507,44 +457,12 @@ class HaystackState(AppState):
         """Mark the haystack-set as diverged from the saved TOML.
 
         Set whenever a mutator changes the registry shape or execution
-        state — the same trigger set as ``_autosave_if_continuous``,
-        because both react to "the file on disk no longer matches what
-        we have in memory." Cleared in ``save_haystack``.
+        state. Cleared in ``save_haystack``.
 
         Consumed by HaystackEditor to show a dirty indicator + save
         icon on the haystack header.
         """
         self._haystack_dirty = True
-
-    def _autosave_if_continuous(self) -> None:
-        """Dump the haystack TOML if continuous-mode autosave is enabled.
-
-        No-op in 'off' or 'on_exit' modes (on_exit fires from on_disable,
-        not from per-mutator hooks). Continuous-mode dumps omit
-        ``active_graph`` from the TOML — only explicit ``save_haystack``
-        writes that field (the active graph is a per-session concept;
-        HaystackState is app-wide and has no single source of truth for
-        it).
-
-        Defensively skips when ``_haystack_settings`` is None or when
-        ``last_haystack_name`` is empty — both indicate a not-yet-named
-        workspace where no TOML target exists.
-        """
-        if self._haystack_settings is None:
-            return
-        if self._haystack_settings.autosave != "continuous":
-            return
-        name = self._haystack_settings.last_haystack_name
-        if not name:
-            return
-        if self._workspace_root is None:
-            return
-        from haybale_haystack import persistence
-
-        try:
-            persistence.dump_haystack(self, self._workspace_root, name)
-        except Exception as exc:
-            logger.warning(f"HaystackState: continuous autosave failed for '{name}': {exc}")
 
     def _subscribe_validation(self, entry: GraphEntry) -> None:
         """Subscribe ``_on_entry_validation`` to this entry's graph.

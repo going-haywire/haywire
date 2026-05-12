@@ -19,8 +19,10 @@ so instantiation with no args produces a fully registry-wired instance.
 """
 
 from __future__ import annotations
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, ClassVar
 
+from haywire.core.library.identity import LibraryIdentity
+from haywire.core.settings.decorator import SettingsClassIdentity
 from haywire.core.settings.descriptor import persistent_setting
 from haywire.core.settings.settings import Settings
 
@@ -58,6 +60,13 @@ class FrameworkSettings(Settings):
 
     ```
     """
+
+    # Injected by the @settings decorator (or by __init_subclass__ via the
+    # class-signature namespace= form). Declared here so the framework's
+    # hot-reload machinery and type checkers both see them as legitimate
+    # class attributes — matches the pattern on @node / @state / @adapter.
+    class_identity: ClassVar[SettingsClassIdentity]
+    class_library: ClassVar[LibraryIdentity]
 
     def __init_subclass__(cls, namespace: str = "", **kwargs: object) -> None:
         super().__init_subclass__(**kwargs)
@@ -122,6 +131,12 @@ class LibrarySettings(Settings):
     After registration, cls._registry holds the registry back-reference, so:
         self.settings = GeneralSettings()   # fully wired, no explicit injection
     """
+
+    # Injected by the @settings decorator. Declared here so the framework's
+    # hot-reload machinery and type checkers both see them as legitimate
+    # class attributes — matches the pattern on @node / @state / @adapter.
+    class_identity: ClassVar[SettingsClassIdentity]
+    class_library: ClassVar[LibraryIdentity]
 
     def __init_subclass__(cls, namespace: str = "", **kwargs: object) -> None:
         super().__init_subclass__(**kwargs)

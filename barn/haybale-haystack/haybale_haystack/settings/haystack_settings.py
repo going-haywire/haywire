@@ -25,18 +25,3 @@ class HaystackSettings(LibrarySettings):
         order=20,
     )
 
-    autosave = setting[str](
-        "off",
-        choices=["off", "on_exit", "continuous"],
-        label="Autosave",
-        description=(
-            "When to auto-write the haystack TOML. "
-            "'off' = save only on explicit user action. "
-            "'on_exit' = also dump on app shutdown. "
-            "'continuous' = also dump on every open/save/remove/rename/start/stop. "
-            "Untitled (never-saved) graphs are not preserved by autosave; save them "
-            "explicitly first."
-        ),
-        category="haystack",
-        order=30,
-    )

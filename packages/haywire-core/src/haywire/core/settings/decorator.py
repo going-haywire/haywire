@@ -13,9 +13,16 @@ Consistent with @node, @editor, @panel, @theme pattern:
 
 from __future__ import annotations
 from dataclasses import dataclass
+from typing import Callable, TypeVar
 
 from haywire.core.library.utils import derive_library_identity, reg_key
 from haywire.core.registry.identity import BaseIdentity
+
+# Preserves the decorated class's type so IDEs (Pylance/Pyright) keep
+# completions for fields and methods on instances of the decorated class.
+# Without this, the decorator's return type is inferred as `Any` and
+# every reference to the decorated class loses its type information.
+_TSettings = TypeVar("_TSettings", bound=type)
 
 
 @dataclass
@@ -33,7 +40,7 @@ class SettingsClassIdentity(BaseIdentity):
     namespace: str = ""
 
 
-def settings(namespace: str, label: str = "", description: str = ""):
+def settings(namespace: str, label: str = "", description: str = "") -> Callable[[_TSettings], _TSettings]:
     """
     Decorator for library settings classes.
 
@@ -59,7 +66,7 @@ def settings(namespace: str, label: str = "", description: str = ""):
         settings_registry.add_folder(path, library_identity)
     """
 
-    def decorator(inner_cls):
+    def decorator(inner_cls: _TSettings) -> _TSettings:
         # Lazy import to avoid circular dependency (schema imports descriptors)
         from haywire.core.settings.schema import LibrarySettings, FrameworkSettings  # noqa: PLC0415
         from haywire.core.settings.descriptor import persistent_setting  # noqa: PLC0415

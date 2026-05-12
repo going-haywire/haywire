@@ -480,10 +480,11 @@ class HaystackEditor(BaseEditor):
                 return
             session = context.session
             if entry.graph is context.data[EditState].active_graph.value:
-                context.data[EditState].active_graph_path.value = entry.path
-                if session:
-                    session.signal(ActiveGraphMoved())
-            ui.notify(f"Renamed to: {entry.path.name}", type="positive", position="top-right")
+                if entry.path:
+                    context.data[EditState].active_graph_path.value = entry.path
+                    if session:
+                        session.signal(ActiveGraphMoved())
+                    ui.notify(f"Renamed to: {entry.path.name}", type="positive", position="top-right")
 
         rename_modal(
             title="Rename Graph",
