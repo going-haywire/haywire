@@ -136,7 +136,7 @@ def test_wrapper_binding_id_without_payload():
         registry=reg,
         session=_make_session(),
     )
-    assert w.binding_id == "fake:editor:1"
+    assert w.editor_binding_id == "fake:editor:1"
 
 
 def test_wrapper_binding_id_with_payload():
@@ -148,7 +148,7 @@ def test_wrapper_binding_id_with_payload():
         session=_make_session(),
         binding_id="/tmp/x",
     )
-    assert w.binding_id == "fake:editor:1::/tmp/x"
+    assert w.editor_binding_id == "fake:editor:1::/tmp/x"
 
 
 def test_wrapper_split_id_static():
@@ -686,10 +686,10 @@ def test_repayload_updates_payload_and_binding_id():
         session=_make_session(),
         binding_id="__unsaved_3__",
     )
-    assert w.binding_id == "fake:editor:1::__unsaved_3__"
+    assert w.editor_binding_id == "fake:editor:1::__unsaved_3__"
     w.repayload("/tmp/saved.haywire")
     assert w._binding_id == "/tmp/saved.haywire"
-    assert w.binding_id == "fake:editor:1::/tmp/saved.haywire"
+    assert w.editor_binding_id == "fake:editor:1::/tmp/saved.haywire"
 
 
 def test_repayload_to_none_removes_suffix():

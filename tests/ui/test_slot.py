@@ -587,7 +587,7 @@ def test_wrapper_split_id_round_trip_with_binding_id():
     slot = TabSlot(session=sess, name="main", registry=reg)
     slot.add_binding(editor_key="editor:one", editor_cls=_FakeEditor, binding_id="/tmp/a.graph")
     w = slot.find_binding("editor:one", "/tmp/a.graph")
-    assert EditorWrapper.split_id(w.binding_id) == ("editor:one", "/tmp/a.graph")
+    assert EditorWrapper.split_id(w.editor_binding_id) == ("editor:one", "/tmp/a.graph")
 
 
 # ----------------------------------------------------------------------

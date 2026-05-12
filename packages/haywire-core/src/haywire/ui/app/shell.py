@@ -647,7 +647,7 @@ class AppShell:
             return
         for slot in self._managed_slots.values():
             if isinstance(slot, TabSlot):
-                slot.close_tabs_for_payload(binding_id)
+                slot.close_tabs_for(binding_id)
 
     def _on_slot_resize(self, event) -> None:
         """Dispatch ``hw-slot-resize`` events from the drag JS to the target slot.

@@ -264,7 +264,7 @@ def _make_fake_tab_slot(name: str) -> "_FakeSlot":
         def repayload_tab(self, editor_key, old_payload, new_payload, new_label=None):
             return _FakeSlot.repayload_tab(self, editor_key, old_payload, new_payload, new_label)
 
-        def close_tabs_for_payload(self, binding_id):
+        def close_tabs_for(self, binding_id):
             return _FakeSlot.close_tabs_for_payload(self, binding_id)
 
     return _FakeTab(name)

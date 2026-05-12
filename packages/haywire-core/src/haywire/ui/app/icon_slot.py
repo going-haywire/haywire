@@ -118,7 +118,7 @@ class IconSlot(Slot):
                 # label="" so the binding_id doesn't render as text under
                 # the icon. The hover tooltip carries the human-readable
                 # editor label instead.
-                tab = ui.tab(name=wrapper.binding_id, label="", icon=icon).tooltip(tooltip)
+                tab = ui.tab(name=wrapper.editor_binding_id, label="", icon=icon).tooltip(tooltip)
                 if wrapper is active_wrapper:
                     active_tab = tab
         if active_tab is not None:

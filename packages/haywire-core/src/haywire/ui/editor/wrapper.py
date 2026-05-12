@@ -169,7 +169,7 @@ class EditorWrapper:
         return self._instance
 
     @property
-    def binding_id(self) -> str:
+    def editor_binding_id(self) -> str:
         """Stable composite identity. ``editor_key`` for single-instance wrappers;
         ``editor_key::_binding_id`` when a ``_binding_id`` disambiguator is present."""
         return f"{self.editor_key}::{self._binding_id}" if self._binding_id else self.editor_key

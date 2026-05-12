@@ -290,7 +290,7 @@ class Slot(ABC):
     @property
     def active_binding_id(self) -> Optional[str]:
         """Full wrapper id (``editor_key`` or ``editor_key::binding_id``) of the active wrapper."""
-        return self._active.binding_id if self._active is not None else None
+        return self._active.editor_binding_id if self._active is not None else None
 
     @property
     def visible(self) -> bool:
@@ -422,7 +422,7 @@ class Slot(ABC):
         active panel without rebuilding anything.
         """
         self._capture_tab_client()
-        initial_value = self._active.binding_id if self._active is not None else None
+        initial_value = self._active.editor_binding_id if self._active is not None else None
         with parent:
             self._area_panel_container = (
                 ui.tab_panels(value=initial_value, animated=False)
@@ -452,12 +452,12 @@ class Slot(ABC):
         if self._area_panel_container is None:
             return
         with self._area_panel_container:
-            panel = ui.tab_panel(wrapper.binding_id).style("width: 100%; height: 100%; padding: 0;")
-        self._panels[wrapper.binding_id] = panel
+            panel = ui.tab_panel(wrapper.editor_binding_id).style("width: 100%; height: 100%; padding: 0;")
+        self._panels[wrapper.editor_binding_id] = panel
 
     def _ensure_drawn(self, wrapper: EditorWrapper) -> None:
         """Trigger first-time draw of the wrapper's panel."""
-        bid = wrapper.binding_id
+        bid = wrapper.editor_binding_id
         if bid in self._drawn:
             return
         panel = self._panels.get(bid)
@@ -483,7 +483,7 @@ class Slot(ABC):
         creation inside the editor's draw() can find a valid slot stack.
         See :meth:`_capture_tab_client`.
         """
-        bid = wrapper.binding_id
+        bid = wrapper.editor_binding_id
         panel = self._panels.get(bid)
         if panel is None:
             return
@@ -504,7 +504,7 @@ class Slot(ABC):
         wrapper.on_focus()
         self._ensure_drawn(wrapper)
         if self._area_panel_container is not None:
-            self._area_panel_container.set_value(wrapper.binding_id)
+            self._area_panel_container.set_value(wrapper.editor_binding_id)
 
     # ------------------------------------------------------------------
     # Switching
@@ -531,7 +531,7 @@ class Slot(ABC):
         if self._active is target:
             return False
 
-        logger.info(f"Slot '{self.name}': switched to '{target.binding_id}'")
+        logger.info(f"Slot '{self.name}': switched to '{target.editor_binding_id}'")
         self._activate(target)
         return True
 
@@ -649,10 +649,10 @@ class Slot(ABC):
         target.set_redraw_callback(None)
         target.cleanup()
 
-        panel = self._panels.pop(target.binding_id, None)
+        panel = self._panels.pop(target.editor_binding_id, None)
         if panel is not None:
             panel.delete()
-        self._drawn.discard(target.binding_id)
+        self._drawn.discard(target.editor_binding_id)
 
         was_active = self._active is target
         idx = self._bindings.index(target)
@@ -686,11 +686,11 @@ class Slot(ABC):
             return True
 
         new_id = f"{editor_key}::{new_payload}" if new_payload else editor_key
-        if any(b is not target and b.binding_id == new_id for b in self._bindings):
+        if any(b is not target and b.editor_binding_id == new_id for b in self._bindings):
             logger.warning(f"Slot '{self.name}': repayload collision — '{new_id}' already exists")
             return False
 
-        old_id = target.binding_id
+        old_id = target.editor_binding_id
         # Mutate the wrapper's field directly — the public wrapper.repayload()
         # delegates back to this slot, which would cause unbounded recursion.
         target._binding_id = new_payload
@@ -751,7 +751,7 @@ class Slot(ABC):
                     if removed is not None:
                         bar_dirty = True
                         logger.info(
-                            f"Slot '{self.name}': removed wrapper '{removed.binding_id}' "
+                            f"Slot '{self.name}': removed wrapper '{removed.editor_binding_id}' "
                             f"(CLASS_REMOVED for '{event.registry_key}')"
                         )
 

@@ -60,8 +60,8 @@ class TabSlot(Slot):
     def _render_bar_contents(self) -> None:
         """Render tab row + optional chevron."""
         if self._bindings:
-            active_id = self._active.binding_id if self._active is not None else None
-            ids = [b.binding_id for b in self._bindings]
+            active_id = self._active.editor_binding_id if self._active is not None else None
+            ids = [b.editor_binding_id for b in self._bindings]
             initial = active_id if active_id in ids else (ids[0] if ids else None)
             with (
                 ui.tabs(value=cast(Any, initial), on_change=lambda e: self._on_tab_clicked(e.value))
@@ -70,7 +70,7 @@ class TabSlot(Slot):
                 .style("flex: 1; min-height: 36px;")
             ):
                 for wrapper in self._bindings:
-                    tab_el = ui.tab(name=wrapper.binding_id, label="").props("no-caps")
+                    tab_el = ui.tab(name=wrapper.editor_binding_id, label="").props("no-caps")
                     with tab_el:
                         with ui.row().classes("items-center gap-1 no-wrap"):
                             if wrapper.label:
@@ -85,7 +85,7 @@ class TabSlot(Slot):
                                 label = f"• {label}"
                             ui.label(label)
                             if wrapper.can_close:
-                                tab_id = wrapper.binding_id
+                                tab_id = wrapper.editor_binding_id
                                 (
                                     ui.button(
                                         icon="close",
@@ -196,7 +196,7 @@ class TabSlot(Slot):
         self._refresh_bar()
         return True
 
-    def close_tabs_for_payload(self, binding_id: str) -> int:
+    def close_tabs_for(self, binding_id: str) -> int:
         """Close every tab whose disambiguator == ``binding_id``."""
         matches = [w for w in self._bindings if w._binding_id == binding_id]
         closed = 0

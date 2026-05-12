@@ -200,7 +200,7 @@ def test_tab_slot_close_tabs_for_payload_closes_matching(monkeypatch):
     slot._active = slot.find_binding("a", "p1")
     slot.render(_FakeContainer())
 
-    closed = slot.close_tabs_for_payload("p1")
+    closed = slot.close_tabs_for("p1")
     assert closed == 1
     assert slot.find_binding("a", "p1") is None
     assert slot.find_binding("a", "p2") is not None
