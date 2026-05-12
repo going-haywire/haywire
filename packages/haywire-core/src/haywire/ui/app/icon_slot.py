@@ -85,7 +85,7 @@ class IconSlot(Slot):
             ui.separator().classes("w-full opacity-20")
 
         # Filter to wrappers with a registered editor class — we use
-        # binding_id as the tab value for stable per-(key, payload) routing.
+        # binding_id as the tab value for stable per-(key, binding_id) routing.
         renderable = [w for w in self._bindings if w.editor_cls is not None]
         if not renderable:
             return
@@ -152,11 +152,11 @@ class IconSlot(Slot):
         value = e.value if hasattr(e, "value") else e
         if value is None:
             return
-        binding_id = value if isinstance(value, str) else getattr(value, "_props", {}).get("name")
-        if not binding_id:
+        tab_id = value if isinstance(value, str) else getattr(value, "_props", {}).get("name")
+        if not tab_id:
             return
-        key, payload = EditorWrapper.split_id(binding_id)
-        self.switch_to(key, payload)
+        key, binding_id = EditorWrapper.split_id(tab_id)
+        self.switch_to(key, binding_id)
 
     def _on_fold_toggle_clicked(self) -> None:
         """Flip the slot's area visibility."""

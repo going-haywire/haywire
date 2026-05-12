@@ -757,7 +757,7 @@ def dump_haystack(
             "execute": entry.is_executing,
         })
 
-    payload = {
+    binding_id = {
         "haystack": {
             "name": name,
             "entries": entries_data,
@@ -765,7 +765,7 @@ def dump_haystack(
     }
 
     with target.open("wb") as f:
-        tomli_w.dump(payload, f)
+        tomli_w.dump(binding_id, f)
     logger.info(f"Dumped haystack '{name}' with {len(entries_data)} entries to {target}")
 
 
@@ -788,9 +788,9 @@ def load_haystack(
         return
 
     with source.open("rb") as f:
-        payload = tomli.load(f)
+        binding_id = tomli.load(f)
 
-    haystack_data = payload.get("haystack", {})
+    haystack_data = binding_id.get("haystack", {})
     entries_data = haystack_data.get("entries", [])
 
     for entry_data in entries_data:
@@ -1499,10 +1499,10 @@ Open `barn/haybale-haystack/haybale_haystack/editors/graph_editor.py`. Find each
 
 ```python
 # OLD
-return app.haystack.get_by_id(self.wrapper.payload)
+return app.haystack.get_by_id(self.wrapper.binding_id)
 # NEW
 from haybale_haystack.state.haystack_state import HaystackState
-return ctx.app_data[HaystackState].get_by_id(self.wrapper.payload)
+return ctx.app_data[HaystackState].get_by_id(self.wrapper.binding_id)
 ```
 
 If `ctx` isn't accessible at the call site (e.g. it's in a method that only takes `app`), figure out how to thread `ctx` through — likely the method has access to the full session context elsewhere.

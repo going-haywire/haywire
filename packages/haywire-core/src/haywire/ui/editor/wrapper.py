@@ -101,7 +101,7 @@ class EditorWrapper:
         editor_cls: "Optional[type[BaseEditor]]",
         registry: "EditorTypeRegistry",
         session: "Session",
-        payload: Optional[str] = None,
+        binding_id: Optional[str] = None,
         label: str = "",
         slot: "Optional[Slot]" = None,
     ):
@@ -113,8 +113,10 @@ class EditorWrapper:
                 renders a placeholder until a successful hot-reload arrives.
             registry: Editor registry for self-subscription.
             session: Owning session — held for the wrapper's lifetime.
-            payload: Optional disambiguator (e.g., file path string for
-                multi-instance editors). None for single-instance editors.
+            binding_id: Optional disambiguator (e.g., file path string for
+                multi-instance editors). Stored as ``_binding_id``; the
+                public ``binding_id`` property exposes the composite
+                ``editor_key::disambiguator`` form. None for single-instance editors.
             label: Tab label for tabbed slots. Defaults to empty; resolved
                 lazily at draw time when empty.
             slot: Owning slot — used by close/force_close/repayload to call
@@ -123,7 +125,7 @@ class EditorWrapper:
         """
         self.editor_key = editor_key
         self.editor_cls = editor_cls
-        self.payload = payload
+        self._binding_id = binding_id
         self.label = label
         self._registry = registry
         self._session: "Session" = session
@@ -168,16 +170,16 @@ class EditorWrapper:
 
     @property
     def binding_id(self) -> str:
-        """Stable identity. ``editor_key`` for single-instance wrappers;
-        ``editor_key::payload`` when a payload is present."""
-        return f"{self.editor_key}::{self.payload}" if self.payload else self.editor_key
+        """Stable composite identity. ``editor_key`` for single-instance wrappers;
+        ``editor_key::_binding_id`` when a ``_binding_id`` disambiguator is present."""
+        return f"{self.editor_key}::{self._binding_id}" if self._binding_id else self.editor_key
 
     @staticmethod
     def split_id(tab_id: str) -> tuple[str, Optional[str]]:
         """Inverse of :attr:`binding_id`."""
         if "::" in tab_id:
-            editor_key, payload = tab_id.split("::", 1)
-            return editor_key, payload
+            editor_key, _binding_id = tab_id.split("::", 1)
+            return editor_key, _binding_id
         return tab_id, None
 
     @property
@@ -459,10 +461,10 @@ class EditorWrapper:
                 f"EditorWrapper '{self.editor_key}': force_close called but no slot attached; nothing to do."
             )
             return
-        self._slot.close_tab(self.editor_key, self.payload)  # type: ignore[attr-defined]
+        self._slot.close_tab(self.editor_key, self._binding_id)  # type: ignore[attr-defined]
 
     def repayload(self, new_payload: Optional[str], new_label: Optional[str] = None) -> None:
-        """Update the payload (and optional label) in place.
+        """Update the disambiguator (and optional label) in place.
 
         When attached to a TabSlot, delegates to ``slot.repayload_tab`` for
         DOM-side housekeeping (panel name, set_value, bar refresh, collision
@@ -476,13 +478,13 @@ class EditorWrapper:
         no-op.
         """
         if self._slot is None:
-            self.payload = new_payload
+            self._binding_id = new_payload
             if new_label is not None:
                 self.label = new_label
             return
         self._slot.repayload_tab(  # type: ignore[attr-defined]
             self.editor_key,
-            self.payload,
+            self._binding_id,
             new_payload,
             new_label,
         )

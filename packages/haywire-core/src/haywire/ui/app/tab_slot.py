@@ -116,8 +116,8 @@ class TabSlot(Slot):
         ``Slot._activate`` (slot.py:499-505), so no separate context
         notification is needed — focus-followers run on the on_focus path.
         """
-        editor_key, payload = EditorWrapper.split_id(tab_id)
-        if not self.switch_to(editor_key, payload):
+        editor_key, binding_id = EditorWrapper.split_id(tab_id)
+        if not self.switch_to(editor_key, binding_id):
             return
         self._refresh_bar()
 
@@ -128,8 +128,8 @@ class TabSlot(Slot):
         (which can show a save-or-discard dialog) and only invokes
         ``slot.close_tab`` if the editor allows the close.
         """
-        editor_key, payload = EditorWrapper.split_id(tab_id)
-        wrapper = self.find_binding(editor_key, payload)
+        editor_key, binding_id = EditorWrapper.split_id(tab_id)
+        wrapper = self.find_binding(editor_key, binding_id)
         if wrapper is None:
             return
         await wrapper.close()
@@ -145,25 +145,25 @@ class TabSlot(Slot):
         self,
         editor_cls: type,
         editor_key: str,
-        payload: Optional[str],
+        binding_id: Optional[str],
         label: str,
     ) -> bool:
-        """Ensure a tab for ``(editor_key, payload)`` exists and make it active.
+        """Ensure a tab for ``(editor_key, binding_id)`` exists and make it active.
 
         Returns ``True`` iff the active tab actually changed.
         """
-        existing = self.find_binding(editor_key, payload)
+        existing = self.find_binding(editor_key, binding_id)
         if existing is not None:
             if self._active is existing:
                 return False
-            self.switch_to(editor_key, payload)
+            self.switch_to(editor_key, binding_id)
             self._refresh_bar()
             return True
 
         wrapper = self.add_binding(
             editor_key=editor_key,
             editor_cls=editor_cls,
-            payload=payload,
+            binding_id=binding_id,
             activate=True,
         )
         if label:
@@ -171,9 +171,9 @@ class TabSlot(Slot):
         self._refresh_bar()
         return True
 
-    def close_tab(self, editor_key: str, payload: Optional[str]) -> bool:
+    def close_tab(self, editor_key: str, binding_id: Optional[str]) -> bool:
         """Close one tab — removes wrapper; promotes sibling when active."""
-        removed = self.remove_binding(editor_key, payload)
+        removed = self.remove_binding(editor_key, binding_id)
         if removed is None:
             return False
         self._refresh_bar()
@@ -196,11 +196,11 @@ class TabSlot(Slot):
         self._refresh_bar()
         return True
 
-    def close_tabs_for_payload(self, payload: str) -> int:
-        """Close every tab whose wrapper.payload == ``payload``."""
-        matches = [w for w in self._bindings if w.payload == payload]
+    def close_tabs_for_payload(self, binding_id: str) -> int:
+        """Close every tab whose disambiguator == ``binding_id``."""
+        matches = [w for w in self._bindings if w._binding_id == binding_id]
         closed = 0
         for wrapper in matches:
-            if self.close_tab(wrapper.editor_key, wrapper.payload):
+            if self.close_tab(wrapper.editor_key, wrapper._binding_id):
                 closed += 1
         return closed

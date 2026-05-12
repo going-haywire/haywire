@@ -22,7 +22,7 @@ from haywire.core.session.signals_and_lifecycle import ContextSignal
 class HaystackTeardown(ContextSignal):
     """Emitted from ``HaystackState.on_disable`` before entries are cleared.
 
-    HaystackEditor reacts by issuing a local ``Close(payload=eid)`` for
+    HaystackEditor reacts by issuing a local ``Close(binding_id=eid)`` for
     every id in ``entry_ids`` — closing every GraphEditor tab bound to
     a vanishing entry. Cross-session: every session's HaystackEditor
     receives the signal and runs its local closes, so peer sessions

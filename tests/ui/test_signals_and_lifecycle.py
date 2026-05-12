@@ -110,21 +110,21 @@ def test_signal_is_frozen():
 
 def test_reveal_request_basic():
     editor_cls = MagicMock()
-    r = Reveal(editor=editor_cls, payload="abc", label="My Tab")
+    r = Reveal(editor=editor_cls, binding_id="abc", label="My Tab")
     assert r.editor is editor_cls
-    assert r.payload == "abc"
+    assert r.binding_id == "abc"
     assert r.label == "My Tab"
 
 
 def test_reveal_request_is_frozen():
     r = Reveal(editor=MagicMock())
     with pytest.raises(FrozenInstanceError):
-        r.payload = "new"  # type: ignore[misc]
+        r.binding_id = "new"  # type: ignore[misc]
 
 
 def test_reveal_request_optional_payload_label():
     r = Reveal(editor=MagicMock())
-    assert r.payload is None
+    assert r.binding_id is None
     assert r.label is None
 
 
@@ -133,14 +133,14 @@ def test_reveal_is_lifecycle_command():
 
 
 def test_close_carries_payload():
-    c = Close(payload="entry-42")
-    assert c.payload == "entry-42"
+    c = Close(binding_id="entry-42")
+    assert c.binding_id == "entry-42"
 
 
 def test_close_is_frozen():
-    c = Close(payload="x")
+    c = Close(binding_id="x")
     with pytest.raises(FrozenInstanceError):
-        c.payload = "y"  # type: ignore[misc]
+        c.binding_id = "y"  # type: ignore[misc]
 
 
 def test_close_requires_payload():
@@ -149,7 +149,7 @@ def test_close_requires_payload():
 
 
 def test_close_is_lifecycle_command():
-    assert isinstance(Close(payload="x"), LifecycleCommand)
+    assert isinstance(Close(binding_id="x"), LifecycleCommand)
 
 
 # ----------------------------------------------------------------------
@@ -225,7 +225,7 @@ def test_session_lifecycle_reveal_calls_callback():
     handler = MagicMock()
     session.set_lifecycle_orchestrator(handler)
 
-    r = Reveal(editor=MagicMock(), payload="p")
+    r = Reveal(editor=MagicMock(), binding_id="p")
     session.lifecycle(r)
 
     handler.assert_called_once_with(r)
@@ -237,7 +237,7 @@ def test_session_lifecycle_close_calls_callback():
     handler = MagicMock()
     session.set_lifecycle_orchestrator(handler)
 
-    c = Close(payload="x")
+    c = Close(binding_id="x")
     session.lifecycle(c)
 
     handler.assert_called_once_with(c)
@@ -250,7 +250,7 @@ def test_session_lifecycle_does_not_broadcast():
     session.set_lifecycle_orchestrator(MagicMock())
 
     session.lifecycle(Reveal(editor=MagicMock()))
-    session.lifecycle(Close(payload="x"))
+    session.lifecycle(Close(binding_id="x"))
 
     sm.broadcast.assert_not_called()
     sm.broadcast_signal.assert_not_called()

@@ -38,7 +38,7 @@ class Session:
       ``subject = Subject.peer(origin_id)`` on non-origin sessions.
     - ``session.lifecycle(cmd: LifecycleCommand)`` — imperative
       mutation of the workspace tree (``Reveal`` brings an editor to
-      the front, ``Close`` removes tabs bound to a payload). Local by
+      the front, ``Close`` removes tabs bound to a binding_id). Local by
       default; if ``type(cmd).cross_session is True`` (e.g.
       ``BroadcastClose``) delegates to
       ``SessionManager.broadcast_lifecycle`` so every session's AppShell

@@ -4,7 +4,7 @@
 
 **Goal:** Elevate `Session`, `SessionManager`, `SessionContext`, `WorkspaceManager`, `context_signals`, and `reactive` from `haywire.ui.*` to `haywire.core.*`; rewire shell ownership so `Session` no longer holds an `AppShell` back-reference; add `provide_session_manager()` to the DI module; add ambient globals for `SessionManager` and `workspace_root`; build a generic `FileBrowser` context-menu mechanism reusing the existing `@panel(action=, focus=, poll)` machinery (mirrors `SessionContextMenuProvider`).
 
-**Architecture:** All cross-layer dependencies use the documented module-level-globals pattern in `haywire.core.di.context` (NOT `ContextVar` — see `.insights/project_di_context.md`). `Session` keeps its callback-slot pattern for `signal_orchestrator` and `lifecycle_orchestrator`; the `_shell` back-reference is replaced by `studio.app` owning a `_shells: dict[session_id, AppShell]` and calling `shell.cleanup()` upstream of `sm.remove_session(sid)`. The file-context-menu mirrors `SessionContextMenuProvider` ([context_menu.py](barn/haybale-studio/haybale_studio/editors/graph_canvas/handlers/context_menu.py)) as a focused copy: new `FileFocus`, `FileBrowserActions` Protocol (single method `reveal(editor_cls, payload, label)`), `FileBrowserState(SessionState)` with a transient `right_clicked_file: Reactive[Path|None]` (cleared on menu close), and a `SessionFileMenuProvider`. After both providers exist, opportunistically extract a shared `BaseContextMenuProvider` IF and only IF doing so does not require inventing a new shared dependency.
+**Architecture:** All cross-layer dependencies use the documented module-level-globals pattern in `haywire.core.di.context` (NOT `ContextVar` — see `.insights/project_di_context.md`). `Session` keeps its callback-slot pattern for `signal_orchestrator` and `lifecycle_orchestrator`; the `_shell` back-reference is replaced by `studio.app` owning a `_shells: dict[session_id, AppShell]` and calling `shell.cleanup()` upstream of `sm.remove_session(sid)`. The file-context-menu mirrors `SessionContextMenuProvider` ([context_menu.py](barn/haybale-studio/haybale_studio/editors/graph_canvas/handlers/context_menu.py)) as a focused copy: new `FileFocus`, `FileBrowserActions` Protocol (single method `reveal(editor_cls, binding_id, label)`), `FileBrowserState(SessionState)` with a transient `right_clicked_file: Reactive[Path|None]` (cleared on menu close), and a `SessionFileMenuProvider`. After both providers exist, opportunistically extract a shared `BaseContextMenuProvider` IF and only IF doing so does not require inventing a new shared dependency.
 
 **Tech Stack:** Python 3.12, NiceGUI/Quasar, `injector` library (already used in `HaywireModule`), `pytest` (markers: `unit`, `integration`).
 
@@ -1562,7 +1562,7 @@ Create `barn/haybale-studio/haybale_studio/editors/file_browser_menu/actions.py`
 """FileBrowserActions — Protocol implemented by SessionFileMenuProvider.
 
 Per Q11B: a single method, ``reveal``. Each panel resolves its own
-payload (e.g. the "Open in Haystack" panel calls
+binding_id (e.g. the "Open in Haystack" panel calls
 HaystackState.open_graph(path) to derive an entry_id, then calls
 actions.reveal(GraphEditor, entry_id, display_name)).
 
@@ -1584,7 +1584,7 @@ class FileBrowserActions(Protocol):
     def reveal(
         self,
         editor_cls: "type[BaseEditor]",
-        payload: Any,
+        binding_id: Any,
         label: str,
     ) -> None:
         """Issue a Reveal lifecycle command and close the menu popup."""
@@ -1602,7 +1602,7 @@ Expected: `<class 'haybale_studio.editors.file_browser_menu.actions.FileBrowserA
 git add barn/haybale-studio/haybale_studio/editors/file_browser_menu/
 git commit -m "feat(file-browser): add FileBrowserActions Protocol
 
-Single method reveal(editor_cls, payload, label). Panels with
+Single method reveal(editor_cls, binding_id, label). Panels with
 action=FileBrowserActions call actions.reveal(...) to open an editor;
 the provider implements it as session.lifecycle(Reveal(...)) plus
 popup close."
@@ -1689,13 +1689,13 @@ def test_reveal_issues_lifecycle_and_closes_popup():
     provider._open_popup = popup
 
     editor_cls = MagicMock()
-    provider.reveal(editor_cls, payload="payload-x", label="My Editor")
+    provider.reveal(editor_cls, binding_id="binding_id-x", label="My Editor")
 
     # session.lifecycle was called with a Reveal command
     session.lifecycle.assert_called_once()
     call = session.lifecycle.call_args[0][0]
     assert call.editor is editor_cls
-    assert call.payload == "payload-x"
+    assert call.binding_id == "binding_id-x"
     assert call.label == "My Editor"
     # And the popup got closed
     popup.close.assert_called_once()
@@ -1751,7 +1751,7 @@ Mirrors SessionContextMenuProvider in graph_canvas/handlers/context_menu.py:
 - filters by poll(), draws into a Popup
 - on_close clears right_clicked_file (Q8A: transient menu state)
 
-Implements FileBrowserActions structurally — reveal(editor_cls, payload, label).
+Implements FileBrowserActions structurally — reveal(editor_cls, binding_id, label).
 
 This file is a focused copy of the canvas provider. PR1 Task 18
 (opportunistic) considers extracting a BaseContextMenuProvider IF the
@@ -1848,12 +1848,12 @@ class SessionFileMenuProvider:
     def reveal(
         self,
         editor_cls: "type[BaseEditor]",
-        payload: Any,
+        binding_id: Any,
         label: str,
     ) -> None:
         """Issue a Reveal lifecycle command and close the popup."""
         self._session.lifecycle(
-            Reveal(editor=editor_cls, payload=payload, label=label)
+            Reveal(editor=editor_cls, binding_id=binding_id, label=label)
         )
         if self._open_popup is not None:
             self._open_popup.close()
@@ -2079,7 +2079,7 @@ def test_panel_appears_and_reveal_fires():
         def draw(self, ctx, layout, actions):
             f = ctx.data[FileBrowserState].right_clicked_file.value
             # Simulate user clicking the menu item
-            actions.reveal(MagicMock(), payload=str(f), label=f.name)
+            actions.reveal(MagicMock(), binding_id=str(f), label=f.name)
 
     # Build a fake context + registry
     registry = PanelRegistry()
@@ -2120,7 +2120,7 @@ def test_panel_skipped_when_extension_doesnt_match():
             return f is not None and f.suffix == ".smoke"
 
         def draw(self, ctx, layout, actions):
-            actions.reveal(MagicMock(), payload="", label="x")
+            actions.reveal(MagicMock(), binding_id="", label="x")
 
     registry = PanelRegistry()
     registry.register(SmokeOnlyPanel)
@@ -2326,11 +2326,11 @@ class SessionFileMenuProvider(BaseContextMenuProvider):
     def reveal(
         self,
         editor_cls: "type[BaseEditor]",
-        payload: Any,
+        binding_id: Any,
         label: str,
     ) -> None:
         self._session.lifecycle(
-            Reveal(editor=editor_cls, payload=payload, label=label)
+            Reveal(editor=editor_cls, binding_id=binding_id, label=label)
         )
         if self._open_popup is not None:
             self._open_popup.close()
@@ -2462,7 +2462,7 @@ Before opening the PR, verify against the design decisions:
 - [ ] `HaywireApp.on_disconnect` does `shell.cleanup()` first, then `sm.remove_session(sid)`
 - [ ] `FileBrowserState(SessionState)` with `right_clicked_file: Reactive[Path|None]` exists
 - [ ] `FileFocus(Focus)` exists with `id="file"` and reads `FileBrowserState.right_clicked_file`
-- [ ] `FileBrowserActions` Protocol exists with single method `reveal(editor_cls, payload, label)`
+- [ ] `FileBrowserActions` Protocol exists with single method `reveal(editor_cls, binding_id, label)`
 - [ ] `SessionFileMenuProvider` exists and on menu close clears `right_clicked_file` (Q8A)
 - [ ] FileBrowser wires right-click to `provider.on_file_context(pos, path)`
 - [ ] FileBrowser left-click `_open_graph_file` routing is **untouched** (PR 2 deletes it)

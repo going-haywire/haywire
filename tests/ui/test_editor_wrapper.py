@@ -80,7 +80,7 @@ def test_wrapper_construction_with_class_sets_imported():
     )
     assert w.editor_key == "fake:editor:1"
     assert w.editor_cls is _FakeEditorCls
-    assert w.payload is None
+    assert w._binding_id is None
     assert w.state.is_imported is True
     assert w.state.error_import is None
     assert w.state.is_valid() is True
@@ -146,7 +146,7 @@ def test_wrapper_binding_id_with_payload():
         editor_cls=_FakeEditorCls,
         registry=reg,
         session=_make_session(),
-        payload="/tmp/x",
+        binding_id="/tmp/x",
     )
     assert w.binding_id == "fake:editor:1::/tmp/x"
 
@@ -684,11 +684,11 @@ def test_repayload_updates_payload_and_binding_id():
         editor_cls=_FakeEditorCls,
         registry=reg,
         session=_make_session(),
-        payload="__unsaved_3__",
+        binding_id="__unsaved_3__",
     )
     assert w.binding_id == "fake:editor:1::__unsaved_3__"
     w.repayload("/tmp/saved.haywire")
-    assert w.payload == "/tmp/saved.haywire"
+    assert w._binding_id == "/tmp/saved.haywire"
     assert w.binding_id == "fake:editor:1::/tmp/saved.haywire"
 
 
@@ -699,10 +699,10 @@ def test_repayload_to_none_removes_suffix():
         editor_cls=_FakeEditorCls,
         registry=reg,
         session=_make_session(),
-        payload="x",
+        binding_id="x",
     )
     w.repayload(None)
-    assert w.payload is None
+    assert w._binding_id is None
 
 
 # ---------------------------------------------------------------------------
@@ -940,8 +940,8 @@ class _FakeSlot:
     def __init__(self):
         self.close_calls: list = []
 
-    def close_tab(self, editor_key, payload):
-        self.close_calls.append((editor_key, payload))
+    def close_tab(self, editor_key, binding_id):
+        self.close_calls.append((editor_key, binding_id))
         return True
 
 
@@ -952,7 +952,7 @@ def test_force_close_calls_slot_close_tab():
         editor_cls=_FakeEditorCls,
         registry=reg,
         session=_make_session(),
-        payload="/tmp/x",
+        binding_id="/tmp/x",
     )
     fake_slot = _FakeSlot()
     w._slot = fake_slot
@@ -1020,7 +1020,7 @@ class _RepayloadTrackingSlot:
         self.repayload_calls.append((editor_key, old_payload, new_payload, new_label))
         return True
 
-    def close_tab(self, editor_key, payload):
+    def close_tab(self, editor_key, binding_id):
         return True
 
 
@@ -1031,7 +1031,7 @@ def test_repayload_with_slot_delegates_to_slot_repayload_tab():
         editor_cls=_FakeEditorCls,
         registry=reg,
         session=_make_session(),
-        payload="__unsaved_3__",
+        binding_id="__unsaved_3__",
     )
     fake_slot = _RepayloadTrackingSlot()
     w._slot = fake_slot
@@ -1042,7 +1042,7 @@ def test_repayload_with_slot_delegates_to_slot_repayload_tab():
 
 
 def test_repayload_without_slot_just_updates_field():
-    """Detached wrapper (no slot) — repayload still updates payload field
+    """Detached wrapper (no slot) — repayload still updates binding_id field
     so unit tests can verify identity changes without a slot."""
     reg = EditorTypeRegistry()
     w = EditorWrapper(
@@ -1050,11 +1050,11 @@ def test_repayload_without_slot_just_updates_field():
         editor_cls=_FakeEditorCls,
         registry=reg,
         session=_make_session(),
-        payload="x",
+        binding_id="x",
     )
     # No _slot set
     w.repayload("y", new_label="Y")
-    assert w.payload == "y"
+    assert w._binding_id == "y"
     assert w.label == "Y"
 
 
@@ -1065,10 +1065,10 @@ def test_repayload_label_is_optional():
         editor_cls=_FakeEditorCls,
         registry=reg,
         session=_make_session(),
-        payload="x",
+        binding_id="x",
     )
     w.repayload("y")  # no new_label
-    assert w.payload == "y"
+    assert w._binding_id == "y"
 
 
 # ---------------------------------------------------------------------------

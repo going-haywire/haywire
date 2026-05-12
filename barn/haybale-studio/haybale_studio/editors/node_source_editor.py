@@ -379,7 +379,7 @@ class NodeSourceEditor(BaseEditor):
         session.lifecycle(
             Reveal(
                 editor=CodeEditor,
-                payload=str(self._path),
+                binding_id=str(self._path),
                 label=self._path.name,
             )
         )

@@ -57,7 +57,7 @@ Editors *host* panels (in panel-aware editors like `PropertiesEditor`) but they 
 
 - **`required`** — the shell guarantees exactly one auto-populated tab at startup. Uncloseable. Use for persistent panels: side editors, the main graph editor.
 - **`on_context`** — singleton tab, on-demand. Content mirrors a slice of session context (e.g. `active_library`); a `Reveal` lifecycle command opens it. Closeable.
-- **`on_payload`** — per-payload tab, on-demand. The payload is both the tab's identity and its content source; N distinct payloads → N distinct tabs. Closeable.
+- **`on_payload`** — per-binding_id tab, on-demand. The binding_id is both the tab's identity and its content source; N distinct payloads → N distinct tabs. Closeable.
 
 **Slot constraints.** `default_slot='left'` and `'right'` only support `opens='required'`. Bars don't have a tab structure to host on-demand or multi-instance editors. The decorator raises `ValueError` at class-definition time if you try.
 
@@ -85,7 +85,7 @@ def redraw_on_signal(self, context: SessionContext, signal: ContextSignal) -> bo
 
 **`on_signal(self, context, signal) -> None`** is the side-effect channel. It fires on **every** wrapper in the slot regardless of active state — including backgrounded tabs. Default is a no-op. Use it when something must happen even while the editor isn't visible:
 
-- closing tabs in response to an entity removal (e.g. a HaystackEditor responding to a teardown signal by issuing local `Close(payload=...)` lifecycle commands);
+- closing tabs in response to an entity removal (e.g. a HaystackEditor responding to a teardown signal by issuing local `Close(binding_id=...)` lifecycle commands);
 - marking the editor stale so the next `on_focus`/`draw` re-reads underlying state;
 - clearing in-memory caches.
 
@@ -93,16 +93,16 @@ def redraw_on_signal(self, context: SessionContext, signal: ContextSignal) -> bo
 def on_signal(self, context: SessionContext, signal: ContextSignal) -> None:
     if isinstance(signal, MyTeardownSignal):
         for eid in signal.entry_ids:
-            context.session.lifecycle(Close(payload=eid))
+            context.session.lifecycle(Close(binding_id=eid))
 ```
 
 `on_signal` runs for every signal on every wrapper, so it's on the hot path in the same way `redraw_on_signal` is — keep it cheap and side-effect-only. Don't trigger redraws from here; if a redraw is also warranted, return `True` from `redraw_on_signal` (which fires only on the active wrapper, where redraws are meaningful).
 
-**`on_focus(self, context)`** is called when the editor's wrapper becomes the active tab in its slot — on initial render, on programmatic `Slot.switch_to`, on user tab-click, or via `Slot.add_binding(activate=True)`. **Not** called when the user re-clicks the already-active tab. Runs **before** `draw()` on the newly-activated wrapper, so any context mutations this hook performs are visible to that draw and to any signals the hook broadcasts. Default is a no-op. Editors that own a slice of session state (e.g. a graph editor that updates `active_graph` when its tab becomes active) override this. Read `self.wrapper.payload` to disambiguate this instance from siblings.
+**`on_focus(self, context)`** is called when the editor's wrapper becomes the active tab in its slot — on initial render, on programmatic `Slot.switch_to`, on user tab-click, or via `Slot.add_binding(activate=True)`. **Not** called when the user re-clicks the already-active tab. Runs **before** `draw()` on the newly-activated wrapper, so any context mutations this hook performs are visible to that draw and to any signals the hook broadcasts. Default is a no-op. Editors that own a slice of session state (e.g. a graph editor that updates `active_graph` when its tab becomes active) override this. Read `self.wrapper.binding_id` to disambiguate this instance from siblings.
 
 **`cleanup(self)`** runs when the editor is permanently removed (slot reassigned, hot-reload eviction). Release subscriptions, cancel timers, drop UI references. Default is a no-op.
 
-**`get_tab_label(self, context) -> str`** lets a tabbed editor (`opens='on_payload'`) return a dynamic label per instance. Default returns `self.class_identity.label`. Multi-instance editors typically derive the label from `self.wrapper.payload`.
+**`get_tab_label(self, context) -> str`** lets a tabbed editor (`opens='on_payload'`) return a dynamic label per instance. Default returns `self.class_identity.label`. Multi-instance editors typically derive the label from `self.wrapper.binding_id`.
 
 **`async handle_close_request(self) -> bool`** gates tab close. The slot awaits this when the user clicks the X. Return `True` to allow close, `False` to veto. Editors with unsaved state typically pop a save/discard/cancel dialog and `await` the user's choice. Default returns `True` (always allow). Read `self.wrapper.state.is_dirty` if your editor uses the framework's dirty-state tracking.
 
@@ -126,20 +126,20 @@ from haywire.core.session.signals_and_lifecycle import Reveal
 
 context.session.lifecycle(Reveal(
     editor=LibraryDetailEditor,
-    payload=library_id,    # for opens='on_payload'
+    binding_id=library_id,    # for opens='on_payload'
 ))
 ```
 
-The orchestrator resolves `editor.class_identity.default_slot` and routes the command. Use `Close(payload=...)` to close every tab bound to a payload across all slots in the issuing session (e.g. a session-local "discard" action).
+The orchestrator resolves `editor.class_identity.default_slot` and routes the command. Use `Close(binding_id=...)` to close every tab bound to a `binding_id` across all slots in the issuing session (e.g. a session-local "discard" action).
 
-Lifecycle commands are **local by default** — session-scoped UI actions like `Reveal`-on-click belong to the issuing session. Subclasses can opt into cross-session fan-out by setting `cross_session: ClassVar[bool] = True` (mirroring `ContextSignal`); `Session.lifecycle()` checks the class flag and routes via `SessionManager.broadcast_lifecycle` so every session's AppShell receives the command. Use this for fact-driven imperatives where the underlying entity is gone for everyone — `BroadcastClose(payload=...)` is the built-in: close matching tabs in **every** session.
+Lifecycle commands are **local by default** — session-scoped UI actions like `Reveal`-on-click belong to the issuing session. Subclasses can opt into cross-session fan-out by setting `cross_session: ClassVar[bool] = True` (mirroring `ContextSignal`); `Session.lifecycle()` checks the class flag and routes via `SessionManager.broadcast_lifecycle` so every session's AppShell receives the command. Use this for fact-driven imperatives where the underlying entity is gone for everyone — `BroadcastClose(binding_id=...)` is the built-in: close matching tabs in **every** session.
 
 ```python
 from haywire.core.session.signals_and_lifecycle import BroadcastClose
 
 # Underlying entry removed everywhere — close any GraphEditor tab bound
 # to it, in this session AND every peer session.
-context.session.lifecycle(BroadcastClose(payload=entry_id))
+context.session.lifecycle(BroadcastClose(binding_id=entry_id))
 ```
 
 `BroadcastClose` is a subclass of `Close`, so AppShell's `_close_payload` handles it identically — the only difference is dispatch scope. Prefer `Close` for session-local UI actions; reserve `BroadcastClose` for cases where the close decision follows from a global fact rather than a session-local interaction.
@@ -288,10 +288,10 @@ For the `Focus` and `Panel` extension points the editor hosts, see [components/p
 - [ ] Use a tuple of `ContextSignal` classes + one `isinstance` for cheap `redraw_on_signal()` filtering
 - [ ] Optional: `on_focus(self, context)` — runs *before* `draw()` on the newly-activated wrapper
 - [ ] Optional: `cleanup(self)` — release subscriptions / timers
-- [ ] Optional: `get_tab_label(self, context)` — dynamic per-payload label
+- [ ] Optional: `get_tab_label(self, context)` — dynamic per-binding_id label
 - [ ] Optional: `async handle_close_request(self)` — veto/save dialog before tab close
-- [ ] Drive other slots with `context.session.lifecycle(Reveal(editor=..., payload=...))`
-- [ ] Use `BroadcastClose(payload=...)` instead of `Close(payload=...)` when the underlying entity is gone for every session, not just yours
+- [ ] Drive other slots with `context.session.lifecycle(Reveal(editor=..., binding_id=...))`
+- [ ] Use `BroadcastClose(binding_id=...)` instead of `Close(binding_id=...)` when the underlying entity is gone for every session, not just yours
 
 ### Imports
 

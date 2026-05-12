@@ -464,14 +464,14 @@ def example_external_events():
     interpreter.dispatch_external_event(
         category='input',
         name='key_pressed',
-        payload={'key': 'Space', 'modifiers': []}
+        binding_id={'key': 'Space', 'modifiers': []}
     )
     
     # Dispatch network event
     interpreter.dispatch_external_event(
         category='network',
         name='message_received',
-        payload={'from': 'server', 'data': 'Hello!'}
+        binding_id={'from': 'server', 'data': 'Hello!'}
     )
     
     interpreter.wait_all()

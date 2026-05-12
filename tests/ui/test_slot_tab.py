@@ -122,7 +122,7 @@ def test_tab_slot_open_tab_adds_binding_and_makes_active(monkeypatch):
     )
     slot.render(_FakeContainer())
 
-    opened = slot.open_tab(cls, editor_key="a", payload="/tmp/a", label="a.graph")
+    opened = slot.open_tab(cls, editor_key="a", binding_id="/tmp/a", label="a.graph")
     assert opened is True
     assert slot.active_binding_id == "a::/tmp/a"
     assert slot.find_binding("a", "/tmp/a") is not None
@@ -137,7 +137,7 @@ def test_tab_slot_open_tab_existing_activates_no_duplicate(monkeypatch):
         name="main",
         registry=reg,
     )
-    slot.add_binding(editor_key="a", editor_cls=cls, payload="/tmp/a")
+    slot.add_binding(editor_key="a", editor_cls=cls, binding_id="/tmp/a")
     binding = slot.find_binding("a", "/tmp/a")
     slot._active = binding
     slot.render(_FakeContainer())
@@ -157,8 +157,8 @@ def test_tab_slot_close_tab_removes_and_promotes_sibling(monkeypatch):
         name="main",
         registry=reg,
     )
-    slot.add_binding(editor_key="a", editor_cls=cls_a, payload="p1")
-    slot.add_binding(editor_key="b", editor_cls=cls_b, payload="p2")
+    slot.add_binding(editor_key="a", editor_cls=cls_a, binding_id="p1")
+    slot.add_binding(editor_key="b", editor_cls=cls_b, binding_id="p2")
     slot._active = slot.find_binding("a", "p1")
     slot.render(_FakeContainer())
 
@@ -176,7 +176,7 @@ def test_tab_slot_repayload_tab_updates_ids(monkeypatch):
         name="main",
         registry=reg,
     )
-    slot.add_binding(editor_key="a", editor_cls=cls, payload="old")
+    slot.add_binding(editor_key="a", editor_cls=cls, binding_id="old")
     slot._active = slot.find_binding("a", "old")
     slot.render(_FakeContainer())
 
@@ -195,8 +195,8 @@ def test_tab_slot_close_tabs_for_payload_closes_matching(monkeypatch):
         name="main",
         registry=reg,
     )
-    slot.add_binding(editor_key="a", editor_cls=cls, payload="p1")
-    slot.add_binding(editor_key="a", editor_cls=cls, payload="p2")
+    slot.add_binding(editor_key="a", editor_cls=cls, binding_id="p1")
+    slot.add_binding(editor_key="a", editor_cls=cls, binding_id="p2")
     slot._active = slot.find_binding("a", "p1")
     slot.render(_FakeContainer())
 
@@ -343,7 +343,7 @@ def test_dirty_wrapper_label_has_bullet_prefix(monkeypatch):
         name="main",
         registry=reg,
     )
-    slot.add_binding(editor_key="a", editor_cls=cls, payload="p1")
+    slot.add_binding(editor_key="a", editor_cls=cls, binding_id="p1")
     target = slot.find_binding("a", "p1")
     target.label = "my.graph"
     slot._active = target
@@ -369,7 +369,7 @@ def test_clean_wrapper_label_has_no_bullet_prefix(monkeypatch):
         name="main",
         registry=reg,
     )
-    slot.add_binding(editor_key="a", editor_cls=cls, payload="p1")
+    slot.add_binding(editor_key="a", editor_cls=cls, binding_id="p1")
     target = slot.find_binding("a", "p1")
     target.label = "my.graph"
     slot._active = target

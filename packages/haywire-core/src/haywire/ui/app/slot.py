@@ -5,9 +5,9 @@ A :class:`Slot` owns the editor wrappers that can be hosted in one of the
 four shell slots (``left``, ``right``, ``main``, ``bottom``), the live area
 container those editors draw into, and the currently active wrapper.
 
-An :class:`EditorWrapper` pairs an editor class + payload with its live
+An :class:`EditorWrapper` pairs an editor class + binding_id with its live
 instance and self-subscribes to the editor registry for hot-reload events.
-The ``payload`` field enables multi-instance editors (e.g., a GraphEditor
+The ``binding_id`` field enables multi-instance editors (e.g., a GraphEditor
 per open graph file).
 
 Relationship to AppShell:
@@ -161,8 +161,8 @@ class Slot(ABC):
             if opens is OpenBehavior.REQUIRED:
                 continue
             entry: dict = {"key": wrapper.editor_key}
-            if wrapper.payload is not None:
-                entry["payload"] = wrapper.payload
+            if wrapper._binding_id is not None:
+                entry["binding_id"] = wrapper._binding_id
             label = wrapper.label or getattr(wrapper.editor_cls.class_identity, "label", wrapper.editor_key)
             entry["label"] = label
             editors.append(entry)
@@ -195,7 +195,7 @@ class Slot(ABC):
                 self.add_binding(
                     editor_key=key,
                     editor_cls=editor_cls,
-                    payload=None,
+                    binding_id=None,
                     activate=False,
                 )
 
@@ -212,7 +212,7 @@ class Slot(ABC):
             wrapper = self.add_binding(
                 editor_key=key,
                 editor_cls=snapshot_cls,
-                payload=entry.get("payload"),
+                binding_id=entry.get("binding_id"),
                 activate=False,
             )
             snapshot_label = entry.get("label", "")
@@ -228,8 +228,8 @@ class Slot(ABC):
         # Resolve initial active wrapper
         active_key = data.get("active_key")
         if active_key is not None:
-            key, payload = EditorWrapper.split_id(active_key)
-            match = self.find_binding(key, payload)
+            key, binding_id = EditorWrapper.split_id(active_key)
+            match = self.find_binding(key, binding_id)
             if match is not None:
                 self._active = match
                 return
@@ -289,7 +289,7 @@ class Slot(ABC):
 
     @property
     def active_binding_id(self) -> Optional[str]:
-        """Full wrapper id (``editor_key`` or ``editor_key::payload``) of the active wrapper."""
+        """Full wrapper id (``editor_key`` or ``editor_key::binding_id``) of the active wrapper."""
         return self._active.binding_id if self._active is not None else None
 
     @property
@@ -302,11 +302,11 @@ class Slot(ABC):
         """Read-only view of the wrappers list."""
         return list(self._bindings)
 
-    def find_binding(self, editor_key: str, payload: Optional[str] = None) -> Optional[EditorWrapper]:
+    def find_binding(self, editor_key: str, binding_id: Optional[str] = None) -> Optional[EditorWrapper]:
         """
-        Lookup a wrapper by ``(editor_key, payload)``.
+        Lookup a wrapper by ``(editor_key, binding_id)``.
 
-        An exact match (both fields equal) always wins. When ``payload`` is
+        An exact match (both fields equal) always wins. When ``binding_id`` is
         ``None`` and no exact match exists, falls back to the first wrapper
         whose ``editor_key`` matches — this preserves the behavior every
         pre-multi-instance call site relied on.
@@ -314,24 +314,24 @@ class Slot(ABC):
         Warns on ambiguous matches so the multi-instance migration surfaces
         any call site that still looks up by key alone when duplicates exist.
         """
-        exact = [b for b in self._bindings if b.editor_key == editor_key and b.payload == payload]
+        exact = [b for b in self._bindings if b.editor_key == editor_key and b._binding_id == binding_id]
         if exact:
             if len(exact) > 1:
                 logger.warning(
                     f"Slot '{self.name}': {len(exact)} wrappers match "
-                    f"({editor_key!r}, payload={payload!r}); returning the first."
+                    f"({editor_key!r}, binding_id={binding_id!r}); returning the first."
                 )
             return exact[0]
 
-        if payload is None:
+        if binding_id is None:
             fuzzy = [b for b in self._bindings if b.editor_key == editor_key]
             if not fuzzy:
                 return None
             if len(fuzzy) > 1:
                 logger.warning(
                     f"Slot '{self.name}': {len(fuzzy)} wrappers match key '{editor_key}' "
-                    "(payload-less lookup); returning the first. "
-                    "Pass payload to disambiguate once multi-instance tabs land."
+                    "(binding_id-less lookup); returning the first. "
+                    "Pass binding_id to disambiguate once multi-instance tabs land."
                 )
             return fuzzy[0]
         return None
@@ -510,9 +510,9 @@ class Slot(ABC):
     # Switching
     # ------------------------------------------------------------------
 
-    def switch_to(self, editor_key: str, payload: Optional[str] = None) -> bool:
+    def switch_to(self, editor_key: str, binding_id: Optional[str] = None) -> bool:
         """
-        Change the active wrapper to the one matching ``(editor_key, payload)``.
+        Change the active wrapper to the one matching ``(editor_key, binding_id)``.
 
         Re-renders the area on success. No-op if the target is already
         active. Logs a warning and returns ``False`` when no wrapper matches.
@@ -520,10 +520,11 @@ class Slot(ABC):
         Returns:
             ``True`` iff the active wrapper actually changed.
         """
-        target = self.find_binding(editor_key, payload)
+        target = self.find_binding(editor_key, binding_id)
         if target is None:
             logger.warning(
-                f"Slot '{self.name}': switch_to({editor_key!r}, payload={payload!r}) — no matching wrapper"
+                f"Slot '{self.name}': switch_to({editor_key!r}, "
+                f"binding_id={binding_id!r}) — no matching wrapper"
             )
             return False
 
@@ -538,7 +539,7 @@ class Slot(ABC):
         self,
         editor_key: str,
         editor_cls: "type[BaseEditor]",
-        payload: Optional[str] = None,
+        binding_id: Optional[str] = None,
         activate: bool = False,
     ) -> EditorWrapper:
         """Construct a wrapper, attach the redraw callback, and add it.
@@ -559,7 +560,7 @@ class Slot(ABC):
             editor_cls=editor_cls,
             registry=self._registry,
             session=self._session,
-            payload=payload,
+            binding_id=binding_id,
             slot=self,
         )
         wrapper.set_redraw_callback(lambda w: self._redraw(w))
@@ -570,7 +571,7 @@ class Slot(ABC):
             if self._active is None:
                 self._activate(wrapper)
             else:
-                self.switch_to(wrapper.editor_key, wrapper.payload)
+                self.switch_to(wrapper.editor_key, wrapper._binding_id)
         return wrapper
 
     # ------------------------------------------------------------------
@@ -634,14 +635,14 @@ class Slot(ABC):
     def remove_binding(
         self,
         editor_key: str,
-        payload: Optional[str] = None,
+        binding_id: Optional[str] = None,
     ) -> "Optional[EditorWrapper]":
-        """Remove a single wrapper matching (editor_key, payload).
+        """Remove a single wrapper matching (editor_key, binding_id).
 
         Calls wrapper.cleanup() which unsubscribes from the registry and
         tears down the editor instance.
         """
-        target = self.find_binding(editor_key, payload)
+        target = self.find_binding(editor_key, binding_id)
         if target is None:
             return None
 
@@ -673,15 +674,15 @@ class Slot(ABC):
         old_payload: Optional[str],
         new_payload: Optional[str],
     ) -> bool:
-        """Re-key an existing wrapper's payload in place.
+        """Re-key an existing wrapper's binding_id in place.
 
         Slot owns collision detection and DOM-side housekeeping; the
-        wrapper just exposes its payload as a mutable field via repayload().
+        wrapper just exposes its binding_id as a mutable field via repayload().
         """
         target = self.find_binding(editor_key, old_payload)
         if target is None:
             return False
-        if target.payload == new_payload:
+        if target._binding_id == new_payload:
             return True
 
         new_id = f"{editor_key}::{new_payload}" if new_payload else editor_key
@@ -692,7 +693,7 @@ class Slot(ABC):
         old_id = target.binding_id
         # Mutate the wrapper's field directly — the public wrapper.repayload()
         # delegates back to this slot, which would cause unbounded recursion.
-        target.payload = new_payload
+        target._binding_id = new_payload
 
         panel = self._panels.pop(old_id, None)
         if panel is not None:
@@ -741,10 +742,12 @@ class Slot(ABC):
                 # Iterate a snapshot of payloads since remove_binding mutates
                 # self._bindings underneath us.
                 payloads = [
-                    wrapper.payload for wrapper in self._bindings if wrapper.editor_key == event.registry_key
+                    wrapper._binding_id
+                    for wrapper in self._bindings
+                    if wrapper.editor_key == event.registry_key
                 ]
-                for payload in payloads:
-                    removed = self.remove_binding(event.registry_key, payload=payload)
+                for binding_id in payloads:
+                    removed = self.remove_binding(event.registry_key, binding_id=binding_id)
                     if removed is not None:
                         bar_dirty = True
                         logger.info(

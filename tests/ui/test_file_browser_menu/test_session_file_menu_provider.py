@@ -61,13 +61,13 @@ def test_reveal_issues_lifecycle_and_closes_popup():
     provider._open_popup = popup
 
     editor_cls = MagicMock()
-    provider.reveal(editor_cls, payload="payload-x", label="My Editor")
+    provider.reveal(editor_cls, binding_id="payload-x", label="My Editor")
 
     # session.lifecycle was called with a Reveal command
     session.lifecycle.assert_called_once()
     call = session.lifecycle.call_args[0][0]
     assert call.editor is editor_cls
-    assert call.payload == "payload-x"
+    assert call.binding_id == "payload-x"
     assert call.label == "My Editor"
     # And the popup got closed
     popup.close.assert_called_once()

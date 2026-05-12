@@ -20,7 +20,7 @@
     "editors": [
       {
         "key": "haystack:editor:GraphEditor",
-        "payload": "/Volumes/Ddrive/06_open_tracking_tool/haywire/haywire-repo/graphs/webcam.haywire",
+        "binding_id": "/Volumes/Ddrive/06_open_tracking_tool/haywire/haywire-repo/graphs/webcam.haywire",
         "label": "webcam.haywire"
       }
     ]

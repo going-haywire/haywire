@@ -76,7 +76,7 @@ class HaystackEditor(BaseEditor):
         HaystackTeardown must run regardless of focus: when the
         haystack is hot-reloaded while this editor is backgrounded,
         the GraphEditor tabs in this session still need to be closed.
-        Issuing the local ``Close(payload=eid)`` lifecycle commands
+        Issuing the local ``Close(binding_id=eid)`` lifecycle commands
         from here (rather than from ``redraw_on_signal``) makes the
         cleanup independent of which left-slot tab the user happens
         to have active.
@@ -97,7 +97,7 @@ class HaystackEditor(BaseEditor):
         """Translate the teardown fact into local tab-close lifecycle commands.
 
         Each session's HaystackEditor receives the cross-session
-        HaystackTeardown signal and issues a local ``Close(payload=eid)``
+        HaystackTeardown signal and issues a local ``Close(binding_id=eid)``
         for every vanishing entry_id. AppShell fans the close across this
         session's TabSlots; sessions with no matching tab are unaffected.
         Local (not BroadcastClose) because the signal already broadcast
@@ -111,7 +111,7 @@ class HaystackEditor(BaseEditor):
             if not eid:
                 continue
             try:
-                session.lifecycle(Close(payload=eid))
+                session.lifecycle(Close(binding_id=eid))
             except Exception as exc:
                 logger.warning(f"HaystackEditor: Close({eid}) failed during teardown: {exc}")
 
@@ -213,9 +213,8 @@ class HaystackEditor(BaseEditor):
             else:
                 for entry in entries:
                     self._render_entry(entry, context)
-                    
-            self._render_add_bar(context)
 
+            self._render_add_bar(context)
 
     def _render_entry(self, entry: "GraphEntry", context: "SessionContext") -> None:
         is_active = entry.graph is context.data[EditState].active_graph.value
@@ -275,7 +274,6 @@ class HaystackEditor(BaseEditor):
                 ui.label(entry.display_name).classes(name_classes)
                 if entry.path is None:
                     ui.label("not saved").classes("text-xs hw-text-warning-dim")
-
 
             # Save icon — paired with the dirty dot; only when unsaved.
             if is_unsaved:
@@ -440,7 +438,7 @@ class HaystackEditor(BaseEditor):
             # Peer haystack-derived views (the list, etc.) refresh via
             # the GraphDataMutated broadcast that HaystackState.remove_entry
             # fires — no separate observation signal needed.
-            session.lifecycle(BroadcastClose(payload=removed_id))
+            session.lifecycle(BroadcastClose(binding_id=removed_id))
 
         # If it was the active graph, clear the active graph → empty state
         if is_active:
@@ -604,7 +602,7 @@ class HaystackEditor(BaseEditor):
         session.lifecycle(
             Reveal(
                 editor=GraphEditor,
-                payload=entry.entry_id,
+                binding_id=entry.entry_id,
                 label=entry.display_name,
             )
         )
@@ -620,7 +618,7 @@ class HaystackEditor(BaseEditor):
         session.lifecycle(
             Reveal(
                 editor=GraphEditor,
-                payload=entry.entry_id,
+                binding_id=entry.entry_id,
                 label=entry.display_name,
             )
         )
@@ -734,7 +732,7 @@ class HaystackEditor(BaseEditor):
                 session.lifecycle(
                     Reveal(
                         editor=GraphEditor,
-                        payload=active_entry.entry_id,
+                        binding_id=active_entry.entry_id,
                         label=active_entry.display_name,
                     )
                 )
@@ -793,7 +791,7 @@ class HaystackEditor(BaseEditor):
             session.lifecycle(
                 Reveal(
                     editor=GraphEditor,
-                    payload=entry.entry_id,
+                    binding_id=entry.entry_id,
                     label=entry.display_name,
                 )
             )

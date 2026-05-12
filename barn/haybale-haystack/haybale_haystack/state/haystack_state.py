@@ -114,9 +114,9 @@ class HaystackState(AppState):
 
         Order matters: snapshot the entry_ids and broadcast
         ``HaystackTeardown`` BEFORE clearing, so HaystackEditor receivers
-        can issue a local ``Close(payload=eid)`` for each vanishing tab.
+        can issue a local ``Close(binding_id=eid)`` for each vanishing tab.
         Receivers don't peek at the (about-to-be-cleared) registry — the
-        signal payload is the source of truth for the teardown set.
+        signal binding_id is the source of truth for the teardown set.
 
         """
 

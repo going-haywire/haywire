@@ -14,8 +14,8 @@ class OpenBehavior(Enum):
     - REQUIRED: shell guarantees exactly one tab, auto-populated at startup.
       Uncloseable. Content typically reads from session context.
     - ON_CONTEXT: singleton tab, on-demand. Content mirrors a slice of
-      session context (e.g. active_library). No payload. Closeable.
-    - ON_PAYLOAD: per-payload tab, on-demand. Payload is both the tab's
+      session context (e.g. active_library). No binding_id. Closeable.
+    - ON_PAYLOAD: per-binding_id tab, on-demand. Payload is both the tab's
       identity and its content source. N tabs allowed. Closeable.
     """
 

@@ -94,13 +94,13 @@ class CodeEditor(BaseEditor):
         self._save_as_warning: Optional[ui.label] = None
 
     # ------------------------------------------------------------------
-    # identity / payload
+    # identity / binding_id
     # ------------------------------------------------------------------
 
     def _resolve_path(self) -> Optional[Path]:
-        if self.wrapper is None or self.wrapper.payload is None:
+        if self.wrapper is None or self.wrapper._binding_id is None:
             return None
-        return Path(self.wrapper.payload)
+        return Path(self.wrapper._binding_id)
 
     def _language_for(self, path: Optional[Path]) -> Optional[CmLanguage]:
         if path is None:

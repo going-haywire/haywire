@@ -203,7 +203,7 @@ def test_icon_slot_bar_change_switches_active_binding(monkeypatch):
     tab_elements = [c for (kind, c) in created if kind == "tab"]
     assert len(tab_elements) == 2, "one tab per wrapper expected"
 
-    # Simulate a Quasar value-change event: the payload's `value` is the
+    # Simulate a Quasar value-change event: the binding_id's `value` is the
     # selected ui.tab element, not its name string.
     tab_b = next(t for t in tab_elements if t.name == "b")
     event = SimpleNamespace(value=tab_b)

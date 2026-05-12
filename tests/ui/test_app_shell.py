@@ -59,9 +59,9 @@ class _FakeSlot:
         self.repayload_calls: list = []
         self.close_tabs_for_payload_calls: list = []
 
-    def switch_to(self, editor_key: str, payload=None) -> bool:
-        self.switch_calls.append((editor_key, payload))
-        if editor_key == self.active_key and payload is None:
+    def switch_to(self, editor_key: str, binding_id=None) -> bool:
+        self.switch_calls.append((editor_key, binding_id))
+        if editor_key == self.active_key and binding_id is None:
             return False
         self.active_key = editor_key
         return True
@@ -75,28 +75,28 @@ class _FakeSlot:
     def handle_signal(self, signal) -> None:
         pass
 
-    def find_binding(self, editor_key, payload=None):
+    def find_binding(self, editor_key, binding_id=None):
         for b in self.bindings:
-            if b.editor_key == editor_key and getattr(b, "payload", None) == payload:
+            if b.editor_key == editor_key and getattr(b, "binding_id", None) == binding_id:
                 return b
         return None
 
-    def open_tab(self, cls, editor_key, payload, label):
-        self.open_tab_calls.append((editor_key, payload, label))
-        self.bindings.append(SimpleNamespace(editor_key=editor_key, payload=payload))
+    def open_tab(self, cls, editor_key, binding_id, label):
+        self.open_tab_calls.append((editor_key, binding_id, label))
+        self.bindings.append(SimpleNamespace(editor_key=editor_key, binding_id=binding_id))
         self.active_key = editor_key
         return True
 
-    def close_tab(self, editor_key, payload):
-        self.close_tab_calls.append((editor_key, payload))
+    def close_tab(self, editor_key, binding_id):
+        self.close_tab_calls.append((editor_key, binding_id))
         return True
 
     def repayload_tab(self, editor_key, old_payload, new_payload, new_label=None):
         self.repayload_calls.append((editor_key, old_payload, new_payload, new_label))
         return True
 
-    def close_tabs_for_payload(self, payload):
-        self.close_tabs_for_payload_calls.append(payload)
+    def close_tabs_for_payload(self, binding_id):
+        self.close_tabs_for_payload_calls.append(binding_id)
         return 1
 
     def _refresh_bar(self):
@@ -224,10 +224,10 @@ def test_reveal_editor_on_payload_without_payload_logs_and_skips(caplog) -> None
     shell._managed_slots["main"] = fake_tab
 
     with caplog.at_level(logging.WARNING, logger="haywire.ui.app.shell"):
-        shell._reveal_editor(editor_key, payload=None)
+        shell._reveal_editor(editor_key, binding_id=None)
 
     assert fake_tab.open_tab_calls == []
-    assert any("on_payload" in rec.message and "payload" in rec.message for rec in caplog.records)
+    assert any("on_payload" in rec.message and "binding_id" in rec.message for rec in caplog.records)
 
 
 # ---------------------------------------------------------------------------
@@ -258,14 +258,14 @@ def _make_fake_tab_slot(name: str) -> "_FakeSlot":
 
         # Explicitly route to _FakeSlot implementations so TabSlot's real logic
         # (which requires Slot.__init__ state) is never invoked.
-        def close_tab(self, editor_key, payload):
-            return _FakeSlot.close_tab(self, editor_key, payload)
+        def close_tab(self, editor_key, binding_id):
+            return _FakeSlot.close_tab(self, editor_key, binding_id)
 
         def repayload_tab(self, editor_key, old_payload, new_payload, new_label=None):
             return _FakeSlot.repayload_tab(self, editor_key, old_payload, new_payload, new_label)
 
-        def close_tabs_for_payload(self, payload):
-            return _FakeSlot.close_tabs_for_payload(self, payload)
+        def close_tabs_for_payload(self, binding_id):
+            return _FakeSlot.close_tabs_for_payload(self, binding_id)
 
     return _FakeTab(name)
 
@@ -277,7 +277,7 @@ def test_close_lifecycle_command_closes_matching_tabs_in_every_tab_slot() -> Non
     shell._managed_slots["main"] = main
     shell._managed_slots["bottom"] = bottom
 
-    shell._on_lifecycle(Close(payload="/tmp/a.graph"))
+    shell._on_lifecycle(Close(binding_id="/tmp/a.graph"))
     assert main.close_tabs_for_payload_calls == ["/tmp/a.graph"]
     assert bottom.close_tabs_for_payload_calls == ["/tmp/a.graph"]
 

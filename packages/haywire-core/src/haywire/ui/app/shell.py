@@ -559,10 +559,10 @@ class AppShell:
     def _reveal_editor(
         self,
         editor_key: str,
-        payload: Optional[str] = None,
+        binding_id: Optional[str] = None,
         label: Optional[str] = None,
     ) -> None:
-        """Ensure ``(editor_key, payload)`` is the active editor in its default slot.
+        """Ensure ``(editor_key, binding_id)`` is the active editor in its default slot.
 
         Resolves the target slot from the editor's ``class_identity.default_slot``,
         then:
@@ -591,22 +591,23 @@ class AppShell:
 
         opens = getattr(editor_cls.class_identity, "opens", OpenBehavior.REQUIRED)
 
-        if opens is OpenBehavior.ON_PAYLOAD and payload is None:
+        if opens is OpenBehavior.ON_PAYLOAD and binding_id is None:
             logger.warning(
-                f"AppShell: reveal of opens='on_payload' editor '{editor_key}' requires a payload; dropping."
+                f"AppShell: reveal of opens='on_payload' editor '{editor_key}' "
+                f"requires a binding_id; dropping."
             )
             return
 
         if isinstance(slot, TabSlot):
-            if slot.find_binding(editor_key, payload) is None:
+            if slot.find_binding(editor_key, binding_id) is None:
                 # Empty label falls through to dynamic class_identity.label
                 # resolution in the bar — keeps hot-reload label updates working.
-                slot.open_tab(editor_cls, editor_key, payload, label or "")
+                slot.open_tab(editor_cls, editor_key, binding_id, label or "")
             else:
-                slot.switch_to(editor_key, payload)
+                slot.switch_to(editor_key, binding_id)
                 slot._refresh_bar()
         else:
-            slot.switch_to(editor_key, payload)
+            slot.switch_to(editor_key, binding_id)
             if hasattr(slot, "_refresh_bar"):
                 slot._refresh_bar()
 
@@ -628,31 +629,31 @@ class AppShell:
         - ``Reveal`` is point-to-point — resolved to a slot via the
           editor's ``default_slot`` and dispatched there.
         - ``Close`` is fan-out — every TabSlot is asked to close any
-          tab whose payload matches.
+          tab whose binding_id matches.
         """
         if isinstance(command, Reveal):
             editor_key = command.editor.class_identity.registry_key
-            self._reveal_editor(editor_key, command.payload, command.label)
+            self._reveal_editor(editor_key, command.binding_id, command.label)
         elif isinstance(command, Close):
-            self._close_payload(command.payload)
+            self._close_payload(command.binding_id)
         else:
             logger.warning(f"AppShell: unknown LifecycleCommand subclass {type(command).__name__}")
 
-    def _close_payload(self, payload: str) -> None:
-        """Close every tab bound to ``payload`` across all TabSlots."""
+    def _close_payload(self, binding_id: str) -> None:
+        """Close every tab bound to ``binding_id`` across all TabSlots."""
         from haywire.ui.app.tab_slot import TabSlot
 
-        if not payload:
+        if not binding_id:
             return
         for slot in self._managed_slots.values():
             if isinstance(slot, TabSlot):
-                slot.close_tabs_for_payload(payload)
+                slot.close_tabs_for_payload(binding_id)
 
     def _on_slot_resize(self, event) -> None:
         """Dispatch ``hw-slot-resize`` events from the drag JS to the target slot.
 
         The JS emits ``{slot: "left"|"right"|"bottom", size: int}``. NiceGUI
-        delivers the payload in ``event.args`` as a dict. Unknown or malformed
+        delivers the binding_id in ``event.args`` as a dict. Unknown or malformed
         payloads are ignored silently — a drag gesture that races a slot
         removal shouldn't raise.
         """

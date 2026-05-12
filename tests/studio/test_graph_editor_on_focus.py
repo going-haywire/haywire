@@ -98,7 +98,7 @@ def _make_context(entry: Optional[_FakeEntry], existing_active_graph=None):
     return ctx
 
 
-def _make_editor_with_payload(payload: str) -> GraphEditor:
+def _make_editor_with_payload(binding_id: str) -> GraphEditor:
     ed = GraphEditor()
 
     force_close_calls: list = []
@@ -108,7 +108,7 @@ def _make_editor_with_payload(payload: str) -> GraphEditor:
 
     ed.wrapper = SimpleNamespace(
         editor_key="graph_editor",
-        payload=payload,
+        _binding_id=binding_id,
         force_close=_force_close,
         force_close_calls=force_close_calls,
     )

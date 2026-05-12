@@ -14,7 +14,7 @@ This module hosts both halves of the session dispatch story:
 - **Lifecycle channel** — commands. ``LifecycleCommand`` subclasses
   describe imperative mutations of the workspace tree (which editor
   instances exist, in which slot, which is in front). ``Reveal`` brings
-  an editor to the front; ``Close`` removes tabs bound to a payload in
+  an editor to the front; ``Close`` removes tabs bound to a binding_id in
   the issuing session; ``BroadcastClose`` does the same across every
   session. Sent via ``Session.lifecycle(...)``. Local-by-default;
   subclasses opt into cross-session fan-out by setting
@@ -91,7 +91,7 @@ class ContextSignal:
 
     Signal classes are flat by convention — one class per concern, no
     inheritance for specialisation between ``ContextSignal`` and the
-    leaves. Specialisation belongs in payload fields.
+    leaves. Specialisation belongs in binding_id fields.
 
     Library authors who declare their own signal classes that other
     libraries subscribe to MUST list the signal-declaring library in their
@@ -155,7 +155,7 @@ class SelectionMoved(ContextSignal):
     """
     Node/edge selection moved on the canvas.
 
-    Carries no payload: subscribers read the selection from the library's
+    Carries no binding_id: subscribers read the selection from the library's
     SessionState (e.g. ``ctx.data[MyLibState].selected_nodes`` /
     ``active_node`` for ``Subject.SELF``), or the analogous fields on
     ``session_manager.get(peer_id).context`` for peer subjects
@@ -244,9 +244,9 @@ class Reveal(LifecycleCommand):
 
     Attributes:
         editor: The editor class to reveal.
-        payload: Optional disambiguator for multi-instance editors
+        binding_id: Optional disambiguator for multi-instance editors
             (e.g. a graph entry id). The orchestrator switches to the
-            specific ``(editor_key, payload)`` tab rather than the first
+            specific ``(editor_key, binding_id)`` tab rather than the first
             binding matching ``editor_key``.
         label: Optional display label for the revealed tab. Used only
             when the reveal creates a new tab; falls back to
@@ -254,27 +254,27 @@ class Reveal(LifecycleCommand):
     """
 
     editor: "type[BaseEditor]"
-    payload: Optional[str] = None
+    binding_id: Optional[str] = None
     label: Optional[str] = None
 
 
 @dataclass(frozen=True, kw_only=True)
 class Close(LifecycleCommand):
-    """Close every tab bound to ``payload`` across all slots.
+    """Close every tab bound to ``binding_id`` across all slots.
 
     Routed as fan-out: the orchestrator asks every slot to close any
-    tab whose binding matches ``payload``. Used for session-local
+    tab whose binding matches ``binding_id``. Used for session-local
     close decisions (e.g. dismissing a tab from a confirmation dialog
     in *this* session). For close decisions that follow from a global
     fact — the underlying entity is gone for everyone — use
     :class:`BroadcastClose` instead, which fans out to every session.
 
     Attributes:
-        payload: The binding payload (e.g. a graph entry id). Slots
-            close every wrapper whose payload matches this value.
+        binding_id: The binding binding_id (e.g. a graph entry id). Slots
+            close every wrapper whose binding_id matches this value.
     """
 
-    payload: str
+    binding_id: str
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -285,7 +285,7 @@ class BroadcastClose(Close):
     gone away (e.g. an entry was removed from a haystack, or the
     haystack itself was torn down by a library hot-reload). Each
     receiving session asks its own AppShell to close every wrapper whose
-    payload matches; sessions with no matching tab are unaffected.
+    binding_id matches; sessions with no matching tab are unaffected.
 
     Prefer ``Close`` for session-local UI actions (e.g. a confirmation
     dialog the user dismissed in this tab). ``BroadcastClose`` is the

@@ -975,9 +975,9 @@ In `barn/haybale-haystack/haybale_haystack/state/haystack_state.py`, modify `on_
 
         Order matters: snapshot the entry_ids and broadcast
         ``HaystackTeardown`` BEFORE clearing, so HaystackEditor receivers
-        can issue a local ``Close(payload=eid)`` for each vanishing tab.
+        can issue a local ``Close(binding_id=eid)`` for each vanishing tab.
         Receivers don't peek at the (about-to-be-cleared) registry — the
-        signal payload is the source of truth for the teardown set.
+        signal binding_id is the source of truth for the teardown set.
 
         On-exit autosave (``HaystackSettings.autosave == 'on_exit'``)
         runs first so the TOML captures the registry as it was before

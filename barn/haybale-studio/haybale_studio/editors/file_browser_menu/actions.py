@@ -1,7 +1,7 @@
 """FileBrowserActions — Protocol implemented by SessionFileMenuProvider.
 
 Per Q11B: a single method, ``reveal``. Each panel resolves its own
-payload (e.g. the "Open in Haystack" panel calls
+binding_id (e.g. the "Open in Haystack" panel calls
 HaystackState.open_graph(path) to derive an entry_id, then calls
 actions.reveal(GraphEditor, entry_id, display_name)).
 
@@ -24,7 +24,7 @@ class FileBrowserActions(Protocol):
     def reveal(
         self,
         editor_cls: "type[BaseEditor]",
-        payload: Any,
+        binding_id: Any,
         label: str,
     ) -> None:
         """Issue a Reveal lifecycle command and close the menu popup."""

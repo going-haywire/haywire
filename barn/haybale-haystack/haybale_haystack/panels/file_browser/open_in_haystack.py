@@ -63,7 +63,7 @@ class OpenInHaystackPanel(BasePanel):
             if hs is None:
                 return
             entry = hs.open_graph(path)
-            actions.reveal(GraphEditor, payload=entry.entry_id, label=entry.display_name)
+            actions.reveal(GraphEditor, binding_id=entry.entry_id, label=entry.display_name)
 
         layout.button(
             "Open in Haystack",

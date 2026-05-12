@@ -83,7 +83,7 @@ class GraphEditor(BaseEditor):
 
     def redraw_on_signal(self, context: "SessionContext", signal: "ContextSignal") -> bool:
         # Each GraphEditor instance is pinned to one graph via its binding
-        # payload. ActiveGraphMoved now just means "some tab became the
+        # binding_id. ActiveGraphMoved now just means "some tab became the
         # foreground" — this instance's own graph hasn't changed, so there
         # is nothing to redraw. The canvas keeps its zoom/pan, selection,
         # and DOM state across tab switches.
@@ -92,26 +92,26 @@ class GraphEditor(BaseEditor):
     def on_focus(self, context: "SessionContext") -> None:
         """Claim ownership of session state when this tab becomes active.
 
-        Resolves ``self.wrapper.payload`` (the entry key) via the haystack
+        Resolves ``self.wrapper._binding_id`` (the entry key) via the haystack
         and, if the entry exists, updates ``context.data[EditState].active_graph`` +
         ``active_graph_path`` and broadcasts ``ACTIVE_GRAPH_CHANGED`` so
         panels (properties, minimap, execution controls) refresh.
 
-        If the payload no longer resolves to an entry (the graph was
+        If the binding_id no longer resolves to an entry (the graph was
         concurrently removed from the haystack), calls
         ``self.wrapper.force_close()`` to close the orphaned tab.
 
         Short-circuits when the context already reflects this entry so a
         redundant call is a no-op.
         """
-        if self.wrapper is None or self.wrapper.payload is None:
+        if self.wrapper is None or self.wrapper._binding_id is None:
             return
-        payload = self.wrapper.payload
+        binding_id = self.wrapper._binding_id
         haystack_state = context.app_data.get(HaystackState)
         if haystack_state is None:
             return
 
-        entry = haystack_state.get_by_id(payload)
+        entry = haystack_state.get_by_id(binding_id)
         session = getattr(context, "session", None)
         if entry is None:
             # Graph entry vanished from the haystack — close ourselves.
@@ -232,20 +232,20 @@ class GraphEditor(BaseEditor):
         logger.info(f"GraphEditor: canvas built for session {context.session_id[:8]}")
 
     def _get_entry(self, context: "SessionContext") -> Optional["GraphEntry"]:
-        """Look up this tab's GraphEntry from the haystack via binding payload.
+        """Look up this tab's GraphEntry from the haystack via binding binding_id.
 
-        Each GraphEditor instance is bound to one ``(editor_key, payload)``
-        pair — the payload is the ``GraphEntry.entry_id`` (a path string for
+        Each GraphEditor instance is bound to one ``(editor_key, binding_id)``
+        pair — the binding_id is the ``GraphEntry.entry_id`` (a path string for
         saved graphs, ``__unsaved_N__`` for unsaved). The tab owns its graph
         identity; the session-level ``active_graph_path`` is no longer
         consulted here.
         """
-        if self.wrapper is None or self.wrapper.payload is None:
+        if self.wrapper is None or self.wrapper._binding_id is None:
             return None
         haystack_state = context.app_data.get(HaystackState)
         if haystack_state is None:
             return None
-        return haystack_state.get_by_id(self.wrapper.payload)
+        return haystack_state.get_by_id(self.wrapper._binding_id)
 
     # ------------------------------------------------------------------
     # ------------------------------------------------------------------
@@ -478,7 +478,7 @@ class GraphEditor(BaseEditor):
                 self._save_exists_warning.set_visibility(True)
             return  # stay in the dialog
 
-        old_payload = self.wrapper.payload if self.wrapper is not None else None
+        old_payload = self.wrapper._binding_id if self.wrapper is not None else None
         success = haystack_state.save_graph(entry, save_as=save_path)
         if success:
             context.data[EditState].active_graph_path.value = save_path
@@ -486,7 +486,7 @@ class GraphEditor(BaseEditor):
             new_payload = entry.entry_id
             if self.wrapper is not None and old_payload != new_payload:
                 # Save-as renamed the graph entry — re-key the tab so the
-                # wrapper's payload + label reflect the new file path.
+                # wrapper's binding_id + label reflect the new file path.
                 self.wrapper.repayload(new_payload, new_label=entry.display_name)
             if session:
                 session.signal(ActiveGraphMoved())

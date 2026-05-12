@@ -67,7 +67,7 @@ class BaseEditor(ABC):
 
     #: The runtime wrapper this instance belongs to. Assigned by
     #: :meth:`EditorWrapper._instantiate` right after construction so the
-    #: editor can read its own ``editor_key`` / ``payload`` at any point
+    #: editor can read its own ``editor_key`` / ``binding_id`` at any point
     #: (draw, on_signal, redraw_on_signal, event handlers) without the
     #: slot having to pass it through each entry point. Stays ``None``
     #: only for instances created outside a wrapper (e.g. in direct unit
@@ -140,7 +140,7 @@ class BaseEditor(ABC):
         override this to update the state and broadcast the corresponding
         event.
 
-        Read ``self.wrapper.payload`` for this instance's identity.
+        Read ``self.wrapper.binding_id`` for this instance's identity.
 
         Args:
             context: The current session context.
@@ -158,7 +158,7 @@ class BaseEditor(ABC):
 
         Multi-instance editors (e.g. GraphEditor) read their own identity
         from :attr:`wrapper` (set by the slot at instance-creation time);
-        the ``wrapper`` carries the ``editor_key`` and ``payload`` that
+        the ``wrapper`` carries the ``editor_key`` and ``binding_id`` that
         disambiguate this instance from other tabs of the same class.
 
         Args:

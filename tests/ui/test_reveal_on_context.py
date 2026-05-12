@@ -58,9 +58,9 @@ class _FakeEditorRegistry:
 class _FakeBinding:
     """Minimal binding stand-in returned by _FakeTabbedSlot.find_binding."""
 
-    def __init__(self, editor_key: str, payload, editor_cls=None) -> None:
+    def __init__(self, editor_key: str, binding_id, editor_cls=None) -> None:
         self.editor_key = editor_key
-        self.payload = payload
+        self.binding_id = binding_id
         self.editor_cls = editor_cls
 
 
@@ -86,26 +86,26 @@ class _FakeTabbedSlot(TabSlot):
         self.active_key: str | None = None
         self.active_binding: _FakeBinding | None = None
 
-    def find_binding(self, editor_key: str, payload):
+    def find_binding(self, editor_key: str, binding_id):
         for b in self.bindings:
-            if b.editor_key == editor_key and b.payload == payload:
+            if b.editor_key == editor_key and b.binding_id == binding_id:
                 return b
         return None
 
-    def open_tab(self, editor_cls, editor_key: str, payload, label: str) -> bool:
+    def open_tab(self, editor_cls, editor_key: str, binding_id, label: str) -> bool:
         """Register a new tab and make it active. Returns True (contract match)."""
-        binding = _FakeBinding(editor_key, payload, editor_cls=editor_cls)
+        binding = _FakeBinding(editor_key, binding_id, editor_cls=editor_cls)
         self.bindings.append(binding)
         self.active_key = editor_key
         self.active_binding = binding
         return True
 
-    def switch_to(self, editor_key: str, payload=None) -> bool:
+    def switch_to(self, editor_key: str, binding_id=None) -> bool:
         if self.active_key == editor_key:
             return False
         self.active_key = editor_key
         for b in self.bindings:
-            if b.editor_key == editor_key and b.payload == payload:
+            if b.editor_key == editor_key and b.binding_id == binding_id:
                 self.active_binding = b
                 break
         return True
@@ -154,11 +154,11 @@ class TestOnContextRevealDispatch:
                 ("studio:editor:Ctx", "main", OpenBehavior.ON_CONTEXT),
             ]
         )
-        shell._reveal_editor("studio:editor:Ctx", payload=None)
+        shell._reveal_editor("studio:editor:Ctx", binding_id=None)
         main_slot = shell._managed_slots["main"]
         binding = main_slot.find_binding("studio:editor:Ctx", None)
         assert binding is not None
-        assert binding.payload is None
+        assert binding.binding_id is None
 
     def test_second_reveal_does_not_duplicate(self):
         shell, session = _build_test_shell_with_editors(
@@ -166,8 +166,8 @@ class TestOnContextRevealDispatch:
                 ("studio:editor:Ctx", "main", OpenBehavior.ON_CONTEXT),
             ]
         )
-        shell._reveal_editor("studio:editor:Ctx", payload=None)
-        shell._reveal_editor("studio:editor:Ctx", payload=None)
+        shell._reveal_editor("studio:editor:Ctx", binding_id=None)
+        shell._reveal_editor("studio:editor:Ctx", binding_id=None)
         main_slot = shell._managed_slots["main"]
         matching = [b for b in main_slot.bindings if b.editor_key == "studio:editor:Ctx"]
         assert len(matching) == 1
@@ -179,13 +179,13 @@ class TestOnContextRevealDispatch:
                 ("studio:editor:Other", "main", OpenBehavior.REQUIRED),
             ]
         )
-        shell._reveal_editor("studio:editor:Ctx", payload=None)
+        shell._reveal_editor("studio:editor:Ctx", binding_id=None)
         main_slot = shell._managed_slots["main"]
         # Simulate switching to a different tab.
         main_slot.switch_to("studio:editor:Other", None)
         assert main_slot.active_key == "studio:editor:Other"
         # Reveal again — should switch back, not create a duplicate.
-        shell._reveal_editor("studio:editor:Ctx", payload=None)
+        shell._reveal_editor("studio:editor:Ctx", binding_id=None)
         assert main_slot.active_key == "studio:editor:Ctx"
         matching = [b for b in main_slot.bindings if b.editor_key == "studio:editor:Ctx"]
         assert len(matching) == 1

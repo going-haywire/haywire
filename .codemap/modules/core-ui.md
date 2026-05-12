@@ -169,7 +169,7 @@ haywire/ui/
   - `opens` (enum `OpenBehavior`): instance-creation behavior. `required`
     auto-populates and is uncloseable; `on_context` is a singleton tab
     opened on demand (content mirrors session context); `on_payload` is
-    one tab per distinct payload, opened on demand (payload drives content).
+    one tab per distinct binding_id, opened on demand (binding_id drives content).
 - Editors that own a slice of `SessionContext` override
   `BaseEditor.on_focus(context)` — fired by `Slot._activate` on every
   transition-to-active — to mutate the relevant field and broadcast the

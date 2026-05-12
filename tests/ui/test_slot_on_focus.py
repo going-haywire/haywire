@@ -126,7 +126,7 @@ def _make_slot(session, *keys):
     reg = _FakeRegistry()
     slot = TabSlot(session=session, name="main", registry=reg)
     for k in keys:
-        slot.add_binding(editor_key=k, editor_cls=_FakeEditor, payload=None)
+        slot.add_binding(editor_key=k, editor_cls=_FakeEditor, binding_id=None)
     if keys:
         slot._active = slot.find_binding(keys[0])
     return slot
@@ -178,7 +178,7 @@ def test_add_binding_activate_true_calls_on_focus():
     slot = TabSlot(session=session, name="main", registry=reg)
     slot._area_panel_container = MagicMock()
 
-    slot.add_binding(editor_key="e_new", editor_cls=_FakeEditor, payload=None, activate=True)
+    slot.add_binding(editor_key="e_new", editor_cls=_FakeEditor, binding_id=None, activate=True)
     w_new = slot.find_binding("e_new")
 
     # draw creates the instance; on_focus fires on subsequent switch_to after
@@ -199,8 +199,8 @@ def test_on_focus_raising_is_captured_in_wrapper_state():
     session = _make_session()
     reg = _FakeRegistry()
     slot = TabSlot(session=session, name="main", registry=reg)
-    slot.add_binding(editor_key="e1", editor_cls=_RaisingEditor, payload=None)
-    slot.add_binding(editor_key="e2", editor_cls=_FakeEditor, payload=None)
+    slot.add_binding(editor_key="e1", editor_cls=_RaisingEditor, binding_id=None)
+    slot.add_binding(editor_key="e2", editor_cls=_FakeEditor, binding_id=None)
     b1 = slot.find_binding("e1")
     b2 = slot.find_binding("e2")
     slot._active = b1

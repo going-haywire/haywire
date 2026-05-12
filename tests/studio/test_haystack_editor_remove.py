@@ -214,7 +214,7 @@ def test_remove_entry_helper_fires_broadcast_close(editor_and_context):
     close_commands = [c for c in emitted_commands if isinstance(c, Close)]
     assert len(close_commands) == 1
     assert isinstance(close_commands[0], BroadcastClose)
-    assert close_commands[0].payload == entry.entry_id
+    assert close_commands[0].binding_id == entry.entry_id
 
 
 def test_remove_entry_helper_clears_active_graph_when_active(editor_and_context):

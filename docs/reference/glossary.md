@@ -197,20 +197,20 @@ See [architecture/studio](../architecture/studio/studio-arch.md) for the studio 
   - **`REQUIRED`** (`"required"`): exactly one tab, always present,
     auto-populated at startup, uncloseable.
   - **`ON_CONTEXT`** (`"on_context"`): singleton tab, on-demand. Content
-    mirrors a slice of session context; the tab has no payload.
+    mirrors a slice of session context; the tab has no binding_id.
     Closeable. Not persisted.
-  - **`ON_PAYLOAD`** (`"on_payload"`): per-payload tab, on-demand. The
-    `binding.payload` is both the tab's identity and its content source.
+  - **`ON_PAYLOAD`** (`"on_payload"`): per-binding_id tab, on-demand. The
+    `binding.binding_id` is both the tab's identity and its content source.
     N tabs allowed. Closeable. Persisted across restart.
 - **`on_focus`** — `BaseEditor` lifecycle hook called by `Slot._activate` when a
   binding transitions from not-active to active. Editors that own a slice of
   session state (e.g. `GraphEditor` owns `active_graph`) override it to mutate
   the context and broadcast the corresponding event. Replaces the shell-side
   `context_field` / `OPEN_GRAPH_REQUESTED` dispatch.
-- **`payload` (tab)** — A `str` that disambiguates per-payload tabs of
-  the same editor class. For GraphEditor the payload is the graph path;
-  for FileViewer it is the file path. Stored in `TabState.metadata.payload`
-  and mirrored in `EditorWrapper.payload`.
+- **`binding_id` (tab)** — A `str` that disambiguates per-binding_id tabs of
+  the same editor class. For GraphEditor the binding_id is the graph path;
+  for FileViewer it is the file path. Stored in `TabState.metadata.binding_id`
+  and mirrored in `EditorWrapper.binding_id`.
 
 ---
 

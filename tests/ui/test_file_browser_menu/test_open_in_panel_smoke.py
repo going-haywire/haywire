@@ -46,7 +46,7 @@ def test_panel_appears_and_reveal_fires():
         def draw(self, ctx, layout, actions):
             f = ctx.data[FileBrowserState].right_clicked_file.value
             # Simulate user clicking the menu item
-            actions.reveal(MagicMock(), payload=str(f), label=f.name)
+            actions.reveal(MagicMock(), binding_id=str(f), label=f.name)
 
     # Build a fresh registry and register only our smoke panel
     registry = PanelRegistry()
@@ -90,7 +90,7 @@ def test_panel_skipped_when_extension_doesnt_match():
             return f is not None and f.suffix == ".smoke"
 
         def draw(self, ctx, layout, actions):
-            actions.reveal(MagicMock(), payload="", label="x")
+            actions.reveal(MagicMock(), binding_id="", label="x")
 
     registry = PanelRegistry()
     registry._register_class(SmokeOnlyPanel, _FAKE_LIBRARY_IDENTITY)

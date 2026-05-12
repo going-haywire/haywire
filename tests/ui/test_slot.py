@@ -138,15 +138,15 @@ class _FakeRegistry:
 
 
 def _make_slot(*keys, session=None, active_key=None):
-    """Build a TabSlot with one wrapper per key (no payload)."""
+    """Build a TabSlot with one wrapper per key (no binding_id)."""
     reg = _FakeRegistry()
     sess = session or _session_with_context()
     slot = TabSlot(session=sess, name="left", registry=reg)
     for k in keys:
         slot.add_binding(editor_key=k, editor_cls=_FakeEditor)
     if active_key is not None:
-        key, payload = EditorWrapper.split_id(active_key)
-        match = slot.find_binding(key, payload)
+        key, binding_id = EditorWrapper.split_id(active_key)
+        match = slot.find_binding(key, binding_id)
         if match is not None:
             slot._active = match
     elif keys:
@@ -179,14 +179,14 @@ def test_slot_with_no_bindings_has_no_active_binding() -> None:
 
 
 def test_slot_resolves_initial_active_with_payload() -> None:
-    """composite active_key must exact-match the payload-carrying binding,
+    """composite active_key must exact-match the binding_id-carrying binding,
     not fall through to the first same-key binding."""
     reg = _FakeRegistry()
     sess = _session_with_context()
     slot = TabSlot(session=sess, name="main", registry=reg)
-    slot.add_binding(editor_key="a:e:graph", editor_cls=_FakeEditor, payload=None)
-    slot.add_binding(editor_key="a:e:graph", editor_cls=_FakeEditor, payload="/tmp/a.haywire")
-    slot.add_binding(editor_key="a:e:graph", editor_cls=_FakeEditor, payload="/tmp/b.haywire")
+    slot.add_binding(editor_key="a:e:graph", editor_cls=_FakeEditor, binding_id=None)
+    slot.add_binding(editor_key="a:e:graph", editor_cls=_FakeEditor, binding_id="/tmp/a.haywire")
+    slot.add_binding(editor_key="a:e:graph", editor_cls=_FakeEditor, binding_id="/tmp/b.haywire")
 
     target = slot.find_binding("a:e:graph", "/tmp/b.haywire")
     slot._active = target
@@ -323,26 +323,29 @@ def test_find_binding_disambiguates_by_payload() -> None:
     reg = _FakeRegistry()
     sess = _session_with_context()
     slot = TabSlot(session=sess, name="main", registry=reg)
-    slot.add_binding(editor_key="studio:editor:graph_editor", editor_cls=_FakeEditor, payload="/a.haywire")
-    slot.add_binding(editor_key="studio:editor:graph_editor", editor_cls=_FakeEditor, payload="/b.haywire")
-    ge_a = slot.find_binding("studio:editor:graph_editor", payload="/a.haywire")
-    ge_b = slot.find_binding("studio:editor:graph_editor", payload="/b.haywire")
+    key = "studio:editor:graph_editor"
+    slot.add_binding(editor_key=key, editor_cls=_FakeEditor, binding_id="/a.haywire")
+    slot.add_binding(editor_key=key, editor_cls=_FakeEditor, binding_id="/b.haywire")
+    ge_a = slot.find_binding(key, binding_id="/a.haywire")
+    ge_b = slot.find_binding(key, binding_id="/b.haywire")
 
     assert ge_a is not None
     assert ge_b is not None
     assert ge_a is not ge_b
-    # Unknown payload with known key returns None — no silent fallback when
+    # Unknown binding_id with known key returns None — no silent fallback when
     # the caller explicitly asked for a specific instance.
-    assert slot.find_binding("studio:editor:graph_editor", payload="/nope.haywire") is None
+    assert slot.find_binding("studio:editor:graph_editor", binding_id="/nope.haywire") is None
 
 
 def test_find_binding_payload_less_caller_still_matches_first_binding() -> None:
-    """Callers that pre-date payloads (pass no payload) keep working."""
+    """Callers that pre-date payloads (pass no binding_id) keep working."""
     reg = _FakeRegistry()
     sess = _session_with_context()
     slot = TabSlot(session=sess, name="main", registry=reg)
-    slot.add_binding(editor_key="studio:editor:graph_editor", editor_cls=_FakeEditor, payload="/a.haywire")
-    b = slot.find_binding("studio:editor:graph_editor", payload="/a.haywire")
+    slot.add_binding(
+        editor_key="studio:editor:graph_editor", editor_cls=_FakeEditor, binding_id="/a.haywire"
+    )
+    b = slot.find_binding("studio:editor:graph_editor", binding_id="/a.haywire")
     assert slot.find_binding("studio:editor:graph_editor") is b
 
 
@@ -350,8 +353,12 @@ def test_switch_to_disambiguates_by_payload(monkeypatch) -> None:
     reg = _FakeRegistry()
     sess = _session_with_context()
     slot = TabSlot(session=sess, name="main", registry=reg)
-    slot.add_binding(editor_key="studio:editor:graph_editor", editor_cls=_FakeEditor, payload="/a.haywire")
-    slot.add_binding(editor_key="studio:editor:graph_editor", editor_cls=_FakeEditor, payload="/b.haywire")
+    slot.add_binding(
+        editor_key="studio:editor:graph_editor", editor_cls=_FakeEditor, binding_id="/a.haywire"
+    )
+    slot.add_binding(
+        editor_key="studio:editor:graph_editor", editor_cls=_FakeEditor, binding_id="/b.haywire"
+    )
     w_a = slot.find_binding("studio:editor:graph_editor", "/a.haywire")
     w_b = slot.find_binding("studio:editor:graph_editor", "/b.haywire")
     slot._active = w_a
@@ -359,7 +366,7 @@ def test_switch_to_disambiguates_by_payload(monkeypatch) -> None:
     slot._render_area_contents(_FakeContainer())
     area = panels_created[0]
 
-    changed = slot.switch_to("studio:editor:graph_editor", payload="/b.haywire")
+    changed = slot.switch_to("studio:editor:graph_editor", binding_id="/b.haywire")
 
     assert changed is True
     assert slot.active_binding is w_b
@@ -578,7 +585,7 @@ def test_wrapper_split_id_round_trip_with_binding_id():
     reg = _FakeRegistry()
     sess = _session_with_context()
     slot = TabSlot(session=sess, name="main", registry=reg)
-    slot.add_binding(editor_key="editor:one", editor_cls=_FakeEditor, payload="/tmp/a.graph")
+    slot.add_binding(editor_key="editor:one", editor_cls=_FakeEditor, binding_id="/tmp/a.graph")
     w = slot.find_binding("editor:one", "/tmp/a.graph")
     assert EditorWrapper.split_id(w.binding_id) == ("editor:one", "/tmp/a.graph")
 
@@ -772,7 +779,7 @@ class TestSlotToSnapshot:
         cls = _FakeEditorCls2("ed:graph", OpenBehavior.ON_PAYLOAD)
         reg = _FakeRegistry2({"ed:graph": cls})
         slot = _make_tab_slot2(registry=reg)
-        slot.add_binding(editor_key="ed:graph", editor_cls=cls, payload="/a.haywire")
+        slot.add_binding(editor_key="ed:graph", editor_cls=cls, binding_id="/a.haywire")
         w = slot.find_binding("ed:graph", "/a.haywire")
         slot._active = w
         snap = slot.to_snapshot()
@@ -785,8 +792,8 @@ class TestSlotToSnapshot:
         pay_cls = _FakeEditorCls2("ed:graph", OpenBehavior.ON_PAYLOAD)
         reg = _FakeRegistry2({"ed:required": req_cls, "ed:graph": pay_cls})
         slot = _make_tab_slot2(registry=reg)
-        slot.add_binding(editor_key="ed:required", editor_cls=req_cls, payload=None)
-        slot.add_binding(editor_key="ed:graph", editor_cls=pay_cls, payload="/a.haywire")
+        slot.add_binding(editor_key="ed:required", editor_cls=req_cls, binding_id=None)
+        slot.add_binding(editor_key="ed:graph", editor_cls=pay_cls, binding_id="/a.haywire")
         w = slot.find_binding("ed:graph", "/a.haywire")
         slot._active = w
         snap = slot.to_snapshot()
@@ -800,13 +807,13 @@ class TestSlotToSnapshot:
         cls = _FakeEditorCls2("ed:graph", OpenBehavior.ON_PAYLOAD)
         reg = _FakeRegistry2({"ed:graph": cls})
         slot = _make_tab_slot2(registry=reg)
-        w = slot.add_binding(editor_key="ed:graph", editor_cls=cls, payload="/a.haywire")
+        w = slot.add_binding(editor_key="ed:graph", editor_cls=cls, binding_id="/a.haywire")
         w.label = "a.haywire"
         slot._active = w
         snap = slot.to_snapshot()
         ed = snap["editors"][0]
         assert ed["key"] == "ed:graph"
-        assert ed["payload"] == "/a.haywire"
+        assert ed["binding_id"] == "/a.haywire"
         assert ed["label"] == "a.haywire"
 
     def test_visible_and_size(self):
@@ -841,7 +848,7 @@ class TestSlotPopulateFromSnapshot:
         session = _SN(context=None)
         data = {
             "active_key": "ed:graph::/a.haywire",
-            "editors": [{"key": "ed:graph", "payload": "/a.haywire", "label": "a.haywire"}],
+            "editors": [{"key": "ed:graph", "binding_id": "/a.haywire", "label": "a.haywire"}],
         }
         slot = TabSlot(
             session=session,
@@ -856,7 +863,7 @@ class TestSlotPopulateFromSnapshot:
     def test_unknown_editor_key_skipped(self):
         registry = _FakeRegistry2({})
         session = _SN(context=None)
-        data = {"editors": [{"key": "ed:gone", "payload": "/x.haywire", "label": "x"}]}
+        data = {"editors": [{"key": "ed:gone", "binding_id": "/x.haywire", "label": "x"}]}
         slot = TabSlot(
             session=session,
             name="main",

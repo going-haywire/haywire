@@ -29,9 +29,9 @@ def _make_context(existing_active_file=None):
     return ctx
 
 
-def _make_editor_with_payload(payload) -> FileViewerEditor:
+def _make_editor_with_payload(binding_id) -> FileViewerEditor:
     ed = FileViewerEditor()
-    ed.wrapper = SimpleNamespace(editor_key="file_viewer", payload=payload)
+    ed.wrapper = SimpleNamespace(editor_key="file_viewer", _binding_id=binding_id)
     return ed
 
 

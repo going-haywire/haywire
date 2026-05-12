@@ -8,7 +8,7 @@ FileBrowser's right-click menu for editor types haybale-studio owns:
 
 Each panel polls on the right-clicked file's extension, sets active_file
 and fires ActiveFileMoved on click (so editors that follow active_file
-keep working), then calls ``actions.reveal(editor_cls, payload, label)``.
+keep working), then calls ``actions.reveal(editor_cls, binding_id, label)``.
 
 The third file-context-menu panel (OpenInHaystackPanel for .haywire)
 lives in ``haybale-haystack`` (``haybale_haystack/panels/open_in_haystack.py``)
@@ -68,7 +68,7 @@ class OpenInCodeEditorPanel(BasePanel):
                 return
             ctx.active_file.value = path
             session.signal(ActiveFileMoved())
-            actions.reveal(CodeEditor, payload=str(path), label=path.name)
+            actions.reveal(CodeEditor, binding_id=str(path), label=path.name)
 
         layout.button(
             "Open in Code Editor",
@@ -110,7 +110,7 @@ class OpenInFileViewerPanel(BasePanel):
                 return
             ctx.active_file.value = path
             session.signal(ActiveFileMoved())
-            actions.reveal(FileViewerEditor, payload=str(path), label=path.name)
+            actions.reveal(FileViewerEditor, binding_id=str(path), label=path.name)
 
         layout.button(
             "Open in File Viewer",
