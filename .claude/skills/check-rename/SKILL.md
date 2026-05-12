@@ -43,8 +43,19 @@ The script compares the working tree against `HEAD`, parses each changed `.py` f
 
 It prints a JSON document on stdout with two top-level arrays:
 
-- `symbol_renames` — each entry has `old`, `new`, `file`, `kind`, `confidence`, and a list of `remnants` (file/line/snippet).
+- `symbol_renames` — each entry has `old`, `new`, `file`, `kind`, `parent`, `confidence`, and a list of `remnants` (file/line/snippet/context).
 - `file_renames` — each entry has `old_path`, `new_path`, `old_module`, `module_remnants`, and `path_remnants`.
+
+**Kinds detected:** `function`, `class`, `method` (top-level class methods), `attribute` (class-body fields, e.g. dataclass attributes), `constant` (module-level assignments), `parameter` (function/method parameters), and `file` (renamed files via git).
+
+**Remnant `context` field** (relevant for `attribute` kind only):
+
+- `attribute_access` — line contains `.<old_field>` syntax (e.g. `obj.payload`). Highest-confidence hit.
+- `kwarg` — line contains `<old_field>=` syntax inside a call (e.g. `Close(payload=...)`). Highest-confidence hit.
+- `prose_near_class` — bare mention, but the renamed class appears within ±5 lines. Usually a docstring or doc citation needing manual review.
+- `plain` — used for non-attribute kinds; every word-boundary hit is reported.
+
+For attribute renames, the scanner only inspects files that mention the owning class somewhere, so unrelated code that happens to use the same field name (e.g. a `_FakeBinding.payload` in a test fixture) is silently skipped.
 
 ### 2. Filter and confirm
 
@@ -55,14 +66,22 @@ Not every entry is a real rename:
 - **High confidence (≥ 0.5) AND remnants exist** — the candidate case. Show old → new, the file where it was renamed, and the list of remnants.
 - **High confidence AND zero remnants** — nothing for the user to do; mention briefly so they know it was checked.
 
+Note: semantic renames (e.g. `payload → binding_id`) where the strings share no letters still get paired at confidence 0.6 when they're the only removal/addition in a given (kind, parent) slot. Trust these — the slot evidence is stronger than the name similarity.
+
 For each surviving candidate, present in this shape:
 
 ```
 Renamed: <old> → <new>   (in <file>, confidence <pct>)
-Found <N> remnants:
-  <relpath>:<line>  <snippet>
-  ...
+Found <N> remnants (grouped by context):
+  [attribute_access | kwarg] (likely real):
+    <relpath>:<line>  <snippet>
+    ...
+  [prose_near_class] (review manually):
+    <relpath>:<line>  <snippet>
+    ...
 ```
+
+For attribute renames, **lead with the `attribute_access` and `kwarg` buckets** — those are high-confidence syntactic matches. Treat `prose_near_class` separately: those are docs and strings where the field is mentioned near the class, and may need rewording rather than a word swap.
 
 Group remnants by file for the next step.
 
@@ -105,9 +124,16 @@ Suggest the user run `uv run pytest -q --ignore=tests/integration` to confirm th
 
 **False positives from unrelated removals.** Deleting a method and adding a totally different one in the same file will be flagged as a rename candidate. Low confidence + irrelevant new name is the signal — drop and move on.
 
+**Field renames with generic names.** When a class field has a common name (`payload`, `name`, `id`, `value`), the same word will appear in many unrelated places. The detector filters by requiring the owning class to be mentioned in the file and within ±5 lines of the hit. This catches the common pattern (tests that construct the class, then access fields on instances) but **may miss** cases where:
+
+  - A test stores instances of the renamed class on a fake object and accesses fields via that fake (`fake.captured.payload` 20 lines after the only `Reveal(...)` call).
+  - A barn library subclasses or re-exports the type under a different name, so the original class never appears in the file.
+
+  When in doubt after the skill runs, do a broader `grep` for `.old_field` and `old_field=` in `tests/` and review the hits manually.
+
 ## What this skill does NOT do
 
 - Update `packages/haywire-core` or `packages/haywire-studio`. The IDE handles these reliably; scanning them adds noise. If you need to update those, do it through the IDE.
-- Detect renames of local variables, parameters, or imports-as-aliases. Only top-level `def`/`class` and methods on top-level classes.
+- Detect renames of local variables or imports-as-aliases. Top-level `def`/`class`, methods, class-body fields, module-level constants, and function/method parameters are all in scope.
 - Run automatic full-suite tests. The skill targets the test files it touched, but a full re-run is the user's call.
 - Handle renames inside `.venv`, `node_modules`, or other vendored directories.
