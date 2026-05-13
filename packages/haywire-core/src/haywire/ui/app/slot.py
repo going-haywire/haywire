@@ -44,7 +44,7 @@ from haywire.ui.editor.registry import EditorTypeRegistry
 from haywire.ui.editor.wrapper import EditorWrapper
 
 if TYPE_CHECKING:
-    from haywire.core.session.signals_and_lifecycle import ContextSignal
+    from haywire.core.session.signals_and_lifecycle import ContextSignal, Reveal
     from haywire.ui.editor.base import BaseEditor
     from haywire.core.session.session import Session
 
@@ -534,6 +534,88 @@ class Slot(ABC):
         logger.info(f"Slot '{self.name}': switched to '{target.editor_binding_id}'")
         self._activate(target)
         return True
+
+    def reveal(self, command: "Reveal") -> bool:
+        """Find-or-add the wrapper for ``command`` and activate it.
+
+        Single entry point used by the shell's reveal dispatcher — works the
+        same in every slot type (icon or tab). If the wrapper exists, switches
+        to it; otherwise constructs one via :meth:`add_binding` and activates
+        it. Refreshes the bar so the new/active tab is reflected. Returns
+        ``True`` iff the active wrapper actually changed.
+        """
+        editor_cls = command.editor
+        editor_key = editor_cls.class_identity.registry_key
+        binding_id = command.binding_id
+
+        existing = self.find_binding(editor_key, binding_id)
+        if existing is not None:
+            if self._active is existing:
+                return False
+            self.switch_to(editor_key, binding_id)
+            self._refresh_bar()
+            return True
+
+        wrapper = self.add_binding(
+            editor_key=editor_key,
+            editor_cls=editor_cls,
+            binding_id=binding_id,
+            activate=True,
+        )
+        # Empty label falls through to dynamic class_identity.label
+        # resolution in the bar — keeps hot-reload label updates working.
+        if command.label:
+            wrapper.label = command.label
+        self._refresh_bar()
+        return True
+
+    def close_binding(self, wrapper: EditorWrapper) -> bool:
+        """Close one wrapper — removes it and promotes a sibling if active.
+
+        Works in any slot type (icon or tab). The bar is refreshed so the
+        active highlight stays in sync. Returns ``True`` iff the wrapper
+        existed and was removed.
+        """
+        removed = self.remove_binding(wrapper.editor_key, wrapper._binding_id)
+        if removed is None:
+            return False
+        self._refresh_bar()
+        return True
+
+    def repayload(
+        self,
+        wrapper: EditorWrapper,
+        new_payload: Optional[str],
+        new_label: Optional[str] = None,
+    ) -> bool:
+        """Re-key ``wrapper``'s disambiguator in place (e.g. Save-As).
+
+        Preserves the editor instance. Works in any slot type. The slot's
+        ``repayload_binding`` does collision detection and DOM-side
+        housekeeping; this method adds label-update and bar-refresh.
+        """
+        if not self.repayload_binding(wrapper.editor_key, wrapper._binding_id, new_payload):
+            return False
+        if new_label is not None:
+            wrapper.label = new_label
+        self._refresh_bar()
+        return True
+
+    def close_tabs_for(self, binding_id: str) -> int:
+        """Close every wrapper whose disambiguator == ``binding_id``.
+
+        Refreshes the bar after each removal. Returns the count closed.
+        Works in any slot type (icon or tab); the per-slot ``remove_binding``
+        implementation handles wrapper cleanup and sibling promotion.
+        """
+        matches = [w for w in self._bindings if w._binding_id == binding_id]
+        closed = 0
+        for wrapper in matches:
+            if self.remove_binding(wrapper.editor_key, wrapper._binding_id) is not None:
+                closed += 1
+        if closed:
+            self._refresh_bar()
+        return closed
 
     def add_binding(
         self,

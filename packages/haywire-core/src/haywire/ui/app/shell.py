@@ -18,7 +18,7 @@ Session and calling AppShell.render().
 """
 
 import logging
-from typing import Literal, Optional, TYPE_CHECKING
+from typing import Literal, TYPE_CHECKING
 from nicegui import ui
 
 from haywire.ui import elements as hui
@@ -556,61 +556,6 @@ class AppShell:
     # Poll / draw orchestrator
     # ------------------------------------------------------------------
 
-    def _reveal_editor(
-        self,
-        editor_key: str,
-        binding_id: Optional[str] = None,
-        label: Optional[str] = None,
-    ) -> None:
-        """Ensure ``(editor_key, binding_id)`` is the active editor in its default slot.
-
-        Resolves the target slot from the editor's ``class_identity.default_slot``,
-        then:
-            * IconSlot — calls ``switch_to`` directly (no tab creation path).
-            * TabSlot  — uses ``open_tab`` when the wrapper is missing (auto-
-              create), otherwise ``switch_to``. Honours ``OpenBehavior``.
-        Does NOT broadcast WORKSPACE_CHANGED (the reveal is in response to
-        another event already propagating).
-        """
-        from haywire.ui.app.tab_slot import TabSlot
-        from haywire.ui.editor.identity import OpenBehavior
-
-        editor_cls = self._editor_registry.get_by_key(editor_key)
-        if editor_cls is None:
-            logger.warning(f"AppShell: reveal_editor '{editor_key}' not found in registry")
-            return
-
-        slot_name = getattr(editor_cls.class_identity, "default_slot", None)
-        slot = self._managed_slots.get(slot_name) if slot_name else None
-        if slot is None:
-            logger.warning(
-                f"AppShell: reveal_editor '{editor_key}' targets slot '{slot_name}' "
-                "which is not hostable in the active workspace, skipping reveal"
-            )
-            return
-
-        opens = getattr(editor_cls.class_identity, "opens", OpenBehavior.REQUIRED)
-
-        if opens is OpenBehavior.ON_PAYLOAD and binding_id is None:
-            logger.warning(
-                f"AppShell: reveal of opens='on_payload' editor '{editor_key}' "
-                f"requires a binding_id; dropping."
-            )
-            return
-
-        if isinstance(slot, TabSlot):
-            if slot.find_binding(editor_key, binding_id) is None:
-                # Empty label falls through to dynamic class_identity.label
-                # resolution in the bar — keeps hot-reload label updates working.
-                slot.open_tab(editor_cls, editor_key, binding_id, label or "")
-            else:
-                slot.switch_to(editor_key, binding_id)
-                slot._refresh_bar()
-        else:
-            slot.switch_to(editor_key, binding_id)
-            if hasattr(slot, "_refresh_bar"):
-                slot._refresh_bar()
-
     def _on_signal(self, signal: ContextSignal) -> None:
         """Signal-channel orchestrator callback.
 
@@ -628,26 +573,56 @@ class AppShell:
 
         - ``Reveal`` is point-to-point — resolved to a slot via the
           editor's ``default_slot`` and dispatched there.
-        - ``Close`` is fan-out — every TabSlot is asked to close any
-          tab whose binding_id matches.
+        - ``Close`` is fan-out — every slot is asked to close any
+          wrapper whose binding_id matches.
         """
         if isinstance(command, Reveal):
-            editor_key = command.editor.class_identity.registry_key
-            self._reveal_editor(editor_key, command.binding_id, command.label)
+            self._reveal_editor(command)
         elif isinstance(command, Close):
             self._close_payload(command.binding_id)
         else:
             logger.warning(f"AppShell: unknown LifecycleCommand subclass {type(command).__name__}")
 
-    def _close_payload(self, binding_id: str) -> None:
-        """Close every tab bound to ``binding_id`` across all TabSlots."""
-        from haywire.ui.app.tab_slot import TabSlot
+    def _reveal_editor(self, command: Reveal) -> None:
+        """Ensure the editor described by ``command`` is active in its default slot.
 
+        Resolves the target slot from the editor's ``class_identity.default_slot``
+        and delegates to :meth:`Slot.reveal`, which does find-or-add-then-activate
+        uniformly across IconSlot and TabSlot. Does NOT broadcast
+        WORKSPACE_CHANGED (the reveal is in response to another event already
+        propagating).
+        """
+        from haywire.ui.editor.identity import OpenBehavior
+
+        editor_cls = command.editor
+        editor_key = editor_cls.class_identity.registry_key
+
+        slot_name = editor_cls.class_identity.default_slot
+
+        slot = self._managed_slots.get(slot_name) if slot_name else None
+        if slot is None:
+            logger.warning(
+                f"AppShell: reveal_editor '{editor_key}' targets slot '{slot_name}' "
+                "which is not hostable in the active workspace, skipping reveal"
+            )
+            return
+
+        opens = editor_cls.class_identity.opens
+        if opens is OpenBehavior.ON_PAYLOAD and command.binding_id is None:
+            logger.warning(
+                f"AppShell: reveal of opens='on_payload' editor '{editor_key}' "
+                f"requires a binding_id; dropping."
+            )
+            return
+
+        slot.reveal(command)
+
+    def _close_payload(self, binding_id: str) -> None:
+        """Close every wrapper bound to ``binding_id`` across all slots."""
         if not binding_id:
             return
         for slot in self._managed_slots.values():
-            if isinstance(slot, TabSlot):
-                slot.close_tabs_for(binding_id)
+            slot.close_tabs_for(binding_id)
 
     def _on_slot_resize(self, event) -> None:
         """Dispatch ``hw-slot-resize`` events from the drag JS to the target slot.

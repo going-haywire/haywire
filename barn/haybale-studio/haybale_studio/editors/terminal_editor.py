@@ -91,7 +91,8 @@ class TerminalEditor(BaseEditor):
     all log messages from the application, regardless of origin.
     """
 
-    def __init__(self):
+    def __init__(self, wrapper):
+        super().__init__(wrapper)
         self._log_element = None
         self._handler: _LogHandler | None = None
 

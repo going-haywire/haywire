@@ -3,16 +3,16 @@ TabSlot — the Slot subclass for main / bottom slots.
 
 Renders a column containing a horizontal tab bar on top (``ui.tabs``, plus an
 optional chevron for the bottom slot that folds the area in/out) and the
-``ui.tab_panels`` area below. Exposes mutators
-(``open_tab``/``close_tab``/``repayload_tab``/``close_tabs_for_payload``) that
-keep the slot's wrapper list in sync with the tab bar.
+``ui.tab_panels`` area below. Wrapper mutation is inherited from :class:`Slot`
+(``reveal`` / ``close_binding`` / ``repayload`` / ``close_tabs_for``); the bar
+re-renders on each mutation via ``_refresh_bar``.
 
 """
 
 from __future__ import annotations
 
 import logging
-from typing import Any, ClassVar, Literal, Optional, cast
+from typing import Any, ClassVar, Literal, cast
 
 from nicegui import ui
 
@@ -126,7 +126,7 @@ class TabSlot(Slot):
 
         The wrapper awaits ``handle_close_request`` on the editor instance
         (which can show a save-or-discard dialog) and only invokes
-        ``slot.close_tab`` if the editor allows the close.
+        ``slot.close_binding`` if the editor allows the close.
         """
         editor_key, binding_id = EditorWrapper.split_id(tab_id)
         wrapper = self.find_binding(editor_key, binding_id)
@@ -136,71 +136,3 @@ class TabSlot(Slot):
 
     def _on_fold_toggle_clicked(self) -> None:
         self.set_visible(not self._visible)
-
-    # ------------------------------------------------------------------
-    # Tab mutators — shell delegates to these
-    # ------------------------------------------------------------------
-
-    def open_tab(
-        self,
-        editor_cls: type,
-        editor_key: str,
-        binding_id: Optional[str],
-        label: str,
-    ) -> bool:
-        """Ensure a tab for ``(editor_key, binding_id)`` exists and make it active.
-
-        Returns ``True`` iff the active tab actually changed.
-        """
-        existing = self.find_binding(editor_key, binding_id)
-        if existing is not None:
-            if self._active is existing:
-                return False
-            self.switch_to(editor_key, binding_id)
-            self._refresh_bar()
-            return True
-
-        wrapper = self.add_binding(
-            editor_key=editor_key,
-            editor_cls=editor_cls,
-            binding_id=binding_id,
-            activate=True,
-        )
-        if label:
-            wrapper.label = label
-        self._refresh_bar()
-        return True
-
-    def close_tab(self, editor_key: str, binding_id: Optional[str]) -> bool:
-        """Close one tab — removes wrapper; promotes sibling when active."""
-        removed = self.remove_binding(editor_key, binding_id)
-        if removed is None:
-            return False
-        self._refresh_bar()
-        return True
-
-    def repayload_tab(
-        self,
-        editor_key: str,
-        old_payload: Optional[str],
-        new_payload: Optional[str],
-        new_label: Optional[str] = None,
-    ) -> bool:
-        """Re-key a tab in place (e.g. Save-As). Preserves the editor instance."""
-        if not self.repayload_binding(editor_key, old_payload, new_payload):
-            return False
-        if new_label is not None:
-            wrapper = self.find_binding(editor_key, new_payload)
-            if wrapper is not None:
-                wrapper.label = new_label
-        self._refresh_bar()
-        return True
-
-    def close_tabs_for(self, binding_id: str) -> int:
-        """Close every tab whose disambiguator == ``binding_id``."""
-        matches = [w for w in self._bindings if w._binding_id == binding_id]
-        closed = 0
-        for wrapper in matches:
-            if self.close_tab(wrapper.editor_key, wrapper._binding_id):
-                closed += 1
-        return closed

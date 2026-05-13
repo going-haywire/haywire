@@ -51,7 +51,8 @@ class LibraryComponentEditor(BaseEditor):
     Rebuilds on ACTIVE_COMPONENT_CHANGED context events.
     """
 
-    def __init__(self):
+    def __init__(self, wrapper):
+        super().__init__(wrapper)
         self._container = None
         self._code_editor = None  # ui.codemirror reference for live theme updates
 

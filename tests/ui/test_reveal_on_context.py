@@ -2,6 +2,7 @@
 
 from types import SimpleNamespace
 
+from haywire.core.session.signals_and_lifecycle import Reveal
 from haywire.ui.app.shell import AppShell
 from haywire.ui.app.tab_slot import TabSlot
 from haywire.ui.editor.identity import OpenBehavior
@@ -92,8 +93,14 @@ class _FakeTabbedSlot(TabSlot):
                 return b
         return None
 
-    def open_tab(self, editor_cls, editor_key: str, binding_id, label: str) -> bool:
-        """Register a new tab and make it active. Returns True (contract match)."""
+    def reveal(self, command) -> bool:
+        """Find-or-add the binding and make it active. Returns True iff active changed."""
+        editor_cls = command.editor
+        editor_key = editor_cls.class_identity.registry_key
+        binding_id = command.binding_id
+        existing = self.find_binding(editor_key, binding_id)
+        if existing is not None:
+            return self.switch_to(editor_key, binding_id)
         binding = _FakeBinding(editor_key, binding_id, editor_cls=editor_cls)
         self.bindings.append(binding)
         self.active_key = editor_key
@@ -142,6 +149,12 @@ def _build_test_shell_with_editors(entries: list[tuple]) -> tuple:
     return shell, session
 
 
+def _reveal(shell: AppShell, registry_key: str, binding_id=None) -> None:
+    """Look up the editor class on the shell and dispatch a Reveal for it."""
+    editor_cls = shell._editor_registry.get_by_key(registry_key)
+    shell._reveal_editor(Reveal(editor=editor_cls, binding_id=binding_id))
+
+
 # ---------------------------------------------------------------------------
 # Tests
 # ---------------------------------------------------------------------------
@@ -154,7 +167,7 @@ class TestOnContextRevealDispatch:
                 ("studio:editor:Ctx", "main", OpenBehavior.ON_CONTEXT),
             ]
         )
-        shell._reveal_editor("studio:editor:Ctx", binding_id=None)
+        _reveal(shell, "studio:editor:Ctx")
         main_slot = shell._managed_slots["main"]
         binding = main_slot.find_binding("studio:editor:Ctx", None)
         assert binding is not None
@@ -166,8 +179,8 @@ class TestOnContextRevealDispatch:
                 ("studio:editor:Ctx", "main", OpenBehavior.ON_CONTEXT),
             ]
         )
-        shell._reveal_editor("studio:editor:Ctx", binding_id=None)
-        shell._reveal_editor("studio:editor:Ctx", binding_id=None)
+        _reveal(shell, "studio:editor:Ctx")
+        _reveal(shell, "studio:editor:Ctx")
         main_slot = shell._managed_slots["main"]
         matching = [b for b in main_slot.bindings if b.editor_key == "studio:editor:Ctx"]
         assert len(matching) == 1
@@ -179,13 +192,13 @@ class TestOnContextRevealDispatch:
                 ("studio:editor:Other", "main", OpenBehavior.REQUIRED),
             ]
         )
-        shell._reveal_editor("studio:editor:Ctx", binding_id=None)
+        _reveal(shell, "studio:editor:Ctx")
         main_slot = shell._managed_slots["main"]
         # Simulate switching to a different tab.
         main_slot.switch_to("studio:editor:Other", None)
         assert main_slot.active_key == "studio:editor:Other"
         # Reveal again — should switch back, not create a duplicate.
-        shell._reveal_editor("studio:editor:Ctx", binding_id=None)
+        _reveal(shell, "studio:editor:Ctx")
         assert main_slot.active_key == "studio:editor:Ctx"
         matching = [b for b in main_slot.bindings if b.editor_key == "studio:editor:Ctx"]
         assert len(matching) == 1

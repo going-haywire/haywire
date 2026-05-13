@@ -2,6 +2,7 @@
 
 from types import SimpleNamespace
 
+from haywire.core.session.signals_and_lifecycle import Reveal
 from haywire.ui.app.tab_slot import TabSlot
 from haywire.ui.editor.identity import OpenBehavior
 
@@ -111,7 +112,7 @@ def _editor_cls(key, opens=OpenBehavior.ON_PAYLOAD, label="Lbl"):
     )
 
 
-def test_tab_slot_open_tab_adds_binding_and_makes_active(monkeypatch):
+def test_tab_slot_reveal_adds_binding_and_makes_active(monkeypatch):
     _install_ui_fakes(monkeypatch)
     cls = _editor_cls("a")
     reg = _FakeRegistry()
@@ -122,13 +123,13 @@ def test_tab_slot_open_tab_adds_binding_and_makes_active(monkeypatch):
     )
     slot.render(_FakeContainer())
 
-    opened = slot.open_tab(cls, editor_key="a", binding_id="/tmp/a", label="a.graph")
+    opened = slot.reveal(Reveal(editor=cls, binding_id="/tmp/a", label="a.graph"))
     assert opened is True
     assert slot.active_binding_id == "a::/tmp/a"
     assert slot.find_binding("a", "/tmp/a") is not None
 
 
-def test_tab_slot_open_tab_existing_activates_no_duplicate(monkeypatch):
+def test_tab_slot_reveal_existing_activates_no_duplicate(monkeypatch):
     _install_ui_fakes(monkeypatch)
     cls = _editor_cls("a")
     reg = _FakeRegistry()
@@ -142,12 +143,12 @@ def test_tab_slot_open_tab_existing_activates_no_duplicate(monkeypatch):
     slot._active = binding
     slot.render(_FakeContainer())
 
-    # Already the active tab: open returns False (no change).
-    assert slot.open_tab(cls, "a", "/tmp/a", "a") is False
+    # Already the active tab: reveal returns False (no change).
+    assert slot.reveal(Reveal(editor=cls, binding_id="/tmp/a", label="a")) is False
     assert len([b for b in slot.bindings if b.editor_key == "a"]) == 1
 
 
-def test_tab_slot_close_tab_removes_and_promotes_sibling(monkeypatch):
+def test_tab_slot_close_binding_removes_and_promotes_sibling(monkeypatch):
     _install_ui_fakes(monkeypatch)
     cls_a = _editor_cls("a")
     cls_b = _editor_cls("b")
@@ -159,15 +160,16 @@ def test_tab_slot_close_tab_removes_and_promotes_sibling(monkeypatch):
     )
     slot.add_binding(editor_key="a", editor_cls=cls_a, binding_id="p1")
     slot.add_binding(editor_key="b", editor_cls=cls_b, binding_id="p2")
-    slot._active = slot.find_binding("a", "p1")
+    wrapper_a = slot.find_binding("a", "p1")
+    slot._active = wrapper_a
     slot.render(_FakeContainer())
 
-    assert slot.close_tab("a", "p1") is True
+    assert slot.close_binding(wrapper_a) is True
     assert slot.find_binding("a", "p1") is None
     assert slot.active_binding_id == "b::p2"
 
 
-def test_tab_slot_repayload_tab_updates_ids(monkeypatch):
+def test_tab_slot_repayload_updates_ids(monkeypatch):
     _install_ui_fakes(monkeypatch)
     cls = _editor_cls("a")
     reg = _FakeRegistry()
@@ -177,10 +179,11 @@ def test_tab_slot_repayload_tab_updates_ids(monkeypatch):
         registry=reg,
     )
     slot.add_binding(editor_key="a", editor_cls=cls, binding_id="old")
-    slot._active = slot.find_binding("a", "old")
+    wrapper = slot.find_binding("a", "old")
+    slot._active = wrapper
     slot.render(_FakeContainer())
 
-    assert slot.repayload_tab("a", "old", "new", new_label="new.graph") is True
+    assert slot.repayload(wrapper, "new", new_label="new.graph") is True
     assert slot.active_binding_id == "a::new"
     assert slot.find_binding("a", "new") is not None
     assert slot.find_binding("a", "old") is None
@@ -248,8 +251,8 @@ class _VetoEditor:
         opens=OpenBehavior.ON_PAYLOAD,
     )
 
-    def __init__(self):
-        self.wrapper = None
+    def __init__(self, wrapper):
+        self.wrapper = wrapper
         self.consent_calls = 0
         self.allow = True
 

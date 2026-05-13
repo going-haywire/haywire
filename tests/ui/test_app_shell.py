@@ -45,7 +45,7 @@ class _FakeSession:
 
 
 class _FakeSlot:
-    """Stand-in for IconSlot/TabSlot used by orchestrator + dispatch tests."""
+    """Stand-in for any Slot subclass used by orchestrator + dispatch tests."""
 
     def __init__(self, name: str, active_key: str | None = None) -> None:
         self.name = name
@@ -54,10 +54,8 @@ class _FakeSlot:
         self.bindings: list = []
         self.switch_calls: list = []
         self.size_calls: list[int] = []
-        self.open_tab_calls: list = []
-        self.close_tab_calls: list = []
-        self.repayload_calls: list = []
-        self.close_tabs_for_payload_calls: list = []
+        self.reveal_calls: list = []
+        self.close_tabs_for_calls: list = []
 
     def switch_to(self, editor_key: str, binding_id=None) -> bool:
         self.switch_calls.append((editor_key, binding_id))
@@ -81,30 +79,21 @@ class _FakeSlot:
                 return b
         return None
 
-    def open_tab(self, cls, editor_key, binding_id, label):
-        self.open_tab_calls.append((editor_key, binding_id, label))
-        self.bindings.append(SimpleNamespace(editor_key=editor_key, binding_id=binding_id))
-        self.active_key = editor_key
+    def reveal(self, command):
+        editor_key = command.editor.class_identity.registry_key
+        self.reveal_calls.append((editor_key, command.binding_id, command.label or ""))
+        existing = self.find_binding(editor_key, command.binding_id)
+        if existing is None:
+            self.bindings.append(SimpleNamespace(editor_key=editor_key, binding_id=command.binding_id))
+        self.switch_to(editor_key, command.binding_id)
         return True
 
-    def close_tab(self, editor_key, binding_id):
-        self.close_tab_calls.append((editor_key, binding_id))
-        return True
-
-    def repayload_tab(self, editor_key, old_payload, new_payload, new_label=None):
-        self.repayload_calls.append((editor_key, old_payload, new_payload, new_label))
-        return True
-
-    def close_tabs_for_payload(self, binding_id):
-        self.close_tabs_for_payload_calls.append(binding_id)
+    def close_tabs_for(self, binding_id):
+        self.close_tabs_for_calls.append(binding_id)
         return 1
 
     def _refresh_bar(self):
         pass
-
-
-class _FakeTabSlot(_FakeSlot):
-    """Subclass marker so isinstance(slot, TabSlot) checks in shell match."""
 
 
 # ---------------------------------------------------------------------------
@@ -169,7 +158,7 @@ def test_on_slot_resize_ignores_malformed_args() -> None:
 # ---------------------------------------------------------------------------
 
 
-def test_reveal_editor_routes_through_icon_slot() -> None:
+def test_reveal_editor_routes_through_slot() -> None:
     target_key = "right:editor:two"
     cls = _make_editor_cls(target_key, "right", OpenBehavior.REQUIRED)
     registry = _FakeEditorRegistry({target_key: cls})
@@ -179,107 +168,44 @@ def test_reveal_editor_routes_through_icon_slot() -> None:
 
     shell._on_lifecycle(Reveal(editor=cls))
 
-    assert fake.switch_calls == [(target_key, None)]
+    assert fake.reveal_calls == [(target_key, None, "")]
     assert shell.session.signals_seen == []  # reveal must not broadcast a signal
 
 
-def test_reveal_editor_unknown_logs_warning(caplog) -> None:
-    nonexistent_key = "nonexistent:editor:zzz"
-    cls = _make_editor_cls(nonexistent_key, "right", OpenBehavior.REQUIRED)
-    registry = _FakeEditorRegistry({})  # cls intentionally NOT registered
+def test_reveal_editor_unhostable_slot_logs_warning(caplog) -> None:
+    target_key = "ghost:editor:zzz"
+    cls = _make_editor_cls(target_key, "ghost-slot", OpenBehavior.REQUIRED)
+    registry = _FakeEditorRegistry({target_key: cls})
     shell = AppShell(session=_FakeSession(), editor_registry=registry)
+    # No slot registered under "ghost-slot", so the reveal must be dropped.
     fake = _FakeSlot("right", active_key="right:editor:one")
     shell._managed_slots["right"] = fake
 
     with caplog.at_level(logging.WARNING, logger="haywire.ui.app.shell"):
         shell._on_lifecycle(Reveal(editor=cls))
 
-    assert fake.switch_calls == []
-    assert any(nonexistent_key in rec.message for rec in caplog.records)
-
-
-def test_reveal_editor_on_payload_without_payload_logs_and_skips(caplog) -> None:
-    from haywire.ui.app.tab_slot import TabSlot
-
-    editor_key = "main:editor:Doc"
-    cls = _make_editor_cls(editor_key, "main", OpenBehavior.ON_PAYLOAD)
-    registry = _FakeEditorRegistry({editor_key: cls})
-    shell = AppShell(session=_FakeSession(), editor_registry=registry)
-
-    class _FakeTab(TabSlot, _FakeSlot):
-        """Subclass of the real TabSlot so isinstance checks match, with fake deep state."""
-
-        # Shadow every read-only property Slot defines so _FakeSlot.__init__ can set plain
-        # instance attributes without hitting Python's data-descriptor setter guard.
-        active_key = None  # type: ignore[assignment]
-        active_binding = None  # type: ignore[assignment]
-        active_binding_id = None  # type: ignore[assignment]
-        visible = None  # type: ignore[assignment]
-        bindings = None  # type: ignore[assignment]
-
-        def __init__(self, name):
-            _FakeSlot.__init__(self, name)
-
-    fake_tab = _FakeTab("main")
-    shell._managed_slots["main"] = fake_tab
-
-    with caplog.at_level(logging.WARNING, logger="haywire.ui.app.shell"):
-        shell._reveal_editor(editor_key, binding_id=None)
-
-    assert fake_tab.open_tab_calls == []
-    assert any("on_payload" in rec.message and "binding_id" in rec.message for rec in caplog.records)
+    assert fake.reveal_calls == []
+    assert any(target_key in rec.message for rec in caplog.records)
 
 
 # ---------------------------------------------------------------------------
-# Close lifecycle command — fan-out tab close across every TabSlot
+# Close lifecycle command — fan-out wrapper close across every slot
 # ---------------------------------------------------------------------------
 
 
-def _make_fake_tab_slot(name: str) -> "_FakeSlot":
-    """Return an instance that IS-A TabSlot (for isinstance checks) with fake behavior.
-
-    All methods are delegated to _FakeSlot so the real TabSlot implementation
-    (which requires a fully initialised Slot.__init__ state) is never called.
-    isinstance(result, TabSlot) is True because TabSlot is in the MRO.
-    """
-    from haywire.ui.app.tab_slot import TabSlot
-
-    class _FakeTab(TabSlot, _FakeSlot):
-        # Shadow every read-only property Slot defines so _FakeSlot.__init__ can set plain
-        # instance attributes without hitting Python's data-descriptor setter guard.
-        active_key = None  # type: ignore[assignment]
-        active_binding = None  # type: ignore[assignment]
-        active_binding_id = None  # type: ignore[assignment]
-        visible = None  # type: ignore[assignment]
-        bindings = None  # type: ignore[assignment]
-
-        def __init__(self, slot_name):
-            _FakeSlot.__init__(self, slot_name)
-
-        # Explicitly route to _FakeSlot implementations so TabSlot's real logic
-        # (which requires Slot.__init__ state) is never invoked.
-        def close_tab(self, editor_key, binding_id):
-            return _FakeSlot.close_tab(self, editor_key, binding_id)
-
-        def repayload_tab(self, editor_key, old_payload, new_payload, new_label=None):
-            return _FakeSlot.repayload_tab(self, editor_key, old_payload, new_payload, new_label)
-
-        def close_tabs_for(self, binding_id):
-            return _FakeSlot.close_tabs_for_payload(self, binding_id)
-
-    return _FakeTab(name)
-
-
-def test_close_lifecycle_command_closes_matching_tabs_in_every_tab_slot() -> None:
+def test_close_lifecycle_command_closes_matching_wrappers_in_every_slot() -> None:
     shell = AppShell(session=_FakeSession(), editor_registry=_FakeEditorRegistry({}))
-    main = _make_fake_tab_slot("main")
-    bottom = _make_fake_tab_slot("bottom")
+    left = _FakeSlot("left")
+    main = _FakeSlot("main")
+    bottom = _FakeSlot("bottom")
+    shell._managed_slots["left"] = left
     shell._managed_slots["main"] = main
     shell._managed_slots["bottom"] = bottom
 
     shell._on_lifecycle(Close(binding_id="/tmp/a.graph"))
-    assert main.close_tabs_for_payload_calls == ["/tmp/a.graph"]
-    assert bottom.close_tabs_for_payload_calls == ["/tmp/a.graph"]
+    assert left.close_tabs_for_calls == ["/tmp/a.graph"]
+    assert main.close_tabs_for_calls == ["/tmp/a.graph"]
+    assert bottom.close_tabs_for_calls == ["/tmp/a.graph"]
 
 
 # ---------------------------------------------------------------------------

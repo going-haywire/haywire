@@ -46,8 +46,9 @@ def editor(
         default_slot: Which slot this editor belongs in by default.
             One of: 'left', 'right', 'main', 'bottom'. Defaults to 'main'.
         opens: Instance-creation behavior. One of 'required', 'on_context',
-            'on_payload'. Defaults to 'required'. Only 'required' is
-            permitted on 'left' / 'right' slots today.
+            'on_payload'. Defaults to 'required'. Any value is permitted on
+            any default_slot — choosing a UX-sensible pairing is up to the
+            editor author.
         description: Human-readable description.
         registry_id: Unique ID for this editor, e.g. 'graph_editor'.
             Defaults to the class name if not provided.
@@ -70,12 +71,6 @@ def editor(
 
         # Coerce string to enum; raises ValueError at class-definition time on typo.
         opens_enum = OpenBehavior(opens) if isinstance(opens, str) else opens
-
-        if default_slot in ("left", "right") and opens_enum is not OpenBehavior.REQUIRED:
-            raise ValueError(
-                f"@editor {inner_cls.__name__}: opens={opens_enum.value!r} is not allowed on "
-                f"default_slot={default_slot!r}. Left/right slots only support opens='required'."
-            )
 
         _registry_id = registry_id or inner_cls.__name__
         _label = label or inner_cls.__name__

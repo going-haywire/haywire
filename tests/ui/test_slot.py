@@ -79,7 +79,8 @@ class _FakeEditor:
 
     instances: list["_FakeEditor"] = []
 
-    def __init__(self) -> None:
+    def __init__(self, wrapper) -> None:
+        self.wrapper = wrapper
         self.draw_calls: list = []
         self.on_signal_calls: list = []
         self.redraw_on_signal_calls: list = []

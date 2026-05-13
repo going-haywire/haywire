@@ -98,21 +98,19 @@ def _make_context(entry: Optional[_FakeEntry], existing_active_graph=None):
     return ctx
 
 
-def _make_editor_with_payload(binding_id: str) -> GraphEditor:
-    ed = GraphEditor()
-
+def _make_editor_with_payload(binding_id) -> GraphEditor:
     force_close_calls: list = []
 
     def _force_close():
         force_close_calls.append(True)
 
-    ed.wrapper = SimpleNamespace(
+    wrapper = SimpleNamespace(
         editor_key="graph_editor",
         _binding_id=binding_id,
         force_close=_force_close,
         force_close_calls=force_close_calls,
     )
-    return ed
+    return GraphEditor(wrapper)
 
 
 def test_on_focus_resolves_entry_and_sets_active_graph() -> None:
@@ -173,8 +171,7 @@ def test_on_focus_missing_entry_force_closes_via_wrapper() -> None:
 
 def test_on_focus_no_binding_is_noop() -> None:
     ctx = _make_context(entry=None)
-    ed = GraphEditor()
-    ed.wrapper = None
+    ed = _make_editor_with_payload(None)
 
     ed.on_focus(ctx)
 

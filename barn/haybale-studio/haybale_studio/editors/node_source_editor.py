@@ -56,7 +56,8 @@ class NodeSourceEditor(BaseEditor):
 
     _RELEVANT_SIGNALS = (SelectionMoved, ThemeMoved)
 
-    def __init__(self) -> None:
+    def __init__(self, wrapper) -> None:
+        super().__init__(wrapper)
         # Buffer state
         self._content: str = ""
         self._original: str = ""

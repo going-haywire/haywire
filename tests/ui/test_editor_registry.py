@@ -200,21 +200,23 @@ class TestOpenBehavior:
                 def draw(self, context, container):
                     pass
 
-    def test_opens_non_required_rejected_on_left(self):
-        with pytest.raises(ValueError):
+    def test_opens_on_payload_allowed_on_left(self):
+        @editor(registry_id="op_left_pay", default_slot="left", opens="on_payload")
+        class _OpensLeftPayloadEditor(BaseEditor):
+            def draw(self, context, container):
+                pass
 
-            @editor(registry_id="op_left", default_slot="left", opens="on_payload")
-            class _OpensLeftEditor(BaseEditor):
-                def draw(self, context, container):
-                    pass
+        assert _OpensLeftPayloadEditor.class_identity.default_slot == "left"
+        assert _OpensLeftPayloadEditor.class_identity.opens is OpenBehavior.ON_PAYLOAD
 
-    def test_opens_non_required_rejected_on_right(self):
-        with pytest.raises(ValueError):
+    def test_opens_on_context_allowed_on_right(self):
+        @editor(registry_id="op_right_ctx", default_slot="right", opens="on_context")
+        class _OpensRightContextEditor(BaseEditor):
+            def draw(self, context, container):
+                pass
 
-            @editor(registry_id="op_right", default_slot="right", opens="on_context")
-            class _OpensRightEditor(BaseEditor):
-                def draw(self, context, container):
-                    pass
+        assert _OpensRightContextEditor.class_identity.default_slot == "right"
+        assert _OpensRightContextEditor.class_identity.opens is OpenBehavior.ON_CONTEXT
 
     def test_opens_required_ok_on_left(self):
         @editor(registry_id="op_left_req", default_slot="left", opens="required")

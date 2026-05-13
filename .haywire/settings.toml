@@ -28,3 +28,6 @@ width = 116
 
 [debug.library.core]
 log_level = ""
+
+[ui.node.default.skin]
+studio_skin = "core:skin:DefaultNodeSkin"

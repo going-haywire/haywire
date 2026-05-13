@@ -64,6 +64,9 @@ class _FakeEditorCls:
         opens=None,
     )
 
+    def __init__(self, wrapper):
+        self.wrapper = wrapper
+
 
 def _make_session():
     return SimpleNamespace(context=SimpleNamespace())
@@ -169,7 +172,7 @@ class _RaisingEditorCls:
         opens=None,
     )
 
-    def __init__(self):
+    def __init__(self, wrapper):
         raise RuntimeError("constructor explodes")
 
 
@@ -379,13 +382,13 @@ class _RecordingEditorCls:
         opens=None,
     )
 
-    def __init__(self):
+    def __init__(self, wrapper):
+        self.wrapper = wrapper
         self.draw_calls: list = []
         self.focus_calls: list = []
         self.on_signal_calls: list = []
         self.redraw_on_signal_calls: list = []
         self.cleanup_calls = 0
-        self.wrapper = None
         self.redraw_on_signal_returns = False
 
     def draw(self, context, container):
@@ -478,8 +481,8 @@ def test_draw_captures_runtime_exception_into_error_runtime():
             opens=None,
         )
 
-        def __init__(self):
-            self.wrapper = None
+        def __init__(self, wrapper):
+            self.wrapper = wrapper
 
         def draw(self, context, container):
             raise RuntimeError("draw boom")
@@ -549,8 +552,8 @@ def test_on_focus_captures_runtime_exception():
             opens=None,
         )
 
-        def __init__(self):
-            self.wrapper = None
+        def __init__(self, wrapper):
+            self.wrapper = wrapper
 
         def on_focus(self, context):
             raise RuntimeError("focus boom")
@@ -604,8 +607,8 @@ def test_redraw_on_signal_captures_runtime_exception_returns_false():
             opens=None,
         )
 
-        def __init__(self):
-            self.wrapper = None
+        def __init__(self, wrapper):
+            self.wrapper = wrapper
 
         def redraw_on_signal(self, context, event):
             raise RuntimeError("redraw_on_signal boom")
@@ -659,8 +662,8 @@ def test_on_signal_captures_runtime_exception():
             opens=None,
         )
 
-        def __init__(self):
-            self.wrapper = None
+        def __init__(self, wrapper):
+            self.wrapper = wrapper
 
         def on_signal(self, context, event):
             raise RuntimeError("on_signal boom")
@@ -828,7 +831,10 @@ def test_base_editor_handle_close_request_defaults_to_true():
         def draw(self, context, container):
             pass
 
-    editor = _MinimalEditor()
+    from typing import cast
+    from haywire.ui.editor.wrapper import EditorWrapper
+
+    editor = _MinimalEditor(cast(EditorWrapper, object()))
     result = _run_async(editor.handle_close_request())
     assert result is True
 
@@ -864,8 +870,8 @@ class _ConsentingEditorCls:
         opens=None,
     )
 
-    def __init__(self):
-        self.wrapper = None
+    def __init__(self, wrapper):
+        self.wrapper = wrapper
         self.consent_calls = 0
         self.consent_response = True
 
@@ -914,8 +920,8 @@ def test_request_close_allows_when_handle_close_request_raises():
             opens=None,
         )
 
-        def __init__(self):
-            self.wrapper = None
+        def __init__(self, wrapper):
+            self.wrapper = wrapper
 
         async def handle_close_request(self):
             raise RuntimeError("buggy editor")
@@ -935,17 +941,17 @@ def test_request_close_allows_when_handle_close_request_raises():
 
 
 class _FakeSlot:
-    """Stub slot that records close_tab calls."""
+    """Stub slot that records close_binding calls."""
 
     def __init__(self):
         self.close_calls: list = []
 
-    def close_tab(self, editor_key, binding_id):
-        self.close_calls.append((editor_key, binding_id))
+    def close_binding(self, wrapper):
+        self.close_calls.append((wrapper.editor_key, wrapper._binding_id))
         return True
 
 
-def test_force_close_calls_slot_close_tab():
+def test_force_close_calls_slot_close_binding():
     reg = EditorTypeRegistry()
     w = EditorWrapper(
         editor_key="fake:editor:1",
@@ -972,7 +978,7 @@ def test_force_close_no_op_when_no_slot():
     w.force_close()
 
 
-def test_close_calls_slot_close_tab_on_consent():
+def test_close_calls_slot_close_binding_on_consent():
     reg = EditorTypeRegistry()
     w = EditorWrapper(
         editor_key="consent:editor:1",
@@ -1011,20 +1017,20 @@ def test_close_does_not_call_slot_when_editor_vetoes():
 
 
 class _RepayloadTrackingSlot:
-    """Stub slot recording repayload_tab calls."""
+    """Stub slot recording repayload calls."""
 
     def __init__(self):
         self.repayload_calls: list = []
 
-    def repayload_tab(self, editor_key, old_payload, new_payload, new_label):
-        self.repayload_calls.append((editor_key, old_payload, new_payload, new_label))
+    def repayload(self, wrapper, new_payload, new_label):
+        self.repayload_calls.append((wrapper.editor_key, wrapper._binding_id, new_payload, new_label))
         return True
 
-    def close_tab(self, editor_key, binding_id):
+    def close_binding(self, wrapper):
         return True
 
 
-def test_repayload_with_slot_delegates_to_slot_repayload_tab():
+def test_repayload_with_slot_delegates_to_slot_repayload():
     reg = EditorTypeRegistry()
     w = EditorWrapper(
         editor_key="fake:editor:1",

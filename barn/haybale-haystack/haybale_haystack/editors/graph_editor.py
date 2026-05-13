@@ -63,7 +63,8 @@ class GraphEditor(BaseEditor):
         .node_factory           (NodeFactory)
     """
 
-    def __init__(self):
+    def __init__(self, wrapper):
+        super().__init__(wrapper)
         self._canvas_manager: Optional[GraphCanvasManager] = None
         self._project_state = None
         self._context: Optional["SessionContext"] = None
@@ -104,7 +105,7 @@ class GraphEditor(BaseEditor):
         Short-circuits when the context already reflects this entry so a
         redundant call is a no-op.
         """
-        if self.wrapper is None or self.wrapper._binding_id is None:
+        if self.wrapper._binding_id is None:
             return
         binding_id = self.wrapper._binding_id
         haystack_state = context.app_data.get(HaystackState)
@@ -117,8 +118,7 @@ class GraphEditor(BaseEditor):
             # Graph entry vanished from the haystack — close ourselves.
             # Programmatic close (no consent dialog needed; the user
             # already removed the underlying graph).
-            if self.wrapper is not None:
-                self.wrapper.force_close()
+            self.wrapper.force_close()
             return
 
         edit_state = context.data[EditState]
@@ -240,7 +240,7 @@ class GraphEditor(BaseEditor):
         identity; the session-level ``active_graph_path`` is no longer
         consulted here.
         """
-        if self.wrapper is None or self.wrapper._binding_id is None:
+        if self.wrapper._binding_id is None:
             return None
         haystack_state = context.app_data.get(HaystackState)
         if haystack_state is None:
@@ -272,8 +272,6 @@ class GraphEditor(BaseEditor):
 
     def _sync_tab_dirty(self, entry) -> None:
         """Mirror the entry's unsaved state to the tab bar via wrapper.set_dirty."""
-        if self.wrapper is None:
-            return
         is_dirty = entry is not None and (entry.unsaved or entry.path is None)
         self.wrapper.set_dirty(is_dirty)
         slot = getattr(self.wrapper, "_slot", None)
@@ -478,13 +476,13 @@ class GraphEditor(BaseEditor):
                 self._save_exists_warning.set_visibility(True)
             return  # stay in the dialog
 
-        old_payload = self.wrapper._binding_id if self.wrapper is not None else None
+        old_payload = self.wrapper._binding_id
         success = haystack_state.save_graph(entry, save_as=save_path)
         if success:
             context.data[EditState].active_graph_path.value = save_path
             session = context.session
             new_payload = entry.entry_id
-            if self.wrapper is not None and old_payload != new_payload:
+            if old_payload != new_payload:
                 # Save-as renamed the graph entry — re-key the tab so the
                 # wrapper's binding_id + label reflect the new file path.
                 self.wrapper.repayload(new_payload, new_label=entry.display_name)

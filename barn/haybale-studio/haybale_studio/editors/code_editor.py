@@ -79,7 +79,8 @@ EDITABLE_EXTS = frozenset(_LANGUAGE_BY_EXT.keys())
 class CodeEditor(BaseEditor):
     """Tiny text/code editor with optional Markdown preview."""
 
-    def __init__(self):
+    def __init__(self, wrapper):
+        super().__init__(wrapper)
         self._content: str = ""
         self._original: str = ""
         self._mode: str = "edit"  # "edit" | "preview" (preview only for .md)
@@ -98,7 +99,7 @@ class CodeEditor(BaseEditor):
     # ------------------------------------------------------------------
 
     def _resolve_path(self) -> Optional[Path]:
-        if self.wrapper is None or self.wrapper._binding_id is None:
+        if self.wrapper._binding_id is None:
             return None
         return Path(self.wrapper._binding_id)
 
@@ -267,14 +268,13 @@ class CodeEditor(BaseEditor):
 
     def _update_save_state(self) -> None:
         is_dirty = self._content != self._original
-        if self.wrapper is not None:
-            self.wrapper.set_dirty(is_dirty)
-            slot = getattr(self.wrapper, "_slot", None)
-            if slot is not None and hasattr(slot, "_refresh_bar"):
-                try:
-                    slot._refresh_bar()
-                except Exception:
-                    pass
+        self.wrapper.set_dirty(is_dirty)
+        slot = getattr(self.wrapper, "_slot", None)
+        if slot is not None and hasattr(slot, "_refresh_bar"):
+            try:
+                slot._refresh_bar()
+            except Exception:
+                pass
 
     # ------------------------------------------------------------------
     # save / save-as
@@ -360,7 +360,7 @@ class CodeEditor(BaseEditor):
 
         self._original = self._content
         new_payload = str(target)
-        if self.wrapper is not None and (old is None or str(old) != new_payload):
+        if old is None or str(old) != new_payload:
             self.wrapper.repayload(new_payload, new_label=target.name)
         if self._path_label is not None:
             self._path_label.text = new_payload
@@ -385,7 +385,7 @@ class CodeEditor(BaseEditor):
 
     async def handle_close_request(self) -> bool:
         """Prompt the user when closing a dirty tab."""
-        if self.wrapper is None or not self.wrapper.state.is_dirty:
+        if not self.wrapper.state.is_dirty:
             return True
 
         result: dict = {}

@@ -63,7 +63,8 @@ class HaystackEditor(BaseEditor):
     freshly created entry.
     """
 
-    def __init__(self):
+    def __init__(self, wrapper):
+        super().__init__(wrapper)
         self._list_container = None
 
     # ------------------------------------------------------------------

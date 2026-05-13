@@ -12,17 +12,17 @@ from __future__ import annotations
 import logging
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, Callable, Optional
+from nicegui import ui
 
 from haywire.core.errors.haywire_exception import HaywireException
-from nicegui import ui
+from haywire.ui.editor.identity import OpenBehavior
+from haywire.core.registry.lifecycle_event import LifeCycleEvent
 
 if TYPE_CHECKING:
     from haywire.ui.editor.base import BaseEditor
     from haywire.ui.editor.registry import EditorTypeRegistry
     from haywire.core.session.session import Session
     from haywire.ui.app.slot import Slot
-    from haywire.core.registry.lifecycle_event import LifeCycleEvent
-    from nicegui.element import Element
 
 logger = logging.getLogger(__name__)
 
@@ -190,8 +190,6 @@ class EditorWrapper:
         Missing identity defaults to closeable. A wrapper with no editor_cls
         (broken state) is closeable so the user can dismiss it.
         """
-        from haywire.ui.editor.identity import OpenBehavior
-
         if self.editor_cls is None:
             return True
         opens = getattr(self.editor_cls.class_identity, "opens", None)
@@ -298,18 +296,19 @@ class EditorWrapper:
         if self.editor_cls is None:
             return False
         try:
-            self._instance = self.editor_cls()
-            self._instance.wrapper = self
+            self._instance = self.editor_cls(self)
             self._state.error_instantiate = None
             return True
         except Exception as exc:
-            self._state.error_instantiate = HaywireException.from_exception(
+            error = HaywireException.from_exception(
                 exception=exc,
                 operation="Instantiate Editor",
                 message=(
                     f"Failed to instantiate editor '{self.editor_key}' (class {self.editor_cls.__name__})"
                 ),
             ).enrich(registry_key=self.editor_key)
+            error.log(logger)
+            self._state.error_instantiate = error
             self._instance = None
             return False
 
@@ -317,7 +316,7 @@ class EditorWrapper:
     # Runtime entry points (called by Slot)
     # ------------------------------------------------------------------
 
-    def draw(self, panel: "Element") -> None:
+    def draw(self, panel: ui.element) -> None:
         """Render the editor into ``panel``.
 
         Lazy-instantiates the editor if needed. If instantiation fails (or
@@ -344,11 +343,13 @@ class EditorWrapper:
             assert self._instance is not None
             self._instance.draw(self._session.context, panel)
         except Exception as exc:
-            self._state.error_runtime = HaywireException.from_exception(
+            error = HaywireException.from_exception(
                 exception=exc,
                 operation="Editor Draw",
                 message=f"draw() raised in editor '{self.editor_key}'",
             ).enrich(registry_key=self.editor_key)
+            error.log(logger)
+            self._state.error_runtime = error
 
     def on_focus(self) -> None:
         """Notify the editor that it became active.
@@ -452,21 +453,19 @@ class EditorWrapper:
 
         For editor self-initiated paths where the data source vanished
         or the editor has already decided. Calls into the slot directly
-        — no-op if the wrapper isn't attached to a slot. The slot is
-        expected to be a TabSlot (or duck-typed equivalent providing
-        ``close_tab``); non-tab slots have no closable tab semantics.
+        — no-op if the wrapper isn't attached to a slot.
         """
         if self._slot is None:
             logger.debug(
                 f"EditorWrapper '{self.editor_key}': force_close called but no slot attached; nothing to do."
             )
             return
-        self._slot.close_tab(self.editor_key, self._binding_id)  # type: ignore[attr-defined]
+        self._slot.close_binding(self)
 
     def repayload(self, new_payload: Optional[str], new_label: Optional[str] = None) -> None:
         """Update the disambiguator (and optional label) in place.
 
-        When attached to a TabSlot, delegates to ``slot.repayload_tab`` for
+        When attached to a slot, delegates to ``slot.repayload`` for
         DOM-side housekeeping (panel name, set_value, bar refresh, collision
         detection). When detached (e.g. unit tests with no slot), updates
         the wrapper's fields directly so identity helpers like
@@ -482,12 +481,7 @@ class EditorWrapper:
             if new_label is not None:
                 self.label = new_label
             return
-        self._slot.repayload_tab(  # type: ignore[attr-defined]
-            self.editor_key,
-            self._binding_id,
-            new_payload,
-            new_label,
-        )
+        self._slot.repayload(self, new_payload, new_label)
 
     # ------------------------------------------------------------------
     # Cleanup

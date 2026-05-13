@@ -76,7 +76,8 @@ class _FakeEditor(BaseEditor):
         default_slot="main",
     )
 
-    def __init__(self) -> None:
+    def __init__(self, wrapper) -> None:
+        super().__init__(wrapper)
         self.focus_calls: list[Any] = []
         self.draw_calls: list[Any] = []
         self.call_sequence: list[str] = []

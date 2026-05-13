@@ -1,6 +1,5 @@
 # tests/ui/properties_editor/test_toolbar_discovery.py
-"""PropertiesEditor toolbar = default_focus_ids ∪ registry.get_focuses_for(self),
-sorted by Focus.order."""
+"""PropertiesEditor toolbar = registry.get_focuses_for(self), sorted by Focus.order."""
 
 from __future__ import annotations
 
@@ -26,10 +25,20 @@ _FAKE_LIBRARY_IDENTITY = LibraryIdentity(
 )
 
 
-# A library-defined focus that PropertiesEditor doesn't know about by default.
-class _LibraryFocus(Focus):
-    id = "library_provided_focus_test"
-    label = "Library Provided"
+class _LowOrderFocus(Focus):
+    id = "library_low_order_focus_test"
+    label = "Low"
+    icon = "library_books"
+    order = 10
+
+    @classmethod
+    def available(cls, ctx):
+        return True
+
+
+class _HighOrderFocus(Focus):
+    id = "library_high_order_focus_test"
+    label = "High"
     icon = "library_books"
     order = 90
 
@@ -38,25 +47,33 @@ class _LibraryFocus(Focus):
         return True
 
 
-@panel(
-    action=PropertiesEditorActions,
-    focus=_LibraryFocus,
-    label="Library Panel",
-)
-class _LibraryProvidedPanel(BasePanel):
+@panel(action=PropertiesEditorActions, focus=_LowOrderFocus, label="Low Panel")
+class _LowOrderPanel(BasePanel):
     def draw(self, ctx, layout, actions):
         pass
 
 
-def test_toolbar_includes_default_focus_ids():
-    """All default_focus_ids appear in the toolbar regardless of registered panels."""
-    from haybale_studio.editors.properties_editor import PropertiesEditor
-    from haybale_studio.focuses import AppFocus
+@panel(action=PropertiesEditorActions, focus=_HighOrderFocus, label="High Panel")
+class _HighOrderPanel(BasePanel):
+    def draw(self, ctx, layout, actions):
+        pass
 
-    editor = PropertiesEditor(panel_registry=PanelRegistry())
-    focuses = editor._compute_toolbar_focuses()
-    # AppFocus should be in default_focus_ids.
-    assert AppFocus in focuses
+
+def _stub_wrapper():
+    """Minimal wrapper stand-in — toolbar discovery never reads it."""
+    from typing import cast
+    from haywire.ui.editor.wrapper import EditorWrapper
+
+    return cast(EditorWrapper, object())
+
+
+def test_toolbar_empty_registry_yields_no_focuses():
+    """With no panels registered, the toolbar is empty."""
+    from haybale_studio.editors.properties_editor import PropertiesEditor
+
+    editor = PropertiesEditor(_stub_wrapper())
+    focuses = editor._compute_toolbar_focuses(PanelRegistry())
+    assert focuses == []
 
 
 def test_toolbar_includes_library_focus_via_registry():
@@ -64,18 +81,21 @@ def test_toolbar_includes_library_focus_via_registry():
     from haybale_studio.editors.properties_editor import PropertiesEditor
 
     reg = PanelRegistry()
-    reg._register_class(_LibraryProvidedPanel, _FAKE_LIBRARY_IDENTITY)
-    editor = PropertiesEditor(panel_registry=reg)
-    focuses = editor._compute_toolbar_focuses()
-    assert _LibraryFocus in focuses
+    reg._register_class(_LowOrderPanel, _FAKE_LIBRARY_IDENTITY)
+    editor = PropertiesEditor(_stub_wrapper())
+    focuses = editor._compute_toolbar_focuses(reg)
+    assert _LowOrderFocus in focuses
 
 
 def test_toolbar_focuses_are_sorted_by_focus_order():
     from haybale_studio.editors.properties_editor import PropertiesEditor
-    from haybale_studio.focuses import AppFocus, ExecutionFocus
 
-    editor = PropertiesEditor(panel_registry=PanelRegistry())
-    focuses = editor._compute_toolbar_focuses()
-    app_idx = focuses.index(AppFocus)  # order 10
-    exec_idx = focuses.index(ExecutionFocus)  # order 20
-    assert app_idx < exec_idx
+    reg = PanelRegistry()
+    # Register in reverse-order so the discovered set order doesn't trivially match.
+    reg._register_class(_HighOrderPanel, _FAKE_LIBRARY_IDENTITY)
+    reg._register_class(_LowOrderPanel, _FAKE_LIBRARY_IDENTITY)
+    editor = PropertiesEditor(_stub_wrapper())
+    focuses = editor._compute_toolbar_focuses(reg)
+    low_idx = focuses.index(_LowOrderFocus)  # order 10
+    high_idx = focuses.index(_HighOrderFocus)  # order 90
+    assert low_idx < high_idx

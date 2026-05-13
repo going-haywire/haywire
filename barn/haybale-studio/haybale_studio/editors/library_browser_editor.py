@@ -45,7 +45,8 @@ class LibraryBrowserEditor(BaseEditor):
     context.app.library_manager.
     """
 
-    def __init__(self):
+    def __init__(self, wrapper):
+        super().__init__(wrapper)
         self._container = None
         self._list_container = None
         self._search_query: str = ""

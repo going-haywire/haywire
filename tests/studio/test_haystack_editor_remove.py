@@ -20,7 +20,10 @@ def editor_and_context():
     """Return (editor, context, app, haystack) with a real HaystackEditor."""
     from haybale_haystack.editors.haystack_editor import HaystackEditor
 
-    editor = HaystackEditor()
+    from typing import cast
+    from haywire.ui.editor.wrapper import EditorWrapper
+
+    editor = HaystackEditor(cast(EditorWrapper, object()))
     haystack = MagicMock()
     haystack.save_graph = MagicMock(return_value=True)
     haystack.remove_entry = MagicMock(return_value=True)

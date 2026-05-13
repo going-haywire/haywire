@@ -4,7 +4,8 @@ PropertiesEditor — focus-driven properties sidebar.
 
 Displays a left-hand icon toolbar (one button per Focus) and a content area
 showing panels registered against the active Focus. The toolbar is sourced
-from ``default_focus_ids ∪ registry.get_focuses_for(self)``. Panels are
+from ``registry.get_focuses_for(self)`` — every focus that appears comes
+from a library that registered at least one panel against it. Panels are
 mounted via the contract-keyed lookup
 ``get_panels_for(actions_provider, focus)``.
 
@@ -12,13 +13,13 @@ Active-focus state is held per-editor on ``self._active_focus_id`` (a
 focus ``id`` string, or ``None`` if no focus is selected). The active
 focus is never changed automatically once set — the user's last choice
 is always preserved. While it remains ``None``, each refresh tries to
-default to the lowest-order *available* focus (typically AppFocus).
+default to the lowest-order *available* focus.
 """
 
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, ClassVar, Optional
+from typing import TYPE_CHECKING
 
 from nicegui import ui
 
@@ -33,7 +34,7 @@ from haywire.ui.editor.base import BaseEditor
 from haywire.ui.editor.decorator import editor
 from haywire.ui.panel.base import BasePanel
 from haywire.ui.panel.layout import PanelLayout
-from haywire.ui.panel.focus import Focus, focus_by_id
+from haywire.ui.panel.focus import Focus
 from haywire.ui.panel.registry import PanelRegistry
 
 if TYPE_CHECKING:
@@ -42,6 +43,8 @@ if TYPE_CHECKING:
     from nicegui.element import Element
 
 logger = logging.getLogger(__name__)
+
+# --8<-- [start:editor_example]
 
 
 @editor(
@@ -54,37 +57,14 @@ class PropertiesEditor(BaseEditor):
     """
     Focus-driven properties editor.
 
-    The left toolbar shows one icon button per Focus class (default_focus_ids
-    plus any focuses contributed by registered panels). Clicking a button
-    makes that Focus active and re-renders the content area with the
-    panels belonging to that Focus.
+    The left toolbar shows one icon button per Focus class contributed by
+    registered panels. Clicking a button makes that Focus active and
+    re-renders the content area with the panels belonging to that Focus.
 
     Focus availability is determined by ``Focus.available(ctx)``. Unavailable
     focuses are shown dimmed and are not clickable. The active focus is
     never changed automatically after initial selection.
     """
-
-    # ------------------------------------------------------------------
-    # Class-level configuration
-    # ------------------------------------------------------------------
-
-    #: Built-in focuses every PropertiesEditor instance shows in the toolbar
-    #: regardless of which panels are registered. Library-contributed focuses
-    #: are merged in at runtime via ``registry.get_focuses_for(self)``.
-    #:
-    #: Stored as ids (not class refs) so hot-reload of focuses.py — which
-    #: replaces the Focus class objects in _FOCUS_BY_ID — doesn't leave this
-    #: editor holding stale references. Resolved via ``focus_by_id`` at use.
-    default_focus_ids: ClassVar[tuple[str, ...]] = (
-        "app",
-        "execution",
-        "canvas",
-        "graph",
-        "node",
-        "settings",
-        "edge",
-        "port",
-    )
 
     _RELEVANT_SIGNALS = (SelectionMoved, ActiveGraphMoved, GraphDataMutated)
 
@@ -92,14 +72,11 @@ class PropertiesEditor(BaseEditor):
     # Construction
     # ------------------------------------------------------------------
 
-    def __init__(self, panel_registry: Optional[PanelRegistry] = None) -> None:
-        # ``panel_registry`` is optional: production paths leave it None and
-        # the registry is fetched from ``context.app.library_service`` in
-        # ``draw``. Tests inject a registry directly.
+    def __init__(self, wrapper) -> None:
+        super().__init__(wrapper)
         self._container: Element | None = None
         self._toolbar: Element | None = None
         self._content: Element | None = None
-        self._panel_registry: Optional[PanelRegistry] = panel_registry
         self._context: SessionContext | None = None
         # Focus id of the currently-active toolbar tab; None when no
         # focus is selected (initial state, or no available focus).
@@ -118,9 +95,9 @@ class PropertiesEditor(BaseEditor):
     def draw(self, context: SessionContext, container: Element) -> None:
         self._container = container
         self._context = context
-        if self._panel_registry is None:
-            self._panel_registry = context.app.library_service.get_panel_registry()
         self._build_layout(context)
+
+    # --8<-- [end:editor_example]
 
     # ------------------------------------------------------------------
     # PropertiesEditorActions Protocol implementation
@@ -174,14 +151,13 @@ class PropertiesEditor(BaseEditor):
     # Toolbar discovery
     # ------------------------------------------------------------------
 
-    def _compute_toolbar_focuses(self) -> list[type[Focus]]:
-        """Compute toolbar focuses: default ∪ registry-discovered, sorted by Focus.order."""
-        focuses: set[type[Focus]] = {
-            cls for cls in (focus_by_id(fid) for fid in self.default_focus_ids) if cls is not None
-        }
-        if self._panel_registry is not None:
-            focuses.update(self._panel_registry.get_focuses_for(actions_provider=self))
+    def _compute_toolbar_focuses(self, panel_registry: PanelRegistry) -> list[type[Focus]]:
+        """Compute toolbar focuses from the panel registry, sorted by Focus.order."""
+        focuses = panel_registry.get_focuses_for(actions_provider=self)
         return sorted(focuses, key=lambda f: f.order)
+
+    def _get_panel_registry(self, context: SessionContext) -> PanelRegistry:
+        return context.app.library_service.get_panel_registry()
 
     # ------------------------------------------------------------------
     # Focus resolution
@@ -192,12 +168,12 @@ class PropertiesEditor(BaseEditor):
 
         After first render, the user's choice is preserved regardless of
         selection changes. Default selection picks the lowest-order focus
-        that is currently ``available`` (typically AppFocus, order=10).
+        that is currently ``available``.
         """
         if self._active_focus_id is not None:
             return  # user's choice — never override
 
-        for focus in self._compute_toolbar_focuses():
+        for focus in self._compute_toolbar_focuses(self._get_panel_registry(context)):
             try:
                 if focus.available(context):
                     self._active_focus_id = focus.id
@@ -211,11 +187,11 @@ class PropertiesEditor(BaseEditor):
         self._rebuild_toolbar(context)
         self._rebuild_content(context)
 
-    def _active_focus(self) -> type[Focus] | None:
+    def _active_focus(self, context: SessionContext) -> type[Focus] | None:
         """Return the currently-active Focus class, or None."""
         if self._active_focus_id is None:
             return None
-        for focus in self._compute_toolbar_focuses():
+        for focus in self._compute_toolbar_focuses(self._get_panel_registry(context)):
             if focus.id == self._active_focus_id:
                 return focus
         return None
@@ -232,7 +208,7 @@ class PropertiesEditor(BaseEditor):
         active_focus_id = self._active_focus_id
 
         with self._toolbar:
-            for focus in self._compute_toolbar_focuses():
+            for focus in self._compute_toolbar_focuses(self._get_panel_registry(context)):
                 try:
                     available = focus.available(context)
                 except Exception as exc:
@@ -252,29 +228,25 @@ class PropertiesEditor(BaseEditor):
     # Content rendering
     # ------------------------------------------------------------------
 
-    def _mount_panels_for_active_focus(self, focus: type[Focus]) -> list[type[BasePanel]]:
+    def _mount_panels_for_active_focus(
+        self, panel_registry: PanelRegistry, focus: type[Focus]
+    ) -> list[type[BasePanel]]:
         """Mount panels matching the active focus via the contract-keyed lookup."""
-        if self._panel_registry is None:
-            return []
-        return self._panel_registry.get_panels_for(actions_provider=self, focus=focus)
+        return panel_registry.get_panels_for(actions_provider=self, focus=focus)
 
     def _rebuild_content(self, context: SessionContext) -> None:
         if self._content is None:
             return
         self._content.clear()
 
-        focus = self._active_focus()
+        focus = self._active_focus(context)
         if focus is None:
             with self._content:
                 hui.empty_state("Nothing to show", icon=hui.icon.empty_no_selection)
             return
 
-        if self._panel_registry is None:
-            with self._content:
-                hui.empty_state("No panel registry", icon=hui.icon.node_info)
-            return
-
-        panel_classes = self._mount_panels_for_active_focus(focus)
+        panel_registry = self._get_panel_registry(context)
+        panel_classes = self._mount_panels_for_active_focus(panel_registry, focus)
 
         has_panels = False
         with self._content:

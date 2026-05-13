@@ -58,12 +58,13 @@ class FileViewerEditor(BaseEditor):
     files over 512 KB show an informational message.
     """
 
-    def __init__(self):
+    def __init__(self, wrapper):
+        super().__init__(wrapper)
         self._last_file: Optional[Path] = None
 
     def _resolve_path(self) -> Optional[Path]:
         """Return the file path this tab is pinned to, via wrapper.binding_id."""
-        if self.wrapper is None or self.wrapper._binding_id is None:
+        if self.wrapper._binding_id is None:
             return None
         return Path(self.wrapper._binding_id)
 
@@ -83,8 +84,6 @@ class FileViewerEditor(BaseEditor):
 
         Short-circuits when the target already matches the active file.
         """
-        if self.wrapper is None:
-            return
         binding_id = self.wrapper._binding_id
         new_value = Path(binding_id) if binding_id else None
         if context.active_file.value == new_value:

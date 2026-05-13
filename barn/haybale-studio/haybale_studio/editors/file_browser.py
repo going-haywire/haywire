@@ -69,7 +69,8 @@ class LazyFileBrowserEditor(BaseEditor):
         }
     )
 
-    def __init__(self):
+    def __init__(self, wrapper):
+        super().__init__(wrapper)
         self._root_path: Optional[Path] = None
         self._tree_container = None
         self._tree: Optional[ui.tree] = None

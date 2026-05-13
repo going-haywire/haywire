@@ -166,94 +166,10 @@ The studio's `PropertiesEditor` ([barn/haybale-studio/haybale_studio/editors/pro
 The salient excerpts:
 
 ```python
-# barn/haybale-studio/haybale_studio/editors/properties_editor.py
-
-from nicegui import ui
-
-from haybale_studio.state.edit_state import EditState
-from haywire.ui import elements as hui
-from haywire.core.session.signals_and_lifecycle import (
-    ActiveGraphMoved,
-    GraphDataMutated,
-    SelectionMoved,
-)
-from haywire.ui.editor.base import BaseEditor
-from haywire.ui.editor.decorator import editor
-from haywire.ui.panel.layout import PanelLayout
-from haywire.ui.panel.focus import Focus, focus_by_id
-from haywire.ui.panel.registry import PanelRegistry
-
-
-@editor(
-    label="Properties",
-    icon=hui.icon.node_settings,
-    default_slot="right",
-    description="Context-sensitive property panels for the active selection.",
-)
-class PropertiesEditor(BaseEditor):
-    """Focus-driven properties editor: focus toolbar + panel content."""
-
-    # Tuple of signal types this editor reacts to. Anything else: redraw_on_signal() returns False.
-    _RELEVANT_SIGNALS = (SelectionMoved, ActiveGraphMoved, GraphDataMutated)
-
-    # Per-instance state — survives across redraws because the editor instance
-    # is reused; the *container* is cleared by the orchestrator, the Python
-    # object is not. Initialise in __init__, never in draw().
-    def __init__(self, panel_registry: PanelRegistry | None = None) -> None:
-        self._container: Element | None = None
-        self._toolbar: Element | None = None
-        self._content: Element | None = None
-        self._panel_registry = panel_registry
-        self._context: SessionContext | None = None
-        self._active_focus_id: str | None = None
-        self._expansion_state: dict[str, bool] = {}
-
-    # --- BaseEditor lifecycle ---------------------------------------------
-
-    def redraw_on_signal(self, context: SessionContext, signal: ContextSignal) -> bool:
-        # Cheap predicate. Runs on every signal delivered to the active wrapper.
-        return isinstance(signal, self._RELEVANT_SIGNALS)
-
-    def draw(self, context: SessionContext, container: Element) -> None:
-        # Container is empty when draw() starts — the orchestrator cleared it.
-        self._container = container
-        self._context = context
-        if self._panel_registry is None:
-            # Pull the registry from DI on first draw. Tests inject directly.
-            self._panel_registry = context.app.library_service.get_panel_registry()
-        self._build_layout(context)
-
-    # --- Action protocol — called BACK INTO this editor by panels --------
-
-    def clear_selection(self) -> None:
-        """Implements PropertiesEditorActions; panels call self.actions.clear_selection()."""
-        if self._context is None:
-            return
-        edit_state = self._context.data[EditState]
-        edit_state.active_node.value = None
-        edit_state.active_edge.value = None
-        edit_state.active_port.value = None
-
-    # --- Layout construction (called once per draw) ----------------------
-
-    def _build_layout(self, context: SessionContext) -> None:
-        with self._container:
-            with ui.row().classes("w-full h-full gap-0"):
-                self._toolbar = ui.column().classes("gap-0").style(
-                    "width: 36px; min-width: 36px; overflow-y: auto;"
-                )
-                self._content = ui.column().classes("flex-1 gap-0")
-        self._refresh(context)
-
-    def _refresh(self, context: SessionContext) -> None:
-        # Toolbar and content are rebuilt together — this is the editor's
-        # internal "redraw" hook, called after structural changes (active
-        # focus moved). Container-level redraw is the orchestrator's job.
-        self._rebuild_toolbar(context)
-        self._rebuild_content(context)
-
-    # _rebuild_toolbar / _rebuild_content omitted for brevity — see source.
+--8<-- "barn/haybale-studio/haybale_studio/editors/properties_editor.py:editor_example"
 ```
+
+_rebuild_toolbar / _rebuild_content omitted for brevity — see source.
 
 What this example exercises:
 

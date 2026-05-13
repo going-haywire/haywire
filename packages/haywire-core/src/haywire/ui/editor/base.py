@@ -26,7 +26,7 @@ Lifecycle outside the signal channel:
 """
 
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, ClassVar, Optional
+from typing import TYPE_CHECKING, ClassVar
 
 from .identity import EditorIdentity
 
@@ -65,14 +65,18 @@ class BaseEditor(ABC):
 
     class_identity: ClassVar[EditorIdentity]
 
-    #: The runtime wrapper this instance belongs to. Assigned by
-    #: :meth:`EditorWrapper._instantiate` right after construction so the
-    #: editor can read its own ``editor_key`` / ``binding_id`` at any point
-    #: (draw, on_signal, redraw_on_signal, event handlers) without the
-    #: slot having to pass it through each entry point. Stays ``None``
-    #: only for instances created outside a wrapper (e.g. in direct unit
-    #: tests).
-    wrapper: "Optional[EditorWrapper]" = None
+    def __init__(self, wrapper: "EditorWrapper") -> None:
+        """Construct the editor and bind it to its runtime wrapper.
+
+        The wrapper is the editor's gateway to identity (``editor_key`` /
+        ``binding_id``), session state, and slot mutators (``force_close``,
+        ``repayload``). Always set; the framework constructs editors via
+        :meth:`EditorWrapper._instantiate`, which passes ``self`` here.
+
+        Subclasses overriding ``__init__`` must accept ``wrapper`` and call
+        ``super().__init__(wrapper)``.
+        """
+        self.wrapper: "EditorWrapper" = wrapper
 
     def on_signal(self, context: "SessionContext", signal: "ContextSignal") -> None:
         """React to a context signal regardless of active-tab state.

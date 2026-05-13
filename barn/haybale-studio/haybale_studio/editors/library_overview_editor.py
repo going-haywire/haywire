@@ -91,7 +91,8 @@ class LibraryOverviewEditor(BaseEditor):
     Rebuilds on LIBRARY_STATE_CHANGED.
     """
 
-    def __init__(self):
+    def __init__(self, wrapper):
+        super().__init__(wrapper)
         self._container: "Element | None" = None
         # Fixed (non-scrolling) sub-container — header + metadata + tabs bar
         self._fixed: "ui.column | None" = None
