@@ -200,3 +200,6 @@ saves/*.*
 graphs/*.json
 # MkDocs build output
 site/
+
+# Local git worktrees (claude-code workflow)
+.worktrees/
