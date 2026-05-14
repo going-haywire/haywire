@@ -66,9 +66,13 @@ class EventBus:
 
     def __init__(self) -> None:
         # ``list`` (not ``set``) to preserve registration order on dispatch.
-        # Duplicate subscriptions of the same handler to the same event type
-        # are allowed and fire once per subscription — matches the natural
-        # decorator semantics where stacking is intentional.
+        # ``subscribe`` does not dedupe: passing the same handler for the
+        # same event type twice registers two subscriptions and produces
+        # two unsubscribe handles. The framework's auto-wiring paths never
+        # do this — every closure built by ``EditorWrapper`` is a fresh
+        # function object, even when two methods share a name across a
+        # subclass override — so duplicates would only arise from direct
+        # misuse of ``bus.subscribe``.
         self._handlers: Dict[Type[ContextSignal], List[EventHandler]] = defaultdict(list)
 
     def subscribe(
