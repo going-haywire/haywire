@@ -45,7 +45,7 @@ from haywire.ui.editor.registry import EditorTypeRegistry
 from haywire.ui.editor.wrapper import EditorWrapper
 
 if TYPE_CHECKING:
-    from haywire.core.session.signals_and_lifecycle import Reveal
+    from haywire.core.session.events import Reveal
     from haywire.ui.editor.base import BaseEditor
     from haywire.core.session.session import Session
 

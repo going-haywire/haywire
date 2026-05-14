@@ -1,15 +1,15 @@
 """Tests for AppShell — post-refactor surface area.
 
-After the event-bus redesign, AppShell owns:
+After the event-bus merge, AppShell owns:
   - Theme CSS build + `apply_workbench_theme`
-  - Lifecycle-channel orchestrator callback (`_on_lifecycle`) routing
-    ``Reveal`` to ``_reveal_editor`` and ``Close`` to ``_close_payload``
+  - ``Reveal`` / ``Close`` / ``BroadcastClose`` bus subscriptions (handled
+    by ``_reveal_editor`` and ``_close_payload``)
   - Slot construction via `_build_managed_slot`
   - `_on_slot_resize` dispatching to `slot.set_size`
 
-Signal dispatch flows through ``Session``'s typed event bus directly to
-editors' auto-wired ``@redraw_on`` / ``@react_on`` handlers — AppShell is
-not on that path.
+Event dispatch flows through ``Session``'s typed event bus directly to
+editors' auto-wired ``@redraw_on`` / ``@react_on`` handlers and to the
+shell's own workspace-mutation handlers.
 
 Bar rendering, tab-state mutations, visibility toggling, and hot-reload are
 tested in test_icon_slot.py / test_tab_slot.py / test_slot.py.
@@ -20,7 +20,7 @@ from types import SimpleNamespace
 
 import haywire.core.graph.editor as graph_editor_module
 from haywire.ui.app.shell import AppShell
-from haywire.core.session.signals_and_lifecycle import Close, Reveal
+from haywire.core.session.events import Close, Reveal
 from haywire.ui.editor.identity import OpenBehavior
 
 
@@ -35,13 +35,16 @@ class _FakeSession:
             }
         )
         self._editors = {}
-        self.signals_seen: list = []
+        self.events_seen: list = []
 
-    def set_lifecycle_orchestrator(self, _callback) -> None:
-        pass
+    def subscribe(self, _event_type, _handler):
+        """Stub. Real Session.subscribe returns an unsubscribe closure."""
+        return lambda: None
 
     def signal(self, s) -> None:
-        self.signals_seen.append(s)
+        self.events_seen.append(s)
+
+    publish = signal
 
 
 class _FakeSlot:
@@ -151,7 +154,7 @@ def test_on_slot_resize_ignores_malformed_args() -> None:
 
 
 # ---------------------------------------------------------------------------
-# _on_lifecycle — Reveal + Close dispatch
+# Reveal handler — point-to-point routing into a slot
 # ---------------------------------------------------------------------------
 
 
@@ -163,10 +166,10 @@ def test_reveal_editor_routes_through_slot() -> None:
     fake = _FakeSlot("right", active_key="right:editor:one")
     shell._managed_slots["right"] = fake
 
-    shell._on_lifecycle(Reveal(editor=cls))
+    shell._reveal_editor(Reveal(editor=cls))
 
     assert fake.reveal_calls == [(target_key, None, "")]
-    assert shell.session.signals_seen == []  # reveal must not broadcast a signal
+    assert shell.session.events_seen == []  # reveal must not republish anything
 
 
 def test_reveal_editor_unhostable_slot_logs_warning(caplog) -> None:
@@ -179,14 +182,14 @@ def test_reveal_editor_unhostable_slot_logs_warning(caplog) -> None:
     shell._managed_slots["right"] = fake
 
     with caplog.at_level(logging.WARNING, logger="haywire.ui.app.shell"):
-        shell._on_lifecycle(Reveal(editor=cls))
+        shell._reveal_editor(Reveal(editor=cls))
 
     assert fake.reveal_calls == []
     assert any(target_key in rec.message for rec in caplog.records)
 
 
 # ---------------------------------------------------------------------------
-# Close lifecycle command — fan-out wrapper close across every slot
+# Close handler — fan-out wrapper close across every slot
 # ---------------------------------------------------------------------------
 
 
@@ -199,7 +202,7 @@ def test_close_lifecycle_command_closes_matching_wrappers_in_every_slot() -> Non
     shell._managed_slots["main"] = main
     shell._managed_slots["bottom"] = bottom
 
-    shell._on_lifecycle(Close(binding_id="/tmp/a.graph"))
+    shell._close_payload(Close(binding_id="/tmp/a.graph"))
     assert left.close_tabs_for_calls == ["/tmp/a.graph"]
     assert main.close_tabs_for_calls == ["/tmp/a.graph"]
     assert bottom.close_tabs_for_calls == ["/tmp/a.graph"]

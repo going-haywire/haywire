@@ -19,7 +19,7 @@ from haywire.core.session.handlers import (
     get_redraw_on_types,
     get_react_on_types,
 )
-from haywire.core.session.signals import (
+from haywire.core.session.events import (
     ContextSignal,
     SelectionMoved,
     GraphDataMutated,

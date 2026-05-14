@@ -54,8 +54,8 @@ class SessionFileMenuProvider(BaseContextMenuProvider):
         label: str,
     ) -> None:
         """Issue a Reveal lifecycle command and close the popup."""
-        from haywire.core.session.signals_and_lifecycle import Reveal
+        from haywire.core.session.events import Reveal
 
-        self._session.lifecycle(Reveal(editor=editor_cls, binding_id=binding_id, label=label))
+        self._session.publish(Reveal(editor=editor_cls, binding_id=binding_id, label=label))
         if self._open_popup is not None:
             self._open_popup.close()

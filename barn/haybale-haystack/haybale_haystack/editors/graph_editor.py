@@ -19,7 +19,7 @@ from nicegui import ui
 from haywire.ui import elements as hui
 from haywire.ui.editor.decorator import editor
 from haywire.ui.editor.base import BaseEditor
-from haywire.core.session.signals_and_lifecycle import ActiveGraphMoved, GraphDataMutated
+from haywire.core.session.events import ActiveGraphMoved, GraphDataMutated
 from haybale_studio.editors.graph_canvas.graph_canvas_manager import GraphCanvasManager
 from haybale_studio.state.edit_state import EditState
 from haybale_haystack.state.haystack_state import HaystackState

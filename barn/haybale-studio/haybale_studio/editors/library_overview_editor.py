@@ -33,7 +33,7 @@ from haywire.ui.panel.registry import PanelRegistry
 from haywire.ui.skin.registry import SkinRegistry
 from haywire.ui.themes import ThemeRegistry
 from haywire.core.session.handlers import redraw_on
-from haywire.core.session.signals_and_lifecycle import (
+from haywire.core.session.events import (
     ActiveComponentMoved,
     ActiveLibraryMoved,
     LibraryCatalogChanged,
@@ -616,7 +616,7 @@ class LibraryOverviewEditor(BaseEditor):
         session = context.session
         if session is not None:
             session.signal(ActiveComponentMoved())
-            session.lifecycle(Reveal(editor=LibraryComponentEditor))
+            session.publish(Reveal(editor=LibraryComponentEditor))
 
     # ─────────────────────────────────────────────────────────────────────────
     # Enable / Disable

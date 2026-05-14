@@ -29,7 +29,7 @@ from nicegui import ui
 from haywire.ui import elements as hui
 from haywire.ui.editor.base import BaseEditor
 from haywire.ui.editor.decorator import editor
-from haywire.core.session.signals_and_lifecycle import ActiveFileMoved
+from haywire.core.session.events import ActiveFileMoved
 
 if TYPE_CHECKING:
     from haywire.core.session.context import SessionContext

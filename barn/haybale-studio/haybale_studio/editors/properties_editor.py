@@ -24,6 +24,7 @@ from typing import Callable, TYPE_CHECKING
 from nicegui import ui
 
 from haybale_studio.state.edit_state import EditState
+from haywire.core.errors.haywire_exception import HaywireException
 from haywire.ui import elements as hui
 from haywire.ui.editor.base import BaseEditor
 from haywire.ui.editor.decorator import editor
@@ -34,7 +35,7 @@ from haywire.ui.panel.registry import PanelRegistry
 
 if TYPE_CHECKING:
     from haywire.core.session.context import SessionContext
-    from haywire.core.session.signals import ContextSignal
+    from haywire.core.session.events import ContextSignal
     from nicegui.element import Element
 
 logger = logging.getLogger(__name__)
@@ -435,7 +436,12 @@ class PropertiesEditor(BaseEditor):
                     if not panel_cls.poll(context):
                         continue
                 except Exception as exc:
-                    logger.warning(f"PropertiesEditor: poll() error in {panel_cls.__name__}: {exc}")
+                    HaywireException.from_exception(
+                        exception=exc,
+                        category="Panel Poll Error",
+                        operation="panel_poll",
+                        message=f"PropertiesEditor: poll() error in {panel_cls.__name__}",
+                    ).log(logger)
                     continue
 
                 has_panels = True
@@ -455,7 +461,12 @@ class PropertiesEditor(BaseEditor):
                     try:
                         panel_cls().draw(context, layout, self)
                     except Exception as exc:
-                        logger.exception(f"PropertiesEditor: draw() error in {panel_cls.__name__}: {exc}")
+                        HaywireException.from_exception(
+                            exception=exc,
+                            category="Panel Draw Error",
+                            operation="panel_draw",
+                            message=f"PropertiesEditor: draw() error in {panel_cls.__name__}",
+                        ).log(logger)
                         hui.error_label(f"Error: {exc}")
 
             if not has_panels:

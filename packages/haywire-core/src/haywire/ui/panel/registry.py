@@ -18,7 +18,7 @@ from haywire.core.library.identity import LibraryIdentity
 from .base import BasePanel
 
 if TYPE_CHECKING:
-    from haywire.core.session.signals import ContextSignal
+    from haywire.core.session.events import ContextSignal
 
 logger = logging.getLogger(__name__)
 

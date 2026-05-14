@@ -108,30 +108,30 @@ edit.active_node.value = my_wrapper    # writes are reactive
 
 This separation keeps the framework's `SessionContext` stable while each library owns the reactive surface its editors need. See [components/states](../../components/states/state-canon.md) for the full state model and [session-and-state](../session-and-state/session-and-state-arch.md) for the container's two-namespace asymmetry.
 
-### 2.5 Two channels — signals and lifecycle commands
+### 2.5 The event bus — observations and imperatives on one channel
 
-The studio has two complementary channels (`packages/haywire-core/src/haywire/core/session/signals_and_lifecycle.py`):
+The studio runs a single per-session typed pub/sub bus (`packages/haywire-core/src/haywire/core/session/bus.py`). Every payload subclasses `Event` (`packages/haywire-core/src/haywire/core/session/event.py`). Authors emit with `Session.publish(e)` and listen with `Session.subscribe(EventType, handler)`. Subscribers match by exact type — subclasses do not inherit subscriptions.
 
-**Signal channel — observations.** `ContextSignal` subclasses describe a state move that already happened. Anyone may emit; the orchestrator fans out to every editor in the session via `Session.signal(s)`. Each slot calls `on_signal(...)` on **every** wrapper (the side-effect channel — fires regardless of which tab is active) and `redraw_on_signal(...) -> bool` on the **active** wrapper, redrawing if it returns `True`. Subscribers filter with plain `isinstance(signal, SignalType)`.
+Two payload flavours share the bus; the split is vocabulary, not transport:
 
-The base class is `ContextSignal`; concrete subclasses include:
+**Observations (`ContextSignal`).** Describe a state move that already happened. Concrete subclasses include:
 
 - **Workbench / focus** — `ActiveFileMoved`, `ActiveLibraryMoved`, `ActiveComponentMoved`, `ActiveGraphMoved`.
 - **Selection** — `SelectionMoved`.
 - **Data + lifecycle** — `GraphDataMutated`, `LibraryCatalogChanged`.
 - **Theme** — `ThemeMoved`.
 
-Cross-session routing is a per-class property: set `cross_session: ClassVar[bool] = True` on a subclass and `Session.signal(...)` delegates to `SessionManager.broadcast_signal(...)` instead of dispatching locally. The transport stamps `subject = Subject.peer(origin_id)` on non-origin sessions so peer subscribers can distinguish "*this* session moved" from "*another* session moved." Among the built-ins, `GraphDataMutated` and `LibraryCatalogChanged` are cross-session; the rest are local-only.
+Editors and panels declare interest via `@redraw_on(...)` / `@react_on(...)` on decorated methods, or via the `redraw_on=` keyword on `@panel(...)`; the framework wires the corresponding bus subscriptions at editor instantiation.
 
-Library authors who declare their own signal classes that other libraries subscribe to **must** list the signal-declaring library in their own `LibraryIdentity.dependencies`, so hot-reload reloads them as a pair. Without this, an `isinstance` check after a library reload can spuriously return `False` when the subscriber holds a stale class reference.
+**Imperatives (`LifecycleCommand`).** Describe workspace-tree mutations. By convention there's one subscriber per command type — the AppShell — but the bus does not enforce that.
 
-**Lifecycle channel — commands.** `LifecycleCommand` subclasses describe imperative mutations of the workspace tree. They are point-to-point or fan-out, not observations.
-
-- `Reveal(editor=Cls, binding_id=..., label=...)` — bring an editor to the front. The orchestrator resolves `editor.class_identity.default_slot` and routes to that slot. If the slot is not hostable in the active workspace, the reveal is dropped with a warning. `binding_id` disambiguates multi-instance editors (`opens='on_payload'`); when supplied, the orchestrator switches to the specific `(editor_key, binding_id)` tab rather than the first matching binding.
+- `Reveal(editor=Cls, binding_id=..., label=...)` — bring an editor to the front. The AppShell handler resolves `editor.class_identity.default_slot` and routes to that slot. If the slot is not hostable in the active workspace, the reveal is dropped with a warning. `binding_id` disambiguates multi-instance editors (`opens='on_payload'`).
 - `Close(binding_id=...)` — close every tab bound to `binding_id` across all slots in the issuing session. Used for session-local close decisions.
-- `BroadcastClose(binding_id=...)` — cross-session sibling of `Close`. Fans the close out to every session's AppShell so any matching tab disappears everywhere. Used when the underlying entity is gone for everyone (e.g. a graph entry was removed from the haystack, or the haystack itself was torn down by a library hot-reload).
+- `BroadcastClose(binding_id=...)` — cross-session sibling of `Close`. Each receiving session's AppShell closes matching tabs. Used when the underlying entity is gone for everyone (e.g. a graph entry was removed from the haystack).
 
-Lifecycle commands are **local by default**. Session-scoped UI actions (e.g. `Reveal` a panel because the user clicked) belong to the issuing session — peer sessions own their own workspace state. Subclasses opt into cross-session fan-out by setting `cross_session: ClassVar[bool] = True` (mirroring `ContextSignal`); `Session.lifecycle()` checks the class flag and routes to `SessionManager.broadcast_lifecycle(...)` instead of dispatching locally. `BroadcastClose` is the only built-in that opts in. Use it for fact-driven imperatives where every session's tabs bound to a given `binding_id` must close; reserve `Close` for session-local actions.
+**Cross-session routing.** Independent of observation/imperative: set `cross_session: ClassVar[bool] = True` on any `Event` subclass and `Session.publish(...)` delegates to `SessionManager.broadcast(...)`, which fans out to every session (including the origin). Among the built-ins, `GraphDataMutated`, `LibraryCatalogChanged`, and `BroadcastClose` are cross-session; everything else is local-only.
+
+Library authors who declare their own `Event` subclasses that other libraries subscribe to **must** list the declaring library in their own `LibraryIdentity.dependencies`, so hot-reload reloads them as a pair. Without this, an `isinstance` check after a library reload can spuriously return `False` when the subscriber holds a stale class reference.
 
 ### 2.6 Editors and panels
 
@@ -190,13 +190,11 @@ Session A: user edits a node's setting
   ├─ session.signal(GraphDataMutated())
   └─ Session.signal — cross_session=True path:
       └─ session_manager.broadcast_signal(s, origin_session_id=A)
-          ├─ For session A:    deliver as-is (subject=Subject.SELF)
-          └─ For session B, C: deliver replace(s, subject=Subject.peer(A))
+          └─ For every session (A, B, C):
               └─ Each session's _dispatch_signal → AppShell._on_signal → slots
-                  └─ Subscribers see signal.is_from_peer() == True
 ```
 
-Cross-session signals never carry payload data either. Receivers re-read the relevant state from the shared project — for `GraphDataMutated` that's the entry in `ctx.app_data[HaystackState].get_by_id(<entry_id>)`. For `Subject.peer(...)` cases, peer state can be reached through `session_manager.get_session(peer_id).context`.
+Cross-session signals never carry payload data either. Receivers re-read the relevant state from the shared project — for `GraphDataMutated` that's the entry in `ctx.app_data[HaystackState].get_by_id(<entry_id>)`. Peer-session state, if needed, can be reached through `session_manager.get_session(peer_id).context`.
 
 ## 4. Performance, errors, and boundaries
 

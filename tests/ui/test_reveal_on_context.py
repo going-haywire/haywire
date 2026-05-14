@@ -2,7 +2,7 @@
 
 from types import SimpleNamespace
 
-from haywire.core.session.signals_and_lifecycle import Reveal
+from haywire.core.session.events import Reveal
 from haywire.ui.app.shell import AppShell
 from haywire.ui.app.tab_slot import TabSlot
 from haywire.ui.editor.identity import OpenBehavior
@@ -25,8 +25,8 @@ class _FakeSession:
         )
         self._editors = {}
 
-    def set_lifecycle_orchestrator(self, _callback) -> None:
-        pass
+    def subscribe(self, _event_type, _handler):
+        return lambda: None
 
 
 def _make_editor_cls(registry_key: str, default_slot: str, opens=OpenBehavior.REQUIRED) -> type:

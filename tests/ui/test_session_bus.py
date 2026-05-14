@@ -8,8 +8,8 @@ Covers Step 4 of the event-bus redesign:
 - Snapshot iteration (mid-dispatch subscribe/unsubscribe is safe)
 - Session.publish / Session.subscribe pass-through
 - Session.signal() bridges to the bus during the migration window
-- Session._dispatch_signal (peer-incoming) reaches bus subscribers
-- cross_session events delegate to SessionManager.broadcast_signal
+- Session._dispatch (peer-incoming) reaches bus subscribers
+- cross_session events delegate to SessionManager.broadcast
 - Session.cleanup() drops bus subscriptions
 """
 
@@ -23,7 +23,7 @@ import haywire.core.graph.editor  # noqa: F401 — circular-import guard
 
 from haywire.core.session.bus import EventBus
 from haywire.core.session.session import Session
-from haywire.core.session.signals_and_lifecycle import (
+from haywire.core.session.events import (
     ContextSignal,
     GraphDataMutated,
     SelectionMoved,
@@ -272,7 +272,7 @@ def test_session_publish_local_event_skips_session_manager():
     sm = MagicMock()
     session = _make_session(session_manager=sm)
     session.publish(_LocalEventA())
-    sm.broadcast_signal.assert_not_called()
+    sm.broadcast.assert_not_called()
 
 
 def test_session_publish_cross_session_event_delegates_to_manager():
@@ -282,12 +282,12 @@ def test_session_publish_cross_session_event_delegates_to_manager():
 
     session.publish(event)
 
-    sm.broadcast_signal.assert_called_once_with(event, origin_session_id=session.session_id)
+    sm.broadcast.assert_called_once_with(event, origin_session_id=session.session_id)
 
 
 def test_session_publish_cross_session_skips_local_bus_directly():
     """For cross_session events, Session.publish delegates to the manager;
-    local bus subscribers are reached via _dispatch_signal on broadcast
+    local bus subscribers are reached via _dispatch on broadcast
     back, not via the direct publish path. This avoids double-delivery to
     the origin session.
     """
@@ -298,10 +298,10 @@ def test_session_publish_cross_session_skips_local_bus_directly():
 
     session.publish(_CrossEvent())
 
-    # Local bus not called directly; broadcast_signal is responsible for
-    # fanning back to origin via _dispatch_signal.
+    # Local bus not called directly; broadcast is responsible for
+    # fanning back to origin via _dispatch.
     assert received == []
-    sm.broadcast_signal.assert_called_once()
+    sm.broadcast.assert_called_once()
 
 
 def test_session_signal_is_alias_for_publish():
@@ -320,7 +320,7 @@ def test_session_signal_is_alias_for_publish():
 
 def test_session_signal_cross_session_does_not_double_dispatch_to_bus():
     """For cross_session signals, Session.signal() only delegates to the
-    manager — the manager will call _dispatch_signal on every session
+    manager — the manager will call _dispatch on every session
     (origin included), which is where the bus fan-out happens."""
     sm = MagicMock()
     session = _make_session(session_manager=sm)
@@ -329,20 +329,20 @@ def test_session_signal_cross_session_does_not_double_dispatch_to_bus():
 
     session.signal(GraphDataMutated())
 
-    sm.broadcast_signal.assert_called_once()
+    sm.broadcast.assert_called_once()
     # Bus not yet touched; the manager's broadcast loop will call
-    # _dispatch_signal which feeds the bus.
+    # _dispatch which feeds the bus.
     assert received == []
 
 
-def test_session_dispatch_signal_reaches_bus_subscribers():
+def test_session_dispatch_reaches_bus_subscribers():
     """Peer-broadcast incoming signals fan out to bus subscribers."""
     session = _make_session()
     received: list[ContextSignal] = []
     session.subscribe(GraphDataMutated, received.append)
 
     event = GraphDataMutated()
-    session._dispatch_signal(event)
+    session._dispatch(event)
 
     assert received == [event]
 

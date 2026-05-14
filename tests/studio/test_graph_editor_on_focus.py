@@ -7,7 +7,7 @@ from types import SimpleNamespace
 from typing import Optional
 from unittest.mock import MagicMock
 
-from haywire.core.session.signals_and_lifecycle import ActiveGraphMoved
+from haywire.core.session.events import ActiveGraphMoved
 from haywire.core.session.reactive import Reactive
 from haybale_haystack.editors.graph_editor import GraphEditor
 

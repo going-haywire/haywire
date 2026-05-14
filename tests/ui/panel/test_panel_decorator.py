@@ -5,7 +5,7 @@ from typing import Protocol, runtime_checkable
 
 import pytest
 
-from haywire.core.session.signals import SelectionMoved, GraphDataMutated
+from haywire.core.session.events import SelectionMoved, GraphDataMutated
 from haywire.ui.panel import BasePanel, panel
 from haywire.ui.panel.focus import Focus
 

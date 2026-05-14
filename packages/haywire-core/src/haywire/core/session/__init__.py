@@ -6,14 +6,15 @@ fields, workspace layout state.
 Public API for editor / panel authors:
     from haywire.core.session import (
         Session, SessionContext,                # session lifecycle
-        ContextSignal, SelectionMoved, ...,     # signal vocabulary
-        Reveal, Close, BroadcastClose,          # lifecycle commands
+        Event,                                  # bus payload base
+        ContextSignal, SelectionMoved, ...,     # observation vocabulary
+        Reveal, Close, BroadcastClose,          # imperative vocabulary
         Reactive, reactive_field,               # reactive fields
     )
 
 Framework / library internals:
-    SessionManager      — per-process session registry; broadcasts signals
-                          and lifecycle commands across sessions
+    SessionManager      — per-process session registry; broadcasts events
+                          across sessions
     IProjectState       — protocol the studio app implements (used by
                           editors that need to reach the project root)
     WorkspaceManager    — per-session layout snapshot (which editor in
@@ -24,23 +25,20 @@ from .session import Session
 from .session_manager import SessionManager
 from .context import SessionContext
 from .protocols import IProjectState
-from .signals_and_lifecycle import (
-    # Base
+from .events import (
+    # Bus payload base
+    Event,
+    # Observation marker + signals
     ContextSignal,
-    Subject,
-    # Focus
     ActiveFileMoved,
     ActiveLibraryMoved,
     ActiveComponentMoved,
     ActiveGraphMoved,
-    # Selection
     SelectionMoved,
-    # Data
     GraphDataMutated,
     LibraryCatalogChanged,
-    # Theme
     ThemeMoved,
-    # Lifecycle commands
+    # Imperative marker + commands
     LifecycleCommand,
     Reveal,
     Close,
@@ -58,9 +56,10 @@ __all__ = [
     "SessionContext",
     # Protocols
     "IProjectState",
+    # Bus payload base
+    "Event",
     # Signals — base
     "ContextSignal",
-    "Subject",
     # Signals — focus
     "ActiveFileMoved",
     "ActiveLibraryMoved",

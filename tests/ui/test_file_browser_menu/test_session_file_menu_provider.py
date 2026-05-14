@@ -63,9 +63,9 @@ def test_reveal_issues_lifecycle_and_closes_popup():
     editor_cls = MagicMock()
     provider.reveal(editor_cls, binding_id="payload-x", label="My Editor")
 
-    # session.lifecycle was called with a Reveal command
-    session.lifecycle.assert_called_once()
-    call = session.lifecycle.call_args[0][0]
+    # session.publish was called with a Reveal command
+    session.publish.assert_called_once()
+    call = session.publish.call_args[0][0]
     assert call.editor is editor_cls
     assert call.binding_id == "payload-x"
     assert call.label == "My Editor"

@@ -71,15 +71,15 @@ def test_create_new_broadcasts_graph_data_mutated(state_with_mocked_deps):
     matter which entry-point added the entry (HaystackEditor +,
     file-browser panel, persistence rehydration, future call sites).
     """
-    from haywire.core.session.signals_and_lifecycle import GraphDataMutated
+    from haywire.core.session.events import GraphDataMutated
 
     state = state_with_mocked_deps
-    state._session_manager.broadcast_signal.reset_mock()
+    state._session_manager.broadcast.reset_mock()
 
     state.create_new()
 
-    state._session_manager.broadcast_signal.assert_called_once()
-    args, kwargs = state._session_manager.broadcast_signal.call_args
+    state._session_manager.broadcast.assert_called_once()
+    args, kwargs = state._session_manager.broadcast.call_args
     assert isinstance(args[0], GraphDataMutated)
     assert kwargs.get("origin_session_id") == ""
 
@@ -234,7 +234,7 @@ def test_validation_callback_marks_entry_unsaved_and_broadcasts(state_with_mocke
     assert entry.unsaved is False
     # create_new() itself broadcasts (every mutator does). Reset so this
     # test only observes what _on_entry_validation broadcasts.
-    state._session_manager.broadcast_signal.reset_mock()
+    state._session_manager.broadcast.reset_mock()
 
     # Build a result with .nodes/.edges truthy and has_changes True.
     result = MagicMock()
@@ -247,10 +247,10 @@ def test_validation_callback_marks_entry_unsaved_and_broadcasts(state_with_mocke
     state._on_entry_validation(entry, result)
 
     assert entry.unsaved is True
-    state._session_manager.broadcast_signal.assert_called_once()
-    args, kwargs = state._session_manager.broadcast_signal.call_args
+    state._session_manager.broadcast.assert_called_once()
+    args, kwargs = state._session_manager.broadcast.call_args
     # First arg is a GraphDataMutated; origin_session_id keyword.
-    from haywire.core.session.signals_and_lifecycle import GraphDataMutated
+    from haywire.core.session.events import GraphDataMutated
 
     assert isinstance(args[0], GraphDataMutated)
     assert kwargs.get("origin_session_id") == ""
@@ -262,7 +262,7 @@ def test_validation_callback_no_broadcast_when_no_changes(state_with_mocked_deps
     # create_new() now broadcasts GraphDataMutated itself (every mutator
     # does). Reset the mock so this test only observes what
     # _on_entry_validation does with no-change results.
-    state._session_manager.broadcast_signal.reset_mock()
+    state._session_manager.broadcast.reset_mock()
 
     result = MagicMock()
     result.has_changes.return_value = False
@@ -272,7 +272,7 @@ def test_validation_callback_no_broadcast_when_no_changes(state_with_mocked_deps
 
     state._on_entry_validation(entry, result)
 
-    state._session_manager.broadcast_signal.assert_not_called()
+    state._session_manager.broadcast.assert_not_called()
 
 
 def test_validation_callback_stops_execution_on_reassembly(state_with_mocked_deps):

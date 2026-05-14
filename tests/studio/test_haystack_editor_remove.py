@@ -7,7 +7,7 @@ import pytest
 
 import haywire.core.graph.editor  # noqa: F401 -- circular-import guard
 
-from haywire.core.session.signals_and_lifecycle import (
+from haywire.core.session.events import (
     ActiveGraphMoved,
     BroadcastClose,
     Close,
@@ -32,7 +32,7 @@ def editor_and_context():
         session_id="sess-1",
         workspace_manager=None,
         signal=MagicMock(),
-        lifecycle=MagicMock(),
+        publish=MagicMock(),
     )
 
     app = SimpleNamespace(
@@ -200,7 +200,7 @@ def test_remove_entry_helper_fires_broadcast_close(editor_and_context):
     """_remove_entry issues a BroadcastClose so peer GraphEditor tabs close.
 
     GraphDataMutated cross-session refresh is broadcast by
-    HaystackState.remove_entry itself (via session_manager.broadcast_signal),
+    HaystackState.remove_entry itself (via session_manager.broadcast),
     not via the editor — this mock-haystack test doesn't observe that path.
     """
     editor, context, app, haystack = editor_and_context
@@ -209,12 +209,12 @@ def test_remove_entry_helper_fires_broadcast_close(editor_and_context):
     with patch("haybale_haystack.editors.haystack_editor.ui.notify"):
         editor._remove_entry(entry, context)
 
-    # Lifecycle channel: a BroadcastClose for the removed entry — peer
-    # sessions might have a GraphEditor open on the same entry, and the
-    # entity is gone for everyone. BroadcastClose is-a Close, so the
-    # isinstance(_, Close) check still holds for shared dispatch logic.
-    emitted_commands = [call.args[0] for call in context.session.lifecycle.call_args_list]
-    close_commands = [c for c in emitted_commands if isinstance(c, Close)]
+    # Merged bus: signals and lifecycle commands both go through
+    # ``session.publish``. Filter to ``Close`` instances to isolate the
+    # tab-close imperative we want to verify. ``BroadcastClose`` is a
+    # ``Close`` subclass, so it passes the isinstance check.
+    published = [call.args[0] for call in context.session.publish.call_args_list]
+    close_commands = [c for c in published if isinstance(c, Close)]
     assert len(close_commands) == 1
     assert isinstance(close_commands[0], BroadcastClose)
     assert close_commands[0].binding_id == entry.entry_id

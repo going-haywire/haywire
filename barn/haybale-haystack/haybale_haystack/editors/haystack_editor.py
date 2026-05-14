@@ -107,7 +107,7 @@ class HaystackEditor(BaseEditor):
             if not eid:
                 continue
             try:
-                session.lifecycle(Close(binding_id=eid))
+                session.publish(Close(binding_id=eid))
             except Exception as exc:
                 logger.warning(f"HaystackEditor: Close({eid}) failed during teardown: {exc}")
 
@@ -426,7 +426,7 @@ class HaystackEditor(BaseEditor):
             # Peer haystack-derived views (the list, etc.) refresh via
             # the GraphDataMutated broadcast that HaystackState.remove_entry
             # fires — no separate observation signal needed.
-            session.lifecycle(BroadcastClose(binding_id=removed_id))
+            session.publish(BroadcastClose(binding_id=removed_id))
 
         # If it was the active graph, clear the active graph → empty state
         if is_active:
@@ -587,7 +587,7 @@ class HaystackEditor(BaseEditor):
 
         hs = context.app_data[HaystackState]
         entry = hs.create_new()
-        session.lifecycle(
+        session.publish(
             Reveal(
                 editor=GraphEditor,
                 binding_id=entry.entry_id,
@@ -603,7 +603,7 @@ class HaystackEditor(BaseEditor):
         entry = self._resolve_entry(entry_id, context)
         if entry is None:
             return
-        session.lifecycle(
+        session.publish(
             Reveal(
                 editor=GraphEditor,
                 binding_id=entry.entry_id,
@@ -717,7 +717,7 @@ class HaystackEditor(BaseEditor):
 
             session = context.session
             if active_entry is not None and session is not None:
-                session.lifecycle(
+                session.publish(
                     Reveal(
                         editor=GraphEditor,
                         binding_id=active_entry.entry_id,
@@ -776,7 +776,7 @@ class HaystackEditor(BaseEditor):
                 ui.notify("Graph manager not available", type="warning")
                 return
             entry = hs.open_graph(path)
-            session.lifecycle(
+            session.publish(
                 Reveal(
                     editor=GraphEditor,
                     binding_id=entry.entry_id,

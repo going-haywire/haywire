@@ -16,7 +16,7 @@ from typing import Protocol, runtime_checkable
 import haywire.core.graph.editor  # noqa: F401 — circular-import guard
 
 from haywire.core.library.identity import LibraryIdentity
-from haywire.core.session.signals_and_lifecycle import ContextSignal
+from haywire.core.session.events import ContextSignal
 from haywire.ui.panel import BasePanel, panel
 from haywire.ui.panel.focus import Focus
 from haywire.ui.panel.registry import PanelRegistry

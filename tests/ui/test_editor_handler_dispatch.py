@@ -34,7 +34,7 @@ from haywire.core.session.handlers import (
     redraw_on,
 )
 from haywire.core.session.session import Session
-from haywire.core.session.signals_and_lifecycle import ContextSignal
+from haywire.core.session.events import ContextSignal
 from haywire.ui.editor.base import BaseEditor
 from haywire.ui.editor.registry import EditorTypeRegistry
 from haywire.ui.editor.wrapper import EditorWrapper

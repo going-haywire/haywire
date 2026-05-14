@@ -14,7 +14,7 @@ from typing import TYPE_CHECKING, Optional
 from nicegui import ui
 
 from haywire.ui import elements as hui
-from haywire.core.session.signals_and_lifecycle import ActiveFileMoved
+from haywire.core.session.events import ActiveFileMoved
 from haywire.ui.editor.base import BaseEditor
 from haywire.ui.editor.decorator import editor
 

@@ -62,8 +62,8 @@ def test_panel_appears_and_reveal_fires():
     with patch.object(provider, "_build_popup", return_value=popup):
         provider.on_file_context(pos=(0, 0), path=Path("/tmp/foo.smoke"))
 
-    # reveal() was called inside draw(), which called session.lifecycle
-    session.lifecycle.assert_called_once()
+    # reveal() was called inside draw(), which called session.publish
+    session.publish.assert_called_once()
     # And the popup was opened (at least one visible panel existed)
     popup.open.assert_called_once()
 
@@ -107,4 +107,4 @@ def test_panel_skipped_when_extension_doesnt_match():
         provider.on_file_context(pos=(0, 0), path=Path("/tmp/foo.txt"))
 
     popup.open.assert_not_called()
-    session.lifecycle.assert_not_called()
+    session.publish.assert_not_called()

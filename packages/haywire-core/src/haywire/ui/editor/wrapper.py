@@ -16,7 +16,7 @@ from nicegui import ui
 
 from haywire.core.errors.haywire_exception import HaywireException
 from haywire.core.session.handlers import discover_handlers
-from haywire.core.session.signals import ContextSignal
+from haywire.core.session.events import ContextSignal
 from haywire.core.registry.lifecycle_event import LifeCycleEvent
 
 from haywire.ui.editor.identity import OpenBehavior

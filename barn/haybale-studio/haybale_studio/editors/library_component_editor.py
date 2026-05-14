@@ -19,7 +19,7 @@ from haywire.ui import elements as hui
 from haywire.ui.editor.decorator import editor
 from haywire.ui.editor.base import BaseEditor
 from haywire.core.session.handlers import redraw_on
-from haywire.core.session.signals_and_lifecycle import (
+from haywire.core.session.events import (
     ActiveComponentMoved,
     SelectionMoved,
     ThemeMoved,

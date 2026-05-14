@@ -10,7 +10,7 @@ from typing import TYPE_CHECKING, Optional, Tuple
 from haywire.core.registry.identity import BaseIdentity
 
 if TYPE_CHECKING:
-    from haywire.core.session.signals import ContextSignal
+    from haywire.core.session.events import ContextSignal
 
 
 @dataclass

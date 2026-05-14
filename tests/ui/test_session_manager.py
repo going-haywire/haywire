@@ -1,6 +1,6 @@
 """Tests for SessionManager session lifecycle.
 
-Cross-session broadcast (``broadcast_signal``) is covered by
+Cross-session broadcast (``broadcast``) is covered by
 ``tests/ui/test_signals_and_lifecycle.py``.
 """
 

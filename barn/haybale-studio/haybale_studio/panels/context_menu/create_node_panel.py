@@ -13,7 +13,7 @@ from haybale_studio.focuses import CanvasFocus
 from haybale_studio.state.edit_state import EditState
 from haywire.core.node.info import NodeInfo
 from haywire.ui import elements as hui
-from haywire.core.session.signals_and_lifecycle import ActiveComponentMoved, Reveal
+from haywire.core.session.events import ActiveComponentMoved, Reveal
 from haybale_studio.editors.graph_canvas.handlers.context_menu_actions import CanvasContextActions
 from haybale_studio.editors.graph_canvas.node_menu_builder import NodeMenuBuilder
 from haywire.ui.panel import BasePanel
@@ -58,7 +58,7 @@ class CreateNodePanel(BasePanel):
 
                 ctx.active_component.value = node_info.identity.registry_key
                 ctx.session.signal(ActiveComponentMoved())
-                ctx.session.lifecycle(Reveal(editor=LibraryComponentEditor))
+                ctx.session.publish(Reveal(editor=LibraryComponentEditor))
 
         with layout:
             builder = NodeMenuBuilder(

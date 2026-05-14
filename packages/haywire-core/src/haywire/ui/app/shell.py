@@ -18,13 +18,13 @@ Session and calling AppShell.render().
 """
 
 import logging
-from typing import Literal, TYPE_CHECKING
+from typing import Callable, Literal, TYPE_CHECKING
 from nicegui import ui
 
 from haywire.ui import elements as hui
-from haywire.core.session.signals_and_lifecycle import (
+from haywire.core.session.events import (
+    BroadcastClose,
     Close,
-    LifecycleCommand,
     Reveal,
     ThemeMoved,
 )
@@ -76,6 +76,9 @@ class AppShell:
         self._left_divider: ui.element | None = None  # drag handle between left and main slots
         self._right_divider: ui.element | None = None  # drag handle between main and right slots
         self._bottom_divider: ui.element | None = None  # horizontal drag handle above BottomTabBar
+
+        # Bus subscriptions for workspace-mutation commands. 
+        self._lifecycle_unsubs: list[Callable[[], None]] = []
 
     def _build_initial_theme_css(self) -> str:
         """Build the :root CSS block from the active WorkbenchTheme."""
@@ -315,11 +318,10 @@ class AppShell:
         settings_registry = self.session.context.app.library_service.get_settings_registry()
         settings_registry.subscribe(None, self._on_setting_changed)
 
-        # Lifecycle-command orchestrator wiring. Signal dispatch flows
-        # through the typed event bus on ``Session`` directly to each
-        # editor's auto-wired ``@redraw_on`` / ``@react_on`` handlers; the
-        # shell isn't on that path.
-        self.session.set_lifecycle_orchestrator(self._on_lifecycle)
+        # Subscription to Workspace-mutation handlers. 
+        self._lifecycle_unsubs.append(self.session.subscribe(Reveal, self._reveal_editor))
+        self._lifecycle_unsubs.append(self.session.subscribe(Close, self._close_payload))
+        self._lifecycle_unsubs.append(self.session.subscribe(BroadcastClose, self._close_payload))
 
         # Drag-resize handlers for left/middle/right/bottom panels. These use JavaScript
         # to set inline styles on the fly for immediate response and to avoid conflicts
@@ -540,11 +542,15 @@ class AppShell:
         return slot
 
     def cleanup(self) -> None:
-        """Detach all managed slots from the editor registry.
+        """Detach all managed slots and drop bus subscriptions.
 
         Called by the session when the browser disconnects so that slot
-        lifecycle subscribers don't leak across sessions.
+        lifecycle subscribers and the shell's own workspace-mutation
+        subscriptions don't leak across sessions.
         """
+        for unsub in self._lifecycle_unsubs:
+            unsub()
+        self._lifecycle_unsubs.clear()
         for slot in self._managed_slots.values():
             slot.cleanup()
         self._managed_slots.clear()
@@ -554,25 +560,8 @@ class AppShell:
         return {slot_name: slot.to_snapshot() for slot_name, slot in self._managed_slots.items()}
 
     # ------------------------------------------------------------------
-    # Lifecycle command orchestrator
+    # Workspace-mutation handlers (bus subscribers)
     # ------------------------------------------------------------------
-
-    def _on_lifecycle(self, command: LifecycleCommand) -> None:
-        """Lifecycle-channel orchestrator callback.
-
-        Routes per-command type:
-
-        - ``Reveal`` is point-to-point — resolved to a slot via the
-          editor's ``default_slot`` and dispatched there.
-        - ``Close`` is fan-out — every slot is asked to close any
-          wrapper whose binding_id matches.
-        """
-        if isinstance(command, Reveal):
-            self._reveal_editor(command)
-        elif isinstance(command, Close):
-            self._close_payload(command.binding_id)
-        else:
-            logger.warning(f"AppShell: unknown LifecycleCommand subclass {type(command).__name__}")
 
     def _reveal_editor(self, command: Reveal) -> None:
         """Ensure the editor described by ``command`` is active in its default slot.
@@ -608,8 +597,13 @@ class AppShell:
 
         slot.reveal(command)
 
-    def _close_payload(self, binding_id: str) -> None:
-        """Close every wrapper bound to ``binding_id`` across all slots."""
+    def _close_payload(self, command: Close) -> None:
+        """Close every wrapper bound to ``command.binding_id`` across all slots.
+
+        Subscribed to both :class:`Close` (local) and :class:`BroadcastClose`
+        (cross-session) — both carry a ``binding_id`` field.
+        """
+        binding_id = command.binding_id
         if not binding_id:
             return
         for slot in self._managed_slots.values():

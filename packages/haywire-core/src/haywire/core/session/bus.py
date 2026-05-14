@@ -4,12 +4,15 @@ Session-scoped typed event bus.
 
 Step 4 of the event-bus redesign (see
 ``internals/speculatives/event_bus_redesign.md``). The bus is the primary
-dispatch channel within a session: editors and panels declare which
-:class:`~haywire.core.session.signals.ContextSignal` subclasses they care
-about (via :func:`~haywire.core.session.handlers.redraw_on` /
-:func:`~haywire.core.session.handlers.react_on` on editors, or the
-``redraw_on=`` kwarg on ``@panel(...)``), and the framework dispatches
-matching events only to those subscribers.
+dispatch channel within a session: editors, panels, and the AppShell
+declare which :class:`~haywire.core.session.events.Event` subclasses they
+care about (via :func:`~haywire.core.session.handlers.redraw_on` /
+:func:`~haywire.core.session.handlers.react_on` on editors, the
+``redraw_on=`` kwarg on ``@panel(...)``, or direct
+``session.subscribe(EventType, handler)`` calls), and the framework
+dispatches matching events only to those subscribers. ``ContextSignal``
+(observations) and ``LifecycleCommand`` (imperatives) both subclass
+``Event`` and travel through this same bus.
 
 The bus itself is intentionally small: a ``defaultdict[type, list]`` of
 handlers, an exact-class match on publish, error isolation per handler.
@@ -38,9 +41,9 @@ from __future__ import annotations
 
 import logging
 from collections import defaultdict
-from typing import Callable, Dict, List, Tuple, Type
+from typing import Callable, Dict, List, Tuple, Type, TypeVar
 
-from .signals import ContextSignal
+from .events import Event
 
 logger = logging.getLogger(__name__)
 
@@ -48,7 +51,11 @@ logger = logging.getLogger(__name__)
 # Handler signature: ``(event) -> None``. The ``ctx`` parameter described in
 # the design doc is bound at subscribe-time on the ``Session`` layer (so the
 # bus itself stays event-only and reusable). See ``Session.subscribe``.
-EventHandler = Callable[[ContextSignal], None]
+EventHandler = Callable[[Event], None]
+
+# Used by ``subscribe`` so a ``Callable[[SelectionMoved], None]`` is accepted
+# for ``event_type=SelectionMoved`` without a downcast cast at every site.
+E = TypeVar("E", bound=Event)
 
 
 class EventBus:
@@ -73,17 +80,17 @@ class EventBus:
         # function object, even when two methods share a name across a
         # subclass override — so duplicates would only arise from direct
         # misuse of ``bus.subscribe``.
-        self._handlers: Dict[Type[ContextSignal], List[EventHandler]] = defaultdict(list)
+        self._handlers: Dict[Type[Event], List[EventHandler]] = defaultdict(list)
 
     def subscribe(
         self,
-        event_type: Type[ContextSignal],
-        handler: EventHandler,
+        event_type: Type[E],
+        handler: Callable[[E], None],
     ) -> Callable[[], None]:
         """Subscribe ``handler`` to events of exactly ``event_type``.
 
         Args:
-            event_type: A :class:`ContextSignal` subclass. Exact-class match
+            event_type: An :class:`Event` subclass. Exact-class match
                 on publish — subclasses do not inherit subscriptions.
             handler:    A sync callable taking the event instance.
 
@@ -92,18 +99,20 @@ class EventBus:
             calling it twice is a no-op. The framework holds these handles
             to tear down subscriptions at editor cleanup / hot-reload.
         """
-        if not isinstance(event_type, type) or not issubclass(event_type, ContextSignal):
-            raise TypeError(
-                f"EventBus.subscribe: event_type must be a ContextSignal subclass; got {event_type!r}"
-            )
-        self._handlers[event_type].append(handler)
+        if not isinstance(event_type, type) or not issubclass(event_type, Event):
+            raise TypeError(f"EventBus.subscribe: event_type must be an Event subclass; got {event_type!r}")
+        # Stored as an ``EventHandler`` (``Callable[[Event], None]``) — the
+        # generic on the signature is only for caller ergonomics. Dispatch
+        # narrows by exact ``type(event)`` match, so the runtime always passes
+        # the right subclass into the handler.
+        self._handlers[event_type].append(handler)  # type: ignore[arg-type]
 
         def _unsubscribe() -> None:
             handlers = self._handlers.get(event_type)
             if handlers is None:
                 return
             try:
-                handlers.remove(handler)
+                handlers.remove(handler)  # type: ignore[arg-type]
             except ValueError:
                 # Already removed — double-unsubscribe is a no-op.
                 return
@@ -113,7 +122,7 @@ class EventBus:
 
         return _unsubscribe
 
-    def publish(self, event: ContextSignal) -> None:
+    def publish(self, event: Event) -> None:
         """Dispatch ``event`` to every handler subscribed to its exact class.
 
         Handlers fire in registration order. Each handler runs in its own
@@ -121,7 +130,7 @@ class EventBus:
         still fires. Multiple raisers in one publish do not short-circuit.
 
         Args:
-            event: An instance of a :class:`ContextSignal` subclass.
+            event: An instance of an :class:`Event` subclass.
         """
         # Iterate over a snapshot so a handler that subscribes/unsubscribes
         # during dispatch does not mutate the list we're iterating over.
@@ -143,14 +152,14 @@ class EventBus:
     # author surface.
     # ------------------------------------------------------------------
 
-    def subscriber_count(self, event_type: Type[ContextSignal]) -> int:
+    def subscriber_count(self, event_type: Type[Event]) -> int:
         """Return the number of handlers currently subscribed to ``event_type``.
 
         Used by tests and diagnostics. Not part of the author API.
         """
         return len(self._handlers.get(event_type, ()))
 
-    def subscribed_types(self) -> Tuple[Type[ContextSignal], ...]:
+    def subscribed_types(self) -> Tuple[Type[Event], ...]:
         """Return every event class that currently has at least one handler.
 
         Used by tests and diagnostics. Not part of the author API.

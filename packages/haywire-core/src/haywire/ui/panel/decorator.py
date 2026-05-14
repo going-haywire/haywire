@@ -26,7 +26,7 @@ from .identity import PanelIdentity
 from .base import BasePanel
 
 if TYPE_CHECKING:
-    from haywire.core.session.signals import ContextSignal
+    from haywire.core.session.events import ContextSignal
 
 
 def panel(

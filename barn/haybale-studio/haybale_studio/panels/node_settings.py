@@ -10,7 +10,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 
-from haywire.core.session.signals_and_lifecycle import (
+from haywire.core.session.events import (
     ActiveGraphMoved,
     GraphDataMutated,
     SelectionMoved,

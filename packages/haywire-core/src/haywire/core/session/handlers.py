@@ -2,7 +2,7 @@
 """
 Method-level event-handler decorators for editors.
 
-Editor authors declare which :class:`~haywire.core.session.signals.ContextSignal`
+Editor authors declare which :class:`~haywire.core.session.events.ContextSignal`
 subclasses a handler method should fire on by decorating the method:
 
     from haywire.core.session import ContextSignal, SelectionMoved, GraphDataMutated
@@ -27,7 +27,7 @@ Two flavors, semantically distinct:
   same event still trigger exactly one redraw per dispatch pass.
 - ``@react_on(*event_types)`` — pure side-effect channel. Framework does
   not auto-redraw. The author is responsible for any explicit
-  ``wrapper.redraw()`` / ``wrapper.force_close()`` / ``session.lifecycle(...)``
+  ``wrapper.redraw()`` / ``wrapper.force_close()`` / ``session.publish(Reveal/Close/...)``
   calls inside the handler body.
 
 Both kinds fire regardless of whether the editor's wrapper is the active
@@ -47,7 +47,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any, Callable, Dict, List, Literal, Tuple
 
-from .signals import ContextSignal
+from .events import ContextSignal
 
 
 # The two kinds of decorated handler. Tagged on each (method, event_type)
@@ -145,7 +145,7 @@ def react_on(*event_types: type[ContextSignal]) -> Callable[[Callable[..., None]
     owning editor's per-session bus at editor instantiation. When any of those
     events publish, the framework calls the handler — and does *nothing else*.
     The author is responsible for any explicit ``self.wrapper.redraw()`` /
-    ``self.wrapper.force_close()`` / ``session.lifecycle(...)`` calls inside
+    ``self.wrapper.force_close()`` / ``session.publish(Reveal/Close/...)`` calls inside
     the handler body.
 
     Both kinds fire regardless of active state.
