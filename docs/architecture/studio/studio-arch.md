@@ -22,7 +22,7 @@ The studio is the haywire UI as a product. It is modelled after the workspace pa
 Three design goals shape every decision in this layer:
 
 - **Session isolation** — each browser tab is a fully independent session with its own selection state, interaction mode, editor instances, and library-owned reactive state. Multiple users can connect to the same running haywire server simultaneously without interfering.
-- **Two-channel decoupling** — editors and panels do not talk to each other directly. Observations flow on the **signal channel** (`Session.signal(s: ContextSignal)`); imperative workspace mutations flow on the **lifecycle channel** (`Session.lifecycle(cmd: LifecycleCommand)`). Producers and consumers are decoupled; cross-session synchronisation is opt-in per signal class.
+- **Pub/sub decoupling** — editors, panels, and the shell do not talk to each other directly. Every interaction flows as an `Event` published on a per-session typed bus: observations (`ContextSignal`) describe state moves; imperatives (`LifecycleCommand`) request workspace-tree mutations. Authors emit with `Session.publish(...)` and subscribe with `Session.subscribe(EventType, handler)` (or via the `@redraw_on` / `@react_on` decorators on editor methods). Cross-session synchronisation is opt-in per event class.
 - **Open extensibility** — both editors and panels are registered via DI-managed registries (`EditorTypeRegistry`, `PanelRegistry`). A library can ship its own editors, panels, and `Focus` classes that are auto-discovered and inserted into the UI, following the same two-stage decorator + folder-scan pattern used by nodes, widgets, and themes.
 
 ## 2. Components
@@ -49,11 +49,11 @@ Slots own:
 - the NiceGUI area container that hosts the active wrapper's UI subtree,
 - visibility state and the divider that resizes them.
 
-The `AppShell` (`packages/haywire-core/src/haywire/ui/app/shell.py`) is the layout container that hosts the four slots, builds the resizable dividers between areas, and owns the orchestration logic that routes signals and lifecycle commands across slots. `AppShell` is constructed once per browser session.
+The `AppShell` (`packages/haywire-core/src/haywire/ui/app/shell.py`) is the layout container that hosts the four slots, builds the resizable dividers between areas, and subscribes to `Reveal` / `Close` / `BroadcastClose` lifecycle commands on the session bus — `Reveal` is dispatched point-to-point to the editor's `default_slot`; `Close` (and `BroadcastClose`) fan out across every slot. `AppShell` is constructed once per browser session.
 
 ### 2.2 Workspaces
 
-A **workspace snapshot** is a plain JSON dict — one key per slot name — persisted to `.haywire/workspace_state.json` per project. (Earlier versions also stored a `"haystack"` key naming the active haystack TOML; that responsibility moved to `HaystackSettings.last_haystack_name` in the haybale-haystack library.) The `WorkspaceManager` (`packages/haywire-core/src/haywire/ui/workspace/manager.py`) is intentionally dumb:
+A **workspace snapshot** is a plain JSON dict — one key per slot name — persisted to `.haywire/workspace_state.json` per project. (Earlier versions also stored a `"haystack"` key naming the active haystack TOML; that responsibility moved to `HaystackSettings.last_haystack_name` in the haybale-haystack library.) The `WorkspaceManager` (`packages/haywire-core/src/haywire/core/session/workspace/manager.py`) is intentionally dumb:
 
 - `WorkspaceManager.snapshot: dict` — the raw dict loaded from disk, or `{}` if the file is missing or unparseable.
 - `WorkspaceManager.save(snapshot)` — write the dict to disk and update `self.snapshot`.
@@ -64,25 +64,25 @@ There is no named-preset system in the current implementation. The workspace sta
 
 ### 2.3 Sessions
 
-A `Session` (`packages/haywire-core/src/haywire/ui/session.py`) represents one connected browser tab. Each session owns:
+A `Session` (`packages/haywire-core/src/haywire/core/session/session.py`) represents one connected browser tab. Each session owns:
 
 - A `SessionContext` (per-session reactive state — see §2.4).
 - A `WorkspaceManager` (the project's layout snapshot).
 - Editor instances (cached per `EditorWrapper`; the slot owns the wrapper, the wrapper owns the instance).
-- Two callback registrations into `AppShell`: a signal handler and a lifecycle handler.
+- A per-session `EventBus` instance — the only intra-session dispatch channel. Editors auto-subscribe their `@redraw_on` / `@react_on` decorated methods at instantiation; the AppShell subscribes its workspace-mutation handlers directly.
 
-Sessions are created and tracked by `SessionManager` (`packages/haywire-core/src/haywire/ui/session_manager.py`). When a browser connects, `SessionManager.create_session(...)` constructs the `Session`, attaches its `session_id` to the global `LibraryStateContainer` (which fan-instantiates every registered `SessionState` class for the new session), and returns it. `SessionManager.remove_session(session_id)` reverses the dance: `Session.cleanup()` first, then `LibraryStateContainer.detach_session(...)`. Cleanup-before-detach is deliberate so editors that read `ctx.data[X]` during their own cleanup still see live state.
+Sessions are created and tracked by `SessionManager` (`packages/haywire-core/src/haywire/core/session/session_manager.py`). When a browser connects, `SessionManager.create_session(...)` constructs the `Session`, attaches its `session_id` to the global `LibraryStateContainer` (which fan-instantiates every registered `SessionState` class for the new session), and returns it. `SessionManager.remove_session(session_id)` reverses the dance: `Session.cleanup()` first, then `LibraryStateContainer.detach_session(...)`. Cleanup-before-detach is deliberate so editors that read `ctx.data[X]` during their own cleanup still see live state.
 
 ```python
 manager = SessionManager(container=app.library_state_container)
 session = manager.create_session(project_state=app, workspace_manager=ws)
-manager.broadcast_signal(some_signal, origin_session_id=session.session_id)
+manager.broadcast(some_event, origin_session_id=session.session_id)
 manager.remove_session(session.session_id)
 ```
 
 ### 2.4 SessionContext
 
-`SessionContext` (`packages/haywire-core/src/haywire/ui/context.py`) is the small per-session reactive object visible to every editor and panel. Its surface is intentionally narrow:
+`SessionContext` (`packages/haywire-core/src/haywire/core/session/context.py`) is the small per-session reactive object visible to every editor and panel. Its surface is intentionally narrow:
 
 | Attribute | Kind | Purpose |
 |---|---|---|
@@ -110,7 +110,7 @@ This separation keeps the framework's `SessionContext` stable while each library
 
 ### 2.5 The event bus — observations and imperatives on one channel
 
-The studio runs a single per-session typed pub/sub bus (`packages/haywire-core/src/haywire/core/session/bus.py`). Every payload subclasses `Event` (`packages/haywire-core/src/haywire/core/session/event.py`). Authors emit with `Session.publish(e)` and listen with `Session.subscribe(EventType, handler)`. Subscribers match by exact type — subclasses do not inherit subscriptions.
+The studio runs a single per-session typed pub/sub bus (`packages/haywire-core/src/haywire/core/session/bus.py`). Every payload subclasses `Event` from `packages/haywire-core/src/haywire/core/session/events.py`. Authors emit with `Session.publish(e)` and listen with `Session.subscribe(EventType, handler)`. Subscribers match by exact type — subclasses do not inherit subscriptions.
 
 Two payload flavours share the bus; the split is vocabulary, not transport:
 
@@ -140,7 +140,7 @@ Editors fill slots; panels fill the inside of panel-aware editors. Both register
 - `EditorTypeRegistry` — `BaseEditor` subclasses, decorated with `@editor(...)`. Registered by libraries via `add_folder_to_registry(folder_path=..., registry_cls=EditorTypeRegistry)` in `register_components()`. Built-in framework editors (currently none — all editors live in `haybale-studio` or other libraries) would bootstrap via `register_builtin_editors()`.
 - `PanelRegistry` — `BasePanel` subclasses, decorated with `@panel(action=..., focus=...)`. Registered the same way. Panel-aware editors (e.g. `PropertiesEditor`) call `panel_registry.get_panels_for(actions_provider=self, focus=...)`, which filters panels by structural `isinstance(actions_provider, action)` and by `Focus.id` match.
 
-For the editor authoring surface — `BaseEditor`, the `draw`/`on_signal`/`redraw_on_signal` lifecycle, `OpenBehavior` modes, slot constraints — see [components/editors](../../components/editors/editor-canon.md). For the panel surface — `@panel`, `Focus` classes, `PanelLayout` — see [components/panels](../../components/panels/panel-canon.md).
+For the editor authoring surface — `BaseEditor`, `draw`, the `@redraw_on` / `@react_on` handler decorators, `OpenBehavior` modes, slot constraints — see [components/editors](../../components/editors/editor-canon.md). For the panel surface — `@panel`, `Focus` classes, `PanelLayout` — see [components/panels](../../components/panels/panel-canon.md).
 
 ## 3. Data flow
 
@@ -150,51 +150,51 @@ For the editor authoring surface — `BaseEditor`, the `draw`/`on_signal`/`redra
 Browser opens NiceGUI page
   ├─ studio app.py page handler
   ├─ SessionManager.create_session(project_state=app, workspace_manager=ws)
-  │   ├─ Session() — constructs SessionContext, registers session_id
+  │   ├─ Session() — constructs SessionContext + per-session EventBus, registers session_id
   │   └─ container.attach_session(session_id) — fan-instantiates SessionStates
   ├─ AppShell(session, editor_registry)
-  ├─ session.set_signal_orchestrator(shell._on_signal)
-  ├─ session.set_lifecycle_orchestrator(shell._on_lifecycle)
   └─ shell.render()
+      ├─ subscribe Reveal / Close / BroadcastClose on session.subscribe(...)
       ├─ build TopBar / StatusBar
       ├─ instantiate four slots (left/right IconSlot, main/bottom TabSlot)
       ├─ each slot.populate_from_snapshot(workspace_manager.snapshot[slot_name])
+      │   └─ each EditorWrapper wires its editor's @redraw_on / @react_on
+      │      handlers as session.subscribe(...) closures
       ├─ each slot.render(parent) — builds area container, calls draw() on active wrapper
       └─ install drag-resize handles between areas
 ```
 
-### 3.2 User interaction → signal propagation
+### 3.2 User interaction → event propagation
 
 ```text
 User clicks a node in the graph canvas
   ├─ GraphEditor handler:  ctx.data[EditState].active_node.value = wrapper
-  ├─ GraphEditor handler:  session.signal(SelectionMoved())
-  └─ Session.signal — local-only path (cross_session=False):
-      └─ AppShell._on_signal(signal)
-          └─ for slot in (left, right, main, bottom):
-              └─ slot.handle_signal(signal)
-                  ├─ for wrapper in slot._bindings:
-                  │     └─ wrapper.editor.on_signal(ctx, signal)   # side effects, all wrappers
-                  └─ active_wrapper.editor.redraw_on_signal(ctx, signal)
-                      ├─ True  → slot clears area, calls editor.draw(ctx, area)
-                      └─ False → no-op
+  ├─ GraphEditor handler:  session.publish(SelectionMoved())
+  └─ Session.publish — local-only path (cross_session=False):
+      └─ EventBus.publish(event)
+          └─ for handler in subscribers of type(event), in registration order:
+              ├─ wrapper closures wired from @redraw_on / @react_on
+              │     • @redraw_on:  handler(ctx, event) → flag wrapper for redraw
+              │     • @react_on:   handler(ctx, event) → side effect only
+              └─ after dispatch: each flagged wrapper calls wrapper.redraw()
+                 exactly once (slot clears area, calls editor.draw(ctx, area))
 ```
 
-The `SelectionMoved` signal carries no payload (pointer-by-default rule, §6.3 of the design doc). Subscribers re-read `ctx.data[EditState]` to discover what the new selection is.
+The `SelectionMoved` event carries no payload (pointer-by-default rule, §6.3 of the design doc). Subscribers re-read `ctx.data[EditState]` to discover what the new selection is. Both `@redraw_on` and `@react_on` handlers fire regardless of whether their editor's wrapper is the active tab — backgrounded editors stay current (kept alive by Quasar `ui.tab_panels` keep-alive); on focus they're already drawn correctly.
 
 ### 3.3 Cross-session broadcast (graph mutation)
 
 ```text
 Session A: user edits a node's setting
   ├─ NodeWrapper.update_setting(...)
-  ├─ session.signal(GraphDataMutated())
-  └─ Session.signal — cross_session=True path:
-      └─ session_manager.broadcast_signal(s, origin_session_id=A)
+  ├─ session.publish(GraphDataMutated())
+  └─ Session.publish — cross_session=True path:
+      └─ session_manager.broadcast(event, origin_session_id=A)
           └─ For every session (A, B, C):
-              └─ Each session's _dispatch_signal → AppShell._on_signal → slots
+              └─ session._dispatch(event) → EventBus.publish → subscribers
 ```
 
-Cross-session signals never carry payload data either. Receivers re-read the relevant state from the shared project — for `GraphDataMutated` that's the entry in `ctx.app_data[HaystackState].get_by_id(<entry_id>)`. Peer-session state, if needed, can be reached through `session_manager.get_session(peer_id).context`.
+Cross-session events never carry payload data either. Receivers re-read the relevant state from the shared project — for `GraphDataMutated` that's the entry in `ctx.app_data[HaystackState].get_by_id(<entry_id>)`. Peer-session state, if needed, can be reached through `session_manager.get_session(peer_id).context`.
 
 ## 4. Performance, errors, and boundaries
 
@@ -202,15 +202,17 @@ Cross-session signals never carry payload data either. Receivers re-read the rel
 
 Each session holds editor instances, slots, a `WorkspaceManager`, and a `SessionContext` plus the per-session `SessionState` instances. For a typical workspace with four active editors, that's tens of KBs per session — comfortably scalable to dozens of concurrent connections on a single server.
 
-### 4.2 Signal amplification
+### 4.2 Dispatch cost
 
-A single signal is delivered to **every wrapper** in every slot via `on_signal` (side-effect channel) and to the **active** wrapper in each slot via `redraw_on_signal` (redraw decision). Editors that use a tuple of relevant signal classes plus one `isinstance` check (the `_RELEVANT_SIGNALS` pattern, see editor-canon §3) keep this O(slots · wrappers) under a millisecond. Editors that do work in `on_signal`/`redraw_on_signal` themselves — I/O, AppState walks, expensive predicates — will dominate the dispatch path. The contract is: *both hooks are cheap; the heavy work goes in `draw()`, gated on `redraw_on_signal()` returning `True`.* Side effects in `on_signal` should also be cheap — typically issuing a few lifecycle commands, flipping a flag, or doing a single isinstance check.
+The typed bus dispatches by exact event class: a publish of `SelectionMoved` only runs the handlers explicitly subscribed to `SelectionMoved`. Cost is `O(subscribers for type(event))` plus the cost of each handler body. Editors that decorate their methods with `@redraw_on` / `@react_on` declare interest at the class level, so the framework auto-subscribes exactly once per editor instance — no broadcast-and-filter fan-out, no per-wrapper `isinstance` chain.
+
+The contract is: *handlers are cheap; the heavy work goes in `draw()`, gated by `@redraw_on` (framework redraws once per dispatch pass) or by an explicit `wrapper.redraw()` inside a `@react_on` handler*. Multiple `@redraw_on` handlers on the same editor matching the same event still trigger exactly one redraw — the framework collects flags during dispatch and calls `wrapper.redraw()` at the end of the pass. Side effects belong in `@react_on` handlers; typical work is issuing a lifecycle command (`session.publish(Close(...))`), flipping a flag, or persisting state.
 
 ### 4.3 Hot-reload
 
-`EditorTypeRegistry` and `PanelRegistry` extend `BaseRegistry` and participate in the framework hot-reload loop. When an editor class is replaced, the orchestrator evicts cached wrappers, calls `cleanup()` on the old instance, and re-instantiates + `draw()` for any visible bindings. Slots subscribe to the registry's batch-event channel to learn when new `opens='required'` editors should auto-bind on next render.
+`EditorTypeRegistry` and `PanelRegistry` extend `BaseRegistry` and participate in the framework hot-reload loop. When an editor class is replaced, the framework drops its bus subscriptions, evicts cached wrappers, calls `cleanup()` on the old instance, and re-instantiates + `draw()` (which re-wires fresh subscriptions for the new class's decorated handlers) for any visible bindings. Slots subscribe to the registry's batch-event channel to learn when new `opens='required'` editors should auto-bind on next render.
 
-The signal-class-reload caveat applies here too: subscribers that hold a reference to an old signal class object will see `isinstance()` return `False` after a reload of that class. Library authors who declare their own signal classes that other libraries subscribe to must list the signal-declaring library in their dependencies.
+The event-class-reload caveat applies here too: handlers that hold a reference to an old `Event` class object will see `isinstance()` / type lookup miss after a reload of that class. Library authors who declare their own `Event` subclasses that other libraries subscribe to must list the declaring library in their dependencies.
 
 ### 4.4 Boundary — what the studio is not
 
@@ -221,15 +223,15 @@ The studio layer does not own:
 - **Settings resolution** — that's `SettingsRegistry` (see [architecture/settings](../settings/settings-arch.md)).
 - **Execution** — interpreters and assembly run server-side, independent of UI presence.
 
-The studio is a presentation and orchestration layer: it owns *which editor is in which slot, when does each get redrawn*. Everything else flows through the shared project state and the two channels.
+The studio is a presentation and orchestration layer: it owns *which editor is in which slot, when does each get redrawn*. Everything else flows through the shared project state and the per-session event bus.
 
 ## 5. Extensibility
 
 A library extends the studio by adding any of:
 
-- **Editors** — `@editor(...)` + `BaseEditor` subclass + `add_folder_to_registry(..., EditorTypeRegistry)` in `register_components()`.
-- **Panels** — `@panel(editor=..., focus=...)` + `Panel` subclass + `add_folder_to_registry(..., PanelRegistry)`.
+- **Editors** — `@editor(...)` + `BaseEditor` subclass + `add_folder_to_registry(..., EditorTypeRegistry)` in `register_components()`. Decorate handler methods with `@redraw_on(...)` / `@react_on(...)` to subscribe to events.
+- **Panels** — `@panel(action=..., focus=..., redraw_on=(...,))` + `BasePanel` subclass + `add_folder_to_registry(..., PanelRegistry)`. The host editor unions its registered panels' `redraw_on=` and subscribes the wrapper to the effective set.
 - **`Focus` classes** — `Focus` subclass + register via panel/focus discovery; `PropertiesEditor` picks them up automatically through `PanelRegistry.get_focuses_for(...)`.
-- **Custom `ContextSignal` subclasses** — declare in the library, emit via `session.signal(...)`, list the declaring library in `LibraryIdentity.dependencies` of any library that subscribes.
+- **Custom `Event` subclasses** — declare in the library (typically `ContextSignal` for observations, `LifecycleCommand` for imperatives), emit via `session.publish(...)`, list the declaring library in `LibraryIdentity.dependencies` of any library that subscribes.
 
 The studio framework provides the slots, the signal/lifecycle channels, the editor and panel base classes, and `SessionContext`. Every concrete user-facing piece of the studio — graph editor, properties editor, library browser, file viewer, etc. — lives in `haybale-studio` or other libraries, registered through these extension points.

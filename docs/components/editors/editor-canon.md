@@ -1,7 +1,7 @@
 ---
 status: draft
 doc_template: canonical-example
-scope: Authoring editors — BaseEditor subclass, @editor decorator, on_signal/redraw_on_signal/draw lifecycle, ContextSignal filtering, Reveal/Close/BroadcastClose lifecycle commands, OpenBehavior tab modes
+scope: Authoring editors — BaseEditor subclass, @editor decorator, draw lifecycle, @redraw_on/@react_on handler decorators, Event vocabulary, Reveal/Close/BroadcastClose lifecycle commands, OpenBehavior tab modes
 see-also:
   - ../panels/panel-canon.md
   - ../states/state-canon.md
@@ -13,30 +13,30 @@ see-also:
 
 ## 1. What it solves
 
-An **editor** is a self-contained UI module that fills one slot of the studio's workspace layout. As an author, you write a class that inherits from `BaseEditor`, decorate it with `@editor(...)`, implement `draw(context, container)` to build its NiceGUI subtree into a provided container, and optionally implement `redraw_on_signal(context, signal) -> bool` to request a redraw when relevant state moves and/or `on_signal(context, signal)` to run side effects regardless of whether this editor is the active tab.
+An **editor** is a self-contained UI module that fills one slot of the studio's workspace layout. As an author, you write a class that inherits from `BaseEditor`, decorate it with `@editor(...)`, implement `draw(context, container)` to build its NiceGUI subtree into a provided container, and optionally decorate handler methods with `@redraw_on(...)` (framework redraws the editor after the handler returns) or `@react_on(...)` (pure side-effect, no auto-redraw) to react to events on the session bus.
 
 Editors are the primary extension point for adding workspace UI. Once your library's `register_components()` calls `add_folder_to_registry(..., EditorTypeRegistry)`, the editor is auto-discovered and available in any workspace where its `default_slot` is hostable. The studio binds editor instances to slots lazily, one per session.
 
-The lifecycle is: instance is constructed when its wrapper first occupies a slot → the orchestrator calls `draw(context, container)` to build the subtree → on every `ContextSignal` the orchestrator calls `on_signal(context, signal)` on **every** wrapper in the slot (active or not), then calls `redraw_on_signal(context, signal)` only on the **active** wrapper; if that returns `True`, the orchestrator clears the container and calls `draw()` again → `cleanup()` runs when the editor is permanently removed.
+The lifecycle is: instance is constructed when its wrapper first occupies a slot → the framework auto-subscribes the editor's decorated handler methods to the session's typed event bus → the framework calls `draw(context, container)` to build the subtree → every published `Event` whose type matches a decorated handler invokes that handler; for `@redraw_on` handlers the wrapper redraws once after the dispatch pass → `cleanup()` runs when the editor is permanently removed.
 
-The redraw model is *clear-and-redraw*, not incremental. The orchestrator clears the NiceGUI element subtree before each `draw()` call. Editors that need cheaper redraws should keep the panel-mounting work behind a local cache and rebuild only the parts that actually changed; the heavy lifting belongs in panels (which have their own `poll`/`draw` cycle within an editor's container).
+The redraw model is *clear-and-redraw*, not incremental. The framework clears the NiceGUI element subtree before each `draw()` call. Editors that need cheaper redraws should keep the panel-mounting work behind a local cache and rebuild only the parts that actually changed; the heavy lifting belongs in panels (which have their own `poll`/`draw` cycle within an editor's container).
 
 ## 2. How it fits
 
 ```text
 @editor(label=..., default_slot=...)    EditorTypeRegistry             AppShell + slot
 class MyEditor(BaseEditor):              registers class                instantiates per slot;
-    def draw(self, context,              on register_components()       calls draw() once,
-             container): ...                                             then on_signal() on
-    def on_signal(self, context,                                         every wrapper +
-                  signal): ...                                           redraw_on_signal()
-    def redraw_on_signal(self, context,                                  on the active one,
-                         signal) -> bool: ...                            redrawing if True.
+    def draw(self, context,              on register_components()       wires bus subscriptions
+             container): ...                                             for decorated handlers,
+                                                                         calls draw() once,
+    @redraw_on(SelectionMoved,                                           then redraws when a
+               GraphDataMutated)                                         @redraw_on handler fires.
+    def _refresh(self, ctx, event): ...
 ```
 
 Editors *host* panels (in panel-aware editors like `PropertiesEditor`) but they don't own panel content — that's [components/panels](../panels/panel-canon.md). Editors don't render themselves into the canvas — that's the studio's job. They render into the NiceGUI `Element` that AppShell hands to `draw()`.
 
-**Boundaries.** What slots are, how the AppShell works, the workspace snapshot system — see [architecture/studio](../../architecture/studio/studio-arch.md). Panels — see [components/panels](../panels/panel-canon.md). Library/session state accessed inside editors (e.g. `EditState` for selection) — see [components/states](../states/state-canon.md). Signal classes and lifecycle commands — see `haywire/core/session/events.py`.
+**Boundaries.** What slots are, how the AppShell works, the workspace snapshot system — see [architecture/studio](../../architecture/studio/studio-arch.md). Panels — see [components/panels](../panels/panel-canon.md). Library/session state accessed inside editors (e.g. `EditState` for selection) — see [components/states](../states/state-canon.md). Event classes (`Event` base, `ContextSignal` observations, `LifecycleCommand` imperatives) — see `haywire/core/session/events.py`.
 
 ## 3. Important concepts
 
@@ -61,7 +61,7 @@ Editors *host* panels (in panel-aware editors like `PropertiesEditor`) but they 
 
 **Slot constraints.** `default_slot='left'` and `'right'` only support `opens='required'`. Bars don't have a tab structure to host on-demand or multi-instance editors. The decorator raises `ValueError` at class-definition time if you try.
 
-**`draw(self, context, container)`** is the only abstract method. The orchestrator calls it on first slot assignment and again whenever `redraw_on_signal()` returns `True`. Before each call the orchestrator **clears** `container` — your code starts inside an empty NiceGUI element. Use `with container:` (or store children of one of `container`'s descendants) to build into it.
+**`draw(self, context, container)`** is the only abstract method. The framework calls it on first slot assignment and again whenever a `@redraw_on` handler fires. Before each call the framework **clears** `container` — your code starts inside an empty NiceGUI element. Use `with container:` (or store children of one of `container`'s descendants) to build into it.
 
 ```python
 def draw(self, context: SessionContext, container: Element) -> None:
@@ -72,31 +72,30 @@ def draw(self, context: SessionContext, container: Element) -> None:
 
 Store references to UI elements you'll later mutate as instance attributes — but remember they live only until the next `draw()` call, since the container is cleared between draws.
 
-**`redraw_on_signal(self, context, signal) -> bool`** decides whether the editor needs a full redraw. Default returns `False` (never redraw). Fires only on the **active** wrapper in the slot — backgrounded wrappers can't be redrawn into a hidden panel meaningfully, so they catch up on `on_focus`. Filter by signal class with plain `isinstance`:
+**`@redraw_on(*event_types)`** decorates a handler method. The framework subscribes the method to each listed `ContextSignal` subclass on the per-session event bus when the editor is instantiated. After every matching dispatch, the framework calls `wrapper.redraw()` for you — exactly once per dispatch pass even if several `@redraw_on` handlers on this editor match the same event.
 
 ```python
-_RELEVANT_SIGNALS = (SelectionMoved, ActiveGraphMoved, GraphDataMutated)
-
-def redraw_on_signal(self, context: SessionContext, signal: ContextSignal) -> bool:
-    return isinstance(signal, self._RELEVANT_SIGNALS)
+@redraw_on(SelectionMoved, ActiveGraphMoved, GraphDataMutated)
+def _refresh_on_state_move(self, ctx: SessionContext, event: ContextSignal) -> None:
+    # Empty body is fine — the redraw is the point. Use the body when
+    # there's preparatory state to update before draw() re-runs.
+    ...
 ```
 
-`redraw_on_signal()` runs synchronously on every signal delivered to the active wrapper. Keep it cheap — no I/O, no AppState walks, no expensive predicates. A typical implementation is a tuple of relevant signal types and a single `isinstance` check. **Do not run side effects here** — it's a pure decision function. Side effects belong in `on_signal`.
+Method names are author-chosen; the decorator is the only marker. Multiple `@redraw_on` methods per class are allowed; each declares its own event-type set. Both `@redraw_on` and `@react_on` fire regardless of whether the editor's wrapper is the active tab — backgrounded editors stay current (kept alive by Quasar `ui.tab_panels` keep-alive), so on focus they're already drawn correctly. `BaseEditor` has no abstract handler method to override; the decorator is the contract.
 
-**`on_signal(self, context, signal) -> None`** is the side-effect channel. It fires on **every** wrapper in the slot regardless of active state — including backgrounded tabs. Default is a no-op. Use it when something must happen even while the editor isn't visible:
-
-- closing tabs in response to an entity removal (e.g. a HaystackEditor responding to a teardown signal by issuing local `Close(binding_id=...)` lifecycle commands);
-- marking the editor stale so the next `on_focus`/`draw` re-reads underlying state;
-- clearing in-memory caches.
+**`@react_on(*event_types)`** is the pure side-effect variant. The framework dispatches the matching event to the handler but does **not** auto-redraw afterwards. The author is responsible for any explicit `wrapper.redraw()`, `wrapper.force_close()`, or `session.publish(Reveal/Close/...)` calls inside the body.
 
 ```python
-def on_signal(self, context: SessionContext, signal: ContextSignal) -> None:
-    if isinstance(signal, MyTeardownSignal):
-        for eid in signal.entry_ids:
-            context.session.lifecycle(Close(binding_id=eid))
+@react_on(HaystackTeardown)
+def _close_stale_tabs(self, ctx: SessionContext, event: HaystackTeardown) -> None:
+    for eid in event.entry_ids:
+        ctx.session.publish(Close(binding_id=eid))
 ```
 
-`on_signal` runs for every signal on every wrapper, so it's on the hot path in the same way `redraw_on_signal` is — keep it cheap and side-effect-only. Don't trigger redraws from here; if a redraw is also warranted, return `True` from `redraw_on_signal` (which fires only on the active wrapper, where redraws are meaningful).
+Use `@react_on` when something must happen on every event reaching this editor (including from backgrounded tabs) but doesn't warrant a redraw of *this* editor — for example, issuing lifecycle commands, marking caches stale, or persisting state. If both side-effect and redraw are needed, prefer two methods: one `@redraw_on` (empty body, framework redraws) and one `@react_on` (the side effect). Don't trigger redraws from inside a `@react_on` handler unless you know the redraw shouldn't be amortised across the dispatch pass.
+
+Handlers run synchronously on every matching publish; keep them cheap. The heavy lifting belongs in `draw()`, gated by the redraw decision.
 
 **`on_focus(self, context)`** is called when the editor's wrapper becomes the active tab in its slot — on initial render, on programmatic `Slot.switch_to`, on user tab-click, or via `Slot.add_binding(activate=True)`. **Not** called when the user re-clicks the already-active tab. Runs **before** `draw()` on the newly-activated wrapper, so any context mutations this hook performs are visible to that draw and to any signals the hook broadcasts. Default is a no-op. Editors that own a slice of session state (e.g. a graph editor that updates `active_graph` when its tab becomes active) override this. Read `self.wrapper.binding_id` to disambiguate this instance from siblings.
 
@@ -119,30 +118,30 @@ node = context.data[EditState].active_node.value     # NodeWrapper or None
 
 See [components/states](../states/state-canon.md) for the full state model.
 
-**Driving other slots — the lifecycle channel.** To open or focus a tab in another slot, send a `Reveal` lifecycle command on `context.session`:
+**Driving other slots — lifecycle commands on the event bus.** To open or focus a tab in another slot, publish a `Reveal` command on `context.session`:
 
 ```python
 from haywire.core.session.events import Reveal
 
-context.session.lifecycle(Reveal(
+context.session.publish(Reveal(
     editor=LibraryDetailEditor,
     binding_id=library_id,    # for opens='on_payload'
 ))
 ```
 
-The orchestrator resolves `editor.class_identity.default_slot` and routes the command. Use `Close(binding_id=...)` to close every tab bound to a `binding_id` across all slots in the issuing session (e.g. a session-local "discard" action).
+`Reveal`, `Close`, and `BroadcastClose` are `LifecycleCommand` payloads — the imperative half of the event vocabulary. They travel on the same per-session typed bus as `ContextSignal` observations and are emitted with the same `session.publish(...)` call. The AppShell subscribes to each command type and routes it: `Reveal` resolves `editor.class_identity.default_slot` and dispatches to that slot; `Close(binding_id=...)` closes every tab bound to a `binding_id` across all slots in the issuing session.
 
-Lifecycle commands are **local by default** — session-scoped UI actions like `Reveal`-on-click belong to the issuing session. Subclasses can opt into cross-session fan-out by setting `cross_session: ClassVar[bool] = True` (mirroring `ContextSignal`); `Session.lifecycle()` checks the class flag and routes via `SessionManager.broadcast_lifecycle` so every session's AppShell receives the command. Use this for fact-driven imperatives where the underlying entity is gone for everyone — `BroadcastClose(binding_id=...)` is the built-in: close matching tabs in **every** session.
+Lifecycle commands are **local by default** — session-scoped UI actions like `Reveal`-on-click belong to the issuing session. Subclasses can opt into cross-session fan-out by setting `cross_session: ClassVar[bool] = True` (same class-level flag used by `ContextSignal`); `Session.publish(...)` then delegates to `SessionManager.broadcast(...)` so every session's AppShell receives the command. Use this for fact-driven imperatives where the underlying entity is gone for everyone — `BroadcastClose(binding_id=...)` is the built-in: close matching tabs in **every** session.
 
 ```python
 from haywire.core.session.events import BroadcastClose
 
 # Underlying entry removed everywhere — close any GraphEditor tab bound
 # to it, in this session AND every peer session.
-context.session.lifecycle(BroadcastClose(binding_id=entry_id))
+context.session.publish(BroadcastClose(binding_id=entry_id))
 ```
 
-`BroadcastClose` is a subclass of `Close`, so AppShell's `_close_payload` handles it identically — the only difference is dispatch scope. Prefer `Close` for session-local UI actions; reserve `BroadcastClose` for cases where the close decision follows from a global fact rather than a session-local interaction.
+`BroadcastClose` is a subclass of `Close`. Because the bus matches subscribers by exact type, AppShell subscribes separately to `Close` and `BroadcastClose`, but the close handler is the same and reads the shared `binding_id` field. Prefer `Close` for session-local UI actions; reserve `BroadcastClose` for cases where the close decision follows from a global fact rather than a session-local interaction.
 
 **Imports.**
 
@@ -150,6 +149,7 @@ context.session.lifecycle(BroadcastClose(binding_id=entry_id))
 from haywire.ui.editor.base import BaseEditor
 from haywire.ui.editor.decorator import editor
 from haywire.ui.editor.identity import OpenBehavior   # for code that inspects the enum
+from haywire.core.session.handlers import redraw_on, react_on
 from haywire.core.session.events import (
     ContextSignal,
     SelectionMoved, ActiveGraphMoved, GraphDataMutated,   # observations
@@ -157,11 +157,13 @@ from haywire.core.session.events import (
 )
 ```
 
-**Hot-reload.** `EditorTypeRegistry` extends `BaseRegistry`. When an editor class is reloaded, the orchestrator evicts cached instances, calls `cleanup()`, and re-instantiates + `draw()` for any visible bindings. Subscribers that hold a reference to the old class object would see `isinstance()` checks fail spuriously after a reload — this is why library authors who declare their own signal classes that other libraries subscribe to must list the signal-declaring library in their own `LibraryIdentity.dependencies`.
+**Hot-reload.** `EditorTypeRegistry` extends `BaseRegistry`. When an editor class is reloaded, the framework evicts cached instances, calls `cleanup()`, drops the bus subscriptions wired for the decorated handlers, and re-instantiates + `draw()` for any visible bindings. Subscribers that hold a reference to the old class object would see `isinstance()` checks fail spuriously after a reload — this is why library authors who declare their own `Event` subclasses that other libraries subscribe to must list the declaring library in their own `LibraryIdentity.dependencies`.
 
 ## 4. One comprehensive example
 
-The studio's `PropertiesEditor` ([barn/haybale-studio/haybale_studio/editors/properties_editor.py](../../../barn/haybale-studio/haybale_studio/editors/properties_editor.py)) exercises every authoring concept: `default_slot='right'` with implicit `opens='required'`, `isinstance`-based signal filtering, a two-column `draw()` layout, panel-hosting via `PanelRegistry.get_panels_for(actions_provider, focus)`, an action protocol that panels call back into (`clear_selection`), reading `EditState` from `context.data`, and per-instance state preserved across redraws.
+The studio's `PropertiesEditor` ([barn/haybale-studio/haybale_studio/editors/properties_editor.py](../../../barn/haybale-studio/haybale_studio/editors/properties_editor.py)) is the validation case for the panel-driven bus subscription model: it has **no** `@redraw_on` / `@react_on` decorators of its own. Instead, the framework unions the `redraw_on=` declarations from every panel registered against the editor's action contract and subscribes the editor's wrapper to that effective set. When any of those events publishes, the wrapper redraws and the registered panels re-mount with fresh state. The editor *also* subscribes to the panel registry's batch lifecycle channel so it can reconcile its subscriptions when the catalog changes (library install / uninstall / panel hot-reload).
+
+This pattern only applies to host editors with third-party panel content. Most editors decorate their own handler methods directly — see `HaystackEditor` (`@redraw_on(ActiveGraphMoved, GraphDataMutated, HaystackReloaded)` + `@react_on(HaystackTeardown)`) or `LibraryComponentEditor` (`@redraw_on(ActiveComponentMoved, SelectionMoved, ThemeMoved)`).
 
 The salient excerpts:
 
@@ -178,16 +180,16 @@ What this example exercises:
 | `@editor(label, icon, default_slot='right', description)` — implicit `opens='required'` | top of class |
 | `class_identity` and `class_library` set automatically by the decorator | (set on the class object) |
 | Per-instance state initialised in `__init__`, persisted across redraws | `_active_focus_id`, `_expansion_state` |
-| Tuple of `ContextSignal` classes for cheap `isinstance` filtering | `_RELEVANT_SIGNALS` |
-| `redraw_on_signal(context, signal) -> bool` returns `True` to request redraw (active wrapper only) | `redraw_on_signal` |
 | `draw(context, container)` builds the subtree; container starts cleared | `draw` |
+| Panel-driven bus subscriptions: editor unions registered panels' `redraw_on=` and subscribes the wrapper to the effective set | `_subscribe_panel_event_handlers` |
+| Reconciling subscriptions on catalog mutation (library install / uninstall / hot-reload) | `_on_panel_registry_event` |
 | Pulling DI dependencies from `context.app` on first draw | `context.app.library_service.get_panel_registry()` |
 | Reading `SessionState` (selection lives on `EditState`, not `SessionContext`) | `clear_selection` |
 | Editor-as-actions-provider: panels call back into the editor | `clear_selection` (Protocol implementation) |
 | Hosting panels via `PanelRegistry.get_panels_for(actions_provider, focus)` | `_rebuild_content` (full source) |
 | Per-instance UI references (`_toolbar`, `_content`) re-fetched on each `draw` | layout fields |
 
-For the `Focus` and `Panel` extension points the editor hosts, see [components/panels](../panels/panel-canon.md). For the `EditState` reactive state model, see [components/states](../states/state-canon.md). For the orchestrator that owns slots and routes signals, see [architecture/studio](../../architecture/studio/studio-arch.md).
+For the `Focus` and `Panel` extension points the editor hosts, see [components/panels](../panels/panel-canon.md). For the `EditState` reactive state model, see [components/states](../states/state-canon.md). For the bus and the AppShell that subscribes to lifecycle commands, see [architecture/studio](../../architecture/studio/studio-arch.md).
 
 ---
 
@@ -198,15 +200,14 @@ For the `Focus` and `Panel` extension points the editor hosts, see [components/p
 - [ ] `@editor(label='...', default_slot='...')` — both have sensible defaults; set them deliberately
 - [ ] Choose `opens='required'` / `'on_context'` / `'on_payload'`
 - [ ] Inherit from `BaseEditor`; implement `draw(self, context, container)` — required
-- [ ] Override `redraw_on_signal(self, context, signal) -> bool` — default `False`; return `True` for signals that warrant a redraw of the active wrapper
-- [ ] Override `on_signal(self, context, signal) -> None` only when you need side effects that must run while the editor is backgrounded (e.g. closing tabs in response to a teardown signal)
+- [ ] Decorate handler methods with `@redraw_on(*EventTypes)` for events that warrant a full editor redraw — empty body is fine; the framework redraws once per dispatch pass
+- [ ] Decorate handler methods with `@react_on(*EventTypes)` for pure side effects — no auto-redraw; the body owns any explicit `wrapper.redraw()` / `session.publish(Reveal/Close/...)` calls
 - [ ] Initialise instance state in `__init__`; container/UI refs re-fetched in `draw()`
-- [ ] Use a tuple of `ContextSignal` classes + one `isinstance` for cheap `redraw_on_signal()` filtering
 - [ ] Optional: `on_focus(self, context)` — runs *before* `draw()` on the newly-activated wrapper
-- [ ] Optional: `cleanup(self)` — release subscriptions / timers
+- [ ] Optional: `cleanup(self)` — release subscriptions / timers (the framework drops decorated-handler subscriptions automatically)
 - [ ] Optional: `get_tab_label(self, context)` — dynamic per-binding_id label
 - [ ] Optional: `async handle_close_request(self)` — veto/save dialog before tab close
-- [ ] Drive other slots with `context.session.lifecycle(Reveal(editor=..., binding_id=...))`
+- [ ] Drive other slots with `context.session.publish(Reveal(editor=..., binding_id=...))`
 - [ ] Use `BroadcastClose(binding_id=...)` instead of `Close(binding_id=...)` when the underlying entity is gone for every session, not just yours
 
 ### Imports
@@ -215,6 +216,7 @@ For the `Focus` and `Panel` extension points the editor hosts, see [components/p
 from haywire.ui.editor.base import BaseEditor
 from haywire.ui.editor.decorator import editor
 from haywire.ui.editor.identity import OpenBehavior
+from haywire.core.session.handlers import redraw_on, react_on
 from haywire.core.session.events import (
     ContextSignal,
     SelectionMoved, ActiveGraphMoved, GraphDataMutated,
