@@ -186,7 +186,7 @@ def test_publish_broadcasts_for_cross_session_true_signal():
     session.publish(s)
 
     handler.assert_not_called()
-    sm.broadcast.assert_called_once_with(s, origin_session_id=session.session_id)
+    sm.broadcast.assert_called_once_with(s)
 
 
 def test_publish_broadcasts_for_cross_session_true_lifecycle():
@@ -201,7 +201,7 @@ def test_publish_broadcasts_for_cross_session_true_lifecycle():
     session.publish(c)
 
     handler.assert_not_called()
-    sm.broadcast.assert_called_once_with(c, origin_session_id=session.session_id)
+    sm.broadcast.assert_called_once_with(c)
 
 
 def test_publish_swallows_handler_exceptions():
@@ -305,7 +305,7 @@ def test_broadcast_delivers_to_every_session_including_origin():
     peer_b.subscribe(GraphDataMutated, lambda s: received[peer_b.session_id].append(s))
 
     s = GraphDataMutated()
-    sm.broadcast(s, origin_session_id=origin.session_id)
+    sm.broadcast(s)
 
     for sid in (origin.session_id, peer_a.session_id, peer_b.session_id):
         assert received[sid] == [s]
@@ -323,7 +323,7 @@ def test_broadcast_swallows_per_peer_exceptions():
     bad.subscribe(GraphDataMutated, MagicMock(side_effect=RuntimeError("boom")))
     good.subscribe(GraphDataMutated, lambda s: delivered.append(("good", s)))
 
-    sm.broadcast(GraphDataMutated(), origin_session_id=origin.session_id)
+    sm.broadcast(GraphDataMutated())
 
     delivered_kinds = {kind for kind, _ in delivered}
     assert "origin" in delivered_kinds

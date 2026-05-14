@@ -79,9 +79,8 @@ def test_create_new_broadcasts_graph_data_mutated(state_with_mocked_deps):
     state.create_new()
 
     state._session_manager.broadcast.assert_called_once()
-    args, kwargs = state._session_manager.broadcast.call_args
-    assert isinstance(args[0], GraphDataMutated)
-    assert kwargs.get("origin_session_id") == ""
+    (event,), _ = state._session_manager.broadcast.call_args
+    assert isinstance(event, GraphDataMutated)
 
 
 def test_create_new_registers_entry_under_entry_id(state_with_mocked_deps):
@@ -248,12 +247,10 @@ def test_validation_callback_marks_entry_unsaved_and_broadcasts(state_with_mocke
 
     assert entry.unsaved is True
     state._session_manager.broadcast.assert_called_once()
-    args, kwargs = state._session_manager.broadcast.call_args
-    # First arg is a GraphDataMutated; origin_session_id keyword.
+    (event,), _ = state._session_manager.broadcast.call_args
     from haywire.core.session.events import GraphDataMutated
 
-    assert isinstance(args[0], GraphDataMutated)
-    assert kwargs.get("origin_session_id") == ""
+    assert isinstance(event, GraphDataMutated)
 
 
 def test_validation_callback_no_broadcast_when_no_changes(state_with_mocked_deps):

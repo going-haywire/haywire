@@ -29,7 +29,7 @@ class SessionManager:
         manager = SessionManager(container=app.library_state_container)
         session = manager.create_session(project_state=app, workspace_manager=ws)
         manager.remove_session(session.session_id)
-        manager.broadcast(event, origin_session_id=...)
+        manager.broadcast(event)
     """
 
     def __init__(self, container: LibraryStateContainer):
@@ -109,7 +109,7 @@ class SessionManager:
     # Broadcast helpers
     # ------------------------------------------------------------------
 
-    def broadcast(self, event: Event, origin_session_id: str) -> None:
+    def broadcast(self, event: Event) -> None:
         """Fan an :class:`Event` out to every registered session.
 
         Callers normally reach this path via ``Session.publish(event)``
@@ -124,12 +124,7 @@ class SessionManager:
 
         Args:
             event: The :class:`Event` to fan out.
-            origin_session_id: The session_id that issued the event, or
-                ``""`` when the event originates outside any session
-                (e.g. a hot-reload broadcast from an AppState). Accepted
-                for diagnostic logging.
         """
-        del origin_session_id
         failed = []
         for session_id, session in list(self._sessions.items()):
             try:

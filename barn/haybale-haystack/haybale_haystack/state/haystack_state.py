@@ -105,7 +105,7 @@ class HaystackState(AppState):
             from haybale_haystack.signals import HaystackReloaded
 
             try:
-                self._session_manager.broadcast(HaystackReloaded(), origin_session_id="")
+                self._session_manager.broadcast(HaystackReloaded())
             except Exception as exc:
                 logger.warning(f"HaystackState.on_enable: HaystackReloaded broadcast failed: {exc}")
 
@@ -126,7 +126,7 @@ class HaystackState(AppState):
             from haybale_haystack.signals import HaystackTeardown
 
             try:
-                self._session_manager.broadcast(HaystackTeardown(entry_ids=entry_ids), origin_session_id="")
+                self._session_manager.broadcast(HaystackTeardown(entry_ids=entry_ids))
             except Exception as exc:
                 logger.warning(f"HaystackState.on_disable: HaystackTeardown broadcast failed: {exc}")
 
@@ -158,7 +158,7 @@ class HaystackState(AppState):
         from haywire.core.session.events import GraphDataMutated
 
         try:
-            self._session_manager.broadcast(GraphDataMutated(), origin_session_id="")
+            self._session_manager.broadcast(GraphDataMutated())
         except Exception as exc:
             logger.warning(f"HaystackState: GraphDataMutated broadcast failed: {exc}")
 

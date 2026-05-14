@@ -76,7 +76,7 @@ Sessions are created and tracked by `SessionManager` (`packages/haywire-core/src
 ```python
 manager = SessionManager(container=app.library_state_container)
 session = manager.create_session(project_state=app, workspace_manager=ws)
-manager.broadcast(some_event, origin_session_id=session.session_id)
+manager.broadcast(some_event)
 manager.remove_session(session.session_id)
 ```
 
@@ -189,7 +189,7 @@ Session A: user edits a node's setting
   ├─ NodeWrapper.update_setting(...)
   ├─ session.publish(GraphDataMutated())
   └─ Session.publish — cross_session=True path:
-      └─ session_manager.broadcast(event, origin_session_id=A)
+      └─ session_manager.broadcast(event)
           └─ For every session (A, B, C):
               └─ session._dispatch(event) → EventBus.publish → subscribers
 ```

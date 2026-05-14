@@ -282,7 +282,7 @@ def test_session_publish_cross_session_event_delegates_to_manager():
 
     session.publish(event)
 
-    sm.broadcast.assert_called_once_with(event, origin_session_id=session.session_id)
+    sm.broadcast.assert_called_once_with(event)
 
 
 def test_session_publish_cross_session_skips_local_bus_directly():

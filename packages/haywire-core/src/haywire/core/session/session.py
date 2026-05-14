@@ -95,7 +95,7 @@ class Session:
                 :class:`LifecycleCommand` (imperative).
         """
         if type(event).cross_session:
-            self._session_manager.broadcast(event, origin_session_id=self.session_id)
+            self._session_manager.broadcast(event)
             return
 
         self._bus.publish(event)
