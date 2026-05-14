@@ -80,11 +80,17 @@ class _EventC(ContextSignal):
 
 
 def _make_session() -> Session:
-    return Session(
+    session = Session(
         project_state=MagicMock(),
         workspace_manager=MagicMock(),
         session_manager=MagicMock(),
     )
+    # Decouple the wrapper's panel-registry resolution chain from the
+    # auto-mock — these tests don't host panels; we want the wrapper to
+    # cleanly skip the panel-bus subscription path rather than chase a
+    # MagicMock.
+    session.context.app = SimpleNamespace()
+    return session
 
 
 def _make_wrapper(editor_cls: type, session: Session) -> EditorWrapper:

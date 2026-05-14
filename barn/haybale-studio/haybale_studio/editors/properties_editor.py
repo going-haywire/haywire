@@ -81,20 +81,13 @@ class PropertiesEditor(BaseEditor):
     # BaseEditor interface (draw + panel registry hook)
     # ------------------------------------------------------------------
 
-    def get_panel_registry(self, context: SessionContext) -> PanelRegistry:
+    def _panel_registry(self, context: SessionContext) -> PanelRegistry:
         """Return the registry whose panels appear in this editor.
 
-        The framework reads this hook to compute PropertiesEditor's
-        effective event-bus subscription set: every event type contributed
-        by a panel's ``redraw_on=`` becomes a subscription on the session
-        bus. When such an event publishes, the framework calls
-        ``wrapper.redraw()`` and panels re-mount with fresh state. See the
-        event-bus redesign (``internals/speculatives/event_bus_redesign.md``)
-        for the wiring.
-
-        Returning the same registry the toolbar / content paths consult
-        ensures the framework subscribes against exactly the same panel
-        catalog the editor renders from.
+        Resolved via the same path the framework's wrapper uses when
+        computing panel-driven bus subscriptions, so the toolbar /
+        content paths render against exactly the panel catalog the
+        framework subscribes to.
         """
         return context.app.library_service.get_panel_registry()
 
@@ -176,7 +169,7 @@ class PropertiesEditor(BaseEditor):
         if self._active_focus_id is not None:
             return  # user's choice — never override
 
-        for focus in self._compute_toolbar_focuses(self.get_panel_registry(context)):
+        for focus in self._compute_toolbar_focuses(self._panel_registry(context)):
             try:
                 if focus.available(context):
                     self._active_focus_id = focus.id
@@ -194,7 +187,7 @@ class PropertiesEditor(BaseEditor):
         """Return the currently-active Focus class, or None."""
         if self._active_focus_id is None:
             return None
-        for focus in self._compute_toolbar_focuses(self.get_panel_registry(context)):
+        for focus in self._compute_toolbar_focuses(self._panel_registry(context)):
             if focus.id == self._active_focus_id:
                 return focus
         return None
@@ -211,7 +204,7 @@ class PropertiesEditor(BaseEditor):
         active_focus_id = self._active_focus_id
 
         with self._toolbar:
-            for focus in self._compute_toolbar_focuses(self.get_panel_registry(context)):
+            for focus in self._compute_toolbar_focuses(self._panel_registry(context)):
                 try:
                     available = focus.available(context)
                 except Exception as exc:
@@ -248,7 +241,7 @@ class PropertiesEditor(BaseEditor):
                 hui.empty_state("Nothing to show", icon=hui.icon.empty_no_selection)
             return
 
-        panel_registry = self.get_panel_registry(context)
+        panel_registry = self._panel_registry(context)
         panel_classes = self._mount_panels_for_active_focus(panel_registry, focus)
 
         has_panels = False

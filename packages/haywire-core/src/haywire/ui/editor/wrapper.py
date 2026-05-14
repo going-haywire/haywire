@@ -155,7 +155,7 @@ class EditorWrapper:
         # PanelRegistry the editor is currently subscribed to (lifecycle
         # channel). Held so the wrapper can unsubscribe cleanly on
         # ``cleanup`` / hot-reload. ``None`` when no editor instance is
-        # alive, or the editor returns ``None`` from ``get_panel_registry``.
+        # alive, or the session's context exposes no panel registry.
         self._panel_registry: Any = None
 
         # Cleanup flag — signals cleanup() has run; callers must not access
@@ -473,26 +473,36 @@ class EditorWrapper:
     def _subscribe_panel_event_handlers(self) -> None:
         """Subscribe to every event type a registered panel contributes via ``redraw_on=``.
 
-        Asks the live editor instance for its panel registry. If the editor
-        opts out (returns ``None``), nothing happens. Otherwise queries the
-        registry for the union of ``redraw_on`` event types contributed by
-        panels whose ``action`` contract this editor satisfies, and
-        subscribes the wrapper to each — every such subscription is a thin
-        ``redraw_on`` closure that just calls ``self.redraw()`` (panels
-        have no handler body of their own).
+        Resolves the session's panel registry from
+        ``session.context.app.library_service.get_panel_registry()`` and
+        queries it for the union of ``redraw_on`` event types contributed
+        by panels whose ``action`` contract this editor satisfies, then
+        subscribes the wrapper to each — every such subscription is a
+        thin ``redraw_on`` closure that just calls ``self.redraw()``
+        (panels have no handler body of their own).
 
         Also subscribes the wrapper to the registry's batch lifecycle
         channel so the wrapper can reconcile its panel-union subscriptions
         when the catalog changes (library install / uninstall / panel
         hot-reload).
+
+        No-op when the session's context does not expose a panel registry
+        (test fixtures with stubbed context, non-studio hosts). The
+        ``library_service.get_panel_registry()`` chain is the same one
+        AppShell uses for settings / theme registries.
         """
         if self._instance is None:
             return
-        ctx = self._session.context
         try:
-            registry = self._instance.get_panel_registry(ctx)
+            library_service = self._session.context.app.library_service
+            registry = library_service.get_panel_registry()
+        except AttributeError:
+            # No panel registry reachable on this context (test fixture,
+            # non-studio host). Editor simply runs without panel-driven
+            # redraws.
+            return
         except Exception as exc:
-            logger.warning(f"EditorWrapper '{self.editor_key}': get_panel_registry raised: {exc}")
+            logger.warning(f"EditorWrapper '{self.editor_key}': resolving panel registry raised: {exc}")
             return
         if registry is None:
             return

@@ -1,12 +1,13 @@
-"""End-to-end test for the PropertiesEditor event-bus migration (PR #2).
+"""End-to-end test for the PropertiesEditor event-bus migration.
 
 Verifies that:
-- PropertiesEditor.get_panel_registry returns the registry from
-  context.app.library_service.get_panel_registry().
+- PropertiesEditor's ``_panel_registry`` helper returns the registry
+  from ``context.app.library_service.get_panel_registry()``.
 - When a panel declares ``redraw_on=(SelectionMoved, ...)`` and is
   registered against PropertiesEditorActions, the framework
-  auto-subscribes the editor's wrapper to the panel's events. Publishing
-  ``SelectionMoved`` then triggers ``wrapper.redraw()``.
+  auto-subscribes the editor's wrapper to the panel's events (resolved
+  via the same context chain). Publishing ``SelectionMoved`` then
+  triggers ``wrapper.redraw()``.
 - The migrated PropertiesEditor no longer carries the legacy
   ``_RELEVANT_SIGNALS`` / ``redraw_on_signal`` surface.
 """
@@ -55,18 +56,16 @@ def _make_session_with_panel_registry(panel_registry: PanelRegistry) -> Session:
         session_manager=MagicMock(),
     )
     # SessionContext copies project_state into ``app`` at construction time;
-    # patch the resolved attribute too so get_panel_registry hits our stub.
+    # patch the resolved attribute too so the wrapper's resolution chain
+    # hits our stub.
     session.context.app = app
     return session
 
 
-def test_properties_editor_get_panel_registry_returns_app_registry():
+def test_properties_editor_panel_registry_helper_returns_app_registry():
     panel_registry = PanelRegistry()
     session = _make_session_with_panel_registry(panel_registry)
 
-    # PropertiesEditor needs a wrapper for super().__init__; the toolbar
-    # discovery tests use object() but for this test we want the real
-    # framework wiring, so build a proper wrapper.
     wrapper = EditorWrapper(
         editor_key=PropertiesEditor.class_identity.registry_key,
         editor_cls=PropertiesEditor,
@@ -76,16 +75,19 @@ def test_properties_editor_get_panel_registry_returns_app_registry():
     assert wrapper._instantiate() is True
     editor = wrapper.instance
     assert editor is not None
-    assert editor.get_panel_registry(session.context) is panel_registry
+    assert editor._panel_registry(session.context) is panel_registry
 
 
 def test_properties_editor_no_longer_carries_legacy_signal_surface():
-    """The migrated editor must not expose the old _RELEVANT_SIGNALS or
-    redraw_on_signal / on_signal overrides — the framework drives
-    subscriptions through the typed event bus now."""
+    """The migrated editor must not expose the old _RELEVANT_SIGNALS,
+    redraw_on_signal / on_signal overrides, or a get_panel_registry
+    framework hook (the framework now resolves the registry directly
+    from the session's context).
+    """
     assert not hasattr(PropertiesEditor, "_RELEVANT_SIGNALS")
     assert "redraw_on_signal" not in PropertiesEditor.__dict__
     assert "on_signal" not in PropertiesEditor.__dict__
+    assert "get_panel_registry" not in PropertiesEditor.__dict__
 
 
 def test_selection_moved_triggers_wrapper_redraw_via_panel_redraw_on():

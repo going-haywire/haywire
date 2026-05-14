@@ -1,14 +1,15 @@
-"""Tests for the panel-contributed event-bus subscription union (Step 5b).
+"""Tests for the panel-contributed event-bus subscription union.
 
 Covers:
 
 - PanelRegistry.get_redraw_events_for unions ``redraw_on=`` across panels
   whose ``action`` is satisfied by the provider; skips panels with empty
   redraw_on, no action, or non-matching action.
-- EditorWrapper subscribes to the panel-contributed union when the editor
-  returns a registry from get_panel_registry; that subscription fires
-  wrapper.redraw() on publish.
-- Editors that opt out (return None) subscribe to nothing.
+- EditorWrapper subscribes to the panel-contributed union when the
+  session's context exposes a panel registry via
+  ``context.app.library_service.get_panel_registry()``; that subscription
+  fires wrapper.redraw() on publish.
+- Sessions whose context exposes no registry chain subscribe to nothing.
 - Panel-contributed subscriptions are independent from the editor's own
   @redraw_on/@react_on decorator subscriptions.
 - Catalog changes (PanelRegistry batch lifecycle events) trigger a
@@ -36,6 +37,16 @@ from haywire.ui.editor.wrapper import EditorWrapper
 from haywire.ui.panel import BasePanel, panel
 from haywire.ui.panel.focus import Focus
 from haywire.ui.panel.registry import PanelRegistry
+
+
+def _attach_panel_registry(session: Session, registry: Optional[PanelRegistry]) -> None:
+    """Wire ``context.app.library_service.get_panel_registry()`` to return ``registry``.
+
+    The wrapper resolves the registry through this chain; tests use this
+    helper to mount a per-test PanelRegistry on a fresh Session's context.
+    """
+    library_service = SimpleNamespace(get_panel_registry=lambda: registry)
+    session.context.app = SimpleNamespace(library_service=library_service)
 
 
 _FAKE_LIBRARY_IDENTITY = LibraryIdentity(
@@ -140,11 +151,15 @@ class _PanelOtherActions(BasePanel):
 
 
 def _make_session() -> Session:
-    return Session(
+    session = Session(
         project_state=MagicMock(),
         workspace_manager=MagicMock(),
         session_manager=MagicMock(),
     )
+    # Default: no panel registry chain. Tests that need one call
+    # ``_attach_panel_registry(session, registry)`` to wire it on.
+    session.context.app = SimpleNamespace()
+    return session
 
 
 def _identity(key: str = "test:editor") -> SimpleNamespace:
@@ -217,52 +232,27 @@ class _StubEditorBase(BaseEditor):
 
 
 class _PanelHostingEditor(_StubEditorBase):
-    """Editor that satisfies _HostActions and exposes a panel registry."""
+    """Editor that satisfies _HostActions.
+
+    The panel registry the framework subscribes to is resolved from the
+    session's context (see ``_attach_panel_registry``) — not from the
+    editor.
+    """
 
     class_identity = _identity("test:editor:panel_host")
 
-    def __init__(self, wrapper):
-        super().__init__(wrapper)
-        self._test_registry: Optional[PanelRegistry] = None
-
     def do_thing(self) -> None:  # satisfies _HostActions structurally
         pass
-
-    def get_panel_registry(self, context):
-        return self._test_registry
-
-
-def _make_panel_hosting_wrapper(
-    session: Session,
-    panels: tuple[type, ...] = (_PanelX, _PanelY),
-) -> tuple[EditorWrapper, PanelRegistry]:
-    registry = _fresh_registry_with_panels(*panels)
-    wrapper = EditorWrapper(
-        editor_key="test:editor:panel_host",
-        editor_cls=_PanelHostingEditor,
-        registry=EditorTypeRegistry(),
-        session=session,
-    )
-    # Bind the registry the editor will return from get_panel_registry.
-    # We attach via a mutable class attribute so the editor instance built
-    # during _instantiate picks it up via the closed-over registry below.
-    _PanelHostingEditor._pending_registry = registry  # type: ignore[attr-defined]
-    return wrapper, registry
 
 
 def test_wrapper_subscribes_to_panel_redraw_events_when_registry_available():
     session = _make_session()
     registry = _fresh_registry_with_panels(_PanelX, _PanelY)
-
-    class _Editor(_PanelHostingEditor):
-        class_identity = _identity("test:editor:auto_pulls_registry")
-
-        def get_panel_registry(self, context):
-            return registry
+    _attach_panel_registry(session, registry)
 
     wrapper = EditorWrapper(
         editor_key="test:editor:auto_pulls_registry",
-        editor_cls=_Editor,
+        editor_cls=_PanelHostingEditor,
         registry=EditorTypeRegistry(),
         session=session,
     )
@@ -282,10 +272,14 @@ def test_wrapper_subscribes_to_panel_redraw_events_when_registry_available():
     assert redraws == []
 
 
-def test_wrapper_opts_out_when_editor_returns_no_registry():
-    """Default BaseEditor.get_panel_registry returns None; the wrapper
-    must subscribe to nothing on the panel-bus channel."""
+def test_wrapper_opts_out_when_session_exposes_no_registry():
+    """A session whose context does not expose a library_service /
+    get_panel_registry chain has the wrapper subscribe to nothing on
+    the panel-bus channel."""
     session = _make_session()
+    # Replace the auto-mock with a concrete object that lacks
+    # ``library_service`` so attribute resolution raises AttributeError.
+    session.context.app = SimpleNamespace()
 
     class _NoRegistryEditor(_StubEditorBase):
         class_identity = _identity("test:editor:no_registry")
@@ -301,6 +295,23 @@ def test_wrapper_opts_out_when_editor_returns_no_registry():
     assert wrapper._panel_registry is None
 
 
+def test_wrapper_opts_out_when_registry_chain_returns_none():
+    """A library_service that returns ``None`` from get_panel_registry()
+    is treated the same as a missing chain — no panel subs."""
+    session = _make_session()
+    _attach_panel_registry(session, None)
+
+    wrapper = EditorWrapper(
+        editor_key="test:editor:none_registry",
+        editor_cls=_PanelHostingEditor,
+        registry=EditorTypeRegistry(),
+        session=session,
+    )
+    assert wrapper._instantiate() is True
+    assert wrapper._panel_bus_unsubscribes == []
+    assert wrapper._panel_registry is None
+
+
 def test_wrapper_panel_subscription_independent_from_decorator_subs():
     """An editor with both @redraw_on methods AND panel-contributed
     subscriptions tracks them in separate lists; both fire."""
@@ -308,6 +319,7 @@ def test_wrapper_panel_subscription_independent_from_decorator_subs():
 
     session = _make_session()
     registry = _fresh_registry_with_panels(_PanelX)
+    _attach_panel_registry(session, registry)
 
     class _ComboEditor(_PanelHostingEditor):
         class_identity = _identity("test:editor:combo")
@@ -319,9 +331,6 @@ def test_wrapper_panel_subscription_independent_from_decorator_subs():
         @redraw_on(_UnrelatedEvent)
         def on_event(self, ctx, event):
             self.method_calls += 1
-
-        def get_panel_registry(self, context):
-            return registry
 
     wrapper = EditorWrapper(
         editor_key="test:editor:combo",
@@ -347,16 +356,11 @@ def test_wrapper_panel_subscription_independent_from_decorator_subs():
 def test_wrapper_attaches_to_panel_registry_lifecycle_channel():
     session = _make_session()
     registry = _fresh_registry_with_panels(_PanelX)
-
-    class _Editor(_PanelHostingEditor):
-        class_identity = _identity("test:editor:lifecycle")
-
-        def get_panel_registry(self, context):
-            return registry
+    _attach_panel_registry(session, registry)
 
     wrapper = EditorWrapper(
         editor_key="test:editor:lifecycle",
-        editor_cls=_Editor,
+        editor_cls=_PanelHostingEditor,
         registry=EditorTypeRegistry(),
         session=session,
     )
@@ -372,16 +376,11 @@ def test_wrapper_rebuilds_panel_subscriptions_on_catalog_change():
     wrapper.redraw()."""
     session = _make_session()
     registry = _fresh_registry_with_panels(_PanelX)
-
-    class _Editor(_PanelHostingEditor):
-        class_identity = _identity("test:editor:catalog_change")
-
-        def get_panel_registry(self, context):
-            return registry
+    _attach_panel_registry(session, registry)
 
     wrapper = EditorWrapper(
         editor_key="test:editor:catalog_change",
-        editor_cls=_Editor,
+        editor_cls=_PanelHostingEditor,
         registry=EditorTypeRegistry(),
         session=session,
     )
@@ -413,16 +412,11 @@ def test_wrapper_rebuilds_panel_subscriptions_on_catalog_change():
 def test_wrapper_cleanup_detaches_from_panel_registry_and_drops_panel_subs():
     session = _make_session()
     registry = _fresh_registry_with_panels(_PanelX)
-
-    class _Editor(_PanelHostingEditor):
-        class_identity = _identity("test:editor:cleanup")
-
-        def get_panel_registry(self, context):
-            return registry
+    _attach_panel_registry(session, registry)
 
     wrapper = EditorWrapper(
         editor_key="test:editor:cleanup",
-        editor_cls=_Editor,
+        editor_cls=_PanelHostingEditor,
         registry=EditorTypeRegistry(),
         session=session,
     )
@@ -440,16 +434,11 @@ def test_wrapper_cleanup_detaches_from_panel_registry_and_drops_panel_subs():
 def test_wrapper_hot_reload_drops_panel_subs_and_resubscribes_against_new_class():
     session = _make_session()
     registry = _fresh_registry_with_panels(_PanelX)
-
-    class _Editor(_PanelHostingEditor):
-        class_identity = _identity("test:editor:hot_reload_panel")
-
-        def get_panel_registry(self, context):
-            return registry
+    _attach_panel_registry(session, registry)
 
     wrapper = EditorWrapper(
         editor_key="test:editor:hot_reload_panel",
-        editor_cls=_Editor,
+        editor_cls=_PanelHostingEditor,
         registry=EditorTypeRegistry(),
         session=session,
     )
@@ -459,9 +448,6 @@ def test_wrapper_hot_reload_drops_panel_subs_and_resubscribes_against_new_class(
 
     class _ReloadedEditor(_PanelHostingEditor):
         class_identity = _identity("test:editor:hot_reload_panel")
-
-        def get_panel_registry(self, context):
-            return registry
 
     reload_event = LifeCycleEvent(
         event_type=LifeCycleEventType.CLASS_RELOADED,
@@ -482,18 +468,19 @@ def test_wrapper_hot_reload_drops_panel_subs_and_resubscribes_against_new_class(
     assert wrapper._on_panel_registry_event in registry._batch_event_subscribers
 
 
-def test_wrapper_handles_get_panel_registry_raising():
+def test_wrapper_handles_registry_resolution_raising():
+    """A library_service whose ``get_panel_registry`` raises is treated
+    the same as a missing chain: the wrapper logs and ends up with no
+    panel subs rather than propagating the exception."""
     session = _make_session()
-
-    class _Editor(_PanelHostingEditor):
-        class_identity = _identity("test:editor:bad_get_registry")
-
-        def get_panel_registry(self, context):
-            raise RuntimeError("intentional bad registry resolution")
+    library_service = SimpleNamespace(
+        get_panel_registry=MagicMock(side_effect=RuntimeError("intentional bad lookup"))
+    )
+    session.context.app = SimpleNamespace(library_service=library_service)
 
     wrapper = EditorWrapper(
         editor_key="test:editor:bad_get_registry",
-        editor_cls=_Editor,
+        editor_cls=_PanelHostingEditor,
         registry=EditorTypeRegistry(),
         session=session,
     )

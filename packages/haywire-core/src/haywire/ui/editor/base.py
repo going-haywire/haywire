@@ -18,13 +18,12 @@ Lifecycle outside the bus channel:
 """
 
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, ClassVar, Optional
+from typing import TYPE_CHECKING, ClassVar
 
 from .identity import EditorIdentity
 
 if TYPE_CHECKING:
     from haywire.ui.editor.wrapper import EditorWrapper
-    from haywire.ui.panel.registry import PanelRegistry
     from haywire.core.session.context import SessionContext
     from nicegui.element import Element
 
@@ -45,14 +44,15 @@ class BaseEditor(ABC):
         - on_focus(context): Called when this wrapper becomes active.
         - cleanup(): Release resources when permanently removed.
         - get_tab_label(context): Dynamic tab label for tabbed slots.
-        - get_panel_registry(context): Opt in to panel-driven redraws.
 
     Event-bus subscriptions are declared per-method via
     ``@redraw_on(...)`` / ``@react_on(...)`` decorators from
     :mod:`haywire.core.session.handlers`. The framework auto-subscribes
-    decorated methods at editor instantiation; see
-    :mod:`haywire.core.session.handlers` and the event-bus redesign
-    notes in ``internals/speculatives/event_bus_redesign.md``.
+    decorated methods at editor instantiation, and additionally
+    subscribes the editor to any ``redraw_on=`` events declared by
+    panels whose action contract this editor satisfies — resolved via
+    the session's ``context.app.library_service.get_panel_registry()``.
+    See ``internals/speculatives/event_bus_redesign.md``.
 
     Class attributes (set by @editor decorator):
         - class_identity: EditorIdentity with registry_key, label, icon, default_slot.
@@ -126,38 +126,6 @@ class BaseEditor(ABC):
         Override to release resources, cancel timers, etc.
         """
         pass
-
-    def get_panel_registry(self, context: "SessionContext") -> "Optional[PanelRegistry]":
-        """Return the panel registry this editor uses, or ``None``.
-
-        Editors that host panels override this to return the registry that
-        their panels live in. The framework calls it after instantiation
-        and uses the result to compute the editor's panel-contributed event-
-        bus subscription set (see event-bus redesign, Step 5b): for every
-        registered panel whose action contract this editor satisfies, the
-        framework subscribes the editor to that panel's ``redraw_on=``
-        event types, so the editor's wrapper redraws when those events
-        publish and panels re-mount with fresh state.
-
-        Default returns ``None``. Editors that do not host panels (or that
-        explicitly opt out of panel-driven redraws) keep the default; only
-        their own ``@redraw_on`` / ``@react_on`` decorated methods drive
-        bus subscriptions in that case.
-
-        The registry returned here also becomes the framework's hook for
-        reacting to panel catalog changes (hot-reload, library install /
-        uninstall): when the registry's lifecycle channel fires, the
-        wrapper rebuilds its panel-contributed subscription set.
-
-        Args:
-            context: The current session context. Editors typically resolve
-                their registry via ``context.app`` or a similar accessor.
-
-        Returns:
-            The :class:`~haywire.ui.panel.registry.PanelRegistry` instance
-            this editor hosts panels from, or ``None`` to opt out.
-        """
-        return None
 
     async def handle_close_request(self) -> bool:
         """Decide whether to allow this editor's tab to close.
