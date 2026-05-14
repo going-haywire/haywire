@@ -30,6 +30,7 @@ from nicegui import ui
 
 from haywire.ui import elements as hui
 from haywire.core.session.signals_and_lifecycle import SelectionMoved, ThemeMoved
+from haywire.core.session.handlers import react_on, redraw_on
 from haywire.ui.editor.base import BaseEditor
 from haywire.ui.editor.decorator import editor
 
@@ -38,7 +39,6 @@ from haybale_studio.state.edit_state import EditState
 if TYPE_CHECKING:
     from haywire.core.registry.lifecycle_event import LifeCycleEvent
     from haywire.core.session.context import SessionContext
-    from haywire.core.session.signals_and_lifecycle import ContextSignal
     from nicegui.element import Element
 
 
@@ -53,8 +53,6 @@ logger = logging.getLogger(__name__)
 )
 class NodeSourceEditor(BaseEditor):
     """Source viewer/editor that follows ``context.data[EditState].active_node``."""
-
-    _RELEVANT_SIGNALS = (SelectionMoved, ThemeMoved)
 
     def __init__(self, wrapper) -> None:
         super().__init__(wrapper)
@@ -83,17 +81,28 @@ class NodeSourceEditor(BaseEditor):
         self._lifecycle_registry_key: Optional[str] = None
 
     # ------------------------------------------------------------------
-    # BaseEditor interface
+    # Event-bus subscriptions
     # ------------------------------------------------------------------
 
-    def redraw_on_signal(self, context: "SessionContext", signal: "ContextSignal") -> bool:
+    @react_on(SelectionMoved)
+    def _maybe_redraw_on_selection(self, context: "SessionContext", event: SelectionMoved) -> None:
         # While the user is editing, freeze the buffer against selection
-        # churn. Theme changes still redraw so CodeMirror picks up the
-        # new colors — but theme changes are expected to be rare and the
-        # redraw happily reads the already-dirty _content out of self.
-        if self._pinned and isinstance(signal, SelectionMoved):
-            return False
-        return isinstance(signal, self._RELEVANT_SIGNALS)
+        # churn. ``@react_on`` is used (not ``@redraw_on``) so we can gate
+        # the redraw on the pin state.
+        if self._pinned:
+            return
+        self.wrapper.redraw()
+
+    @redraw_on(ThemeMoved)
+    def _redraw_on_theme(self, context: "SessionContext", event: ThemeMoved) -> None:
+        # Theme changes always redraw so CodeMirror picks up the new
+        # colors. ``draw`` reads the already-dirty ``_content`` out of
+        # ``self`` if pinned, preserving the user's edits.
+        pass
+
+    # ------------------------------------------------------------------
+    # BaseEditor interface
+    # ------------------------------------------------------------------
 
     def draw(self, context: "SessionContext", container: "Element") -> None:
         # If we're not pinned, reload from active_node. If we are pinned,

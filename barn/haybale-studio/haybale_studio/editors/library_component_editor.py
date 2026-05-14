@@ -18,6 +18,7 @@ from haywire.ui import elements as hui
 
 from haywire.ui.editor.decorator import editor
 from haywire.ui.editor.base import BaseEditor
+from haywire.core.session.handlers import redraw_on
 from haywire.core.session.signals_and_lifecycle import (
     ActiveComponentMoved,
     SelectionMoved,
@@ -28,7 +29,6 @@ from haybale_studio.state.edit_state import EditState
 
 if TYPE_CHECKING:
     from haywire.core.session.context import SessionContext
-    from haywire.core.session.signals_and_lifecycle import ContextSignal
     from nicegui.element import Element
 
 
@@ -56,8 +56,10 @@ class LibraryComponentEditor(BaseEditor):
         self._container = None
         self._code_editor = None  # ui.codemirror reference for live theme updates
 
-    def redraw_on_signal(self, context: "SessionContext", signal: "ContextSignal") -> bool:
-        return isinstance(signal, (ActiveComponentMoved, SelectionMoved, ThemeMoved))
+    @redraw_on(ActiveComponentMoved, SelectionMoved, ThemeMoved)
+    def _refresh_on_relevant_event(self, context: "SessionContext", event) -> None:
+        # Empty body — the decorator triggers wrapper.redraw() after return.
+        pass
 
     def draw(self, context: "SessionContext", container: "Element") -> None:
         self._container = container

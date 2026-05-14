@@ -5,6 +5,7 @@ from typing import Protocol, runtime_checkable
 
 import pytest
 
+from haywire.core.session.signals import SelectionMoved, GraphDataMutated
 from haywire.ui.panel import BasePanel, panel
 from haywire.ui.panel.focus import Focus
 
@@ -93,6 +94,97 @@ def test_panel_label_is_required():
             action=_DummyActions,
             focus=_DummyFocus,
             # label missing
+        )
+        class P(BasePanel):
+            def draw(self, ctx, layout, actions):
+                pass
+
+
+# ---------------------------------------------------------------------------
+# redraw_on= (event-bus redesign, PR #1, Step 3)
+# ---------------------------------------------------------------------------
+
+
+def test_panel_redraw_on_defaults_to_empty_tuple():
+    """Panels that don't declare redraw_on= contribute no event subscriptions."""
+
+    @panel(action=_DummyActions, focus=_DummyFocus, label="No Subscriptions")
+    class P(BasePanel):
+        def draw(self, ctx, layout, actions):
+            pass
+
+    assert P.class_identity.redraw_on == ()
+
+
+def test_panel_redraw_on_accepts_single_event_type():
+    @panel(
+        action=_DummyActions,
+        focus=_DummyFocus,
+        label="Selection",
+        redraw_on=(SelectionMoved,),
+    )
+    class P(BasePanel):
+        def draw(self, ctx, layout, actions):
+            pass
+
+    assert P.class_identity.redraw_on == (SelectionMoved,)
+
+
+def test_panel_redraw_on_accepts_multiple_event_types_in_order():
+    @panel(
+        action=_DummyActions,
+        focus=_DummyFocus,
+        label="Two events",
+        redraw_on=(SelectionMoved, GraphDataMutated),
+    )
+    class P(BasePanel):
+        def draw(self, ctx, layout, actions):
+            pass
+
+    assert P.class_identity.redraw_on == (SelectionMoved, GraphDataMutated)
+
+
+def test_panel_redraw_on_rejects_signal_instance():
+    """Passing an instance instead of the class is a common mistake."""
+    with pytest.raises(TypeError, match="not a type"):
+
+        @panel(
+            action=_DummyActions,
+            focus=_DummyFocus,
+            label="Bad",
+            redraw_on=(SelectionMoved(),),  # type: ignore[arg-type]
+        )
+        class P(BasePanel):
+            def draw(self, ctx, layout, actions):
+                pass
+
+
+def test_panel_redraw_on_rejects_non_contextsignal_type():
+    class NotASignal:
+        pass
+
+    with pytest.raises(TypeError, match="not a ContextSignal subclass"):
+
+        @panel(
+            action=_DummyActions,
+            focus=_DummyFocus,
+            label="Bad",
+            redraw_on=(NotASignal,),  # type: ignore[arg-type]
+        )
+        class P(BasePanel):
+            def draw(self, ctx, layout, actions):
+                pass
+
+
+def test_panel_redraw_on_error_mentions_panel_context():
+    """Error message should make clear the failure is from @panel(redraw_on=...)."""
+    with pytest.raises(TypeError, match=r"@panel\(\.\.\., redraw_on=\.\.\.\)"):
+
+        @panel(
+            action=_DummyActions,
+            focus=_DummyFocus,
+            label="Bad",
+            redraw_on=(str,),  # type: ignore[arg-type]
         )
         class P(BasePanel):
             def draw(self, ctx, layout, actions):

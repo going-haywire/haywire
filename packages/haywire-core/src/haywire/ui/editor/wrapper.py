@@ -15,6 +15,8 @@ from typing import TYPE_CHECKING, Any, Callable, Optional
 from nicegui import ui
 
 from haywire.core.errors.haywire_exception import HaywireException
+from haywire.core.session.handlers import discover_handlers
+from haywire.core.session.signals import ContextSignal
 from haywire.ui.editor.identity import OpenBehavior
 from haywire.core.registry.lifecycle_event import LifeCycleEvent
 
@@ -33,7 +35,8 @@ class EditorWrapperState:
 
     Mirrors the shape of NodeWrapperState but with editor-specific phases.
     Editors have no init/structural/test phases — only import, instantiate,
-    and runtime (covering draw/on_focus/on_signal/redraw_on_signal).
+    and runtime (covering draw / on_focus and any @redraw_on / @react_on
+    decorated handler calls).
     """
 
     is_imported: bool = True
@@ -134,6 +137,27 @@ class EditorWrapper:
         self._state: EditorWrapperState = EditorWrapperState()
         self._slot: "Optional[Slot]" = slot
 
+        # Bus-subscription teardown handles for the editor's own
+        # ``@redraw_on`` / ``@react_on`` decorated methods. Populated by
+        # ``_subscribe_event_handlers`` after a successful ``_instantiate``;
+        # drained by ``_unsubscribe_event_handlers`` on hot-reload and
+        # ``cleanup``.
+        self._bus_unsubscribes: list[Callable[[], None]] = []
+
+        # Bus-subscription teardown handles for the *panel-contributed*
+        # union — every ``redraw_on=`` event type contributed by panels
+        # whose ``action`` Protocol the editor instance satisfies. Held
+        # separately so the wrapper can reconcile this set on PanelRegistry
+        # catalog changes (Step 5b) without disturbing the method-decorator
+        # subscriptions above.
+        self._panel_bus_unsubscribes: list[Callable[[], None]] = []
+
+        # PanelRegistry the editor is currently subscribed to (lifecycle
+        # channel). Held so the wrapper can unsubscribe cleanly on
+        # ``cleanup`` / hot-reload. ``None`` when no editor instance is
+        # alive, or the editor returns ``None`` from ``get_panel_registry``.
+        self._panel_registry: Any = None
+
         # Cleanup flag — signals cleanup() has run; callers must not access
         # the wrapper's fields after that. Mirrors Settings._cleaned_up.
         self._cleaned_up: bool = False
@@ -209,6 +233,25 @@ class EditorWrapper:
         """
         self._redraw_callback = callback
 
+    def redraw(self) -> None:
+        """Ask the owning slot to redraw this wrapper.
+
+        Public entry point used by the event-bus dispatch path: a closure
+        wrapping an ``@redraw_on``-decorated handler calls this after the
+        handler returns. No-op if the wrapper isn't attached to a slot
+        (detached wrappers — e.g., unit tests — have no surface to
+        redraw into).
+
+        Slot semantics ensure the redraw is safe even when the wrapper
+        is backgrounded — Quasar ``ui.tab_panels`` with keep-alive keeps
+        the DOM mounted, so a redraw on a hidden tab is invisible work
+        that pays off the moment the user focuses the tab. See the
+        dispatch-loop semantics section of
+        ``internals/speculatives/event_bus_redesign.md``.
+        """
+        if self._redraw_callback is not None:
+            self._redraw_callback(self)
+
     def set_dirty(self, value: bool) -> None:
         """Mark the wrapped editor's content as dirty (or not).
 
@@ -268,6 +311,11 @@ class EditorWrapper:
             self._state.is_imported = True
             self._state.error_import = None
             self._state.is_dirty = False
+            # Drop bus subscriptions bound to the old instance before
+            # tearing it down. The next _instantiate() re-subscribes the
+            # new instance against the (possibly reloaded) class's freshly-
+            # computed handler index.
+            self._unsubscribe_event_handlers()
             # Clear instance so next draw lazy-instantiates with new class
             if self._instance is not None:
                 try:
@@ -287,8 +335,15 @@ class EditorWrapper:
     def _instantiate(self) -> bool:
         """Lazy-instantiate the editor instance from editor_cls.
 
-        Called internally on first runtime entry point (draw/on_focus/on_signal/redraw_on_signal)
-        in Task 6. Captures construction errors into state.error_instantiate.
+        Called internally on first runtime entry point (draw / on_focus /
+        any decorated handler invocation). Captures construction errors
+        into state.error_instantiate.
+
+        On success, also subscribes the new instance's ``@redraw_on`` and
+        ``@react_on`` decorated methods to the session's event bus. Those
+        subscriptions live until the next hot-reload (which calls
+        ``_unsubscribe_event_handlers`` before clearing ``_instance``) or
+        wrapper cleanup.
 
         Returns:
             True on success, False if editor_cls is None or construction raised.
@@ -298,7 +353,6 @@ class EditorWrapper:
         try:
             self._instance = self.editor_cls(self)
             self._state.error_instantiate = None
-            return True
         except Exception as exc:
             error = HaywireException.from_exception(
                 exception=exc,
@@ -311,6 +365,254 @@ class EditorWrapper:
             self._state.error_instantiate = error
             self._instance = None
             return False
+
+        self._subscribe_event_handlers()
+        self._subscribe_panel_event_handlers()
+        return True
+
+    def _subscribe_event_handlers(self) -> None:
+        """Subscribe the live editor instance's decorated methods to the session bus.
+
+        Walks the editor class's handler index (cached on the class by
+        :func:`haywire.core.session.handlers.discover_handlers`) and wires
+        each ``(event_type, method)`` binding through a per-binding closure.
+        The closure resolves the method by name on ``self._instance`` so
+        subclass overrides hit; calls it with ``(ctx, event)``; and — if
+        the binding's kind is ``"redraw_on"`` — calls ``self.redraw()``
+        after the handler returns. Handler exceptions are captured into
+        ``state.error_runtime``; the next handler still fires because
+        :class:`EventBus` is error-isolated per handler.
+
+        Idempotent in the sense that callers may call it after a successful
+        ``_instantiate``; not idempotent if called twice without a matching
+        ``_unsubscribe_event_handlers`` (each call adds fresh subscriptions).
+        """
+        if self._instance is None or self.editor_cls is None:
+            return
+        index = discover_handlers(self.editor_cls)
+        if not index:
+            return
+        bus_subscribe = self._session.subscribe
+        ctx = self._session.context
+        for event_type, bindings in index.items():
+            for binding in bindings:
+                unsub = bus_subscribe(
+                    event_type,
+                    self._make_handler_closure(binding.method_name, binding.kind, ctx),
+                )
+                self._bus_unsubscribes.append(unsub)
+
+    def _make_handler_closure(
+        self,
+        method_name: str,
+        kind: str,
+        ctx: Any,
+    ) -> Callable[[ContextSignal], None]:
+        """Build the per-binding closure registered on the bus.
+
+        Pulled out as a method (not an inline ``def``) so each closure
+        captures only ``method_name`` / ``kind`` — not whatever loop
+        variables Python's late-binding would otherwise smuggle in from
+        the caller. Each closure is its own subscription; ``ctx`` is read
+        from the session at subscribe time so hot-reload picks up any new
+        session-context wiring on re-subscription.
+        """
+
+        def _dispatch(event: ContextSignal) -> None:
+            instance = self._instance
+            if instance is None:
+                # Hot-reload between subscribe and publish — drop silently;
+                # next instantiate will re-subscribe.
+                return
+            method = getattr(instance, method_name, None)
+            if method is None:
+                logger.warning(
+                    f"EditorWrapper '{self.editor_key}': handler '{method_name}' "
+                    f"vanished from instance before dispatch — skipping."
+                )
+                return
+            try:
+                method(ctx, event)
+            except Exception as exc:
+                self._state.error_runtime = HaywireException.from_exception(
+                    exception=exc,
+                    operation=f"Editor {kind}",
+                    message=(f"{kind} handler '{method_name}' raised in editor '{self.editor_key}'"),
+                ).enrich(registry_key=self.editor_key)
+                # Do not redraw on failure: the redraw would re-run draw()
+                # with stale or invalid state. Author sees the error via
+                # the standard error placeholder on next natural redraw.
+                return
+            if kind == "redraw_on":
+                self.redraw()
+
+        return _dispatch
+
+    def _unsubscribe_event_handlers(self) -> None:
+        """Drop every bus subscription this wrapper currently owns —
+        both the editor's own decorator-derived subscriptions and the
+        panel-contributed union.
+
+        Idempotent. Called from the hot-reload path (before ``_instance``
+        is cleared so the next ``_instantiate`` re-subscribes against the
+        new class) and from ``cleanup``.
+        """
+        for unsub in self._bus_unsubscribes:
+            try:
+                unsub()
+            except Exception as exc:
+                logger.warning(f"EditorWrapper '{self.editor_key}': bus unsubscribe raised: {exc}")
+        self._bus_unsubscribes.clear()
+        self._unsubscribe_panel_event_handlers()
+        self._detach_panel_registry()
+
+    # ------------------------------------------------------------------
+    # Panel-contributed event subscriptions (Step 5b)
+    # ------------------------------------------------------------------
+
+    def _subscribe_panel_event_handlers(self) -> None:
+        """Subscribe to every event type a registered panel contributes via ``redraw_on=``.
+
+        Asks the live editor instance for its panel registry. If the editor
+        opts out (returns ``None``), nothing happens. Otherwise queries the
+        registry for the union of ``redraw_on`` event types contributed by
+        panels whose ``action`` contract this editor satisfies, and
+        subscribes the wrapper to each — every such subscription is a thin
+        ``redraw_on`` closure that just calls ``self.redraw()`` (panels
+        have no handler body of their own).
+
+        Also subscribes the wrapper to the registry's batch lifecycle
+        channel so the wrapper can reconcile its panel-union subscriptions
+        when the catalog changes (library install / uninstall / panel
+        hot-reload).
+        """
+        if self._instance is None:
+            return
+        ctx = self._session.context
+        try:
+            registry = self._instance.get_panel_registry(ctx)
+        except Exception as exc:
+            logger.warning(f"EditorWrapper '{self.editor_key}': get_panel_registry raised: {exc}")
+            return
+        if registry is None:
+            return
+        self._attach_panel_registry(registry)
+        self._rebuild_panel_event_subscriptions()
+
+    def _rebuild_panel_event_subscriptions(self) -> None:
+        """Recompute the panel-contributed event-bus subscription set.
+
+        Drops any panel-contributed subscriptions currently held, then
+        queries the attached registry for the current union and re-
+        subscribes. Called once from ``_subscribe_panel_event_handlers``
+        and again from ``_on_panel_registry_event`` on catalog changes.
+        """
+        self._unsubscribe_panel_event_handlers()
+        registry = self._panel_registry
+        instance = self._instance
+        if registry is None or instance is None:
+            return
+        try:
+            event_types = registry.get_redraw_events_for(instance)
+        except Exception as exc:
+            logger.warning(f"EditorWrapper '{self.editor_key}': get_redraw_events_for raised: {exc}")
+            return
+        if not event_types:
+            return
+        bus_subscribe = self._session.subscribe
+        redraw_closure = self._make_panel_redraw_closure()
+        for event_type in event_types:
+            self._panel_bus_unsubscribes.append(bus_subscribe(event_type, redraw_closure))
+
+    def _make_panel_redraw_closure(self) -> Callable[[ContextSignal], None]:
+        """Closure that, on any panel-contributed event publish, redraws this wrapper.
+
+        Panel-contributed subscriptions have no editor-side handler body —
+        the panel author already declared the intent via ``redraw_on=`` on
+        ``@panel(...)``. The framework just redraws so the panel re-mounts
+        with fresh state.
+
+        Skips the redraw if the wrapper is between instances (post hot-
+        reload, pre-next-``_instantiate``); the eventual ``_instantiate``
+        will subscribe fresh against the new instance.
+        """
+
+        def _redraw_on_panel_event(event: ContextSignal) -> None:
+            if self._instance is None:
+                return
+            self.redraw()
+
+        return _redraw_on_panel_event
+
+    def _unsubscribe_panel_event_handlers(self) -> None:
+        """Drop only the panel-contributed subscriptions; keep the
+        decorator-derived ones intact.
+
+        Used by the catalog-reconciliation path (registry lifecycle event)
+        and as part of full teardown via ``_unsubscribe_event_handlers``.
+        """
+        for unsub in self._panel_bus_unsubscribes:
+            try:
+                unsub()
+            except Exception as exc:
+                logger.warning(f"EditorWrapper '{self.editor_key}': panel-bus unsubscribe raised: {exc}")
+        self._panel_bus_unsubscribes.clear()
+
+    def _attach_panel_registry(self, registry: Any) -> None:
+        """Bind to a panel registry's batch lifecycle channel.
+
+        No-op if already attached to this registry. Replaces any prior
+        attachment (which is rare — only possible if the editor returns
+        a different registry between instances, e.g. after hot-reload).
+        """
+        if self._panel_registry is registry:
+            return
+        if self._panel_registry is not None:
+            self._detach_panel_registry()
+        try:
+            registry.add_batch_event_subscriber(self._on_panel_registry_event)
+        except Exception as exc:
+            logger.warning(
+                f"EditorWrapper '{self.editor_key}': failed to subscribe to panel registry: {exc}"
+            )
+            return
+        self._panel_registry = registry
+
+    def _detach_panel_registry(self) -> None:
+        """Unsubscribe from the panel registry's lifecycle channel, if attached."""
+        registry = self._panel_registry
+        if registry is None:
+            return
+        try:
+            registry.remove_batch_event_subscriber(self._on_panel_registry_event)
+        except Exception as exc:
+            logger.warning(
+                f"EditorWrapper '{self.editor_key}': failed to unsubscribe from panel registry: {exc}"
+            )
+        self._panel_registry = None
+
+    def _on_panel_registry_event(self, events: Any) -> None:
+        """Reconcile the panel-contributed subscription set on any catalog change.
+
+        The PanelRegistry's batch subscribers receive a list of
+        :class:`LifeCycleEvent`. We don't inspect them: any event might
+        change the union (a new panel registers, an old one unregisters,
+        a panel reloads with a different ``redraw_on=``). Simplest correct
+        behaviour: drop all panel-contributed subs and recompute. The
+        reconciled subscription set takes effect immediately; the next
+        bus publish reaches the new shape.
+        """
+        del events  # consumed by interface; not used here
+        if self._instance is None:
+            # No live instance to attribute subscriptions to — defer until
+            # the next _instantiate, which will rebuild from scratch.
+            return
+        self._rebuild_panel_event_subscriptions()
+        # A catalog change can mean *new* event types appeared — current
+        # state on screen may now be stale relative to what those events
+        # would have triggered. Ask for a redraw so the user sees a fresh
+        # render against the new panel set.
+        self.redraw()
 
     # ------------------------------------------------------------------
     # Runtime entry points (called by Slot)
@@ -373,45 +675,6 @@ class EditorWrapper:
                 message=f"on_focus() raised in editor '{self.editor_key}'",
             ).enrich(registry_key=self.editor_key)
 
-    def on_signal(self, event: Any) -> None:
-        """Forward a signal to the editor's side-effect hook.
-
-        Fires for every wrapper regardless of active state. No-op if no
-        instance exists yet (a wrapper that has never been drawn cannot
-        have side-effect logic running). Errors are captured into
-        state.error_runtime — never propagated, so one editor cannot
-        break delivery to its siblings.
-        """
-        if self._instance is None:
-            return
-        try:
-            self._instance.on_signal(self._session.context, event)
-        except Exception as exc:
-            self._state.error_runtime = HaywireException.from_exception(
-                exception=exc,
-                operation="Editor on_signal",
-                message=f"on_signal() raised in editor '{self.editor_key}'",
-            ).enrich(registry_key=self.editor_key)
-
-    def redraw_on_signal(self, event: Any) -> bool:
-        """Ask the active-tab editor whether it needs a redraw.
-
-        Returns False if no instance exists or the call raised. Errors
-        are captured into state.error_runtime. Only called by the slot
-        for the active wrapper — backgrounded wrappers don't redraw.
-        """
-        if self._instance is None:
-            return False
-        try:
-            return bool(self._instance.redraw_on_signal(self._session.context, event))
-        except Exception as exc:
-            self._state.error_runtime = HaywireException.from_exception(
-                exception=exc,
-                operation="Editor redraw_on_signal",
-                message=f"redraw_on_signal() raised in editor '{self.editor_key}'",
-            ).enrich(registry_key=self.editor_key)
-            return False
-
     async def request_close(self) -> bool:
         """Ask the editor whether it allows closing.
 
@@ -421,8 +684,8 @@ class EditorWrapper:
         No-op-allows when there's no instance — a broken or unloaded
         wrapper has nothing to ask. If ``handle_close_request`` raises,
         the error is captured into ``state.error_runtime`` (consistent
-        with draw/on_focus/on_signal/redraw_on_signal) and the close is allowed — better to
-        lose veto than strand the user with an unclosable tab.
+        with draw / on_focus) and the close is allowed — better to lose
+        veto than strand the user with an unclosable tab.
         """
         if self._instance is None:
             return True
@@ -499,6 +762,9 @@ class EditorWrapper:
             self._registry.remove_event_subscriber(self.editor_key, self._on_lifecycle_event)
         except Exception as exc:
             logger.warning(f"EditorWrapper '{self.editor_key}': failed to unsubscribe from registry: {exc}")
+        # Drop bus subscriptions before tearing the instance down so the
+        # closures we registered no longer reach into a half-dead wrapper.
+        self._unsubscribe_event_handlers()
         if self._instance is not None:
             try:
                 self._instance.cleanup()

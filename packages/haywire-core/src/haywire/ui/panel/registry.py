@@ -10,12 +10,15 @@ an actions_provider (structural isinstance check) and a Focus class
 
 import inspect
 import logging
-from typing import Any, Iterable, List
+from typing import Any, Iterable, List, Set, TYPE_CHECKING
 
 from haywire.core.registry.base import BaseRegistry
 from haywire.core.library.identity import LibraryIdentity
 
 from .base import BasePanel
+
+if TYPE_CHECKING:
+    from haywire.core.session.signals import ContextSignal
 
 logger = logging.getLogger(__name__)
 
@@ -128,6 +131,49 @@ class PanelRegistry(BaseRegistry):
                 seen_ids.add(focus_id)
                 focuses.append(focus)
         return focuses
+
+    def get_redraw_events_for(self, actions_provider: Any) -> Set[type["ContextSignal"]]:
+        """Return the union of ``redraw_on`` event types contributed by every
+        registered panel whose action contract ``actions_provider`` satisfies.
+
+        Used by editor hosts (via the event-bus redesign — see
+        ``internals/speculatives/event_bus_redesign.md``) to compute their
+        effective subscription set on the session bus. The host subscribes
+        to every event type in the returned set; when any of them publishes
+        the host redraws so currently-visible panels re-mount with fresh
+        state (panels themselves have no independent dispatch — they ride
+        the host's redraw).
+
+        Panels with an empty ``redraw_on`` tuple contribute nothing. Panels
+        whose ``action`` is None are skipped (legacy / partially-decorated
+        registrations); panels whose action ``isinstance`` check fails for
+        ``actions_provider`` are skipped (this host doesn't satisfy their
+        contract).
+
+        Args:
+            actions_provider: The host instance whose effective subscription
+                set we are computing. Typically the editor instance itself,
+                which structurally implements one or more action Protocols.
+
+        Returns:
+            A set of ``ContextSignal`` subclasses. Empty if no registered
+            panel applies to this host.
+        """
+        events: Set[type["ContextSignal"]] = set()
+        for cls in self._all_panel_classes():
+            identity = getattr(cls, "class_identity", None)
+            if identity is None:
+                continue
+            action = getattr(identity, "action", None)
+            if action is None:
+                continue
+            redraw_on = getattr(identity, "redraw_on", ())
+            if not redraw_on:
+                continue
+            if not isinstance(actions_provider, action):
+                continue
+            events.update(redraw_on)
+        return events
 
     def _all_panel_classes(self) -> Iterable[type]:
         """Iterate all registered panel classes."""

@@ -1,12 +1,15 @@
 """Tests for AppShell — post-refactor surface area.
 
-After the bus split (signal + lifecycle channels), AppShell owns:
+After the event-bus redesign, AppShell owns:
   - Theme CSS build + `apply_workbench_theme`
-  - Signal-channel orchestrator callback (`_on_signal`) fanning signals to slots
   - Lifecycle-channel orchestrator callback (`_on_lifecycle`) routing
     ``Reveal`` to ``_reveal_editor`` and ``Close`` to ``_close_payload``
   - Slot construction via `_build_managed_slot`
   - `_on_slot_resize` dispatching to `slot.set_size`
+
+Signal dispatch flows through ``Session``'s typed event bus directly to
+editors' auto-wired ``@redraw_on`` / ``@react_on`` handlers — AppShell is
+not on that path.
 
 Bar rendering, tab-state mutations, visibility toggling, and hot-reload are
 tested in test_icon_slot.py / test_tab_slot.py / test_slot.py.
@@ -33,9 +36,6 @@ class _FakeSession:
         )
         self._editors = {}
         self.signals_seen: list = []
-
-    def set_signal_orchestrator(self, _callback) -> None:
-        pass
 
     def set_lifecycle_orchestrator(self, _callback) -> None:
         pass
@@ -69,9 +69,6 @@ class _FakeSlot:
 
     def set_size(self, size_px: int) -> None:
         self.size_calls.append(size_px)
-
-    def handle_signal(self, signal) -> None:
-        pass
 
     def find_binding(self, editor_key, binding_id=None):
         for b in self.bindings:

@@ -20,7 +20,6 @@ from haywire.ui.editor.decorator import editor
 
 if TYPE_CHECKING:
     from haywire.core.session.context import SessionContext
-    from haywire.core.session.signals_and_lifecycle import ContextSignal
     from nicegui.element import Element
 
 
@@ -68,12 +67,10 @@ class FileViewerEditor(BaseEditor):
             return None
         return Path(self.wrapper._binding_id)
 
-    def redraw_on_signal(self, context: "SessionContext", signal: "ContextSignal") -> bool:
-        """Each FileViewer instance is pinned to one file via its wrapper
-        binding_id. ActiveFileMoved signals don't drive redraws — a different
-        file means a different tab.
-        """
-        return False
+    # No @redraw_on / @react_on subscriptions: each FileViewer instance is
+    # pinned to one file via its wrapper.binding_id. ActiveFileMoved is
+    # emitted on focus but never drives a redraw — a different file means
+    # a different tab.
 
     def on_focus(self, context: "SessionContext") -> None:
         """Claim ownership of context.active_file when this tab becomes active.

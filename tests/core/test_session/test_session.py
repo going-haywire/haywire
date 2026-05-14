@@ -11,6 +11,7 @@ from unittest.mock import MagicMock
 import haywire.core.graph.editor  # noqa: F401 — circular-import guard
 
 from haywire.core.session.session import Session
+from haywire.core.session.signals_and_lifecycle import SelectionMoved
 
 
 def _make_session(session_manager=None):
@@ -34,14 +35,14 @@ def test_session_has_no_shell_attr():
     assert not hasattr(session, "set_shell")
 
 
-def test_session_cleanup_clears_callback_slots():
-    """After cleanup, the signal/lifecycle callbacks are cleared."""
+def test_session_cleanup_clears_lifecycle_callback_and_bus():
+    """After cleanup, the lifecycle callback is cleared and the bus is empty."""
     session = _make_session()
-    session.set_signal_orchestrator(MagicMock())
     session.set_lifecycle_orchestrator(MagicMock())
+    session.subscribe(SelectionMoved, MagicMock())
     session.cleanup()
-    assert session._signal_callback is None
     assert session._lifecycle_callback is None
+    assert session._bus.subscribed_types() == ()
 
 
 def test_session_cleanup_is_idempotent():

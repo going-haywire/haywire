@@ -25,9 +25,6 @@ class _FakeSession:
         )
         self._editors = {}
 
-    def set_signal_orchestrator(self, _callback) -> None:
-        pass
-
     def set_lifecycle_orchestrator(self, _callback) -> None:
         pass
 
@@ -118,9 +115,6 @@ class _FakeTabbedSlot(TabSlot):
         return True
 
     def set_visible(self, visible: bool) -> None:
-        pass
-
-    def handle_signal(self, signal) -> None:
         pass
 
     def _refresh_bar(self) -> None:

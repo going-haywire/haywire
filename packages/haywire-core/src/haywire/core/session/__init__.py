@@ -46,6 +46,7 @@ from .signals_and_lifecycle import (
     Close,
     BroadcastClose,
 )
+from .handlers import redraw_on, react_on
 from .reactive import Reactive, reactive_field, iter_reactive_fields
 from .reactive.path import ReactivePath
 from .workspace.manager import WorkspaceManager
@@ -77,6 +78,9 @@ __all__ = [
     "Reveal",
     "Close",
     "BroadcastClose",
+    # Event-handler decorators
+    "redraw_on",
+    "react_on",
     # Reactive
     "Reactive",
     "reactive_field",

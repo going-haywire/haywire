@@ -368,12 +368,12 @@ def test_lifecycle_redraw_callback_safe_when_unset():
 
 
 # ---------------------------------------------------------------------------
-# Task 6: Runtime entry points — draw / on_focus / on_signal / redraw_on_signal
+# Task 6: Runtime entry points — draw / on_focus
 # ---------------------------------------------------------------------------
 
 
 class _RecordingEditorCls:
-    """Editor stub that records calls to draw/on_focus/on_signal/redraw_on_signal."""
+    """Editor stub that records calls to draw/on_focus/cleanup."""
 
     class_identity = SimpleNamespace(
         registry_key="rec:editor:1",
@@ -386,23 +386,13 @@ class _RecordingEditorCls:
         self.wrapper = wrapper
         self.draw_calls: list = []
         self.focus_calls: list = []
-        self.on_signal_calls: list = []
-        self.redraw_on_signal_calls: list = []
         self.cleanup_calls = 0
-        self.redraw_on_signal_returns = False
 
     def draw(self, context, container):
         self.draw_calls.append((context, container))
 
     def on_focus(self, context):
         self.focus_calls.append(context)
-
-    def on_signal(self, context, event):
-        self.on_signal_calls.append((context, event))
-
-    def redraw_on_signal(self, context, event):
-        self.redraw_on_signal_calls.append((context, event))
-        return self.redraw_on_signal_returns
 
     def cleanup(self):
         self.cleanup_calls += 1
@@ -567,116 +557,6 @@ def test_on_focus_captures_runtime_exception():
     )
     w._instantiate()
     w.on_focus()
-    assert w.state.error_runtime is not None
-
-
-def test_redraw_on_signal_delegates_and_returns_instance_value():
-    reg = EditorTypeRegistry()
-    session = _make_session()
-    w = EditorWrapper(
-        editor_key="rec:editor:1",
-        editor_cls=_RecordingEditorCls,
-        registry=reg,
-        session=session,
-    )
-    w._instantiate()
-    w.instance.redraw_on_signal_returns = True
-    fake_event = SimpleNamespace()
-    assert w.redraw_on_signal(fake_event) is True
-    assert w.instance.redraw_on_signal_calls == [(session.context, fake_event)]
-
-
-def test_redraw_on_signal_returns_false_without_instance():
-    reg = EditorTypeRegistry()
-    w = EditorWrapper(
-        editor_key="missing:editor:1",
-        editor_cls=None,
-        registry=reg,
-        session=_make_session(),
-    )
-    fake_event = SimpleNamespace()
-    assert w.redraw_on_signal(fake_event) is False
-
-
-def test_redraw_on_signal_captures_runtime_exception_returns_false():
-    class _RaisingCls:
-        class_identity = SimpleNamespace(
-            registry_key="pr:editor:1",
-            label="PR",
-            default_slot="main",
-            opens=None,
-        )
-
-        def __init__(self, wrapper):
-            self.wrapper = wrapper
-
-        def redraw_on_signal(self, context, event):
-            raise RuntimeError("redraw_on_signal boom")
-
-    reg = EditorTypeRegistry()
-    w = EditorWrapper(
-        editor_key="pr:editor:1",
-        editor_cls=_RaisingCls,
-        registry=reg,
-        session=_make_session(),
-    )
-    w._instantiate()
-    fake_event = SimpleNamespace()
-    assert w.redraw_on_signal(fake_event) is False
-    assert w.state.error_runtime is not None
-
-
-def test_on_signal_delegates_and_returns_none():
-    reg = EditorTypeRegistry()
-    session = _make_session()
-    w = EditorWrapper(
-        editor_key="rec:editor:1",
-        editor_cls=_RecordingEditorCls,
-        registry=reg,
-        session=session,
-    )
-    w._instantiate()
-    fake_event = SimpleNamespace()
-    assert w.on_signal(fake_event) is None
-    assert w.instance.on_signal_calls == [(session.context, fake_event)]
-
-
-def test_on_signal_noop_without_instance():
-    reg = EditorTypeRegistry()
-    w = EditorWrapper(
-        editor_key="missing:editor:1",
-        editor_cls=None,
-        registry=reg,
-        session=_make_session(),
-    )
-    # Should not raise even though no instance exists.
-    w.on_signal(SimpleNamespace())
-
-
-def test_on_signal_captures_runtime_exception():
-    class _RaisingCls:
-        class_identity = SimpleNamespace(
-            registry_key="pr:editor:1",
-            label="PR",
-            default_slot="main",
-            opens=None,
-        )
-
-        def __init__(self, wrapper):
-            self.wrapper = wrapper
-
-        def on_signal(self, context, event):
-            raise RuntimeError("on_signal boom")
-
-    reg = EditorTypeRegistry()
-    w = EditorWrapper(
-        editor_key="pr:editor:1",
-        editor_cls=_RaisingCls,
-        registry=reg,
-        session=_make_session(),
-    )
-    w._instantiate()
-    w.on_signal(SimpleNamespace())
     assert w.state.error_runtime is not None
 
 
@@ -936,7 +816,7 @@ def test_request_close_allows_when_handle_close_request_raises():
     w._instantiate()
     result = _run_async(w.request_close())
     assert result is True
-    # Failure is captured into structured state, mirroring draw/on_focus/on_signal/redraw_on_signal.
+    # Failure is captured into structured state, mirroring draw / on_focus.
     assert w.state.error_runtime is not None
 
 

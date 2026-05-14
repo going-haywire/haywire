@@ -153,7 +153,7 @@ def test_close_is_lifecycle_command():
 
 
 # ----------------------------------------------------------------------
-# Session.signal() routing
+# Session.signal() / Session.publish() routing through the event bus
 # ----------------------------------------------------------------------
 
 
@@ -169,7 +169,7 @@ def test_session_signal_local_only_for_cross_session_false():
     sm = MagicMock()
     session = _make_session(session_manager=sm)
     handler = MagicMock()
-    session.set_signal_orchestrator(handler)
+    session.subscribe(SelectionMoved, handler)
 
     s = SelectionMoved()
     session.signal(s)
@@ -179,20 +179,20 @@ def test_session_signal_local_only_for_cross_session_false():
 
 
 def test_session_signal_broadcasts_for_cross_session_true():
-    """For cross_session=True signals, Session.signal() delegates to
-    SessionManager.broadcast_signal which is responsible for dispatching
-    to every session (including origin). The local callback is NOT called
-    directly — the broadcast path handles origin delivery.
+    """For cross_session=True signals, Session.signal()/publish() delegates
+    to SessionManager.broadcast_signal which is responsible for dispatching
+    to every session (including origin). Local subscribers are NOT called
+    directly — the broadcast path reaches them via _dispatch_signal.
     """
     sm = MagicMock()
     session = _make_session(session_manager=sm)
     handler = MagicMock()
-    session.set_signal_orchestrator(handler)
+    session.subscribe(GraphDataMutated, handler)
 
     s = GraphDataMutated()
     session.signal(s)
 
-    # No direct local callback — broadcast handles it.
+    # No direct local fan-out — broadcast handles it.
     handler.assert_not_called()
     sm.broadcast_signal.assert_called_once_with(s, origin_session_id=session.session_id)
 
@@ -201,16 +201,16 @@ def test_session_signal_swallows_handler_exceptions():
     sm = MagicMock()
     session = _make_session(session_manager=sm)
     handler = MagicMock(side_effect=RuntimeError("boom"))
-    session.set_signal_orchestrator(handler)
+    session.subscribe(SelectionMoved, handler)
 
-    # Should not raise — error is logged.
+    # Should not raise — bus is error-isolated per handler.
     session.signal(SelectionMoved())
 
 
 def test_session_signal_no_handler_is_noop():
     sm = MagicMock()
     session = _make_session(session_manager=sm)
-    # No handler registered — must not raise.
+    # No subscriber registered — must not raise.
     session.signal(SelectionMoved())
 
 
@@ -268,7 +268,7 @@ def test_signal_runs_before_lifecycle_when_called_in_order():
     session = _make_session(session_manager=sm)
 
     call_order = []
-    session.set_signal_orchestrator(lambda s: call_order.append("signal"))
+    session.subscribe(SelectionMoved, lambda s: call_order.append("signal"))
     session.set_lifecycle_orchestrator(lambda c: call_order.append("lifecycle"))
 
     session.signal(SelectionMoved())
@@ -291,9 +291,9 @@ def test_broadcast_signal_stamps_peer_subject_on_non_origin_sessions():
     peer_b = sm.create_session(project_state=MagicMock(), workspace_manager=MagicMock())
 
     received: dict[str, list] = {origin.session_id: [], peer_a.session_id: [], peer_b.session_id: []}
-    origin.set_signal_orchestrator(lambda s: received[origin.session_id].append(s))
-    peer_a.set_signal_orchestrator(lambda s: received[peer_a.session_id].append(s))
-    peer_b.set_signal_orchestrator(lambda s: received[peer_b.session_id].append(s))
+    origin.subscribe(GraphDataMutated, lambda s: received[origin.session_id].append(s))
+    peer_a.subscribe(GraphDataMutated, lambda s: received[peer_a.session_id].append(s))
+    peer_b.subscribe(GraphDataMutated, lambda s: received[peer_b.session_id].append(s))
 
     s = GraphDataMutated()
     sm.broadcast_signal(s, origin_session_id=origin.session_id)
@@ -316,9 +316,9 @@ def test_broadcast_signal_swallows_per_peer_exceptions():
     good = sm.create_session(project_state=MagicMock(), workspace_manager=MagicMock())
 
     delivered = []
-    origin.set_signal_orchestrator(lambda s: delivered.append(("origin", s)))
-    bad.set_signal_orchestrator(MagicMock(side_effect=RuntimeError("boom")))
-    good.set_signal_orchestrator(lambda s: delivered.append(("good", s)))
+    origin.subscribe(GraphDataMutated, lambda s: delivered.append(("origin", s)))
+    bad.subscribe(GraphDataMutated, MagicMock(side_effect=RuntimeError("boom")))
+    good.subscribe(GraphDataMutated, lambda s: delivered.append(("good", s)))
 
     sm.broadcast_signal(GraphDataMutated(), origin_session_id=origin.session_id)
 
@@ -331,15 +331,15 @@ def test_broadcast_signal_swallows_per_peer_exceptions():
 
 def test_session_signal_end_to_end_with_session_manager():
     """A cross_session=True signal emitted via Session.signal() flows to
-    every peer's signal callback with correct subject stamping."""
+    every peer's bus subscribers with correct subject stamping."""
     sm = SessionManager(container=LibraryStateContainer(LibraryStateRegistry()))
     origin = sm.create_session(project_state=MagicMock(), workspace_manager=MagicMock())
     peer = sm.create_session(project_state=MagicMock(), workspace_manager=MagicMock())
 
     origin_received = []
     peer_received = []
-    origin.set_signal_orchestrator(origin_received.append)
-    peer.set_signal_orchestrator(peer_received.append)
+    origin.subscribe(GraphDataMutated, origin_received.append)
+    peer.subscribe(GraphDataMutated, peer_received.append)
 
     origin.signal(GraphDataMutated())
 

@@ -27,7 +27,6 @@ from haybale_haystack.state.haystack_state import HaystackState
 if TYPE_CHECKING:
     from haybale_haystack.graph_entry import GraphEntry
     from haywire.core.session.context import SessionContext
-    from haywire.core.session.signals_and_lifecycle import ContextSignal
     from nicegui.element import Element
 
 logger = logging.getLogger(__name__)
@@ -82,13 +81,11 @@ class GraphEditor(BaseEditor):
     # poll / draw
     # ------------------------------------------------------------------
 
-    def redraw_on_signal(self, context: "SessionContext", signal: "ContextSignal") -> bool:
-        # Each GraphEditor instance is pinned to one graph via its binding
-        # binding_id. ActiveGraphMoved now just means "some tab became the
-        # foreground" — this instance's own graph hasn't changed, so there
-        # is nothing to redraw. The canvas keeps its zoom/pan, selection,
-        # and DOM state across tab switches.
-        return False
+    # No @redraw_on / @react_on subscriptions: each GraphEditor instance is
+    # pinned to one graph via its wrapper.binding_id. ActiveGraphMoved means
+    # "some tab became the foreground" — this instance's own graph hasn't
+    # changed, so there is nothing to redraw. The canvas keeps its zoom/pan,
+    # selection and DOM state across tab switches.
 
     def on_focus(self, context: "SessionContext") -> None:
         """Claim ownership of session state when this tab becomes active.

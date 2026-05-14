@@ -16,13 +16,17 @@ Usage::
 
 from __future__ import annotations
 
-from typing import Optional
+from typing import TYPE_CHECKING, Optional, Tuple
 
 from haywire.core.library.utils import derive_library_identity, reg_key
+from haywire.core.session.handlers import validate_event_types
 
 from .focus import Focus
 from .identity import PanelIdentity
 from .base import BasePanel
+
+if TYPE_CHECKING:
+    from haywire.core.session.signals import ContextSignal
 
 
 def panel(
@@ -35,6 +39,7 @@ def panel(
     default_open: bool = True,
     description: str = "",
     registry_id: Optional[str] = None,
+    redraw_on: Tuple[type["ContextSignal"], ...] = (),
 ):
     """Decorator to mark a class as a panel.
 
@@ -58,11 +63,20 @@ def panel(
         description:  Human-readable description.
         registry_id:  Unique ID for this panel, e.g. 'node_transform'.
                       Defaults to the class name if not provided.
+        redraw_on:    Tuple of ContextSignal subclasses the panel wants its
+                      host editor to redraw on. Panels do not have their own
+                      handler dispatch — when one of these events publishes,
+                      the editor redraws and the panel re-mounts. Empty tuple
+                      (the default) means the panel contributes no
+                      subscriptions. The framework uses this to compute the
+                      editor's effective subscription set; dispatch wiring
+                      lands in a later step of the event-bus redesign.
 
     Raises:
         ValueError: If action=, focus=, or label= is missing.
         TypeError:  If action is not a class, focus is not a Focus subclass,
-                    or the decorated class is not a BasePanel subclass.
+                    the decorated class is not a BasePanel subclass, or any
+                    redraw_on= entry is not a ContextSignal subclass.
     """
     if action is None:
         raise ValueError("@panel requires action= (Protocol or ABC class).")
@@ -76,6 +90,10 @@ def panel(
         raise TypeError(f"@panel: focus= must be a Focus subclass, got {focus!r}")
     if label is None:
         raise ValueError("@panel requires label=.")
+
+    validated_redraw_on = validate_event_types(
+        "@panel(..., redraw_on=...)", tuple(redraw_on), allow_empty=True
+    )
 
     def decorator(inner_cls):
         if not issubclass(inner_cls, BasePanel):
@@ -100,6 +118,7 @@ def panel(
             module=inner_cls.__module__,
             action=action,
             focus=focus,
+            redraw_on=validated_redraw_on,
         )
         inner_cls.class_library = library_identity
         return inner_cls

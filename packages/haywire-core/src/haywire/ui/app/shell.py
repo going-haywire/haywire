@@ -24,7 +24,6 @@ from nicegui import ui
 from haywire.ui import elements as hui
 from haywire.core.session.signals_and_lifecycle import (
     Close,
-    ContextSignal,
     LifecycleCommand,
     Reveal,
     ThemeMoved,
@@ -316,8 +315,10 @@ class AppShell:
         settings_registry = self.session.context.app.library_service.get_settings_registry()
         settings_registry.subscribe(None, self._on_setting_changed)
 
-        # Two-channel orchestrator wiring (signal + lifecycle).
-        self.session.set_signal_orchestrator(self._on_signal)
+        # Lifecycle-command orchestrator wiring. Signal dispatch flows
+        # through the typed event bus on ``Session`` directly to each
+        # editor's auto-wired ``@redraw_on`` / ``@react_on`` handlers; the
+        # shell isn't on that path.
         self.session.set_lifecycle_orchestrator(self._on_lifecycle)
 
         # Drag-resize handlers for left/middle/right/bottom panels. These use JavaScript
@@ -553,18 +554,8 @@ class AppShell:
         return {slot_name: slot.to_snapshot() for slot_name, slot in self._managed_slots.items()}
 
     # ------------------------------------------------------------------
-    # Poll / draw orchestrator
+    # Lifecycle command orchestrator
     # ------------------------------------------------------------------
-
-    def _on_signal(self, signal: ContextSignal) -> None:
-        """Signal-channel orchestrator callback.
-
-        Pure fan-out: every managed slot's poll/draw gate sees every
-        signal. No type-aware branching here — side-effects on signal
-        types belong on the lifecycle channel.
-        """
-        for slot in self._managed_slots.values():
-            slot.handle_signal(signal)
 
     def _on_lifecycle(self, command: LifecycleCommand) -> None:
         """Lifecycle-channel orchestrator callback.

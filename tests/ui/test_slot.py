@@ -3,7 +3,6 @@
 from types import SimpleNamespace
 
 from haywire.ui.app.tab_slot import TabSlot
-from haywire.core.session.signals_and_lifecycle import SelectionMoved
 from haywire.ui.editor.wrapper import EditorWrapper
 
 
@@ -75,16 +74,13 @@ def _install_fake_tab_panels(monkeypatch):
 
 
 class _FakeEditor:
-    """Stand-in BaseEditor that records draw/on_signal/redraw_on_signal/cleanup."""
+    """Stand-in BaseEditor that records draw/cleanup."""
 
     instances: list["_FakeEditor"] = []
 
     def __init__(self, wrapper) -> None:
         self.wrapper = wrapper
         self.draw_calls: list = []
-        self.on_signal_calls: list = []
-        self.redraw_on_signal_calls: list = []
-        self.redraw_on_signal_returns = True
         self.cleanup_calls = 0
         _FakeEditor.instances.append(self)
 
@@ -93,13 +89,6 @@ class _FakeEditor:
 
     def on_focus(self, context) -> None:
         pass
-
-    def on_signal(self, context, event) -> None:
-        self.on_signal_calls.append((context, event))
-
-    def redraw_on_signal(self, context, event) -> bool:
-        self.redraw_on_signal_calls.append((context, event))
-        return self.redraw_on_signal_returns
 
     def cleanup(self) -> None:
         self.cleanup_calls += 1
@@ -408,106 +397,6 @@ def test_set_visible_syncs_content_container() -> None:
     slot.set_visible(True)
     assert slot.visible is True
     assert container.visible is True
-
-
-# ----------------------------------------------------------------------
-# handle_signal
-# ----------------------------------------------------------------------
-
-
-def test_handle_signal_redraws_active_panel_when_redraw_on_signal_true(monkeypatch) -> None:
-    slot = _make_slot("a:e:1")
-    _, panel_created = _install_fake_tab_panels(monkeypatch)
-    slot._render_area_contents(_FakeContainer())
-    panel = panel_created[0][1]
-    w = slot.find_binding("a:e:1")
-    instance = w.instance
-    assert instance is not None
-    instance.draw_calls.clear()  # ignore the initial eager draw
-    panel.clear_calls = 0  # reset clear count after initial render
-    instance.redraw_on_signal_returns = True
-
-    slot.handle_signal(SelectionMoved())
-
-    # Active wrapper sees both hooks; redraw-decision returns True so the
-    # panel is cleared + redrawn.
-    assert len(instance.on_signal_calls) == 1
-    assert len(instance.redraw_on_signal_calls) == 1
-    assert panel.clear_calls == 1  # wrapper.draw() clears once on redraw
-    assert len(instance.draw_calls) == 1
-
-
-def test_handle_signal_skips_when_redraw_on_signal_false(monkeypatch) -> None:
-    slot = _make_slot("a:e:1")
-    _, panel_created = _install_fake_tab_panels(monkeypatch)
-    slot._render_area_contents(_FakeContainer())
-    panel = panel_created[0][1]
-    w = slot.find_binding("a:e:1")
-    instance = w.instance
-    assert instance is not None
-    instance.draw_calls.clear()
-    panel.clear_calls = 0  # reset clear count after initial render
-    instance.redraw_on_signal_returns = False
-
-    slot.handle_signal(SelectionMoved())
-
-    # on_signal fires regardless; redraw_on_signal fires but returns False
-    # so no redraw.
-    assert len(instance.on_signal_calls) == 1
-    assert len(instance.redraw_on_signal_calls) == 1
-    assert panel.clear_calls == 0
-    assert len(instance.draw_calls) == 0
-
-
-def test_handle_signal_fans_on_signal_to_inactive_wrappers(monkeypatch) -> None:
-    """on_signal must reach EVERY wrapper, not just the active one.
-
-    Backgrounded editors rely on this to run side effects (close stale
-    tabs, mark themselves dirty) regardless of which sibling is in
-    focus.
-    """
-    slot = _make_slot("a:e:1")
-    _install_fake_tab_panels(monkeypatch)
-    # Activate first binding, then add a second one that stays
-    # backgrounded with an instance (force lazy creation by polling
-    # would normally not happen — manually instantiate here).
-    slot._render_area_contents(_FakeContainer())
-    slot.add_binding(editor_key="a:e:2", editor_cls=_FakeEditor)
-    w2 = slot.find_binding("a:e:2")
-    # Force the inactive wrapper to instantiate so its instance can
-    # observe on_signal calls (mirrors a wrapper that was once active
-    # then backgrounded).
-    w2._instantiate()
-    inactive_instance = w2.instance
-    assert inactive_instance is not None
-    inactive_instance.on_signal_calls.clear()
-    inactive_instance.redraw_on_signal_calls.clear()
-
-    slot.handle_signal(SelectionMoved())
-
-    # Inactive wrapper got on_signal but NOT redraw_on_signal.
-    assert len(inactive_instance.on_signal_calls) == 1
-    assert len(inactive_instance.redraw_on_signal_calls) == 0
-
-
-def test_handle_signal_is_noop_when_instance_not_yet_created(monkeypatch) -> None:
-    """An inactive, never-drawn binding has no instance to poll."""
-    reg = _FakeRegistry()
-    sess = _session_with_context()
-    slot = TabSlot(session=sess, name="left", registry=reg)
-    slot.add_binding(editor_key="a:e:1", editor_cls=_FakeEditor)
-    slot.add_binding(editor_key="a:e:2", editor_cls=_FakeEditor)
-    w1 = slot.find_binding("a:e:1")
-    w2 = slot.find_binding("a:e:2")
-    slot._active = w1
-    _install_fake_tab_panels(monkeypatch)
-    slot._render_area_contents(_FakeContainer())
-
-    # Active binding got its initial draw; swap to None so
-    # handle_signal sees no active instance.
-    slot._active = None
-    slot.handle_signal(SelectionMoved())
-    assert w2.instance is None
 
 
 # ----------------------------------------------------------------------

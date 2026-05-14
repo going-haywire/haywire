@@ -23,11 +23,12 @@ Relationship to AppShell:
   ``Slot._activate`` calls ``editor.on_focus`` for the newly-active
   wrapper. The slot handles everything inside its area — container
   clear, instance lazy-create, draw.
-* On every ``ContextSignal``, the shell calls
-  ``slot.handle_signal(signal)`` on each slot. The slot fans the
-  signal to ``on_signal`` on every wrapper (side-effect channel,
-  active or not), then calls ``redraw_on_signal`` on the active
-  wrapper and redraws if it returns True.
+* ContextSignals are not dispatched through slots. Editors subscribe
+  to the typed event bus on ``Session`` directly (via ``@redraw_on`` /
+  ``@react_on`` decorated methods, auto-wired at instantiation); the
+  bus delivers events to those editors regardless of which tab is
+  active. See ``haywire.core.session.bus`` and
+  ``internals/speculatives/event_bus_redesign.md``.
 """
 
 from __future__ import annotations
@@ -44,7 +45,7 @@ from haywire.ui.editor.registry import EditorTypeRegistry
 from haywire.ui.editor.wrapper import EditorWrapper
 
 if TYPE_CHECKING:
-    from haywire.core.session.signals_and_lifecycle import ContextSignal, Reveal
+    from haywire.core.session.signals_and_lifecycle import Reveal
     from haywire.ui.editor.base import BaseEditor
     from haywire.core.session.session import Session
 
@@ -68,9 +69,6 @@ class Slot(ABC):
         * ``switch_to(key)`` changes the active wrapper, clears the area,
           re-draws the new active wrapper's editor. Returns ``True`` only
           when the active key actually changed.
-        * ``handle_signal(signal)`` runs ``on_signal`` on every wrapper
-          (side-effect channel) and ``redraw_on_signal`` on the active
-          wrapper, redrawing if the latter returns True.
         * ``set_visible(visible)`` toggles the area container visibility.
 
     Instance state:
@@ -681,34 +679,6 @@ class Slot(ABC):
     def set_size(self, size_px: int) -> None:
         """Store the drag-resize result in ``self._size``."""
         self._size = int(size_px)
-
-    # ------------------------------------------------------------------
-    # Orchestrator hook
-    # ------------------------------------------------------------------
-
-    def handle_signal(self, signal: "ContextSignal") -> None:
-        """Dispatch a signal across this slot's wrappers.
-
-        Two channels:
-
-        * ``on_signal`` fires on EVERY wrapper, active or not. Lets
-          editors run side effects (close stale tabs, mark themselves
-          stale for next focus, clear caches) even while backgrounded.
-          Per-wrapper exceptions are absorbed by the wrapper's own
-          error capture — one editor's failure can't block sibling
-          delivery.
-        * ``redraw_on_signal`` fires only on the active wrapper. If it
-          returns True the slot redraws (clear container, draw again).
-          Backgrounded wrappers don't redraw — they catch up on
-          ``on_focus`` when the user reactivates them.
-        """
-        for wrapper in self._bindings:
-            wrapper.on_signal(signal)
-
-        if self._active is None or self._area_panel_container is None:
-            return
-        if self._active.redraw_on_signal(signal):
-            self._redraw(self._active)
 
     # ------------------------------------------------------------------
     # Mutation methods

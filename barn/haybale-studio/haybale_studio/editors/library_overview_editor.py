@@ -32,6 +32,7 @@ from haywire.ui.editor.registry import EditorTypeRegistry
 from haywire.ui.panel.registry import PanelRegistry
 from haywire.ui.skin.registry import SkinRegistry
 from haywire.ui.themes import ThemeRegistry
+from haywire.core.session.handlers import redraw_on
 from haywire.core.session.signals_and_lifecycle import (
     ActiveComponentMoved,
     ActiveLibraryMoved,
@@ -46,7 +47,6 @@ from haywire.ui.widget.registry import WidgetRegistry
 
 if TYPE_CHECKING:
     from haywire.core.session.context import SessionContext
-    from haywire.core.session.signals_and_lifecycle import ContextSignal
     from nicegui.element import Element
 
 
@@ -103,10 +103,10 @@ class LibraryOverviewEditor(BaseEditor):
     # Public editor interface
     # ─────────────────────────────────────────────────────────────────────────
 
-    def redraw_on_signal(self, context: "SessionContext", signal: "ContextSignal") -> bool:
-        # Today's LIBRARY_STATE_CHANGED filter widens to both replacement
-        # signal classes during migration (§11.2 editorial decision #6).
-        return isinstance(signal, (ActiveLibraryMoved, LibraryCatalogChanged))
+    @redraw_on(ActiveLibraryMoved, LibraryCatalogChanged)
+    def _refresh_on_library_change(self, context: "SessionContext", event) -> None:
+        # Empty body — the decorator triggers wrapper.redraw() after return.
+        pass
 
     def draw(self, context: "SessionContext", container: "Element") -> None:
         self._container = container

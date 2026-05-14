@@ -10,6 +10,11 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 
+from haywire.core.session.signals_and_lifecycle import (
+    ActiveGraphMoved,
+    GraphDataMutated,
+    SelectionMoved,
+)
 from haywire.ui import elements as hui
 from haywire.ui.panel import BasePanel, PanelLayout
 from haywire.ui.panel.decorator import panel
@@ -31,6 +36,7 @@ if TYPE_CHECKING:
     icon=hui.icon.node_settings,
     order=10,
     default_open=True,
+    redraw_on=(SelectionMoved, GraphDataMutated, ActiveGraphMoved),
 )
 class NodeSettingsPanel(BasePanel):
     """Discovers and renders all user-defined settings on the selected node."""

@@ -2,38 +2,30 @@
 """
 Abstract base class for all Haywire editor types.
 
-Editors react to ContextSignals through two distinct hooks managed by
-the orchestrator (AppShell):
+Editors react to ContextSignals through the typed event bus: methods
+decorated with ``@redraw_on(...)`` / ``@react_on(...)`` from
+:mod:`haywire.core.session.handlers` are auto-subscribed at editor
+instantiation. ``@redraw_on`` triggers ``wrapper.redraw()`` after the
+handler returns; ``@react_on`` is the pure side-effect channel.
 
-    1. ``on_signal(context, signal)`` fires on EVERY wrapper for every
-       signal regardless of whether the wrapper is the active tab in
-       its slot. Use for side effects that must run even when the
-       editor isn't visible — closing tabs in response to an entity
-       removal, marking the editor stale for next draw, clearing
-       caches, issuing lifecycle commands, etc. Return type is None.
-    2. ``redraw_on_signal(context, signal) -> bool`` fires ONLY on the
-       active wrapper. Returns True to ask the orchestrator to clear
-       the container and call ``draw()`` again. Pure decision function:
-       no side effects.
-
-Lifecycle outside the signal channel:
+Lifecycle outside the bus channel:
 
     * On first assignment to a slot, the orchestrator calls draw()
-      directly — neither hook runs first.
+      directly — no handler runs first.
     * On hot-reload of the editor class, the orchestrator evicts the
       cached instance, calls cleanup(), and re-instantiates + draw() if
       visible.
 """
 
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, ClassVar
+from typing import TYPE_CHECKING, ClassVar, Optional
 
 from .identity import EditorIdentity
 
 if TYPE_CHECKING:
     from haywire.ui.editor.wrapper import EditorWrapper
+    from haywire.ui.panel.registry import PanelRegistry
     from haywire.core.session.context import SessionContext
-    from haywire.core.session.signals_and_lifecycle import ContextSignal
     from nicegui.element import Element
 
 
@@ -50,13 +42,17 @@ class BaseEditor(ABC):
         - draw(context, container): Build the editor UI into the given container.
 
     Subclasses may override:
-        - on_signal(context, signal): Side-effect notification. Fires on
-          every wrapper for every signal regardless of active state.
-        - redraw_on_signal(context, signal): Return True when a full
-          redraw is needed. Fires only on the active wrapper.
         - on_focus(context): Called when this wrapper becomes active.
         - cleanup(): Release resources when permanently removed.
         - get_tab_label(context): Dynamic tab label for tabbed slots.
+        - get_panel_registry(context): Opt in to panel-driven redraws.
+
+    Event-bus subscriptions are declared per-method via
+    ``@redraw_on(...)`` / ``@react_on(...)`` decorators from
+    :mod:`haywire.core.session.handlers`. The framework auto-subscribes
+    decorated methods at editor instantiation; see
+    :mod:`haywire.core.session.handlers` and the event-bus redesign
+    notes in ``internals/speculatives/event_bus_redesign.md``.
 
     Class attributes (set by @editor decorator):
         - class_identity: EditorIdentity with registry_key, label, icon, default_slot.
@@ -77,53 +73,6 @@ class BaseEditor(ABC):
         ``super().__init__(wrapper)``.
         """
         self.wrapper: "EditorWrapper" = wrapper
-
-    def on_signal(self, context: "SessionContext", signal: "ContextSignal") -> None:
-        """React to a context signal regardless of active-tab state.
-
-        Called by the orchestrator on every ContextSignal for every
-        wrapper in the slot — including non-active tabs. Use for side
-        effects that must run even when the editor isn't visible:
-        closing tabs in response to an entity removal, marking the
-        editor stale for next draw, clearing caches, issuing lifecycle
-        commands, etc.
-
-        Do NOT trigger a redraw from here. If this signal also implies
-        a redraw is needed, return True from ``redraw_on_signal`` —
-        which only fires on the active wrapper, where the redraw is
-        meaningful. For backgrounded wrappers, mark internal state so
-        the next ``on_focus`` redraws.
-
-        Default implementation is a no-op.
-
-        Args:
-            context: The current session context.
-            signal: The ContextSignal describing what moved in the session.
-        """
-        pass
-
-    def redraw_on_signal(self, context: "SessionContext", signal: "ContextSignal") -> bool:
-        """Determine whether this editor needs a full redraw NOW.
-
-        Called by the orchestrator on every ContextSignal — but ONLY for
-        the wrapper that is currently active in its slot. Returning True
-        causes the orchestrator to clear the container and call
-        ``draw()``. The default implementation returns False (never
-        redraw).
-
-        Subclasses filter with plain ``isinstance(signal, SignalType)``.
-        Keep this method side-effect-free; it is purely a decision
-        function. Side effects belong in ``on_signal``, which fires for
-        every wrapper.
-
-        Args:
-            context: The current session context.
-            signal: The ContextSignal describing what moved in the session.
-
-        Returns:
-            True if the editor needs a full redraw, False otherwise.
-        """
-        return False
 
     def on_focus(self, context: "SessionContext") -> None:
         """
@@ -177,6 +126,38 @@ class BaseEditor(ABC):
         Override to release resources, cancel timers, etc.
         """
         pass
+
+    def get_panel_registry(self, context: "SessionContext") -> "Optional[PanelRegistry]":
+        """Return the panel registry this editor uses, or ``None``.
+
+        Editors that host panels override this to return the registry that
+        their panels live in. The framework calls it after instantiation
+        and uses the result to compute the editor's panel-contributed event-
+        bus subscription set (see event-bus redesign, Step 5b): for every
+        registered panel whose action contract this editor satisfies, the
+        framework subscribes the editor to that panel's ``redraw_on=``
+        event types, so the editor's wrapper redraws when those events
+        publish and panels re-mount with fresh state.
+
+        Default returns ``None``. Editors that do not host panels (or that
+        explicitly opt out of panel-driven redraws) keep the default; only
+        their own ``@redraw_on`` / ``@react_on`` decorated methods drive
+        bus subscriptions in that case.
+
+        The registry returned here also becomes the framework's hook for
+        reacting to panel catalog changes (hot-reload, library install /
+        uninstall): when the registry's lifecycle channel fires, the
+        wrapper rebuilds its panel-contributed subscription set.
+
+        Args:
+            context: The current session context. Editors typically resolve
+                their registry via ``context.app`` or a similar accessor.
+
+        Returns:
+            The :class:`~haywire.ui.panel.registry.PanelRegistry` instance
+            this editor hosts panels from, or ``None`` to opt out.
+        """
+        return None
 
     async def handle_close_request(self) -> bool:
         """Decide whether to allow this editor's tab to close.

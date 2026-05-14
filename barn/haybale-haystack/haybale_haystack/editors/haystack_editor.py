@@ -25,12 +25,13 @@ from haywire.ui.editor import BaseEditor, editor
 from haywire.core.session import (
     IProjectState,
     SessionContext,
-    ContextSignal,
     ActiveGraphMoved,
     BroadcastClose,
     Close,
     GraphDataMutated,
     Reveal,
+    react_on,
+    redraw_on,
 )
 from haywire.ui.modals import confirm_modal, pick_modal, rename_modal, save_as_modal
 
@@ -68,31 +69,25 @@ class HaystackEditor(BaseEditor):
         self._list_container = None
 
     # ------------------------------------------------------------------
-    # signal hooks / draw
+    # Event-bus subscriptions / draw
     # ------------------------------------------------------------------
 
-    def on_signal(self, context: "SessionContext", signal: "ContextSignal") -> None:
-        """Side-effect hook — fires on every wrapper, active or not.
+    @redraw_on(ActiveGraphMoved, GraphDataMutated, HaystackReloaded)
+    def _refresh_on_state_move(self, context: "SessionContext", event) -> None:
+        """Empty body — the decorator triggers ``wrapper.redraw()`` after
+        this returns, which re-runs ``draw`` and ``_render_list``."""
+
+    @react_on(HaystackTeardown)
+    def _close_stale_tabs_on_teardown(self, context: "SessionContext", event: "HaystackTeardown") -> None:
+        """Side-effect hook — fires regardless of active state.
 
         HaystackTeardown must run regardless of focus: when the
         haystack is hot-reloaded while this editor is backgrounded,
         the GraphEditor tabs in this session still need to be closed.
-        Issuing the local ``Close(binding_id=eid)`` lifecycle commands
-        from here (rather than from ``redraw_on_signal``) makes the
-        cleanup independent of which left-slot tab the user happens
-        to have active.
+        Routes to ``_on_haystack_teardown`` which issues per-binding
+        ``Close`` lifecycle commands.
         """
-        if isinstance(signal, HaystackTeardown):
-            self._on_haystack_teardown(context, signal)
-
-    def redraw_on_signal(self, context: "SessionContext", signal: "ContextSignal") -> bool:
-        """Pure decision: should the active HaystackEditor redraw?
-
-        Backgrounded HaystackEditor instances catch up via on_focus,
-        which already calls ``_render_list``. No need to redraw an
-        invisible panel.
-        """
-        return isinstance(signal, (ActiveGraphMoved, GraphDataMutated, HaystackReloaded))
+        self._on_haystack_teardown(context, event)
 
     def _on_haystack_teardown(self, context: "SessionContext", signal: "HaystackTeardown") -> None:
         """Translate the teardown fact into local tab-close lifecycle commands.
@@ -116,19 +111,11 @@ class HaystackEditor(BaseEditor):
             except Exception as exc:
                 logger.warning(f"HaystackEditor: Close({eid}) failed during teardown: {exc}")
 
-    def on_focus(self, context: "SessionContext") -> None:
-        """Request a redraw on activation.
-
-        The editor sits in the left slot and shares the slot with other
-        sidebar editors. While inactive, ``redraw_on_signal`` doesn't fire,
-        so entries added or removed by other editors (e.g. FileBrowser
-        opening a graph) don't trigger a redraw. Broadcasting
-        ``GraphDataMutated`` here ensures switching back to this tab
-        always shows current haystack state — and lets the wrapper's
-        normal clear+redraw path rebuild the whole editor rather than
-        relying on captured-element in-place updates.
-        """
-        self._notify_data_mutated(context)
+    # No on_focus override needed: the event-bus migration (event-bus
+    # redesign §"Dispatch Loop Semantics") has @redraw_on fire regardless
+    # of active-tab state, so backgrounded HaystackEditor instances stay
+    # current with ActiveGraphMoved / GraphDataMutated / HaystackReloaded
+    # without the legacy on_focus → emit GraphDataMutated catch-up trick.
 
     def draw(self, context: "SessionContext", container: ui.element) -> None:
         with container:
