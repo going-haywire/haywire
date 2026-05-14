@@ -19,7 +19,7 @@ default to the lowest-order *available* focus.
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING
+from typing import Callable, TYPE_CHECKING
 
 from nicegui import ui
 
@@ -34,6 +34,7 @@ from haywire.ui.panel.registry import PanelRegistry
 
 if TYPE_CHECKING:
     from haywire.core.session.context import SessionContext
+    from haywire.core.session.signals import ContextSignal
     from nicegui.element import Element
 
 logger = logging.getLogger(__name__)
@@ -77,6 +78,26 @@ class PropertiesEditor(BaseEditor):
         # content rebuilds but stays scoped to this editor instance.
         self._expansion_state: dict[str, bool] = {}
 
+        # Panel-driven event-bus subscriptions. PropertiesEditor owns these
+        # because it's the only host that mounts registry panels with
+        # persistent redraw semantics — context-menu hosts open a popup,
+        # draw once, and dismiss; no subscription needed there.
+        #
+        # Populated in ``_subscribe_panel_event_handlers`` (called from
+        # first ``draw()``); reconciled in ``_on_panel_registry_event``
+        # when the catalog changes; drained in ``cleanup``.
+        #
+        # NB: held as a flat list of handles for now — same shape as the
+        # original wrapper-side implementation. Migrating to per-panel
+        # redraw will keep these per-(panel_class, event_type) so a single
+        # event publish can target only the panels that asked for it.
+        self._panel_bus_unsubscribes: list[Callable[[], None]] = []
+
+        # PanelRegistry this editor is currently subscribed to (lifecycle
+        # batch channel). Held so cleanup / catalog reconciliation can
+        # detach. ``None`` before first ``draw()`` and after ``cleanup``.
+        self._attached_panel_registry: PanelRegistry | None = None
+
     # ------------------------------------------------------------------
     # BaseEditor interface (draw + panel registry hook)
     # ------------------------------------------------------------------
@@ -84,17 +105,180 @@ class PropertiesEditor(BaseEditor):
     def _panel_registry(self, context: SessionContext) -> PanelRegistry:
         """Return the registry whose panels appear in this editor.
 
-        Resolved via the same path the framework's wrapper uses when
-        computing panel-driven bus subscriptions, so the toolbar /
-        content paths render against exactly the panel catalog the
-        framework subscribes to.
+        Resolved via the same path used by the panel-bus wiring below, so
+        the toolbar / content paths render against exactly the panel
+        catalog this editor subscribes to.
         """
         return context.app.library_service.get_panel_registry()
+
+    # ------------------------------------------------------------------
+    # Panel-contributed event-bus subscriptions
+    # ------------------------------------------------------------------
+    #
+    # PropertiesEditor subscribes to every event type a registered panel
+    # contributes via ``redraw_on=`` on ``@panel(...)`` — for every panel
+    # whose action contract this editor satisfies. When such an event
+    # publishes, the editor's wrapper redraws and panels re-mount with
+    # fresh state. Panels do not have their own handler dispatch — they
+    # declare intent on the decorator; the editor drives the redraw.
+    #
+    # The editor also subscribes to the panel registry's batch lifecycle
+    # channel so it can reconcile its subscriptions when the catalog
+    # changes (library install / uninstall / panel hot-reload).
+    #
+    # See the event-bus redesign:
+    # ``internals/speculatives/event_bus_redesign.md`` §"Concrete Fix for
+    # the Original Bug" for the rationale.
+
+    def _subscribe_panel_event_handlers(self, context: SessionContext) -> None:
+        """Resolve the panel registry and wire panel-driven event subscriptions.
+
+        No-op when the session's context does not expose a panel registry
+        chain (test fixtures with stubbed context, hypothetical non-studio
+        hosts). ``AttributeError`` along
+        ``context.app.library_service.get_panel_registry()`` is caught
+        explicitly; other exceptions log a warning.
+        """
+        try:
+            registry = self._panel_registry(context)
+        except AttributeError:
+            # No panel registry reachable on this context — editor runs
+            # without panel-driven redraws.
+            return
+        except Exception as exc:
+            logger.warning(f"PropertiesEditor: resolving panel registry raised: {exc}")
+            return
+        if registry is None:
+            return
+        self._attach_panel_registry(registry)
+        self._rebuild_panel_event_subscriptions()
+
+    def _rebuild_panel_event_subscriptions(self) -> None:
+        """Recompute the panel-contributed event-bus subscription set.
+
+        Drops any panel-contributed subscriptions currently held, then
+        queries the attached registry for the current union and re-
+        subscribes. Called from ``_subscribe_panel_event_handlers`` and
+        from ``_on_panel_registry_event`` on catalog changes.
+        """
+        self._unsubscribe_panel_event_handlers()
+        registry = self._attached_panel_registry
+        context = self._context
+        if registry is None or context is None:
+            return
+        try:
+            event_types = registry.get_redraw_events_for(self)
+        except Exception as exc:
+            logger.warning(f"PropertiesEditor: get_redraw_events_for raised: {exc}")
+            return
+        if not event_types:
+            return
+        bus_subscribe = context.session.subscribe
+        redraw_closure = self._make_panel_redraw_closure()
+        for event_type in event_types:
+            self._panel_bus_unsubscribes.append(bus_subscribe(event_type, redraw_closure))
+
+    def _make_panel_redraw_closure(self) -> Callable[["ContextSignal"], None]:
+        """Closure that, on any panel-contributed event publish, redraws the editor.
+
+        Panel-contributed subscriptions have no editor-side handler body
+        — the panel author already declared the intent via ``redraw_on=``
+        on ``@panel(...)``. The closure just asks the wrapper to redraw
+        so panels re-mount with fresh state.
+
+        Future per-panel-redraw optimisation hooks in here: a richer
+        closure could consult the (event_type → panel_classes) mapping
+        and rebuild only the affected panels' DOM rather than the whole
+        editor. Today it forwards to ``wrapper.redraw()`` for the same
+        behaviour the framework previously provided.
+        """
+
+        def _redraw_on_panel_event(event: "ContextSignal") -> None:
+            del event  # forwarded, not inspected (yet)
+            self.wrapper.redraw()
+
+        return _redraw_on_panel_event
+
+    def _unsubscribe_panel_event_handlers(self) -> None:
+        """Drop the panel-contributed subscriptions.
+
+        Used by the catalog-reconciliation path (registry lifecycle event)
+        and by ``cleanup``.
+        """
+        for unsub in self._panel_bus_unsubscribes:
+            try:
+                unsub()
+            except Exception as exc:
+                logger.warning(f"PropertiesEditor: panel-bus unsubscribe raised: {exc}")
+        self._panel_bus_unsubscribes.clear()
+
+    def _attach_panel_registry(self, registry: PanelRegistry) -> None:
+        """Bind to a panel registry's batch lifecycle channel.
+
+        No-op if already attached to this registry. Replaces any prior
+        attachment.
+        """
+        if self._attached_panel_registry is registry:
+            return
+        if self._attached_panel_registry is not None:
+            self._detach_panel_registry()
+        try:
+            registry.add_batch_event_subscriber(self._on_panel_registry_event)
+        except Exception as exc:
+            logger.warning(f"PropertiesEditor: failed to subscribe to panel registry: {exc}")
+            return
+        self._attached_panel_registry = registry
+
+    def _detach_panel_registry(self) -> None:
+        """Unsubscribe from the panel registry's lifecycle channel, if attached."""
+        registry = self._attached_panel_registry
+        if registry is None:
+            return
+        try:
+            registry.remove_batch_event_subscriber(self._on_panel_registry_event)
+        except Exception as exc:
+            logger.warning(f"PropertiesEditor: failed to unsubscribe from panel registry: {exc}")
+        self._attached_panel_registry = None
+
+    def _on_panel_registry_event(self, events) -> None:
+        """Reconcile the panel-contributed subscription set on any catalog change.
+
+        We don't inspect the event list: any event might change the
+        union (a new panel registers, an old one unregisters, a panel
+        reloads with a different ``redraw_on=``). Simplest correct
+        behaviour: drop all panel-contributed subs and recompute.
+
+        Also asks for a redraw — a catalog change can mean new event
+        types appeared, so the current rendered state may be stale
+        relative to what those events would have triggered.
+        """
+        del events  # consumed by interface; not used here
+        self._rebuild_panel_event_subscriptions()
+        self.wrapper.redraw()
 
     def draw(self, context: SessionContext, container: Element) -> None:
         self._container = container
         self._context = context
+        # First draw of this instance: wire panel-driven event-bus
+        # subscriptions. Idempotent — subsequent redraws via
+        # ``wrapper.redraw()`` re-enter draw() but skip re-subscription
+        # because ``_attached_panel_registry`` is already set. Hot-reload
+        # discards the instance, so the next instance's first draw()
+        # subscribes against the fresh class / current registry.
+        if self._attached_panel_registry is None:
+            self._subscribe_panel_event_handlers(context)
         self._build_layout(context)
+
+    def cleanup(self) -> None:
+        """Tear down panel-bus subscriptions when this editor instance goes away.
+
+        Called by the framework on permanent removal and during hot-
+        reload (before the new instance is built). Drops every panel-
+        contributed subscription and detaches from the panel registry's
+        lifecycle channel.
+        """
+        self._unsubscribe_panel_event_handlers()
+        self._detach_panel_registry()
 
     # --8<-- [end:editor_example]
 

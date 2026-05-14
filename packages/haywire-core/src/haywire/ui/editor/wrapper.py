@@ -17,8 +17,9 @@ from nicegui import ui
 from haywire.core.errors.haywire_exception import HaywireException
 from haywire.core.session.handlers import discover_handlers
 from haywire.core.session.signals import ContextSignal
-from haywire.ui.editor.identity import OpenBehavior
 from haywire.core.registry.lifecycle_event import LifeCycleEvent
+
+from haywire.ui.editor.identity import OpenBehavior
 
 if TYPE_CHECKING:
     from haywire.ui.editor.base import BaseEditor
@@ -142,21 +143,14 @@ class EditorWrapper:
         # ``_subscribe_event_handlers`` after a successful ``_instantiate``;
         # drained by ``_unsubscribe_event_handlers`` on hot-reload and
         # ``cleanup``.
+        #
+        # Panel-driven event subscriptions (the union of
+        # ``redraw_on=`` declarations across panels registered against
+        # the editor's action Protocol) are NOT managed here. Editors
+        # that host panels — currently only ``PropertiesEditor`` — own
+        # their own panel-bus wiring and tear it down in their
+        # ``cleanup``. Keeps the wrapper agnostic of the panel system.
         self._bus_unsubscribes: list[Callable[[], None]] = []
-
-        # Bus-subscription teardown handles for the *panel-contributed*
-        # union — every ``redraw_on=`` event type contributed by panels
-        # whose ``action`` Protocol the editor instance satisfies. Held
-        # separately so the wrapper can reconcile this set on PanelRegistry
-        # catalog changes (Step 5b) without disturbing the method-decorator
-        # subscriptions above.
-        self._panel_bus_unsubscribes: list[Callable[[], None]] = []
-
-        # PanelRegistry the editor is currently subscribed to (lifecycle
-        # channel). Held so the wrapper can unsubscribe cleanly on
-        # ``cleanup`` / hot-reload. ``None`` when no editor instance is
-        # alive, or the session's context exposes no panel registry.
-        self._panel_registry: Any = None
 
         # Cleanup flag — signals cleanup() has run; callers must not access
         # the wrapper's fields after that. Mirrors Settings._cleaned_up.
@@ -367,7 +361,6 @@ class EditorWrapper:
             return False
 
         self._subscribe_event_handlers()
-        self._subscribe_panel_event_handlers()
         return True
 
     def _subscribe_event_handlers(self) -> None:
@@ -449,13 +442,13 @@ class EditorWrapper:
         return _dispatch
 
     def _unsubscribe_event_handlers(self) -> None:
-        """Drop every bus subscription this wrapper currently owns —
-        both the editor's own decorator-derived subscriptions and the
-        panel-contributed union.
+        """Drop every decorator-derived bus subscription this wrapper owns.
 
         Idempotent. Called from the hot-reload path (before ``_instance``
         is cleared so the next ``_instantiate`` re-subscribes against the
-        new class) and from ``cleanup``.
+        new class) and from ``cleanup``. Panel-driven subscriptions live
+        on the editor instance (``self._instance.cleanup`` for
+        panel-hosting editors); the wrapper doesn't touch them.
         """
         for unsub in self._bus_unsubscribes:
             try:
@@ -463,166 +456,6 @@ class EditorWrapper:
             except Exception as exc:
                 logger.warning(f"EditorWrapper '{self.editor_key}': bus unsubscribe raised: {exc}")
         self._bus_unsubscribes.clear()
-        self._unsubscribe_panel_event_handlers()
-        self._detach_panel_registry()
-
-    # ------------------------------------------------------------------
-    # Panel-contributed event subscriptions (Step 5b)
-    # ------------------------------------------------------------------
-
-    def _subscribe_panel_event_handlers(self) -> None:
-        """Subscribe to every event type a registered panel contributes via ``redraw_on=``.
-
-        Resolves the session's panel registry from
-        ``session.context.app.library_service.get_panel_registry()`` and
-        queries it for the union of ``redraw_on`` event types contributed
-        by panels whose ``action`` contract this editor satisfies, then
-        subscribes the wrapper to each — every such subscription is a
-        thin ``redraw_on`` closure that just calls ``self.redraw()``
-        (panels have no handler body of their own).
-
-        Also subscribes the wrapper to the registry's batch lifecycle
-        channel so the wrapper can reconcile its panel-union subscriptions
-        when the catalog changes (library install / uninstall / panel
-        hot-reload).
-
-        No-op when the session's context does not expose a panel registry
-        (test fixtures with stubbed context, non-studio hosts). The
-        ``library_service.get_panel_registry()`` chain is the same one
-        AppShell uses for settings / theme registries.
-        """
-        if self._instance is None:
-            return
-        try:
-            library_service = self._session.context.app.library_service
-            registry = library_service.get_panel_registry()
-        except AttributeError:
-            # No panel registry reachable on this context (test fixture,
-            # non-studio host). Editor simply runs without panel-driven
-            # redraws.
-            return
-        except Exception as exc:
-            logger.warning(f"EditorWrapper '{self.editor_key}': resolving panel registry raised: {exc}")
-            return
-        if registry is None:
-            return
-        self._attach_panel_registry(registry)
-        self._rebuild_panel_event_subscriptions()
-
-    def _rebuild_panel_event_subscriptions(self) -> None:
-        """Recompute the panel-contributed event-bus subscription set.
-
-        Drops any panel-contributed subscriptions currently held, then
-        queries the attached registry for the current union and re-
-        subscribes. Called once from ``_subscribe_panel_event_handlers``
-        and again from ``_on_panel_registry_event`` on catalog changes.
-        """
-        self._unsubscribe_panel_event_handlers()
-        registry = self._panel_registry
-        instance = self._instance
-        if registry is None or instance is None:
-            return
-        try:
-            event_types = registry.get_redraw_events_for(instance)
-        except Exception as exc:
-            logger.warning(f"EditorWrapper '{self.editor_key}': get_redraw_events_for raised: {exc}")
-            return
-        if not event_types:
-            return
-        bus_subscribe = self._session.subscribe
-        redraw_closure = self._make_panel_redraw_closure()
-        for event_type in event_types:
-            self._panel_bus_unsubscribes.append(bus_subscribe(event_type, redraw_closure))
-
-    def _make_panel_redraw_closure(self) -> Callable[[ContextSignal], None]:
-        """Closure that, on any panel-contributed event publish, redraws this wrapper.
-
-        Panel-contributed subscriptions have no editor-side handler body —
-        the panel author already declared the intent via ``redraw_on=`` on
-        ``@panel(...)``. The framework just redraws so the panel re-mounts
-        with fresh state.
-
-        Skips the redraw if the wrapper is between instances (post hot-
-        reload, pre-next-``_instantiate``); the eventual ``_instantiate``
-        will subscribe fresh against the new instance.
-        """
-
-        def _redraw_on_panel_event(event: ContextSignal) -> None:
-            if self._instance is None:
-                return
-            self.redraw()
-
-        return _redraw_on_panel_event
-
-    def _unsubscribe_panel_event_handlers(self) -> None:
-        """Drop only the panel-contributed subscriptions; keep the
-        decorator-derived ones intact.
-
-        Used by the catalog-reconciliation path (registry lifecycle event)
-        and as part of full teardown via ``_unsubscribe_event_handlers``.
-        """
-        for unsub in self._panel_bus_unsubscribes:
-            try:
-                unsub()
-            except Exception as exc:
-                logger.warning(f"EditorWrapper '{self.editor_key}': panel-bus unsubscribe raised: {exc}")
-        self._panel_bus_unsubscribes.clear()
-
-    def _attach_panel_registry(self, registry: Any) -> None:
-        """Bind to a panel registry's batch lifecycle channel.
-
-        No-op if already attached to this registry. Replaces any prior
-        attachment (which is rare — only possible if the editor returns
-        a different registry between instances, e.g. after hot-reload).
-        """
-        if self._panel_registry is registry:
-            return
-        if self._panel_registry is not None:
-            self._detach_panel_registry()
-        try:
-            registry.add_batch_event_subscriber(self._on_panel_registry_event)
-        except Exception as exc:
-            logger.warning(
-                f"EditorWrapper '{self.editor_key}': failed to subscribe to panel registry: {exc}"
-            )
-            return
-        self._panel_registry = registry
-
-    def _detach_panel_registry(self) -> None:
-        """Unsubscribe from the panel registry's lifecycle channel, if attached."""
-        registry = self._panel_registry
-        if registry is None:
-            return
-        try:
-            registry.remove_batch_event_subscriber(self._on_panel_registry_event)
-        except Exception as exc:
-            logger.warning(
-                f"EditorWrapper '{self.editor_key}': failed to unsubscribe from panel registry: {exc}"
-            )
-        self._panel_registry = None
-
-    def _on_panel_registry_event(self, events: Any) -> None:
-        """Reconcile the panel-contributed subscription set on any catalog change.
-
-        The PanelRegistry's batch subscribers receive a list of
-        :class:`LifeCycleEvent`. We don't inspect them: any event might
-        change the union (a new panel registers, an old one unregisters,
-        a panel reloads with a different ``redraw_on=``). Simplest correct
-        behaviour: drop all panel-contributed subs and recompute. The
-        reconciled subscription set takes effect immediately; the next
-        bus publish reaches the new shape.
-        """
-        del events  # consumed by interface; not used here
-        if self._instance is None:
-            # No live instance to attribute subscriptions to — defer until
-            # the next _instantiate, which will rebuild from scratch.
-            return
-        self._rebuild_panel_event_subscriptions()
-        # A catalog change can mean *new* event types appeared — current
-        # state on screen may now be stale relative to what those events
-        # would have triggered. Ask for a redraw so the user sees a fresh
-        # render against the new panel set.
-        self.redraw()
 
     # ------------------------------------------------------------------
     # Runtime entry points (called by Slot)
