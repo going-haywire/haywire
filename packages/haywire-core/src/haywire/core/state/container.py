@@ -23,6 +23,7 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING, TypeVar
 
+from haywire.core.errors import HaywireException
 from haywire.core.registry.lifecycle_event import LifeCycleEvent, LifeCycleEventType
 from haywire.core.state.base import AppState, LibraryState, SessionState
 from haywire.core.state.registry import LibraryStateRegistry
@@ -438,23 +439,33 @@ class LibraryStateContainer:
         self._call_on_enable(instance)
 
     # ------------------------------------------------------------------
-    # Hook callers — duck-typed, exception-tolerant
+    # Hook callers — fault-isolated via HaywireException wrapping
     # ------------------------------------------------------------------
 
     @staticmethod
     def _call_on_enable(instance: LibraryState) -> None:
-        hook = getattr(instance, "on_enable", None)
-        if callable(hook):
-            try:
-                hook()
-            except Exception as exc:
-                logger.error("%s.on_enable raised: %s", type(instance).__name__, exc, exc_info=True)
+        try:
+            instance.on_enable()
+        except Exception as exc:
+            LibraryStateContainer._wrap_hook_failure(instance, exc, "on_enable")
 
     @staticmethod
     def _call_on_disable(instance: LibraryState) -> None:
-        hook = getattr(instance, "on_disable", None)
-        if callable(hook):
-            try:
-                hook()
-            except Exception as exc:
-                logger.error("%s.on_disable raised: %s", type(instance).__name__, exc, exc_info=True)
+        try:
+            instance.on_disable()
+        except Exception as exc:
+            LibraryStateContainer._wrap_hook_failure(instance, exc, "on_disable")
+
+    @staticmethod
+    def _wrap_hook_failure(instance: LibraryState, exc: Exception, hook: str) -> None:
+        """Wrap a raising LibraryState lifecycle hook into a HaywireException.
+        """
+        error = HaywireException.from_exception(
+            exception=exc,
+            operation=f"LibraryState.{hook}",
+            message=f"{type(instance).__name__}.{hook} raised",
+        ).enrich(
+            registry_key=instance.class_identity.registry_key,
+            library_identity=instance.class_library,
+        )
+        error.log(logger)

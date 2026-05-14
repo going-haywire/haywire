@@ -22,10 +22,29 @@ class LibraryState:
     Exists as a type-system hierarchy root and as the registry-filter
     target for `issubclass(cls, LibraryState)`. Concrete bases are
     `AppState` (app-global) and `SessionState` (per-session).
+
+    Defines no-op `on_enable` / `on_disable` hooks so the container can
+    invoke them unconditionally. Subclasses override either hook when
+    they have real setup / teardown work; trivial subclasses inherit the
+    no-ops and add nothing.
     """
 
     class_identity: LibraryStateClassIdentity
     class_library: LibraryIdentity
+
+    def on_enable(self) -> None:
+        """Lifecycle hook: called by the container after instantiation.
+
+        Default: no-op. Override on subclasses that need to wire up
+        callbacks, rehydrate persisted state, or otherwise initialise.
+        """
+
+    def on_disable(self) -> None:
+        """Lifecycle hook: called by the container before teardown.
+
+        Default: no-op. Override on subclasses that need to release
+        resources, persist state, or otherwise tear down.
+        """
 
 
 class AppState(LibraryState):
@@ -33,8 +52,8 @@ class AppState(LibraryState):
 
     One instance is created when the owning library is enabled and
     shared across every browser session and the execution VM. The
-    framework calls optional `on_enable()` after instantiation and
-    optional `on_disable()` before teardown.
+    framework calls `on_enable()` after instantiation and `on_disable()`
+    before teardown; both default to no-op on the base class.
 
     See internals/documentation/architecture/library_state.md.
     """
