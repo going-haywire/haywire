@@ -36,7 +36,7 @@ Author declares                Library registers              Container instanti
 ─────────────────              ─────────────────              ──────────────────────
 @state(label='...')            @library(id='midi'):           LibraryStateContainer
 class MidiPool(AppState):        register_components(self):     observes registry
-   devices = reactive_field(      self.add_folder_to_             lifecycle events:
+   devices = signal_field(        self.add_folder_to_             lifecycle events:
      [])                            registry(                    on register: cls() →
    def on_enable(self): ...           folder=base/'state',         store → on_enable()
    def on_disable(self): ...          registry_cls=                on unregister:
@@ -56,7 +56,7 @@ Three architectural slots state fills, distinct from anything else:
 | Per-graph state | `graph.variables` |
 | Per-flow execution state | `ExecutionContext.local_ctx` |
 | External system inputs to a flow | `ExecutionContext.global_ctx` |
-| Per-session UI selection state | `SessionContext` reactive fields |
+| Per-session UI selection state | `SessionContext` signal fields |
 | **App-global library runtime state** | **`AppState`** |
 | **Per-session library runtime state** | **`SessionState`** |
 
@@ -67,7 +67,8 @@ Three architectural slots state fills, distinct from anything else:
 **The `@state` decorator.** Optional but recommended — sets `class_identity` and label metadata. Undecorated `AppState`/`SessionState` subclasses still work (the registry derives `class_identity` at registration time as a fallback), but use `@state` when you want explicit `label=`, `description=`, or `registry_id=`.
 
 ```python
-from haywire.core.state import AppState, SessionState, state, reactive_field
+from haywire.core.state import AppState, SessionState, state
+from haywire.core.session.signals import signal_field
 
 @state(label='MIDI Pool')
 class MidiPool(AppState): ...
@@ -84,13 +85,13 @@ The decorator does **not** carry a scope parameter. Scope is determined by which
 
 Both are optional and duck-typed. If absent, the framework skips them silently.
 
-**Reactivity is opt-in via `reactive_field()`.** Plain attributes are not reactive — `devices: dict = {}` is a normal Python dict. `devices = reactive_field([])` is a reactive cell that re-renders subscribed UI panels when its `.value` changes.
+**Reactivity is opt-in via `signal_field()`.** Plain attributes are not reactive — `devices: dict = {}` is a normal Python dict. `devices: list = signal_field([])` is a signal-emitting cell that re-renders subscribed UI panels when it's assigned a new value.
 
 ```python
 class MidiPool(AppState):
-    devices = reactive_field([])           # reactive — UI re-renders on change
-    connections: dict[str, Connection] = {} # plain — not reactive
-    _lock = threading.Lock()                # plain
+    devices: list = signal_field([])        # signal-emitting — UI re-renders on assignment
+    connections: dict[str, Connection] = {}  # plain — not reactive
+    _lock = threading.Lock()                 # plain
 ```
 
 **Class-keyed access only.** Both contexts expose state through generic-typed namespaces:
@@ -124,13 +125,13 @@ Type-checker enforces the asymmetry: `exec_ctx.data` is an `AttributeError` at r
 # Recommended — re-resolves on each access
 def draw(self, ctx, layout):
     pool = ctx.app_data[MidiPool]
-    for device in pool.devices.value:
+    for device in pool.devices:
         layout.label(device.name)
 
 # Acceptable inside a short worker body — captured once
 def worker(self, exec_ctx):
     pool = exec_ctx.app_data[MidiPool]
-    pool.send(self.props.message.value)
+    pool.send(self.value('message'))
 
 # AVOID — stale after hot-reload
 class MyPanel(BasePanel):
@@ -146,7 +147,7 @@ class MyPanel(BasePanel):
 
 ```python
 class TimelineCursor(SessionState):
-    position = reactive_field(0.0)
+    position: float = signal_field(0.0)
 
     def on_enable(self):
         # self.session_id is now available (str) — set by the container
@@ -177,7 +178,7 @@ from haywire.core.state import (
     state,                  # decorator
     LibraryStateRegistry,   # for register_components()
 )
-from haywire.ui.reactive import reactive_field
+from haywire.core.session.signals import signal_field
 ```
 
 ## 4. One comprehensive example
@@ -188,7 +189,7 @@ A library `haybale_midi` that exercises both scopes: an `AppState` (`MidiPool`) 
 # haybale_midi/state/midi_pool.py — AppState
 
 from haywire.core.state import AppState, state
-from haywire.ui.reactive import reactive_field
+from haywire.core.session.signals import signal_field
 
 # Companion settings (covered in components/settings/setting-canon.md).
 # Lives in the same library so on_enable can find the wired registry.
@@ -199,9 +200,9 @@ class MidiPool(AppState):
     """App-global pool of live MIDI devices. One instance shared across
     every session and every flow."""
 
-    devices = reactive_field([])             # reactive — UI rerenders on changes
-    connections: dict[str, "Connection"] = {} # plain — not reactive
-    config: MidiSettings | None = None        # holds composed settings instance
+    devices: list = signal_field([])          # signal-emitting — UI rerenders on assignment
+    connections: dict[str, "Connection"] = {}  # plain — not reactive
+    config: MidiSettings | None = None         # holds composed settings instance
 
     def on_enable(self) -> None:
         # Instantiate AFTER SettingsRegistry has wired MidiSettings._registry.
@@ -210,7 +211,7 @@ class MidiPool(AppState):
         self.config = MidiSettings()
 
         if self.config.auto_connect.value:
-            self.devices.value = scan_midi_devices(
+            self.devices = scan_midi_devices(
                 rate_hz=self.config.poll_rate.value,
             )
 
@@ -219,22 +220,22 @@ class MidiPool(AppState):
         for conn in self.connections.values():
             conn.close()
         self.connections.clear()
-        self.devices.value = []
+        self.devices = []
 ```
 
 ```python
 # haybale_midi/state/midi_selection.py — SessionState
 
 from haywire.core.state import SessionState, state
-from haywire.ui.reactive import reactive_field
+from haywire.core.session.signals import signal_field
 
 @state(label='MIDI Selection (session)')
 class MidiSelection(SessionState):
     """Per-session state — each browser session has its own selected
     device and per-session preferences."""
 
-    selected_device_id = reactive_field("")
-    preferred_channel = reactive_field(1)
+    selected_device_id: str = signal_field("")
+    preferred_channel: int = signal_field(1)
 
     def on_enable(self) -> None:
         # session_id is stamped by the container BEFORE on_enable fires
@@ -243,7 +244,7 @@ class MidiSelection(SessionState):
 
     def on_disable(self) -> None:
         # Persist any session preferences before the session is detached.
-        save_session_prefs(self.session_id, self.preferred_channel.value)
+        save_session_prefs(self.session_id, self.preferred_channel)
 ```
 
 ```python
@@ -301,14 +302,14 @@ class MidiDeviceListPanel(BasePanel):
         # SessionState — this session's selection
         selection = ctx.data[MidiSelection]
 
-        for device in pool.devices.value:
+        for device in pool.devices:
             row = layout.row()
             row.label(device.name)
-            if device.id == selection.selected_device_id.value:
+            if device.id == selection.selected_device_id:
                 row.label('✓ selected')
             else:
                 row.button('Select', on_click=lambda d=device:
-                    setattr(selection.selected_device_id, 'value', d.id))
+                    setattr(selection, 'selected_device_id', d.id))
 ```
 
 ```python
@@ -342,7 +343,7 @@ What this example exercises:
 | `AppState` for app-global single-instance state | `MidiPool` |
 | `SessionState` for per-session state | `MidiSelection` |
 | `@state(label=...)` decorator | both classes |
-| `reactive_field()` for reactive attributes | `devices`, `selected_device_id` |
+| `signal_field()` for reactive attributes | `devices`, `selected_device_id` |
 | Plain attributes for non-reactive state | `connections: dict` |
 | `on_enable` / `on_disable` lifecycle hooks | both classes |
 | Composing `LibrarySettings` inside `AppState` | `MidiPool.config = MidiSettings()` |
@@ -365,7 +366,7 @@ For the framework mechanics — `LibraryStateRegistry`, `LibraryStateContainer`,
 - [ ] Pick scope: `AppState` (one global) or `SessionState` (one per session)
 - [ ] `@state(label='...')` decorator (optional but recommended)
 - [ ] Inherit from chosen base; never inherit from `LibraryState` directly
-- [ ] Use `reactive_field()` for fields that should drive UI re-renders; plain attributes otherwise
+- [ ] Use `signal_field()` for fields that should drive UI re-renders; plain attributes otherwise
 - [ ] Implement `on_enable` / `on_disable` for resource lifecycle (both optional)
 - [ ] Place file in `state/` folder; register the folder via `LibraryStateRegistry` in `register_components`
 - [ ] For SessionState: read `self.session_id` in `on_enable` (not `__init__`)
@@ -377,7 +378,7 @@ For the framework mechanics — `LibraryStateRegistry`, `LibraryStateContainer`,
 from haywire.core.state import (
     AppState, SessionState, state, LibraryStateRegistry,
 )
-from haywire.ui.reactive import reactive_field
+from haywire.core.session.signals import signal_field
 ```
 
 ### Access patterns

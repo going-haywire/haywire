@@ -97,7 +97,7 @@ Focus matching is by `id`, not by class identity — class objects can drift aft
 @classmethod
 def poll(cls, ctx: SessionContext) -> bool:
     """Should this panel be visible right now? Cheap and fast."""
-    return ctx.data[EditState].active_node.value is not None
+    return ctx.data[EditState].active_node is not None
 
 def draw(
     self,
@@ -106,7 +106,7 @@ def draw(
     actions: PropertiesEditorActions,
 ) -> None:
     """Render the panel content. Called only when poll() returned True."""
-    layout.label(f'Active: {ctx.data[EditState].active_node.value.name}')
+    layout.label(f'Active: {ctx.data[EditState].active_node.name}')
 ```
 
 `poll` is a classmethod (no instance state needed for visibility decisions). `draw` is an instance method — the host editor instantiates the panel before calling it. The `actions` argument is whatever the host passed as `actions_provider` to `get_panels_for`; it's typed against the panel's `action=` Protocol.
@@ -114,9 +114,9 @@ def draw(
 **`poll` runs on every relevant context change.** Keep it cheap. Common patterns:
 
 ```python
-return ctx.data[EditState].active_node.value is not None  # any node selected
-return isinstance(ctx.data[EditState].active_node.value, MySpecialNode)
-return ctx.data[MyLibState].is_active.value               # AppState/SessionState driven
+return ctx.data[EditState].active_node is not None  # any node selected
+return isinstance(ctx.data[EditState].active_node, MySpecialNode)
+return ctx.data[MyLibState].is_active               # AppState/SessionState driven
 return False                                              # never visible (debugging)
 ```
 
@@ -167,7 +167,7 @@ Source: [`barn/haybale-testing/haybale_testing/panels/`](../../../barn/haybale-t
 --8<-- "barn/haybale-testing/haybale_testing/panels/test_node_panels.py:test_delete_node_panel"
 ```
 
-**SessionState-reading panel** — `TestSessionStatePanel` from [`test_session_state_panel.py`](../../../barn/haybale-testing/haybale_testing/panels/test_session_state_panel.py). Demonstrates `poll()` reading a `SessionState` reactive field and `draw()` displaying it with `layout.label()`:
+**SessionState-reading panel** — `TestSessionStatePanel` from [`test_session_state_panel.py`](../../../barn/haybale-testing/haybale_testing/panels/test_session_state_panel.py). Demonstrates `poll()` reading a `SessionState` signal field and `draw()` displaying it with `layout.label()`:
 
 ```python
 --8<-- "barn/haybale-testing/haybale_testing/panels/test_session_state_panel.py:test_session_state_panel"
@@ -179,7 +179,7 @@ What these examples exercise:
 |---|---|
 | `@panel(action=..., focus=..., label=..., order=...)` | both panels |
 | `poll(cls, ctx)` as `@classmethod` | both panels |
-| `ctx.data[Cls].reactive_field.value` in `poll` | both panels |
+| `ctx.data[Cls].signal_field` (bare attribute) in `poll` | both panels |
 | `draw(self, ctx, layout, actions)` 3-arg signature | both panels |
 | `layout.button(label, icon, on_click)` | `TestDeleteNodePanel` |
 | Dispatching through the action contract | `actions.test_delete_node(node_id)` |
