@@ -5,6 +5,7 @@ scope: Authoring panels — BasePanel subclass, @panel decorator, action/focus c
 see-also:
   - ../editors/editor-canon.md
   - ../states/state-canon.md
+  - ../../guides/signals.md
   - ../../architecture/studio/studio-arch.md
   - ../../reference/glossary.md
 ---

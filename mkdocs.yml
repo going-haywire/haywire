@@ -108,6 +108,7 @@ nav:
   - Guides:
       - Node roles: guides/node-roles.md
       - Ports: guides/ports.md
+      - Signals: guides/signals.md
 
   - Architecture:
       - Overview: architecture/overview/overview-arch.md

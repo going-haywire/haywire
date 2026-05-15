@@ -4,6 +4,7 @@ doc_template: canonical-example
 scope: Authoring AppState / SessionState classes — @state decorator, on_enable / on_disable, ctx.app_data and ctx.data access
 see-also:
   - ../../architecture/session-and-state/session-and-state-arch.md
+  - ../../guides/signals.md
   - ../settings/setting-canon.md
   - ../libraries/library-canon.md
   - ../../reference/glossary.md

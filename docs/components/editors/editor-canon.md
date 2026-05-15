@@ -5,6 +5,7 @@ scope: Authoring editors — BaseEditor subclass, @editor decorator, draw lifecy
 see-also:
   - ../panels/panel-canon.md
   - ../states/state-canon.md
+  - ../../guides/signals.md
   - ../../architecture/studio/studio-arch.md
   - ../../reference/glossary.md
 ---

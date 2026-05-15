@@ -4,6 +4,7 @@ doc_template: impl-spec
 scope: LibraryStateRegistry, LibraryStateContainer, lifecycle pipeline, session attach/detach, hot-reload coordination
 see-also:
   - ../../components/states/state-canon.md
+  - ../../guides/signals.md
   - ../library-system/library-system-arch.md
   - ../hot-reload/hot-reload-arch.md
   - ../../reference/glossary.md

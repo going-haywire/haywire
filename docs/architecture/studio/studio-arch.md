@@ -10,6 +10,7 @@ see-also:
   - ../session-and-state/session-and-state-arch.md
   - ../../components/editors/editor-canon.md
   - ../../components/panels/panel-canon.md
+  - ../../guides/signals.md
   - ../../reference/glossary.md
 ---
 
