@@ -1,6 +1,6 @@
 # Signal-field unification
 
-Status: **DONE** — landed in `<TBD-after-merge>`. (Originally drafted as
+Status: **DONE** — landed in `3d10428b`. (Originally drafted as
 "Reactive fields unified with the event bus"; builds on `event_bus_redesign.md`.)
 
 ## Problem
