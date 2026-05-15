@@ -1,12 +1,11 @@
 """FileBrowserActions — Protocol implemented by SessionFileMenuProvider.
 
-Per Q11B: a single method, ``reveal``. Each panel resolves its own
-binding_id (e.g. the "Open in Haystack" panel calls
+Each panel resolves its own binding_id (e.g. the "Open in Haystack" panel calls
 HaystackState.open_graph(path) to derive an entry_id, then calls
 actions.reveal(GraphEditor, entry_id, display_name)).
 
 Protocol matching is structural — SessionFileMenuProvider satisfies
-this without inheriting from it.
+this without inheriting from it.s
 """
 
 from __future__ import annotations

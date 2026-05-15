@@ -5,7 +5,7 @@ scope: Canonical haywire vocabulary; ubiquitous language with disambiguation
 see-also:
 ---
 
-# Glossary
+# Ubiquitous Language
 
 *Domain glossary for the Haywire visual programming system. Use these terms precisely and consistently across all code, docs, and discussions.*
 

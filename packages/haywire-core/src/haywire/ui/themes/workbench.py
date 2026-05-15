@@ -10,6 +10,8 @@ _fields is populated uniformly and to_css_vars() works without extra boilerplate
 from __future__ import annotations
 from typing import ClassVar
 
+from haywire.core.library.identity import LibraryIdentity
+from haywire.ui.themes.identity import ThemeClassIdentity
 
 class _FieldProxy:
     """Minimal descriptor-like object wrapping a plain Color default value."""
@@ -38,6 +40,9 @@ class WorkbenchTheme:
     Subclasses decorated with @workbench_theme get a class_identity attribute
     and can be registered with ThemeRegistry.
     """
+
+    class_identity: ThemeClassIdentity = None
+    class_library: LibraryIdentity = None
 
     _fields: ClassVar[dict[str, _FieldProxy]] = {}
     _namespace: ClassVar[str] = ""

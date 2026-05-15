@@ -615,6 +615,9 @@ class LibraryOverviewEditor(BaseEditor):
 
         session = context.session
         if session is not None:
+            # TODO: once Library Editors have their own State - LibraryComponentEditor remove
+            # the active_library moves inot the AppState and the field will be emited accross 
+            # sessions
             session.publish(Reveal(editor=LibraryComponentEditor))
 
     # ─────────────────────────────────────────────────────────────────────────

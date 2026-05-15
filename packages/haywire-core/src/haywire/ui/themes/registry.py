@@ -49,12 +49,18 @@ class ThemeRegistry(BaseRegistry):
     # =========================================================================
 
     def _class_filter(self, cls: Type) -> bool:
-        """Accept WorkbenchTheme and NodeTheme subclasses with class_identity."""
+        """Accept WorkbenchTheme and NodeTheme subclasses with class_identity.
+
+        Note: the base classes declare `class_identity: ThemeClassIdentity = None`
+        for mypy. Undecorated subclasses inherit that `None`, so `hasattr` is
+        not enough — we must check the value is non-None (set by @theme /
+        @workbench_theme / @node_theme).
+        """
         return (
             isinstance(cls, type)
             and issubclass(cls, (WorkbenchTheme, NodeTheme))
             and cls not in (WorkbenchTheme, NodeTheme)
-            and hasattr(cls, "class_identity")
+            and getattr(cls, "class_identity", None) is not None
         )
 
     def _register_class(self, cls: Type, library_identity: LibraryIdentity) -> str | None:

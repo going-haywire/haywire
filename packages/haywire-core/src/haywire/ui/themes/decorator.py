@@ -13,18 +13,9 @@ Consistent with @node, @editor, @panel, @settings pattern:
 """
 
 from __future__ import annotations
-from dataclasses import dataclass
 
 from haywire.core.library.utils import derive_library_identity, reg_key
-from haywire.core.registry.identity import BaseIdentity
-
-
-@dataclass
-class ThemeClassIdentity(BaseIdentity):
-    """Identity metadata stored on decorated theme classes."""
-
-    theme_type: str = ""  # 'workbench' or 'node'
-
+from haywire.ui.themes.identity import ThemeClassIdentity
 
 def theme(
     *,

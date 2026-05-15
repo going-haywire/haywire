@@ -298,7 +298,7 @@ class LibraryComponentEditor(BaseEditor):
     @staticmethod
     def _codemirror_theme(context: "SessionContext") -> Literal["vscodeLight", "vscodeDark"]:
         """Return a CodeMirror theme name that matches the active Haywire workbench theme."""
-        theme_key = context.active_workbench_theme_key or "core:theme:workbench:haywire-dark"
+        theme_key = context.active_workbench_theme_key or "dark"
         return "vscodeLight" if "light" in theme_key else "vscodeDark"
 
     def _close(self, context: "SessionContext") -> None:
