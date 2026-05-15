@@ -27,9 +27,11 @@ def test_file_focus_available_when_right_clicked():
     from haybale_studio.file_focus import FileFocus
     from haybale_studio.state.file_browser_state import FileBrowserState
 
+    from tests.conftest import attach_stub_session
+
     ctx = MagicMock()
-    state_inst = FileBrowserState()
-    state_inst.right_clicked_file.value = Path("/tmp/x.haywire")
+    state_inst = attach_stub_session(FileBrowserState())
+    state_inst.right_clicked_file = Path("/tmp/x.haywire")
     ctx.data = {FileBrowserState: state_inst}
     assert FileFocus.available(ctx) is True
 

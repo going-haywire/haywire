@@ -58,16 +58,17 @@ def make_context(
     ``ctx.data[EditState]`` against the same class reference the
     container saw (survives library hot-reloads).
     """
+    from tests.conftest import attach_stub_session
+
     app = FakeApp()
     sid = "test"
     EditStateCls = register_edit_state(app.library_state_container, sid)
-    ctx = SessionContext(session_id=sid, app=app)
-    ctx.session = MagicMock()
+    ctx = attach_stub_session(SessionContext(session_id=sid, app=app))
     edit = ctx.data[EditStateCls]
-    edit.active_node.value = active_node
-    edit.active_edge.value = active_edge
+    edit.active_node = active_node
+    edit.active_edge = active_edge
     if clipboard is not None:
-        edit.clipboard.value = clipboard
+        edit.clipboard = clipboard
     return ctx, EditStateCls
 
 
@@ -305,15 +306,15 @@ def test_selection_action_panel_focus_is_test_selection_focus(panel_cls):
 
 def test_copy_selection_poll_true_when_nodes_selected(register_edit_state):
     ctx, EditStateCls = make_context(register_edit_state)
-    ctx.data[EditStateCls].selected_nodes.value = {"n1"}
+    ctx.data[EditStateCls].selected_nodes = {"n1"}
     assert CopySelectionPanel.poll(ctx) is True
 
 
 def test_copy_selection_poll_false_when_nothing_selected(register_edit_state):
     ctx, EditStateCls = make_context(register_edit_state)
     edit = ctx.data[EditStateCls]
-    edit.selected_nodes.value = set()
-    edit.selected_edges.value = set()
+    edit.selected_nodes = set()
+    edit.selected_edges = set()
     assert CopySelectionPanel.poll(ctx) is False
 
 

@@ -11,7 +11,7 @@ from unittest.mock import MagicMock
 import haywire.core.graph.editor  # noqa: F401 — circular-import guard
 
 from haywire.core.session.session import Session
-from haywire.core.session.events import SelectionMoved
+from haywire.core.session.signals import SelectionMoved
 
 
 def _make_session(session_manager=None):

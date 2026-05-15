@@ -33,7 +33,7 @@ class NodeInfoPanel(BasePanel):
 
     @classmethod
     def poll(cls, ctx: "SessionContext") -> bool:
-        return ctx.data[EditState].active_node.value is not None
+        return ctx.data[EditState].active_node is not None
 
     def draw(
         self,
@@ -41,7 +41,7 @@ class NodeInfoPanel(BasePanel):
         layout: PanelLayout,
         actions: PropertiesEditorActions,
     ) -> None:
-        node = ctx.data[EditState].active_node.value
+        node = ctx.data[EditState].active_node
         if node is None:
             return
         try:
@@ -68,7 +68,7 @@ class NodePropertiesPanel(BasePanel):
 
     @classmethod
     def poll(cls, ctx: "SessionContext") -> bool:
-        node = ctx.data[EditState].active_node.value
+        node = ctx.data[EditState].active_node
         return (
             node is not None
             and hasattr(node, "node")
@@ -82,7 +82,7 @@ class NodePropertiesPanel(BasePanel):
         layout: PanelLayout,
         actions: PropertiesEditorActions,
     ) -> None:
-        node_wrapper = ctx.data[EditState].active_node.value
+        node_wrapper = ctx.data[EditState].active_node
         if node_wrapper is None:
             return
         render_settings(node_wrapper.node.props)

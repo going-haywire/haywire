@@ -41,6 +41,7 @@ class TestAppStateBase:
     def test_subclass_can_carry_arbitrary_fields(self):
         class FullOfStuff(AppState):
             def __init__(self) -> None:
+                super().__init__()
                 self.devices: list[str] = []
                 self.counter: int = 0
 

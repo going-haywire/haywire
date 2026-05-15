@@ -34,7 +34,7 @@ import haywire.core.graph.editor  # noqa: F401 — circular-import guard
 from haywire.core.library.identity import LibraryIdentity
 from haywire.core.registry.lifecycle_event import LifeCycleEvent, LifeCycleEventType
 from haywire.core.session.session import Session
-from haywire.core.session.events import ContextSignal, SelectionMoved
+from haywire.core.session.signals import Signal, SelectionMoved
 from haywire.ui.editor.registry import EditorTypeRegistry
 from haywire.ui.editor.wrapper import EditorWrapper
 from haywire.ui.panel import PanelRegistry
@@ -169,7 +169,7 @@ def test_unregistered_panel_events_do_not_redraw():
     NOT redraw the wrapper."""
 
     @dataclass(frozen=True)
-    class _UnrelatedEvent(ContextSignal):
+    class _UnrelatedEvent(Signal):
         pass
 
     panel_registry = PanelRegistry()

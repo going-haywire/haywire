@@ -1,18 +1,18 @@
-"""Tests for the ContextSignal / LifecycleCommand vocabulary.
+"""Tests for the Signal / CommandSignal vocabulary.
 
-Both observation (``ContextSignal``) and imperative (``LifecycleCommand``)
-payloads share the :class:`~haywire.core.session.events.Event` base and
+Both observation (plain ``Signal``) and imperative (``CommandSignal``)
+payloads share the :class:`~haywire.core.session.signals.Signal` base and
 travel through the same per-session bus. ``Session.publish(...)`` routes
-either; ``Session.subscribe(EventType, handler)`` listens for either.
+either; ``Session.subscribe(SignalType, handler)`` listens for either.
 
 Covers:
-- Event base + ContextSignal / LifecycleCommand inheritance
+- Signal base + CommandSignal inheritance
 - Concrete signal classes (cross_session flags)
-- LifecycleCommand subclasses: Reveal, Close, BroadcastClose
-- Session.publish() local-only routing for cross_session=False events
-- Session.publish() + SessionManager.broadcast for cross_session=True events
+- CommandSignal subclasses: Reveal, Close, BroadcastClose
+- Session.publish() local-only routing for cross_session=False signals
+- Session.publish() + SessionManager.broadcast for cross_session=True signals
 - SessionManager.broadcast fan-out (every session, including origin)
-- Signal/lifecycle sequential ordering (§4.4 contract)
+- Signal / lifecycle sequential ordering contract
 """
 
 from dataclasses import FrozenInstanceError
@@ -22,21 +22,16 @@ import pytest
 
 import haywire.core.graph.editor  # noqa: F401 — circular-import guard
 
-from haywire.core.session.events import Event
-from haywire.core.session.events import (
-    ActiveComponentMoved,
-    ActiveFileMoved,
+from haywire.core.session.signals import (
     ActiveGraphMoved,
-    ActiveLibraryMoved,
     BroadcastClose,
     Close,
-    ContextSignal,
+    Signal,
     GraphDataMutated,
     LibraryCatalogChanged,
-    LifecycleCommand,
+    CommandSignal,
     Reveal,
     SelectionMoved,
-    ThemeMoved,
 )
 from haywire.core.state import LibraryStateContainer, LibraryStateRegistry
 from haywire.core.session.session import Session
@@ -44,26 +39,23 @@ from haywire.core.session.session_manager import SessionManager
 
 
 # ----------------------------------------------------------------------
-# Event base + hierarchy
+# Signal base + hierarchy
 # ----------------------------------------------------------------------
 
 
-def test_context_signal_is_event_subclass():
-    assert issubclass(ContextSignal, Event)
+def test_command_signal_is_signal_subclass():
+    assert issubclass(CommandSignal, Signal)
 
 
-def test_lifecycle_command_is_event_subclass():
-    assert issubclass(LifecycleCommand, Event)
+def test_observation_signals_are_signal_subclass():
+    assert issubclass(SelectionMoved, Signal)
+    assert issubclass(GraphDataMutated, Signal)
 
 
-def test_context_signal_cross_session_defaults_false():
-    assert ContextSignal.cross_session is False
+def test_signal_cross_session_defaults_false():
+    assert Signal.cross_session is False
     assert SelectionMoved.cross_session is False
     assert ActiveGraphMoved.cross_session is False
-    assert ActiveFileMoved.cross_session is False
-    assert ActiveLibraryMoved.cross_session is False
-    assert ActiveComponentMoved.cross_session is False
-    assert ThemeMoved.cross_session is False
 
 
 def test_cross_session_signals_declared_correctly():
@@ -102,8 +94,8 @@ def test_reveal_request_optional_payload_label():
     assert r.label is None
 
 
-def test_reveal_is_lifecycle_command():
-    assert isinstance(Reveal(editor=MagicMock()), LifecycleCommand)
+def test_reveal_is_command_signal():
+    assert isinstance(Reveal(editor=MagicMock()), CommandSignal)
 
 
 def test_close_carries_payload():
@@ -122,8 +114,8 @@ def test_close_requires_payload():
         Close()  # type: ignore[call-arg]
 
 
-def test_close_is_lifecycle_command():
-    assert isinstance(Close(binding_id="x"), LifecycleCommand)
+def test_close_is_command_signal():
+    assert isinstance(Close(binding_id="x"), CommandSignal)
 
 
 def test_broadcast_close_cross_session():
@@ -132,7 +124,7 @@ def test_broadcast_close_cross_session():
 
 
 # ----------------------------------------------------------------------
-# Session.publish() routing through the event bus
+# Session.publish() routing through the signal bus
 # ----------------------------------------------------------------------
 
 
@@ -157,7 +149,7 @@ def test_publish_local_only_for_cross_session_false_signal():
     sm.broadcast.assert_not_called()
 
 
-def test_publish_local_only_for_cross_session_false_lifecycle():
+def test_publish_local_only_for_cross_session_false_command():
     """A local Close goes only to local subscribers — no broadcast."""
     sm = MagicMock()
     session = _make_session(session_manager=sm)
@@ -172,7 +164,7 @@ def test_publish_local_only_for_cross_session_false_lifecycle():
 
 
 def test_publish_broadcasts_for_cross_session_true_signal():
-    """For cross_session=True events, Session.publish() delegates to
+    """For cross_session=True signals, Session.publish() delegates to
     SessionManager.broadcast which is responsible for dispatching to every
     session (including origin). Local subscribers are NOT called directly —
     the broadcast path reaches them via _dispatch.
@@ -189,9 +181,9 @@ def test_publish_broadcasts_for_cross_session_true_signal():
     sm.broadcast.assert_called_once_with(s)
 
 
-def test_publish_broadcasts_for_cross_session_true_lifecycle():
+def test_publish_broadcasts_for_cross_session_true_command():
     """A BroadcastClose flows through SessionManager.broadcast, just like
-    cross-session signals."""
+    cross-session observation signals."""
     sm = MagicMock()
     session = _make_session(session_manager=sm)
     handler = MagicMock()
@@ -219,19 +211,6 @@ def test_publish_no_handler_is_noop():
     session = _make_session(session_manager=sm)
     # No subscriber registered — must not raise.
     session.publish(SelectionMoved())
-
-
-def test_signal_alias_routes_through_publish():
-    """Session.signal is a thin alias for publish — kept for legacy
-    call sites."""
-    session = _make_session()
-    handler = MagicMock()
-    session.subscribe(SelectionMoved, handler)
-
-    s = SelectionMoved()
-    session.signal(s)
-
-    handler.assert_called_once_with(s)
 
 
 # ----------------------------------------------------------------------
@@ -267,23 +246,23 @@ def test_subscribing_to_broadcast_close_receives_only_broadcast_close():
 
 
 # ----------------------------------------------------------------------
-# Signal / lifecycle sequential ordering (§4.4)
+# Signal / command sequential ordering
 # ----------------------------------------------------------------------
 
 
-def test_signal_runs_before_lifecycle_when_published_in_order():
-    """Authors publish a signal and then a lifecycle command; the signal
-    handler completes before the lifecycle handler starts."""
+def test_observation_runs_before_command_when_published_in_order():
+    """Authors publish an observation signal and then a command; the
+    observation handler completes before the command handler starts."""
     session = _make_session()
 
     call_order: list[str] = []
     session.subscribe(SelectionMoved, lambda s: call_order.append("signal"))
-    session.subscribe(Reveal, lambda c: call_order.append("lifecycle"))
+    session.subscribe(Reveal, lambda c: call_order.append("command"))
 
     session.publish(SelectionMoved())
     session.publish(Reveal(editor=MagicMock()))
 
-    assert call_order == ["signal", "lifecycle"]
+    assert call_order == ["signal", "command"]
 
 
 # ----------------------------------------------------------------------
@@ -293,7 +272,7 @@ def test_signal_runs_before_lifecycle_when_published_in_order():
 
 def test_broadcast_delivers_to_every_session_including_origin():
     """Every registered session — including the origin — receives the
-    event exactly once."""
+    signal exactly once."""
     sm = SessionManager(container=LibraryStateContainer(LibraryStateRegistry()))
     origin = sm.create_session(project_state=MagicMock(), workspace_manager=MagicMock())
     peer_a = sm.create_session(project_state=MagicMock(), workspace_manager=MagicMock())
@@ -318,7 +297,7 @@ def test_broadcast_swallows_per_peer_exceptions():
     bad = sm.create_session(project_state=MagicMock(), workspace_manager=MagicMock())
     good = sm.create_session(project_state=MagicMock(), workspace_manager=MagicMock())
 
-    delivered: list[tuple[str, Event]] = []
+    delivered: list[tuple[str, Signal]] = []
     origin.subscribe(GraphDataMutated, lambda s: delivered.append(("origin", s)))
     bad.subscribe(GraphDataMutated, MagicMock(side_effect=RuntimeError("boom")))
     good.subscribe(GraphDataMutated, lambda s: delivered.append(("good", s)))
@@ -331,7 +310,7 @@ def test_broadcast_swallows_per_peer_exceptions():
 
 
 def test_publish_end_to_end_with_session_manager():
-    """A cross_session=True event published via Session.publish() reaches
+    """A cross_session=True signal published via Session.publish() reaches
     every peer's bus subscribers."""
     sm = SessionManager(container=LibraryStateContainer(LibraryStateRegistry()))
     origin = sm.create_session(project_state=MagicMock(), workspace_manager=MagicMock())

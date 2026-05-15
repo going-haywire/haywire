@@ -1,27 +1,36 @@
 """EditState — per-session graph-editor selection and clipboard state.
 
-Read paths:
+Each field is a ``signal_field``: reads/writes use bare attribute
+access, identity-equal writes are no-ops, and the framework synthesizes
+one ``Signal`` subclass per field at class definition::
+
     edit = ctx.data[EditState]
-    if edit.active_node.value is not None:
-        ...
+    edit.active_node = wrapper      # writes value, emits EditState.active_node
+    node = edit.active_node         # reads stored value
 
-Write paths (only in haybale-studio editors and canvas handlers):
-    ctx.data[EditState].active_node.value = wrapper
+Subscribers reference the class-level field as the signal type::
 
-Note on hot-reload: a CLASS_RELOADED event for EditState re-instantiates per-session
-state, dropping field values. Editing this file is a developer action;
-resetting selection mid-session is acceptable.
+    @redraw_on(EditState.active_node)
+    def _on(self, ctx, signal): ...
 
-See internals/documentation/architecture/session_state.md.
+The field reference IS the subscription key — there is no separate
+event class to import.
+
+Hot-reload: when this file is re-imported, EditState's per-session
+instance is torn down and recreated, dropping field values. Each
+synthesized ``Signal`` subclass is also fresh; editor subscriptions are
+re-bound during the editor teardown/recreate pass. Resetting selection
+mid-session as a developer action is acceptable.
+
+See docs/architecture/session-and-state/session-and-state-arch.md.
 """
 
 from __future__ import annotations
 
-from copy import copy
 from typing import TYPE_CHECKING, Any, Optional, Set
 
+from haywire.core.session.signals import signal_field
 from haywire.core.state import SessionState, state
-from haywire.core.session.reactive import Reactive, iter_reactive_fields, reactive_field
 
 if TYPE_CHECKING:
     from haywire.core.edge.edge_wrapper import EdgeWrapper
@@ -35,22 +44,14 @@ if TYPE_CHECKING:
 class EditState(SessionState):
     """Per-session graph-editor state: selection, active items, clipboard."""
 
-    active_graph: Reactive[Optional["BaseGraph"]] = reactive_field(None)
-    active_graph_path: Reactive[Optional[Any]] = reactive_field(None)
+    active_graph: Optional["BaseGraph"] = signal_field(None)
+    active_graph_path: Optional[Any] = signal_field(None)
 
-    active_node: Reactive[Optional["NodeWrapper"]] = reactive_field(None)
-    active_edge: Reactive[Optional["EdgeWrapper"]] = reactive_field(None)
-    active_port: Reactive[Optional["DataPort"]] = reactive_field(None)
+    active_node: Optional["NodeWrapper"] = signal_field(None)
+    active_edge: Optional["EdgeWrapper"] = signal_field(None)
+    active_port: Optional["DataPort"] = signal_field(None)
 
-    selected_nodes: Reactive[Set[str]] = reactive_field(set())
-    selected_edges: Reactive[Set[str]] = reactive_field(set())
+    selected_nodes: Set[str] = signal_field(set())
+    selected_edges: Set[str] = signal_field(set())
 
-    clipboard: Reactive[Optional["ClipboardData"]] = reactive_field(None)
-
-    def __init__(self) -> None:
-        # Initialize per-instance Reactive[T] containers for every
-        # reactive_field() descriptor. Mutable defaults (e.g. set())
-        # are deep-copied per-instance to avoid sharing across sessions.
-        # Same pattern SessionContext uses (see haywire/ui/context.py).
-        for name, initial in iter_reactive_fields(type(self)):
-            self.__dict__[name] = Reactive(copy(initial))
+    clipboard: Optional["ClipboardData"] = signal_field(None)

@@ -1,29 +1,28 @@
-# packages/haywire-core/src/haywire/core/session/events.py
+# packages/haywire-core/src/haywire/core/session/signals/vocabulary.py
 """
-Event vocabulary for the per-session typed pub/sub bus.
+Concrete hand-authored signals dispatched through the per-session SignalBus.
 
-Every payload dispatched through :class:`~haywire.core.session.bus.EventBus`
-is an :class:`Event` subclass. Two flavours coexist:
+Two flavours coexist, expressed as inheritance:
 
-- :class:`ContextSignal` — **observations**: "X just happened" (selection
+- :class:`Signal` subclasses — **observations**: "X just happened" (selection
   moved, active graph switched, theme swapped). Anyone may subscribe;
   routing is fan-out.
-- :class:`LifecycleCommand` — **imperatives**: "do Y" (reveal an editor,
-  close a tab). Conventionally one subscriber per command type (the
+- :class:`CommandSignal` subclasses — **imperatives**: "do Y" (reveal an
+  editor, close a tab). Conventionally one subscriber per command type (the
   AppShell), but the bus does not enforce that.
 
 Both flavours travel through the same bus. The split is vocabulary for
 authors, not type machinery in the dispatcher. Emit with
-``Session.publish(event)``; subscribe with
-``Session.subscribe(EventType, handler)``.
+``Session.publish(signal)``; subscribe with
+``Session.subscribe(SignalType, handler)``.
 
 Cross-session routing is a class-level property: set
 ``cross_session: ClassVar[bool] = True`` on a subclass and
 ``Session.publish(...)`` delegates to
 ``SessionManager.broadcast(...)`` instead of dispatching locally.
 
-Library authors who declare their own event classes that other libraries
-subscribe to MUST list the event-declaring library in their own
+Library authors who declare their own signal classes that other libraries
+subscribe to MUST list the signal-declaring library in their own
 ``LibraryIdentity.dependencies`` so hot-reload reloads them as a pair.
 Without this, an ``isinstance`` check after a library reload can spuriously
 return ``False`` when the subscriber holds a stale class reference.
@@ -34,43 +33,10 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import ClassVar, Optional, TYPE_CHECKING
 
+from .signal import Signal, CommandSignal
+
 if TYPE_CHECKING:
     from haywire.ui.editor.base import BaseEditor
-
-
-# ---------------------------------------------------------------------------
-# Event — bus payload base
-# ---------------------------------------------------------------------------
-
-
-@dataclass(frozen=True, kw_only=True)
-class Event:
-    """Base class for everything dispatched through ``Session.publish``.
-
-    Subclasses describe a specific payload. Subscribers filter with plain
-    ``isinstance(event, EventType)`` — there is no framework-side identity
-    machinery (no ``is_a`` predicate, no qualified-name comparison).
-
-    Uses ``kw_only=True`` so subclasses can declare non-defaulted fields
-    without dataclass-ordering pain.
-    """
-
-    cross_session: ClassVar[bool] = False
-
-
-# ---------------------------------------------------------------------------
-# Observation marker
-# ---------------------------------------------------------------------------
-
-
-@dataclass(frozen=True, kw_only=True)
-class ContextSignal(Event):
-    """Marker base for observation payloads — "X just happened".
-
-    Distinguishes observations from imperative lifecycle commands at the
-    call site and in type hints. Carries no extra fields — the distinction
-    is intentional vocabulary, not behaviour.
-    """
 
 
 # ---------------------------------------------------------------------------
@@ -79,23 +45,8 @@ class ContextSignal(Event):
 
 
 @dataclass(frozen=True)
-class ActiveGraphMoved(ContextSignal):
+class ActiveGraphMoved(Signal):
     """The active graph (a library-owned SessionState field) moved."""
-
-
-@dataclass(frozen=True)
-class ActiveFileMoved(ContextSignal):
-    """``context.active_file`` moved."""
-
-
-@dataclass(frozen=True)
-class ActiveLibraryMoved(ContextSignal):
-    """``context.active_library`` moved (selection, not catalog mutation)."""
-
-
-@dataclass(frozen=True)
-class ActiveComponentMoved(ContextSignal):
-    """``context.active_component`` moved."""
 
 
 # ---------------------------------------------------------------------------
@@ -104,7 +55,7 @@ class ActiveComponentMoved(ContextSignal):
 
 
 @dataclass(frozen=True)
-class SelectionMoved(ContextSignal):
+class SelectionMoved(Signal):
     """
     Node/edge selection moved on the canvas.
 
@@ -120,53 +71,37 @@ class SelectionMoved(ContextSignal):
 
 
 @dataclass(frozen=True)
-class GraphDataMutated(ContextSignal):
+class GraphDataMutated(Signal):
     """Graph contents (nodes, edges, props) changed. Cross-session."""
 
     cross_session: ClassVar[bool] = True
 
 
 @dataclass(frozen=True)
-class LibraryCatalogChanged(ContextSignal):
+class LibraryCatalogChanged(Signal):
     """
     The set / state of installed libraries changed (install, uninstall,
     enable, disable). Cross-session — peer sessions need to refresh their
     library views.
 
-    Distinct from ``ActiveLibraryMoved`` which is per-session selection.
+    Distinct from per-session active-library selection which lives as a
+    ``signal_field`` on ``SessionContext`` (``SessionContext.active_library``).
+
+    Note: ``SessionContext.active_library`` IS itself usable as a subscription
+    key — ``@redraw_on(SessionContext.active_library)`` is the canonical
+    pattern for per-session active-library handlers.
     """
 
     cross_session: ClassVar[bool] = True
 
 
 # ---------------------------------------------------------------------------
-# Theme
-# ---------------------------------------------------------------------------
-
-
-@dataclass(frozen=True)
-class ThemeMoved(ContextSignal):
-    """Active workbench theme changed for this session. Local-only."""
-
-
-# ---------------------------------------------------------------------------
-# Imperative marker
+# Imperative commands
 # ---------------------------------------------------------------------------
 
 
 @dataclass(frozen=True, kw_only=True)
-class LifecycleCommand(Event):
-    """Marker base for imperative workspace-mutation payloads — "do Y".
-
-    Subclasses describe a specific mutation. Routing per-subclass is the
-    handler's responsibility, not the bus's: ``Reveal`` is point-to-point
-    (one slot), ``Close`` is fan-out across slots — both implemented inside
-    the AppShell handler.
-    """
-
-
-@dataclass(frozen=True, kw_only=True)
-class Reveal(LifecycleCommand):
+class Reveal(CommandSignal):
     """Bring an editor to the front in its default slot.
 
     Routed point-to-point: the AppShell resolves
@@ -191,7 +126,7 @@ class Reveal(LifecycleCommand):
 
 
 @dataclass(frozen=True, kw_only=True)
-class Close(LifecycleCommand):
+class Close(CommandSignal):
     """Close every tab bound to ``binding_id`` across all slots.
 
     Routed as fan-out: the AppShell asks every slot to close any tab whose
@@ -229,20 +164,12 @@ class BroadcastClose(Close):
 
 
 __all__ = [
-    # Bus payload base
-    "Event",
-    # Observation marker + signals
-    "ContextSignal",
+    # Observations
     "ActiveGraphMoved",
-    "ActiveFileMoved",
-    "ActiveLibraryMoved",
-    "ActiveComponentMoved",
     "SelectionMoved",
     "GraphDataMutated",
     "LibraryCatalogChanged",
-    "ThemeMoved",
-    # Imperative marker + commands
-    "LifecycleCommand",
+    # Imperative commands
     "Reveal",
     "Close",
     "BroadcastClose",

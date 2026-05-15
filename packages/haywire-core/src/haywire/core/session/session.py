@@ -7,12 +7,11 @@ from typing import Callable, TYPE_CHECKING, Type, TypeVar
 import uuid
 import logging
 
-from haywire.core.session.bus import EventBus
 from haywire.core.session.context import SessionContext
-from haywire.core.session.events import Event
+from haywire.core.session.signals import Signal, SignalBus
 from haywire.core.session.workspace.manager import WorkspaceManager
 
-E = TypeVar("E", bound=Event)
+S = TypeVar("S", bound=Signal)
 
 logger = logging.getLogger(__name__)
 
@@ -32,19 +31,18 @@ class Session:
     The Session is the bridge between the shared server-side data model
     and the per-client NiceGUI UI tree.
 
-    One channel flows out of the session: a per-session typed event bus.
-    ``session.publish(e: Event)`` fans out to subscribers registered via
+    One channel flows out of the session: a per-session typed signal bus.
+    ``session.publish(s: Signal)`` fans out to subscribers registered via
     ``session.subscribe``. Editors auto-wire their ``@redraw_on`` /
     ``@react_on`` decorated methods at instantiation; the AppShell
     subscribes its workspace-mutation handlers (``Reveal``, ``Close``)
-    directly. ``session.signal(...)`` is a thin alias for ``publish``,
-    kept for legacy emit-site call shapes.
+    directly.
 
-    If ``type(e).cross_session is True`` the call delegates to
-    ``SessionManager.broadcast`` which dispatches the event to every
-    session (including this one). Both observations (``ContextSignal``)
-    and imperatives (``LifecycleCommand``) travel through the same bus —
-    the split is vocabulary, not transport.
+    If ``type(s).cross_session is True`` the call delegates to
+    ``SessionManager.broadcast`` which dispatches the signal to every
+    session (including this one). Both observations (plain ``Signal``
+    subclasses) and imperatives (``CommandSignal`` subclasses) travel
+    through the same bus — the split is vocabulary, not transport.
     """
 
     def __init__(
@@ -67,22 +65,22 @@ class Session:
         self.context = SessionContext(session_id=self.session_id, app=project_state)
         self.context.session = self
 
-        # Per-session typed event bus — the only intra-session dispatch
+        # Per-session typed signal bus — the only intra-session dispatch
         # channel. Editors auto-subscribe their ``@redraw_on`` /
         # ``@react_on`` decorated methods at instantiation; panels
-        # contribute event types via ``redraw_on=`` on ``@panel(...)``;
+        # contribute signal types via ``redraw_on=`` on ``@panel(...)``;
         # AppShell subscribes its workspace-mutation handlers directly.
-        self._bus: EventBus = EventBus()
+        self._bus: SignalBus = SignalBus()
 
         logger.info(f"Session created: {self.session_id}")
 
-    def publish(self, event: Event) -> None:
-        """Publish a typed event on the session's bus.
+    def publish(self, signal: Signal) -> None:
+        """Publish a typed signal on the session's bus.
 
-        Routing depends on ``type(event).cross_session``:
+        Routing depends on ``type(signal).cross_session``:
 
         - ``False`` (local-only): fans out to every handler subscribed via
-          :meth:`subscribe` for ``type(event)``. Registration-order,
+          :meth:`subscribe` for ``type(signal)``. Registration-order,
           error-isolated per handler.
         - ``True`` (cross-session): delegates to
           ``SessionManager.broadcast`` which dispatches to every session
@@ -90,29 +88,24 @@ class Session:
           ``_dispatch`` on each receiving session.
 
         Args:
-            event: An :class:`Event` instance — either a
-                :class:`ContextSignal` (observation) or a
-                :class:`LifecycleCommand` (imperative).
+            signal: A :class:`Signal` instance — either an observation
+                (plain ``Signal`` subclass) or an imperative
+                (:class:`CommandSignal` subclass).
         """
-        if type(event).cross_session:
-            self._session_manager.broadcast(event)
+        if type(signal).cross_session:
+            self._session_manager.broadcast(signal)
             return
 
-        self._bus.publish(event)
-
-    # ``signal`` is the legacy emit name kept as a thin alias so existing
-    # call sites stay valid without churn. New code should call
-    # :meth:`publish` directly.
-    signal = publish
+        self._bus.publish(signal)
 
     def subscribe(
         self,
-        event_type: Type[E],
-        handler: Callable[[E], None],
+        signal_type: Type[S],
+        handler: Callable[[S], None],
     ) -> Callable[[], None]:
-        """Subscribe ``handler`` to events of exactly ``event_type``.
+        """Subscribe ``handler`` to signals of exactly ``signal_type``.
 
-        Thin pass-through to the session-local :class:`EventBus`. Exact-
+        Thin pass-through to the session-local :class:`SignalBus`. Exact-
         class match (subclasses do not inherit subscriptions);
         registration-order dispatch; error-isolated per handler.
 
@@ -121,22 +114,22 @@ class Session:
             tear down editor / panel / shell subscriptions at cleanup /
             hot-reload.
         """
-        return self._bus.subscribe(event_type, handler)
+        return self._bus.subscribe(signal_type, handler)
 
-    def _dispatch(self, event: Event) -> None:
-        """Internal: deliver an event originating elsewhere (e.g. a peer
+    def _dispatch(self, signal: Signal) -> None:
+        """Internal: deliver a signal originating elsewhere (e.g. a peer
         broadcast) without re-triggering broadcast.
 
         Called by ``SessionManager.broadcast`` on each receiving session.
         Bypasses the cross_session check on purpose — the broadcast is
         already happening.
         """
-        self._bus.publish(event)
+        self._bus.publish(signal)
 
     def cleanup(self) -> None:
         """Tear down per-session state.
 
-        Drops every event-bus subscription. AppShell teardown is driven
+        Drops every signal-bus subscription. AppShell teardown is driven
         upstream by studio.app.on_disconnect (Q7A: shell-upstream model) —
         Session is not involved in chrome cleanup.
         """

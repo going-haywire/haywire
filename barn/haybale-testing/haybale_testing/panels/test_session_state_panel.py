@@ -36,7 +36,7 @@ class TestSessionStatePanel(BasePanel):
 
     @classmethod
     def poll(cls, ctx: "SessionContext") -> bool:
-        return ctx.data[TestSessionState].counter.value is not None
+        return ctx.data[TestSessionState].counter is not None
 
     def draw(
         self,
@@ -44,7 +44,7 @@ class TestSessionStatePanel(BasePanel):
         layout: PanelLayout,
         actions: TestCanvasContextActions,
     ) -> None:
-        counter = ctx.data[TestSessionState].counter.value
+        counter = ctx.data[TestSessionState].counter
         layout.label(f"counter: {counter}")
 
 

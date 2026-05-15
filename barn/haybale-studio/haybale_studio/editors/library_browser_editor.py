@@ -16,15 +16,14 @@ from nicegui import ui
 from haywire.ui import elements as hui
 from haywire.ui.editor.decorator import editor
 from haywire.ui.editor.base import BaseEditor
+from haywire.core.session.context import SessionContext
 from haywire.core.session.handlers import redraw_on
-from haywire.core.session.events import (
-    ActiveLibraryMoved,
+from haywire.core.session.signals import (
     LibraryCatalogChanged,
     Reveal,
 )
 
 if TYPE_CHECKING:
-    from haywire.core.session.context import SessionContext
     from nicegui.element import Element
 
 logger = logging.getLogger(__name__)
@@ -55,7 +54,7 @@ class LibraryBrowserEditor(BaseEditor):
         self._filter_disabled: bool = True
         self._filter_available: bool = True
 
-    @redraw_on(ActiveLibraryMoved, LibraryCatalogChanged)
+    @redraw_on(SessionContext.active_library, LibraryCatalogChanged)
     def _refresh_on_library_change(self, context: "SessionContext", event) -> None:
         # Empty body — the decorator triggers wrapper.redraw() after return.
         pass
@@ -239,12 +238,13 @@ class LibraryBrowserEditor(BaseEditor):
         )
 
     def _select_library(self, lib, context: "SessionContext"):
-        context.active_library.value = lib
-        context.active_component.value = None
+        # Assigning emits SessionContext.active_library / .active_component
+        # synthetically on the bus; no manual signal emit needed.
+        context.active_library = lib
+        context.active_component = None
 
         session = context.session
         if session is not None:
             from haybale_studio.editors.library_overview_editor import LibraryOverviewEditor
 
-            session.signal(ActiveLibraryMoved())
             session.publish(Reveal(editor=LibraryOverviewEditor))

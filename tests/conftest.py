@@ -213,6 +213,23 @@ def integration_node_factory(library_system) -> NodeFactory:
 _EDIT_STATE_MODULE = "haybale_studio.state.edit_state"
 
 
+def attach_stub_session(instance):
+    """Stamp a MagicMock as ``instance.session`` so ``signal_field`` writes
+    on SessionState don't crash on the weakref deref.
+
+    ``SessionState._signal_emit`` calls ``self.session()``; production code
+    stamps a real ``weakref.ref(session)`` via
+    ``LibraryStateContainer.attach_session_with_ref``. Tests that build a
+    SessionState directly (without going through SessionManager) need
+    this stub. The MagicMock is callable, and the value it returns has a
+    callable ``.publish`` that harmlessly swallows the signal.
+    """
+    from unittest.mock import MagicMock
+
+    instance.session = MagicMock()
+    return instance
+
+
 @pytest.fixture
 def register_edit_state() -> Callable[[LibraryStateContainer, str], type]:
     """Register EditState into a LibraryStateContainer for tests.
@@ -220,13 +237,15 @@ def register_edit_state() -> Callable[[LibraryStateContainer, str], type]:
     Returns a helper that takes a container and a session id, registers
     EditState as a session-scoped class, and attaches the session so
     ``container.get_session(EditState, sid)`` returns an instance
-    immediately.
+    immediately. See ``attach_stub_session`` for why ``.session`` is
+    stamped.
     """
 
     def _register(container: LibraryStateContainer, session_id: str) -> type:
         edit_state_cls = importlib.import_module(_EDIT_STATE_MODULE).EditState
         container._add_session_class(edit_state_cls, "studio:state:EditState")
         container.attach_session(session_id)
+        attach_stub_session(container.get_session(edit_state_cls, session_id))
         return edit_state_cls
 
     return _register

@@ -18,7 +18,7 @@ from ..event_definitions import (
 )
 from ..event_handlers import handles_event
 from haywire.core.undo.actions.graph_actions import ClipboardData
-from haywire.core.session.events import SelectionMoved
+from haywire.core.session.signals import SelectionMoved
 from haybale_studio.state.edit_state import EditState
 
 if TYPE_CHECKING:
@@ -70,12 +70,12 @@ class SelectionHandlers:
             self.graph.get_edge_wrapper(next(iter(self.selected_edges))) if self.selected_edges else None
         )
         edit_state = ctx.data[EditState]
-        edit_state.selected_nodes.value = self.selected_nodes
-        edit_state.selected_edges.value = self.selected_edges
-        edit_state.active_node.value = active_node
-        edit_state.active_edge.value = active_edge
+        edit_state.selected_nodes = self.selected_nodes
+        edit_state.selected_edges = self.selected_edges
+        edit_state.active_node = active_node
+        edit_state.active_edge = active_edge
 
-        self._session.signal(SelectionMoved())
+        self._session.publish(SelectionMoved())
 
     @handles_event(UserCopySelectedEvent)
     def process_copy_selection(self, event: UserCopySelectedEvent):
@@ -88,7 +88,7 @@ class SelectionHandlers:
             return
         try:
             bounding_box = self._calculate_selection_bounds(event.selectedNodes)
-            self._session.context.data[EditState].clipboard.value = ClipboardData(
+            self._session.context.data[EditState].clipboard = ClipboardData(
                 nodes=event.selectedNodes,
                 edges=event.selectedEdges,
                 original_to_new_ids={},
@@ -108,7 +108,7 @@ class SelectionHandlers:
             logger.warning("Paste ignored: no session bound to handler")
             return
 
-        clipboard = self._session.context.data[EditState].clipboard.value
+        clipboard = self._session.context.data[EditState].clipboard
         if not clipboard:
             logger.warning("❌ No clipboard content to paste")
             ui.notify("Nothing to paste", type="warning")

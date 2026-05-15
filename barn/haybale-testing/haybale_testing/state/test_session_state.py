@@ -8,19 +8,14 @@ library pre-import the state module. See
 
 from __future__ import annotations
 
-from copy import copy
 from typing import Optional
 
+from haywire.core.session.signals import signal_field
 from haywire.core.state import SessionState, state
-from haywire.core.session.reactive import Reactive, iter_reactive_fields, reactive_field
 
 
 @state(label="Test Session State")
 class TestSessionState(SessionState):
     """Trivial per-session state with a single reactive field."""
 
-    counter: Reactive[Optional[int]] = reactive_field(None)
-
-    def __init__(self) -> None:
-        for name, initial in iter_reactive_fields(type(self)):
-            self.__dict__[name] = Reactive(copy(initial))
+    counter: Optional[int] = signal_field(None)

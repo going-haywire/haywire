@@ -7,8 +7,7 @@ from types import SimpleNamespace
 from typing import Optional
 from unittest.mock import MagicMock
 
-from haywire.core.session.events import ActiveGraphMoved
-from haywire.core.session.reactive import Reactive
+from haywire.core.session.signals import ActiveGraphMoved
 from haybale_haystack.editors.graph_editor import GraphEditor
 
 
@@ -19,19 +18,19 @@ def _make_data_with_edit_state(initial_active_graph=None, initial_active_graph_p
     ``ctx.data[EditState].active_graph``. Returns a MagicMock whose
     ``__getitem__`` (regardless of the EditState class identity passed —
     important after library hot-reload swaps in a new class object)
-    returns a SimpleNamespace whose ``.active_graph`` and
-    ``.active_graph_path`` are real Reactive[T] instances. Tests read
-    assertions against this stub.
+    returns a SimpleNamespace whose fields are bare values matching the
+    post-migration signal_field API (production code reads
+    ``edit.active_graph``, not ``edit.active_graph.value``).
     """
     edit_stub = SimpleNamespace(
-        active_graph=Reactive(initial_active_graph),
-        active_graph_path=Reactive(initial_active_graph_path),
-        active_node=Reactive(None),
-        active_edge=Reactive(None),
-        active_port=Reactive(None),
-        selected_nodes=Reactive(set()),
-        selected_edges=Reactive(set()),
-        clipboard=Reactive(None),
+        active_graph=initial_active_graph,
+        active_graph_path=initial_active_graph_path,
+        active_node=None,
+        active_edge=None,
+        active_port=None,
+        selected_nodes=set(),
+        selected_edges=set(),
+        clipboard=None,
     )
     data = MagicMock()
     data.__getitem__.return_value = edit_stub
@@ -67,7 +66,7 @@ class _FakeSession:
         self.signals: list = []
         self.context = None
 
-    def signal(self, signal) -> None:
+    def publish(self, signal) -> None:
         self.signals.append(signal)
 
 
@@ -78,7 +77,7 @@ def _make_context(entry: Optional[_FakeEntry], existing_active_graph=None):
     session = _FakeSession()
     # GraphEditor.on_focus reads/writes active_graph via
     # ctx.data[EditState]. Build a fake `data` whose `[EditState]` lookup
-    # yields a stub with real Reactive fields.
+    # yields a stub with real signal_field-backed fields.
     data = _make_data_with_edit_state(
         initial_active_graph=existing_active_graph,
     )
@@ -88,8 +87,8 @@ def _make_context(entry: Optional[_FakeEntry], existing_active_graph=None):
     app_data = MagicMock()
     app_data.get.return_value = haystack
     ctx = SimpleNamespace(
-        active_graph=Reactive(existing_active_graph),
-        active_graph_path=Reactive(None),
+        active_graph=existing_active_graph,
+        active_graph_path=None,
         session=session,
         data=data,
         app_data=app_data,
@@ -122,8 +121,8 @@ def test_on_focus_resolves_entry_and_sets_active_graph() -> None:
     ed.on_focus(ctx)
 
     edit = ctx.data.edit_stub
-    assert edit.active_graph.value is g
-    assert edit.active_graph_path.value == Path("/tmp/a.haywire")
+    assert edit.active_graph is g
+    assert edit.active_graph_path == Path("/tmp/a.haywire")
 
 
 def test_on_focus_fires_active_graph_moved() -> None:
@@ -149,7 +148,7 @@ def test_on_focus_short_circuits_when_graph_already_active() -> None:
     ctx = _make_context(entry, existing_active_graph=g)
     # Also pre-set active_graph_path to match — the short-circuit requires both.
     # Reader sources from EditState (post-C3).
-    ctx.data.edit_stub.active_graph_path.value = Path("/tmp/a.haywire")
+    ctx.data.edit_stub.active_graph_path = Path("/tmp/a.haywire")
     ed = _make_editor_with_payload("/tmp/a.haywire")
 
     ed.on_focus(ctx)
@@ -166,7 +165,7 @@ def test_on_focus_missing_entry_force_closes_via_wrapper() -> None:
     # Editor closes itself via wrapper.force_close — no event emitted.
     assert ctx.session.signals == []
     assert ed.wrapper.force_close_calls == [True]
-    assert ctx.data.edit_stub.active_graph.value is None
+    assert ctx.data.edit_stub.active_graph is None
 
 
 def test_on_focus_no_binding_is_noop() -> None:
@@ -176,7 +175,7 @@ def test_on_focus_no_binding_is_noop() -> None:
     ed.on_focus(ctx)
 
     assert ctx.session.signals == []
-    assert ctx.data.edit_stub.active_graph.value is None
+    assert ctx.data.edit_stub.active_graph is None
 
 
 def test_on_focus_no_haystack_state_is_noop() -> None:
@@ -185,8 +184,8 @@ def test_on_focus_no_haystack_state_is_noop() -> None:
     app_data = MagicMock()
     app_data.get.return_value = None
     ctx = SimpleNamespace(
-        active_graph=Reactive(None),
-        active_graph_path=Reactive(None),
+        active_graph=None,
+        active_graph_path=None,
         session=session,
         data=_make_data_with_edit_state(),
         app_data=app_data,

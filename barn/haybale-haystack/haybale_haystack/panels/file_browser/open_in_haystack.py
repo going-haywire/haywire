@@ -43,7 +43,7 @@ class OpenInHaystackPanel(BasePanel):
 
     @classmethod
     def poll(cls, ctx: "SessionContext") -> bool:
-        f = ctx.data[FileBrowserState].right_clicked_file.value
+        f = ctx.data[FileBrowserState].right_clicked_file
         return f is not None and f.suffix.lower() in _GRAPH_EXTS
 
     def draw(
@@ -54,7 +54,7 @@ class OpenInHaystackPanel(BasePanel):
     ) -> None:
         from haybale_haystack.editors.graph_editor import GraphEditor
 
-        path = ctx.data[FileBrowserState].right_clicked_file.value
+        path = ctx.data[FileBrowserState].right_clicked_file
         if path is None:
             return
 

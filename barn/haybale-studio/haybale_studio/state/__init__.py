@@ -1,6 +1,6 @@
 """Per-session library state for the Haywire Studio editor.
 
-See internals/documentation/architecture/session_state.md.
+See docs/architecture/session-and-state/session-and-state-arch.md.
 """
 
 from haybale_studio.state.edit_state import EditState

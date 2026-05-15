@@ -7,12 +7,11 @@ import pytest
 
 import haywire.core.graph.editor  # noqa: F401 -- circular-import guard
 
-from haywire.core.session.events import (
+from haywire.core.session.signals import (
     ActiveGraphMoved,
     BroadcastClose,
     Close,
 )
-from haywire.core.session.reactive import Reactive
 
 
 @pytest.fixture
@@ -43,18 +42,20 @@ def editor_and_context():
 
     # _remove_entry reads/writes is_active via
     # ctx.data[EditState].active_graph. Build a fake `data` whose
-    # `[EditState]` lookup yields a stub with real Reactive fields,
-    # regardless of the EditState class identity passed (important after
-    # library hot-reload swaps in a new class object).
+    # `[EditState]` lookup yields a stub with bare field values matching
+    # the post-migration signal_field API (production code reads
+    # ``edit.active_graph``, not ``edit.active_graph.value``), regardless
+    # of the EditState class identity passed (important after library
+    # hot-reload swaps in a new class object).
     edit_stub = SimpleNamespace(
-        active_graph=Reactive(None),
-        active_graph_path=Reactive(None),
-        active_node=Reactive(None),
-        active_edge=Reactive(None),
-        active_port=Reactive(None),
-        selected_nodes=Reactive(set()),
-        selected_edges=Reactive(set()),
-        clipboard=Reactive(None),
+        active_graph=None,
+        active_graph_path=None,
+        active_node=None,
+        active_edge=None,
+        active_port=None,
+        selected_nodes=set(),
+        selected_edges=set(),
+        clipboard=None,
     )
     data = MagicMock()
     data.__getitem__.return_value = edit_stub
@@ -70,8 +71,8 @@ def editor_and_context():
     context = SimpleNamespace(
         app=app,
         session=session,
-        active_graph=Reactive(None),
-        active_graph_path=Reactive(None),
+        active_graph=None,
+        active_graph_path=None,
         data=data,
         app_data=app_data,
     )
@@ -226,13 +227,13 @@ def test_remove_entry_helper_clears_active_graph_when_active(editor_and_context)
     # Mark this entry as the active one — the reader sources active_graph
     # from EditState (post-C3).
     edit = context.data.edit_stub
-    edit.active_graph.value = entry.graph
-    edit.active_graph_path.value = entry.path
+    edit.active_graph = entry.graph
+    edit.active_graph_path = entry.path
 
     with patch("haybale_haystack.editors.haystack_editor.ui.notify"):
         editor._remove_entry(entry, context)
 
-    assert edit.active_graph.value is None
-    assert edit.active_graph_path.value is None
-    emitted_signals = [call.args[0] for call in context.session.signal.call_args_list]
+    assert edit.active_graph is None
+    assert edit.active_graph_path is None
+    emitted_signals = [call.args[0] for call in context.session.publish.call_args_list]
     assert any(isinstance(s, ActiveGraphMoved) for s in emitted_signals)

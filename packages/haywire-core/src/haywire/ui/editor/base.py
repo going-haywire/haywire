@@ -2,7 +2,7 @@
 """
 Abstract base class for all Haywire editor types.
 
-Editors react to ContextSignals through the typed event bus: methods
+Editors react to Signals through the typed signal bus: methods
 decorated with ``@redraw_on(...)`` / ``@react_on(...)`` from
 :mod:`haywire.core.session.handlers` are auto-subscribed at editor
 instantiation. ``@redraw_on`` triggers ``wrapper.redraw()`` after the
@@ -45,11 +45,11 @@ class BaseEditor(ABC):
         - cleanup(): Release resources when permanently removed.
         - get_tab_label(context): Dynamic tab label for tabbed slots.
 
-    Event-bus subscriptions are declared per-method via
+    Signal-bus subscriptions are declared per-method via
     ``@redraw_on(...)`` / ``@react_on(...)`` decorators from
     :mod:`haywire.core.session.handlers`. The framework auto-subscribes
     decorated methods at editor instantiation, and additionally
-    subscribes the editor to any ``redraw_on=`` events declared by
+    subscribes the editor to any ``redraw_on=`` signals declared by
     panels whose action contract this editor satisfies — resolved via
     the session's ``context.app.library_service.get_panel_registry()``.
     See ``internals/speculatives/event_bus_redesign.md``.
@@ -85,13 +85,13 @@ class BaseEditor(ABC):
 
         Runs before draw() on the newly-activated wrapper, so any context
         mutations this hook performs are visible to that draw() call and
-        to any events this hook broadcasts.
+        to any signals this hook emits.
 
         The default implementation is a no-op. Editors that own session
         state (via a library-supplied SessionState — e.g., a graph editor
         whose library owns an ``active_graph`` field on its SessionState)
-        override this to update the state and broadcast the corresponding
-        event.
+        override this to update the state and emit the corresponding
+        signal.
 
         Read ``self.wrapper.binding_id`` for this instance's identity.
 

@@ -29,7 +29,6 @@ from nicegui import ui
 from haywire.ui import elements as hui
 from haywire.ui.editor.base import BaseEditor
 from haywire.ui.editor.decorator import editor
-from haywire.core.session.events import ActiveFileMoved
 
 if TYPE_CHECKING:
     from haywire.core.session.context import SessionContext
@@ -332,9 +331,10 @@ class LazyFileBrowserEditor(BaseEditor):
     def _on_select(self, node_id: Optional[str], context: "SessionContext") -> None:
         """Left-click handler.
 
-        Files: select the file (set ``active_file`` and fire
-        ``ActiveFileMoved``). No editor opens — that's right-click's job
-        via the file context menu.
+        Files: select the file (assigning ``active_file`` emits the
+        synthetic ``SessionContext.active_file`` signal on the session
+        bus). No editor opens — that's right-click's job via the file
+        context menu.
 
         Folders: toggle expansion. Sentinel rows: load the next batch.
         """
@@ -363,12 +363,11 @@ class LazyFileBrowserEditor(BaseEditor):
 
         # File click — select-only. Editors that follow ``active_file``
         # (e.g. NodeSourceEditor's "follow active file" mode) react via
-        # the ActiveFileMoved signal. To OPEN the file, the user
-        # right-clicks and picks an editor from the context menu.
-        context.active_file.value = path
-        session = context.session
-        if session is not None:
-            session.signal(ActiveFileMoved())
+        # the synthetic SessionContext.active_file signal that the
+        # signal_field descriptor emits on assignment below. To OPEN the
+        # file, the user right-clicks and picks an editor from the
+        # context menu.
+        context.active_file = path
 
     def _refresh(self, context: "SessionContext") -> None:
         """Drop all caches and rebuild from the workspace root down."""

@@ -23,7 +23,7 @@ if TYPE_CHECKING:
 
 
 def _state(ctx: "SessionContext") -> "EdgeWrapperState | None":
-    wrapper = ctx.data[EditState].active_edge.value
+    wrapper = ctx.data[EditState].active_edge
     return wrapper.get_state() if wrapper is not None else None
 
 
@@ -37,7 +37,7 @@ def _state(ctx: "SessionContext") -> "EdgeWrapperState | None":
 class TestDeleteEdgePanel(BasePanel):
     @classmethod
     def poll(cls, ctx: "SessionContext") -> bool:
-        return ctx.data[EditState].active_edge.value is not None
+        return ctx.data[EditState].active_edge is not None
 
     def draw(
         self,
@@ -45,7 +45,7 @@ class TestDeleteEdgePanel(BasePanel):
         layout: PanelLayout,
         actions: TestEdgeContextActions,
     ) -> None:
-        edge = ctx.data[EditState].active_edge.value
+        edge = ctx.data[EditState].active_edge
         if edge is None:
             return
         edge_id = edge.edge_id
@@ -66,7 +66,7 @@ class TestDeleteEdgePanel(BasePanel):
 class TestInspectEdgePanel(BasePanel):
     @classmethod
     def poll(cls, ctx: "SessionContext") -> bool:
-        return ctx.data[EditState].active_edge.value is not None
+        return ctx.data[EditState].active_edge is not None
 
     def draw(
         self,
@@ -74,7 +74,7 @@ class TestInspectEdgePanel(BasePanel):
         layout: PanelLayout,
         actions: TestEdgeContextActions,
     ) -> None:
-        edge = ctx.data[EditState].active_edge.value
+        edge = ctx.data[EditState].active_edge
         if edge is None:
             return
         edge_id = edge.edge_id
@@ -132,7 +132,7 @@ class TestEdgeErrorsPanel(BasePanel):
 class TestEdgeConnectionPathPanel(BasePanel):
     @classmethod
     def poll(cls, ctx: "SessionContext") -> bool:
-        wrapper = ctx.data[EditState].active_edge.value
+        wrapper = ctx.data[EditState].active_edge
         return wrapper is not None and wrapper.edge is not None
 
     def draw(
@@ -141,7 +141,7 @@ class TestEdgeConnectionPathPanel(BasePanel):
         layout: PanelLayout,
         actions: TestEdgeContextActions,
     ) -> None:
-        wrapper = ctx.data[EditState].active_edge.value
+        wrapper = ctx.data[EditState].active_edge
         if wrapper is None or wrapper.edge is None:
             return
         edge = wrapper.edge

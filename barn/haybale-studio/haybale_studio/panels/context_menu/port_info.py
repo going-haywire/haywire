@@ -30,7 +30,7 @@ if TYPE_CHECKING:
 class PortInfoPanel(BasePanel):
     @classmethod
     def poll(cls, ctx: "SessionContext") -> bool:
-        return ctx.data[EditState].active_port.value is not None
+        return ctx.data[EditState].active_port is not None
 
     def draw(
         self,
@@ -38,7 +38,7 @@ class PortInfoPanel(BasePanel):
         layout: PanelLayout,
         actions: PortContextActions,
     ) -> None:
-        port = ctx.data[EditState].active_port.value
+        port = ctx.data[EditState].active_port
         if port is None:
             return
         with layout.container:

@@ -2,7 +2,7 @@
 
 from types import SimpleNamespace
 
-from haywire.core.session.events import Reveal
+from haywire.core.session.signals import Reveal
 from haywire.ui.app.shell import AppShell
 from haywire.ui.app.tab_slot import TabSlot
 from haywire.ui.editor.identity import OpenBehavior

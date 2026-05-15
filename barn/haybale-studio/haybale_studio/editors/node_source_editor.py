@@ -29,8 +29,10 @@ from typing import TYPE_CHECKING, Literal, Optional
 from nicegui import ui
 
 from haywire.ui import elements as hui
-from haywire.core.session.events import SelectionMoved, ThemeMoved
+from haywire.core.session.context import SessionContext
+from haywire.core.session.signals import SelectionMoved
 from haywire.core.session.handlers import react_on, redraw_on
+from haywire.core.session.signals import Signal
 from haywire.ui.editor.base import BaseEditor
 from haywire.ui.editor.decorator import editor
 
@@ -38,7 +40,6 @@ from haybale_studio.state.edit_state import EditState
 
 if TYPE_CHECKING:
     from haywire.core.registry.lifecycle_event import LifeCycleEvent
-    from haywire.core.session.context import SessionContext
     from nicegui.element import Element
 
 
@@ -93,8 +94,8 @@ class NodeSourceEditor(BaseEditor):
             return
         self.wrapper.redraw()
 
-    @redraw_on(ThemeMoved)
-    def _redraw_on_theme(self, context: "SessionContext", event: ThemeMoved) -> None:
+    @redraw_on(SessionContext.active_workbench_theme_key)
+    def _redraw_on_theme(self, context: "SessionContext", event: Signal) -> None:
         # Theme changes always redraw so CodeMirror picks up the new
         # colors. ``draw`` reads the already-dirty ``_content`` out of
         # ``self`` if pinned, preserving the user's edits.
@@ -130,7 +131,7 @@ class NodeSourceEditor(BaseEditor):
     # ------------------------------------------------------------------
 
     def _resolve_target(self, context: "SessionContext") -> None:
-        node = context.data[EditState].active_node.value
+        node = context.data[EditState].active_node
         if node is None:
             self._cls = None
             self._path = None
@@ -208,7 +209,7 @@ class NodeSourceEditor(BaseEditor):
 
     def _render(self, context: "SessionContext") -> None:
         # Empty / error states short-circuit the editor chrome.
-        if context.data[EditState].active_node.value is None:
+        if context.data[EditState].active_node is None:
             hui.empty_state(
                 "Select a node to view its source",
                 icon=hui.icon.node_info,
@@ -323,7 +324,7 @@ class NodeSourceEditor(BaseEditor):
 
     @staticmethod
     def _codemirror_theme(context: "SessionContext") -> Literal["vscodeLight", "vscodeDark"]:
-        theme_key = context.active_workbench_theme_key.value or "core:theme:workbench:haywire-dark"
+        theme_key = context.active_workbench_theme_key or "core:theme:workbench:haywire-dark"
         return "vscodeLight" if "light" in theme_key else "vscodeDark"
 
     # ------------------------------------------------------------------
@@ -382,10 +383,11 @@ class NodeSourceEditor(BaseEditor):
         # how file_browser does it.
         from haybale_studio.editors.code_editor import CodeEditor
 
-        from haywire.core.session.events import ActiveFileMoved, Reveal
+        from haywire.core.session.signals import Reveal
 
-        session.context.active_file.value = self._path
-        session.signal(ActiveFileMoved())
+        # Assigning to active_file synthetically emits SessionContext.active_file
+        # on the session bus; no manual signal needed.
+        session.context.active_file = self._path
         session.publish(
             Reveal(
                 editor=CodeEditor,

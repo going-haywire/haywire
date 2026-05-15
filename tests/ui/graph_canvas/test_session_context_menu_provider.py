@@ -4,7 +4,6 @@ from types import SimpleNamespace
 from unittest.mock import MagicMock
 
 from haywire.core.session.context import SessionContext
-from haywire.core.session.reactive import Reactive
 from haybale_studio.editors.graph_canvas.handlers.context_menu import (
     SessionContextMenuProvider,
     _OpenMenuContext,
@@ -16,19 +15,21 @@ def _make_provider(on_emit_event=None, on_emit_sync_event=None) -> SessionContex
     """Construct a provider with mock dependencies.
 
     Builds a real ``SessionContext`` whose ``data[EditState]`` lookup
-    resolves to a stub with real ``Reactive`` fields. Bypasses container
-    class-identity coupling (the production ``EditState`` reference may
-    differ from a freshly-imported one after library hot-reload).
+    resolves to a stub with bare field values matching the post-migration
+    signal_field API (production reads ``edit.active_graph``, not
+    ``edit.active_graph.value``). Bypasses container class-identity
+    coupling (the production ``EditState`` reference may differ from a
+    freshly-imported one after library hot-reload).
     """
     edit_stub = SimpleNamespace(
-        active_graph=Reactive(None),
-        active_graph_path=Reactive(None),
-        active_node=Reactive(None),
-        active_edge=Reactive(None),
-        active_port=Reactive(None),
-        selected_nodes=Reactive(set()),
-        selected_edges=Reactive(set()),
-        clipboard=Reactive(None),
+        active_graph=None,
+        active_graph_path=None,
+        active_node=None,
+        active_edge=None,
+        active_port=None,
+        selected_nodes=set(),
+        selected_edges=set(),
+        clipboard=None,
     )
     fake_data = MagicMock()
     fake_data.__getitem__.return_value = edit_stub
@@ -176,8 +177,8 @@ def test_copy_selection_uses_session_context_selection():
     captured = []
     provider = _make_provider(on_emit_event=captured.append)
     edit = provider._test_edit_stub
-    edit.selected_nodes.value = {"a", "b"}
-    edit.selected_edges.value = {"e1"}
+    edit.selected_nodes = {"a", "b"}
+    edit.selected_edges = {"e1"}
 
     provider.copy_selection()
 
@@ -239,7 +240,7 @@ def test_create_node_at_click_emits_node_create_request_event():
 
 
 def test_reconnect_active_edge_uses_open_ctx_and_active_edge():
-    """reconnect_active_edge reads ctx.data[EditState].active_edge.value AND _open_ctx.edge_reconnect_end."""
+    """reconnect_active_edge reads ctx.data[EditState].active_edge AND _open_ctx.edge_reconnect_end."""
     from haybale_studio.editors.graph_canvas.event_definitions import SyncEdgeReconnectEvent
 
     captured = []
@@ -253,7 +254,7 @@ def test_reconnect_active_edge_uses_open_ctx_and_active_edge():
     wrapper.sink_node_id = "snk-node"
     wrapper.inlet_port_id = "in-pin"
 
-    provider._test_edit_stub.active_edge.value = wrapper
+    provider._test_edit_stub.active_edge = wrapper
     provider._open_ctx = _OpenMenuContext(
         click_pos=(0.0, 0.0),
         edge_reconnect_end=True,  # clicked near inlet → anchor on outlet (source) side

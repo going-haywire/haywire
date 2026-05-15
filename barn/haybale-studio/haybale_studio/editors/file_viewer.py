@@ -14,7 +14,6 @@ from typing import TYPE_CHECKING, Optional
 from nicegui import ui
 
 from haywire.ui import elements as hui
-from haywire.core.session.events import ActiveFileMoved
 from haywire.ui.editor.base import BaseEditor
 from haywire.ui.editor.decorator import editor
 
@@ -68,27 +67,28 @@ class FileViewerEditor(BaseEditor):
         return Path(self.wrapper._binding_id)
 
     # No @redraw_on / @react_on subscriptions: each FileViewer instance is
-    # pinned to one file via its wrapper.binding_id. ActiveFileMoved is
-    # emitted on focus but never drives a redraw — a different file means
-    # a different tab.
+    # pinned to one file via its wrapper.binding_id. The synthetic
+    # SessionContext.active_file signal is emitted on focus (via the
+    # descriptor's __set__) but never drives a redraw on this editor —
+    # a different file means a different tab.
 
     def on_focus(self, context: "SessionContext") -> None:
         """Claim ownership of context.active_file when this tab becomes active.
 
         Reads ``self.wrapper._binding_id`` (the file path as a string) and
-        mirrors it into ``context.active_file`` as a ``Path``, then
-        broadcasts ``FILE_SELECTED`` so listeners react.
+        mirrors it into ``context.active_file`` as a ``Path``. The
+        descriptor synthesizes the bus signal so listeners react.
 
-        Short-circuits when the target already matches the active file.
+        Short-circuits when the target already matches the active file
+        (the descriptor's identity short-circuit also catches this, but
+        we keep the explicit check to avoid an unnecessary attribute
+        write entirely).
         """
         binding_id = self.wrapper._binding_id
         new_value = Path(binding_id) if binding_id else None
-        if context.active_file.value == new_value:
+        if context.active_file == new_value:
             return
-        context.active_file.value = new_value
-        session = getattr(context, "session", None)
-        if session is not None:
-            session.signal(ActiveFileMoved())
+        context.active_file = new_value
 
     def draw(self, context: "SessionContext", container: "Element") -> None:
         self._last_file = self._resolve_path()

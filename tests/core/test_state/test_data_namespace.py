@@ -33,6 +33,7 @@ class TestAppDataNamespace:
     def test_getitem_returns_instance(self):
         class MidiPool(AppState):
             def __init__(self) -> None:
+                super().__init__()
                 self.devices: list[str] = ["dev0"]
 
         reg = LibraryStateRegistry()

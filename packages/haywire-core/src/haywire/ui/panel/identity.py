@@ -10,7 +10,7 @@ from typing import TYPE_CHECKING, Optional, Tuple
 from haywire.core.registry.identity import BaseIdentity
 
 if TYPE_CHECKING:
-    from haywire.core.session.events import ContextSignal
+    from haywire.core.session.signals import Signal
 
 
 @dataclass
@@ -39,13 +39,11 @@ class PanelIdentity(BaseIdentity):
         action: The action Protocol/ABC class this panel is typed against.
                 Hosts use this to dispatch the right actions object to draw().
         focus:  The Focus subclass discriminator this panel applies to.
-        redraw_on: Tuple of ContextSignal subclasses the panel wants its host
+        redraw_on: Tuple of Signal subclasses the panel wants its host
                 editor to redraw on. Panels do not have their own handler
-                dispatch — when one of these events publishes, the editor
+                dispatch — when one of these signals publishes, the editor
                 redraws (and the panel re-mounts as part of that redraw).
                 Empty tuple means the panel contributes no subscriptions.
-                Dispatch wiring lands in a later step of the event-bus
-                redesign (see internals/speculatives/event_bus_redesign.md).
     """
 
     editor_keys: list[str] = field(default_factory=list)
@@ -55,4 +53,4 @@ class PanelIdentity(BaseIdentity):
     default_open: bool = True
     action: Optional[type] = None
     focus: Optional[type] = None
-    redraw_on: Tuple[type["ContextSignal"], ...] = ()
+    redraw_on: Tuple[type["Signal"], ...] = ()

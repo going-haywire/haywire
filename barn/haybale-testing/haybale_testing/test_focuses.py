@@ -30,7 +30,7 @@ class TestNodeFocus(Focus):
 
     @classmethod
     def available(cls, ctx: SessionContext) -> bool:
-        return ctx.data[EditState].active_node.value is not None
+        return ctx.data[EditState].active_node is not None
 
 
 class TestEdgeFocus(Focus):
@@ -41,7 +41,7 @@ class TestEdgeFocus(Focus):
 
     @classmethod
     def available(cls, ctx: SessionContext) -> bool:
-        return ctx.data[EditState].active_edge.value is not None
+        return ctx.data[EditState].active_edge is not None
 
 
 class TestSelectionFocus(Focus):
@@ -53,4 +53,4 @@ class TestSelectionFocus(Focus):
     @classmethod
     def available(cls, ctx: SessionContext) -> bool:
         edit = ctx.data[EditState]
-        return bool(edit.selected_nodes.value) or bool(edit.selected_edges.value)
+        return bool(edit.selected_nodes) or bool(edit.selected_edges)

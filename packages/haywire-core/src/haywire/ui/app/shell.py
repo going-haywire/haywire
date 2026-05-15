@@ -22,11 +22,10 @@ from typing import Callable, Literal, TYPE_CHECKING
 from nicegui import ui
 
 from haywire.ui import elements as hui
-from haywire.core.session.events import (
+from haywire.core.session.signals import (
     BroadcastClose,
     Close,
     Reveal,
-    ThemeMoved,
 )
 from haywire.ui.app.slot import Slot
 
@@ -77,7 +76,7 @@ class AppShell:
         self._right_divider: ui.element | None = None  # drag handle between main and right slots
         self._bottom_divider: ui.element | None = None  # horizontal drag handle above BottomTabBar
 
-        # Bus subscriptions for workspace-mutation commands. 
+        # Bus subscriptions for workspace-mutation commands.
         self._lifecycle_unsubs: list[Callable[[], None]] = []
 
     def _build_initial_theme_css(self) -> str:
@@ -90,8 +89,8 @@ class AppShell:
         if wb_theme_key not in valid_keys:
             wb_theme_key = valid_keys[0]
             settings_registry.set_global("workbench.theme", wb_theme_key)
-        context.active_workbench_theme_key.value = wb_theme_key
-        theme = theme_registry.get_workbench(context.active_workbench_theme_key.value)
+        context.active_workbench_theme_key = wb_theme_key
+        theme = theme_registry.get_workbench(context.active_workbench_theme_key)
         vars_str = " ".join(f"{k}: {v};" for k, v in theme.to_css_vars().items())
         return f" :root {{ {vars_str} }}"
 
@@ -111,11 +110,13 @@ class AppShell:
             context = self.session.context
             theme_registry = context.app.library_service.get_theme_registry()
             theme = theme_registry.get_workbench(registry_key)
-            context.active_workbench_theme_key.value = registry_key
+            context.active_workbench_theme_key = registry_key
             for css_var, value in theme.to_css_vars().items():
                 safe_value = value.replace("'", "\\'")
                 ui.run_javascript(f"document.documentElement.style.setProperty('{css_var}', '{safe_value}')")
-            self.session.signal(ThemeMoved())
+            # The assignment above emits SessionContext.active_workbench_theme_key
+            # synthetically; subscribers via @redraw_on(SessionContext.active_workbench_theme_key)
+            # rebuild on that signal.
         except Exception as e:
             logging.getLogger(__name__).error(f"Failed to apply workbench theme '{registry_key}': {e}")
 
@@ -318,7 +319,7 @@ class AppShell:
         settings_registry = self.session.context.app.library_service.get_settings_registry()
         settings_registry.subscribe(None, self._on_setting_changed)
 
-        # Subscription to Workspace-mutation handlers. 
+        # Subscription to Workspace-mutation handlers.
         self._lifecycle_unsubs.append(self.session.subscribe(Reveal, self._reveal_editor))
         self._lifecycle_unsubs.append(self.session.subscribe(Close, self._close_payload))
         self._lifecycle_unsubs.append(self.session.subscribe(BroadcastClose, self._close_payload))

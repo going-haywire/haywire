@@ -16,7 +16,7 @@ Every function returns the outermost NiceGUI element so callers can still
 chain .classes(), .style(), .props(), .on() for one-off overrides.  The goal
 is to encode the 90% case — not to prevent customisation.
 
-Design system reference:  internals/documentation/design/haywire-ui-design-guide.md
+Design system reference:  docs/reference/design-guide.md
 """
 
 from __future__ import annotations
@@ -53,10 +53,7 @@ _LIST_HOVER_CLASS = "hw-list-item-hover"
 
 
 @contextmanager
-def panel_header(
-    title: str, *, 
-    icon: str | None = None,
-    is_dirty: bool = False):
+def panel_header(title: str, *, icon: str | None = None, is_dirty: bool = False):
     """
     A slim bar at the top of a panel with title, optional icon, and space for
     action buttons.  Use as a context manager — place action buttons inside.

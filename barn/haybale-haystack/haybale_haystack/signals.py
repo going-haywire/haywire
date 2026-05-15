@@ -15,11 +15,11 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import ClassVar
 
-from haywire.core.session.events import ContextSignal
+from haywire.core.session.signals import Signal
 
 
 @dataclass(frozen=True)
-class HaystackTeardown(ContextSignal):
+class HaystackTeardown(Signal):
     """Emitted from ``HaystackState.on_disable`` before entries are cleared.
 
     HaystackEditor reacts by issuing a local ``Close(binding_id=eid)`` for
@@ -34,7 +34,7 @@ class HaystackTeardown(ContextSignal):
 
 
 @dataclass(frozen=True)
-class HaystackReloaded(ContextSignal):
+class HaystackReloaded(Signal):
     """Emitted from ``HaystackState.on_enable`` after rehydration.
 
     HaystackEditor reacts by re-rendering its list against the new

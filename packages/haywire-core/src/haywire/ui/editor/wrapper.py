@@ -16,7 +16,7 @@ from nicegui import ui
 
 from haywire.core.errors.haywire_exception import HaywireException
 from haywire.core.session.handlers import discover_handlers
-from haywire.core.session.events import ContextSignal
+from haywire.core.session.signals import Signal
 from haywire.core.registry.lifecycle_event import LifeCycleEvent
 
 from haywire.ui.editor.identity import OpenBehavior
@@ -374,7 +374,7 @@ class EditorWrapper:
         the binding's kind is ``"redraw_on"`` — calls ``self.redraw()``
         after the handler returns. Handler exceptions are captured into
         ``state.error_runtime``; the next handler still fires because
-        :class:`EventBus` is error-isolated per handler.
+        :class:`SignalBus` is error-isolated per handler.
 
         Idempotent in the sense that callers may call it after a successful
         ``_instantiate``; not idempotent if called twice without a matching
@@ -400,7 +400,7 @@ class EditorWrapper:
         method_name: str,
         kind: str,
         ctx: Any,
-    ) -> Callable[[ContextSignal], None]:
+    ) -> Callable[[Signal], None]:
         """Build the per-binding closure registered on the bus.
 
         Pulled out as a method (not an inline ``def``) so each closure
@@ -411,7 +411,7 @@ class EditorWrapper:
         session-context wiring on re-subscription.
         """
 
-        def _dispatch(event: ContextSignal) -> None:
+        def _dispatch(event: Signal) -> None:
             instance = self._instance
             if instance is None:
                 # Hot-reload between subscribe and publish — drop silently;

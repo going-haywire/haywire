@@ -1,19 +1,24 @@
 # haywire/core/session/__init__.py
 """
-Session system — per-browser session, signals/lifecycle vocabulary, reactive
-fields, workspace layout state.
+Session system — per-browser session, signal vocabulary, workspace layout state.
 
 Public API for editor / panel authors:
     from haywire.core.session import (
         Session, SessionContext,                # session lifecycle
-        Event,                                  # bus payload base
-        ContextSignal, SelectionMoved, ...,     # observation vocabulary
+        Signal, CommandSignal,                  # bus payload bases
+        SelectionMoved, GraphDataMutated, ...,  # observation vocabulary
         Reveal, Close, BroadcastClose,          # imperative vocabulary
-        Reactive, reactive_field,               # reactive fields
+        signal_field,                           # signal-emitting field descriptor
     )
 
+``signal_field`` is the unified reactive primitive: declared on bases that
+inherit ``SignalSource`` (``SessionContext``, ``AppState``, ``SessionState``).
+Class access yields a synthetic ``Signal`` subclass used as a subscription
+key on the per-session bus; instance access yields the stored value; writes
+auto-emit the synthetic signal.
+
 Framework / library internals:
-    SessionManager      — per-process session registry; broadcasts events
+    SessionManager      — per-process session registry; broadcasts signals
                           across sessions
     IProjectState       — protocol the studio app implements (used by
                           editors that need to reach the project root)
@@ -25,28 +30,27 @@ from .session import Session
 from .session_manager import SessionManager
 from .context import SessionContext
 from .protocols import IProjectState
-from .events import (
-    # Bus payload base
-    Event,
-    # Observation marker + signals
-    ContextSignal,
-    ActiveFileMoved,
-    ActiveLibraryMoved,
-    ActiveComponentMoved,
+from .signals import (
+    # Bases
+    Signal,
+    CommandSignal,
+    # Transport
+    SignalBus,
+    SignalHandler,
+    SignalSource,
+    # Descriptor
+    signal_field,
+    # Observations
     ActiveGraphMoved,
     SelectionMoved,
     GraphDataMutated,
     LibraryCatalogChanged,
-    ThemeMoved,
-    # Imperative marker + commands
-    LifecycleCommand,
+    # Imperative commands
     Reveal,
     Close,
     BroadcastClose,
 )
 from .handlers import redraw_on, react_on
-from .reactive import Reactive, reactive_field, iter_reactive_fields
-from .reactive.path import ReactivePath
 from .workspace.manager import WorkspaceManager
 
 __all__ = [
@@ -56,35 +60,29 @@ __all__ = [
     "SessionContext",
     # Protocols
     "IProjectState",
-    # Bus payload base
-    "Event",
-    # Signals — base
-    "ContextSignal",
+    # Bus payload bases
+    "Signal",
+    "CommandSignal",
+    # Transport
+    "SignalBus",
+    "SignalHandler",
+    "SignalSource",
+    # Descriptor
+    "signal_field",
     # Signals — focus
-    "ActiveFileMoved",
-    "ActiveLibraryMoved",
-    "ActiveComponentMoved",
     "ActiveGraphMoved",
     # Signals — selection
     "SelectionMoved",
     # Signals — data
     "GraphDataMutated",
     "LibraryCatalogChanged",
-    # Signals — theme
-    "ThemeMoved",
-    # Lifecycle commands
-    "LifecycleCommand",
+    # Imperative commands
     "Reveal",
     "Close",
     "BroadcastClose",
-    # Event-handler decorators
+    # Handler decorators
     "redraw_on",
     "react_on",
-    # Reactive
-    "Reactive",
-    "reactive_field",
-    "iter_reactive_fields",
-    "ReactivePath",
     # Workspace
     "WorkspaceManager",
 ]

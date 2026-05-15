@@ -35,7 +35,7 @@ from haywire.ui.panel.registry import PanelRegistry
 
 if TYPE_CHECKING:
     from haywire.core.session.context import SessionContext
-    from haywire.core.session.events import ContextSignal
+    from haywire.core.session.signals import Signal
     from nicegui.element import Element
 
 logger = logging.getLogger(__name__)
@@ -168,18 +168,18 @@ class PropertiesEditor(BaseEditor):
         if registry is None or context is None:
             return
         try:
-            event_types = registry.get_redraw_events_for(self)
+            signal_types = registry.get_redraw_signals_for(self)
         except Exception as exc:
-            logger.warning(f"PropertiesEditor: get_redraw_events_for raised: {exc}")
+            logger.warning(f"PropertiesEditor: get_redraw_signals_for raised: {exc}")
             return
-        if not event_types:
+        if not signal_types:
             return
         bus_subscribe = context.session.subscribe
         redraw_closure = self._make_panel_redraw_closure()
-        for event_type in event_types:
-            self._panel_bus_unsubscribes.append(bus_subscribe(event_type, redraw_closure))
+        for signal_type in signal_types:
+            self._panel_bus_unsubscribes.append(bus_subscribe(signal_type, redraw_closure))
 
-    def _make_panel_redraw_closure(self) -> Callable[["ContextSignal"], None]:
+    def _make_panel_redraw_closure(self) -> Callable[["Signal"], None]:
         """Closure that, on any panel-contributed event publish, redraws the editor.
 
         Panel-contributed subscriptions have no editor-side handler body
@@ -194,7 +194,7 @@ class PropertiesEditor(BaseEditor):
         behaviour the framework previously provided.
         """
 
-        def _redraw_on_panel_event(event: "ContextSignal") -> None:
+        def _redraw_on_panel_event(event: "Signal") -> None:
             del event  # forwarded, not inspected (yet)
             self.wrapper.redraw()
 
@@ -293,9 +293,9 @@ class PropertiesEditor(BaseEditor):
         if self._context is None:
             return
         edit_state = self._context.data[EditState]
-        edit_state.active_node.value = None
-        edit_state.active_edge.value = None
-        edit_state.active_port.value = None
+        edit_state.active_node = None
+        edit_state.active_edge = None
+        edit_state.active_port = None
 
     # ------------------------------------------------------------------
     # Layout construction (called once on render)

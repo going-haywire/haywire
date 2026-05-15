@@ -31,7 +31,7 @@ class CopySelectionPanel(BasePanel):
     @classmethod
     def poll(cls, ctx: "SessionContext") -> bool:
         edit = ctx.data[EditState]
-        return bool(edit.selected_nodes.value or edit.selected_edges.value)
+        return bool(edit.selected_nodes or edit.selected_edges)
 
     def draw(
         self,
@@ -62,7 +62,7 @@ class SelectionPasteSelectionPanel(BasePanel):
 
     @classmethod
     def poll(cls, ctx: "SessionContext") -> bool:
-        return ctx.data[EditState].clipboard.value is not None
+        return ctx.data[EditState].clipboard is not None
 
     def draw(
         self,

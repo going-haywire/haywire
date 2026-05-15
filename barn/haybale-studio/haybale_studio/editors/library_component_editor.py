@@ -18,17 +18,13 @@ from haywire.ui import elements as hui
 
 from haywire.ui.editor.decorator import editor
 from haywire.ui.editor.base import BaseEditor
+from haywire.core.session.context import SessionContext
 from haywire.core.session.handlers import redraw_on
-from haywire.core.session.events import (
-    ActiveComponentMoved,
-    SelectionMoved,
-    ThemeMoved,
-)
+from haywire.core.session.signals import SelectionMoved
 
 from haybale_studio.state.edit_state import EditState
 
 if TYPE_CHECKING:
-    from haywire.core.session.context import SessionContext
     from nicegui.element import Element
 
 
@@ -56,7 +52,11 @@ class LibraryComponentEditor(BaseEditor):
         self._container = None
         self._code_editor = None  # ui.codemirror reference for live theme updates
 
-    @redraw_on(ActiveComponentMoved, SelectionMoved, ThemeMoved)
+    @redraw_on(
+        SessionContext.active_component,
+        SelectionMoved,
+        SessionContext.active_workbench_theme_key,
+    )
     def _refresh_on_relevant_event(self, context: "SessionContext", event) -> None:
         # Empty body — the decorator triggers wrapper.redraw() after return.
         pass
@@ -81,8 +81,8 @@ class LibraryComponentEditor(BaseEditor):
     def _rebuild(self, context: "SessionContext") -> None:
         if self._container is None:
             return
-        registry_key = context.active_component.value
-        active_node = context.data[EditState].active_node.value
+        registry_key = context.active_component
+        active_node = context.data[EditState].active_node
         if not registry_key and active_node is not None:
             registry_key = active_node.registry_key
         with self._container:
@@ -298,16 +298,14 @@ class LibraryComponentEditor(BaseEditor):
     @staticmethod
     def _codemirror_theme(context: "SessionContext") -> Literal["vscodeLight", "vscodeDark"]:
         """Return a CodeMirror theme name that matches the active Haywire workbench theme."""
-        theme_key = context.active_workbench_theme_key.value or "core:theme:workbench:haywire-dark"
+        theme_key = context.active_workbench_theme_key or "core:theme:workbench:haywire-dark"
         return "vscodeLight" if "light" in theme_key else "vscodeDark"
 
     def _close(self, context: "SessionContext") -> None:
         """Clear active component and notify listeners."""
         self._code_editor = None
-        context.active_component.value = None
-        session = context.session
-        if session is not None:
-            session.signal(ActiveComponentMoved())
+        # Assigning emits SessionContext.active_component on the bus.
+        context.active_component = None
 
     @staticmethod
     def _lookup_class(app, lib_id: str, comp_type: str, registry_key: str):

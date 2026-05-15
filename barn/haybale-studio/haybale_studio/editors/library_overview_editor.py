@@ -8,8 +8,9 @@ MarketplaceEntry). All services are retrieved from
 context.app (= HaywireApp).
 
 When a component (node/widget/type/adapter/renderer) is clicked, the editor
-sets context.active_component and fires ACTIVE_COMPONENT_CHANGED so that the
-right-panel ComponentDetailEditor can react.
+sets context.active_component (which synthetically emits
+SessionContext.active_component on the bus) so that the right-panel
+ComponentDetailEditor can react.
 """
 
 import asyncio
@@ -32,10 +33,9 @@ from haywire.ui.editor.registry import EditorTypeRegistry
 from haywire.ui.panel.registry import PanelRegistry
 from haywire.ui.skin.registry import SkinRegistry
 from haywire.ui.themes import ThemeRegistry
+from haywire.core.session.context import SessionContext
 from haywire.core.session.handlers import redraw_on
-from haywire.core.session.events import (
-    ActiveComponentMoved,
-    ActiveLibraryMoved,
+from haywire.core.session.signals import (
     LibraryCatalogChanged,
     Reveal,
 )
@@ -46,7 +46,6 @@ from haywire_studio.library_manager import LibraryManager, MarketplaceEntry
 from haywire.ui.widget.registry import WidgetRegistry
 
 if TYPE_CHECKING:
-    from haywire.core.session.context import SessionContext
     from nicegui.element import Element
 
 
@@ -103,7 +102,7 @@ class LibraryOverviewEditor(BaseEditor):
     # Public editor interface
     # ─────────────────────────────────────────────────────────────────────────
 
-    @redraw_on(ActiveLibraryMoved, LibraryCatalogChanged)
+    @redraw_on(SessionContext.active_library, LibraryCatalogChanged)
     def _refresh_on_library_change(self, context: "SessionContext", event) -> None:
         # Empty body — the decorator triggers wrapper.redraw() after return.
         pass
@@ -120,7 +119,7 @@ class LibraryOverviewEditor(BaseEditor):
         if self._container is None:
             return
 
-        lib = context.active_library.value
+        lib = context.active_library
         with self._container:
             with (
                 ui.column()
@@ -608,14 +607,14 @@ class LibraryOverviewEditor(BaseEditor):
         registry_key: str,
         context: "SessionContext",
     ):
-        """Set context.active_component and fire ACTIVE_COMPONENT_CHANGED."""
-        context.active_component.value = registry_key
+        """Set context.active_component (synthetic emit) and reveal the detail editor."""
+        # Assigning emits SessionContext.active_component on the bus.
+        context.active_component = registry_key
 
         from haybale_studio.editors.library_component_editor import LibraryComponentEditor
 
         session = context.session
         if session is not None:
-            session.signal(ActiveComponentMoved())
             session.publish(Reveal(editor=LibraryComponentEditor))
 
     # ─────────────────────────────────────────────────────────────────────────
@@ -625,13 +624,13 @@ class LibraryOverviewEditor(BaseEditor):
     def _enable_library(self, library_id: str, manager, context: "SessionContext"):
         manager.enable_library(library_id)
         ui.notify(f"Enabled: {library_id}", type="positive")
-        context.active_library.value = self._reload_installed(library_id, manager)
+        context.active_library = self._reload_installed(library_id, manager)
         self._notify_library_changed(context)
 
     def _disable_library(self, library_id: str, manager, context: "SessionContext"):
         manager.disable_library(library_id)
         ui.notify(f"Disabled: {library_id}", type="warning")
-        context.active_library.value = self._reload_installed(library_id, manager)
+        context.active_library = self._reload_installed(library_id, manager)
         self._notify_library_changed(context)
 
     def _reload_installed(self, library_id: str, manager) -> LibraryInfo | None:
@@ -657,7 +656,7 @@ class LibraryOverviewEditor(BaseEditor):
         """
         session = context.session
         if session is not None:
-            session.signal(LibraryCatalogChanged())
+            session.publish(LibraryCatalogChanged())
 
     # ─────────────────────────────────────────────────────────────────────────
     # Uninstall
@@ -717,7 +716,7 @@ class LibraryOverviewEditor(BaseEditor):
             ui.notify(message, type="negative")
 
         # Clear the active library and notify all editors
-        context.active_library.value = None
+        context.active_library = None
         self._notify_library_changed(context)
 
     # ─────────────────────────────────────────────────────────────────────────
@@ -903,7 +902,7 @@ class LibraryOverviewEditor(BaseEditor):
         # Reload the freshly-saved library into context and re-render
         try:
             libs = manager.list_installed()
-            context.active_library.value = next(
+            context.active_library = next(
                 (entry for entry in libs if entry.identity.id == lib.identity.id), None
             )
         except Exception:
@@ -952,7 +951,7 @@ class LibraryOverviewEditor(BaseEditor):
             self._build_graph_patch_dialog(old_library_id, new_name, workspace_root) if success else None
         )
 
-        context.active_library.value = None
+        context.active_library = None
         # _do_rename is wired from a button drawn during draw(), so
         # _container has been set by then.
         assert self._container is not None
@@ -1066,7 +1065,7 @@ class LibraryOverviewEditor(BaseEditor):
             # shows the full installed header + tabs on rebuild.
             installed = self._find_installed_by_dist_name(name, manager)
             if installed:
-                context.active_library.value = installed
+                context.active_library = installed
             self._notify_library_changed(context)
         else:
             log.push(f"--- ERROR: {message} ---")

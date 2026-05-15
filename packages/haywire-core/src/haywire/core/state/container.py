@@ -15,12 +15,13 @@ callers holding a pre-reload class reference still resolve to the
 canonical instance.
 
 Dispatch decision is ``issubclass(cls, SessionState)`` at event time.
-See internals/documentation/architecture/session_state.md §3.
+See docs/architecture/session-and-state/session-and-state-arch.md §3.
 """
 
 from __future__ import annotations
 
 import logging
+import weakref
 from typing import TYPE_CHECKING, TypeVar
 
 from haywire.core.errors import HaywireException
@@ -31,6 +32,8 @@ from haywire.core.state.registry import LibraryStateRegistry
 if TYPE_CHECKING:
     from haywire.core.library.base import BaseLibrary
     from haywire.core.library.registry import LibraryRegistry
+    from haywire.core.session.session import Session
+    from haywire.core.session.session_manager import SessionManager
 
 logger = logging.getLogger(__name__)
 
@@ -57,7 +60,11 @@ class LibraryStateContainer:
 
     Session lifecycle (driven by SessionManager):
       - attach_session(sid) → for each registered SessionState class, instantiate + stamp + on_enable
+      - attach_session_with_ref(sid, session) → like attach_session, but also stamps
+        ``instance.session = weakref.ref(session)`` on each SessionState before on_enable
       - detach_session(sid) → for each registered SessionState class, on_disable + drop
+      - bind_session_manager(manager) → stamps ``instance._session_manager = weakref.ref(manager)``
+        on every AppState (existing + future); called once by SessionManager.__init__
     """
 
     def __init__(self, state_registry: LibraryStateRegistry) -> None:
@@ -79,6 +86,10 @@ class LibraryStateContainer:
         # in progress, and acting on them now risks calling on_enable before the
         # rest of the library's components (types, nodes, …) are registered.
         self._enabled_library_ids: set[str] = set()
+        # Set by bind_session_manager (called once by SessionManager.__init__).
+        # Stays None until then; _add_app_class only stamps AppStates when
+        # this is non-None. See bind_session_manager docstring.
+        self._manager_ref: "weakref.ReferenceType[SessionManager] | None" = None
 
     # ------------------------------------------------------------------
     # Public lookup API — used by AppDataNamespace
@@ -147,6 +158,37 @@ class LibraryStateContainer:
             if cls is None or not issubclass(cls, SessionState):
                 continue
             self._instantiate_session_state(cls, bag, session_id)
+
+    def attach_session_with_ref(self, session_id: str, session: "Session") -> None:
+        """Same as `attach_session`, but also stamps `self.session = weakref.ref(session)`
+        on every SessionState instance before `on_enable` runs.
+
+        Called by `SessionManager.create_session`.
+        """
+        if session_id in self._known_session_ids:
+            return
+        self._known_session_ids.add(session_id)
+        for registry_key, bag in self._sessions.items():
+            cls = self._class_by_registry_key.get(registry_key)
+            if cls is None or not issubclass(cls, SessionState):
+                continue
+            self._instantiate_session_state(cls, bag, session_id, session)
+
+    def bind_session_manager(self, manager: "SessionManager") -> None:
+        """Stamp `_session_manager` weakref on every present and future AppState.
+
+        Called once by SessionManager.__init__ right after constructing the
+        container. A second call is permitted and idempotent in effect — it
+        replaces `self._manager_ref` and re-stamps every existing AppState
+        with the new ref. This is intentional: a test or a hot-restart path
+        that rebuilds the SessionManager can re-bind without churn.
+
+        After this call, `_add_app_class` stamps newly-added AppStates with
+        the same ref.
+        """
+        self._manager_ref = weakref.ref(manager)
+        for app_state in self._app.values():
+            app_state._session_manager = self._manager_ref
 
     def detach_session(self, session_id: str) -> None:
         """Tear down every per-session instance for this session."""
@@ -389,6 +431,8 @@ class LibraryStateContainer:
         if registry_key in self._app:
             return  # idempotent
         instance = cls()
+        if self._manager_ref is not None:
+            instance._session_manager = self._manager_ref
         self._app[registry_key] = instance
         self._class_by_registry_key[registry_key] = cls
         self._call_on_enable(instance)
@@ -422,6 +466,7 @@ class LibraryStateContainer:
         cls: type[SessionState],
         bag: dict[str, SessionState],
         session_id: str,
+        session: "Session | None" = None,
     ) -> None:
         try:
             instance = cls()
@@ -435,6 +480,8 @@ class LibraryStateContainer:
             )
             return
         instance.session_id = session_id  # stamp before on_enable
+        if session is not None:
+            instance.session = weakref.ref(session)
         bag[session_id] = instance
         self._call_on_enable(instance)
 
@@ -458,8 +505,7 @@ class LibraryStateContainer:
 
     @staticmethod
     def _wrap_hook_failure(instance: LibraryState, exc: Exception, hook: str) -> None:
-        """Wrap a raising LibraryState lifecycle hook into a HaywireException.
-        """
+        """Wrap a raising LibraryState lifecycle hook into a HaywireException."""
         error = HaywireException.from_exception(
             exception=exc,
             operation=f"LibraryState.{hook}",

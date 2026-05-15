@@ -65,7 +65,31 @@ class SessionDataNamespace:
 
 **Asymmetric on purpose.** Node graphs run app-globally — the VM has no notion of which UI session triggered execution. So `ExecutionContext.data` doesn't exist; reading it is a type error and an `AttributeError` at runtime.
 
-### 2.3 Registry filter
+### 2.3 Signal fields
+
+A signal field is a class attribute that emits a `Signal` on write. Declared with `signal_field(initial_value)` on a `SignalSource` subclass (`SessionContext`, `SessionState`, or `AppState`):
+
+```python
+class EditState(SessionState):
+    active_node: Optional[NodeWrapper] = signal_field(None)
+```
+
+Read with bare attribute access (`edit.active_node`). Write with bare assignment (`edit.active_node = wrapper`). Identity-equal writes are no-ops.
+
+Subscribe by referencing the class-level field as the signal type:
+
+```python
+@redraw_on(EditState.active_node)
+def _on(self, ctx, signal): ...
+```
+
+The framework synthesizes one `Signal` subclass per field at class-definition time; the field reference IS the subscription key. No separate event class to import.
+
+Routing is scope-determined: a `SessionState` / `SessionContext` field publishes on the owning `Session`'s `SignalBus`; an `AppState` field broadcasts cross-session via `SessionManager`. Subscribers attach to the same bus they would for any hand-authored `Signal`.
+
+The canonical spec lives in `internals/speculatives/reactive_bus_unification.md`.
+
+### 2.4 Registry filter
 
 ```python
 class LibraryStateRegistry(BaseRegistry):
@@ -80,7 +104,7 @@ class LibraryStateRegistry(BaseRegistry):
 
 This is what makes `add_folder_to_registry(folder=base/'state', registry_cls=LibraryStateRegistry)` work: every concrete `LibraryState` subclass in the folder is registered, regardless of whether it inherits from `AppState` or `SessionState`. The container disambiguates downstream.
 
-### 2.4 Container storage
+### 2.5 Container storage
 
 ```python
 class LibraryStateContainer:
@@ -189,6 +213,10 @@ In-flight state is lost. The alternative — state migration across class versio
 
 For SessionState the same pipeline runs *per session* — each session's instance is disabled, the class swaps, then each session gets a fresh instance with `on_enable` called.
 
+**Signal-field reload semantics.** Each signal field on a reloaded class synthesizes a fresh `Signal` subclass at class-definition time, distinct from the pre-reload one. Subscribers that captured the old class's signal type will not receive emits from the new class's writes.
+
+Recovery is the same `disable + enable` pipeline above — editors and panels tear down (dropping their subscriptions) and are recreated, at which point they pick up the new synthetic signal class. No special framework machinery is required; synthetic signal classes participate exactly like hand-authored `Signal` subclasses.
+
 The full hot-reload pipeline (file watcher → import → rebuild downstream) lives in [architecture/hot-reload](../hot-reload/hot-reload-arch.md). State is one of several systems that subscribe to it.
 
 ### 3.5 Composing `LibrarySettings` inside `AppState`
@@ -212,13 +240,13 @@ In v1, **the VM is not informed** when state appears or disappears. It doesn't n
 
 The documented idiom (covered in [components/states §3](../../components/states/state-canon.md#3-important-concepts)) is: **look up state at the access site, not via long-lived local variables**. Captured references go stale on hot-reload.
 
-**Phase 2 evolution.** The container will gain an observable surface as part of Phase 2 reactive auto-tracking (see [components/panels](../../components/panels/panel-canon.md)):
+**Container-level observation.** The container may later gain an observable surface for class swap events (so panels can re-run automatically when an `AppState` / `SessionState` instance is replaced by hot-reload):
 
 ```python
 container.subscribe(cls, callback)   # callback(old_instance, new_instance)
 ```
 
-Phase 2 will use this internally so panels and other reactive consumers re-run automatically when an instance is swapped. Active VM cancellation of in-flight flows on state teardown, if it ever becomes a real requirement, will subscribe via the same hook.
+Field-level reactivity is already covered by the signal-field channel (§2.3) — writes to declared signal fields fan out through `SignalBus`. Class-replacement notification is a separate, deferred concern; add it if and when a concrete consumer needs it.
 
 ## 4. Boundary
 
@@ -313,7 +341,7 @@ The generic `TypeVar("A", bound=AppState)` / `TypeVar("S", bound=SessionState)` 
 
 - **Sub-state lifecycle ordering within one library.** Currently unsupported (alphabetical folder order). If a real use case appears, add a `depends_on=` ClassVar on state subclasses.
 - **State preservation across hot-reload.** Currently destroyed. Optional `on_reload(old_instance)` hook can be added later if a library has expensive startup that justifies the migration risk.
-- **Cross-thread reactive writes.** Bound to Phase 2 reactive work; not state-subsystem-specific.
+- **Cross-thread signal-field writes.** `SignalBus` is sync, main-loop-only; cross-thread writes would need `call_soon_threadsafe` plumbing on the `Session` layer. Not state-subsystem-specific.
 - **Framework-side EditState migration (v1.2).** A planned move of the framework's per-session edit state (selection, scroll, modal stack) into the `SessionState` taxonomy. Currently held in ad-hoc fields on `SessionContext`; would unify with library-author-declared session state.
 - **`.pyi` stubs / autocomplete on `ctx.app_data.<TAB>`.** Not provided — class-keyed access is the canonical path and provides full type inference without codegen. Revisit only if a string-keyed shorthand becomes desirable.
 

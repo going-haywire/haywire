@@ -3,7 +3,7 @@
 GraphEditor — wraps GraphCanvasManager as a BaseEditor.
 
 Supports multiple open graphs via the Haystack in haywire-app.
-When an ACTIVE_GRAPH_CHANGED event arrives the canvas is swapped out for
+When an ``ActiveGraphMoved`` signal arrives the canvas is swapped out for
 the new graph's canvas without re-creating the outer shell.
 
 A slim header inside the tab panel shows the open file name and a Save button.
@@ -19,7 +19,7 @@ from nicegui import ui
 from haywire.ui import elements as hui
 from haywire.ui.editor.decorator import editor
 from haywire.ui.editor.base import BaseEditor
-from haywire.core.session.events import ActiveGraphMoved, GraphDataMutated
+from haywire.core.session.signals import ActiveGraphMoved, GraphDataMutated
 from haybale_studio.editors.graph_canvas.graph_canvas_manager import GraphCanvasManager
 from haybale_studio.state.edit_state import EditState
 from haybale_haystack.state.haystack_state import HaystackState
@@ -46,13 +46,13 @@ class GraphEditor(BaseEditor):
     Wraps GraphCanvasManager inside a thin chrome that includes a header bar
     with the open file name and a Save button.
 
-    Context changes consumed:
-        DATA_MUTATED         — sync canvas from another session.
+    Signals consumed:
+        ``GraphDataMutated`` — sync canvas from another session.
 
-    Context changes emitted:
-        ACTIVE_GRAPH_CHANGED — on tab focus, via on_focus().
-        SELECTION_CHANGED    — node / edge selection.
-        DATA_MUTATED         — graph structure changes.
+    Signals emitted:
+        ``ActiveGraphMoved`` — on tab focus, via on_focus().
+        ``SelectionMoved``   — node / edge selection.
+        ``GraphDataMutated`` — graph structure changes.
 
     The 'project_state' entry in context.metadata is set by haywire-app and
     must expose:
@@ -92,7 +92,7 @@ class GraphEditor(BaseEditor):
 
         Resolves ``self.wrapper._binding_id`` (the entry key) via the haystack
         and, if the entry exists, updates ``context.data[EditState].active_graph`` +
-        ``active_graph_path`` and broadcasts ``ACTIVE_GRAPH_CHANGED`` so
+        ``active_graph_path`` and emits ``ActiveGraphMoved`` so
         panels (properties, minimap, execution controls) refresh.
 
         If the binding_id no longer resolves to an entry (the graph was
@@ -119,14 +119,14 @@ class GraphEditor(BaseEditor):
             return
 
         edit_state = context.data[EditState]
-        if edit_state.active_graph.value is entry.graph and edit_state.active_graph_path.value == entry.path:
+        if edit_state.active_graph is entry.graph and edit_state.active_graph_path == entry.path:
             return
 
-        edit_state.active_graph.value = entry.graph
-        edit_state.active_graph_path.value = entry.path
+        edit_state.active_graph = entry.graph
+        edit_state.active_graph_path = entry.path
 
         if session is not None:
-            session.signal(ActiveGraphMoved())
+            session.publish(ActiveGraphMoved())
 
     def draw(self, context: "SessionContext", container: "Element") -> None:
         self._context = context
@@ -147,10 +147,10 @@ class GraphEditor(BaseEditor):
 
         # Clear selection so PropertiesEditor resets to the graph panel
         edit_state = context.data[EditState]
-        edit_state.active_node.value = None
-        edit_state.active_edge.value = None
-        edit_state.selected_nodes.value = set()
-        edit_state.selected_edges.value = set()
+        edit_state.active_node = None
+        edit_state.active_edge = None
+        edit_state.selected_nodes = set()
+        edit_state.selected_edges = set()
 
         with container:
             with ui.column().classes("w-full gap-0").style("height: 100%; overflow: hidden;"):
@@ -295,7 +295,7 @@ class GraphEditor(BaseEditor):
         entry.editor.undo()
         session = context.session
         if session is not None:
-            session.signal(GraphDataMutated())
+            session.publish(GraphDataMutated())
 
     def _do_redo(self, context: "SessionContext") -> None:
         """Redo the last undone action on the active graph."""
@@ -305,7 +305,7 @@ class GraphEditor(BaseEditor):
         entry.editor.redo()
         session = context.session
         if session is not None:
-            session.signal(GraphDataMutated())
+            session.publish(GraphDataMutated())
 
     # ------------------------------------------------------------------
     # save
@@ -353,7 +353,7 @@ class GraphEditor(BaseEditor):
                 # and other headers clear their dirty indicators.
                 session = context.session
                 if session is not None:
-                    session.signal(GraphDataMutated())
+                    session.publish(GraphDataMutated())
             else:
                 ui.notify("Save failed", type="negative", position="top-right")
             return
@@ -476,7 +476,7 @@ class GraphEditor(BaseEditor):
         old_payload = self.wrapper._binding_id
         success = haystack_state.save_graph(entry, save_as=save_path)
         if success:
-            context.data[EditState].active_graph_path.value = save_path
+            context.data[EditState].active_graph_path = save_path
             session = context.session
             new_payload = entry.entry_id
             if old_payload != new_payload:
@@ -484,10 +484,10 @@ class GraphEditor(BaseEditor):
                 # wrapper's binding_id + label reflect the new file path.
                 self.wrapper.repayload(new_payload, new_label=entry.display_name)
             if session:
-                session.signal(ActiveGraphMoved())
+                session.publish(ActiveGraphMoved())
                 # Notify peer sessions so their GraphManagerEditor and header
                 # also clear the dirty indicator.
-                session.signal(GraphDataMutated())
+                session.publish(GraphDataMutated())
             ui.notify(f"Saved: {save_path.name}", type="positive", position="top-right")
             dialog.close()
         else:

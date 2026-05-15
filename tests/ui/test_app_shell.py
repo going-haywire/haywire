@@ -20,7 +20,7 @@ from types import SimpleNamespace
 
 import haywire.core.graph.editor as graph_editor_module
 from haywire.ui.app.shell import AppShell
-from haywire.core.session.events import Close, Reveal
+from haywire.core.session.signals import Close, Reveal
 from haywire.ui.editor.identity import OpenBehavior
 
 
@@ -35,16 +35,14 @@ class _FakeSession:
             }
         )
         self._editors = {}
-        self.events_seen: list = []
+        self.signals_seen: list = []
 
     def subscribe(self, _event_type, _handler):
         """Stub. Real Session.subscribe returns an unsubscribe closure."""
         return lambda: None
 
-    def signal(self, s) -> None:
-        self.events_seen.append(s)
-
-    publish = signal
+    def publish(self, s) -> None:
+        self.signals_seen.append(s)
 
 
 class _FakeSlot:
@@ -169,7 +167,7 @@ def test_reveal_editor_routes_through_slot() -> None:
     shell._reveal_editor(Reveal(editor=cls))
 
     assert fake.reveal_calls == [(target_key, None, "")]
-    assert shell.session.events_seen == []  # reveal must not republish anything
+    assert shell.session.signals_seen == []  # reveal must not republish anything
 
 
 def test_reveal_editor_unhostable_slot_logs_warning(caplog) -> None:

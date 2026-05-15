@@ -53,12 +53,12 @@ def state(
     Usage:
         @state(label='Edit State')
         class EditState(SessionState):
-            active_node = reactive_field(None)
+            active_node = signal_field(None)
             ...
 
         @state()
         class MidiPool(AppState):
-            devices = reactive_field([])
+            devices = signal_field([])
             ...
     """
 

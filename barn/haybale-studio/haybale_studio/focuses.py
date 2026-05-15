@@ -46,7 +46,7 @@ class SettingsFocus(Focus):
 
     @classmethod
     def available(cls, ctx: SessionContext) -> bool:
-        return ctx.data[EditState].active_node.value is not None
+        return ctx.data[EditState].active_node is not None
 
 
 class GraphFocus(Focus):
@@ -57,7 +57,7 @@ class GraphFocus(Focus):
 
     @classmethod
     def available(cls, ctx: SessionContext) -> bool:
-        return ctx.data[EditState].active_graph.value is not None
+        return ctx.data[EditState].active_graph is not None
 
 
 class NodeFocus(Focus):
@@ -68,7 +68,7 @@ class NodeFocus(Focus):
 
     @classmethod
     def available(cls, ctx: SessionContext) -> bool:
-        return ctx.data[EditState].active_node.value is not None
+        return ctx.data[EditState].active_node is not None
 
 
 class EdgeFocus(Focus):
@@ -79,7 +79,7 @@ class EdgeFocus(Focus):
 
     @classmethod
     def available(cls, ctx: SessionContext) -> bool:
-        return ctx.data[EditState].active_edge.value is not None
+        return ctx.data[EditState].active_edge is not None
 
 
 class PortFocus(Focus):
@@ -90,7 +90,7 @@ class PortFocus(Focus):
 
     @classmethod
     def available(cls, ctx: SessionContext) -> bool:
-        return ctx.data[EditState].active_port.value is not None
+        return ctx.data[EditState].active_port is not None
 
 
 class SelectionFocus(Focus):
@@ -102,4 +102,4 @@ class SelectionFocus(Focus):
     @classmethod
     def available(cls, ctx: SessionContext) -> bool:
         edit = ctx.data[EditState]
-        return bool(edit.selected_nodes.value) or bool(edit.selected_edges.value)
+        return bool(edit.selected_nodes) or bool(edit.selected_edges)

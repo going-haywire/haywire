@@ -198,7 +198,7 @@ class GraphCanvasManager:
         return self.selection.selected_edges
 
     def _has_clipboard_content(self) -> bool:
-        clipboard = self._session.context.data[EditState].clipboard.value
+        clipboard = self._session.context.data[EditState].clipboard
         return clipboard is not None and len(clipboard.nodes) > 0
 
     def cleanup(self):

@@ -32,12 +32,12 @@ class SessionFileMenuProvider(BaseContextMenuProvider):
         from haybale_studio.editors.file_browser_menu.actions import FileBrowserActions
 
         # Set transient menu state
-        self._context.data[FileBrowserState].right_clicked_file.value = path
+        self._context.data[FileBrowserState].right_clicked_file = path
 
         def _on_close() -> None:
             # Q8A: clear right_clicked_file on dismissal
             try:
-                self._context.data[FileBrowserState].right_clicked_file.value = None
+                self._context.data[FileBrowserState].right_clicked_file = None
             except KeyError:
                 pass
 
@@ -54,7 +54,7 @@ class SessionFileMenuProvider(BaseContextMenuProvider):
         label: str,
     ) -> None:
         """Issue a Reveal lifecycle command and close the popup."""
-        from haywire.core.session.events import Reveal
+        from haywire.core.session.signals import Reveal
 
         self._session.publish(Reveal(editor=editor_cls, binding_id=binding_id, label=label))
         if self._open_popup is not None:

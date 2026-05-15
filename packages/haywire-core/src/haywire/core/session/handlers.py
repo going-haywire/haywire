@@ -1,11 +1,11 @@
 # packages/haywire-core/src/haywire/core/session/handlers.py
 """
-Method-level event-handler decorators for editors.
+Method-level signal-handler decorators for editors.
 
-Editor authors declare which :class:`~haywire.core.session.events.ContextSignal`
+Editor authors declare which :class:`~haywire.core.session.signals.Signal`
 subclasses a handler method should fire on by decorating the method:
 
-    from haywire.core.session import ContextSignal, SelectionMoved, GraphDataMutated
+    from haywire.core.session import Signal, SelectionMoved, GraphDataMutated
     from haywire.core.session.handlers import redraw_on, react_on
     from haywire.ui.editor import editor, BaseEditor
 
@@ -13,28 +13,26 @@ subclasses a handler method should fire on by decorating the method:
     class PropertiesEditor(BaseEditor):
 
         @redraw_on(SelectionMoved, GraphDataMutated)
-        def _refresh(self, ctx, event):
+        def _refresh(self, ctx, signal):
             ...   # framework triggers wrapper.redraw() after this returns
 
         @react_on(EntityRemoved)
-        def _on_remove(self, ctx, event):
+        def _on_remove(self, ctx, signal):
             ...   # pure side-effect; no auto-redraw
 
 Two flavors, semantically distinct:
 
-- ``@redraw_on(*event_types)`` — the framework calls ``wrapper.redraw()``
+- ``@redraw_on(*signal_types)`` — the framework calls ``wrapper.redraw()``
   after the handler returns. Multiple ``@redraw_on`` handlers matching the
-  same event still trigger exactly one redraw per dispatch pass.
-- ``@react_on(*event_types)`` — pure side-effect channel. Framework does
+  same signal still trigger exactly one redraw per dispatch pass.
+- ``@react_on(*signal_types)`` — pure side-effect channel. Framework does
   not auto-redraw. The author is responsible for any explicit
-  ``wrapper.redraw()`` / ``wrapper.force_close()`` / ``session.publish(Reveal/Close/...)``
-  calls inside the handler body.
+  ``wrapper.redraw()`` / ``wrapper.force_close()`` /
+  ``session.publish(Reveal/Close/...)`` calls inside the handler body.
 
 Both kinds fire regardless of whether the editor's wrapper is the active
 tab. Backgrounded editors (kept alive by Quasar ``ui.tab_panels`` keep-alive)
-stay current; on focus they are already drawn correctly. See the dispatch
-loop semantics section of ``internals/speculatives/event_bus_redesign.md``
-for the rationale.
+stay current; on focus they are already drawn correctly.
 
 The decorators store metadata on the function object — the framework
 introspects decorated methods at editor-class registration time by walking
@@ -47,10 +45,10 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any, Callable, Dict, List, Literal, Tuple
 
-from .events import ContextSignal
+from .signals import Signal
 
 
-# The two kinds of decorated handler. Tagged on each (method, event_type)
+# The two kinds of decorated handler. Tagged on each (method, signal_type)
 # binding produced by :func:`discover_handlers`. ``redraw_on`` triggers a
 # ``wrapper.redraw()`` after the handler returns; ``react_on`` does not.
 HandlerKind = Literal["redraw_on", "react_on"]
@@ -63,17 +61,17 @@ _REDRAW_ON_ATTR = "_haywire_redraw_on"
 _REACT_ON_ATTR = "_haywire_react_on"
 
 
-def validate_event_types(
+def validate_signal_types(
     context: str,
     args: Tuple[Any, ...],
     *,
     allow_empty: bool = False,
-) -> Tuple[type[ContextSignal], ...]:
-    """Validate ``args`` are ContextSignal subclasses; return them as a typed tuple.
+) -> Tuple[type, ...]:
+    """Validate ``args`` are Signal subclasses; return them as a tuple.
 
     Catches the two most common authoring mistakes at decoration time
     (which fires at module-import, so errors surface during app startup
-    rather than when the event happens to fire):
+    rather than when the signal happens to fire):
 
     - Passing a signal *instance* instead of the class:
         ``@redraw_on(SelectionMoved())``  →  TypeError
@@ -89,45 +87,42 @@ def validate_event_types(
             default to an empty tuple (e.g. ``@panel(redraw_on=())``).
     """
     if not args and not allow_empty:
-        raise TypeError(f"{context} requires at least one ContextSignal subclass; got none.")
+        raise TypeError(f"{context} requires at least one Signal subclass; got none.")
     bad: list[str] = []
     for a in args:
         if not isinstance(a, type):
             bad.append(f"{a!r} (not a type)")
-        elif not issubclass(a, ContextSignal):
-            bad.append(f"{a.__name__} (not a ContextSignal subclass)")
+        elif not issubclass(a, Signal):
+            bad.append(f"{a.__name__} (not a Signal subclass)")
     if bad:
-        raise TypeError(f"{context} arguments must be ContextSignal subclasses; got: {', '.join(bad)}")
-    return args  # type: ignore[return-value]
+        raise TypeError(f"{context} arguments must be Signal subclasses; got: {', '.join(bad)}")
+    return args
 
 
-# Backwards-compatible alias used by redraw_on / react_on below.
-def _validate_event_types(decorator_name: str, args: Tuple[Any, ...]) -> Tuple[type[ContextSignal], ...]:
-    return validate_event_types(f"@{decorator_name}(...)", args)
+def redraw_on(*signal_types: Any) -> Callable[[Callable[..., None]], Callable[..., None]]:
+    """Decorate an editor method to fire on the listed signal types, with auto-redraw.
 
-
-def redraw_on(*event_types: type[ContextSignal]) -> Callable[[Callable[..., None]], Callable[..., None]]:
-    """Decorate an editor method to fire on the listed event types, with auto-redraw.
-
-    The framework subscribes the decorated method to each ``event_type`` on the
+    The framework subscribes the decorated method to each ``signal_type`` on the
     owning editor's per-session bus at editor instantiation. When any of those
-    events publish, the framework calls the handler, then triggers
+    signals publish, the framework calls the handler, then triggers
     ``self.wrapper.redraw()`` once per dispatch pass (even if multiple
-    ``@redraw_on`` handlers on this editor match the same event).
+    ``@redraw_on`` handlers on this editor match the same signal).
 
     Both kinds fire regardless of active state — backgrounded editors stay
     current via the same dispatch path.
 
     Args:
-        *event_types: One or more :class:`ContextSignal` subclasses. Validated
-            at decoration time; passing an instance or non-signal type raises
-            ``TypeError``.
+        *signal_types: Signal subclasses OR synthetic signal_field
+            classes (e.g. ``SessionContext.active_file``). Validated at
+            decoration time as ``Signal``; passing an instance or non-signal
+            type raises ``TypeError``. Runtime dispatch matches the exact
+            class.
 
     Returns:
         A decorator that returns the original function unchanged with metadata
-        attached as ``func._haywire_redraw_on = (event_types, ...)``.
+        attached as ``func._haywire_redraw_on = (signal_types, ...)``.
     """
-    validated = _validate_event_types("redraw_on", event_types)
+    validated = validate_signal_types("@redraw_on(...)", signal_types)
 
     def decorator(func: Callable[..., None]) -> Callable[..., None]:
         # Allow stacking with @react_on: store as tuple, append if already present.
@@ -138,12 +133,12 @@ def redraw_on(*event_types: type[ContextSignal]) -> Callable[[Callable[..., None
     return decorator
 
 
-def react_on(*event_types: type[ContextSignal]) -> Callable[[Callable[..., None]], Callable[..., None]]:
-    """Decorate an editor method to fire on the listed event types, side-effect only.
+def react_on(*signal_types: Any) -> Callable[[Callable[..., None]], Callable[..., None]]:
+    """Decorate an editor method to fire on the listed signal types, side-effect only.
 
-    The framework subscribes the decorated method to each ``event_type`` on the
+    The framework subscribes the decorated method to each ``signal_type`` on the
     owning editor's per-session bus at editor instantiation. When any of those
-    events publish, the framework calls the handler — and does *nothing else*.
+    signals publish, the framework calls the handler — and does *nothing else*.
     The author is responsible for any explicit ``self.wrapper.redraw()`` /
     ``self.wrapper.force_close()`` / ``session.publish(Reveal/Close/...)`` calls inside
     the handler body.
@@ -151,15 +146,17 @@ def react_on(*event_types: type[ContextSignal]) -> Callable[[Callable[..., None]
     Both kinds fire regardless of active state.
 
     Args:
-        *event_types: One or more :class:`ContextSignal` subclasses. Validated
-            at decoration time; passing an instance or non-signal type raises
-            ``TypeError``.
+        *signal_types: Signal subclasses OR synthetic signal_field
+            classes (e.g. ``SessionContext.active_file``). Validated at
+            decoration time as ``Signal``; passing an instance or non-signal
+            type raises ``TypeError``. Runtime dispatch matches the exact
+            class.
 
     Returns:
         A decorator that returns the original function unchanged with metadata
-        attached as ``func._haywire_react_on = (event_types, ...)``.
+        attached as ``func._haywire_react_on = (signal_types, ...)``.
     """
-    validated = _validate_event_types("react_on", event_types)
+    validated = validate_signal_types("@react_on(...)", signal_types)
 
     def decorator(func: Callable[..., None]) -> Callable[..., None]:
         existing = getattr(func, _REACT_ON_ATTR, ())
@@ -169,8 +166,8 @@ def react_on(*event_types: type[ContextSignal]) -> Callable[[Callable[..., None]
     return decorator
 
 
-def get_redraw_on_types(func: Callable[..., Any]) -> Tuple[type[ContextSignal], ...]:
-    """Return the tuple of event types a method was decorated with via :func:`redraw_on`.
+def get_redraw_on_types(func: Callable[..., Any]) -> Tuple[type[Signal], ...]:
+    """Return the tuple of signal types a method was decorated with via :func:`redraw_on`.
 
     Returns an empty tuple if the method was not decorated. The framework uses
     this to discover handlers at editor-class registration time.
@@ -178,8 +175,8 @@ def get_redraw_on_types(func: Callable[..., Any]) -> Tuple[type[ContextSignal], 
     return getattr(func, _REDRAW_ON_ATTR, ())
 
 
-def get_react_on_types(func: Callable[..., Any]) -> Tuple[type[ContextSignal], ...]:
-    """Return the tuple of event types a method was decorated with via :func:`react_on`.
+def get_react_on_types(func: Callable[..., Any]) -> Tuple[type[Signal], ...]:
+    """Return the tuple of signal types a method was decorated with via :func:`react_on`.
 
     Returns an empty tuple if the method was not decorated. The framework uses
     this to discover handlers at editor-class registration time.
@@ -194,20 +191,19 @@ def get_react_on_types(func: Callable[..., Any]) -> Tuple[type[ContextSignal], .
 
 @dataclass(frozen=True)
 class HandlerBinding:
-    """A single (method, kind) pair for one event type on one class.
+    """A single (method, kind) pair for one signal type on one class.
 
     Produced by :func:`discover_handlers`. The framework wraps each binding
     in a per-instance closure at editor instantiation: the closure looks up
     ``method_name`` on the instance (so subclass overrides resolve via MRO),
-    calls it with ``(ctx, event)``, and — if ``kind == "redraw_on"`` —
+    calls it with ``(ctx, signal)``, and — if ``kind == "redraw_on"`` —
     calls ``wrapper.redraw()`` after.
 
     Stored by name rather than by function object: subclasses can override
     an inherited decorated method without re-decorating, and the framework
     still calls the subclass's version. (The override silently removes the
     subscription if it isn't re-decorated; matches normal Python override
-    semantics, see event_bus_redesign.md §"Subclassing / Hot-Reload Sharp
-    Edges".)
+    semantics.)
     """
 
     method_name: str
@@ -219,10 +215,10 @@ class HandlerBinding:
 _HANDLER_INDEX_ATTR = "_haywire_handler_index"
 
 
-def discover_handlers(cls: type) -> Dict[type[ContextSignal], List[HandlerBinding]]:
+def discover_handlers(cls: type) -> Dict[type[Signal], List[HandlerBinding]]:
     """Walk ``cls.__mro__`` and index every ``@redraw_on`` / ``@react_on``-decorated method.
 
-    Returns a mapping ``event_type → [HandlerBinding, ...]`` covering every
+    Returns a mapping ``signal_type → [HandlerBinding, ...]`` covering every
     method decorated anywhere in the inheritance chain. Method-name collisions
     across the MRO (the natural Python override case) resolve to the leaf
     method — only the first occurrence walking from subclass to base is kept.
@@ -238,7 +234,7 @@ def discover_handlers(cls: type) -> Dict[type[ContextSignal], List[HandlerBindin
         cls: A class (typically an editor class derived from ``BaseEditor``).
 
     Returns:
-        Mapping of event-type → list of bindings, ordered by MRO walk
+        Mapping of signal-type → list of bindings, ordered by MRO walk
         (subclass-first). Empty mapping if no decorated methods are found.
     """
     cached = cls.__dict__.get(_HANDLER_INDEX_ATTR)
@@ -246,7 +242,7 @@ def discover_handlers(cls: type) -> Dict[type[ContextSignal], List[HandlerBindin
         return cached  # type: ignore[no-any-return]
 
     seen_names: set[str] = set()
-    index: Dict[type[ContextSignal], List[HandlerBinding]] = {}
+    index: Dict[type[Signal], List[HandlerBinding]] = {}
 
     for klass in cls.__mro__:
         # Iterate the raw __dict__ rather than ``dir(klass)`` so we see
@@ -260,8 +256,7 @@ def discover_handlers(cls: type) -> Dict[type[ContextSignal], List[HandlerBindin
             # Mark *every* callable name as seen during the MRO walk so that
             # a subclass override (decorated or not) shadows the inherited
             # base method's bindings. An undecorated override therefore
-            # silently strips the subscription — see event_bus_redesign.md
-            # §"Subclassing / Hot-Reload Sharp Edges".
+            # silently strips the subscription.
             seen_names.add(name)
             redraw_types = get_redraw_on_types(value)
             react_types = get_react_on_types(value)

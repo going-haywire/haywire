@@ -13,9 +13,10 @@ def _make_provider_under_test(panels=None):
     """Build a provider with mocked dependencies."""
     from haybale_studio.editors.file_browser_menu.provider import SessionFileMenuProvider
     from haybale_studio.state.file_browser_state import FileBrowserState
+    from tests.conftest import attach_stub_session
 
     ctx = MagicMock()
-    state_inst = FileBrowserState()
+    state_inst = attach_stub_session(FileBrowserState())
     ctx.data = {FileBrowserState: state_inst}
     session = MagicMock()
     panel_registry = MagicMock()
@@ -32,7 +33,7 @@ def test_on_file_context_sets_right_clicked_file():
         mock_popup_factory.return_value = MagicMock()
         provider.on_file_context(pos=(10, 20), path=p)
 
-    assert state.right_clicked_file.value == p
+    assert state.right_clicked_file == p
 
 
 def test_on_close_clears_right_clicked_file():
@@ -50,9 +51,9 @@ def test_on_close_clears_right_clicked_file():
     with patch.object(provider, "_build_popup", return_value=popup):
         provider.on_file_context(pos=(0, 0), path=p)
 
-    assert state.right_clicked_file.value == p
+    assert state.right_clicked_file == p
     captured_on_close["cb"]()  # Simulate menu close
-    assert state.right_clicked_file.value is None
+    assert state.right_clicked_file is None
 
 
 def test_reveal_issues_lifecycle_and_closes_popup():

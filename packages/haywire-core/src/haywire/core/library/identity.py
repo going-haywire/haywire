@@ -17,7 +17,7 @@ class LibraryIdentity:
     id: str  # Unique identifier for the library
     # List of referenced haywire libraries.
     # For hot reloading to work, the dependencies must be specified.
-    # This includes any library whose ``ContextSignal`` subclasses this
+    # This includes any library whose ``Signal`` subclasses this
     # library subscribes to in editor poll() methods — without the
     # dependency, hot-reload of the signal-declaring library can leave
     # the subscriber holding a stale class reference, causing

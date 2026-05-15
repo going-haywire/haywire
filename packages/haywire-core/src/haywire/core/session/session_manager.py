@@ -3,19 +3,19 @@
 SessionManager — manages the lifecycle of all active browser sessions.
 
 Each browser connection gets its own Session. The SessionManager creates,
-tracks, and removes sessions. It also provides :meth:`broadcast` to fan an
-:class:`~haywire.core.session.events.Event` out to every session — used for
-cross-session updates when the event class declares ``cross_session = True``.
+tracks, and removes sessions. It also provides :meth:`broadcast` to fan a
+:class:`~haywire.core.session.signals.Signal` out to every session — used for
+cross-session updates when the signal class declares ``cross_session = True``.
 """
 
 import logging
 from typing import Dict, Optional, TYPE_CHECKING
 
-from haywire.core.state import LibraryStateContainer
-from haywire.core.session.events import Event
+from haywire.core.session.signals import Signal
 
 if TYPE_CHECKING:
     from haywire.core.session.session import Session
+    from haywire.core.state import LibraryStateContainer
 
 
 logger = logging.getLogger(__name__)
@@ -29,12 +29,13 @@ class SessionManager:
         manager = SessionManager(container=app.library_state_container)
         session = manager.create_session(project_state=app, workspace_manager=ws)
         manager.remove_session(session.session_id)
-        manager.broadcast(event)
+        manager.broadcast(signal)
     """
 
-    def __init__(self, container: LibraryStateContainer):
+    def __init__(self, container: "LibraryStateContainer"):
         self._sessions: Dict[str, "Session"] = {}
         self._container = container
+        self._container.bind_session_manager(self)
 
     # ------------------------------------------------------------------
     # Session lifecycle
@@ -61,7 +62,7 @@ class SessionManager:
         self._sessions[session.session_id] = session
         # Attach AFTER Session is fully constructed so SessionContext exists
         # and SessionDataNamespace can immediately resolve lookups.
-        self._container.attach_session(session.session_id)
+        self._container.attach_session_with_ref(session.session_id, session)
         logger.info(f"SessionManager: created session {session.session_id[:8]}")
         return session
 
@@ -109,11 +110,11 @@ class SessionManager:
     # Broadcast helpers
     # ------------------------------------------------------------------
 
-    def broadcast(self, event: Event) -> None:
-        """Fan an :class:`Event` out to every registered session.
+    def broadcast(self, signal: Signal) -> None:
+        """Fan a :class:`Signal` out to every registered session.
 
-        Callers normally reach this path via ``Session.publish(event)``
-        when ``type(event).cross_session is True``. Used both for
+        Callers normally reach this path via ``Session.publish(signal)``
+        when ``type(signal).cross_session is True``. Used both for
         observations (e.g. ``GraphDataMutated`` so peer sessions refresh
         their views) and imperatives (e.g. ``BroadcastClose`` so peer
         sessions close tabs bound to a vanishing entity).
@@ -123,12 +124,12 @@ class SessionManager:
         §6.5 of the design doc for the cross-session delivery contract.
 
         Args:
-            event: The :class:`Event` to fan out.
+            signal: The :class:`Signal` to fan out.
         """
         failed = []
         for session_id, session in list(self._sessions.items()):
             try:
-                session._dispatch(event)
+                session._dispatch(signal)
             except Exception as e:
                 logger.warning(f"SessionManager: broadcast failed for session {session_id[:8]}: {e}")
                 failed.append(session_id)

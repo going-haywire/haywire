@@ -32,7 +32,7 @@ class NodeStatusPanel(BasePanel):
 
     @classmethod
     def poll(cls, ctx: "SessionContext") -> bool:
-        return ctx.data[EditState].active_node.value is not None
+        return ctx.data[EditState].active_node is not None
 
     def draw(
         self,
@@ -40,7 +40,7 @@ class NodeStatusPanel(BasePanel):
         layout: PanelLayout,
         actions: PropertiesEditorActions,
     ) -> None:
-        node = ctx.data[EditState].active_node.value
+        node = ctx.data[EditState].active_node
         if node is None:
             return
         try:

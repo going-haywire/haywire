@@ -214,8 +214,8 @@ def test_close_callback_clears_active_port_and_edge(register_edit_state):
     session = MagicMock()
     ctx, EditStateCls = make_context(register_edit_state, session=session)
     edit = ctx.data[EditStateCls]
-    edit.active_port.value = MagicMock()
-    edit.active_edge.value = MagicMock()
+    edit.active_port = MagicMock()
+    edit.active_edge = MagicMock()
     registry = PanelRegistry()
     provider, popup, _ = make_provider(ctx, registry)
 
@@ -225,5 +225,5 @@ def test_close_callback_clears_active_port_and_edge(register_edit_state):
     close_cb = popup.on_close.call_args[0][0]
     close_cb()
 
-    assert edit.active_port.value is None
-    assert edit.active_edge.value is None
+    assert edit.active_port is None
+    assert edit.active_edge is None

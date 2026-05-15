@@ -18,7 +18,7 @@ from haywire.core.library.identity import LibraryIdentity
 from .base import BasePanel
 
 if TYPE_CHECKING:
-    from haywire.core.session.events import ContextSignal
+    from haywire.core.session.signals import Signal
 
 logger = logging.getLogger(__name__)
 
@@ -132,17 +132,16 @@ class PanelRegistry(BaseRegistry):
                 focuses.append(focus)
         return focuses
 
-    def get_redraw_events_for(self, actions_provider: Any) -> Set[type["ContextSignal"]]:
-        """Return the union of ``redraw_on`` event types contributed by every
+    def get_redraw_signals_for(self, actions_provider: Any) -> Set[type["Signal"]]:
+        """Return the union of ``redraw_on`` signal types contributed by every
         registered panel whose action contract ``actions_provider`` satisfies.
 
-        Used by editor hosts (via the event-bus redesign — see
-        ``internals/speculatives/event_bus_redesign.md``) to compute their
-        effective subscription set on the session bus. The host subscribes
-        to every event type in the returned set; when any of them publishes
-        the host redraws so currently-visible panels re-mount with fresh
-        state (panels themselves have no independent dispatch — they ride
-        the host's redraw).
+        Used by editor hosts to compute their effective subscription set on
+        the session bus. The host subscribes to every signal type in the
+        returned set; when any of them publishes the host redraws so
+        currently-visible panels re-mount with fresh state (panels
+        themselves have no independent dispatch — they ride the host's
+        redraw).
 
         Panels with an empty ``redraw_on`` tuple contribute nothing. Panels
         whose ``action`` is None are skipped (legacy / partially-decorated
@@ -156,10 +155,10 @@ class PanelRegistry(BaseRegistry):
                 which structurally implements one or more action Protocols.
 
         Returns:
-            A set of ``ContextSignal`` subclasses. Empty if no registered
+            A set of ``Signal`` subclasses. Empty if no registered
             panel applies to this host.
         """
-        events: Set[type["ContextSignal"]] = set()
+        signals: Set[type["Signal"]] = set()
         for cls in self._all_panel_classes():
             identity = getattr(cls, "class_identity", None)
             if identity is None:
@@ -172,8 +171,8 @@ class PanelRegistry(BaseRegistry):
                 continue
             if not isinstance(actions_provider, action):
                 continue
-            events.update(redraw_on)
-        return events
+            signals.update(redraw_on)
+        return signals
 
     def _all_panel_classes(self) -> Iterable[type]:
         """Iterate all registered panel classes."""

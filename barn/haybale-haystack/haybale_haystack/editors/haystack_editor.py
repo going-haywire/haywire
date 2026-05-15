@@ -10,8 +10,8 @@ untitled/unnamed graphs). The user can:
   - Start / stop per-graph execution via play/stop buttons on each row
   - Save / Save-As / Rename / Delete graphs via per-row overflow menu
 
-The list rebuilds on ACTIVE_GRAPH_CHANGED (to refresh the active highlight)
-and DATA_MUTATED (to reflect unsaved/modified state).
+The list rebuilds on ``ActiveGraphMoved`` (to refresh the active highlight)
+and ``GraphDataMutated`` (to reflect unsaved/modified state).
 """
 
 import logging
@@ -25,13 +25,15 @@ from haywire.ui.editor import BaseEditor, editor
 from haywire.core.session import (
     IProjectState,
     SessionContext,
+    react_on,
+    redraw_on,
+)
+from haywire.core.session.signals import (
     ActiveGraphMoved,
     BroadcastClose,
     Close,
     GraphDataMutated,
     Reveal,
-    react_on,
-    redraw_on,
 )
 from haywire.ui.modals import confirm_modal, pick_modal, rename_modal, save_as_modal
 
@@ -57,7 +59,7 @@ class HaystackEditor(BaseEditor):
     One entry per open file or new unnamed graph.  Clicking an entry fires
     EDITOR_FOCUSED with reveal_editor=GraphEditor and reveal_payload=entry.entry_id.
     The shell reveals the matching tab, then GraphEditor.on_focus updates
-    context.data[EditState].active_graph / active_graph_path and broadcasts ACTIVE_GRAPH_CHANGED.
+    context.data[EditState].active_graph / active_graph_path and emits ``ActiveGraphMoved``.
 
     The "+" header button calls HaystackState.create_new() and fires
     EDITOR_FOCUSED with reveal_editor=GraphEditor to activate the
@@ -69,7 +71,7 @@ class HaystackEditor(BaseEditor):
         self._list_container = None
 
     # ------------------------------------------------------------------
-    # Event-bus subscriptions / draw
+    # Signal-bus subscriptions / draw
     # ------------------------------------------------------------------
 
     @redraw_on(ActiveGraphMoved, GraphDataMutated, HaystackReloaded)
@@ -111,7 +113,7 @@ class HaystackEditor(BaseEditor):
             except Exception as exc:
                 logger.warning(f"HaystackEditor: Close({eid}) failed during teardown: {exc}")
 
-    # No on_focus override needed: the event-bus migration (event-bus
+    # No on_focus override needed: the signal-bus migration (event-bus
     # redesign §"Dispatch Loop Semantics") has @redraw_on fire regardless
     # of active-tab state, so backgrounded HaystackEditor instances stay
     # current with ActiveGraphMoved / GraphDataMutated / HaystackReloaded
@@ -205,7 +207,7 @@ class HaystackEditor(BaseEditor):
             self._render_add_bar(context)
 
     def _render_entry(self, entry: "GraphEntry", context: "SessionContext") -> None:
-        is_active = entry.graph is context.data[EditState].active_graph.value
+        is_active = entry.graph is context.data[EditState].active_graph
         is_unsaved = entry.unsaved or entry.path is None
         is_executing = entry.is_executing
 
@@ -407,7 +409,7 @@ class HaystackEditor(BaseEditor):
         Callers are responsible for the ``is_executing`` guard
         and for any dirty-state confirmation flow before invoking this.
         """
-        is_active = entry.graph is context.data[EditState].active_graph.value
+        is_active = entry.graph is context.data[EditState].active_graph
         removed_id = entry.entry_id  # capture before remove_entry drops
 
         # Stop execution if running (defensive — should already be stopped)
@@ -431,10 +433,10 @@ class HaystackEditor(BaseEditor):
         # If it was the active graph, clear the active graph → empty state
         if is_active:
             edit_state = context.data[EditState]
-            edit_state.active_graph.value = None
-            edit_state.active_graph_path.value = None
+            edit_state.active_graph = None
+            edit_state.active_graph_path = None
             if session:
-                session.signal(ActiveGraphMoved())
+                session.publish(ActiveGraphMoved())
 
         ui.notify(f"Removed: {entry.display_name}", type="info", position="top-right")
 
@@ -465,11 +467,11 @@ class HaystackEditor(BaseEditor):
                 ui.notify("Rename failed", type="negative", position="top-right")
                 return
             session = context.session
-            if entry.graph is context.data[EditState].active_graph.value:
+            if entry.graph is context.data[EditState].active_graph:
                 if entry.path:
-                    context.data[EditState].active_graph_path.value = entry.path
+                    context.data[EditState].active_graph_path = entry.path
                     if session:
-                        session.signal(ActiveGraphMoved())
+                        session.publish(ActiveGraphMoved())
                     ui.notify(f"Renamed to: {entry.path.name}", type="positive", position="top-right")
 
         rename_modal(
@@ -538,10 +540,10 @@ class HaystackEditor(BaseEditor):
                 ui.notify("Save failed — check the path and try again", type="negative")
                 return
             session = context.session
-            if entry.graph is context.data[EditState].active_graph.value:
-                context.data[EditState].active_graph_path.value = save_path
+            if entry.graph is context.data[EditState].active_graph:
+                context.data[EditState].active_graph_path = save_path
                 if session:
-                    session.signal(ActiveGraphMoved())
+                    session.publish(ActiveGraphMoved())
             ui.notify(f"Saved: {save_path.name}", type="positive", position="top-right")
             if on_success is not None:
                 on_success()
@@ -647,7 +649,7 @@ class HaystackEditor(BaseEditor):
         hs = context.app_data[HaystackState]
 
         def _do_save(name: str) -> None:
-            active_path = context.data[EditState].active_graph_path.value
+            active_path = context.data[EditState].active_graph_path
             hs.save_haystack(name, active_path=active_path)
             # hs.save_haystack broadcasts GraphDataMutated; the editor
             # redraws and the header chrome reflects the new clean state.
@@ -678,7 +680,7 @@ class HaystackEditor(BaseEditor):
             return
 
         hs = context.app_data[HaystackState]
-        active_path = context.data[EditState].active_graph_path.value
+        active_path = context.data[EditState].active_graph_path
         hs.save_haystack(active, active_path=active_path)
         ui.notify(f"Haystack '{active}' saved", type="positive")
 
@@ -866,7 +868,7 @@ class HaystackEditor(BaseEditor):
         """
         session = context.session
         if session:
-            session.signal(GraphDataMutated())
+            session.publish(GraphDataMutated())
 
     # ------------------------------------------------------------------
     # cleanup

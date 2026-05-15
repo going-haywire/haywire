@@ -3,7 +3,7 @@ Node error panels — dual-host (PropertiesEditor + context-menu).
 
 Phase 1.5: split into two explicit per-host classes (matches edge_panels
 pattern). Both render identical content via a shared helper and gate on
-ctx.data[EditState].active_node.value.state.get_errors() being non-empty.
+ctx.data[EditState].active_node.state.get_errors() being non-empty.
 """
 
 from __future__ import annotations
@@ -24,14 +24,14 @@ if TYPE_CHECKING:
 
 
 def _node_has_errors(ctx: "SessionContext") -> bool:
-    node = ctx.data[EditState].active_node.value
+    node = ctx.data[EditState].active_node
     return node is not None and bool(node.state.get_errors())
 
 
 def _render_node_errors(ctx: "SessionContext", layout: PanelLayout) -> None:
     from haywire.ui.errors.error_info import error_render_detail
 
-    node = ctx.data[EditState].active_node.value
+    node = ctx.data[EditState].active_node
     if node is None:
         return
     errors = node.state.get_errors()

@@ -16,20 +16,15 @@ persistent) lives on SessionContext, not here.
 
 from __future__ import annotations
 
-from copy import copy
 from pathlib import Path
 from typing import Optional
 
+from haywire.core.session.signals import signal_field
 from haywire.core.state import SessionState, state
-from haywire.core.session.reactive import Reactive, iter_reactive_fields, reactive_field
 
 
 @state(label="File Browser State")
 class FileBrowserState(SessionState):
     """Per-session state for the FileBrowser editor."""
 
-    right_clicked_file: Reactive[Optional[Path]] = reactive_field(None)
-
-    def __init__(self) -> None:
-        for name, initial in iter_reactive_fields(type(self)):
-            self.__dict__[name] = Reactive(copy(initial))
+    right_clicked_file: Optional[Path] = signal_field(None)

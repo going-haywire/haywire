@@ -78,7 +78,7 @@ def test_initial_selection_is_empty(handler):
 
 
 def test_initial_clipboard_is_none(handler, session, edit_state_cls):
-    assert session.context.data[edit_state_cls].clipboard.value is None
+    assert session.context.data[edit_state_cls].clipboard is None
 
 
 # ---------------------------------------------------------------------------
@@ -123,13 +123,13 @@ def test_selection_changed_notifies_session(register_edit_state):
         session=session,
     )
     handler.process_selection_change(SelectionChangedEvent(selectedNodes=["n1"], selectedEdges=["e1"]))
-    session.signal.assert_called_once()
-    from haywire.core.session.events import SelectionMoved
+    session.publish.assert_called_once()
+    from haywire.core.session.signals import SelectionMoved
 
-    assert isinstance(session.signal.call_args.args[0], SelectionMoved)
+    assert isinstance(session.publish.call_args.args[0], SelectionMoved)
     edit = ctx.data[EditStateCls]
-    assert edit.selected_nodes.value == {"n1"}
-    assert edit.selected_edges.value == {"e1"}
+    assert edit.selected_nodes == {"n1"}
+    assert edit.selected_edges == {"e1"}
 
 
 def test_selection_changed_no_callback_does_not_raise(handler):
@@ -144,7 +144,7 @@ def test_selection_changed_no_callback_does_not_raise(handler):
 
 def test_copy_stores_clipboard_with_node_ids(handler, session, edit_state_cls):
     handler.process_copy_selection(UserCopySelectedEvent(selectedNodes=["n1", "n2"], selectedEdges=[]))
-    clipboard = session.context.data[edit_state_cls].clipboard.value
+    clipboard = session.context.data[edit_state_cls].clipboard
     assert clipboard is not None
     assert "n1" in clipboard.nodes
     assert "n2" in clipboard.nodes
@@ -152,18 +152,18 @@ def test_copy_stores_clipboard_with_node_ids(handler, session, edit_state_cls):
 
 def test_copy_stores_edge_ids(handler, session, edit_state_cls):
     handler.process_copy_selection(UserCopySelectedEvent(selectedNodes=["n1"], selectedEdges=["e1"]))
-    assert "e1" in session.context.data[edit_state_cls].clipboard.value.edges
+    assert "e1" in session.context.data[edit_state_cls].clipboard.edges
 
 
 def test_copy_records_session_id(handler, session, edit_state_cls):
     handler.process_copy_selection(UserCopySelectedEvent(selectedNodes=["n1"], selectedEdges=[]))
-    assert session.context.data[edit_state_cls].clipboard.value.source_session_id == "test-session"
+    assert session.context.data[edit_state_cls].clipboard.source_session_id == "test-session"
 
 
 def test_copy_overwrites_previous_clipboard(handler, session, edit_state_cls):
     handler.process_copy_selection(UserCopySelectedEvent(selectedNodes=["n1"], selectedEdges=[]))
     handler.process_copy_selection(UserCopySelectedEvent(selectedNodes=["n2"], selectedEdges=[]))
-    clipboard = session.context.data[edit_state_cls].clipboard.value
+    clipboard = session.context.data[edit_state_cls].clipboard
     assert "n2" in clipboard.nodes
     assert "n1" not in clipboard.nodes
 

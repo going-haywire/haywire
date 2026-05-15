@@ -13,7 +13,7 @@ from haybale_studio.focuses import CanvasFocus
 from haybale_studio.state.edit_state import EditState
 from haywire.core.node.info import NodeInfo
 from haywire.ui import elements as hui
-from haywire.core.session.events import ActiveComponentMoved, Reveal
+from haywire.core.session.signals import Reveal
 from haybale_studio.editors.graph_canvas.handlers.context_menu_actions import CanvasContextActions
 from haybale_studio.editors.graph_canvas.node_menu_builder import NodeMenuBuilder
 from haywire.ui.panel import BasePanel
@@ -56,8 +56,8 @@ class CreateNodePanel(BasePanel):
             if node_info.library is not None and ctx.app.library_manager.is_installed(node_info.library.id):
                 from haybale_studio.editors.library_component_editor import LibraryComponentEditor
 
-                ctx.active_component.value = node_info.identity.registry_key
-                ctx.session.signal(ActiveComponentMoved())
+                # Assigning emits SessionContext.active_component synthetically.
+                ctx.active_component = node_info.identity.registry_key
                 ctx.session.publish(Reveal(editor=LibraryComponentEditor))
 
         with layout:
@@ -85,7 +85,7 @@ class CanvasPasteSelectionPanel(BasePanel):
 
     @classmethod
     def poll(cls, ctx: "SessionContext") -> bool:
-        return ctx.data[EditState].clipboard.value is not None
+        return ctx.data[EditState].clipboard is not None
 
     def draw(
         self,

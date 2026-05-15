@@ -46,15 +46,15 @@ def test_copy_selection_handler_writes_to_session_context(register_edit_state):
 
     edit = ctx.data[EditStateCls]
     # Initially clipboard is None
-    assert edit.clipboard.value is None
+    assert edit.clipboard is None
 
     # Process a copy event
     handlers.process_copy_selection(UserCopySelectedEvent(selectedNodes=["a"], selectedEdges=[]))
 
-    # Now ctx.data[EditState].clipboard.value is a ClipboardData
-    assert edit.clipboard.value is not None
-    assert isinstance(edit.clipboard.value, ClipboardData)
-    assert edit.clipboard.value.nodes == ["a"]
+    # Now ctx.data[EditState].clipboard is a ClipboardData
+    assert edit.clipboard is not None
+    assert isinstance(edit.clipboard, ClipboardData)
+    assert edit.clipboard.nodes == ["a"]
 
 
 def test_paste_clipboard_handler_reads_from_session_context(register_edit_state):
@@ -72,8 +72,8 @@ def test_paste_clipboard_handler_reads_from_session_context(register_edit_state)
     handlers.process_paste_clipboard(UserPasteClipboardEvent(canvasX=0, canvasY=0))
     # No assertion — just verify no crash.
 
-    # With clipboard → handler reads ctx.data[EditState].clipboard.value
-    ctx.data[EditStateCls].clipboard.value = ClipboardData(
+    # With clipboard → handler reads ctx.data[EditState].clipboard
+    ctx.data[EditStateCls].clipboard = ClipboardData(
         nodes=["a"],
         edges=[],
         original_to_new_ids={},

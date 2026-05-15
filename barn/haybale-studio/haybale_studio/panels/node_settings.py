@@ -10,7 +10,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 
-from haywire.core.session.events import (
+from haywire.core.session.signals import (
     ActiveGraphMoved,
     GraphDataMutated,
     SelectionMoved,
@@ -43,7 +43,7 @@ class NodeSettingsPanel(BasePanel):
 
     @classmethod
     def poll(cls, ctx: "SessionContext") -> bool:
-        node = ctx.data[EditState].active_node.value
+        node = ctx.data[EditState].active_node
         return (
             node is not None
             and hasattr(node, "node")
@@ -57,7 +57,7 @@ class NodeSettingsPanel(BasePanel):
         layout: PanelLayout,
         actions: PropertiesEditorActions,
     ) -> None:
-        node = ctx.data[EditState].active_node.value
+        node = ctx.data[EditState].active_node
         if node is None:
             return
 

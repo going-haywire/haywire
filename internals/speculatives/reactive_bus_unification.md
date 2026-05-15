@@ -1,8 +1,7 @@
 # Signal-field unification
 
-Status: **spec**, not implemented. Supersedes the earlier
-"Reactive fields unified with the event bus" draft. Builds on
-`event_bus_redesign.md`.
+Status: **DONE** — landed in `<TBD-after-merge>`. (Originally drafted as
+"Reactive fields unified with the event bus"; builds on `event_bus_redesign.md`.)
 
 ## Problem
 

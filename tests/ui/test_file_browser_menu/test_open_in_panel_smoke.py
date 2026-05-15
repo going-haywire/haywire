@@ -7,6 +7,7 @@ from unittest.mock import MagicMock, patch
 import haywire.core.graph.editor  # noqa: F401 — circular-import guard
 
 from haywire.core.library.identity import LibraryIdentity
+from tests.conftest import attach_stub_session
 
 _FAKE_LIBRARY_IDENTITY = LibraryIdentity(
     label="fake",
@@ -40,11 +41,11 @@ def test_panel_appears_and_reveal_fires():
     class SmokeOpenPanel(BasePanel):
         @classmethod
         def poll(cls, ctx) -> bool:
-            f = ctx.data[FileBrowserState].right_clicked_file.value
+            f = ctx.data[FileBrowserState].right_clicked_file
             return f is not None and f.suffix == ".smoke"
 
         def draw(self, ctx, layout, actions):
-            f = ctx.data[FileBrowserState].right_clicked_file.value
+            f = ctx.data[FileBrowserState].right_clicked_file
             # Simulate user clicking the menu item
             actions.reveal(MagicMock(), binding_id=str(f), label=f.name)
 
@@ -53,7 +54,7 @@ def test_panel_appears_and_reveal_fires():
     registry._register_class(SmokeOpenPanel, _FAKE_LIBRARY_IDENTITY)
 
     ctx = MagicMock()
-    state = FileBrowserState()
+    state = attach_stub_session(FileBrowserState())
     ctx.data = {FileBrowserState: state}
     session = MagicMock()
     provider = SessionFileMenuProvider(context=ctx, session=session, panel_registry=registry)
@@ -86,7 +87,7 @@ def test_panel_skipped_when_extension_doesnt_match():
     class SmokeOnlyPanel(BasePanel):
         @classmethod
         def poll(cls, ctx) -> bool:
-            f = ctx.data[FileBrowserState].right_clicked_file.value
+            f = ctx.data[FileBrowserState].right_clicked_file
             return f is not None and f.suffix == ".smoke"
 
         def draw(self, ctx, layout, actions):
@@ -96,7 +97,7 @@ def test_panel_skipped_when_extension_doesnt_match():
     registry._register_class(SmokeOnlyPanel, _FAKE_LIBRARY_IDENTITY)
 
     ctx = MagicMock()
-    state = FileBrowserState()
+    state = attach_stub_session(FileBrowserState())
     ctx.data = {FileBrowserState: state}
     session = MagicMock()
     provider = SessionFileMenuProvider(context=ctx, session=session, panel_registry=registry)

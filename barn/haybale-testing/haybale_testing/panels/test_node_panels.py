@@ -30,7 +30,7 @@ if TYPE_CHECKING:
 class TestDeleteNodePanel(BasePanel):
     @classmethod
     def poll(cls, ctx: "SessionContext") -> bool:
-        return ctx.data[EditState].active_node.value is not None
+        return ctx.data[EditState].active_node is not None
 
     def draw(
         self,
@@ -38,7 +38,7 @@ class TestDeleteNodePanel(BasePanel):
         layout: PanelLayout,
         actions: TestNodeContextActions,
     ) -> None:
-        node = ctx.data[EditState].active_node.value
+        node = ctx.data[EditState].active_node
         if node is None:
             return
         node_id = node.node_id
@@ -62,7 +62,7 @@ class TestDeleteNodePanel(BasePanel):
 class TestCopyNodePanel(BasePanel):
     @classmethod
     def poll(cls, ctx: "SessionContext") -> bool:
-        return ctx.data[EditState].active_node.value is not None
+        return ctx.data[EditState].active_node is not None
 
     def draw(
         self,
@@ -70,7 +70,7 @@ class TestCopyNodePanel(BasePanel):
         layout: PanelLayout,
         actions: TestNodeContextActions,
     ) -> None:
-        node = ctx.data[EditState].active_node.value
+        node = ctx.data[EditState].active_node
         if node is None:
             return
         node_id = node.node_id
@@ -91,7 +91,7 @@ class TestCopyNodePanel(BasePanel):
 class TestRedrawNodePanel(BasePanel):
     @classmethod
     def poll(cls, ctx: "SessionContext") -> bool:
-        return ctx.data[EditState].active_node.value is not None
+        return ctx.data[EditState].active_node is not None
 
     def draw(
         self,
@@ -99,7 +99,7 @@ class TestRedrawNodePanel(BasePanel):
         layout: PanelLayout,
         actions: TestNodeContextActions,
     ) -> None:
-        node = ctx.data[EditState].active_node.value
+        node = ctx.data[EditState].active_node
         if node is None:
             return
         node_id = node.node_id
@@ -120,7 +120,7 @@ class TestRedrawNodePanel(BasePanel):
 class TestRevalidateNodePanel(BasePanel):
     @classmethod
     def poll(cls, ctx: "SessionContext") -> bool:
-        return ctx.data[EditState].active_node.value is not None
+        return ctx.data[EditState].active_node is not None
 
     def draw(
         self,
@@ -128,7 +128,7 @@ class TestRevalidateNodePanel(BasePanel):
         layout: PanelLayout,
         actions: TestNodeContextActions,
     ) -> None:
-        node = ctx.data[EditState].active_node.value
+        node = ctx.data[EditState].active_node
         if node is None:
             return
         node_id = node.node_id
@@ -149,7 +149,7 @@ class TestRevalidateNodePanel(BasePanel):
 class TestResetNodePanel(BasePanel):
     @classmethod
     def poll(cls, ctx: "SessionContext") -> bool:
-        return ctx.data[EditState].active_node.value is not None
+        return ctx.data[EditState].active_node is not None
 
     def draw(
         self,
@@ -157,7 +157,7 @@ class TestResetNodePanel(BasePanel):
         layout: PanelLayout,
         actions: TestNodeContextActions,
     ) -> None:
-        node = ctx.data[EditState].active_node.value
+        node = ctx.data[EditState].active_node
         if node is None:
             return
         node_id = node.node_id

@@ -44,7 +44,7 @@ class _LoudFocus(Focus):
 class _SpeakerPanel(BasePanel):
     @classmethod
     def poll(cls, ctx):
-        return ctx.data[EditState].active_node.value is not None
+        return ctx.data[EditState].active_node is not None
 
     def draw(self, ctx, layout, actions):
         pass
@@ -87,5 +87,5 @@ def test_panel_poll_is_classmethod_and_reads_session_context(register_edit_state
     # No active node — poll returns False.
     assert _SpeakerPanel.poll(ctx) is False
 
-    ctx.data[EditStateCls].active_node.value = MagicMock()
+    ctx.data[EditStateCls].active_node = MagicMock()
     assert _SpeakerPanel.poll(ctx) is True

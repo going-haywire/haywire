@@ -29,6 +29,6 @@ class FileFocus(Focus):
         from haybale_studio.state.file_browser_state import FileBrowserState
 
         try:
-            return ctx.data[FileBrowserState].right_clicked_file.value is not None
+            return ctx.data[FileBrowserState].right_clicked_file is not None
         except KeyError:
             return False

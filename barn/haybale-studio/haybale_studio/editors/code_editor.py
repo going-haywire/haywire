@@ -18,13 +18,13 @@ from typing import TYPE_CHECKING, Literal, Optional
 from nicegui import ui
 
 from haywire.ui import elements as hui
+from haywire.core.session.context import SessionContext
 from haywire.core.session.handlers import redraw_on
-from haywire.core.session.events import ThemeMoved
+from haywire.core.session.signals import Signal
 from haywire.ui.editor.base import BaseEditor
 from haywire.ui.editor.decorator import editor
 
 if TYPE_CHECKING:
-    from haywire.core.session.context import SessionContext
     from nicegui.element import Element
 
 
@@ -119,8 +119,8 @@ class CodeEditor(BaseEditor):
     # rendering
     # ------------------------------------------------------------------
 
-    @redraw_on(ThemeMoved)
-    def _redraw_on_theme(self, context: "SessionContext", event: ThemeMoved) -> None:
+    @redraw_on(SessionContext.active_workbench_theme_key)
+    def _redraw_on_theme(self, context: "SessionContext", event: Signal) -> None:
         """Redraw on workbench-theme change so CodeMirror picks up the new theme.
 
         Empty body — the decorator triggers wrapper.redraw() after return.
@@ -130,7 +130,7 @@ class CodeEditor(BaseEditor):
     @staticmethod
     def _codemirror_theme(context: "SessionContext") -> CmTheme:
         """Pick a CodeMirror theme that matches the active workbench theme."""
-        theme_key = context.active_workbench_theme_key.value or "core:theme:workbench:haywire-dark"
+        theme_key = context.active_workbench_theme_key or "core:theme:workbench:haywire-dark"
         return "vscodeLight" if "light" in theme_key else "vscodeDark"
 
     def draw(self, context: "SessionContext", container: "Element") -> None:

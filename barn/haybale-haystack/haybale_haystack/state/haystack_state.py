@@ -155,7 +155,7 @@ class HaystackState(AppState):
         """
         if self._session_manager is None:
             return
-        from haywire.core.session.events import GraphDataMutated
+        from haywire.core.session.signals import GraphDataMutated
 
         try:
             self._session_manager.broadcast(GraphDataMutated())

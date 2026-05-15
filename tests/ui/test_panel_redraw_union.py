@@ -1,9 +1,9 @@
-"""Tests for ``PanelRegistry.get_redraw_events_for``.
+"""Tests for ``PanelRegistry.get_redraw_signals_for``.
 
-The framework's actual panel-driven event-bus wiring lives in the host
+The framework's actual panel-driven signal-bus wiring lives in the host
 editor (today: ``PropertiesEditor``) and is tested end-to-end in
 ``tests/ui/properties_editor/test_event_bus_migration.py``. This file
-covers only the registry-level helper that produces the event-type
+covers only the registry-level helper that produces the signal-type
 union — the building block both the host editor and any future panel
 introspection / tooling use.
 """
@@ -16,7 +16,7 @@ from typing import Protocol, runtime_checkable
 import haywire.core.graph.editor  # noqa: F401 — circular-import guard
 
 from haywire.core.library.identity import LibraryIdentity
-from haywire.core.session.events import ContextSignal
+from haywire.core.session.signals import Signal
 from haywire.ui.panel import BasePanel, panel
 from haywire.ui.panel.focus import Focus
 from haywire.ui.panel.registry import PanelRegistry
@@ -37,22 +37,22 @@ _FAKE_LIBRARY_IDENTITY = LibraryIdentity(
 
 
 # ----------------------------------------------------------------------
-# Test event types + fixtures
+# Test signal types + fixtures
 # ----------------------------------------------------------------------
 
 
 @dataclass(frozen=True)
-class _PanelEventX(ContextSignal):
+class _PanelSignalX(Signal):
     pass
 
 
 @dataclass(frozen=True)
-class _PanelEventY(ContextSignal):
+class _PanelSignalY(Signal):
     pass
 
 
 @dataclass(frozen=True)
-class _UnrelatedEvent(ContextSignal):
+class _UnrelatedSignal(Signal):
     pass
 
 
@@ -80,7 +80,7 @@ class _TestFocus(Focus):
     action=_HostActions,
     focus=_TestFocus,
     label="X",
-    redraw_on=(_PanelEventX,),
+    redraw_on=(_PanelSignalX,),
     registry_id="prtest_panel_x",
 )
 class _PanelX(BasePanel):
@@ -92,7 +92,7 @@ class _PanelX(BasePanel):
     action=_HostActions,
     focus=_TestFocus,
     label="Y",
-    redraw_on=(_PanelEventY,),
+    redraw_on=(_PanelSignalY,),
     registry_id="prtest_panel_y",
 )
 class _PanelY(BasePanel):
@@ -115,7 +115,7 @@ class _PanelNoRedraw(BasePanel):
     action=_OtherHostActions,
     focus=_TestFocus,
     label="Other",
-    redraw_on=(_UnrelatedEvent,),
+    redraw_on=(_UnrelatedSignal,),
     registry_id="prtest_panel_other_actions",
 )
 class _PanelOtherActions(BasePanel):
@@ -124,7 +124,7 @@ class _PanelOtherActions(BasePanel):
 
 
 # ----------------------------------------------------------------------
-# PanelRegistry.get_redraw_events_for
+# PanelRegistry.get_redraw_signals_for
 # ----------------------------------------------------------------------
 
 
@@ -145,27 +145,27 @@ class _NonHostingThing:
         pass
 
 
-def test_get_redraw_events_for_unions_matching_panel_redraw_on():
+def test_get_redraw_signals_for_unions_matching_panel_redraw_on():
     reg = _fresh_registry_with_panels(_PanelX, _PanelY, _PanelNoRedraw)
-    events = reg.get_redraw_events_for(_HostingThing())
-    assert events == {_PanelEventX, _PanelEventY}
+    signals = reg.get_redraw_signals_for(_HostingThing())
+    assert signals == {_PanelSignalX, _PanelSignalY}
 
 
-def test_get_redraw_events_for_skips_panels_with_unsatisfied_action():
+def test_get_redraw_signals_for_skips_panels_with_unsatisfied_action():
     reg = _fresh_registry_with_panels(_PanelX, _PanelOtherActions)
-    events = reg.get_redraw_events_for(_HostingThing())
+    signals = reg.get_redraw_signals_for(_HostingThing())
     # _PanelOtherActions's redraw_on is excluded — host doesn't satisfy
     # _OtherHostActions.
-    assert events == {_PanelEventX}
+    assert signals == {_PanelSignalX}
 
 
-def test_get_redraw_events_for_returns_empty_when_no_panels_apply():
+def test_get_redraw_signals_for_returns_empty_when_no_panels_apply():
     reg = _fresh_registry_with_panels(_PanelX, _PanelY)
-    events = reg.get_redraw_events_for(_NonHostingThing())
-    assert events == set()
+    signals = reg.get_redraw_signals_for(_NonHostingThing())
+    assert signals == set()
 
 
-def test_get_redraw_events_for_skips_empty_redraw_on_tuple():
+def test_get_redraw_signals_for_skips_empty_redraw_on_tuple():
     reg = _fresh_registry_with_panels(_PanelNoRedraw)
-    events = reg.get_redraw_events_for(_HostingThing())
-    assert events == set()
+    signals = reg.get_redraw_signals_for(_HostingThing())
+    assert signals == set()

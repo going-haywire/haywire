@@ -37,7 +37,7 @@ class ReconnectEdgePanel(BasePanel):
 
     @classmethod
     def poll(cls, ctx: "SessionContext") -> bool:
-        return ctx.data[EditState].active_edge.value is not None
+        return ctx.data[EditState].active_edge is not None
 
     def draw(
         self,

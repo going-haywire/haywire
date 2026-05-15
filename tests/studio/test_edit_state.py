@@ -60,25 +60,33 @@ class TestEditStateClass:
 class TestEditStateDefaults:
     def test_nullable_defaults_are_none(self):
         instance = _edit_state_cls()()
-        assert instance.active_graph.value is None
-        assert instance.active_graph_path.value is None
-        assert instance.active_node.value is None
-        assert instance.active_edge.value is None
-        assert instance.active_port.value is None
-        assert instance.clipboard.value is None
+        assert instance.active_graph is None
+        assert instance.active_graph_path is None
+        assert instance.active_node is None
+        assert instance.active_edge is None
+        assert instance.active_port is None
+        assert instance.clipboard is None
 
     def test_selection_set_defaults_are_empty(self):
         instance = _edit_state_cls()()
-        assert instance.selected_nodes.value == set()
-        assert instance.selected_edges.value == set()
+        assert instance.selected_nodes == set()
+        assert instance.selected_edges == set()
 
     def test_mutable_defaults_are_per_instance(self):
-        """Each EditState instance must own its own selection sets."""
+        """Each EditState instance must own its own selection sets.
+
+        signal_field emits on reassignment, not on in-place mutation; the
+        rewrite below uses union-and-reassign so the test still verifies
+        per-instance isolation of the mutable default (and now also
+        exercises the emit path).
+        """
+        from tests.conftest import attach_stub_session
+
         EditState = _edit_state_cls()
-        a = EditState()
+        a = attach_stub_session(EditState())
         b = EditState()
-        a.selected_nodes.value.add("node-1")
-        assert "node-1" not in b.selected_nodes.value
+        a.selected_nodes = a.selected_nodes | {"node-1"}
+        assert "node-1" not in b.selected_nodes
 
 
 class TestEditStateContainerLifecycle:

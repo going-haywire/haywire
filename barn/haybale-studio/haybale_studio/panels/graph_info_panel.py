@@ -31,7 +31,7 @@ class GraphInfoPanel(BasePanel):
 
     @classmethod
     def poll(cls, ctx: "SessionContext") -> bool:
-        return ctx.data[EditState].active_graph.value is not None
+        return ctx.data[EditState].active_graph is not None
 
     def draw(
         self,
@@ -39,7 +39,7 @@ class GraphInfoPanel(BasePanel):
         layout: PanelLayout,
         actions: PropertiesEditorActions,
     ) -> None:
-        graph = ctx.data[EditState].active_graph.value
+        graph = ctx.data[EditState].active_graph
         if graph is None:
             return
         try:

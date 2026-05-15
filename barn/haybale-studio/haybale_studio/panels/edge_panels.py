@@ -29,7 +29,7 @@ if TYPE_CHECKING:
 
 
 def _state_from_context(ctx: "SessionContext") -> "EdgeWrapperState | None":
-    wrapper = ctx.data[EditState].active_edge.value
+    wrapper = ctx.data[EditState].active_edge
     return wrapper.get_state() if wrapper is not None else None
 
 
@@ -193,7 +193,7 @@ class ContextMenuEdgeWarningsPanel(BasePanel):
 class DeleteEdgePanel(BasePanel):
     @classmethod
     def poll(cls, ctx: "SessionContext") -> bool:
-        return ctx.data[EditState].active_edge.value is not None
+        return ctx.data[EditState].active_edge is not None
 
     def draw(
         self,
@@ -201,7 +201,7 @@ class DeleteEdgePanel(BasePanel):
         layout: PanelLayout,
         actions: EdgeContextActions,
     ) -> None:
-        edge = ctx.data[EditState].active_edge.value
+        edge = ctx.data[EditState].active_edge
         if edge is None:
             return
         edge_id = edge.edge_id
@@ -230,7 +230,7 @@ class DeleteEdgePanel(BasePanel):
 class ExecutionStatisticsEdgePanel(BasePanel):
     @classmethod
     def poll(cls, ctx: "SessionContext") -> bool:
-        return ctx.data[EditState].active_edge.value is not None
+        return ctx.data[EditState].active_edge is not None
 
     def draw(
         self,
@@ -238,7 +238,7 @@ class ExecutionStatisticsEdgePanel(BasePanel):
         layout: PanelLayout,
         actions: PropertiesEditorActions,
     ) -> None:
-        edge_wrapper = ctx.data[EditState].active_edge.value
+        edge_wrapper = ctx.data[EditState].active_edge
         if edge_wrapper is None:
             return
         state = edge_wrapper.get_state()
@@ -268,7 +268,7 @@ class ExecutionStatisticsEdgePanel(BasePanel):
 class ConnectionPathEdgePanel(BasePanel):
     @classmethod
     def poll(cls, ctx: "SessionContext") -> bool:
-        return ctx.data[EditState].active_edge.value is not None
+        return ctx.data[EditState].active_edge is not None
 
     def draw(
         self,
@@ -276,7 +276,7 @@ class ConnectionPathEdgePanel(BasePanel):
         layout: PanelLayout,
         actions: PropertiesEditorActions,
     ) -> None:
-        edge_wrapper = ctx.data[EditState].active_edge.value
+        edge_wrapper = ctx.data[EditState].active_edge
         if edge_wrapper is None:
             return
         with (

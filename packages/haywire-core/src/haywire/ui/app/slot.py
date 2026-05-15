@@ -23,12 +23,11 @@ Relationship to AppShell:
   ``Slot._activate`` calls ``editor.on_focus`` for the newly-active
   wrapper. The slot handles everything inside its area — container
   clear, instance lazy-create, draw.
-* ContextSignals are not dispatched through slots. Editors subscribe
-  to the typed event bus on ``Session`` directly (via ``@redraw_on`` /
+* Signals are not dispatched through slots. Editors subscribe
+  to the typed signal bus on ``Session`` directly (via ``@redraw_on`` /
   ``@react_on`` decorated methods, auto-wired at instantiation); the
-  bus delivers events to those editors regardless of which tab is
-  active. See ``haywire.core.session.bus`` and
-  ``internals/speculatives/event_bus_redesign.md``.
+  bus delivers signals to those editors regardless of which tab is
+  active. See ``haywire.core.session.signals``.
 """
 
 from __future__ import annotations
@@ -45,7 +44,7 @@ from haywire.ui.editor.registry import EditorTypeRegistry
 from haywire.ui.editor.wrapper import EditorWrapper
 
 if TYPE_CHECKING:
-    from haywire.core.session.events import Reveal
+    from haywire.core.session.signals import Reveal
     from haywire.ui.editor.base import BaseEditor
     from haywire.core.session.session import Session
 

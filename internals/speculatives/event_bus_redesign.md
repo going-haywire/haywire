@@ -151,7 +151,7 @@ Three independent channels coexist; explicitly **do not** unify:
 
 **Composition.** Panels compose channels (1) and (2) naturally: structural changes flow through the event bus (panel re-mounts); value-level changes flow through settings (widgets self-update). `redraw_on=` on a panel should be reserved for events that change *what widgets the panel shows*, not events that change the values inside existing widgets — those are settings' job.
 
-**Note:** Reactive session states (`haywire/core/session/reactive/`) are being removed in a separate effort. The settings system is the fine-grained reactivity channel that replaces them.
+> **Superseded by [reactive_bus_unification.md](reactive_bus_unification.md).** Reactive session states (`haywire/core/session/reactive/`) were unified with the event bus in the signal-field unification work. Field writes now emit a synthetic `Signal` on the same `SignalBus` carrying every other signal; the "Phase 2 auto-tracking" originally planned here was explicitly rejected (ContextVar conflicts with hot-reload). The settings system remains a separate, value-level reactivity channel for widget-internal state.
 
 Firewall rules:
 

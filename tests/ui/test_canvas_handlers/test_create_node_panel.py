@@ -35,11 +35,12 @@ def _make_app(container: LibraryStateContainer) -> object:
 
 
 def make_context(register_edit_state) -> tuple[SessionContext, type]:
+    from tests.conftest import attach_stub_session
+
     container = LibraryStateContainer(LibraryStateRegistry())
     sid = "test"
     EditStateCls = register_edit_state(container, sid)
-    ctx = SessionContext(session_id=sid, app=_make_app(container))
-    ctx.session = MagicMock()
+    ctx = attach_stub_session(SessionContext(session_id=sid, app=_make_app(container)))
     return ctx, EditStateCls
 
 
@@ -72,7 +73,7 @@ def test_create_node_panel_poll_always_true(register_edit_state):
 
 def test_create_node_panel_poll_true_when_node_selected(register_edit_state):
     ctx, EditStateCls = make_context(register_edit_state)
-    ctx.data[EditStateCls].active_node.value = MagicMock()
+    ctx.data[EditStateCls].active_node = MagicMock()
     assert CreateNodePanel.poll(ctx) is True
 
 
