@@ -1,5 +1,5 @@
 # tests/ui/panel/test_panel_registry_class_keyed.py
-"""PanelRegistry.get_panels_for and get_focuses_for use isinstance + focus-class match."""
+"""PanelRegistry.get_panels_for_action and get_display_focuses use protocol identity + focus-id match."""
 
 from typing import Protocol, runtime_checkable
 
@@ -52,31 +52,41 @@ class _FocusTwo(Focus):
         return True
 
 
-@panel(action=_ActionsA, focus=_FocusOne, label="A1")
+# Action panels — have `actions:` annotation and actions= decorator arg.
+@panel(actions=_ActionsA, focus=_FocusOne, label="A1")
 class _PanelA1(BasePanel):
-    def draw(self, ctx, layout, actions):
+    actions: _ActionsA
+
+    def draw(self, ctx, layout):
         pass
 
 
-@panel(action=_ActionsA, focus=_FocusTwo, label="A2")
+@panel(actions=_ActionsA, focus=_FocusTwo, label="A2")
 class _PanelA2(BasePanel):
-    def draw(self, ctx, layout, actions):
+    actions: _ActionsA
+
+    def draw(self, ctx, layout):
         pass
 
 
-@panel(action=_ActionsB, focus=_FocusOne, label="B1")
+@panel(actions=_ActionsB, focus=_FocusOne, label="B1")
 class _PanelB1(BasePanel):
-    def draw(self, ctx, layout, actions):
+    actions: _ActionsB
+
+    def draw(self, ctx, layout):
         pass
 
 
-class _ProviderA:
-    def verb_a(self) -> None:
+# Display panels (no actions: annotation) — used to test get_display_focuses.
+@panel(focus=_FocusOne, label="Display-One", registry_id="display_one_ck")
+class _DisplayPanelOne(BasePanel):
+    def draw(self, ctx, layout):
         pass
 
 
-class _ProviderB:
-    def verb_b(self) -> None:
+@panel(focus=_FocusTwo, label="Display-Two", registry_id="display_two_ck")
+class _DisplayPanelTwo(BasePanel):
+    def draw(self, ctx, layout):
         pass
 
 
@@ -88,36 +98,60 @@ def _registry_with_panels() -> PanelRegistry:
     return reg
 
 
-def test_get_panels_for_filters_by_action_and_focus():
+def test_get_panels_for_action_filters_by_protocol_and_focus():
     reg = _registry_with_panels()
-    p = _ProviderA()
-    panels = reg.get_panels_for(actions_provider=p, focus=_FocusOne)
+    panels = reg.get_panels_for_action(_ActionsA, _FocusOne)
     assert _PanelA1 in panels
     assert _PanelA2 not in panels  # wrong focus
-    assert _PanelB1 not in panels  # wrong action
+    assert _PanelB1 not in panels  # wrong protocol
 
 
-def test_get_panels_for_returns_empty_when_action_doesnt_satisfy():
+def test_get_panels_for_action_returns_empty_when_protocol_not_registered():
     reg = _registry_with_panels()
 
-    class _Unrelated:
-        pass
+    @runtime_checkable
+    class _Unrelated(Protocol):
+        def unrelated_verb(self) -> None: ...
 
-    panels = reg.get_panels_for(actions_provider=_Unrelated(), focus=_FocusOne)
+    panels = reg.get_panels_for_action(_Unrelated, _FocusOne)
     assert panels == []
 
 
-def test_get_focuses_for_returns_focuses_referenced_by_compatible_panels():
-    reg = _registry_with_panels()
-    p_a = _ProviderA()
-    focuses = reg.get_focuses_for(actions_provider=p_a)
+def test_get_display_focuses_returns_focuses_referenced_by_display_panels():
+    reg = PanelRegistry()
+    reg._register_class(_DisplayPanelOne, _FAKE_LIBRARY_IDENTITY)
+    reg._register_class(_DisplayPanelTwo, _FAKE_LIBRARY_IDENTITY)
+    focuses = reg.get_display_focuses()
     assert _FocusOne in focuses
     assert _FocusTwo in focuses
 
-    p_b = _ProviderB()
-    focuses_b = reg.get_focuses_for(actions_provider=p_b)
-    assert _FocusOne in focuses_b
-    assert _FocusTwo not in focuses_b
+
+def test_get_display_focuses_excludes_action_panel_focuses():
+    reg = _registry_with_panels()
+    # Only action panels registered — get_display_focuses must return nothing.
+    focuses = reg.get_display_focuses()
+    assert _FocusOne not in focuses
+    assert _FocusTwo not in focuses
+
+
+def test_get_display_focuses_deduplicates_by_focus_id():
+    # Register two display panels with the same focus — each focus appears once.
+    reg = PanelRegistry()
+
+    @panel(focus=_FocusOne, label="Dup1", registry_id="dup1_ck")
+    class _DupPanel1(BasePanel):
+        def draw(self, ctx, layout):
+            pass
+
+    @panel(focus=_FocusOne, label="Dup2", registry_id="dup2_ck")
+    class _DupPanel2(BasePanel):
+        def draw(self, ctx, layout):
+            pass
+
+    reg._register_class(_DupPanel1, _FAKE_LIBRARY_IDENTITY)
+    reg._register_class(_DupPanel2, _FAKE_LIBRARY_IDENTITY)
+    focuses = reg.get_display_focuses()
+    assert focuses.count(_FocusOne) == 1
 
 
 # ---------------------------------------------------------------------------

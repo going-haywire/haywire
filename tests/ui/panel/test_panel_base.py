@@ -1,5 +1,5 @@
 # tests/ui/panel/test_panel_base.py
-"""BasePanel base class: classmethod poll (default True); abstract draw."""
+"""BasePanel base class: classmethod poll (default True); abstract draw; actions=None default."""
 
 import pytest
 
@@ -8,7 +8,7 @@ from haywire.ui.panel import BasePanel
 
 def test_panel_default_poll_returns_true():
     class P(BasePanel):
-        def draw(self, ctx, layout, actions):
+        def draw(self, ctx, layout):
             pass
 
     assert P.poll(ctx=None) is True
@@ -20,7 +20,7 @@ def test_panel_subclass_can_override_poll():
         def poll(cls, ctx):
             return False
 
-        def draw(self, ctx, layout, actions):
+        def draw(self, ctx, layout):
             pass
 
     assert P.poll(ctx=None) is False
@@ -38,8 +38,32 @@ def test_panel_draw_is_required():
 
 def test_panel_with_draw_can_be_instantiated():
     class P(BasePanel):
-        def draw(self, ctx, layout, actions):
+        def draw(self, ctx, layout):
             pass
 
     instance = P()
     assert instance is not None
+
+
+def test_panel_actions_defaults_to_none():
+    """Display panels: actions attribute is None unless the host injects it."""
+
+    class P(BasePanel):
+        def draw(self, ctx, layout):
+            pass
+
+    instance = P()
+    assert instance.actions is None
+
+
+def test_panel_actions_can_be_injected():
+    """Framework sets panel.actions = host before calling draw for action panels."""
+
+    class P(BasePanel):
+        def draw(self, ctx, layout):
+            pass
+
+    instance = P()
+    sentinel = object()
+    instance.actions = sentinel
+    assert instance.actions is sentinel

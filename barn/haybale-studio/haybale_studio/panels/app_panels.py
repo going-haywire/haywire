@@ -19,7 +19,6 @@ from haybale_studio.settings.theme_settings import WorkbenchThemeSettings, NodeT
 from haywire.ui.skin.settings import NodeDefaultSkinSettings
 from haywire.ui.prefs.editor import EditorSettings
 
-from haybale_studio.editors.properties_editor_actions import PropertiesEditorActions
 from haybale_studio.focuses import AppFocus
 
 if TYPE_CHECKING:
@@ -27,7 +26,6 @@ if TYPE_CHECKING:
 
 
 @panel(
-    action=PropertiesEditorActions,
     focus=AppFocus,
     label="Workbench",
     icon=hui.icon.theme,
@@ -41,7 +39,6 @@ class ThemeSettingsPanel(BasePanel):
         self,
         ctx: "SessionContext",
         layout: PanelLayout,
-        actions: PropertiesEditorActions,
     ) -> None:
         registry = ctx.app.library_service.get_settings_registry()
         render_schema(WorkbenchThemeSettings, registry)
@@ -49,7 +46,6 @@ class ThemeSettingsPanel(BasePanel):
 
 
 @panel(
-    action=PropertiesEditorActions,
     focus=AppFocus,
     label="Default Skins",
     icon=hui.icon.skin,
@@ -63,14 +59,12 @@ class NodeSkinDefaultPanel(BasePanel):
         self,
         ctx: "SessionContext",
         layout: PanelLayout,
-        actions: PropertiesEditorActions,
     ) -> None:
         registry = ctx.app.library_service.get_settings_registry()
         render_schema(NodeDefaultSkinSettings, registry)
 
 
 @panel(
-    action=PropertiesEditorActions,
     focus=AppFocus,
     label="Editor",
     icon=hui.icon.edit,
@@ -84,7 +78,6 @@ class EditorSettingsPanel(BasePanel):
         self,
         ctx: "SessionContext",
         layout: PanelLayout,
-        actions: PropertiesEditorActions,
     ) -> None:
         registry = ctx.app.library_service.get_settings_registry()
         render_schema(EditorSettings, registry)

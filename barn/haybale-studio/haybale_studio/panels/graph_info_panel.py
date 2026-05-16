@@ -12,7 +12,6 @@ from haywire.ui.panel import BasePanel, PanelLayout
 from haywire.ui.panel.decorator import panel
 
 from haybale_studio.focuses import GraphFocus
-from haybale_studio.editors.properties_editor_actions import PropertiesEditorActions
 from haybale_studio.state.edit_state import EditState
 
 if TYPE_CHECKING:
@@ -20,7 +19,6 @@ if TYPE_CHECKING:
 
 
 @panel(
-    action=PropertiesEditorActions,
     focus=GraphFocus,
     label="Graph Info",
     icon=hui.icon.graph,
@@ -37,7 +35,6 @@ class GraphInfoPanel(BasePanel):
         self,
         ctx: "SessionContext",
         layout: PanelLayout,
-        actions: PropertiesEditorActions,
     ) -> None:
         graph = ctx.data[EditState].active_graph
         if graph is None:

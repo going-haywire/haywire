@@ -17,6 +17,7 @@ from __future__ import annotations
 from haywire.core.library.utils import derive_library_identity, reg_key
 from haywire.ui.themes.identity import ThemeClassIdentity
 
+
 def theme(
     *,
     label: str = "",

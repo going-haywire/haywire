@@ -32,7 +32,7 @@ _GRAPH_EXTS = frozenset({".haywire"})
 
 
 @panel(
-    action=FileBrowserActions,
+    actions=FileBrowserActions,
     focus=FileFocus,
     label="Open in Haystack",
     icon=hui.icon.graph,
@@ -40,6 +40,8 @@ _GRAPH_EXTS = frozenset({".haywire"})
 )
 class OpenInHaystackPanel(BasePanel):
     """Open a .haywire graph file in the GraphEditor via the Haystack."""
+
+    actions: FileBrowserActions
 
     @classmethod
     def poll(cls, ctx: "SessionContext") -> bool:
@@ -50,7 +52,6 @@ class OpenInHaystackPanel(BasePanel):
         self,
         ctx: "SessionContext",
         layout: PanelLayout,
-        actions: FileBrowserActions,
     ) -> None:
         from haybale_graph_editor.editors.graph_editor import GraphEditor
 
@@ -63,7 +64,7 @@ class OpenInHaystackPanel(BasePanel):
             if hs is None:
                 return
             entry = hs.open_graph(path)
-            actions.reveal(GraphEditor, binding_id=entry.binding_id, label=entry.display_name)
+            self.actions.reveal(GraphEditor, binding_id=entry.binding_id, label=entry.display_name)
 
         layout.button(
             "Open in Haystack",

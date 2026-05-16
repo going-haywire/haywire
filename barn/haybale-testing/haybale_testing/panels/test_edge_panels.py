@@ -1,6 +1,6 @@
 """Test-only edge action panels for haybale_testing.
 
-Phase 1.5: action=TestEdgeContextActions, focus=TestEdgeFocus.
+actions: TestEdgeContextActions, focus=TestEdgeFocus.
 """
 
 from __future__ import annotations
@@ -28,13 +28,15 @@ def _state(ctx: "SessionContext") -> "EdgeWrapperState | None":
 
 
 @panel(
-    action=TestEdgeContextActions,
+    actions=TestEdgeContextActions,
     focus=TestEdgeFocus,
     label="Delete Connection",
     icon=hui.icon.delete,
     order=10,
 )
 class TestDeleteEdgePanel(BasePanel):
+    actions: TestEdgeContextActions
+
     @classmethod
     def poll(cls, ctx: "SessionContext") -> bool:
         return ctx.data[EditState].active_edge is not None
@@ -43,7 +45,6 @@ class TestDeleteEdgePanel(BasePanel):
         self,
         ctx: "SessionContext",
         layout: PanelLayout,
-        actions: TestEdgeContextActions,
     ) -> None:
         edge = ctx.data[EditState].active_edge
         if edge is None:
@@ -52,18 +53,20 @@ class TestDeleteEdgePanel(BasePanel):
         layout.button(
             "Delete Connection",
             icon=hui.icon.delete,
-            on_click=lambda: actions.test_delete_edge(edge_id),
+            on_click=lambda: self.actions.test_delete_edge(edge_id),
         )
 
 
 @panel(
-    action=TestEdgeContextActions,
+    actions=TestEdgeContextActions,
     focus=TestEdgeFocus,
     label="Inspect Connection",
     icon=hui.icon.node_info,
     order=20,
 )
 class TestInspectEdgePanel(BasePanel):
+    actions: TestEdgeContextActions
+
     @classmethod
     def poll(cls, ctx: "SessionContext") -> bool:
         return ctx.data[EditState].active_edge is not None
@@ -72,7 +75,6 @@ class TestInspectEdgePanel(BasePanel):
         self,
         ctx: "SessionContext",
         layout: PanelLayout,
-        actions: TestEdgeContextActions,
     ) -> None:
         edge = ctx.data[EditState].active_edge
         if edge is None:
@@ -81,18 +83,20 @@ class TestInspectEdgePanel(BasePanel):
         layout.button(
             "Inspect Connection",
             icon=hui.icon.node_info,
-            on_click=lambda: actions.test_inspect_edge(edge_id),
+            on_click=lambda: self.actions.test_inspect_edge(edge_id),
         )
 
 
 @panel(
-    action=TestEdgeContextActions,
+    actions=TestEdgeContextActions,
     focus=TestEdgeFocus,
     label="Connection Errors",
     icon=hui.icon.error,
     order=0,
 )
 class TestEdgeErrorsPanel(BasePanel):
+    actions: TestEdgeContextActions
+
     @classmethod
     def poll(cls, ctx: "SessionContext") -> bool:
         state = _state(ctx)
@@ -102,7 +106,6 @@ class TestEdgeErrorsPanel(BasePanel):
         self,
         ctx: "SessionContext",
         layout: PanelLayout,
-        actions: TestEdgeContextActions,
     ) -> None:
         from haywire.core.errors.haywire_exception import HaywireException
         from haywire.ui.errors.error_info import error_render_detail
@@ -123,13 +126,15 @@ class TestEdgeErrorsPanel(BasePanel):
 
 
 @panel(
-    action=TestEdgeContextActions,
+    actions=TestEdgeContextActions,
     focus=TestEdgeFocus,
     label="Connection Path",
     icon=hui.icon.adapter,
     order=15,
 )
 class TestEdgeConnectionPathPanel(BasePanel):
+    actions: TestEdgeContextActions
+
     @classmethod
     def poll(cls, ctx: "SessionContext") -> bool:
         wrapper = ctx.data[EditState].active_edge
@@ -139,7 +144,6 @@ class TestEdgeConnectionPathPanel(BasePanel):
         self,
         ctx: "SessionContext",
         layout: PanelLayout,
-        actions: TestEdgeContextActions,
     ) -> None:
         wrapper = ctx.data[EditState].active_edge
         if wrapper is None or wrapper.edge is None:
@@ -155,13 +159,15 @@ class TestEdgeConnectionPathPanel(BasePanel):
 
 
 @panel(
-    action=TestEdgeContextActions,
+    actions=TestEdgeContextActions,
     focus=TestEdgeFocus,
     label="Connection Warnings",
     icon=hui.icon.warning,
     order=5,
 )
 class TestEdgeWarningsPanel(BasePanel):
+    actions: TestEdgeContextActions
+
     @classmethod
     def poll(cls, ctx: "SessionContext") -> bool:
         state = _state(ctx)
@@ -171,7 +177,6 @@ class TestEdgeWarningsPanel(BasePanel):
         self,
         ctx: "SessionContext",
         layout: PanelLayout,
-        actions: TestEdgeContextActions,
     ) -> None:
         state = _state(ctx)
         if state is None:

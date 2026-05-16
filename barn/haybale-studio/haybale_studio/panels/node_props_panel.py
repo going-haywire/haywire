@@ -13,7 +13,6 @@ from haywire.ui.panel.decorator import panel
 from haywire.ui.panel.render_utils import render_settings
 
 from haybale_studio.focuses import NodeFocus
-from haybale_studio.editors.properties_editor_actions import PropertiesEditorActions
 from haybale_studio.state.edit_state import EditState
 
 if TYPE_CHECKING:
@@ -21,7 +20,6 @@ if TYPE_CHECKING:
 
 
 @panel(
-    action=PropertiesEditorActions,
     focus=NodeFocus,
     label="Node Properties",
     icon=hui.icon.node_info,
@@ -39,7 +37,6 @@ class NodeInfoPanel(BasePanel):
         self,
         ctx: "SessionContext",
         layout: PanelLayout,
-        actions: PropertiesEditorActions,
     ) -> None:
         node = ctx.data[EditState].active_node
         if node is None:
@@ -56,7 +53,6 @@ class NodeInfoPanel(BasePanel):
 
 
 @panel(
-    action=PropertiesEditorActions,
     focus=NodeFocus,
     label="Node Properties",
     icon=hui.icon.node,
@@ -80,7 +76,6 @@ class NodePropertiesPanel(BasePanel):
         self,
         ctx: "SessionContext",
         layout: PanelLayout,
-        actions: PropertiesEditorActions,
     ) -> None:
         node_wrapper = ctx.data[EditState].active_node
         if node_wrapper is None:

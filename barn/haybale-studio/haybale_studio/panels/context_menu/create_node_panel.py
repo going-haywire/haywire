@@ -1,7 +1,7 @@
 """
 CreateNodePanel — context menu panel for the canvas trigger.
 
-Phase 1.5: action=CanvasContextActions, focus=CanvasFocus.
+actions: CanvasContextActions, focus=CanvasFocus.
 Also hosts CanvasPasteSelectionPanel (paste in canvas context).
 """
 
@@ -25,7 +25,7 @@ if TYPE_CHECKING:
 
 
 @panel(
-    action=CanvasContextActions,
+    actions=CanvasContextActions,
     focus=CanvasFocus,
     label="Create Node",
     icon=hui.icon.add,
@@ -33,6 +33,8 @@ if TYPE_CHECKING:
 )
 class CreateNodePanel(BasePanel):
     """Render the hierarchical node-creation menu with search on canvas right-click."""
+
+    actions: CanvasContextActions
 
     @classmethod
     def poll(cls, ctx: "SessionContext") -> bool:
@@ -42,7 +44,6 @@ class CreateNodePanel(BasePanel):
         self,
         ctx: "SessionContext",
         layout: PanelLayout,
-        actions: CanvasContextActions,
     ) -> None:
         node_factory = ctx.app.node_factory
         if node_factory is None:
@@ -50,7 +51,7 @@ class CreateNodePanel(BasePanel):
             return
 
         def _on_node_selected(node_info: NodeInfo) -> None:
-            actions.create_node_at_click(node_info.identity.registry_key)
+            self.actions.create_node_at_click(node_info.identity.registry_key)
 
         def _on_context_click(node_info: NodeInfo) -> None:
             if node_info.library is not None and ctx.app.library_manager.is_installed(node_info.library.id):
@@ -70,7 +71,7 @@ class CreateNodePanel(BasePanel):
 
 
 @panel(
-    action=CanvasContextActions,
+    actions=CanvasContextActions,
     focus=CanvasFocus,
     label="Paste",
     icon=hui.icon.paste,
@@ -83,6 +84,8 @@ class CanvasPasteSelectionPanel(BasePanel):
     Both share the paste_at_click verb on their respective Protocols.
     """
 
+    actions: CanvasContextActions
+
     @classmethod
     def poll(cls, ctx: "SessionContext") -> bool:
         return ctx.data[EditState].clipboard is not None
@@ -91,10 +94,9 @@ class CanvasPasteSelectionPanel(BasePanel):
         self,
         ctx: "SessionContext",
         layout: PanelLayout,
-        actions: CanvasContextActions,
     ) -> None:
         layout.button(
             "Paste",
             icon=hui.icon.paste,
-            on_click=actions.paste_at_click,
+            on_click=self.actions.paste_at_click,
         )

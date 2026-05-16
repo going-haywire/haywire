@@ -51,6 +51,6 @@ def test_panel_decorator_metadata():
 
     # The @panel decorator stores metadata on class_identity
     ident = OpenInHaystackPanel.class_identity
-    assert ident.action is FileBrowserActions
+    assert ident.action_protocol is FileBrowserActions
     assert ident.focus is FileFocus
     assert "Haystack" in ident.label

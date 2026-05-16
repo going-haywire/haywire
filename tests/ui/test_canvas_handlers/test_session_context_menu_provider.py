@@ -117,23 +117,27 @@ def make_provider(ctx: SessionContext, registry: PanelRegistry, on_emit_event=No
 def test_panels_that_return_false_from_poll_are_not_drawn(register_edit_state):
     ctx, _ = make_context(register_edit_state)
     registry = PanelRegistry()
-    actions = _current_actions()
-    focuses = _current_focuses()
+    _actions_mod = _current_actions()
+    _focuses_mod = _current_focuses()
+    NodeContextActions = _actions_mod.NodeContextActions
+    NodeFocus = _focuses_mod.NodeFocus
 
     drawn = []
 
     @panel(
-        action=actions.NodeContextActions,
-        focus=focuses.NodeFocus,
+        actions=NodeContextActions,
+        focus=NodeFocus,
         label="Always False",
         registry_id="always_false_panel",
     )
     class AlwaysFalsePanel(BasePanel):
+        actions: NodeContextActions
+
         @classmethod
         def poll(cls, context):
             return False
 
-        def draw(self, ctx, layout, actions):
+        def draw(self, ctx, layout):
             drawn.append("AlwaysFalsePanel")
 
     registry._register_class(AlwaysFalsePanel, _FAKE_LIBRARY_IDENTITY)
@@ -147,23 +151,27 @@ def test_panels_that_return_false_from_poll_are_not_drawn(register_edit_state):
 def test_panels_that_return_true_from_poll_are_drawn(register_edit_state):
     ctx, _ = make_context(register_edit_state)
     registry = PanelRegistry()
-    actions = _current_actions()
-    focuses = _current_focuses()
+    _actions_mod = _current_actions()
+    _focuses_mod = _current_focuses()
+    NodeContextActions = _actions_mod.NodeContextActions
+    NodeFocus = _focuses_mod.NodeFocus
 
     drawn = []
 
     @panel(
-        action=actions.NodeContextActions,
-        focus=focuses.NodeFocus,
+        actions=NodeContextActions,
+        focus=NodeFocus,
         label="Always True",
         registry_id="always_true_panel",
     )
     class AlwaysTruePanel(BasePanel):
+        actions: NodeContextActions
+
         @classmethod
         def poll(cls, context):
             return True
 
-        def draw(self, ctx, layout, actions):
+        def draw(self, ctx, layout):
             drawn.append("AlwaysTruePanel")
 
     registry._register_class(AlwaysTruePanel, _FAKE_LIBRARY_IDENTITY)
@@ -177,23 +185,28 @@ def test_panels_that_return_true_from_poll_are_drawn(register_edit_state):
 def test_panels_for_wrong_focus_are_not_drawn(register_edit_state):
     ctx, _ = make_context(register_edit_state)
     registry = PanelRegistry()
-    actions = _current_actions()
-    focuses = _current_focuses()
+    _actions_mod = _current_actions()
+    _focuses_mod = _current_focuses()
+    EdgeContextActions = _actions_mod.EdgeContextActions
+    EdgeFocus = _focuses_mod.EdgeFocus
+    NodeFocus = _focuses_mod.NodeFocus  # noqa: F841
 
     drawn = []
 
     @panel(
-        action=actions.EdgeContextActions,
-        focus=focuses.EdgeFocus,
+        actions=EdgeContextActions,
+        focus=EdgeFocus,
         label="Edge Only",
         registry_id="edge_only_panel",
     )
     class EdgeOnlyPanel(BasePanel):
+        actions: EdgeContextActions
+
         @classmethod
         def poll(cls, context):
             return True
 
-        def draw(self, ctx, layout, actions):
+        def draw(self, ctx, layout):
             drawn.append("EdgeOnlyPanel")
 
     registry._register_class(EdgeOnlyPanel, _FAKE_LIBRARY_IDENTITY)

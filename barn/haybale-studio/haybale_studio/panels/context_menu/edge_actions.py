@@ -1,7 +1,7 @@
 """
 Context menu panels for edge actions.
 
-Phase 1.5: action=EdgeContextActions, focus=EdgeFocus.
+actions: EdgeContextActions, focus=EdgeFocus.
 """
 
 from __future__ import annotations
@@ -21,7 +21,7 @@ if TYPE_CHECKING:
 
 
 @panel(
-    action=EdgeContextActions,
+    actions=EdgeContextActions,
     focus=EdgeFocus,
     label="Reconnect Edge",
     icon=hui.icon.edge,
@@ -35,6 +35,8 @@ class ReconnectEdgePanel(BasePanel):
     _OpenMenuContext. The panel just invokes the verb.
     """
 
+    actions: EdgeContextActions
+
     @classmethod
     def poll(cls, ctx: "SessionContext") -> bool:
         return ctx.data[EditState].active_edge is not None
@@ -43,10 +45,9 @@ class ReconnectEdgePanel(BasePanel):
         self,
         ctx: "SessionContext",
         layout: PanelLayout,
-        actions: EdgeContextActions,
     ) -> None:
         layout.button(
             "Reconnect",
             icon=hui.icon.edge,
-            on_click=actions.reconnect_active_edge,
+            on_click=self.actions.reconnect_active_edge,
         )

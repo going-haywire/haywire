@@ -35,7 +35,7 @@ if TYPE_CHECKING:
 
 
 @panel(
-    action=FileBrowserActions,
+    actions=FileBrowserActions,
     focus=FileFocus,
     label="Open in Code Editor",
     icon=hui.icon.edit,
@@ -43,6 +43,8 @@ if TYPE_CHECKING:
 )
 class OpenInCodeEditorPanel(BasePanel):
     """Open an editable text file in the CodeEditor."""
+
+    actions: FileBrowserActions
 
     @classmethod
     def poll(cls, ctx: "SessionContext") -> bool:
@@ -55,7 +57,6 @@ class OpenInCodeEditorPanel(BasePanel):
         self,
         ctx: "SessionContext",
         layout: PanelLayout,
-        actions: FileBrowserActions,
     ) -> None:
         from haybale_studio.editors.code_editor import CodeEditor
 
@@ -69,7 +70,7 @@ class OpenInCodeEditorPanel(BasePanel):
                 return
             # Assigning emits SessionContext.active_file synthetically.
             ctx.active_file = path
-            actions.reveal(CodeEditor, binding_id=str(path), label=path.name)
+            self.actions.reveal(CodeEditor, binding_id=str(path), label=path.name)
 
         layout.button(
             "Open in Code Editor",
@@ -79,7 +80,7 @@ class OpenInCodeEditorPanel(BasePanel):
 
 
 @panel(
-    action=FileBrowserActions,
+    actions=FileBrowserActions,
     focus=FileFocus,
     label="Open in File Viewer",
     icon=hui.icon.library_component,
@@ -87,6 +88,8 @@ class OpenInCodeEditorPanel(BasePanel):
 )
 class OpenInFileViewerPanel(BasePanel):
     """Open any file in the read-only FileViewerEditor (catch-all fallback)."""
+
+    actions: FileBrowserActions
 
     @classmethod
     def poll(cls, ctx: "SessionContext") -> bool:
@@ -97,7 +100,6 @@ class OpenInFileViewerPanel(BasePanel):
         self,
         ctx: "SessionContext",
         layout: PanelLayout,
-        actions: FileBrowserActions,
     ) -> None:
         from haybale_studio.editors.file_viewer import FileViewerEditor
 
@@ -111,7 +113,7 @@ class OpenInFileViewerPanel(BasePanel):
                 return
             # Assigning emits SessionContext.active_file synthetically.
             ctx.active_file = path
-            actions.reveal(FileViewerEditor, binding_id=str(path), label=path.name)
+            self.actions.reveal(FileViewerEditor, binding_id=str(path), label=path.name)
 
         layout.button(
             "Open in File Viewer",

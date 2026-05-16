@@ -1,7 +1,7 @@
 ---
 status: draft
 doc_template: canonical-example
-scope: Authoring panels — BasePanel subclass, @panel decorator, action/focus contract, poll/draw lifecycle, PanelLayout API
+scope: Authoring panels — BasePanel subclass, @panel decorator, actions annotation/focus contract, poll/draw lifecycle, PanelLayout API
 see-also:
   - ../editors/editor-canon.md
   - ../states/state-canon.md
@@ -16,7 +16,7 @@ see-also:
 
 A **panel** is a context-sensitive sub-section that appears inside a **panel-aware editor** — most commonly the Properties editor on the right sidebar. Unlike editors, panels do not manage their own slot. They are discovered at runtime from `PanelRegistry`, polled for visibility, and rendered inside a host editor's layout.
 
-You author a panel when you want to contribute UI to a panel-aware editor (Properties is the primary one) without writing a new editor. Define a class, decorate with `@panel(action=..., focus=..., label=...)`, implement `poll(ctx) → bool` to declare when it should be visible, and `draw(ctx, layout, actions)` to render its content. The host editor handles the rest — layout positioning, ordering, collapsibility, hot-reload.
+You author a panel when you want to contribute UI to a panel-aware editor (Properties is the primary one) without writing a new editor. Define a class, decorate with `@panel(focus=..., label=...)`, implement `poll(ctx) → bool` to declare when it should be visible, and `draw(ctx, layout)` to render its content. The host editor handles the rest — layout positioning, ordering, collapsibility, hot-reload.
 
 This separation means:
 
@@ -28,34 +28,38 @@ This separation means:
 ## 2. How it fits
 
 ```text
-@panel(action=..., focus=...)             PanelRegistry              Host editor
+@panel(focus=...)                         PanelRegistry              Host editor
 class MyPanel(BasePanel):                 registers                  (e.g. PropertiesEditor)
-    @classmethod                          via @panel decorator         ↓ at render time:
-    def poll(cls, ctx): ...                                            get_panels_for(self, focus)
-    def draw(self, ctx,                                                  → filter by structural
-             layout, actions): ...                                          isinstance(self, action)
-                                                                        → filter by Focus.id
-                                                                        → sort by `order`
-                                                                        for each returned class:
-                                                                          if poll(ctx):
-                                                                            instantiate, draw
-                                                                            inside ui.expansion
+    actions: MyActionsProtocol            via @panel decorator         ↓ at render time:
+    @classmethod                                                       get_panels_for_focus(focus)
+    def poll(cls, ctx): ...                                              → filter by Focus.id
+    def draw(self, ctx, layout): ...                                     → sort by `order`
+                                                                         for each returned class:
+                                                                           if poll(ctx):
+                                                                             instantiate, draw
+                                                                             inside ui.expansion
+
+                                                               Context-menu host at popup time:
+                                                                       get_panels_for_action(
+                                                                           action_protocol, focus)
+                                                                         → filter by action +
+                                                                             Focus.id
+                                                                         inject host → panel.actions
 ```
 
 Two registration paths feed `PanelRegistry`:
 
 - **Library-side scan** — panels in your library's `panels/` folder, registered in `register_components(...)` via `add_folder_to_registry(folder_path=..., registry_cls=PanelRegistry)`.
-- **`@panel` decorator** — runs at import time, attaches `class_identity` (a `PanelIdentity` carrying `action`, `focus`, `label`, `order`, etc.).
+- **`@panel` decorator** — runs at import time, attaches `class_identity` (a `PanelIdentity` carrying `focus`, `label`, `order`, `action_protocol`, etc.).
 
 **Boundaries.** Editors that *host* panels — see [components/editors](../editors/editor-canon.md). The studio shell that owns the Properties editor — see [architecture/studio](../../architecture/studio/studio-arch.md). Library/session state read inside panels — see [components/states](../states/state-canon.md).
 
 ## 3. Important concepts
 
-**The `@panel` decorator.** Required on every panel class. Three parameters are mandatory: `action=` (the actions Protocol/ABC the host editor satisfies), `focus=` (a `Focus` subclass that determines visibility), and `label=` (display label).
+**The `@panel` decorator.** Required on every panel class. Two parameters are mandatory: `focus=` (a `Focus` subclass that determines visibility) and `label=` (display label).
 
 | Parameter | Required | Default | Purpose |
 |---|---|---|---|
-| `action` | yes | — | Protocol or ABC class describing the actions this panel calls on its host. The host editor must structurally satisfy this Protocol. |
 | `focus` | yes | — | `Focus` subclass discriminator (e.g. `NodeFocus`). The panel only appears when this focus is the active one *and* its `available(ctx)` returns `True`. |
 | `label` | yes | — | Display label in the expansion header. |
 | `icon` | no | `None` | Material icon for the expansion header. |
@@ -64,19 +68,23 @@ Two registration paths feed `PanelRegistry`:
 | `description` | no | `''` | Tooltip / accessibility text. |
 | `registry_id` | no | class name | Unique short ID within the library. |
 
-**Action contract — `action=`.** An `action` is a Protocol (or ABC) class that names the methods the panel may call on its host editor. The host editor itself supplies the implementations; matching is *structural* — `PanelRegistry.get_panels_for(actions_provider=self, focus=...)` filters with `isinstance(actions_provider, action)`. So panels typed against `PropertiesEditorActions` only mount in editors that satisfy that Protocol, regardless of class hierarchy.
+**Three orthogonal facets.** A panel has three independent facets that compose freely:
 
-The minimal Properties contract today:
+1. **Focus** (`focus=FocusClass` decorator argument) — routing topic; determines where the panel appears and under which toolbar tab.
+2. **Verb surface** (`actions: SomeProtocol` class-body annotation) — optional; declares the actions this panel calls on its host. The framework reads the `actions:` annotation at decoration time via `typing.get_type_hints` and stores it on `PanelIdentity.action_protocol`. At mount time, the framework sets `panel.actions = host` if the host satisfies the Protocol; the panel accesses the host as `self.actions.method(...)`. Display panels (no host needed) simply omit the annotation — `panel.actions` stays `None`.
+3. **Refresh** (`redraw_on=(...)` tuple of Signal subclasses on the decorator) — signals that should trigger a host-editor redraw when this panel is mounted.
+
+**Action contract — `actions:` annotation.** An `actions:` annotation is a Protocol class that names the methods the panel may call on its host. The host supplies the implementations; matching is structural. `PanelRegistry.get_panels_for_action(action_protocol, focus)` returns panels whose annotated Protocol is satisfied by the host, filtered by focus — this is the query used by context-menu hosts. Display panels (e.g. Properties-sidebar panels) have no `actions:` annotation and are queried with `get_panels_for_focus(focus)` instead.
+
+A library that needs its panels to call back into the host defines its own Protocol and annotates the class body:
 
 ```python
 @runtime_checkable
-class PropertiesEditorActions(Protocol):
-    def clear_selection(self) -> None: ...
+class NodeContextActions(Protocol):
+    def delete_node(self, node_id: str) -> None: ...
 ```
 
-A library wanting different actions defines its own Protocol; panels typed against it will mount only in editors that implement those methods.
-
-**Focus contract — `focus=`.** A `Focus` is a class with a stable `id`, a `label`, an `icon`, and an `available(ctx)` classmethod. The Properties editor's ScopeToolbar lists every focus referenced by any panel whose action matches; clicking a tab makes that focus active. Built-in focuses live in `haybale_studio.focuses`:
+**Focus contract — `focus=`.** A `Focus` is a class with a stable `id`, a `label`, an `icon`, and an `available(ctx)` classmethod. The Properties editor's ScopeToolbar lists every focus referenced by any display panel; clicking a tab makes that focus active. Built-in focuses live in `haybale_studio.focuses`:
 
 | Focus class | `id` | `available(ctx)` |
 |---|---|---|
@@ -104,13 +112,38 @@ def draw(
     self,
     ctx: SessionContext,
     layout: PanelLayout,
-    actions: PropertiesEditorActions,
 ) -> None:
     """Render the panel content. Called only when poll() returned True."""
     layout.label(f'Active: {ctx.data[EditState].active_node.name}')
 ```
 
-`poll` is a classmethod (no instance state needed for visibility decisions). `draw` is an instance method — the host editor instantiates the panel before calling it. The `actions` argument is whatever the host passed as `actions_provider` to `get_panels_for`; it's typed against the panel's `action=` Protocol.
+`poll` is a classmethod (no instance state needed for visibility decisions). `draw` is an instance method — the host editor instantiates the panel before calling it. Action panels access the injected host via `self.actions`; display panels leave `self.actions` at its default `None`.
+
+**Action panel** (has an `actions:` annotation; mounted by a context-menu host):
+
+```python
+from haywire.ui.panel import BasePanel
+from haywire.ui.panel.decorator import panel
+from my_lib.actions import NodeContextActions
+from my_lib.focuses import NodeFocus
+
+@panel(focus=NodeFocus, label="Delete Node", icon="delete")
+class DeleteNodePanel(BasePanel):
+    actions: NodeContextActions   # framework injects host at mount
+
+    def draw(self, ctx, layout):
+        node = ctx.data[EditState].active_node
+        layout.button("Delete", on_click=lambda: self.actions.delete_node(node.node_id))
+```
+
+**Display panel** (no `actions:` annotation; mounted by PropertiesEditor):
+
+```python
+@panel(focus=SettingsFocus, label="Workbench")
+class ThemeSettingsPanel(BasePanel):
+    def draw(self, ctx, layout):
+        ...
+```
 
 **`poll` runs on every relevant context change.** Keep it cheap. Common patterns:
 
@@ -152,8 +185,8 @@ from haywire.ui.panel.decorator import panel
 
 # Built-in focuses live in haybale-studio
 from haybale_studio.focuses import NodeFocus, GraphFocus, EdgeFocus
-# The Properties editor's actions contract
-from haybale_studio.editors.properties_editor_actions import PropertiesEditorActions
+# For action panels: import your library's own Protocol
+# from my_lib.actions import MyContextActions
 ```
 
 **Hot-reload.** `PanelRegistry` extends `BaseRegistry`. New panel classes are picked up at the host editor's next render boundary. Existing panel instances are re-instantiated on the next `poll → draw` cycle. Focus ids are the stable lookup key, so reloads don't break scope tabs.
@@ -162,7 +195,7 @@ from haybale_studio.editors.properties_editor_actions import PropertiesEditorAct
 
 Source: [`barn/haybale-testing/haybale_testing/panels/`](../../../barn/haybale-testing/haybale_testing/panels/)
 
-**Simple action panel** — `TestDeleteNodePanel` from [`test_node_panels.py`](../../../barn/haybale-testing/haybale_testing/panels/test_node_panels.py). Demonstrates the minimal panel skeleton: `@panel` decorator, `poll()` checking `EditState`, `draw()` calling `layout.button()` and dispatching through the action contract:
+**Simple action panel** — `TestDeleteNodePanel` from [`test_node_panels.py`](../../../barn/haybale-testing/haybale_testing/panels/test_node_panels.py). Demonstrates the minimal action-panel skeleton: `@panel` decorator, `actions: TestNodeContextActions` class-body annotation, `poll()` checking `EditState`, `draw()` calling `layout.button()` and dispatching through `self.actions`:
 
 ```python
 --8<-- "barn/haybale-testing/haybale_testing/panels/test_node_panels.py:test_delete_node_panel"
@@ -178,12 +211,13 @@ What these examples exercise:
 
 | Concept | Where |
 |---|---|
-| `@panel(action=..., focus=..., label=..., order=...)` | both panels |
+| `@panel(focus=..., label=..., order=...)` | both panels |
+| `actions: SomeProtocol` class-body annotation (action panels only) | `TestDeleteNodePanel` |
 | `poll(cls, ctx)` as `@classmethod` | both panels |
 | `ctx.data[Cls].signal_field` (bare attribute) in `poll` | both panels |
-| `draw(self, ctx, layout, actions)` 3-arg signature | both panels |
+| `draw(self, ctx, layout)` 2-arg signature | both panels |
 | `layout.button(label, icon, on_click)` | `TestDeleteNodePanel` |
-| Dispatching through the action contract | `actions.test_delete_node(node_id)` |
+| Dispatching through the action contract via `self.actions` | `self.actions.test_delete_node(node_id)` |
 | `layout.label(text)` | `TestSessionStatePanel` |
 | Reading `SessionState` via `ctx.data[Cls]` | `TestSessionStatePanel` |
 | `TYPE_CHECKING` guard for `SessionContext` import | both panels |
@@ -196,10 +230,11 @@ For the host Properties editor (a panel-aware editor in `haybale-studio`), see [
 
 ### Authoring checklist
 
-- [ ] `@panel(action=ActionsProtocol, focus=FocusClass, label='...')` — all three required
+- [ ] `@panel(focus=FocusClass, label='...')` — both required
 - [ ] Inherit from `BasePanel`
+- [ ] For action panels: add `actions: MyActionsProtocol` as a class-body annotation (no decorator argument needed)
 - [ ] Implement `poll(cls, ctx) -> bool` — fast visibility check (`@classmethod`)
-- [ ] Implement `draw(self, ctx, layout, actions)` — render content
+- [ ] Implement `draw(self, ctx, layout)` — render content; access host as `self.actions.method(...)`
 - [ ] Set `order=` deliberately (100+ for library panels)
 - [ ] Use `PanelLayout` methods first; drop into raw `hui.*` / `ui.*` when needed
 - [ ] Custom helpers: `hb_*` prefix
@@ -211,7 +246,6 @@ For the host Properties editor (a panel-aware editor in `haybale-studio`), see [
 from haywire.ui.panel import BasePanel, PanelLayout
 from haywire.ui.panel.decorator import panel
 from haybale_studio.focuses import NodeFocus, EdgeFocus, GraphFocus
-from haybale_studio.editors.properties_editor_actions import PropertiesEditorActions
 ```
 
 ### Built-in focuses (`haybale_studio.focuses`)
@@ -234,6 +268,8 @@ from haybale_studio.editors.properties_editor_actions import PropertiesEditorAct
 |---|---|
 | Slow `poll()` (I/O, AppState walks, expensive computations) | Runs on every context change — keep it under a millisecond |
 | Forgetting `@classmethod` on `poll` | The host calls it as a classmethod before instantiation |
-| `draw(self, ctx, layout)` (2-arg, legacy) | New contract requires a third `actions` parameter |
+| `draw(self, ctx, layout, actions)` (old 3-arg signature) | Current contract is 2-arg: `draw(self, ctx, layout)`; access host via `self.actions` instead |
+| Putting `action=` in `@panel(...)` decorator | The verb surface is a class-body annotation (`actions: MyProtocol`), not a decorator argument |
+| Calling `self.actions` in a display panel (no annotation) | `self.actions` is `None` for display panels; only annotate when a host is actually needed |
 | Caching panel state in `__init__` | Panels are re-instantiated on hot-reload; use AppState/SessionState for cross-render state |
 | Calling `ui.*` outside `draw()` (e.g. in `__init__`) | NiceGUI elements need a slot context; only `draw` provides one via `layout` |

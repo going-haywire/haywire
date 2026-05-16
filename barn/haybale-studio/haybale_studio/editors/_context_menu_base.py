@@ -29,7 +29,9 @@ class BaseContextMenuProvider:
 
     Subclasses provide intent methods (e.g. on_node_context) and the
     actions Protocol implementation. They call _open_menu(action, focus,
-    pos, on_close=...) to surface the menu.
+    pos, on_close=...) to surface the menu. The base injects ``self`` as
+    the ``actions`` provider on each mounted panel, so panel bodies access
+    the host via ``self.actions``.
     """
 
     def __init__(
@@ -54,12 +56,11 @@ class BaseContextMenuProvider:
         pos: Tuple[float, float],
         on_close: Optional[Callable[[], None]] = None,
     ) -> None:
-        """Build popup, query panels for (action, focus), draw matched ones.
+        """Build popup, query panels for (action, focus), inject self as the
+        actions provider on each mounted panel, draw matched ones.
 
         on_close: subclass-supplied additional cleanup, called when the
         popup closes (after the base clears _open_popup).
-
-        Same behavior as canvas on no-panels-found: no eager cleanup.
         """
         popup = self._build_popup(pos)
         self._open_popup = popup
@@ -74,7 +75,7 @@ class BaseContextMenuProvider:
 
         popup.on_close(_wrapped_on_close)
 
-        panel_classes = self._panel_registry.get_panels_for(actions_provider=self, focus=focus)
+        panel_classes = self._panel_registry.get_panels_for_action(action, focus)
         visible = [cls for cls in panel_classes if cls.poll(self._context)]
         if not visible:
             return
@@ -82,7 +83,9 @@ class BaseContextMenuProvider:
         layout = PanelLayout(popup.content)
         for cls in visible:
             try:
-                cls().draw(self._context, layout, self)
+                instance = cls()
+                instance.actions = self  # host injection — see BasePanel.actions
+                instance.draw(self._context, layout)
             except Exception as exc:
                 logger.exception(f"Error drawing context menu panel {cls.__name__}: {exc}")
         popup.open()

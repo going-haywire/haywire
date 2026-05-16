@@ -164,7 +164,14 @@ from haywire.core.session.signals import (
 
 ## 4. One comprehensive example
 
-The studio's `PropertiesEditor` ([barn/haybale-studio/haybale_studio/editors/properties_editor.py](../../../barn/haybale-studio/haybale_studio/editors/properties_editor.py)) is the validation case for the panel-driven bus subscription model: it has **no** `@redraw_on` / `@react_on` decorators of its own. Instead, the framework unions the `redraw_on=` declarations from every panel registered against the editor's action contract and subscribes the editor's wrapper to that effective set. When any of those signals publishes, the wrapper redraws and the registered panels re-mount with fresh state. The editor *also* subscribes to the panel registry's batch lifecycle channel so it can reconcile its subscriptions when the catalog changes (library install / uninstall / panel hot-reload).
+The studio's `PropertiesEditor` ([barn/haybale-studio/haybale_studio/editors/properties_editor.py](../../../barn/haybale-studio/haybale_studio/editors/properties_editor.py)) is the validation case for the panel-driven bus subscription model: it has **no** `@redraw_on` / `@react_on` decorators of its own. Instead, the framework unions the `redraw_on=` declarations from every **display** panel registered for each focus the editor exposes, and subscribes the editor's wrapper to that effective set. When any of those signals publishes, the wrapper redraws and the registered panels re-mount with fresh state. The editor *also* subscribes to the panel registry's batch lifecycle channel so it can reconcile its subscriptions when the catalog changes (library install / uninstall / panel hot-reload).
+
+**Two-surface split.** The panel registry exposes two distinct query surfaces:
+
+- `get_panels_for_focus(focus)` — returns **display panels** for that focus (no `actions:` annotation). Used by `PropertiesEditor`, which is long-lived and queries purely by focus.
+- `get_panels_for_action(action_protocol, focus)` — returns **action panels** whose `actions:` annotation matches `action_protocol` *and* whose focus matches. Used by context-menu hosts, which are ephemeral: they satisfy an action protocol structurally, open a popup, draw once, and dismiss.
+- `get_display_focuses()` — returns the distinct Focus classes across all display panels; drives the Properties editor's icon toolbar.
+- `get_redraw_signals_for_focus(focus)` — returns the union of `redraw_on` signals declared by display panels for that focus. The editor calls this once per focus to build its subscription set.
 
 This pattern only applies to host editors with third-party panel content. Most editors decorate their own handler methods directly — see `HaystackEditor` (`@redraw_on(ActiveGraphMoved, GraphDataMutated, HaystackReloaded)` + `@react_on(HaystackTeardown)`) or `LibraryComponentEditor` (`@redraw_on(SessionContext.active_component, SelectionMoved, SessionContext.active_workbench_theme_key)`).
 
@@ -184,12 +191,12 @@ What this example exercises:
 | `class_identity` and `class_library` set automatically by the decorator | (set on the class object) |
 | Per-instance state initialised in `__init__`, persisted across redraws | `_active_focus_id`, `_expansion_state` |
 | `draw(context, container)` builds the subtree; container starts cleared | `draw` |
-| Panel-driven bus subscriptions: editor unions registered panels' `redraw_on=` and subscribes the wrapper to the effective set | `_subscribe_panel_event_handlers` |
+| Panel-driven bus subscriptions: editor unions `redraw_on=` signals across display panels per focus and subscribes the wrapper to the effective set | `_subscribe_panel_event_handlers` |
 | Reconciling subscriptions on catalog mutation (library install / uninstall / hot-reload) | `_on_panel_registry_event` |
 | Pulling DI dependencies from `context.app` on first draw | `context.app.library_service.get_panel_registry()` |
-| Reading `SessionState` (selection lives on `EditState`, not `SessionContext`) | `clear_selection` |
-| Editor-as-actions-provider: panels call back into the editor | `clear_selection` (Protocol implementation) |
-| Hosting panels via `PanelRegistry.get_panels_for(actions_provider, focus)` | `_rebuild_content` (full source) |
+| Querying display panels by focus only: `registry.get_panels_for_focus(focus)` | `_rebuild_content` (full source) |
+| Querying focuses for the icon toolbar: `registry.get_display_focuses()` | `_compute_toolbar_focuses` |
+| Collecting redraw signals per focus: `registry.get_redraw_signals_for_focus(focus)` | `_rebuild_panel_event_subscriptions` |
 | Per-instance UI references (`_toolbar`, `_content`) re-fetched on each `draw` | layout fields |
 
 For the `Focus` and `Panel` extension points the editor hosts, see [components/panels](../panels/panel-canon.md). For the `EditState` reactive state model, see [components/states](../states/state-canon.md). For the bus and the AppShell that subscribes to lifecycle commands, see [architecture/studio](../../architecture/studio/studio-arch.md).

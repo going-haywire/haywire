@@ -40,39 +40,58 @@ class _LoudFocus(Focus):
         return True
 
 
-@panel(action=_Verbose, focus=_LoudFocus, label="Speaker")
+# Action panel — queries via get_panels_for_action.
+@panel(actions=_Verbose, focus=_LoudFocus, label="Speaker")
 class _SpeakerPanel(BasePanel):
+    actions: _Verbose
+
     @classmethod
     def poll(cls, ctx):
         return ctx.data[EditState].active_node is not None
 
-    def draw(self, ctx, layout, actions):
+    def draw(self, ctx, layout):
         pass
 
 
-def test_full_pipeline_panel_registered_and_queryable():
+# Display panel — queries via get_panels_for_focus / get_display_focuses.
+@panel(focus=_LoudFocus, label="Speaker Info", registry_id="speaker_info_phase1")
+class _SpeakerInfoPanel(BasePanel):
+    def draw(self, ctx, layout):
+        pass
+
+
+def test_full_pipeline_action_panel_registered_and_queryable():
     reg = PanelRegistry()
     reg._register_class(_SpeakerPanel, _FAKE_LIBRARY_IDENTITY)
 
-    class Host:
-        def speak(self) -> None:
-            pass
-
-    host = Host()
-    panels = reg.get_panels_for(actions_provider=host, focus=_LoudFocus)
+    panels = reg.get_panels_for_action(_Verbose, _LoudFocus)
     assert _SpeakerPanel in panels
 
 
-def test_full_pipeline_focus_discovered_via_registry():
+def test_full_pipeline_action_panel_not_returned_by_display_query():
     reg = PanelRegistry()
     reg._register_class(_SpeakerPanel, _FAKE_LIBRARY_IDENTITY)
 
-    class Host:
-        def speak(self) -> None:
-            pass
+    # Action panel must NOT appear in display queries.
+    panels = reg.get_panels_for_focus(_LoudFocus)
+    assert _SpeakerPanel not in panels
 
-    focuses = reg.get_focuses_for(actions_provider=Host())
+
+def test_full_pipeline_display_panel_discovered_via_get_display_focuses():
+    reg = PanelRegistry()
+    reg._register_class(_SpeakerInfoPanel, _FAKE_LIBRARY_IDENTITY)
+
+    focuses = reg.get_display_focuses()
     assert _LoudFocus in focuses
+
+
+def test_full_pipeline_action_panel_focus_not_in_get_display_focuses():
+    reg = PanelRegistry()
+    reg._register_class(_SpeakerPanel, _FAKE_LIBRARY_IDENTITY)
+
+    # Action panels don't contribute to display focuses.
+    focuses = reg.get_display_focuses()
+    assert _LoudFocus not in focuses
 
 
 def test_panel_poll_is_classmethod_and_reads_session_context(register_edit_state):

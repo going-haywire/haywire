@@ -3,17 +3,14 @@
 PropertiesEditor — focus-driven properties sidebar.
 
 Displays a left-hand icon toolbar (one button per Focus) and a content area
-showing panels registered against the active Focus. The toolbar is sourced
-from ``registry.get_focuses_for(self)`` — every focus that appears comes
-from a library that registered at least one panel against it. Panels are
-mounted via the contract-keyed lookup
-``get_panels_for(actions_provider, focus)``.
+showing display panels registered against the active Focus. The toolbar is
+sourced from ``registry.get_display_focuses()``; panels are mounted via
+``registry.get_panels_for_focus(focus)``.
 
-Active-focus state is held per-editor on ``self._active_focus_id`` (a
-focus ``id`` string, or ``None`` if no focus is selected). The active
-focus is never changed automatically once set — the user's last choice
-is always preserved. While it remains ``None``, each refresh tries to
-default to the lowest-order *available* focus.
+Active-focus state is held per-editor on ``self._active_focus_id``. The
+active focus is never changed automatically once set; while it remains
+``None`` (initial state), the editor defaults to the lowest-order
+*available* focus on each refresh.
 """
 
 from __future__ import annotations
@@ -23,7 +20,6 @@ from typing import Callable, TYPE_CHECKING
 
 from nicegui import ui
 
-from haybale_studio.state.edit_state import EditState
 from haywire.core.errors.haywire_exception import HaywireException
 from haywire.ui import elements as hui
 from haywire.ui.editor.base import BaseEditor
@@ -116,12 +112,12 @@ class PropertiesEditor(BaseEditor):
     # Panel-contributed event-bus subscriptions
     # ------------------------------------------------------------------
     #
-    # PropertiesEditor subscribes to every event type a registered panel
-    # contributes via ``redraw_on=`` on ``@panel(...)`` — for every panel
-    # whose action contract this editor satisfies. When such an event
-    # publishes, the editor's wrapper redraws and panels re-mount with
-    # fresh state. Panels do not have their own handler dispatch — they
-    # declare intent on the decorator; the editor drives the redraw.
+    # PropertiesEditor subscribes to every event type a display panel
+    # contributes via ``redraw_on=`` on ``@panel(...)`` — across every
+    # focus this editor's toolbar exposes. When such an event publishes,
+    # the editor's wrapper redraws and panels re-mount with fresh state.
+    # Panels do not have their own handler dispatch — they declare intent
+    # on the decorator; the editor drives the redraw.
     #
     # The editor also subscribes to the panel registry's batch lifecycle
     # channel so it can reconcile its subscriptions when the catalog
@@ -153,20 +149,21 @@ class PropertiesEditor(BaseEditor):
     def _rebuild_panel_event_subscriptions(self) -> None:
         """Recompute the panel-contributed event-bus subscription set.
 
-        Drops any panel-contributed subscriptions currently held, then
-        queries the attached registry for the current union and re-
-        subscribes. Called from ``_subscribe_panel_event_handlers`` and
-        from ``_on_panel_registry_event`` on catalog changes.
+        Drops current subs, queries the registry for the union of
+        redraw_on signals across display panels of every focus this
+        editor exposes, and re-subscribes.
         """
         self._unsubscribe_panel_event_handlers()
         registry = self._attached_panel_registry
         context = self._context
         if registry is None or context is None:
             return
+        signal_types: set[type[Signal]] = set()
         try:
-            signal_types = registry.get_redraw_signals_for(self)
+            for focus in self._compute_toolbar_focuses(registry):
+                signal_types |= registry.get_redraw_signals_for_focus(focus)
         except Exception as exc:
-            logger.warning(f"PropertiesEditor: get_redraw_signals_for raised: {exc}")
+            logger.warning(f"PropertiesEditor: get_redraw_signals_for_focus raised: {exc}")
             return
         if not signal_types:
             return
@@ -280,20 +277,6 @@ class PropertiesEditor(BaseEditor):
     # --8<-- [end:editor_example]
 
     # ------------------------------------------------------------------
-    # PropertiesEditorActions Protocol implementation
-    # ------------------------------------------------------------------
-
-    def clear_selection(self) -> None:
-        """Clear node/edge/port selection. Called by panels via the
-        ``actions`` parameter."""
-        if self._context is None:
-            return
-        edit_state = self._context.data[EditState]
-        edit_state.active_node = None
-        edit_state.active_edge = None
-        edit_state.active_port = None
-
-    # ------------------------------------------------------------------
     # Layout construction (called once on render)
     # ------------------------------------------------------------------
 
@@ -333,7 +316,7 @@ class PropertiesEditor(BaseEditor):
 
     def _compute_toolbar_focuses(self, panel_registry: PanelRegistry) -> list[type[Focus]]:
         """Compute toolbar focuses from the panel registry, sorted by Focus.order."""
-        focuses = panel_registry.get_focuses_for(actions_provider=self)
+        focuses = panel_registry.get_display_focuses()
         return sorted(focuses, key=lambda f: f.order)
 
     # ------------------------------------------------------------------
@@ -408,8 +391,8 @@ class PropertiesEditor(BaseEditor):
     def _mount_panels_for_active_focus(
         self, panel_registry: PanelRegistry, focus: type[Focus]
     ) -> list[type[BasePanel]]:
-        """Mount panels matching the active focus via the contract-keyed lookup."""
-        return panel_registry.get_panels_for(actions_provider=self, focus=focus)
+        """Mount panels matching the active focus (display panels only)."""
+        return panel_registry.get_panels_for_focus(focus)
 
     def _rebuild_content(self, context: SessionContext) -> None:
         if self._content is None:
@@ -455,7 +438,7 @@ class PropertiesEditor(BaseEditor):
                     panel_container = ui.column().classes("w-full gap-1")
                     layout = PanelLayout(panel_container, expansion_state=self._expansion_state)
                     try:
-                        panel_cls().draw(context, layout, self)
+                        panel_cls().draw(context, layout)
                     except Exception as exc:
                         HaywireException.from_exception(
                             exception=exc,

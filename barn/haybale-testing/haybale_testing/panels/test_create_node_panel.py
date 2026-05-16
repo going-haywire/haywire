@@ -18,7 +18,7 @@ if TYPE_CHECKING:
 
 
 @panel(
-    action=TestCanvasContextActions,
+    actions=TestCanvasContextActions,
     focus=TestCanvasFocus,
     label="Create Node",
     icon=hui.icon.add,
@@ -26,6 +26,8 @@ if TYPE_CHECKING:
 )
 class TestCreateNodePanel(BasePanel):
     """Test version of CreateNodePanel using TestCanvasContextActions / TestCanvasFocus."""
+
+    actions: TestCanvasContextActions
 
     @classmethod
     def poll(cls, ctx: "SessionContext") -> bool:
@@ -35,7 +37,6 @@ class TestCreateNodePanel(BasePanel):
         self,
         ctx: "SessionContext",
         layout: PanelLayout,
-        actions: TestCanvasContextActions,
     ) -> None:
         node_factory = ctx.app.node_factory
 
@@ -44,7 +45,7 @@ class TestCreateNodePanel(BasePanel):
             return
 
         def _on_node_selected(node_info: NodeInfo) -> None:
-            actions.test_create_node_at_click(node_info.identity.registry_key)
+            self.actions.test_create_node_at_click(node_info.identity.registry_key)
 
         builder = NodeMenuBuilder(node_factory, on_node_selected=_on_node_selected)
         builder.create_node_menu(recent_nodes=[], show_search=True)

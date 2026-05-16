@@ -1,4 +1,4 @@
-"""Tests for ``PanelRegistry.get_redraw_signals_for``.
+"""Tests for ``PanelRegistry.get_redraw_signals_for_focus``.
 
 The framework's actual panel-driven signal-bus wiring lives in the host
 editor (today: ``PropertiesEditor``) and is tested end-to-end in
@@ -11,7 +11,6 @@ introspection / tooling use.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Protocol, runtime_checkable
 
 import haywire.core.graph.editor  # noqa: F401 — circular-import guard
 
@@ -56,16 +55,6 @@ class _UnrelatedSignal(Signal):
     pass
 
 
-@runtime_checkable
-class _HostActions(Protocol):
-    def do_thing(self) -> None: ...
-
-
-@runtime_checkable
-class _OtherHostActions(Protocol):
-    def do_other(self) -> None: ...
-
-
 class _TestFocus(Focus):
     id = "panel_redraw_union_test_focus"
     label = "T"
@@ -76,55 +65,63 @@ class _TestFocus(Focus):
         return True
 
 
+class _OtherFocus(Focus):
+    id = "panel_redraw_union_other_focus"
+    label = "O"
+    icon = "o"
+
+    @classmethod
+    def available(cls, ctx):
+        return True
+
+
+# Display panels (no actions: annotation) — get_redraw_signals_for_focus only
+# considers display panels.
 @panel(
-    action=_HostActions,
     focus=_TestFocus,
     label="X",
     redraw_on=(_PanelSignalX,),
     registry_id="prtest_panel_x",
 )
 class _PanelX(BasePanel):
-    def draw(self, ctx, layout, actions):
+    def draw(self, ctx, layout):
         pass
 
 
 @panel(
-    action=_HostActions,
     focus=_TestFocus,
     label="Y",
     redraw_on=(_PanelSignalY,),
     registry_id="prtest_panel_y",
 )
 class _PanelY(BasePanel):
-    def draw(self, ctx, layout, actions):
+    def draw(self, ctx, layout):
         pass
 
 
 @panel(
-    action=_HostActions,
     focus=_TestFocus,
     label="Empty",
     registry_id="prtest_panel_empty",
 )
 class _PanelNoRedraw(BasePanel):
-    def draw(self, ctx, layout, actions):
+    def draw(self, ctx, layout):
         pass
 
 
 @panel(
-    action=_OtherHostActions,
-    focus=_TestFocus,
+    focus=_OtherFocus,
     label="Other",
     redraw_on=(_UnrelatedSignal,),
-    registry_id="prtest_panel_other_actions",
+    registry_id="prtest_panel_other_focus",
 )
-class _PanelOtherActions(BasePanel):
-    def draw(self, ctx, layout, actions):
+class _PanelOtherFocus(BasePanel):
+    def draw(self, ctx, layout):
         pass
 
 
 # ----------------------------------------------------------------------
-# PanelRegistry.get_redraw_signals_for
+# PanelRegistry.get_redraw_signals_for_focus
 # ----------------------------------------------------------------------
 
 
@@ -135,37 +132,26 @@ def _fresh_registry_with_panels(*panel_classes: type) -> PanelRegistry:
     return reg
 
 
-class _HostingThing:
-    def do_thing(self) -> None:
-        pass
-
-
-class _NonHostingThing:
-    def something_else(self) -> None:
-        pass
-
-
-def test_get_redraw_signals_for_unions_matching_panel_redraw_on():
+def test_get_redraw_signals_for_focus_unions_matching_panel_redraw_on():
     reg = _fresh_registry_with_panels(_PanelX, _PanelY, _PanelNoRedraw)
-    signals = reg.get_redraw_signals_for(_HostingThing())
+    signals = reg.get_redraw_signals_for_focus(_TestFocus)
     assert signals == {_PanelSignalX, _PanelSignalY}
 
 
-def test_get_redraw_signals_for_skips_panels_with_unsatisfied_action():
-    reg = _fresh_registry_with_panels(_PanelX, _PanelOtherActions)
-    signals = reg.get_redraw_signals_for(_HostingThing())
-    # _PanelOtherActions's redraw_on is excluded — host doesn't satisfy
-    # _OtherHostActions.
+def test_get_redraw_signals_for_focus_skips_panels_for_other_focus():
+    reg = _fresh_registry_with_panels(_PanelX, _PanelOtherFocus)
+    signals = reg.get_redraw_signals_for_focus(_TestFocus)
+    # _PanelOtherFocus's redraw_on is excluded — it belongs to _OtherFocus.
     assert signals == {_PanelSignalX}
 
 
-def test_get_redraw_signals_for_returns_empty_when_no_panels_apply():
+def test_get_redraw_signals_for_focus_returns_empty_when_no_panels_for_focus():
     reg = _fresh_registry_with_panels(_PanelX, _PanelY)
-    signals = reg.get_redraw_signals_for(_NonHostingThing())
+    signals = reg.get_redraw_signals_for_focus(_OtherFocus)
     assert signals == set()
 
 
-def test_get_redraw_signals_for_skips_empty_redraw_on_tuple():
+def test_get_redraw_signals_for_focus_skips_empty_redraw_on_tuple():
     reg = _fresh_registry_with_panels(_PanelNoRedraw)
-    signals = reg.get_redraw_signals_for(_HostingThing())
+    signals = reg.get_redraw_signals_for_focus(_TestFocus)
     assert signals == set()

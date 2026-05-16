@@ -20,7 +20,7 @@ def _make_provider_under_test(panels=None):
     ctx.data = {FileBrowserState: state_inst}
     session = MagicMock()
     panel_registry = MagicMock()
-    panel_registry.get_panels_for.return_value = panels or []
+    panel_registry.get_panels_for_action.return_value = panels or []
 
     provider = SessionFileMenuProvider(context=ctx, session=session, panel_registry=panel_registry)
     return provider, ctx, session, panel_registry, state_inst

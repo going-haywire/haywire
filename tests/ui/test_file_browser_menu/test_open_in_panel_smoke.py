@@ -33,21 +33,23 @@ def test_panel_appears_and_reveal_fires():
     from haybale_studio.editors.file_browser_menu.provider import SessionFileMenuProvider
 
     @panel(
-        action=FileBrowserActions,
+        actions=FileBrowserActions,
         focus=FileFocus,
         label="Smoke Open",
         registry_id="smoke_open_panel",
     )
     class SmokeOpenPanel(BasePanel):
+        actions: FileBrowserActions
+
         @classmethod
         def poll(cls, ctx) -> bool:
             f = ctx.data[FileBrowserState].right_clicked_file
             return f is not None and f.suffix == ".smoke"
 
-        def draw(self, ctx, layout, actions):
+        def draw(self, ctx, layout):
             f = ctx.data[FileBrowserState].right_clicked_file
             # Simulate user clicking the menu item
-            actions.reveal(MagicMock(), binding_id=str(f), label=f.name)
+            self.actions.reveal(MagicMock(), binding_id=str(f), label=f.name)
 
     # Build a fresh registry and register only our smoke panel
     registry = PanelRegistry()
@@ -79,19 +81,21 @@ def test_panel_skipped_when_extension_doesnt_match():
     from haybale_studio.editors.file_browser_menu.provider import SessionFileMenuProvider
 
     @panel(
-        action=FileBrowserActions,
+        actions=FileBrowserActions,
         focus=FileFocus,
         label="Smoke OnlySmokeExt",
         registry_id="smoke_only_ext_panel",
     )
     class SmokeOnlyPanel(BasePanel):
+        actions: FileBrowserActions
+
         @classmethod
         def poll(cls, ctx) -> bool:
             f = ctx.data[FileBrowserState].right_clicked_file
             return f is not None and f.suffix == ".smoke"
 
-        def draw(self, ctx, layout, actions):
-            actions.reveal(MagicMock(), binding_id="", label="x")
+        def draw(self, ctx, layout):
+            self.actions.reveal(MagicMock(), binding_id="", label="x")
 
     registry = PanelRegistry()
     registry._register_class(SmokeOnlyPanel, _FAKE_LIBRARY_IDENTITY)

@@ -16,7 +16,6 @@ from typing import TYPE_CHECKING
 from nicegui import ui
 
 from haybale_studio.focuses import EdgeFocus
-from haybale_studio.editors.properties_editor_actions import PropertiesEditorActions
 from haybale_studio.state.edit_state import EditState
 from haywire.ui import elements as hui
 from haybale_studio.editors.graph_canvas.handlers.context_menu_actions import EdgeContextActions
@@ -66,7 +65,6 @@ def _render_edge_warnings(state: "EdgeWrapperState") -> None:
 
 
 @panel(
-    action=PropertiesEditorActions,
     focus=EdgeFocus,
     label="Connection Errors",
     icon=hui.icon.error,
@@ -83,7 +81,6 @@ class EdgeErrorsPanel(BasePanel):
         self,
         ctx: "SessionContext",
         layout: PanelLayout,
-        actions: PropertiesEditorActions,
     ) -> None:
         state = _state_from_context(ctx)
         if state is None:
@@ -93,7 +90,7 @@ class EdgeErrorsPanel(BasePanel):
 
 
 @panel(
-    action=EdgeContextActions,
+    actions=EdgeContextActions,
     focus=EdgeFocus,
     label="Connection Errors",
     icon=hui.icon.error,
@@ -101,6 +98,8 @@ class EdgeErrorsPanel(BasePanel):
 )
 class ContextMenuEdgeErrorsPanel(BasePanel):
     """Edge errors panel for the context menu (right-click on edge)."""
+
+    actions: EdgeContextActions
 
     @classmethod
     def poll(cls, ctx: "SessionContext") -> bool:
@@ -110,7 +109,6 @@ class ContextMenuEdgeErrorsPanel(BasePanel):
         self,
         ctx: "SessionContext",
         layout: PanelLayout,
-        actions: EdgeContextActions,
     ) -> None:
         state = _state_from_context(ctx)
         if state is None:
@@ -125,7 +123,6 @@ class ContextMenuEdgeErrorsPanel(BasePanel):
 
 
 @panel(
-    action=PropertiesEditorActions,
     focus=EdgeFocus,
     label="Connection Warnings",
     icon=hui.icon.warning,
@@ -142,7 +139,6 @@ class EdgeWarningsPanel(BasePanel):
         self,
         ctx: "SessionContext",
         layout: PanelLayout,
-        actions: PropertiesEditorActions,
     ) -> None:
         state = _state_from_context(ctx)
         if state is None:
@@ -152,7 +148,7 @@ class EdgeWarningsPanel(BasePanel):
 
 
 @panel(
-    action=EdgeContextActions,
+    actions=EdgeContextActions,
     focus=EdgeFocus,
     label="Connection Warnings",
     icon=hui.icon.warning,
@@ -160,6 +156,8 @@ class EdgeWarningsPanel(BasePanel):
 )
 class ContextMenuEdgeWarningsPanel(BasePanel):
     """Edge warnings panel for the context menu."""
+
+    actions: EdgeContextActions
 
     @classmethod
     def poll(cls, ctx: "SessionContext") -> bool:
@@ -169,7 +167,6 @@ class ContextMenuEdgeWarningsPanel(BasePanel):
         self,
         ctx: "SessionContext",
         layout: PanelLayout,
-        actions: EdgeContextActions,
     ) -> None:
         state = _state_from_context(ctx)
         if state is None:
@@ -184,13 +181,15 @@ class ContextMenuEdgeWarningsPanel(BasePanel):
 
 
 @panel(
-    action=EdgeContextActions,
+    actions=EdgeContextActions,
     focus=EdgeFocus,
     label="Delete Connection",
     icon=hui.icon.delete,
     order=30,
 )
 class DeleteEdgePanel(BasePanel):
+    actions: EdgeContextActions
+
     @classmethod
     def poll(cls, ctx: "SessionContext") -> bool:
         return ctx.data[EditState].active_edge is not None
@@ -199,7 +198,6 @@ class DeleteEdgePanel(BasePanel):
         self,
         ctx: "SessionContext",
         layout: PanelLayout,
-        actions: EdgeContextActions,
     ) -> None:
         edge = ctx.data[EditState].active_edge
         if edge is None:
@@ -209,7 +207,7 @@ class DeleteEdgePanel(BasePanel):
         layout.button(
             "Delete Connection",
             icon=hui.icon.delete,
-            on_click=lambda: actions.delete_edge(edge_id),
+            on_click=lambda: self.actions.delete_edge(edge_id),
         )
 
 
@@ -220,7 +218,6 @@ class DeleteEdgePanel(BasePanel):
 
 
 @panel(
-    action=PropertiesEditorActions,
     focus=EdgeFocus,
     label="Execution Statistics",
     icon=hui.icon.edge_statistics,
@@ -236,7 +233,6 @@ class ExecutionStatisticsEdgePanel(BasePanel):
         self,
         ctx: "SessionContext",
         layout: PanelLayout,
-        actions: PropertiesEditorActions,
     ) -> None:
         edge_wrapper = ctx.data[EditState].active_edge
         if edge_wrapper is None:
@@ -258,7 +254,6 @@ class ExecutionStatisticsEdgePanel(BasePanel):
 
 
 @panel(
-    action=PropertiesEditorActions,
     focus=EdgeFocus,
     label="Connection Path",
     icon=hui.icon.edge_statistics,
@@ -274,7 +269,6 @@ class ConnectionPathEdgePanel(BasePanel):
         self,
         ctx: "SessionContext",
         layout: PanelLayout,
-        actions: PropertiesEditorActions,
     ) -> None:
         edge_wrapper = ctx.data[EditState].active_edge
         if edge_wrapper is None:

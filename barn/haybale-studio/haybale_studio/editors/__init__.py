@@ -8,7 +8,6 @@ from .library_overview_editor import TabConfig
 from .library_overview_editor import LibraryOverviewEditor
 from .node_source_editor import NodeSourceEditor
 from .properties_editor import PropertiesEditor
-from .properties_editor_actions import PropertiesEditorActions
 from .terminal_editor import _LogHandler
 from .terminal_editor import TerminalEditor
 
@@ -21,7 +20,6 @@ __all__ = [
     "LibraryOverviewEditor",
     "NodeSourceEditor",
     "PropertiesEditor",
-    "PropertiesEditorActions",
     "TabConfig",
     "TerminalEditor",
     "_LogHandler",

@@ -1,8 +1,7 @@
 """
 Context menu panels for node actions.
 
-Phase 1.5 of the panel-contract migration. action=NodeContextActions,
-focus=NodeFocus.
+actions: NodeContextActions, focus=NodeFocus.
 """
 
 from __future__ import annotations
@@ -22,13 +21,15 @@ if TYPE_CHECKING:
 
 
 @panel(
-    action=NodeContextActions,
+    actions=NodeContextActions,
     focus=NodeFocus,
     label="Delete Node",
     icon=hui.icon.delete,
     order=10,
 )
 class DeleteNodePanel(BasePanel):
+    actions: NodeContextActions
+
     @classmethod
     def poll(cls, ctx: "SessionContext") -> bool:
         return ctx.data[EditState].active_node is not None
@@ -37,7 +38,6 @@ class DeleteNodePanel(BasePanel):
         self,
         ctx: "SessionContext",
         layout: PanelLayout,
-        actions: NodeContextActions,
     ) -> None:
         node = ctx.data[EditState].active_node
         if node is None:
@@ -46,18 +46,20 @@ class DeleteNodePanel(BasePanel):
         layout.button(
             "Delete Node",
             icon=hui.icon.delete,
-            on_click=lambda: actions.delete_node(node_id),
+            on_click=lambda: self.actions.delete_node(node_id),
         )
 
 
 @panel(
-    action=NodeContextActions,
+    actions=NodeContextActions,
     focus=NodeFocus,
     label="Copy Node",
     icon=hui.icon.copy,
     order=20,
 )
 class CopyNodePanel(BasePanel):
+    actions: NodeContextActions
+
     @classmethod
     def poll(cls, ctx: "SessionContext") -> bool:
         return ctx.data[EditState].active_node is not None
@@ -66,7 +68,6 @@ class CopyNodePanel(BasePanel):
         self,
         ctx: "SessionContext",
         layout: PanelLayout,
-        actions: NodeContextActions,
     ) -> None:
         node = ctx.data[EditState].active_node
         if node is None:
@@ -75,18 +76,20 @@ class CopyNodePanel(BasePanel):
         layout.button(
             "Copy Node",
             icon=hui.icon.copy,
-            on_click=lambda: actions.copy_node(node_id),
+            on_click=lambda: self.actions.copy_node(node_id),
         )
 
 
 @panel(
-    action=NodeContextActions,
+    actions=NodeContextActions,
     focus=NodeFocus,
     label="Redraw Node",
     icon=hui.icon.refresh,
     order=30,
 )
 class RedrawNodePanel(BasePanel):
+    actions: NodeContextActions
+
     @classmethod
     def poll(cls, ctx: "SessionContext") -> bool:
         return ctx.data[EditState].active_node is not None
@@ -95,7 +98,6 @@ class RedrawNodePanel(BasePanel):
         self,
         ctx: "SessionContext",
         layout: PanelLayout,
-        actions: NodeContextActions,
     ) -> None:
         node = ctx.data[EditState].active_node
         if node is None:
@@ -104,18 +106,20 @@ class RedrawNodePanel(BasePanel):
         layout.button(
             "Redraw Node",
             icon=hui.icon.refresh,
-            on_click=lambda: actions.redraw_node(node_id),
+            on_click=lambda: self.actions.redraw_node(node_id),
         )
 
 
 @panel(
-    action=NodeContextActions,
+    actions=NodeContextActions,
     focus=NodeFocus,
     label="Revalidate Node",
     icon=hui.icon.node_status,
     order=40,
 )
 class RevalidateNodePanel(BasePanel):
+    actions: NodeContextActions
+
     @classmethod
     def poll(cls, ctx: "SessionContext") -> bool:
         return ctx.data[EditState].active_node is not None
@@ -124,7 +128,6 @@ class RevalidateNodePanel(BasePanel):
         self,
         ctx: "SessionContext",
         layout: PanelLayout,
-        actions: NodeContextActions,
     ) -> None:
         node = ctx.data[EditState].active_node
         if node is None:
@@ -133,18 +136,20 @@ class RevalidateNodePanel(BasePanel):
         layout.button(
             "Revalidate Node",
             icon=hui.icon.node_status,
-            on_click=lambda: actions.revalidate_node(node_id),
+            on_click=lambda: self.actions.revalidate_node(node_id),
         )
 
 
 @panel(
-    action=NodeContextActions,
+    actions=NodeContextActions,
     focus=NodeFocus,
     label="Reset Node",
     icon=hui.icon.reset,
     order=50,
 )
 class ResetNodePanel(BasePanel):
+    actions: NodeContextActions
+
     @classmethod
     def poll(cls, ctx: "SessionContext") -> bool:
         return ctx.data[EditState].active_node is not None
@@ -153,7 +158,6 @@ class ResetNodePanel(BasePanel):
         self,
         ctx: "SessionContext",
         layout: PanelLayout,
-        actions: NodeContextActions,
     ) -> None:
         node = ctx.data[EditState].active_node
         if node is None:
@@ -162,5 +166,5 @@ class ResetNodePanel(BasePanel):
         layout.button(
             "Reset Node",
             icon=hui.icon.reset,
-            on_click=lambda: actions.reset_node(node_id),
+            on_click=lambda: self.actions.reset_node(node_id),
         )

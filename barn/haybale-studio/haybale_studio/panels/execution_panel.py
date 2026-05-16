@@ -14,7 +14,6 @@ from haywire.ui.panel import BasePanel, PanelLayout
 from haywire.ui.panel.decorator import panel
 from haywire.ui.panel.render_utils import render_schema
 
-from haybale_studio.editors.properties_editor_actions import PropertiesEditorActions
 from haybale_studio.focuses import ExecutionFocus
 
 if TYPE_CHECKING:
@@ -22,7 +21,6 @@ if TYPE_CHECKING:
 
 
 @panel(
-    action=PropertiesEditorActions,
     focus=ExecutionFocus,
     label="Execution",
     icon=hui.icon.execution,
@@ -36,7 +34,6 @@ class ExecutionSettingsPanel(BasePanel):
         self,
         ctx: "SessionContext",
         layout: PanelLayout,
-        actions: PropertiesEditorActions,
     ) -> None:
         from haywire.core.execution.settings import ExecutionSettings
 

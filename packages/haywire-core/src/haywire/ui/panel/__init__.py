@@ -3,9 +3,13 @@
 Panel system for the Haywire UI framework.
 
 Panels are collapsible sections that appear inside editors. Each panel
-declares an action contract (Protocol/ABC) and a Focus subclass via the
-@panel decorator. Hosts query PanelRegistry.get_panels_for(actions_provider,
-focus) to retrieve panels that apply.
+declares a Focus subclass via the @panel decorator; action panels also
+declare an `actions:` type annotation on the class body. Two query
+surfaces are provided:
+  - PanelRegistry.get_panels_for_focus(focus): display panels with no
+    action_protocol, used by PropertiesEditor.
+  - PanelRegistry.get_panels_for_action(action_protocol, focus): action
+    panels for context-menu hosts.
 """
 
 from .identity import PanelIdentity

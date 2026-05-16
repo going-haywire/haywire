@@ -1,14 +1,11 @@
 # tests/ui/properties_editor/test_toolbar_discovery.py
-"""PropertiesEditor toolbar = registry.get_focuses_for(self), sorted by Focus.order."""
+"""PropertiesEditor toolbar = registry.get_display_focuses(), sorted by Focus.order."""
 
 from __future__ import annotations
 
 from haywire.core.library.identity import LibraryIdentity
 from haywire.ui.panel import BasePanel, PanelRegistry, panel
 from haywire.ui.panel.focus import Focus
-
-# Import the editor's actions Protocol so we can register a panel against it.
-from haybale_studio.editors.properties_editor_actions import PropertiesEditorActions
 
 
 _FAKE_LIBRARY_IDENTITY = LibraryIdentity(
@@ -47,15 +44,16 @@ class _HighOrderFocus(Focus):
         return True
 
 
-@panel(action=PropertiesEditorActions, focus=_LowOrderFocus, label="Low Panel")
+# Display panels — no actions: annotation, so they appear in the toolbar.
+@panel(focus=_LowOrderFocus, label="Low Panel")
 class _LowOrderPanel(BasePanel):
-    def draw(self, ctx, layout, actions):
+    def draw(self, ctx, layout):
         pass
 
 
-@panel(action=PropertiesEditorActions, focus=_HighOrderFocus, label="High Panel")
+@panel(focus=_HighOrderFocus, label="High Panel")
 class _HighOrderPanel(BasePanel):
-    def draw(self, ctx, layout, actions):
+    def draw(self, ctx, layout):
         pass
 
 

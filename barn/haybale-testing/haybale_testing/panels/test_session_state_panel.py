@@ -26,13 +26,15 @@ if TYPE_CHECKING:
 
 # --8<-- [start:test_session_state_panel]
 @panel(
-    action=TestCanvasContextActions,
+    actions=TestCanvasContextActions,
     focus=TestCanvasFocus,
     label="Test SessionState Panel",
     order=99,
 )
 class TestSessionStatePanel(BasePanel):
     """Reads TestSessionState.counter — exists to anchor the eager import."""
+
+    actions: TestCanvasContextActions
 
     @classmethod
     def poll(cls, ctx: "SessionContext") -> bool:
@@ -42,7 +44,6 @@ class TestSessionStatePanel(BasePanel):
         self,
         ctx: "SessionContext",
         layout: PanelLayout,
-        actions: TestCanvasContextActions,
     ) -> None:
         counter = ctx.data[TestSessionState].counter
         layout.label(f"counter: {counter}")

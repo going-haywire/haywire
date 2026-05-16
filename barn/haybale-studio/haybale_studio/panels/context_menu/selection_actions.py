@@ -1,7 +1,7 @@
 """
 Context menu panels for selection actions.
 
-Phase 1.5: action=SelectionContextActions, focus=SelectionFocus.
+actions: SelectionContextActions, focus=SelectionFocus.
 """
 
 from __future__ import annotations
@@ -21,13 +21,15 @@ if TYPE_CHECKING:
 
 
 @panel(
-    action=SelectionContextActions,
+    actions=SelectionContextActions,
     focus=SelectionFocus,
     label="Copy Selection",
     icon=hui.icon.copy,
     order=10,
 )
 class CopySelectionPanel(BasePanel):
+    actions: SelectionContextActions
+
     @classmethod
     def poll(cls, ctx: "SessionContext") -> bool:
         edit = ctx.data[EditState]
@@ -37,17 +39,16 @@ class CopySelectionPanel(BasePanel):
         self,
         ctx: "SessionContext",
         layout: PanelLayout,
-        actions: SelectionContextActions,
     ) -> None:
         layout.button(
             "Copy Selection",
             icon=hui.icon.copy,
-            on_click=actions.copy_selection,
+            on_click=self.actions.copy_selection,
         )
 
 
 @panel(
-    action=SelectionContextActions,
+    actions=SelectionContextActions,
     focus=SelectionFocus,
     label="Paste",
     icon=hui.icon.paste,
@@ -60,6 +61,8 @@ class SelectionPasteSelectionPanel(BasePanel):
     for the canvas-context popup. Both share the underlying paste action.
     """
 
+    actions: SelectionContextActions
+
     @classmethod
     def poll(cls, ctx: "SessionContext") -> bool:
         return ctx.data[EditState].clipboard is not None
@@ -68,10 +71,9 @@ class SelectionPasteSelectionPanel(BasePanel):
         self,
         ctx: "SessionContext",
         layout: PanelLayout,
-        actions: SelectionContextActions,
     ) -> None:
         layout.button(
             "Paste",
             icon=hui.icon.paste,
-            on_click=actions.paste_at_click,
+            on_click=self.actions.paste_at_click,
         )

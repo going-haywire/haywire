@@ -88,7 +88,7 @@ def make_context(
     ],
 )
 def test_node_action_panel_action_is_test_node_context_actions(panel_cls):
-    assert panel_cls.class_identity.action is TestNodeContextActions
+    assert panel_cls.class_identity.action_protocol is TestNodeContextActions
 
 
 @pytest.mark.parametrize(
@@ -161,7 +161,7 @@ def test_node_action_panel_poll_false_when_no_node(panel_cls, register_edit_stat
 
 @pytest.mark.parametrize("panel_cls", [DeleteEdgePanel, InspectEdgePanel])
 def test_edge_action_panel_action_is_test_edge_context_actions(panel_cls):
-    assert panel_cls.class_identity.action is TestEdgeContextActions
+    assert panel_cls.class_identity.action_protocol is TestEdgeContextActions
 
 
 @pytest.mark.parametrize("panel_cls", [DeleteEdgePanel, InspectEdgePanel])
@@ -192,7 +192,7 @@ def test_edge_action_panel_poll_false_when_no_edge(panel_cls, register_edit_stat
 
 
 def test_edge_errors_panel_action_is_test_edge_context_actions():
-    assert EdgeErrorsPanel.class_identity.action is TestEdgeContextActions
+    assert EdgeErrorsPanel.class_identity.action_protocol is TestEdgeContextActions
 
 
 def test_edge_errors_panel_focus_is_test_edge_focus():
@@ -234,7 +234,7 @@ def test_edge_errors_panel_poll_false_when_no_edge(register_edit_state):
 
 
 def test_edge_warnings_panel_action_is_test_edge_context_actions():
-    assert EdgeWarningsPanel.class_identity.action is TestEdgeContextActions
+    assert EdgeWarningsPanel.class_identity.action_protocol is TestEdgeContextActions
 
 
 def test_edge_warnings_panel_focus_is_test_edge_focus():
@@ -262,7 +262,7 @@ def test_edge_warnings_panel_poll_false_when_no_edge(register_edit_state):
 
 
 def test_edge_connection_path_panel_action_is_test_edge_context_actions():
-    assert EdgeConnectionPathPanel.class_identity.action is TestEdgeContextActions
+    assert EdgeConnectionPathPanel.class_identity.action_protocol is TestEdgeContextActions
 
 
 def test_edge_connection_path_panel_focus_is_test_edge_focus():
@@ -291,7 +291,7 @@ def test_edge_connection_path_panel_poll_false_when_edge_has_no_data(register_ed
 
 @pytest.mark.parametrize("panel_cls", [CopySelectionPanel, PasteSelectionPanel])
 def test_selection_action_panel_action_is_test_selection_context_actions(panel_cls):
-    assert panel_cls.class_identity.action is TestSelectionContextActions
+    assert panel_cls.class_identity.action_protocol is TestSelectionContextActions
 
 
 @pytest.mark.parametrize("panel_cls", [CopySelectionPanel, PasteSelectionPanel])

@@ -21,7 +21,6 @@ from haywire.ui.panel.decorator import panel
 
 from haywire.ui.panel.render_utils import render_settings
 
-from haybale_studio.editors.properties_editor_actions import PropertiesEditorActions
 from haybale_studio.focuses import SettingsFocus
 from haybale_studio.state.edit_state import EditState
 
@@ -30,7 +29,6 @@ if TYPE_CHECKING:
 
 
 @panel(
-    action=PropertiesEditorActions,
     focus=SettingsFocus,
     label="Node Settings",
     icon=hui.icon.node_settings,
@@ -55,7 +53,6 @@ class NodeSettingsPanel(BasePanel):
         self,
         ctx: "SessionContext",
         layout: PanelLayout,
-        actions: PropertiesEditorActions,
     ) -> None:
         node = ctx.data[EditState].active_node
         if node is None:

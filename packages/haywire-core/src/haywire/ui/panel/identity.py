@@ -35,9 +35,9 @@ class PanelIdentity(BaseIdentity):
         order:        Sort priority (lower = higher in the panel list).
         default_open: Whether the panel starts expanded.
 
-    New-contract attributes (set when @panel(action=..., focus=...) is used):
-        action: The action Protocol/ABC class this panel is typed against.
-                Hosts use this to dispatch the right actions object to draw().
+    New-contract attributes:
+        action_protocol: The Protocol/ABC class resolved from the panel's
+                `actions:` annotation; `None` for display panels.
         focus:  The Focus subclass discriminator this panel applies to.
         redraw_on: Tuple of Signal subclasses the panel wants its host
                 editor to redraw on. Panels do not have their own handler
@@ -51,6 +51,6 @@ class PanelIdentity(BaseIdentity):
     icon: Optional[str] = None
     order: int = 100
     default_open: bool = True
-    action: Optional[type] = None
+    action_protocol: Optional[type] = None
     focus: Optional[type] = None
     redraw_on: Tuple[type["Signal"], ...] = ()

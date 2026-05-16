@@ -2,7 +2,7 @@
 Tests for the haybale-testing TestCreateNodePanel.
 
 Verifies:
-- Panel is registered with action=TestCanvasContextActions, focus=TestCanvasFocus
+- Panel is registered with action_protocol=TestCanvasContextActions, focus=TestCanvasFocus
 - poll() always returns True (canvas menu is always available)
 - draw() invokes NodeMenuBuilder using ctx.app.node_factory
 - on_node_selected calls actions.test_create_node_at_click with the registry key
@@ -49,8 +49,8 @@ def make_context(register_edit_state) -> tuple[SessionContext, type]:
 # ---------------------------------------------------------------------------
 
 
-def test_create_node_panel_action_is_test_canvas_context_actions():
-    assert CreateNodePanel.class_identity.action is TestCanvasContextActions
+def test_create_node_panel_action_protocol_is_test_canvas_context_actions():
+    assert CreateNodePanel.class_identity.action_protocol is TestCanvasContextActions
 
 
 def test_create_node_panel_focus_is_test_canvas_focus():
@@ -91,8 +91,9 @@ def test_create_node_panel_draw_calls_node_menu_builder(register_edit_state):
     builder_mock = MagicMock()
 
     with patch.object(_PANEL_MODULE, "NodeMenuBuilder", return_value=builder_mock):
-        panel = CreateNodePanel()
-        panel.draw(ctx, layout, actions)
+        instance = CreateNodePanel()
+        instance.actions = actions  # host injection
+        instance.draw(ctx, layout)
 
     builder_mock.create_node_menu.assert_called_once()
 
@@ -112,7 +113,9 @@ def test_on_node_selected_calls_test_create_node_at_click(register_edit_state):
         return builder_instance
 
     with patch.object(_PANEL_MODULE, "NodeMenuBuilder", side_effect=fake_constructor):
-        CreateNodePanel().draw(ctx, layout, actions)
+        instance = CreateNodePanel()
+        instance.actions = actions  # host injection
+        instance.draw(ctx, layout)
 
     captured_callback["fn"](SimpleNamespace(identity=SimpleNamespace(registry_key="my_lib/MyNode")))
 

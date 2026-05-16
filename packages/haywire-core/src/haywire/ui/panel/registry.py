@@ -2,15 +2,18 @@
 """
 PanelRegistry for managing panel registrations.
 
-Extends BaseRegistry. Panels are looked up via get_panels_for, which
-matches a class's @panel(action=..., focus=...) declaration against
-an actions_provider (structural isinstance check) and a Focus class
-(identity match).
+Extends BaseRegistry. Two query surfaces:
+  - get_panels_for_focus(focus): display panels for PropertiesEditor —
+    panels with no `action_protocol` whose focus matches.
+  - get_panels_for_action(action_protocol, focus): action panels for
+    context-menu hosts — panels whose `action_protocol` matches AND
+    whose focus matches.
+Focus matching is by Focus.id (stable across hot-reload).
 """
 
 import inspect
 import logging
-from typing import Any, Iterable, List, Set, TYPE_CHECKING
+from typing import Iterable, List, Set, TYPE_CHECKING
 
 from haywire.core.registry.base import BaseRegistry
 from haywire.core.library.identity import LibraryIdentity
@@ -26,13 +29,7 @@ logger = logging.getLogger(__name__)
 class PanelRegistry(BaseRegistry):
     """Registry of panels.
 
-    Extends BaseRegistry for hot-reload support, folder scanning, lifecycle
-    events, and snapshot rollback. Provided as a DI singleton by HaywireModule.
-
-    Panels declare action= (Protocol/ABC class) and focus= (Focus subclass)
-    via the @panel decorator. Hosts call get_panels_for(actions_provider,
-    focus) to retrieve panels whose action contract is structurally satisfied
-    by the provider AND whose focus matches.
+    Provided as a DI singleton by HaywireModule.
     """
 
     def __init__(self):
@@ -52,40 +49,32 @@ class PanelRegistry(BaseRegistry):
             return False
 
     def _register_class(self, cls: type[BasePanel], library_identity: LibraryIdentity) -> "str | None":
-        """Register a panel class."""
         registry_key = cls.class_identity.registry_key
         result = super()._register(registry_key, cls, library_identity)
         if result:
-            action = getattr(cls.class_identity, "action", None)
+            action_protocol = getattr(cls.class_identity, "action_protocol", None)
             focus = getattr(cls.class_identity, "focus", None)
             logger.debug(
                 f"PanelRegistry: Registered '{registry_key}' -> "
-                f"action={getattr(action, '__name__', '?')}, "
-                f"focus={getattr(focus, '__name__', '?')}"
+                f"action_protocol={getattr(action_protocol, '__name__', 'None')}, "
+                f"focus={getattr(focus, '__name__', 'None')}"
             )
         return result
 
     def _unregister_class(self, registry_key: str) -> "type | None":
-        """Unregister a panel class."""
         return super()._unregister(registry_key)
 
     # ------------------------------------------------------------------
-    # Contract-centric lookup
+    # Query API
     # ------------------------------------------------------------------
 
-    def get_panels_for(
-        self,
-        actions_provider: Any,
-        focus: type,  # Focus subclass
-    ) -> List[type[BasePanel]]:
-        """Return panels whose action contract is satisfied by actions_provider
-        AND whose focus matches the given focus class.
+    def get_panels_for_focus(self, focus: type) -> List[type[BasePanel]]:
+        """Display panels for the given focus.
 
-        Focus matching is by ``Focus.id`` (the stable identifier), not by
-        class identity — class objects can drift after hot-reload, but ids
-        remain stable.
+        Returns panels whose ``action_protocol is None`` AND whose
+        ``focus.id`` matches the given focus's id. Sorted by ``order``.
 
-        Sorted by class_identity.order (ascending).
+        Used by PropertiesEditor (long-lived, focus-routed surface).
         """
         wanted_id = getattr(focus, "id", None)
         result: List[type[BasePanel]] = []
@@ -93,26 +82,51 @@ class PanelRegistry(BaseRegistry):
             identity = getattr(cls, "class_identity", None)
             if identity is None:
                 continue
-            action = getattr(identity, "action", None)
+            if getattr(identity, "action_protocol", None) is not None:
+                continue
             panel_focus = getattr(identity, "focus", None)
-            if action is None or panel_focus is None:
-                continue
-            if getattr(panel_focus, "id", None) != wanted_id:
-                continue
-            if not isinstance(actions_provider, action):
+            if panel_focus is None or getattr(panel_focus, "id", None) != wanted_id:
                 continue
             result.append(cls)
         result.sort(key=lambda c: getattr(getattr(c, "class_identity", None), "order", 100))
         return result
 
-    def get_focuses_for(self, actions_provider: Any) -> List[type]:
-        """Return the set of focus classes referenced by any panel whose
-        action contract is satisfied by actions_provider.
+    def get_panels_for_action(
+        self,
+        action_protocol: type,
+        focus: type,
+    ) -> List[type[BasePanel]]:
+        """Action panels for the given (action_protocol, focus) pair.
 
-        Deduplicated by ``Focus.id`` rather than class identity, so a
-        single Focus that's been hot-reloaded (and now exists as multiple
-        class objects across panels of different reload generations)
-        appears once in the result.
+        Returns panels whose ``action_protocol is action_protocol`` AND
+        whose ``focus.id`` matches. Sorted by ``order``.
+
+        Used by context-menu hosts. The host satisfies action_protocol
+        structurally; mount-time injection sets ``panel.actions = host``.
+        """
+        wanted_focus_id = getattr(focus, "id", None)
+        result: List[type[BasePanel]] = []
+        for cls in self._all_panel_classes():
+            identity = getattr(cls, "class_identity", None)
+            if identity is None:
+                continue
+            # action_protocol uses class identity (not a stable id) because panels and
+            # their action protocols are declared in the same library scope and reload
+            # together via decorator re-running.
+            if getattr(identity, "action_protocol", None) is not action_protocol:
+                continue
+            panel_focus = getattr(identity, "focus", None)
+            if panel_focus is None or getattr(panel_focus, "id", None) != wanted_focus_id:
+                continue
+            result.append(cls)
+        result.sort(key=lambda c: getattr(getattr(c, "class_identity", None), "order", 100))
+        return result
+
+    def get_display_focuses(self) -> List[type]:
+        """Distinct focuses referenced by display panels (no action_protocol).
+
+        Deduplicated by Focus.id. Used by PropertiesEditor to build its
+        focus toolbar.
         """
         focuses: List[type] = []
         seen_ids: set[str] = set()
@@ -120,60 +134,39 @@ class PanelRegistry(BaseRegistry):
             identity = getattr(cls, "class_identity", None)
             if identity is None:
                 continue
-            action = getattr(identity, "action", None)
+            if getattr(identity, "action_protocol", None) is not None:
+                continue
             focus = getattr(identity, "focus", None)
-            if action is None or focus is None:
+            if focus is None:
                 continue
             focus_id = getattr(focus, "id", None)
             if focus_id is None or focus_id in seen_ids:
                 continue
-            if isinstance(actions_provider, action):
-                seen_ids.add(focus_id)
-                focuses.append(focus)
+            seen_ids.add(focus_id)
+            focuses.append(focus)
         return focuses
 
-    def get_redraw_signals_for(self, actions_provider: Any) -> Set[type["Signal"]]:
-        """Return the union of ``redraw_on`` signal types contributed by every
-        registered panel whose action contract ``actions_provider`` satisfies.
+    def get_redraw_signals_for_focus(self, focus: type) -> Set[type["Signal"]]:
+        """Union of redraw_on signal types contributed by display panels
+        for the given focus.
 
-        Used by editor hosts to compute their effective subscription set on
-        the session bus. The host subscribes to every signal type in the
-        returned set; when any of them publishes the host redraws so
-        currently-visible panels re-mount with fresh state (panels
-        themselves have no independent dispatch — they ride the host's
-        redraw).
-
-        Panels with an empty ``redraw_on`` tuple contribute nothing. Panels
-        whose ``action`` is None are skipped (legacy / partially-decorated
-        registrations); panels whose action ``isinstance`` check fails for
-        ``actions_provider`` are skipped (this host doesn't satisfy their
-        contract).
-
-        Args:
-            actions_provider: The host instance whose effective subscription
-                set we are computing. Typically the editor instance itself,
-                which structurally implements one or more action Protocols.
-
-        Returns:
-            A set of ``Signal`` subclasses. Empty if no registered
-            panel applies to this host.
+        Context-menu surfaces are ephemeral (open, draw, dismiss) and do
+        not maintain a subscription set; only PropertiesEditor consumes
+        this. Matching mirrors get_panels_for_focus.
         """
+        wanted_id = getattr(focus, "id", None)
         signals: Set[type["Signal"]] = set()
         for cls in self._all_panel_classes():
             identity = getattr(cls, "class_identity", None)
             if identity is None:
                 continue
-            action = getattr(identity, "action", None)
-            if action is None:
+            if getattr(identity, "action_protocol", None) is not None:
                 continue
-            redraw_on = getattr(identity, "redraw_on", ())
-            if not redraw_on:
+            panel_focus = getattr(identity, "focus", None)
+            if panel_focus is None or getattr(panel_focus, "id", None) != wanted_id:
                 continue
-            if not isinstance(actions_provider, action):
-                continue
-            signals.update(redraw_on)
+            signals.update(getattr(identity, "redraw_on", ()))
         return signals
 
     def _all_panel_classes(self) -> Iterable[type]:
-        """Iterate all registered panel classes."""
         return self._classes.values()

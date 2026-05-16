@@ -22,7 +22,6 @@ from haywire.ui.prefs.canvas import CanvasSettings
 from haywire.ui.prefs.edge_ui import EdgeUISettings
 
 from haybale_core.settings.node_skin_settings import NodeSkinSettings
-from haybale_studio.editors.properties_editor_actions import PropertiesEditorActions
 from haybale_studio.focuses import CanvasFocus
 
 if TYPE_CHECKING:
@@ -30,7 +29,6 @@ if TYPE_CHECKING:
 
 
 @panel(
-    action=PropertiesEditorActions,
     focus=CanvasFocus,
     label="Canvas",
     icon=hui.icon.canvas,
@@ -44,14 +42,12 @@ class CanvasSettingsPanel(BasePanel):
         self,
         ctx: "SessionContext",
         layout: PanelLayout,
-        actions: PropertiesEditorActions,
     ) -> None:
         registry = ctx.app.library_service.get_settings_registry()
         render_schema(CanvasSettings, registry)
 
 
 @panel(
-    action=PropertiesEditorActions,
     focus=CanvasFocus,
     label="Skins",
     description="Skin Configuration:Node dimensions, typography and label visibility.",
@@ -66,14 +62,12 @@ class NodeSkinSettingsPanel(BasePanel):
         self,
         ctx: "SessionContext",
         layout: PanelLayout,
-        actions: PropertiesEditorActions,
     ) -> None:
         registry = ctx.app.library_service.get_settings_registry()
         render_schema(NodeSkinSettings, registry)
 
 
 @panel(
-    action=PropertiesEditorActions,
     focus=CanvasFocus,
     label="Edges",
     icon=hui.icon.edge,
@@ -87,14 +81,12 @@ class EdgeUISettingsPanel(BasePanel):
         self,
         ctx: "SessionContext",
         layout: PanelLayout,
-        actions: PropertiesEditorActions,
     ) -> None:
         registry = ctx.app.library_service.get_settings_registry()
         render_schema(EdgeUISettings, registry)
 
 
 @panel(
-    action=PropertiesEditorActions,
     focus=CanvasFocus,
     label="Zoom & Pan",
     icon=hui.icon.canvas_zoom_pan,
@@ -108,14 +100,12 @@ class EditorZoomPanSettingsPanel(BasePanel):
         self,
         ctx: "SessionContext",
         layout: PanelLayout,
-        actions: PropertiesEditorActions,
     ) -> None:
         registry = ctx.app.library_service.get_settings_registry()
         render_schema(EditorPanZoomSettings, registry)
 
 
 @panel(
-    action=PropertiesEditorActions,
     focus=CanvasFocus,
     label="Minimap",
     icon=hui.icon.canvas_minimap,
@@ -129,7 +119,6 @@ class MinimapSettingsPanel(BasePanel):
         self,
         ctx: "SessionContext",
         layout: PanelLayout,
-        actions: PropertiesEditorActions,
     ) -> None:
         registry = ctx.app.library_service.get_settings_registry()
         render_schema(MinimapSettings, registry)

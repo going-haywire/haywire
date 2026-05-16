@@ -11,7 +11,6 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from haybale_studio.focuses import NodeFocus
-from haybale_studio.editors.properties_editor_actions import PropertiesEditorActions
 from haybale_studio.state.edit_state import EditState
 from haywire.ui import elements as hui
 from haybale_studio.editors.graph_canvas.handlers.context_menu_actions import NodeContextActions
@@ -43,7 +42,6 @@ def _render_node_errors(ctx: "SessionContext", layout: PanelLayout) -> None:
 
 
 @panel(
-    action=PropertiesEditorActions,
     focus=NodeFocus,
     label="Node Errors",
     icon=hui.icon.error,
@@ -60,13 +58,12 @@ class NodeErrorsPanel(BasePanel):
         self,
         ctx: "SessionContext",
         layout: PanelLayout,
-        actions: PropertiesEditorActions,
     ) -> None:
         _render_node_errors(ctx, layout)
 
 
 @panel(
-    action=NodeContextActions,
+    actions=NodeContextActions,
     focus=NodeFocus,
     label="Node Errors",
     icon=hui.icon.error,
@@ -74,6 +71,8 @@ class NodeErrorsPanel(BasePanel):
 )
 class ContextMenuNodeErrorsPanel(BasePanel):
     """Node errors panel for the context menu (right-click on node)."""
+
+    actions: NodeContextActions
 
     @classmethod
     def poll(cls, ctx: "SessionContext") -> bool:
@@ -83,6 +82,5 @@ class ContextMenuNodeErrorsPanel(BasePanel):
         self,
         ctx: "SessionContext",
         layout: PanelLayout,
-        actions: NodeContextActions,
     ) -> None:
         _render_node_errors(ctx, layout)

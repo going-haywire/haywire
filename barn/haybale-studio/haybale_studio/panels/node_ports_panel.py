@@ -12,7 +12,6 @@ from haywire.ui.panel import BasePanel, PanelLayout
 from haywire.ui.panel.decorator import panel
 
 from haybale_studio.focuses import NodeFocus
-from haybale_studio.editors.properties_editor_actions import PropertiesEditorActions
 from haybale_studio.state.edit_state import EditState
 
 if TYPE_CHECKING:
@@ -20,7 +19,6 @@ if TYPE_CHECKING:
 
 
 @panel(
-    action=PropertiesEditorActions,
     focus=NodeFocus,
     label="Ports",
     icon=hui.icon.node_ports,
@@ -38,7 +36,6 @@ class NodePortsPanel(BasePanel):
         self,
         ctx: "SessionContext",
         layout: PanelLayout,
-        actions: PropertiesEditorActions,
     ) -> None:
         node = ctx.data[EditState].active_node
         if node is None:

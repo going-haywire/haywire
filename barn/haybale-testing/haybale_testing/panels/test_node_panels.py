@@ -1,6 +1,6 @@
 """Test-only node action panels for haybale_testing.
 
-Phase 1.5: action=TestNodeContextActions, focus=TestNodeFocus.
+actions: TestNodeContextActions, focus=TestNodeFocus.
 """
 
 from __future__ import annotations
@@ -21,13 +21,15 @@ if TYPE_CHECKING:
 
 # --8<-- [start:test_delete_node_panel]
 @panel(
-    action=TestNodeContextActions,
+    actions=TestNodeContextActions,
     focus=TestNodeFocus,
     label="Delete Node",
     icon=hui.icon.delete,
     order=10,
 )
 class TestDeleteNodePanel(BasePanel):
+    actions: TestNodeContextActions
+
     @classmethod
     def poll(cls, ctx: "SessionContext") -> bool:
         return ctx.data[EditState].active_node is not None
@@ -36,7 +38,6 @@ class TestDeleteNodePanel(BasePanel):
         self,
         ctx: "SessionContext",
         layout: PanelLayout,
-        actions: TestNodeContextActions,
     ) -> None:
         node = ctx.data[EditState].active_node
         if node is None:
@@ -45,7 +46,7 @@ class TestDeleteNodePanel(BasePanel):
         layout.button(
             "Delete Node",
             icon=hui.icon.delete,
-            on_click=lambda: actions.test_delete_node(node_id),
+            on_click=lambda: self.actions.test_delete_node(node_id),
         )
 
 
@@ -53,13 +54,15 @@ class TestDeleteNodePanel(BasePanel):
 
 
 @panel(
-    action=TestNodeContextActions,
+    actions=TestNodeContextActions,
     focus=TestNodeFocus,
     label="Copy Node",
     icon=hui.icon.copy,
     order=20,
 )
 class TestCopyNodePanel(BasePanel):
+    actions: TestNodeContextActions
+
     @classmethod
     def poll(cls, ctx: "SessionContext") -> bool:
         return ctx.data[EditState].active_node is not None
@@ -68,7 +71,6 @@ class TestCopyNodePanel(BasePanel):
         self,
         ctx: "SessionContext",
         layout: PanelLayout,
-        actions: TestNodeContextActions,
     ) -> None:
         node = ctx.data[EditState].active_node
         if node is None:
@@ -77,18 +79,20 @@ class TestCopyNodePanel(BasePanel):
         layout.button(
             "Copy Node",
             icon=hui.icon.copy,
-            on_click=lambda: actions.test_copy_node(node_id),
+            on_click=lambda: self.actions.test_copy_node(node_id),
         )
 
 
 @panel(
-    action=TestNodeContextActions,
+    actions=TestNodeContextActions,
     focus=TestNodeFocus,
     label="Redraw Node",
     icon=hui.icon.refresh,
     order=30,
 )
 class TestRedrawNodePanel(BasePanel):
+    actions: TestNodeContextActions
+
     @classmethod
     def poll(cls, ctx: "SessionContext") -> bool:
         return ctx.data[EditState].active_node is not None
@@ -97,7 +101,6 @@ class TestRedrawNodePanel(BasePanel):
         self,
         ctx: "SessionContext",
         layout: PanelLayout,
-        actions: TestNodeContextActions,
     ) -> None:
         node = ctx.data[EditState].active_node
         if node is None:
@@ -106,18 +109,20 @@ class TestRedrawNodePanel(BasePanel):
         layout.button(
             "Redraw Node",
             icon=hui.icon.refresh,
-            on_click=lambda: actions.test_redraw_node(node_id),
+            on_click=lambda: self.actions.test_redraw_node(node_id),
         )
 
 
 @panel(
-    action=TestNodeContextActions,
+    actions=TestNodeContextActions,
     focus=TestNodeFocus,
     label="Revalidate Node",
     icon=hui.icon.refresh,
     order=40,
 )
 class TestRevalidateNodePanel(BasePanel):
+    actions: TestNodeContextActions
+
     @classmethod
     def poll(cls, ctx: "SessionContext") -> bool:
         return ctx.data[EditState].active_node is not None
@@ -126,7 +131,6 @@ class TestRevalidateNodePanel(BasePanel):
         self,
         ctx: "SessionContext",
         layout: PanelLayout,
-        actions: TestNodeContextActions,
     ) -> None:
         node = ctx.data[EditState].active_node
         if node is None:
@@ -135,18 +139,20 @@ class TestRevalidateNodePanel(BasePanel):
         layout.button(
             "Revalidate Node",
             icon=hui.icon.refresh,
-            on_click=lambda: actions.test_revalidate_node(node_id),
+            on_click=lambda: self.actions.test_revalidate_node(node_id),
         )
 
 
 @panel(
-    action=TestNodeContextActions,
+    actions=TestNodeContextActions,
     focus=TestNodeFocus,
     label="Reset Node",
     icon=hui.icon.reset,
     order=50,
 )
 class TestResetNodePanel(BasePanel):
+    actions: TestNodeContextActions
+
     @classmethod
     def poll(cls, ctx: "SessionContext") -> bool:
         return ctx.data[EditState].active_node is not None
@@ -155,7 +161,6 @@ class TestResetNodePanel(BasePanel):
         self,
         ctx: "SessionContext",
         layout: PanelLayout,
-        actions: TestNodeContextActions,
     ) -> None:
         node = ctx.data[EditState].active_node
         if node is None:
@@ -164,5 +169,5 @@ class TestResetNodePanel(BasePanel):
         layout.button(
             "Reset Node",
             icon=hui.icon.reset,
-            on_click=lambda: actions.test_reset_node(node_id),
+            on_click=lambda: self.actions.test_reset_node(node_id),
         )

@@ -1,5 +1,5 @@
 # tests/ui/panel/test_panel_decorator.py
-"""@panel with action= and focus= validates required args."""
+"""@panel with actions= kwarg and focus= validates required args."""
 
 from typing import Protocol, runtime_checkable
 
@@ -25,32 +25,36 @@ class _DummyFocus(Focus):
         return True
 
 
-def test_panel_with_action_and_focus_validates_and_sets_identity():
+def test_action_protocol_set_from_decorator_kwarg():
     @panel(
-        action=_DummyActions,
+        actions=_DummyActions,
         focus=_DummyFocus,
         label="My Panel",
     )
     class P(BasePanel):
-        def draw(self, ctx, layout, actions):
+        actions: _DummyActions  # type-checker visibility only
+
+        def draw(self, ctx, layout):
             pass
 
     assert P.class_identity.label == "My Panel"
-    assert P.class_identity.action is _DummyActions
+    assert P.class_identity.action_protocol is _DummyActions
     assert P.class_identity.focus is _DummyFocus
 
 
-def test_panel_action_must_be_a_class():
-    with pytest.raises(TypeError, match="action"):
+def test_decorator_actions_is_optional_defaults_to_none():
+    """Display panels (no actions= decorator arg) get action_protocol=None."""
 
-        @panel(
-            action="not_a_class",  # type: ignore[arg-type]
-            focus=_DummyFocus,
-            label="Bad",
-        )
-        class P(BasePanel):
-            def draw(self, ctx, layout, actions):
-                pass
+    @panel(
+        focus=_DummyFocus,
+        label="Display Panel",
+    )
+    class P(BasePanel):
+        def draw(self, ctx, layout):
+            pass
+
+    assert P.class_identity.action_protocol is None
+    assert P.class_identity.focus is _DummyFocus
 
 
 def test_panel_focus_must_subclass_focus():
@@ -60,30 +64,20 @@ def test_panel_focus_must_subclass_focus():
     with pytest.raises(TypeError, match="focus"):
 
         @panel(
-            action=_DummyActions,
             focus=_NotAFocus,  # type: ignore[arg-type]
             label="Bad",
         )
         class P(BasePanel):
-            def draw(self, ctx, layout, actions):
-                pass
-
-
-def test_panel_action_is_required():
-    with pytest.raises(ValueError, match="action"):
-
-        @panel(focus=_DummyFocus, label="No action")
-        class P(BasePanel):
-            def draw(self, ctx, layout, actions):
+            def draw(self, ctx, layout):
                 pass
 
 
 def test_panel_focus_is_required():
     with pytest.raises(ValueError, match="focus"):
 
-        @panel(action=_DummyActions, label="No focus")
+        @panel(label="No focus")
         class P(BasePanel):
-            def draw(self, ctx, layout, actions):
+            def draw(self, ctx, layout):
                 pass
 
 
@@ -91,12 +85,11 @@ def test_panel_label_is_required():
     with pytest.raises(ValueError, match="label"):
 
         @panel(
-            action=_DummyActions,
             focus=_DummyFocus,
             # label missing
         )
         class P(BasePanel):
-            def draw(self, ctx, layout, actions):
+            def draw(self, ctx, layout):
                 pass
 
 
@@ -108,9 +101,9 @@ def test_panel_label_is_required():
 def test_panel_redraw_on_defaults_to_empty_tuple():
     """Panels that don't declare redraw_on= contribute no event subscriptions."""
 
-    @panel(action=_DummyActions, focus=_DummyFocus, label="No Subscriptions")
+    @panel(focus=_DummyFocus, label="No Subscriptions")
     class P(BasePanel):
-        def draw(self, ctx, layout, actions):
+        def draw(self, ctx, layout):
             pass
 
     assert P.class_identity.redraw_on == ()
@@ -118,13 +111,12 @@ def test_panel_redraw_on_defaults_to_empty_tuple():
 
 def test_panel_redraw_on_accepts_single_event_type():
     @panel(
-        action=_DummyActions,
         focus=_DummyFocus,
         label="Selection",
         redraw_on=(SelectionMoved,),
     )
     class P(BasePanel):
-        def draw(self, ctx, layout, actions):
+        def draw(self, ctx, layout):
             pass
 
     assert P.class_identity.redraw_on == (SelectionMoved,)
@@ -132,13 +124,12 @@ def test_panel_redraw_on_accepts_single_event_type():
 
 def test_panel_redraw_on_accepts_multiple_event_types_in_order():
     @panel(
-        action=_DummyActions,
         focus=_DummyFocus,
         label="Two events",
         redraw_on=(SelectionMoved, GraphDataMutated),
     )
     class P(BasePanel):
-        def draw(self, ctx, layout, actions):
+        def draw(self, ctx, layout):
             pass
 
     assert P.class_identity.redraw_on == (SelectionMoved, GraphDataMutated)
@@ -149,13 +140,12 @@ def test_panel_redraw_on_rejects_signal_instance():
     with pytest.raises(TypeError, match="not a type"):
 
         @panel(
-            action=_DummyActions,
             focus=_DummyFocus,
             label="Bad",
             redraw_on=(SelectionMoved(),),  # type: ignore[arg-type]
         )
         class P(BasePanel):
-            def draw(self, ctx, layout, actions):
+            def draw(self, ctx, layout):
                 pass
 
 
@@ -166,13 +156,12 @@ def test_panel_redraw_on_rejects_non_signal_type():
     with pytest.raises(TypeError, match="not a Signal subclass"):
 
         @panel(
-            action=_DummyActions,
             focus=_DummyFocus,
             label="Bad",
             redraw_on=(NotASignal,),  # type: ignore[arg-type]
         )
         class P(BasePanel):
-            def draw(self, ctx, layout, actions):
+            def draw(self, ctx, layout):
                 pass
 
 
@@ -181,11 +170,10 @@ def test_panel_redraw_on_error_mentions_panel_context():
     with pytest.raises(TypeError, match=r"@panel\(\.\.\., redraw_on=\.\.\.\)"):
 
         @panel(
-            action=_DummyActions,
             focus=_DummyFocus,
             label="Bad",
             redraw_on=(str,),  # type: ignore[arg-type]
         )
         class P(BasePanel):
-            def draw(self, ctx, layout, actions):
+            def draw(self, ctx, layout):
                 pass

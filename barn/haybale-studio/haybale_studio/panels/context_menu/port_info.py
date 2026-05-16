@@ -1,7 +1,7 @@
 """
 PortInfoPanel — display-only panel showing port info on port right-click.
 
-Phase 1.5: action=PortContextActions (empty marker), focus=PortFocus.
+actions: PortContextActions (empty marker), focus=PortFocus.
 """
 
 from __future__ import annotations
@@ -21,13 +21,15 @@ if TYPE_CHECKING:
 
 
 @panel(
-    action=PortContextActions,
+    actions=PortContextActions,
     focus=PortFocus,
     label="Port Info",
     icon=hui.icon.edge,
     order=10,
 )
 class PortInfoPanel(BasePanel):
+    actions: PortContextActions
+
     @classmethod
     def poll(cls, ctx: "SessionContext") -> bool:
         return ctx.data[EditState].active_port is not None
@@ -36,7 +38,6 @@ class PortInfoPanel(BasePanel):
         self,
         ctx: "SessionContext",
         layout: PanelLayout,
-        actions: PortContextActions,
     ) -> None:
         port = ctx.data[EditState].active_port
         if port is None:

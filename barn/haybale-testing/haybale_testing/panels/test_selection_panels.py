@@ -1,6 +1,6 @@
 """Test-only selection action panels for haybale_testing.
 
-Phase 1.5: action=TestSelectionContextActions, focus=TestSelectionFocus.
+actions: TestSelectionContextActions, focus=TestSelectionFocus.
 """
 
 from __future__ import annotations
@@ -20,13 +20,15 @@ if TYPE_CHECKING:
 
 
 @panel(
-    action=TestSelectionContextActions,
+    actions=TestSelectionContextActions,
     focus=TestSelectionFocus,
     label="Copy Selection",
     icon=hui.icon.copy,
     order=10,
 )
 class TestCopySelectionPanel(BasePanel):
+    actions: TestSelectionContextActions
+
     @classmethod
     def poll(cls, ctx: "SessionContext") -> bool:
         edit = ctx.data[EditState]
@@ -36,23 +38,24 @@ class TestCopySelectionPanel(BasePanel):
         self,
         ctx: "SessionContext",
         layout: PanelLayout,
-        actions: TestSelectionContextActions,
     ) -> None:
         layout.button(
             "Copy Selection",
             icon=hui.icon.copy,
-            on_click=actions.test_copy_selection,
+            on_click=self.actions.test_copy_selection,
         )
 
 
 @panel(
-    action=TestSelectionContextActions,
+    actions=TestSelectionContextActions,
     focus=TestSelectionFocus,
     label="Paste",
     icon=hui.icon.paste,
     order=20,
 )
 class TestPasteSelectionPanel(BasePanel):
+    actions: TestSelectionContextActions
+
     @classmethod
     def poll(cls, ctx: "SessionContext") -> bool:
         return ctx.data[EditState].clipboard is not None
@@ -61,10 +64,9 @@ class TestPasteSelectionPanel(BasePanel):
         self,
         ctx: "SessionContext",
         layout: PanelLayout,
-        actions: TestSelectionContextActions,
     ) -> None:
         layout.button(
             "Paste",
             icon=hui.icon.paste,
-            on_click=actions.test_paste_at_click,
+            on_click=self.actions.test_paste_at_click,
         )

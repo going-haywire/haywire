@@ -24,4 +24,3 @@ class HaystackSettings(LibrarySettings):
         category="haystack",
         order=20,
     )
-

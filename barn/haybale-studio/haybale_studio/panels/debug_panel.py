@@ -18,7 +18,6 @@ from haywire.ui.panel.render_utils import render_schema, render_keys
 from haywire.core.namespaces import NAMESPACE_LIBRARY_LOG
 from haywire.core.debug.debug_settings import DebugSettings
 
-from haybale_studio.editors.properties_editor_actions import PropertiesEditorActions
 from haybale_studio.focuses import ExecutionFocus
 
 if TYPE_CHECKING:
@@ -26,7 +25,6 @@ if TYPE_CHECKING:
 
 
 @panel(
-    action=PropertiesEditorActions,
     focus=ExecutionFocus,
     label="Log Levels",
     icon=hui.icon.debug,
@@ -40,7 +38,6 @@ class DebugSettingsPanel(BasePanel):
         self,
         ctx: "SessionContext",
         layout: PanelLayout,
-        actions: PropertiesEditorActions,
     ) -> None:
         registry = ctx.app.library_service.get_settings_registry()
         render_schema(DebugSettings, registry)
