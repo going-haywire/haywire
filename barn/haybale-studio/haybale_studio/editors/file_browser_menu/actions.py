@@ -1,11 +1,13 @@
 """FileBrowserActions — Protocol implemented by SessionFileMenuProvider.
 
-Each panel resolves its own binding_id (e.g. the "Open in Haystack" panel calls
-HaystackState.open_graph(path) to derive an entry_id, then calls
-actions.reveal(GraphEditor, entry_id, display_name)).
+Each panel resolves its own binding_id (e.g. the "Open in Haystack" panel
+in haybale-haystack calls HaystackState.open_graph(path) to derive a
+binding_id, then calls actions.reveal(GraphEditor, binding_id,
+display_name)). The GraphEditor itself lives in haybale-graph-editor and
+resolves the binding_id through GraphAppState at draw time.
 
 Protocol matching is structural — SessionFileMenuProvider satisfies
-this without inheriting from it.s
+this without inheriting from it.
 """
 
 from __future__ import annotations

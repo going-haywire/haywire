@@ -83,10 +83,10 @@ def test_create_new_broadcasts_graph_data_mutated(state_with_mocked_deps):
     assert isinstance(event, GraphDataMutated)
 
 
-def test_create_new_registers_entry_under_entry_id(state_with_mocked_deps):
+def test_create_new_registers_entry_under_binding_id(state_with_mocked_deps):
     state = state_with_mocked_deps
     entry = state.create_new()
-    assert state.get_by_id(entry.entry_id) is entry
+    assert state.get_by_id(entry.binding_id) is entry
 
 
 def test_open_graph_returns_existing_if_already_open(state_with_mocked_deps, tmp_path):
@@ -128,7 +128,7 @@ def test_open_graph_loads_and_force_validates(state_with_mocked_deps, tmp_path):
 def test_get_by_id_returns_entry(state_with_mocked_deps):
     state = state_with_mocked_deps
     entry = state.create_new()
-    assert state.get_by_id(entry.entry_id) is entry
+    assert state.get_by_id(entry.binding_id) is entry
 
 
 def test_get_by_id_returns_none_for_unknown(state_with_mocked_deps):
@@ -152,13 +152,13 @@ def test_remove_entry_drops_from_registry(state_with_mocked_deps):
     state = state_with_mocked_deps
     entry = state.create_new()
     assert state.remove_entry(entry) is True
-    assert state.get_by_id(entry.entry_id) is None
+    assert state.get_by_id(entry.binding_id) is None
 
 
 def test_remove_entry_returns_false_for_unknown(state_with_mocked_deps):
     state = state_with_mocked_deps
     rogue = MagicMock()
-    rogue.entry_id = "__nope__"
+    rogue.binding_id = "__nope__"
     rogue.is_executing = False
     assert state.remove_entry(rogue) is False
 
@@ -197,7 +197,93 @@ def test_save_graph_calls_graph_save_to_file(state_with_mocked_deps, tmp_path):
     assert entry.path == target
     assert entry.unsaved is False
     # Re-keyed under new path id.
-    assert state.get_by_id(entry.entry_id) is entry
+    assert state.get_by_id(entry.binding_id) is entry
+
+
+def test_save_as_rekeys_graph_app_state(state_with_mocked_deps, tmp_path):
+    """save_graph(save_as=new_path) rekeys the entry in GraphAppState."""
+    from haybale_graph_editor.state.graph_app_state import GraphAppState
+
+    state = state_with_mocked_deps
+
+    # Hand-register a GraphAppState. In production HaystackState does this
+    # automatically (Task 13); for THIS test we exercise rekey in isolation.
+    gas = GraphAppState()
+    state._graph_app_state = gas
+
+    with patch.object(state, "_make_graph_and_editor") as mock_make:
+        mock_graph = MagicMock()
+        mock_graph.save_to_file.return_value = True
+        mock_make.return_value = (mock_graph, MagicMock())
+        entry = state.create_new()
+
+    old_binding_id = entry.binding_id  # "__unsaved_1__" or similar
+    gas.register(entry)
+
+    new_path = tmp_path / "renamed.haywire"
+    new_path.parent.mkdir(parents=True, exist_ok=True)
+
+    success = state.save_graph(entry, save_as=new_path)
+    assert success
+    assert entry.binding_id == str(new_path)
+    assert gas.get(old_binding_id) is None
+    assert gas.get(entry.binding_id) is entry
+
+
+def test_create_new_registers_in_graph_app_state(state_with_mocked_deps):
+    """create_new() registers the new entry in GraphAppState."""
+    from haybale_graph_editor.state.graph_app_state import GraphAppState
+
+    state = state_with_mocked_deps
+    gas = GraphAppState()
+    state._graph_app_state = gas
+
+    with patch.object(state, "_make_graph_and_editor") as mock_make:
+        mock_make.return_value = (MagicMock(), MagicMock())
+        entry = state.create_new()
+
+    assert gas.get(entry.binding_id) is entry
+
+
+def test_open_graph_registers_in_graph_app_state(state_with_mocked_deps, tmp_path):
+    """open_graph() registers the loaded entry in GraphAppState."""
+    from haybale_graph_editor.state.graph_app_state import GraphAppState
+
+    state = state_with_mocked_deps
+    gas = GraphAppState()
+    state._graph_app_state = gas
+
+    graph_path = tmp_path / "graphs" / "g.haywire"
+    graph_path.parent.mkdir(parents=True, exist_ok=True)
+    graph_path.write_text("")
+
+    mock_graph = MagicMock()
+    mock_graph.load_from_file = MagicMock(return_value=None)
+    mock_graph.force_validation = MagicMock(return_value=None)
+    mock_editor = MagicMock()
+
+    with patch.object(state, "_make_graph_and_editor", return_value=(mock_graph, mock_editor)):
+        entry = state.open_graph(graph_path)
+
+    assert gas.get(entry.binding_id) is entry
+
+
+def test_remove_entry_unregisters_from_graph_app_state(state_with_mocked_deps):
+    """remove_entry() unregisters the entry from GraphAppState."""
+    from haybale_graph_editor.state.graph_app_state import GraphAppState
+
+    state = state_with_mocked_deps
+    gas = GraphAppState()
+    state._graph_app_state = gas
+
+    with patch.object(state, "_make_graph_and_editor") as mock_make:
+        mock_make.return_value = (MagicMock(), MagicMock())
+        entry = state.create_new()
+    bid = entry.binding_id
+    assert gas.get(bid) is entry
+
+    state.remove_entry(entry)
+    assert gas.get(bid) is None
 
 
 def test_list_graph_files_empty_when_no_graphs_dir(state_with_mocked_deps):
@@ -479,8 +565,8 @@ def test_rename_graph_marks_haystack_dirty(state_with_mocked_deps, tmp_path):
     p.write_text("")
     entry = MagicMock()
     entry.path = p
-    entry.entry_id = str(p)
-    state._entries[entry.entry_id] = entry
+    entry.binding_id = str(p)
+    state._entries[entry.binding_id] = entry
     state._haystack_dirty = False
     state.rename_graph(entry, "bar")
     assert state._haystack_dirty is True

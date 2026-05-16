@@ -18,6 +18,7 @@ if TYPE_CHECKING:
     from haywire.core.graph.base import BaseGraph as HaywireGraph
     from haywire.core.execution.interpreter import Interpreter
     from haywire.core.graph.editor import Editor
+    from haybale_haystack.state.haystack_state import HaystackState
 
 logger = logging.getLogger(__name__)
 
@@ -35,7 +36,7 @@ class GraphEntry:
         _unsaved_id:  Synthetic ``__unsaved_N__`` token, set by Haystack on
                       :meth:`Haystack.create_new`. Unused once the entry is saved and
                       :attr:`path` becomes non-None. Accessed indirectly via
-                      :attr:`entry_id`.
+                      :attr:`binding_id`.
     """
 
     graph: "HaywireGraph"
@@ -44,14 +45,18 @@ class GraphEntry:
     unsaved: bool = False
     interpreter: Optional["Interpreter"] = field(default=None, repr=False)
     _unsaved_id: str = ""
+    haystack: "Optional[HaystackState]" = field(default=None, repr=False)
 
     @property
-    def entry_id(self) -> str:
+    def binding_id(self) -> str:
         """Stable identifier within the Haystack's ``_entries`` dict.
 
         For saved graphs this is ``str(path)``; for unsaved graphs it is the
         synthetic ``__unsaved_N__`` token set at creation time. Updates
         automatically when :attr:`path` is assigned on save-as or rename.
+
+        Also serves as this entry's key in
+        :class:`haybale_graph_editor.state.GraphAppState`.
         """
         return str(self.path) if self.path is not None else self._unsaved_id
 
@@ -98,3 +103,22 @@ class GraphEntry:
             logger.warning(f"Error stopping execution on '{self.display_name}': {e}")
         self.interpreter = None
         logger.info(f"Execution stopped for graph '{self.display_name}'")
+
+    def save(self, save_as: "Optional[Path]" = None) -> "Optional[str]":
+        """Persist this entry via its owning HaystackState.
+
+        Implements the :class:`GraphContainer` protocol's save method.
+        Delegates to ``HaystackState._save_entry`` so haystack-internal
+        bookkeeping (signals, dirty flag, GraphAppState rekey) all run.
+
+        Returns the new ``binding_id`` if the save-as renamed the entry,
+        else ``None``. Failure is signalled by the entry's ``unsaved``
+        flag remaining True (the haystack also returns False internally;
+        we coerce to None for the protocol contract).
+        """
+        if self.haystack is None:
+            return None  # detached entry — no place to save to
+        result = self.haystack._save_entry(self, save_as=save_as)
+        if result is False:
+            return None
+        return result  # None (no rename) or str (new binding_id)

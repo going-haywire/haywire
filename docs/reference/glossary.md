@@ -142,7 +142,9 @@ See [architecture/settings](../architecture/settings/settings-arch.md) for the r
 
 | Term | Definition | Aliases to avoid |
 |------|-----------|-----------------|
-| **GraphEntry** | A runtime container for one open graph: holds the **Graph**, **Editor**, file path, unsaved flag, session set, and per-graph **Interpreter** | Graph slot, graph handle |
+| **GraphEntry** | A runtime container for one open graph: holds the **Graph**, **Editor**, file path, unsaved flag, session set, and per-graph **Interpreter**. Concrete implementation of the **GraphContainer** protocol in `haybale-haystack` | Graph slot, graph handle |
+| **GraphContainer** | A protocol implemented by anything that can host a graph in **GraphEditor**: requires `binding_id`, `editor`, `path`, `unsaved`, `display_name`, and `save()`. **GraphEntry** is the haystack-flavoured implementation. See [haybale-graph-editor](../../barn/haybale-graph-editor/) | Graph host, graph holder |
+| **GraphAppState** | The app-wide registry mapping `binding_id` → **GraphContainer**. Source libraries (haystack, future cloud-graph libraries) `register` / `unregister` / `rekey` their containers here; **GraphEditor** reads from it on every render. Lives at `app_data[GraphAppState]` | Graph registry, graph index |
 | **Haystack** | A named, curated selection of **GraphEntry**'s stored as a TOML file in `haystacks/`; records which graphs are open and which should auto-execute on load. See [architecture/graph](../architecture/graph/graph-arch.md) | Session (overloaded with browser sessions), workspace (overloaded with layout), setlist, graphset |
 | **HaystackEditor** | The left-slot editor that lists all open graphs, provides play/stop per row, and save/load haystack actions in the header | GraphManagerEditor (renamed) |
 
@@ -209,7 +211,9 @@ See [architecture/studio](../architecture/studio/studio-arch.md) for the studio 
 - **`binding_id` (tab)** — A `str` that disambiguates per-binding_id tabs of
   the same editor class. For GraphEditor the binding_id is the graph path;
   for FileViewer it is the file path. Stored in `TabState.metadata.binding_id`
-  and mirrored in `EditorWrapper.binding_id`.
+  and mirrored in `EditorWrapper.binding_id`. The same string is the key used
+  in `GraphAppState`, the workspace-persisted identity in `slot.to_snapshot`,
+  and the disambiguator in `EditorWrapper.editor_binding_id`.
 
 ---
 
@@ -257,6 +261,7 @@ See [guides/signals.md](../guides/signals.md) for authoring patterns; [architect
 - A **NodeSettings** field may `mirrors=` a **FrameworkSettings** or **LibrarySettings** field; the value resolves through the **SettingsRegistry** via **Three-tier resolution**.
 - **FrameworkSettings** classes auto-register at registry init; **LibrarySettings** classes register via the **BaseRegistry** hot-reload path when their **Library** loads.
 - A **GraphEntry** wraps exactly one **Graph**, one **Editor** and one **Interpreter** when it is executing; these are created/destroyed by `start_execution()` / `stop_execution()`.
+- A **GraphEntry** structurally implements the **GraphContainer** protocol; source libraries register their containers into **GraphAppState** so **GraphEditor** can resolve `binding_id` → container on render.
 - A **Haystack** references zero or more **GraphEntries** by relative file path; it also records which graph is active and which graphs should auto-execute on load.
 - `workspace_state.json` stores the last-loaded **Haystack** name; on startup, **HaywireApp** auto-loads it if present.
 - The **HaystackEditor** displays a **Haystack**'s entries and provides save/load **Haystack** actions and per-entry execution controls.

@@ -14,6 +14,8 @@
 
 `haybale-haystack` is the bundled plugin that handles multi-graph file management. It replaces the old in-studio `haystack.py` and isolates persistence, the graph-file registry, and haystack-specific editors/panels from the studio shell. Use it when working on opening/saving multiple graphs, the haystack editor, or persistence semantics.
 
+It is a **source library** for `GraphEditor`: `GraphEntry` is the haystack-flavoured implementation of the `GraphContainer` protocol, and the library `register`s / `unregister`s / `rekey`s its open entries into [`GraphAppState`](haybale-graph-editor.md) so `GraphEditor` (which lives in `haybale-graph-editor`) can resolve a `binding_id` to a live container. Haystack does not own the editor — it owns the containers.
+
 ## 2. Folder Architecture
 
 ```
@@ -53,7 +55,7 @@ haybale_haystack/
 | Concept | Canonical file | Notes |
 |---------|---------------|-------|
 | Haystack file format | `persistence.py` | Read/write entry point |
-| Per-file model | `graph_entry.py` | Used by editors/panels |
+| Per-file model | `graph_entry.py` | `GraphContainer` implementation; registered into `GraphAppState` |
 | Haystack signals | `signals.py` | Scoped vocabulary |
 | Library entry | `__init__.py` | `haystack = "haybale_haystack:Library"` |
 
@@ -65,6 +67,7 @@ haybale_haystack/
 
 - [haywire-core-engine](haywire-core-engine.md), [haywire-core-ui](haywire-core-ui.md).
 - [haybale-core](haybale-core.md), [haybale-studio](haybale-studio.md).
+- [haybale-graph-editor](haybale-graph-editor.md) — `GraphAppState` registry, `GraphContainer` protocol, `GraphEditor` surface; `GraphEntry` implements the protocol and the library registers entries on open/close.
 
 ### Depended on by
 

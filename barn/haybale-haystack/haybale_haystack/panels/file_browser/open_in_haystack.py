@@ -4,7 +4,7 @@
 Polls true when the right-clicked file has the ``.haywire`` extension.
 On click, resolves a Haystack entry for the path via
 ``ctx.app_data[HaystackState].open_graph(path)`` then issues
-``actions.reveal(GraphEditor, entry.entry_id, entry.display_name)``.
+``actions.reveal(GraphEditor, entry.binding_id, entry.display_name)``.
 
 Kept in its own module (separate from the sibling file-action panels
 OpenInCodeEditorPanel and OpenInFileViewerPanel that live in haybale-studio)
@@ -52,7 +52,7 @@ class OpenInHaystackPanel(BasePanel):
         layout: PanelLayout,
         actions: FileBrowserActions,
     ) -> None:
-        from haybale_haystack.editors.graph_editor import GraphEditor
+        from haybale_graph_editor.editors.graph_editor import GraphEditor
 
         path = ctx.data[FileBrowserState].right_clicked_file
         if path is None:
@@ -63,7 +63,7 @@ class OpenInHaystackPanel(BasePanel):
             if hs is None:
                 return
             entry = hs.open_graph(path)
-            actions.reveal(GraphEditor, binding_id=entry.entry_id, label=entry.display_name)
+            actions.reveal(GraphEditor, binding_id=entry.binding_id, label=entry.display_name)
 
         layout.button(
             "Open in Haystack",

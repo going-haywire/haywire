@@ -8,7 +8,7 @@ from typing import Optional
 from unittest.mock import MagicMock
 
 from haywire.core.session.signals import ActiveGraphMoved
-from haybale_haystack.editors.graph_editor import GraphEditor
+from haybale_graph_editor.editors.graph_editor import GraphEditor
 
 
 def _make_data_with_edit_state(initial_active_graph=None, initial_active_graph_path=None):
@@ -42,23 +42,27 @@ def _make_data_with_edit_state(initial_active_graph=None, initial_active_graph_p
 
 class _FakeEntry:
     def __init__(
-        self, entry_id: str, graph, path: Optional[Path] = None, display_name: str = "Entry"
+        self, binding_id: str, graph, path: Optional[Path] = None, display_name: str = "Entry"
     ) -> None:
-        self.entry_id = entry_id
-        self.graph = graph
+        self.binding_id = binding_id
+        # GraphEditor.on_focus reads ``entry.editor.graph`` (the
+        # GraphContainer protocol exposes ``editor`` only). The fake
+        # editor is a SimpleNamespace whose ``.graph`` is the test's
+        # sentinel graph object.
+        self.editor = SimpleNamespace(graph=graph)
         self.path = path
         self.display_name = display_name
 
 
-class _FakeHaystack:
+class _FakeGraphAppState:
     def __init__(self) -> None:
         self._by_id: dict[str, _FakeEntry] = {}
 
     def register(self, entry: _FakeEntry) -> None:
-        self._by_id[entry.entry_id] = entry
+        self._by_id[entry.binding_id] = entry
 
-    def get_by_id(self, entry_id: str) -> Optional[_FakeEntry]:
-        return self._by_id.get(entry_id)
+    def get(self, binding_id: str) -> Optional[_FakeEntry]:
+        return self._by_id.get(binding_id)
 
 
 class _FakeSession:
@@ -71,9 +75,9 @@ class _FakeSession:
 
 
 def _make_context(entry: Optional[_FakeEntry], existing_active_graph=None):
-    haystack = _FakeHaystack()
+    graph_app_state = _FakeGraphAppState()
     if entry is not None:
-        haystack.register(entry)
+        graph_app_state.register(entry)
     session = _FakeSession()
     # GraphEditor.on_focus reads/writes active_graph via
     # ctx.data[EditState]. Build a fake `data` whose `[EditState]` lookup
@@ -81,11 +85,10 @@ def _make_context(entry: Optional[_FakeEntry], existing_active_graph=None):
     data = _make_data_with_edit_state(
         initial_active_graph=existing_active_graph,
     )
-    # Post-PR2: on_focus calls ctx.app_data.get(HaystackState) instead of
-    # getattr(app, "haystack", None). Wire a MagicMock whose .get() returns
-    # the fake haystack for any key.
+    # on_focus calls ctx.app_data.get(GraphAppState). Wire a MagicMock
+    # whose .get() returns the fake registry for any key.
     app_data = MagicMock()
-    app_data.get.return_value = haystack
+    app_data.get.return_value = graph_app_state
     ctx = SimpleNamespace(
         active_graph=existing_active_graph,
         active_graph_path=None,
@@ -114,7 +117,7 @@ def _make_editor_with_payload(binding_id) -> GraphEditor:
 
 def test_on_focus_resolves_entry_and_sets_active_graph() -> None:
     g = object()
-    entry = _FakeEntry(entry_id="/tmp/a.haywire", graph=g, path=Path("/tmp/a.haywire"))
+    entry = _FakeEntry(binding_id="/tmp/a.haywire", graph=g, path=Path("/tmp/a.haywire"))
     ctx = _make_context(entry)
     ed = _make_editor_with_payload("/tmp/a.haywire")
 
@@ -128,7 +131,7 @@ def test_on_focus_resolves_entry_and_sets_active_graph() -> None:
 def test_on_focus_fires_active_graph_moved() -> None:
     g = object()
     entry = _FakeEntry(
-        entry_id="/tmp/a.haywire",
+        binding_id="/tmp/a.haywire",
         graph=g,
         path=Path("/tmp/a.haywire"),
         display_name="a.haywire",
@@ -144,7 +147,7 @@ def test_on_focus_fires_active_graph_moved() -> None:
 
 def test_on_focus_short_circuits_when_graph_already_active() -> None:
     g = object()
-    entry = _FakeEntry(entry_id="/tmp/a.haywire", graph=g, path=Path("/tmp/a.haywire"))
+    entry = _FakeEntry(binding_id="/tmp/a.haywire", graph=g, path=Path("/tmp/a.haywire"))
     ctx = _make_context(entry, existing_active_graph=g)
     # Also pre-set active_graph_path to match — the short-circuit requires both.
     # Reader sources from EditState (post-C3).
@@ -178,8 +181,8 @@ def test_on_focus_no_binding_is_noop() -> None:
     assert ctx.data.edit_stub.active_graph is None
 
 
-def test_on_focus_no_haystack_state_is_noop() -> None:
-    """When ctx.app_data.get(HaystackState) returns None, on_focus is a no-op."""
+def test_on_focus_no_graph_app_state_is_noop() -> None:
+    """When ctx.app_data.get(GraphAppState) returns None, on_focus is a no-op."""
     session = _FakeSession()
     app_data = MagicMock()
     app_data.get.return_value = None

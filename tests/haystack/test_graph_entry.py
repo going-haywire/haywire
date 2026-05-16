@@ -15,15 +15,15 @@ def test_graph_entry_default_unsaved():
     assert entry.interpreter is None
 
 
-def test_entry_id_uses_path_when_set():
+def test_binding_id_uses_path_when_set():
     from haybale_haystack.graph_entry import GraphEntry
 
     p = Path("/tmp/foo.haywire")
     entry = GraphEntry(graph=MagicMock(), editor=MagicMock(), path=p, unsaved=False)
-    assert entry.entry_id == str(p)
+    assert entry.binding_id == str(p)
 
 
-def test_entry_id_uses_unsaved_id_for_unsaved():
+def test_binding_id_uses_unsaved_id_for_unsaved():
     from haybale_haystack.graph_entry import GraphEntry
 
     entry = GraphEntry(
@@ -33,7 +33,7 @@ def test_entry_id_uses_unsaved_id_for_unsaved():
         unsaved=True,
         _unsaved_id="__unsaved_1__",
     )
-    assert entry.entry_id == "__unsaved_1__"
+    assert entry.binding_id == "__unsaved_1__"
 
 
 def test_display_name_uses_path_stem_when_set():
@@ -100,3 +100,61 @@ def test_stop_execution_clears_interpreter():
     entry.stop_execution()
     interp.stop_execution.assert_called_once()
     assert entry.interpreter is None
+
+
+def test_graph_entry_save_delegates_to_haystack():
+    """entry.save() calls haystack._save_entry(self, save_as=...).
+
+    The method is a thin shim — most logic lives in HaystackState.
+    """
+    from haybale_haystack.graph_entry import GraphEntry
+
+    captured = {}
+
+    class _FakeHaystack:
+        def _save_entry(self, entry, save_as=None):
+            captured["entry"] = entry
+            captured["save_as"] = save_as
+            return None  # no rename
+
+    fake = _FakeHaystack()
+    entry = GraphEntry(graph=object(), editor=object(), haystack=fake)
+    result = entry.save()
+
+    assert captured["entry"] is entry
+    assert captured["save_as"] is None
+    assert result is None
+
+
+def test_graph_entry_save_propagates_new_binding_id():
+    """When _save_entry returns a new binding_id (rename case),
+    entry.save() returns it untouched."""
+    from haybale_haystack.graph_entry import GraphEntry
+
+    class _FakeHaystack:
+        def _save_entry(self, entry, save_as=None):
+            return "new-id-from-save-as"
+
+    entry = GraphEntry(graph=object(), editor=object(), haystack=_FakeHaystack())
+    assert entry.save(save_as=Path("/tmp/x.haywire")) == "new-id-from-save-as"
+
+
+def test_graph_entry_holds_haystack_back_reference():
+    """GraphEntry carries a reference to its owning HaystackState.
+
+    Used by GraphEntry.save() to delegate persistence back. The
+    reference is required (kw-only) on construction; tests use a
+    sentinel object since the contract is only that it round-trips.
+    """
+    from haybale_haystack.graph_entry import GraphEntry
+
+    sentinel_haystack = object()
+    fake_graph = object()
+    fake_editor = object()
+
+    entry = GraphEntry(
+        graph=fake_graph,
+        editor=fake_editor,
+        haystack=sentinel_haystack,
+    )
+    assert entry.haystack is sentinel_haystack

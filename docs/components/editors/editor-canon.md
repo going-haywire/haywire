@@ -100,6 +100,8 @@ Handlers run synchronously on every matching publish; keep them cheap. The heavy
 
 **`on_focus(self, context)`** is called when the editor's wrapper becomes the active tab in its slot — on initial render, on programmatic `Slot.switch_to`, on user tab-click, or via `Slot.add_binding(activate=True)`. **Not** called when the user re-clicks the already-active tab. Runs **before** `draw()` on the newly-activated wrapper, so any context mutations this hook performs are visible to that draw and to any signals the hook broadcasts. Default is a no-op. Editors that own a slice of session state (e.g. a graph editor that updates `active_graph` when its tab becomes active) override this. Read `self.wrapper.binding_id` to disambiguate this instance from siblings.
 
+*`GraphEditor` lives in `haybale-graph-editor` and reads its container from `app_data[GraphAppState]`. To host a graph in `GraphEditor`, your library must (a) implement the `GraphContainer` protocol (structurally — a duck-typed match is sufficient) and (b) register every open container into `GraphAppState`. `haybale-haystack`'s `GraphEntry` is the reference implementation.*
+
 **`cleanup(self)`** runs when the editor is permanently removed (slot reassigned, hot-reload eviction). Release subscriptions, cancel timers, drop UI references. Default is a no-op.
 
 **`get_tab_label(self, context) -> str`** lets a tabbed editor (`opens='on_payload'`) return a dynamic label per instance. Default returns `self.class_identity.label`. Multi-instance editors typically derive the label from `self.wrapper.binding_id`.

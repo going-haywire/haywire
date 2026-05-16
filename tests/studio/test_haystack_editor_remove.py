@@ -83,7 +83,7 @@ def _make_entry(
     path=None,
     unsaved: bool = False,
     is_executing: bool = False,
-    entry_id: str = "/tmp/a.haywire",
+    binding_id: str = "/tmp/a.haywire",
 ):
     graph = object()
     return SimpleNamespace(
@@ -91,7 +91,7 @@ def _make_entry(
         path=path,
         unsaved=unsaved,
         is_executing=is_executing,
-        entry_id=entry_id,
+        binding_id=binding_id,
         display_name="a.haywire",
         stop_execution=MagicMock(),
     )
@@ -104,7 +104,7 @@ def test_remove_clean_entry_opens_confirm_with_stays_on_disk_wording(editor_and_
     haystack.get_by_id = MagicMock(return_value=entry)
 
     with patch("haybale_haystack.editors.haystack_editor.confirm_modal") as mock_modal:
-        editor._on_entry_delete(entry.entry_id, context)
+        editor._on_entry_delete(entry.binding_id, context)
 
     mock_modal.assert_called_once()
     kwargs = mock_modal.call_args.kwargs
@@ -124,7 +124,7 @@ def test_remove_clean_entry_on_confirm_callback_removes(editor_and_context):
         patch("haybale_haystack.editors.haystack_editor.confirm_modal") as mock_modal,
         patch("haybale_haystack.editors.haystack_editor.ui.notify"),
     ):
-        editor._on_entry_delete(entry.entry_id, context)
+        editor._on_entry_delete(entry.binding_id, context)
         on_confirm = mock_modal.call_args.kwargs["on_confirm"]
         on_confirm()
 
@@ -137,7 +137,7 @@ def test_remove_dirty_file_backed_entry_uses_discard_wording(editor_and_context)
     haystack.get_by_id = MagicMock(return_value=entry)
 
     with patch("haybale_haystack.editors.haystack_editor.confirm_modal") as mock_modal:
-        editor._on_entry_delete(entry.entry_id, context)
+        editor._on_entry_delete(entry.binding_id, context)
 
     mock_modal.assert_called_once()
     kwargs = mock_modal.call_args.kwargs
@@ -152,7 +152,7 @@ def test_remove_untitled_entry_uses_never_saved_wording(editor_and_context):
     haystack.get_by_id = MagicMock(return_value=entry)
 
     with patch("haybale_haystack.editors.haystack_editor.confirm_modal") as mock_modal:
-        editor._on_entry_delete(entry.entry_id, context)
+        editor._on_entry_delete(entry.binding_id, context)
 
     mock_modal.assert_called_once()
     kwargs = mock_modal.call_args.kwargs
@@ -160,7 +160,7 @@ def test_remove_untitled_entry_uses_never_saved_wording(editor_and_context):
     assert kwargs["confirm_label"] == "Discard"
 
 
-def test_remove_stale_entry_id_does_not_crash_or_remove(editor_and_context):
+def test_remove_stale_binding_id_does_not_crash_or_remove(editor_and_context):
     """A row click after the haystack was hot-reloaded resolves to None.
 
     Re-resolution via _resolve_entry returns None and notifies — the
@@ -189,7 +189,7 @@ def test_remove_executing_entry_blocked_before_dialog(editor_and_context):
         patch("haybale_haystack.editors.haystack_editor.confirm_modal") as mock_modal,
         patch("haybale_haystack.editors.haystack_editor.ui.notify") as mock_notify,
     ):
-        editor._on_entry_delete(entry.entry_id, context)
+        editor._on_entry_delete(entry.binding_id, context)
 
     mock_modal.assert_not_called()
     haystack.remove_entry.assert_not_called()
@@ -218,7 +218,7 @@ def test_remove_entry_helper_fires_broadcast_close(editor_and_context):
     close_commands = [c for c in published if isinstance(c, Close)]
     assert len(close_commands) == 1
     assert isinstance(close_commands[0], BroadcastClose)
-    assert close_commands[0].binding_id == entry.entry_id
+    assert close_commands[0].binding_id == entry.binding_id
 
 
 def test_remove_entry_helper_clears_active_graph_when_active(editor_and_context):

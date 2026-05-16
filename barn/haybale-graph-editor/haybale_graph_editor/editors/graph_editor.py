@@ -1,8 +1,13 @@
-# barn/haybale-haystack/haybale_haystack/editors/graph_editor.py
+# barn/haybale-graph-editor/haybale_graph_editor/editors/graph_editor.py
 """
 GraphEditor — wraps GraphCanvasManager as a BaseEditor.
 
-Supports multiple open graphs via the Haystack in haywire-app.
+Supports multiple open graphs via the shared :class:`GraphAppState`
+registry. The source of those graphs (haystack, future cloud-graph
+libraries) is opaque to this editor: each tab resolves its container
+by ``binding_id`` and reads through the :class:`GraphContainer`
+protocol.
+
 When an ``ActiveGraphMoved`` signal arrives the canvas is swapped out for
 the new graph's canvas without re-creating the outer shell.
 
@@ -22,10 +27,10 @@ from haywire.ui.editor.base import BaseEditor
 from haywire.core.session.signals import ActiveGraphMoved, GraphDataMutated
 from haybale_studio.editors.graph_canvas.graph_canvas_manager import GraphCanvasManager
 from haybale_studio.state.edit_state import EditState
-from haybale_haystack.state.haystack_state import HaystackState
+from haybale_graph_editor.state.graph_app_state import GraphAppState
+from haybale_graph_editor.protocols import GraphContainer  # noqa: F401  (used in type annotations)
 
 if TYPE_CHECKING:
-    from haybale_haystack.graph_entry import GraphEntry
     from haywire.core.session.context import SessionContext
     from nicegui.element import Element
 
@@ -54,12 +59,15 @@ class GraphEditor(BaseEditor):
         ``SelectionMoved``   — node / edge selection.
         ``GraphDataMutated`` — graph structure changes.
 
-    The 'project_state' entry in context.metadata is set by haywire-app and
-    must expose:
-        .haystack          (Haystack)  — preferred
-        .editor                 (Editor)        — fallback for untitled graph
+    The ``context.app`` object provided by haywire-app must expose:
         .skin_factory           (SkinFactory)
         .node_factory           (NodeFactory)
+        .panel_registry         (PanelRegistry)
+        .workspace_root         (str | Path)
+
+    Open graphs are read from ``app_data[GraphAppState]`` — a registry
+    populated by source libraries (haystack, future cloud-graph libs)
+    whose internal structure this editor does not know about.
     """
 
     def __init__(self, wrapper):
@@ -90,39 +98,41 @@ class GraphEditor(BaseEditor):
     def on_focus(self, context: "SessionContext") -> None:
         """Claim ownership of session state when this tab becomes active.
 
-        Resolves ``self.wrapper._binding_id`` (the entry key) via the haystack
-        and, if the entry exists, updates ``context.data[EditState].active_graph`` +
-        ``active_graph_path`` and emits ``ActiveGraphMoved`` so
-        panels (properties, minimap, execution controls) refresh.
+        Resolves ``self.wrapper._binding_id`` (the container key) via
+        :class:`GraphAppState` and, if the container exists, updates
+        ``context.data[EditState].active_graph`` + ``active_graph_path``
+        and emits ``ActiveGraphMoved`` so panels (properties, minimap,
+        execution controls) refresh.
 
-        If the binding_id no longer resolves to an entry (the graph was
-        concurrently removed from the haystack), calls
+        If the binding_id no longer resolves to a container (the graph was
+        concurrently removed from the registry), calls
         ``self.wrapper.force_close()`` to close the orphaned tab.
 
-        Short-circuits when the context already reflects this entry so a
-        redundant call is a no-op.
+        Short-circuits when the context already reflects this container
+        so a redundant call is a no-op.
         """
         if self.wrapper._binding_id is None:
             return
         binding_id = self.wrapper._binding_id
-        haystack_state = context.app_data.get(HaystackState)
-        if haystack_state is None:
+        graph_app_state = context.app_data.get(GraphAppState)
+        if graph_app_state is None:
             return
 
-        entry = haystack_state.get_by_id(binding_id)
+        entry = graph_app_state.get(binding_id)
         session = getattr(context, "session", None)
         if entry is None:
-            # Graph entry vanished from the haystack — close ourselves.
+            # Container vanished from GraphAppState — close ourselves.
             # Programmatic close (no consent dialog needed; the user
             # already removed the underlying graph).
             self.wrapper.force_close()
             return
 
         edit_state = context.data[EditState]
-        if edit_state.active_graph is entry.graph and edit_state.active_graph_path == entry.path:
+        graph = entry.editor.graph
+        if edit_state.active_graph is graph and edit_state.active_graph_path == entry.path:
             return
 
-        edit_state.active_graph = entry.graph
+        edit_state.active_graph = graph
         edit_state.active_graph_path = entry.path
 
         if session is not None:
@@ -228,21 +238,21 @@ class GraphEditor(BaseEditor):
 
         logger.info(f"GraphEditor: canvas built for session {context.session_id[:8]}")
 
-    def _get_entry(self, context: "SessionContext") -> Optional["GraphEntry"]:
-        """Look up this tab's GraphEntry from the haystack via binding binding_id.
+    def _get_entry(self, context: "SessionContext") -> Optional["GraphContainer"]:
+        """Look up this tab's GraphContainer from GraphAppState via binding_id.
 
         Each GraphEditor instance is bound to one ``(editor_key, binding_id)``
-        pair — the binding_id is the ``GraphEntry.entry_id`` (a path string for
-        saved graphs, ``__unsaved_N__`` for unsaved). The tab owns its graph
-        identity; the session-level ``active_graph_path`` is no longer
-        consulted here.
+        pair — the binding_id is the ``GraphContainer.binding_id`` (a path
+        string for saved graphs, a synthetic token for unsaved). The tab
+        owns its graph identity; the session-level ``active_graph_path``
+        is no longer consulted here.
         """
         if self.wrapper._binding_id is None:
             return None
-        haystack_state = context.app_data.get(HaystackState)
-        if haystack_state is None:
+        graph_app_state = context.app_data.get(GraphAppState)
+        if graph_app_state is None:
             return None
-        return haystack_state.get_by_id(self.wrapper._binding_id)
+        return graph_app_state.get(self.wrapper._binding_id)
 
     # ------------------------------------------------------------------
     # ------------------------------------------------------------------
@@ -332,25 +342,22 @@ class GraphEditor(BaseEditor):
 
     def _save_graph(self, context: "SessionContext") -> None:
         """Save the active graph; opens Save-As dialog if no path exists yet."""
-        app = context.app
-        haystack_state = context.app_data.get(HaystackState)
-        if haystack_state is None:
-            ui.notify("Graph manager not available", type="warning")
-            return
-
         entry = self._get_entry(context)
         if entry is None:
             ui.notify("No graph to save", type="warning")
             return
 
         if entry.path is not None:
-            # Already has a path — just overwrite it
-            success = haystack_state.save_graph(entry)
-            if success:
+            # Already has a path — call container.save().
+            # save() returns None on no-rename; binding_id doesn't change
+            # for an in-place save, so no repayload needed here. Failure
+            # is signalled by `entry.unsaved` remaining True.
+            entry.save()
+            if not entry.unsaved:
                 ui.notify(f"Saved: {entry.path.name}", type="positive", position="top-right")
                 self._update_header(context)
-                # Notify all sessions viewing this graph so GraphManagerEditor
-                # and other headers clear their dirty indicators.
+                # Notify all sessions viewing this graph so peer editors
+                # and headers clear their dirty indicators.
                 session = context.session
                 if session is not None:
                     session.publish(GraphDataMutated())
@@ -359,6 +366,7 @@ class GraphEditor(BaseEditor):
             return
 
         # No path yet — open the Save-As dialog
+        app = context.app
         self._open_save_as_dialog(app, entry)
 
     def _open_save_as_dialog(self, app, entry) -> None:
@@ -383,7 +391,7 @@ class GraphEditor(BaseEditor):
                 input_value = entry.path.name
         else:
             save_dir = self._default_save_dir(app)
-            graph_name = getattr(entry.graph, "name", "untitled")
+            graph_name = getattr(entry.editor.graph, "name", "untitled")
             safe_name = graph_name.lower().replace(" ", "_")
             try:
                 rel_dir = save_dir.relative_to(workspace_root)
@@ -439,11 +447,6 @@ class GraphEditor(BaseEditor):
 
     def _do_save_as(self, context: "SessionContext", dialog) -> None:
         """Execute the Save-As from within the dialog."""
-        haystack_state = context.app_data.get(HaystackState)
-        if haystack_state is None:
-            ui.notify("App not available", type="warning")
-            return
-
         entry = self._get_entry(context)
         if entry is None:
             ui.notify("No graph to save", type="warning")
@@ -473,19 +476,18 @@ class GraphEditor(BaseEditor):
                 self._save_exists_warning.set_visibility(True)
             return  # stay in the dialog
 
-        old_payload = self.wrapper._binding_id
-        success = haystack_state.save_graph(entry, save_as=save_path)
-        if success:
+        old_binding_id = self.wrapper._binding_id
+        new_binding_id: Optional[str] = entry.save(save_as=save_path)
+        if new_binding_id is not None or not entry.unsaved:
             context.data[EditState].active_graph_path = save_path
             session = context.session
-            new_payload = entry.entry_id
-            if old_payload != new_payload:
-                # Save-as renamed the graph entry — re-key the tab so the
+            if new_binding_id is not None and old_binding_id != new_binding_id:
+                # Save-as renamed the container — re-key the tab so the
                 # wrapper's binding_id + label reflect the new file path.
-                self.wrapper.repayload(new_payload, new_label=entry.display_name)
+                self.wrapper.repayload(new_binding_id, new_label=entry.display_name)
             if session:
                 session.publish(ActiveGraphMoved())
-                # Notify peer sessions so their GraphManagerEditor and header
+                # Notify peer sessions so their HaystackEditor and header
                 # also clear the dirty indicator.
                 session.publish(GraphDataMutated())
             ui.notify(f"Saved: {save_path.name}", type="positive", position="top-right")

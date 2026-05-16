@@ -19,7 +19,8 @@ Python 3.10+, NiceGUI / Quasar / Vue 3, `injector` DI, `attrs`/`cattrs`, `duit[n
 | haywire-studio | Studio CLI app (`haywire` entry point): app shell, config, library manager | [→ modules/haywire-studio.md](modules/haywire-studio.md) |
 | haybale-core | Built-in plugin library: core node types, adapters, widgets, themes | [→ modules/haybale-core.md](modules/haybale-core.md) |
 | haybale-studio | Built-in studio plugin: editors, panels, file focus, state container | [→ modules/haybale-studio.md](modules/haybale-studio.md) |
-| haybale-haystack | File-centric multi-graph manager plugin | [→ modules/haybale-haystack.md](modules/haybale-haystack.md) |
+| haybale-graph-editor | Visual graph editor plugin: GraphContainer protocol, GraphAppState registry, GraphEditor surface | [→ modules/haybale-graph-editor.md](modules/haybale-graph-editor.md) |
+| haybale-haystack | File-centric multi-graph manager plugin; registers GraphEntry containers into GraphAppState | [→ modules/haybale-haystack.md](modules/haybale-haystack.md) |
 | haybale-libs-other | Example / testing / visiongraph / TEST_A plugin libraries | [→ modules/haybale-libs-other.md](modules/haybale-libs-other.md) |
 | tests | pytest suite (unit + integration) covering core, ui, studio, libraries | [→ modules/tests.md](modules/tests.md) |
 | docs | mkdocs site: architecture, components, reference, guides | [→ modules/docs.md](modules/docs.md) |
@@ -42,6 +43,6 @@ Python 3.10+, NiceGUI / Quasar / Vue 3, `injector` DI, `attrs`/`cattrs`, `duit[n
 
 ## Quick Stats
 
-- Total modules: 9
+- Total modules: 10
 - Estimated source files: ~280 Python files (+ Vue/JS frontends)
 - Map coverage: ~95% of top-level dirs (excludes `playground/`, `site/`, `internals/` ephemera)

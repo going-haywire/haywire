@@ -26,7 +26,7 @@ from __future__ import annotations
 
 import logging
 from pathlib import Path
-from typing import Optional
+from typing import TYPE_CHECKING, Optional
 
 from haywire.core.state.base import AppState
 from haywire.core.state.decorator import state
@@ -39,6 +39,9 @@ from haywire.core.node.factory import NodeFactory
 from haywire.core.session.session_manager import SessionManager
 from haywire.core.state import LibraryStateContainer
 from haybale_haystack.settings.haystack_settings import HaystackSettings
+
+if TYPE_CHECKING:
+    from haybale_graph_editor.state.graph_app_state import GraphAppState
 
 logger = logging.getLogger(__name__)
 
@@ -63,6 +66,11 @@ class HaystackState(AppState):
         self._node_factory: Optional[NodeFactory] = None
         self._library_state_container: Optional[LibraryStateContainer] = None
 
+        # Reference to the shared graph registry; populated in on_enable.
+        # Direct attribute (not in app_data dict) for fast access from
+        # save / open / remove hot paths.
+        self._graph_app_state: Optional["GraphAppState"] = None
+
         self._haystack_settings: HaystackSettings = HaystackSettings()
 
     # ------------------------------------------------------------------
@@ -77,11 +85,17 @@ class HaystackState(AppState):
             get_session_manager,
             get_workspace_root,
         )
+        from haybale_graph_editor.state.graph_app_state import GraphAppState
 
         self._session_manager = get_session_manager()
         self._workspace_root = get_workspace_root()
         self._node_factory = get_node_factory()
         self._library_state_container = get_library_state_container()
+
+        # Acquire the shared graph registry. Order is safe: graph_editor
+        # library is listed in our dependencies (after Task 14), so its
+        # AppState is instantiated before ours.
+        self._graph_app_state = self._library_state_container.get(GraphAppState)
 
         # Rehydrate from last_haystack_name (best-effort).
         # Use self.load_haystack — not the free persistence.load_haystack —
@@ -137,6 +151,9 @@ class HaystackState(AppState):
                 logger.warning(
                     f"HaystackState.on_disable: stop_execution failed for {entry.display_name}: {exc}"
                 )
+        if self._graph_app_state is not None:
+            for binding_id in list(self._entries.keys()):
+                self._graph_app_state.unregister(binding_id)
         self._entries.clear()
 
     # ------------------------------------------------------------------
@@ -209,16 +226,21 @@ class HaystackState(AppState):
         ``HaystackSettings.new_counter``) and advances the counter.
         """
         counter = self._haystack_settings.new_counter
-        entry_id = f"__unsaved_{counter}__"
+        binding_id = f"__unsaved_{counter}__"
         name = f"Untitled {counter}"
         self._haystack_settings.new_counter = counter + 1
 
-        graph, editor = self._make_graph_and_editor(entry_id, name)
-        entry = GraphEntry(graph=graph, editor=editor, path=None, _unsaved_id=entry_id)
-        # entry_id == _unsaved_id when path is None (see GraphEntry.entry_id)
-        self._entries[entry.entry_id] = entry
+        graph, editor = self._make_graph_and_editor(binding_id, name)
+        entry = GraphEntry(graph=graph, editor=editor, path=None, _unsaved_id=binding_id, haystack=self)
+        # binding_id == _unsaved_id when path is None (see GraphEntry.binding_id)
+        self._entries[entry.binding_id] = entry
         self._subscribe_validation(entry)
-        logger.info(f"HaystackState: created new entry '{name}' ({entry_id})")
+        if self._graph_app_state is not None:
+            # GraphEntry's binding_id/display_name are read-only properties;
+            # the GraphContainer protocol declares them as settable. Structural
+            # compatibility holds at runtime — the registry only reads.
+            self._graph_app_state.register(entry)  # type: ignore[arg-type]
+        logger.info(f"HaystackState: created new entry '{name}' ({binding_id})")
         self._broadcast_data_mutated()
         self._mark_haystack_dirty()
         return entry
@@ -231,43 +253,75 @@ class HaystackState(AppState):
         the load-time validation queue *before* subscribing the handler
         (otherwise loaded-state events would mark the entry unsaved).
         """
-        entry_id = str(path)
-        existing = self._entries.get(entry_id)
+        binding_id = str(path)
+        existing = self._entries.get(binding_id)
         if existing is not None:
             return existing
 
         graph, editor = self._make_graph_and_editor(path.stem, str(path))
         graph.load_from_file(str(path))
         graph.force_validation()
-        entry = GraphEntry(graph=graph, editor=editor, path=path, unsaved=False)
-        self._entries[entry_id] = entry
+        entry = GraphEntry(graph=graph, editor=editor, path=path, unsaved=False, haystack=self)
+        self._entries[binding_id] = entry
         self._subscribe_validation(entry)
+        if self._graph_app_state is not None:
+            # See create_new() for note on the type: ignore.
+            self._graph_app_state.register(entry)  # type: ignore[arg-type]
         logger.info(f"HaystackState: opened {path}")
         self._broadcast_data_mutated()
         self._mark_haystack_dirty()
         return entry
 
     def save_graph(self, entry: GraphEntry, save_as: Optional[Path] = None) -> bool:
-        """Save the entry to disk. Returns True on success.
+        """Public alias preserved for backward compatibility.
 
-        If ``save_as`` is provided and differs from ``entry.path``, the
-        entry is re-keyed in the registry under the new path.
+        Most callers should use ``entry.save(save_as=...)`` now; this
+        method routes to the same implementation. Returns True on
+        successful save (legacy bool contract); ``entry.save`` returns
+        the new binding_id string on rename for the
+        :class:`GraphContainer` protocol.
+        """
+        return self._save_entry(entry, save_as=save_as) is not False
+
+    def _save_entry(self, entry: GraphEntry, save_as: Optional[Path] = None):
+        """Internal save implementation.
+
+        Returns:
+            - ``False`` on failure
+            - ``None`` on save-with-no-rename (success, identity unchanged)
+            - ``str`` (new binding_id) on save-as that renamed the entry
+
+        Side effects on success:
+            - writes the graph TOML to disk
+            - clears ``entry.unsaved``
+            - on rename: rekeys ``self._entries`` AND
+              ``self._graph_app_state``
+            - broadcasts ``GraphDataMutated``
+            - marks haystack dirty
         """
         target = save_as or entry.path
         if target is None:
             return False  # untitled with no explicit path
 
         success = entry.graph.save_to_file(str(target))
-        if success:
-            entry.unsaved = False
-            if save_as is not None and save_as != entry.path:
-                old_id = entry.entry_id
-                self._entries.pop(old_id, None)
-                entry.path = save_as
-                self._entries[entry.entry_id] = entry
-            self._broadcast_data_mutated()
-            self._mark_haystack_dirty()
-        return success
+        if not success:
+            return False
+
+        entry.unsaved = False
+        renamed_to: Optional[str] = None
+
+        if save_as is not None and save_as != entry.path:
+            old_binding_id = entry.binding_id
+            self._entries.pop(old_binding_id, None)
+            entry.path = save_as
+            self._entries[entry.binding_id] = entry
+            if self._graph_app_state is not None:
+                self._graph_app_state.rekey(old_binding_id, entry.binding_id)
+            renamed_to = entry.binding_id
+
+        self._broadcast_data_mutated()
+        self._mark_haystack_dirty()
+        return renamed_to  # None when no rename; str on rename
 
     def rename_graph(self, entry: GraphEntry, new_name: str) -> bool:
         """Rename the underlying file (same directory, new stem)."""
@@ -284,11 +338,13 @@ class HaystackState(AppState):
         except OSError:
             return False
 
-        old_id = entry.entry_id
+        old_id = entry.binding_id
         self._entries.pop(old_id, None)
         entry.path = new_path
-        self._entries[entry.entry_id] = entry
+        self._entries[entry.binding_id] = entry
         entry.unsaved = False
+        if self._graph_app_state is not None:
+            self._graph_app_state.rekey(old_id, entry.binding_id)
         self._broadcast_data_mutated()
         self._mark_haystack_dirty()
         return True
@@ -302,8 +358,10 @@ class HaystackState(AppState):
             entry.stop_execution()
         except Exception as exc:
             logger.warning(f"HaystackState.remove_entry: stop_execution failed: {exc}")
-        if entry.entry_id in self._entries and self._entries[entry.entry_id] is entry:
-            del self._entries[entry.entry_id]
+        if entry.binding_id in self._entries and self._entries[entry.binding_id] is entry:
+            if self._graph_app_state is not None:
+                self._graph_app_state.unregister(entry.binding_id)
+            del self._entries[entry.binding_id]
             self._broadcast_data_mutated()
             self._mark_haystack_dirty()
             return True
@@ -326,8 +384,8 @@ class HaystackState(AppState):
     # Lookups
     # ------------------------------------------------------------------
 
-    def get_by_id(self, entry_id: str) -> Optional[GraphEntry]:
-        return self._entries.get(entry_id)
+    def get_by_id(self, binding_id: str) -> Optional[GraphEntry]:
+        return self._entries.get(binding_id)
 
     def get_by_path(self, path: Path) -> Optional[GraphEntry]:
         return self._entries.get(str(path))
