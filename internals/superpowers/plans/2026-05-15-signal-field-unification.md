@@ -8,7 +8,7 @@
 
 **Tech Stack:** Python 3.12, `abc.ABC`/`abstractmethod`, `weakref.ref`, dataclass-based signal classes, pytest, ruff, mypy, NiceGUI.
 
-**Spec:** [internals/speculatives/reactive_bus_unification.md](../../speculatives/reactive_bus_unification.md). Decisions Q1–Q15 and V1–V6 captured there.
+**Spec:** Originally drafted in `internals/speculatives/reactive_bus_unification.md` (since archived after this plan landed; see `internals/speculatives/archive/`).
 
 **Pre-flight (run once, before Task 1):**
 

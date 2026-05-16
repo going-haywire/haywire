@@ -1,5 +1,9 @@
 # Spec: panel reactivity
 
+> **ARCHIVED** — Status: **Superseded**. This was the Phase 2 design (auto-tracking reactive subscriptions) for the panel contract; never implemented. The signal-field unification work (see [`reactive_bus_unification.md`](./reactive_bus_unification.md), also archived) shipped a different mechanism — explicit `signal_field` declarations with `@redraw_on` / `@react_on` decorators — and replaced the need for this layer. Kept for historical reference.
+
+Original status header below (preserved for historical context):
+
 > Status: speculative spec. Describes the reactive layer that drives
 > panel re-evaluation. Companion to `spec_panel_contract.md`, which
 > describes the panel contract itself.

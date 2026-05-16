@@ -6,7 +6,6 @@ see-also:
   - ../components/states/state-canon.md
   - ../architecture/studio/studio-arch.md
   - ../architecture/session-and-state/session-and-state-arch.md
-  - ../../internals/speculatives/reactive_bus_unification.md
 ---
 
 # Signals — authoring guide
@@ -17,8 +16,6 @@ A **signal** is anything that flows on the per-session bus. Editors and panels s
 2. **Hand-authored `Signal` subclass** — declare a class; emit explicitly via `session.publish(...)`.
 
 Both paths produce signals that travel on the same `SignalBus`, are subscribed via the same `@redraw_on` / `@react_on` decorators, and follow the same hot-reload semantics. Picking between them is about *how the signal is shaped*, not *what it does*.
-
-The design rationale and historical context live in [internals/speculatives/reactive_bus_unification.md](../../internals/speculatives/reactive_bus_unification.md). This guide is the author-facing how-to.
 
 ## Two equal authoring paths
 

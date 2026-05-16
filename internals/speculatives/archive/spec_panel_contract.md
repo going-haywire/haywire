@@ -1,5 +1,9 @@
 # Spec: the panel contract
 
+> **ARCHIVED** — Phase 1 and Phase 1.5 are in production (landed 2026-05-03 / 2026-05-04). The Phase 2 "reactive subscriptions / auto-tracking" content scattered through this document was superseded by the signal-field unification work (see [`reactive_bus_unification.md`](./reactive_bus_unification.md), also archived). Kept for historical reference; do not use as authoritative current docs.
+
+Original status header below (preserved for historical context):
+
 > Status: **Phase 1 + Phase 1.5 complete (2026-05-03 / 2026-05-04).**
 > The contract described here — `BasePanel` base class,
 > `@panel(action=, focus=, label=, ...)` decorator, `Focus` base class

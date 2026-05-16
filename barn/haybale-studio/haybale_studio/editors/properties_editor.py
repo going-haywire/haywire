@@ -126,10 +126,6 @@ class PropertiesEditor(BaseEditor):
     # The editor also subscribes to the panel registry's batch lifecycle
     # channel so it can reconcile its subscriptions when the catalog
     # changes (library install / uninstall / panel hot-reload).
-    #
-    # See the event-bus redesign:
-    # ``internals/speculatives/event_bus_redesign.md`` §"Concrete Fix for
-    # the Original Bug" for the rationale.
 
     def _subscribe_panel_event_handlers(self, context: SessionContext) -> None:
         """Resolve the panel registry and wire panel-driven event subscriptions.

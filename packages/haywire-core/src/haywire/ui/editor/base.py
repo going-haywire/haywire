@@ -52,7 +52,6 @@ class BaseEditor(ABC):
     subscribes the editor to any ``redraw_on=`` signals declared by
     panels whose action contract this editor satisfies — resolved via
     the session's ``context.app.library_service.get_panel_registry()``.
-    See ``internals/speculatives/event_bus_redesign.md``.
 
     Class attributes (set by @editor decorator):
         - class_identity: EditorIdentity with registry_key, label, icon, default_slot.

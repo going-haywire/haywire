@@ -88,8 +88,6 @@ The framework synthesizes one `Signal` subclass per field at class-definition ti
 
 Routing is scope-determined: a `SessionState` / `SessionContext` field publishes on the owning `Session`'s `SignalBus`; an `AppState` field broadcasts cross-session via `SessionManager`. Subscribers attach to the same bus they would for any hand-authored `Signal`.
 
-The canonical spec lives in `internals/speculatives/reactive_bus_unification.md`.
-
 ### 2.4 Registry filter
 
 ```python

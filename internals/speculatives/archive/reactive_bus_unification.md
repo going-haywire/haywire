@@ -1,7 +1,8 @@
 # Signal-field unification
 
-Status: **DONE** — landed in `3d10428b`. (Originally drafted as
-"Reactive fields unified with the event bus"; builds on `event_bus_redesign.md`.)
+> **ARCHIVED** — Status: **DONE**. Landed in commit `3d10428b`. The design described here is in production. Kept for historical reference only.
+
+Originally drafted as "Reactive fields unified with the event bus"; built on `event_bus_redesign.md` (also archived).
 
 ## Problem
 

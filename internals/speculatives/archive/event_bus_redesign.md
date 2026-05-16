@@ -1,7 +1,8 @@
 # Event Bus Redesign — Design Summary
 
-**Status:** speculative / design-in-progress
-**Driver:** [`PropertiesEditor`](../../barn/haybale-studio/haybale_studio/editors/properties_editor.py) bug — its `_RELEVANT_SIGNALS = (SelectionMoved, ActiveGraphMoved, GraphDataMutated)` is hardcoded on the editor, but it hosts third-party panels that may react to events the editor doesn't know about. The editor cannot statically know what signals its registered panels need.
+> **ARCHIVED** — Status: **Superseded**. The typed pub/sub model and panel-driven subscription scheme described here landed (in part) as the signal-bus + handler-decorator system in current code. The Phase 2 "auto-tracking reactive fields" extension was explicitly rejected; signal-field unification (see [`reactive_bus_unification.md`](./reactive_bus_unification.md), also archived) is the path that shipped instead. Kept for historical reference.
+
+**Original driver:** [`PropertiesEditor`](../../../barn/haybale-studio/haybale_studio/editors/properties_editor.py) bug — its `_RELEVANT_SIGNALS = (SelectionMoved, ActiveGraphMoved, GraphDataMutated)` is hardcoded on the editor, but it hosts third-party panels that may react to events the editor doesn't know about. The editor cannot statically know what signals its registered panels need.
 
 ## Problem
 

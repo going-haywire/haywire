@@ -239,9 +239,7 @@ class EditorWrapper:
         Slot semantics ensure the redraw is safe even when the wrapper
         is backgrounded — Quasar ``ui.tab_panels`` with keep-alive keeps
         the DOM mounted, so a redraw on a hidden tab is invisible work
-        that pays off the moment the user focuses the tab. See the
-        dispatch-loop semantics section of
-        ``internals/speculatives/event_bus_redesign.md``.
+        that pays off the moment the user focuses the tab.
         """
         if self._redraw_callback is not None:
             self._redraw_callback(self)
