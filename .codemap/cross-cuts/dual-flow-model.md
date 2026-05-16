@@ -1,92 +1,55 @@
-# Cross-cut: Dual-Flow Model
+# Cross-cut: Dual-Flow Execution Model
+
+> Haywire's defining concept: every graph has two independent flows — **control pins** define execution order, **data pins** pass values.
 
 ## Overview
 
-Haywire uses two orthogonal kinds of ports on every node:
+Inspired by Unreal Engine Blueprints, a Haywire graph is a network of nodes whose ports are typed and split by *flow*:
 
-- **CONTROL ports** (`FlowType.CONTROL`) — define execution *order*. Think of them as the
-  "when does this node run" wire.
-- **DATA ports** (`FlowType.DATA`) — pass *values*. Think of them as the "what data does
-  this node receive/produce" wire.
-- **CALLBACK ports** — freely configurable; used for event-style signalling.
+- **Control flow (white/execution pins)** — fired in sequence by the VM; determines *when* a node runs.
+- **Data flow (typed pins)** — passes values lazily; pulled when a downstream control fires.
 
----
+This split means data evaluation is decoupled from execution sequencing: a data pin is only evaluated on demand, while control pins drive a sequential program. The Assembly stage compiles a Graph into a VM program that the Interpreter walks; data is fetched through the lazy edge wrapper on demand.
 
-## Port Rules (hardcoded in `DataPort.__post_init__`)
+## Modules Involved
 
-| Port type | Direction | `allow_multiple` |
-|-----------|-----------|-----------------|
-| DATA outlet | out | `True` (fan-out) |
-| DATA inlet | in | `False` (single source) |
-| EXEC outlet | out | `False` (single target) |
-| EXEC inlet | in | `True` (many sources) |
-| Pooled inlet | in | `True` (override by PooledType) |
+| Module | Role | Manifest |
+|--------|------|----------|
+| haywire-core-engine | Defines FlowType, nodes, edges, assembly, VM | [→ modules/haywire-core-engine.md](../modules/haywire-core-engine.md) |
+| haywire-core-ui | Renders control vs data pins; canvas connection rules | [→ modules/haywire-core-ui.md](../modules/haywire-core-ui.md) |
+| haybale-core | Concrete nodes that use both flows | [→ modules/haybale-core.md](../modules/haybale-core.md) |
 
-Never set `allow_multiple` manually for DATA/EXEC ports. CALLBACK ports have no hardcoded rules.
-
----
-
-## Node Types
-
-Node type is determined by control port configuration (see `node/behavior.py`):
-
-| NodeBehavior | Has EXEC in | Has EXEC out | Description |
-|---|---|---|---|
-| `DATA` | No | No | Pure data transformer; runs when data is demanded |
-| `CONTROL` | Yes | Yes | Sequenced node; runs in execution order |
-| `EVENT` | No | Yes | Fires execution chain (timer, callback source) |
-| `OUTPUT` | Yes | No | Terminal node; receives execution, no output |
-| `LOOPBACK` | Yes | Yes (special) | Loop node; uses loopback-stack in VM |
-
----
-
-## Data Transport: Pipes
-
-Each connected DATA port pair owns a **Pipe**:
-
-- **Eager push** (`is_lazy=False`): When upstream writes a value, pipe pushes it
-  downstream immediately and calls `on_change`.
-- **Lazy** (`is_lazy=True`): Pipe marks itself dirty but does NOT push. Downstream
-  calls `pull_lazy()` at execution time to get the latest value (always-latest semantics).
-
-`is_lazy` is a per-edge flag on `Edge`/`EdgeWrapper`, not per-port.
-
-`resolve_dirty_data()` — called at execution time — pulls all lazy pipes for the node's
-inlets, then fires the deferred `on_change` once.
-
----
-
-## Execution Pipeline
+## Flow
 
 ```
-Graph (visual/descriptive)
-  ↓ FlowAssemblyManager.assemble()
-LocalizedDataFlow (per control node — data dependency DAG, topologically sorted)
-  ↓ VM.run()
-Two-stack VM: done-stack (prevents re-execution) + loopback-stack (loops/sequences)
-  ↓ _execute() per node
-resolves dirty ports → calls worker(context, **inlet_values)
+Graph (nodes + edges)
+     │
+     ▼
+Assembly  (control_flow_builder + data_flow_builder + flow_assembly_manager)
+     │       — emits VM instructions and data fetch plans
+     ▼
+Interpreter / VM  (execution/interpreter.py + execution/vm.py)
+     │       — walks control flow; pulls data via edge wrappers when needed
+     ▼
+Node behaviors fire   (node/behavior.py + node/node_wrapper.py)
+     │       — emit signals on completion / state change
+     ▼
+Signal bus  (core/session/signals/bus.py) → UI updates
 ```
 
-**Key insight**: Data flow is NOT global. Each control node gets its own data dependency DAG
-backpropagated from its inlets. Only the data nodes that feed the currently executing control
-node are assembled into that node's LocalizedDataFlow.
+## Key Files
 
----
+- `packages/haywire-core/src/haywire/core/types/` — `FlowType` enum and port types.
+- `packages/haywire-core/src/haywire/core/assembly/control_flow_builder.py` — compiles control edges.
+- `packages/haywire-core/src/haywire/core/assembly/data_flow_builder.py` — compiles data edges.
+- `packages/haywire-core/src/haywire/core/assembly/flow_assembly_manager.py` — drives both builders.
+- `packages/haywire-core/src/haywire/core/execution/vm.py` — control-flow VM.
+- `packages/haywire-core/src/haywire/core/execution/interpreter.py` — instruction interpreter.
+- `packages/haywire-core/src/haywire/core/edge/edge_wrapper.py` — lazy data fetch wrapper.
 
-## Lazy Bitmasks (Assembly)
+## Gotchas
 
-During assembly, a **EVAL_MASK** is created per inlet. At execution time, a **LAZY_MASK** is
-created per control node. `EVAL_MASK AND LAZY_MASK` determines which data nodes actually run
-for that execution step. If the lazy state changes at runtime (e.g. an edge gains/loses the
-lazy flag), the VM triggers reassembly.
-
----
-
-## Related Source Files
-
-- Port rules: `packages/haywire-core/src/haywire/core/types/port.py` — `DataPort.__post_init__`
-- Node behavior: `packages/haywire-core/src/haywire/core/node/behavior.py`
-- Pipe transport: `packages/haywire-core/src/haywire/core/types/pipe.py`
-- Assembly: `packages/haywire-core/src/haywire/core/assembly/flow_assembly_manager.py`
-- VM: `packages/haywire-core/src/haywire/core/execution/vm.py`
+- `pin.flow_type.value` returns `'data'` / `'control'`; `str(pin.flow_type)` returns `'FlowType.DATA'`. Canvas connection logic depends on the string form — be deliberate (see `.insights/project_graph_canvas_connection.md`).
+- Data edges are lazy: a data node may not run on every control tick. Be careful when relying on side effects from data nodes.
+- After modifying nodes/edges in tests, call `force_immediate_validation()` to flush the dirty queue.
+- Resume-without-coords on the canvas relies on a `lastMousePos` workaround in `components/graph/canvas.vue`.

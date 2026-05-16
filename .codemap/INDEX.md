@@ -1,63 +1,47 @@
-# Haywire Codebase Map
+# 🗺️ Codebase Map — Haywire
 
-**Haywire** is a Blueprint-inspired visual programming system with a dual-flow model: control pins
-define execution order, data pins pass values. Built on NiceGUI (web UI) + injector (DI).
+> Blueprint-inspired visual programming system (Python + NiceGUI) with a dual-flow node graph engine, reactive properties, and a plugin "barn" of haybale libraries.
 
----
-
-## Module Table
-
-| Module | Purpose | Manifest |
-|--------|---------|---------|
-| [haywire-core/engine](#) | Graph engine, DI, nodes, edges, ports, types, settings, execution/assembly | [modules/core-engine.md](modules/core-engine.md) |
-| [haywire-core/ui](#) | NiceGUI UI framework — editors, panels, workspace, graph canvas, themes, widgets | [modules/core-ui.md](modules/core-ui.md) |
-| [haywire-studio](#) | CLI application entry point — app shell wiring, config, graph/library managers | [modules/haywire-studio.md](modules/haywire-studio.md) |
-| [haybale-studio](#) | Studio UI contributions — editors, panels, scopes, settings for the workbench | [modules/haybale-studio.md](modules/haybale-studio.md) |
-| [haybale-core](#) | Standard node library — built-in nodes (Tick, ForLoop, Switch, etc.) and types | [modules/haybale-core.md](modules/haybale-core.md) |
-| [barn/other](#) | Additional plugin libraries: example, testing, visiongraph, TEST_A | [modules/barn-other.md](modules/barn-other.md) |
-| [tests](#) | Test suite — core graph, execution, nodes, settings, UI integration | [modules/tests.md](modules/tests.md) |
-
----
+| Generated | Commit | Tool |
+|-----------|--------|------|
+| 2026-05-16 10:25 UTC | b2e5340b | codebase-cartographer |
 
 ## Tech Stack
 
-| Layer | Technology |
-|-------|------------|
-| Language | Python 3.12+ |
-| Package manager | uv (workspace monorepo) |
-| UI framework | NiceGUI (+ Quasar/Vue) |
-| Dependency injection | `injector` library |
-| Build backend | hatchling |
-| Linter / formatter | ruff (line-length=109) |
-| Type checker | mypy |
-| Test runner | pytest |
-| Plugin discovery | `importlib.metadata.entry_points(group='haywire.libraries')` |
+Python 3.10+, NiceGUI / Quasar / Vue 3, `injector` DI, `attrs`/`cattrs`, `duit[nicegui]`, uv workspace, pytest, ruff, mypy, mkdocs-material.
 
----
+## Module Index
+
+| Module | Purpose | Manifest |
+|--------|---------|----------|
+| haywire-core-engine | Graph engine, DI, nodes, edges, execution VM, settings, registries | [→ modules/haywire-core-engine.md](modules/haywire-core-engine.md) |
+| haywire-core-ui | NiceGUI renderers: canvas, panels, editors, themes, skins, modals | [→ modules/haywire-core-ui.md](modules/haywire-core-ui.md) |
+| haywire-studio | Studio CLI app (`haywire` entry point): app shell, config, library manager | [→ modules/haywire-studio.md](modules/haywire-studio.md) |
+| haybale-core | Built-in plugin library: core node types, adapters, widgets, themes | [→ modules/haybale-core.md](modules/haybale-core.md) |
+| haybale-studio | Built-in studio plugin: editors, panels, file focus, state container | [→ modules/haybale-studio.md](modules/haybale-studio.md) |
+| haybale-haystack | File-centric multi-graph manager plugin | [→ modules/haybale-haystack.md](modules/haybale-haystack.md) |
+| haybale-libs-other | Example / testing / visiongraph / TEST_A plugin libraries | [→ modules/haybale-libs-other.md](modules/haybale-libs-other.md) |
+| tests | pytest suite (unit + integration) covering core, ui, studio, libraries | [→ modules/tests.md](modules/tests.md) |
+| docs | mkdocs site: architecture, components, reference, guides | [→ modules/docs.md](modules/docs.md) |
+
+## Cross-cutting Concerns
+
+| Concern | Doc |
+|---------|-----|
+| Dual-flow execution model (control vs data pins) | [→ cross-cuts/dual-flow-model.md](cross-cuts/dual-flow-model.md) |
+| Library plugin system (discovery, hot-reload, DI) | [→ cross-cuts/library-plugin-system.md](cross-cuts/library-plugin-system.md) |
+| Signals & reactive props | [→ cross-cuts/signals-and-reactive.md](cross-cuts/signals-and-reactive.md) |
 
 ## How to Use This Map
 
-1. Load this file (`INDEX.md`) — it always fits in context.
-2. Identify the module(s) relevant to your task from the table above.
-3. Load only those module manifests.
-4. Within each manifest, read the **Always-load** section first; defer **On-demand** files
-   until you actually need them.
+1. **Start here.** Scan the Module Index above to find the area relevant to your task.
+2. **Load the manifest.** Open only the module manifest you need.
+3. **Follow the Always-load guidance** in that manifest to pull in the minimum source files required.
+4. **Check cross-cuts** if your task spans modules (e.g., a feature touching both engine and a haybale library).
+5. **Follow inter-module links** to trace dependencies.
 
----
+## Quick Stats
 
-## Key Entry Points
-
-| Purpose | File |
-|---------|------|
-| Run the app | `uv run haywire` → `packages/haywire-studio/src/haywire_studio/app.py` |
-| DI wiring | `packages/haywire-core/src/haywire/core/di/config.py` |
-| Library plugin base | `packages/haywire-core/src/haywire/core/library/base.py` |
-| Node base class | `packages/haywire-core/src/haywire/core/node/base.py` |
-| Test config | `packages/haywire-core/src/haywire/core/di/test_config.py` |
-
----
-
-## Cross-Cuts (optional deeper docs)
-
-- [cross-cuts/dual-flow-model.md](cross-cuts/dual-flow-model.md) — Control vs. data flow, port rules, node types
-- [cross-cuts/library-plugin-system.md](cross-cuts/library-plugin-system.md) — How to build and register a haybale library
+- Total modules: 9
+- Estimated source files: ~280 Python files (+ Vue/JS frontends)
+- Map coverage: ~95% of top-level dirs (excludes `playground/`, `site/`, `internals/` ephemera)

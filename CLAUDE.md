@@ -14,18 +14,7 @@ Before editing any file, read it first. Before modifying a function, grep for al
 
 ### Package Layout
 
-- **`packages/haywire-core/`** — publishable core (`import haywire`)
-  - `haywire/core/` — graph engine, DI, nodes, edges, ports, types, execution, settings
-  - `haywire/ui/` — NiceGUI renderers, widgets, canvas, themes, panels, etc.
-- **`packages/haywire-studio/`** — CLI application (`haywire` entry point)
-  - `app.py` — main `HaywireApp` class (~500 lines)
-  - `config.py` — global/project TOML config
-  - `haystack.py` — file-centric multi-graph registry
-  - `library_manager.py` — runtime library install/UI
-  - `init.py` / `share.py` — CLI subcommands
-- **`barn/haybale-*/`** — plugin node libraries
-- **`tests/`** — pytest test suite (100% coverage)
-- **`docs`** — markdown documentation
+`codemap/INDEX.md` provides an entry point to get a grasp on the layout of this repo.
 
 ## Documentation
 

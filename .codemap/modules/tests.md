@@ -1,141 +1,106 @@
-# Module: tests
+# Module: Tests
+
+> pytest suite organised by area (core, ui, studio, libraries, haystack, integration). Aims for 100% coverage on `haywire-core`; uses markers to separate fast unit tests from slow integration runs.
 
 **Path:** `tests/`
-**Run with:** `uv run pytest`
+**Language:** Python 3.10+ (pytest, pytest-playwright)
+**Owner:** All teams (each owns tests near their module)
+**Tree hash:** `1da071a192c24726d6469d584ac89a084dd18794`
+**Mapped at:** b2e5340b (2026-05-16)
 
 ---
 
-## Scope & Purpose
+## 1. Scope & Purpose
 
-The full test suite covering core engine, settings, graph/edge mechanics, execution, UI layer,
-canvas handlers, panel rendering, and integration smoke tests. Split into `tests/core/` (headless,
-fast) and `tests/ui/` (NiceGUI, Playwright, slower).
+The full automated test suite for the workspace. Tests are grouped by the area of the codebase they cover:
 
-Major changes since last map:
-- `tests/ui/harness/` added — full NiceGUI test harness (routes, conftest, Playwright fixtures)
-- `tests/ui/test_canvas_handlers/` added — handler unit tests for all 4 handler subpackages
-- `tests/core/test_debug/` added — logging configurator tests
-- `tests/core/test_graph/test_canvas_expansion.py` added
-- `tests/core/test_settings/` heavily restructured: removed `test_chain.py`, `test_descriptors.py`,
-  `test_holder_cache.py`, `test_namespace_sub.py`, `test_schema.py`, `test_sub_holders.py`;
-  added `test_schema_rebasing.py`; `test_settings.py` massively expanded (+500 lines)
+- `tests/core/` — engine: di, execution, graph, node, settings, signals, state, session, reactive.
+- `tests/ui/` — UI primitives: editor/panel/slot/theme/signals/canvas handlers.
+- `tests/studio/` — studio app: app shell, library state container, edit state, focus, haystack editor.
+- `tests/libraries/` — library-system behaviour (focus IDs, reactive clipboard).
+- `tests/haystack/` — haystack-specific tests.
+- `tests/integration/` — slow, full-stack tests (e.g., `test_haystack_carve_out.py`).
+- `tests/test_init_scaffolding.py`, `tests/test_smoke.py` — top-level smoke and CLI scaffolding tests.
 
----
-
-## Folder Architecture
+## 2. Folder Architecture
 
 ```
 tests/
-├── conftest.py                         # Global pytest fixtures (DI setup)
-├── test_init_scaffolding.py            # CLI `haywire init` integration test
-├── test_smoke.py                       # Smoke test (app starts, basic graph runs)
-│
-├── core/                               # Headless core tests
-│   ├── conftest.py                     # Core-level fixtures
-│   ├── test_reactive.py                # Reactive property descriptor tests
-│   ├── test_debug/
-│   │   └── test_logging_configurator.py # LoggingConfigurator tests
-│   ├── test_execution/
-│   │   └── test_interpreter.py         # VM / interpreter tests
-│   ├── test_graph/
-│   │   ├── test_base.py                # Graph add/remove node/edge
-│   │   ├── test_canvas_expansion.py    # Canvas bounds/expansion tests (new)
-│   │   └── test_edges.py               # Edge lifecycle, lazy, adapter chain
-│   ├── test_libraries/
-│   │   └── test_registries.py          # Library/node/type registry tests
-│   ├── test_node/
-│   │   ├── test_base.py                # BaseNode port declarations
-│   │   ├── test_decorator.py           # @node decorator
-│   │   └── test_factory.py             # NodeFactory
-│   └── test_settings/
-│       ├── test_hot_reload.py          # Settings hot-reload
-│       ├── test_schema_rebasing.py     # Schema rebasing (new)
-│       └── test_settings.py            # Main settings system tests (large, ~600+ lines)
-│
-├── ui/                                 # NiceGUI UI tests
-│   ├── harness/                        # Full NiceGUI test harness
-│   │   ├── app.py                      # Test app factory
-│   │   ├── conftest.py                 # Playwright fixtures
-│   │   ├── routes.py                   # Test routes / page definitions
-│   │   ├── test_graph_context_menu.py  # Context menu integration tests
-│   │   ├── test_interaction.py         # Canvas interaction integration tests
-│   │   ├── test_mirror.py              # Settings mirror tests
-│   │   ├── test_structural.py          # Structural/DOM tests
-│   │   ├── test_validation.py          # Validation UI tests
-│   │   └── test_widgets.py             # Widget rendering tests
-│   ├── test_canvas_handlers/           # Handler unit tests
-│   │   ├── test_context_menu_handlers.py
-│   │   ├── test_create_node_panel.py
-│   │   ├── test_event_routing.py
-│   │   ├── test_haybale_context_menu_panels.py
-│   │   ├── test_interaction_handlers.py
-│   │   ├── test_selection_handlers.py
-│   │   ├── test_session_context_menu_provider.py
-│   │   └── test_visual_layer_handlers.py
-│   ├── test_app_shell.py               # AppShell layout tests
-│   ├── test_console_bridge.py
-│   ├── test_editor_registry.py
-│   ├── test_node_theme.py
-│   ├── test_panel_registry.py
-│   ├── test_session_context.py
-│   ├── test_theme_registry.py
-│   ├── test_workbench_theme.py
-│   ├── test_workspace_defaults.py      # WorkspaceDefaults tests (new)
-│   └── test_workspace_state.py
-│
-└── libraries/                          # Library-level tests (if any)
+├── conftest.py
+├── test_smoke.py
+├── test_init_scaffolding.py
+├── core/
+│   ├── test_di/  test_execution/  test_graph/  test_node/
+│   ├── test_session/  test_settings/  test_signals/  test_state/
+│   ├── test_libraries/  test_debug/  test_reactive.py
+├── ui/
+│   ├── editor/  panel/  graph_canvas/  harness/  reactive/
+│   ├── properties_editor/  test_canvas_handlers/  test_file_browser_menu/
+│   ├── test_app_shell.py  test_console_bridge.py  test_signal_bus.py
+│   ├── test_panel_registry.py  test_editor_registry.py  test_theme_registry.py
+│   └── … (~25 more focused tests)
+├── studio/
+│   ├── test_app/
+│   ├── test_app_library_state_container.py  test_edit_state.py
+│   ├── test_file_viewer_on_focus.py  test_graph_editor_on_focus.py
+│   └── test_haystack_editor_remove.py  test_library_overview_on_context.py
+├── libraries/
+│   ├── test_clipboard_reactive.py  test_focuses_have_ids.py
+├── haystack/
+├── integration/
+│   └── test_haystack_carve_out.py
 ```
 
----
+## 3. Always-load vs On-demand
 
-## Always-load vs On-demand
+### Always-load
 
-**Always-load**:
-- `conftest.py` — global DI fixture setup pattern
-- `core/conftest.py` — how to get a test graph/DI container
+- `conftest.py` — shared fixtures (DI reset, library reload helpers).
+- A representative test for the area you're changing — pattern-match its setup, especially `force_immediate_validation()` and ordering of imports.
 
-**On-demand**:
-- `core/test_settings/test_settings.py` — large, load only for settings work
-- `ui/harness/` — load only when working on NiceGUI integration tests
-- `ui/test_canvas_handlers/` — load only when working on canvas handler logic
-- Individual test files for the subsystem you're currently working on
+### On-demand
 
----
+- `tests/integration/` — only when running full-stack flows; these are marked `@pytest.mark.integration`.
+- `tests/ui/test_canvas_handlers/` — canvas drag/connect handler tests, heavy on event simulation.
 
-## Rules & Boundaries
+## 4. Rules & Boundaries
 
-- **Import order**: always `import haywire.core.graph.editor` before other haywire modules
-  in test files to avoid circular import errors.
-- **`force_immediate_validation()`** must be called after node setup in tests to flush the
-  dirty queue before any assertions on node/edge state.
-- **Unit tests** (`-m unit`) are fast, headless. **Integration tests** (`-m integration`) load
-  the full library system and are slow.
-- `tests/ui/harness/` requires Playwright — run with `uv run pytest tests/ui/harness/`.
-- **Coverage target**: 100% — run `uv run pytest --cov` to verify before claiming completion.
-- Do not add mocks for the database/graph engine — integration tests must use real instances
-  (see `feedback_check_docs_first.md` for the rationale).
+- Run the full suite (`uv run pytest`) after any refactor or multi-file change before claiming completion.
+- In test files, `import haywire.core.graph.editor` **before** any other haywire module (circular import).
+- Call `force_immediate_validation()` after node setup before asserting.
+- Do not top-import barn classes — they go stale across `importlib.reload`. Use `importlib.import_module` + `patch.object` (see `.insights/feedback_barn_module_reload_test_trap.md`).
+- Markers:
+  - `-m unit` — fast.
+  - `-m integration` — slow, full library system.
+  - `-m "not integration"` — everything else.
+- Coverage target: 100% on `haywire-core`.
 
----
+## 5. Source of Truth
 
-## Source of Truth
-
-| Concern | File |
-|---------|------|
-| DI test setup | `conftest.py` + `core/conftest.py` |
-| Settings system tests | `core/test_settings/test_settings.py` |
-| Edge lifecycle tests | `core/test_graph/test_edges.py` |
-| NiceGUI harness entry | `ui/harness/app.py` + `ui/harness/conftest.py` |
-| Canvas handler tests | `ui/test_canvas_handlers/` |
+| Concept | Canonical file | Notes |
+|---------|---------------|-------|
+| Shared fixtures | `tests/conftest.py` | DI reset, registry reset |
+| Marker definitions | root `pyproject.toml [tool.pytest.ini_options]` | `unit`, `integration` |
 
 ---
 
-## Depends on
+## Dependencies
 
-- [core-engine.md](core-engine.md) — tests import core DI, graph, node, settings APIs
-- [core-ui.md](core-ui.md) — UI tests use NiceGUI components
-- [haybale-core.md](haybale-core.md) — canvas handler tests use haybale-core panels
-- [barn-other.md](barn-other.md) — integration tests load haybale-testing fixture nodes
+### Depends on
 
-## Depended on by
+- All production modules (engine, UI, studio, all haybale libraries).
+- `pytest`, `pytest-cov`, `pytest-playwright`, `playwright`.
 
-Nothing — tests are a leaf in the dependency graph.
+### Depended on by
+
+- CI (and humans running `uv run pytest`).
+
+---
+
+## Key Entry Points
+
+| Entry point | File | Description |
+|-------------|------|-------------|
+| Smoke test | `tests/test_smoke.py` | First line of defence |
+| Init scaffolding | `tests/test_init_scaffolding.py` | Verifies `haywire init` CLI |
+| Haystack integration | `tests/integration/test_haystack_carve_out.py` | Full-stack haystack flow |

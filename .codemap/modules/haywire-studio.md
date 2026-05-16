@@ -1,81 +1,87 @@
-# Module: haywire-studio
+# Module: Haywire Studio
+
+> CLI application package that composes `haywire-core` into the `haywire` executable. Owns app bootstrap, global/project TOML config, the file-centric haystack registry, and runtime library install/manage UI.
 
 **Path:** `packages/haywire-studio/src/haywire_studio/`
-**Import as:** `haywire_studio`
-**CLI entry:** `uv run haywire` → `haywire_studio:main`
+**Language:** Python 3.10+
+**Owner:** Haywire studio team
+**Tree hash:** `32290f54f1e21c75972b6712c4e7576c2bbd360f`
+**Mapped at:** b2e5340b (2026-05-16)
 
 ---
 
-## Scope & Purpose
+## 1. Scope & Purpose
 
-The CLI application package. Wires together `haywire.core` (DI, graph engine) and `haywire.ui`
-(NiceGUI shell), provides the `haywire` CLI command, and manages global config, multi-graph
-file registry, and runtime library installation. Also owns workspace defaults.
+`haywire-studio` is the end-user application: it provides the `haywire` CLI entry point, boots a NiceGUI server, loads installed haybale libraries, and exposes runtime UI for managing them. It glues `haywire-core` (engine + UI) to user-facing concerns: config files, init scaffolding, share/export, and the workspace that hosts haystack file groups.
 
----
-
-## Folder Architecture
+## 2. Folder Architecture
 
 ```
 haywire_studio/
-├── __init__.py
-├── __main__.py                 # python -m haywire_studio entry
-├── app.py                      # HaywireApp — main application class
-├── config.py                   # Global + project TOML config
-├── haystack.py                 # Haystack — file-centric multi-graph registry
-├── library_manager.py          # LibraryManager — runtime library install/UI
-├── init.py                     # `haywire init` CLI subcommand
-├── share.py                    # `haywire share` CLI subcommand
-└── workspace/
-    ├── __init__.py
-    └── defaults.py             # WorkspaceDefaults — default layout/editor config
+├── __init__.py         ← exposes `main` (CLI entry point)
+├── __main__.py         ← `python -m haywire_studio`
+├── app.py              ← `HaywireApp` (~500 lines) – top-level orchestrator
+├── config.py           ← global + project TOML config readers/writers
+├── init.py             ← CLI: `haywire init` scaffolding
+├── library_manager.py  ← runtime library install/UI (pip wrap + reload)
+├── share.py            ← CLI: `haywire share` (export/share flows)
+└── workspace/          ← studio-specific workspace pieces
 ```
 
----
+> Note: the file-centric multi-graph registry (`haystack.py`) referenced in `CLAUDE.md` now lives in [haybale-haystack](haybale-haystack.md). The studio focuses on app/config/library-manager.
 
-## Always-load vs On-demand
+## 3. Always-load vs On-demand
 
-**Always-load**:
-- `app.py` — understand HaywireApp bootstrap, DI wiring, NiceGUI startup
-- `config.py` — where/how TOML settings are loaded (global vs project)
-- `haystack.py` — multi-graph file system model
+### Always-load
 
-**On-demand**:
-- `library_manager.py` — only when working on runtime library install/UI
-- `init.py` / `share.py` — only when working on CLI subcommands
+- `app.py` — `HaywireApp` is the orchestrator; almost every studio task touches it.
+- `__init__.py` — `main()` entry point; CLI argument routing.
+- `config.py` — global vs project TOML resolution.
 
----
+### On-demand
 
-## Rules & Boundaries
+- `library_manager.py` — when working on install/uninstall/reload UI for libraries.
+- `init.py`, `share.py` — only when modifying the corresponding CLI subcommands.
+- `workspace/` — when changing how the studio mounts a workspace differently from core.
 
-- **CLI entry point only** — this package should not export reusable library APIs.
-- **Config hierarchy**: global (`~/.haywire/settings.toml`) → project (`.haywire/settings.toml`).
-  Managed by `config.py`; do not bypass this for settings resolution.
-- **Haystack is file-centric** — each open graph corresponds to a `.haywire` file; the
-  manager handles load/save/close lifecycle.
-- **Workspace layouts are user-owned** — no built-in presets are seeded; `WorkspaceManager`
-  starts empty and loads user-saved presets from `.haywire/workspaces.json`.
-- No direct NiceGUI import in `config.py` or `haystack.py` — only `app.py` and `workspace/`
-  should touch NiceGUI directly.
+## 4. Rules & Boundaries
 
----
+- This package depends on `haywire-core`, `haybale-core`, `haybale-studio`. Pulling in other haybale libs must go through the library discovery path, not direct imports.
+- Keep `app.py` close to its current size (~500 lines). Split into helpers before it grows further.
+- Config: global TOML lives under the user config dir; project TOML lives in the project root. Both pass through `config.py` — do not parse TOMLs ad hoc.
+- The `haywire` script is the only sanctioned launcher; tests don't spawn it as a subprocess except via `tests/test_init_scaffolding.py`.
 
-## Source of Truth
+## 5. Source of Truth
 
-| Concern | File |
-|---------|------|
-| App bootstrap & DI wiring | `app.py` |
-| TOML config resolution | `config.py` |
-| Multi-graph file registry | `haystack.py` |
-| Runtime library install | `library_manager.py` |
+| Concept | Canonical file | Notes |
+|---------|---------------|-------|
+| CLI `haywire` entry | `__init__.py:main` | Defined in `pyproject.toml [project.scripts]` |
+| App orchestrator | `app.py` (`HaywireApp`) | Boots NiceGUI + libraries |
+| TOML config | `config.py` | Both global and project schemas |
+| Library install UI | `library_manager.py` | Wraps pip + library reload |
 
 ---
 
-## Depends on
+## Dependencies
 
-- [core-engine.md](core-engine.md) — DI container, graph engine, library registry
-- [core-ui.md](core-ui.md) — HaywireAppShell, editor/panel/workspace registries
+### Depends on
 
-## Depended on by
+- [haywire-core-engine](haywire-core-engine.md), [haywire-core-ui](haywire-core-ui.md).
+- [haybale-core](haybale-core.md), [haybale-studio](haybale-studio.md) — required at runtime.
 
-Nothing — this is the top-level application package.
+### Depended on by
+
+- [tests](tests.md) — `tests/studio/` and `tests/test_init_scaffolding.py`.
+- End users via the `haywire` CLI command.
+
+---
+
+## Key Entry Points
+
+| Entry point | File | Description |
+|-------------|------|-------------|
+| `haywire` CLI | `__init__.py:main` | `pyproject.toml` `[project.scripts]` |
+| `python -m haywire_studio` | `__main__.py` | Same as above without script alias |
+| App boot | `app.py:HaywireApp` | NiceGUI server + library loading |
+| `haywire init` | `init.py` | Scaffolds a new project tree |
+| `haywire share` | `share.py` | Export/share flows |
