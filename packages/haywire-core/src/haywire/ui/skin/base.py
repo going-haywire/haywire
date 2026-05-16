@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
+from typing import ClassVar
 import logging
 
 import nicegui.ui as ui
@@ -35,8 +36,8 @@ class BaseSkin(IBaseSkin, ABC):
     They are cached and reused by the SkinFactory.
     """
 
-    class_identity: SkinIdentity
-    class_library: LibraryIdentity
+    class_identity: ClassVar[SkinIdentity]
+    class_library: ClassVar[LibraryIdentity]
 
     def __init__(self, widget_factory: IWidgetFactory):
         """

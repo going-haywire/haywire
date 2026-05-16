@@ -46,9 +46,9 @@ class NodeData:
 
     # Class-level attributes (set by @node decorator)
     _settings_bags: ClassVar[dict[str, type]] = {}
-    class_identity: NodeIdentity
-    class_behavior: NodeBehaviorFlags
-    class_library: LibraryIdentity
+    class_identity: ClassVar[NodeIdentity]
+    class_behavior: ClassVar[NodeBehaviorFlags]
+    class_library: ClassVar[LibraryIdentity]
 
     def worker(self, context: ExecutionContext, *args: Any, **kwargs: Any) -> "str | None":
         """Subclass hook — override to define node behaviour. See BaseNode.worker for details."""

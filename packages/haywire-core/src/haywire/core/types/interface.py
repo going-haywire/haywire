@@ -1,6 +1,6 @@
 from __future__ import annotations
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, Any, Dict, Optional
+from typing import TYPE_CHECKING, Any, ClassVar, Dict, Optional
 
 from haywire.core.types.enums import PortType, StoreStrategy
 
@@ -87,8 +87,8 @@ class IType(ABC):
     # What this type wraps/contains
 
     # IDENTITY ATTRIBUTES (set by @type decorator)
-    class_identity: "DataTypeIdentity"
-    class_library: "LibraryIdentity"
+    class_identity: ClassVar["DataTypeIdentity"]
+    class_library: ClassVar["LibraryIdentity"]
 
     @property
     @abstractmethod

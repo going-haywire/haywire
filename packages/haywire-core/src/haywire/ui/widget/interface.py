@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, Any, Dict
+from typing import TYPE_CHECKING, Any, ClassVar, Dict
 from haywire.core.library.identity import LibraryIdentity
 from haywire.ui.widget.identity import WidgetIdentity
 
@@ -23,8 +23,8 @@ class IWidget(ABC):
     """
 
     # Set by @widget decorator
-    class_identity: WidgetIdentity
-    class_library: LibraryIdentity
+    class_identity: ClassVar[WidgetIdentity]
+    class_library: ClassVar[LibraryIdentity]
 
     @abstractmethod
     def __init__(self, element: "DataPort"):

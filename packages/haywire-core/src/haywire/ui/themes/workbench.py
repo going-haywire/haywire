@@ -13,6 +13,7 @@ from typing import ClassVar
 from haywire.core.library.identity import LibraryIdentity
 from haywire.ui.themes.identity import ThemeClassIdentity
 
+
 class _FieldProxy:
     """Minimal descriptor-like object wrapping a plain Color default value."""
 
@@ -41,8 +42,8 @@ class WorkbenchTheme:
     and can be registered with ThemeRegistry.
     """
 
-    class_identity: ThemeClassIdentity = None
-    class_library: LibraryIdentity = None
+    class_identity: ClassVar[ThemeClassIdentity]
+    class_library: ClassVar[LibraryIdentity]
 
     _fields: ClassVar[dict[str, _FieldProxy]] = {}
     _namespace: ClassVar[str] = ""

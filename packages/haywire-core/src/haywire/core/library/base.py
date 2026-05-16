@@ -1,7 +1,7 @@
 # haywire.core.library.base.py
 from abc import ABC, abstractmethod
 import logging
-from typing import Any, Dict, List, Tuple, Type, Optional
+from typing import Any, ClassVar, Dict, List, Tuple, Type, Optional
 
 from haywire.core.namespaces import CATEGORY_LIBRARY_LOG
 
@@ -29,7 +29,7 @@ class BaseLibrary(ABC):
     """
 
     # Set by @library decorator at class definition time
-    class_identity: LibraryIdentity
+    class_identity: ClassVar[LibraryIdentity]
 
     def __init__(self, file_path: str, enforce_file_watching: bool = False, debounce_delay: float = 0.5):
         self.file_path = file_path

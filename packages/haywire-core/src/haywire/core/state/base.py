@@ -14,7 +14,7 @@ from __future__ import annotations
 
 import weakref
 from abc import abstractmethod
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, ClassVar
 
 from haywire.core.library.identity import LibraryIdentity
 from haywire.core.session.signals import Signal, SignalSource
@@ -38,8 +38,8 @@ class LibraryState(SignalSource):
     no-ops and add nothing.
     """
 
-    class_identity: LibraryStateClassIdentity
-    class_library: LibraryIdentity
+    class_identity: ClassVar[LibraryStateClassIdentity]
+    class_library: ClassVar[LibraryIdentity]
 
     def on_enable(self) -> None:
         """Lifecycle hook: called by the container after instantiation.

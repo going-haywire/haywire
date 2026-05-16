@@ -3,7 +3,7 @@ Base adapter classes for type conversion
 """
 
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, Any, Callable, List, Optional, Type, TypeVar
+from typing import TYPE_CHECKING, Any, Callable, ClassVar, List, Optional, Type, TypeVar
 from dataclasses import dataclass
 
 from haywire.core.library.identity import LibraryIdentity
@@ -130,8 +130,8 @@ class IAdapter(ABC):
     """
 
     # IDENTITY ATTRIBUTES (set by @type decorator)
-    class_identity: AdapterIdentity
-    class_library: LibraryIdentity
+    class_identity: ClassVar[AdapterIdentity]
+    class_library: ClassVar[LibraryIdentity]
 
     @abstractmethod
     def convert(self, value: Any) -> Any:

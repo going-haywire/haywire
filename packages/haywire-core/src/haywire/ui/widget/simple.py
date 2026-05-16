@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from collections.abc import Callable
 import logging
-from typing import Any, Optional
+from typing import Any, ClassVar, Optional
 from nicegui import ui
 from haywire.core.types import DataPort
 from haywire.ui.widget.interface import IWidget
@@ -45,9 +45,9 @@ class SimpleWidget(IWidget, ABC):
                 return 0.0
     """
 
-    # Metadata (set by @widget decorator)
-    class_identity: Any
-    class_library: Any
+    # Metadata (set by @widget decorator) — narrower types come from IWidget.
+    class_identity: ClassVar[Any]
+    class_library: ClassVar[Any]
 
     # Defaults work for most NiceGUI elements
     UI_PROPERTY: str = "value"
