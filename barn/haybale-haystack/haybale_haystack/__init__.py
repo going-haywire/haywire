@@ -33,7 +33,7 @@ from haywire.ui.panel.registry import PanelRegistry
     help_url="",
     author="",
     author_url="",
-    dependencies=["haybale_core", "haybale_studio", "graph_editor"],
+    dependencies=["haybale_core", "haybale_studio", "haybale_graph_editor"],
     tags=["graph-management"],
     file_watcher=True,
 )
