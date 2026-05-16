@@ -80,12 +80,33 @@ class AppShell:
         self._lifecycle_unsubs: list[Callable[[], None]] = []
 
     def _build_initial_theme_css(self) -> str:
-        """Build the :root CSS block from the active WorkbenchTheme."""
+        """Build the :root CSS block from the active WorkbenchTheme.
+
+        Returns an empty string when the ``workbench.theme`` setting isn't
+        registered (no library declares it) or no workbench themes are
+        registered. The app then renders without theme CSS variables —
+        visually broken but navigable, so the config issue is surfaced
+        in the UI rather than crashing on the first page load.
+        """
         context = self.session.context
         settings_registry = context.app.library_service.get_settings_registry()
         theme_registry = context.app.library_service.get_theme_registry()
-        wb_theme_key, _ = settings_registry.resolve("workbench.theme")
+        try:
+            wb_theme_key, _ = settings_registry.resolve("workbench.theme")
+        except KeyError:
+            logger.warning(
+                "AppShell: 'workbench.theme' setting is not registered — "
+                "no library declares it. Skipping theme CSS variables; "
+                "the app will render with browser defaults."
+            )
+            return ""
         valid_keys = [k for k in theme_registry.list_workbench_keys() if not k.startswith("__system__:")]
+        if not valid_keys:
+            logger.warning(
+                "AppShell: no workbench themes registered. Skipping theme "
+                "CSS variables; the app will render with browser defaults."
+            )
+            return ""
         if wb_theme_key not in valid_keys:
             wb_theme_key = valid_keys[0]
             settings_registry.set_global("workbench.theme", wb_theme_key)
