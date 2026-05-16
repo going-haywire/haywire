@@ -11,8 +11,8 @@ from haywire.ui import elements as hui
 from haywire.ui.panel import BasePanel, PanelLayout
 from haywire.ui.panel.decorator import panel
 
-from haybale_studio.focuses import GraphFocus
-from haybale_studio.state.edit_state import EditState
+from ..focuses import GraphFocus
+from ..state.edit_state import EditState
 
 if TYPE_CHECKING:
     from haywire.core.session.context import SessionContext

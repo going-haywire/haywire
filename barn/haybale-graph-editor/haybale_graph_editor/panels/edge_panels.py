@@ -15,12 +15,13 @@ from typing import TYPE_CHECKING
 
 from nicegui import ui
 
-from haybale_studio.focuses import EdgeFocus
-from haybale_studio.state.edit_state import EditState
 from haywire.ui import elements as hui
-from haybale_studio.editors.graph_canvas.handlers.context_menu_actions import EdgeContextActions
 from haywire.ui.panel import BasePanel, PanelLayout
 from haywire.ui.panel.decorator import panel
+
+from ..focuses import EdgeFocus
+from ..state.edit_state import EditState
+from ..editors.graph_canvas.handlers.context_menu_actions import EdgeContextActions
 
 if TYPE_CHECKING:
     from haywire.core.edge.edge_wrapper import EdgeWrapperState

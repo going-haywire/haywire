@@ -22,11 +22,8 @@ from haywire.core.session.context import SessionContext
 from haywire.core.session.handlers import redraw_on
 from haywire.core.session.signals import SelectionMoved
 
-from haybale_studio.state.edit_state import EditState
-
 if TYPE_CHECKING:
     from nicegui.element import Element
-
 
 class _WidgetPreviewPort:
     """Minimal mock port used to render a live widget preview without a real binding."""
@@ -82,9 +79,6 @@ class LibraryComponentEditor(BaseEditor):
         if self._container is None:
             return
         registry_key = context.active_component
-        active_node = context.data[EditState].active_node
-        if not registry_key and active_node is not None:
-            registry_key = active_node.registry_key
         with self._container:
             if not registry_key:
                 hui.empty_state(

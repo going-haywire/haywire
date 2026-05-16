@@ -36,7 +36,7 @@ from haywire.core.session.signals import Signal
 from haywire.ui.editor.base import BaseEditor
 from haywire.ui.editor.decorator import editor
 
-from haybale_studio.state.edit_state import EditState
+from haybale_graph_editor.state.edit_state import EditState
 
 if TYPE_CHECKING:
     from haywire.core.registry.lifecycle_event import LifeCycleEvent
@@ -54,6 +54,7 @@ logger = logging.getLogger(__name__)
 )
 class NodeSourceEditor(BaseEditor):
     """Source viewer/editor that follows ``context.data[EditState].active_node``."""
+    # TODO: Source Editor has to migrate to component source editor
 
     def __init__(self, wrapper) -> None:
         super().__init__(wrapper)

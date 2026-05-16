@@ -9,7 +9,7 @@ import dataclasses
 import os
 from typing import Dict
 
-from haybale_studio.editors.graph_canvas.event_definitions import GRAPH_EVENT_REGISTRY
+from haybale_graph_editor.editors.graph_canvas.event_definitions import GRAPH_EVENT_REGISTRY
 
 
 class VueEventGenerator:

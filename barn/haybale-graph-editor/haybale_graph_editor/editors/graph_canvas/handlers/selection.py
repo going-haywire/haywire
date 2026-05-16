@@ -11,15 +11,16 @@ from typing import Optional, Set, TYPE_CHECKING
 
 from nicegui import ui
 
+from haywire.core.undo.actions.graph_actions import ClipboardData
+from haywire.core.session.signals import SelectionMoved
+
 from ..event_definitions import (
     SelectionChangedEvent,
     UserCopySelectedEvent,
     UserPasteClipboardEvent,
 )
 from ..event_handlers import handles_event
-from haywire.core.undo.actions.graph_actions import ClipboardData
-from haywire.core.session.signals import SelectionMoved
-from haybale_studio.state.edit_state import EditState
+from ....state.edit_state import EditState
 
 if TYPE_CHECKING:
     from haywire.core.graph.editor import Editor

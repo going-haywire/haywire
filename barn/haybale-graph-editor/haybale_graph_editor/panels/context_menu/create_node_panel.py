@@ -10,15 +10,16 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from haybale_studio.focuses import CanvasFocus
-from haybale_studio.state.edit_state import EditState
 from haywire.core.node.info import NodeInfo
 from haywire.ui import elements as hui
 from haywire.core.session.signals import Reveal
-from haybale_studio.editors.graph_canvas.handlers.context_menu_actions import CanvasContextActions
-from haybale_studio.editors.graph_canvas.node_menu_builder import NodeMenuBuilder
 from haywire.ui.panel import BasePanel
 from haywire.ui.panel.layout import PanelLayout
 from haywire.ui.panel.decorator import panel
+
+from ...state.edit_state import EditState
+from ...editors.graph_canvas.handlers.context_menu_actions import CanvasContextActions
+from ...editors.graph_canvas.node_menu_builder import NodeMenuBuilder
 
 if TYPE_CHECKING:
     from haywire.core.session.context import SessionContext

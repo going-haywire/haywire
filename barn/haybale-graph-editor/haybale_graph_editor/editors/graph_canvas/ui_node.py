@@ -17,9 +17,10 @@ from haywire.core.node.base import BaseNode
 from haywire.core.errors.haywire_exception import HaywireException
 from haywire.core.node.node_wrapper import NodeWrapper
 
-from haybale_studio.editors.graph_canvas.event_definitions import SyncNodeRedrawEvent
 from haywire.ui.ui_nodecard import UINodeCard
 from haywire.ui.skin.factory import SkinFactory, NO_SKIN_DEFINED
+
+from .event_definitions import SyncNodeRedrawEvent
 
 logger = logging.getLogger(__name__)
 

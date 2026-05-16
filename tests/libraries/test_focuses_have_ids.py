@@ -6,28 +6,28 @@ from haywire.ui.panel.focus import focus_by_id
 
 def test_node_focus_has_id():
     # Importing the module triggers Focus.__init_subclass__.
-    from haybale_studio.focuses import NodeFocus
+    from haybale_graph_editor.focuses import NodeFocus
 
     assert NodeFocus.id == "node"
     assert focus_by_id("node") is NodeFocus
 
 
 def test_edge_focus_has_id():
-    from haybale_studio.focuses import EdgeFocus
+    from haybale_graph_editor.focuses import EdgeFocus
 
     assert EdgeFocus.id == "edge"
     assert focus_by_id("edge") is EdgeFocus
 
 
 def test_graph_focus_has_id():
-    from haybale_studio.focuses import GraphFocus
+    from haybale_graph_editor.focuses import GraphFocus
 
     assert GraphFocus.id == "graph"
     assert focus_by_id("graph") is GraphFocus
 
 
 def test_port_focus_has_id():
-    from haybale_studio.focuses import PortFocus
+    from haybale_graph_editor.focuses import PortFocus
 
     assert PortFocus.id == "port"
     assert focus_by_id("port") is PortFocus
@@ -54,13 +54,13 @@ def test_canvas_focus_has_id():
 
 
 def test_settings_focus_has_id():
-    from haybale_studio.focuses import SettingsFocus
+    from haybale_graph_editor.focuses import SettingsFocus
 
     assert SettingsFocus.id == "settings"
 
 
 def test_selection_focus_has_id():
-    from haybale_studio.focuses import SelectionFocus
+    from haybale_graph_editor.focuses import SelectionFocus
 
     assert SelectionFocus.id == "selection"
     assert focus_by_id("selection") is SelectionFocus
@@ -108,7 +108,7 @@ def _make_ctx_with_edit_stub():
 
 
 def test_selection_focus_available_when_nodes_selected():
-    from haybale_studio.focuses import SelectionFocus
+    from haybale_graph_editor.focuses import SelectionFocus
 
     ctx, edit_stub = _make_ctx_with_edit_stub()
     assert SelectionFocus.available(ctx) is False  # nothing selected
@@ -118,7 +118,7 @@ def test_selection_focus_available_when_nodes_selected():
 
 
 def test_selection_focus_available_when_edges_selected():
-    from haybale_studio.focuses import SelectionFocus
+    from haybale_graph_editor.focuses import SelectionFocus
 
     ctx, edit_stub = _make_ctx_with_edit_stub()
     edit_stub.selected_edges = {"edge-1"}

@@ -3,7 +3,7 @@
 from typing import Protocol, runtime_checkable
 from unittest.mock import MagicMock
 
-from haybale_studio.state.edit_state import EditState
+from haybale_graph_editor.state.edit_state import EditState
 from haywire.core.library.identity import LibraryIdentity
 from haywire.core.state import LibraryStateContainer, LibraryStateRegistry
 from haywire.core.session.context import SessionContext

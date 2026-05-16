@@ -37,11 +37,12 @@ from haywire.core.session.signals import (
 )
 from haywire.ui.modals import confirm_modal, pick_modal, rename_modal, save_as_modal
 
-from haybale_studio.state.edit_state import EditState
-from haybale_haystack.signals import HaystackReloaded, HaystackTeardown
-from haybale_haystack.state.haystack_state import HaystackState
+from haybale_graph_editor.state.edit_state import EditState
 from haybale_graph_editor.editors.graph_editor import GraphEditor
-from haybale_haystack.graph_entry import GraphEntry
+
+from ..signals import HaystackReloaded, HaystackTeardown
+from ..state.haystack_state import HaystackState
+from ..graph_entry import GraphEntry
 
 logger = logging.getLogger(__name__)
 

@@ -10,13 +10,14 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from haybale_studio.focuses import NodeFocus
-from haybale_studio.state.edit_state import EditState
 from haywire.ui import elements as hui
-from haybale_studio.editors.graph_canvas.handlers.context_menu_actions import NodeContextActions
 from haywire.ui.panel import BasePanel
 from haywire.ui.panel.layout import PanelLayout
 from haywire.ui.panel.decorator import panel
+
+from ...focuses import NodeFocus
+from ...state.edit_state import EditState
+from ...editors.graph_canvas.handlers.context_menu_actions import NodeContextActions
 
 if TYPE_CHECKING:
     from haywire.core.session.context import SessionContext

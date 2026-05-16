@@ -25,10 +25,11 @@ from haywire.ui import elements as hui
 from haywire.ui.editor.decorator import editor
 from haywire.ui.editor.base import BaseEditor
 from haywire.core.session.signals import ActiveGraphMoved, GraphDataMutated
-from haybale_studio.editors.graph_canvas.graph_canvas_manager import GraphCanvasManager
-from haybale_studio.state.edit_state import EditState
-from haybale_graph_editor.state.graph_app_state import GraphAppState
-from haybale_graph_editor.protocols import GraphContainer  # noqa: F401  (used in type annotations)
+
+from ..editors.graph_canvas.graph_canvas_manager import GraphCanvasManager
+from ..state.edit_state import EditState
+from ..state.graph_app_state import GraphAppState
+from ..protocols import GraphContainer  # noqa: F401  (used in type annotations)
 
 if TYPE_CHECKING:
     from haywire.core.session.context import SessionContext

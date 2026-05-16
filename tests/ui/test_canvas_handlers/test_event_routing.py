@@ -8,8 +8,8 @@ method itself.
 """
 
 import pytest
-from haybale_studio.editors.graph_canvas.event_handlers import handles_event, build_event_handler_map
-from haybale_studio.editors.graph_canvas.event_definitions import (
+from haybale_graph_editor.editors.graph_canvas.event_handlers import handles_event, build_event_handler_map
+from haybale_graph_editor.editors.graph_canvas.event_definitions import (
     UserDragStartEvent,
     UserDragUpdateEvent,
     SelectionChangedEvent,

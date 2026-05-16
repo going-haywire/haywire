@@ -15,6 +15,7 @@ from haywire.ui.editor.registry import EditorTypeRegistry
 # Public API re-exports
 from haybale_graph_editor.protocols import GraphContainer
 from haybale_graph_editor.state.graph_app_state import GraphAppState
+from haywire.ui.panel.registry import PanelRegistry
 
 __all__ = ["GraphContainer", "GraphAppState", "Library"]
 
@@ -41,6 +42,11 @@ class Library(BaseLibrary):
         self.add_folder_to_registry(
             folder_path=str(base_path / "state"),
             registry_cls=LibraryStateRegistry,
+        )
+
+        self.add_folder_to_registry(
+            folder_path=str(base_path / "panels"),
+            registry_cls=PanelRegistry,
         )
 
         self.add_folder_to_registry(

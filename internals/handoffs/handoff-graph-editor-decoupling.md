@@ -144,7 +144,7 @@ See [`internals/speculatives/library_dependency_ordering.md`](../speculatives/li
 
 ### Sub-PR 1 — Fix the `haywire-core` → `haybale-studio` runtime import
 
-Move [`barn/haybale-studio/haybale_studio/editors/graph_canvas/event_definitions.py`](../../barn/haybale-studio/haybale_studio/editors/graph_canvas/event_definitions.py) into `haywire-core` (likely under `packages/haywire-core/src/haywire/ui/components/graph/event_definitions.py`). Update the two importing files in `haywire-core`. Update the graph-canvas module to re-import from the new location (or be moved entirely in Sub-PR 2). Roughly 5 files. Independent of the panel rewrite — could land at any time, even before Sub-PR 0.
+Move [`barn/haybale-studio/haybale_studio/editors/graph_canvas/event_definitions.py`](../../barn/haybale-graph-editor/haybale_graph_editor/editors/graph_canvas/event_definitions.py) into `haywire-core` (likely under `packages/haywire-core/src/haywire/ui/components/graph/event_definitions.py`). Update the two importing files in `haywire-core`. Update the graph-canvas module to re-import from the new location (or be moved entirely in Sub-PR 2). Roughly 5 files. Independent of the panel rewrite — could land at any time, even before Sub-PR 0.
 
 ### Sub-PR 2 — Move `EditState` + the graph canvas
 
@@ -156,7 +156,7 @@ Update all importers (~25 files). The dependency inversion happens here: `haybal
 
 ### Sub-PR 3 — Move context-menu panels + their action protocols
 
-The five canvas-context Protocols (`CanvasContextActions`, `NodeContextActions`, `EdgeContextActions`, `SelectionContextActions`, `PortContextActions`) currently live in [`barn/haybale-studio/haybale_studio/editors/graph_canvas/handlers/context_menu_actions.py`](../../barn/haybale-studio/haybale_studio/editors/graph_canvas/handlers/context_menu_actions.py). Move them to `barn/haybale-graph-editor/haybale_graph_editor/protocols.py` (or a sibling file).
+The five canvas-context Protocols (`CanvasContextActions`, `NodeContextActions`, `EdgeContextActions`, `SelectionContextActions`, `PortContextActions`) currently live in [`barn/haybale-studio/haybale_studio/editors/graph_canvas/handlers/context_menu_actions.py`](../../barn/haybale-graph-editor/haybale_graph_editor/editors/graph_canvas/handlers/context_menu_actions.py). Move them to `barn/haybale-graph-editor/haybale_graph_editor/protocols.py` (or a sibling file).
 
 Move [`barn/haybale-studio/haybale_studio/panels/context_menu/`](../../barn/haybale-studio/haybale_studio/panels/context_menu/) subtree (7 files) into `barn/haybale-graph-editor/haybale_graph_editor/panels/context_menu/`. The `file_actions.py` in there stays in studio — it's about the file browser, not graph editing.
 

@@ -7,7 +7,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from haybale_studio.state.edit_state import EditState
+from haybale_graph_editor.state.edit_state import EditState
 from haybale_testing.test_actions import TestNodeContextActions
 from haybale_testing.test_focuses import TestNodeFocus
 from haywire.ui import elements as hui

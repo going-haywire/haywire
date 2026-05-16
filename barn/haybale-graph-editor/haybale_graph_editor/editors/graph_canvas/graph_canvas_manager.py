@@ -16,8 +16,7 @@ from haywire.ui.components.zoom.pan import ZoomPanContainer
 from haywire.ui.components.graph.canvas import GraphCanvasVue
 from haywire.core.session.session import Session
 
-from haybale_studio.state.edit_state import EditState
-
+from ...state.edit_state import EditState
 from .event_definitions import BaseGraphEvent, GRAPH_EVENT_REGISTRY
 from .event_handlers import build_event_handler_map
 from .handlers.interaction import InteractionHandlers

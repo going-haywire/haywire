@@ -8,7 +8,7 @@ from haybale_testing.test_actions import TestCanvasContextActions
 from haybale_testing.test_focuses import TestCanvasFocus
 from haywire.core.node.info import NodeInfo
 from haywire.ui import elements as hui
-from haybale_studio.editors.graph_canvas.node_menu_builder import NodeMenuBuilder
+from haybale_graph_editor.editors.graph_canvas.node_menu_builder import NodeMenuBuilder
 from haywire.ui.panel import BasePanel
 from haywire.ui.panel.layout import PanelLayout
 from haywire.ui.panel.decorator import panel

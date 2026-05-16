@@ -27,7 +27,7 @@ This plan implements decisions reached in [handoff-panel-shape-annotation-action
 
 ### Open assumption flagged for confirmation before execution
 
-The literal Q5 answer in the inquisition resolved `get_panels_for_action(action_protocol)` — focus-less. But [context_menu.py:252-269](../../../barn/haybale-studio/haybale_studio/editors/graph_canvas/handlers/context_menu.py#L252-L269) routes by both `(action_protocol, focus)` (e.g., `PortContextActions` with different focuses resolved from DOM scopes). This plan adopts the two-argument signature. **If you prefer focus-less context-menu queries, stop and adjust Task 2 before continuing.**
+The literal Q5 answer in the inquisition resolved `get_panels_for_action(action_protocol)` — focus-less. But [context_menu.py:252-269](../../../barn/haybale-graph-editor/haybale_graph_editor/editors/graph_canvas/handlers/context_menu.py#L252-L269) routes by both `(action_protocol, focus)` (e.g., `PortContextActions` with different focuses resolved from DOM scopes). This plan adopts the two-argument signature. **If you prefer focus-less context-menu queries, stop and adjust Task 2 before continuing.**
 
 ---
 
@@ -41,9 +41,9 @@ The literal Q5 answer in the inquisition resolved `get_panels_for_action(action_
 - [packages/haywire-core/src/haywire/ui/panel/__init__.py](../../../packages/haywire-core/src/haywire/ui/panel/__init__.py) — update docstring
 
 ### Hosts (modified)
-- [barn/haybale-studio/haybale_studio/editors/_context_menu_base.py](../../../barn/haybale-studio/haybale_studio/editors/_context_menu_base.py) — `_open_menu`: call `get_panels_for_action(action, focus)`; inject `self` into `panel.actions` before draw; drop the third positional arg to `draw()`
+- [barn/haybale-studio/haybale_studio/editors/_context_menu_base.py](../../../packages/haywire-core/src/haywire/ui/_context_menu_base.py) — `_open_menu`: call `get_panels_for_action(action, focus)`; inject `self` into `panel.actions` before draw; drop the third positional arg to `draw()`
 - [barn/haybale-studio/haybale_studio/editors/properties_editor.py](../../../barn/haybale-studio/haybale_studio/editors/properties_editor.py) — switch calls to `get_panels_for_focus`, `get_display_focuses`, `get_redraw_signals_for_focus`; remove `clear_selection()`; drop the `, self` arg in the `panel.draw(...)` call
-- [barn/haybale-studio/haybale_studio/editors/graph_canvas/handlers/context_menu.py](../../../barn/haybale-studio/haybale_studio/editors/graph_canvas/handlers/context_menu.py) — no API changes (subclass passes the same `(action, focus, pos)` to the base's `_open_menu`)
+- [barn/haybale-studio/haybale_studio/editors/graph_canvas/handlers/context_menu.py](../../../barn/haybale-graph-editor/haybale_graph_editor/editors/graph_canvas/handlers/context_menu.py) — no API changes (subclass passes the same `(action, focus, pos)` to the base's `_open_menu`)
 
 ### Deleted
 - [barn/haybale-studio/haybale_studio/editors/properties_editor_actions.py](../../../barn/haybale-studio/haybale_studio/editors/properties_editor_actions.py) — entire file
@@ -55,24 +55,24 @@ For each file: remove the `from haybale_studio.editors.properties_editor_actions
 - [barn/haybale-studio/haybale_studio/panels/app_panels.py](../../../barn/haybale-studio/haybale_studio/panels/app_panels.py) (3 panels)
 - [barn/haybale-studio/haybale_studio/panels/canvas_settings.py](../../../barn/haybale-studio/haybale_studio/panels/canvas_settings.py) (5 panels)
 - [barn/haybale-studio/haybale_studio/panels/debug_panel.py](../../../barn/haybale-studio/haybale_studio/panels/debug_panel.py) (1 panel)
-- [barn/haybale-studio/haybale_studio/panels/edge_panels.py](../../../barn/haybale-studio/haybale_studio/panels/edge_panels.py) (4 panels)
+- [barn/haybale-studio/haybale_studio/panels/edge_panels.py](../../../barn/haybale-graph-editor/haybale_graph_editor/panels/edge_panels.py) (4 panels)
 - [barn/haybale-studio/haybale_studio/panels/execution_panel.py](../../../barn/haybale-studio/haybale_studio/panels/execution_panel.py) (1 panel)
-- [barn/haybale-studio/haybale_studio/panels/graph_info_panel.py](../../../barn/haybale-studio/haybale_studio/panels/graph_info_panel.py) (1 panel)
-- [barn/haybale-studio/haybale_studio/panels/node_ports_panel.py](../../../barn/haybale-studio/haybale_studio/panels/node_ports_panel.py) (1 panel)
-- [barn/haybale-studio/haybale_studio/panels/node_props_panel.py](../../../barn/haybale-studio/haybale_studio/panels/node_props_panel.py) (2 panels)
-- [barn/haybale-studio/haybale_studio/panels/node_settings.py](../../../barn/haybale-studio/haybale_studio/panels/node_settings.py) (1 panel)
-- [barn/haybale-studio/haybale_studio/panels/node_status.py](../../../barn/haybale-studio/haybale_studio/panels/node_status.py) (1 panel)
-- [barn/haybale-studio/haybale_studio/panels/context_menu/node_errors.py](../../../barn/haybale-studio/haybale_studio/panels/context_menu/node_errors.py) — **note: file lives in `context_menu/` dir but uses `PropertiesEditorActions`. Treat as properties-pane.**
+- [barn/haybale-studio/haybale_studio/panels/graph_info_panel.py](../../../barn/haybale-graph-editor/haybale_graph_editor/panels/graph_info_panel.py) (1 panel)
+- [barn/haybale-studio/haybale_studio/panels/node_ports_panel.py](../../../barn/haybale-graph-editor/haybale_graph_editor/panels/node_ports_panel.py) (1 panel)
+- [barn/haybale-studio/haybale_studio/panels/node_props_panel.py](../../../barn/haybale-graph-editor/haybale_graph_editor/panels/node_props_panel.py) (2 panels)
+- [barn/haybale-studio/haybale_studio/panels/node_settings.py](../../../barn/haybale-graph-editor/haybale_graph_editor/panels/node_settings.py) (1 panel)
+- [barn/haybale-studio/haybale_studio/panels/node_status.py](../../../barn/haybale-graph-editor/haybale_graph_editor/editors/node_status.py) (1 panel)
+- [barn/haybale-studio/haybale_studio/panels/context_menu/node_errors.py](../../../barn/haybale-graph-editor/haybale_graph_editor/panels/context_menu/node_errors.py) — **note: file lives in `context_menu/` dir but uses `PropertiesEditorActions`. Treat as properties-pane.**
 
 ### Panel sweep — context-menu (~6 files)
 For each file: remove `action=SomeContextActions,` from every `@panel(...)`, add `actions: SomeContextActions` as a class-body annotation under the class declaration, change `def draw(self, ctx, layout, actions: SomeContextActions)` to `def draw(self, ctx, layout)`, replace every `actions.X(...)` with `self.actions.X(...)`. Imports of the protocol stay (now used in the annotation).
 
-- [barn/haybale-studio/haybale_studio/panels/context_menu/create_node_panel.py](../../../barn/haybale-studio/haybale_studio/panels/context_menu/create_node_panel.py)
-- [barn/haybale-studio/haybale_studio/panels/context_menu/edge_actions.py](../../../barn/haybale-studio/haybale_studio/panels/context_menu/edge_actions.py)
+- [barn/haybale-studio/haybale_studio/panels/context_menu/create_node_panel.py](../../../barn/haybale-graph-editor/haybale_graph_editor/panels/context_menu/create_node_panel.py)
+- [barn/haybale-studio/haybale_studio/panels/context_menu/edge_actions.py](../../../barn/haybale-graph-editor/haybale_graph_editor/panels/context_menu/edge_actions.py)
 - [barn/haybale-studio/haybale_studio/panels/context_menu/file_actions.py](../../../barn/haybale-studio/haybale_studio/panels/context_menu/file_actions.py)
-- [barn/haybale-studio/haybale_studio/panels/context_menu/node_actions.py](../../../barn/haybale-studio/haybale_studio/panels/context_menu/node_actions.py)
-- [barn/haybale-studio/haybale_studio/panels/context_menu/port_info.py](../../../barn/haybale-studio/haybale_studio/panels/context_menu/port_info.py)
-- [barn/haybale-studio/haybale_studio/panels/context_menu/selection_actions.py](../../../barn/haybale-studio/haybale_studio/panels/context_menu/selection_actions.py)
+- [barn/haybale-studio/haybale_studio/panels/context_menu/node_actions.py](../../../barn/haybale-graph-editor/haybale_graph_editor/panels/context_menu/node_actions.py)
+- [barn/haybale-studio/haybale_studio/panels/context_menu/port_info.py](../../../barn/haybale-graph-editor/haybale_graph_editor/panels/context_menu/port_info.py)
+- [barn/haybale-studio/haybale_studio/panels/context_menu/selection_actions.py](../../../barn/haybale-graph-editor/haybale_graph_editor/panels/context_menu/selection_actions.py)
 - [barn/haybale-haystack/haybale_haystack/panels/file_browser/open_in_haystack.py](../../../barn/haybale-haystack/haybale_haystack/panels/file_browser/open_in_haystack.py)
 
 ### Panel sweep — testing library (5 files)
@@ -677,7 +677,7 @@ git commit -m "refactor(properties-editor): use focus-only registry queries
 
 - [ ] **Step 1: Rewrite `_open_menu` to use the new API + injection**
 
-Replace [_context_menu_base.py:50-88](../../../barn/haybale-studio/haybale_studio/editors/_context_menu_base.py#L50-L88):
+Replace [_context_menu_base.py:50-88](../../../packages/haywire-core/src/haywire/ui/_context_menu_base.py#L50-L88):
 
 ```python
     def _open_menu(

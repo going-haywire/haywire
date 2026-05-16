@@ -4,7 +4,7 @@ from types import SimpleNamespace
 from unittest.mock import MagicMock
 
 from haywire.core.session.context import SessionContext
-from haybale_studio.editors.graph_canvas.handlers.context_menu import (
+from haybale_graph_editor.editors.graph_canvas.handlers.context_menu import (
     SessionContextMenuProvider,
     _OpenMenuContext,
 )
@@ -72,35 +72,35 @@ def test_open_menu_context_holds_canvas_pos():
 
 
 def test_provider_satisfies_node_context_actions():
-    from haybale_studio.editors.graph_canvas.handlers.context_menu_actions import NodeContextActions
+    from haybale_graph_editor.editors.graph_canvas.handlers.context_menu_actions import NodeContextActions
 
     provider = _make_provider()
     assert isinstance(provider, NodeContextActions)
 
 
 def test_provider_satisfies_edge_context_actions():
-    from haybale_studio.editors.graph_canvas.handlers.context_menu_actions import EdgeContextActions
+    from haybale_graph_editor.editors.graph_canvas.handlers.context_menu_actions import EdgeContextActions
 
     provider = _make_provider()
     assert isinstance(provider, EdgeContextActions)
 
 
 def test_provider_satisfies_canvas_context_actions():
-    from haybale_studio.editors.graph_canvas.handlers.context_menu_actions import CanvasContextActions
+    from haybale_graph_editor.editors.graph_canvas.handlers.context_menu_actions import CanvasContextActions
 
     provider = _make_provider()
     assert isinstance(provider, CanvasContextActions)
 
 
 def test_provider_satisfies_selection_context_actions():
-    from haybale_studio.editors.graph_canvas.handlers.context_menu_actions import SelectionContextActions
+    from haybale_graph_editor.editors.graph_canvas.handlers.context_menu_actions import SelectionContextActions
 
     provider = _make_provider()
     assert isinstance(provider, SelectionContextActions)
 
 
 def test_delete_node_emits_user_remove_event():
-    from haybale_studio.editors.graph_canvas.event_definitions import UserRemoveEvent
+    from haybale_graph_editor.editors.graph_canvas.event_definitions import UserRemoveEvent
 
     captured = []
     provider = _make_provider(on_emit_event=captured.append)
@@ -113,7 +113,7 @@ def test_delete_node_emits_user_remove_event():
 
 
 def test_delete_edge_emits_user_remove_event():
-    from haybale_studio.editors.graph_canvas.event_definitions import UserRemoveEvent
+    from haybale_graph_editor.editors.graph_canvas.event_definitions import UserRemoveEvent
 
     captured = []
     provider = _make_provider(on_emit_event=captured.append)
@@ -126,7 +126,7 @@ def test_delete_edge_emits_user_remove_event():
 
 
 def test_copy_node_emits_user_copy_selected_event():
-    from haybale_studio.editors.graph_canvas.event_definitions import UserCopySelectedEvent
+    from haybale_graph_editor.editors.graph_canvas.event_definitions import UserCopySelectedEvent
 
     captured = []
     provider = _make_provider(on_emit_event=captured.append)
@@ -139,7 +139,7 @@ def test_copy_node_emits_user_copy_selected_event():
 
 
 def test_redraw_node_emits_element_redraw_event():
-    from haybale_studio.editors.graph_canvas.event_definitions import ElementRedrawEvent
+    from haybale_graph_editor.editors.graph_canvas.event_definitions import ElementRedrawEvent
 
     captured = []
     provider = _make_provider(on_emit_event=captured.append)
@@ -151,7 +151,7 @@ def test_redraw_node_emits_element_redraw_event():
 
 
 def test_revalidate_node_emits_element_revalidate_event():
-    from haybale_studio.editors.graph_canvas.event_definitions import ElementRevalidateEvent
+    from haybale_graph_editor.editors.graph_canvas.event_definitions import ElementRevalidateEvent
 
     captured = []
     provider = _make_provider(on_emit_event=captured.append)
@@ -161,7 +161,7 @@ def test_revalidate_node_emits_element_revalidate_event():
 
 
 def test_reset_node_emits_element_reset_event():
-    from haybale_studio.editors.graph_canvas.event_definitions import ElementResetEvent
+    from haybale_graph_editor.editors.graph_canvas.event_definitions import ElementResetEvent
 
     captured = []
     provider = _make_provider(on_emit_event=captured.append)
@@ -172,7 +172,7 @@ def test_reset_node_emits_element_reset_event():
 
 def test_copy_selection_uses_session_context_selection():
     """copy_selection reads ctx.data[EditState].selected_* and emits UserCopySelectedEvent."""
-    from haybale_studio.editors.graph_canvas.event_definitions import UserCopySelectedEvent
+    from haybale_graph_editor.editors.graph_canvas.event_definitions import UserCopySelectedEvent
 
     captured = []
     provider = _make_provider(on_emit_event=captured.append)
@@ -191,7 +191,7 @@ def test_copy_selection_uses_session_context_selection():
 
 def test_paste_at_click_emits_paste_event_with_canvas_pos():
     """paste_at_click emits UserPasteClipboardEvent using _open_ctx.canvas_pos."""
-    from haybale_studio.editors.graph_canvas.event_definitions import UserPasteClipboardEvent
+    from haybale_graph_editor.editors.graph_canvas.event_definitions import UserPasteClipboardEvent
 
     captured = []
     provider = _make_provider(on_emit_event=captured.append)
@@ -221,7 +221,7 @@ def test_paste_at_click_no_open_ctx_is_noop():
 
 
 def test_create_node_at_click_emits_node_create_request_event():
-    from haybale_studio.editors.graph_canvas.event_definitions import NodeCreateRequestEvent
+    from haybale_graph_editor.editors.graph_canvas.event_definitions import NodeCreateRequestEvent
 
     captured = []
     provider = _make_provider(on_emit_event=captured.append)
@@ -241,7 +241,7 @@ def test_create_node_at_click_emits_node_create_request_event():
 
 def test_reconnect_active_edge_uses_open_ctx_and_active_edge():
     """reconnect_active_edge reads ctx.data[EditState].active_edge AND _open_ctx.edge_reconnect_end."""
-    from haybale_studio.editors.graph_canvas.event_definitions import SyncEdgeReconnectEvent
+    from haybale_graph_editor.editors.graph_canvas.event_definitions import SyncEdgeReconnectEvent
 
     captured = []
     provider = _make_provider(on_emit_event=captured.append)
@@ -283,8 +283,8 @@ def test_reconnect_active_edge_no_active_edge_is_noop():
 
 def test_open_menu_creates_open_ctx_with_click_pos():
     """_open_menu records click_pos in _open_ctx."""
-    from haybale_studio.editors.graph_canvas.handlers.context_menu_actions import NodeContextActions
-    from haybale_studio.focuses import NodeFocus
+    from haybale_graph_editor.editors.graph_canvas.handlers.context_menu_actions import NodeContextActions
+    from haybale_graph_editor.focuses import NodeFocus
 
     provider = _make_provider()
     # _open_menu opens a Popup which requires NiceGUI runtime — patch it.
@@ -298,8 +298,8 @@ def test_open_menu_creates_open_ctx_with_click_pos():
 
 def test_open_menu_clears_open_ctx_on_close(monkeypatch):
     """When the popup's on_close fires, _open_ctx is set to None."""
-    from haybale_studio.editors.graph_canvas.handlers.context_menu_actions import NodeContextActions
-    from haybale_studio.focuses import NodeFocus
+    from haybale_graph_editor.editors.graph_canvas.handlers.context_menu_actions import NodeContextActions
+    from haybale_graph_editor.focuses import NodeFocus
 
     provider = _make_provider()
     popup = MagicMock()

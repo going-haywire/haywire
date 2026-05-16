@@ -29,12 +29,13 @@ from ..event_definitions import (
     SyncEdgeReconnectEvent,
     SyncEdgeConnectCancelEvent,
 )
-from ..event_handlers import handles_event
 from haywire.core.edge.edge_wrapper import EdgeWrapper
 from haywire.core.graph.types import ChangeReason, ValidationResult
 from haywire.core.node import BaseNode
-from haybale_studio.editors.graph_canvas.ui_node import UINode
-from haybale_studio.editors.graph_canvas.ui_edge import UIEdge
+
+from ..event_handlers import handles_event
+from ..ui_node import UINode
+from ..ui_edge import UIEdge
 
 if TYPE_CHECKING:
     from haywire.core.graph.editor import Editor
