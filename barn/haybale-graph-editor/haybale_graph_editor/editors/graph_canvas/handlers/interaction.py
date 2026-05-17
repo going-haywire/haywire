@@ -8,7 +8,7 @@ internally.  Undo grouping is achieved by the fence pair on drag start/end.
 import logging
 from typing import TYPE_CHECKING
 
-from ..event_definitions import (
+from haywire.ui.components.graph.event_definitions import (
     UserDragStartEvent,
     UserDragUpdateEvent,
     UserDragEndEvent,

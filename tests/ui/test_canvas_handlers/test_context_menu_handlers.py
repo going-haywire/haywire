@@ -13,7 +13,7 @@ from haybale_graph_editor.editors.graph_canvas.handlers.context_menu import (
     ContextMenuHandlers,
     IContextMenuProvider,
 )
-from haybale_graph_editor.editors.graph_canvas.event_definitions import (
+from haywire.ui.components.graph.event_definitions import (
     ContextMenuCanvasEvent,
     ContextMenuNodeEvent,
     ContextMenuEdgeEvent,

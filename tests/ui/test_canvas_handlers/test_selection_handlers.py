@@ -8,7 +8,7 @@ from unittest.mock import MagicMock
 from haywire.core.state import LibraryStateContainer, LibraryStateRegistry
 from haywire.core.session.context import SessionContext
 from haybale_graph_editor.editors.graph_canvas.handlers.selection import SelectionHandlers
-from haybale_graph_editor.editors.graph_canvas.event_definitions import (
+from haywire.ui.components.graph.event_definitions import (
     SelectionChangedEvent,
     UserCopySelectedEvent,
 )

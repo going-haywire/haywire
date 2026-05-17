@@ -14,7 +14,7 @@ from nicegui import ui
 from haywire.core.undo.actions.graph_actions import ClipboardData
 from haywire.core.session.signals import SelectionMoved
 
-from ..event_definitions import (
+from haywire.ui.components.graph.event_definitions import (
     SelectionChangedEvent,
     UserCopySelectedEvent,
     UserPasteClipboardEvent,

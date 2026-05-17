@@ -23,7 +23,7 @@ from haywire.core.session.session import Session
 from haywire.ui.panel.registry import PanelRegistry
 from haywire.ui._context_menu_base import BaseContextMenuProvider
 
-from ..event_definitions import (
+from haywire.ui.components.graph.event_definitions import (
     ContextMenuCanvasEvent,
     ContextMenuNodeEvent,
     ContextMenuEdgeEvent,
@@ -321,7 +321,7 @@ class SessionContextMenuProvider(IContextMenuProvider, BaseContextMenuProvider):
         the new node. Mark it consumed so the popup-close path does not
         also emit SyncEdgeConnectResumeEvent.
         """
-        from haybale_graph_editor.editors.graph_canvas.event_definitions import NodeCreateRequestEvent
+        from haywire.ui.components.graph.event_definitions import NodeCreateRequestEvent
 
         if self._open_ctx is None or self._open_ctx.canvas_pos is None:
             return
@@ -338,7 +338,7 @@ class SessionContextMenuProvider(IContextMenuProvider, BaseContextMenuProvider):
 
     def paste_at_click(self) -> None:
         """Emit UserPasteClipboardEvent at the click's canvas position."""
-        from haybale_graph_editor.editors.graph_canvas.event_definitions import UserPasteClipboardEvent
+        from haywire.ui.components.graph.event_definitions import UserPasteClipboardEvent
 
         if self._open_ctx is None or self._open_ctx.canvas_pos is None:
             return
@@ -348,34 +348,34 @@ class SessionContextMenuProvider(IContextMenuProvider, BaseContextMenuProvider):
     # NodeContextActions
 
     def delete_node(self, node_id: str) -> None:
-        from haybale_graph_editor.editors.graph_canvas.event_definitions import UserRemoveEvent
+        from haywire.ui.components.graph.event_definitions import UserRemoveEvent
 
         self._emit(UserRemoveEvent(nodes=[node_id], edges=[]))
 
     def copy_node(self, node_id: str) -> None:
-        from haybale_graph_editor.editors.graph_canvas.event_definitions import UserCopySelectedEvent
+        from haywire.ui.components.graph.event_definitions import UserCopySelectedEvent
 
         self._emit(UserCopySelectedEvent(selectedNodes=[node_id], selectedEdges=[]))
 
     def redraw_node(self, node_id: str) -> None:
-        from haybale_graph_editor.editors.graph_canvas.event_definitions import ElementRedrawEvent
+        from haywire.ui.components.graph.event_definitions import ElementRedrawEvent
 
         self._emit(ElementRedrawEvent(nodes=[node_id], edges=[]))
 
     def revalidate_node(self, node_id: str) -> None:
-        from haybale_graph_editor.editors.graph_canvas.event_definitions import ElementRevalidateEvent
+        from haywire.ui.components.graph.event_definitions import ElementRevalidateEvent
 
         self._emit(ElementRevalidateEvent(nodes=[node_id], edges=[]))
 
     def reset_node(self, node_id: str) -> None:
-        from haybale_graph_editor.editors.graph_canvas.event_definitions import ElementResetEvent
+        from haywire.ui.components.graph.event_definitions import ElementResetEvent
 
         self._emit(ElementResetEvent(nodes=[node_id], edges=[]))
 
     # EdgeContextActions
 
     def delete_edge(self, edge_id: str) -> None:
-        from haybale_graph_editor.editors.graph_canvas.event_definitions import UserRemoveEvent
+        from haywire.ui.components.graph.event_definitions import UserRemoveEvent
 
         self._emit(UserRemoveEvent(nodes=[], edges=[edge_id]))
 
@@ -387,7 +387,7 @@ class SessionContextMenuProvider(IContextMenuProvider, BaseContextMenuProvider):
         to compute the anchor pin. Panels never pass these as arguments —
         the provider holds them as gesture state.
         """
-        from haybale_graph_editor.editors.graph_canvas.event_definitions import SyncEdgeReconnectEvent
+        from haywire.ui.components.graph.event_definitions import SyncEdgeReconnectEvent
 
         wrapper = self._context.data[EditState].active_edge
         if wrapper is None or self._open_ctx is None:
@@ -415,7 +415,7 @@ class SessionContextMenuProvider(IContextMenuProvider, BaseContextMenuProvider):
 
     def copy_selection(self) -> None:
         """Emit UserCopySelectedEvent for the current ctx.data[EditState] selection."""
-        from haybale_graph_editor.editors.graph_canvas.event_definitions import UserCopySelectedEvent
+        from haywire.ui.components.graph.event_definitions import UserCopySelectedEvent
 
         edit = self._context.data[EditState]
         self._emit(

@@ -26,7 +26,7 @@ def _make_ctx_with_edit_state(register_edit_state):
 
 def test_copy_selection_handler_writes_to_session_context(register_edit_state):
     """SelectionHandlers.process_copy_selection writes the clipboard to EditState."""
-    from haybale_graph_editor.editors.graph_canvas.event_definitions import UserCopySelectedEvent
+    from haywire.ui.components.graph.event_definitions import UserCopySelectedEvent
     from haybale_graph_editor.editors.graph_canvas.handlers.selection import SelectionHandlers
 
     ctx, EditStateCls = _make_ctx_with_edit_state(register_edit_state)
@@ -59,7 +59,7 @@ def test_copy_selection_handler_writes_to_session_context(register_edit_state):
 
 def test_paste_clipboard_handler_reads_from_session_context(register_edit_state):
     """SelectionHandlers.process_paste_clipboard reads the clipboard from EditState."""
-    from haybale_graph_editor.editors.graph_canvas.event_definitions import UserPasteClipboardEvent
+    from haywire.ui.components.graph.event_definitions import UserPasteClipboardEvent
     from haybale_graph_editor.editors.graph_canvas.handlers.selection import SelectionHandlers
 
     ctx, EditStateCls = _make_ctx_with_edit_state(register_edit_state)

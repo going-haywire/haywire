@@ -100,7 +100,7 @@ def test_provider_satisfies_selection_context_actions():
 
 
 def test_delete_node_emits_user_remove_event():
-    from haybale_graph_editor.editors.graph_canvas.event_definitions import UserRemoveEvent
+    from haywire.ui.components.graph.event_definitions import UserRemoveEvent
 
     captured = []
     provider = _make_provider(on_emit_event=captured.append)
@@ -113,7 +113,7 @@ def test_delete_node_emits_user_remove_event():
 
 
 def test_delete_edge_emits_user_remove_event():
-    from haybale_graph_editor.editors.graph_canvas.event_definitions import UserRemoveEvent
+    from haywire.ui.components.graph.event_definitions import UserRemoveEvent
 
     captured = []
     provider = _make_provider(on_emit_event=captured.append)
@@ -126,7 +126,7 @@ def test_delete_edge_emits_user_remove_event():
 
 
 def test_copy_node_emits_user_copy_selected_event():
-    from haybale_graph_editor.editors.graph_canvas.event_definitions import UserCopySelectedEvent
+    from haywire.ui.components.graph.event_definitions import UserCopySelectedEvent
 
     captured = []
     provider = _make_provider(on_emit_event=captured.append)
@@ -139,7 +139,7 @@ def test_copy_node_emits_user_copy_selected_event():
 
 
 def test_redraw_node_emits_element_redraw_event():
-    from haybale_graph_editor.editors.graph_canvas.event_definitions import ElementRedrawEvent
+    from haywire.ui.components.graph.event_definitions import ElementRedrawEvent
 
     captured = []
     provider = _make_provider(on_emit_event=captured.append)
@@ -151,7 +151,7 @@ def test_redraw_node_emits_element_redraw_event():
 
 
 def test_revalidate_node_emits_element_revalidate_event():
-    from haybale_graph_editor.editors.graph_canvas.event_definitions import ElementRevalidateEvent
+    from haywire.ui.components.graph.event_definitions import ElementRevalidateEvent
 
     captured = []
     provider = _make_provider(on_emit_event=captured.append)
@@ -161,7 +161,7 @@ def test_revalidate_node_emits_element_revalidate_event():
 
 
 def test_reset_node_emits_element_reset_event():
-    from haybale_graph_editor.editors.graph_canvas.event_definitions import ElementResetEvent
+    from haywire.ui.components.graph.event_definitions import ElementResetEvent
 
     captured = []
     provider = _make_provider(on_emit_event=captured.append)
@@ -172,7 +172,7 @@ def test_reset_node_emits_element_reset_event():
 
 def test_copy_selection_uses_session_context_selection():
     """copy_selection reads ctx.data[EditState].selected_* and emits UserCopySelectedEvent."""
-    from haybale_graph_editor.editors.graph_canvas.event_definitions import UserCopySelectedEvent
+    from haywire.ui.components.graph.event_definitions import UserCopySelectedEvent
 
     captured = []
     provider = _make_provider(on_emit_event=captured.append)
@@ -191,7 +191,7 @@ def test_copy_selection_uses_session_context_selection():
 
 def test_paste_at_click_emits_paste_event_with_canvas_pos():
     """paste_at_click emits UserPasteClipboardEvent using _open_ctx.canvas_pos."""
-    from haybale_graph_editor.editors.graph_canvas.event_definitions import UserPasteClipboardEvent
+    from haywire.ui.components.graph.event_definitions import UserPasteClipboardEvent
 
     captured = []
     provider = _make_provider(on_emit_event=captured.append)
@@ -221,7 +221,7 @@ def test_paste_at_click_no_open_ctx_is_noop():
 
 
 def test_create_node_at_click_emits_node_create_request_event():
-    from haybale_graph_editor.editors.graph_canvas.event_definitions import NodeCreateRequestEvent
+    from haywire.ui.components.graph.event_definitions import NodeCreateRequestEvent
 
     captured = []
     provider = _make_provider(on_emit_event=captured.append)
@@ -241,7 +241,7 @@ def test_create_node_at_click_emits_node_create_request_event():
 
 def test_reconnect_active_edge_uses_open_ctx_and_active_edge():
     """reconnect_active_edge reads ctx.data[EditState].active_edge AND _open_ctx.edge_reconnect_end."""
-    from haybale_graph_editor.editors.graph_canvas.event_definitions import SyncEdgeReconnectEvent
+    from haywire.ui.components.graph.event_definitions import SyncEdgeReconnectEvent
 
     captured = []
     provider = _make_provider(on_emit_event=captured.append)

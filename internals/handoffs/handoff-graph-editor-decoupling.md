@@ -144,7 +144,7 @@ See [`internals/speculatives/library_dependency_ordering.md`](../speculatives/li
 
 ### Sub-PR 1 — Fix the `haywire-core` → `haybale-studio` runtime import
 
-Move [`barn/haybale-studio/haybale_studio/editors/graph_canvas/event_definitions.py`](../../barn/haybale-graph-editor/haybale_graph_editor/editors/graph_canvas/event_definitions.py) into `haywire-core` (likely under `packages/haywire-core/src/haywire/ui/components/graph/event_definitions.py`). Update the two importing files in `haywire-core`. Update the graph-canvas module to re-import from the new location (or be moved entirely in Sub-PR 2). Roughly 5 files. Independent of the panel rewrite — could land at any time, even before Sub-PR 0.
+Move [`barn/haybale-studio/haybale_studio/editors/graph_canvas/event_definitions.py`](../../packages/haywire-core/src/haywire/ui/components/graph/event_definitions.py) into `haywire-core` (likely under `packages/haywire-core/src/haywire/ui/components/graph/event_definitions.py`). Update the two importing files in `haywire-core`. Update the graph-canvas module to re-import from the new location (or be moved entirely in Sub-PR 2). Roughly 5 files. Independent of the panel rewrite — could land at any time, even before Sub-PR 0.
 
 ### Sub-PR 2 — Move `EditState` + the graph canvas
 

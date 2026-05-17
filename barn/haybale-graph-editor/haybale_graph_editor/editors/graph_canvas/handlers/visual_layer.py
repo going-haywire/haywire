@@ -15,7 +15,11 @@ from typing import Dict, Optional, Tuple, TYPE_CHECKING
 
 from nicegui import ui
 
-from ..event_definitions import (
+from haywire.core.edge.edge_wrapper import EdgeWrapper
+from haywire.core.graph.types import ChangeReason, ValidationResult
+from haywire.core.node import BaseNode
+
+from haywire.ui.components.graph.event_definitions import (
     UserRemoveEvent,
     NodeCreateRequestEvent,
     EdgeCreatedEvent,
@@ -29,9 +33,6 @@ from ..event_definitions import (
     SyncEdgeReconnectEvent,
     SyncEdgeConnectCancelEvent,
 )
-from haywire.core.edge.edge_wrapper import EdgeWrapper
-from haywire.core.graph.types import ChangeReason, ValidationResult
-from haywire.core.node import BaseNode
 
 from ..event_handlers import handles_event
 from ..ui_node import UINode

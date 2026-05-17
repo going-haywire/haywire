@@ -9,7 +9,7 @@ import pytest
 from unittest.mock import MagicMock
 
 from haybale_graph_editor.editors.graph_canvas.handlers.interaction import InteractionHandlers
-from haybale_graph_editor.editors.graph_canvas.event_definitions import (
+from haywire.ui.components.graph.event_definitions import (
     UserDragStartEvent,
     UserDragUpdateEvent,
     UserDragEndEvent,

@@ -20,7 +20,7 @@ from haywire.core.node.node_wrapper import NodeWrapper
 from haywire.ui.ui_nodecard import UINodeCard
 from haywire.ui.skin.factory import SkinFactory, NO_SKIN_DEFINED
 
-from .event_definitions import SyncNodeRedrawEvent
+from haywire.ui.components.graph.event_definitions import SyncNodeRedrawEvent
 
 logger = logging.getLogger(__name__)
 

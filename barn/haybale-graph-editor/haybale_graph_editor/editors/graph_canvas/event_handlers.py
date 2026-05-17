@@ -9,7 +9,7 @@ This module provides:
 """
 
 from typing import Callable, Dict, List, Type
-from .event_definitions import BaseGraphEvent
+from haywire.ui.components.graph.event_definitions import BaseGraphEvent
 
 
 def handles_event(*event_classes: Type[BaseGraphEvent]):

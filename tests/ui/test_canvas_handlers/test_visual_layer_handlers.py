@@ -13,7 +13,7 @@ import pytest
 from unittest.mock import MagicMock, patch
 
 from haybale_graph_editor.editors.graph_canvas.handlers.visual_layer import VisualLayerHandlers
-from haybale_graph_editor.editors.graph_canvas.event_definitions import (
+from haywire.ui.components.graph.event_definitions import (
     ElementRedrawEvent,
     ElementResetEvent,
     ElementRevalidateEvent,

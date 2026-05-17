@@ -13,7 +13,7 @@ from pathlib import Path
 from nicegui import ui
 from nicegui.dependencies import register_library
 
-from haybale_graph_editor.editors.graph_canvas.event_definitions import BaseGraphEvent, GRAPH_EVENT_REGISTRY
+from haywire.ui.components.graph.event_definitions import BaseGraphEvent, GRAPH_EVENT_REGISTRY
 
 # Register the auto-generated library
 script_dir = Path(__file__).parent

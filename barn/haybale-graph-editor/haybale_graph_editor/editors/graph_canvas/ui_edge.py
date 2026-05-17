@@ -18,7 +18,7 @@ from typing import Callable, Optional
 from haywire.core.edge.edge_wrapper import EdgeWrapper
 from haywire.core.graph.types import ChangeReason
 
-from .event_definitions import SyncEdgeAdditionEvent, BaseGraphEvent
+from haywire.ui.components.graph.event_definitions import SyncEdgeAdditionEvent, BaseGraphEvent
 
 logger = logging.getLogger(__name__)
 

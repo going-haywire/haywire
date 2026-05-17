@@ -14,10 +14,10 @@ from haywire.core.graph.editor import Editor
 
 from haywire.ui.components.zoom.pan import ZoomPanContainer
 from haywire.ui.components.graph.canvas import GraphCanvasVue
+from haywire.ui.components.graph.event_definitions import BaseGraphEvent, GRAPH_EVENT_REGISTRY
 from haywire.core.session.session import Session
 
 from ...state.edit_state import EditState
-from .event_definitions import BaseGraphEvent, GRAPH_EVENT_REGISTRY
 from .event_handlers import build_event_handler_map
 from .handlers.interaction import InteractionHandlers
 from .handlers.selection import SelectionHandlers
