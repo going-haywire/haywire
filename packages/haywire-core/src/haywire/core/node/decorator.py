@@ -6,7 +6,7 @@ Node decorator for registering node classes.
 from dataclasses import asdict
 from typing import Any, Callable, Type, TypeVar
 
-from haywire.core.library.utils import derive_library_identity, reg_key
+from haywire.core.library.utils import NODE, derive_library_identity, reg_key
 from haywire.core.node import BaseNode, NodeIdentity, NodeBehaviorFlags, BEHAVIOR_FIELDS
 
 T = TypeVar("T")
@@ -242,9 +242,7 @@ def node(**kwargs: Any) -> Callable[[Type[T]], Type[T]]:
         library_identity = derive_library_identity(inner_cls)
 
         # Auto-derive registry_key
-        identity_kwargs["registry_key"] = reg_key(
-            library_identity.id, "node", identity_kwargs["registry_id"]
-        )
+        identity_kwargs["registry_key"] = reg_key(library_identity.id, NODE, identity_kwargs["registry_id"])
 
         # Set source info from the class itself
         identity_kwargs["class_name"] = inner_cls.__name__

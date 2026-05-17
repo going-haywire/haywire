@@ -1,7 +1,7 @@
 from typing import Any, Callable, Type, TypeVar
 
 from haywire.core.types.interface import IType
-from haywire.core.library.utils import derive_library_identity, reg_key
+from haywire.core.library.utils import WIDGET, derive_library_identity, reg_key
 
 from .interface import IWidget
 from .identity import WidgetIdentity
@@ -81,7 +81,7 @@ def widget(**kwargs: Any) -> Callable[[Type[T]], Type[T]]:
         library_identity = derive_library_identity(inner_cls)
 
         # Auto-derive registry_key
-        kwargs["registry_key"] = reg_key(library_identity.id, "widget", kwargs["registry_id"])
+        kwargs["registry_key"] = reg_key(library_identity.id, WIDGET, kwargs["registry_id"])
 
         # Set source info from the class itself
         kwargs["class_name"] = inner_cls.__name__

@@ -12,7 +12,7 @@ in the DI provider via register_builtin_editors().
 
 from typing import Optional, Union
 
-from haywire.core.library.utils import derive_library_identity, reg_key
+from haywire.core.library.utils import EDITOR, derive_library_identity, reg_key
 
 from .base import BaseEditor
 from .identity import EditorIdentity, OpenBehavior
@@ -76,7 +76,7 @@ def editor(
         _label = label or inner_cls.__name__
 
         library_identity = derive_library_identity(inner_cls)
-        _registry_key = reg_key(library_identity.id, "editor", _registry_id)
+        _registry_key = reg_key(library_identity.id, EDITOR, _registry_id)
 
         inner_cls.class_identity = EditorIdentity(
             registry_id=_registry_id,

@@ -27,6 +27,7 @@ from haywire.core.adapter.registry import AdapterRegistry
 from haywire.core.node.registry import NodeRegistry
 from haywire.core.settings import SettingsRegistry
 from haywire.core.types.registry import TypeRegistry
+from haywire.core.library.utils import ADAPTER, EDITOR, NODE, PANEL, SETTING, SKIN, THEME, TYPE, WIDGET
 from haywire.ui.editor.decorator import editor
 from haywire.ui.editor.base import BaseEditor
 from haywire.ui.editor.registry import EditorTypeRegistry
@@ -60,15 +61,15 @@ class TabConfig:
     prefix_segment: str  # registry key segment (e.g. 'node', 'widget')
 
 
-_CFG_NODES = TabConfig("nodes", "node")
-_CFG_WIDGETS = TabConfig("widgets", "widget")
-_CFG_TYPES = TabConfig("types", "type")
-_CFG_ADAPTERS = TabConfig("adapters", "adapter")
-_CFG_SKINS = TabConfig("skins", "skin")
-_CFG_SETTINGS = TabConfig("settings", "setting")
-_CFG_THEMES = TabConfig("themes", "theme")
-_CFG_PANELS = TabConfig("panels", "panel")
-_CFG_EDITORS = TabConfig("editors", "editor")
+_CFG_NODES = TabConfig("nodes", NODE)
+_CFG_WIDGETS = TabConfig("widgets", WIDGET)
+_CFG_TYPES = TabConfig("types", TYPE)
+_CFG_ADAPTERS = TabConfig("adapters", ADAPTER)
+_CFG_SKINS = TabConfig("skins", SKIN)
+_CFG_SETTINGS = TabConfig("settings", SETTING)
+_CFG_THEMES = TabConfig("themes", THEME)
+_CFG_PANELS = TabConfig("panels", PANEL)
+_CFG_EDITORS = TabConfig("editors", EDITOR)
 
 
 @editor(
@@ -403,15 +404,15 @@ class LibraryOverviewEditor(BaseEditor):
 
                 # ── Tabs bar (only when library is installed) ──────────────────
                 if installed_lib:
-                    n_nodes = _count(node_registry, f"{lib_id}:node:")
-                    n_widgets = _count(widget_registry, f"{lib_id}:widget:")
-                    n_types = _count(type_registry, f"{lib_id}:type:")
-                    n_adapters = _count(adapter_registry, f"{lib_id}:adapter:")
-                    n_skins = _count(skin_registry, f"{lib_id}:skin:")
-                    n_settings = _count(settings_registry, f"{lib_id}:setting:")
-                    n_themes = _count(theme_registry, f"{lib_id}:theme:")
-                    n_panels = _count(panel_registry, f"{lib_id}:panel:")
-                    n_editors = _count(editor_registry, f"{lib_id}:editor:")
+                    n_nodes = _count(node_registry, f"{lib_id}:{NODE}:")
+                    n_widgets = _count(widget_registry, f"{lib_id}:{WIDGET}:")
+                    n_types = _count(type_registry, f"{lib_id}:{TYPE}:")
+                    n_adapters = _count(adapter_registry, f"{lib_id}:{ADAPTER}:")
+                    n_skins = _count(skin_registry, f"{lib_id}:{SKIN}:")
+                    n_settings = _count(settings_registry, f"{lib_id}:{SETTING}:")
+                    n_themes = _count(theme_registry, f"{lib_id}:{THEME}:")
+                    n_panels = _count(panel_registry, f"{lib_id}:{PANEL}:")
+                    n_editors = _count(editor_registry, f"{lib_id}:{EDITOR}:")
 
                     ui.separator().classes("mt-4")
                     with ui.tabs().classes("w-full hw-tabs").props("dense no-caps") as tabs:
@@ -607,18 +608,8 @@ class LibraryOverviewEditor(BaseEditor):
         registry_key: str,
         context: "SessionContext",
     ):
-        """Set context.active_component (synthetic emit) and reveal the detail editor."""
-        # Assigning emits SessionContext.active_component on the bus.
+        """Set context.active_component (synthetic emit)"""
         context.active_component = registry_key
-
-        from haybale_studio.editors.library_component_editor import LibraryComponentEditor
-
-        session = context.session
-        if session is not None:
-            # TODO: once Library Editors have their own State - LibraryComponentEditor remove
-            # the active_library moves inot the AppState and the field will be emited accross
-            # sessions
-            session.publish(Reveal(editor=LibraryComponentEditor))
 
     # ─────────────────────────────────────────────────────────────────────────
     # Enable / Disable

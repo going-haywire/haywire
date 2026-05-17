@@ -263,11 +263,11 @@ class SettingsRegistry(BaseRegistry):
         """
         if not hasattr(schema_cls, "class_identity"):
             from .decorator import SettingsClassIdentity
-            from haywire.core.library.utils import derive_library_identity, reg_key
+            from haywire.core.library.utils import SETTING, derive_library_identity, reg_key
 
             ns = schema_cls._namespace
             lib = library_identity or derive_library_identity(schema_cls)
-            reg_key_val = reg_key(lib.id, "setting", ns)
+            reg_key_val = reg_key(lib.id, SETTING, ns)
             schema_cls.class_identity = SettingsClassIdentity(
                 namespace=ns,
                 registry_id=ns,

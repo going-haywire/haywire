@@ -14,7 +14,7 @@ Consistent with @node, @editor, @panel, @settings pattern:
 
 from __future__ import annotations
 
-from haywire.core.library.utils import derive_library_identity, reg_key
+from haywire.core.library.utils import THEME, derive_library_identity, reg_key
 from haywire.ui.themes.identity import ThemeClassIdentity
 
 
@@ -70,7 +70,7 @@ def theme(
         _label = label or _registry_id
 
         library_identity = derive_library_identity(inner_cls)
-        _registry_key = reg_key(library_identity.id, f"theme:{theme_type}", _registry_id)
+        _registry_key = reg_key(library_identity.id, f"{THEME}:{theme_type}", _registry_id)
 
         inner_cls.class_identity = ThemeClassIdentity(
             registry_id=_registry_id,

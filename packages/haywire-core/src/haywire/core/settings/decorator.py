@@ -15,7 +15,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Callable, TypeVar
 
-from haywire.core.library.utils import derive_library_identity, reg_key
+from haywire.core.library.utils import SETTING, derive_library_identity, reg_key
 from haywire.core.registry.identity import BaseIdentity
 
 # Preserves the decorated class's type so IDEs (Pylance/Pyright) keep
@@ -82,7 +82,7 @@ def settings(namespace: str, label: str = "", description: str = "") -> Callable
         library_identity = derive_library_identity(inner_cls)
         library_id = library_identity.id
 
-        registry_key = reg_key(library_id, "setting", _registry_id)
+        registry_key = reg_key(library_id, SETTING, _registry_id)
 
         full_namespace = library_id + "." + namespace
 

@@ -6,6 +6,17 @@ import re
 
 from .identity import LibraryIdentity
 
+# Component type segments — the middle token in every registry key (lib_id:TYPE:class_id).
+# Use these constants instead of bare strings to avoid typos and silent key mismatches.
+NODE = "node"
+WIDGET = "widget"
+TYPE = "type"
+ADAPTER = "adapter"
+SKIN = "skin"
+SETTING = "setting"
+THEME = "theme"
+PANEL = "panel"
+EDITOR = "editor"
 
 def derive_library_identity(cls: Type) -> LibraryIdentity:
     """

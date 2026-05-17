@@ -27,7 +27,18 @@ from typing import TYPE_CHECKING, Literal, Optional
 from nicegui import ui
 
 from haywire.ui import elements as hui
-from haywire.core.library.utils import get_registry_id_from_key
+from haywire.core.library.utils import (
+    ADAPTER,
+    EDITOR,
+    NODE,
+    PANEL,
+    SETTING,
+    SKIN,
+    THEME,
+    TYPE,
+    WIDGET,
+    get_registry_id_from_key,
+)
 from haywire.core.session.context import SessionContext
 from haywire.core.session.handlers import redraw_on
 from haywire.core.session.signals import Signal
@@ -44,15 +55,15 @@ logger = logging.getLogger(__name__)
 
 # Maps the comp_type segment of a registry_key to the library_service getter.
 _REGISTRY_GETTER = {
-    "node": "get_node_registry",
-    "widget": "get_widget_registry",
-    "type": "get_type_registry",
-    "adapter": "get_adapter_registry",
-    "skin": "get_skin_registry",
-    "theme": "get_theme_registry",
-    "settings": "get_settings_registry",
-    "panel": "get_panel_registry",
-    "editor": "get_editor_registry",
+    NODE: "get_node_registry",
+    WIDGET: "get_widget_registry",
+    TYPE: "get_type_registry",
+    ADAPTER: "get_adapter_registry",
+    SKIN: "get_skin_registry",
+    THEME: "get_theme_registry",
+    SETTING: "get_settings_registry",
+    PANEL: "get_panel_registry",
+    EDITOR: "get_editor_registry",
 }
 
 

@@ -32,7 +32,7 @@ from __future__ import annotations
 
 from typing import Any, Optional, Tuple
 
-from haywire.core.library.utils import derive_library_identity, reg_key
+from haywire.core.library.utils import PANEL, derive_library_identity, reg_key
 from haywire.core.session.handlers import validate_signal_types
 
 from .focus import Focus
@@ -102,7 +102,7 @@ def panel(
         _registry_id = registry_id or inner_cls.__name__
 
         library_identity = derive_library_identity(inner_cls)
-        _registry_key = reg_key(library_identity.id, "panel", _registry_id)
+        _registry_key = reg_key(library_identity.id, PANEL, _registry_id)
 
         inner_cls.class_identity = PanelIdentity(
             registry_id=_registry_id,

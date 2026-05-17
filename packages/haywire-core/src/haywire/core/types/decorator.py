@@ -11,7 +11,7 @@ from typing import Optional, Type, TypeVar, Callable
 from dataclasses import asdict
 
 
-from ..library.utils import derive_library_identity, reg_key
+from ..library.utils import TYPE, derive_library_identity, reg_key
 from .base import BaseType, CompoundType, PrimitiveType
 from .identity import DataTypeIdentity
 from .interface import IType
@@ -151,7 +151,7 @@ def type(**kwargs) -> Callable[[Type[T]], Type[T]]:
         )
 
         # Set registry_key (always regenerate for this class)
-        identity_dict["registry_key"] = reg_key(library_identity.id, "type", identity_dict["registry_id"])
+        identity_dict["registry_key"] = reg_key(library_identity.id, TYPE, identity_dict["registry_id"])
 
         # Set source info from the class itself
         identity_dict["class_name"] = inner_cls.__name__

@@ -1,6 +1,6 @@
 from typing import Any, Callable, Type, TypeVar
 
-from haywire.core.library.utils import derive_library_identity, reg_key
+from haywire.core.library.utils import SKIN, derive_library_identity, reg_key
 
 from .base import BaseSkin, SkinIdentity
 
@@ -74,7 +74,7 @@ def skin(**kwargs: Any) -> Callable[[Type[T]], Type[T]]:
         library_identity = derive_library_identity(inner_cls)
 
         # Auto-derive registry_key
-        kwargs["registry_key"] = reg_key(library_identity.id, "skin", kwargs["registry_id"])
+        kwargs["registry_key"] = reg_key(library_identity.id, SKIN, kwargs["registry_id"])
 
         # Set source info from the class itself
         kwargs["class_name"] = inner_cls.__name__
