@@ -22,7 +22,7 @@ from haywire.ui.prefs.canvas import CanvasSettings
 from haywire.ui.prefs.edge_ui import EdgeUISettings
 
 from haybale_core.settings.node_skin_settings import NodeSkinSettings
-from haybale_studio.focuses import CanvasFocus
+from haywire.ui.panel.focus import CanvasFocus
 
 if TYPE_CHECKING:
     from haywire.core.session.context import SessionContext

@@ -114,7 +114,7 @@ Handlers run synchronously on every matching publish; keep them cheap. The heavy
 - `context.data[Cls]` — `SessionState` lookups, scoped to this session. Selection state lives here. For the graph canvas, that's `EditState` (in `haybale-studio`):
 
 ```python
-from haybale_studio.state.edit_state import EditState
+from haybale_graph_editor.state.edit_state import EditState
 
 node = context.data[EditState].active_node           # NodeWrapper or None
 ```

@@ -19,6 +19,8 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from typing import Any, ClassVar
 
+from haywire.core.session.context import SessionContext
+
 # id → Focus subclass map. Populated by Focus.__init_subclass__.
 _FOCUS_BY_ID: dict[str, type["Focus"]] = {}
 
@@ -66,3 +68,14 @@ def focus_by_id(focus_id: str) -> type[Focus] | None:
 def all_focuses() -> list[type[Focus]]:
     """Return all registered Focus subclasses."""
     return list(_FOCUS_BY_ID.values())
+
+
+class CanvasFocus(Focus):
+    id = "canvas"
+    label = "Canvas & Nodes"
+    icon = "grid_on"
+    order = 30
+
+    @classmethod
+    def available(cls, ctx: SessionContext) -> bool:
+        return True

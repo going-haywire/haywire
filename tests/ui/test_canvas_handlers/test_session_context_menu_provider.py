@@ -16,7 +16,7 @@ from haywire.ui.panel import BasePanel
 from haywire.ui.panel.decorator import panel
 from haywire.ui.panel.registry import PanelRegistry
 
-_CONTEXT_MENU_MODULE = "haybale_studio.editors.graph_canvas.handlers.context_menu"
+_CONTEXT_MENU_MODULE = "haybale_graph_editor.editors.graph_canvas.handlers.context_menu"
 
 
 def _current_context_menu():
@@ -30,11 +30,11 @@ def _current_context_menu():
 
 
 def _current_focuses():
-    return importlib.import_module("haybale_studio.focuses")
+    return importlib.import_module("haybale_graph_editor.focuses")
 
 
 def _current_actions():
-    return importlib.import_module("haybale_studio.editors.graph_canvas.handlers.context_menu_actions")
+    return importlib.import_module("haybale_graph_editor.editors.graph_canvas.handlers.context_menu_actions")
 
 
 _FAKE_LIBRARY_IDENTITY = LibraryIdentity(
@@ -93,7 +93,7 @@ def make_provider(ctx: SessionContext, registry: PanelRegistry, on_emit_event=No
     inherits _open_menu (and the Popup instantiation) from BaseContextMenuProvider.
     """
     cm = _current_context_menu()
-    base_module = importlib.import_module("haybale_studio.editors._context_menu_base")
+    base_module = importlib.import_module("haywire.ui._context_menu_base")
     popup_container = MagicMock()
     popup = MagicMock()
     popup.__enter__ = MagicMock(return_value=popup_container)

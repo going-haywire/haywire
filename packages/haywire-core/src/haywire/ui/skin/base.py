@@ -7,13 +7,13 @@ import nicegui.ui as ui
 
 from haywire.core.library.identity import LibraryIdentity
 from haywire.core.types import DataPort
-from haywire.ui.ui_nodecard import UINodeCard
 from haywire.core.node.node_wrapper import NodeWrapper
 from haywire.core.registry.identity import BaseIdentity
 
 from ..widget.interface import IWidget
 from ..widget.factory_interface import IWidgetFactory
 from .interface import IBaseSkin
+from .nodecard import UINodeCard
 
 logger = logging.getLogger(__name__)
 

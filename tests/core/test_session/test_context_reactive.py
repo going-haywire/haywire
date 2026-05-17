@@ -8,7 +8,7 @@ Writes auto-emit the synthetic signal via the descriptor's __set__.
 After v1.2 C5, the editor-cluster fields (``active_node``, ``active_edge``,
 ``active_graph``, ``active_port``, ``selected_nodes``, ``selected_edges``,
 ``active_graph_path``, ``clipboard``) live on
-``haybale_studio.state.edit_state.EditState`` and are no longer declared
+``haybale_graph_editor.state.edit_state.EditState`` and are no longer declared
 on ``SessionContext``. The descriptor-mechanism tests below use
 ``active_file`` — a remaining session-level signal field — as the
 representative example.

@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from haybale_studio.focuses import CanvasFocus
+from haywire.ui.panel.focus import CanvasFocus
 from haywire.core.node.info import NodeInfo
 from haywire.ui import elements as hui
 from haywire.core.session.signals import Reveal
@@ -56,11 +56,8 @@ class CreateNodePanel(BasePanel):
 
         def _on_context_click(node_info: NodeInfo) -> None:
             if node_info.library is not None and ctx.app.library_manager.is_installed(node_info.library.id):
-                from haybale_studio.editors.library_component_editor import LibraryComponentEditor
-
                 # Assigning emits SessionContext.active_component synthetically.
                 ctx.active_component = node_info.identity.registry_key
-                ctx.session.publish(Reveal(editor=LibraryComponentEditor))
 
         with layout:
             builder = NodeMenuBuilder(

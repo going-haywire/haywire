@@ -50,7 +50,7 @@ class SessionContext(SignalSource):
 
     Editor-specific reactive state (graph-editor selection, clipboard,
     etc.) does not live here — it lives on a library-owned
-    ``SessionState``. See ``haybale_studio.state.edit_state.EditState``;
+    ``SessionState``. See ``haybale_graph_editor.state.edit_state.EditState``;
     access via ``ctx.data[EditState].active_node``.
 
     ``self.session`` is set by ``Session.__init__`` immediately after

@@ -26,16 +26,6 @@ class ExecutionFocus(Focus):
         return True
 
 
-class CanvasFocus(Focus):
-    id = "canvas"
-    label = "Canvas & Nodes"
-    icon = "grid_on"
-    order = 30
-
-    @classmethod
-    def available(cls, ctx: SessionContext) -> bool:
-        return True
-
 
 
 

@@ -210,7 +210,7 @@ def integration_node_factory(library_system) -> NodeFactory:
 # ==============================================================================
 
 
-_EDIT_STATE_MODULE = "haybale_studio.state.edit_state"
+_EDIT_STATE_MODULE = "haybale_graph_editor.state.edit_state"
 
 
 def attach_stub_session(instance):
@@ -243,7 +243,7 @@ def register_edit_state() -> Callable[[LibraryStateContainer, str], type]:
 
     def _register(container: LibraryStateContainer, session_id: str) -> type:
         edit_state_cls = importlib.import_module(_EDIT_STATE_MODULE).EditState
-        container._add_session_class(edit_state_cls, "studio:state:EditState")
+        container._add_session_class(edit_state_cls, edit_state_cls.class_identity.registry_key)
         container.attach_session(session_id)
         attach_stub_session(container.get_session(edit_state_cls, session_id))
         return edit_state_cls

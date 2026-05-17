@@ -1,7 +1,7 @@
 """EditState.clipboard is a reactive field carrying ClipboardData | None.
 
 After v1.2 C5, ``clipboard`` lives only on
-``haybale_studio.state.edit_state.EditState`` (accessed via
+``haybale_graph_editor.state.edit_state.EditState`` (accessed via
 ``ctx.data[EditState].clipboard``). The behavior tests below assert
 the writer/reader contract over EditState.
 """

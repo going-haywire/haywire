@@ -48,7 +48,7 @@ def test_execution_focus_has_id():
 
 
 def test_canvas_focus_has_id():
-    from haybale_studio.focuses import CanvasFocus
+    from haywire.ui.panel.focus import CanvasFocus
 
     assert CanvasFocus.id == "canvas"
 

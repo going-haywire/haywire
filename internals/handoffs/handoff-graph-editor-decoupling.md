@@ -19,7 +19,7 @@ The first carve-out is **complete and merged to master**:
 **What's still wrong after that first carve-out** (and what this handoff is about):
 
 - `EditState`, the graph-canvas widget, the context-menu panels, the properties editor, and the node/edge/port properties panels all still live in `haybale-studio`.
-- `haybale-graph-editor` *depends on* `haybale-studio` to get them (`from haybale_studio.editors.graph_canvas.graph_canvas_manager import GraphCanvasManager`, `from haybale_studio.state.edit_state import EditState`).
+- `haybale-graph-editor` *depends on* `haybale-studio` to get them (`from haybale_studio.editors.graph_canvas.graph_canvas_manager import GraphCanvasManager`, `from haybale_graph_editor.state.edit_state import EditState`).
 - That dependency is upside-down: the editor library imports from the host shell. A second graph-source library couldn't reasonably coexist without studio being loaded.
 - Result: the first carve-out's "decoupling" claim is partial. The architectural goal isn't met until this larger move lands.
 

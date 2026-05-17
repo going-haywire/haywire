@@ -13,11 +13,11 @@ from typing import Callable, Dict
 from haywire.core.errors.haywire_exception import HaywireException
 from haywire.core.registry.lifecycle_event import LifeCycleEvent
 from haywire.core.node.node_wrapper import NodeWrapper
-from haywire.ui.ui_nodecard import UINodeCard
 
 from ..widget.factory import WidgetFactory
 from .base import BaseSkin
 from .registry import SkinRegistry
+from .nodecard import UINodeCard
 
 
 FactoryEventCallback = Callable[[], None]  # Function signature for factory event callbacks

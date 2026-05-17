@@ -32,7 +32,7 @@ def test_editor_cluster_fields_are_not_on_session_context():
     """Regression guard for v1.2 C5.
 
     The 8 graph-editor fields moved from SessionContext to
-    ``haybale_studio.state.edit_state.EditState``. They must not be
+    ``haybale_graph_editor.state.edit_state.EditState``. They must not be
     declared on ``SessionContext`` — neither at the class level (where
     a ``signal_field`` descriptor would surface) nor on instances
     (where the per-instance storage would live).

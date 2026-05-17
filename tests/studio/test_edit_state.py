@@ -24,7 +24,7 @@ import pytest
 
 from haywire.core.state import LibraryStateContainer, LibraryStateRegistry, SessionState
 
-_EDIT_STATE_MODULE = "haybale_studio.state.edit_state"
+_EDIT_STATE_MODULE = "haybale_graph_editor.state.edit_state"
 
 
 def _edit_state_cls() -> type:
