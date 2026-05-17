@@ -14,6 +14,28 @@ its class object is replaced, but the registry_key stays the same, so
 callers holding a pre-reload class reference still resolve to the
 canonical instance.
 
+Two-phase lifecycle
+-------------------
+CLASS_ADDED events from ``on_lifecycle_events`` only **instantiate** the
+state class (storing the instance in ``_app`` / session bags). ``on_enable``
+is deferred until ``on_library_enabled`` fires, which happens after the
+owning library's ``enable()`` has fully returned and all its components
+(settings, types, nodes, panels, editors) are registered.
+
+This means a state instance is reachable via ``ctx.app_data[Cls]`` as
+soon as its class is scanned — even before ``on_enable`` has resolved its
+DI dependencies — so editors and panels that draw during the same
+``_attach_to_registries`` pass see a valid (default-initialised) object
+rather than a KeyError.
+
+CLASS_RELOADED events (hot-reload of an already-enabled library) still
+do the full disable-old / instantiate-new / enable-new cycle atomically
+inside ``on_lifecycle_events``, because by that point ``on_library_enabled``
+has already run for the library and the full environment is available.
+
+``_enabled_library_ids`` now gates only ``on_enable`` calls, not
+instantiation.
+
 Dispatch decision is ``issubclass(cls, SessionState)`` at event time.
 See docs/architecture/session-and-state/session-and-state-arch.md §3.
 """
@@ -49,12 +71,13 @@ class LibraryStateContainer:
         registry.add_batch_event_subscriber(container.on_lifecycle_events)
 
     AppState reactions:
-      - CLASS_ADDED       → instantiate, store, call on_enable
+      - CLASS_ADDED       → instantiate + store (on_enable deferred to on_library_enabled)
       - CLASS_REMOVED     → call on_disable, drop instance
       - CLASS_RELOADED    → on_disable on old, new instance, on_enable on new
 
     SessionState reactions (fanned out across `_known_session_ids`):
-      - CLASS_ADDED       → for each session, instantiate + stamp session_id + on_enable
+      - CLASS_ADDED       → for each session, instantiate + stamp session_id
+                            (on_enable deferred to on_library_enabled)
       - CLASS_REMOVED     → for each session, on_disable + drop
       - CLASS_RELOADED    → for each session, on_disable old, new instance + stamp + on_enable
 
@@ -80,12 +103,16 @@ class LibraryStateContainer:
         # registry_key → class. Lets us find the class behind a key for
         # instantiation (attach_session) and lifecycle (CLASS_RELOADED).
         self._class_by_registry_key: dict[str, type[LibraryState]] = {}
-        # Library ids the container has been told about via on_library_enabled.
-        # Events whose library_identity.id is NOT in this set are dropped by
-        # on_lifecycle_events — they belong to a library whose enable() is still
-        # in progress, and acting on them now risks calling on_enable before the
-        # rest of the library's components (types, nodes, …) are registered.
+        # Library ids for which on_library_enabled has fired. CLASS_ADDED
+        # events from on_lifecycle_events check this: if the library is already
+        # enabled (hot-install / re-scan), on_enable fires immediately;
+        # otherwise it is deferred to on_library_enabled.
+        # CLASS_RELOADED always does the full cycle regardless of this set.
         self._enabled_library_ids: set[str] = set()
+        # registry_keys for which on_enable has already been called. Guards
+        # on_library_enabled against double-firing on_enable when it is
+        # called more than once for the same library (idempotency).
+        self._enabled_registry_keys: set[str] = set()
         # Set by bind_session_manager (called once by SessionManager.__init__).
         # Stays None until then; _add_app_class only stamps AppStates when
         # this is non-None. See bind_session_manager docstring.
@@ -206,14 +233,20 @@ class LibraryStateContainer:
 
     def on_lifecycle_events(self, events: list[LifeCycleEvent]) -> None:
         for event in events:
-            # Drop events for libraries we haven't been told about yet
-            # (see _enabled_library_ids docstring on __init__). During startup,
-            # CLASS_ADDED events for every library fire before any library is
-            # marked enabled; the container would otherwise instantiate state
-            # mid-library-load. The catch-up in on_library_enabled replays
-            # those classes once the library is fully enabled.
-            if event.library_identity.id not in self._enabled_library_ids:
-                continue
+            # CLASS_ADDED: instantiate unconditionally — the instance must be
+            # reachable via ctx.app_data as soon as the class is scanned, even
+            # while the owning library's enable() is still in progress.
+            # on_enable is deferred to on_library_enabled (see two-phase note
+            # in the module docstring).
+            #
+            # CLASS_REMOVED / CLASS_RELOADED: only process for libraries that
+            # are fully enabled. Hot-reload of a mid-enable library is not a
+            # meaningful state; CLASS_REMOVED during disable() is handled
+            # correctly because the library is still in _enabled_library_ids
+            # at that point (it is removed by on_library_disabled afterward).
+            if event.event_type is not LifeCycleEventType.CLASS_ADDED:
+                if event.library_identity.id not in self._enabled_library_ids:
+                    continue
             try:
                 self._dispatch(event)
             except Exception as exc:
@@ -251,49 +284,64 @@ class LibraryStateContainer:
     # ------------------------------------------------------------------
 
     def on_library_enabled(self, library: "BaseLibrary") -> None:
-        """Catch up after *library* finished enabling.
+        """Call on_enable on all state instances belonging to *library*.
 
-        Queries the held state registry for every state class belonging to
-        this library and instantiates / wires each as if a ``CLASS_ADDED``
-        event had fired. Then records the library id so future hot-reload
-        events for its classes pass the filter in ``on_lifecycle_events``.
+        By the time this fires, ``library.enable()`` has fully returned —
+        all settings, types, nodes, panels, and editors are registered.
+        CLASS_ADDED events fired during ``_attach_to_registries`` have
+        already instantiated the state classes (two-phase model); this
+        method is the second phase: activating them.
 
-        Synthesizes ``CLASS_ADDED`` events and routes through ``_dispatch``
-        so AppState vs SessionState branching reuses the existing path.
+        Marks the library id so future CLASS_RELOADED / CLASS_REMOVED
+        events for it pass the filter in ``on_lifecycle_events``.
 
-        Idempotent: a second call with the same library is a no-op for
-        already-instantiated classes (``_add_app_class`` /
-        ``_add_session_class`` early-return when the registry_key is
-        already present).
-
-        Re-enable: when a library is disabled and then enabled again, the
-        previous disable has cleared the library id from
-        ``_enabled_library_ids`` (via ``on_library_disabled``), so the
-        CLASS_ADDED events fired during the new ``enable()``'s
-        ``_attach_to_registries`` are dropped by the filter. This catch-up
-        then re-instantiates the state classes — mirroring first-time
-        enable behaviour exactly.
+        Idempotent: classes already enabled (registry_key already in
+        ``_enabled_library_ids`` from a prior call) are skipped.
         """
-        # Mark BEFORE dispatching so the synthetic events pass the filter.
         self._mark_library_enabled(library.identity.id)
         classes = self._state_registry.get_classes_for_library(library.identity)
         for registry_key, cls in classes.items():
-            event = LifeCycleEvent(
-                registry_key=registry_key,
-                event_type=LifeCycleEventType.CLASS_ADDED,
-                affected_class=cls,
-                library_identity=library.identity,
-            )
             try:
-                self._dispatch(event)
+                self._enable_library_instances(registry_key, cls)
             except Exception as exc:
                 logger.error(
-                    "LibraryStateContainer catch-up failed for %s in library %s: %s",
+                    "LibraryStateContainer on_enable failed for %s in library %s: %s",
                     cls.__name__,
                     library.identity.label,
                     exc,
                     exc_info=True,
                 )
+
+    def _enable_library_instances(self, registry_key: str, cls: type[LibraryState]) -> None:
+        """Ensure *registry_key* is instantiated and on_enable has been called.
+
+        Handles two cases:
+        - Startup / first enable: CLASS_ADDED events were not received (the
+          container was not yet subscribed). Instance does not exist yet —
+          instantiate first, then enable.
+        - Re-enable: CLASS_ADDED already instantiated the instance during
+          library.enable(). Just call on_enable.
+
+        Idempotent: skips registry_keys already in _enabled_registry_keys,
+        preventing double-fire when on_library_enabled is called more than once.
+        """
+        if registry_key in self._enabled_registry_keys:
+            return
+        self._enabled_registry_keys.add(registry_key)
+        if issubclass(cls, SessionState):
+            if registry_key not in self._sessions:
+                # Startup path: CLASS_ADDED was not received; instantiate now.
+                self._add_session_class(cls, registry_key, call_on_enable=False)
+            bag = self._sessions.get(registry_key, {})
+            for instance in bag.values():
+                self._call_on_enable(instance)
+        elif issubclass(cls, AppState):
+            if registry_key not in self._app:
+                # Startup path: CLASS_ADDED was not received; instantiate now.
+                self._add_app_class(cls, registry_key, call_on_enable=False)
+            app_instance: AppState | None = self._app.get(registry_key)
+            if app_instance is not None:
+                self._call_on_enable(app_instance)
 
     def on_library_disabled(self, library: "BaseLibrary") -> None:
         """Drop *library*'s id from ``_enabled_library_ids`` after its
@@ -351,10 +399,15 @@ class LibraryStateContainer:
         cls = event.affected_class
         if cls is None:
             return
+        # If the library is already fully enabled (its id is in
+        # _enabled_library_ids), this CLASS_ADDED comes from a hot-install
+        # or a re-scan of an already-running library — call on_enable
+        # immediately. Otherwise defer to on_library_enabled.
+        already_enabled = event.library_identity.id in self._enabled_library_ids
         if issubclass(cls, SessionState):
-            self._add_session_class(cls, event.registry_key)
+            self._add_session_class(cls, event.registry_key, call_on_enable=already_enabled)
         elif issubclass(cls, AppState):
-            self._add_app_class(cls, event.registry_key)
+            self._add_app_class(cls, event.registry_key, call_on_enable=already_enabled)
         else:
             logger.warning(
                 "LibraryStateContainer ignored class %s for %s: not a subclass of "
@@ -390,6 +443,9 @@ class LibraryStateContainer:
 
     def _reload(self, event: LifeCycleEvent) -> None:
         # Drop the OLD class first (whichever scope), then add the NEW one.
+        # Unlike CLASS_ADDED (which defers on_enable to on_library_enabled),
+        # CLASS_RELOADED only fires for already-enabled libraries, so we call
+        # on_enable immediately after instantiation.
         old_cls = self._class_by_registry_key.pop(event.registry_key, None)
         if old_cls is not None:
             if issubclass(old_cls, SessionState):
@@ -412,8 +468,16 @@ class LibraryStateContainer:
             return
         if issubclass(new_cls, SessionState):
             self._add_session_class(new_cls, event.registry_key)
+            # on_enable immediately — library is already fully enabled.
+            bag = self._sessions.get(event.registry_key, {})
+            for instance in bag.values():
+                self._call_on_enable(instance)
         elif issubclass(new_cls, AppState):
             self._add_app_class(new_cls, event.registry_key)
+            # on_enable immediately — library is already fully enabled.
+            reloaded_app_instance: AppState | None = self._app.get(event.registry_key)
+            if reloaded_app_instance is not None:
+                self._call_on_enable(reloaded_app_instance)
         else:
             logger.warning(
                 "LibraryStateContainer ignored class %s for %s: not a subclass of "
@@ -427,7 +491,13 @@ class LibraryStateContainer:
     # AppState scope helpers
     # ------------------------------------------------------------------
 
-    def _add_app_class(self, cls: type[AppState], registry_key: str) -> None:
+    def _add_app_class(self, cls: type[AppState], registry_key: str, call_on_enable: bool = False) -> None:
+        """Instantiate and store an AppState.
+
+        call_on_enable=False (default) — deferred to on_library_enabled.
+        call_on_enable=True  — library already enabled; call on_enable now
+                               (hot-install / re-scan of running library).
+        """
         if registry_key in self._app:
             return  # idempotent
         instance = cls()
@@ -435,9 +505,12 @@ class LibraryStateContainer:
             instance._session_manager = self._manager_ref
         self._app[registry_key] = instance
         self._class_by_registry_key[registry_key] = cls
-        self._call_on_enable(instance)
+        if call_on_enable:
+            self._enabled_registry_keys.add(registry_key)
+            self._call_on_enable(instance)
 
     def _remove_app_class(self, registry_key: str) -> None:
+        self._enabled_registry_keys.discard(registry_key)
         instance = self._app.pop(registry_key, None)
         if instance is not None:
             self._call_on_disable(instance)
@@ -446,17 +519,26 @@ class LibraryStateContainer:
     # SessionState scope helpers
     # ------------------------------------------------------------------
 
-    def _add_session_class(self, cls: type[SessionState], registry_key: str) -> None:
+    def _add_session_class(
+        self, cls: type[SessionState], registry_key: str, call_on_enable: bool = False
+    ) -> None:
+        """Instantiate session instances for all known sessions.
+
+        call_on_enable=False (default) — deferred to on_library_enabled.
+        call_on_enable=True  — library already enabled; call on_enable now.
+        """
         if registry_key in self._sessions:
             return  # idempotent
         bag: dict[str, SessionState] = {}
         self._sessions[registry_key] = bag
         self._class_by_registry_key[registry_key] = cls
-        # Fan out across known sessions.
         for sid in self._known_session_ids:
-            self._instantiate_session_state(cls, bag, sid)
+            self._instantiate_session_state(cls, bag, sid, call_on_enable=call_on_enable)
+        if call_on_enable:
+            self._enabled_registry_keys.add(registry_key)
 
     def _remove_session_class(self, registry_key: str) -> None:
+        self._enabled_registry_keys.discard(registry_key)
         bag = self._sessions.pop(registry_key, {})
         for inst in bag.values():
             self._call_on_disable(inst)
@@ -467,7 +549,17 @@ class LibraryStateContainer:
         bag: dict[str, SessionState],
         session_id: str,
         session: "Session | None" = None,
+        call_on_enable: bool = True,
     ) -> None:
+        """Instantiate a SessionState, stamp session_id/session, store in bag.
+
+        call_on_enable=True  — used by attach_session (session joins after
+                               library is fully enabled) and by the hot-reload
+                               path (CLASS_RELOADED).
+        call_on_enable=False — used by CLASS_ADDED during library enable()
+                               (_add_session_class); on_enable is deferred to
+                               on_library_enabled.
+        """
         try:
             instance = cls()
         except Exception as exc:
@@ -479,11 +571,12 @@ class LibraryStateContainer:
                 exc_info=True,
             )
             return
-        instance.session_id = session_id  # stamp before on_enable
+        instance.session_id = session_id
         if session is not None:
             instance.session = weakref.ref(session)
         bag[session_id] = instance
-        self._call_on_enable(instance)
+        if call_on_enable:
+            self._call_on_enable(instance)
 
     # ------------------------------------------------------------------
     # Hook callers — fault-isolated via HaywireException wrapping

@@ -45,7 +45,8 @@ def make_removed_event(cls: type, lib_id: LibraryIdentity) -> LifeCycleEvent:
 
 
 class TestLibraryStateContainer:
-    def test_class_added_event_creates_instance_and_calls_on_enable(self):
+    def test_class_added_event_creates_instance_without_on_enable(self):
+        """CLASS_ADDED only instantiates — on_enable is deferred to on_library_enabled."""
         calls: list[str] = []
 
         class MyState(AppState):
@@ -53,20 +54,41 @@ class TestLibraryStateContainer:
                 calls.append("enable")
 
         reg = LibraryStateRegistry()
-        container = LibraryStateContainer(LibraryStateRegistry())
+        container = LibraryStateContainer(reg)
         lib_id = make_lib_identity()
-        container._mark_library_enabled(lib_id.id)
 
-        # Subscribe container to registry events.
-        reg.add_batch_event_subscriber(container.on_lifecycle_events)
-
-        # Register the class — this would normally trigger event emission, but
-        # _register_class doesn't emit by itself. Drive the container directly.
         reg._register_class(MyState, lib_id)
         container.on_lifecycle_events([make_added_event(MyState, lib_id)])
 
+        # Instance exists and is reachable immediately.
         assert MyState in container
         assert isinstance(container[MyState], MyState)
+        # on_enable has NOT fired yet — deferred to on_library_enabled.
+        assert calls == []
+
+    def test_on_library_enabled_calls_on_enable_on_existing_instance(self):
+        """on_library_enabled is the second phase: it calls on_enable on the
+        already-instantiated instance."""
+        calls: list[str] = []
+
+        class MyState(AppState):
+            def on_enable(self) -> None:
+                calls.append("enable")
+
+        reg = LibraryStateRegistry()
+        container = LibraryStateContainer(reg)
+        lib_id = make_lib_identity()
+        reg._register_class(MyState, lib_id)
+
+        # Phase 1: instantiate.
+        container.on_lifecycle_events([make_added_event(MyState, lib_id)])
+        assert calls == []
+
+        # Phase 2: enable.
+        class FakeLibrary:
+            identity = lib_id
+
+        container.on_library_enabled(FakeLibrary())
         assert calls == ["enable"]
 
     def test_class_removed_event_calls_on_disable_and_drops_instance(self):
@@ -80,12 +102,20 @@ class TestLibraryStateContainer:
                 calls.append("disable")
 
         reg = LibraryStateRegistry()
-        container = LibraryStateContainer(LibraryStateRegistry())
+        container = LibraryStateContainer(reg)
         lib_id = make_lib_identity()
         container._mark_library_enabled(lib_id.id)
 
         reg._register_class(MyState, lib_id)
+        # Phase 1+2 together (library already marked enabled).
         container.on_lifecycle_events([make_added_event(MyState, lib_id)])
+
+        class FakeLibrary:
+            identity = lib_id
+
+        container.on_library_enabled(FakeLibrary())
+        assert calls == ["enable"]
+
         container.on_lifecycle_events([make_removed_event(MyState, lib_id)])
 
         assert MyState not in container
@@ -99,7 +129,6 @@ class TestLibraryStateContainer:
 
         container = LibraryStateContainer(LibraryStateRegistry())
         lib_id = make_lib_identity()
-        container._mark_library_enabled(lib_id.id)
         reg = LibraryStateRegistry()
         reg._register_class(NoHooks, lib_id)
 
@@ -149,7 +178,8 @@ class TestLibraryStateContainer:
 
     def test_class_reloaded_event_swaps_instance_with_disable_then_enable(self):
         """Hot-reload = disable old + enable new. Old class's on_disable fires
-        before the new class is instantiated."""
+        before the new class is instantiated. CLASS_RELOADED calls on_enable
+        immediately because the library is already fully enabled."""
         calls: list[str] = []
 
         class V1(AppState):
@@ -182,15 +212,25 @@ class TestLibraryStateContainer:
         V1.class_identity = ident
         V2.class_identity = ident
 
-        container = LibraryStateContainer(LibraryStateRegistry())
+        reg = LibraryStateRegistry()
+        container = LibraryStateContainer(reg)
         lib_id = make_lib_identity()
-        container._mark_library_enabled(lib_id.id)
 
-        # Initial enable.
+        reg._register_class(V1, lib_id)
+
+        # Phase 1: instantiate V1.
         container.on_lifecycle_events([make_added_event(V1, lib_id)])
+        assert calls == []
+
+        # Phase 2: enable V1 (library fully loaded).
+        class FakeLibrary:
+            identity = lib_id
+
+        container.on_library_enabled(FakeLibrary())
         assert calls == ["v1-enable"]
 
-        # Hot-reload event: registry_key matches, affected_class is now V2.
+        # Hot-reload event: CLASS_RELOADED fires on an already-enabled library,
+        # so on_enable runs immediately for the new instance.
         reload_event = LifeCycleEvent(
             registry_key="midi:state:V",
             event_type=LifeCycleEventType.CLASS_RELOADED,
@@ -205,13 +245,16 @@ class TestLibraryStateContainer:
 
 
 class TestEnabledLibraryIdsFilter:
-    """The container's on_lifecycle_events filter drops events for libraries
-    it has not been told about via on_library_enabled / _mark_library_enabled.
-    This prevents the M1 load-order race: state classes from a library being
-    instantiated mid-enable, before the rest of its components (types, nodes)
-    are registered."""
+    """_enabled_library_ids gates on_enable calls, not instantiation.
 
-    def test_event_for_unknown_library_is_dropped(self):
+    CLASS_ADDED always instantiates (instance reachable immediately via
+    ctx.app_data). on_enable fires in on_library_enabled, and only then
+    does the library id enter _enabled_library_ids — so CLASS_REMOVED /
+    CLASS_RELOADED events for not-yet-fully-enabled libraries are dropped."""
+
+    def test_class_added_for_unknown_library_still_instantiates(self):
+        """CLASS_ADDED instantiates regardless of _enabled_library_ids —
+        the instance must be reachable before on_library_enabled fires."""
         calls: list[str] = []
 
         class MyState(AppState):
@@ -219,17 +262,20 @@ class TestEnabledLibraryIdsFilter:
                 calls.append("enable")
 
         reg = LibraryStateRegistry()
-        container = LibraryStateContainer(LibraryStateRegistry())
+        container = LibraryStateContainer(reg)
         lib_id = make_lib_identity("unmarked")
         reg._register_class(MyState, lib_id)
         # Deliberately DO NOT call _mark_library_enabled.
 
         container.on_lifecycle_events([make_added_event(MyState, lib_id)])
 
-        assert MyState not in container
+        # Instance exists — the two-phase model guarantees this.
+        assert MyState in container
+        # on_enable has NOT fired — library not yet marked enabled.
         assert calls == []
 
-    def test_event_for_marked_library_is_processed(self):
+    def test_on_enable_fires_only_after_on_library_enabled(self):
+        """on_enable is deferred: CLASS_ADDED instantiates, on_library_enabled enables."""
         calls: list[str] = []
 
         class MyState(AppState):
@@ -237,19 +283,47 @@ class TestEnabledLibraryIdsFilter:
                 calls.append("enable")
 
         reg = LibraryStateRegistry()
-        container = LibraryStateContainer(LibraryStateRegistry())
+        container = LibraryStateContainer(reg)
         lib_id = make_lib_identity("marked")
         reg._register_class(MyState, lib_id)
-        container._mark_library_enabled(lib_id.id)
 
         container.on_lifecycle_events([make_added_event(MyState, lib_id)])
-
         assert MyState in container
-        assert calls == ["enable"]
+        assert calls == []  # not yet
 
-    def test_filter_isolates_libraries_in_same_batch(self):
-        """A single on_lifecycle_events call carrying events from multiple
-        libraries — only events for marked libraries are processed."""
+        class FakeLibrary:
+            identity = lib_id
+
+        container.on_library_enabled(FakeLibrary())
+        assert calls == ["enable"]  # now
+
+    def test_class_removed_for_unknown_library_is_dropped(self):
+        """CLASS_REMOVED for a library not in _enabled_library_ids is ignored —
+        there is nothing to tear down for a not-yet-enabled library."""
+        calls: list[str] = []
+
+        class MyState(AppState):
+            def on_disable(self) -> None:
+                calls.append("disable")
+
+        reg = LibraryStateRegistry()
+        container = LibraryStateContainer(reg)
+        lib_id = make_lib_identity("unmarked")
+        reg._register_class(MyState, lib_id)
+
+        # Instantiate but do NOT enable.
+        container.on_lifecycle_events([make_added_event(MyState, lib_id)])
+        assert MyState in container
+
+        # CLASS_REMOVED without the library being marked enabled — dropped.
+        container.on_lifecycle_events([make_removed_event(MyState, lib_id)])
+        # Instance is still there (event was dropped).
+        assert MyState in container
+        assert calls == []
+
+    def test_class_added_from_two_libraries_both_instantiate(self):
+        """CLASS_ADDED from both a marked and an unmarked library both create
+        instances — instantiation is unconditional."""
         calls: list[str] = []
 
         class MarkedState(AppState):
@@ -261,12 +335,11 @@ class TestEnabledLibraryIdsFilter:
                 calls.append("unmarked")
 
         reg = LibraryStateRegistry()
-        container = LibraryStateContainer(LibraryStateRegistry())
+        container = LibraryStateContainer(reg)
         marked = make_lib_identity("marked")
         unmarked = make_lib_identity("unmarked")
         reg._register_class(MarkedState, marked)
         reg._register_class(UnmarkedState, unmarked)
-        container._mark_library_enabled(marked.id)
 
         container.on_lifecycle_events(
             [
@@ -275,17 +348,27 @@ class TestEnabledLibraryIdsFilter:
             ]
         )
 
+        # Both instantiated, neither enabled yet.
         assert MarkedState in container
-        assert UnmarkedState not in container
+        assert UnmarkedState in container
+        assert calls == []
+
+        # Enabling only the marked library calls on_enable only for it.
+        class FakeMarked:
+            identity = marked
+
+        container.on_library_enabled(FakeMarked())
         assert calls == ["marked"]
+        assert UnmarkedState in container  # still there, just not enabled
 
 
 class TestOnLibraryEnabledCatchUp:
-    """on_library_enabled queries the state registry for classes belonging to
-    the library and dispatches synthetic CLASS_ADDED events for each — the
-    catch-up step that runs after a library finishes enabling."""
+    """on_library_enabled calls on_enable on already-instantiated state
+    instances and marks the library id so CLASS_REMOVED / CLASS_RELOADED
+    events for it pass the filter in on_lifecycle_events."""
 
-    def test_catch_up_instantiates_app_state_classes(self):
+    def test_on_library_enabled_enables_instantiated_classes(self):
+        """Two-phase: CLASS_ADDED instantiates, on_library_enabled enables."""
         calls: list[str] = []
 
         class MyState(AppState):
@@ -297,17 +380,20 @@ class TestOnLibraryEnabledCatchUp:
         lib_id = make_lib_identity("midi")
         reg._register_class(MyState, lib_id)
 
-        # Stand-in BaseLibrary: only `identity` is read.
+        # Phase 1: CLASS_ADDED instantiates (fired during library.enable()).
+        container.on_lifecycle_events([make_added_event(MyState, lib_id)])
+        assert MyState in container
+        assert calls == []
+
         class FakeLibrary:
             identity = lib_id
 
+        # Phase 2: on_library_enabled enables (fired after library.enable() returns).
         container.on_library_enabled(FakeLibrary())
-
-        assert MyState in container
         assert calls == ["enable"]
 
-    def test_catch_up_marks_library_enabled_for_subsequent_events(self):
-        """After catch-up, hot-reload events for the library pass the filter."""
+    def test_on_library_enabled_marks_library_for_subsequent_events(self):
+        """After on_library_enabled, CLASS_REMOVED / CLASS_RELOADED pass the filter."""
         calls: list[str] = []
 
         class MyState(AppState):
@@ -325,18 +411,17 @@ class TestOnLibraryEnabledCatchUp:
         class FakeLibrary:
             identity = lib_id
 
+        container.on_lifecycle_events([make_added_event(MyState, lib_id)])
         container.on_library_enabled(FakeLibrary())
         assert calls == ["enable"]
 
-        # A subsequent CLASS_REMOVED event for the same library passes the
-        # filter (the catch-up added the library id to _enabled_library_ids).
+        # CLASS_REMOVED now passes the filter.
         container.on_lifecycle_events([make_removed_event(MyState, lib_id)])
         assert calls == ["enable", "disable"]
 
-    def test_catch_up_with_no_classes_is_a_noop_but_marks_library(self):
-        """A library that registered no state classes still gets its id
-        added to _enabled_library_ids — so any future hot-reload events
-        for it pass the filter."""
+    def test_on_library_enabled_with_no_classes_still_marks_library(self):
+        """A library with no state classes still gets its id added to
+        _enabled_library_ids so future CLASS_RELOADED events pass the filter."""
         reg = LibraryStateRegistry()
         container = LibraryStateContainer(reg)
         lib_id = make_lib_identity("stateless")
@@ -348,7 +433,7 @@ class TestOnLibraryEnabledCatchUp:
 
         assert lib_id.id in container._enabled_library_ids
 
-    def test_catch_up_is_idempotent_for_already_added_classes(self):
+    def test_on_library_enabled_twice_does_not_double_fire_on_enable(self):
         """Calling on_library_enabled twice doesn't double-fire on_enable."""
         calls: list[str] = []
 
@@ -364,14 +449,14 @@ class TestOnLibraryEnabledCatchUp:
         class FakeLibrary:
             identity = lib_id
 
+        container.on_lifecycle_events([make_added_event(MyState, lib_id)])
         container.on_library_enabled(FakeLibrary())
         container.on_library_enabled(FakeLibrary())
 
         assert calls == ["enable"]
 
-    def test_catch_up_only_processes_classes_for_the_given_library(self):
-        """When two libraries have state classes in the registry, catch-up
-        for one must not touch the other's classes."""
+    def test_on_library_enabled_only_enables_its_own_library_classes(self):
+        """Enabling one library does not call on_enable for another library's classes."""
         calls: list[str] = []
 
         class MidiState(AppState):
@@ -389,21 +474,25 @@ class TestOnLibraryEnabledCatchUp:
         reg._register_class(MidiState, midi)
         reg._register_class(AudioState, audio)
 
+        # Both instantiated via CLASS_ADDED.
+        container.on_lifecycle_events([make_added_event(MidiState, midi)])
+        container.on_lifecycle_events([make_added_event(AudioState, audio)])
+
         class MidiLib:
             identity = midi
 
+        # Only midi library enabled.
         container.on_library_enabled(MidiLib())
 
         assert MidiState in container
-        assert AudioState not in container
+        assert AudioState in container  # instantiated, just not enabled
         assert calls == ["midi"]
 
 
 class TestOnLibraryDisabled:
     """on_library_disabled drops the library id from _enabled_library_ids
-    so subsequent events for the library are filtered out — including the
-    CLASS_ADDED events fired during a re-enable, which must be ignored so
-    the catch-up step is what re-instantiates state classes."""
+    so CLASS_REMOVED / CLASS_RELOADED events for the library are subsequently
+    filtered out."""
 
     def test_disabled_library_id_is_dropped_from_filter_set(self):
         reg = LibraryStateRegistry()
@@ -419,39 +508,10 @@ class TestOnLibraryDisabled:
         container.on_library_disabled(FakeLibrary())
         assert lib_id.id not in container._enabled_library_ids
 
-    def test_events_after_disable_are_dropped(self):
-        calls: list[str] = []
-
-        class MyState(AppState):
-            def on_enable(self) -> None:
-                calls.append("enable")
-
-        reg = LibraryStateRegistry()
-        container = LibraryStateContainer(reg)
-        lib_id = make_lib_identity("midi")
-        reg._register_class(MyState, lib_id)
-
-        class FakeLibrary:
-            identity = lib_id
-
-        container.on_library_enabled(FakeLibrary())
-        assert calls == ["enable"]
-
-        # The container's _add_app_class is idempotent, so we tear down
-        # first to make the regression visible.
-        container.on_lifecycle_events([make_removed_event(MyState, lib_id)])
-        container.on_library_disabled(FakeLibrary())
-
-        # Now any subsequent event for this library must be dropped.
-        container.on_lifecycle_events([make_added_event(MyState, lib_id)])
-        assert MyState not in container
-        # on_enable did NOT fire again.
-        assert calls == ["enable"]
-
-    def test_disable_then_reenable_runs_catch_up_again(self):
-        """The full disable→re-enable cycle: state classes get re-instantiated
-        by the catch-up step, not by the per-folder CLASS_ADDED events fired
-        during the re-enable's _attach_to_registries."""
+    def test_class_removed_after_disable_is_dropped(self):
+        """CLASS_REMOVED after on_library_disabled is filtered — nothing to tear
+        down for a disabled library (instances already removed by the CLASS_REMOVED
+        that fired before on_library_disabled)."""
         calls: list[str] = []
 
         class MyState(AppState):
@@ -469,30 +529,66 @@ class TestOnLibraryDisabled:
         class FakeLibrary:
             identity = lib_id
 
-        # First enable.
+        # Full enable cycle.
+        container.on_lifecycle_events([make_added_event(MyState, lib_id)])
         container.on_library_enabled(FakeLibrary())
         assert calls == ["enable"]
 
-        # Disable: CLASS_REMOVED event fires (filter still admits it because
-        # the library is still in _enabled_library_ids at that moment), then
-        # the post-disable callback drops the library from the set.
+        # Disable: CLASS_REMOVED fires while library is still marked enabled,
+        # then on_library_disabled drops the id.
         container.on_lifecycle_events([make_removed_event(MyState, lib_id)])
         container.on_library_disabled(FakeLibrary())
         assert calls == ["enable", "disable"]
         assert MyState not in container
 
-        # Re-enable. In production, the CLASS_ADDED events fire during
-        # _attach_to_registries — the filter drops them (library no longer
-        # marked enabled). Then on_library_enabled runs catch-up and
-        # re-instantiates.
-        container.on_lifecycle_events([make_added_event(MyState, lib_id)])
-        # Filter dropped the event; nothing yet.
-        assert MyState not in container
-        assert calls == ["enable", "disable"]
+        # A second CLASS_REMOVED (spurious) is now dropped.
+        container.on_lifecycle_events([make_removed_event(MyState, lib_id)])
+        assert calls == ["enable", "disable"]  # no extra disable
 
-        # Now the catch-up runs (post-enable callback fires).
+    def test_disable_then_reenable_two_phase(self):
+        """Full disable → re-enable cycle using the two-phase model.
+
+        Re-enable sequence in production:
+          1. library.enable() → _attach_to_registries() fires CLASS_ADDED
+             → instance re-created immediately (phase 1).
+          2. _fire_library_enabled() → on_library_enabled() calls on_enable
+             (phase 2).
+        """
+        calls: list[str] = []
+
+        class MyState(AppState):
+            def on_enable(self) -> None:
+                calls.append("enable")
+
+            def on_disable(self) -> None:
+                calls.append("disable")
+
+        reg = LibraryStateRegistry()
+        container = LibraryStateContainer(reg)
+        lib_id = make_lib_identity("midi")
+        reg._register_class(MyState, lib_id)
+
+        class FakeLibrary:
+            identity = lib_id
+
+        # First enable — two phases.
+        container.on_lifecycle_events([make_added_event(MyState, lib_id)])
         container.on_library_enabled(FakeLibrary())
-        assert MyState in container
+        assert calls == ["enable"]
+
+        # Disable.
+        container.on_lifecycle_events([make_removed_event(MyState, lib_id)])
+        container.on_library_disabled(FakeLibrary())
+        assert calls == ["enable", "disable"]
+        assert MyState not in container
+
+        # Re-enable — phase 1: CLASS_ADDED re-instantiates immediately.
+        container.on_lifecycle_events([make_added_event(MyState, lib_id)])
+        assert MyState in container  # instance exists
+        assert calls == ["enable", "disable"]  # on_enable not yet
+
+        # Re-enable — phase 2: on_library_enabled calls on_enable.
+        container.on_library_enabled(FakeLibrary())
         assert calls == ["enable", "disable", "enable"]
 
     def test_disable_of_unknown_library_is_a_noop(self):
