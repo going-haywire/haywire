@@ -12,6 +12,8 @@ from pathlib import Path
 
 import toml
 
+from haywire.core.marketplace import MarketplaceEntry
+
 
 def _find_git_root(start: Path) -> Path | None:
     """Walk up from *start* to find the nearest .git directory."""
@@ -63,6 +65,24 @@ def _read_library_label(module_dir: Path, fallback: str) -> str:
     content = init_file.read_text()
     match = re.search(r"label\s*=\s*['\"]([^'\"]+)['\"]", content)
     return match.group(1) if match else fallback
+
+
+def _read_library_dependencies(module_dir: Path) -> list[str]:
+    """Read dependencies from the @library decorator in module_dir/__init__.py.
+
+    Returns pip package names (hyphens), converted from the module names
+    (underscores) used in the decorator.  Returns [] if none declared.
+    """
+    init_file = module_dir / "__init__.py"
+    if not init_file.exists():
+        return []
+    content = init_file.read_text()
+    match = re.search(r"dependencies\s*=\s*\[([^\]]*)\]", content, re.DOTALL)
+    if not match:
+        return []
+    raw = match.group(1)
+    modules = re.findall(r"['\"]([^'\"]+)['\"]", raw)
+    return [m.replace("_", "-") for m in modules]
 
 
 def _find_module_dir(lib_dir: Path) -> Path | None:
@@ -161,10 +181,11 @@ def share_library(library_path: str | None):
         )
         install_spec = f"{name} @ git+https://<REPO_URL>.git#subdirectory={subdirectory}"
 
-    # Read human-readable label from the @library decorator (falls back to derived name)
+    # Read human-readable label and dependencies from the @library decorator
     module_dir = _find_module_dir(lib_dir)
     label_fallback = name.removeprefix("haybale-").replace("-", " ").replace("_", " ").title()
     label = _read_library_label(module_dir, label_fallback) if module_dir else label_fallback
+    dependencies = _read_library_dependencies(module_dir) if module_dir else []
 
     # Build docs_url — raw URL pointing to the Python package directory
     # (where OVERVIEW.md and docs/ live).  Only meaningful for GitHub/GitLab.
@@ -180,29 +201,19 @@ def share_library(library_path: str | None):
             docs_url = f"{https_url}/-/raw/main/{module_rel}/"
 
     # Build TOML snippet
-    entry = {
-        "name": name,
-        "label": label,
-        "version": version,
-        "description": description,
-        "author": author,
-        "source": "git",
-        "install_spec": install_spec,
-        "tags": tags,
-        "source_url": https_url if remote_url else "",
-        "docs_url": docs_url,
-    }
-
-    # Format as TOML array-of-tables entry
-    lines = ["[[packages]]"]
-    for key, value in entry.items():
-        if isinstance(value, list):
-            formatted = "[" + ", ".join(f'"{v}"' for v in value) + "]"
-            lines.append(f"{key} = {formatted}")
-        else:
-            lines.append(f'{key} = "{value}"')
-
-    snippet = "\n".join(lines)
+    entry = MarketplaceEntry(
+        name=name,
+        label=label,
+        version=version,
+        description=description,
+        author=author,
+        source="git",
+        install_spec=install_spec,
+        tags=tags,
+        dependencies=dependencies,
+        source_url=https_url if remote_url else "",
+        docs_url=docs_url,
+    ).to_dict()
 
     print("# Copy this snippet into a marketplace.toml:\n")
-    print(snippet)
+    print(toml.dumps({"packages": [entry]}).strip())

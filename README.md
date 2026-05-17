@@ -21,9 +21,12 @@ Notable open source projects with similar goals but different use cases:
 
 ### Create a New Project
 
+> **Pre-release note:** `haywire-studio` and `haywire-core` are not yet published to PyPI.
+> Until then, scaffold projects using `--dev` with a local clone of this repo.
+
 ```sh
-# Scaffold a new haywire project (no permanent install needed)
-uvx haywire-app init my-project
+# Scaffold a new haywire project (requires a local clone of haywire-repo)
+uv run --project <path-to-haywire-repo> haywire init my-project --dev
 
 # Enter the project and install dependencies
 cd my-project
@@ -100,12 +103,13 @@ User-level settings are stored in `~/.haywire/`:
 
 ### For Developers
 
-the following will create a new project in /tmp/myTestProject with the haybale-myTestProject library scaffolded inside it:
+The following creates a new project in `/tmp/myTestProject` with a scaffolded local library, wired to the dev repo via editable path sources:
 
-´´´
+```sh
 cd /tmp
-uv run --project <absolute filepath to this repo folder> haywire init myTestProject --dev
-´´´
+uv run --project <absolute path to haywire-repo> haywire init myTestProject --dev
+```
+
 ---
 
 ## For Developers
@@ -146,18 +150,19 @@ haywire-repo/
 │   │       │   └── widget/         # UI widgets
 │   │       └── undo/               # undo/redo system
 │   │
-│   └── haywire-app/                # application (publishable to PyPI)
+│   └── haywire-studio/             # application (publishable to PyPI)
 │       ├── pyproject.toml          # CLI entry point: haywire
-│       └── src/haywire_app/
+│       └── src/haywire_studio/
 │           ├── app.py              # main application
 │           ├── init.py             # haywire init command
 │           ├── share.py            # haywire share command
-│           ├── config.py           # global/project config
-│           ├── library_manager.py  # runtime library management
-│           └── library_manager_ui.py # library management UI
+│           └── config.py           # global/project config
 │
-└── libraries/                      # haybale plugin libraries
+└── barn/                           # haybale plugin libraries
     ├── haybale-core/               # standard types, nodes, widgets, renderers
+    ├── haybale-studio/             # studio UI library
+    ├── haybale-graph-editor/       # graph editor library
+    ├── haybale-haystack/           # haystack library
     ├── haybale-example/            # example library
     ├── haybale-testing/            # test nodes for development
     ├── haybale-visiongraph/        # vision/camera nodes
@@ -184,7 +189,7 @@ uv run haywire
 uv run pytest
 
 # Run with module syntax
-uv run python -m haywire_app
+uv run python -m haywire_studio
 
 # Playground scripts still work
 uv run python playground/app_graph_canvas.py

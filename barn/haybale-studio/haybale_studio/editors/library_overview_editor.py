@@ -21,6 +21,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 from nicegui import ui
+from nicegui import background_tasks
 
 from haywire.ui import elements as hui
 from haywire.core.adapter.registry import AdapterRegistry
@@ -53,7 +54,8 @@ from haywire.core.session.signals import (
 )
 
 from haywire.core.library.info import LibraryInfo
-from haywire_studio.library_manager import LibraryManager, MarketplaceEntry
+from haywire.core.marketplace import MarketplaceEntry
+from haywire.ui.modals import confirm_modal, info_modal
 
 from haywire.ui.widget.registry import WidgetRegistry
 
@@ -280,36 +282,72 @@ class LibraryOverviewEditor(BaseEditor):
                     with ui.row().classes("gap-1 flex-shrink-0 items-center"):
                         if installed_lib and manager:
                             _is_project = self._is_project_library(installed_lib, marketplace_path)
-                            _required_by = (
-                                LibraryManager.is_required_by_another_package(
-                                    installed_lib.distribution_name or installed_lib.identity.id
-                                )
-                                if not _is_project
-                                and installed_lib.install_type.name in ("REGULAR", "EDITABLE")
-                                else None
+                            _lib_id = installed_lib.identity.id
+                            _lib_label = installed_lib.identity.label
+
+                            # Dependents: all installed libs whose @library deps include me
+                            _dependents = manager.get_installed_dependents(_lib_id)
+                            _enabled_dependents = [d for d in _dependents if d.enabled]
+                            # My unmet deps (installed = for enable, installed = for install)
+                            _missing_for_enable = manager.get_missing_dependencies(
+                                _lib_id, require_enabled=True
                             )
+
+                            # Rules:
+                            # disable  → blocked if any enabled dependent
+                            # uninstall → blocked if any dependent (enabled or not)
+                            # enable   → blocked if any dependency not enabled
+                            _block_disable = _enabled_dependents
+                            _block_uninstall = _dependents
+                            _block_enable = _missing_for_enable
 
                             # Enable / Disable toggle
                             if installed_lib.enabled:
-                                _btn = ui.button(
-                                    "Disable",
-                                    icon=hui.icon.pause,
-                                    on_click=lambda lid=installed_lib.identity.id, ctx=context: (
-                                        self._disable_library(lid, manager, ctx)
-                                    ),
-                                ).props("size=sm color=orange flat")
-                                if _required_by:
-                                    _btn.props("disable").tooltip(
-                                        f"Required by {_required_by} — cannot be disabled"
-                                    )
+                                if _block_disable:
+                                    _names = ", ".join(f'"{d.identity.label}"' for d in _block_disable)
+                                    _msg = f'"{_lib_label}" cannot be disabled — {_names} depend on it.'
+                                    _detail = "Disable all dependents first."
+                                    ui.button(
+                                        "Disable",
+                                        icon=hui.icon.locked,
+                                        on_click=lambda m=_msg, d=_detail: info_modal(
+                                            title="Cannot Disable Library",
+                                            icon="lock",
+                                            message=m,
+                                            detail=d,
+                                        ),
+                                    ).props("size=sm color=orange flat")
+                                else:
+                                    ui.button(
+                                        "Disable",
+                                        icon=hui.icon.pause,
+                                        on_click=lambda lid=_lib_id, ctx=context: (
+                                            self._disable_library(lid, manager, ctx)
+                                        ),
+                                    ).props("size=sm color=orange flat")
                             else:
-                                ui.button(
-                                    "Enable",
-                                    icon=hui.icon.resume,
-                                    on_click=lambda lid=installed_lib.identity.id, ctx=context: (
-                                        self._enable_library(lid, manager, ctx)
-                                    ),
-                                ).props("size=sm color=green flat")
+                                if _block_enable:
+                                    _names = ", ".join(f'"{d}"' for d in _block_enable)
+                                    _msg = (
+                                        f'"{_lib_label}" cannot be enabled — {_names} must be enabled first.'
+                                    )
+                                    ui.button(
+                                        "Enable",
+                                        icon=hui.icon.locked,
+                                        on_click=lambda m=_msg: info_modal(
+                                            title="Cannot Enable Library",
+                                            icon="lock",
+                                            message=m,
+                                        ),
+                                    ).props("size=sm color=green flat")
+                                else:
+                                    ui.button(
+                                        "Enable",
+                                        icon=hui.icon.resume,
+                                        on_click=lambda lid=_lib_id, ctx=context: (
+                                            self._enable_library(lid, manager, ctx)
+                                        ),
+                                    ).props("size=sm color=green flat")
 
                             # Edit (project library) or Uninstall dropdown
                             if _is_project:
@@ -322,21 +360,26 @@ class LibraryOverviewEditor(BaseEditor):
                                     ctx=context: (self._build_edit_dialog(ilib, mp, m, ctx).open()),
                                 ).props("size=sm color=blue flat")
                             elif installed_lib.install_type.name in ("REGULAR", "EDITABLE"):
-                                if _required_by:
-                                    with ui.element("span").props(
-                                        f'title="Required by {_required_by} — '
-                                        f'remove {_required_by} first to uninstall this one."'
-                                    ):
-                                        ui.button(
-                                            "Uninstall",
-                                            icon=hui.icon.locked,
-                                        ).props("size=sm flat disable")
+                                if _block_uninstall:
+                                    _names = ", ".join(f'"{d.identity.label}"' for d in _block_uninstall)
+                                    _msg = f'"{_lib_label}" cannot be uninstalled — {_names} depend on it.'
+                                    _detail = "Uninstall all dependents first."
+                                    ui.button(
+                                        "Uninstall",
+                                        icon=hui.icon.locked,
+                                        on_click=lambda m=_msg, d=_detail: info_modal(
+                                            title="Cannot Uninstall Library",
+                                            icon="lock",
+                                            message=m,
+                                            detail=d,
+                                        ),
+                                    ).props("size=sm color=negative flat")
                                 else:
                                     with ui.row().classes("gap-0 items-center"):
                                         ui.button(
                                             "Uninstall",
-                                            on_click=lambda lid=installed_lib.identity.id,
-                                            ln=installed_lib.identity.label,
+                                            on_click=lambda lid=_lib_id,
+                                            ln=_lib_label,
                                             m=manager,
                                             ctx=context: (self._confirm_uninstall(lid, ln, m, ctx)),
                                         ).props("size=sm color=negative flat")
@@ -365,22 +408,47 @@ class LibraryOverviewEditor(BaseEditor):
                                                 ui.separator()
                                                 ui.menu_item(
                                                     "Uninstall permanently",
-                                                    on_click=lambda lid=installed_lib.identity.id,
-                                                    ln=installed_lib.identity.label,
+                                                    on_click=lambda lid=_lib_id,
+                                                    ln=_lib_label,
                                                     m=manager,
                                                     ctx=context: (self._confirm_uninstall(lid, ln, m, ctx)),
                                                 )
                         elif not installed_lib and marketplace_pkg and manager:
-                            # Not installed — simple Install button
-                            ui.button(
-                                "Install",
-                                icon=hui.icon.download,
-                                on_click=lambda e,
-                                spec=marketplace_pkg.install_spec,
-                                n=marketplace_pkg.name,
-                                m=manager,
-                                ctx=context: (self._install_package(spec, n, e.sender, m, ctx)),
-                            ).props("color=positive size=sm")
+                            # Not installed — Install button, blocked if dependencies are missing
+                            _installed_ids = {
+                                manager._norm(lib.distribution_name or lib.identity.id)
+                                for lib in manager.list_installed()
+                            }
+                            _missing_deps = [
+                                dep
+                                for dep in (marketplace_pkg.dependencies or [])
+                                if manager._norm(dep) not in _installed_ids
+                            ]
+                            if _missing_deps:
+                                _names = ", ".join(f'"{d}"' for d in _missing_deps)
+                                _msg = (
+                                    f'"{marketplace_pkg.label or marketplace_pkg.name}"'
+                                    f" cannot be installed — {_names} must be installed first."
+                                )
+                                ui.button(
+                                    "Install",
+                                    icon=hui.icon.locked,
+                                    on_click=lambda m=_msg: info_modal(
+                                        title="Cannot Install Library",
+                                        icon="lock",
+                                        message=m,
+                                    ),
+                                ).props("color=positive size=sm")
+                            else:
+                                ui.button(
+                                    "Install",
+                                    icon=hui.icon.download,
+                                    on_click=lambda e,
+                                    spec=marketplace_pkg.install_spec,
+                                    n=marketplace_pkg.name,
+                                    m=manager,
+                                    ctx=context: (self._install_package(spec, n, e.sender, m, ctx)),
+                                ).props("color=positive size=sm")
 
                 # ── Metadata ───────────────────────────────────────────────────
                 if description:
@@ -688,22 +756,26 @@ class LibraryOverviewEditor(BaseEditor):
         context: "SessionContext",
     ):
         """Show confirmation dialog, then uninstall."""
-        with ui.dialog() as dialog, ui.card():
-            ui.label(f"Uninstall {label}?").classes("text-lg font-bold")
-            ui.label(
+
+        def _on_confirm():
+            client = ui.context.client
+
+            async def _run_with_client():
+                with client:
+                    await self._do_uninstall(library_id, label, manager, context)
+
+            background_tasks.create(_run_with_client(), name=f"uninstall-{library_id}")
+
+        confirm_modal(
+            title=f"Uninstall {label}?",
+            message=(
                 "This will disable the library and remove it from the venv. "
                 "Any graph nodes using this library will show as errors."
-            ).classes("hw-text-muted mb-4")
-
-            async def confirm_and_uninstall():
-                dialog.close()
-                await self._do_uninstall(library_id, label, manager, context)
-
-            with ui.row().classes("w-full justify-end gap-2"):
-                ui.button("Cancel", on_click=dialog.close)
-                ui.button("Uninstall", on_click=confirm_and_uninstall).props("color=negative")
-
-        dialog.open()
+            ),
+            confirm_label="Uninstall",
+            danger=True,
+            on_confirm=_on_confirm,
+        )
 
     @staticmethod
     def _create_log_in_card(container, title: str) -> "ui.log":

@@ -17,6 +17,7 @@ from typing import Any
 import toml
 
 from .config import ensure_global_config, ensure_project_config, add_recent_project
+from haywire.core.marketplace import MarketplaceEntry
 
 
 def _get_dev_repo_root() -> str:
@@ -69,10 +70,13 @@ def _generate_project_pyproject(name: str, dev_repo: str | None = None) -> str:
     }
 
     if dev_repo:
+        data["project"]["dependencies"] += ["haybale-core", "haybale-studio"]
         sources.update(
             {
                 "haywire-studio": {"path": f"{dev_repo}/packages/haywire-studio", "editable": True},
                 "haywire-core": {"path": f"{dev_repo}/packages/haywire-core", "editable": True},
+                "haybale-core": {"path": f"{dev_repo}/barn/haybale-core", "editable": True},
+                "haybale-studio": {"path": f"{dev_repo}/barn/haybale-studio", "editable": True},
             }
         )
 
@@ -128,6 +132,7 @@ Add your custom components in the corresponding folders:
 - skins/      — custom node skins
 - adapters/   — type-to-type conversion adapters
 - settings/   — library settings definitions
+- states/     — library app and session states
 - themes/     — workbench and node themes
 - panels/     — custom UI panels
 - editors/    — custom UI editors
@@ -141,6 +146,7 @@ from haywire.core.adapter.registry import AdapterRegistry
 from haywire.core.node.registry import NodeRegistry
 from haywire.core.settings.registry import SettingsRegistry
 from haywire.core.types.registry import TypeRegistry
+from haywire.core.state import LibraryStateRegistry
 
 from haywire.ui.editor.registry import EditorTypeRegistry
 from haywire.ui.panel.registry import PanelRegistry
@@ -172,6 +178,11 @@ class Library(BaseLibrary):
         self.add_folder_to_registry(
             folder_path=str(base_path / 'settings'),
             registry_cls=SettingsRegistry,
+        )
+
+        self.add_folder_to_registry(
+            folder_path=str(base_path / 'states'),
+            registry_cls=LibraryStateRegistry,
         )
 
         self.add_folder_to_registry(
@@ -224,15 +235,15 @@ def _project_lib_entry(name: str, module_name: str, project_dir: Path) -> dict:
     """Build a marketplace entry for the project's own scaffolded library."""
     lib_path = project_dir / "barn" / f"haybale-{name}"
     label = name.replace("-", " ").replace("_", " ").title()
-    return {
-        "name": f"haybale-{name}",
-        "label": label,
-        "version": "0.1.0",
-        "description": f"Local library for the {name} project",
-        "source": "local",
-        "install_spec": str(lib_path),
-        "docs_url": str(lib_path / module_name),
-    }
+    return MarketplaceEntry(
+        name=f"haybale-{name}",
+        label=label,
+        version="0.1.0",
+        description=f"Local library for the {name} project",
+        source="local",
+        install_spec=str(lib_path),
+        docs_url=str(lib_path / module_name),
+    ).to_dict()
 
 
 def _generate_project_marketplace(name: str, module_name: str, project_dir: Path) -> str:
@@ -263,21 +274,24 @@ def _generate_dev_marketplace(dev_repo: str, name: str, module_name: str, projec
     dev repo, so developers can install any of them from the Library Manager.
     """
 
-    def _lib(lib_name, version, description, author, tags):
+    def _lib(lib_name, version, description, author, tags, dependencies=None):
         label = lib_name.removeprefix("haybale-").replace("-", " ").replace("_", " ").title()
         lib_module = lib_name.replace("-", "_")
         lib_path = f"{dev_repo}/barn/{lib_name}"
-        return {
-            "name": lib_name,
-            "label": label,
-            "version": version,
-            "description": description,
-            "author": author,
-            "source": "local",
-            "install_spec": lib_path,
-            "tags": tags,
-            "docs_url": f"{lib_path}/{lib_module}",
-        }
+        # @library dependencies use module names (underscores); convert to pip package names (hyphens)
+        pip_deps = [d.replace("_", "-") for d in (dependencies or [])]
+        return MarketplaceEntry(
+            name=lib_name,
+            label=label,
+            version=version,
+            description=description,
+            author=author,
+            source="local",
+            install_spec=lib_path,
+            tags=tags,
+            dependencies=pip_deps,
+            docs_url=f"{lib_path}/{lib_module}",
+        ).to_dict()
 
     libraries = [
         # Project's own library first
@@ -291,13 +305,6 @@ def _generate_dev_marketplace(dev_repo: str, name: str, module_name: str, projec
             ["core", "types", "widgets", "skins"],
         ),
         _lib(
-            "haybale-example",
-            "0.1.0",
-            "Example library for demonstrating multi-library support",
-            "Example Author",
-            ["example", "demo", "tutorial"],
-        ),
-        _lib(
             "haybale-studio",
             "0.1.0",
             "Studio library with UI components for the Haywire editor",
@@ -305,11 +312,35 @@ def _generate_dev_marketplace(dev_repo: str, name: str, module_name: str, projec
             ["studio", "ui", "editors", "panels"],
         ),
         _lib(
+            "haybale-graph-editor",
+            "0.1.0",
+            "Graph editor library for Haywire — host-agnostic visual graph editing",
+            "Haywire Team",
+            ["graph", "editor", "ui"],
+        ),
+        _lib(
+            "haybale-haystack",
+            "0.1.0",
+            "Haystack — file-centric multi-graph manager for Haywire",
+            "Haywire Team",
+            ["haystack", "graphs", "files"],
+            dependencies=["haybale_studio", "haybale_graph_editor"],
+        ),
+        _lib(
+            "haybale-example",
+            "0.1.0",
+            "Example library for demonstrating multi-library support",
+            "Example Author",
+            ["example", "demo", "tutorial"],
+            dependencies=["haybale_core"],
+        ),
+        _lib(
             "haybale-testing",
             "0.1.0",
             "Test library for test support",
             "Haywire Team",
             ["testing", "development", "debug"],
+            dependencies=["haybale_core", "haybale_graph_editor"],
         ),
         _lib(
             "haybale-visiongraph",
@@ -317,6 +348,7 @@ def _generate_dev_marketplace(dev_repo: str, name: str, module_name: str, projec
             "Visiongraph library — camera, video, OpenCV nodes",
             "Florian Bruggisser, Martin Froehlich",
             ["vision", "camera", "video", "opencv"],
+            dependencies=["haybale_core"],
         ),
         _lib(
             "haybale-TEST_A",

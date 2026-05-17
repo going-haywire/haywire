@@ -13,13 +13,13 @@ import re
 import subprocess
 import sys
 from collections.abc import Callable
-from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
 from haywire.core.library.registry import LibraryRegistry
 from haywire.core.library.info import LibraryInfo
 from haywire.core.library.install_type import InstallType
+from haywire.core.marketplace import MarketplaceEntry
 import toml
 
 
@@ -51,25 +51,6 @@ def _set_decorator_list_field(content: str, field: str, values: list[str]) -> st
     # Fallback: insert before the closing )\nclass line
     replacement = f"\n    {field}={value_repr}," + r"\g<1>"
     return re.sub(r"(\n\)\nclass )", replacement, content, count=1)
-
-
-@dataclass
-class MarketplaceEntry:
-    """A package available for installation from a marketplace manifest."""
-
-    name: str  # pip distribution name, e.g. "haybale-visiongraph"
-    version: str
-    label: str = ""  # human-readable display name, e.g. "Visiongraph"
-    description: str = ""
-    author: str = ""
-    source: str = "pypi"
-    install_spec: str = ""
-    tags: list[str] = field(default_factory=list)
-    source_url: str = ""  # URL to the library's source (repo/subdirectory)
-    docs_url: str = ""  # Raw URL to OVERVIEW.md (or directory containing it)
-    source_label: str = ""  # "project", "official", "my-team" — which feed this came from
-    source_file: str = ""  # local file path the user can edit (always a local file)
-    source_origin: str = ""  # remote URL if this entry was fetched via a [[sources]] URL
 
 
 class LibraryManager:
@@ -118,6 +99,9 @@ class LibraryManager:
             importlib.metadata.FastPath.__new__.cache_clear()  # type: ignore[attr-defined]
         except AttributeError:
             pass
+
+        # Reset the pip reverse-dep cache — installed packages changed.
+        LibraryManager._required_by_cache = None
 
     def _uv_cmd(self, args: list[str]) -> list[str]:
         """Build the full uv command list."""
@@ -507,6 +491,61 @@ class LibraryManager:
         target = re.sub(r"[-_.]+", "_", dist_name).lower()
         return cls._required_by_cache.get(target)
 
+    @staticmethod
+    def _norm(name: str) -> str:
+        return re.sub(r"[-_.]+", "_", name).lower()
+
+    def _lib_norm_aliases(self, lib_id: str) -> set[str]:
+        """Return the set of normalized names that identify lib_id in @library deps.
+
+        @library(dependencies=[...]) uses pip distribution names (e.g.
+        ``"haybale_graph_editor"``), while the registry key is just the short id
+        (e.g. ``"graph_editor"``).  Both normalized forms must be checked.
+        """
+        aliases = {self._norm(lib_id)}
+        dist = self.registry.get_library_distribution_name(lib_id)
+        if dist:
+            aliases.add(self._norm(dist))
+        return aliases
+
+    def get_installed_dependents(self, lib_id: str) -> list[LibraryInfo]:
+        """Return all installed libraries whose @library dependencies include lib_id.
+
+        Checks all installed libraries regardless of enabled state — a disabled
+        dependent still has a declared dependency that would break on re-enable.
+        """
+        targets = self._lib_norm_aliases(lib_id)
+        result = []
+        for installed in self.list_installed():
+            identity = self.registry.get_library_identity(installed.identity.id)
+            for dep in identity.dependencies or []:
+                if self._norm(dep) in targets:
+                    result.append(installed)
+                    break
+        return result
+
+    def get_missing_dependencies(self, lib_id: str, require_enabled: bool) -> list[str]:
+        """Return dependency names from @library that are not satisfied.
+
+        Args:
+            lib_id: The library whose dependencies to check.
+            require_enabled: If True, a dep must be installed AND enabled.
+                             If False, only installed (in registry) is required.
+
+        Returns a list of unsatisfied dependency names (as declared in @library).
+        """
+        identity = self.registry.get_library_identity(lib_id)
+        # Build lookup sets using all normalized aliases for each installed lib
+        # so that deps declared as "haybale_foo" match the registry id "foo".
+        installed_norms: set[str] = set()
+        enabled_norms: set[str] = set()
+        for lid in self.registry.list_names():
+            installed_norms.update(self._lib_norm_aliases(lid))
+            if self.registry.is_library_enabled(lid):
+                enabled_norms.update(self._lib_norm_aliases(lid))
+        check_set = enabled_norms if require_enabled else installed_norms
+        return [dep for dep in (identity.dependencies or []) if self._norm(dep) not in check_set]
+
     async def fetch_versions(self, pkg: "MarketplaceEntry") -> list[str]:
         """Fetch available versions for a marketplace package.
 
@@ -685,6 +724,7 @@ class LibraryManager:
                 source=pkg.get("source", "pypi"),
                 install_spec=pkg.get("install_spec", pkg.get("name", "")),
                 tags=pkg.get("tags", []),
+                dependencies=pkg.get("dependencies", []),
                 source_url=pkg.get("source_url", ""),
                 docs_url=pkg.get("docs_url", ""),
             )
