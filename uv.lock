@@ -738,16 +738,12 @@ name = "haybale-graph-editor"
 version = "0.1.0"
 source = { editable = "barn/haybale-graph-editor" }
 dependencies = [
-    { name = "haybale-core" },
-    { name = "haybale-studio" },
     { name = "haywire-core" },
     { name = "haywire-studio" },
 ]
 
 [package.metadata]
 requires-dist = [
-    { name = "haybale-core", editable = "barn/haybale-core" },
-    { name = "haybale-studio", editable = "barn/haybale-studio" },
     { name = "haywire-core", editable = "packages/haywire-core" },
     { name = "haywire-studio", editable = "packages/haywire-studio" },
 ]
@@ -757,7 +753,6 @@ name = "haybale-haystack"
 version = "0.1.0"
 source = { editable = "barn/haybale-haystack" }
 dependencies = [
-    { name = "haybale-core" },
     { name = "haybale-graph-editor" },
     { name = "haybale-studio" },
     { name = "haywire-core" },
@@ -766,7 +761,6 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
-    { name = "haybale-core", editable = "barn/haybale-core" },
     { name = "haybale-graph-editor", editable = "barn/haybale-graph-editor" },
     { name = "haybale-studio", editable = "barn/haybale-studio" },
     { name = "haywire-core", editable = "packages/haywire-core" },
@@ -778,16 +772,16 @@ name = "haybale-studio"
 version = "0.1.0"
 source = { editable = "barn/haybale-studio" }
 dependencies = [
-    { name = "haybale-graph-editor" },
     { name = "haywire-core" },
     { name = "haywire-studio" },
+    { name = "packaging" },
 ]
 
 [package.metadata]
 requires-dist = [
-    { name = "haybale-graph-editor", editable = "barn/haybale-graph-editor" },
     { name = "haywire-core", editable = "packages/haywire-core" },
     { name = "haywire-studio", editable = "packages/haywire-studio" },
+    { name = "packaging" },
 ]
 
 [[package]]
@@ -875,17 +869,11 @@ name = "haywire-studio"
 version = "0.1.0"
 source = { editable = "packages/haywire-studio" }
 dependencies = [
-    { name = "haybale-core" },
-    { name = "haybale-studio" },
     { name = "haywire-core" },
 ]
 
 [package.metadata]
-requires-dist = [
-    { name = "haybale-core", editable = "barn/haybale-core" },
-    { name = "haybale-studio", editable = "barn/haybale-studio" },
-    { name = "haywire-core", editable = "packages/haywire-core" },
-]
+requires-dist = [{ name = "haywire-core", editable = "packages/haywire-core" }]
 
 [[package]]
 name = "haywire-workspace"

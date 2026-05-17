@@ -15,8 +15,6 @@ keywords = ["haywire", "node-editor", "visual-programming", "application"]
 
 dependencies = [
     "haywire-core>=0.1.0",
-    "haybale-core>=0.1.0",
-    "haybale-studio>=0.1.0",
 ]
 
 [project.scripts]

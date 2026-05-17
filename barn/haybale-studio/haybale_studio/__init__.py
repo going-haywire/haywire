@@ -40,7 +40,7 @@ from haywire.ui.widget.registry import WidgetRegistry
     help_url="",
     author="",
     author_url="",
-    dependencies=["haybale_core", "haybale_graph_editor"],
+    dependencies=[],
     tags=["experimental", "project-local"],
     file_watcher=True,
 )

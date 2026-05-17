@@ -20,13 +20,12 @@ from haywire.ui.panel.render_utils import render_schema
 from haywire.ui.components.minimap.settings import MinimapSettings
 from haywire.ui.prefs.canvas import CanvasSettings
 from haywire.ui.prefs.edge_ui import EdgeUISettings
-
-from haybale_core.settings.node_skin_settings import NodeSkinSettings
 from haywire.ui.panel.focus import CanvasFocus
+
+from ..settings.node_skin_settings import NodeSkinSettings
 
 if TYPE_CHECKING:
     from haywire.core.session.context import SessionContext
-
 
 @panel(
     focus=CanvasFocus,

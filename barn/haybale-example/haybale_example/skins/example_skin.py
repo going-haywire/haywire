@@ -4,8 +4,7 @@ from haywire.core.node.base import BaseNode
 
 from haywire.ui.skin.decorator import skin
 
-from haybale_core.skins.node_skin import NodeSkin
-
+from haybale_studio.skins.node_skin import NodeSkin
 
 @skin(description="Custom skin for nodes with special styling")
 class ExampleNodeSkin(NodeSkin):

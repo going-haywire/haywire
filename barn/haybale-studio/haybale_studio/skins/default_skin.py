@@ -13,7 +13,7 @@ from haywire.core.types import DataPort
 from haywire.core.types.enums import PortType
 from haywire.ui.skin.decorator import skin
 
-from ..skins.node_skin import NodeSkin
+from .node_skin import NodeSkin
 
 
 @skin(description="Default skin with collapsible group support", _is_default=True)
