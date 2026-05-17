@@ -41,7 +41,7 @@ The literal Q5 answer in the inquisition resolved `get_panels_for_action(action_
 - [packages/haywire-core/src/haywire/ui/panel/__init__.py](../../../packages/haywire-core/src/haywire/ui/panel/__init__.py) — update docstring
 
 ### Hosts (modified)
-- [barn/haybale-studio/haybale_studio/editors/_context_menu_base.py](../../../packages/haywire-core/src/haywire/ui/panel/_context_menu_base.py) — `_open_menu`: call `get_panels_for_action(action, focus)`; inject `self` into `panel.actions` before draw; drop the third positional arg to `draw()`
+- [barn/haybale-studio/haybale_studio/editors/_context_menu_base.py](../../../packages/haywire-core/src/haywire/ui/panel/context_menu_base.py) — `_open_menu`: call `get_panels_for_action(action, focus)`; inject `self` into `panel.actions` before draw; drop the third positional arg to `draw()`
 - [barn/haybale-studio/haybale_studio/editors/properties_editor.py](../../../barn/haybale-studio/haybale_studio/editors/properties_editor.py) — switch calls to `get_panels_for_focus`, `get_display_focuses`, `get_redraw_signals_for_focus`; remove `clear_selection()`; drop the `, self` arg in the `panel.draw(...)` call
 - [barn/haybale-studio/haybale_studio/editors/graph_canvas/handlers/context_menu.py](../../../barn/haybale-graph-editor/haybale_graph_editor/editors/graph_canvas/handlers/context_menu.py) — no API changes (subclass passes the same `(action, focus, pos)` to the base's `_open_menu`)
 
@@ -677,7 +677,7 @@ git commit -m "refactor(properties-editor): use focus-only registry queries
 
 - [ ] **Step 1: Rewrite `_open_menu` to use the new API + injection**
 
-Replace [_context_menu_base.py:50-88](../../../packages/haywire-core/src/haywire/ui/panel/_context_menu_base.py#L50-L88):
+Replace [_context_menu_base.py:50-88](../../../packages/haywire-core/src/haywire/ui/panel/context_menu_base.py#L50-L88):
 
 ```python
     def _open_menu(

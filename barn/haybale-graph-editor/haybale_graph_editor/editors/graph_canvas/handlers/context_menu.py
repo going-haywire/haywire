@@ -21,7 +21,7 @@ from typing import Any, Callable, Optional, Tuple
 from haywire.core.session.context import SessionContext
 from haywire.core.session.session import Session
 from haywire.ui.panel.registry import PanelRegistry
-from haywire.ui._context_menu_base import BaseContextMenuProvider
+from haywire.ui.panel.context_menu_base import BaseContextMenuProvider
 
 from haywire.ui.components.graph.event_definitions import (
     ContextMenuCanvasEvent,

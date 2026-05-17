@@ -10,7 +10,7 @@ import logging
 from pathlib import Path
 from typing import Any, Tuple, TYPE_CHECKING
 
-from haywire.ui._context_menu_base import BaseContextMenuProvider
+from haywire.ui.panel.context_menu_base import BaseContextMenuProvider
 
 if TYPE_CHECKING:
     from haywire.ui.editor.base import BaseEditor
