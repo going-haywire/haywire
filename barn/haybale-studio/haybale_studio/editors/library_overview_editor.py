@@ -38,7 +38,6 @@ from haywire.core.session.context import SessionContext
 from haywire.core.session.handlers import redraw_on
 from haywire.core.session.signals import (
     LibraryCatalogChanged,
-    Reveal,
 )
 
 from haywire.core.library.info import LibraryInfo

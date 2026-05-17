@@ -27,6 +27,7 @@ from ..settings.node_skin_settings import NodeSkinSettings
 if TYPE_CHECKING:
     from haywire.core.session.context import SessionContext
 
+
 @panel(
     focus=CanvasFocus,
     label="Canvas",

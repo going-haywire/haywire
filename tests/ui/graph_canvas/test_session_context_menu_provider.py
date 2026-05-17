@@ -93,7 +93,9 @@ def test_provider_satisfies_canvas_context_actions():
 
 
 def test_provider_satisfies_selection_context_actions():
-    from haybale_graph_editor.editors.graph_canvas.handlers.context_menu_actions import SelectionContextActions
+    from haybale_graph_editor.editors.graph_canvas.handlers.context_menu_actions import (
+        SelectionContextActions,
+    )
 
     provider = _make_provider()
     assert isinstance(provider, SelectionContextActions)

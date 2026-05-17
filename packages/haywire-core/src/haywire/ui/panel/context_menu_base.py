@@ -1,5 +1,5 @@
 """BaseContextMenuProvider — shared infrastructure for panel-driven
-context menus. 
+context menus.
 
 Concrete subclasses define their own intent methods (e.g. on_node_context,
 on_file_context); the base provides _build_popup, the panel iteration

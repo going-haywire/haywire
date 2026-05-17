@@ -24,8 +24,3 @@ class ExecutionFocus(Focus):
     @classmethod
     def available(cls, ctx: SessionContext) -> bool:
         return True
-
-
-
-
-

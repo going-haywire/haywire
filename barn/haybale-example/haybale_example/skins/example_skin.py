@@ -6,6 +6,7 @@ from haywire.ui.skin.decorator import skin
 
 from haybale_studio.skins.node_skin import NodeSkin
 
+
 @skin(description="Custom skin for nodes with special styling")
 class ExampleNodeSkin(NodeSkin):
     """Custom skin for nodes with special styling."""

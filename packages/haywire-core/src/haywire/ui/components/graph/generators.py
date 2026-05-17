@@ -11,6 +11,7 @@ from typing import Dict
 
 from .event_definitions import GRAPH_EVENT_REGISTRY
 
+
 class VueEventGenerator:
     @staticmethod
     def generate_event_constants() -> str:

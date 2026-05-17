@@ -13,6 +13,7 @@ from haywire.ui.skin.decorator import skin
 
 from .node_skin import NodeSkin
 
+
 @skin(description="Error skin that provides error styling for nodes", _is_error=True)
 class ErrorNodeSkin(NodeSkin):
     """

@@ -18,6 +18,7 @@ THEME = "theme"
 PANEL = "panel"
 EDITOR = "editor"
 
+
 def derive_library_identity(cls: Type) -> LibraryIdentity:
     """
     Derive full LibraryIdentity by finding the parent Library class.

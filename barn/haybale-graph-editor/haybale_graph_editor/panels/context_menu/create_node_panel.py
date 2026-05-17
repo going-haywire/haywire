@@ -12,7 +12,6 @@ from typing import TYPE_CHECKING
 from haywire.ui.panel.focus import CanvasFocus
 from haywire.core.node.info import NodeInfo
 from haywire.ui import elements as hui
-from haywire.core.session.signals import Reveal
 from haywire.ui.panel import BasePanel
 from haywire.ui.panel.layout import PanelLayout
 from haywire.ui.panel.decorator import panel
