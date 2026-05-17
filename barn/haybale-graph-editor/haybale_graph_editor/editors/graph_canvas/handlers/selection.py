@@ -75,6 +75,7 @@ class SelectionHandlers:
         edit_state.selected_edges = self.selected_edges
         edit_state.active_node = active_node
         edit_state.active_edge = active_edge
+        ctx.active_component = active_node.registry_key if active_node is not None else None
 
         self._session.publish(SelectionMoved())
 

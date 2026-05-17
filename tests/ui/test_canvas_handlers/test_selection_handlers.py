@@ -44,6 +44,7 @@ def session_with_edit(register_edit_state):
     ctx = SessionContext(session_id=sid, app=app)
     s = MagicMock()
     s.context = ctx
+    ctx.session = s
     return s, EditStateCls
 
 
@@ -113,6 +114,7 @@ def test_selection_changed_notifies_session(register_edit_state):
     ctx = SessionContext(session_id=sid, app=app)
     session = MagicMock()
     session.context = ctx
+    ctx.session = session
     graph = MagicMock()
     graph.get_node_wrapper.return_value = MagicMock()
     graph.get_edge_wrapper.return_value = MagicMock()
@@ -123,10 +125,10 @@ def test_selection_changed_notifies_session(register_edit_state):
         session=session,
     )
     handler.process_selection_change(SelectionChangedEvent(selectedNodes=["n1"], selectedEdges=["e1"]))
-    session.publish.assert_called_once()
     from haywire.core.session.signals import SelectionMoved
 
-    assert isinstance(session.publish.call_args.args[0], SelectionMoved)
+    published = [call.args[0] for call in session.publish.call_args_list]
+    assert any(isinstance(s, SelectionMoved) for s in published)
     edit = ctx.data[EditStateCls]
     assert edit.selected_nodes == {"n1"}
     assert edit.selected_edges == {"e1"}

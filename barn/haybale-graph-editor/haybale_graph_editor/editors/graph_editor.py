@@ -162,6 +162,7 @@ class GraphEditor(BaseEditor):
         edit_state.active_edge = None
         edit_state.selected_nodes = set()
         edit_state.selected_edges = set()
+        context.active_component = None
 
         with container:
             with ui.column().classes("w-full gap-0").style("height: 100%; overflow: hidden;"):

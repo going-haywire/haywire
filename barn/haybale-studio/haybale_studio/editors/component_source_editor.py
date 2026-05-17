@@ -1,21 +1,19 @@
 """
-NodeSourceEditor — source code of the currently selected graph node.
+ComponentSourceEditor — source code of the currently selected component.
 
-Right-slot, REQUIRED editor that mirrors a slice of session state
-(``context.data[EditState].active_node``). Behaves as a viewer when the
-owning library is not EDITABLE; opens up to a full save-capable editor
-when it is.
+Right-slot editor that mirrors ``context.active_component`` (a registry_key
+string).  Works for any component type managed by a BaseRegistry subclass
+(nodes, types, adapters, skins, widgets, editors, panels, settings, themes).
 
 Editing model:
 
 * On first keystroke the editor "pins" itself: subsequent
-  ``SELECTION_CHANGED`` events are ignored so the buffer is not blown
-  away under the user's fingers. Save and Discard both unpin.
-* While pinned the editor subscribes to ``LifeCycleEvent`` on the
-  node's registry_key. If the on-disk file changes (someone else
-  saves it, hot reload, etc.) and the new content differs from
-  ``_original`` we surface a "file changed externally" banner with
-  Reload-from-disk / Save-anyway actions. When the change is just
+  ``active_component`` changes are ignored so the buffer is not blown
+  away under the user's fingers.  Save and Discard both unpin.
+* While pinned the editor subscribes to ``add_batch_event_subscriber`` on
+  the resolved registry.  If the on-disk file changes and the new content
+  differs from ``_original`` we surface a "file changed externally" banner
+  with Reload-from-disk / Save-anyway actions.  When the change is just
   our own save echoing back (disk == _original) we ignore it.
 """
 
@@ -29,32 +27,44 @@ from typing import TYPE_CHECKING, Literal, Optional
 from nicegui import ui
 
 from haywire.ui import elements as hui
+from haywire.core.library.utils import get_registry_id_from_key
 from haywire.core.session.context import SessionContext
-from haywire.core.session.signals import SelectionMoved
-from haywire.core.session.handlers import react_on, redraw_on
+from haywire.core.session.handlers import redraw_on
 from haywire.core.session.signals import Signal
 from haywire.ui.editor.base import BaseEditor
 from haywire.ui.editor.decorator import editor
 
-from haybale_graph_editor.state.edit_state import EditState
-
 if TYPE_CHECKING:
+    from haywire.core.registry.base import BaseRegistry
     from haywire.core.registry.lifecycle_event import LifeCycleEvent
     from nicegui.element import Element
 
 
 logger = logging.getLogger(__name__)
 
+# Maps the comp_type segment of a registry_key to the library_service getter.
+_REGISTRY_GETTER = {
+    "node": "get_node_registry",
+    "widget": "get_widget_registry",
+    "type": "get_type_registry",
+    "adapter": "get_adapter_registry",
+    "skin": "get_skin_registry",
+    "theme": "get_theme_registry",
+    "setting": "get_settings_registry",
+    "settings": "get_settings_registry",
+    "panel": "get_panel_registry",
+    "editor": "get_editor_registry",
+}
+
 
 @editor(
-    label="Node Source",
+    label="Component Source",
     icon=hui.icon.node_source,
     default_slot="right",
-    description="Source code of the currently selected graph node.",
+    description="Source code of the currently selected component.",
 )
-class NodeSourceEditor(BaseEditor):
-    """Source viewer/editor that follows ``context.data[EditState].active_node``."""
-    # TODO: Source Editor has to migrate to component source editor
+class ComponentSourceEditor(BaseEditor):
+    """Source viewer/editor that follows ``context.active_component``."""
 
     def __init__(self, wrapper) -> None:
         super().__init__(wrapper)
@@ -62,9 +72,9 @@ class NodeSourceEditor(BaseEditor):
         self._content: str = ""
         self._original: str = ""
         self._pinned: bool = False
-        self._conflict: bool = False  # external change detected, pending resolution
+        self._conflict: bool = False
 
-        # Resolved target (refreshed on every draw)
+        # Resolved target (refreshed on every draw when not pinned)
         self._cls: Optional[type] = None
         self._path: Optional[Path] = None
         self._registry_key: Optional[str] = None
@@ -79,27 +89,21 @@ class NodeSourceEditor(BaseEditor):
         self._conflict_banner: Optional[ui.element] = None
 
         # Lifecycle subscription bookkeeping
-        self._lifecycle_node_factory = None
-        self._lifecycle_registry_key: Optional[str] = None
+        self._subscribed_registry: Optional["BaseRegistry"] = None
+        self._subscribed_key: Optional[str] = None
 
     # ------------------------------------------------------------------
     # Event-bus subscriptions
     # ------------------------------------------------------------------
 
-    @react_on(SelectionMoved)
-    def _maybe_redraw_on_selection(self, context: "SessionContext", event: SelectionMoved) -> None:
-        # While the user is editing, freeze the buffer against selection
-        # churn. ``@react_on`` is used (not ``@redraw_on``) so we can gate
-        # the redraw on the pin state.
+    @redraw_on(SessionContext.active_component)
+    def _redraw_on_active_component(self, context: "SessionContext", event: Signal) -> None:
         if self._pinned:
             return
         self.wrapper.redraw()
 
     @redraw_on(SessionContext.active_workbench_theme_key)
     def _redraw_on_theme(self, context: "SessionContext", event: Signal) -> None:
-        # Theme changes always redraw so CodeMirror picks up the new
-        # colors. ``draw`` reads the already-dirty ``_content`` out of
-        # ``self`` if pinned, preserving the user's edits.
         pass
 
     # ------------------------------------------------------------------
@@ -107,9 +111,6 @@ class NodeSourceEditor(BaseEditor):
     # ------------------------------------------------------------------
 
     def draw(self, context: "SessionContext", container: "Element") -> None:
-        # If we're not pinned, reload from active_node. If we are pinned,
-        # keep the existing buffer and just rebuild the chrome (theme
-        # change path).
         if not self._pinned:
             self._resolve_target(context)
             self._read_buffer()
@@ -132,8 +133,8 @@ class NodeSourceEditor(BaseEditor):
     # ------------------------------------------------------------------
 
     def _resolve_target(self, context: "SessionContext") -> None:
-        node = context.data[EditState].active_node
-        if node is None:
+        registry_key = context.active_component
+        if not registry_key:
             self._cls = None
             self._path = None
             self._registry_key = None
@@ -141,27 +142,12 @@ class NodeSourceEditor(BaseEditor):
             self._sync_subscription(context)
             return
 
-        self._registry_key = node.registry_key
+        self._registry_key = registry_key
+        self._cls = self._lookup_class(context, registry_key)
 
-        # Class lookup goes through node_factory — public API and
-        # survives hot reload (NodeWrapper.node may not be instantiable
-        # if the node has an import error).
-        cls = None
-        app = context.app
-        if app is not None and self._registry_key:
-            factory = getattr(app, "node_factory", None)
-            if factory is not None:
-                try:
-                    cls, _err = factory.get_node(self._registry_key)
-                except Exception as exc:  # pragma: no cover - defensive
-                    logger.debug("get_node failed for %s: %s", self._registry_key, exc)
-                    cls = None
-        self._cls = cls
-
-        # Path resolution
-        if cls is not None:
+        if self._cls is not None:
             try:
-                self._path = Path(inspect.getfile(cls))
+                self._path = Path(inspect.getfile(self._cls))
             except (TypeError, OSError):
                 self._path = None
         else:
@@ -169,6 +155,27 @@ class NodeSourceEditor(BaseEditor):
 
         self._is_editable = self._compute_is_editable(context)
         self._sync_subscription(context)
+
+    def _lookup_class(self, context: "SessionContext", registry_key: str) -> Optional[type]:
+        app = context.app
+        if app is None:
+            return None
+        parts = registry_key.split(":", 2)
+        if len(parts) != 3:
+            return None
+        _lib_id, comp_singular, _class_name = parts
+        getter_name = _REGISTRY_GETTER.get(comp_singular)
+        if getter_name is None:
+            return None
+        try:
+            svc = app.library_service
+            registry = getattr(svc, getter_name, lambda: None)()
+            if registry is None:
+                return None
+            return registry.get(registry_key)
+        except Exception as exc:
+            logger.debug("lookup_class failed for %s: %s", registry_key, exc)
+            return None
 
     def _compute_is_editable(self, context: "SessionContext") -> bool:
         if not self._registry_key:
@@ -209,16 +216,16 @@ class NodeSourceEditor(BaseEditor):
     # ------------------------------------------------------------------
 
     def _render(self, context: "SessionContext") -> None:
-        # Empty / error states short-circuit the editor chrome.
-        if context.data[EditState].active_node is None:
+        if not context.active_component:
             hui.empty_state(
-                "Select a node to view its source",
-                icon=hui.icon.node_info,
+                "Select a component to view its source",
+                icon=hui.icon.node_source,
             )
             return
         if self._cls is None or self._path is None:
+            class_name = get_registry_id_from_key(context.active_component)
             hui.empty_state(
-                "This node has no source file",
+                f"No source file for {class_name}",
                 icon=hui.icon.empty_binary,
                 hint="(dynamically generated or missing class)",
             )
@@ -262,18 +269,12 @@ class NodeSourceEditor(BaseEditor):
             else:
                 self._readonly_badge = None
                 self._save_button = (
-                    ui.button(
-                        "",
-                        icon=hui.icon.save,
-                        on_click=self._save,
-                    )
+                    ui.button("", icon=hui.icon.save, on_click=self._save)
                     .props("flat dense size=sm")
                     .tooltip("Save changes to disk")
                 )
 
     def _render_pin_banner(self) -> None:
-        # Always rendered; visibility toggled by _pinned. Avoids a full
-        # redraw when the user starts or stops editing.
         with (
             ui.row()
             .classes("w-full items-center px-3 gap-2 flex-shrink-0")
@@ -307,9 +308,6 @@ class NodeSourceEditor(BaseEditor):
         banner.set_visibility(self._conflict)
 
     def _render_editor(self, context: "SessionContext") -> None:
-        # .hw-cm-isolate prevents .hw-panel * CSS from cascading into
-        # CodeMirror's token spans — same isolation the other source
-        # views use (see app_shell.py).
         with (
             ui.element("div")
             .classes("hw-cm-isolate")
@@ -325,7 +323,6 @@ class NodeSourceEditor(BaseEditor):
 
     @staticmethod
     def _codemirror_theme(context: "SessionContext") -> Literal["vscodeLight", "vscodeDark"]:
-        """Return a CodeMirror theme name that matches the active Haywire workbench theme."""
         theme_key = context.active_workbench_theme_key or "dark"
         return "vscodeLight" if "light" in theme_key else "vscodeDark"
 
@@ -357,38 +354,28 @@ class NodeSourceEditor(BaseEditor):
         ui.notify(f"Saved {self._path.name}", type="positive")
 
     def _discard(self) -> None:
-        # Re-read the file fresh — disk is the source of truth.
         text = self._read_file(self._path)
         self._content = text
         self._original = text
         self._pinned = False
         self._conflict = False
-        # Replace the codemirror buffer in place rather than triggering
-        # a full redraw, so we don't wipe other UI handles.
         if self._editor is not None:
             self._editor.value = text
         self._refresh_chrome()
 
     def _reload_from_disk(self) -> None:
-        # Same as discard — the disk has the canonical content.
         self._discard()
 
     def _open_in_code_editor(self) -> None:
-        """Reveal the same file in the main-slot CodeEditor."""
         if self._path is None:
             return
         wrapper = self.wrapper
         session = getattr(wrapper, "_session", None) if wrapper is not None else None
         if session is None:
             return
-        # Lazy import to keep the editor decorator chain identical to
-        # how file_browser does it.
         from haybale_studio.editors.code_editor import CodeEditor
-
         from haywire.core.session.signals import Reveal
 
-        # Assigning to active_file synthetically emits SessionContext.active_file
-        # on the session bus; no manual signal needed.
         session.context.active_file = self._path
         session.publish(
             Reveal(
@@ -401,53 +388,68 @@ class NodeSourceEditor(BaseEditor):
     # ------------------------------------------------------------------
     # Lifecycle subscription (external-change detection)
     #
-    # Subscription is bound to "the file this editor is showing", not
-    # to edit mode. _resolve_target calls _sync_subscription on every
-    # redraw to (re)attach the callback when the active node — and
-    # therefore the watched registry_key — changes.
+    # Uses add_batch_event_subscriber on BaseRegistry — available on all
+    # registry types.  The batch is filtered for the specific registry_key
+    # this editor is currently displaying.
     # ------------------------------------------------------------------
+
+    def _resolve_registry(self, context: "SessionContext") -> Optional["BaseRegistry"]:
+        """Return the BaseRegistry that owns self._registry_key, or None."""
+        if not self._registry_key:
+            return None
+        app = context.app
+        if app is None:
+            return None
+        parts = self._registry_key.split(":", 2)
+        if len(parts) != 3:
+            return None
+        _lib_id, comp_singular, _class_name = parts
+        getter_name = _REGISTRY_GETTER.get(comp_singular)
+        if getter_name is None:
+            return None
+        try:
+            svc = app.library_service
+            return getattr(svc, getter_name, lambda: None)()
+        except Exception:
+            return None
 
     def _sync_subscription(self, context: "SessionContext") -> None:
         target_key = self._registry_key if self._path is not None else None
-        if target_key == self._lifecycle_registry_key:
-            return  # already on the right key (or both None)
+        if target_key == self._subscribed_key:
+            return
         self._unsubscribe_lifecycle()
         if target_key is None:
             return
-        factory = getattr(context.app, "node_factory", None) if context.app is not None else None
-        if factory is None:
+        registry = self._resolve_registry(context)
+        if registry is None:
             return
         try:
-            factory.add_event_subscriber(target_key, self._on_lifecycle_event)
-        except Exception as exc:  # pragma: no cover - defensive
+            registry.add_batch_event_subscriber(self._on_lifecycle_batch)
+        except Exception as exc:
             logger.debug("subscribe failed for %s: %s", target_key, exc)
             return
-        self._lifecycle_node_factory = factory
-        self._lifecycle_registry_key = target_key
+        self._subscribed_registry = registry
+        self._subscribed_key = target_key
 
     def _unsubscribe_lifecycle(self) -> None:
-        if self._lifecycle_node_factory is None or self._lifecycle_registry_key is None:
+        if self._subscribed_registry is None:
             return
         try:
-            self._lifecycle_node_factory.remove_event_subscriber(
-                self._lifecycle_registry_key, self._on_lifecycle_event
-            )
-        except Exception as exc:  # pragma: no cover - defensive
+            self._subscribed_registry.remove_batch_event_subscriber(self._on_lifecycle_batch)
+        except Exception as exc:
             logger.debug("unsubscribe failed: %s", exc)
-        self._lifecycle_node_factory = None
-        self._lifecycle_registry_key = None
+        self._subscribed_registry = None
+        self._subscribed_key = None
 
-    def _on_lifecycle_event(self, event: "LifeCycleEvent") -> None:
-        # Re-read the file. If unchanged from _original, it's our own
-        # save echoing back (or a class-only reload that didn't touch
-        # the source text) — ignore. Otherwise:
-        #   - not pinned → silently refresh the buffer (passive viewer)
-        #   - pinned     → surface the conflict banner
-        if self._path is None:
+    def _on_lifecycle_batch(self, events: "list[LifeCycleEvent]") -> None:
+        if self._path is None or self._subscribed_key is None:
+            return
+        # Only react if an event touches our watched key.
+        if not any(e.matches_registry_key(self._subscribed_key) for e in events):
             return
         try:
             disk = self._read_file(self._path)
-        except Exception:  # pragma: no cover - defensive
+        except Exception:
             return
         if disk == self._original:
             return
@@ -459,15 +461,12 @@ class NodeSourceEditor(BaseEditor):
                 self._editor.value = disk
             return
 
-        # Pinned: real conflict. Update _original so a subsequent
-        # self-save doesn't re-trigger the banner.
         self._original = disk
         self._conflict = True
         self._refresh_chrome()
 
     # ------------------------------------------------------------------
-    # Chrome refresh — toggle banner visibility without touching the
-    # codemirror buffer (preserves cursor + scroll position).
+    # Chrome refresh
     # ------------------------------------------------------------------
 
     def _refresh_chrome(self) -> None:

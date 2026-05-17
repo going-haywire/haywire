@@ -3,13 +3,12 @@
 ComponentDetailEditor — shows detail info for the selected node component.
 
 Renders in the right area and reacts to ACTIVE_COMPONENT_CHANGED events.
-Displays identifiers with copy buttons, usage snippets, a Docs tab (markdown),
-and a Source tab (CodeMirror with optional save for editable libraries).
+Displays identifiers with copy buttons, usage snippets, and a Docs tab (markdown).
 """
 
 import inspect
 from pathlib import Path
-from typing import TYPE_CHECKING, Literal
+from typing import TYPE_CHECKING
 
 from haywire.core.library.info import LibraryInfo
 from nicegui import ui
@@ -24,6 +23,7 @@ from haywire.core.session.signals import SelectionMoved
 
 if TYPE_CHECKING:
     from nicegui.element import Element
+
 
 class _WidgetPreviewPort:
     """Minimal mock port used to render a live widget preview without a real binding."""
@@ -47,12 +47,10 @@ class LibraryComponentEditor(BaseEditor):
     def __init__(self, wrapper):
         super().__init__(wrapper)
         self._container = None
-        self._code_editor = None  # ui.codemirror reference for live theme updates
 
     @redraw_on(
         SessionContext.active_component,
         SelectionMoved,
-        SessionContext.active_workbench_theme_key,
     )
     def _refresh_on_relevant_event(self, context: "SessionContext", event) -> None:
         # Empty body — the decorator triggers wrapper.redraw() after return.
@@ -60,7 +58,6 @@ class LibraryComponentEditor(BaseEditor):
 
     def draw(self, context: "SessionContext", container: "Element") -> None:
         self._container = container
-        self._code_editor = None
         self._rebuild(context)
 
     _COMP_ICONS = {
@@ -108,22 +105,12 @@ class LibraryComponentEditor(BaseEditor):
             module_path = getattr(cls, "__module__", None) if cls else None
             menu = getattr(identity, "menu", None) if identity else None
 
-            # Resolve docs and source files
+            # Resolve docs file
             _source_path = (lib.identity.folder_path if lib and hasattr(lib, "identity") else None) or (
                 getattr(lib, "source_path", None) if lib else None
             )
             source = Path(_source_path) if _source_path else None
             doc_file = source / "docs" / comp_type / f"{class_name}.md" if source else None
-            src_file: Path | None = None
-            if cls:
-                try:
-                    src_file = Path(inspect.getfile(cls))
-                except (TypeError, OSError):
-                    pass
-            _install_type = getattr(lib, "install_type", None) if lib else None
-            is_editable = (
-                getattr(_install_type, "name", None) == "EDITABLE" if _install_type is not None else False
-            )
 
             # height:100% + flex column so tab_panels can fill remaining space
             with ui.column().classes("w-full p-4 gap-0").style("height: 100%;"):
@@ -182,16 +169,11 @@ class LibraryComponentEditor(BaseEditor):
                     hui.section_label("Import")
                     hui.code_snippet(f"from {module_path} import {actual_name}")
 
-                # ── Tabs: View (widgets only) / Docs / Source ─────────────
+                # ── Tabs: View (widgets only) / Docs ──────────────────────
                 ui.separator().classes("mt-3")
                 with ui.tabs().classes("w-full hw-tabs").props("dense no-caps") as tabs:
                     t_view = ui.tab("View", icon=hui.icon.library_view) if comp_type == "widgets" else None
                     t_docs = ui.tab("Docs", icon=hui.icon.library_docs)
-                    t_source = (
-                        ui.tab("Source", icon=hui.icon.library_source)
-                        if src_file and src_file.exists()
-                        else None
-                    )
 
                 default_tab = t_view if t_view else t_docs
                 # flex:1 fills remaining vertical space; panels handle their own scroll
@@ -232,40 +214,6 @@ class LibraryComponentEditor(BaseEditor):
                                             " or add a detailed docstring directly to the class."
                                         ).classes("text-xs hw-text-dim")
 
-                    if t_source:
-                        assert src_file is not None
-                        with ui.tab_panel(t_source).style(
-                            "height: 100%; padding: 0;"
-                            " display: flex; flex-direction: column; overflow: hidden;"
-                        ):
-                            ui.label(src_file.name).classes("text-xs font-mono hw-text-dim").style(
-                                "flex-shrink: 0; padding-bottom: 8px;"
-                            )
-                            # .hw-cm-isolate prevents .hw-panel * from cascading into
-                            # CodeMirror's token spans (see app_shell.py static CSS).
-                            with (
-                                ui.element("div")
-                                .classes("hw-cm-isolate")
-                                .style("flex: 1; min-height: 0; width: 100%; display: flex;")
-                            ):
-                                self._code_editor = ui.codemirror(
-                                    src_file.read_text(),
-                                    language="Python",
-                                    theme=self._codemirror_theme(context),
-                                ).style("flex: 1; min-height: 0; width: 100%; height: 100%;")
-                            if is_editable:
-
-                                def _save(p=src_file, ed=self._code_editor):
-                                    try:
-                                        p.write_text(ed.value)
-                                        ui.notify("Saved.", type="positive")
-                                    except Exception as exc:
-                                        ui.notify(f"Save failed: {exc}", type="negative")
-
-                                ui.button("Save", icon=hui.icon.save, on_click=_save).props(
-                                    "color=positive size=sm"
-                                ).style("flex-shrink: 0; margin-top: 8px;")
-
     @staticmethod
     def _render_widget_view(cls) -> None:
         """Render a live preview of the widget class in the View tab."""
@@ -289,15 +237,8 @@ class LibraryComponentEditor(BaseEditor):
                 ui.label("Preview failed").classes("text-sm hw-text-muted")
                 ui.label(str(exc)).classes("text-xs font-mono hw-text-dim")
 
-    @staticmethod
-    def _codemirror_theme(context: "SessionContext") -> Literal["vscodeLight", "vscodeDark"]:
-        """Return a CodeMirror theme name that matches the active Haywire workbench theme."""
-        theme_key = context.active_workbench_theme_key or "dark"
-        return "vscodeLight" if "light" in theme_key else "vscodeDark"
-
     def _close(self, context: "SessionContext") -> None:
         """Clear active component and notify listeners."""
-        self._code_editor = None
         # Assigning emits SessionContext.active_component on the bus.
         context.active_component = None
 

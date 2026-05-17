@@ -210,7 +210,9 @@ class SessionContextMenuProvider(IContextMenuProvider, BaseContextMenuProvider):
 
     def on_canvas_context(self, pos, canvas_pos, pending_connection=None):
         from haywire.ui.panel.focus import CanvasFocus
-        from haybale_graph_editor.editors.graph_canvas.handlers.context_menu_actions import CanvasContextActions
+        from haybale_graph_editor.editors.graph_canvas.handlers.context_menu_actions import (
+            CanvasContextActions,
+        )
 
         self._open_ctx = _OpenMenuContext(
             click_pos=pos,
@@ -221,20 +223,25 @@ class SessionContextMenuProvider(IContextMenuProvider, BaseContextMenuProvider):
 
     def on_node_context(self, pos, node_id):
         from haybale_graph_editor.focuses import NodeFocus
-        from haybale_graph_editor.editors.graph_canvas.handlers.context_menu_actions import NodeContextActions
+        from haybale_graph_editor.editors.graph_canvas.handlers.context_menu_actions import (
+            NodeContextActions,
+        )
 
         graph = self._context.data[EditState].active_graph
         if graph is not None:
             wrapper = graph.get_node_wrapper(node_id)
             if wrapper is not None:
                 self._context.data[EditState].active_node = wrapper
+                self._context.active_component = wrapper.registry_key
 
         self._open_ctx = _OpenMenuContext(click_pos=pos)
         self._open_menu(NodeContextActions, NodeFocus, pos)
 
     def on_edge_context(self, pos, edge_id, edge, state, at_sink_end=False):
         from haybale_graph_editor.focuses import EdgeFocus
-        from haybale_graph_editor.editors.graph_canvas.handlers.context_menu_actions import EdgeContextActions
+        from haybale_graph_editor.editors.graph_canvas.handlers.context_menu_actions import (
+            EdgeContextActions,
+        )
 
         graph = self._context.data[EditState].active_graph
         if graph is not None:
@@ -251,7 +258,9 @@ class SessionContextMenuProvider(IContextMenuProvider, BaseContextMenuProvider):
 
     def on_port_context(self, pos, node_id, port_id, scope):
         from haybale_graph_editor.focuses import PortFocus
-        from haybale_graph_editor.editors.graph_canvas.handlers.context_menu_actions import PortContextActions
+        from haybale_graph_editor.editors.graph_canvas.handlers.context_menu_actions import (
+            PortContextActions,
+        )
         from haywire.ui.panel.focus import focus_by_id
 
         graph = self._context.data[EditState].active_graph
@@ -262,6 +271,7 @@ class SessionContextMenuProvider(IContextMenuProvider, BaseContextMenuProvider):
                 edit_state = self._context.data[EditState]
                 edit_state.active_node = wrapper
                 edit_state.active_port = port
+                self._context.active_component = wrapper.registry_key
 
         self._open_ctx = _OpenMenuContext(click_pos=pos)
         # Resolve the focus from the DOM-supplied id; fall back to PortFocus.
@@ -270,7 +280,9 @@ class SessionContextMenuProvider(IContextMenuProvider, BaseContextMenuProvider):
 
     def on_selection_context(self, pos, nodes, edges):
         from haybale_graph_editor.focuses import SelectionFocus
-        from haybale_graph_editor.editors.graph_canvas.handlers.context_menu_actions import SelectionContextActions
+        from haybale_graph_editor.editors.graph_canvas.handlers.context_menu_actions import (
+            SelectionContextActions,
+        )
 
         self._open_ctx = _OpenMenuContext(click_pos=pos)
         self._open_menu(SelectionContextActions, SelectionFocus, pos)
@@ -282,7 +294,9 @@ class SessionContextMenuProvider(IContextMenuProvider, BaseContextMenuProvider):
         against it; the DOM attribute carries the focus id.
         """
         from haybale_graph_editor.focuses import NodeFocus
-        from haybale_graph_editor.editors.graph_canvas.handlers.context_menu_actions import NodeContextActions
+        from haybale_graph_editor.editors.graph_canvas.handlers.context_menu_actions import (
+            NodeContextActions,
+        )
         from haywire.ui.panel.focus import focus_by_id
 
         graph = self._context.data[EditState].active_graph
@@ -290,6 +304,7 @@ class SessionContextMenuProvider(IContextMenuProvider, BaseContextMenuProvider):
             wrapper = graph.get_node_wrapper(node_id)
             if wrapper is not None:
                 self._context.data[EditState].active_node = wrapper
+                self._context.active_component = wrapper.registry_key
 
         self._open_ctx = _OpenMenuContext(click_pos=pos)
         focus = focus_by_id(scope) or NodeFocus

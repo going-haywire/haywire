@@ -6,7 +6,7 @@ from .library_component_editor import _WidgetPreviewPort
 from .library_component_editor import LibraryComponentEditor
 from .library_overview_editor import TabConfig
 from .library_overview_editor import LibraryOverviewEditor
-from .node_source_editor import NodeSourceEditor
+from .component_source_editor import ComponentSourceEditor
 from .properties_editor import PropertiesEditor
 from .terminal_editor import _LogHandler
 from .terminal_editor import TerminalEditor
@@ -18,7 +18,7 @@ __all__ = [
     "LibraryBrowserEditor",
     "LibraryComponentEditor",
     "LibraryOverviewEditor",
-    "NodeSourceEditor",
+    "ComponentSourceEditor",
     "PropertiesEditor",
     "TabConfig",
     "TerminalEditor",
