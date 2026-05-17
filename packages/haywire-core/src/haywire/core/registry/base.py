@@ -380,10 +380,10 @@ class BaseRegistry(HotReloadRegistry, FolderScanMixin):
                         f"'{module_name}' not found in sys.modules. Creating "
                         f"new module."
                     )
-                    self._on_creation(module_name, event.library_identity)
+                    self._on_creation(module_name, event.library_identity, event)
             elif not event.dependency_event:
                 if event.event_type == FileEventType.CREATED:
-                    self._on_creation(module_name, event.library_identity)
+                    self._on_creation(module_name, event.library_identity, event)
                 if event.event_type == FileEventType.DELETED:
                     self._on_delete(module_name, event.library_identity)
 
@@ -458,10 +458,19 @@ class BaseRegistry(HotReloadRegistry, FolderScanMixin):
                 f"...Hot Reloading on file on file: {event.file_path} -> FAILED."
             )
 
-    def _on_creation(self, module_name: str, library_identity: LibraryIdentity):
+    def _on_creation(
+        self,
+        module_name: str,
+        library_identity: LibraryIdentity,
+        file_event: Optional[FileChangeEvent] = None,
+    ):
         """called when a new module is created / loaded
         Args:
             module (str): The module name that has been created.
+            file_event: The originating FileChangeEvent, if any. When present,
+                registry subscribers are notified so dependent modules in other
+                libraries (e.g. HaystackState depending on GraphAppState) are
+                cascaded after a re-enable.
         Returns:
             list: List of relevant classes that are in this module
         """
@@ -485,14 +494,18 @@ class BaseRegistry(HotReloadRegistry, FolderScanMixin):
                 new_key = self._register_class(cls, library_identity)
                 # Emit event for added class
                 if new_key:
-                    event = LifeCycleEvent(
+                    lc_event = LifeCycleEvent(
                         registry_key=new_key,
                         event_type=LifeCycleEventType.CLASS_ADDED,
                         affected_class=cls,
                         library_identity=library_identity,
                         module_name=module_name,
                     )
-                    self._queue_lifecycle_event(event)
+                    self._queue_lifecycle_event(lc_event)
+
+        if file_event is not None:
+            file_event.dependency_event = True
+            self._notify_registry_subscribers(file_event)
 
     def _on_change(
         self, module_name: str, library_identity: LibraryIdentity, event: Optional[FileChangeEvent] = None

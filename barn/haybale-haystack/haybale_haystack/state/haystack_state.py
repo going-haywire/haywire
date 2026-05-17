@@ -26,22 +26,22 @@ from __future__ import annotations
 
 import logging
 from pathlib import Path
-from typing import TYPE_CHECKING, Optional
+from typing import Optional
 
 from haywire.core.state.base import AppState
 from haywire.core.state.decorator import state
 
-from haybale_haystack.graph_entry import GraphEntry
 from haywire.core.graph.base import BaseGraph
 from haywire.core.graph.editor import Editor
 from haywire.core.graph.validation import ValidationResult
 from haywire.core.node.factory import NodeFactory
 from haywire.core.session.session_manager import SessionManager
 from haywire.core.state import LibraryStateContainer
-from haybale_haystack.settings.haystack_settings import HaystackSettings
 
-if TYPE_CHECKING:
-    from haybale_graph_editor.state.graph_app_state import GraphAppState
+from ..graph_entry import GraphEntry
+from ..settings.haystack_settings import HaystackSettings
+
+from haybale_graph_editor.state.graph_app_state import GraphAppState
 
 logger = logging.getLogger(__name__)
 
@@ -69,7 +69,7 @@ class HaystackState(AppState):
         # Reference to the shared graph registry; populated in on_enable.
         # Direct attribute (not in app_data dict) for fast access from
         # save / open / remove hot paths.
-        self._graph_app_state: Optional["GraphAppState"] = None
+        self._graph_app_state: Optional[GraphAppState] = None
 
         self._haystack_settings: HaystackSettings = HaystackSettings()
 
@@ -85,7 +85,6 @@ class HaystackState(AppState):
             get_session_manager,
             get_workspace_root,
         )
-        from haybale_graph_editor.state.graph_app_state import GraphAppState
 
         self._session_manager = get_session_manager()
         self._workspace_root = get_workspace_root()

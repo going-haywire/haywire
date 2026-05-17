@@ -229,6 +229,12 @@ class DependencyGraph:
         # This is a single-pass operation that builds both caches
         dep_count = self._build_reverse_dependencies(module_name, scope_prefixes)
 
+        # Restore reverse edges from modules that were already registered and
+        # depend on this module.
+        for other, deps in self._direct_dependencies_cache.items():
+            if other != module_name and module_name in deps:
+                self._reverse_dependencies[module_name].add(other)
+
         logger.debug(
             f"Module '{module_name}' registered as managed with scopes {scope_prefixes} "
             f"and {dep_count} dependencies"
@@ -643,12 +649,20 @@ class DependencyGraph:
         try:
             parts = importing_module.split(".")
 
-            if level > len(parts):
+            # Packages (__init__.py) are their own namespace: a level-1 import
+            # stays within the package, not one level above it.  Regular modules
+            # (foo/bar.py) treat level-1 as "go up one directory", which the
+            # standard parts[:-level] logic implements correctly.
+            mod = sys.modules.get(importing_module)
+            mod_file: str | None = getattr(mod, "__file__", None) if mod else None
+            is_package = bool(mod_file and mod_file.endswith("__init__.py"))
+            effective_level = level - 1 if is_package else level
+
+            if effective_level > len(parts):
                 logger.warning(f"Relative import level {level} too high for '{importing_module}'")
                 return None
 
-            # Go up 'level' packages
-            base_parts = parts[:-level]
+            base_parts = parts if effective_level == 0 else parts[:-effective_level]
 
             if relative_module:
                 return ".".join(base_parts + [relative_module])
