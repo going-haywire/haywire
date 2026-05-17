@@ -50,7 +50,6 @@ _REGISTRY_GETTER = {
     "adapter": "get_adapter_registry",
     "skin": "get_skin_registry",
     "theme": "get_theme_registry",
-    "setting": "get_settings_registry",
     "settings": "get_settings_registry",
     "panel": "get_panel_registry",
     "editor": "get_editor_registry",

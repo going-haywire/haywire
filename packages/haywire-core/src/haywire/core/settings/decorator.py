@@ -82,7 +82,7 @@ def settings(namespace: str, label: str = "", description: str = "") -> Callable
         library_identity = derive_library_identity(inner_cls)
         library_id = library_identity.id
 
-        registry_key = reg_key(library_id, "settings", _registry_id)
+        registry_key = reg_key(library_id, "setting", _registry_id)
 
         full_namespace = library_id + "." + namespace
 

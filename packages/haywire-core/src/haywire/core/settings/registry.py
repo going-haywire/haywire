@@ -267,7 +267,7 @@ class SettingsRegistry(BaseRegistry):
 
             ns = schema_cls._namespace
             lib = library_identity or derive_library_identity(schema_cls)
-            reg_key_val = reg_key(lib.id, "settings", ns)
+            reg_key_val = reg_key(lib.id, "setting", ns)
             schema_cls.class_identity = SettingsClassIdentity(
                 namespace=ns,
                 registry_id=ns,
