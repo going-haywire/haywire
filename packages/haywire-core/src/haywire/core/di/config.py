@@ -349,38 +349,28 @@ class LibrarySystemService:
         # FileChangeEvent downstream so any module that imports from it gets reloaded.
         # This mirrors the type_registry → node_registry pattern.
 
+        settings_registry.add_registry_subscriber(library_state_registry)
         settings_registry.add_registry_subscriber(node_registry)
         settings_registry.add_registry_subscriber(skin_registry)
-        settings_registry.add_registry_subscriber(editor_registry)
         settings_registry.add_registry_subscriber(panel_registry)
-        settings_registry.add_registry_subscriber(library_state_registry)
+        settings_registry.add_registry_subscriber(editor_registry)
 
         library_state_registry.add_registry_subscriber(node_registry)
-        library_state_registry.add_registry_subscriber(editor_registry)
         library_state_registry.add_registry_subscriber(panel_registry)
+        library_state_registry.add_registry_subscriber(editor_registry)
 
         print("\n🔍 Scanning for libraries...")
         library_registry.scan_for_libraries()
 
+        # Wire LibraryStateContainer before enabling libraries so that
+        # on_library_enabled fires naturally for each library as it enables.
+        # CLASS_ADDED events during enable() only instantiate state (phase 1);
+        # on_library_enabled triggers on_enable (phase 2) once all of that
+        # library's components are registered.
+        library_state_container.bind_to_lifecycle(library_registry)
+
         print("\n⚡ Enabling libraries...")
         library_registry.enable_all_libraries()
-
-        # Wire LibraryStateContainer to lifecycle events — AFTER
-        # enable_all_libraries() so the container doesn't process
-        # CLASS_ADDED events for any library while that library's own
-        # enable() is still in progress. State on_enable hooks fire only
-        # when ALL libraries have registered their types/nodes/panels/
-        # settings — the fix for the load-order race.
-        library_state_container.bind_to_lifecycle(library_registry)
-        # Startup catch-up: drive the enabled callback for every library
-        # already enabled in the loop above. Order follows
-        # library_registry insertion order (= discovery order from
-        # scan_for_libraries). Future hot-installed libraries reach
-        # on_library_enabled via the callback registered by
-        # bind_to_lifecycle, so this loop is only needed for the libraries
-        # that were enabled before bind_to_lifecycle subscribed.
-        for library in library_registry._libraries.values():
-            library_state_container.on_library_enabled(library)
 
         # Print detailed library discovery results
         self._print_library_discovery_results()

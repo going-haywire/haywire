@@ -269,17 +269,18 @@ class LibraryStateContainer:
         """Subscribe to the three channels the container reacts to.
 
         Called by the orchestrator (``LibrarySystemService.initialize``)
-        once at startup, AFTER ``enable_all_libraries()`` has returned —
-        timing matters: subscribing before would cause the container to
-        process CLASS_ADDED events fired during each library's enable(),
-        which is the load-order race this whole machinery exists to fix.
+        before ``enable_all_libraries()``. This lets ``on_library_enabled``
+        fire naturally for each library as it enables, driving phase 2
+        (``on_enable``) right after each library's ``enable()`` returns.
+        CLASS_ADDED events received during ``enable()`` only instantiate
+        state (phase 1); ``on_enable`` is deferred to ``on_library_enabled``.
 
         Subscribes to:
-          1. State registry batch events — for future hot-reload of
-             classes within already-enabled libraries.
-          2. Library-enabled callback — for the startup catch-up loop
-             and for future hot-installed libraries.
-          3. Library-disabled callback — to drop the library id from
+          1. State registry batch events — for hot-reload of classes
+             within already-enabled libraries.
+          2. Library-enabled callback — triggers on_enable for each
+             library's state instances once all components are registered.
+          3. Library-disabled callback — drops the library id from
              ``_enabled_library_ids`` so subsequent events for it are
              filtered out.
         """

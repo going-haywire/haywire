@@ -165,9 +165,31 @@ class BaseLibrary(ABC):
 
         self._registry_folders[registry_cls] = (folder_path, exclude_patterns)
 
+    # Canonical scan order: settings → state → (types/nodes/adapters/widgets/skins/themes)
+    # → panels → editors. State must exist before editor CLASS_ADDED events fire.
+    # Registry classes not listed here sort to the middle tier (priority 50).
+    _REGISTRY_SCAN_PRIORITY: ClassVar[Dict[str, int]] = {
+        "ThemeRegistry": 10,
+        "SettingsRegistry": 20,
+        "LibraryStateRegistry": 30,
+        "TypeRegistry": 40,
+        "AdapterRegistry": 50,
+        "WidgetRegistry": 60,
+        "NodeRegistry": 70,
+        "SkinRegistry": 80,
+        "PanelRegistry": 90,
+        "EditorTypeRegistry": 100,
+    }
+
     def _attach_to_registries(self):
-        """Add ALL library classes to their registries"""
-        for registry_cls, (folder_path, exclude_patterns) in self._registry_folders.items():
+        """Add ALL library classes to their registries, in canonical scan order."""
+
+        def _priority(item: Tuple[Type[BaseRegistry], Any]) -> int:
+            return self._REGISTRY_SCAN_PRIORITY.get(item[0].__name__, 50)
+
+        for registry_cls, (folder_path, exclude_patterns) in sorted(
+            self._registry_folders.items(), key=_priority
+        ):
             self._register_folder(folder_path, registry_cls, exclude_patterns)
 
         if self.enforce_file_watching or self.identity.file_watcher:
