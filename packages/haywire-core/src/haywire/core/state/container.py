@@ -100,6 +100,10 @@ class LibraryStateContainer:
         self._sessions: dict[str, dict[str, SessionState]] = {}
         # Active sessions tracked for fanout on CLASS_ADDED for SessionState classes.
         self._known_session_ids: set[str] = set()
+        # session_id → Session ref for sessions attached via attach_session_with_ref.
+        # Used to stamp instance.session when a new SessionState class is added
+        # after the session is already alive (re-enable of a library).
+        self._session_refs: "dict[str, weakref.ReferenceType[Session]]" = {}
         # registry_key → class. Lets us find the class behind a key for
         # instantiation (attach_session) and lifecycle (CLASS_RELOADED).
         self._class_by_registry_key: dict[str, type[LibraryState]] = {}
@@ -190,11 +194,14 @@ class LibraryStateContainer:
         """Same as `attach_session`, but also stamps `self.session = weakref.ref(session)`
         on every SessionState instance before `on_enable` runs.
 
-        Called by `SessionManager.create_session`.
+        Called by `SessionManager.create_session`. Also stores the weakref so
+        that SessionState classes added later (e.g. library re-enable) can have
+        their instances stamped with the session ref.
         """
         if session_id in self._known_session_ids:
             return
         self._known_session_ids.add(session_id)
+        self._session_refs[session_id] = weakref.ref(session)
         for registry_key, bag in self._sessions.items():
             cls = self._class_by_registry_key.get(registry_key)
             if cls is None or not issubclass(cls, SessionState):
@@ -222,6 +229,7 @@ class LibraryStateContainer:
         if session_id not in self._known_session_ids:
             return
         self._known_session_ids.discard(session_id)
+        self._session_refs.pop(session_id, None)
         for bag in self._sessions.values():
             inst = bag.pop(session_id, None)
             if inst is not None:
@@ -533,7 +541,9 @@ class LibraryStateContainer:
         self._sessions[registry_key] = bag
         self._class_by_registry_key[registry_key] = cls
         for sid in self._known_session_ids:
-            self._instantiate_session_state(cls, bag, sid, call_on_enable=call_on_enable)
+            session_ref = self._session_refs.get(sid)
+            session = session_ref() if session_ref is not None else None
+            self._instantiate_session_state(cls, bag, sid, session=session, call_on_enable=call_on_enable)
         if call_on_enable:
             self._enabled_registry_keys.add(registry_key)
 
