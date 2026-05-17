@@ -67,6 +67,7 @@ class LibraryComponentEditor(BaseEditor):
         "adapters": "swap_horiz",
         "skins": "brush",
         "settings": "tune",
+        "states": "data_object",
         "themes": "palette",
         "panels": "view_sidebar",
         "editors": "tab",
@@ -257,6 +258,7 @@ class LibraryComponentEditor(BaseEditor):
                 "skins": svc.get_skin_registry,
                 "themes": svc.get_theme_registry,
                 "settings": svc.get_settings_registry,
+                "states": svc.get_state_registry,
                 "panels": svc.get_panel_registry,
                 "editors": svc.get_editor_registry,
             }.get(comp_type, lambda: None)()

@@ -656,6 +656,10 @@ class LibrarySystemService:
         """Get the editor type registry."""
         return self.injector.get(EditorTypeRegistry)
 
+    def get_state_registry(self) -> LibraryStateRegistry:
+        """Get the library state registry."""
+        return self.injector.get(LibraryStateRegistry)
+
     # =========================================================================
     # Settings convenience methods
     # =========================================================================

@@ -34,6 +34,7 @@ from haywire.core.library.utils import (
     PANEL,
     SETTING,
     SKIN,
+    STATE,
     THEME,
     TYPE,
     WIDGET,
@@ -62,6 +63,7 @@ _REGISTRY_GETTER = {
     SKIN: "get_skin_registry",
     THEME: "get_theme_registry",
     SETTING: "get_settings_registry",
+    STATE: "get_state_registry",
     PANEL: "get_panel_registry",
     EDITOR: "get_editor_registry",
 }
