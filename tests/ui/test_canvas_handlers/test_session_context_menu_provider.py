@@ -93,7 +93,7 @@ def make_provider(ctx: SessionContext, registry: PanelRegistry, on_emit_event=No
     inherits _open_menu (and the Popup instantiation) from BaseContextMenuProvider.
     """
     cm = _current_context_menu()
-    base_module = importlib.import_module("haywire.ui._context_menu_base")
+    base_module = importlib.import_module("haywire.ui.panel.context_menu_base")
     popup_container = MagicMock()
     popup = MagicMock()
     popup.__enter__ = MagicMock(return_value=popup_container)

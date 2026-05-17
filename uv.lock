@@ -778,14 +778,14 @@ name = "haybale-studio"
 version = "0.1.0"
 source = { editable = "barn/haybale-studio" }
 dependencies = [
-    { name = "haybale-core" },
+    { name = "haybale-graph-editor" },
     { name = "haywire-core" },
     { name = "haywire-studio" },
 ]
 
 [package.metadata]
 requires-dist = [
-    { name = "haybale-core", editable = "barn/haybale-core" },
+    { name = "haybale-graph-editor", editable = "barn/haybale-graph-editor" },
     { name = "haywire-core", editable = "packages/haywire-core" },
     { name = "haywire-studio", editable = "packages/haywire-studio" },
 ]
@@ -807,12 +807,14 @@ version = "0.1.0"
 source = { editable = "barn/haybale-testing" }
 dependencies = [
     { name = "haybale-core" },
+    { name = "haybale-graph-editor" },
     { name = "haywire-core" },
 ]
 
 [package.metadata]
 requires-dist = [
     { name = "haybale-core", editable = "barn/haybale-core" },
+    { name = "haybale-graph-editor", editable = "barn/haybale-graph-editor" },
     { name = "haywire-core", editable = "packages/haywire-core" },
 ]
 

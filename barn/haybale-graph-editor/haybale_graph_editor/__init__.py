@@ -29,7 +29,7 @@ __all__ = ["GraphContainer", "GraphAppState", "Library"]
     help_url="",
     author="",
     author_url="",
-    dependencies=["haybale_core", "haybale_studio"],
+    dependencies=[],
     tags=["graph-editor"],
     file_watcher=True,
 )

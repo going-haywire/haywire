@@ -30,7 +30,7 @@ from haywire.ui.widget.registry import WidgetRegistry
     help_url="https://github.com/maybites/haywire",
     author="Haywire Team",
     author_url="https://github.com/maybites/haywire",
-    dependencies=["haybale_core", "haybale_test_a"],
+    dependencies=["haybale_core", "haybale_graph_editor"],
     tags=["testing", "development", "debug"],
     file_watcher=True,
 )

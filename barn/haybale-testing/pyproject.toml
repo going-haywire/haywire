@@ -10,7 +10,7 @@ authors = [
 ]
 keywords = ["haywire", "node-editor", "visual-programming", "test"]
 
-dependencies = ["haywire-core>=0.1.0", "haybale-core>=0.1.0"]
+dependencies = ["haybale-core>=0.1.0", "haybale-graph-editor>=0.1.0", "haywire-core>=0.1.0"]
 
 # Entry point for Haywire library discovery
 [project.entry-points."haywire.libraries"]
@@ -26,6 +26,7 @@ packages = ["haybale_testing"]
 [tool.uv.sources]
 haywire-core = { workspace = true }
 haybale-core = { workspace = true }
+haybale-graph-editor = { workspace = true }
 
 [tool.hatch.build.targets.sdist]
 include = [
