@@ -1,0 +1,24 @@
+[project]
+name = "fake-workspace"
+version = "0.0.0"
+
+[tool.uv.workspace]
+members = [
+    "subdir-a/*",
+    "subdir-b/*",
+]
+
+[tool.haywire.release]
+publish_order = [
+    "haybale-alpha",
+    "haybale-beta",
+]
+lockstep_unpublished = [
+    "haybale-internal",
+]
+
+[tool.haywire.marketstall]
+source_url = "https://github.com/example/fake-workspace"
+docs_branch = "main"
+default_author = "Fake Team"
+default_tags = []

@@ -110,3 +110,20 @@ lockstep_unpublished = [
     "haybale-testing",
     "haybale-TEST_A",
 ]
+
+[tool.haywire.marketstall]
+# Configuration for scripts/generate_marketstall.py.
+# Consumed by the marketplace generator (T3) and the CI publish workflow (T4).
+
+# Repo URL used as the `source_url` for every generated [[packages]] entry.
+# Also forms the base for the `docs_url` raw-githubusercontent URL.
+source_url = "https://github.com/maybites/haywire"
+
+# Default branch used in the raw-githubusercontent docs_url. Update if
+# the repo's primary branch ever moves.
+docs_branch = "main"
+
+# Default author and tags applied when a package's @library decorator
+# doesn't set them. Per-package values from the decorator always win.
+default_author = "Haywire Team"
+default_tags = []

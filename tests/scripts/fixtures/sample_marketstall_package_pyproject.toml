@@ -1,0 +1,18 @@
+[project]
+name = "haybale-alpha"
+version = "0.0.3"
+description = "Alpha library — does alpha things"
+requires-python = ">=3.10"
+
+dependencies = [
+    "haywire-core~=0.0.3",
+    "haybale-beta~=0.0.3",
+    "external-lib>=1.0",
+]
+
+[project.entry-points."haywire.libraries"]
+alpha = "haybale_alpha:Library"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
