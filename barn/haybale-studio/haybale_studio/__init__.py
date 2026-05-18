@@ -14,6 +14,7 @@ Add your custom components in the corresponding folders:
 - state/      — per-session library state (SessionState subclasses)
 """
 
+from importlib.metadata import version as _pkg_version
 from pathlib import Path
 
 from haywire.core.library.base import BaseLibrary
@@ -34,7 +35,7 @@ from haywire.ui.widget.registry import WidgetRegistry
 @library(
     label="Haywire Studio",
     id="studio",
-    version="0.1.0",
+    version=_pkg_version("haybale-studio"),
     description="Required library for haywire studio",
     url="",
     help_url="",

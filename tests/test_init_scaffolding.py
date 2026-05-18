@@ -168,7 +168,8 @@ class TestDevMode:
         sources = data["tool"]["uv"]["sources"]
         assert "haywire-studio" in sources
         assert "haywire-core" in sources
-        assert "haybale-core" not in sources
+        assert "haybale-core" in sources
+        assert "haybale-studio" in sources
 
     def test_sources_are_editable(self, scaffold_project_dev):
         data = toml.loads((scaffold_project_dev / "pyproject.toml").read_text())

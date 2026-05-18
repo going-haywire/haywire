@@ -2,6 +2,7 @@
 Visiongraph Library for Haywire
 """
 
+from importlib.metadata import version as _pkg_version
 from pathlib import Path
 
 from haywire.core.library.base import BaseLibrary
@@ -17,7 +18,7 @@ from haywire.ui.widget.registry import WidgetRegistry
 @library(
     label="Visiongraph",
     id="visiongraph",
-    version="0.0.1",
+    version=_pkg_version("haybale-visiongraph"),
     description="Visiongraph library",
     url="https://github.com/haywire/haywire-repo/libraries/haybale-visiongraph",
     help_url="https://docs.github.io/haywire_library",

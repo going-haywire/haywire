@@ -350,7 +350,7 @@ class LibraryManager:
                         pkg["name"] = new_lib_name
                         pkg["label"] = label_val
                         pkg["description"] = desc_val
-                        pkg["version"] = version_val
+                        pkg["min_version"] = version_val
                         pkg["tags"] = tags_list
                         pkg["install_spec"] = str(new_lib_dir)
                         pkg["docs_url"] = str(new_lib_dir / new_module)
@@ -691,7 +691,7 @@ class LibraryManager:
                     if pkg.get("name", "").lower() == dist_name.lower():
                         pkg["label"] = label_val
                         pkg["description"] = desc_val
-                        pkg["version"] = version_val
+                        pkg["min_version"] = version_val
                         pkg["tags"] = tags_list
                         break
                 marketplace_path.write_text(toml.dumps(data))
@@ -717,7 +717,7 @@ class LibraryManager:
         return [
             MarketplaceEntry(
                 name=pkg.get("name", ""),
-                version=pkg.get("version", ""),
+                min_version=pkg.get("min_version", ""),
                 label=pkg.get("label", ""),
                 description=pkg.get("description", ""),
                 author=pkg.get("author", ""),

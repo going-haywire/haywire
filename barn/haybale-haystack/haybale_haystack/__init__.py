@@ -13,6 +13,7 @@ libraries may provide alternative managers; haybale-haystack does not
 claim exclusive ownership of GraphEditor.
 """
 
+from importlib.metadata import version as _pkg_version
 from pathlib import Path
 
 from haywire.core.library.base import BaseLibrary
@@ -27,7 +28,7 @@ from haywire.ui.panel.registry import PanelRegistry
 @library(
     label="Haystack",
     id="haystack",
-    version="0.1.0",
+    version=_pkg_version("haybale-haystack"),
     description="File-centric multi-graph manager",
     url="",
     help_url="",

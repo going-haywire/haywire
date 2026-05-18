@@ -14,7 +14,7 @@ class MarketplaceEntry:
     """A package available for installation from a marketplace manifest."""
 
     name: str  # pip distribution name, e.g. "haybale-visiongraph"
-    version: str
+    min_version: str  # minimum required version floor, e.g. "0.0.1"; not "latest available"
     label: str = ""  # human-readable display name, e.g. "Visiongraph"
     description: str = ""
     author: str = ""
@@ -33,7 +33,7 @@ class MarketplaceEntry:
     _TOML_FIELDS: ClassVar[tuple[str, ...]] = (
         "name",
         "label",
-        "version",
+        "min_version",
         "description",
         "author",
         "source",

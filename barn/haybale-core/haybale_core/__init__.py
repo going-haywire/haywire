@@ -5,6 +5,7 @@ Contains fundamental nodes, widgets, adapters, and data definitions
 that form the foundation of the Haywire system.
 """
 
+from importlib.metadata import version as _pkg_version
 from pathlib import Path
 
 from haywire.core.library.base import BaseLibrary
@@ -24,7 +25,7 @@ from haywire.ui.skin.registry import SkinRegistry
 @library(
     label="Haywire Core",
     id="core",
-    version="1.0.0",
+    version=_pkg_version("haybale-core"),
     description="Core Haywire library with fundamental components",
     url="https://github.com/maybites/haywire",
     help_url="https://github.com/maybites/haywire",

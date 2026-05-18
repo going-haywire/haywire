@@ -204,7 +204,7 @@ def share_library(library_path: str | None):
     entry = MarketplaceEntry(
         name=name,
         label=label,
-        version=version,
+        min_version=version,
         description=description,
         author=author,
         source="git",

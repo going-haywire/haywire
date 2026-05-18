@@ -5,6 +5,7 @@ Minimal test library to demonstrate multi-library support.
 Contains one node, one widget, one adapter, and one data struct.
 """
 
+from importlib.metadata import version as _pkg_version
 from pathlib import Path
 
 from haywire.core.library.base import BaseLibrary
@@ -20,7 +21,7 @@ from haywire.ui.widget.registry import WidgetRegistry
 @library(
     label="Example",
     id="example",
-    version="0.1.0",
+    version=_pkg_version("haybale-example"),
     description="Example library for demonstrating multi-library support",
     url="https://github.com/author/haywire_library",
     help_url="https://docs.github.io/haywire_library",

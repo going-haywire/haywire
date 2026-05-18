@@ -138,6 +138,7 @@ Add your custom components in the corresponding folders:
 - editors/    — custom UI editors
 """
 
+from importlib.metadata import version as _pkg_version
 from pathlib import Path
 
 from haywire.core.library.base import BaseLibrary
@@ -158,7 +159,7 @@ from haywire.ui.widget.registry import WidgetRegistry
 @library(
     label='{label}',
     id='{name}',
-    version='0.1.0',
+    version=_pkg_version('haybale-{name}'),
     description='Local library for {name} project',
     url='',
     help_url='',
@@ -238,7 +239,7 @@ def _project_lib_entry(name: str, module_name: str, project_dir: Path) -> dict:
     return MarketplaceEntry(
         name=f"haybale-{name}",
         label=label,
-        version="0.1.0",
+        min_version="0.1.0",
         description=f"Local library for the {name} project",
         source="local",
         install_spec=str(lib_path),
@@ -283,7 +284,7 @@ def _generate_dev_marketplace(dev_repo: str, name: str, module_name: str, projec
         return MarketplaceEntry(
             name=lib_name,
             label=label,
-            version=version,
+            min_version=version,
             description=description,
             author=author,
             source="local",
