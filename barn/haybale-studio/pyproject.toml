@@ -1,13 +1,13 @@
 [project]
 name = "haybale-studio"
-version = "0.1.0"
+version = "0.0.1"
 description = "Core library for haywirestudio functionality"
 requires-python = ">=3.10"
 license = {text = "MIT"}
 
 dependencies = [
-    "haywire-core>=0.1.0",
-    "haywire-studio>=0.1.0",
+    "haywire-core~=0.0.1",
+    "haywire-studio~=0.0.1",
     "packaging",
 ]
 

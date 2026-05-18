@@ -80,3 +80,33 @@ markers = [
     "core: Core functionality tests",
 ]
 addopts = "-v --strict-markers --tb=short --maxfail=5"
+
+[tool.haywire.release]
+# Canonical machine-readable list of releasable packages.
+# Consumed by: scripts/bump_version.py (this repo),
+#              scripts/generate_marketstall.py (separate plan),
+#              .github/workflows/publish.yml (separate plan).
+# Order is significant for the publish workflow: dependencies first.
+# If this disagrees with the §5 table in
+# internals/specs/versioning-and-publishing.md, this block wins.
+
+# Packages published to PyPI on every release tag, in dependency order.
+publish_order = [
+    "haywire-core",
+    "haywire-studio",
+    "haybale-core",
+    "haybale-studio",
+    "haybale-graph-editor",
+    "haybale-haystack",
+    "haybale-example",
+]
+
+# Packages versioned in lockstep with the release but NOT published.
+# The bump script updates these too so internal users stay coherent.
+# - haybale-visiongraph: Tier 2 git-only (binary deps, deferred from PyPI).
+# - haybale-testing, haybale-TEST_A: Tier 3 internal test fixtures.
+lockstep_unpublished = [
+    "haybale-visiongraph",
+    "haybale-testing",
+    "haybale-TEST_A",
+]

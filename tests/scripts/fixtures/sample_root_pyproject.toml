@@ -1,0 +1,18 @@
+[project]
+name = "fake-workspace"
+version = "0.0.0"
+
+[tool.uv.workspace]
+members = [
+    "subdir-a/*",
+    "subdir-b/*",
+]
+
+[tool.haywire.release]
+publish_order = [
+    "alpha-pkg",
+    "beta-pkg",
+]
+lockstep_unpublished = [
+    "gamma-pkg",
+]
