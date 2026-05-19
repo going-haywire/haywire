@@ -325,8 +325,7 @@ class LibraryBrowserEditor(BaseEditor):
             return
 
         q = self._search_query.lower().strip()
-
-        from haywire_studio.library_manager import LibraryManager
+        manager = app.library_manager
 
         def _label(lib) -> str:
             # LibraryInfo wraps identity; MarketplaceEntry has label/name directly
@@ -354,8 +353,13 @@ class LibraryBrowserEditor(BaseEditor):
             )
 
         def is_required(lib) -> bool:
-            dist = getattr(lib, "distribution_name", "")
-            return bool(dist and LibraryManager.is_required_by_another_package(dist))
+            # Required = some other installed library declares this one in its
+            # @library(dependencies=[...]) decorator. Same signal the overview
+            # editor uses to gate the Disable / Uninstall buttons, so the purple
+            # badge and the disabled button always agree.
+            if not hasattr(lib, "identity"):
+                return False
+            return bool(manager.get_installed_dependents(lib.identity.id))
 
         # Always compute the exclusion set so required libs never bleed into ENABLED,
         # even when the required filter toggle is off.

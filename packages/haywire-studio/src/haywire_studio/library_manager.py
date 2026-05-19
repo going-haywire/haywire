@@ -100,9 +100,6 @@ class LibraryManager:
         except AttributeError:
             pass
 
-        # Reset the pip reverse-dep cache — installed packages changed.
-        LibraryManager._required_by_cache = None
-
     def _uv_cmd(self, args: list[str]) -> list[str]:
         """Build the full uv command list."""
         cmd = ["uv", "pip"] + args
@@ -457,42 +454,6 @@ class LibraryManager:
             return importlib.metadata.version(package_name)
         except importlib.metadata.PackageNotFoundError:
             return None
-
-    # Cache: normalized-dist-name → first owner name (or None). Built once on first call.
-    _required_by_cache: dict[str, str | None] | None = None
-
-    @classmethod
-    def _build_required_by_cache(cls) -> dict[str, str | None]:
-        """Walk all installed distributions once and build a reverse-dep map.
-
-        Maps each normalized distribution name to the name of the first package
-        that lists it in Requires-Dist.  Subsequent calls to
-        is_required_by_another_package() are then O(1) dict lookups.
-        """
-        cache: dict[str, str | None] = {}
-        for dist in importlib.metadata.distributions():
-            meta: Any = dist.metadata
-            owner_name = meta.get("Name", "") or ""
-            for req in meta.get_all("Requires-Dist") or []:
-                # PEP 440 operators: ~=, ==, !=, ~=, ===, >=, <=, >, <
-                # Also strip extras [foo] and environment markers ; python_version<"3.11"
-                req_name = re.split(r"[~>=<!;\s\[]", req)[0]
-                req_norm = re.sub(r"[-_.]+", "_", req_name).lower()
-                if req_norm and req_norm not in cache:
-                    cache[req_norm] = owner_name
-        return cache
-
-    @classmethod
-    def is_required_by_another_package(cls, dist_name: str) -> str | None:
-        """Return the name of the first installed distribution that requires dist_name, or None.
-
-        Results are cached after the first call so repeated UI renders don't
-        re-walk the entire distribution list.
-        """
-        if cls._required_by_cache is None:
-            cls._required_by_cache = cls._build_required_by_cache()
-        target = re.sub(r"[-_.]+", "_", dist_name).lower()
-        return cls._required_by_cache.get(target)
 
     @staticmethod
     def _norm(name: str) -> str:
