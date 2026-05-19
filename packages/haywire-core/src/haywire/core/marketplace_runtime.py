@@ -18,6 +18,11 @@ fields. Per spec §6, the Library Manager refuses to start when this is raised.
 
 from __future__ import annotations
 
+import datetime as _dt
+import hashlib
+import time
+import urllib.error
+import urllib.request
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -28,6 +33,7 @@ from haywire.core.marketplace_errors import (
     DuplicateLocalNameError,
     DuplicatePackageNameError,
     MalformedGlobalMarketplaceError,
+    RemoteFetchError,
 )
 
 
@@ -254,3 +260,379 @@ def serialize_project_marketplace(pm: ProjectMarketplace) -> str:
     if pm.packages:
         data["packages"] = [pkg.to_dict() for pkg in pm.packages]
     return toml.dumps(data)
+
+
+_CACHE_HASH_LEN = 16
+
+
+def _url_hash(url: str) -> str:
+    """Return a short hex hash for a URL. Used as the cache filename stem."""
+    return hashlib.sha256(url.encode("utf-8")).hexdigest()[:_CACHE_HASH_LEN]
+
+
+def _cache_path(url: str) -> Path:
+    """Return ~/.haywire/cache/<url-hash>.toml for the given URL."""
+    return Path.home() / ".haywire" / "cache" / f"{_url_hash(url)}.toml"
+
+
+def cache_write(url: str, body: str) -> None:
+    """Cache a successful HTTP response. Overwrites any previous entry for the same URL."""
+    path = _cache_path(url)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(body, encoding="utf-8")
+
+
+def cache_read(url: str) -> tuple[str | None, float | None]:
+    """Return (cached_body, age_in_seconds) for a URL, or (None, None) if no cache."""
+    path = _cache_path(url)
+    if not path.is_file():
+        return None, None
+    body = path.read_text(encoding="utf-8")
+    age = time.time() - path.stat().st_mtime
+    return body, age
+
+
+@dataclass(frozen=True)
+class FetchResult:
+    """Result of fetch_with_cache_fallback. body is always populated;
+    from_cache is True iff we served from cache (because the remote failed)."""
+
+    body: str
+    from_cache: bool
+    cache_age: float | None  # Set when from_cache=True; None on fresh fetch.
+
+
+def fetch_with_cache_fallback(url: str, *, timeout: float = 5.0) -> FetchResult:
+    """Fetch a URL. On success, cache + return the body. On failure, return cached body if any.
+
+    Raises RemoteFetchError only when the URL fails AND no cache exists.
+    Per spec §6: "Cache invalidation: only by successful re-fetch on next refresh."
+    """
+    try:
+        with urllib.request.urlopen(url, timeout=timeout) as resp:
+            body = resp.read().decode("utf-8")
+        cache_write(url, body)
+        return FetchResult(body=body, from_cache=False, cache_age=None)
+    except (OSError, urllib.error.URLError):
+        cached, age = cache_read(url)
+        if cached is not None:
+            return FetchResult(body=cached, from_cache=True, cache_age=age)
+        raise RemoteFetchError(f"failed to fetch {url} and no cache available") from None
+
+
+def parse_marketstall_body(body: str) -> list[MarketplaceEntry]:
+    """Parse a fetched marketstall TOML body into a list of MarketplaceEntry.
+
+    A marketstall is [[packages]]-only per spec §7. Other sections (locals,
+    marketplaces) are silently ignored — a remote marketstall shouldn't have
+    them, but if a misbehaving server returns extra sections we just skip them.
+
+    Returns an empty list on malformed TOML or missing [[packages]]. The
+    caller (refresh orchestrator) decides what to do with an empty result.
+    """
+    try:
+        data = toml.loads(body)
+    except toml.TomlDecodeError:
+        return []
+
+    try:
+        return [_parse_package_entry(raw) for raw in data.get("packages", [])]
+    except MalformedGlobalMarketplaceError:
+        return []
+
+
+@dataclass(frozen=True)
+class RemoteMarketplaceContents:
+    """Result of parsing a fetched remote marketplace body.
+
+    Per spec §6 line 186-188, resolution is one level deep — a remote
+    marketplace's own [[marketplaces]] entries are ignored. We only consume
+    its [[marketstalls]] URLs and [[packages]] entries.
+    """
+
+    marketstall_urls: list[str] = field(default_factory=list)
+    packages: list[MarketplaceEntry] = field(default_factory=list)
+
+
+def parse_remote_marketplace_body(body: str) -> RemoteMarketplaceContents:
+    """Parse a fetched remote marketplace TOML body into its consumable sections.
+
+    Resolution is one level deep: [[marketplaces]] entries are ignored.
+    Malformed TOML or schema violations return an empty RemoteMarketplaceContents
+    (the orchestrator treats this as "source unavailable").
+    """
+    try:
+        data = toml.loads(body)
+    except toml.TomlDecodeError:
+        return RemoteMarketplaceContents()
+
+    marketstall_urls: list[str] = []
+    for raw in data.get("marketstalls", []):
+        url = raw.get("url")
+        if isinstance(url, str) and url:
+            marketstall_urls.append(url)
+
+    try:
+        packages = [_parse_package_entry(raw) for raw in data.get("packages", [])]
+    except MalformedGlobalMarketplaceError:
+        packages = []
+
+    return RemoteMarketplaceContents(
+        marketstall_urls=marketstall_urls,
+        packages=packages,
+    )
+
+
+def apply_ignores(packages: list[MarketplaceEntry], ignores: list[str]) -> list[MarketplaceEntry]:
+    """Filter out packages whose name is in `ignores`.
+
+    Per spec §6 conflict-resolution table: `ignores` lives on the YIELDING
+    source — when a user picks between A and B for `haybale-foo`, the losing
+    entry's parent source gets `haybale-foo` added to its `ignores` array.
+    Refresh honors this by skipping the named packages from that source.
+    """
+    if not ignores:
+        return packages
+    ignored_set = set(ignores)
+    return [p for p in packages if p.name not in ignored_set]
+
+
+def apply_locals_shadow(
+    locals_: list[dict],
+    packages: list[MarketplaceEntry],
+) -> list[MarketplaceEntry]:
+    """Drop packages whose name matches a [[locals]] entry's name.
+
+    Per spec §6 conflict-resolution table row 3: [[locals]] always wins. The
+    other source's contribution is silently shadowed (no diagnostic, no prompt).
+    Returns the filtered list of packages; locals are returned separately by
+    the orchestrator since they have a different schema.
+    """
+    if not locals_:
+        return packages
+    local_names = {entry.get("name") for entry in locals_ if isinstance(entry.get("name"), str)}
+    return [p for p in packages if p.name not in local_names]
+
+
+def apply_first_come_first_served(
+    packages: list[MarketplaceEntry],
+) -> list[MarketplaceEntry]:
+    """Deduplicate by name, keeping the first occurrence.
+
+    Per spec §6 conflict-resolution table row 2. By the time refresh calls
+    this, `ignores` arrays on yielding sources should already handle the
+    conflict resolution — this is a safety net for any case the UI prompt
+    missed (or for users who hand-edited the global marketplace).
+    """
+    seen: set[str] = set()
+    out: list[MarketplaceEntry] = []
+    for pkg in packages:
+        if pkg.name in seen:
+            continue
+        seen.add(pkg.name)
+        out.append(pkg)
+    return out
+
+
+def _now_iso() -> str:
+    """Return current UTC time as an ISO 8601 string with trailing Z."""
+    return _dt.datetime.now(tz=_dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
+def mark_stale_against_previous(
+    fresh: list[MarketplaceEntry],
+    previous: list[MarketplaceEntry],
+) -> list[MarketplaceEntry]:
+    """Compute the new project cache by marking missing entries as stale.
+
+    Per spec §6 line 196-203:
+      - Entries present in both keep their fresh data (no stale flag).
+      - Entries in previous but not fresh become stale (stale=True + last_seen).
+      - Entries already stale in previous keep their original last_seen
+        (avoid bumping the timestamp every refresh — that would make stale
+        age meaningless).
+      - Entries only in fresh are passed through unchanged.
+
+    Returns the combined list. The caller decides display order.
+    """
+    out: list[MarketplaceEntry] = list(fresh)
+    out_names = {p.name for p in out}
+
+    now = _now_iso()
+    for prev in previous:
+        if prev.name in out_names:
+            continue  # Still present in fresh — already in `out`.
+        if prev.stale:
+            # Re-mark stale without bumping the timestamp.
+            out.append(prev)
+        else:
+            # Newly stale: copy the previous entry and set stale + last_seen.
+            stale_copy = MarketplaceEntry(
+                name=prev.name,
+                min_version=prev.min_version,
+                label=prev.label,
+                description=prev.description,
+                author=prev.author,
+                source=prev.source,
+                install_spec=prev.install_spec,
+                tags=list(prev.tags),
+                dependencies=list(prev.dependencies),
+                source_url=prev.source_url,
+                docs_url=prev.docs_url,
+                source_label=prev.source_label,
+                source_file=prev.source_file,
+                source_origin=prev.source_origin,
+                via=prev.via,
+                last_seen=now,
+                stale=True,
+            )
+            out.append(stale_copy)
+    return out
+
+
+@dataclass
+class RefreshReport:
+    """Summary of a refresh run, surfaced to the UI."""
+
+    sources_fetched: int = 0
+    sources_unavailable: int = 0
+    unavailable_urls: list[str] = field(default_factory=list)
+    packages_resolved: int = 0
+    new_stale: int = 0
+
+
+def refresh(global_path: Path, project_path: Path) -> RefreshReport:
+    """Run the 7-step refresh from spec §6.
+
+    1. Read global.
+    2. For each [[marketplaces]] entry, fetch + parse (one level deep).
+    3. For each [[marketstalls]] entry (direct + discovered), fetch + parse.
+    4. Build flat candidate list.
+    5. Apply ignores per source, then locals shadow, then first-come dedup.
+    6. Write project marketplace (locals preserved + resolved packages + stale-marked).
+    7. Diff against previous to compute stale; mark_stale_against_previous handles it.
+
+    Returns a RefreshReport for the UI.
+    """
+    report = RefreshReport()
+    gm = parse_global_marketplace(global_path)
+    pm_prev = parse_project_marketplace(project_path)
+
+    # Step 2: fetch each [[marketplaces]] (one level deep)
+    # and accumulate the marketstall URLs we discover.
+    discovered_marketstall_urls: list[str] = []
+    remote_marketplace_packages: list[MarketplaceEntry] = []
+    for sub in gm.marketplaces:
+        try:
+            result = fetch_with_cache_fallback(sub.url)
+        except RemoteFetchError:
+            report.sources_unavailable += 1
+            report.unavailable_urls.append(sub.url)
+            continue
+        report.sources_fetched += 1
+        contents = parse_remote_marketplace_body(result.body)
+        discovered_marketstall_urls.extend(contents.marketstall_urls)
+        # Apply this source's ignores to its direct [[packages]] contribution.
+        remote_marketplace_packages.extend(apply_ignores(contents.packages, sub.ignores))
+
+    # Step 3: fetch each [[marketstalls]] — direct (gm.marketstalls) + discovered.
+    direct_marketstall_packages: list[MarketplaceEntry] = []
+    seen_marketstall_urls: set[str] = set()
+    for sub in gm.marketstalls:
+        if sub.url in seen_marketstall_urls:
+            continue
+        seen_marketstall_urls.add(sub.url)
+        try:
+            result = fetch_with_cache_fallback(sub.url)
+        except RemoteFetchError:
+            report.sources_unavailable += 1
+            report.unavailable_urls.append(sub.url)
+            continue
+        report.sources_fetched += 1
+        pkgs = parse_marketstall_body(result.body)
+        direct_marketstall_packages.extend(apply_ignores(pkgs, sub.ignores))
+
+    discovered_marketstall_packages: list[MarketplaceEntry] = []
+    for url in discovered_marketstall_urls:
+        if url in seen_marketstall_urls:
+            continue
+        seen_marketstall_urls.add(url)
+        try:
+            result = fetch_with_cache_fallback(url)
+        except RemoteFetchError:
+            report.sources_unavailable += 1
+            report.unavailable_urls.append(url)
+            continue
+        report.sources_fetched += 1
+        discovered_marketstall_packages.extend(parse_marketstall_body(result.body))
+
+    # Step 4: flat candidate list, in the order spec §6 step 4 prescribes:
+    #   global [[packages]] + global [[locals]] (kept separate) + marketstalls +
+    #   remote-marketplace [[packages]].
+    candidates: list[MarketplaceEntry] = list(gm.packages)
+    candidates.extend(direct_marketstall_packages)
+    candidates.extend(discovered_marketstall_packages)
+    candidates.extend(remote_marketplace_packages)
+
+    # Step 5: conflict resolution
+    resolved = apply_locals_shadow(gm.locals_ + pm_prev.locals_, candidates)
+    resolved = apply_first_come_first_served(resolved)
+
+    # Step 7 (logically): mark stale.
+    final_packages = mark_stale_against_previous(resolved, pm_prev.packages)
+
+    report.packages_resolved = sum(1 for p in final_packages if not p.stale)
+    report.new_stale = sum(
+        1
+        for p in final_packages
+        if p.stale and p.name not in {prev.name for prev in pm_prev.packages if prev.stale}
+    )
+
+    # Step 6: write project marketplace — locals from the project file are preserved.
+    new_pm = ProjectMarketplace(
+        locals_=list(pm_prev.locals_),
+        packages=final_packages,
+    )
+    project_path.parent.mkdir(parents=True, exist_ok=True)
+    project_path.write_text(serialize_project_marketplace(new_pm))
+
+    return report
+
+
+def add_local_to_global(
+    global_path: Path,
+    *,
+    name: str,
+    path: Path,
+    label: str = "",
+    description: str = "",
+) -> None:
+    """Append a [[locals]] entry to the user-global marketplace.
+
+    Raises DuplicateLocalNameError if an entry with the same name already
+    exists (spec §6 G5 — name collision between projects). Preserves all
+    other sections ([[marketplaces]], [[marketstalls]], [[packages]]) verbatim.
+
+    This is the canonical helper for haywire init (Plan D's pattern) and any
+    other writer that adds a single local. Composes the Phase 1 parser +
+    serializer so the read/append/write is atomic.
+    """
+    gm = parse_global_marketplace(global_path)
+
+    for existing in gm.locals_:
+        if existing.get("name") == name:
+            raise DuplicateLocalNameError(
+                f'A project library named "{name}" is already registered '
+                f"at {existing.get('path')} in {global_path}. "
+                f"Rename your new project or remove the conflicting entry."
+            )
+
+    entry: dict[str, object] = {"name": name, "path": str(path)}
+    if label:
+        entry["label"] = label
+    if description:
+        entry["description"] = description
+    gm.locals_.append(entry)
+
+    global_path.parent.mkdir(parents=True, exist_ok=True)
+    global_path.write_text(serialize_global_marketplace(gm))
