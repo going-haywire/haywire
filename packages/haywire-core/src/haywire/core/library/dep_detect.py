@@ -59,6 +59,41 @@ class HaywireLibrarySource(Protocol):
         ...
 
 
+class EntryPointLibrarySource:
+    """HaywireLibrarySource backed by ``importlib.metadata.entry_points()``.
+
+    Used by CLI flows (``haywire share``) that need to classify imports
+    without bootstrapping the haywire runtime / live registry. Treats any
+    installed distribution declaring an entry point in the
+    ``haywire.libraries`` group as a haywire library.
+
+    The mapping is built lazily on first access and cached for the lifetime
+    of the instance.
+    """
+
+    GROUP = "haywire.libraries"
+
+    def __init__(self) -> None:
+        self._cache: dict[str, str] | None = None  # entry-point name -> distribution name
+
+    def _ensure_cache(self) -> dict[str, str]:
+        if self._cache is None:
+            cache: dict[str, str] = {}
+            for ep in importlib.metadata.entry_points(group=self.GROUP):
+                # ep.dist is the distribution providing this entry point.
+                dist_name = ep.dist.name if ep.dist else None
+                if dist_name:
+                    cache[ep.name] = dist_name
+            self._cache = cache
+        return self._cache
+
+    def list_names(self) -> list[str]:
+        return list(self._ensure_cache().keys())
+
+    def get_library_distribution_name(self, library_id: str) -> str | None:
+        return self._ensure_cache().get(library_id)
+
+
 @dataclass(frozen=True)
 class DetectedDeps:
     """The classified result of scanning a library's imports.

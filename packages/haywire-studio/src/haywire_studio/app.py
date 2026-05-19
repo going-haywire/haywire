@@ -316,6 +316,17 @@ def main():
         action="store_true",
         help="Aggregate every barn/* library into <repo-root>/marketstall.toml.",
     )
+    share_parser.add_argument(
+        "--strict",
+        action="store_true",
+        help="Exit non-zero if any library has dependency drift (declared vs. imported).",
+    )
+    share_parser.add_argument(
+        "--fix",
+        action="store_true",
+        help="Auto-correct dependency drift by updating pyproject.toml and the "
+        "@library decorator before sharing.",
+    )
 
     args = parser.parse_args()
 
@@ -328,18 +339,21 @@ def main():
         if args.save:
             from pathlib import Path
 
-            from .share import NoBarnError, share_save_repo
+            from .share import DriftError, NoBarnError, share_save_repo
 
             try:
-                out_path = share_save_repo(Path.cwd())
+                out_path = share_save_repo(Path.cwd(), strict=args.strict, fix=args.fix)
                 print(f"Wrote {out_path}")
             except NoBarnError as exc:
                 print(f"Error: {exc}")
                 sys.exit(1)
+            except DriftError as exc:
+                print(str(exc), file=sys.stderr)
+                sys.exit(1)
         else:
             from .share import share_library
 
-            share_library(args.library_path)
+            share_library(args.library_path, strict=args.strict, fix=args.fix)
     else:
         run_app()
 
