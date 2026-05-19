@@ -638,6 +638,43 @@ def add_local_to_global(
     global_path.write_text(serialize_global_marketplace(gm))
 
 
+def add_local_to_project(
+    project_path: Path,
+    *,
+    name: str,
+    path: Path,
+    label: str = "",
+    description: str = "",
+) -> None:
+    """Append a [[locals]] entry to a project's <project>/.haywire/marketplace.toml.
+
+    Raises DuplicateLocalNameError if an entry with the same name already
+    exists in that project's [[locals]]. Preserves any existing [[packages]]
+    entries verbatim.
+
+    Used by `haywire init` to scaffold the project's own library entry and,
+    in --dev mode, the dev-repo barn libraries the user wants to test against.
+    """
+    pm = parse_project_marketplace(project_path)
+
+    for existing in pm.locals_:
+        if existing.get("name") == name:
+            raise DuplicateLocalNameError(
+                f'A local library named "{name}" is already registered '
+                f"at {existing.get('path')} in {project_path}."
+            )
+
+    entry: dict[str, object] = {"name": name, "path": str(path)}
+    if label:
+        entry["label"] = label
+    if description:
+        entry["description"] = description
+    pm.locals_.append(entry)
+
+    project_path.parent.mkdir(parents=True, exist_ok=True)
+    project_path.write_text(serialize_project_marketplace(pm))
+
+
 def add_marketplace_subscription_to_global(global_path: Path, url: str) -> None:
     """Append a [[marketplaces]] entry to the user-global marketplace.
 

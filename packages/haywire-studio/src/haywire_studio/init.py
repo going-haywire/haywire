@@ -19,13 +19,6 @@ import toml
 from .config import ensure_global_config, ensure_project_config, add_recent_project
 
 
-class ProjectNameCollisionError(RuntimeError):
-    """Raised when haywire init would create a [[locals]] whose name already exists.
-
-    The collision is against the user-global marketplace (~/.haywire/marketplace.toml).
-    """
-
-
 def _get_dev_repo_root() -> str:
     """Resolve the haywire dev repo root from this module's location.
 
@@ -256,85 +249,21 @@ def _local_entry(name: str, path: Path, label: str = "", description: str = "") 
     return entry
 
 
-def _check_global_collision(name: str) -> None:
-    """Raise ProjectNameCollisionError if `haybale-{name}` is already in the user-global locals.
+def _register_dev_repo_locals_in_project(dev_repo: str, project_dir: Path) -> None:
+    """In --dev mode, register every dev-repo barn library as a [[locals]] in the project marketplace.
 
-    Read-only pre-flight that runs BEFORE any directory creation, so a colliding
-    init doesn't leave a half-scaffolded project on disk. Plan E Phase 3:
-    delegates parsing to marketplace_runtime.parse_global_marketplace for
-    schema consistency with the rest of the runtime.
-    """
-    from haywire.core.marketplace_runtime import parse_global_marketplace
+    Walks ``<dev_repo>/barn/*`` and calls add_local_to_project per library. Dev
+    libraries are project-scoped because they pin the dev workspace this
+    project was scaffolded against; they should not leak into the user-global
+    marketplace where they'd surface in unrelated projects.
 
-    from .config import GLOBAL_CONFIG_DIR, ensure_global_config
-
-    ensure_global_config()
-    global_mp = GLOBAL_CONFIG_DIR / "marketplace.toml"
-    gm = parse_global_marketplace(global_mp)
-    target_name = f"haybale-{name}"
-    for existing in gm.locals_:
-        if existing.get("name") == target_name:
-            raise ProjectNameCollisionError(
-                f'A project library named "{target_name}" is already registered '
-                f"at {existing.get('path')} in the user-global marketplace. "
-                f"Rename your new project or remove the conflicting entry from "
-                f"{global_mp}."
-            )
-
-
-def _register_local_in_global(name: str, project_dir: Path) -> None:
-    """Append a [[locals]] entry for this project to ~/.haywire/marketplace.toml.
-
-    Plan E Phase 3: delegates to marketplace_runtime.add_local_to_global which
-    centralizes the read/append/write. Translates DuplicateLocalNameError to
-    the local ProjectNameCollisionError so init_project's existing try/except
-    keeps working.
-
-    Reads/writes via haywire_studio.config.GLOBAL_CONFIG_DIR so tests can patch
-    the location.
+    Idempotent: DuplicateLocalNameError per library is swallowed so re-running
+    init against an existing project marketplace doesn't fail.
     """
     from haywire.core.marketplace_errors import DuplicateLocalNameError
-    from haywire.core.marketplace_runtime import add_local_to_global
+    from haywire.core.marketplace_runtime import add_local_to_project
 
-    from .config import GLOBAL_CONFIG_DIR, ensure_global_config
-
-    ensure_global_config()
-    global_mp = GLOBAL_CONFIG_DIR / "marketplace.toml"
-    label = name.replace("-", " ").replace("_", " ").title()
-
-    try:
-        add_local_to_global(
-            global_mp,
-            name=f"haybale-{name}",
-            path=project_dir / "barn" / f"haybale-{name}",
-            label=label,
-            description=f"Local library for the {name} project",
-        )
-    except DuplicateLocalNameError as exc:
-        # add_local_to_global's message already names the path + global_mp;
-        # repackage as ProjectNameCollisionError for init_project's try/except.
-        raise ProjectNameCollisionError(str(exc)) from exc
-
-
-def _register_dev_repo_locals_in_global(dev_repo: str) -> None:
-    """In --dev mode, register every dev-repo barn library as a [[locals]] in the user-global marketplace.
-
-    Walks `<dev_repo>/barn/*` and calls add_local_to_global per library.
-    Catches DuplicateLocalNameError per library and continues — idempotent
-    so multiple --dev projects on the same machine don't double-register
-    or fail.
-
-    Plan E Phase 3: delegates the per-library write to
-    marketplace_runtime.add_local_to_global instead of hand-rolling the
-    full-file read/append/write loop.
-    """
-    from haywire.core.marketplace_errors import DuplicateLocalNameError
-    from haywire.core.marketplace_runtime import add_local_to_global
-
-    from .config import GLOBAL_CONFIG_DIR, ensure_global_config
-
-    ensure_global_config()
-    global_mp = GLOBAL_CONFIG_DIR / "marketplace.toml"
+    project_mp = project_dir / ".haywire" / "marketplace.toml"
 
     barn = Path(dev_repo) / "barn"
     if not barn.is_dir():
@@ -350,24 +279,24 @@ def _register_dev_repo_locals_in_global(dev_repo: str) -> None:
         description = pyproject.get("project", {}).get("description", "")
 
         try:
-            add_local_to_global(
-                global_mp,
+            add_local_to_project(
+                project_mp,
                 name=lib_name,
                 path=lib_dir,
                 label=label,
                 description=description,
             )
         except DuplicateLocalNameError:
-            # Idempotent: already registered, skip.
             continue
 
 
 def _generate_project_marketplace_locals_only(name: str, project_dir: Path) -> str:
     """Generate <project>/.haywire/marketplace.toml with the project's library only.
 
-    Per spec §6, the project marketplace has [[locals]] (the project's own library,
-    written here at init time) and [[packages]] (populated by refresh — Plan E).
-    This emitter writes [[locals]] only; the [[packages]] section is empty.
+    The project marketplace owns the project's own [[locals]] (scaffolded
+    here) plus, in ``--dev`` mode, the dev-repo barn libraries (appended by
+    _register_dev_repo_locals_in_project after this file is written).
+    [[packages]] is the refresh cache and stays empty at init time.
     """
     label = name.replace("-", " ").replace("_", " ").title()
     entry = _local_entry(
@@ -398,14 +327,6 @@ def init_project(name: str, auto_sync: bool = True, dev_repo: str | None = None)
 
     if project_dir.exists():
         print(f"Error: Directory '{name}' already exists.")
-        sys.exit(1)
-
-    # G5 collision check (spec §6) — refuse if a [[locals]] with the same name
-    # already exists in the user-global marketplace.
-    try:
-        _check_global_collision(name)
-    except ProjectNameCollisionError as exc:
-        print(f"Error: {exc}")
         sys.exit(1)
 
     module_name = f"haybale_{_sanitize_name(name)}"
@@ -450,21 +371,19 @@ def init_project(name: str, auto_sync: bool = True, dev_repo: str | None = None)
     # Project-level .haywire config
     ensure_project_config(project_dir)
 
-    # Project marketplace — locals-only (the project's scaffolded library).
-    # Dev-repo libraries (in --dev mode) are registered in the user-global
-    # marketplace instead, by _register_local_in_global below (Task 6+).
+    # Project marketplace — [[locals]] section. Holds the project's own
+    # scaffolded library, plus (under --dev) every dev-repo barn library so
+    # they're scoped to this project rather than leaking into the user-global
+    # marketplace.
     (project_dir / ".haywire" / "marketplace.toml").write_text(
         _generate_project_marketplace_locals_only(name, project_dir)
     )
 
-    # Register the project's library in the user-global marketplace so the
-    # Library Manager (and other haywire installs) can find it.
-    _register_local_in_global(name, project_dir)
-
     if dev_repo:
-        _register_dev_repo_locals_in_global(dev_repo)
+        _register_dev_repo_locals_in_project(dev_repo, project_dir)
 
-    # Global ~/.haywire config
+    # Global ~/.haywire config (just ensures the directory + an empty
+    # marketplace.toml exist; init no longer writes [[locals]] there).
     ensure_global_config()
 
     # Track as recent project

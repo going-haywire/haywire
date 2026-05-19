@@ -959,7 +959,7 @@ def test_refresh_marks_disappeared_entries_stale(tmp_path: Path, monkeypatch) ->
 
 
 from haywire.core.marketplace_errors import DuplicateLocalNameError  # noqa: E402
-from haywire.core.marketplace_runtime import add_local_to_global  # noqa: E402
+from haywire.core.marketplace_runtime import add_local_to_global, add_local_to_project  # noqa: E402
 
 
 @pytest.mark.unit
@@ -1023,6 +1023,68 @@ def test_add_local_to_global_preserves_other_sections(tmp_path: Path) -> None:
     assert gm.marketplaces[0].url == "https://maybites.github.io/haywire/marketplace.toml"
     assert len(gm.locals_) == 1
     assert gm.locals_[0]["name"] == "haybale-new"
+
+
+@pytest.mark.unit
+def test_add_local_to_project_appends_new_entry(tmp_path: Path) -> None:
+    project_path = tmp_path / ".haywire" / "marketplace.toml"
+    project_path.parent.mkdir(parents=True)
+    project_path.write_text("")
+
+    add_local_to_project(
+        project_path,
+        name="haybale-my-project",
+        path=Path("/tmp/proj/barn/haybale-my-project"),
+        label="My Project",
+        description="Local library for the my-project project",
+    )
+
+    pm = parse_project_marketplace(project_path)
+    assert len(pm.locals_) == 1
+    assert pm.locals_[0]["name"] == "haybale-my-project"
+    assert pm.locals_[0]["path"] == "/tmp/proj/barn/haybale-my-project"
+
+
+@pytest.mark.unit
+def test_add_local_to_project_refuses_duplicate(tmp_path: Path) -> None:
+    project_path = tmp_path / "marketplace.toml"
+    project_path.write_text('[[locals]]\nname = "haybale-existing"\npath = "/tmp/existing"\n')
+
+    with pytest.raises(DuplicateLocalNameError) as exc_info:
+        add_local_to_project(
+            project_path,
+            name="haybale-existing",
+            path=Path("/tmp/new"),
+        )
+    assert "haybale-existing" in str(exc_info.value)
+    pm = parse_project_marketplace(project_path)
+    assert len(pm.locals_) == 1
+    assert pm.locals_[0]["path"] == "/tmp/existing"
+
+
+@pytest.mark.unit
+def test_add_local_to_project_preserves_packages_section(tmp_path: Path) -> None:
+    """Adding a [[locals]] entry must not touch the project's [[packages]] cache."""
+    project_path = tmp_path / "marketplace.toml"
+    project_path.write_text(
+        "[[packages]]\n"
+        'name = "haybale-cached"\n'
+        'min_version = "0.0.1"\n'
+        'source = "pypi"\n'
+        'install_spec = "haybale-cached"\n'
+    )
+
+    add_local_to_project(
+        project_path,
+        name="haybale-new",
+        path=Path("/tmp/new"),
+    )
+
+    pm = parse_project_marketplace(project_path)
+    assert len(pm.packages) == 1
+    assert pm.packages[0].name == "haybale-cached"
+    assert len(pm.locals_) == 1
+    assert pm.locals_[0]["name"] == "haybale-new"
 
 
 @pytest.mark.unit

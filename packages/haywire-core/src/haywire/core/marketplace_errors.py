@@ -12,10 +12,12 @@ class MalformedGlobalMarketplaceError(RuntimeError):
 
 
 class DuplicateLocalNameError(RuntimeError):
-    """Raised when the user-global marketplace already has a [[locals]] entry with the given name.
+    """Raised when a marketplace already has a [[locals]] entry with the given name.
 
-    This is the G5 collision (spec §6) — already enforced by Plan D's _check_global_collision
-    at haywire init time. Phase 1 migrates the existing check to use this exception class.
+    Applies to both global and project marketplaces. ``add_local_to_global`` and
+    ``add_local_to_project`` both raise this when an entry with a duplicate
+    ``name`` is added; callers may swallow it for idempotent re-runs (haywire
+    init's --dev mode does this for dev-repo libraries).
     """
 
 

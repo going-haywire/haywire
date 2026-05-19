@@ -142,10 +142,13 @@ doubles = []
 name = "haybale-foo"
 # ...
 
-# Project-scaffolded local libraries (registered by haywire init).
+# Locals in the global file are unusual: `haywire init` does NOT write here.
+# Power users may hand-add a [[locals]] entry pointing at a barn library that
+# should be visible across every project on this machine; the entry then flows
+# through refresh exactly like a project-marketplace [[locals]].
 [[locals]]
-name = "haybale-my-project"
-path = "/Users/<user>/code/my-project/barn/haybale-my-project"
+name = "haybale-shared"
+path = "/Users/<user>/code/shared/barn/haybale-shared"
 # ...
 ```
 
@@ -154,16 +157,19 @@ Notes:
 - All four sections are optional and can be empty.
 - A `[[packages]]` entry in the global is a "direct" entry — the user pasted in a marketstall
   block manually (or scaffolding added it).
-- A `[[locals]]` entry is a path-based reference to a project's own barn library. It is
-  always installed editably; it is never published to PyPI or git. Locals are how
-  `haywire init` and `haywire init --dev` populate the catalog.
+- A `[[locals]]` entry is a path-based reference to a barn library. It is always installed
+  editably; it is never published to PyPI or git. `haywire init` writes [[locals]] to the
+  **project** marketplace (see below); the global file's [[locals]] section is reserved for
+  manual cross-project additions.
 
 #### Project marketplace structure
 
 ```toml
 # Untouched by refresh — written by haywire init.
 [[locals]]
-# the project's own scaffolded library
+# the project's own scaffolded library, plus (under --dev) every dev-repo barn
+# library so dev workspaces stay scoped to the project rather than leaking
+# globally.
 
 # Cache: flattened, resolved package list from the last refresh.
 # Each entry includes "via" annotation recording the source URL it came from.
@@ -212,7 +218,7 @@ user-managed override mechanisms:
 | Same marketstall URL via two `[[marketplaces]]`                                      | Silent dedup; the second `[[marketplaces]]` entry gets the marketstall name added to its `doubles` array for diagnostics. No user prompt.                                                                                                                                 |
 | Two different marketstalls (different URLs) both advertise the same package `name`   | First-encountered wins. The user is prompted at the moment a new subscription would introduce the conflict: "this marketplace/marketstall provides `haybale-foo`, also provided by `<other>` — which to keep?" The losing side's `ignores` array gains that package name. |
 | A `[[locals]]` entry has the same `name` as a resolved package from any other source | `[[locals]]` wins. The other source's contribution is silently shadowed.                                                                                                                                                                                                  |
-| Two `[[locals]]` entries with the same `name` in the global                          | Refused at `haywire init` time (G5 — name collision between projects). The user must rename one of their projects.                                                                                                                                                        |
+| Two `[[locals]]` entries with the same `name` in the same marketplace file           | Refused by the parser (and by `add_local_to_global` / `add_local_to_project`). `haywire init` no longer refuses across unrelated projects because `[[locals]]` are project-scoped — two projects on the same machine may share a library name.                            |
 | Two `[[packages]]` (direct) entries with the same `name` in the global               | Refused at UI write time and by the parser.                                                                                                                                                                                                                               |
 
 `ignores` lives on the **yielding** side: when a user picks between A and B for `haybale-foo`,
@@ -491,9 +497,12 @@ directly via their `path` field, so they have no `docs_url` field at all.
   (third-party authors, git-hosted).
 - `scripts/generate_marketstall.py` (CI) → emits the official monorepo marketstall with
   `[[packages]]` of `source = "pypi"` (officially published).
-- `haywire init` (regular and `--dev`) → writes `[[locals]]` to the user-global marketplace
-  for the scaffolded project library. `--dev` additionally writes `[[locals]]` entries for
-  the dev-repo libraries the user wants to test against.
+- `haywire init` (regular and `--dev`) → writes `[[locals]]` to the **project**
+  marketplace (`<project>/.haywire/marketplace.toml`) for the scaffolded project library.
+  `--dev` additionally writes `[[locals]]` entries for each dev-repo barn library so the dev
+  workspace is scoped to this project. The user-global marketplace is left for opt-in
+  subscriptions ([[marketplaces]] / [[marketstalls]] / direct [[packages]]); init no longer
+  touches it.
 
 #### Full annotated example
 
@@ -529,18 +538,22 @@ install_spec = "haybale-my-project @ git+https://<REPO_URL>.git#subdirectory=bar
 ### 8. `haywire init` and `haywire share` responsibilities
 
 `haywire init` (regular and `--dev`) scaffolds a new project directory and registers the
-project's own barn library with the user-global marketplace as a `[[locals]]` entry. It does
-NOT create a `marketstall.toml`. The user only creates a marketstall when they explicitly want
-to publish their library — that's `haywire share`'s job.
+project's own barn library with the **project** marketplace
+(`<project>/.haywire/marketplace.toml`) as a `[[locals]]` entry. It does NOT create a
+`marketstall.toml`. The user only creates a marketstall when they explicitly want to publish
+their library — that's `haywire share`'s job.
 
-`haywire init` checks the user-global marketplace before writing the new `[[locals]]` entry: if
-another `[[locals]]` already uses the same project library name, the init refuses with an error
-asking the user to rename the new project (G5 — name collision between projects).
+Because `[[locals]]` are project-scoped, two unrelated projects on the same machine may
+share a library name without colliding. The only name-collision check is within a single
+marketplace file: `add_local_to_project` raises `DuplicateLocalNameError` if the project's
+own marketplace already has a `[[locals]]` entry with that name (only relevant when init is
+re-run against an existing `.haywire/marketplace.toml`).
 
 `haywire init --dev` additionally writes `[[locals]]` entries for each dev-repo library the
 user wants to test against (`haybale-core`, `haybale-studio`, etc.), pointing at absolute paths
-in the dev repo. These flow through the same path-based install mechanism as any other
-`[[locals]]` entry.
+in the dev repo. These are written to the **same** project marketplace, alongside the
+scaffolded library; they flow through the same path-based install mechanism as any other
+`[[locals]]` entry. They do not leak into the user-global marketplace.
 
 `haywire share` always produces `source = "git"` `[[packages]]` entries. It is the tool for
 third-party authors who publish on git but not PyPI. A `--save` flag writes the output to
@@ -794,7 +807,7 @@ In dependency order:
 - [ ] **T3** — `scripts/generate_marketstall.py` — CI marketstall generator (PyPI source entries)
 - [ ] **T4** — `.github/workflows/publish.yml` — publish + deploy CI workflow
 - [ ] **T5** — `haywire share --save` — write to `marketstall.toml` at repo root, aggregating all barn libraries
-- [ ] **T6** — `haywire init` scaffold update — register the new project's barn library as a `[[locals]]` entry in the user-global marketplace (and dev-repo libraries too for `--dev`); refuse on name collision; no `marketstall.toml` is created at init time
+- [ ] **T6** — `haywire init` scaffold update — register the new project's barn library as a `[[locals]]` entry in the **project** marketplace (`<project>/.haywire/marketplace.toml`), and under `--dev` write dev-repo barn libraries there too; the user-global marketplace is left for opt-in subscriptions only; no `marketstall.toml` is created at init time
 - [ ] **T7** — Two-tier marketplace runtime — implement global / project marketplace structure (§6), refresh button, conflict resolution (`ignores`/`doubles`), and stale-entry handling. Replaces the deprecated `_fetch_remote_marketplace`-at-startup approach.
 - [ ] **T8** — `/haywire-release` skill — guides author through release flow
 - [ ] **T9** — `haywire-gen-docs` skill update — `LIBRARY.md` → `NOTES.md`, generate both `README.md` and `OVERVIEW.md` in one pass
