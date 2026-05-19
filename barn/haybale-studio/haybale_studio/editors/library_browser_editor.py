@@ -95,7 +95,7 @@ class LibraryBrowserEditor(BaseEditor):
                 ):
                     ui.icon("edit").classes("hw-use-props-color").props("color=gray")
                     ui.label("Edit File").classes("text-xs ml-1")
-                edit_file_btn.on("click", lambda: self._on_edit_file_click())
+                edit_file_btn.on("click", lambda c=context: self._on_edit_file_click(c))
 
             # Search bar
             with ui.column().classes("p-2 gap-1 border-b flex-shrink-0"):
@@ -206,37 +206,38 @@ class LibraryBrowserEditor(BaseEditor):
         ui.notify(" · ".join(msg_parts), type="positive")
         self._render_list(context)
 
-    def _on_edit_file_click(self) -> None:
-        """Open ~/.haywire/marketplace.toml in the OS default text editor.
+    def _on_edit_file_click(self, context: "SessionContext") -> None:
+        """Open ~/.haywire/marketplace.toml in haybale-studio's CodeEditor.
 
-        Tolerates failures in ensure_global_config so the editor still opens
-        even when the marketplace.toml is malformed (the editor's whole purpose
-        is to let the user repair such files).
+        Mirrors the OpenInCodeEditorPanel pattern in
+        ``haybale_studio.panels.context_menu.file_actions``: set
+        ``ctx.active_file`` (the synthetic emit drives editors that follow it)
+        then publish a ``Reveal`` so the CodeEditor opens, bound to this path.
+
+        Tolerates ensure_global_config failures so the editor still opens when
+        the marketplace.toml is malformed — its whole purpose here is to let
+        the user repair such files. Click Refresh after saving to re-apply.
         """
-        import platform
-        import subprocess
-
+        from haybale_studio.editors.code_editor import CodeEditor
+        from haywire.core.session.signals import Reveal
         from haywire_studio.config import GLOBAL_CONFIG_DIR, ensure_global_config
 
         try:
             ensure_global_config()
         except Exception as exc:
             logger.warning(f"ensure_global_config failed, opening editor anyway: {exc}")
+
         mp = GLOBAL_CONFIG_DIR / "marketplace.toml"
-        try:
-            if platform.system() == "Darwin":
-                subprocess.run(["open", str(mp)], check=False)
-            elif platform.system() == "Windows":
-                subprocess.run(["start", "", str(mp)], shell=True, check=False)
-            else:
-                subprocess.run(["xdg-open", str(mp)], check=False)
-            ui.notify(
-                f"Opened {mp}. Save your changes, then click Refresh to apply.",
-                type="info",
-            )
-        except Exception as exc:
-            logger.exception("Failed to open marketplace.toml")
-            ui.notify(f"Failed to open editor: {exc}", type="negative")
+
+        session = context.session
+        if session is None:
+            ui.notify("No active session — cannot open marketplace.toml", type="negative")
+            return
+
+        # Synthetic emit on SessionContext.active_file drives editors that follow it.
+        context.active_file = mp
+        session.publish(Reveal(editor=CodeEditor, binding_id=str(mp), label=mp.name))
+        ui.notify("Save your changes, then click Refresh to apply.", type="info")
 
     def _get_unavailable_urls(self, context: "SessionContext") -> list[str]:
         """Return unavailable_urls from the last RefreshReport, or [] if no refresh has run."""

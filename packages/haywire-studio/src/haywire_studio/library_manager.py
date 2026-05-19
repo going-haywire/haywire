@@ -474,7 +474,9 @@ class LibraryManager:
             meta: Any = dist.metadata
             owner_name = meta.get("Name", "") or ""
             for req in meta.get_all("Requires-Dist") or []:
-                req_name = re.split(r"[>=<!;\s\[]", req)[0]
+                # PEP 440 operators: ~=, ==, !=, ~=, ===, >=, <=, >, <
+                # Also strip extras [foo] and environment markers ; python_version<"3.11"
+                req_name = re.split(r"[~>=<!;\s\[]", req)[0]
                 req_norm = re.sub(r"[-_.]+", "_", req_name).lower()
                 if req_norm and req_norm not in cache:
                     cache[req_norm] = owner_name

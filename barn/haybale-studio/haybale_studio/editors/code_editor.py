@@ -1,13 +1,6 @@
 """
 CodeEditor — text/code editor for source-like files.
 
-Smoke test for the close-consent + dirty-flag work: edits a text file in a
-CodeMirror-backed editor with syntax highlighting derived from the file's
-extension. Markdown files additionally get a Preview tab. Sets
-``wrapper.set_dirty(True)`` on every keystroke and back to False after a
-successful save, so the tab bar shows a leading "•" while there are
-unsaved changes. Overrides ``handle_close_request`` to prompt the user
-when closing a dirty tab.
 """
 
 from __future__ import annotations
