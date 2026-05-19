@@ -302,6 +302,27 @@ def detect_deps(lib_dir: Path, *, libraries: HaywireLibrarySource) -> DetectedDe
     )
 
 
+def set_pyproject_dependencies(lib_dir: Path, dependencies: list[str]) -> None:
+    """Replace ``[project] dependencies`` in a library's pyproject.toml.
+
+    Writes the file back with the new dependencies list and every other
+    section preserved verbatim (TOML round-trip via the ``toml`` library).
+    Used by the Edit-dialog Detect-Dependencies flow and by the
+    ``haywire share`` pre-publish gate when the author opts to auto-fix.
+
+    Raises ``FileNotFoundError`` if the library has no pyproject.toml.
+    Raises ``toml.TomlDecodeError`` if the existing file is malformed —
+    callers should surface the error rather than silently overwrite.
+    """
+    pyproject = lib_dir / "pyproject.toml"
+    if not pyproject.is_file():
+        raise FileNotFoundError(f"no pyproject.toml at {pyproject}")
+    data = toml.loads(pyproject.read_text())
+    project = data.setdefault("project", {})
+    project["dependencies"] = list(dependencies)
+    pyproject.write_text(toml.dumps(data))
+
+
 def _format_specifier(dist: str, *, strict: bool) -> str:
     """Render a ``<dist><op><version>`` requirement string.
 

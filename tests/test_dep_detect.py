@@ -13,11 +13,14 @@ from pathlib import Path
 
 import pytest
 
+import toml
+
 from haywire.core.library.dep_detect import (
     DetectedDeps,
     HaywireLibrarySource,
     detect_deps,
     find_module_dir,
+    set_pyproject_dependencies,
 )
 
 
@@ -274,3 +277,93 @@ def test_find_module_dir_skips_dot_and_underscore_dirs(tmp_path: Path) -> None:
 def test_protocol_runtime_check_passes_for_fake(tmp_path: Path) -> None:
     """FakeLibrarySource conforms to HaywireLibrarySource at runtime."""
     assert isinstance(FakeLibrarySource(), HaywireLibrarySource)
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# set_pyproject_dependencies
+# ──────────────────────────────────────────────────────────────────────────────
+
+
+@pytest.mark.unit
+def test_set_pyproject_dependencies_replaces_existing(tmp_path: Path) -> None:
+    lib = _make_library(tmp_path)
+    pyproject = lib / "pyproject.toml"
+    pyproject.write_text(
+        '[project]\nname = "haybale-fake"\nversion = "0.0.1"\ndependencies = ["old-dep>=1.0"]\n'
+    )
+    set_pyproject_dependencies(lib, ["new-dep~=2.0", "another>=0.1"])
+
+    data = toml.loads(pyproject.read_text())
+    assert data["project"]["dependencies"] == ["new-dep~=2.0", "another>=0.1"]
+    # Other fields preserved.
+    assert data["project"]["name"] == "haybale-fake"
+    assert data["project"]["version"] == "0.0.1"
+
+
+@pytest.mark.unit
+def test_set_pyproject_dependencies_creates_section_if_missing(tmp_path: Path) -> None:
+    """When [project] has no dependencies key, it should be created."""
+    lib = _make_library(tmp_path)
+    pyproject = lib / "pyproject.toml"
+    pyproject.write_text('[project]\nname = "haybale-fake"\nversion = "0.0.1"\n')
+
+    set_pyproject_dependencies(lib, ["haywire-core~=0.0.1"])
+
+    data = toml.loads(pyproject.read_text())
+    assert data["project"]["dependencies"] == ["haywire-core~=0.0.1"]
+
+
+@pytest.mark.unit
+def test_set_pyproject_dependencies_empty_list_clears(tmp_path: Path) -> None:
+    """Passing [] removes all dependencies (sets to empty list)."""
+    lib = _make_library(tmp_path)
+    pyproject = lib / "pyproject.toml"
+    pyproject.write_text(
+        '[project]\nname = "haybale-fake"\nversion = "0.0.1"\ndependencies = ["a>=1", "b>=2"]\n'
+    )
+    set_pyproject_dependencies(lib, [])
+    data = toml.loads(pyproject.read_text())
+    assert data["project"]["dependencies"] == []
+
+
+@pytest.mark.unit
+def test_set_pyproject_dependencies_preserves_other_sections(tmp_path: Path) -> None:
+    """[build-system], [tool.uv.sources], etc. round-trip unchanged."""
+    lib = _make_library(tmp_path)
+    pyproject = lib / "pyproject.toml"
+    pyproject.write_text(
+        "[project]\n"
+        'name = "haybale-fake"\n'
+        'version = "0.0.1"\n'
+        'dependencies = ["a>=1"]\n'
+        "\n"
+        "[build-system]\n"
+        'requires = ["hatchling"]\n'
+        'build-backend = "hatchling.build"\n'
+        "\n"
+        "[tool.uv.sources]\n"
+        'foo = { path = "/some/path", editable = true }\n'
+    )
+    set_pyproject_dependencies(lib, ["b>=2"])
+
+    data = toml.loads(pyproject.read_text())
+    assert data["project"]["dependencies"] == ["b>=2"]
+    assert data["build-system"]["build-backend"] == "hatchling.build"
+    assert data["tool"]["uv"]["sources"]["foo"]["path"] == "/some/path"
+
+
+@pytest.mark.unit
+def test_set_pyproject_dependencies_raises_on_missing_file(tmp_path: Path) -> None:
+    with pytest.raises(FileNotFoundError):
+        set_pyproject_dependencies(tmp_path / "nonexistent", ["foo>=1"])
+
+
+@pytest.mark.unit
+def test_set_pyproject_dependencies_raises_on_malformed_toml(tmp_path: Path) -> None:
+    """A malformed file should surface the TomlDecodeError, not silently overwrite."""
+    lib = _make_library(tmp_path)
+    pyproject = lib / "pyproject.toml"
+    pyproject.write_text("[[[broken")
+
+    with pytest.raises(toml.TomlDecodeError):
+        set_pyproject_dependencies(lib, ["foo>=1"])

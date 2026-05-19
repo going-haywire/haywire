@@ -88,12 +88,16 @@ export default {
         // Hidden: must not capture any pointer events
         return { position: 'fixed', inset: '0', zIndex: -1, pointerEvents: 'none' };
       }
+      // zIndex 7000/7001 — above Quasar dialogs (default 6000) so haywire
+      // modals can layer over any legacy ui.dialog() that still exists in
+      // an editor. The long-term direction is to migrate all such dialogs
+      // to Popup; until that's done, keep this higher than Quasar's default.
       if (this.propsPositioned) {
         // Originally positioned — transparent overlay, no backdrop
         return {
           position: 'fixed',
           inset: '0',
-          zIndex: 5000,
+          zIndex: 7000,
           background: 'transparent',
           pointerEvents: this.backdropClickClose ? 'auto' : 'none',
         };
@@ -102,7 +106,7 @@ export default {
       return {
         position: 'fixed',
         inset: '0',
-        zIndex: 5000,
+        zIndex: 7000,
         background: this.backdropColor,
         display: this.isPositioned ? 'block' : 'flex',
         alignItems: this.isPositioned ? undefined : 'center',
@@ -127,14 +131,14 @@ export default {
           left: this.currentX + 'px',
           top:  this.currentY + 'px',
           margin: 0,
-          zIndex: 5001,
+          zIndex: 7001,
         };
       }
       return {
         ...base,
         position: 'relative',
         margin: '20px',
-        zIndex: 5001,
+        zIndex: 7001,
       };
     },
   },

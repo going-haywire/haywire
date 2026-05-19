@@ -15,6 +15,7 @@ ComponentDetailEditor can react.
 
 import asyncio
 import dataclasses
+import logging
 import re
 from functools import partial
 from pathlib import Path
@@ -66,6 +67,9 @@ if TYPE_CHECKING:
 # ─────────────────────────────────────────────────────────────────────────────
 # TabConfig — per-component-type display descriptor
 # ─────────────────────────────────────────────────────────────────────────────
+
+
+logger = logging.getLogger(__name__)
 
 
 @dataclasses.dataclass
@@ -865,10 +869,22 @@ class LibraryOverviewEditor(BaseEditor):
                 label="Tags (comma-separated)",
                 value=", ".join(lib.identity.tags or []),
             ).classes("w-full")
-            deps_input = ui.input(
-                label="Dependencies (comma-separated)",
-                value=", ".join(lib.identity.dependencies or []),
-            ).classes("w-full")
+            with ui.row().classes("w-full items-end gap-2"):
+                deps_input = ui.input(
+                    label="Dependencies (comma-separated)",
+                    value=", ".join(lib.identity.dependencies or []),
+                ).classes("flex-1")
+                detect_btn = (
+                    ui.button(icon="manage_search")
+                    .props("flat dense size=sm")
+                    .tooltip("Detect dependencies from source imports")
+                )
+                detect_btn.on(
+                    "click",
+                    lambda d=deps_input, m=manager, ilib=lib, mp=marketplace_path: (
+                        self._detect_dependencies(d, m, ilib, mp)
+                    ),
+                )
 
             ui.separator()
 
@@ -964,6 +980,153 @@ class LibraryOverviewEditor(BaseEditor):
 
         lock_btn.on("click", lambda: _lock_clicked())
         return edit_dialog
+
+    def _detect_dependencies(
+        self,
+        deps_input,
+        manager,
+        lib: LibraryInfo,
+        marketplace_path: str | None,
+    ) -> None:
+        """Scan the library's source for actual imports and offer Union/Replace.
+
+        Reads the live ``deps_input`` value (the @library decorator list the
+        user is editing) plus the library's own pyproject.toml ``[project]
+        dependencies`` from disk, computes the detected sets via
+        ``detect_deps``, and opens a :func:`diff_modal` previewing both sides.
+
+        Union applies the merge: @library deps gain any newly-detected names
+        and the pyproject deps gain any newly-detected specifiers, no removals.
+        Replace overwrites both lists with the detected ones (also writes
+        pyproject.toml immediately).
+
+        The @library deps update only sets ``deps_input.value`` — the user
+        still has to click Save Changes for that side to persist. The
+        pyproject write happens immediately because it is not part of the
+        identity save bundle.
+        """
+        from haywire.core.library.dep_detect import (
+            DetectedDeps,
+            detect_deps,
+            set_pyproject_dependencies,
+        )
+        from haywire.ui.modals import DiffSection, diff_modal
+        import toml
+
+        if not marketplace_path or not lib.distribution_name:
+            ui.notify("Cannot detect — no library on disk for this entry.", type="warning")
+            return
+
+        workspace_root = Path(marketplace_path).parent.parent
+        lib_dir = workspace_root / "barn" / lib.distribution_name
+        if not lib_dir.is_dir():
+            ui.notify(f"Library directory not found: {lib_dir}", type="negative")
+            return
+
+        try:
+            detected: DetectedDeps = detect_deps(lib_dir, libraries=manager.registry)
+        except Exception as exc:
+            logger.exception("detect_deps failed")
+            ui.notify(f"Detect failed: {exc}", type="negative")
+            return
+
+        # Current @library deps — from the live input, not disk.
+        current_decorator = [d.strip() for d in (deps_input.value or "").split(",") if d.strip()]
+
+        # Current pyproject deps — from disk.
+        pyproject_path = lib_dir / "pyproject.toml"
+        try:
+            pyproject_data = toml.loads(pyproject_path.read_text())
+            current_pyproject = list(pyproject_data.get("project", {}).get("dependencies", []))
+        except (OSError, toml.TomlDecodeError) as exc:
+            ui.notify(f"Cannot read pyproject.toml: {exc}", type="negative")
+            return
+
+        detected_decorator = list(detected.library_decorator)
+        detected_pyproject = list(detected.pyproject)
+
+        # Compute additions / removals for the two interpretations.
+        cur_dec_set = set(current_decorator)
+        det_dec_set = set(detected_decorator)
+        cur_py_set = set(current_pyproject)
+        det_py_set = set(detected_pyproject)
+
+        decorator_section = DiffSection(
+            title="@library(dependencies=...)",
+            additions=sorted(det_dec_set - cur_dec_set),
+            removals=sorted(cur_dec_set - det_dec_set),
+            unchanged=sorted(cur_dec_set & det_dec_set),
+            note=(
+                f"Replace will remove {len(cur_dec_set - det_dec_set)} entr"
+                f"{'y' if len(cur_dec_set - det_dec_set) == 1 else 'ies'}."
+                if (cur_dec_set - det_dec_set)
+                else ""
+            ),
+        )
+        pyproject_section = DiffSection(
+            title="pyproject.toml [project] dependencies",
+            additions=sorted(det_py_set - cur_py_set),
+            removals=sorted(cur_py_set - det_py_set),
+            unchanged=sorted(cur_py_set & det_py_set),
+            note=(
+                f"Replace will remove {len(cur_py_set - det_py_set)} entr"
+                f"{'y' if len(cur_py_set - det_py_set) == 1 else 'ies'}."
+                if (cur_py_set - det_py_set)
+                else ""
+            ),
+        )
+
+        sections = [decorator_section, pyproject_section]
+        if detected.unresolved:
+            sections.append(
+                DiffSection(
+                    title="Unresolved imports",
+                    additions=[],
+                    removals=[],
+                    unchanged=sorted(detected.unresolved),
+                    note=(
+                        "These modules could not be mapped to a distribution. "
+                        "Likely dynamic imports or missing installs — review manually."
+                    ),
+                )
+            )
+
+        def _apply_union() -> None:
+            new_decorator = sorted(cur_dec_set | det_dec_set)
+            new_pyproject = sorted(cur_py_set | det_py_set)
+            deps_input.value = ", ".join(new_decorator)
+            self._write_pyproject_deps(lib_dir, new_pyproject, set_pyproject_dependencies)
+
+        def _apply_replace() -> None:
+            new_decorator = sorted(det_dec_set)
+            new_pyproject = sorted(det_py_set)
+            deps_input.value = ", ".join(new_decorator)
+            self._write_pyproject_deps(lib_dir, new_pyproject, set_pyproject_dependencies)
+
+        diff_modal(
+            title="Detected dependencies",
+            sections=sections,
+            primary_label="Union",
+            on_primary=_apply_union,
+            secondary_label="Replace",
+            on_secondary=_apply_replace,
+            empty_message=(
+                "No changes detected — the @library decorator and pyproject.toml "
+                "already reflect what the source imports."
+            ),
+        )
+
+    def _write_pyproject_deps(self, lib_dir: Path, deps: list[str], setter) -> None:
+        """Wrapper around set_pyproject_dependencies that surfaces UI feedback."""
+        try:
+            setter(lib_dir, deps)
+            ui.notify(
+                "pyproject.toml updated. Click Save Changes to persist the @library decorator.",
+                type="info",
+            )
+        except Exception as exc:
+            logger.exception("set_pyproject_dependencies failed")
+            ui.notify(f"Failed to update pyproject.toml: {exc}", type="negative")
 
     async def _do_update_identity(
         self,
