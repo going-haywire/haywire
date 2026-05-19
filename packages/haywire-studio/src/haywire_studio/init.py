@@ -17,7 +17,13 @@ from typing import Any
 import toml
 
 from .config import ensure_global_config, ensure_project_config, add_recent_project
-from haywire.core.marketplace import MarketplaceEntry
+
+
+class ProjectNameCollisionError(RuntimeError):
+    """Raised when haywire init would create a [[locals]] whose name already exists.
+
+    The collision is against the user-global marketplace (~/.haywire/marketplace.toml).
+    """
 
 
 def _get_dev_repo_root() -> str:
@@ -55,7 +61,7 @@ def _generate_project_pyproject(name: str, dev_repo: str | None = None) -> str:
             "version": "0.1.0",
             "requires-python": ">=3.10",
             "dependencies": [
-                "haywire-studio>=0.1.0",
+                "haywire-studio~=0.0.1",
                 lib_name,
             ],
         },
@@ -101,12 +107,12 @@ haywire-core = {{ path = "{dev_repo}/packages/haywire-core", editable = true }}
 
     return f'''[project]
 name = "{lib_name}"
-version = "0.1.0"
+version = "0.0.1"
 description = "Local library for {name} project"
 requires-python = ">=3.10"
 license = {{text = "MIT"}}
 
-dependencies = ["haywire-core>=0.1.0"]
+dependencies = ["haywire-core~=0.0.1"]
 
 [project.entry-points."haywire.libraries"]
 {name} = "{module_name}:Library"
@@ -232,134 +238,147 @@ class Library(BaseLibrary):
 '''
 
 
-def _project_lib_entry(name: str, module_name: str, project_dir: Path) -> dict:
-    """Build a marketplace entry for the project's own scaffolded library."""
-    lib_path = project_dir / "barn" / f"haybale-{name}"
+def _local_entry(name: str, path: Path, label: str = "", description: str = "") -> dict:
+    """Build a [[locals]] entry per spec §6.
+
+    Locals have a different schema than [[packages]]: only `name` and `path` are
+    required; label and description are optional metadata. Locals are always
+    installed editably from the path; they're never published.
+    """
+    entry: dict[str, object] = {
+        "name": name,
+        "path": str(path),
+    }
+    if label:
+        entry["label"] = label
+    if description:
+        entry["description"] = description
+    return entry
+
+
+def _check_global_collision(name: str) -> None:
+    """Raise ProjectNameCollisionError if `haybale-{name}` is already in the user-global locals."""
+    from .config import GLOBAL_CONFIG_DIR, ensure_global_config
+
+    ensure_global_config()
+    global_mp = GLOBAL_CONFIG_DIR / "marketplace.toml"
+    data = toml.loads(global_mp.read_text())
+    locals_ = data.get("locals", [])
+    target_name = f"haybale-{name}"
+    for existing in locals_:
+        if existing.get("name") == target_name:
+            raise ProjectNameCollisionError(
+                f'A project library named "{target_name}" is already registered '
+                f"at {existing.get('path')} in the user-global marketplace. "
+                f"Rename your new project or remove the conflicting entry from "
+                f"{global_mp}."
+            )
+
+
+def _register_local_in_global(name: str, project_dir: Path) -> None:
+    """Append a [[locals]] entry for this project to ~/.haywire/marketplace.toml.
+
+    Refuses with ProjectNameCollisionError if a [[locals]] entry with the same
+    name already exists (spec § 6 G5 — name collision between projects).
+
+    Reads/writes via haywire_studio.config.GLOBAL_CONFIG_DIR so tests can patch
+    the location.
+    """
+    from .config import GLOBAL_CONFIG_DIR, ensure_global_config
+
+    ensure_global_config()
+    global_mp = GLOBAL_CONFIG_DIR / "marketplace.toml"
+    data = toml.loads(global_mp.read_text())
+
+    locals_ = data.get("locals", [])
     label = name.replace("-", " ").replace("_", " ").title()
-    return MarketplaceEntry(
+    new_entry = _local_entry(
         name=f"haybale-{name}",
+        path=project_dir / "barn" / f"haybale-{name}",
         label=label,
-        min_version="0.1.0",
         description=f"Local library for the {name} project",
-        source="local",
-        install_spec=str(lib_path),
-        docs_url=str(lib_path / module_name),
-    ).to_dict()
-
-
-def _generate_project_marketplace(name: str, module_name: str, project_dir: Path) -> str:
-    """Generate a minimal marketplace.toml for a regular (non-dev) project.
-
-    Contains only the project's own scaffolded library, plus a commented
-    template showing how to add more entries.
-    """
-    entry = _project_lib_entry(name, module_name, project_dir)
-    header = (
-        "# Project marketplace — add [[packages]] entries here to make libraries\n"
-        "# available in the Library Manager (Available section).\n"
-        "#\n"
-        '# source = "local"  →  install_spec is a local path (editable install)\n'
-        '# source = "pypi"   →  install_spec is a PyPI package name/specifier\n'
-        '# source = "git"    →  install_spec is a git URL (with optional #subdirectory=)\n'
-        "#\n"
-        "# To pull in a remote marketplace feed, add [[sources]] entries to\n"
-        "# ~/.haywire/marketplace.toml instead.\n\n"
     )
-    return header + toml.dumps({"packages": [entry]})
+
+    for existing in locals_:
+        if existing.get("name") == new_entry["name"]:
+            raise ProjectNameCollisionError(
+                f'A project library named "{new_entry["name"]}" is already registered '
+                f"at {existing.get('path')} in the user-global marketplace. "
+                f"Rename your new project or remove the conflicting entry from "
+                f"{global_mp}."
+            )
+
+    locals_.append(new_entry)
+    data["locals"] = locals_
+    global_mp.write_text(toml.dumps(data))
 
 
-def _generate_dev_marketplace(dev_repo: str, name: str, module_name: str, project_dir: Path) -> str:
-    """Generate a marketplace.toml pointing to dev repo libraries.
+def _register_dev_repo_locals_in_global(dev_repo: str) -> None:
+    """In --dev mode, register every dev-repo barn library as a [[locals]] in the user-global marketplace.
 
-    Lists the project's own library first, followed by all libraries in the
-    dev repo, so developers can install any of them from the Library Manager.
+    Walks `<dev_repo>/barn/*` and adds a [[locals]] entry for each directory
+    with a pyproject.toml. Entries that already exist (by name) in the user-
+    global marketplace are skipped silently — this is idempotent so multiple
+    --dev projects on the same machine don't double-register or fail.
     """
+    from .config import GLOBAL_CONFIG_DIR, ensure_global_config
 
-    def _lib(lib_name, version, description, author, tags, dependencies=None):
+    ensure_global_config()
+    global_mp = GLOBAL_CONFIG_DIR / "marketplace.toml"
+    data = toml.loads(global_mp.read_text())
+    locals_ = data.get("locals", [])
+    existing_names = {entry.get("name") for entry in locals_}
+
+    barn = Path(dev_repo) / "barn"
+    if not barn.is_dir():
+        return
+
+    for lib_dir in sorted(barn.iterdir()):
+        if not lib_dir.is_dir() or not (lib_dir / "pyproject.toml").exists():
+            continue
+        # Read the package name from pyproject — don't trust the directory name.
+        pyproject = toml.loads((lib_dir / "pyproject.toml").read_text())
+        lib_name = pyproject.get("project", {}).get("name", lib_dir.name)
+        if lib_name in existing_names:
+            continue  # Idempotent: already registered, leave it alone.
+
         label = lib_name.removeprefix("haybale-").replace("-", " ").replace("_", " ").title()
-        lib_module = lib_name.replace("-", "_")
-        lib_path = f"{dev_repo}/barn/{lib_name}"
-        # @library dependencies use module names (underscores); convert to pip package names (hyphens)
-        pip_deps = [d.replace("_", "-") for d in (dependencies or [])]
-        return MarketplaceEntry(
-            name=lib_name,
-            label=label,
-            min_version=version,
-            description=description,
-            author=author,
-            source="local",
-            install_spec=lib_path,
-            tags=tags,
-            dependencies=pip_deps,
-            docs_url=f"{lib_path}/{lib_module}",
-        ).to_dict()
+        description = pyproject.get("project", {}).get("description", "")
+        locals_.append(
+            _local_entry(
+                name=lib_name,
+                path=lib_dir,
+                label=label,
+                description=description,
+            )
+        )
+        existing_names.add(lib_name)
 
-    libraries = [
-        # Project's own library first
-        _project_lib_entry(name, module_name, project_dir),
-        # Dev repo libraries
-        _lib(
-            "haybale-core",
-            "0.1.0",
-            "Core Haywire library with fundamental components",
-            "maybites",
-            ["core", "types", "widgets", "skins"],
-        ),
-        _lib(
-            "haybale-studio",
-            "0.1.0",
-            "Studio library with UI components for the Haywire editor",
-            "Haywire Team",
-            ["studio", "ui", "editors", "panels"],
-        ),
-        _lib(
-            "haybale-graph-editor",
-            "0.1.0",
-            "Graph editor library for Haywire — host-agnostic visual graph editing",
-            "Haywire Team",
-            ["graph", "editor", "ui"],
-        ),
-        _lib(
-            "haybale-haystack",
-            "0.1.0",
-            "Haystack — file-centric multi-graph manager for Haywire",
-            "Haywire Team",
-            ["haystack", "graphs", "files"],
-            dependencies=["haybale_studio", "haybale_graph_editor"],
-        ),
-        _lib(
-            "haybale-example",
-            "0.1.0",
-            "Example library for demonstrating multi-library support",
-            "Example Author",
-            ["example", "demo", "tutorial"],
-            dependencies=["haybale_core"],
-        ),
-        _lib(
-            "haybale-testing",
-            "0.1.0",
-            "Test library for test support",
-            "Haywire Team",
-            ["testing", "development", "debug"],
-            dependencies=["haybale_core", "haybale_graph_editor"],
-        ),
-        _lib(
-            "haybale-visiongraph",
-            "0.0.1",
-            "Visiongraph library — camera, video, OpenCV nodes",
-            "Florian Bruggisser, Martin Froehlich",
-            ["vision", "camera", "video", "opencv"],
-            dependencies=["haybale_core"],
-        ),
-        _lib(
-            "haybale-TEST_A",
-            "0.1.0",
-            "Test library A for demonstrating multi-library support",
-            "Haywire Team",
-            ["testing", "development"],
-        ),
-    ]
-    return toml.dumps({"packages": libraries})
+    data["locals"] = locals_
+    global_mp.write_text(toml.dumps(data))
+
+
+def _generate_project_marketplace_locals_only(name: str, project_dir: Path) -> str:
+    """Generate <project>/.haywire/marketplace.toml with the project's library only.
+
+    Per spec §6, the project marketplace has [[locals]] (the project's own library,
+    written here at init time) and [[packages]] (populated by refresh — Plan E).
+    This emitter writes [[locals]] only; the [[packages]] section is empty.
+    """
+    label = name.replace("-", " ").replace("_", " ").title()
+    entry = _local_entry(
+        name=f"haybale-{name}",
+        path=project_dir / "barn" / f"haybale-{name}",
+        label=label,
+        description=f"Local library for the {name} project",
+    )
+    header = (
+        "# Project marketplace — managed by haywire.\n"
+        "# [[locals]] are project-scoped editable libraries, written at `haywire init` time.\n"
+        "# [[packages]] is the cache populated by the Library Manager's refresh action;\n"
+        "# leave it empty here until you've added remote sources to ~/.haywire/marketplace.toml.\n\n"
+    )
+    return header + toml.dumps({"locals": [entry]})
 
 
 def init_project(name: str, auto_sync: bool = True, dev_repo: str | None = None):
@@ -375,6 +394,14 @@ def init_project(name: str, auto_sync: bool = True, dev_repo: str | None = None)
 
     if project_dir.exists():
         print(f"Error: Directory '{name}' already exists.")
+        sys.exit(1)
+
+    # G5 collision check (spec §6) — refuse if a [[locals]] with the same name
+    # already exists in the user-global marketplace.
+    try:
+        _check_global_collision(name)
+    except ProjectNameCollisionError as exc:
+        print(f"Error: {exc}")
         sys.exit(1)
 
     module_name = f"haybale_{_sanitize_name(name)}"
@@ -419,12 +446,19 @@ def init_project(name: str, auto_sync: bool = True, dev_repo: str | None = None)
     # Project-level .haywire config
     ensure_project_config(project_dir)
 
-    # Marketplace manifest — always written; dev variant includes dev-repo libs
+    # Project marketplace — locals-only (the project's scaffolded library).
+    # Dev-repo libraries (in --dev mode) are registered in the user-global
+    # marketplace instead, by _register_local_in_global below (Task 6+).
+    (project_dir / ".haywire" / "marketplace.toml").write_text(
+        _generate_project_marketplace_locals_only(name, project_dir)
+    )
+
+    # Register the project's library in the user-global marketplace so the
+    # Library Manager (and other haywire installs) can find it.
+    _register_local_in_global(name, project_dir)
+
     if dev_repo:
-        marketplace = _generate_dev_marketplace(dev_repo, name, module_name, project_dir)
-    else:
-        marketplace = _generate_project_marketplace(name, module_name, project_dir)
-    (project_dir / ".haywire" / "marketplace.toml").write_text(marketplace)
+        _register_dev_repo_locals_in_global(dev_repo)
 
     # Global ~/.haywire config
     ensure_global_config()

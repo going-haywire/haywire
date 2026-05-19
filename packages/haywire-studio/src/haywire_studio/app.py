@@ -14,6 +14,7 @@ HaystackState, accessed via ctx.app_data[HaystackState].
 
 import os
 import logging
+import sys
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -310,6 +311,11 @@ def main():
         help="Path to the library directory (e.g. libs/haybale-myproject). "
         "Auto-detected if libs/ contains exactly one library.",
     )
+    share_parser.add_argument(
+        "--save",
+        action="store_true",
+        help="Aggregate every barn/* library into <repo-root>/marketstall.toml.",
+    )
 
     args = parser.parse_args()
 
@@ -319,9 +325,21 @@ def main():
         dev_repo = _get_dev_repo_root() if args.dev else None
         init_project(args.name, auto_sync=not args.no_sync, dev_repo=dev_repo)
     elif args.command == "share":
-        from .share import share_library
+        if args.save:
+            from pathlib import Path
 
-        share_library(args.library_path)
+            from .share import NoBarnError, share_save_repo
+
+            try:
+                out_path = share_save_repo(Path.cwd())
+                print(f"Wrote {out_path}")
+            except NoBarnError as exc:
+                print(f"Error: {exc}")
+                sys.exit(1)
+        else:
+            from .share import share_library
+
+            share_library(args.library_path)
     else:
         run_app()
 

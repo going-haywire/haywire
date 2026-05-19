@@ -131,23 +131,17 @@ def _detect_library() -> Path:
     sys.exit(1)
 
 
-def share_library(library_path: str | None):
-    """Print a marketplace.toml snippet for the given library directory."""
-    if library_path is None:
-        lib_dir = _detect_library()
-    else:
-        lib_dir = Path(library_path).resolve()
+def _build_entry_for_library(lib_dir: Path) -> dict | None:
+    """Build a marketplace entry for one library directory.
 
-    if not lib_dir.is_dir():
-        print(f"Error: '{library_path}' is not a directory.")
-        sys.exit(1)
-
+    Returns the entry dict (TOML-serializable), or None if `lib_dir` lacks a
+    pyproject.toml. Used by both `haywire share` (single library, stdout) and
+    `haywire share --save` (every barn library, aggregated to file).
+    """
     pyproject_path = lib_dir / "pyproject.toml"
     if not pyproject_path.exists():
-        print(f"Error: No pyproject.toml found in '{library_path}'.")
-        sys.exit(1)
+        return None
 
-    # Read metadata
     data = toml.loads(pyproject_path.read_text())
     project = data.get("project", {})
 
@@ -159,39 +153,30 @@ def share_library(library_path: str | None):
     authors = project.get("authors", [])
     author = authors[0].get("name", "") if authors else ""
 
-    # Detect git remote
     git_root = _find_git_root(lib_dir)
-    if git_root:
-        remote_url = _get_remote_url(git_root)
-    else:
-        remote_url = None
+    remote_url = _get_remote_url(git_root) if git_root else None
 
     subdirectory: Path | str
     if remote_url:
         assert git_root is not None
         https_url = _ssh_to_https(remote_url)
-        # Strip trailing .git for cleaner URLs
         https_url = https_url.removesuffix(".git")
         subdirectory = lib_dir.relative_to(git_root)
         install_spec = f"{name} @ git+{https_url}.git#subdirectory={subdirectory}"
     else:
-        print("Warning: No git remote found. Using placeholder URL.\n")
+        https_url = ""
         subdirectory = (
             lib_dir.relative_to(Path.cwd()) if lib_dir.is_relative_to(Path.cwd()) else lib_dir.name
         )
         install_spec = f"{name} @ git+https://<REPO_URL>.git#subdirectory={subdirectory}"
 
-    # Read human-readable label and dependencies from the @library decorator
     module_dir = _find_module_dir(lib_dir)
     label_fallback = name.removeprefix("haybale-").replace("-", " ").replace("_", " ").title()
     label = _read_library_label(module_dir, label_fallback) if module_dir else label_fallback
     dependencies = _read_library_dependencies(module_dir) if module_dir else []
 
-    # Build docs_url — raw URL pointing to the Python package directory
-    # (where OVERVIEW.md and docs/ live).  Only meaningful for GitHub/GitLab.
     docs_url = ""
     if remote_url and module_dir:
-        # https_url already computed above (stripped .git suffix)
         assert git_root is not None
         module_rel = module_dir.relative_to(git_root)
         if "github.com" in https_url:
@@ -200,8 +185,7 @@ def share_library(library_path: str | None):
         elif "gitlab.com" in https_url:
             docs_url = f"{https_url}/-/raw/main/{module_rel}/"
 
-    # Build TOML snippet
-    entry = MarketplaceEntry(
+    return MarketplaceEntry(
         name=name,
         label=label,
         min_version=version,
@@ -215,5 +199,63 @@ def share_library(library_path: str | None):
         docs_url=docs_url,
     ).to_dict()
 
+
+def share_library(library_path: str | None):
+    """Print a marketplace.toml snippet for the given library directory."""
+    if library_path is None:
+        lib_dir = _detect_library()
+    else:
+        lib_dir = Path(library_path).resolve()
+
+    if not lib_dir.is_dir():
+        print(f"Error: '{library_path}' is not a directory.")
+        sys.exit(1)
+
+    entry = _build_entry_for_library(lib_dir)
+    if entry is None:
+        print(f"Error: No pyproject.toml found in '{library_path}'.")
+        sys.exit(1)
+
+    # Warn when no git remote — the original behavior surfaces this to the user.
+    git_root = _find_git_root(lib_dir)
+    if not git_root or not _get_remote_url(git_root):
+        print("Warning: No git remote found. Using placeholder URL.\n")
+
     print("# Copy this snippet into a marketplace.toml:\n")
     print(toml.dumps({"packages": [entry]}).strip())
+
+
+class NoBarnError(RuntimeError):
+    """Raised when `share --save` is invoked on a repo with no `barn/` directory."""
+
+
+def share_save_repo(repo_root: Path) -> Path:
+    """Aggregate every library under `<repo_root>/barn/*` into one marketstall.toml.
+
+    Walks `barn/*` (sorted), builds a marketplace entry for each directory that
+    contains a `pyproject.toml` (via `_build_entry_for_library`), and writes the
+    aggregated list to `<repo_root>/marketstall.toml`. Directories without a
+    pyproject are silently skipped. Returns the output path.
+
+    Raises NoBarnError if `<repo_root>/barn/` doesn't exist.
+    """
+    barn = repo_root / "barn"
+    if not barn.is_dir():
+        raise NoBarnError(f"no barn/ directory at {repo_root}")
+
+    entries: list[dict] = []
+    for lib_dir in sorted(barn.iterdir()):
+        if not lib_dir.is_dir():
+            continue
+        entry = _build_entry_for_library(lib_dir)
+        if entry is None:
+            continue
+        entries.append(entry)
+
+    out_path = repo_root / "marketstall.toml"
+    header = (
+        "# marketstall.toml — share this file's raw URL so others can subscribe to your library feed\n"
+        "# Run: haywire share --save   to update this file\n\n"
+    )
+    out_path.write_text(header + toml.dumps({"packages": entries}))
+    return out_path
