@@ -12,6 +12,7 @@ from pathlib import Path
 
 import toml
 
+from haywire.core.library.dep_detect import find_module_dir
 from haywire.core.marketplace import MarketplaceEntry
 
 
@@ -85,21 +86,6 @@ def _read_library_dependencies(module_dir: Path) -> list[str]:
     return [m.replace("_", "-") for m in modules]
 
 
-def _find_module_dir(lib_dir: Path) -> Path | None:
-    """Return the Python package directory inside lib_dir.
-
-    Checks flat layout (lib_dir/<module>/__init__.py) and src layout
-    (lib_dir/src/<module>/__init__.py).  Returns the first match, or None.
-    """
-    for search_root in (lib_dir, lib_dir / "src"):
-        if not search_root.is_dir():
-            continue
-        for child in sorted(search_root.iterdir()):
-            if child.is_dir() and (child / "__init__.py").exists():
-                return child
-    return None
-
-
 def _detect_library() -> Path:
     """Auto-detect the library path from barn/ in the current directory.
 
@@ -170,7 +156,7 @@ def _build_entry_for_library(lib_dir: Path) -> dict | None:
         )
         install_spec = f"{name} @ git+https://<REPO_URL>.git#subdirectory={subdirectory}"
 
-    module_dir = _find_module_dir(lib_dir)
+    module_dir = find_module_dir(lib_dir)
     label_fallback = name.removeprefix("haybale-").replace("-", " ").replace("_", " ").title()
     label = _read_library_label(module_dir, label_fallback) if module_dir else label_fallback
     dependencies = _read_library_dependencies(module_dir) if module_dir else []
