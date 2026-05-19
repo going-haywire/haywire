@@ -24,6 +24,7 @@ from haywire.core.marketplace_runtime import (
     RefreshReport,
     parse_global_marketplace,
     parse_project_marketplace,
+    remove_stale_package_from_project,
 )
 from haywire.core.marketplace_runtime import refresh as runtime_refresh
 from haywire.core.state.base import AppState
@@ -134,3 +135,16 @@ class MarketplaceState(AppState):
         report = runtime_refresh(self._global_path(), project_path)
         self.last_report = report
         return report
+
+    def remove_stale_package(self, name: str) -> bool:
+        """Remove a stale [[packages]] entry from the project marketplace by name.
+
+        Per spec §6: only stale + uninstalled entries are user-removable. The
+        installed-check belongs in the UI (it has access to LibraryManager);
+        this method assumes the caller has already gated. Returns True on a
+        successful removal, False if no matching name was found.
+        """
+        project_path = self._project_path()
+        if project_path is None:
+            return False
+        return remove_stale_package_from_project(project_path, name=name)

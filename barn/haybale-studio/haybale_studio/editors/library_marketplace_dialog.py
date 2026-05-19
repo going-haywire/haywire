@@ -98,8 +98,8 @@ def _handle_add_marketplace(url: str, dialog: "ui.dialog", on_added: Callable[[]
     if not url:
         ui.notify("Please paste a URL.", type="warning")
         return
-    if not (url.startswith("http://") or url.startswith("https://")):
-        ui.notify("URL must start with http:// or https://", type="warning")
+    if not (url.startswith(("http://", "https://", "file://"))):
+        ui.notify("URL must start with http://, https://, or file://", type="warning")
         return
 
     try:
@@ -131,8 +131,8 @@ def _handle_add_marketstall(url: str, dialog: "ui.dialog", on_added: Callable[[]
     if not url:
         ui.notify("Please paste a URL.", type="warning")
         return
-    if not (url.startswith("http://") or url.startswith("https://")):
-        ui.notify("URL must start with http:// or https://", type="warning")
+    if not (url.startswith(("http://", "https://", "file://"))):
+        ui.notify("URL must start with http://, https://, or file://", type="warning")
         return
 
     try:
@@ -158,6 +158,8 @@ def _handle_add_direct(toml_block: str, dialog: "ui.dialog", on_added: Callable[
 
     from haywire_studio.config import GLOBAL_CONFIG_DIR, ensure_global_config
 
+    from haywire.core.marketplace_errors import DuplicatePackageNameError
+
     toml_block = (toml_block or "").strip()
     if not toml_block:
         ui.notify("Please paste a [[packages]] TOML block.", type="warning")
@@ -166,6 +168,12 @@ def _handle_add_direct(toml_block: str, dialog: "ui.dialog", on_added: Callable[
     try:
         ensure_global_config()
         add_direct_package_to_global(GLOBAL_CONFIG_DIR / "marketplace.toml", toml_block)
+    except (ValueError, DuplicatePackageNameError) as exc:
+        # User-input failure (malformed TOML, missing section, duplicate name).
+        # Toast is enough; no traceback needed.
+        logger.warning(f"Direct-package add rejected: {exc}")
+        ui.notify(f"Failed to add: {exc}", type="negative")
+        return
     except Exception as exc:
         logger.exception("Failed to add direct package")
         ui.notify(f"Failed to add: {exc}", type="negative")

@@ -147,12 +147,36 @@ class LibraryBrowserEditor(BaseEditor):
 
     def _on_refresh_click(self, context: "SessionContext") -> None:
         """Run MarketplaceState.refresh(), surface result via ui.notify + inline banner."""
+        self._do_refresh(context, missing_state_severity="warning")
+
+    def _on_add_source_click(self, context: "SessionContext") -> None:
+        """Open the Add Source dialog. On a successful add, run refresh so the
+        new source's packages land in the project marketplace cache before we
+        re-render."""
+        from .library_marketplace_dialog import show_add_source_dialog
+
+        def _after_added() -> None:
+            self._do_refresh(context, missing_state_severity="silent")
+
+        show_add_source_dialog(on_added=_after_added)
+
+    def _do_refresh(self, context: "SessionContext", *, missing_state_severity: str) -> None:
+        """Refresh the marketplace and re-render.
+
+        Shared by the toolbar Refresh button and the post-Add-Source auto-refresh.
+        ``missing_state_severity`` is "warning" for explicit clicks (surface the
+        problem) and "silent" for auto-flows (the user didn't ask for refresh —
+        a missing state means we just skip and re-render).
+        """
         from haywire.core.marketplace_errors import MalformedGlobalMarketplaceError
 
         from haybale_studio.state.marketplace_state import MarketplaceState
 
         if context.app_data is None or MarketplaceState not in context.app_data:
-            ui.notify("Marketplace state not available", type="warning")
+            if missing_state_severity == "warning":
+                ui.notify("Marketplace state not available", type="warning")
+            else:
+                self._render_list(context)
             return
 
         state = context.app_data[MarketplaceState]
@@ -173,7 +197,6 @@ class LibraryBrowserEditor(BaseEditor):
             self._render_list(context)
             return
 
-        # Success — clear any previous error and notify with summary.
         self._refresh_error = None
         msg_parts = [f"Refreshed {report.packages_resolved} package(s)"]
         if report.sources_unavailable:
@@ -183,26 +206,22 @@ class LibraryBrowserEditor(BaseEditor):
         ui.notify(" · ".join(msg_parts), type="positive")
         self._render_list(context)
 
-    def _on_add_source_click(self, context: "SessionContext") -> None:
-        """Open the Add Source dialog. On a successful add, the dialog closes and
-        the on_added callback triggers a refresh + re-render."""
-        from .library_marketplace_dialog import show_add_source_dialog
-
-        def _after_added() -> None:
-            # Re-running refresh would surface the new source's packages in the cache.
-            # For Task 26 the handlers are placeholders, so this is just a render bump.
-            self._render_list(context)
-
-        show_add_source_dialog(on_added=_after_added)
-
     def _on_edit_file_click(self) -> None:
-        """Open ~/.haywire/marketplace.toml in the OS default text editor."""
+        """Open ~/.haywire/marketplace.toml in the OS default text editor.
+
+        Tolerates failures in ensure_global_config so the editor still opens
+        even when the marketplace.toml is malformed (the editor's whole purpose
+        is to let the user repair such files).
+        """
         import platform
         import subprocess
 
         from haywire_studio.config import GLOBAL_CONFIG_DIR, ensure_global_config
 
-        ensure_global_config()
+        try:
+            ensure_global_config()
+        except Exception as exc:
+            logger.warning(f"ensure_global_config failed, opening editor anyway: {exc}")
         mp = GLOBAL_CONFIG_DIR / "marketplace.toml"
         try:
             if platform.system() == "Darwin":
@@ -249,31 +268,42 @@ class LibraryBrowserEditor(BaseEditor):
             return
         self._list_container.clear()
 
-        # Plan E Phase 4: surface refresh errors inline.
+        # Plan E Phase 4: surface refresh errors inline. Uses the design-guide
+        # token pattern (--hw-danger / --hw-danger-bg + left border) instead of
+        # Tailwind bg-red-* so the banner stays legible across themes.
         if self._refresh_error:
             with self._list_container:
-                with ui.row().classes("p-2 gap-1 items-center bg-red-50 border-l-4 border-red-400 w-full"):
-                    ui.icon("error").classes("hw-use-props-color").props("color=red")
-                    ui.label(self._refresh_error).classes("text-xs hw-text-default")
+                with (
+                    ui.row()
+                    .classes("p-2 gap-2 items-start w-full")
+                    .style("border-left: 4px solid var(--hw-danger); background: var(--hw-danger-bg);")
+                ):
+                    ui.icon("error", size="18px").classes("hw-text-danger flex-shrink-0 mt-0.5")
+                    ui.label(self._refresh_error).classes("text-xs hw-text-danger")
 
         # Plan E Phase 4: surface partial-failure (some sources unavailable).
+        # No --hw-warning-bg token exists; use the warning token for the border
+        # accent and rely on hw-text-warning for the foreground.
         unavailable = self._get_unavailable_urls(context)
         if unavailable:
             with self._list_container:
-                with ui.row().classes(
-                    "p-2 gap-1 items-center bg-yellow-50 border-l-4 border-yellow-400 w-full"
+                with (
+                    ui.row()
+                    .classes("p-2 gap-2 items-center w-full")
+                    .style("border-left: 4px solid var(--hw-warning);")
                 ):
-                    ui.icon("warning").classes("hw-use-props-color").props("color=orange")
+                    ui.icon("warning", size="18px").classes("hw-text-warning flex-shrink-0")
                     n = len(unavailable)
                     ui.label(f"{n} source{'s' if n != 1 else ''} unavailable").classes(
-                        "text-xs hw-text-default font-medium"
+                        "text-xs hw-text-warning font-medium"
                     )
                     with (
                         ui.button()
                         .props("flat dense size=xs")
+                        .classes("ml-auto")
                         .tooltip("Show unavailable sources") as detail_btn
                     ):
-                        ui.icon("info").classes("hw-use-props-color").props("color=gray")
+                        ui.icon("info").classes("hw-text-warning")
                     detail_btn.on(
                         "click",
                         lambda urls=list(unavailable): self._show_unavailable_dialog(urls),
@@ -343,7 +373,9 @@ class LibraryBrowserEditor(BaseEditor):
         enabled.sort(key=_label)
         disabled.sort(key=_label)
 
-        # Marketplace entries not yet installed
+        # Marketplace entries not yet installed — both refreshed [[packages]]
+        # and [[locals]] (path-based libraries the project knows about but
+        # uv hasn't surfaced as importable libraries yet).
         available = []
         if self._filter_available:
             workspace_root = getattr(app, "workspace_root", None)
@@ -352,40 +384,68 @@ class LibraryBrowserEditor(BaseEditor):
             )
             if marketplace_path:
                 try:
+                    from haywire.core.marketplace import MarketplaceEntry
                     from haywire.core.marketplace_runtime import parse_project_marketplace
 
                     installed_names = {lib.distribution_name for lib in libraries if lib.distribution_name}
                     pm = parse_project_marketplace(marketplace_path)
-                    available = [e for e in pm.packages if e.name not in installed_names and matches(e)]
+
+                    candidates: list = list(pm.packages)
+                    # Surface [[locals]] not already loaded as installed libraries.
+                    for raw in pm.locals_:
+                        name = raw.get("name")
+                        if not isinstance(name, str):
+                            continue
+                        candidates.append(
+                            MarketplaceEntry(
+                                name=name,
+                                min_version="",
+                                label=raw.get("label", ""),
+                                description=raw.get("description", ""),
+                                source="local",
+                                install_spec=str(raw.get("path", "")),
+                            )
+                        )
+                    available = [e for e in candidates if e.name not in installed_names and matches(e)]
                     available.sort(key=lambda x: x.label or x.name)
                 except Exception as e:
                     logger.warning(f"LibraryBrowser: failed to load marketplace: {e}")
+
+        # installed_names available outside the "available" branch too, so
+        # _library_item can decide whether a stale entry is user-removable.
+        installed_names = {lib.distribution_name for lib in libraries if lib.distribution_name}
 
         with self._list_container:
             if required:
                 hui.section_label("REQUIRED")
                 for lib in required:
-                    self._library_item(lib, "purple", context)
+                    self._library_item(lib, "purple", context, installed_names)
 
             if enabled:
                 hui.section_label("ENABLED")
                 for lib in enabled:
-                    self._library_item(lib, "green", context)
+                    self._library_item(lib, "green", context, installed_names)
 
             if disabled:
                 hui.section_label("DISABLED")
                 for lib in disabled:
-                    self._library_item(lib, "orange", context)
+                    self._library_item(lib, "orange", context, installed_names)
 
             if available:
                 hui.section_label("AVAILABLE")
                 for entry in available:
-                    self._library_item(entry, "gray", context)
+                    self._library_item(entry, "gray", context, installed_names)
 
             if not required and not enabled and not disabled and not available:
                 hui.empty_state("No libraries found", icon=hui.icon.empty_no_results)
 
-    def _library_item(self, lib, dot_color: str, context: "SessionContext"):
+    def _library_item(
+        self,
+        lib,
+        dot_color: str,
+        context: "SessionContext",
+        installed_names: set[str],
+    ):
         if hasattr(lib, "identity"):
             label = lib.identity.label or "?"
             version = lib.identity.version or ""
@@ -406,9 +466,45 @@ class LibraryBrowserEditor(BaseEditor):
         )
         if is_stale:
             last_seen = getattr(lib, "last_seen", "") or "unknown"
+            entry_name = getattr(lib, "name", "") or getattr(lib, "distribution_name", "")
+            is_uninstalled = bool(entry_name) and entry_name not in installed_names
             with row:
                 stale_dot = ui.element("div").classes("w-2 h-2 rounded-full bg-red-500 flex-shrink-0")
                 stale_dot.tooltip(f"Stale — last seen {last_seen}")
+                if is_uninstalled:
+                    with (
+                        ui.button()
+                        .props("flat round dense size=xs")
+                        .classes("ml-auto")
+                        .tooltip("Remove from cache") as trash_btn
+                    ):
+                        ui.icon("delete_outline").classes("hw-use-props-color").props("color=red")
+                    trash_btn.on(
+                        "click.stop",
+                        lambda name=entry_name, ctx=context: self._on_remove_stale_click(name, ctx),
+                    )
+
+    def _on_remove_stale_click(self, name: str, context: "SessionContext") -> None:
+        """Drop a stale [[packages]] entry from the project marketplace, then re-render."""
+        from haybale_studio.state.marketplace_state import MarketplaceState
+
+        if context.app_data is None or MarketplaceState not in context.app_data:
+            ui.notify("Marketplace state not available", type="warning")
+            return
+
+        state = context.app_data[MarketplaceState]
+        try:
+            removed = state.remove_stale_package(name)
+        except Exception as exc:
+            logger.warning(f"LibraryBrowser: remove_stale_package({name!r}) failed: {exc}")
+            ui.notify(f"Failed to remove {name}: {exc}", type="negative")
+            return
+
+        if removed:
+            ui.notify(f"Removed {name} from cache", type="positive")
+        else:
+            ui.notify(f"{name} was already gone from cache", type="info")
+        self._render_list(context)
 
     def _select_library(self, lib, context: "SessionContext"):
         # Assigning emits SessionContext.active_library / .active_component

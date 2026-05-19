@@ -959,7 +959,11 @@ def test_refresh_marks_disappeared_entries_stale(tmp_path: Path, monkeypatch) ->
 
 
 from haywire.core.marketplace_errors import DuplicateLocalNameError  # noqa: E402
-from haywire.core.marketplace_runtime import add_local_to_global, add_local_to_project  # noqa: E402
+from haywire.core.marketplace_runtime import (  # noqa: E402
+    add_local_to_global,
+    add_local_to_project,
+    remove_stale_package_from_project,
+)
 
 
 @pytest.mark.unit
@@ -1085,6 +1089,73 @@ def test_add_local_to_project_preserves_packages_section(tmp_path: Path) -> None
     assert pm.packages[0].name == "haybale-cached"
     assert len(pm.locals_) == 1
     assert pm.locals_[0]["name"] == "haybale-new"
+
+
+@pytest.mark.unit
+def test_remove_stale_package_drops_matching_entry(tmp_path: Path) -> None:
+    project_path = tmp_path / "marketplace.toml"
+    project_path.write_text(
+        "[[packages]]\n"
+        'name = "haybale-stale"\n'
+        'min_version = "0.0.1"\n'
+        'source = "pypi"\n'
+        'install_spec = "haybale-stale"\n'
+        "stale = true\n"
+        "[[packages]]\n"
+        'name = "haybale-fresh"\n'
+        'min_version = "0.0.1"\n'
+        'source = "pypi"\n'
+        'install_spec = "haybale-fresh"\n'
+    )
+
+    assert remove_stale_package_from_project(project_path, name="haybale-stale") is True
+
+    pm = parse_project_marketplace(project_path)
+    assert [p.name for p in pm.packages] == ["haybale-fresh"]
+
+
+@pytest.mark.unit
+def test_remove_stale_package_returns_false_when_missing(tmp_path: Path) -> None:
+    project_path = tmp_path / "marketplace.toml"
+    project_path.write_text("")
+    assert remove_stale_package_from_project(project_path, name="haybale-ghost") is False
+
+
+@pytest.mark.unit
+def test_remove_stale_package_refuses_non_stale(tmp_path: Path) -> None:
+    project_path = tmp_path / "marketplace.toml"
+    project_path.write_text(
+        "[[packages]]\n"
+        'name = "haybale-fresh"\n'
+        'min_version = "0.0.1"\n'
+        'source = "pypi"\n'
+        'install_spec = "haybale-fresh"\n'
+    )
+    with pytest.raises(ValueError, match="non-stale"):
+        remove_stale_package_from_project(project_path, name="haybale-fresh")
+
+
+@pytest.mark.unit
+def test_remove_stale_package_preserves_locals(tmp_path: Path) -> None:
+    project_path = tmp_path / "marketplace.toml"
+    project_path.write_text(
+        "[[locals]]\n"
+        'name = "haybale-local"\n'
+        'path = "/tmp/foo"\n'
+        "[[packages]]\n"
+        'name = "haybale-stale"\n'
+        'min_version = "0.0.1"\n'
+        'source = "pypi"\n'
+        'install_spec = "haybale-stale"\n'
+        "stale = true\n"
+    )
+
+    assert remove_stale_package_from_project(project_path, name="haybale-stale") is True
+
+    pm = parse_project_marketplace(project_path)
+    assert pm.packages == []
+    assert len(pm.locals_) == 1
+    assert pm.locals_[0]["name"] == "haybale-local"
 
 
 @pytest.mark.unit

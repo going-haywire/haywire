@@ -136,3 +136,24 @@ def test_migration_preserves_locals_section(fake_home):
     assert "sources" not in data
     assert len(data.get("locals", [])) == 1
     assert data["locals"][0]["name"] == "haybale-my-project"
+
+
+def test_ensure_global_config_silent_on_malformed_marketplace(fake_home):
+    """A malformed marketplace.toml must not break ensure_global_config.
+
+    The Library Browser's Edit File button relies on ensure_global_config
+    succeeding so it can open the editor that lets the user repair the file.
+    Migration is best-effort: when the file can't be parsed there's
+    nothing to migrate, but we must not raise.
+    """
+    from haywire_studio.config import ensure_global_config
+
+    mp = fake_home / ".haywire" / "marketplace.toml"
+    mp.parent.mkdir(parents=True, exist_ok=True)
+    mp.write_text('[[[packages\nname = "haybale-broken"\n')  # invalid TOML
+
+    # Must not raise.
+    ensure_global_config()
+
+    # File is left as-is for the user to repair.
+    assert mp.read_text().startswith("[[[packages")

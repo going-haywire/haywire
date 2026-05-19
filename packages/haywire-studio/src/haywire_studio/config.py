@@ -71,8 +71,16 @@ def _migrate_marketplace_schema_if_needed(marketplace_file: Path) -> None:
       - Empty `sources = []` becomes the official marketplace pre-seed.
       - File already has [[marketplaces]]: leave alone.
       - [[locals]], [[marketstalls]], [[packages]] sections are preserved verbatim.
+
+    Silent no-op on parse errors: a malformed marketplace.toml is a user-repair
+    situation handled by the Library Browser's "Edit File" path. ``ensure_global_config``
+    must never raise on a bad file, otherwise we lock the user out of the editor
+    that exists to repair it.
     """
-    data = toml.loads(marketplace_file.read_text())
+    try:
+        data = toml.loads(marketplace_file.read_text())
+    except toml.TomlDecodeError:
+        return
 
     if "sources" not in data:
         return  # Already migrated (or never had legacy schema).

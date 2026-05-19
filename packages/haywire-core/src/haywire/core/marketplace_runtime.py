@@ -638,6 +638,42 @@ def add_local_to_global(
     global_path.write_text(serialize_global_marketplace(gm))
 
 
+def remove_stale_package_from_project(project_path: Path, *, name: str) -> bool:
+    """Remove a stale [[packages]] entry from a project marketplace by name.
+
+    Per spec §6: "Stale + uninstalled entries are user-removable via the UI;
+    stale + installed entries are locked until the user uninstalls." This
+    helper does the file write only — the caller must check installed-state
+    before invoking.
+
+    Refuses to remove a non-stale entry (a subsequent refresh would just
+    re-resolve it; removing it makes no sense and likely indicates a bug
+    in the caller). Returns True if an entry was removed, False if no
+    matching name exists in [[packages]]. Preserves [[locals]] verbatim.
+    """
+    pm = parse_project_marketplace(project_path)
+
+    keep: list = []
+    removed = False
+    for pkg in pm.packages:
+        if pkg.name == name:
+            if not pkg.stale:
+                raise ValueError(
+                    f"Refusing to remove non-stale package {name!r} from {project_path}; "
+                    f"only stale entries are user-removable."
+                )
+            removed = True
+            continue
+        keep.append(pkg)
+
+    if not removed:
+        return False
+
+    new_pm = ProjectMarketplace(locals_=list(pm.locals_), packages=keep)
+    project_path.write_text(serialize_project_marketplace(new_pm))
+    return True
+
+
 def add_local_to_project(
     project_path: Path,
     *,
