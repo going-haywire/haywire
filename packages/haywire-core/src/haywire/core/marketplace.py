@@ -28,6 +28,12 @@ class MarketplaceEntry:
     source_file: str = ""  # local file path the user can edit (always a local file)
     source_origin: str = ""  # remote URL if this entry was fetched via a [[sources]] URL
 
+    # Cache-shape fields (project-marketplace [[packages]] cache only;
+    # never appear in remote marketstalls or in the official generator output).
+    via: str = ""  # URL the entry was resolved from during refresh
+    last_seen: str = ""  # ISO timestamp; set when an entry goes stale
+    stale: bool = False  # True when refresh didn't re-resolve this entry
+
     # Fields that are persisted to / read from marketplace TOML files.
     # Order here controls output order in serialized snippets.
     _TOML_FIELDS: ClassVar[tuple[str, ...]] = (
@@ -42,6 +48,9 @@ class MarketplaceEntry:
         "dependencies",
         "source_url",
         "docs_url",
+        "via",
+        "last_seen",
+        "stale",
     )
 
     def to_dict(self) -> dict:
@@ -49,6 +58,6 @@ class MarketplaceEntry:
         result = {}
         for f in self._TOML_FIELDS:
             val = getattr(self, f)
-            if val or val == 0:  # keep falsy-but-meaningful values like 0; skip "" and []
+            if val:
                 result[f] = val
         return result
