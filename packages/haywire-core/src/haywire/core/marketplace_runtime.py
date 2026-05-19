@@ -636,3 +636,139 @@ def add_local_to_global(
 
     global_path.parent.mkdir(parents=True, exist_ok=True)
     global_path.write_text(serialize_global_marketplace(gm))
+
+
+def add_marketplace_subscription_to_global(global_path: Path, url: str) -> None:
+    """Append a [[marketplaces]] entry to the user-global marketplace.
+
+    Idempotent: subscribing to the same URL twice silently keeps the existing
+    entry. Preserves all other sections verbatim.
+    """
+    gm = parse_global_marketplace(global_path)
+    if any(sub.url == url for sub in gm.marketplaces):
+        return
+    gm.marketplaces.append(RemoteSubscription(url=url, ignores=[], doubles=[]))
+    global_path.parent.mkdir(parents=True, exist_ok=True)
+    global_path.write_text(serialize_global_marketplace(gm))
+
+
+def add_marketstall_subscription_to_global(global_path: Path, url: str) -> None:
+    """Append a [[marketstalls]] entry to the user-global marketplace.
+
+    Idempotent: subscribing to the same URL twice silently keeps the existing
+    entry. Preserves all other sections verbatim.
+    """
+    gm = parse_global_marketplace(global_path)
+    if any(sub.url == url for sub in gm.marketstalls):
+        return
+    gm.marketstalls.append(RemoteSubscription(url=url, ignores=[], doubles=[]))
+    global_path.parent.mkdir(parents=True, exist_ok=True)
+    global_path.write_text(serialize_global_marketplace(gm))
+
+
+def add_direct_package_to_global(global_path: Path, toml_block: str) -> None:
+    """Append a direct [[packages]] entry from a user-pasted TOML block.
+
+    Raises ValueError if the block is malformed TOML or has no [[packages]]
+    section. Raises DuplicatePackageNameError if the package name already
+    exists in [[packages]] (spec §6 conflict-resolution row 5: refused at
+    UI write time).
+    """
+    try:
+        data = toml.loads(toml_block)
+    except toml.TomlDecodeError as exc:
+        raise ValueError(f"invalid TOML in pasted block: {exc}") from exc
+
+    raw_packages = data.get("packages", [])
+    if not raw_packages:
+        raise ValueError(
+            "pasted block has no [[packages]] section. "
+            "Expected a [[packages]] entry with name + min_version + source."
+        )
+
+    new_entries = [_parse_package_entry(raw) for raw in raw_packages]
+
+    gm = parse_global_marketplace(global_path)
+    existing_names = {pkg.name for pkg in gm.packages}
+    for new_pkg in new_entries:
+        if new_pkg.name in existing_names:
+            raise DuplicatePackageNameError(
+                f'A direct [[packages]] entry named "{new_pkg.name}" already exists. '
+                f"Remove the existing entry first or rename the new one."
+            )
+
+    gm.packages.extend(new_entries)
+    global_path.parent.mkdir(parents=True, exist_ok=True)
+    global_path.write_text(serialize_global_marketplace(gm))
+
+
+@dataclass(frozen=True)
+class SubscriptionConflict:
+    """A name collision between an existing resolved package and a new subscription's package."""
+
+    name: str
+    existing_source: str  # URL of the source that originally provided this package
+    new_source: str  # URL of the new subscription
+
+
+def detect_subscription_conflicts(
+    existing: list[MarketplaceEntry],
+    new: list[MarketplaceEntry],
+) -> list[SubscriptionConflict]:
+    """Detect name collisions between existing resolved packages and a new subscription.
+
+    Each conflict carries the name + both source URLs (read from source_origin).
+    The UI prompt (Task 29) shows the user one row per conflict and writes the
+    chosen `ignores` via record_ignore_on_source.
+
+    `source_origin` is a runtime-only MarketplaceEntry field (not persisted).
+    When it's empty (the entry wasn't routed through refresh), the conflict
+    reports "(unknown)" so the UI can still render something meaningful.
+    """
+    existing_by_name = {pkg.name: pkg for pkg in existing}
+    conflicts: list[SubscriptionConflict] = []
+    for new_pkg in new:
+        if new_pkg.name not in existing_by_name:
+            continue
+        existing_pkg = existing_by_name[new_pkg.name]
+        conflicts.append(
+            SubscriptionConflict(
+                name=new_pkg.name,
+                existing_source=existing_pkg.source_origin or "(unknown)",
+                new_source=new_pkg.source_origin or "(unknown)",
+            )
+        )
+    return conflicts
+
+
+def record_ignore_on_source(
+    global_path: Path,
+    *,
+    source_url: str,
+    package_name: str,
+) -> None:
+    """Add `package_name` to the `ignores` array of the [[marketplaces]] or
+    [[marketstalls]] entry at `source_url`.
+
+    Idempotent: if the name is already in `ignores`, no-op. Per spec §6
+    conflict-resolution: "ignores lives on the YIELDING side."
+    """
+    gm = parse_global_marketplace(global_path)
+    changed = False
+
+    for sub_list in (gm.marketplaces, gm.marketstalls):
+        for i, sub in enumerate(sub_list):
+            if sub.url != source_url:
+                continue
+            if package_name in sub.ignores:
+                return  # Idempotent.
+            new_ignores = list(sub.ignores)
+            new_ignores.append(package_name)
+            sub_list[i] = RemoteSubscription(url=sub.url, ignores=new_ignores, doubles=list(sub.doubles))
+            changed = True
+            break
+        if changed:
+            break
+
+    if changed:
+        global_path.write_text(serialize_global_marketplace(gm))

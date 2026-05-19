@@ -53,6 +53,8 @@ class LibraryBrowserEditor(BaseEditor):
         self._filter_enabled: bool = True
         self._filter_disabled: bool = True
         self._filter_available: bool = True
+        # Plan E Phase 4: refresh-button error surfacing.
+        self._refresh_error: str | None = None
 
     @redraw_on(SessionContext.active_library, LibraryCatalogChanged)
     def _refresh_on_library_change(self, context: "SessionContext", event) -> None:
@@ -66,6 +68,35 @@ class LibraryBrowserEditor(BaseEditor):
 
     def _build_ui(self, context: "SessionContext") -> None:
         with ui.column().classes("w-full h-full gap-0"):
+            # Toolbar (Refresh, Add Source, Edit File)
+            with ui.row().classes("p-2 gap-2 border-b flex-shrink-0 items-center"):
+                with (
+                    ui.button()
+                    .props("flat dense size=sm")
+                    .tooltip("Refresh marketplace from subscribed sources") as refresh_btn
+                ):
+                    ui.icon("refresh").classes("hw-use-props-color").props("color=blue")
+                    ui.label("Refresh").classes("text-xs ml-1")
+                refresh_btn.on("click", lambda c=context: self._on_refresh_click(c))
+
+                with (
+                    ui.button()
+                    .props("flat dense size=sm")
+                    .tooltip("Add a marketplace or marketstall source") as add_source_btn
+                ):
+                    ui.icon("add_circle").classes("hw-use-props-color").props("color=green")
+                    ui.label("Add Source").classes("text-xs ml-1")
+                add_source_btn.on("click", lambda c=context: self._on_add_source_click(c))
+
+                with (
+                    ui.button()
+                    .props("flat dense size=sm")
+                    .tooltip("Open ~/.haywire/marketplace.toml in your text editor") as edit_file_btn
+                ):
+                    ui.icon("edit").classes("hw-use-props-color").props("color=gray")
+                    ui.label("Edit File").classes("text-xs ml-1")
+                edit_file_btn.on("click", lambda: self._on_edit_file_click())
+
             # Search bar
             with ui.column().classes("p-2 gap-1 border-b flex-shrink-0"):
                 search = hui.input_field(
@@ -114,10 +145,139 @@ class LibraryBrowserEditor(BaseEditor):
         self._search_query = value or ""
         self._render_list(context)
 
+    def _on_refresh_click(self, context: "SessionContext") -> None:
+        """Run MarketplaceState.refresh(), surface result via ui.notify + inline banner."""
+        from haywire.core.marketplace_errors import MalformedGlobalMarketplaceError
+
+        from haybale_studio.state.marketplace_state import MarketplaceState
+
+        if context.app_data is None or MarketplaceState not in context.app_data:
+            ui.notify("Marketplace state not available", type="warning")
+            return
+
+        state = context.app_data[MarketplaceState]
+        try:
+            report = state.refresh()
+        except MalformedGlobalMarketplaceError as exc:
+            self._refresh_error = (
+                f"Global marketplace is malformed: {exc}. "
+                f"Click Edit File to repair, then click Refresh again."
+            )
+            ui.notify("Refresh failed: global marketplace is malformed", type="negative")
+            self._render_list(context)
+            return
+        except Exception as exc:
+            logger.warning(f"LibraryBrowser: refresh failed: {exc}")
+            self._refresh_error = f"Refresh failed: {exc}"
+            ui.notify(f"Refresh failed: {exc}", type="negative")
+            self._render_list(context)
+            return
+
+        # Success — clear any previous error and notify with summary.
+        self._refresh_error = None
+        msg_parts = [f"Refreshed {report.packages_resolved} package(s)"]
+        if report.sources_unavailable:
+            msg_parts.append(f"{report.sources_unavailable} source(s) unavailable")
+        if report.new_stale:
+            msg_parts.append(f"{report.new_stale} newly stale")
+        ui.notify(" · ".join(msg_parts), type="positive")
+        self._render_list(context)
+
+    def _on_add_source_click(self, context: "SessionContext") -> None:
+        """Open the Add Source dialog. On a successful add, the dialog closes and
+        the on_added callback triggers a refresh + re-render."""
+        from .library_marketplace_dialog import show_add_source_dialog
+
+        def _after_added() -> None:
+            # Re-running refresh would surface the new source's packages in the cache.
+            # For Task 26 the handlers are placeholders, so this is just a render bump.
+            self._render_list(context)
+
+        show_add_source_dialog(on_added=_after_added)
+
+    def _on_edit_file_click(self) -> None:
+        """Open ~/.haywire/marketplace.toml in the OS default text editor."""
+        import platform
+        import subprocess
+
+        from haywire_studio.config import GLOBAL_CONFIG_DIR, ensure_global_config
+
+        ensure_global_config()
+        mp = GLOBAL_CONFIG_DIR / "marketplace.toml"
+        try:
+            if platform.system() == "Darwin":
+                subprocess.run(["open", str(mp)], check=False)
+            elif platform.system() == "Windows":
+                subprocess.run(["start", "", str(mp)], shell=True, check=False)
+            else:
+                subprocess.run(["xdg-open", str(mp)], check=False)
+            ui.notify(
+                f"Opened {mp}. Save your changes, then click Refresh to apply.",
+                type="info",
+            )
+        except Exception as exc:
+            logger.exception("Failed to open marketplace.toml")
+            ui.notify(f"Failed to open editor: {exc}", type="negative")
+
+    def _get_unavailable_urls(self, context: "SessionContext") -> list[str]:
+        """Return unavailable_urls from the last RefreshReport, or [] if no refresh has run."""
+        from haybale_studio.state.marketplace_state import MarketplaceState
+
+        if context.app_data is None or MarketplaceState not in context.app_data:
+            return []
+        state = context.app_data[MarketplaceState]
+        if state.last_report is None:
+            return []
+        return list(state.last_report.unavailable_urls)
+
+    def _show_unavailable_dialog(self, urls: list[str]) -> None:
+        """Modal listing the unavailable source URLs with a fallback-cache hint."""
+        with ui.dialog() as dialog, hui.dialog_card():
+            with ui.column().classes("p-4 gap-2"):
+                ui.label("Sources unavailable").classes("text-sm font-medium")
+                ui.label(
+                    "These sources couldn't be fetched. Cached responses (if any) were used as fallback."
+                ).classes("text-xs hw-text-dim")
+                for url in urls:
+                    ui.label(url).classes("text-xs hw-text-default font-mono")
+                with ui.row().classes("w-full justify-end mt-2"):
+                    ui.button("Close", on_click=dialog.close).props("flat")
+        dialog.open()
+
     def _render_list(self, context: "SessionContext") -> None:
         if self._list_container is None:
             return
         self._list_container.clear()
+
+        # Plan E Phase 4: surface refresh errors inline.
+        if self._refresh_error:
+            with self._list_container:
+                with ui.row().classes("p-2 gap-1 items-center bg-red-50 border-l-4 border-red-400 w-full"):
+                    ui.icon("error").classes("hw-use-props-color").props("color=red")
+                    ui.label(self._refresh_error).classes("text-xs hw-text-default")
+
+        # Plan E Phase 4: surface partial-failure (some sources unavailable).
+        unavailable = self._get_unavailable_urls(context)
+        if unavailable:
+            with self._list_container:
+                with ui.row().classes(
+                    "p-2 gap-1 items-center bg-yellow-50 border-l-4 border-yellow-400 w-full"
+                ):
+                    ui.icon("warning").classes("hw-use-props-color").props("color=orange")
+                    n = len(unavailable)
+                    ui.label(f"{n} source{'s' if n != 1 else ''} unavailable").classes(
+                        "text-xs hw-text-default font-medium"
+                    )
+                    with (
+                        ui.button()
+                        .props("flat dense size=xs")
+                        .tooltip("Show unavailable sources") as detail_btn
+                    ):
+                        ui.icon("info").classes("hw-use-props-color").props("color=gray")
+                    detail_btn.on(
+                        "click",
+                        lambda urls=list(unavailable): self._show_unavailable_dialog(urls),
+                    )
 
         app = context.app
         if app is None or not hasattr(app, "library_manager"):
@@ -232,12 +392,23 @@ class LibraryBrowserEditor(BaseEditor):
         else:
             label = getattr(lib, "label", None) or getattr(lib, "name", "?")
             version = getattr(lib, "version", "")
-        hui.list_item(
+
+        is_stale = bool(getattr(lib, "stale", False))
+        sublabel = f"v{version}" if version else None
+        if is_stale:
+            sublabel = f"{sublabel} (stale)" if sublabel else "(stale)"
+
+        row = hui.list_item(
             label,
-            sublabel=f"v{version}" if version else None,
+            sublabel=sublabel,
             dot_color=dot_color,
             on_click=lambda entry=lib, ctx=context: self._select_library(entry, ctx),
         )
+        if is_stale:
+            last_seen = getattr(lib, "last_seen", "") or "unknown"
+            with row:
+                stale_dot = ui.element("div").classes("w-2 h-2 rounded-full bg-red-500 flex-shrink-0")
+                stale_dot.tooltip(f"Stale — last seen {last_seen}")
 
     def _select_library(self, lib, context: "SessionContext"):
         # Assigning emits SessionContext.active_library / .active_component

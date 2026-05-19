@@ -14,19 +14,29 @@ from haywire.core.marketplace_runtime import (
     ProjectMarketplace,  # noqa: F401  # re-exported for downstream test modules
     RemoteMarketplaceContents,
     RemoteSubscription,  # noqa: F401  # re-exported for downstream test modules
+    SubscriptionConflict,  # noqa: F401  # returned by detect_subscription_conflicts
     _cache_path,
     _url_hash,
+    add_direct_package_to_global,
+    add_marketplace_subscription_to_global,
+    add_marketstall_subscription_to_global,
     cache_read,
     cache_write,
+    detect_subscription_conflicts,
     fetch_with_cache_fallback,
     parse_global_marketplace,
     parse_marketstall_body,
     parse_project_marketplace,
     parse_remote_marketplace_body,
+    record_ignore_on_source,
     serialize_global_marketplace,
     serialize_project_marketplace,
 )
-from haywire.core.marketplace_errors import MalformedGlobalMarketplaceError, RemoteFetchError
+from haywire.core.marketplace_errors import (
+    DuplicatePackageNameError,
+    MalformedGlobalMarketplaceError,
+    RemoteFetchError,
+)
 
 
 @pytest.mark.unit
@@ -1013,3 +1023,178 @@ def test_add_local_to_global_preserves_other_sections(tmp_path: Path) -> None:
     assert gm.marketplaces[0].url == "https://maybites.github.io/haywire/marketplace.toml"
     assert len(gm.locals_) == 1
     assert gm.locals_[0]["name"] == "haybale-new"
+
+
+@pytest.mark.unit
+def test_add_marketplace_subscription_appends(tmp_path: Path) -> None:
+    global_path = tmp_path / "marketplace.toml"
+    global_path.write_text("")
+    add_marketplace_subscription_to_global(global_path, "https://example.com/m.toml")
+
+    gm = parse_global_marketplace(global_path)
+    assert len(gm.marketplaces) == 1
+    assert gm.marketplaces[0].url == "https://example.com/m.toml"
+    assert gm.marketplaces[0].ignores == []
+    assert gm.marketplaces[0].doubles == []
+
+
+@pytest.mark.unit
+def test_add_marketplace_subscription_dedup_returns_existing(tmp_path: Path) -> None:
+    """Subscribing to the same URL twice silently keeps the existing entry."""
+    global_path = tmp_path / "marketplace.toml"
+    global_path.write_text("")
+    add_marketplace_subscription_to_global(global_path, "https://example.com/m.toml")
+    add_marketplace_subscription_to_global(global_path, "https://example.com/m.toml")
+
+    gm = parse_global_marketplace(global_path)
+    assert len(gm.marketplaces) == 1
+
+
+@pytest.mark.unit
+def test_add_marketstall_subscription_appends(tmp_path: Path) -> None:
+    global_path = tmp_path / "marketplace.toml"
+    global_path.write_text("")
+    add_marketstall_subscription_to_global(global_path, "https://author.example/m.toml")
+
+    gm = parse_global_marketplace(global_path)
+    assert len(gm.marketstalls) == 1
+
+
+@pytest.mark.unit
+def test_add_direct_package_appends(tmp_path: Path) -> None:
+    global_path = tmp_path / "marketplace.toml"
+    global_path.write_text("")
+    toml_block = (
+        "[[packages]]\n"
+        'name = "haybale-direct"\n'
+        'min_version = "0.0.1"\n'
+        'source = "git"\n'
+        'install_spec = "haybale-direct @ git+https://x.example/r.git"\n'
+    )
+    add_direct_package_to_global(global_path, toml_block)
+
+    gm = parse_global_marketplace(global_path)
+    assert len(gm.packages) == 1
+    assert gm.packages[0].name == "haybale-direct"
+
+
+@pytest.mark.unit
+def test_add_direct_package_refuses_duplicate(tmp_path: Path) -> None:
+    global_path = tmp_path / "marketplace.toml"
+    global_path.write_text('[[packages]]\nname = "haybale-existing"\nmin_version = "0.0.1"\n')
+    with pytest.raises(DuplicatePackageNameError):
+        add_direct_package_to_global(
+            global_path,
+            '[[packages]]\nname = "haybale-existing"\nmin_version = "0.0.2"\n',
+        )
+
+
+@pytest.mark.unit
+def test_add_direct_package_invalid_toml_raises_value_error(tmp_path: Path) -> None:
+    global_path = tmp_path / "marketplace.toml"
+    global_path.write_text("")
+    with pytest.raises(ValueError):
+        add_direct_package_to_global(global_path, "not valid toml = at all")
+
+
+@pytest.mark.unit
+def test_add_direct_package_missing_packages_section_raises(tmp_path: Path) -> None:
+    global_path = tmp_path / "marketplace.toml"
+    global_path.write_text("")
+    with pytest.raises(ValueError):
+        add_direct_package_to_global(global_path, '[other]\nfoo = "bar"\n')
+
+
+@pytest.mark.unit
+def test_detect_no_conflicts_returns_empty_list() -> None:
+    """Adding a new subscription with no name overlap → no conflicts."""
+    existing_packages = [
+        MarketplaceEntry(
+            name="haybale-existing",
+            min_version="0.0.1",
+            source_origin="https://existing.example/m.toml",
+        ),
+    ]
+    new_packages = [
+        MarketplaceEntry(
+            name="haybale-new",
+            min_version="0.0.1",
+            source_origin="https://new.example/m.toml",
+        ),
+    ]
+    conflicts = detect_subscription_conflicts(existing_packages, new_packages)
+    assert conflicts == []
+
+
+@pytest.mark.unit
+def test_detect_conflict_reports_name_collision() -> None:
+    existing = [
+        MarketplaceEntry(
+            name="haybale-foo",
+            min_version="0.0.1",
+            source_origin="https://existing.example/m.toml",
+        ),
+    ]
+    new = [
+        MarketplaceEntry(
+            name="haybale-foo",
+            min_version="0.0.2",
+            source_origin="https://new.example/m.toml",
+        ),
+    ]
+    conflicts = detect_subscription_conflicts(existing, new)
+    assert len(conflicts) == 1
+    c = conflicts[0]
+    assert c.name == "haybale-foo"
+    assert c.existing_source == "https://existing.example/m.toml"
+    assert c.new_source == "https://new.example/m.toml"
+
+
+@pytest.mark.unit
+def test_detect_conflict_falls_back_when_source_origin_unset() -> None:
+    """source_origin may be empty if the entry wasn't routed through refresh —
+    detect returns '(unknown)' for those."""
+    existing = [MarketplaceEntry(name="haybale-foo", min_version="0.0.1")]
+    new = [MarketplaceEntry(name="haybale-foo", min_version="0.0.2")]
+    conflicts = detect_subscription_conflicts(existing, new)
+    assert len(conflicts) == 1
+    assert conflicts[0].existing_source == "(unknown)"
+    assert conflicts[0].new_source == "(unknown)"
+
+
+@pytest.mark.unit
+def test_record_ignore_on_source_adds_name_to_ignores(tmp_path: Path) -> None:
+    """When the user picks the existing entry, the new source's ignores list gets the name."""
+    global_path = tmp_path / "marketplace.toml"
+    global_path.write_text('[[marketstalls]]\nurl = "https://losing.example/m.toml"\n')
+    record_ignore_on_source(
+        global_path,
+        source_url="https://losing.example/m.toml",
+        package_name="haybale-foo",
+    )
+    gm = parse_global_marketplace(global_path)
+    assert "haybale-foo" in gm.marketstalls[0].ignores
+
+
+@pytest.mark.unit
+def test_record_ignore_works_on_marketplaces_section_too(tmp_path: Path) -> None:
+    global_path = tmp_path / "marketplace.toml"
+    global_path.write_text('[[marketplaces]]\nurl = "https://losing-marketplace.example/m.toml"\n')
+    record_ignore_on_source(
+        global_path,
+        source_url="https://losing-marketplace.example/m.toml",
+        package_name="haybale-bar",
+    )
+    gm = parse_global_marketplace(global_path)
+    assert "haybale-bar" in gm.marketplaces[0].ignores
+
+
+@pytest.mark.unit
+def test_record_ignore_idempotent(tmp_path: Path) -> None:
+    """Calling record_ignore twice for the same name doesn't duplicate it."""
+    global_path = tmp_path / "marketplace.toml"
+    global_path.write_text('[[marketstalls]]\nurl = "https://x.example/m.toml"\n')
+    record_ignore_on_source(global_path, source_url="https://x.example/m.toml", package_name="haybale-foo")
+    record_ignore_on_source(global_path, source_url="https://x.example/m.toml", package_name="haybale-foo")
+    gm = parse_global_marketplace(global_path)
+    assert gm.marketstalls[0].ignores == ["haybale-foo"]
