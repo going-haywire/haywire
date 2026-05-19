@@ -230,9 +230,10 @@ class LibraryManager:
         if any(lib.distribution_name.lower() == new_lib_name.lower() for lib in installed):
             return False, f'"{new_lib_name}" is already installed.'
 
-        marketplace_entries = (
-            self.load_marketplace(str(marketplace_path)) if marketplace_path.exists() else []
-        )
+        from haywire.core.marketplace_runtime import parse_project_marketplace
+
+        marketplace_pm = parse_project_marketplace(marketplace_path) if marketplace_path.exists() else None
+        marketplace_entries = marketplace_pm.packages if marketplace_pm else []
         if any(
             pkg.name.lower() == new_lib_name.lower() and pkg.name.lower() != dist_name.lower()
             for pkg in marketplace_entries
@@ -710,50 +711,3 @@ class LibraryManager:
             del sys.modules[k]
 
         return True, f"Updated identity for {dist_name}"
-
-    @staticmethod
-    def _parse_marketplace_entries(data: dict) -> "list[MarketplaceEntry]":
-        """Parse a TOML marketplace data dict into a list of MarketplaceEntry objects."""
-        return [
-            MarketplaceEntry(
-                name=pkg.get("name", ""),
-                min_version=pkg.get("min_version", ""),
-                label=pkg.get("label", ""),
-                description=pkg.get("description", ""),
-                author=pkg.get("author", ""),
-                source=pkg.get("source", "pypi"),
-                install_spec=pkg.get("install_spec", pkg.get("name", "")),
-                tags=pkg.get("tags", []),
-                dependencies=pkg.get("dependencies", []),
-                source_url=pkg.get("source_url", ""),
-                docs_url=pkg.get("docs_url", ""),
-            )
-            for pkg in data.get("packages", [])
-        ]
-
-    @staticmethod
-    def _fetch_remote_marketplace(url: str) -> "list[MarketplaceEntry]":
-        """Fetch a remote marketplace.toml URL and return its entries (no source metadata set)."""
-        import urllib.request
-
-        try:
-            with urllib.request.urlopen(url, timeout=5) as resp:
-                content = resp.read().decode("utf-8")
-            return LibraryManager._parse_marketplace_entries(toml.loads(content))
-        except Exception:
-            return []
-
-    @staticmethod
-    def load_marketplace(manifest_path: str) -> list[MarketplaceEntry]:
-        """Parse a TOML marketplace manifest file.
-
-        Args:
-            manifest_path: Path to a marketplace .toml file.
-
-        Returns:
-            List of available packages.
-        """
-        path = Path(manifest_path)
-        if not path.exists():
-            return []
-        return LibraryManager._parse_marketplace_entries(toml.loads(path.read_text()))

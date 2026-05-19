@@ -188,13 +188,15 @@ class LibraryBrowserEditor(BaseEditor):
         if self._filter_available:
             workspace_root = getattr(app, "workspace_root", None)
             marketplace_path = (
-                str(Path(workspace_root) / ".haywire" / "marketplace.toml") if workspace_root else None
+                Path(workspace_root) / ".haywire" / "marketplace.toml" if workspace_root else None
             )
             if marketplace_path:
                 try:
+                    from haywire.core.marketplace_runtime import parse_project_marketplace
+
                     installed_names = {lib.distribution_name for lib in libraries if lib.distribution_name}
-                    entries = LibraryManager.load_marketplace(marketplace_path)
-                    available = [e for e in entries if e.name not in installed_names and matches(e)]
+                    pm = parse_project_marketplace(marketplace_path)
+                    available = [e for e in pm.packages if e.name not in installed_names and matches(e)]
                     available.sort(key=lambda x: x.label or x.name)
                 except Exception as e:
                     logger.warning(f"LibraryBrowser: failed to load marketplace: {e}")

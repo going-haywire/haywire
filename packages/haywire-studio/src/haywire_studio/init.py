@@ -257,15 +257,22 @@ def _local_entry(name: str, path: Path, label: str = "", description: str = "") 
 
 
 def _check_global_collision(name: str) -> None:
-    """Raise ProjectNameCollisionError if `haybale-{name}` is already in the user-global locals."""
+    """Raise ProjectNameCollisionError if `haybale-{name}` is already in the user-global locals.
+
+    Read-only pre-flight that runs BEFORE any directory creation, so a colliding
+    init doesn't leave a half-scaffolded project on disk. Plan E Phase 3:
+    delegates parsing to marketplace_runtime.parse_global_marketplace for
+    schema consistency with the rest of the runtime.
+    """
+    from haywire.core.marketplace_runtime import parse_global_marketplace
+
     from .config import GLOBAL_CONFIG_DIR, ensure_global_config
 
     ensure_global_config()
     global_mp = GLOBAL_CONFIG_DIR / "marketplace.toml"
-    data = toml.loads(global_mp.read_text())
-    locals_ = data.get("locals", [])
+    gm = parse_global_marketplace(global_mp)
     target_name = f"haybale-{name}"
-    for existing in locals_:
+    for existing in gm.locals_:
         if existing.get("name") == target_name:
             raise ProjectNameCollisionError(
                 f'A project library named "{target_name}" is already registered '
@@ -278,56 +285,56 @@ def _check_global_collision(name: str) -> None:
 def _register_local_in_global(name: str, project_dir: Path) -> None:
     """Append a [[locals]] entry for this project to ~/.haywire/marketplace.toml.
 
-    Refuses with ProjectNameCollisionError if a [[locals]] entry with the same
-    name already exists (spec § 6 G5 — name collision between projects).
+    Plan E Phase 3: delegates to marketplace_runtime.add_local_to_global which
+    centralizes the read/append/write. Translates DuplicateLocalNameError to
+    the local ProjectNameCollisionError so init_project's existing try/except
+    keeps working.
 
     Reads/writes via haywire_studio.config.GLOBAL_CONFIG_DIR so tests can patch
     the location.
     """
+    from haywire.core.marketplace_errors import DuplicateLocalNameError
+    from haywire.core.marketplace_runtime import add_local_to_global
+
     from .config import GLOBAL_CONFIG_DIR, ensure_global_config
 
     ensure_global_config()
     global_mp = GLOBAL_CONFIG_DIR / "marketplace.toml"
-    data = toml.loads(global_mp.read_text())
-
-    locals_ = data.get("locals", [])
     label = name.replace("-", " ").replace("_", " ").title()
-    new_entry = _local_entry(
-        name=f"haybale-{name}",
-        path=project_dir / "barn" / f"haybale-{name}",
-        label=label,
-        description=f"Local library for the {name} project",
-    )
 
-    for existing in locals_:
-        if existing.get("name") == new_entry["name"]:
-            raise ProjectNameCollisionError(
-                f'A project library named "{new_entry["name"]}" is already registered '
-                f"at {existing.get('path')} in the user-global marketplace. "
-                f"Rename your new project or remove the conflicting entry from "
-                f"{global_mp}."
-            )
-
-    locals_.append(new_entry)
-    data["locals"] = locals_
-    global_mp.write_text(toml.dumps(data))
+    try:
+        add_local_to_global(
+            global_mp,
+            name=f"haybale-{name}",
+            path=project_dir / "barn" / f"haybale-{name}",
+            label=label,
+            description=f"Local library for the {name} project",
+        )
+    except DuplicateLocalNameError as exc:
+        # add_local_to_global's message already names the path + global_mp;
+        # repackage as ProjectNameCollisionError for init_project's try/except.
+        raise ProjectNameCollisionError(str(exc)) from exc
 
 
 def _register_dev_repo_locals_in_global(dev_repo: str) -> None:
     """In --dev mode, register every dev-repo barn library as a [[locals]] in the user-global marketplace.
 
-    Walks `<dev_repo>/barn/*` and adds a [[locals]] entry for each directory
-    with a pyproject.toml. Entries that already exist (by name) in the user-
-    global marketplace are skipped silently — this is idempotent so multiple
-    --dev projects on the same machine don't double-register or fail.
+    Walks `<dev_repo>/barn/*` and calls add_local_to_global per library.
+    Catches DuplicateLocalNameError per library and continues — idempotent
+    so multiple --dev projects on the same machine don't double-register
+    or fail.
+
+    Plan E Phase 3: delegates the per-library write to
+    marketplace_runtime.add_local_to_global instead of hand-rolling the
+    full-file read/append/write loop.
     """
+    from haywire.core.marketplace_errors import DuplicateLocalNameError
+    from haywire.core.marketplace_runtime import add_local_to_global
+
     from .config import GLOBAL_CONFIG_DIR, ensure_global_config
 
     ensure_global_config()
     global_mp = GLOBAL_CONFIG_DIR / "marketplace.toml"
-    data = toml.loads(global_mp.read_text())
-    locals_ = data.get("locals", [])
-    existing_names = {entry.get("name") for entry in locals_}
 
     barn = Path(dev_repo) / "barn"
     if not barn.is_dir():
@@ -339,23 +346,20 @@ def _register_dev_repo_locals_in_global(dev_repo: str) -> None:
         # Read the package name from pyproject — don't trust the directory name.
         pyproject = toml.loads((lib_dir / "pyproject.toml").read_text())
         lib_name = pyproject.get("project", {}).get("name", lib_dir.name)
-        if lib_name in existing_names:
-            continue  # Idempotent: already registered, leave it alone.
-
         label = lib_name.removeprefix("haybale-").replace("-", " ").replace("_", " ").title()
         description = pyproject.get("project", {}).get("description", "")
-        locals_.append(
-            _local_entry(
+
+        try:
+            add_local_to_global(
+                global_mp,
                 name=lib_name,
                 path=lib_dir,
                 label=label,
                 description=description,
             )
-        )
-        existing_names.add(lib_name)
-
-    data["locals"] = locals_
-    global_mp.write_text(toml.dumps(data))
+        except DuplicateLocalNameError:
+            # Idempotent: already registered, skip.
+            continue
 
 
 def _generate_project_marketplace_locals_only(name: str, project_dir: Path) -> str:
