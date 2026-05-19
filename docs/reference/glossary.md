@@ -110,6 +110,8 @@ See also the **"Library" — five distinct meanings** table at the top of this g
 | **Library** | A Python package that contributes nodes, types, adapters, widgets, skins, and/or themes to Haywire; declared with `@library`. See [components/libraries](../components/libraries/library-canon.md) | Plugin (Library is the canonical term), extension |
 | **Library System** | Framework infrastructure that discovers, loads, and tracks libraries: `LibraryRegistry`, `LibraryDiscovery`, `LibraryIdentity`, `FileWatcher`. See [architecture/library-system](../architecture/library-system/library-system-arch.md) | "Library" alone (ambiguous) |
 | **Library Manager** | Studio's in-app UI for installing, inspecting, and uninstalling Haybale packages. See [architecture/library-manager](../architecture/library-manager/library-manager-arch.md) | "Library" alone (ambiguous), package manager |
+| **Library Browser** | The left-slot editor that lists installed and marketplace-available libraries with filter toggles (REQUIRED, ENABLED, DISABLED, AVAILABLE). Distinct from the Library Manager, which is the broader subsystem. *(new)* | — |
+| **Library Overview Editor** | The main-slot editor that shows one library's identity, components, and Edit / Enable / Disable / Uninstall actions; reached by selecting a library in the Library Browser. *(new)* | Library detail editor |
 | **Haybale** | The naming convention for a Haywire library package (e.g. `haybale-core`, `haybale-visiongraph`). See [components/haybale-package](../components/haybale-package/haybale-package-canon.md) | — |
 | **Barn** | The monorepo folder containing all local haybale plugin libraries (`barn/`) | Library folder |
 | **register_components()** | The required method on `BaseLibrary` that scans subfolders and registers all library contributions | setup, initialize |
@@ -123,6 +125,60 @@ See also the **"Library" — five distinct meanings** table at the top of this g
 | **QUICKREF.md** | Fully generated compact reference for a haybale package. Alphabetical, key-value format, no prose. One line per component field. Lives inside the Python module directory (ships in wheel). | — |
 | **NOTES.md** | Hand-authored supplement inside the Python module directory (ships in wheel). Design rationale, known quirks, interaction patterns, example graph descriptions. Never touched by `haywire-gen-docs`. Prepended verbatim to the generated `README.md`; appended as "Additional Notes" in `OVERVIEW.md`. | LIBRARY.md (old name, deprecated) |
 | **haywire-gen-docs** | The Claude skill that generates `README.md`, `OVERVIEW.md`, `QUICKREF.md`, and per-component `docs/` for a haybale package in one pass. Syncs docstrings first. Uses sha256 hashes to skip unchanged per-component docs. Never modifies `NOTES.md`. | — |
+
+---
+
+## Two-tier marketplace runtime *(new)*
+
+The runtime that backs the Library Browser's Refresh / Add Source / Edit File flow. Spec: `internals/specs/versioning-and-publishing.md` §6. Code: `haywire.core.marketplace_runtime`.
+
+| Term | Definition | Aliases to avoid |
+|------|-----------|-----------------|
+| **Global marketplace** | The user-scoped `~/.haywire/marketplace.toml`. Holds the user's opt-in subscriptions to remote feeds (`[[marketplaces]]`, `[[marketstalls]]`), direct package entries (`[[packages]]`), and optional cross-project local libraries (`[[locals]]`). Per-machine, never project-scoped. | user marketplace, ~/.haywire (overloaded) |
+| **Project marketplace** | The project-scoped `<project>/.haywire/marketplace.toml`. Holds the project's own `[[locals]]` (written by `haywire init`, including dev-repo libraries under `--dev`) and the `[[packages]]` cache populated by refresh. Never has `[[marketplaces]]` or `[[marketstalls]]`. | project file, .haywire/marketplace.toml (overloaded) |
+| **`[[marketplaces]]`** | TOML section in the global marketplace declaring subscriptions to *remote marketplace feeds*. Each entry: `url`, `ignores`, `doubles`. | sources (legacy schema, migrated away) |
+| **`[[marketstalls]]`** | TOML section in the global marketplace declaring subscriptions to *remote marketstall feeds* (single-author publish files). Each entry: `url`, `ignores`, `doubles`. | — |
+| **`[[packages]]`** | TOML section appearing in three places with three meanings: (1) in a remote marketstall, the publishable package list; (2) in the global marketplace, direct user-pasted packages; (3) in the project marketplace, the resolved-and-cached package list written by refresh. | — |
+| **`[[locals]]`** | TOML section declaring path-based libraries (always installed editably). Per spec, `haywire init` writes `[[locals]]` to the **project** marketplace; the global marketplace's `[[locals]]` is reserved for manual cross-project additions. *(updated semantics — used to write to global; corrected mid-Plan-E)* | — |
+| **Subscription** | A `[[marketplaces]]` or `[[marketstalls]]` entry in the global marketplace — the user's opt-in to follow a remote feed. Identified by URL. Idempotent: re-adding the same URL is a no-op. | feed, source (overloaded) |
+| **Refresh** | The 7-step operation that fetches every subscribed feed, resolves the candidate package list, applies conflict resolution, and writes the result to the project marketplace's `[[packages]]` cache. Triggered by the Refresh button or auto-fires after Add Source. See `marketplace_runtime.refresh()`. | sync, update |
+| **One-level-deep resolution** | The hard limit on remote-marketplace chains: a remote marketplace's own `[[marketplaces]]` entries are ignored — only its `[[marketstalls]]` and `[[packages]]` are consumed. Prevents infinite recursion and bounds the refresh blast radius. | recursive resolution |
+| **MarketplaceEntry** | The canonical dataclass for one package available to install. Fields: `name`, `min_version`, `label`, `source` (`"pypi"` / `"git"` / `"local"`), `install_spec`, plus marketplace-cache-shape fields (`via`, `last_seen`, `stale`) and source-tagging fields. Code: `haywire.core.marketplace`. | Package (too generic), entry |
+| **RemoteSubscription** | The dataclass for one `[[marketplaces]]` or `[[marketstalls]]` entry: `url`, `ignores`, `doubles`. | — |
+| **Conflict resolution** | The first-come-first-served name-collision rule applied during refresh. Two override mechanisms: `ignores` (per-source skip list) and `doubles` (diagnostic record). `[[locals]]` always wins; other ties prompt the user at Add Source time. Spec §6. | — |
+| **`ignores`** | Per-subscription array of package names that refresh should skip from that source. Populated when the user resolves a conflict in favor of another source. | skip list |
+| **`doubles`** | Per-subscription array of package names that two `[[marketplaces]]` entries silently dedup to. Diagnostic only. | — |
+| **Stale** | Flag set on a project-marketplace `[[packages]]` entry when a subsequent refresh did NOT re-resolve it. Renders as a red dot + "(stale)" suffix in the Library Browser. Stale + uninstalled entries are user-removable via the trash icon; stale + installed entries are locked until uninstalled. | outdated, expired |
+| **RefreshReport** | The dataclass returned by `marketplace_runtime.refresh()`: `sources_fetched`, `sources_unavailable`, `unavailable_urls`, `packages_resolved`, `new_stale`. Cached on `MarketplaceState.last_report` for the UI banner / toast to read. | — |
+| **MarketplaceState** | The `AppState` that owns marketplace orchestration. The UI calls `state.refresh()`, `state.get_global()`, `state.get_project_packages()`, `state.remove_stale_package()` — never `marketplace_runtime` directly. Designed for the haybale-marketplace carve-out. | — |
+| **MalformedGlobalMarketplaceError** | Raised when `~/.haywire/marketplace.toml` is invalid (TOML parse or schema violation). Library Manager refuses to start when raised; the UI surfaces a red banner with an Edit File button as the recovery path. | — |
+| **HTTP cache** | `~/.haywire/cache/<url-hash>.toml`, one file per subscribed URL. Populated on successful fetch, consulted on fetch failure as a fallback. No TTL; invalidated only by a successful re-fetch. | — |
+| **Unavailable source** | A subscribed URL that refresh couldn't fetch AND that had no cached fallback. Surfaced as a yellow banner in the Library Browser with a detail dialog listing the URLs. | unreachable feed |
+
+---
+
+## Dependency manifests & drift *(new)*
+
+A haybale library's dependencies live across three manifests with different audiences. They can drift; haywire provides tools to detect and reconcile.
+
+| Term | Definition | Aliases to avoid |
+|------|-----------|-----------------|
+| **Project pyproject** | `<project>/pyproject.toml`. Audience: uv (workspace resolution). Lists what the *project* needs to run during dev. Never travels with a published library. | root pyproject (acceptable, less precise) |
+| **Library pyproject** | `<library>/pyproject.toml`, e.g. `barn/haybale-foo/pyproject.toml`. Audience: pip / PyPI / `haywire share` consumers. The `[project] dependencies` here is what travels with the published library and what pip resolves at install time. | package pyproject |
+| **`@library(dependencies=[...])`** | The decorator parameter inside a library's `__init__.py`. Audience: haywire's runtime (LibraryManager). Lists which *other haywire libraries* must be enabled for this one to enable; gates Disable / Uninstall buttons via `get_installed_dependents()`. Uses underscore module names (e.g. `"haybale_core"`), NOT distribution names. | library deps (ambiguous), runtime deps |
+| **Three manifest layers** | The conceptual triple — source imports / `@library` decorator / library pyproject — that must agree for a library to ship cleanly. When they diverge (drift), `haywire share` may publish a package whose declared deps lie about what it needs. | — |
+| **detect_deps()** | Pure function in `haywire.core.library.dep_detect`. Statically AST-scans a library's source, resolves imports to distributions, and returns a `DetectedDeps` with one list shaped for the `@library` decorator and another shaped for the library's pyproject. | — |
+| **DetectedDeps** | Frozen dataclass returned by `detect_deps`. Fields: `library_decorator` (underscored module names of registered haywire libraries imported from source), `pyproject` (distribution names + version specifiers — framework, registered libraries, and third-party), `resolved` (module → distribution map), `unresolved` (imports that couldn't be mapped). | — |
+| **HaywireLibrarySource** | Protocol with `list_names()` and `get_library_distribution_name(id)`. The authoritative answer to "is this distribution a haywire library?" — by registration, not by name pattern. Live registry satisfies it; tests pass a fake. | — |
+| **EntryPointLibrarySource** | `HaywireLibrarySource` implementation backed by `importlib.metadata.entry_points(group="haywire.libraries")`. Used by CLI flows (`haywire share`) that don't bootstrap the haywire runtime. | — |
+| **Detect Dependencies button** | The magnifying-glass button next to the Dependencies field in the Library Overview Editor's Edit dialog. Runs `detect_deps`, opens a diff modal showing what would change, offers Union or Replace as the apply mode. | Scan deps button |
+| **Drift gate** | The pre-publish check inside `haywire share` / `haywire share --save`. Default: warn-only on stderr. `--strict`: exit non-zero if any library has missing manifest entries. `--fix`: auto-correct by writing the missing entries to disk. | — |
+| **DepDrift** | Dataclass from `haywire_studio.share` recording one library's missing entries. Fields: `lib_dir`, `pyproject_missing`, `decorator_missing`, `unresolved`. `has_drift` is True iff either missing-list is non-empty. The gate flags missing entries only; extra (declared but unused) deps are not flagged. | — |
+| **DriftError** | Raised by `share_save_repo` in `--strict` mode when any library has drift. Aborts before any `marketstall.toml` is written. | — |
+| **Diff modal** | The `haywire.ui.modals.diff_modal` Popup that previews proposed changes and offers up to two action buttons + Cancel. Used by Detect Dependencies (Union / Replace). Generic — any "preview changes, choose how to apply" surface can reuse it. | — |
+| **DiffSection** | One labelled block inside a diff modal: title + additions (green `+`) + removals (red `−`) + unchanged (dim) + optional note. | — |
+| **Union (apply mode)** | The additive apply: current ∪ detected for each manifest. Never removes; safe against false positives from dynamic imports. | merge |
+| **Replace (apply mode)** | The destructive apply: detected only. Drops anything not detected. Useful for cleaning up obsolete declarations; risky against dynamic imports. | overwrite |
 
 ---
 
@@ -197,6 +253,20 @@ See [architecture/studio](../architecture/studio/studio-arch.md) for the studio 
 | **CSS token** | A `--hw-*` CSS custom property that encodes a design-system value (colour, size, shadow); every structural colour in the app must reference a token, never a hardcoded value | CSS variable (CSS token is the project term) |
 | **Compact-fields** | A container-query–based responsive layout system for dense settings/property panels; activated by the `compact-fields` CSS class on the outer column | Dense layout, settings layout |
 | **Ghost pin** | The visual indicator (low-opacity colour via `--hw-ghost-pin`) on a port that is unconnected; rendered by node skins | Unconnected pin, empty pin |
+
+### Modals *(new)*
+
+`haywire.ui.modals` — the canonical set of reusable Popup-based modal dialogs. Use these instead of inline `ui.dialog()` for any new modal UI; the per-modal helpers carry the design-guide chrome (`--hw-popup-shadow`, `--hw-bg-elevated`, `--hw-border-strong`) and stack above legacy Quasar dialogs at z-index 7000/7001.
+
+| Term | Definition | Aliases to avoid |
+|------|-----------|-----------------|
+| **Popup** | The shared Vue component all haywire modals are built on. Centered or position-fixed, with optional backdrop, escape-close, and backdrop-click-close. Internal — modal authors use the helper functions below. | — |
+| **info_modal** | Single icon + title + message + OK button. Non-destructive notifications, blocked actions, status reports. | — |
+| **confirm_modal** | Title + message + Confirm/Cancel. Use `danger=True` for destructive confirms. | — |
+| **pick_modal** | Title + single-select dropdown + Confirm/Cancel. Pre-populated to the first option. | — |
+| **rename_modal** | Title + single name input with live classification (same / changed / existing collision) + Confirm/Cancel. The confirm button relabels per state. | — |
+| **save_as_modal** | The path-prompt variant of rename_modal: directory + filename input with extension control. | — |
+| **diff_modal** | Title + sectioned diff body (DiffSection blocks) + up to two action buttons + Cancel. Used by Detect Dependencies; reusable for any "preview changes, pick how to apply" surface. *(new)* | — |
 
 ### Editor instance-mode terms
 
@@ -278,6 +348,10 @@ See [guides/signals.md](../guides/signals.md) for authoring patterns; [architect
 - **Hand-authored signals** (`Signal` / `CommandSignal` subclasses) and synthetic ones from **signal_field** travel the same bus and use the same `@redraw_on` / `@react_on` subscription.
 - A **Signal** subclass with `cross_session: ClassVar[bool] = True` routes through `SessionManager.broadcast` and is received by every active **Session**.
 - A library that subscribes to another library's **Signal** must list the **signal-defining library** in its own `LibraryIdentity.dependencies`.
+- The **Global marketplace** holds only what the user opts into (subscriptions, direct packages, optional cross-project locals); the **Project marketplace** holds the project's own `[[locals]]` plus the refresh `[[packages]]` cache. `haywire init` writes only the project marketplace. *(new)*
+- **Refresh** reads the **Global marketplace**, fetches every **Subscription** (one-level-deep), and writes the resolved candidates to the **Project marketplace**'s `[[packages]]` cache. **Conflict resolution** uses first-come-first-served plus `[[locals]]`-always-wins. *(new)*
+- The Library Browser's **REQUIRED** filter and the Library Overview Editor's Disable/Uninstall gating both use `LibraryManager.get_installed_dependents()` — the `@library(dependencies=...)` graph. The two surfaces always agree. *(new)*
+- A library's published manifest survives `haywire share` only if the **Three manifest layers** agree. The **Drift gate** detects divergence; **detect_deps** + the Detect Dependencies button reconcile it inside the Edit dialog. *(new)*
 
 ---
 
@@ -327,6 +401,28 @@ See [guides/signals.md](../guides/signals.md) for authoring patterns; [architect
 > **Dev:** "And the framework's own `ExecutionSettings` — does it need to be registered manually?"
 > **Domain expert:** "No — **FrameworkSettings** subclasses self-register via `_pending_global` at registry init. **LibrarySettings** come in through the **BaseRegistry** hot-reload machinery when the **Library** loads."
 
+### Subscribing to a marketplace *(new)*
+
+> **Dev:** "I want my project to see packages from a colleague's published feed. How?"
+> **Domain expert:** "Click **Add Source** in the **Library Browser** and paste the URL on the Marketplace tab. That writes a `[[marketplaces]]` entry to the **Global marketplace** — your `~/.haywire/marketplace.toml`."
+> **Dev:** "Will it fetch immediately?"
+> **Domain expert:** "Yes — Add Source auto-fires **Refresh**. The fetch is one-level-deep: the runtime reads the remote's `[[marketstalls]]` and `[[packages]]`, but ignores its `[[marketplaces]]` to bound the resolution. Resolved candidates land in the **Project marketplace**'s `[[packages]]` cache."
+> **Dev:** "What if two feeds advertise the same package name?"
+> **Domain expert:** "You get a **Conflict resolution** prompt at Add Source time: pick which feed wins. The losing feed's `ignores` array gains that name so future refreshes silently skip it from that source."
+> **Dev:** "And if a feed I'm subscribed to goes offline?"
+> **Domain expert:** "Refresh falls back to the **HTTP cache** at `~/.haywire/cache/`. The Library Browser shows a yellow 'N sources unavailable' banner so you know what's not fresh. Cached entries that don't re-resolve get marked **Stale** with a red dot and a (stale) suffix; if they're uninstalled, a trash icon lets you drop them from the cache."
+
+### Publishing a library cleanly *(new)*
+
+> **Dev:** "I added a new import to my library. What do I need to update before `haywire share`?"
+> **Domain expert:** "Two manifests: the `@library(dependencies=...)` decorator in your `__init__.py` (haywire DI runtime), and the `[project] dependencies` in the **library pyproject** (pip / consumer install). Source imports are the third layer — these are the **Three manifest layers** that have to agree."
+> **Dev:** "I keep forgetting one of them. Anything that helps?"
+> **Domain expert:** "Open the **Library Overview Editor** for your library, hit Edit, then the magnifying-glass **Detect Dependencies** button next to the dependencies field. It runs **detect_deps** and shows a **diff modal** with Union or Replace — Union is safe, never removes; Replace drops anything not detected."
+> **Dev:** "And at publish time?"
+> **Domain expert:** "`haywire share --strict` runs the **Drift gate**. If any of your barn libraries are missing manifest entries the source actually imports, it refuses to emit. `--fix` auto-corrects both manifests in place; default mode is warn-only on stderr."
+> **Dev:** "What's the difference between `detect_deps` finding something for `library_decorator` versus `pyproject`?"
+> **Domain expert:** "`library_decorator` is registered haywire libraries only — what the authoritative `HaywireLibrarySource` (the registry, or `EntryPointLibrarySource` in CLI flows) confirms is a haywire library. `pyproject` is wider: framework (`haywire-core`, `haywire-studio`), registered libraries, AND third-party (numpy, requests, etc.). Naming convention `haybale-*` is a hint, not a contract."
+
 ---
 
 ## Flagged ambiguities
@@ -349,3 +445,11 @@ See [guides/signals.md](../guides/signals.md) for authoring patterns; [architect
 - **"event" vs "signal"**: **Signal** is the canonical term for anything on the session bus. The old `Event`/`ContextSignal`/`LifecycleCommand` vocabulary was deleted in the signal-field unification. **Event** survives only in unrelated contexts: `NodeType.EVENT` (execution-engine role), `EVENT node` (a node category), `LifeCycleEvent` (registry batch events), `ContextChangedEvent` (slot context-change signal, distinct from session-bus signals). Never use "event" to mean a session-bus signal.
 - **"reactive field" vs "signal field"**: historical name for the same concept. The pre-unification `Reactive[T]` wrapper with `.value` accessor was deleted; **signal_field** is the canonical term. "Reactive field" appears only in historical design docs under `internals/speculatives/`.
 - **"Signal class" overloaded**: a **synthetic signal class** is generated by `signal_field` at class-definition; a **hand-authored signal** is a `Signal` subclass declared explicitly. Both inherit `Signal` directly and dispatch identically. Disambiguate when discussing implementation details.
+- **"marketplace" overloaded** *(new)*: refers to three distinct things — the runtime concept (the **Marketplace** catalog visible in the Library Manager's Available section), the file (**Global marketplace** `~/.haywire/marketplace.toml` or **Project marketplace** `<project>/.haywire/marketplace.toml`), and the TOML section type (**`[[marketplaces]]`** subscriptions). Always qualify which sense — file vs section vs catalog.
+- **"marketplace" vs "marketstall"** *(new)*: a **Marketstall** is a single-author publish file listing only `[[packages]]` (produced by `haywire share`). A **Marketplace** in the file-shape sense (`marketplace.toml`) aggregates `[[marketplaces]]` subscriptions, `[[marketstalls]]` subscriptions, direct `[[packages]]`, and `[[locals]]`. A remote `[[marketplaces]]` URL points at another `marketplace.toml`; a remote `[[marketstalls]]` URL points at a `marketstall.toml`. Different schemas, different recursion rules.
+- **"locals" location** *(new, corrected spec mid-Plan-E)*: `haywire init` writes `[[locals]]` to the **Project marketplace**, NOT the Global marketplace. The Global marketplace's `[[locals]]` section is reserved for manual cross-project additions by power users. Earlier spec drafts (and code prior to commit `01ae1f30`) put init's locals in the global file; that was a leak — the global is now user-opt-in only.
+- **"dependencies" — three meanings** *(new)*: (1) project pyproject `dependencies` (what uv resolves in dev), (2) library pyproject `dependencies` (what pip ships with the published package), (3) `@library(dependencies=[...])` (the haywire runtime DI graph). The **Three manifest layers** must agree at publish time; **detect_deps** and the **Drift gate** keep them honest. Never use bare "dependencies" without qualifying which manifest you mean.
+- **"required" vs "dependent"** *(new)*: a library is **required** if some installed haywire library lists it in `@library(dependencies=[...])`. The reverse-direction term is **dependent** — the library that *has* that declaration. Computed via `LibraryManager.get_installed_dependents(lib_id)`. Note: this is the **`@library`** graph, NOT pip's `Requires-Dist`. The pip-walk path (`is_required_by_another_package`) was removed in commit `f09c8558`.
+- **"refresh" vs "scan"** *(new)*: **Refresh** is the spec-§6 7-step pipeline that fetches subscriptions, applies conflict resolution, and writes the project `[[packages]]` cache. "Scan" usually means file-watcher reload or library-registry rescan — different subsystem. Use **Refresh** for the marketplace pipeline.
+- **"stale"** *(new)*: in the marketplace runtime, **stale** means a project-marketplace `[[packages]]` entry that a subsequent **Refresh** did not re-resolve from any source. It does NOT mean "out of date" in the version sense. Stale + installed entries are locked from removal; stale + uninstalled entries are trash-icon removable.
+- **"dialog" vs "modal" vs "popup"** *(new)*: in the haywire codebase, **Popup** is the Vue component all canonical modals are built on. The helpers in `haywire.ui.modals` (info_modal, confirm_modal, pick_modal, rename_modal, save_as_modal, diff_modal) wrap Popup with task-specific bodies. "Dialog" is the legacy NiceGUI/Quasar surface (`ui.dialog()`) — being migrated to Popup; legacy dialogs sit at Quasar's default z-index 6000, Popup at 7000/7001 so haywire modals always stack on top.
