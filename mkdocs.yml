@@ -109,6 +109,8 @@ nav:
       - Node roles: guides/node-roles.md
       - Ports: guides/ports.md
       - Signals: guides/signals.md
+      - Sharing libraries: guides/sharing-libraries.md
+      - Subscribing to marketplaces: guides/subscribing-to-marketplaces.md
 
   - Architecture:
       - Overview: architecture/overview/overview-arch.md
@@ -124,6 +126,7 @@ nav:
           - Callbacks: architecture/execution/callbacks/callbacks-arch.md
       - Library system: architecture/library-system/library-system-arch.md
       - Library manager: architecture/library-manager/library-manager-arch.md
+      - Sharing — philosophy: architecture/sharing/sharing-arch.md
       - Hot-reload: architecture/hot-reload/hot-reload-arch.md
       - Settings: architecture/settings/settings-arch.md
       - Session and state: architecture/session-and-state/session-and-state-arch.md

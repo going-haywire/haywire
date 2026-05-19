@@ -6,6 +6,8 @@ see-also:
   - ../library-manager/library-manager-arch.md
   - ../library-system/library-system-arch.md
   - ../../components/haybale-package/haybale-package-canon.md
+  - ../../guides/sharing-libraries.md
+  - ../../guides/subscribing-to-marketplaces.md
   - ../../reference/glossary.md
   - ../../reference/publish_releases.md
 ---
@@ -167,3 +169,9 @@ The list of non-goals is long on purpose. Each item is a feature that, if added,
 ## Reading on
 
 Concrete mechanisms — file formats, UI flows, command-line surfaces, code-level architecture — live in the documents linked from the frontmatter `see-also`. This essay is the orientation; those are the maps.
+
+If you are an **author**, the next stop is the [sharing-libraries guide](../../guides/sharing-libraries.md): keeping manifests honest, the `haywire share` flow, and where to host your marketstall.
+
+If you are a **consumer**, the next stop is the [subscribing-to-marketplaces guide](../../guides/subscribing-to-marketplaces.md): Add Source, Refresh, handling conflicts and unavailable feeds, installing what you find.
+
+If you want the **architectural picture** of how the surface is built — file layouts, refresh pipeline, conflict-resolution implementation, the editors driving it all — see [library-manager-arch](../library-manager/library-manager-arch.md).

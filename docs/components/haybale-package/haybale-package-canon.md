@@ -6,6 +6,9 @@ see-also:
   - ../libraries/library-canon.md
   - ../../architecture/library-system/library-system-arch.md
   - ../../architecture/library-manager/library-manager-arch.md
+  - ../../architecture/sharing/sharing-arch.md
+  - ../../guides/sharing-libraries.md
+  - ../../guides/subscribing-to-marketplaces.md
   - ../../reference/glossary.md
 ---
 
@@ -106,7 +109,7 @@ The studio's [library manager](../../architecture/library-manager/library-manage
 
 **Hot-reload requires editable install.** `file_watcher=True` only does something when the framework can find the live source directory. For pip-from-wheel (`REGULAR` install type), there is no source path to watch — the wheel is unpacked into `site-packages`. Editable installs (`EDITABLE`) and folder-loaded packages (`FOLDER`) both work.
 
-**`marketplace.toml` is how libraries are listed for the studio.** A marketplace TOML file lists `[[packages]]` entries with metadata + an `install_spec` that gets passed verbatim to `uv pip install`. The Library Manager UI reads these feeds at startup and surfaces them as the "Available" list. Full coverage in [architecture/library-manager §2.2–2.5](../../architecture/library-manager/library-manager-arch.md#22-the-marketplacetoml-format).
+**`marketplace.toml` is how libraries are listed for the studio.** A marketplace TOML file lists `[[packages]]` entries with metadata + an `install_spec` that gets passed verbatim to `uv pip install`. The Library Manager UI reads these feeds at startup and surfaces them as the "Available" list. Full coverage in [architecture/library-manager §The two-tier marketplace](../../architecture/library-manager/library-manager-arch.md#2-the-two-tier-marketplace).
 
 **`haywire share`** generates a marketplace snippet for a published library:
 
@@ -378,9 +381,14 @@ uv pip install "haybale-mylib @ git+https://github.com/user/repo.git#subdirector
 
 | Command | What it does |
 |---|---|
-| `uv run haywire share libs/haybale-mylib` | Generate a marketplace.toml snippet for a git-published library. Auto-detects remote, converts SSH→HTTPS, computes `#subdirectory=` |
-| `uv run haywire init my_project` | Scaffold a new project with `<project>/.haywire/marketplace.toml` and `libs/haybale-<name>/` |
-| `uv run haywire init my_project --dev` | Same, but the marketplace lists every haybale in the local dev repo with `source="local"` |
+| `uv run haywire share barn/haybale-mylib` | Print a marketstall `[[packages]]` snippet for one library to stdout. Auto-detects git remote, converts SSH→HTTPS, computes `#subdirectory=`. |
+| `uv run haywire share --save` | Aggregate every `barn/*` library and write `<repo-root>/marketstall.toml`. This is the file consumers subscribe to. |
+| `uv run haywire share [--save] --strict` | Refuse to emit if any library has dependency drift (declared manifest ≠ source imports). Use in CI. |
+| `uv run haywire share [--save] --fix` | Auto-correct drift in place before emitting. Rewrites pyproject.toml `[project] dependencies` and `@library(dependencies=...)` for every drifty library. |
+| `uv run haywire init my-project` | Scaffold a new project. Writes `<my-project>/.haywire/marketplace.toml` with the project's own library as a `[[locals]]` entry. |
+| `uv run haywire init my-project --dev` | Same, but additionally writes one `[[locals]]` per haybale in the local dev repo into the project marketplace — *not* the global marketplace. The user's `~/.haywire/marketplace.toml` is left untouched. |
+
+For the full author flow including how to keep manifests in sync without `--fix`, see the [sharing-libraries guide](../../guides/sharing-libraries.md). For the consumer flow that subscribes to what you publish, see [subscribing-to-marketplaces](../../guides/subscribing-to-marketplaces.md).
 
 ### Common pitfalls
 
