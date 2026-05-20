@@ -16,7 +16,7 @@ description: >
 
 Operator's playbook for cutting a release of the haywire monorepo's Tier 1+2 packages.
 Composes the existing tools (`scripts/bump_version.py`, `git`, `gh`) into the 10-step
-flow defined in [spec § release flow](../../../internals/specs/versioning-and-publishing.md).
+flow documented in [`docs/reference/publish_releases.md`](../../../docs/reference/publish_releases.md).
 
 ## When to use
 

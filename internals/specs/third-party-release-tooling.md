@@ -1,16 +1,19 @@
 # Third-Party Release Tooling Spec
 
-**Status:** staked — awaiting implementation of [versioning-and-publishing.md](./versioning-and-publishing.md)
+**Status:** staked — awaiting implementation
 **Date:** 2026-05-18
-**Author:** maybites
+**Author:** going-haywire
 
 ---
 
 ## Problem
 
-The [versioning-and-publishing spec](./versioning-and-publishing.md) defines the **contract**
-for third-party haybale libraries: what `pyproject.toml` must contain, what the `@library`
-decorator requires, what `marketstall.toml` looks like. But it intentionally stops there.
+The third-party authoring contract — what `pyproject.toml` must contain, what the `@library`
+decorator requires, what `marketstall.toml` looks like — is documented in
+[`docs/components/haybale-package/haybale-package-canon.md`](../../docs/components/haybale-package/haybale-package-canon.md) §5 (the compliance contract)
+and [`marketstall-distribution.md`](./marketstall-distribution.md) (the marketstall schema).
+This spec covers the **tooling layer** that makes living up to that contract ergonomic for
+external authors.
 
 Without tooling, a third-party author who wants to publish their library to PyPI has to:
 
@@ -39,7 +42,9 @@ monorepo's own release flow.
 ## Non-goals
 
 - This spec does NOT define the marketstall format, `@library` requirements, or `pyproject.toml`
-  conventions. Those are in [versioning-and-publishing.md](./versioning-and-publishing.md).
+  conventions. Marketstall format is in [`marketstall-distribution.md`](./marketstall-distribution.md);
+  `@library` and `pyproject.toml` conventions are in
+  [`docs/components/haybale-package/haybale-package-canon.md`](../../docs/components/haybale-package/haybale-package-canon.md).
 - This spec does NOT cover non-PyPI publishing. Git-only libraries are already handled by
   `haywire share --save`.
 - This spec does NOT cover discovery (how subscribers find third-party marketstalls). That

@@ -130,7 +130,7 @@ See also the **"Library" — five distinct meanings** table at the top of this g
 
 ## Two-tier marketplace runtime *(new)*
 
-The runtime that backs the Library Browser's Refresh / Add Source / Edit File flow. Spec: `internals/specs/versioning-and-publishing.md` §6. Code: `haywire.core.marketplace_runtime`.
+The runtime that backs the Library Browser's Refresh / Add Source / Edit File flow. Spec: [`internals/specs/marketstall-distribution.md`](../../internals/specs/marketstall-distribution.md). Code: `haywire.core.marketplace_runtime`.
 
 | Term | Definition | Aliases to avoid |
 |------|-----------|-----------------|

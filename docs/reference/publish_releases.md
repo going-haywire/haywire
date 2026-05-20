@@ -1,9 +1,11 @@
 # Publishing Releases
 
 This document is the operational reference for cutting a release of the haywire monorepo's
-Tier 1+2 packages and deploying the marketplace. It is the human-facing companion to the
-[versioning-and-publishing spec](../../internals/specs/versioning-and-publishing.md), which
-defines the *why* and *what*; this page defines the *how* and *where*.
+Tier 1+2 packages and deploying the marketplace. It defines both the *why* and the *how* —
+prerequisites, configuration locations, release procedure, and recovery procedures.
+
+For the marketplace / marketstall file formats produced by the release flow, see
+[`internals/specs/marketstall-distribution.md`](../../internals/specs/marketstall-distribution.md).
 
 ## TL;DR
 
@@ -253,10 +255,7 @@ walks through to Job 4 and re-attempts the deploy.
 2. Register the new package as a Trusted Publisher on PyPI (see Prerequisites above).
 3. Confirm `uv build --package <name>` works locally.
 4. Confirm `uv run python scripts/generate_marketstall.py` includes the package.
-5. Update the §5 tier table in
-   [versioning-and-publishing.md](../../internals/specs/versioning-and-publishing.md) so the
-   human documentation matches the machine-readable list.
-6. Cut the next release; the new package will publish on the same tag as the rest.
+5. Cut the next release; the new package will publish on the same tag as the rest.
 
 ## Moving a package between tiers
 
