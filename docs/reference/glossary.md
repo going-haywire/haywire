@@ -27,6 +27,20 @@ The word **library** appears five times in haywire with five different meanings.
 
 ---
 
+## "Haybale" — three distinct meanings *(new — marketstall distribution)*
+
+Once the marketstall-distribution spec lands ([`internals/specs/marketstall-distribution.md`](../../internals/specs/marketstall-distribution.md)), the word **haybale** carries three closely-related but distinct meanings. They cluster around the same concept (a haywire library and its distribution metadata) but project it onto different surfaces.
+
+| # | Term | What it is |
+|---|---|---|
+| 1 | **Haybale** (naming convention) | The pip-distribution naming convention for a haywire library package (`haybale-core`, `haybale-visiongraph`). Also used loosely as a synonym for the package itself. |
+| 2 | **`[[haybales]]`** (TOML section) | The TOML section name in `marketstall.toml` (and optionally inside `marketplace.toml`) that lists one or more published library entries. Replaces the older `[[packages]]` section name. |
+| 3 | **`Haybale`** (dataclass) | The runtime dataclass representing one entry from a `[[haybales]]` section. Renamed from `MarketplaceEntry`. Fields: `name`, `min_version`, `label`, `description`, `author`, `source`, `install_spec`, `tags`, `os`, `dependencies`, `source_url`, `docs_url`, plus cache-only fields (`via`, `last_seen`, `stale`). |
+
+The three projections relate as: the **dataclass** (3) represents one entry in the **TOML section** (2), which catalogs the **convention** (1). Disambiguate when discussing schema vs. code vs. package names.
+
+---
+
 ## Graph & Structure
 
 | Term | Definition | Aliases to avoid |

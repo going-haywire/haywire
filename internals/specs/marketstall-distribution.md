@@ -1,5 +1,5 @@
 ---
-status: draft
+status: ready-for-implementation
 scope: The full marketstall/marketplace surface — file formats, URL distribution model, host-provider extensibility, author/consumer flows, refresh semantics, and a one-shot rename of the existing vocabulary.
 ---
 
@@ -17,8 +17,8 @@ A decentralized scheme for distributing Haywire libraries via git-hosted reposit
 | Section        | Where                                                                                          | Meaning                                                                                                                                                                                                                                      |
 | -------------- | ---------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `[[haybales]]` | Inside `marketstall.toml`; optionally inside `marketplace.toml` (aggregator or PyPI-only case) | One library entry. Fields: `name`, `min_version`, `label`, `description`, `author`, `source`, `install_spec`, `tags`, `dependencies`, `source_url`, `docs_url`. Same shape as the existing `MarketplaceEntry` dataclass (renamed `Haybale`). |
-| `[[markets]]`  | Inside `marketplace.toml` (global)                                                             | A subscription to a remote *marketplace*. Carries `url`, `ignores`, `doubles`.                                                                                                                                                               |
-| `[[stalls]]`   | Inside `marketplace.toml` (global)                                                             | A subscription to a remote *marketstall*. Carries `url`, `ignores`, `doubles`.                                                                                                                                                               |
+| `[[markets]]`  | Inside `marketplace.toml` (global)                                                             | A subscription to a remote *marketplace*. Carries `url`, `ignores`, `doubles`, `blocked`.                                                                                                                                                    |
+| `[[stalls]]`   | Inside `marketplace.toml` (global)                                                             | A subscription to a remote *marketstall*. Carries `url`, `ignores`, `doubles`, `blocked`.                                                                                                                                                    |
 | `[[heaps]]`    | Inside `marketplace.toml` (project)                                                            | Unpublished path-based libraries (the project's own, plus dev-repo siblings under `--dev`).                                                                                                                                                  |
 | `[[caches]]`   | Inside `marketplace.toml` (project)                                                            | Refresh result. Each entry is a resolved `Haybale` plus cache-only fields `via`, `last_seen`, `stale`.                                                                                                                                       |
 
@@ -71,7 +71,7 @@ A marketstall (either pattern) does NOT contain `[[markets]]`, `[[stalls]]`, `[[
 | `source`       | no       | One of `"pypi"`, `"git"`, `"local"`. Drives install-spec interpretation and version-fetching strategy.                                                             |
 | `install_spec` | yes      | Passed verbatim to `uv pip install`.                                                                                                                               |
 | `tags`         | no       | Filter tags for the Library Browser.                                                                                                                               |
-| `os`           | no       | List of platforms the library supports. Values: `"macos"`, `"windows"`, `"linux"`, `"other"`. Absent (or omitted) means "all platforms". See §2.1.                |
+| `os`           | no       | List of platforms the library supports. Declaration values: `"macos"`, `"windows"`, `"linux"`. Absent (or omitted) means "all platforms". See §2.1.                |
 | `dependencies` | no       | Pip distribution names of other haybales this one depends on. NOT the underscore form used in `@library(dependencies=[...])`.                                      |
 | `source_url`   | no       | URL to the repository (or source location) homepage.                                                                                                               |
 | `docs_url`     | no       | URL or local path to the docs directory.                                                                                                                           |
@@ -87,20 +87,24 @@ os = ["macos", "linux"]
 
 `haywire share` reads this value from each barn library's pyproject and copies it to the `os` field of the generated `[[haybales]]` entry. Absent from pyproject → absent from the marketstall → interpreted as "all platforms".
 
-**Accepted values**: `"macos"`, `"windows"`, `"linux"`, `"other"`. The `"other"` bucket catches everything else (BSDs, illumos, Haiku, etc.).
+**Declaration values**: `"macos"`, `"windows"`, `"linux"`. These are the only platforms the runtime can map definitively from `platform.system()`. An author can declare exactly the subset they have tested on.
 
-**Edit dialog surface**: the Library Overview Editor's Edit dialog has an OS multi-select. Saving writes the chosen values back into the library's `pyproject.toml` `[tool.haywire].os`. Selecting nothing (or all four) removes the key (= "all platforms").
+**`"other"` is a runtime-only sentinel**, never a valid declaration value. The runtime maps unrecognized `platform.system()` results to `"other"` so the mapping function is total; libraries running on an unrecognized OS see a current-platform of `"other"`. Because `"other"` is not declarable, a haybale on an unknown OS never matches any platform list — but the absent-default (= "all platforms") still lets pure-Python libraries install on unknown OSes when no `os` is declared.
+
+`haywire share` validates the `[tool.haywire].os` values read from each library's `pyproject.toml`. An entry containing `"other"` (or any value outside the three accepted ones) produces a clear error: *"Invalid os value 'X' in barn/`<library>`/pyproject.toml. Declarable values: macos, windows, linux."*
+
+**Edit dialog surface**: the Library Overview Editor's Edit dialog shows an OS multi-select **only for libraries the user can author** — i.e., `[[heaps]]` libraries with a writable `pyproject.toml` in their workspace. For installed wheels (installed via pip/uv), the OS list is **displayed read-only** with no edit affordance — the wheel's `pyproject.toml` either lives inside `site-packages` (overwritten on next install) or doesn't exist at all, so editing it is meaningless. Saving on a heap library writes the chosen values back into the library's `pyproject.toml` `[tool.haywire].os`. Selecting nothing (or all three) removes the key (= "all platforms").
 
 **Library Browser behavior**: an installable haybale whose `os` list doesn't include the current platform is shown in the AVAILABLE section *normally*, but its Install button is disabled. A tooltip on the disabled button explains: *"Not available on this OS; this library targets: macos, linux."* This is the most discoverable treatment — the user sees the library exists, learns why it's not installable on this machine, and can revisit on a different platform.
 
-The runtime maps `platform.system()` to one of the four values once at session start:
+The runtime maps `platform.system()` to one of four values once at session start:
 
-| `platform.system()` | Mapped to  |
-| ------------------- | ---------- |
-| `"Darwin"`          | `"macos"`  |
-| `"Windows"`         | `"windows"` |
-| `"Linux"`           | `"linux"`  |
-| anything else       | `"other"`  |
+| `platform.system()` | Mapped to                                       |
+| ------------------- | ----------------------------------------------- |
+| `"Darwin"`          | `"macos"`                                       |
+| `"Windows"`         | `"windows"`                                     |
+| `"Linux"`           | `"linux"`                                       |
+| anything else       | `"other"` (runtime sentinel; not declarable)    |
 
 ## 3. The marketplace format
 
@@ -122,19 +126,28 @@ The consumer's marketplace lives in its own per-library data folder under `~/.ha
 url = "https://github.com/going-haywire/haywire/blob/main/marketplace.toml"
 ignores = []
 doubles = []
+blocked = []
 
 [[stalls]]
 url = "https://github.com/alice/cool-libs/blob/main/marketstall.toml"
 ignores = ["haybale-mesh"]
 doubles = []
+blocked = ["haybale-untrusted"]
 
 [[stalls]]
 url = "file:///Users/me/.haywire/db/haybale-marketplace/stalls/internal-experiment.toml"
 ignores = []
 doubles = []
+blocked = []
 ```
 
-This file records: who the user is following (`[[markets]]` and `[[stalls]]`), and the per-source overrides (`ignores`, `doubles`). It contains no haybale definitions of its own — direct-paste entries are persisted as one-`[[haybales]]`-entry marketstalls under `~/.haywire/db/haybale-marketplace/stalls/` and referenced via `[[stalls]]` with `file://` URLs.
+This file records: who the user is following (`[[markets]]` and `[[stalls]]`), and the per-source overrides (`ignores`, `doubles`, `blocked`). It contains no haybale definitions of its own — direct-paste entries are persisted as one-`[[haybales]]`-entry marketstalls under `~/.haywire/db/haybale-marketplace/stalls/` and referenced via `[[stalls]]` with `file://` URLs.
+
+The three filter arrays carry distinct semantics:
+
+- **`ignores`** — names skipped silently from this source. Populated by the conflict-resolution prompt at Add Source time (§8.3). The user did not actively reject the haybale; they preferred another source.
+- **`doubles`** — names that two `[[markets]]` entries silently dedup to. Diagnostic only.
+- **`blocked`** — names the user actively rejected via the first-install safety modal (§7.4). Per-subscription: blocking `haybale-foo` from source A does not affect source A's neighbor source B (which may legitimately offer a different haybale under the same name). Blocked haybales are **fully hidden** from the Library Browser's AVAILABLE list; the only un-block path is editing this file by hand. Persistent and deliberate by design.
 
 ### 3.2 Project's marketplace (`<project>/.haywire/marketplace.toml`)
 
@@ -206,7 +219,7 @@ The Library Manager respects whichever ref the URL carries — it does not secon
 
 ### 4.2 Accepted input forms
 
-The Library Manager accepts five input forms in its Add Source dialog and resolves all of them to a fetchable raw URL (or, in the paste case, a locally-saved file):
+The Library Manager accepts **four** input forms in its Add Source dialog and resolves all of them to a fetchable raw URL (or, in the paste case, a locally-saved file):
 
 1. **Blob URL** (canonical, recommended for git-hosted files):
    `https://github.com/alice/cool-libs/blob/main/marketstall.toml`
@@ -214,25 +227,24 @@ The Library Manager accepts five input forms in its Add Source dialog and resolv
 2. **Raw URL** (if the user copied it directly):
    `https://raw.githubusercontent.com/alice/cool-libs/main/marketstall.toml`
    Used as-is for fetching.
-3. **Repo URL** (convenience, no ref encoded — uses the host's default branch):
-   `https://github.com/alice/cool-libs`
-   The host provider determines the default branch (try `main`, then `master`) and looks for `marketstall.toml` at the repo root; on 404, tries `marketplace.toml`.
-4. **Plain TOML URL** (any URL that doesn't match a host provider's blob/raw/repo pattern):
+3. **Plain TOML URL** (any URL that doesn't match a host provider's blob/raw pattern):
    `https://going-haywire.github.io/haywire/marketplace.toml`
    Treated as an opaque URL: fetch directly with no host-provider transformation. This is the path for static hosts (GitHub Pages, GitLab Pages, plain web servers, S3, anything that just serves a TOML file at a URL).
-5. **TOML block** pasted directly (not actually a URL): the dialog saves it to `~/.haywire/db/haybale-marketplace/stalls/<dist-name>.toml` and references it via `file://` as a `[[stalls]]` subscription.
+4. **TOML block** pasted directly (not actually a URL): the dialog saves it to `~/.haywire/db/haybale-marketplace/stalls/<dist-name>.toml` and references it via `file://` as a `[[stalls]]` subscription.
 
-The Add Source dialog has **one input field** accepting any of the five. The runtime determines what to do by inspecting the input shape. Host providers add *convenience* for git-host URLs (rewriting blob to raw, deriving the default branch from a repo URL) but aren't required — plain TOML URLs work without any host-provider involvement.
+The Add Source dialog has **one input field** accepting any of the four. The runtime determines what to do by inspecting the input shape. Host providers add *convenience* for git-host URLs (rewriting blob to raw) but aren't required — plain TOML URLs work without any host-provider involvement.
+
+**Bare repo URLs are explicitly rejected.** Pasting `https://github.com/alice/cool-libs` (no path to a file) produces an immediate error: *"Paste the URL to the marketstall.toml file, not the repo. Look for a `marketstall:share-url` block in the repo's README."* Rationale: the only way to resolve a bare repo URL is to probe the network for `marketstall.toml` at the default branch (and fall back to `marketplace.toml`), which adds up to 4 sequential HTTPS requests of latency to Add Source for a convenience case that the README marker pattern (§6.6) already serves cleanly. The canonical author flow is: author runs `haywire share --save`, marker block in README updates to the full blob URL, consumer copies that URL into Add Source.
 
 ### 4.3 Resolution
 
-1. **Parse the input.** If it looks like a URL, strip trailing slashes, `.git`, query strings, fragments. Otherwise treat as a pasted TOML block (input form 5).
+1. **Parse the input.** If it looks like a URL, strip trailing slashes, `.git`, query strings, fragments. Otherwise treat as a pasted TOML block (input form 4).
 2. **Classify the URL form.** Try host providers in turn; first match wins.
    - Starts with `file://` → already a fetchable URL; skip host-provider handling.
    - Some `HostProvider.parse_blob_url(url)` returns non-None → blob URL (input form 1). Use `provider.raw_url(...)` to derive the fetchable URL; the blob URL itself is what gets persisted in the marketplace file.
    - Some `HostProvider.parse_raw_url(url)` returns non-None → raw URL (input form 2). Use as-is for fetch; reconstruct the canonical blob URL via `provider.blob_url(...)` for persistence.
-   - Some `HostProvider.parse_repo_url(url)` returns non-None → repo URL (input form 3). Resolve ref via `provider.default_branch(...)`, then try fetching `marketstall.toml` at the repo root; on 404, try `marketplace.toml`; on both 404, surface a clear "no marketstall.toml or marketplace.toml at repository root" error.
-   - No provider matches → plain TOML URL (input form 4). Fetch the URL as-is; no host-provider rewriting; persist exactly what the user pasted.
+   - URL has no path component beyond `/owner/repo` (i.e. looks like a bare repo URL) → reject with the "paste the file URL, not the repo URL" error from §4.2. No network probing.
+   - No provider matches and the URL has a path that includes a file → plain TOML URL (input form 3). Fetch the URL as-is; no host-provider rewriting; persist exactly what the user pasted.
 3. **Fetch.** HTTP errors surface as install failures with the fetched URL surfaced for debugging.
 4. **Parse and validate.** Reject with a clear error on malformed TOML or missing required fields.
 5. **Inspect body shape to decide subscription type.**
@@ -242,7 +254,7 @@ The Add Source dialog has **one input field** accepting any of the five. The run
 6. **Run the conflict-resolution prompt** if any haybale name collides with already-subscribed sources (see §8.3).
 7. **Auto-refresh** to populate the project cache.
 
-For input form 5 (pasted TOML block): the dialog parses the block, requires a `[[haybales]]` section, derives `<dist-name>` from the first haybale's `name` field, writes the block to `~/.haywire/db/haybale-marketplace/stalls/<dist-name>.toml`, then enters the resolution flow as if the user had pasted `file:///Users/.../db/haybale-marketplace/stalls/<dist-name>.toml`.
+For input form 4 (pasted TOML block): the dialog parses the block, requires a `[[haybales]]` section, derives `<dist-name>` from the first haybale's `name` field, writes the block to `~/.haywire/db/haybale-marketplace/stalls/<dist-name>.toml`, then enters the resolution flow as if the user had pasted `file:///Users/.../db/haybale-marketplace/stalls/<dist-name>.toml`.
 
 ## 5. Host-provider architecture
 
@@ -265,33 +277,29 @@ class HostProvider(Protocol):
     def parse_raw_url(self, url: str) -> ParsedRef | None:
         """Parse a raw URL into (owner, repo, ref, path). None if not a match."""
 
-    def parse_repo_url(self, url: str) -> ParsedRepo | None:
-        """Parse a bare repo URL into (owner, repo). None if not a match."""
-
     def raw_url(self, owner: str, repo: str, ref: str, path: str) -> str:
         """Construct the raw URL for fetching."""
 
     def blob_url(self, owner: str, repo: str, ref: str, path: str) -> str:
         """Construct the share URL (canonical, browser-friendly)."""
-
-    def default_branch(self, owner: str, repo: str) -> str:
-        """Detect the default branch. Defaults to probing 'main' then 'master'."""
 ```
 
-`ParsedRef` and `ParsedRepo` are small frozen dataclasses.
+`ParsedRef` is a small frozen dataclass. There is no `parse_repo_url` and no `default_branch` — bare repo URLs are rejected at input time (§4.2, §4.3), so no provider ever needs to probe for a default branch.
 
 ### 5.2 Host Table
 
-Built-in providers as of this spec:
+Built-in providers shipped in the first cut:
 
-| Host                                   | Blob path                                 | Raw path                                          |
-| -------------------------------------- | ----------------------------------------- | ------------------------------------------------- |
-| github.com                             | `/blob/{ref}/`                            | `raw.githubusercontent.com/{owner}/{repo}/{ref}/` |
-| gitlab.com                             | `/-/blob/{ref}/`                          | `/-/raw/{ref}/`                                   |
-| bitbucket.org                          | `/src/{ref}/`                             | `/raw/{ref}/`                                     |
-| Gitea / Forgejo (codeberg.org, others) | `/src/branch/{ref}/` or `/src/tag/{ref}/` | `/raw/branch/{ref}/` or `/raw/tag/{ref}/`         |
+| Host       | Blob path        | Raw path                                          |
+| ---------- | ---------------- | ------------------------------------------------- |
+| github.com | `/blob/{ref}/`   | `raw.githubusercontent.com/{owner}/{repo}/{ref}/` |
+| gitlab.com | `/-/blob/{ref}/` | `/-/raw/{ref}/`                                   |
 
-Self-hosted instances of these platforms use the same URL conventions; only the hostname differs.
+GitHub and GitLab cover the dominant case and exercise the Protocol with two genuinely different URL shapes (proving the abstraction generalizes). Both are verifiable against real public repos.
+
+Self-hosted instances of these platforms use the same URL conventions; only the hostname differs (see §5.4).
+
+**Deferred providers**: Bitbucket and Gitea/Forgejo are not in the first cut. Users on those platforms can subscribe via raw URLs (form 2) or plain TOML URLs (form 3) — they just don't get blob → raw rewriting for free. Adding a provider is one file plus one registry entry (§5.5); the Gitea branch-vs-tag complication (its blob/raw URL paths differ depending on whether `{ref}` is a branch or tag) is an unresolved spec question that lands with the Gitea provider, not before.
 
 ### 5.3 Provider registry
 
@@ -299,8 +307,8 @@ Self-hosted instances of these platforms use the same URL conventions; only the 
 HOST_PROVIDERS: list[HostProvider] = [
     GitHubProvider(),
     GitLabProvider(),
-    BitbucketProvider(),
-    GiteaProvider(),
+    # BitbucketProvider() — deferred; see §5.2
+    # GiteaProvider()     — deferred; see §5.2
 ]
 
 def resolve_host(hostname: str) -> HostProvider | None:
@@ -312,7 +320,7 @@ def resolve_host(hostname: str) -> HostProvider | None:
 
 ### 5.4 Self-hosted instances
 
-Users with self-hosted GitHub Enterprise, GitLab, Gitea, or Forgejo declare them in `~/.haywire/config.toml`:
+Users with self-hosted GitHub Enterprise or GitLab declare them in `~/.haywire/config.toml`:
 
 ```toml
 [[hosts]]
@@ -321,10 +329,10 @@ provider = "gitlab"
 
 [[hosts]]
 hostname = "code.team.example"
-provider = "gitea"
+provider = "github"
 ```
 
-`resolve_host()` consults the user's config first, then falls back to built-in matchers. Each config entry maps a hostname to one of the built-in provider names (`github`, `gitlab`, `bitbucket`, `gitea`).
+`resolve_host()` consults the user's config first, then falls back to built-in matchers. Each config entry maps a hostname to one of the shipped provider names (`github`, `gitlab`). Once Bitbucket and Gitea providers ship (§5.2), their names become valid here too.
 
 ### 5.5 File layout
 
@@ -333,11 +341,11 @@ packages/haywire-core/src/haywire/core/marketstall/
 ├── __init__.py
 ├── host_providers/
 │   ├── __init__.py        # exports HOST_PROVIDERS, resolve_host(), HostProvider
-│   ├── base.py            # Protocol + ParsedRef / ParsedRepo
+│   ├── base.py            # Protocol + ParsedRef
 │   ├── github.py          # GitHubProvider
-│   ├── gitlab.py          # GitLabProvider
-│   ├── bitbucket.py       # BitbucketProvider
-│   └── gitea.py           # GiteaProvider (also handles Forgejo)
+│   └── gitlab.py          # GitLabProvider
+#   ├── bitbucket.py       # deferred (§5.2)
+#   └── gitea.py           # deferred (§5.2)
 ```
 
 Each provider module is self-contained, individually unit-tested.
@@ -480,9 +488,44 @@ If the user pasted a bare repo URL, the resolved blob URL has the host's default
 
 ### 7.3 Caching
 
-`~/.haywire/cache/<url-hash>.toml` keyed by the resolved raw URL. On every successful fetch, the cache is overwritten. On fetch failure, cache provides the fallback body. No TTL.
+`~/.haywire/cache/<url-hash>.toml` keyed by the resolved raw URL. On every successful fetch, the cache is overwritten. On fetch failure, cache provides the fallback body. **No TTL.** Cache files are valid until overwritten by a successful fetch; haywire's catalog is not time-sensitive, and a TTL would punish offline use (working on a plane, traveling) without protecting against any failure mode that matters for this data shape.
 
 A content hash of the cached body is recorded as a side metadata file `<url-hash>.sha256` to enable "did this URL change since last refresh?" detection — informs the update-available signal in §10.
+
+**Tri-state per-subscription refresh result.** Each subscription's refresh step produces one of three outcomes:
+
+| Outcome | When | UI signal |
+| --- | --- | --- |
+| `fresh` | HTTP 200; cache overwritten | (none — happy path) |
+| `cache_fallback` | HTTP failed; cache hit; body served from cache | counted in `RefreshReport.sources_from_cache`; refresh toast says "N sources served from cache" when nonzero |
+| `unavailable` | HTTP failed; no cache; subscription contributes nothing this refresh | counted in `RefreshReport.sources_unavailable`; yellow banner in Library Browser |
+
+Distinguishing `fresh` from `cache_fallback` matters: an HTTP 5xx → cache-fallback path should not look identical to a happy-path refresh in the report. The user should be able to see when their catalog is partially stale.
+
+**Cache GC.** At the end of each refresh, the runtime deletes any `<url-hash>.toml` (and its `.sha256` sidecar) whose hash doesn't match the URL of an active subscription. This keeps `~/.haywire/cache/` bounded across subscription churn (users unsubscribing and re-subscribing accumulates orphans otherwise).
+
+### 7.4 First-install safety modal
+
+The first time the user clicks Install on any haybale, a safety modal interposes between the click and the actual `uv pip install`. The user is installing third-party code; the modal makes that explicit and gives them a chance to verify before committing.
+
+**Modal contents**:
+
+- **Title**: "Install `<haybale-name>`?"
+- **Safety copy**: *"You are about to install third-party code. You are responsible for verifying this library is safe before installing. Review the source first if you don't recognize the author."*
+- **Source link button** — opens the haybale's `source_url` field in a new browser tab/window. Disabled (with explanatory text) if `source_url` is empty.
+- **Three action buttons**:
+  - **Cancel** — close, no change.
+  - **Block** — add the haybale's `name` to the `blocked = []` array on the subscription that resolved this haybale (the `[[markets]]` or `[[stalls]]` entry whose `via` URL matches). The haybale disappears from the Library Browser's AVAILABLE list immediately. Persistent; only un-blockable by editing the marketplace file by hand.
+  - **Install** — proceed with `uv pip install <install_spec>` and trigger a Library System rescan.
+
+**"First time" scoping**: the modal fires on Install when (a) the haybale is not currently installed AND (b) the user has not previously seen-and-installed this haybale name on this machine. Reinstall of a previously-installed-and-uninstalled haybale skips the modal (the user already decided once). The "seen" state is per-haybale-name, stored as a small list in `~/.haywire/db/haybale-marketplace/seen.toml`.
+
+**Provenance display in the Library Browser**: each haybale row shows where it came from, using the `via` cache field already recorded during refresh.
+
+- **Direct `[[stalls]]` subscription**: row shows the marketstall's host (e.g. "from github.com/alice").
+- **Transitive via `[[markets]]`**: row shows the aggregator's host with a "via" qualifier (e.g. "via going-haywire.github.io"). A tooltip names both the aggregator and the underlying stall, so the user can audit which haybales arrived through which curator.
+
+This makes aggregator catalog expansion *visible*: if Bob's curated marketplace silently adds 30 new sources, the user can see each new haybale carries a "via bob.example" provenance label and decide whether to keep, block, or unsubscribe from Bob's list.
 
 ## 8. Refresh pipeline
 
@@ -531,11 +574,14 @@ When a remote marketplace body's `[[markets]]` references other marketplaces, th
 
 ### 8.2 Conflict resolution
 
-| Filter                  | What it does                                                                                                                                     |
-| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `ignores`               | Each subscription's `ignores` array lists names to skip from that source. Populated by the user's conflict-resolution prompt at Add Source time. |
-| Heaps shadow            | Any candidate haybale whose name matches a `[[heaps]]` entry is dropped — local heaps always win.                                                |
-| First-come-first-served | After the above, deterministically keep the first occurrence of any remaining duplicate. Safety net for hand-edits.                              |
+| Filter                  | What it does                                                                                                                                                                                                                            |
+| ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `blocked`               | Each subscription's `blocked` array lists names the user actively rejected via the first-install safety modal (§7.4). Blocked haybales are dropped from the candidate list AND hidden from the Library Browser's AVAILABLE list.        |
+| `ignores`               | Each subscription's `ignores` array lists names to skip from that source. Populated by the user's conflict-resolution prompt at Add Source time. Unlike `blocked`, ignored haybales may still be visible if another source offers them. |
+| Heaps shadow            | Any candidate haybale whose name matches a `[[heaps]]` entry is dropped — local heaps always win.                                                                                                                                       |
+| First-come-first-served | After the above, deterministically keep the first occurrence of any remaining duplicate. Safety net for hand-edits.                                                                                                                     |
+
+Filter application order: `blocked` and `ignores` apply per-subscription (during the fetch → parse → collect step). Heaps shadow and FCFS apply across the combined candidate list. This means a haybale blocked from source A but offered freely by source B still appears (from source B); blocking is per-subscription by design (see §3.1's filter-array semantics).
 
 ### 8.3 The user-prompt path
 
@@ -545,14 +591,17 @@ When Add Source resolves a new subscription and detects name collisions against 
 
 `RefreshReport` (returned by `MarketplaceState.refresh()`):
 
-| Field                 | Meaning                                                                          |
-| --------------------- | -------------------------------------------------------------------------------- |
-| `sources_fetched`     | Subscriptions successfully read (cache hits count).                              |
-| `sources_unavailable` | Subscriptions that failed to fetch AND had no cached fallback.                   |
-| `unavailable_urls`    | Specific URLs in the previous count. Drives the yellow banner.                   |
-| `haybales_resolved`   | Non-stale entries in the final cache.                                            |
-| `new_stale`           | Entries that became stale on this refresh (were fresh before).                   |
-| `updates_available`   | Installed haybales whose cache `min_version` exceeds installed version. See §10. |
+| Field                 | Meaning                                                                                                                                                |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `sources_fetched`     | Subscriptions whose result was `fresh` (HTTP 200, cache overwritten). Distinct from `sources_from_cache`.                                              |
+| `sources_from_cache`  | Subscriptions whose result was `cache_fallback` (HTTP failed, cache hit, body served from cache). Drives the toast "N sources served from cache" line. |
+| `sources_unavailable` | Subscriptions whose result was `unavailable` (HTTP failed, no cache).                                                                                  |
+| `unavailable_urls`    | Specific URLs in the `sources_unavailable` count. Drives the yellow banner.                                                                            |
+| `haybales_resolved`   | Non-stale entries in the final cache.                                                                                                                  |
+| `new_stale`           | Entries that became stale on this refresh (were fresh before).                                                                                         |
+| `updates_available`   | Installed haybales whose cache `min_version` exceeds installed version. See §10.                                                                       |
+
+The three `sources_*` counters always partition the active subscription set (`sources_fetched + sources_from_cache + sources_unavailable == total subscriptions`). The split between `sources_fetched` and `sources_from_cache` is the difference between "everything went well" and "some sources were degraded but we recovered from cache" — both produce a populated catalog, but only the latter warrants the toast line.
 
 ## 10. `min_version` and the update-available signal
 
@@ -622,11 +671,13 @@ gh-pages-content/
 url = "https://going-haywire.github.io/haywire/stalls/haybale-core.toml"
 ignores = []
 doubles = []
+blocked = []
 
 [[stalls]]
 url = "https://going-haywire.github.io/haywire/stalls/haybale-studio.toml"
 ignores = []
 doubles = []
+blocked = []
 # ...one [[stalls]] entry per library
 ```
 
@@ -654,13 +705,30 @@ An author who wants to play aggregator (publish their own libraries AND recommen
 
 ## 12. Dep-drift gate extension
 
-The existing drift gate (`detect_share_drift` in `haywire_studio.share`) gains a third check: **declared `min_version` floors lagging behind installed versions**.
+The existing drift gate (`detect_share_drift` in `haywire_studio.share`) gains a third check: **declared `min_version` floors on haybale dependencies lagging behind installed versions**.
 
 Scenario: library declares `haybale-core~=0.0.1`; the author has since updated to `haybale-core 0.3.0` and is building against the new API. Their published library still tells consumers they need only 0.0.1 — technically a valid floor (pip will install higher), but understates the real requirement.
 
-New check:
+### 12.1 Scope: haybale-* deps only
 
-For each declared dependency in `[project] dependencies`, parse the version specifier. Compare its floor against the installed version (via `importlib.metadata.version`). If `installed > declared_floor` and the operator is `~=` or `>=`, flag as drift.
+The lag check applies **only to declared dependencies that `HaywireLibrarySource` confirms are registered haywire libraries** (i.e., the underlying distribution is known to the haywire ecosystem). Third-party deps (numpy, requests, opencv, etc.) are **not** subject to the lag check.
+
+Rationale: the check's core assumption is "installed version = the version this library actually needs." For inter-haybale deps the assumption holds well — the haybale ecosystem is small and lockstep-released; an author building against `haybale-core 0.3.0` almost certainly needs 0.3.0 features. For third-party deps the assumption breaks — an author may have `numpy 2.0` installed system-wide while their library only exercises pure-Python numpy APIs that work on `numpy 1.x`. Flagging a uniform lag would push `--fix` to gratuitously narrow library compatibility based on the author's dev-machine state. Third-party floors remain the author's manual call.
+
+The check uses the same `HaywireLibrarySource` infrastructure already powering `detect_deps` — in CLI flows (`haywire share`), `EntryPointLibrarySource` reads `importlib.metadata.entry_points(group="haywire.libraries")`; in studio flows, the live registry. A dep is haybale-flagged by registration, not by name pattern (`haybale-*` is a convention, not a contract).
+
+### 12.2 The check
+
+For each declared dependency in `[project] dependencies` whose distribution name is in `HaywireLibrarySource.list_names()`, parse the version specifier. Compare its floor against the installed version (via `importlib.metadata.version`). If `installed > declared_floor` and the operator is `~=` or `>=`, flag as drift.
+
+Operators other than `~=` and `>=` are not flagged:
+
+- `==`, `===` — pins; deliberate, not lag.
+- `<`, `<=`, `!=` — upper bounds or exclusions; semantically different from "minimum needed."
+- `>` — equivalent to `>=` for lag-detection purposes; treated identically.
+- No operator — pip treats as `==`; treated as a pin.
+
+### 12.3 Wiring
 
 `DepDrift` gains a field:
 
@@ -670,15 +738,15 @@ class DepDrift:
     lib_dir: Path
     pyproject_missing: list[str]
     decorator_missing: list[str]
-    pyproject_version_lag: list[tuple[str, str, str]]   # (dist, declared_floor, installed)
+    pyproject_version_lag: list[tuple[str, str, str]]   # (dist, declared_floor, installed) — haybale deps only
     unresolved: list[str]
 ```
 
-`apply_drift_fix` rewrites lagging floors to match the installed version when the user opts to fix.
+`apply_drift_fix` rewrites lagging floors to match the installed version when the user opts to fix. Only haybale-flagged deps appear in `pyproject_version_lag`, so `--fix` cannot accidentally narrow third-party compatibility.
 
-`haywire share --strict` refuses to ship a library with lagging floors. Default mode (warn) prints the lag alongside other drift findings.
+`haywire share --strict` refuses to ship a library with lagging haybale floors. Default mode (warn) prints the lag alongside other drift findings.
 
-The Detect Dependencies button's Union mode bumps lagging floors. Replace mode regenerates from detected imports + current installed versions.
+The Detect Dependencies button's Union mode bumps lagging haybale floors. Replace mode regenerates from detected imports + current installed versions (and is already scoped to detected deps, which includes the appropriate haybale-vs-third-party split via `DetectedDeps`).
 
 ## 13. Migration
 
@@ -736,24 +804,46 @@ All documentation that mentions the old vocabulary updates in lockstep:
 
 ## 16. Implementation order
 
-A single coherent rename pass plus the new URL distribution surface. Small handful of commits with no intermediate "broken state" branch — each commit leaves the tree green.
+Foundation lands atomically (the renames and the new dataclass/parser shapes are interlocked — half a rename is worse than none). Everything *after* foundation lands as a vertical feature slice with its own commit and revert boundary.
 
-1. **Host providers**: new `haywire.core.marketstall.host_providers/` package with `base.py` (Protocol + dataclasses), `github.py`, `gitlab.py`, `bitbucket.py`, `gitea.py`, plus `__init__.py` exposing `HOST_PROVIDERS` and `resolve_host()`. Self-hosted-instance config reading.
-2. **Runtime types and parsers**: rename `MarketplaceEntry` → `Haybale` (with new `os` field); rewrite parsers for the new section names; allow `[[haybales]]` inline in marketplace bodies; update `parse_remote_marketplace_body` / `parse_marketstall_body`.
-3. **State + helpers**: `MarketplaceState`, the `add_*` helpers; URL-resolution helper combining host detection + body-shape detection + auto-subscribe; current-OS detection helper.
-4. **UI**: Add Source dialog collapses to one field; Library Browser + Library Overview Editor update field references; new Update button; OS multi-select in Edit dialog; OS-mismatch Install gating with tooltip.
-5. **Init + share + config**: `init.py` writes `[[heaps]]` and READMEs with marker pairs; `share.py` emits `[[haybales]]` (including `os` from `[tool.haywire]`), computes share URL via host provider when possible, prints it, updates READMEs in place (default; `--no-update-readme` opts out); delete the legacy `_migrate_marketplace_schema_if_needed` in `config.py`.
-6. **Drift gate extension**: `min_version` lag detection; `DepDrift` field + apply path.
-7. **Per-haybale stall generator**: `scripts/generate_marketstall.py` produces the two-tier layout.
-8. **Tests**: rewrite every test file referencing old names; new tests for host providers, URL resolution, plain-TOML-URL form, OS field roundtrip, OS-mismatch gating, README marker update, update-available signal, version-lag drift.
-9. **Docs**: the six files listed in §15.
-10. **Verification**: full `ruff` / `mypy` / `pytest` sweep, plus a manual smoke through Add Source / Refresh / Edit / Detect-Dependencies / Share / Update against a fresh `haywire init` project.
+Tests are written **alongside each commit**, not deferred. Glossary entries update **in lockstep with renames** — the glossary lives in the same repo and can't be wrong for the duration of an implementation pass.
+
+1. **Foundation** (one large but coherent commit). The interlocked layer:
+   - Rename `MarketplaceEntry` → `Haybale`; add `os` field; the new dataclass is the data-layer ground truth.
+   - New `haywire.core.marketstall/` package; new `host_providers/` subpackage with `base.py` (Protocol + `ParsedRef`), `github.py`, `gitlab.py`, and `__init__.py` exposing `HOST_PROVIDERS` and `resolve_host()` (GitHub + GitLab only per §5.2; Bitbucket and Gitea deferred).
+   - Rewrite parsers for the new section names (`[[haybales]]`, `[[markets]]`, `[[stalls]]`, `[[heaps]]`, `[[caches]]`); allow `[[haybales]]` inline in marketplace bodies; update `parse_remote_marketplace_body` / `parse_marketstall_body`.
+   - `MarketplaceState` and the `add_*` helpers; URL-resolution helper combining host detection + body-shape detection + auto-subscribe; current-OS detection helper.
+   - `blocked: list[str]` field on subscription dataclasses (data-layer only; not yet wired through UI).
+   - Tri-state per-subscription refresh result and `sources_from_cache` field on `RefreshReport` (data-layer only).
+   - Cache GC at end of refresh (orphaned `<url-hash>.toml` cleanup).
+   - Self-hosted-instance config reading.
+   - Delete the legacy `_migrate_marketplace_schema_if_needed` in `config.py`.
+   - Update glossary entries for renamed terms; add new entries for `[[markets]]` / `[[stalls]]` / `[[haybales]]` / `[[heaps]]` / `[[caches]]` / blob & raw URL forms / host provider.
+   - Tests for all of the above (host providers, URL resolution, all parsers, state helpers, tri-state refresh result, cache GC).
+
+2. **Author tooling**. `init.py` writes `[[heaps]]` + READMEs with marker pairs; `share.py` emits `[[haybales]]` (including `os` from `[tool.haywire]`, with validation rejecting non-declarable values per §2.1); URL derivation via host provider; README marker rewrite (default; `--no-update-readme` opts out); `haybale-gen-docs` skill gains a marker-pair preservation rule so the two skills compose. Tests written alongside.
+
+3. **URL distribution UI**. Add Source dialog collapses to one field accepting the four forms from §4.2 (rejects bare repo URLs with the §4.2 error message); body-shape detection drives `[[markets]]` vs `[[stalls]]` subscription type; auto-refresh after subscribe; provenance affordance in the Library Browser (direct vs "via aggregator" row labels, using the `via` cache field). Tests for all four input forms.
+
+4. **`os` field UI**. OS multi-select in the Library Overview Editor's Edit dialog, **gated to `[[heaps]]` libraries only** (installed wheels show read-only). Install button OS-mismatch gating with the §2.1 tooltip in the Library Browser. Tests for heap-vs-installed dialog behavior, OS-mismatch gating roundtrip.
+
+5. **Install safety + blocked-list**. First-install safety modal per §7.4 (Cancel / Block / Install + source-link button); `seen.toml` tracking for first-install scoping; `blocked` filter applied during the refresh conflict-resolution step (§8.2); hidden-when-blocked Library Browser behavior. Tests for modal triggering, block-and-hide roundtrip, per-source blocking semantics.
+
+6. **Drift gate extension**. `min_version` lag detection scoped to haybale-* deps per §12.1; `DepDrift.pyproject_version_lag` field; `apply_drift_fix` floor rewrite for haybales only; `--strict` / `--fix` integration. Tests for the haybale-vs-third-party scoping (key correctness property).
+
+7. **Update-available signal**. Installed-vs-cache `min_version` comparison per §10.3; UI surface (▲ indicator, Update button on the Library Overview Editor, refresh-toast count from `RefreshReport.updates_available`). Tests for the comparison logic and the toast surfacing.
+
+8. **Per-haybale stall generator**. `scripts/generate_marketstall.py` produces the two-tier layout per §11; official feed restructure. Tests for the generator output shape; manual check of the resulting feed against the real consumer flow.
+
+9. **Docs sweep**. The six files listed in §15 + glossary final pass. Update any documentation that the lockstep commits couldn't keep current (architecture docs that describe the runtime in detail, etc.). No ADRs — this spec is the durable record.
+
+10. **Verification**. Full `ruff` / `mypy` / `pytest` sweep, plus a manual smoke through Add Source / Refresh / Edit / Detect-Dependencies / Share / Update / Install-block / Update-available against a fresh `haywire init` project.
 
 ## 17. Non-goals
 
 - **No version-based conflict resolution.** Two sources publishing the same haybale name still resolve by user choice or first-come-first-served, not by version comparison.
 - **No central registry, mirrors, or CDN.** Authors host their own repositories.
-- **No signed packages or cryptographic verification.** Authors host their content; consumers read the source URL before installing if they care to verify.
+- **No signed packages or cryptographic verification.** Authors host their content; consumers read the source URL before installing if they care to verify. The first-install safety modal (§7.4) is the cryptographic-trust-substitute: the user reviews the source before installing third-party code.
 - **No transitive dependency resolution.** A haybale's `dependencies` list is informational; consumers install dependencies individually. pip handles actual resolution.
 - **No lockfiles or reproducible installs at the Haywire level.** Reproducibility is the project's responsibility through standard Python tooling.
 - **No forced updates.** The update-available signal is informational; the user always decides when to upgrade.
@@ -761,8 +851,13 @@ A single coherent rename pass plus the new URL distribution surface. Small handf
 - **No publisher index.** There is no list of "all marketstalls in the world."
 - **No aggregator-style publishing via `haywire share` at first ship.** A `haywire aggregate` command is a follow-up.
 - **No auto-detection of self-hosted git hosts.** Probing endpoints like `/api/v4/version` or `/api/v1/version` would be fragile and platform-specific. Self-hosted instances are declared explicitly in `~/.haywire/config.toml`; the `haywire share` warning surfaces a ready-to-paste snippet when an unknown host is encountered.
+- **No bare-repo-URL Add Source form.** Pasting a repo URL like `https://github.com/alice/cool-libs` is rejected (§4.2); the canonical author surface is the README marker pair (§6.6), which renders a copy-button-friendly inline-code blob URL. Resolving bare repo URLs would require up to 4 sequential HTTPS requests per Add Source for a convenience case the marker pattern already serves.
+- **No Bitbucket / Gitea / Forgejo host providers in the first cut.** GitHub and GitLab ship as built-in providers (§5.2); users on other platforms paste raw URLs (form 2) or plain TOML URLs (form 3). Adding a provider is one file plus one registry entry (§5.5).
+- **No third-party-dep lag detection.** The §12 drift-gate lag check applies only to haybale-* deps; third-party floors (numpy, requests, etc.) are the author's manual call. Acting on third-party lag based on the author's dev-machine state would silently narrow library compatibility.
+- **No TTL on the HTTP cache.** Cache files are valid until overwritten by a successful fetch. Catalog freshness on the order of days or weeks is acceptable; a TTL would punish offline use (§7.3).
 - **No README templating beyond the marker pair.** The README auto-update writes only between the markers — nothing else in the file is touched. Authors who want richer instructions write their own prose around the markers.
+- **No carve-out of `haybale-marketplace` as a separate library in this spec.** The directory path `~/.haywire/db/haybale-marketplace/` is chosen now to avoid a future migration (§3.1), but the runtime and UI code remains in `haywire.core.marketstall.*` and `haybale-studio` until the carve-out happens as its own piece of work.
 
 ## 18. Open questions
 
-None at draft time. Surfaced during implementation if any.
+None at this revision. The Gitea branch-vs-tag URL question (§5.2) is the only known unresolved point and is deferred along with the Gitea provider itself.
