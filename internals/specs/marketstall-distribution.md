@@ -106,7 +106,16 @@ The runtime maps `platform.system()` to one of the four values once at session s
 
 A `marketplace.toml` plays two distinct roles depending on where it lives:
 
-### 3.1 Consumer's marketplace (`~/.haywire/marketplace.toml`)
+### 3.1 Consumer's marketplace (`~/.haywire/db/haybale-marketplace/marketplace.toml`)
+
+The consumer's marketplace lives in its own per-library data folder under `~/.haywire/db/`. This folder is the global data space allocated to the (future) `haybale-marketplace` library — the Library Manager surface is being carved out as its own haybale, and giving it a dedicated subdirectory now means no migration later. Sibling libraries get sibling folders under `~/.haywire/db/<haybale-name>/` by the same convention.
+
+```text
+~/.haywire/db/haybale-marketplace/
+├── marketplace.toml           # the file shown below
+└── stalls/
+    └── <dist-name>.toml       # one file per direct-paste subscription
+```
 
 ```toml
 [[markets]]
@@ -120,12 +129,12 @@ ignores = ["haybale-mesh"]
 doubles = []
 
 [[stalls]]
-url = "file:///Users/me/.haywire/stalls/internal-experiment.toml"
+url = "file:///Users/me/.haywire/db/haybale-marketplace/stalls/internal-experiment.toml"
 ignores = []
 doubles = []
 ```
 
-This file records: who the user is following (`[[markets]]` and `[[stalls]]`), and the per-source overrides (`ignores`, `doubles`). It contains no haybale definitions of its own — direct-paste entries are persisted as one-`[[haybales]]`-entry marketstalls under `~/.haywire/stalls/` and referenced via `[[stalls]]` with `file://` URLs.
+This file records: who the user is following (`[[markets]]` and `[[stalls]]`), and the per-source overrides (`ignores`, `doubles`). It contains no haybale definitions of its own — direct-paste entries are persisted as one-`[[haybales]]`-entry marketstalls under `~/.haywire/db/haybale-marketplace/stalls/` and referenced via `[[stalls]]` with `file://` URLs.
 
 ### 3.2 Project's marketplace (`<project>/.haywire/marketplace.toml`)
 
@@ -211,7 +220,7 @@ The Library Manager accepts five input forms in its Add Source dialog and resolv
 4. **Plain TOML URL** (any URL that doesn't match a host provider's blob/raw/repo pattern):
    `https://going-haywire.github.io/haywire/marketplace.toml`
    Treated as an opaque URL: fetch directly with no host-provider transformation. This is the path for static hosts (GitHub Pages, GitLab Pages, plain web servers, S3, anything that just serves a TOML file at a URL).
-5. **TOML block** pasted directly (not actually a URL): the dialog saves it to `~/.haywire/stalls/<dist-name>.toml` and references it via `file://` as a `[[stalls]]` subscription.
+5. **TOML block** pasted directly (not actually a URL): the dialog saves it to `~/.haywire/db/haybale-marketplace/stalls/<dist-name>.toml` and references it via `file://` as a `[[stalls]]` subscription.
 
 The Add Source dialog has **one input field** accepting any of the five. The runtime determines what to do by inspecting the input shape. Host providers add *convenience* for git-host URLs (rewriting blob to raw, deriving the default branch from a repo URL) but aren't required — plain TOML URLs work without any host-provider involvement.
 
@@ -233,7 +242,7 @@ The Add Source dialog has **one input field** accepting any of the five. The run
 6. **Run the conflict-resolution prompt** if any haybale name collides with already-subscribed sources (see §8.3).
 7. **Auto-refresh** to populate the project cache.
 
-For input form 5 (pasted TOML block): the dialog parses the block, requires a `[[haybales]]` section, derives `<dist-name>` from the first haybale's `name` field, writes the block to `~/.haywire/stalls/<dist-name>.toml`, then enters the resolution flow as if the user had pasted `file:///Users/.../<dist-name>.toml`.
+For input form 5 (pasted TOML block): the dialog parses the block, requires a `[[haybales]]` section, derives `<dist-name>` from the first haybale's `name` field, writes the block to `~/.haywire/db/haybale-marketplace/stalls/<dist-name>.toml`, then enters the resolution flow as if the user had pasted `file:///Users/.../db/haybale-marketplace/stalls/<dist-name>.toml`.
 
 ## 5. Host-provider architecture
 
@@ -679,7 +688,7 @@ Haywire has no external users yet; the only existing files in the old schema liv
 
 The existing `_migrate_marketplace_schema_if_needed` function in `config.py` can be deleted outright — it was added to handle the earlier `sources` → `[[marketplaces]]` transition, and that transition is being superseded by the new vocabulary in one shot.
 
-Dev-workspace cleanup: delete `~/.haywire/marketplace.toml` and any project-side `.haywire/marketplace.toml` files before running the new code. The next `haywire init` (or first `haywire share` / Add Source action) regenerates the files in the new shape.
+Dev-workspace cleanup: delete the legacy `~/.haywire/marketplace.toml` (and any stale `~/.haywire/stalls/` directory) along with any project-side `.haywire/marketplace.toml` files before running the new code. The next `haywire init` (or first `haywire share` / Add Source action) regenerates the files in the new shape under `~/.haywire/db/haybale-marketplace/`.
 
 ## 14. Runtime renames
 
