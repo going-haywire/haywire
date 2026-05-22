@@ -44,7 +44,7 @@ DEFAULT_PROJECT_CONFIG = {
 
 
 def ensure_global_config():
-    """Create ~/.haywire/ with defaults if it doesn't exist; migrate legacy schema if found."""
+    """Create ~/.haywire/ with defaults if it doesn't exist."""
     GLOBAL_CONFIG_DIR.mkdir(exist_ok=True)
 
     config_file = GLOBAL_CONFIG_DIR / "config.toml"
@@ -54,55 +54,10 @@ def ensure_global_config():
     marketplace_file = GLOBAL_CONFIG_DIR / "marketplace.toml"
     if not marketplace_file.exists():
         marketplace_file.write_text(toml.dumps(DEFAULT_MARKETPLACE))
-    else:
-        _migrate_marketplace_schema_if_needed(marketplace_file)
 
     recent_file = GLOBAL_CONFIG_DIR / "recent_projects.toml"
     if not recent_file.exists():
         recent_file.write_text(toml.dumps({"projects": []}))
-
-
-def _migrate_marketplace_schema_if_needed(marketplace_file: Path) -> None:
-    """One-time migration: rewrite legacy `sources = []` schema as `[[marketplaces]]`.
-
-    Migration rules (spec §6):
-      - File has `sources` AND no `[[marketplaces]]`: convert each entry's URL to a
-        [[marketplaces]] entry with empty ignores/doubles. Drop the sources key.
-      - Empty `sources = []` becomes the official marketplace pre-seed.
-      - File already has [[marketplaces]]: leave alone.
-      - [[locals]], [[marketstalls]], [[packages]] sections are preserved verbatim.
-
-    Silent no-op on parse errors: a malformed marketplace.toml is a user-repair
-    situation handled by the Library Browser's "Edit File" path. ``ensure_global_config``
-    must never raise on a bad file, otherwise we lock the user out of the editor
-    that exists to repair it.
-    """
-    try:
-        data = toml.loads(marketplace_file.read_text())
-    except toml.TomlDecodeError:
-        return
-
-    if "sources" not in data:
-        return  # Already migrated (or never had legacy schema).
-
-    if "marketplaces" in data and data.get("marketplaces"):
-        # Mixed state: somehow has both. Drop legacy sources; keep marketplaces as-is.
-        del data["sources"]
-        marketplace_file.write_text(toml.dumps(data))
-        return
-
-    legacy_sources = data.pop("sources", [])
-    migrated_marketplaces: list[dict] = [
-        {"url": entry["url"], "ignores": [], "doubles": []}
-        for entry in legacy_sources
-        if isinstance(entry, dict) and "url" in entry
-    ]
-    # Empty sources → pre-seed with the official marketplace per spec line 127-128.
-    if not migrated_marketplaces:
-        migrated_marketplaces = list(DEFAULT_MARKETPLACE["marketplaces"])
-
-    data["marketplaces"] = migrated_marketplaces
-    marketplace_file.write_text(toml.dumps(data))
 
 
 def get_global_config() -> dict:

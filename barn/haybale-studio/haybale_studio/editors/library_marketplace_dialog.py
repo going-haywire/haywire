@@ -28,20 +28,16 @@ def show_add_source_dialog(on_added: Callable[[], None]) -> None:
     `on_added` is called after a successful add — typically the caller
     refreshes the marketplace and re-renders the library list.
 
-    The three tabs each call a per-kind handler (Task 27 wires the
-    actual marketplace_runtime calls).
+    The two tabs each call a per-kind handler.
     """
     with ui.dialog() as dialog, hui.dialog_card():
         with ui.column().classes("p-4 gap-3 w-96"):
             ui.label("Add a marketplace source").classes("text-sm font-medium")
-            ui.label("Subscribe to a remote feed or paste a direct package entry.").classes(
-                "text-xs hw-text-dim"
-            )
+            ui.label("Subscribe to a remote feed.").classes("text-xs hw-text-dim")
 
             with ui.tabs().classes("w-full") as tabs:
                 tab_marketplace = ui.tab("Marketplace URL")
                 tab_marketstall = ui.tab("Marketstall URL")
-                tab_direct = ui.tab("Direct package")
 
             with ui.tab_panels(tabs, value=tab_marketplace).classes("w-full"):
                 with ui.tab_panel(tab_marketplace):
@@ -66,20 +62,6 @@ def show_add_source_dialog(on_added: Callable[[], None]) -> None:
                         on_click=lambda: _handle_add_marketstall(marketstall_input.value, dialog, on_added),
                     ).props("flat dense size=sm")
 
-                with ui.tab_panel(tab_direct):
-                    ui.label("Paste a [[packages]] TOML block for a single library.").classes(
-                        "text-xs hw-text-dim"
-                    )
-                    direct_input = (
-                        ui.textarea(placeholder='[[packages]]\nname = "haybale-foo"\n...\n')
-                        .classes("w-full font-mono text-xs")
-                        .props("rows=10")
-                    )
-                    ui.button(
-                        "Add package",
-                        on_click=lambda: _handle_add_direct(direct_input.value, dialog, on_added),
-                    ).props("flat dense size=sm")
-
             with ui.row().classes("w-full justify-end"):
                 ui.button("Cancel", on_click=dialog.close).props("flat")
 
@@ -87,10 +69,8 @@ def show_add_source_dialog(on_added: Callable[[], None]) -> None:
 
 
 def _handle_add_marketplace(url: str, dialog: "ui.dialog", on_added: Callable[[], None]) -> None:
-    """Validate URL, write to global [[marketplaces]], close dialog, trigger on_added."""
-    from haywire.core.marketplace_runtime import (
-        add_marketplace_subscription_to_global,
-    )
+    """Validate URL, write to global [[markets]], close dialog, trigger on_added."""
+    from haywire.core.marketstall import add_market_subscription_to_global
 
     from haywire_studio.config import GLOBAL_CONFIG_DIR, ensure_global_config
 
@@ -104,7 +84,7 @@ def _handle_add_marketplace(url: str, dialog: "ui.dialog", on_added: Callable[[]
 
     try:
         ensure_global_config()
-        add_marketplace_subscription_to_global(GLOBAL_CONFIG_DIR / "marketplace.toml", url)
+        add_market_subscription_to_global(GLOBAL_CONFIG_DIR / "marketplace.toml", url)
     except Exception as exc:
         logger.exception("Failed to add marketplace subscription")
         ui.notify(f"Failed to add: {exc}", type="negative")
@@ -120,10 +100,8 @@ def _handle_add_marketplace(url: str, dialog: "ui.dialog", on_added: Callable[[]
 
 
 def _handle_add_marketstall(url: str, dialog: "ui.dialog", on_added: Callable[[], None]) -> None:
-    """Validate URL, write to global [[marketstalls]], close dialog, trigger on_added."""
-    from haywire.core.marketplace_runtime import (
-        add_marketstall_subscription_to_global,
-    )
+    """Validate URL, write to global [[stalls]], close dialog, trigger on_added."""
+    from haywire.core.marketstall import add_stall_subscription_to_global
 
     from haywire_studio.config import GLOBAL_CONFIG_DIR, ensure_global_config
 
@@ -137,7 +115,7 @@ def _handle_add_marketstall(url: str, dialog: "ui.dialog", on_added: Callable[[]
 
     try:
         ensure_global_config()
-        add_marketstall_subscription_to_global(GLOBAL_CONFIG_DIR / "marketplace.toml", url)
+        add_stall_subscription_to_global(GLOBAL_CONFIG_DIR / "marketplace.toml", url)
     except Exception as exc:
         logger.exception("Failed to add marketstall subscription")
         ui.notify(f"Failed to add: {exc}", type="negative")
@@ -152,38 +130,6 @@ def _handle_add_marketstall(url: str, dialog: "ui.dialog", on_added: Callable[[]
     )
 
 
-def _handle_add_direct(toml_block: str, dialog: "ui.dialog", on_added: Callable[[], None]) -> None:
-    """Parse the pasted TOML, validate it has [[packages]], write to global [[packages]]."""
-    from haywire.core.marketplace_runtime import add_direct_package_to_global
-
-    from haywire_studio.config import GLOBAL_CONFIG_DIR, ensure_global_config
-
-    from haywire.core.marketplace_errors import DuplicatePackageNameError
-
-    toml_block = (toml_block or "").strip()
-    if not toml_block:
-        ui.notify("Please paste a [[packages]] TOML block.", type="warning")
-        return
-
-    try:
-        ensure_global_config()
-        add_direct_package_to_global(GLOBAL_CONFIG_DIR / "marketplace.toml", toml_block)
-    except (ValueError, DuplicatePackageNameError) as exc:
-        # User-input failure (malformed TOML, missing section, duplicate name).
-        # Toast is enough; no traceback needed.
-        logger.warning(f"Direct-package add rejected: {exc}")
-        ui.notify(f"Failed to add: {exc}", type="negative")
-        return
-    except Exception as exc:
-        logger.exception("Failed to add direct package")
-        ui.notify(f"Failed to add: {exc}", type="negative")
-        return
-
-    ui.notify("Direct package added.", type="positive")
-    dialog.close()
-    on_added()
-
-
 def _check_and_prompt_conflicts(
     new_source_url: str,
     new_source_is_marketstall: bool,
@@ -192,8 +138,8 @@ def _check_and_prompt_conflicts(
     """After a subscription is added, fetch + check for name conflicts, then prompt the user."""
     from pathlib import Path
 
-    from haywire.core.marketplace_errors import RemoteFetchError
-    from haywire.core.marketplace_runtime import (
+    from haywire.core.marketstall import (
+        RemoteFetchError,
         detect_subscription_conflicts,
         fetch_with_cache_fallback,
         parse_marketstall_body,
@@ -214,7 +160,7 @@ def _check_and_prompt_conflicts(
         new_pkgs = parse_marketstall_body(result.body)
     else:
         contents = parse_remote_marketplace_body(result.body)
-        new_pkgs = list(contents.packages)
+        new_pkgs = list(contents.haybales)
         # NOTE: doesn't recurse into marketstalls discovered via the marketplace —
         # matches refresh's one-level-deep limit. Sub-marketstall conflicts are
         # detected by refresh's normal pipeline.
@@ -230,7 +176,7 @@ def _check_and_prompt_conflicts(
         if not pkg.source_origin:
             pkg.source_origin = new_source_url
 
-    conflicts = detect_subscription_conflicts(project_mp.packages, new_pkgs)
+    conflicts = detect_subscription_conflicts(project_mp.caches, new_pkgs)
 
     if not conflicts:
         on_done()
@@ -249,7 +195,7 @@ def _show_conflict_resolution_dialog(
     on_resolved: Callable[[], None],
 ) -> None:
     """Modal with one row per conflict: 'Keep existing' or 'Use new' radio."""
-    from haywire.core.marketplace_runtime import record_ignore_on_source
+    from haywire.core.marketstall import record_ignore_on_source
 
     from haywire_studio.config import GLOBAL_CONFIG_DIR
 
@@ -295,7 +241,7 @@ def _show_conflict_resolution_dialog(
                                 record_ignore_on_source(
                                     global_mp,
                                     source_url=c.new_source,
-                                    package_name=c.name,
+                                    haybale_name=c.name,
                                 )
                             except Exception:
                                 logger.exception("Failed to record ignore on new source")
@@ -305,7 +251,7 @@ def _show_conflict_resolution_dialog(
                                 record_ignore_on_source(
                                     global_mp,
                                     source_url=c.existing_source,
-                                    package_name=c.name,
+                                    haybale_name=c.name,
                                 )
                             except Exception:
                                 logger.exception("Failed to record ignore on existing source")

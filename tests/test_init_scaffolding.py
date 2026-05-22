@@ -195,27 +195,27 @@ class TestLibraryInit:
 
 
 class TestProjectMarketplace:
-    """The project's <project>/.haywire/marketplace.toml contains [[locals]] only."""
+    """The project's <project>/.haywire/marketplace.toml contains [[heaps]] only."""
 
     def test_project_marketplace_exists(self, scaffold_project):
         assert (scaffold_project / ".haywire" / "marketplace.toml").is_file()
 
     def test_project_marketplace_has_one_local(self, scaffold_project):
         data = toml.loads((scaffold_project / ".haywire" / "marketplace.toml").read_text())
-        locals_ = data.get("locals", [])
-        assert len(locals_) == 1
-        assert locals_[0]["name"] == "haybale-test-project"
+        heaps = data.get("heaps", [])
+        assert len(heaps) == 1
+        assert heaps[0]["name"] == "haybale-test-project"
 
     def test_project_marketplace_local_path_is_absolute(self, scaffold_project):
         data = toml.loads((scaffold_project / ".haywire" / "marketplace.toml").read_text())
-        path = data["locals"][0]["path"]
+        path = data["heaps"][0]["path"]
         assert Path(path).is_absolute()
         assert Path(path) == scaffold_project / "barn" / "haybale-test-project"
 
-    def test_project_marketplace_has_no_packages(self, scaffold_project):
-        """No [[packages]] section — refresh (Plan E) populates that."""
+    def test_project_marketplace_has_no_caches(self, scaffold_project):
+        """No [[caches]] section — refresh (Plan E) populates that."""
         data = toml.loads((scaffold_project / ".haywire" / "marketplace.toml").read_text())
-        assert data.get("packages", []) == []
+        assert data.get("caches", []) == []
 
 
 class TestDevMode:
@@ -251,13 +251,13 @@ class TestDevMode:
         """In --dev mode the project marketplace holds the scaffolded library AND
         every dev-repo barn library, scoped to this project (not user-global)."""
         data = toml.loads((scaffold_project_dev / ".haywire" / "marketplace.toml").read_text())
-        names = {entry["name"] for entry in data.get("locals", [])}
+        names = {entry["name"] for entry in data.get("heaps", [])}
         # The scaffolded project library:
         assert "haybale-test-project-dev" in names
         # A representative sample of dev-repo libraries:
         for dev_lib in ["haybale-core", "haybale-studio", "haybale-haystack"]:
             assert dev_lib in names, f"missing dev-repo library: {dev_lib}"
-        assert data.get("packages", []) == []
+        assert data.get("caches", []) == []
 
 
 class TestNameSanitization:
@@ -285,27 +285,26 @@ class TestUserGlobalStaysEmpty:
     """`haywire init` only creates ~/.haywire/marketplace.toml as an empty file.
 
     The user-global marketplace is reserved for user opt-in subscriptions
-    ([[marketplaces]], [[marketstalls]], direct [[packages]]). Locals — the
-    project's own library and any --dev sibling libraries — live in the
-    project marketplace instead.
+    ([[markets]], [[stalls]]). Heaps — the project's own library and any
+    --dev sibling libraries — live in the project marketplace instead.
     """
 
     def test_user_global_marketplace_file_exists(self, scaffold_project_with_fake_home, fake_home):
         # ensure_global_config still creates the directory + an empty file.
         assert (fake_home / ".haywire" / "marketplace.toml").is_file()
 
-    def test_user_global_has_no_locals_for_project(self, scaffold_project_with_fake_home, fake_home):
+    def test_user_global_has_no_heaps_for_project(self, scaffold_project_with_fake_home, fake_home):
         data = toml.loads((fake_home / ".haywire" / "marketplace.toml").read_text())
-        assert data.get("locals", []) == []
+        assert data.get("heaps", []) == []
 
-    def test_user_global_has_no_packages_for_project(self, scaffold_project_with_fake_home, fake_home):
+    def test_user_global_has_no_caches_for_project(self, scaffold_project_with_fake_home, fake_home):
         data = toml.loads((fake_home / ".haywire" / "marketplace.toml").read_text())
-        assert data.get("packages", []) == []
+        assert data.get("caches", []) == []
 
 
 class TestSameNameAcrossProjectsAllowed:
     """Two unrelated projects may share the same library name now that
-    [[locals]] are project-scoped — no cross-project G5 refusal at init time.
+    [[heaps]] are project-scoped — no cross-project G5 refusal at init time.
     """
 
     def test_second_init_with_same_name_succeeds(self, tmp_path, monkeypatch, fake_home):
@@ -326,7 +325,7 @@ class TestSameNameAcrossProjectsAllowed:
             project_mp = parent / "test-project" / ".haywire" / "marketplace.toml"
             assert project_mp.is_file()
             data = toml.loads(project_mp.read_text())
-            names = [entry["name"] for entry in data.get("locals", [])]
+            names = [entry["name"] for entry in data.get("heaps", [])]
             assert names == ["haybale-test-project"]
 
 
@@ -343,7 +342,7 @@ class TestDevModeProjectRegistration:
 
     def test_project_marketplace_has_all_dev_repo_libraries(self, scaffold_dev_with_fake_home):
         data = toml.loads((scaffold_dev_with_fake_home / ".haywire" / "marketplace.toml").read_text())
-        names = {entry["name"] for entry in data.get("locals", [])}
+        names = {entry["name"] for entry in data.get("heaps", [])}
 
         # The scaffolded project library:
         assert "haybale-test-dev-project" in names
@@ -367,20 +366,20 @@ class TestDevModeProjectRegistration:
         data = toml.loads((scaffold_dev_with_fake_home / ".haywire" / "marketplace.toml").read_text())
         dev_root = _get_dev_repo_root()
 
-        for entry in data["locals"]:
+        for entry in data["heaps"]:
             if entry["name"] == "haybale-test-dev-project":
                 continue  # The project's own library lives in the project, not the dev repo
             path = entry["path"]
             assert path.startswith(dev_root), f"{entry['name']}: {path} not under {dev_root}"
             assert Path(path).is_dir(), f"{entry['name']}: {path} does not exist"
 
-    def test_dev_mode_does_not_write_locals_to_user_global(self, scaffold_dev_with_fake_home, fake_home):
-        """--dev keeps the user-global marketplace's [[locals]] empty."""
+    def test_dev_mode_does_not_write_heaps_to_user_global(self, scaffold_dev_with_fake_home, fake_home):
+        """--dev keeps the user-global marketplace's [[heaps]] empty."""
         data = toml.loads((fake_home / ".haywire" / "marketplace.toml").read_text())
-        assert data.get("locals", []) == []
+        assert data.get("heaps", []) == []
 
     def test_regular_init_does_not_register_dev_repo_libraries(self, scaffold_project_with_fake_home):
         """Without --dev, only the project's own library appears in the project marketplace."""
         data = toml.loads((scaffold_project_with_fake_home / ".haywire" / "marketplace.toml").read_text())
-        names = [entry["name"] for entry in data.get("locals", [])]
+        names = [entry["name"] for entry in data.get("heaps", [])]
         assert names == ["haybale-test-project"]

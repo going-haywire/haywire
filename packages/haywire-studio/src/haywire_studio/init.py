@@ -232,10 +232,10 @@ class Library(BaseLibrary):
 
 
 def _local_entry(name: str, path: Path, label: str = "", description: str = "") -> dict:
-    """Build a [[locals]] entry per spec §6.
+    """Build a [[heaps]] entry per spec §3.2.
 
-    Locals have a different schema than [[packages]]: only `name` and `path` are
-    required; label and description are optional metadata. Locals are always
+    Heaps have a different schema than [[caches]]: only `name` and `path` are
+    required; label and description are optional metadata. Heaps are always
     installed editably from the path; they're never published.
     """
     entry: dict[str, object] = {
@@ -250,18 +250,17 @@ def _local_entry(name: str, path: Path, label: str = "", description: str = "") 
 
 
 def _register_dev_repo_locals_in_project(dev_repo: str, project_dir: Path) -> None:
-    """In --dev mode, register every dev-repo barn library as a [[locals]] in the project marketplace.
+    """In --dev mode, register every dev-repo barn library as a [[heaps]] in the project marketplace.
 
-    Walks ``<dev_repo>/barn/*`` and calls add_local_to_project per library. Dev
+    Walks ``<dev_repo>/barn/*`` and calls add_heap_to_project per library. Dev
     libraries are project-scoped because they pin the dev workspace this
     project was scaffolded against; they should not leak into the user-global
     marketplace where they'd surface in unrelated projects.
 
-    Idempotent: DuplicateLocalNameError per library is swallowed so re-running
+    Idempotent: DuplicateHeapNameError per library is swallowed so re-running
     init against an existing project marketplace doesn't fail.
     """
-    from haywire.core.marketplace_errors import DuplicateLocalNameError
-    from haywire.core.marketplace_runtime import add_local_to_project
+    from haywire.core.marketstall import DuplicateHeapNameError, add_heap_to_project
 
     project_mp = project_dir / ".haywire" / "marketplace.toml"
 
@@ -279,24 +278,24 @@ def _register_dev_repo_locals_in_project(dev_repo: str, project_dir: Path) -> No
         description = pyproject.get("project", {}).get("description", "")
 
         try:
-            add_local_to_project(
+            add_heap_to_project(
                 project_mp,
                 name=lib_name,
                 path=lib_dir,
                 label=label,
                 description=description,
             )
-        except DuplicateLocalNameError:
+        except DuplicateHeapNameError:
             continue
 
 
 def _generate_project_marketplace_locals_only(name: str, project_dir: Path) -> str:
     """Generate <project>/.haywire/marketplace.toml with the project's library only.
 
-    The project marketplace owns the project's own [[locals]] (scaffolded
+    The project marketplace owns the project's own [[heaps]] (scaffolded
     here) plus, in ``--dev`` mode, the dev-repo barn libraries (appended by
     _register_dev_repo_locals_in_project after this file is written).
-    [[packages]] is the refresh cache and stays empty at init time.
+    [[caches]] is the refresh cache and stays empty at init time.
     """
     label = name.replace("-", " ").replace("_", " ").title()
     entry = _local_entry(
@@ -307,11 +306,11 @@ def _generate_project_marketplace_locals_only(name: str, project_dir: Path) -> s
     )
     header = (
         "# Project marketplace — managed by haywire.\n"
-        "# [[locals]] are project-scoped editable libraries, written at `haywire init` time.\n"
-        "# [[packages]] is the cache populated by the Library Manager's refresh action;\n"
+        "# [[heaps]] are project-scoped editable libraries, written at `haywire init` time.\n"
+        "# [[caches]] is the cache populated by the Library Manager's refresh action;\n"
         "# leave it empty here until you've added remote sources to ~/.haywire/marketplace.toml.\n\n"
     )
-    return header + toml.dumps({"locals": [entry]})
+    return header + toml.dumps({"heaps": [entry]})
 
 
 def init_project(name: str, auto_sync: bool = True, dev_repo: str | None = None):
@@ -371,7 +370,7 @@ def init_project(name: str, auto_sync: bool = True, dev_repo: str | None = None)
     # Project-level .haywire config
     ensure_project_config(project_dir)
 
-    # Project marketplace — [[locals]] section. Holds the project's own
+    # Project marketplace — [[heaps]] section. Holds the project's own
     # scaffolded library, plus (under --dev) every dev-repo barn library so
     # they're scoped to this project rather than leaking into the user-global
     # marketplace.
@@ -383,7 +382,7 @@ def init_project(name: str, auto_sync: bool = True, dev_repo: str | None = None)
         _register_dev_repo_locals_in_project(dev_repo, project_dir)
 
     # Global ~/.haywire config (just ensures the directory + an empty
-    # marketplace.toml exist; init no longer writes [[locals]] there).
+    # marketplace.toml exist; init no longer writes [[heaps]] there).
     ensure_global_config()
 
     # Track as recent project

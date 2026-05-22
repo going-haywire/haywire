@@ -168,7 +168,7 @@ class LibraryBrowserEditor(BaseEditor):
         problem) and "silent" for auto-flows (the user didn't ask for refresh —
         a missing state means we just skip and re-render).
         """
-        from haywire.core.marketplace_errors import MalformedGlobalMarketplaceError
+        from haywire.core.marketstall import MalformedMarketplaceError
 
         from haybale_studio.state.marketplace_state import MarketplaceState
 
@@ -182,7 +182,7 @@ class LibraryBrowserEditor(BaseEditor):
         state = context.app_data[MarketplaceState]
         try:
             report = state.refresh()
-        except MalformedGlobalMarketplaceError as exc:
+        except MalformedMarketplaceError as exc:
             self._refresh_error = (
                 f"Global marketplace is malformed: {exc}. "
                 f"Click Edit File to repair, then click Refresh again."
@@ -198,7 +198,7 @@ class LibraryBrowserEditor(BaseEditor):
             return
 
         self._refresh_error = None
-        msg_parts = [f"Refreshed {report.packages_resolved} package(s)"]
+        msg_parts = [f"Refreshed {report.haybales_resolved} package(s)"]
         if report.sources_unavailable:
             msg_parts.append(f"{report.sources_unavailable} source(s) unavailable")
         if report.new_stale:
@@ -378,8 +378,8 @@ class LibraryBrowserEditor(BaseEditor):
         enabled.sort(key=_label)
         disabled.sort(key=_label)
 
-        # Marketplace entries not yet installed — both refreshed [[packages]]
-        # and [[locals]] (path-based libraries the project knows about but
+        # Marketplace entries not yet installed — both refreshed [[caches]]
+        # and [[heaps]] (path-based libraries the project knows about but
         # uv hasn't surfaced as importable libraries yet).
         available = []
         if self._filter_available:
@@ -389,20 +389,19 @@ class LibraryBrowserEditor(BaseEditor):
             )
             if marketplace_path:
                 try:
-                    from haywire.core.marketplace import MarketplaceEntry
-                    from haywire.core.marketplace_runtime import parse_project_marketplace
+                    from haywire.core.marketstall import Haybale, parse_project_marketplace
 
                     installed_names = {lib.distribution_name for lib in libraries if lib.distribution_name}
                     pm = parse_project_marketplace(marketplace_path)
 
-                    candidates: list = list(pm.packages)
-                    # Surface [[locals]] not already loaded as installed libraries.
-                    for raw in pm.locals_:
+                    candidates: list = list(pm.caches)
+                    # Surface [[heaps]] not already loaded as installed libraries.
+                    for raw in pm.heaps:
                         name = raw.get("name")
                         if not isinstance(name, str):
                             continue
                         candidates.append(
-                            MarketplaceEntry(
+                            Haybale(
                                 name=name,
                                 min_version="",
                                 label=raw.get("label", ""),
@@ -490,7 +489,7 @@ class LibraryBrowserEditor(BaseEditor):
                     )
 
     def _on_remove_stale_click(self, name: str, context: "SessionContext") -> None:
-        """Drop a stale [[packages]] entry from the project marketplace, then re-render."""
+        """Drop a stale [[caches]] entry from the project marketplace, then re-render."""
         from haybale_studio.state.marketplace_state import MarketplaceState
 
         if context.app_data is None or MarketplaceState not in context.app_data:
@@ -499,9 +498,9 @@ class LibraryBrowserEditor(BaseEditor):
 
         state = context.app_data[MarketplaceState]
         try:
-            removed = state.remove_stale_package(name)
+            removed = state.remove_stale_haybale(name)
         except Exception as exc:
-            logger.warning(f"LibraryBrowser: remove_stale_package({name!r}) failed: {exc}")
+            logger.warning(f"LibraryBrowser: remove_stale_haybale({name!r}) failed: {exc}")
             ui.notify(f"Failed to remove {name}: {exc}", type="negative")
             return
 

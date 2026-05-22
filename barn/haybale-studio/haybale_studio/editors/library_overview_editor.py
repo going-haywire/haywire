@@ -4,7 +4,7 @@ LibraryOverviewEditor — full center-panel port from LibraryManagerPage.
 
 Renders in the middle area and reacts to LIBRARY_STATE_CHANGED events.
 Receives the active library via context.active_library (InstalledLibrary or
-MarketplaceEntry). All services are retrieved from
+Haybale). All services are retrieved from
 context.app (= HaywireApp).
 
 When a component (node/widget/type/adapter/renderer) is clicked, the editor
@@ -55,7 +55,7 @@ from haywire.core.session.signals import (
 )
 
 from haywire.core.library.info import LibraryInfo
-from haywire.core.marketplace import MarketplaceEntry
+from haywire.core.marketstall import Haybale
 from haywire.ui.modals import confirm_modal, info_modal
 
 from haywire.ui.widget.registry import WidgetRegistry
@@ -156,7 +156,7 @@ class LibraryOverviewEditor(BaseEditor):
 
         if isinstance(lib, LibraryInfo):
             self._render_center(lib, None, context)
-        elif isinstance(lib, MarketplaceEntry):
+        elif isinstance(lib, Haybale):
             self._render_center(None, lib, context)
         else:
             self._render_placeholder()
@@ -175,7 +175,7 @@ class LibraryOverviewEditor(BaseEditor):
     def _render_center(
         self,
         installed_lib: LibraryInfo | None,
-        marketplace_pkg: MarketplaceEntry | None,
+        marketplace_pkg: Haybale | None,
         context: "SessionContext",
     ):
         """
@@ -1331,7 +1331,7 @@ class LibraryOverviewEditor(BaseEditor):
             log.push(f"--- ERROR: {message} ---")
             ui.notify(message, type="negative")
 
-    def _open_version_picker(self, pkg: MarketplaceEntry, manager, context: "SessionContext"):
+    def _open_version_picker(self, pkg: Haybale, manager, context: "SessionContext"):
         """Dialog to fetch and select a specific version for installation."""
         with ui.dialog() as dialog, ui.card().classes("min-w-80"):
             ui.label(f"Install specific version — {pkg.name}").classes("text-lg font-bold mb-2")
@@ -1376,7 +1376,7 @@ class LibraryOverviewEditor(BaseEditor):
     # Marketplace overview fetch (async)
     # ─────────────────────────────────────────────────────────────────────────
 
-    async def _fetch_marketplace_overview(self, pkg: MarketplaceEntry) -> "str | None":
+    async def _fetch_marketplace_overview(self, pkg: Haybale) -> "str | None":
         """
         Fetch OVERVIEW.md (or README fallback) for a marketplace-only package.
 
@@ -1478,7 +1478,7 @@ class LibraryOverviewEditor(BaseEditor):
 
     async def _load_marketplace_overview(
         self,
-        pkg: MarketplaceEntry,
+        pkg: Haybale,
         loading_row,
         content_area,
     ):

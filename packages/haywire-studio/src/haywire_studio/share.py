@@ -20,7 +20,7 @@ from haywire.core.library.dep_detect import (
     find_module_dir,
     set_pyproject_dependencies,
 )
-from haywire.core.marketplace import MarketplaceEntry
+from haywire.core.marketstall import Haybale
 
 
 def _find_git_root(start: Path) -> Path | None:
@@ -178,7 +178,7 @@ def _build_entry_for_library(lib_dir: Path) -> dict | None:
         elif "gitlab.com" in https_url:
             docs_url = f"{https_url}/-/raw/main/{module_rel}/"
 
-    return MarketplaceEntry(
+    return Haybale(
         name=name,
         label=label,
         min_version=version,

@@ -19,7 +19,7 @@ from typing import Any
 from haywire.core.library.registry import LibraryRegistry
 from haywire.core.library.info import LibraryInfo
 from haywire.core.library.install_type import InstallType
-from haywire.core.marketplace import MarketplaceEntry
+from haywire.core.marketstall import Haybale
 import toml
 
 
@@ -227,10 +227,10 @@ class LibraryManager:
         if any(lib.distribution_name.lower() == new_lib_name.lower() for lib in installed):
             return False, f'"{new_lib_name}" is already installed.'
 
-        from haywire.core.marketplace_runtime import parse_project_marketplace
+        from haywire.core.marketstall import parse_project_marketplace
 
         marketplace_pm = parse_project_marketplace(marketplace_path) if marketplace_path.exists() else None
-        marketplace_entries = marketplace_pm.packages if marketplace_pm else []
+        marketplace_entries = marketplace_pm.caches if marketplace_pm else []
         if any(
             pkg.name.lower() == new_lib_name.lower() and pkg.name.lower() != dist_name.lower()
             for pkg in marketplace_entries
@@ -510,7 +510,7 @@ class LibraryManager:
         check_set = enabled_norms if require_enabled else installed_norms
         return [dep for dep in (identity.dependencies or []) if self._norm(dep) not in check_set]
 
-    async def fetch_versions(self, pkg: "MarketplaceEntry") -> list[str]:
+    async def fetch_versions(self, pkg: "Haybale") -> list[str]:
         """Fetch available versions for a marketplace package.
 
         Only called on demand (when the user requests a specific version).
@@ -572,7 +572,7 @@ class LibraryManager:
         return []
 
     @staticmethod
-    def build_versioned_spec(pkg: "MarketplaceEntry", version: str) -> str:
+    def build_versioned_spec(pkg: "Haybale", version: str) -> str:
         """Build a version-pinned install spec for a specific version.
 
         For PyPI: returns '{name}=={version}'.
