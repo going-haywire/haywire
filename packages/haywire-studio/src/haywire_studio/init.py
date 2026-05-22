@@ -119,6 +119,54 @@ packages = ["{module_name}"]
 {sources_section}'''
 
 
+_README_MARKER_START = "<!-- marketstall:share-url:start -->"
+_README_MARKER_END = "<!-- marketstall:share-url:end -->"
+_README_PLACEHOLDER = (
+    "*Subscribe URL not yet published — run `haywire share --save` after pushing this repo to a git remote.*"
+)
+
+
+def _generate_root_readme(name: str, label: str) -> str:
+    """Generate the root README.md for a haywire-init scaffolded project.
+
+    Includes the marketstall:share-url marker pair with placeholder, so the
+    author's first `haywire share --save` replaces it with the real URL.
+    """
+    return (
+        f"# {label}\n"
+        f"\n"
+        f"A haywire project.\n"
+        f"\n"
+        f"## Subscribe\n"
+        f"\n"
+        f"{_README_MARKER_START}\n"
+        f"{_README_PLACEHOLDER}\n"
+        f"{_README_MARKER_END}\n"
+        f"\n"
+        f"## Getting started\n"
+        f"\n"
+        f"```sh\n"
+        f"uv sync\n"
+        f"uv run haywire\n"
+        f"```\n"
+    )
+
+
+def _generate_library_readme(name: str, label: str) -> str:
+    """Generate the barn library README.md with marker pair."""
+    return (
+        f"# {label}\n"
+        f"\n"
+        f"Local haybale library for the {name} project.\n"
+        f"\n"
+        f"## Subscribe\n"
+        f"\n"
+        f"{_README_MARKER_START}\n"
+        f"{_README_PLACEHOLDER}\n"
+        f"{_README_MARKER_END}\n"
+    )
+
+
 def _generate_library_init(name: str, label: str) -> str:
     """Generate the local haybale library's __init__.py content."""
     return f'''"""
@@ -366,6 +414,12 @@ def init_project(name: str, auto_sync: bool = True, dev_repo: str | None = None)
     )
 
     (pkg_dir / "__init__.py").write_text(_generate_library_init(name, label))
+
+    # README.md at repo root (with marketstall share-url marker pair per spec §6.6)
+    (project_dir / "README.md").write_text(_generate_root_readme(name, label))
+
+    # README.md inside the scaffolded barn library (with marker pair)
+    (lib_dir / "README.md").write_text(_generate_library_readme(name, label))
 
     # Project-level .haywire config
     ensure_project_config(project_dir)

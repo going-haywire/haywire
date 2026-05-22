@@ -327,6 +327,25 @@ def main():
         help="Auto-correct dependency drift by updating pyproject.toml and the "
         "@library decorator before sharing.",
     )
+    share_parser.add_argument(
+        "--ref",
+        type=str,
+        default=None,
+        help="Specific ref (branch, tag, or SHA) to encode in the share URL.",
+    )
+    share_parser.add_argument(
+        "--tag",
+        type=str,
+        default=None,
+        help="Tag to encode in the share URL. Use 'latest' to resolve to the most recent tag reachable from HEAD.",  # noqa: E501
+    )
+    share_parser.add_argument(
+        "--no-update-readme",
+        dest="update_readme",
+        action="store_false",
+        default=True,
+        help="Don't rewrite the marketstall:share-url marker block in any README.",
+    )
 
     args = parser.parse_args()
 
@@ -342,18 +361,39 @@ def main():
             from .share import DriftError, NoBarnError, share_save_repo
 
             try:
-                out_path = share_save_repo(Path.cwd(), strict=args.strict, fix=args.fix)
-                print(f"Wrote {out_path}")
+                result = share_save_repo(
+                    Path.cwd(),
+                    strict=args.strict,
+                    fix=args.fix,
+                    ref=args.ref,
+                    tag=args.tag,
+                    update_readme=args.update_readme,
+                )
+                print(f"✓ Wrote {result.out_path}")
+                if result.share_url is not None:
+                    print(f"✓ Share this URL:\n  {result.share_url}")
+                elif result.warning is not None:
+                    print(f"⚠ {result.warning}")
             except NoBarnError as exc:
                 print(f"Error: {exc}")
                 sys.exit(1)
             except DriftError as exc:
                 print(str(exc), file=sys.stderr)
                 sys.exit(1)
-        else:
+        elif args.library_path is not None:
             from .share import share_library
 
             share_library(args.library_path, strict=args.strict, fix=args.fix)
+        else:
+            from pathlib import Path
+
+            from .share import derive_share_url_only
+
+            result = derive_share_url_only(Path.cwd(), ref=args.ref, tag=args.tag)
+            if result.share_url is not None:
+                print(f"✓ Share this URL:\n  {result.share_url}")
+            elif result.warning is not None:
+                print(f"⚠ {result.warning}")
     else:
         run_app()
 

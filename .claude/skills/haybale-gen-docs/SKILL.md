@@ -1,12 +1,12 @@
 ---
 name: haybale-gen-docs
-description: Generate OVERVIEW.md, QUICKREF.md, and per-component docs for a haybale library. Use when the user wants to generate or update library documentation.
+description: Generate README.md, OVERVIEW.md, QUICKREF.md, and per-component docs for a haybale library. Use when the user wants to generate or update library documentation.
 argument-hint: "[library-path]"
 ---
 
 # Generate Haybale Library Documentation
 
-Generate `OVERVIEW.md` (discovery tier), `QUICKREF.md` (usage reference), and per-component docs under `docs/` for a haybale library.
+Generate `README.md` (repo root discovery), `OVERVIEW.md` (discovery tier), `QUICKREF.md` (usage reference), and per-component docs under `docs/` for a haybale library.
 
 ## 1. Locate the library
 
@@ -150,6 +150,38 @@ Write to `module_path/OVERVIEW.md`.
 - List types, widgets, adapters as flat bullet lists
 - Renderers are omitted (implementation detail)
 - Include "Additional Notes" section only if `LIBRARY.md` exists
+
+### 4a-bis. README.md (always regenerate; preserve marker blocks)
+
+Write to `library_path/README.md` (the package root, one level above `module_path` — same directory as `pyproject.toml`). This file is the universal pre-install discovery document: PyPI renders it as `info.description`, git platforms render it on the repo page.
+
+**Content structure**:
+1. If `module_path/NOTES.md` exists, its full contents prepended verbatim (no transformation).
+2. The component catalog — same content as `OVERVIEW.md` (the catalog only, NOT the "Additional Notes" section).
+
+**Marker-pair preservation rule (critical — spec §6.6)**:
+
+If the existing `library_path/README.md` contains one or more blocks delimited by:
+
+```
+<!-- marketstall:share-url:start -->
+... any content ...
+<!-- marketstall:share-url:end -->
+```
+
+then each block must be preserved verbatim in the regenerated README. The blocks are managed by `haywire share --save`, which writes the canonical share URL between the markers. Erasing them would silently break the share-URL discovery flow.
+
+**Algorithm for preservation**:
+1. Read the existing `library_path/README.md` if present.
+2. Extract all `<!-- marketstall:share-url:start --> ... <!-- marketstall:share-url:end -->` blocks (use a regex with `re.DOTALL`).
+3. Build the new README content: NOTES.md (if present) + catalog.
+4. If the original had marker blocks, append a "## Subscribe" section at the end of the new content listing each preserved block in order, verbatim.
+5. If the original had no marker blocks, do not invent one — leave the README clean.
+
+**Rules**:
+- Always overwrite `library_path/README.md` completely (with marker blocks preserved per above).
+- Never modify or overwrite `module_path/NOTES.md`.
+- The README is NOT shipped in the wheel; it's a discovery artifact at the repo level.
 
 ### 4b. QUICKREF.md (always regenerate)
 

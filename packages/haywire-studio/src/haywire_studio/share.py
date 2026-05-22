@@ -10,6 +10,7 @@ import subprocess
 import sys
 from dataclasses import dataclass, field
 from pathlib import Path
+from urllib.parse import urlsplit
 
 import toml
 
@@ -21,6 +22,98 @@ from haywire.core.library.dep_detect import (
     set_pyproject_dependencies,
 )
 from haywire.core.marketstall import Haybale
+from haywire.core.marketstall.host_providers import resolve_host
+
+_DECLARABLE_OS_VALUES = frozenset({"macos", "windows", "linux"})
+
+_README_MARKER_START = "<!-- marketstall:share-url:start -->"
+_README_MARKER_END = "<!-- marketstall:share-url:end -->"
+_README_NAMES = ("README.md", "Readme.md", "readme.md")  # case-insensitive search
+
+
+def _update_readme_markers(content: str, share_url: str) -> str:
+    """Rewrite every <!-- marketstall:share-url:start --> ... :end --> block.
+
+    The new block content is a single inline-code line containing the URL.
+    Files without the marker pair are returned unchanged.
+    """
+    pattern = re.compile(
+        re.escape(_README_MARKER_START) + r"\n.*?\n" + re.escape(_README_MARKER_END),
+        re.DOTALL,
+    )
+    replacement = f"{_README_MARKER_START}\n`{share_url}`\n{_README_MARKER_END}"
+    return pattern.sub(replacement, content)
+
+
+def _find_readme(directory: Path) -> Path | None:
+    """Find README.md (case-insensitive variants) in directory. None if absent.
+
+    Searches in order: README.md, Readme.md, readme.md. First hit wins.
+    """
+    for name in _README_NAMES:
+        candidate = directory / name
+        if candidate.is_file():
+            return candidate
+    return None
+
+
+def _update_repo_readmes(repo_root: Path, share_url: str) -> list[Path]:
+    """Update marker blocks in the root README and each barn/*/README.md.
+
+    Returns the list of README paths that were updated (had markers AND were rewritten).
+    """
+    updated: list[Path] = []
+    candidates: list[Path] = []
+
+    root_readme = _find_readme(repo_root)
+    if root_readme is not None:
+        candidates.append(root_readme)
+
+    barn = repo_root / "barn"
+    if barn.is_dir():
+        for lib_dir in sorted(barn.iterdir()):
+            if not lib_dir.is_dir():
+                continue
+            lib_readme = _find_readme(lib_dir)
+            if lib_readme is not None:
+                candidates.append(lib_readme)
+
+    for readme in candidates:
+        old = readme.read_text(encoding="utf-8")
+        new = _update_readme_markers(old, share_url)
+        if new != old:
+            readme.write_text(new, encoding="utf-8")
+            updated.append(readme)
+    return updated
+
+
+class InvalidOsDeclarationError(RuntimeError):
+    """Raised when a library's [tool.haywire].os contains an invalid value.
+
+    Per spec §2.1: only "macos", "windows", "linux" are declarable. "other" is
+    a runtime sentinel for unmapped platform.system() results and must not be
+    declared.
+    """
+
+
+def _read_os_field(data: dict, lib_dir: Path) -> list[str]:
+    """Read and validate [tool.haywire].os from a parsed pyproject.toml dict."""
+    tool_haywire = data.get("tool", {}).get("haywire", {})
+    os_decl = tool_haywire.get("os")
+    if os_decl is None:
+        return []
+    if not isinstance(os_decl, list):
+        raise InvalidOsDeclarationError(
+            f"[tool.haywire].os in {lib_dir / 'pyproject.toml'} must be a list, "
+            f"got {type(os_decl).__name__}."
+        )
+    for value in os_decl:
+        if not isinstance(value, str) or value not in _DECLARABLE_OS_VALUES:
+            raise InvalidOsDeclarationError(
+                f"Invalid os value {value!r} in {lib_dir / 'pyproject.toml'} [tool.haywire].os. "
+                f"Declarable values: macos, windows, linux."
+            )
+    return list(os_decl)
 
 
 def _find_git_root(start: Path) -> Path | None:
@@ -47,6 +140,51 @@ def _get_remote_url(git_root: Path) -> str | None:
     except FileNotFoundError:
         pass
     return None
+
+
+def _get_current_ref(git_root: Path) -> str | None:
+    """Return current branch name, or None if detached HEAD or git failure."""
+    try:
+        result = subprocess.run(
+            ["git", "rev-parse", "--abbrev-ref", "HEAD"],
+            cwd=str(git_root),
+            capture_output=True,
+            text=True,
+        )
+        if result.returncode == 0:
+            ref = result.stdout.strip()
+            if ref and ref != "HEAD":  # detached HEAD prints "HEAD"
+                return ref
+    except FileNotFoundError:
+        pass
+    return None
+
+
+def _get_latest_tag(git_root: Path) -> str | None:
+    """Return the most recent tag reachable from HEAD, or None."""
+    try:
+        result = subprocess.run(
+            ["git", "describe", "--tags", "--abbrev=0"],
+            cwd=str(git_root),
+            capture_output=True,
+            text=True,
+        )
+        if result.returncode == 0:
+            return result.stdout.strip() or None
+    except FileNotFoundError:
+        pass
+    return None
+
+
+def _unknown_host_warning(hostname: str) -> str:
+    return (
+        f"Host '{hostname}' is not recognized. To enable, add this to\n"
+        f"  ~/.haywire/config.toml:\n\n"
+        f"    [[hosts]]\n"
+        f'    hostname = "{hostname}"\n'
+        f'    provider = "gitlab"   # or one of: github, gitlab\n\n'
+        f"  Then re-run `haywire share` (without `--save`) to get the share URL."
+    )
 
 
 def _ssh_to_https(url: str) -> str:
@@ -178,6 +316,8 @@ def _build_entry_for_library(lib_dir: Path) -> dict | None:
         elif "gitlab.com" in https_url:
             docs_url = f"{https_url}/-/raw/main/{module_rel}/"
 
+    os_decl = _read_os_field(data, lib_dir)
+
     return Haybale(
         name=name,
         label=label,
@@ -187,6 +327,7 @@ def _build_entry_for_library(lib_dir: Path) -> dict | None:
         source="git",
         install_spec=install_spec,
         tags=tags,
+        os=os_decl,
         dependencies=dependencies,
         source_url=https_url if remote_url else "",
         docs_url=docs_url,
@@ -400,7 +541,7 @@ def share_library(library_path: str | None, *, strict: bool = False, fix: bool =
         print("Warning: No git remote found. Using placeholder URL.\n", file=sys.stderr)
 
     print("# Copy this snippet into a marketplace.toml:\n")
-    print(toml.dumps({"packages": [entry]}).strip())
+    print(toml.dumps({"haybales": [entry]}).strip())
 
 
 def _run_drift_gate(lib_dir: Path, *, strict: bool, fix: bool) -> bool:
@@ -436,13 +577,132 @@ class NoBarnError(RuntimeError):
     """Raised when `share --save` is invoked on a repo with no `barn/` directory."""
 
 
-def share_save_repo(repo_root: Path, *, strict: bool = False, fix: bool = False) -> Path:
+@dataclass(frozen=True)
+class ShareSaveResult:
+    """Output of share_save_repo. share_url is None if URL derivation failed."""
+
+    out_path: Path
+    share_url: str | None
+    warning: str | None  # User-facing warning when share_url is None
+
+
+def _derive_url(
+    repo_root: Path,
+    out_path: Path,
+    *,
+    ref: str | None = None,
+    tag: str | None = None,
+) -> ShareSaveResult:
+    """Derive the canonical blob URL for an existing marketstall.toml.
+
+    Used by both share_save_repo (after writing the file) and
+    derive_share_url_only (Task 4, no file write). Returns a ShareSaveResult
+    with share_url=None and a user-facing warning when derivation fails.
+    """
+    remote_url = _get_remote_url(repo_root)
+    if remote_url is None:
+        return ShareSaveResult(
+            out_path=out_path,
+            share_url=None,
+            warning=(
+                "No git remote found. Push this repo to a supported host first, "
+                "then re-run `haywire share` (without `--save`) to get the share URL."
+            ),
+        )
+
+    https_url = _ssh_to_https(remote_url).removesuffix(".git").rstrip("/")
+    parts = urlsplit(https_url)
+    hostname = (parts.hostname or "").lower()
+
+    provider = resolve_host(hostname)
+    if provider is None:
+        return ShareSaveResult(
+            out_path=out_path,
+            share_url=None,
+            warning=_unknown_host_warning(hostname),
+        )
+
+    # Parse owner + repo from the URL path.
+    path = parts.path.strip("/")
+    if "/" not in path:
+        return ShareSaveResult(
+            out_path=out_path,
+            share_url=None,
+            warning=f"Could not parse owner/repo from URL: {https_url}",
+        )
+    owner, _, repo = path.rpartition("/")
+
+    # Determine ref. Precedence: ref → tag (with "latest" expansion) → current branch.
+    ref_value: str | None
+    if ref is not None:
+        ref_value = ref
+    elif tag == "latest":
+        ref_value = _get_latest_tag(repo_root)
+        if ref_value is None:
+            return ShareSaveResult(
+                out_path=out_path,
+                share_url=None,
+                warning="--tag latest specified but no tags reachable from HEAD.",
+            )
+    elif tag is not None:
+        ref_value = tag
+    else:
+        ref_value = _get_current_ref(repo_root)
+        if ref_value is None:
+            return ShareSaveResult(
+                out_path=out_path,
+                share_url=None,
+                warning=(
+                    "Detached HEAD with no --ref or --tag; share URL not constructed. "
+                    "The file has been written."
+                ),
+            )
+
+    share_url = provider.blob_url(owner, repo, ref_value, "marketstall.toml")
+    return ShareSaveResult(out_path=out_path, share_url=share_url, warning=None)
+
+
+def derive_share_url_only(
+    repo_root: Path,
+    *,
+    ref: str | None = None,
+    tag: str | None = None,
+) -> ShareSaveResult:
+    """Re-derive the share URL for an existing marketstall.toml. Spec §6.4.
+
+    Does NOT write any file. Returns a ShareSaveResult mirroring share_save_repo's
+    output so callers can format the same way.
+    """
+    out_path = repo_root / "marketstall.toml"
+    if not out_path.is_file():
+        return ShareSaveResult(
+            out_path=out_path,
+            share_url=None,
+            warning=(
+                f"No marketstall.toml found at {out_path}. Run `haywire share --save` first to produce it."
+            ),
+        )
+    return _derive_url(repo_root, out_path, ref=ref, tag=tag)
+
+
+def share_save_repo(
+    repo_root: Path,
+    *,
+    strict: bool = False,
+    fix: bool = False,
+    ref: str | None = None,
+    tag: str | None = None,
+    update_readme: bool = True,
+) -> ShareSaveResult:
     """Aggregate every library under `<repo_root>/barn/*` into one marketstall.toml.
 
     Walks `barn/*` (sorted), builds a marketplace entry for each directory that
     contains a `pyproject.toml` (via `_build_entry_for_library`), and writes the
     aggregated list to `<repo_root>/marketstall.toml`. Directories without a
-    pyproject are silently skipped. Returns the output path.
+    pyproject are silently skipped.
+
+    Returns a ShareSaveResult with the written path, derived share URL (if
+    available), and any user-facing warning (e.g. no remote, unknown host).
 
     Runs the dependency-drift gate against each library before emitting. In
     ``strict=True`` mode, any drift causes the function to raise
@@ -502,8 +762,11 @@ def share_save_repo(repo_root: Path, *, strict: bool = False, fix: bool = False)
         "# marketstall.toml — share this file's raw URL so others can subscribe to your library feed\n"
         "# Run: haywire share --save   to update this file\n\n"
     )
-    out_path.write_text(header + toml.dumps({"packages": entries}))
-    return out_path
+    out_path.write_text(header + toml.dumps({"haybales": entries}))
+    result = _derive_url(repo_root, out_path, ref=ref, tag=tag)
+    if result.share_url is not None and update_readme:
+        _update_repo_readmes(repo_root, result.share_url)
+    return result
 
 
 class DriftError(RuntimeError):

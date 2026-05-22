@@ -256,3 +256,36 @@ Config options:
 - Sections appear in this fixed order: Nodes, Types, Widgets, Renderers, Adapters, Additional Notes
 - Within each section, components are sorted alphabetically by label (OVERVIEW) or class name (QUICKREF)
 - Omit any section that has no components
+
+---
+
+## README.md
+
+Lives at `library_path/README.md` (package root, sibling to `pyproject.toml`).
+
+**Structure**:
+
+````markdown
+{NOTES_MD_VERBATIM_IF_PRESENT}
+
+# {label}
+
+{description}
+
+## Components
+
+{COMPONENT_CATALOG_FROM_OVERVIEW_MD}
+
+## Subscribe
+
+<!-- marketstall:share-url:start -->
+... preserved verbatim from original README ...
+<!-- marketstall:share-url:end -->
+````
+
+**Notes**:
+
+- The component catalog is the SAME content as the "Components" section of `OVERVIEW.md` — both are derived from the same source data.
+- The "## Subscribe" section only appears if the prior README had marker blocks. The skill never invents new marker blocks.
+- NOTES.md is prepended verbatim before the auto-generated content; it can contain any markdown the author wants.
+- If multiple marker blocks existed in the original, ALL are preserved verbatim in the "## Subscribe" section in their original order.

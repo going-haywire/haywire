@@ -44,10 +44,10 @@ def repo_with_two_barn_libs(tmp_path: Path) -> Path:
 def test_share_save_writes_marketstall_at_repo_root(repo_with_two_barn_libs: Path) -> None:
     from haywire_studio.share import share_save_repo
 
-    out_path = share_save_repo(repo_with_two_barn_libs)
+    result = share_save_repo(repo_with_two_barn_libs)
 
-    assert out_path == repo_with_two_barn_libs / "marketstall.toml"
-    assert out_path.is_file()
+    assert result.out_path == repo_with_two_barn_libs / "marketstall.toml"
+    assert result.out_path.is_file()
 
 
 def test_share_save_aggregates_all_barn_libraries(repo_with_two_barn_libs: Path) -> None:
@@ -56,7 +56,7 @@ def test_share_save_aggregates_all_barn_libraries(repo_with_two_barn_libs: Path)
     share_save_repo(repo_with_two_barn_libs)
 
     data = toml.loads((repo_with_two_barn_libs / "marketstall.toml").read_text())
-    names = sorted(pkg["name"] for pkg in data["packages"])
+    names = sorted(pkg["name"] for pkg in data["haybales"])
     assert names == ["haybale-alpha", "haybale-beta"]
 
 
@@ -66,7 +66,7 @@ def test_share_save_each_entry_is_source_git(repo_with_two_barn_libs: Path) -> N
     share_save_repo(repo_with_two_barn_libs)
 
     data = toml.loads((repo_with_two_barn_libs / "marketstall.toml").read_text())
-    for pkg in data["packages"]:
+    for pkg in data["haybales"]:
         assert pkg["source"] == "git"
 
 
@@ -85,7 +85,7 @@ def test_share_save_skips_dirs_without_pyproject(tmp_path: Path) -> None:
 
     share_save_repo(repo)
     data = toml.loads((repo / "marketstall.toml").read_text())
-    names = [pkg["name"] for pkg in data["packages"]]
+    names = [pkg["name"] for pkg in data["haybales"]]
     assert names == ["haybale-alpha"]
 
 
@@ -98,3 +98,14 @@ def test_share_save_raises_when_no_barn(tmp_path: Path) -> None:
 
     with pytest.raises(NoBarnError):
         share_save_repo(repo)
+
+
+def test_share_save_emits_haybales_section_not_packages(repo_with_two_barn_libs: Path) -> None:
+    """Per spec §1: marketstall.toml uses [[haybales]] not [[packages]]."""
+    from haywire_studio.share import share_save_repo
+
+    share_save_repo(repo_with_two_barn_libs)
+
+    content = (repo_with_two_barn_libs / "marketstall.toml").read_text()
+    assert "[[haybales]]" in content
+    assert "[[packages]]" not in content
