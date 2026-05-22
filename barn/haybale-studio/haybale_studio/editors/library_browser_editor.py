@@ -10,6 +10,7 @@ import logging
 
 from pathlib import Path
 from typing import TYPE_CHECKING
+from urllib.parse import urlsplit
 
 from nicegui import ui
 
@@ -27,6 +28,34 @@ if TYPE_CHECKING:
     from nicegui.element import Element
 
 logger = logging.getLogger(__name__)
+
+
+def derive_provenance_label(haybale, mf) -> str | None:
+    """Return a short provenance label for a haybale.
+
+    Spec §7.4: shows direct subscriptions as 'from {host}' and transitive
+    aggregator routing as 'via {host}'. Inline haybales (no `via`) return None.
+
+    `mf` is the parsed MarketplaceFile (global). `haybale.via` is the URL that
+    supplied this haybale during the most recent refresh.
+    """
+    via = getattr(haybale, "via", "") or ""
+    if not via:
+        return None
+
+    if via.startswith("file://"):
+        # Pasted TOML block — don't surface the user's filesystem path.
+        return "from pasted"
+
+    hostname = (urlsplit(via).hostname or via).lower()
+
+    # Is this URL one of the user's direct [[stalls]] subscriptions?
+    stall_urls = {sub.url for sub in getattr(mf, "stalls", [])}
+    if via in stall_urls:
+        return f"from {hostname}"
+
+    # Otherwise it arrived via a [[markets]] aggregator.
+    return f"via {hostname}"
 
 
 @editor(
@@ -462,6 +491,11 @@ class LibraryBrowserEditor(BaseEditor):
         if is_stale:
             sublabel = f"{sublabel} (stale)" if sublabel else "(stale)"
 
+        # Provenance label per spec §7.4 — only for cache entries with a `via` URL.
+        provenance = self._provenance_label_for(lib, context)
+        if provenance:
+            sublabel = f"{provenance} — {sublabel}" if sublabel else provenance
+
         row = hui.list_item(
             label,
             sublabel=sublabel,
@@ -487,6 +521,18 @@ class LibraryBrowserEditor(BaseEditor):
                         "click.stop",
                         lambda name=entry_name, ctx=context: self._on_remove_stale_click(name, ctx),
                     )
+
+    def _provenance_label_for(self, lib, context: "SessionContext") -> str | None:
+        """Look up the user's [[stalls]] list to derive 'from {host}' vs 'via {host}'."""
+        from haybale_studio.state.marketplace_state import MarketplaceState
+
+        if context.app_data is None or MarketplaceState not in context.app_data:
+            return None
+        state = context.app_data[MarketplaceState]
+        mf = state.get_global()
+        if mf is None:
+            return None
+        return derive_provenance_label(lib, mf)
 
     def _on_remove_stale_click(self, name: str, context: "SessionContext") -> None:
         """Drop a stale [[caches]] entry from the project marketplace, then re-render."""

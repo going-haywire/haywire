@@ -1,13 +1,12 @@
-"""Add Source dialog for the Library Manager (Plan E Phase 4).
+"""Add Source dialog for the Library Manager.
 
-Three tabs:
-  - Marketplace URL  → write to global [[marketplaces]]
-  - Marketstall URL  → write to global [[marketstalls]]
-  - Direct package   → write to global [[packages]]
+Single input field accepting four forms per spec §4.2:
+  - Blob URL  (github.com/.../blob/{ref}/marketstall.toml)
+  - Raw URL   (raw.githubusercontent.com/.../...)
+  - Plain TOML URL  (anything else)
+  - Pasted TOML block (not a URL)
 
-Each tab validates input on click. On success, the dialog closes and
-calls on_added() so the caller can refresh the marketplace and re-render
-the library list.
+The body-shape decides whether the subscription writes to [[markets]] or [[stalls]].
 """
 
 from __future__ import annotations
@@ -23,109 +22,83 @@ logger = logging.getLogger(__name__)
 
 
 def show_add_source_dialog(on_added: Callable[[], None]) -> None:
-    """Open the Add Source dialog.
+    """Open the single-field Add Source dialog.
 
-    `on_added` is called after a successful add — typically the caller
-    refreshes the marketplace and re-renders the library list.
-
-    The two tabs each call a per-kind handler.
+    `on_added` is called after a successful add (and after any conflict-
+    resolution prompt resolves). The caller typically refreshes the
+    marketplace and re-renders the library list.
     """
     with ui.dialog() as dialog, hui.dialog_card():
-        with ui.column().classes("p-4 gap-3 w-96"):
+        with ui.column().classes("p-4 gap-3 w-[28rem]"):
             ui.label("Add a marketplace source").classes("text-sm font-medium")
-            ui.label("Subscribe to a remote feed.").classes("text-xs hw-text-dim")
+            ui.label("Paste a marketstall URL, a marketplace URL, or a [[haybales]] TOML block.").classes(
+                "text-xs hw-text-dim"
+            )
 
-            with ui.tabs().classes("w-full") as tabs:
-                tab_marketplace = ui.tab("Marketplace URL")
-                tab_marketstall = ui.tab("Marketstall URL")
+            # ui.textarea (not hui.input_field) so multi-line TOML paste preserves newlines.
+            # A single-line input would collapse line breaks into spaces when pasting a
+            # [[haybales]] block, producing invalid TOML.
+            input_field = (
+                ui.textarea(placeholder="https://github.com/.../blob/main/marketstall.toml")
+                .props("dense autogrow")
+                .classes("w-full text-xs")
+            )
 
-            with ui.tab_panels(tabs, value=tab_marketplace).classes("w-full"):
-                with ui.tab_panel(tab_marketplace):
-                    ui.label("Subscribe to a remote marketplace (aggregates many marketstalls).").classes(
-                        "text-xs hw-text-dim"
-                    )
-                    marketplace_input = hui.input_field(
-                        placeholder="https://example.com/marketplace.toml",
-                    )
-                    ui.button(
-                        "Add marketplace",
-                        on_click=lambda: _handle_add_marketplace(marketplace_input.value, dialog, on_added),
-                    ).props("flat dense size=sm")
+            with ui.column().classes("gap-0 text-xs hw-text-dim"):
+                ui.label("Accepted forms:")
+                ui.label("• Blob URL (github.com/.../blob/{ref}/marketstall.toml)")
+                ui.label("• Raw URL (raw.githubusercontent.com/...)")
+                ui.label("• Any URL that serves a TOML file (GitHub Pages, GitLab Pages, etc.)")
+                ui.label("• A [[haybales]] TOML block pasted directly")
 
-                with ui.tab_panel(tab_marketstall):
-                    ui.label("Subscribe to a single-author marketstall feed.").classes("text-xs hw-text-dim")
-                    marketstall_input = hui.input_field(
-                        placeholder="https://author.example/marketstall.toml",
-                    )
-                    ui.button(
-                        "Add marketstall",
-                        on_click=lambda: _handle_add_marketstall(marketstall_input.value, dialog, on_added),
-                    ).props("flat dense size=sm")
-
-            with ui.row().classes("w-full justify-end"):
+            with ui.row().classes("w-full justify-end gap-2"):
                 ui.button("Cancel", on_click=dialog.close).props("flat")
+                ui.button(
+                    "Add source",
+                    on_click=lambda: _handle_add_source(input_field.value, dialog, on_added),
+                ).props("flat color=primary")
 
     dialog.open()
 
 
-def _handle_add_marketplace(url: str, dialog: "ui.dialog", on_added: Callable[[], None]) -> None:
-    """Validate URL, write to global [[markets]], close dialog, trigger on_added."""
-    from haywire.core.marketstall import add_market_subscription_to_global
-
-    from haywire_studio.config import GLOBAL_CONFIG_DIR, ensure_global_config
-
-    url = (url or "").strip()
-    if not url:
-        ui.notify("Please paste a URL.", type="warning")
-        return
-    if not (url.startswith(("http://", "https://", "file://"))):
-        ui.notify("URL must start with http://, https://, or file://", type="warning")
-        return
-
-    try:
-        ensure_global_config()
-        add_market_subscription_to_global(GLOBAL_CONFIG_DIR / "marketplace.toml", url)
-    except Exception as exc:
-        logger.exception("Failed to add marketplace subscription")
-        ui.notify(f"Failed to add: {exc}", type="negative")
-        return
-
-    ui.notify(f"Subscribed to {url}", type="positive")
-    dialog.close()
-    _check_and_prompt_conflicts(
-        new_source_url=url,
-        new_source_is_marketstall=False,
-        on_done=on_added,
+def _handle_add_source(user_input: str, dialog: "ui.dialog", on_added: Callable[[], None]) -> None:
+    """Validate input, run the §4.3 algorithm, route the conflict prompt on success."""
+    from haywire.core.marketstall import (
+        BareRepoUrlRejectedError,
+        SubscribeError,
+        resolve_and_subscribe,
     )
 
-
-def _handle_add_marketstall(url: str, dialog: "ui.dialog", on_added: Callable[[], None]) -> None:
-    """Validate URL, write to global [[stalls]], close dialog, trigger on_added."""
-    from haywire.core.marketstall import add_stall_subscription_to_global
-
     from haywire_studio.config import GLOBAL_CONFIG_DIR, ensure_global_config
 
-    url = (url or "").strip()
-    if not url:
-        ui.notify("Please paste a URL.", type="warning")
-        return
-    if not (url.startswith(("http://", "https://", "file://"))):
-        ui.notify("URL must start with http://, https://, or file://", type="warning")
+    if not (user_input or "").strip():
+        ui.notify("Please paste a URL or TOML block.", type="warning")
         return
 
     try:
         ensure_global_config()
-        add_stall_subscription_to_global(GLOBAL_CONFIG_DIR / "marketplace.toml", url)
+        result = resolve_and_subscribe(
+            GLOBAL_CONFIG_DIR / "marketplace.toml",
+            user_input,
+            paste_dir=GLOBAL_CONFIG_DIR / "stalls",
+        )
+    except BareRepoUrlRejectedError as exc:
+        ui.notify(str(exc), type="warning")
+        return
+    except SubscribeError as exc:
+        logger.warning(f"Add Source failed: {exc}")
+        ui.notify(f"Failed to add source: {exc}", type="negative")
+        return
     except Exception as exc:
-        logger.exception("Failed to add marketstall subscription")
-        ui.notify(f"Failed to add: {exc}", type="negative")
+        logger.exception("Unexpected error in Add Source")
+        ui.notify(f"Unexpected error: {exc}", type="negative")
         return
 
-    ui.notify(f"Subscribed to {url}", type="positive")
+    ui.notify(f"Subscribed to {result.persist_url}", type="positive")
     dialog.close()
     _check_and_prompt_conflicts(
-        new_source_url=url,
-        new_source_is_marketstall=True,
+        new_source_url=result.persist_url,
+        new_source_is_marketstall=(result.kind == "stall"),
         on_done=on_added,
     )
 

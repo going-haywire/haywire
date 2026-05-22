@@ -55,6 +55,12 @@ from haywire.core.marketstall.types import (
     RefreshReport,
     Subscription,
 )
+from haywire.core.marketstall.subscribe import (
+    SubscribeError,
+    SubscribeResult,
+    SubscriptionKind,
+    resolve_and_subscribe,
+)
 from haywire.core.marketstall.url_resolution import (
     BareRepoUrlRejectedError,
     ClassifiedInput,
@@ -112,4 +118,9 @@ __all__ = [
     "haybale_supports_current_os",
     # URL resolution
     "classify_input",
+    # Add Source orchestration
+    "resolve_and_subscribe",
+    "SubscribeResult",
+    "SubscribeError",
+    "SubscriptionKind",
 ]
