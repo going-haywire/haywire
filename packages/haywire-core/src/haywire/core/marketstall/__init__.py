@@ -27,6 +27,7 @@ from haywire.core.marketstall.helpers import (
     record_block_on_source,
     record_ignore_on_source,
     remove_stale_haybale_from_project,
+    resolve_block_target,
 )
 from haywire.core.marketstall.parsing import (
     RemoteMarketplaceContents,
@@ -55,6 +56,7 @@ from haywire.core.marketstall.types import (
     RefreshReport,
     Subscription,
 )
+from haywire.core.marketstall.seen import is_seen, mark_seen
 from haywire.core.marketstall.subscribe import (
     SubscribeError,
     SubscribeResult,
@@ -100,13 +102,14 @@ __all__ = [
     "apply_heaps_shadow",
     "apply_first_come_first_served",
     "mark_stale_against_previous",
-    # Helpers
+    # Helpers / install-safety
     "add_market_subscription_to_global",
     "add_stall_subscription_to_global",
     "add_heap_to_project",
     "remove_stale_haybale_from_project",
     "record_ignore_on_source",
     "record_block_on_source",
+    "resolve_block_target",
     "detect_subscription_conflicts",
     # Errors
     "MalformedMarketplaceError",
@@ -123,4 +126,7 @@ __all__ = [
     "SubscribeResult",
     "SubscribeError",
     "SubscriptionKind",
+    # Install-safety scoping
+    "is_seen",
+    "mark_seen",
 ]

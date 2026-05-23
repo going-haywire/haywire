@@ -482,11 +482,9 @@ class LibraryOverviewEditor(BaseEditor):
                                 ui.button(
                                     "Install",
                                     icon=hui.icon.download,
-                                    on_click=lambda e,
-                                    spec=marketplace_pkg.install_spec,
-                                    n=marketplace_pkg.name,
-                                    m=manager,
-                                    ctx=context: (self._install_package(spec, n, e.sender, m, ctx)),
+                                    on_click=lambda e, pkg=marketplace_pkg, m=manager, ctx=context: (
+                                        self._install_with_safety_check(pkg, e.sender, m, ctx)
+                                    ),
                                 ).props("color=positive size=sm")
 
                 # ── Metadata ───────────────────────────────────────────────────
@@ -1371,6 +1369,76 @@ class LibraryOverviewEditor(BaseEditor):
     # Install
     # ─────────────────────────────────────────────────────────────────────────
 
+    def _install_with_safety_check(
+        self,
+        pkg: Haybale,
+        button,
+        manager,
+        context: "SessionContext",
+    ):
+        """Interpose the spec §7.4 safety modal before _install_package.
+
+        Skip the modal when the haybale name is already in seen.toml
+        (the user previously decided to install it, possibly later uninstalled,
+        so re-install doesn't re-prompt).
+        """
+        from haywire.core.marketstall import (
+            is_seen,
+            mark_seen,
+            record_block_on_source,
+            resolve_block_target,
+        )
+        from haywire.ui.modals import install_safety_modal
+
+        from haybale_studio.state.marketplace_state import MarketplaceState
+
+        # Skip the modal if we've already shown it for this haybale name once.
+        if is_seen(pkg.name):
+            asyncio.ensure_future(
+                self._install_package(pkg.install_spec, pkg.name, button, manager, context)
+            )
+            return
+
+        def _on_install() -> None:
+            mark_seen(pkg.name)
+            asyncio.ensure_future(
+                self._install_package(pkg.install_spec, pkg.name, button, manager, context)
+            )
+
+        def _on_block() -> None:
+            if context.app_data is None or MarketplaceState not in context.app_data:
+                ui.notify("Marketplace state not available", type="warning")
+                return
+            state = context.app_data[MarketplaceState]
+            global_path = state._global_path()
+            target = resolve_block_target(global_path, pkg.via)
+            if target is None:
+                ui.notify(
+                    f"Cannot block {pkg.name}: not from a subscription you can edit.",
+                    type="warning",
+                )
+                return
+            try:
+                record_block_on_source(global_path, source_url=target, haybale_name=pkg.name)
+            except Exception as exc:
+                logger.exception("Failed to record block")
+                ui.notify(f"Failed to block: {exc}", type="negative")
+                return
+            ui.notify(f"Blocked {pkg.name} from {target}", type="positive")
+            state.refresh()
+            self._notify_library_changed(context)
+
+        def _on_cancel() -> None:
+            ui.notify(f"Install of {pkg.name} cancelled", type="info")
+
+        install_safety_modal(
+            haybale_name=pkg.name,
+            source_url=pkg.source_url or "",
+            on_install=_on_install,
+            on_block=_on_block,
+            on_cancel=_on_cancel,
+        )
+
     async def _install_package(
         self,
         install_spec: str,
@@ -1436,7 +1504,11 @@ class LibraryOverviewEditor(BaseEditor):
                     return
                 dialog.close()
                 spec = manager.build_versioned_spec(pkg, selected)
-                await self._install_package(spec, pkg.name, None, manager, context)
+                # Reuse the safety wrapper with a versioned-install_spec copy of pkg.
+                from dataclasses import replace
+
+                versioned_pkg = replace(pkg, install_spec=spec)
+                self._install_with_safety_check(versioned_pkg, None, manager, context)
 
             with ui.row().classes("w-full justify-end gap-2 mt-4"):
                 ui.button("Cancel", on_click=dialog.close).props("flat")

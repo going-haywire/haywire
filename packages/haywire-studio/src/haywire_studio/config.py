@@ -4,6 +4,13 @@ Global and project-level configuration management for Haywire.
 Global config lives at ~/.haywire/ and stores user preferences,
 marketplace sources, and recently opened projects.
 
+Per spec §3.1, the global marketplace file lives under a forward-reference
+subdirectory `~/.haywire/db/haybale-marketplace/` so the future
+haybale-marketplace library carve-out doesn't require a migration. The
+`GLOBAL_MARKETPLACE_DIR` constant is the canonical home for ALL marketplace
+state (marketplace.toml, stalls/, seen.toml, cache/) — every caller that
+reads or writes marketplace files must use it, not `GLOBAL_CONFIG_DIR`.
+
 Project config lives at <project>/.haywire/ and stores
 project-specific overrides.
 """
@@ -15,6 +22,7 @@ import toml
 
 
 GLOBAL_CONFIG_DIR = Path.home() / ".haywire"
+GLOBAL_MARKETPLACE_DIR = GLOBAL_CONFIG_DIR / "db" / "haybale-marketplace"
 
 DEFAULT_GLOBAL_CONFIG = {
     "haywire": {
@@ -25,13 +33,16 @@ DEFAULT_GLOBAL_CONFIG = {
     },
 }
 
-# Spec §6: the official haywire marketplace is pre-seeded on first run.
+# Spec §3.3 / §11: the official haywire feed is pre-seeded as a [[markets]]
+# subscription on first run. Per slice 1's §14 rename, the section name is
+# `markets` (not the legacy `marketplaces`).
 DEFAULT_MARKETPLACE: dict[str, list[dict]] = {
-    "marketplaces": [
+    "markets": [
         {
             "url": "https://maybites.github.io/haywire/marketplace.toml",
             "ignores": [],
             "doubles": [],
+            "blocked": [],
         }
     ],
 }
@@ -44,14 +55,15 @@ DEFAULT_PROJECT_CONFIG = {
 
 
 def ensure_global_config():
-    """Create ~/.haywire/ with defaults if it doesn't exist."""
+    """Create ~/.haywire/ + ~/.haywire/db/haybale-marketplace/ with defaults if missing."""
     GLOBAL_CONFIG_DIR.mkdir(exist_ok=True)
+    GLOBAL_MARKETPLACE_DIR.mkdir(parents=True, exist_ok=True)
 
     config_file = GLOBAL_CONFIG_DIR / "config.toml"
     if not config_file.exists():
         config_file.write_text(toml.dumps(DEFAULT_GLOBAL_CONFIG))
 
-    marketplace_file = GLOBAL_CONFIG_DIR / "marketplace.toml"
+    marketplace_file = GLOBAL_MARKETPLACE_DIR / "marketplace.toml"
     if not marketplace_file.exists():
         marketplace_file.write_text(toml.dumps(DEFAULT_MARKETPLACE))
 
@@ -64,13 +76,6 @@ def get_global_config() -> dict:
     """Read ~/.haywire/config.toml."""
     ensure_global_config()
     return toml.loads((GLOBAL_CONFIG_DIR / "config.toml").read_text())
-
-
-def get_marketplace_sources() -> list[dict]:
-    """Read ~/.haywire/marketplace.toml and return source list."""
-    ensure_global_config()
-    data = toml.loads((GLOBAL_CONFIG_DIR / "marketplace.toml").read_text())
-    return data.get("sources", [])
 
 
 def get_recent_projects() -> list[str]:

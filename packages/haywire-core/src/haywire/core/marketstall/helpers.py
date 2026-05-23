@@ -196,3 +196,42 @@ def detect_subscription_conflicts(existing: list[Haybale], new: list[Haybale]) -
             )
         )
     return out
+
+
+def resolve_block_target(global_path: Path, via_url: str) -> str | None:
+    """Pick the subscription URL that should receive a block for `via_url`.
+
+    Spec §7.4: the Block button writes to the subscription that resolved this
+    haybale. Three cases:
+      - Direct stall: via matches a [[stalls]] URL → return that URL.
+      - Direct market: via matches a [[markets]] URL → return that URL.
+      - Transitive: via is a discovered stall (not in [[stalls]]); fall back
+        to the FIRST [[markets]] URL — the user only controls the aggregator.
+
+    Returns None when via is empty OR no subscription can plausibly own it
+    (e.g. no markets subscriptions and no matching stall).
+    """
+    if not via_url:
+        return None
+
+    mf = parse_global_marketplace(global_path)
+
+    # Direct stall match.
+    for sub in mf.stalls:
+        if sub.url == via_url:
+            return sub.url
+
+    # Direct market match (rare — markets normally serve [[stalls]] discovery,
+    # not haybales directly; but if a market is inline-haybales-only, via could
+    # equal market.url).
+    for sub in mf.markets:
+        if sub.url == via_url:
+            return sub.url
+
+    # Transitive fallback: assume the haybale arrived via an aggregator.
+    # Return the first [[markets]] URL. (Future refinement: track which market
+    # discovered which stall; for now, first-aggregator-wins is acceptable.)
+    if mf.markets:
+        return mf.markets[0].url
+
+    return None

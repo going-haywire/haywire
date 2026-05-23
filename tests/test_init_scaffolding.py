@@ -10,9 +10,10 @@ import toml
 def fake_home(tmp_path, monkeypatch):
     """Redirect Path.home() to a tmp dir so user-global config writes are sandboxed.
 
-    Also patches haywire_studio.config.GLOBAL_CONFIG_DIR which is captured
-    at module-import time from Path.home() — without this patch, the module
-    keeps pointing at the real home directory.
+    Also patches haywire_studio.config.GLOBAL_CONFIG_DIR and
+    GLOBAL_MARKETPLACE_DIR which are captured at module-import time from
+    Path.home() — without these patches, the module keeps pointing at the
+    real home directory.
     """
     fake = tmp_path / "fake-home"
     fake.mkdir()
@@ -20,7 +21,9 @@ def fake_home(tmp_path, monkeypatch):
     monkeypatch.setattr("pathlib.Path.home", lambda: fake)
     import haywire_studio.config as cfg
 
-    monkeypatch.setattr(cfg, "GLOBAL_CONFIG_DIR", fake / ".haywire")
+    fake_haywire = fake / ".haywire"
+    monkeypatch.setattr(cfg, "GLOBAL_CONFIG_DIR", fake_haywire)
+    monkeypatch.setattr(cfg, "GLOBAL_MARKETPLACE_DIR", fake_haywire / "db" / "haybale-marketplace")
     return fake
 
 
@@ -282,23 +285,31 @@ class TestNameSanitization:
 
 
 class TestUserGlobalStaysEmpty:
-    """`haywire init` only creates ~/.haywire/marketplace.toml as an empty file.
+    """`haywire init` only creates ~/.haywire/db/haybale-marketplace/marketplace.toml
+    (with the default [[markets]] subscription to the official feed).
 
     The user-global marketplace is reserved for user opt-in subscriptions
     ([[markets]], [[stalls]]). Heaps — the project's own library and any
     --dev sibling libraries — live in the project marketplace instead.
+
+    Per spec §3.1: the global marketplace path is `~/.haywire/db/haybale-marketplace/`
+    (forward reference to the future haybale-marketplace library carve-out).
     """
 
     def test_user_global_marketplace_file_exists(self, scaffold_project_with_fake_home, fake_home):
-        # ensure_global_config still creates the directory + an empty file.
-        assert (fake_home / ".haywire" / "marketplace.toml").is_file()
+        # ensure_global_config creates the directory + the file with the default seed.
+        assert (fake_home / ".haywire" / "db" / "haybale-marketplace" / "marketplace.toml").is_file()
 
     def test_user_global_has_no_heaps_for_project(self, scaffold_project_with_fake_home, fake_home):
-        data = toml.loads((fake_home / ".haywire" / "marketplace.toml").read_text())
+        data = toml.loads(
+            (fake_home / ".haywire" / "db" / "haybale-marketplace" / "marketplace.toml").read_text()
+        )
         assert data.get("heaps", []) == []
 
     def test_user_global_has_no_caches_for_project(self, scaffold_project_with_fake_home, fake_home):
-        data = toml.loads((fake_home / ".haywire" / "marketplace.toml").read_text())
+        data = toml.loads(
+            (fake_home / ".haywire" / "db" / "haybale-marketplace" / "marketplace.toml").read_text()
+        )
         assert data.get("caches", []) == []
 
 
@@ -375,7 +386,9 @@ class TestDevModeProjectRegistration:
 
     def test_dev_mode_does_not_write_heaps_to_user_global(self, scaffold_dev_with_fake_home, fake_home):
         """--dev keeps the user-global marketplace's [[heaps]] empty."""
-        data = toml.loads((fake_home / ".haywire" / "marketplace.toml").read_text())
+        data = toml.loads(
+            (fake_home / ".haywire" / "db" / "haybale-marketplace" / "marketplace.toml").read_text()
+        )
         assert data.get("heaps", []) == []
 
     def test_regular_init_does_not_register_dev_repo_libraries(self, scaffold_project_with_fake_home):

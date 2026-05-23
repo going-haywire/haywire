@@ -69,7 +69,7 @@ def _handle_add_source(user_input: str, dialog: "ui.dialog", on_added: Callable[
         resolve_and_subscribe,
     )
 
-    from haywire_studio.config import GLOBAL_CONFIG_DIR, ensure_global_config
+    from haywire_studio.config import GLOBAL_MARKETPLACE_DIR, ensure_global_config
 
     if not (user_input or "").strip():
         ui.notify("Please paste a URL or TOML block.", type="warning")
@@ -78,9 +78,9 @@ def _handle_add_source(user_input: str, dialog: "ui.dialog", on_added: Callable[
     try:
         ensure_global_config()
         result = resolve_and_subscribe(
-            GLOBAL_CONFIG_DIR / "marketplace.toml",
+            GLOBAL_MARKETPLACE_DIR / "marketplace.toml",
             user_input,
-            paste_dir=GLOBAL_CONFIG_DIR / "stalls",
+            paste_dir=GLOBAL_MARKETPLACE_DIR / "stalls",
         )
     except BareRepoUrlRejectedError as exc:
         ui.notify(str(exc), type="warning")
@@ -170,7 +170,7 @@ def _show_conflict_resolution_dialog(
     """Modal with one row per conflict: 'Keep existing' or 'Use new' radio."""
     from haywire.core.marketstall import record_ignore_on_source
 
-    from haywire_studio.config import GLOBAL_CONFIG_DIR
+    from haywire_studio.config import GLOBAL_MARKETPLACE_DIR
 
     # Map from package_name → "existing" | "new".
     choices: dict[str, str] = {}
@@ -206,7 +206,7 @@ def _show_conflict_resolution_dialog(
                 ui.button("Cancel", on_click=dialog.close).props("flat")
 
                 def _apply():
-                    global_mp = GLOBAL_CONFIG_DIR / "marketplace.toml"
+                    global_mp = GLOBAL_MARKETPLACE_DIR / "marketplace.toml"
                     for c in conflicts:
                         if choices.get(c.name) == "existing":
                             # Losing side: the NEW subscription. Add to ITS ignores.

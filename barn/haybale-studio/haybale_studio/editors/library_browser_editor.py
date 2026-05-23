@@ -120,7 +120,9 @@ class LibraryBrowserEditor(BaseEditor):
                 with (
                     ui.button()
                     .props("flat dense size=sm")
-                    .tooltip("Open ~/.haywire/marketplace.toml in your text editor") as edit_file_btn
+                    .tooltip(
+                        "Open ~/.haywire/db/haybale-marketplace/marketplace.toml in your text editor"
+                    ) as edit_file_btn
                 ):
                     ui.icon("edit").classes("hw-use-props-color").props("color=gray")
                     ui.label("Edit File").classes("text-xs ml-1")
@@ -236,7 +238,7 @@ class LibraryBrowserEditor(BaseEditor):
         self._render_list(context)
 
     def _on_edit_file_click(self, context: "SessionContext") -> None:
-        """Open ~/.haywire/marketplace.toml in haybale-studio's CodeEditor.
+        """Open the global marketplace.toml in haybale-studio's CodeEditor.
 
         Mirrors the OpenInCodeEditorPanel pattern in
         ``haybale_studio.panels.context_menu.file_actions``: set
@@ -249,14 +251,14 @@ class LibraryBrowserEditor(BaseEditor):
         """
         from haybale_studio.editors.code_editor import CodeEditor
         from haywire.core.session.signals import Reveal
-        from haywire_studio.config import GLOBAL_CONFIG_DIR, ensure_global_config
+        from haywire_studio.config import GLOBAL_MARKETPLACE_DIR, ensure_global_config
 
         try:
             ensure_global_config()
         except Exception as exc:
             logger.warning(f"ensure_global_config failed, opening editor anyway: {exc}")
 
-        mp = GLOBAL_CONFIG_DIR / "marketplace.toml"
+        mp = GLOBAL_MARKETPLACE_DIR / "marketplace.toml"
 
         session = context.session
         if session is None:
