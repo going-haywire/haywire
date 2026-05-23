@@ -56,7 +56,6 @@ from haywire.core.marketstall.types import (
     RefreshReport,
     Subscription,
 )
-from haywire.core.marketstall.seen import is_seen, mark_seen
 from haywire.core.marketstall.subscribe import (
     SubscribeError,
     SubscribeResult,
@@ -126,7 +125,4 @@ __all__ = [
     "SubscribeResult",
     "SubscribeError",
     "SubscriptionKind",
-    # Install-safety scoping
-    "is_seen",
-    "mark_seen",
 ]

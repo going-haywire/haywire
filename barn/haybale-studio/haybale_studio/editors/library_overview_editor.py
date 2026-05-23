@@ -1378,13 +1378,10 @@ class LibraryOverviewEditor(BaseEditor):
     ):
         """Interpose the spec §7.4 safety modal before _install_package.
 
-        Skip the modal when the haybale name is already in seen.toml
-        (the user previously decided to install it, possibly later uninstalled,
-        so re-install doesn't re-prompt).
+        The modal fires on every Install click. The user can Cancel, Block the
+        source (drops the haybale from AVAILABLE permanently), or Install.
         """
         from haywire.core.marketstall import (
-            is_seen,
-            mark_seen,
             record_block_on_source,
             resolve_block_target,
         )
@@ -1392,18 +1389,11 @@ class LibraryOverviewEditor(BaseEditor):
 
         from haybale_studio.state.marketplace_state import MarketplaceState
 
-        # Skip the modal if we've already shown it for this haybale name once.
-        if is_seen(pkg.name):
-            asyncio.ensure_future(
-                self._install_package(pkg.install_spec, pkg.name, button, manager, context)
-            )
-            return
-
-        def _on_install() -> None:
-            mark_seen(pkg.name)
-            asyncio.ensure_future(
-                self._install_package(pkg.install_spec, pkg.name, button, manager, context)
-            )
+        def _on_install():
+            # Return the coroutine (don't schedule it). The modal awaits it,
+            # which keeps the NiceGUI slot context intact so ui.notify() inside
+            # _install_package works. See .insights/feedback_nicegui_async.md.
+            return self._install_package(pkg.install_spec, pkg.name, button, manager, context)
 
         def _on_block() -> None:
             if context.app_data is None or MarketplaceState not in context.app_data:
@@ -1426,6 +1416,9 @@ class LibraryOverviewEditor(BaseEditor):
                 return
             ui.notify(f"Blocked {pkg.name} from {target}", type="positive")
             state.refresh()
+            active = getattr(context, "active_library", None)
+            if active is not None and getattr(active, "name", None) == pkg.name:
+                context.active_library = None
             self._notify_library_changed(context)
 
         def _on_cancel() -> None:

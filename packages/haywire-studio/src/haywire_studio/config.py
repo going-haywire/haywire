@@ -8,7 +8,7 @@ Per spec §3.1, the global marketplace file lives under a forward-reference
 subdirectory `~/.haywire/db/haybale-marketplace/` so the future
 haybale-marketplace library carve-out doesn't require a migration. The
 `GLOBAL_MARKETPLACE_DIR` constant is the canonical home for ALL marketplace
-state (marketplace.toml, stalls/, seen.toml, cache/) — every caller that
+state (marketplace.toml, stalls/, cache/) — every caller that
 reads or writes marketplace files must use it, not `GLOBAL_CONFIG_DIR`.
 
 Project config lives at <project>/.haywire/ and stores

@@ -203,6 +203,8 @@ def refresh(
         discovered_stall_urls.extend(contents.stall_urls)
         filtered = apply_blocked(contents.haybales, sub.blocked)
         filtered = apply_ignores(filtered, sub.ignores)
+        for h in filtered:
+            h.via = sub.url
         market_haybales.extend(filtered)
 
     # Step 3: [[stalls]] — direct subscriptions.
@@ -218,6 +220,8 @@ def refresh(
         hb = parse_marketstall_body(body)
         hb = apply_blocked(hb, sub.blocked)
         hb = apply_ignores(hb, sub.ignores)
+        for h in hb:
+            h.via = sub.url
         stall_haybales.extend(hb)
 
     # Step 3 (cont.): discovered stalls from markets.
@@ -236,7 +240,10 @@ def refresh(
             report.sources_fetched += 1
         else:
             report.sources_from_cache += 1
-        stall_haybales.extend(parse_marketstall_body(result.body))
+        discovered_hb = parse_marketstall_body(result.body)
+        for h in discovered_hb:
+            h.via = url
+        stall_haybales.extend(discovered_hb)
 
     # Step 4: combine candidates. Order: inline [[haybales]] in global, then stalls,
     # then market-inline (gives stable provenance ordering for FCFS).
@@ -247,7 +254,15 @@ def refresh(
     candidates = apply_first_come_first_served(candidates)
 
     # Step 6: stale marking against previous caches.
-    final = mark_stale_against_previous(candidates, previous=pm_prev.caches)
+    # Drop blocked names from the previous list before stale-rescue: blocked
+    # entries must disappear, not be re-added as stale (spec §3.1, §7.4, §8).
+    blocked_names: set[str] = set()
+    for sub in mf.markets:
+        blocked_names.update(sub.blocked)
+    for sub in mf.stalls:
+        blocked_names.update(sub.blocked)
+    prev_unblocked = [p for p in pm_prev.caches if p.name not in blocked_names]
+    final = mark_stale_against_previous(candidates, previous=prev_unblocked)
 
     report.haybales_resolved = sum(1 for h in final if not h.stale)
     prev_stale_names = {p.name for p in pm_prev.caches if p.stale}

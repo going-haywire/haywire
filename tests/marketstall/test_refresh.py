@@ -325,3 +325,111 @@ def test_refresh_one_level_deep_consumes_market_stalls(tmp_path: Path) -> None:
 
     assert report.sources_fetched == 2  # aggregator + the stall it referenced
     assert report.haybales_resolved == 2  # haybale-inline + haybale-from-stall
+
+
+@pytest.mark.unit
+def test_refresh_stamps_via_on_cached_haybales(tmp_path: Path) -> None:
+    """Every Haybale written to [[caches]] must carry `via` = its source URL.
+
+    Without this, resolve_block_target() returns None and the first-install
+    safety modal's Block button shows 'not from a subscription you can edit'
+    even for haybales that came from an editable subscription.
+    """
+    from haywire.core.marketstall.parsing import parse_project_marketplace
+    from haywire.core.marketstall.refresh import refresh
+
+    stall_url = "https://alice.example/marketstall.toml"
+    market_url = "https://aggregator.example/marketplace.toml"
+    discovered_stall_url = "https://discovered.example/marketstall.toml"
+
+    global_path = tmp_path / "global.toml"
+    global_path.write_text(
+        "[[stalls]]\n"
+        f'url = "{stall_url}"\n'
+        "ignores = []\n"
+        "doubles = []\n"
+        "blocked = []\n"
+        "\n"
+        "[[markets]]\n"
+        f'url = "{market_url}"\n'
+        "ignores = []\n"
+        "doubles = []\n"
+        "blocked = []\n"
+    )
+    project_path = tmp_path / "project.toml"
+
+    stall_body = '[[haybales]]\nname = "haybale-from-direct-stall"\nmin_version = "0.1.0"\n'
+    market_body = (
+        "[[stalls]]\n"
+        f'url = "{discovered_stall_url}"\n'
+        "\n"
+        "[[haybales]]\n"
+        'name = "haybale-inline-in-market"\n'
+        'min_version = "0.1.0"\n'
+    )
+    discovered_body = '[[haybales]]\nname = "haybale-from-discovered-stall"\nmin_version = "0.1.0"\n'
+
+    def fake_urlopen(url, *, timeout):
+        from unittest.mock import MagicMock
+
+        m = MagicMock()
+        if "aggregator" in url:
+            body = market_body
+        elif "discovered" in url:
+            body = discovered_body
+        else:
+            body = stall_body
+        m.__enter__.return_value.read.return_value = body.encode()
+        return m
+
+    with patch("haywire.core.marketstall.cache._urlopen", side_effect=fake_urlopen):
+        refresh(global_path=global_path, project_path=project_path, cache_dir=tmp_path / "c")
+
+    pm = parse_project_marketplace(project_path)
+    by_name = {h.name: h for h in pm.caches}
+
+    assert by_name["haybale-from-direct-stall"].via == stall_url
+    assert by_name["haybale-inline-in-market"].via == market_url
+    assert by_name["haybale-from-discovered-stall"].via == discovered_stall_url
+
+
+@pytest.mark.unit
+def test_refresh_blocked_entry_disappears_from_caches(tmp_path: Path) -> None:
+    """Blocking a haybale must remove it from [[caches]] on the next refresh —
+    even when the source is unreachable (no fresh body, only the previous cache).
+
+    Spec §3.1/§7.4/§8: blocked haybales are fully hidden, immediately. They
+    must NOT be rescued by mark_stale_against_previous as stale=True survivors.
+    """
+    from haywire.core.marketstall.parsing import parse_project_marketplace
+    from haywire.core.marketstall.refresh import refresh
+
+    stall_url = "https://alice.example/marketstall.toml"
+    stall_body = '[[haybales]]\nname = "haybale-foo"\nmin_version = "0.1.0"\n'
+
+    # Step 1: initial refresh populates the cache with haybale-foo.
+    global_path = tmp_path / "global.toml"
+    global_path.write_text(f'[[stalls]]\nurl = "{stall_url}"\nignores = []\ndoubles = []\nblocked = []\n')
+    project_path = tmp_path / "project.toml"
+    cache_dir = tmp_path / "c"
+
+    with patch("haywire.core.marketstall.cache._urlopen") as mock_open:
+        mock_open.return_value.__enter__.return_value.read.return_value = stall_body.encode()
+        refresh(global_path=global_path, project_path=project_path, cache_dir=cache_dir)
+
+    pm = parse_project_marketplace(project_path)
+    assert "haybale-foo" in {h.name for h in pm.caches}
+
+    # Step 2: user blocks haybale-foo, then refreshes.
+    global_path.write_text(
+        f'[[stalls]]\nurl = "{stall_url}"\nignores = []\ndoubles = []\nblocked = ["haybale-foo"]\n'
+    )
+
+    with patch("haywire.core.marketstall.cache._urlopen") as mock_open:
+        mock_open.return_value.__enter__.return_value.read.return_value = stall_body.encode()
+        refresh(global_path=global_path, project_path=project_path, cache_dir=cache_dir)
+
+    pm = parse_project_marketplace(project_path)
+    assert "haybale-foo" not in {h.name for h in pm.caches}, (
+        "blocked haybale must disappear from caches, not survive as stale"
+    )

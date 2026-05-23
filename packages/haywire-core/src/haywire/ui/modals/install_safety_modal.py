@@ -6,7 +6,8 @@ Cancel / Block / Install. Includes safety copy and a source-URL link button.
 
 from __future__ import annotations
 
-from typing import Callable
+import inspect
+from typing import Any, Awaitable, Callable
 
 from nicegui import ui
 
@@ -24,8 +25,8 @@ def install_safety_modal(
     *,
     haybale_name: str,
     source_url: str,
-    on_install: Callable[[], None],
-    on_block: Callable[[], None],
+    on_install: Callable[[], Any | Awaitable[Any]],
+    on_block: Callable[[], Any | Awaitable[Any]],
     on_cancel: Callable[[], None] | None = None,
 ) -> Popup:
     """Open the first-install safety modal and return the opened Popup.
@@ -77,15 +78,23 @@ def install_safety_modal(
                 ).props("flat dense size=sm disable").tooltip("No source URL provided")
                 ui.label("(no source URL provided)").classes("text-xs hw-text-dim italic")
 
-        # Action buttons.
-        def _do_install() -> None:
+        # Action buttons. Each handler awaits the callback if it returns a
+        # coroutine so NiceGUI's handle_event wraps the whole chain in the
+        # correct slot context (see .insights/feedback_nicegui_async.md
+        # pattern 1 — without this, ui.notify() inside on_install/on_block
+        # would crash with an empty slot stack).
+        async def _do_install() -> None:
             decided["value"] = True
-            on_install()
+            result = on_install()
+            if inspect.isawaitable(result):
+                await result
             popup.close()
 
-        def _do_block() -> None:
+        async def _do_block() -> None:
             decided["value"] = True
-            on_block()
+            result = on_block()
+            if inspect.isawaitable(result):
+                await result
             popup.close()
 
         with ui.row().classes("w-full justify-end gap-2 mt-4"):

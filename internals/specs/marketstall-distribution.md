@@ -147,7 +147,7 @@ The three filter arrays carry distinct semantics:
 
 - **`ignores`** — names skipped silently from this source. Populated by the conflict-resolution prompt at Add Source time (§8.3). The user did not actively reject the haybale; they preferred another source.
 - **`doubles`** — names that two `[[markets]]` entries silently dedup to. Diagnostic only.
-- **`blocked`** — names the user actively rejected via the first-install safety modal (§7.4). Per-subscription: blocking `haybale-foo` from source A does not affect source A's neighbor source B (which may legitimately offer a different haybale under the same name). Blocked haybales are **fully hidden** from the Library Browser's AVAILABLE list; the only un-block path is editing this file by hand. Persistent and deliberate by design.
+- **`blocked`** — names the user actively rejected via the install safety modal (§7.4). Per-subscription: blocking `haybale-foo` from source A does not affect source A's neighbor source B (which may legitimately offer a different haybale under the same name). Blocked haybales are **fully hidden** from the Library Browser's AVAILABLE list; the only un-block path is editing this file by hand. Persistent and deliberate by design.
 
 ### 3.2 Project's marketplace (`<project>/.haywire/marketplace.toml`)
 
@@ -504,9 +504,9 @@ Distinguishing `fresh` from `cache_fallback` matters: an HTTP 5xx → cache-fall
 
 **Cache GC.** At the end of each refresh, the runtime deletes any `<url-hash>.toml` (and its `.sha256` sidecar) whose hash doesn't match the URL of an active subscription. This keeps `~/.haywire/cache/` bounded across subscription churn (users unsubscribing and re-subscribing accumulates orphans otherwise).
 
-### 7.4 First-install safety modal
+### 7.4 Install safety modal
 
-The first time the user clicks Install on any haybale, a safety modal interposes between the click and the actual `uv pip install`. The user is installing third-party code; the modal makes that explicit and gives them a chance to verify before committing.
+Every Install click on a haybale opens a safety modal that interposes between the click and the actual `uv pip install`. The user is installing third-party code; the modal makes that explicit and gives them a chance to verify before committing.
 
 **Modal contents**:
 
@@ -518,7 +518,7 @@ The first time the user clicks Install on any haybale, a safety modal interposes
   - **Block** — add the haybale's `name` to the `blocked = []` array on the subscription that resolved this haybale (the `[[markets]]` or `[[stalls]]` entry whose `via` URL matches). The haybale disappears from the Library Browser's AVAILABLE list immediately. Persistent; only un-blockable by editing the marketplace file by hand.
   - **Install** — proceed with `uv pip install <install_spec>` and trigger a Library System rescan.
 
-**"First time" scoping**: the modal fires on Install when (a) the haybale is not currently installed AND (b) the user has not previously seen-and-installed this haybale name on this machine. Reinstall of a previously-installed-and-uninstalled haybale skips the modal (the user already decided once). The "seen" state is per-haybale-name, stored as a small list in `~/.haywire/db/haybale-marketplace/seen.toml`.
+**Scope**: the modal fires on every Install click. There is no "first time" suppression — third-party install is a serious enough operation that the safety prompt is shown every time. The user can dismiss it with one click (Cancel) if they're sure.
 
 **Provenance display in the Library Browser**: each haybale row shows where it came from, using the `via` cache field already recorded during refresh.
 
@@ -576,7 +576,7 @@ When a remote marketplace body's `[[markets]]` references other marketplaces, th
 
 | Filter                  | What it does                                                                                                                                                                                                                            |
 | ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `blocked`               | Each subscription's `blocked` array lists names the user actively rejected via the first-install safety modal (§7.4). Blocked haybales are dropped from the candidate list AND hidden from the Library Browser's AVAILABLE list.        |
+| `blocked`               | Each subscription's `blocked` array lists names the user actively rejected via the install safety modal (§7.4). Blocked haybales are dropped from the candidate list AND hidden from the Library Browser's AVAILABLE list.        |
 | `ignores`               | Each subscription's `ignores` array lists names to skip from that source. Populated by the user's conflict-resolution prompt at Add Source time. Unlike `blocked`, ignored haybales may still be visible if another source offers them. |
 | Heaps shadow            | Any candidate haybale whose name matches a `[[heaps]]` entry is dropped — local heaps always win.                                                                                                                                       |
 | First-come-first-served | After the above, deterministically keep the first occurrence of any remaining duplicate. Safety net for hand-edits.                                                                                                                     |
@@ -827,7 +827,7 @@ Tests are written **alongside each commit**, not deferred. Glossary entries upda
 
 4. **`os` field UI**. OS multi-select in the Library Overview Editor's Edit dialog, **gated to `[[heaps]]` libraries only** (installed wheels show read-only). Install button OS-mismatch gating with the §2.1 tooltip in the Library Browser. Tests for heap-vs-installed dialog behavior, OS-mismatch gating roundtrip.
 
-5. **Install safety + blocked-list**. First-install safety modal per §7.4 (Cancel / Block / Install + source-link button); `seen.toml` tracking for first-install scoping; `blocked` filter applied during the refresh conflict-resolution step (§8.2); hidden-when-blocked Library Browser behavior. Tests for modal triggering, block-and-hide roundtrip, per-source blocking semantics.
+5. **Install safety + blocked-list**. Install safety modal per §7.4 (Cancel / Block / Install + source-link button), shown on every Install click; `blocked` filter applied during the refresh conflict-resolution step (§8.2); hidden-when-blocked Library Browser behavior. Tests for modal triggering, block-and-hide roundtrip, per-source blocking semantics.
 
 6. **Drift gate extension**. `min_version` lag detection scoped to haybale-* deps per §12.1; `DepDrift.pyproject_version_lag` field; `apply_drift_fix` floor rewrite for haybales only; `--strict` / `--fix` integration. Tests for the haybale-vs-third-party scoping (key correctness property).
 
@@ -843,7 +843,7 @@ Tests are written **alongside each commit**, not deferred. Glossary entries upda
 
 - **No version-based conflict resolution.** Two sources publishing the same haybale name still resolve by user choice or first-come-first-served, not by version comparison.
 - **No central registry, mirrors, or CDN.** Authors host their own repositories.
-- **No signed packages or cryptographic verification.** Authors host their content; consumers read the source URL before installing if they care to verify. The first-install safety modal (§7.4) is the cryptographic-trust-substitute: the user reviews the source before installing third-party code.
+- **No signed packages or cryptographic verification.** Authors host their content; consumers read the source URL before installing if they care to verify. The install safety modal (§7.4) is the cryptographic-trust-substitute: the user reviews the source before installing third-party code.
 - **No transitive dependency resolution.** A haybale's `dependencies` list is informational; consumers install dependencies individually. pip handles actual resolution.
 - **No lockfiles or reproducible installs at the Haywire level.** Reproducibility is the project's responsibility through standard Python tooling.
 - **No forced updates.** The update-available signal is informational; the user always decides when to upgrade.
