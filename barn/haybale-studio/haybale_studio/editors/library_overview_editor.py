@@ -17,6 +17,7 @@ import asyncio
 import dataclasses
 import logging
 import re
+import toml
 from functools import partial
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -88,6 +89,21 @@ _CFG_STATES = TabConfig("states", STATE)
 _CFG_THEMES = TabConfig("themes", THEME)
 _CFG_PANELS = TabConfig("panels", PANEL)
 _CFG_EDITORS = TabConfig("editors", EDITOR)
+
+
+def should_block_install_for_os(haybale) -> str | None:
+    """Per spec §2.1: return a tooltip message when the current OS doesn't match.
+
+    Returns None when the haybale supports all platforms (empty os) or
+    includes the current OS. The return value (string or None) drives the
+    Install button's locked/unlocked state in the UI.
+    """
+    from haywire.core.marketstall import haybale_supports_current_os
+
+    if haybale_supports_current_os(haybale):
+        return None
+    targets = ", ".join(getattr(haybale, "os", []) or [])
+    return f"Not available on this OS; this library targets: {targets}."
 
 
 @editor(
@@ -425,7 +441,7 @@ class LibraryOverviewEditor(BaseEditor):
                                                     ctx=context: (self._confirm_uninstall(lid, ln, m, ctx)),
                                                 )
                         elif not installed_lib and marketplace_pkg and manager:
-                            # Not installed — Install button, blocked if dependencies are missing
+                            # Not installed — Install button, blocked if deps missing OR OS doesn't match
                             _installed_ids = {
                                 manager._norm(lib.distribution_name or lib.identity.id)
                                 for lib in manager.list_installed()
@@ -435,6 +451,8 @@ class LibraryOverviewEditor(BaseEditor):
                                 for dep in (marketplace_pkg.dependencies or [])
                                 if manager._norm(dep) not in _installed_ids
                             ]
+                            _os_block_msg = should_block_install_for_os(marketplace_pkg)
+
                             if _missing_deps:
                                 _names = ", ".join(f'"{d}"' for d in _missing_deps)
                                 _msg = (
@@ -450,6 +468,16 @@ class LibraryOverviewEditor(BaseEditor):
                                         message=m,
                                     ),
                                 ).props("color=positive size=sm")
+                            elif _os_block_msg:
+                                ui.button(
+                                    "Install",
+                                    icon=hui.icon.locked,
+                                    on_click=lambda m=_os_block_msg: info_modal(
+                                        title="Not available on this OS",
+                                        icon="block",
+                                        message=m,
+                                    ),
+                                ).props("color=positive size=sm").tooltip(_os_block_msg)
                             else:
                                 ui.button(
                                     "Install",
@@ -831,6 +859,24 @@ class LibraryOverviewEditor(BaseEditor):
         workspace_root = Path(marketplace_path).parent.parent
         return Path(lib.identity.folder_path).is_relative_to(workspace_root / "barn")
 
+    def _read_os_from_pyproject(self, lib: LibraryInfo, marketplace_path: str | None) -> list[str]:
+        """Read the heap's current [tool.haywire].os values. Empty list if unset or non-heap."""
+        if not self._is_project_library(lib, marketplace_path):
+            return []
+        if not lib.identity.folder_path:
+            return []
+        # lib.identity.folder_path is the MODULE path (e.g. workspace/barn/haybale-foo/haybale_foo).
+        # The pyproject.toml lives in its parent.
+        pyproject = Path(lib.identity.folder_path).parent / "pyproject.toml"
+        if not pyproject.is_file():
+            return []
+        try:
+            data = toml.loads(pyproject.read_text())
+        except Exception:
+            return []
+        os_decl = data.get("tool", {}).get("haywire", {}).get("os", [])
+        return [v for v in os_decl if isinstance(v, str)]
+
     def _build_edit_dialog(
         self,
         lib: LibraryInfo,
@@ -886,6 +932,30 @@ class LibraryOverviewEditor(BaseEditor):
                     ),
                 )
 
+            # OS multi-select — spec §2.1. Visible only for heaps (writable pyproject.toml).
+            is_heap = self._is_project_library(lib, marketplace_path)
+            current_os = self._read_os_from_pyproject(lib, marketplace_path) if is_heap else []
+            os_select = None
+            if is_heap:
+                os_select = (
+                    ui.select(
+                        options={"macos": "macOS", "windows": "Windows", "linux": "Linux"},
+                        value=current_os,
+                        multiple=True,
+                        label="Supported OS (leave empty = all platforms)",
+                    )
+                    .props("dense use-chips")
+                    .classes("w-full")
+                )
+            else:
+                # Installed wheels: read-only display of any os declaration.
+                marketplace_pkg = getattr(context, "active_marketplace_pkg", None)
+                wheel_os = list(getattr(marketplace_pkg, "os", []) or []) if marketplace_pkg else []
+                if wheel_os:
+                    ui.label(f"Supported OS (read-only): {', '.join(wheel_os)}").classes(
+                        "text-xs hw-text-dim"
+                    )
+
             ui.separator()
 
             hui.section_label("Package Name")
@@ -922,6 +992,9 @@ class LibraryOverviewEditor(BaseEditor):
                     "tags": [t.strip() for t in tags_input.value.split(",") if t.strip()],
                     "dependencies": [d.strip() for d in deps_input.value.split(",") if d.strip()],
                 }
+                # Include `os` only if the multi-select was rendered (heap libraries).
+                if os_select is not None:
+                    identity["os"] = list(os_select.value or [])
                 edit_dialog.close()
                 if _state["unlocked"] and new_name and new_name != old_name_part:
                     await self._do_rename(lib, new_name, identity, marketplace_path, manager, context)

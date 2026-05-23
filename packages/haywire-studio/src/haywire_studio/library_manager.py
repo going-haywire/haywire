@@ -53,6 +53,41 @@ def _set_decorator_list_field(content: str, field: str, values: list[str]) -> st
     return re.sub(r"(\n\)\nclass )", replacement, content, count=1)
 
 
+_DECLARABLE_OS_VALUES = ("macos", "windows", "linux")  # spec §2.1
+
+
+def _apply_os_to_pyproject(pyproject_path: Path, os_values: list[str]) -> None:
+    """Write or remove [tool.haywire].os in the library's pyproject.toml.
+
+    Spec §2.1 rules:
+      - Filter to allowed values (macos, windows, linux); silently drop others.
+      - Empty list after filtering OR all three present → remove [tool.haywire].os
+        entirely (absent = "all platforms").
+      - Non-empty subset → write the filtered list in canonical order.
+      - Preserves other [tool.*] sections (hatch, etc.) verbatim.
+    """
+    # Filter to allowed values, then canonicalize order to (macos, windows, linux).
+    filtered = [v for v in _DECLARABLE_OS_VALUES if v in os_values]
+
+    data = toml.loads(pyproject_path.read_text())
+    tool = data.setdefault("tool", {})
+
+    if not filtered or len(filtered) == len(_DECLARABLE_OS_VALUES):
+        # Remove the section entirely.
+        haywire = tool.get("haywire")
+        if haywire is not None:
+            haywire.pop("os", None)
+            if not haywire:
+                tool.pop("haywire", None)
+        if not tool:
+            data.pop("tool", None)
+    else:
+        haywire = tool.setdefault("haywire", {})
+        haywire["os"] = filtered
+
+    pyproject_path.write_text(toml.dumps(data))
+
+
 class LibraryManager:
     """Orchestrates library install/uninstall/enable/disable operations.
 
@@ -343,15 +378,12 @@ class LibraryManager:
         try:
             if marketplace_path.exists():
                 data = toml.loads(marketplace_path.read_text())
-                for pkg in data.get("packages", []):
-                    if pkg.get("name", "").lower() == dist_name.lower():
-                        pkg["name"] = new_lib_name
-                        pkg["label"] = label_val
-                        pkg["description"] = desc_val
-                        pkg["min_version"] = version_val
-                        pkg["tags"] = tags_list
-                        pkg["install_spec"] = str(new_lib_dir)
-                        pkg["docs_url"] = str(new_lib_dir / new_module)
+                for heap in data.get("heaps", []):
+                    if heap.get("name", "").lower() == dist_name.lower():
+                        heap["name"] = new_lib_name
+                        heap["path"] = str(new_lib_dir)
+                        heap["label"] = label_val
+                        heap["description"] = desc_val
                         break
                 marketplace_path.write_text(toml.dumps(data))
         except (OSError, KeyError) as e:
@@ -646,17 +678,25 @@ class LibraryManager:
         except OSError as e:
             return False, f"Failed to update __init__.py: {e}"
 
+        # Write [tool.haywire].os to the heap's pyproject.toml.
+        # Per spec §2.1: this is editable only on heaps (project libraries),
+        # which is exactly where update_library_identity operates.
+        os_list = identity.get("os")
+        if os_list is not None:  # caller opted in
+            try:
+                _apply_os_to_pyproject(pkg_dir.parent / "pyproject.toml", os_list)
+            except OSError as e:
+                return False, f"Failed to update [tool.haywire].os: {e}"
+
         # Update matching entry in marketplace.toml
         marketplace_path = workspace / ".haywire" / "marketplace.toml"
         try:
             if marketplace_path.exists():
                 data = toml.loads(marketplace_path.read_text())
-                for pkg in data.get("packages", []):
-                    if pkg.get("name", "").lower() == dist_name.lower():
-                        pkg["label"] = label_val
-                        pkg["description"] = desc_val
-                        pkg["min_version"] = version_val
-                        pkg["tags"] = tags_list
+                for heap in data.get("heaps", []):
+                    if heap.get("name", "").lower() == dist_name.lower():
+                        heap["label"] = label_val
+                        heap["description"] = desc_val
                         break
                 marketplace_path.write_text(toml.dumps(data))
         except (OSError, KeyError) as e:
