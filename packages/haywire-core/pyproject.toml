@@ -23,7 +23,6 @@ dependencies = [
     "attrs==25.4.0",
     "cattrs==25.3.0",
     "toml>=0.10.2",
-    "rerun-sdk>=0.29.0",
     "duit[nicegui]",
 ]
 
