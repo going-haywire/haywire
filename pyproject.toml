@@ -127,3 +127,8 @@ docs_branch = "main"
 # doesn't set them. Per-package values from the decorator always win.
 default_author = "Haywire Team"
 default_tags = []
+
+# Base URL where the deployed feed lives. The generator composes the per-stall
+# subscription URLs as "{feed_base_url}/stalls/{dist-name}.toml". For the
+# official GitHub-Pages-hosted feed: https://maybites.github.io/haywire
+feed_base_url = "https://maybites.github.io/haywire"

@@ -197,11 +197,10 @@ jobs:
       - name: Install workspace
         run: uv sync --dev
 
-      - name: Generate marketplace.toml
+      - name: Generate official feed (marketplace.toml + stalls/*.toml)
         run: |
-          mkdir -p gh-pages-content
           uv run python scripts/generate_marketstall.py \
-              --out gh-pages-content/marketplace.toml
+              --out-dir gh-pages-content
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4
