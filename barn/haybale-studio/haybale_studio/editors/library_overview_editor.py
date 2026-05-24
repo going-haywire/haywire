@@ -1082,6 +1082,7 @@ class LibraryOverviewEditor(BaseEditor):
             set_pyproject_dependencies,
         )
         from haywire.ui.modals import DiffSection, diff_modal
+        from haywire_studio.share import union_pyproject_deps as _union_pyproject_deps
         import toml
 
         if not marketplace_path or not lib.distribution_name:
@@ -1164,7 +1165,15 @@ class LibraryOverviewEditor(BaseEditor):
 
         def _apply_union() -> None:
             new_decorator = sorted(cur_dec_set | det_dec_set)
-            new_pyproject = sorted(cur_py_set | det_py_set)
+            # Per spec §12.3: union pyproject deps by distribution NAME, not
+            # by full specifier string. For each dist, prefer the detected
+            # spec when it's a registered haybale (so lagging floors bump
+            # to the installed version); otherwise keep the user's spec.
+            new_pyproject = _union_pyproject_deps(
+                current=current_pyproject,
+                detected=detected_pyproject,
+                libraries=manager.registry,
+            )
             deps_input.value = ", ".join(new_decorator)
             self._write_pyproject_deps(lib_dir, new_pyproject, set_pyproject_dependencies)
 

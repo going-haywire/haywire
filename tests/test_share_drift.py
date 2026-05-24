@@ -21,7 +21,25 @@ from haywire_studio.share import (
     apply_drift_fix,
     detect_share_drift,
     share_save_repo,
+    union_pyproject_deps,
 )
+
+
+class _FakeLibrarySource:
+    """Minimal HaywireLibrarySource for testing union/lag with a controlled set
+    of registered dists. Avoids depending on the dev workspace's real entry
+    points."""
+
+    def __init__(self, dists: list[str]) -> None:
+        # entry-point name → dist name. Tests only need the dist set, so use
+        # the dist name as both key and value.
+        self._map = {d: d for d in dists}
+
+    def list_names(self) -> list[str]:
+        return list(self._map.keys())
+
+    def get_library_distribution_name(self, library_id: str) -> str | None:
+        return self._map.get(library_id)
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -331,3 +349,240 @@ def test_entry_point_source_finds_dev_workspace_libraries() -> None:
     dists = {src.get_library_distribution_name(n) for n in names}
     assert "haybale-core" in dists
     assert "haybale-studio" in dists
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# pyproject_version_lag (spec §12) — declared haybale floors that lag installed
+# ──────────────────────────────────────────────────────────────────────────────
+
+
+@pytest.mark.unit
+def test_lag_flagged_for_haybale_dep_with_tilde_equals(tmp_path: Path, monkeypatch) -> None:
+    """A haybale-* dep declared `~=` against a floor below the installed version
+    should be flagged as version lag (spec §12.2)."""
+    import importlib.metadata as _meta
+
+    monkeypatch.setattr(_meta, "version", lambda dist: "0.5.0" if dist == "haybale-core" else "0.0.0")
+    lib = _make_library(
+        tmp_path,
+        pyproject_deps=["haybale-core~=0.1.0"],
+        init_body_imports="from haybale_core import types\n",
+    )
+    drift = detect_share_drift(lib)
+    assert drift.pyproject_version_lag == [("haybale-core", "0.1.0", "0.5.0")]
+    assert drift.has_drift
+
+
+@pytest.mark.unit
+def test_lag_flagged_for_haybale_dep_with_gte(tmp_path: Path, monkeypatch) -> None:
+    """`>=` operator is also lag-eligible per spec §12.2."""
+    import importlib.metadata as _meta
+
+    monkeypatch.setattr(_meta, "version", lambda dist: "0.3.0" if dist == "haybale-core" else "0.0.0")
+    lib = _make_library(
+        tmp_path,
+        pyproject_deps=["haybale-core>=0.1.0"],
+        init_body_imports="from haybale_core import types\n",
+    )
+    drift = detect_share_drift(lib)
+    assert drift.pyproject_version_lag == [("haybale-core", "0.1.0", "0.3.0")]
+
+
+@pytest.mark.unit
+def test_lag_not_flagged_for_exact_pin(tmp_path: Path, monkeypatch) -> None:
+    """`==` is a deliberate pin; spec §12.2 says it must NOT be lag-flagged
+    even if the installed version is higher."""
+    import importlib.metadata as _meta
+
+    monkeypatch.setattr(_meta, "version", lambda dist: "0.5.0" if dist == "haybale-core" else "0.0.0")
+    lib = _make_library(
+        tmp_path,
+        pyproject_deps=["haybale-core==0.1.0"],
+        init_body_imports="from haybale_core import types\n",
+    )
+    drift = detect_share_drift(lib)
+    assert drift.pyproject_version_lag == []
+
+
+@pytest.mark.unit
+def test_lag_not_flagged_for_upper_bound(tmp_path: Path, monkeypatch) -> None:
+    """`<` and `<=` are upper bounds, not floors; never flagged."""
+    import importlib.metadata as _meta
+
+    monkeypatch.setattr(_meta, "version", lambda dist: "0.5.0" if dist == "haybale-core" else "0.0.0")
+    lib = _make_library(
+        tmp_path,
+        pyproject_deps=["haybale-core<2.0"],
+        init_body_imports="from haybale_core import types\n",
+    )
+    drift = detect_share_drift(lib)
+    assert drift.pyproject_version_lag == []
+
+
+@pytest.mark.unit
+def test_lag_not_flagged_for_third_party_dep(tmp_path: Path, monkeypatch) -> None:
+    """Spec §12.1 critical correctness property: third-party deps (not
+    registered as haywire libraries) must NEVER be lag-checked. Acting on
+    third-party lag would gratuitously narrow library compatibility based
+    on the author's dev-machine state."""
+    import importlib.metadata as _meta
+
+    # Pretend numpy is installed at 2.0 but library declares numpy>=1.0.
+    monkeypatch.setattr(_meta, "version", lambda dist: "2.0.0" if dist == "numpy" else "0.0.0")
+    lib = _make_library(
+        tmp_path,
+        pyproject_deps=["numpy>=1.0"],
+        init_body_imports="",  # no imports → no missing-deps complaint either
+    )
+    drift = detect_share_drift(lib)
+    assert drift.pyproject_version_lag == []
+    # numpy is not registered as a haywire library, so even though the floor
+    # genuinely lags, the gate stays silent.
+
+
+@pytest.mark.unit
+def test_lag_not_flagged_when_installed_equals_floor(tmp_path: Path, monkeypatch) -> None:
+    """`installed == declared_floor` is not lag — only strictly greater."""
+    import importlib.metadata as _meta
+
+    monkeypatch.setattr(_meta, "version", lambda dist: "0.1.0" if dist == "haybale-core" else "0.0.0")
+    lib = _make_library(
+        tmp_path,
+        pyproject_deps=["haybale-core~=0.1.0"],
+        init_body_imports="from haybale_core import types\n",
+    )
+    drift = detect_share_drift(lib)
+    assert drift.pyproject_version_lag == []
+
+
+@pytest.mark.unit
+def test_lag_skipped_when_dep_not_installed(tmp_path: Path, monkeypatch) -> None:
+    """If a declared dep isn't installed, can't compute lag — skip silently."""
+    import importlib.metadata as _meta
+
+    def _raise(dist):
+        raise _meta.PackageNotFoundError(dist)
+
+    monkeypatch.setattr(_meta, "version", _raise)
+    lib = _make_library(
+        tmp_path,
+        pyproject_deps=["haybale-core~=0.1.0"],
+        init_body_imports="from haybale_core import types\n",
+    )
+    drift = detect_share_drift(lib)
+    assert drift.pyproject_version_lag == []
+
+
+@pytest.mark.unit
+def test_apply_drift_fix_rewrites_lagging_floor(tmp_path: Path, monkeypatch) -> None:
+    """`apply_drift_fix` must bump the lagging floor to the installed version,
+    preserving the original operator (spec §12.3)."""
+    import importlib.metadata as _meta
+
+    monkeypatch.setattr(_meta, "version", lambda dist: "0.5.0" if dist == "haybale-core" else "0.0.0")
+    lib = _make_library(
+        tmp_path,
+        pyproject_deps=["haybale-core~=0.1.0"],
+        init_body_imports="from haybale_core import types\n",
+    )
+    drift = detect_share_drift(lib)
+    assert drift.has_drift
+    apply_drift_fix(drift)
+
+    data = toml.loads((lib / "pyproject.toml").read_text())
+    deps = data["project"]["dependencies"]
+    assert "haybale-core~=0.5.0" in deps
+    # The old floor should be gone.
+    assert "haybale-core~=0.1.0" not in deps
+
+
+@pytest.mark.unit
+def test_apply_drift_fix_preserves_gte_operator(tmp_path: Path, monkeypatch) -> None:
+    """Operator preservation: `>=` stays `>=` after the fix."""
+    import importlib.metadata as _meta
+
+    monkeypatch.setattr(_meta, "version", lambda dist: "0.5.0" if dist == "haybale-core" else "0.0.0")
+    lib = _make_library(
+        tmp_path,
+        pyproject_deps=["haybale-core>=0.1.0"],
+        init_body_imports="from haybale_core import types\n",
+    )
+    drift = detect_share_drift(lib)
+    apply_drift_fix(drift)
+
+    data = toml.loads((lib / "pyproject.toml").read_text())
+    assert "haybale-core>=0.5.0" in data["project"]["dependencies"]
+
+
+@pytest.mark.unit
+def test_union_bumps_haybale_floor_to_detected_spec() -> None:
+    """Per spec §12.3: when the user has `haybale-X~=0.1.0` and detect finds
+    `haybale-X~=0.5.0` (because 0.5.0 is installed), Union must NOT keep both
+    as duplicates. It must collapse to the detected (higher) spec."""
+    libs = _FakeLibrarySource(["haybale-core"])
+    out = union_pyproject_deps(
+        current=["haybale-core~=0.1.0"],
+        detected=["haybale-core~=0.5.0"],
+        libraries=libs,
+    )
+    assert out == ["haybale-core~=0.5.0"]
+
+
+@pytest.mark.unit
+def test_union_keeps_user_spec_for_third_party() -> None:
+    """Third-party deps must not have their floors silently bumped during
+    Union — that would narrow consumer compatibility based on the author's
+    dev-machine state (spec §12.1)."""
+    libs = _FakeLibrarySource([])  # no registered haybales
+    out = union_pyproject_deps(
+        current=["numpy~=1.0"],
+        detected=["numpy~=2.0"],
+        libraries=libs,
+    )
+    assert out == ["numpy~=1.0"]
+
+
+@pytest.mark.unit
+def test_union_adds_new_dist_from_detected() -> None:
+    """A dist that only the detected side has should be added."""
+    libs = _FakeLibrarySource(["haybale-core"])
+    out = union_pyproject_deps(
+        current=["haybale-core~=0.1.0"],
+        detected=["haybale-core~=0.1.0", "haywire-core~=0.0.1"],
+        libraries=libs,
+    )
+    assert "haywire-core~=0.0.1" in out
+    assert "haybale-core~=0.1.0" in out
+
+
+@pytest.mark.unit
+def test_union_keeps_dist_only_in_current() -> None:
+    """A dist that only the user has (perhaps optional / not yet imported)
+    must NOT be removed by Union."""
+    libs = _FakeLibrarySource([])
+    out = union_pyproject_deps(
+        current=["click>=8"],
+        detected=[],
+        libraries=libs,
+    )
+    assert out == ["click>=8"]
+
+
+@pytest.mark.unit
+def test_drift_report_includes_lag_section(tmp_path: Path, monkeypatch) -> None:
+    """The human report must mention lag explicitly so users understand
+    why share is warning/failing."""
+    import importlib.metadata as _meta
+
+    monkeypatch.setattr(_meta, "version", lambda dist: "0.5.0" if dist == "haybale-core" else "0.0.0")
+    lib = _make_library(
+        tmp_path,
+        pyproject_deps=["haybale-core~=0.1.0"],
+        init_body_imports="from haybale_core import types\n",
+    )
+    drift = detect_share_drift(lib)
+    report = _format_drift_report(drift)
+    assert "haybale-core" in report
+    assert "0.1.0" in report
+    assert "0.5.0" in report
+    assert "lagging" in report.lower()

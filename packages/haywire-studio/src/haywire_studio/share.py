@@ -350,17 +350,23 @@ def _build_entry_for_library(lib_dir: Path) -> dict | None:
 class DepDrift:
     """Drift between a library's declared deps and what its imports require.
 
-    All four lists are sorted. ``has_drift`` is True iff any list is non-empty.
+    All lists are sorted. ``has_drift`` is True iff any actionable list
+    (missing or version-lag) is non-empty; ``unresolved`` is informational
+    only and does not count as drift.
+
+    ``pyproject_version_lag`` entries are ``(dist_name, declared_floor,
+    installed_version)`` tuples. Scoped to haybale-* deps only (spec §12.1).
     """
 
     lib_dir: Path
     pyproject_missing: list[str] = field(default_factory=list)
     decorator_missing: list[str] = field(default_factory=list)
+    pyproject_version_lag: list[tuple[str, str, str]] = field(default_factory=list)
     unresolved: list[str] = field(default_factory=list)
 
     @property
     def has_drift(self) -> bool:
-        return bool(self.pyproject_missing or self.decorator_missing)
+        return bool(self.pyproject_missing or self.decorator_missing or self.pyproject_version_lag)
 
 
 def detect_share_drift(lib_dir: Path) -> DepDrift:
@@ -416,10 +422,13 @@ def detect_share_drift(lib_dir: Path) -> DepDrift:
     detected_dec_norm = {_norm_dep(d) for d in detected.library_decorator}
     decorator_missing = sorted(detected_dec_norm - decl_dec_norm)
 
+    pyproject_version_lag = _detect_pyproject_version_lag(declared_pyproject, libraries=libraries)
+
     return DepDrift(
         lib_dir=lib_dir,
         pyproject_missing=pyproject_missing,
         decorator_missing=decorator_missing,
+        pyproject_version_lag=pyproject_version_lag,
         unresolved=list(detected.unresolved),
     )
 
@@ -427,6 +436,120 @@ def detect_share_drift(lib_dir: Path) -> DepDrift:
 def _strip_specifier(spec: str) -> str:
     """Strip PEP 440 version operators and extras from a requirement string."""
     return re.split(r"[~>=<!;\s\[]", spec)[0]
+
+
+def _parse_floor_spec(spec: str) -> tuple[str, str] | None:
+    """Parse a requirement string into ``(operator, version)`` for lag-eligible
+    floor operators. Returns None for operators we don't lag-check (==, <,
+    !=, no operator, or anything we can't parse).
+
+    Recognized lag-eligible operators (per spec §12.2): ``~=``, ``>=``, ``>``.
+    """
+    # Operators ordered longest-first so ``>=`` doesn't match as ``>``.
+    for op in ("~=", ">=", ">"):
+        idx = spec.find(op)
+        if idx == -1:
+            continue
+        # Make sure the operator isn't a substring of a different operator —
+        # find the FIRST run of operator chars in the spec and require it to
+        # match exactly.
+        m = re.search(r"([~>=<!]+)", spec)
+        if m is None or m.group(1) != op:
+            continue
+        # Extract the version portion (everything after the operator, up to
+        # any extras marker, semicolon, whitespace, or end-of-string).
+        rest = spec[idx + len(op) :]
+        version = re.split(r"[\s;,\[]", rest, maxsplit=1)[0].strip()
+        if not version:
+            return None
+        return (op, version)
+    return None
+
+
+def _version_tuple(version: str) -> tuple[int, ...]:
+    """Best-effort numeric tuple for version comparison. Non-numeric segments
+    sort as 0 so pre-release tails don't crash the comparison; this gate's
+    job is to surface obvious lag, not to enforce strict PEP 440."""
+    parts = re.split(r"[.\-+]", version)
+    out: list[int] = []
+    for p in parts:
+        m = re.match(r"(\d+)", p)
+        out.append(int(m.group(1)) if m else 0)
+    return tuple(out)
+
+
+def union_pyproject_deps(
+    *,
+    current: list[str],
+    detected: list[str],
+    libraries: object,
+) -> list[str]:
+    """Per spec §12.3: merge declared and detected pyproject deps by distribution
+    NAME (not by full specifier string).
+
+    For each distribution:
+      - If both sides have a spec and the dist is a registered haybale, prefer
+        the detected spec (so a lagging floor bumps to the installed version).
+      - If both sides have a spec and the dist is third-party, keep the
+        user's existing spec (we never narrow third-party compatibility).
+      - If only one side has a spec, keep it.
+
+    ``libraries`` must implement ``HaywireLibrarySource`` (only ``list_names``
+    and ``get_library_distribution_name`` are used).
+    """
+    haybale_dists: set[str] = set()
+    if hasattr(libraries, "list_names") and hasattr(libraries, "get_library_distribution_name"):
+        for lib_id in libraries.list_names():  # type: ignore[attr-defined]
+            dist = libraries.get_library_distribution_name(lib_id)  # type: ignore[attr-defined]
+            if dist:
+                haybale_dists.add(dist)
+
+    current_by_name: dict[str, str] = {_strip_specifier(s): s for s in current}
+    detected_by_name: dict[str, str] = {_strip_specifier(s): s for s in detected}
+
+    result: dict[str, str] = {}
+    for name in current_by_name.keys() | detected_by_name.keys():
+        cur_spec = current_by_name.get(name)
+        det_spec = detected_by_name.get(name)
+        if cur_spec is not None and det_spec is not None:
+            result[name] = det_spec if name in haybale_dists else cur_spec
+        else:
+            result[name] = cur_spec or det_spec or name
+    return sorted(result.values())
+
+
+def _detect_pyproject_version_lag(
+    declared: list[str],
+    *,
+    libraries: EntryPointLibrarySource,
+) -> list[tuple[str, str, str]]:
+    """Per spec §12.2: flag declared haybale-* deps whose floor lags the
+    installed version. Only ``~=``, ``>=``, ``>`` operators are checked.
+    """
+    import importlib.metadata as _meta
+
+    haybale_dists: set[str] = set()
+    for lib_id in libraries.list_names():
+        dist = libraries.get_library_distribution_name(lib_id)
+        if dist:
+            haybale_dists.add(dist)
+
+    out: list[tuple[str, str, str]] = []
+    for spec in declared:
+        dist_name = _strip_specifier(spec)
+        if dist_name not in haybale_dists:
+            continue
+        parsed = _parse_floor_spec(spec)
+        if parsed is None:
+            continue
+        _op, declared_floor = parsed
+        try:
+            installed = _meta.version(dist_name)
+        except _meta.PackageNotFoundError:
+            continue
+        if _version_tuple(installed) > _version_tuple(declared_floor):
+            out.append((dist_name, declared_floor, installed))
+    return sorted(out)
 
 
 def _norm_dep(name: str) -> str:
@@ -445,6 +568,10 @@ def _format_drift_report(drift: DepDrift) -> str:
         lines.append("  @library(dependencies=[...]) missing:")
         for s in drift.decorator_missing:
             lines.append(f"    + {s}")
+    if drift.pyproject_version_lag:
+        lines.append("  pyproject.toml haybale floors lagging installed:")
+        for dist, declared_floor, installed in drift.pyproject_version_lag:
+            lines.append(f"    ~ {dist}: declared {declared_floor}, installed {installed}")
     if drift.unresolved:
         lines.append("  Unresolved imports (not mapped to any distribution — likely dynamic):")
         for s in drift.unresolved:
@@ -466,8 +593,9 @@ def apply_drift_fix(drift: DepDrift) -> None:
     lib_dir = drift.lib_dir
 
     # 1. pyproject.toml: re-run detect_deps to get the proper specifiers, then
-    #    union with what's already declared.
-    if drift.pyproject_missing:
+    #    union with what's already declared. Also rewrite lagging haybale-*
+    #    floors per spec §12.3.
+    if drift.pyproject_missing or drift.pyproject_version_lag:
         libraries = EntryPointLibrarySource()
         detected = detect_deps(lib_dir, libraries=libraries)
         pyproject_path = lib_dir / "pyproject.toml"
@@ -478,10 +606,22 @@ def apply_drift_fix(drift: DepDrift) -> None:
                 declared = list(data.get("project", {}).get("dependencies", []))
             except toml.TomlDecodeError:
                 declared = []
-        # Union, preserving any user-specified version pins that detect_deps
-        # would otherwise overwrite with the running interpreter's version.
-        declared_names = {_strip_specifier(s) for s in declared}
-        unioned = list(declared)
+        # Bump any lagging haybale floors to the installed version, preserving
+        # the original operator (~=, >=, or >). Spec §12.3.
+        lag_by_dist = {dist: installed for dist, _floor, installed in drift.pyproject_version_lag}
+        rewritten: list[str] = []
+        for spec in declared:
+            dist_name = _strip_specifier(spec)
+            if dist_name in lag_by_dist:
+                parsed = _parse_floor_spec(spec)
+                if parsed is not None:
+                    op, _old_floor = parsed
+                    rewritten.append(f"{dist_name}{op}{lag_by_dist[dist_name]}")
+                    continue
+            rewritten.append(spec)
+        # Union with newly detected pyproject specs (the missing-deps branch).
+        declared_names = {_strip_specifier(s) for s in rewritten}
+        unioned = list(rewritten)
         for spec in detected.pyproject:
             if _strip_specifier(spec) not in declared_names:
                 unioned.append(spec)
