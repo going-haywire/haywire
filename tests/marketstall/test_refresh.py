@@ -433,3 +433,110 @@ def test_refresh_blocked_entry_disappears_from_caches(tmp_path: Path) -> None:
     assert "haybale-foo" not in {h.name for h in pm.caches}, (
         "blocked haybale must disappear from caches, not survive as stale"
     )
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# _count_updates_available — RefreshReport.updates_available (spec §10.3)
+# ──────────────────────────────────────────────────────────────────────────────
+
+
+@pytest.mark.unit
+def test_count_updates_available_flags_installed_below_cache_min(monkeypatch) -> None:
+    """An installed dist whose version is below the cache `min_version` counts
+    as an available update (spec §10.3)."""
+    import importlib.metadata as _meta
+
+    from haywire.core.marketstall.refresh import _count_updates_available
+
+    monkeypatch.setattr(_meta, "version", lambda dist: "0.1.0" if dist == "haybale-foo" else "0.0.0")
+    cache = [_h("haybale-foo", min_version="0.5.0")]
+    assert _count_updates_available(cache) == 1
+
+
+@pytest.mark.unit
+def test_count_updates_available_skips_equal_versions(monkeypatch) -> None:
+    """installed == min_version is not an update — only strictly less."""
+    import importlib.metadata as _meta
+
+    from haywire.core.marketstall.refresh import _count_updates_available
+
+    monkeypatch.setattr(_meta, "version", lambda dist: "0.5.0" if dist == "haybale-foo" else "0.0.0")
+    cache = [_h("haybale-foo", min_version="0.5.0")]
+    assert _count_updates_available(cache) == 0
+
+
+@pytest.mark.unit
+def test_count_updates_available_skips_uninstalled(monkeypatch) -> None:
+    """A haybale not installed locally cannot be updated — skip silently."""
+    import importlib.metadata as _meta
+
+    from haywire.core.marketstall.refresh import _count_updates_available
+
+    def _raise(dist):
+        raise _meta.PackageNotFoundError(dist)
+
+    monkeypatch.setattr(_meta, "version", _raise)
+    cache = [_h("haybale-foo", min_version="0.5.0")]
+    assert _count_updates_available(cache) == 0
+
+
+@pytest.mark.unit
+def test_count_updates_available_skips_stale_entries(monkeypatch) -> None:
+    """Stale cache entries hold OLD min_version values from a previous refresh
+    where the upstream wasn't reachable. Comparing against them would falsely
+    report 'up-to-date' just because the user happened to install the same
+    old version."""
+    import importlib.metadata as _meta
+
+    from haywire.core.marketstall.refresh import _count_updates_available
+
+    monkeypatch.setattr(_meta, "version", lambda dist: "0.1.0" if dist == "haybale-foo" else "0.0.0")
+    stale = _h("haybale-foo", min_version="0.5.0", stale=True)
+    assert _count_updates_available([stale]) == 0
+
+
+@pytest.mark.unit
+def test_count_updates_available_handles_multiple(monkeypatch) -> None:
+    """Counts across multiple entries — mix of out-of-date, current, and absent."""
+    import importlib.metadata as _meta
+
+    from haywire.core.marketstall.refresh import _count_updates_available
+
+    versions = {"haybale-a": "0.1.0", "haybale-b": "0.5.0"}  # c is uninstalled
+
+    def _ver(dist):
+        if dist in versions:
+            return versions[dist]
+        raise _meta.PackageNotFoundError(dist)
+
+    monkeypatch.setattr(_meta, "version", _ver)
+    cache = [
+        _h("haybale-a", min_version="0.5.0"),  # needs update
+        _h("haybale-b", min_version="0.5.0"),  # current
+        _h("haybale-c", min_version="0.5.0"),  # not installed
+    ]
+    assert _count_updates_available(cache) == 1
+
+
+@pytest.mark.unit
+def test_refresh_populates_updates_available_in_report(tmp_path: Path, monkeypatch) -> None:
+    """End-to-end: refresh() must set RefreshReport.updates_available based on
+    what the new caches contain."""
+    import importlib.metadata as _meta
+
+    from haywire.core.marketstall.refresh import refresh
+
+    monkeypatch.setattr(_meta, "version", lambda dist: "0.1.0" if dist == "haybale-foo" else "0.0.0")
+
+    stall_url = "https://alice.example/marketstall.toml"
+    stall_body = '[[haybales]]\nname = "haybale-foo"\nmin_version = "0.5.0"\n'
+
+    global_path = tmp_path / "global.toml"
+    global_path.write_text(f'[[stalls]]\nurl = "{stall_url}"\nignores = []\ndoubles = []\nblocked = []\n')
+    project_path = tmp_path / "project.toml"
+
+    with patch("haywire.core.marketstall.cache._urlopen") as mock_open:
+        mock_open.return_value.__enter__.return_value.read.return_value = stall_body.encode()
+        report = refresh(global_path=global_path, project_path=project_path, cache_dir=tmp_path / "c")
+
+    assert report.updates_available == 1

@@ -37,6 +37,35 @@ from haywire.core.marketstall.types import (
 )
 
 
+def _count_updates_available(final: list[Haybale]) -> int:
+    """Per spec §10.3: for each non-stale cached haybale, compare its
+    `min_version` against the installed distribution version. Count
+    entries where ``installed < cache.min_version``.
+
+    Stale entries are skipped (the upstream wasn't reachable; the stored
+    min_version is the old value and would falsely report "up-to-date").
+    Uninstalled haybales are skipped (nothing to update).
+    """
+    import importlib.metadata as _meta
+
+    from packaging.version import InvalidVersion, Version
+
+    count = 0
+    for h in final:
+        if h.stale or not h.min_version:
+            continue
+        try:
+            installed = _meta.version(h.name)
+        except _meta.PackageNotFoundError:
+            continue
+        try:
+            if Version(installed) < Version(h.min_version):
+                count += 1
+        except InvalidVersion:
+            continue
+    return count
+
+
 def apply_ignores(haybales: list[Haybale], ignores: list[str]) -> list[Haybale]:
     """Drop haybales whose name is in `ignores`.
 
@@ -267,6 +296,7 @@ def refresh(
     report.haybales_resolved = sum(1 for h in final if not h.stale)
     prev_stale_names = {p.name for p in pm_prev.caches if p.stale}
     report.new_stale = sum(1 for h in final if h.stale and h.name not in prev_stale_names)
+    report.updates_available = _count_updates_available(final)
 
     # Step 7: write project file.
     new_pm = ProjectMarketplaceFile(heaps=list(pm_prev.heaps), caches=final)

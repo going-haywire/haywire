@@ -234,6 +234,8 @@ class LibraryBrowserEditor(BaseEditor):
             msg_parts.append(f"{report.sources_unavailable} source(s) unavailable")
         if report.new_stale:
             msg_parts.append(f"{report.new_stale} newly stale")
+        if report.updates_available:
+            msg_parts.append(f"{report.updates_available} update(s) available")
         ui.notify(" · ".join(msg_parts), type="positive")
         self._render_list(context)
 
