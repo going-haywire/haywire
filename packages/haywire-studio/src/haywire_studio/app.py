@@ -170,7 +170,8 @@ class HaywireApp:
             library_registry,
             project_dir=self.workspace_root,
         )
-        self.library_manager.apply_persisted_state()
+        # Persisted disabled-state is now applied by the library system
+        # during create_library_system_service (ADR-0001 Step 3).
 
         print("Shared services configured successfully.")
 

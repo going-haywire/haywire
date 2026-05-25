@@ -421,40 +421,33 @@ class LibraryManager:
         return library_id in self.registry.list_names()
 
     def enable_library(self, library_id: str):
-        """Enable a library and persist the state."""
+        """Enable a library and persist the state.
+
+        Persistence write-through here is transitional; Step 5 of the
+        haybale-marketplace carve-out moves this onto LibraryEnableState
+        (ADR-0001).
+        """
         self.registry.enable_library(library_id)
         self._persist_disabled_state()
 
     def disable_library(self, library_id: str):
-        """Disable a library and persist the state."""
+        """Disable a library and persist the state.
+
+        See ``enable_library`` for the transitional-persistence note.
+        """
         self.registry.disable_library(library_id)
         self._persist_disabled_state()
-
-    def apply_persisted_state(self):
-        """Apply persisted disabled state after library discovery.
-
-        Call this after scan_for_libraries() to disable libraries
-        that the user previously disabled.
-        """
-        if not self.project_dir:
-            return
-        from .config import get_disabled_libraries
-
-        disabled_ids = get_disabled_libraries(self.project_dir)
-        for lib_id in disabled_ids:
-            if lib_id in self.registry.list_names():
-                self.registry.disable_library(lib_id)
 
     def _persist_disabled_state(self):
         """Save the current disabled library IDs to project config."""
         if not self.project_dir:
             return
-        from .config import set_disabled_libraries
+        from haywire.core.library.disabled_state_io import write_disabled_ids
 
         disabled_ids = [
             lib_id for lib_id in self.registry.list_names() if not self.registry.is_library_enabled(lib_id)
         ]
-        set_disabled_libraries(self.project_dir, disabled_ids)
+        write_disabled_ids(self.project_dir, disabled_ids)
 
     def get_installed_version(self, package_name: str) -> str | None:
         """Return the currently installed version of a pip package, or None.

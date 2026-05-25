@@ -362,6 +362,24 @@ class LibrarySystemService:
         print("\n🔍 Scanning for libraries...")
         library_registry.scan_for_libraries()
 
+        # Apply persisted-disabled state BEFORE the enable phase, so libraries
+        # the user previously disabled never enter the enable cycle in the
+        # first place. Owning this step here — rather than on a LibraryManager
+        # post-hook — avoids a mid-bootstrap mutation cascade. See ADR-0001.
+        from haywire.core.di.context import get_workspace_root
+        from haywire.core.library.disabled_state_io import read_disabled_ids
+
+        try:
+            workspace_root: Path | None = get_workspace_root()
+        except RuntimeError:
+            workspace_root = None
+        if workspace_root is not None:
+            disabled_ids = read_disabled_ids(workspace_root)
+            known = set(library_registry.list_names())
+            for lib_id in disabled_ids:
+                if lib_id in known:
+                    library_registry.disable_library(lib_id)
+
         # Wire LibraryStateContainer before enabling libraries so that
         # on_library_enabled fires naturally for each library as it enables.
         # CLASS_ADDED events during enable() only instantiate state (phase 1);

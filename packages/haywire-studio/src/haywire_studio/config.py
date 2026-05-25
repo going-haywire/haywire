@@ -119,19 +119,3 @@ def get_project_config(project_dir: Path) -> dict:
     if config_file.exists():
         return toml.loads(config_file.read_text())
     return {}
-
-
-def get_disabled_libraries(project_dir: Path) -> list[str]:
-    """Get the list of explicitly disabled library IDs for this project."""
-    config = get_project_config(project_dir)
-    return config.get("libraries", {}).get("disabled", [])
-
-
-def set_disabled_libraries(project_dir: Path, disabled_ids: list[str]):
-    """Persist the list of disabled library IDs to project config."""
-    config_file = project_dir / ".haywire" / "config.toml"
-    config = get_project_config(project_dir)
-    if "libraries" not in config:
-        config["libraries"] = {}
-    config["libraries"]["disabled"] = sorted(disabled_ids)
-    config_file.write_text(toml.dumps(config))
