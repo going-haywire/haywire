@@ -1,0 +1,28 @@
+[project]
+name = "haybale-marketplace"
+version = "0.0.1"
+description = "Library installer + browser editors for Haywire"
+requires-python = ">=3.10"
+license = {text = "MIT"}
+
+dependencies = [
+    "haywire-core~=0.0.1",
+    "haywire-studio~=0.0.1",
+    "toml",
+]
+
+[project.entry-points."haywire.libraries"]
+marketplace = "haybale_marketplace:Library"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["haybale_marketplace"]
+
+[tool.uv.sources]
+haywire-core = { workspace = true }
+haywire-studio = { workspace = true }
+haybale-core = { workspace = true }
+haybale-studio = { workspace = true }
