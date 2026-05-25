@@ -201,7 +201,7 @@ class LibraryBrowserEditor(BaseEditor):
         """
         from haywire.core.marketstall import MalformedMarketplaceError
 
-        from haybale_studio.state.marketplace_state import MarketplaceState
+        from haybale_marketplace.state.marketplace_state import MarketplaceState
 
         if context.app_data is None or MarketplaceState not in context.app_data:
             if missing_state_severity == "warning":
@@ -274,7 +274,7 @@ class LibraryBrowserEditor(BaseEditor):
 
     def _get_unavailable_urls(self, context: "SessionContext") -> list[str]:
         """Return unavailable_urls from the last RefreshReport, or [] if no refresh has run."""
-        from haybale_studio.state.marketplace_state import MarketplaceState
+        from haybale_marketplace.state.marketplace_state import MarketplaceState
 
         if context.app_data is None or MarketplaceState not in context.app_data:
             return []
@@ -343,14 +343,17 @@ class LibraryBrowserEditor(BaseEditor):
                         lambda urls=list(unavailable): self._show_unavailable_dialog(urls),
                     )
 
-        app = context.app
-        if app is None or not hasattr(app, "library_manager"):
+        from haybale_marketplace.state.library_manager_state import LibraryManagerState
+
+        manager_state = context.app_data.get(LibraryManagerState)
+        manager = manager_state.manager if manager_state is not None else None
+        if manager is None:
             with self._list_container:
                 ui.label("Library manager not available").classes("text-xs hw-text-dim p-2")
             return
 
         try:
-            libraries = app.library_manager.list_installed()
+            libraries = manager.list_installed()
         except Exception as e:
             logger.warning(f"LibraryBrowser: failed to list libraries: {e}")
             with self._list_container:
@@ -358,7 +361,6 @@ class LibraryBrowserEditor(BaseEditor):
             return
 
         q = self._search_query.lower().strip()
-        manager = app.library_manager
 
         def _label(lib) -> str:
             # LibraryInfo wraps identity; MarketplaceEntry has label/name directly
@@ -416,7 +418,7 @@ class LibraryBrowserEditor(BaseEditor):
         # uv hasn't surfaced as importable libraries yet).
         available = []
         if self._filter_available:
-            workspace_root = getattr(app, "workspace_root", None)
+            workspace_root = getattr(context.app, "workspace_root", None)
             marketplace_path = (
                 Path(workspace_root) / ".haywire" / "marketplace.toml" if workspace_root else None
             )
@@ -528,7 +530,7 @@ class LibraryBrowserEditor(BaseEditor):
 
     def _provenance_label_for(self, lib, context: "SessionContext") -> str | None:
         """Look up the user's [[stalls]] list to derive 'from {host}' vs 'via {host}'."""
-        from haybale_studio.state.marketplace_state import MarketplaceState
+        from haybale_marketplace.state.marketplace_state import MarketplaceState
 
         if context.app_data is None or MarketplaceState not in context.app_data:
             return None
@@ -540,7 +542,7 @@ class LibraryBrowserEditor(BaseEditor):
 
     def _on_remove_stale_click(self, name: str, context: "SessionContext") -> None:
         """Drop a stale [[caches]] entry from the project marketplace, then re-render."""
-        from haybale_studio.state.marketplace_state import MarketplaceState
+        from haybale_marketplace.state.marketplace_state import MarketplaceState
 
         if context.app_data is None or MarketplaceState not in context.app_data:
             ui.notify("Marketplace state not available", type="warning")
@@ -568,6 +570,6 @@ class LibraryBrowserEditor(BaseEditor):
 
         session = context.session
         if session is not None:
-            from haybale_studio.editors.library_overview_editor import LibraryOverviewEditor
+            from haybale_marketplace.editors.library_overview_editor import LibraryOverviewEditor
 
             session.publish(Reveal(editor=LibraryOverviewEditor))

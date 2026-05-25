@@ -190,12 +190,12 @@ class ComponentSourceEditor(BaseEditor):
             return None
 
     def _compute_is_editable(self, context: "SessionContext") -> bool:
+        from haybale_marketplace.state.library_manager_state import LibraryManagerState
+
         if not self._registry_key:
             return False
-        app = context.app
-        if app is None:
-            return False
-        manager = getattr(app, "library_manager", None)
+        manager_state = context.app_data.get(LibraryManagerState)
+        manager = manager_state.manager if manager_state is not None else None
         if manager is None:
             return False
         lib_id = self._registry_key.split(":", 1)[0]

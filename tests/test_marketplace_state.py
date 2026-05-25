@@ -18,7 +18,7 @@ def fake_home(tmp_path, monkeypatch):
 @pytest.fixture
 def state_with_workspace(tmp_path, fake_home, monkeypatch):
     """Construct a MarketplaceState and run on_enable with a sandboxed workspace_root."""
-    from haybale_studio.state.marketplace_state import MarketplaceState
+    from haybale_marketplace.state.marketplace_state import MarketplaceState
 
     workspace = tmp_path / "project"
     (workspace / ".haywire").mkdir(parents=True)
@@ -37,7 +37,7 @@ def state_with_workspace(tmp_path, fake_home, monkeypatch):
 def test_marketplace_state_is_an_app_state() -> None:
     """MarketplaceState extends AppState and carries the @state(label=...) decorator."""
     from haywire.core.state.base import AppState
-    from haybale_studio.state.marketplace_state import MarketplaceState
+    from haybale_marketplace.state.marketplace_state import MarketplaceState
 
     assert issubclass(MarketplaceState, AppState)
     # @state(...) attaches class_identity (set by LibraryStateRegistry at scan time;

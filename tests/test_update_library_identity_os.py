@@ -40,7 +40,7 @@ def _scaffold_minimal_heap(workspace: Path, dist_name: str = "haybale-foo") -> P
 @pytest.mark.unit
 def test_apply_os_to_pyproject_writes_section(tmp_path: Path) -> None:
     """The helper writes [tool.haywire].os when given a non-empty list."""
-    from haywire_studio.library_manager import _apply_os_to_pyproject
+    from haybale_marketplace.library_manager import _apply_os_to_pyproject
 
     lib_dir = _scaffold_minimal_heap(tmp_path)
     pyproject = lib_dir / "pyproject.toml"
@@ -54,7 +54,7 @@ def test_apply_os_to_pyproject_writes_section(tmp_path: Path) -> None:
 @pytest.mark.unit
 def test_apply_os_to_pyproject_filters_invalid_values(tmp_path: Path) -> None:
     """Only macos/windows/linux are allowed; 'other' and unknowns are dropped silently."""
-    from haywire_studio.library_manager import _apply_os_to_pyproject
+    from haybale_marketplace.library_manager import _apply_os_to_pyproject
 
     lib_dir = _scaffold_minimal_heap(tmp_path)
     pyproject = lib_dir / "pyproject.toml"
@@ -68,7 +68,7 @@ def test_apply_os_to_pyproject_filters_invalid_values(tmp_path: Path) -> None:
 @pytest.mark.unit
 def test_apply_os_to_pyproject_empty_list_removes_section(tmp_path: Path) -> None:
     """An empty list (after filtering) removes [tool.haywire].os entirely."""
-    from haywire_studio.library_manager import _apply_os_to_pyproject
+    from haybale_marketplace.library_manager import _apply_os_to_pyproject
 
     lib_dir = _scaffold_minimal_heap(tmp_path)
     pyproject = lib_dir / "pyproject.toml"
@@ -84,7 +84,7 @@ def test_apply_os_to_pyproject_empty_list_removes_section(tmp_path: Path) -> Non
 @pytest.mark.unit
 def test_apply_os_to_pyproject_all_three_removes_section(tmp_path: Path) -> None:
     """All three platforms = 'all platforms' = absent; remove the key entirely."""
-    from haywire_studio.library_manager import _apply_os_to_pyproject
+    from haybale_marketplace.library_manager import _apply_os_to_pyproject
 
     lib_dir = _scaffold_minimal_heap(tmp_path)
     pyproject = lib_dir / "pyproject.toml"
@@ -99,7 +99,7 @@ def test_apply_os_to_pyproject_all_three_removes_section(tmp_path: Path) -> None
 @pytest.mark.unit
 def test_apply_os_to_pyproject_preserves_other_tool_sections(tmp_path: Path) -> None:
     """Existing [tool.hatch.*] etc. survive the write."""
-    from haywire_studio.library_manager import _apply_os_to_pyproject
+    from haybale_marketplace.library_manager import _apply_os_to_pyproject
 
     lib_dir = _scaffold_minimal_heap(tmp_path)
     pyproject = lib_dir / "pyproject.toml"

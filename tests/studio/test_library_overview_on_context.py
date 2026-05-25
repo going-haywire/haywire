@@ -3,7 +3,7 @@ a singleton tab; second click with different library switches the same tab."""
 
 import pytest
 
-from haybale_studio.editors.library_overview_editor import LibraryOverviewEditor
+from haybale_marketplace.editors.library_overview_editor import LibraryOverviewEditor
 from haywire.ui.editor.identity import OpenBehavior
 
 

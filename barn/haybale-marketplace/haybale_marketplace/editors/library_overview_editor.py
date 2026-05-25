@@ -208,9 +208,15 @@ class LibraryOverviewEditor(BaseEditor):
         )
 
         # Resolve registries from context
+        from haybale_marketplace.state.library_manager_state import LibraryManagerState
+
         app = context.app
         svc = app.library_service
-        manager = app.library_manager
+        manager_state = context.app_data.get(LibraryManagerState)
+        manager = manager_state.manager if manager_state is not None else None
+        if manager is None:
+            ui.label("Library manager not available").classes("hw-text-dim")
+            return
         node_registry: NodeRegistry = svc.get_node_registry()
         widget_registry: WidgetRegistry = svc.get_widget_registry()
         type_registry: TypeRegistry = svc.get_type_registry()
@@ -745,13 +751,17 @@ class LibraryOverviewEditor(BaseEditor):
     # ─────────────────────────────────────────────────────────────────────────
 
     def _enable_library(self, library_id: str, manager, context: "SessionContext"):
-        manager.enable_library(library_id)
+        from haybale_marketplace.state.library_enable_state import LibraryEnableState
+
+        context.app_data[LibraryEnableState].enable(library_id)
         ui.notify(f"Enabled: {library_id}", type="positive")
         context.active_library = self._reload_installed(library_id, manager)
         self._notify_library_changed(context)
 
     def _disable_library(self, library_id: str, manager, context: "SessionContext"):
-        manager.disable_library(library_id)
+        from haybale_marketplace.state.library_enable_state import LibraryEnableState
+
+        context.app_data[LibraryEnableState].disable(library_id)
         ui.notify(f"Disabled: {library_id}", type="warning")
         context.active_library = self._reload_installed(library_id, manager)
         self._notify_library_changed(context)
@@ -1396,7 +1406,7 @@ class LibraryOverviewEditor(BaseEditor):
         )
         from haywire.ui.modals import install_safety_modal
 
-        from haybale_studio.state.marketplace_state import MarketplaceState
+        from haybale_marketplace.state.marketplace_state import MarketplaceState
 
         def _on_install():
             # Return the coroutine (don't schedule it). The modal awaits it,

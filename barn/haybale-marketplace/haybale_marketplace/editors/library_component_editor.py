@@ -86,14 +86,14 @@ class LibraryComponentEditor(BaseEditor):
                 )
                 return
 
+            from haybale_marketplace.state.library_manager_state import LibraryManagerState
+
             app = context.app
             lib_id, comp_singular, class_name = registry_key.split(":", 2)
             comp_type = f"{comp_singular}s"
-            lib: LibraryInfo | None = (
-                app.library_manager.get_installed_library(lib_id)
-                if app and getattr(app, "library_manager", None)
-                else None
-            )
+            manager_state = context.app_data.get(LibraryManagerState)
+            manager = manager_state.manager if manager_state is not None else None
+            lib: LibraryInfo | None = manager.get_installed_library(lib_id) if manager is not None else None
 
             cls = self._lookup_class(app, lib_id, comp_type, registry_key)
             identity = getattr(cls, "class_identity", None) if cls else None

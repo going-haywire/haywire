@@ -8,6 +8,7 @@ license = {text = "MIT"}
 dependencies = [
     "haywire-core~=0.0.1",
     "haywire-studio~=0.0.1",
+    "haybale-studio~=0.0.1",
     "toml",
 ]
 

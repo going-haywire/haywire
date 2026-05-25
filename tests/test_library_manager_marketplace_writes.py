@@ -21,10 +21,9 @@ def test_update_library_identity_writes_heap_entry() -> None:
 
     src = (
         P(__file__).parent.parent
-        / "packages"
-        / "haywire-studio"
-        / "src"
-        / "haywire_studio"
+        / "barn"
+        / "haybale-marketplace"
+        / "haybale_marketplace"
         / "library_manager.py"
     )
     content = src.read_text()

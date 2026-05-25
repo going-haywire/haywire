@@ -20,6 +20,7 @@ haybale-visiongraph = { workspace = true }
 haybale-TEST_A = { workspace = true }
 haybale-haystack = { workspace = true }
 haybale-graph-editor = { workspace = true }
+haybale-marketplace = { workspace = true }
 
 [dependency-groups]
 dev = [
@@ -41,6 +42,7 @@ dev = [
     "haybale-TEST_A",
     "haybale-haystack",
     "haybale-graph-editor",
+    "haybale-marketplace",
     "mkdocs-material>=9.7.6",
 ]
 
@@ -57,6 +59,7 @@ mypy_path = [
     "barn/haybale-TEST_A",
     "barn/haybale-haystack",
     "barn/haybale-graph-editor",
+    "barn/haybale-marketplace",
 ]
 
 [[tool.mypy.overrides]]
@@ -96,6 +99,7 @@ publish_order = [
     "haywire-studio",
     "haybale-core",
     "haybale-studio",
+    "haybale-marketplace",
     "haybale-graph-editor",
     "haybale-haystack",
     "haybale-example",

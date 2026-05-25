@@ -8,7 +8,7 @@ import pytest
 @pytest.mark.unit
 def test_provenance_label_for_direct_stall_subscription() -> None:
     """Haybale fetched from a [[stalls]] subscription shows 'from {host}'."""
-    from haybale_studio.editors.library_browser_editor import derive_provenance_label
+    from haybale_marketplace.editors.library_browser_editor import derive_provenance_label
     from haywire.core.marketstall import Haybale, MarketplaceFile, Subscription
 
     haybale = Haybale(
@@ -27,7 +27,7 @@ def test_provenance_label_for_direct_stall_subscription() -> None:
 @pytest.mark.unit
 def test_provenance_label_for_transitive_via_market() -> None:
     """Haybale via [[markets]] (not directly in [[stalls]]) shows 'via {host}'."""
-    from haybale_studio.editors.library_browser_editor import derive_provenance_label
+    from haybale_marketplace.editors.library_browser_editor import derive_provenance_label
     from haywire.core.marketstall import Haybale, MarketplaceFile, Subscription
 
     # User subscribed to an aggregator; haybale arrived via the aggregator's listed stall.
@@ -50,7 +50,7 @@ def test_provenance_label_for_transitive_via_market() -> None:
 @pytest.mark.unit
 def test_provenance_label_empty_via_returns_none() -> None:
     """A haybale with no `via` (e.g. inline in global file) returns None."""
-    from haybale_studio.editors.library_browser_editor import derive_provenance_label
+    from haybale_marketplace.editors.library_browser_editor import derive_provenance_label
     from haywire.core.marketstall import Haybale, MarketplaceFile
 
     haybale = Haybale(name="haybale-foo", min_version="0.1.0", via="")
@@ -62,7 +62,7 @@ def test_provenance_label_empty_via_returns_none() -> None:
 @pytest.mark.unit
 def test_provenance_label_strips_user_paths_from_file_urls() -> None:
     """For file:// pasted-block subscriptions, the label uses 'pasted' instead of a path."""
-    from haybale_studio.editors.library_browser_editor import derive_provenance_label
+    from haybale_marketplace.editors.library_browser_editor import derive_provenance_label
     from haywire.core.marketstall import Haybale, MarketplaceFile, Subscription
 
     haybale = Haybale(

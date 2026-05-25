@@ -55,6 +55,7 @@ def _generate_project_pyproject(name: str, dev_repo: str | None = None) -> str:
             "requires-python": ">=3.10",
             "dependencies": [
                 "haywire-studio~=0.0.1",
+                "haybale-marketplace~=0.0.1",
                 lib_name,
             ],
         },
@@ -76,6 +77,7 @@ def _generate_project_pyproject(name: str, dev_repo: str | None = None) -> str:
                 "haywire-core": {"path": f"{dev_repo}/packages/haywire-core", "editable": True},
                 "haybale-core": {"path": f"{dev_repo}/barn/haybale-core", "editable": True},
                 "haybale-studio": {"path": f"{dev_repo}/barn/haybale-studio", "editable": True},
+                "haybale-marketplace": {"path": f"{dev_repo}/barn/haybale-marketplace", "editable": True},
             }
         )
 

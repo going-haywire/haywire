@@ -22,6 +22,7 @@ members = [
     "haybale-example",
     "haybale-graph-editor",
     "haybale-haystack",
+    "haybale-marketplace",
     "haybale-studio",
     "haybale-test-a",
     "haybale-testing",
@@ -768,6 +769,25 @@ requires-dist = [
 ]
 
 [[package]]
+name = "haybale-marketplace"
+version = "0.0.1"
+source = { editable = "barn/haybale-marketplace" }
+dependencies = [
+    { name = "haybale-studio" },
+    { name = "haywire-core" },
+    { name = "haywire-studio" },
+    { name = "toml" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "haybale-studio", editable = "barn/haybale-studio" },
+    { name = "haywire-core", editable = "packages/haywire-core" },
+    { name = "haywire-studio", editable = "packages/haywire-studio" },
+    { name = "toml" },
+]
+
+[[package]]
 name = "haybale-studio"
 version = "0.0.1"
 source = { editable = "barn/haybale-studio" }
@@ -884,6 +904,7 @@ dev = [
     { name = "haybale-example" },
     { name = "haybale-graph-editor" },
     { name = "haybale-haystack" },
+    { name = "haybale-marketplace" },
     { name = "haybale-studio" },
     { name = "haybale-test-a" },
     { name = "haybale-testing" },
@@ -909,6 +930,7 @@ dev = [
     { name = "haybale-example", editable = "barn/haybale-example" },
     { name = "haybale-graph-editor", editable = "barn/haybale-graph-editor" },
     { name = "haybale-haystack", editable = "barn/haybale-haystack" },
+    { name = "haybale-marketplace", editable = "barn/haybale-marketplace" },
     { name = "haybale-studio", editable = "barn/haybale-studio" },
     { name = "haybale-test-a", editable = "barn/haybale-TEST_A" },
     { name = "haybale-testing", editable = "barn/haybale-testing" },

@@ -420,35 +420,6 @@ class LibraryManager:
         """Return whether a library id is currently discovered in the registry."""
         return library_id in self.registry.list_names()
 
-    def enable_library(self, library_id: str):
-        """Enable a library and persist the state.
-
-        Persistence write-through here is transitional; Step 5 of the
-        haybale-marketplace carve-out moves this onto LibraryEnableState
-        (ADR-0001).
-        """
-        self.registry.enable_library(library_id)
-        self._persist_disabled_state()
-
-    def disable_library(self, library_id: str):
-        """Disable a library and persist the state.
-
-        See ``enable_library`` for the transitional-persistence note.
-        """
-        self.registry.disable_library(library_id)
-        self._persist_disabled_state()
-
-    def _persist_disabled_state(self):
-        """Save the current disabled library IDs to project config."""
-        if not self.project_dir:
-            return
-        from haywire.core.library.disabled_state_io import write_disabled_ids
-
-        disabled_ids = [
-            lib_id for lib_id in self.registry.list_names() if not self.registry.is_library_enabled(lib_id)
-        ]
-        write_disabled_ids(self.project_dir, disabled_ids)
-
     def get_installed_version(self, package_name: str) -> str | None:
         """Return the currently installed version of a pip package, or None.
 

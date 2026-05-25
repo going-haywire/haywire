@@ -10,7 +10,7 @@ import pytest
 @pytest.mark.unit
 def test_should_block_install_for_os_returns_none_when_empty_os() -> None:
     """A haybale with empty os list (= all platforms) is never OS-blocked."""
-    from haybale_studio.editors.library_overview_editor import should_block_install_for_os
+    from haybale_marketplace.editors.library_overview_editor import should_block_install_for_os
     from haywire.core.marketstall import Haybale
 
     h = Haybale(name="haybale-x", min_version="0.1.0", os=[])
@@ -20,7 +20,7 @@ def test_should_block_install_for_os_returns_none_when_empty_os() -> None:
 @pytest.mark.unit
 def test_should_block_install_for_os_returns_none_when_supported() -> None:
     """A haybale that includes the current OS is not blocked."""
-    from haybale_studio.editors.library_overview_editor import should_block_install_for_os
+    from haybale_marketplace.editors.library_overview_editor import should_block_install_for_os
     from haywire.core.marketstall import Haybale
 
     h = Haybale(name="haybale-x", min_version="0.1.0", os=["macos", "linux", "windows"])
@@ -31,7 +31,7 @@ def test_should_block_install_for_os_returns_none_when_supported() -> None:
 @pytest.mark.unit
 def test_should_block_install_for_os_returns_message_when_unsupported() -> None:
     """A haybale that does NOT include the current OS returns a tooltip message."""
-    from haybale_studio.editors.library_overview_editor import should_block_install_for_os
+    from haybale_marketplace.editors.library_overview_editor import should_block_install_for_os
     from haywire.core.marketstall import Haybale
 
     h = Haybale(name="haybale-x", min_version="0.1.0", os=["macos", "linux"])
@@ -44,7 +44,7 @@ def test_should_block_install_for_os_returns_message_when_unsupported() -> None:
 
 @pytest.mark.unit
 def test_should_block_install_for_os_includes_os_list_in_message() -> None:
-    from haybale_studio.editors.library_overview_editor import should_block_install_for_os
+    from haybale_marketplace.editors.library_overview_editor import should_block_install_for_os
     from haywire.core.marketstall import Haybale
 
     h = Haybale(name="haybale-x", min_version="0.1.0", os=["macos"])

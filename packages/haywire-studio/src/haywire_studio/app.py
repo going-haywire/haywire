@@ -162,16 +162,9 @@ class HaywireApp:
 
         self.workspace_manager = WorkspaceManager(project_path=Path(self.workspace_root))
 
-        # Library manager
-        from .library_manager import LibraryManager
-
-        library_registry = self.library_service.get_library_registry()
-        self.library_manager = LibraryManager(
-            library_registry,
-            project_dir=self.workspace_root,
-        )
-        # Persisted disabled-state is now applied by the library system
-        # during create_library_system_service (ADR-0001 Step 3).
+        # LibraryManager is now published by haybale-marketplace as
+        # LibraryManagerState. Persisted disabled-state is applied by the
+        # library system during create_library_system_service. See ADR-0001.
 
         print("Shared services configured successfully.")
 

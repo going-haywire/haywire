@@ -13,7 +13,6 @@ from typing import Any, Protocol, TYPE_CHECKING
 if TYPE_CHECKING:
     from haywire.core.di.config import LibrarySystemService
     from haywire.core.session.session_manager import SessionManager
-    from haywire_studio.library_manager import LibraryManager  # type: ignore[import-untyped]
     from haywire.core.state import LibraryStateContainer
 
 
@@ -29,7 +28,6 @@ class IProjectState(Protocol):
     session_manager: "SessionManager"
     node_registry: Any  # NodeRegistry
     node_factory: Any  # NodeFactory
-    library_manager: "LibraryManager"
     library_state_container: "LibraryStateContainer"
     """Pool of live LibraryState instances.
 
