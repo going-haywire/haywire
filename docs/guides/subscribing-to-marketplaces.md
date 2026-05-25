@@ -25,33 +25,40 @@ Your project's library state lives in two files. Knowing what each is for helps 
 
 | File | Path | What it holds |
 |---|---|---|
-| **Global marketplace** | `~/.haywire/marketplace.toml` | Your subscriptions (`[[marketplaces]]`, `[[marketstalls]]`), any packages you've pasted in directly (`[[packages]]`), and any cross-project local libraries (`[[locals]]`). Per-machine. |
-| **Project marketplace** | `<project>/.haywire/marketplace.toml` | This project's path-based libraries (`[[locals]]`, written by `haywire init`) and the resolved catalog cache (`[[packages]]`, written by Refresh). Per-project; travels with the source tree. |
+| **Global marketplace** | `~/.haywire/db/haybale-marketplace/marketplace.toml` | Your subscriptions: `[[markets]]` for remote aggregators, `[[stalls]]` for individual marketstall feeds. Pasted-TOML inputs are saved as a local stall file and referenced via a `file://` `[[stalls]]` entry. Per-machine. |
+| **Project marketplace** | `<project>/.haywire/marketplace.toml` | This project's path-based libraries (`[[heaps]]`, written by `haywire init`) and the resolved catalog cache (`[[caches]]`, written by Refresh). Per-project; travels with the source tree. |
 
-You generally interact with the global file (subscriptions are a user concern). The project file is managed for you — `haywire init` sets up `[[locals]]`, and Refresh maintains the cache.
+You generally interact with the global file (subscriptions are a user concern). The project file is managed for you — `haywire init` sets up `[[heaps]]`, and Refresh maintains `[[caches]]`.
 
 For a deep dive into the split and why it exists, see [sharing-arch §Why two tiers](../architecture/sharing/sharing-arch.md#why-two-tiers).
 
 ## 3. Add Source: subscribing to a feed
 
-Click **Add Source** in the Library Browser toolbar. A modal opens with three tabs.
+Click **Add Source** in the Library Browser toolbar. A single-field dialog opens — paste any of four forms:
 
-| Tab | What you paste | Adds to the global marketplace as |
+| Form | What it looks like | Result |
 |---|---|---|
-| **Marketplace** | URL of a remote marketplace file (aggregates multiple authors' packages and/or marketstall references) | `[[marketplaces]]` |
-| **Marketstall** | URL of a single-author marketstall file (one author's library list) | `[[marketstalls]]` |
-| **Direct package** | A full `[[packages]]` TOML block, pasted verbatim | `[[packages]]` |
+| **Blob URL** (recommended) | `https://github.com/alice/cool-libs/blob/main/marketstall.toml` | The runtime recognizes the host, converts to the raw URL, and saves the appropriate `[[markets]]` or `[[stalls]]` subscription depending on the fetched body's shape. |
+| **Raw URL** | `https://raw.githubusercontent.com/alice/cool-libs/main/marketstall.toml` | Same as blob, but skips the URL transformation. |
+| **Plain TOML URL** | Any URL that serves a TOML file (GitHub Pages, GitLab Pages, your own host) | Fetched as-is; the body shape determines subscription type. |
+| **TOML block** pasted directly | A `[[haybales]]` (or `[[markets]]`/`[[stalls]]`) section pasted into the field | Saved as a local file under `~/.haywire/db/haybale-marketplace/stalls/<dist-name>.toml` and referenced via a `file://` `[[stalls]]` entry. |
 
-Most authors will give you a URL like `https://maybites.github.io/haywire/marketplace.toml` — that's a marketplace (note the filename can be either; the *content* determines which tab to use). When in doubt: if the file you're pointed at contains `[[marketstalls]]` or `[[marketplaces]]` sections, it's a marketplace. If it only has `[[packages]]`, it's a marketstall.
+You don't pick a tab — the runtime inspects the fetched body and decides:
 
-A `file://` URL works too — useful for testing local fixtures or air-gapped setups.
+- If it contains `[[markets]]` or `[[stalls]]` references → saved as a `[[markets]]` subscription (it's an aggregator's catalog).
+- If it contains only `[[haybales]]` → saved as a `[[stalls]]` subscription (it's a single marketstall).
+
+Bare repository URLs (e.g. `https://github.com/alice/cool-libs`) are rejected — the dialog asks for the full path to a `marketstall.toml` or `marketplace.toml` so the resolver always knows what it's fetching.
+
+Most authors share blob URLs (the canonical GitHub form). The official haywire feed lives at `https://maybites.github.io/haywire/marketplace.toml` — pasting that subscribes you as a `[[markets]]` entry. A `file://` URL also works, useful for testing local fixtures or air-gapped setups.
 
 ### 3.1 What happens after you click Add
 
-1. The URL is appended to the appropriate section in your global marketplace.
-2. The runtime fetches the URL immediately to check for conflicts (see §4).
-3. If no conflicts: an auto-refresh fires.
-4. After refresh: a green toast reports the result (`"Refreshed 3 package(s)"`).
+1. The URL (or pasted body) is classified by host provider and parsed.
+2. A new `[[markets]]` or `[[stalls]]` entry is written to your global marketplace.
+3. An auto-refresh fires.
+4. If the new source's haybales collide with anything you already have, a conflict-resolution prompt opens (see §4).
+5. After refresh: a green toast reports the result (e.g. `"Refreshed 3 package(s) · 1 update(s) available"`).
 
 The auto-refresh is a convenience — you don't have to remember to click Refresh after adding a source. If you ever subscribe by hand-editing the file (via Edit File), you'll need to click Refresh yourself.
 
@@ -74,22 +81,36 @@ The **Refresh** button is the only operation that talks to the network. It does 
 What refresh does, in concept:
 
 1. Reads your global marketplace.
-2. Fetches every subscribed marketplace and marketstall URL.
-3. For each remote marketplace, reads its `[[marketstalls]]` references one level deep and fetches those too.
-4. Assembles a candidate list from: global `[[packages]]`, global `[[locals]]`, project `[[locals]]`, and everything fetched.
-5. Applies your `ignores` (per-subscription skip lists).
-6. Applies the locals-win rule (your path-based libraries shadow any remote of the same name).
-7. Deduplicates by name (first occurrence wins for any straggler).
-8. Marks newly-missing entries as stale (see §7).
-9. Writes the result to your project marketplace's `[[packages]]` cache.
+2. Fetches every subscribed `[[markets]]` and `[[stalls]]` URL.
+3. For each `[[markets]]` body, reads its `[[stalls]]` references one level deep and fetches those too. Inline `[[haybales]]` in the markets body are also collected.
+4. For each haybale, applies the subscription's `blocked` array first (silently drops names you've actively rejected), then `ignores` (drops names you chose against in a previous conflict prompt). Each surviving haybale is stamped with the subscription's URL as its `via` field.
+5. Assembles the combined candidate list and applies the heaps shadow (your project's path-based libraries win over any remote of the same name).
+6. Deduplicates by name (first occurrence wins for any straggler).
+7. Marks newly-missing entries as stale (see §7). Blocked names are filtered out of the stale-rescue step so they fully disappear rather than survive as `stale=true`.
+8. Counts installed libraries whose cache `min_version` exceeds the installed version (updates available, see §9).
+9. Writes the result to your project marketplace's `[[caches]]` section.
 
-After a successful refresh, a green toast summarizes: `"Refreshed N package(s) · M source(s) unavailable · K newly stale"`. The middle and right phrases appear only when relevant.
+After a successful refresh, a green toast summarizes: `"Refreshed N package(s) · M source(s) unavailable · K newly stale · L update(s) available"`. The middle phrases appear only when relevant.
 
 ### 5.1 The Available section
 
-The Library Browser's AVAILABLE filter (blue cloud-download icon) shows the resolved catalog: every package not currently installed. Clicking a row opens its Library Overview Editor for install.
+The Library Browser's AVAILABLE filter (blue cloud-download icon) shows the resolved catalog: every haybale not currently installed. Clicking a row opens its Library Overview Editor for install.
 
-Locals — your project's path-based libraries — show up here too, even though they aren't on any remote feed. They're presented as `source = "local"` entries. Installing them runs `uv pip install -e <path>` so they become editable.
+Each row carries a **provenance label** derived from the `via` cache field — "from github.com/alice" for direct stalls, "via going-haywire.github.io" for haybales that arrived through an aggregator. The tooltip names both the aggregator and the underlying stall so you can audit which feeds contribute which haybales. If an aggregator silently adds new sources, the new haybales' provenance labels make the expansion visible.
+
+Heaps — your project's path-based libraries — show up here too, even though they aren't on any remote feed. They're presented as `source = "local"` entries. Installing them runs `uv pip install -e <path>` so they become editable.
+
+### 5.2 The install-safety modal
+
+Every Install click opens a modal interposing between the click and the actual `uv pip install`. The user is installing third-party code, and the modal makes that explicit:
+
+| Button | Effect |
+|---|---|
+| **Cancel** | Closes the modal, no change. |
+| **Block source** | Adds the haybale's `name` to the `blocked` array on the subscription that resolved it (the one whose URL matches the cache entry's `via`). The haybale disappears from AVAILABLE immediately; the only un-block path is editing `marketplace.toml` by hand. |
+| **Install** | Proceeds with `uv pip install <install_spec>` and triggers a Library System rescan. |
+
+The modal also shows the haybale's `source_url` as a clickable "Review source" link so you can read the code at the source before installing. The modal fires on every Install click — there's no first-time-only suppression, since third-party install is a serious enough operation that the safety prompt is shown every time. Cancel dismisses it in one click if you're sure.
 
 ## 6. Sources unavailable
 
@@ -120,18 +141,18 @@ Sometimes the UI doesn't cover what you need to do. Examples:
 
 - Removing a subscription (no UI yet — coming).
 - Removing a name from an `ignores` array to undo a conflict-resolution choice.
-- Adding a `[[locals]]` entry to the global file for cross-project use.
+- Adding or removing a name from a `blocked` array to undo an install-safety-modal Block choice.
 - Inspecting what subscriptions you actually have.
 
 The **Edit File** button in the Library Browser toolbar opens `~/.haywire/marketplace.toml` in the embedded code editor. Save your changes there, then click Refresh to apply them.
 
 If the file becomes malformed (a typo in TOML syntax), the Library Browser shows a **red banner** at the top of the list: `"Global marketplace is malformed..."` with a hint to click Edit File again to repair. The catalog stops rendering until the file is parseable. The Library Browser refuses to mask this kind of error — a half-resolved catalog is worse than no catalog.
 
-## 9. Installing what you found
+## 9. Installing and updating what you found
 
 Browsing the catalog is one thing; installing is another. They're deliberately separate steps.
 
-To install: click an AVAILABLE row in the Library Browser. The Library Overview Editor opens on the right; click **Install**. Behind the scenes:
+To install: click an AVAILABLE row in the Library Browser. The Library Overview Editor opens on the right; click **Install** — and the install-safety modal opens (see §5.2). Behind the scenes:
 
 - The runtime parses the entry's `install_spec`.
 - It runs `uv pip install <install_spec>` (which routes to PyPI, git, or a local editable path depending on the entry's `source`).
@@ -140,13 +161,25 @@ To install: click an AVAILABLE row in the Library Browser. The Library Overview 
 
 If the library declares haybale dependencies that you don't have installed, the Overview Editor's gating lets you know — but it doesn't auto-install them. You install each library individually. This is by design: the dependency information is informational, not a directive (see [library-manager-arch §What the Library Manager is not](../architecture/library-manager/library-manager-arch.md#8-boundary-what-the-library-manager-is-not)).
 
+### 9.1 Updates available
+
+For each installed haybale, refresh compares the installed distribution version against the cache `min_version`. When the cache says you need at least `0.5.0` and you have `0.1.0` installed, an update is available:
+
+- The Library Browser row shows a quiet **▲ "v0.5.0 available"** indicator alongside the installed version.
+- The post-refresh toast appends a count: `"... · 2 update(s) available"`.
+- The Library Overview Editor's actions menu adds an **Update to v0.5.0** entry. Clicking it runs the same install pipeline against the current `install_spec`, which pip resolves to a higher matching version.
+
+The signal is informational only — nothing auto-updates. You decide when to upgrade. The Update button does NOT open the install-safety modal: you already trusted this source by installing it originally.
+
+OS-incompatible haybales never appear as updates either. If a haybale declares `os = ["linux"]` and you're on macOS, the Library Browser row shows a disabled Install button with a "Not available on this OS" tooltip — you can still see the entry for awareness, but the install path is blocked at the gate.
+
 ## 10. Common pitfalls
 
 **You added a subscription but nothing shows in AVAILABLE.**
 Check three things:
 
 1. Did the auto-refresh actually run? A green toast should have appeared. If not, click Refresh manually.
-2. Open Edit File and confirm the URL was actually written. It should appear under `[[marketplaces]]` or `[[marketstalls]]`.
+2. Open Edit File and confirm the URL was actually written. It should appear under `[[markets]]` or `[[stalls]]`.
 3. Check for a yellow "sources unavailable" banner. If your URL is in the failed list, the feed isn't reachable.
 
 **A library you expected to see isn't in the catalog.**

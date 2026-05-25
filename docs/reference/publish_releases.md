@@ -100,7 +100,7 @@ documentation only; if it ever disagrees with this section, the section wins.
 
 ```toml
 [tool.haywire.marketstall]
-# Repo URL used as the source_url for every generated [[packages]] entry.
+# Repo URL used as the source_url for every generated [[haybales]] entry.
 # Also forms the base for the docs_url raw-githubusercontent URL.
 source_url = "https://github.com/maybites/haywire"
 
@@ -174,12 +174,14 @@ Any failure stops remaining packages. The idempotent skip makes the workflow saf
 Runs only if Job 3 succeeded.
 
 ```sh
-uv run python scripts/generate_marketstall.py --out gh-pages-content/marketplace.toml
+uv run python scripts/generate_marketstall.py --out-dir gh-pages-content
 ```
 
 The generator reads each package's `pyproject.toml` and `__init__.py`, emits `source = "pypi"`
-entries with bare `haybale-*` sibling dependency names, writes the output file, and the
-workflow deploys it to GitHub Pages at:
+entries with bare `haybale-*` sibling dependency names, writes the two-tier aggregator layout
+(top-level `marketplace.toml` plus one `stalls/<dist-name>.toml` per published library — see
+the marketstall-distribution spec §11 at `internals/specs/marketstall-distribution.md`),
+and the workflow deploys the entire directory to GitHub Pages at:
 
 ```text
 https://maybites.github.io/haywire/marketplace.toml

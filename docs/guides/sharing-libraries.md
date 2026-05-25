@@ -83,7 +83,7 @@ Once the manifests are honest, publishing is `haywire share`. Two modes:
 uv run haywire share barn/haybale-my-lib
 ```
 
-Prints a single `[[packages]]` block to stdout. Useful for pasting into a shared marketplace file you don't own, or for double-checking what would publish before committing.
+Prints a single `[[haybales]]` block to stdout. Useful for pasting into a shared marketplace file you don't own, or for double-checking what would publish before committing.
 
 ### 4.2 Save mode (all barn libraries, writes marketstall.toml)
 
@@ -91,7 +91,7 @@ Prints a single `[[packages]]` block to stdout. Useful for pasting into a shared
 uv run haywire share --save
 ```
 
-Walks `barn/*`, builds a `[[packages]]` entry per library that has a `pyproject.toml`, and writes the aggregated list to `<repo-root>/marketstall.toml`. This is the file you host for consumers — see §6.
+Walks `barn/*`, builds a `[[haybales]]` entry per library that has a `pyproject.toml`, and writes the aggregated list to `<repo-root>/marketstall.toml`. This is the file you host for consumers — see §6.
 
 ### 4.3 The drift gate
 
@@ -110,7 +110,7 @@ Combining flags is fine — `--save --strict` produces a marketstall only if eve
 The output (snippet or save) follows the marketstall schema:
 
 ```toml
-[[packages]]
+[[haybales]]
 name         = "haybale-my-lib"
 label        = "My Lib"
 min_version  = "0.1.0"
@@ -119,6 +119,7 @@ author       = "Your Name"
 source       = "git"
 install_spec = "haybale-my-lib @ git+https://github.com/you/repo.git#subdirectory=barn/haybale-my-lib"
 tags         = ["vision", "experimental"]
+os           = ["macos", "linux"]
 dependencies = ["haybale-core"]
 source_url   = "https://github.com/you/repo"
 docs_url     = "https://raw.githubusercontent.com/you/repo/main/barn/haybale-my-lib/haybale_my_lib/"
@@ -157,7 +158,7 @@ A marketstall is just a TOML file. Wherever consumers can reach by URL, you can 
 
 The haywire team publishes the official marketstall at `https://maybites.github.io/haywire/marketplace.toml` (a marketplace aggregating multiple marketstalls — see [sharing-arch](../architecture/sharing/sharing-arch.md) for the marketplace vs marketstall distinction). Your file is structurally the same.
 
-Once hosted, share the raw URL. A consumer subscribes by adding your URL as a `[[marketstalls]]` entry in their global marketplace file — see [subscribing-to-marketplaces](./subscribing-to-marketplaces.md).
+Once hosted, share the URL. Per spec §4.2 a consumer can paste any of four forms into the Library Manager's Add Source dialog — the GitHub *blob* URL of your `marketstall.toml` (e.g. `https://github.com/you/repo/blob/main/marketstall.toml`) is the recommended canonical form. The runtime recognizes the host, derives the raw URL, fetches the body, sees one `[[haybales]]` section, and writes a `[[stalls]]` subscription to the user's global marketplace. The next refresh picks up your library. See [subscribing-to-marketplaces](./subscribing-to-marketplaces.md) for the consumer side.
 
 ## 7. The full author cycle
 
