@@ -633,7 +633,7 @@ def apply_drift_fix(drift: DepDrift) -> None:
         module_dir = find_module_dir(lib_dir)
         if module_dir is None:
             return
-        from .library_manager import _set_decorator_list_field
+        from haywire.core.library.decorator_io import _set_decorator_list_field
 
         init_file = module_dir / "__init__.py"
         if not init_file.is_file():

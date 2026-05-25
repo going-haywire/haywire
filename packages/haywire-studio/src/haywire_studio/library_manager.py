@@ -19,6 +19,7 @@ from typing import Any
 from haywire.core.library.registry import LibraryRegistry
 from haywire.core.library.info import LibraryInfo
 from haywire.core.library.install_type import InstallType
+from haywire.core.library.decorator_io import _set_decorator_list_field
 from haywire.core.marketstall import Haybale
 import toml
 
@@ -29,28 +30,6 @@ def _sanitize_name(name: str) -> str:
     if sanitized and sanitized[0].isdigit():
         sanitized = "_" + sanitized
     return sanitized
-
-
-def _set_decorator_list_field(content: str, field: str, values: list[str]) -> str:
-    """Replace or insert a list field inside the @library(...) decorator.
-
-    If the field already exists on a single line (e.g. ``tags=['a', 'b'],``),
-    it is replaced in-place.  If it is absent (scaffolded libraries don't
-    include tags/dependencies) it is inserted just before ``file_watcher=``,
-    or before the closing ``)`` of the decorator as a fallback.
-    """
-    value_repr = repr(values)  # e.g. "['testing', 'development']"
-    # Match the existing field line: optional leading whitespace, field=[ … ],?
-    pattern = rf"([ \t]+{re.escape(field)}=)\[[^\]]*\],?"
-    if re.search(pattern, content):
-        return re.sub(pattern, rf"\g<1>{value_repr},", content)
-    # Not present — insert before file_watcher= if it exists
-    insert_line = f"    {field}={value_repr},\n"
-    if "    file_watcher=" in content:
-        return content.replace("    file_watcher=", insert_line + "    file_watcher=", 1)
-    # Fallback: insert before the closing )\nclass line
-    replacement = f"\n    {field}={value_repr}," + r"\g<1>"
-    return re.sub(r"(\n\)\nclass )", replacement, content, count=1)
 
 
 _DECLARABLE_OS_VALUES = ("macos", "windows", "linux")  # spec §2.1
