@@ -387,6 +387,15 @@ class LibrarySystemService:
         # library's components are registered.
         library_state_container.bind_to_lifecycle(library_registry)
 
+        # Publish the library system + global injector BEFORE the enable phase
+        # so AppState.on_enable hooks can resolve framework services via the
+        # global getters (get_library_system, get_global_injector). Without
+        # this, an AppState that needs the registry during on_enable would
+        # see an uninitialised service. See ADR-0001 (state classes resolve
+        # dependencies from the ambient DI context in on_enable).
+        set_library_system(self)
+        set_global_injector(self.injector)
+
         print("\n⚡ Enabling libraries...")
         library_registry.enable_all_libraries()
 

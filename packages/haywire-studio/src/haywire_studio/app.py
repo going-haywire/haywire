@@ -24,7 +24,7 @@ from nicegui import ui, app
 from haywire.core.graph.editor import Editor
 from haywire.core.graph.base import BaseGraph
 from haywire.core.undo.config import DEVELOPMENT_CONFIG
-from haywire.core.di.config import create_library_system_service, set_library_system, set_global_injector
+from haywire.core.di.config import create_library_system_service
 from haywire.core.di.context import set_workspace_root
 
 # UI imports
@@ -131,14 +131,16 @@ class HaywireApp:
         if os.path.isdir(workspace_libs):
             library_paths.append(workspace_libs)
 
+        # create_library_system_service.initialize() publishes both the
+        # service (via set_library_system) and the injector (via
+        # set_global_injector) BEFORE the enable phase, so AppState.on_enable
+        # hooks can resolve framework services from the ambient context.
         self.library_service = create_library_system_service(
             workspace_root=self.workspace_root,
             library_paths=library_paths if library_paths else None,
             enable_file_watching=True,
             watch_settings=False,
         )
-        set_library_system(self.library_service)
-        set_global_injector(self.library_service.injector)
         print("Library system initialized.")
 
     def setup_shared_services(self):
