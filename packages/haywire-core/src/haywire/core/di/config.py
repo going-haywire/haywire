@@ -21,6 +21,7 @@ from ...ui.themes.registry import ThemeRegistry
 from ...ui.editor.registry import EditorTypeRegistry
 from ...ui.panel.registry import PanelRegistry
 
+from ..library.enable_settings import LibraryEnableSettings  # noqa: F401  # schema must be imported so __init_subclass__ queues it for SettingsRegistry
 from ..library.registry import LibraryRegistry
 from ..node.registry import NodeRegistry
 from ..adapter.registry import AdapterRegistry
@@ -366,15 +367,11 @@ class LibrarySystemService:
         # the user previously disabled never enter the enable cycle in the
         # first place. Owning this step here — rather than on a LibraryManager
         # post-hook — avoids a mid-bootstrap mutation cascade. See ADR-0001.
-        from haywire.core.di.context import get_workspace_root
-        from haywire.core.library.disabled_state_io import read_disabled_ids
-
-        try:
-            workspace_root: Path | None = get_workspace_root()
-        except RuntimeError:
-            workspace_root = None
-        if workspace_root is not None:
-            disabled_ids = read_disabled_ids(workspace_root)
+        # The disabled list is a FrameworkSettings field (LibraryEnableSettings)
+        # registered into SettingsRegistry above; reading it here just consults
+        # the already-loaded workspace tier.
+        disabled_ids = LibraryEnableSettings().disabled
+        if disabled_ids:
             known = set(library_registry.list_names())
             for lib_id in disabled_ids:
                 if lib_id in known:

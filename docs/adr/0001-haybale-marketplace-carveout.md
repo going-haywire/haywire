@@ -21,8 +21,12 @@ Consumers reach the manager via `ctx.app_data[LibraryManagerState].manager.X` �
 
 The carve-out splits the concern:
 
-- **Write path** moves to `LibraryEnableState(AppState)` in `haybale-marketplace` (runtime user toggles in the UI go through it).
-- **Bootstrap read path** is a small file-reader helper in `haywire.core` that the library system consults *during* scan, before `enable_all_libraries()`. No mid-bootstrap cascade.
+- **Write path** lives on `LibraryEnableState(AppState)` in `haybale-marketplace`. Runtime user toggles in the UI go through it: it mutates the registry and reassigns `LibraryEnableSettings().disabled` to the new list.
+- **Bootstrap read path** lives in `create_library_system_service.initialize()` and reads `LibraryEnableSettings().disabled` between `scan_for_libraries()` and `enable_all_libraries()`. No mid-bootstrap cascade — the listed libraries are disabled *before* the enable phase starts.
+
+Persistence is via `LibraryEnableSettings`, a `FrameworkSettings` subclass owned by `haywire-core` (`haywire.core.library.enable_settings`). It auto-registers into `SettingsRegistry` through the framework's `_pending_global` queue, so the schema is available before any library enables. The data lives in `<workspace>/.haywire/settings.toml` under `[libraries] disabled`, persisted via the registry's existing debounced save. There is no per-project `config.toml` writer for this concern — the framework's settings system is the single persistence mechanism.
+
+`LibraryEnableSettings` is not rendered in any panel: settings panels in this codebase explicitly hard-code which schema they surface (`render_schema(SomeSettings, registry)`), so omitting it from any panel implementation hides it from the UI by construction. The data is machinery state — bootstrap honors it, the marketplace UI's enable/disable buttons write it — not a user preference.
 
 `MarketplaceState` (currently in `haybale-studio`, owner of `~/.haywire/db/haybale-marketplace/marketplace.toml` and `<project>/.haywire/marketplace.toml`) moves too, by the same logic: it's marketplace-concern state, not studio-concern state.
 

@@ -1,11 +1,13 @@
 """LibraryEnableState — runtime user enable/disable toggles, write-through.
 
 The **bootstrap read path** for persisted-disabled-state lives in
-``haywire.core.library.disabled_state_io`` and is consulted by the library
-system *before* ``enable_all_libraries()``. This AppState handles only the
-**runtime write path**: when the user clicks enable/disable in the UI,
-the toggle goes through here, the registry is mutated, and the new
-disabled list is persisted to ``<project>/.haywire/config.toml``.
+``create_library_system_service`` and is consulted *before*
+``enable_all_libraries()``. This AppState handles only the **runtime
+write path**: when the user clicks enable/disable in the UI, the toggle
+goes through here, the registry is mutated, and the new disabled list is
+persisted via ``LibraryEnableSettings`` (a FrameworkSettings auto-managed
+by the framework's SettingsRegistry — see
+``haywire.core.library.enable_settings``).
 
 Splitting the read/write paths this way avoids a mid-bootstrap mutation
 cascade — see ADR-0001 (decision Q6/D).
@@ -14,10 +16,8 @@ cascade — see ADR-0001 (decision Q6/D).
 from __future__ import annotations
 
 import logging
-from pathlib import Path
-from typing import Optional
 
-from haywire.core.library.disabled_state_io import write_disabled_ids
+from haywire.core.library.enable_settings import LibraryEnableSettings
 from haywire.core.state.base import AppState
 from haywire.core.state.decorator import state
 
@@ -46,13 +46,6 @@ class LibraryEnableState(AppState):
 
     @staticmethod
     def _persist(registry) -> None:
-        from haywire.core.di.context import get_workspace_root
-
-        try:
-            workspace_root: Optional[Path] = get_workspace_root()
-        except RuntimeError:
-            return
-        if workspace_root is None:
-            return
-        disabled = [lib_id for lib_id in registry.list_names() if not registry.is_library_enabled(lib_id)]
-        write_disabled_ids(workspace_root, disabled)
+        LibraryEnableSettings().disabled = sorted(
+            lib_id for lib_id in registry.list_names() if not registry.is_library_enabled(lib_id)
+        )
