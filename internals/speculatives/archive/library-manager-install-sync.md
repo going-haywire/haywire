@@ -1,5 +1,5 @@
 ---
-status: draft
+status: implemented
 scope: After a successful Library Manager install, write the package into the project's `pyproject.toml` so `uv sync` on a fresh clone restores it.
 see-also:
   - ./marketstall-distribution.md

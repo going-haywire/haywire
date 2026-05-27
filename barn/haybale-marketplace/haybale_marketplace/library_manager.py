@@ -35,6 +35,96 @@ def _sanitize_name(name: str) -> str:
 _DECLARABLE_OS_VALUES = ("macos", "windows", "linux")  # spec §2.1
 
 
+def _parse_git_install_spec(install_spec: str) -> tuple[str, str | None]:
+    """Parse a PEP 440 VCS URL into (git_url, subdirectory|None).
+
+    Accepts both the bare form (``git+https://…[#subdirectory=…]``) and the
+    PEP 440 form with a leading ``name @ `` prefix.
+    """
+    spec = install_spec.strip()
+    if " @ " in spec:
+        spec = spec.split(" @ ", 1)[1].strip()
+    spec = spec.removeprefix("git+")
+    if "#subdirectory=" in spec:
+        url, sub = spec.split("#subdirectory=", 1)
+        return url.strip(), sub.strip() or None
+    return spec, None
+
+
+def _write_install_to_pyproject(
+    pyproject_path: Path,
+    pkg_name: str,
+    version: str | None,
+    source: str,
+    install_spec: str,
+) -> None:
+    """Write/update a project pyproject.toml entry for an installed haybale.
+
+    Spec rows:
+      - pypi → only ``[project] dependencies = "<name>~=X.Y.Z"``
+      - git  → ``[project] dependencies`` + ``[tool.uv.sources]`` with git+subdirectory
+      - local (heap outside barn) → ``[project] dependencies`` +
+        ``[tool.uv.sources]`` with ``{ path = "...", editable = true }``
+
+    The caller decides which rows apply; this helper just writes what it's told.
+    """
+    data = toml.loads(pyproject_path.read_text())
+    project = data.setdefault("project", {})
+    deps: list[str] = project.setdefault("dependencies", [])
+
+    floor = f"{pkg_name}~={version}" if version else pkg_name
+    new_deps: list[str] = []
+    found = False
+    for entry in deps:
+        if _dep_name(entry).lower() == pkg_name.lower():
+            new_deps.append(floor)
+            found = True
+        else:
+            new_deps.append(entry)
+    if not found:
+        new_deps.append(floor)
+    project["dependencies"] = new_deps
+
+    if source == "git":
+        url, subdir = _parse_git_install_spec(install_spec)
+        git_entry: dict[str, Any] = {"git": url}
+        if subdir:
+            git_entry["subdirectory"] = subdir
+        sources = data.setdefault("tool", {}).setdefault("uv", {}).setdefault("sources", {})
+        sources[pkg_name] = git_entry
+    elif source == "local":
+        sources = data.setdefault("tool", {}).setdefault("uv", {}).setdefault("sources", {})
+        sources[pkg_name] = {"path": install_spec, "editable": True}
+
+    pyproject_path.write_text(toml.dumps(data))
+
+
+def _remove_install_from_pyproject(pyproject_path: Path, pkg_name: str) -> None:
+    """Remove a haybale's entry from [project] dependencies and [tool.uv.sources]."""
+    data = toml.loads(pyproject_path.read_text())
+    project = data.get("project")
+    if project:
+        deps = project.get("dependencies", [])
+        project["dependencies"] = [d for d in deps if _dep_name(d).lower() != pkg_name.lower()]
+
+    sources = data.get("tool", {}).get("uv", {}).get("sources", {})
+    sources.pop(pkg_name, None)
+    # Also try a hyphen/underscore variant — uv normalizes these.
+    sources.pop(pkg_name.replace("-", "_"), None)
+    sources.pop(pkg_name.replace("_", "-"), None)
+
+    pyproject_path.write_text(toml.dumps(data))
+
+
+def _dep_name(dep_entry: str) -> str:
+    """Extract the bare package name from a PEP 508 dependency string."""
+    # Strip extras, version specifiers, markers, and the ``name @ url`` form.
+    head = dep_entry.split(";", 1)[0]
+    head = head.split(" @ ", 1)[0]
+    head = re.split(r"[\[<>=!~ ]", head, maxsplit=1)[0]
+    return head.strip()
+
+
 def _apply_os_to_pyproject(pyproject_path: Path, os_values: list[str]) -> None:
     """Write or remove [tool.haywire].os in the library's pyproject.toml.
 
@@ -153,10 +243,13 @@ class LibraryManager:
         self,
         install_spec: str,
         on_output: Callable[[str], None],
+        source_pkg: "Haybale | None" = None,
     ) -> tuple[bool, str]:
         """Install a package with live output streaming.
 
-        Same logic as install() but non-blocking with per-line callbacks.
+        When ``source_pkg`` is supplied and ``self.project_dir`` is set, the
+        project's pyproject.toml is updated after a successful install so the
+        next ``uv sync`` reproduces the install (spec: library-manager-install-sync).
         """
         if Path(install_spec).is_dir():
             args = ["install", "-e", install_spec]
@@ -175,6 +268,10 @@ class LibraryManager:
 
         on_output("Enabling libraries...")
         self.registry.enable_all_libraries()
+
+        if source_pkg is not None:
+            self._sync_install_to_pyproject(source_pkg, on_output)
+
         return True, f"Installed: {install_spec}"
 
     async def uninstall_streaming(
@@ -182,7 +279,12 @@ class LibraryManager:
         library_id: str,
         on_output: Callable[[str], None],
     ) -> tuple[bool, str]:
-        """Uninstall a library with live output streaming."""
+        """Uninstall a library with live output streaming.
+
+        After a successful uninstall, removes the corresponding entry from the
+        project's pyproject.toml (spec: library-manager-install-sync).
+        Workspace members under ``barn/`` are left untouched.
+        """
         dist_name = self.registry.get_library_distribution_name(library_id)
         if not dist_name:
             return False, f"Cannot find pip package name for library '{library_id}'"
@@ -201,7 +303,60 @@ class LibraryManager:
 
         on_output("Scanning for libraries...")
         await asyncio.to_thread(self.registry.scan_for_libraries)
+
+        self._sync_uninstall_from_pyproject(dist_name, on_output)
+
         return True, f"Uninstalled: {dist_name}"
+
+    def _sync_install_to_pyproject(self, pkg: "Haybale", on_output: Callable[[str], None]) -> None:
+        """Write a successful install back to the project's pyproject.toml.
+
+        No-op outside a project, for project-local heaps (already workspace
+        members via ``barn/*``), or if anything goes wrong — write-back is a
+        best-effort convenience, the install itself already succeeded.
+        """
+        if self.project_dir is None:
+            return
+        pyproject = self.project_dir / "pyproject.toml"
+        if not pyproject.is_file():
+            return
+
+        if pkg.source == "local":
+            # Heap pointing inside the project's barn/ is already covered by the
+            # workspace glob; skip. Outside-barn heaps get a path entry.
+            try:
+                heap_path = Path(pkg.install_spec).resolve()
+                barn = (self.project_dir / "barn").resolve()
+                if heap_path.is_relative_to(barn):
+                    return
+            except (OSError, ValueError):
+                return
+
+        version = self.get_installed_version(pkg.name)
+        try:
+            _write_install_to_pyproject(
+                pyproject,
+                pkg_name=pkg.name,
+                version=version,
+                source=pkg.source,
+                install_spec=pkg.install_spec,
+            )
+            on_output(f"Updated {pyproject.name}")
+        except (OSError, KeyError) as e:
+            on_output(f"Warning: failed to update pyproject.toml — {e}")
+
+    def _sync_uninstall_from_pyproject(self, dist_name: str, on_output: Callable[[str], None]) -> None:
+        """Inverse of ``_sync_install_to_pyproject``. Best-effort."""
+        if self.project_dir is None:
+            return
+        pyproject = self.project_dir / "pyproject.toml"
+        if not pyproject.is_file():
+            return
+        try:
+            _remove_install_from_pyproject(pyproject, dist_name)
+            on_output(f"Updated {pyproject.name}")
+        except (OSError, KeyError) as e:
+            on_output(f"Warning: failed to update pyproject.toml — {e}")
 
     async def rename_project_library_streaming(
         self,

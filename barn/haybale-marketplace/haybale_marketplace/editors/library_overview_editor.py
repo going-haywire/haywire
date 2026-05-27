@@ -427,8 +427,11 @@ class LibraryOverviewEditor(BaseEditor):
                                                         spec=marketplace_pkg.install_spec,
                                                         n=marketplace_pkg.name,
                                                         m=manager,
-                                                        ctx=context: (
-                                                            self._install_package(spec, n, e.sender, m, ctx)
+                                                        ctx=context,
+                                                        pkg=marketplace_pkg: (
+                                                            self._install_package(
+                                                                spec, n, e.sender, m, ctx, pkg
+                                                            )
                                                         ),
                                                     )
                                                 if marketplace_pkg:
@@ -1408,7 +1411,7 @@ class LibraryOverviewEditor(BaseEditor):
             # Return the coroutine (don't schedule it). The modal awaits it,
             # which keeps the NiceGUI slot context intact so ui.notify() inside
             # _install_package works. See .insights/feedback_nicegui_async.md.
-            return self._install_package(pkg.install_spec, pkg.name, button, manager, context)
+            return self._install_package(pkg.install_spec, pkg.name, button, manager, context, pkg)
 
         def _on_block() -> None:
             if context.app_data is None or MarketplaceState not in context.app_data:
@@ -1454,8 +1457,13 @@ class LibraryOverviewEditor(BaseEditor):
         button,
         manager,
         context: "SessionContext",
+        source_pkg: Haybale | None = None,
     ):
-        """Install a package with streaming log output."""
+        """Install a package with streaming log output.
+
+        ``source_pkg`` enables write-back to the project's pyproject.toml so the
+        install is reproducible via ``uv sync`` (spec: library-manager-install-sync).
+        """
         if button:
             try:
                 button.disable()
@@ -1465,7 +1473,7 @@ class LibraryOverviewEditor(BaseEditor):
         ui.notify(f"Installing {name}…", type="info")
         log = self._create_log_in_card(self._fixed, f"Installing {name}…")
 
-        success, message = await manager.install_streaming(install_spec, log.push)
+        success, message = await manager.install_streaming(install_spec, log.push, source_pkg)
 
         if success:
             log.push(f"--- {name} installed successfully ---")
