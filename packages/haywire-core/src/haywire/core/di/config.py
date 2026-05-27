@@ -206,10 +206,12 @@ class HaywireModule(Module):
 
         Holds the state_registry so on_library_enabled / catch-up can query
         it without an extra argument every call. Subscription to event
-        channels is wired separately by LibrarySystemService.initialize()
-        via container.bind_to_lifecycle(library_registry), AFTER
-        enable_all_libraries() has returned (timing matters: subscribing
-        earlier would defeat the load-order fix).
+        channels is wired in two stages by LibrarySystemService.initialize():
+        subscribe_to_lifecycle_events() BEFORE enable_all_libraries() (so
+        state classes are instantiated as each library is scanned), and
+        subscribe_to_library_callbacks(library_registry) AFTER the enable
+        loop (so on_enable only fires once every library has registered
+        its components — the load-order fix).
 
         Also publishes via set_library_state_container() so AppState authors
         can read it from ambient context (e.g. for constructing Interpreters).
@@ -337,9 +339,10 @@ class LibrarySystemService:
         editor_registry = self.injector.get(EditorTypeRegistry)
         library_state_registry = self.injector.get(LibraryStateRegistry)
         library_state_container = self.injector.get(LibraryStateContainer)
-        # NOTE: container subscription + library_enabled callback + startup
-        # catch-up are wired AFTER enable_all_libraries() below, not here.
-        # See "Wire LibraryStateContainer to events ..." section.
+        # NOTE: container subscriptions are wired in two stages — lifecycle
+        # events BEFORE enable_all_libraries(), per-library callbacks +
+        # catch-up loop AFTER. See the calls below the scan_for_libraries
+        # block.
         self.injector.get(AdapterFactory)  # sets ambient context for EdgeWrapper
         self.injector.get(NodeFactory)  # sets ambient context for NodeWrapper
         self.injector.get(SessionManager)  # sets ambient context for AppState.on_enable
@@ -377,34 +380,36 @@ class LibrarySystemService:
         library_state_registry.add_registry_subscriber(panel_registry)
         library_state_registry.add_registry_subscriber(editor_registry)
 
+        # --8<-- [start:startup-state-wiring]
+        # Startup wiring for the LibraryStateContainer's two-phase lifecycle.
+        # Full rationale: docs/architecture/session-and-state/session-and-state-arch.md §3.1, §5.2.
         print("\n🔍 Scanning for libraries...")
         library_registry.scan_for_libraries()
 
-        # Apply persisted-disabled state BEFORE the enable phase, so libraries
-        # the user previously disabled never enter the enable cycle in the
-        # first place. The registry reads its own host-store; if the host
-        # supplied no store, the in-memory default returns an empty list and
-        # this is a no-op. See ADR-0001.
+        # Skip user-disabled libraries before the enable loop (ADR-0001).
         library_registry.apply_persisted_disabled_state()
 
-        # Wire LibraryStateContainer before enabling libraries so that
-        # on_library_enabled fires naturally for each library as it enables.
-        # CLASS_ADDED events during enable() only instantiate state (phase 1);
-        # on_library_enabled triggers on_enable (phase 2) once all of that
-        # library's components are registered.
-        library_state_container.bind_to_lifecycle(library_registry)
+        # Phase 1 — subscribe BEFORE the enable loop so CLASS_ADDED events
+        # during each library's enable() instantiate its state classes
+        # immediately. on_enable is deferred to phase 2.
+        library_state_container.subscribe_to_lifecycle_events()
 
-        # Publish the library system + global injector BEFORE the enable phase
-        # so AppState.on_enable hooks can resolve framework services via the
-        # global getters (get_library_system, get_global_injector). Without
-        # this, an AppState that needs the registry during on_enable would
-        # see an uninitialised service. See ADR-0001 (state classes resolve
-        # dependencies from the ambient DI context in on_enable).
+        # AppState.on_enable resolves framework services from these globals
+        # (ADR-0001); publish before any on_enable runs.
         set_library_system(self)
         set_global_injector(self.injector)
 
         print("\n⚡ Enabling libraries...")
         library_registry.enable_all_libraries()
+
+        # Phase 2 — subscribe AFTER the enable loop, then catch up on every
+        # library that was enabled. Filter on library.enabled so persisted-
+        # disabled libraries (skipped above) aren't falsely marked enabled.
+        library_state_container.subscribe_to_library_callbacks(library_registry)
+        for library in library_registry._libraries.values():
+            if library.enabled:
+                library_state_container.on_library_enabled(library)
+        # --8<-- [end:startup-state-wiring]
 
         # Print detailed library discovery results
         self._print_library_discovery_results()

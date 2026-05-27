@@ -117,25 +117,43 @@ class LibraryStateContainer:
 
 ### 3.1 AppState lifecycle
 
+AppState enable is **two-phase** — instantiation and `on_enable` are deliberately decoupled so that startup respects cross-library load ordering. Phase 1 (instantiate) runs as each library's classes are scanned; phase 2 (`on_enable`) runs only once every library in the batch has finished registering its components.
+
 ```text
-library.enable()
-  ├─ register_components()         ← author-written
-  │   └─ folder-scan finds class
-  │
-  ├─ LibraryStateRegistry registers each class
-  │
-  └─ Container observes the lifecycle event:
-      ├─ instantiate (cls())
-      ├─ store in _app pool
-      └─ call on_enable() if defined
+Startup — enable_all_libraries() loop
+
+Phase 1 (per library, mid-loop):
+  library.enable()
+    ├─ register_components()         ← author-written
+    │   └─ folder-scan finds class
+    │
+    ├─ LibraryStateRegistry registers each class
+    │
+    └─ Container observes the CLASS_ADDED event:
+        ├─ instantiate (cls())
+        ├─ store in _app pool       ← ctx.app_data[Cls] now usable
+        └─ on_enable() is DEFERRED   (library not yet in _enabled_library_ids)
+
+Phase 2 (catch-up, after the whole loop returns):
+  for library in already-enabled libraries:
+    container.on_library_enabled(library)
+      ├─ mark library id enabled
+      └─ for each AppState class in this library:
+          └─ call on_enable() on the (already-instantiated) instance
 
 library.disable()
   ├─ LibraryStateRegistry unregisters each class
   │
-  └─ Container observes the lifecycle event:
+  └─ Container observes the CLASS_REMOVED event:
       ├─ call on_disable() if defined
       └─ drop instance from _app pool
 ```
+
+**Why two phases.** A state's `on_enable` may read types/nodes/panels owned by *other* libraries (e.g. `HaystackState.on_enable` rehydrates saved graphs that reference any installed type). If `on_enable` fired the moment its own library finished enabling, those references could resolve against a registry that hasn't been fully populated yet — a real regression has been triggered by exactly this race (haystack rehydrating a graph that referenced `visiongraph:type:FRAME` before visiongraph was enabled). Phase 2 runs after the whole enable loop precisely to close that window.
+
+**Phase 1 is still per-library.** A library's own state is reachable via `ctx.app_data[Cls]` as soon as its `register_components()` returns — editors/panels/skins rendering during the same library's enable see a valid default-initialised instance rather than a KeyError. Phase 1 must not depend on cross-library state; everything that does goes in `on_enable`.
+
+**Hot-install (post-startup).** When a library is enabled *after* startup, no other libraries are loading concurrently so the two phases collapse: CLASS_ADDED during the new library's `enable()` still defers `on_enable` (the library isn't in `_enabled_library_ids` yet), then the `on_library_enabled` callback marks it enabled and runs `on_enable`. Same machinery, no special case.
 
 Standard `BaseRegistry` event pipeline — same hook `NodeFactory` uses (`_batch_event_subscribers`).
 
@@ -199,6 +217,8 @@ SettingsRegistry → LibraryStateRegistry → NodeRegistry, PanelRegistry, Edito
 Following the same order at first-load means an `AppState` whose `on_enable` reads a `LibrarySettings()` value finds the schema already wired, and node/panel/editor classes that import an `AppState` for use as a `ctx.app_data[Cls]` key resolve it during their own scan.
 
 Within a single library, folder-scan order is alphabetical. Cross-library ordering respects `dependencies=` declared on `@library` (the existing inter-library dependency mechanism — no new ordering machinery is added). Cross-`AppState` dependency ordering inside one library is **not** supported; if A's `on_enable` requires B already initialised, split them into sibling libraries.
+
+**Cross-library reads in `on_enable` are safe by construction.** Phase 2 (§3.1) runs `on_enable` only after every library in the startup batch has finished `enable()`. So an `AppState.on_enable` can read types/nodes/panels owned by *any* installed library without depending on its own library's position in the enable order. The `dependencies=` declaration above governs *phase 1* concerns (e.g. a state class importing a base class from another library at module-load time); it does not gate `on_enable` ordering, which is handled by the global two-phase wiring.
 
 ### 3.4 Hot-reload semantics
 
@@ -301,24 +321,21 @@ class LibraryStateContainer:
 
 ### 5.2 LibrarySystemService wiring
 
-```python
-# haywire/core/di/config.py
-class LibrarySystemService:
-    def initialize(self):
-        # Resolve registries from the injector
-        state_registry = self._injector.get(LibraryStateRegistry)
-        state_container = self._injector.get(LibraryStateContainer)
+The container subscribes to **two distinct channels** at different points around `enable_all_libraries()`. Keeping them separate is what makes the two-phase lifecycle (§3.1) work:
 
-        # Wire the container as a subscriber of the registry's events
-        # — same hook NodeFactory uses
-        state_container._subscribe_to_registry(state_registry)
+| Channel | Method | When wired | Drives |
+| --- | --- | --- | --- |
+| `LibraryStateRegistry` batch lifecycle events (CLASS_ADDED / REMOVED / RELOADED) | `subscribe_to_lifecycle_events()` | **Before** `enable_all_libraries()` | Phase 1 — instantiate on CLASS_ADDED |
+| `LibraryRegistry` per-library enabled/disabled callbacks | `subscribe_to_library_callbacks(library_registry)` | **After** `enable_all_libraries()` | Phase 2 — run `on_enable` via `on_library_enabled` |
 
-        # Add to the existing class-registry pipeline so enable_all_libraries()
-        # / hot-reload drives state lifecycle automatically
-        self._library_registry.add_class_registry(
-            LibraryStateRegistry, state_registry,
-        )
+The block below is included verbatim from `LibrarySystemService.initialize` via `pymdownx.snippets` — the docs render the live source, so the comments and call sequence cannot drift. Read top-to-bottom: each section's comment explains why it lands where it does relative to `enable_all_libraries()`.
+
+```python title="haywire/core/di/config.py — LibrarySystemService.initialize (excerpt)"
+--8<-- "packages/haywire-core/src/haywire/core/di/config.py:startup-state-wiring"
 ```
+
+If you need to change the call order, edit `config.py` directly; this section will re-render against the new source on the next build.
+
 
 ### 5.3 Type-checker enforcement of the asymmetry
 

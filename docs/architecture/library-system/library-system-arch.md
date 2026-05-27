@@ -134,6 +134,8 @@ HaywireApp.__init__()
   └── all class registries now populated; app proceeds
 ```
 
+State classes registered via `LibraryStateRegistry` have a two-phase lifecycle that intersects this loop: instantiation happens per library as it enables, but `AppState.on_enable` is held back until the whole `enable_all_libraries()` loop returns and a catch-up pass runs. See [session-and-state-arch §3.1](../session-and-state/session-and-state-arch.md#31-appstate-lifecycle) and [§5.2](../session-and-state/session-and-state-arch.md#52-librarysystemservice-wiring) for the wiring and rationale.
+
 ### 3.2 Priority order when multiple sources provide the same library ID
 
 | Priority | Source | Origin |

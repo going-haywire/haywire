@@ -87,6 +87,7 @@ class TestLibraryStateContainer:
         # Phase 2: enable.
         class FakeLibrary:
             identity = lib_id
+            enabled = True
 
         container.on_library_enabled(FakeLibrary())
         assert calls == ["enable"]
@@ -112,6 +113,7 @@ class TestLibraryStateContainer:
 
         class FakeLibrary:
             identity = lib_id
+            enabled = True
 
         container.on_library_enabled(FakeLibrary())
         assert calls == ["enable"]
@@ -225,6 +227,7 @@ class TestLibraryStateContainer:
         # Phase 2: enable V1 (library fully loaded).
         class FakeLibrary:
             identity = lib_id
+            enabled = True
 
         container.on_library_enabled(FakeLibrary())
         assert calls == ["v1-enable"]
@@ -293,6 +296,7 @@ class TestEnabledLibraryIdsFilter:
 
         class FakeLibrary:
             identity = lib_id
+            enabled = True
 
         container.on_library_enabled(FakeLibrary())
         assert calls == ["enable"]  # now
@@ -356,6 +360,7 @@ class TestEnabledLibraryIdsFilter:
         # Enabling only the marked library calls on_enable only for it.
         class FakeMarked:
             identity = marked
+            enabled = True
 
         container.on_library_enabled(FakeMarked())
         assert calls == ["marked"]
@@ -387,6 +392,7 @@ class TestOnLibraryEnabledCatchUp:
 
         class FakeLibrary:
             identity = lib_id
+            enabled = True
 
         # Phase 2: on_library_enabled enables (fired after library.enable() returns).
         container.on_library_enabled(FakeLibrary())
@@ -410,6 +416,7 @@ class TestOnLibraryEnabledCatchUp:
 
         class FakeLibrary:
             identity = lib_id
+            enabled = True
 
         container.on_lifecycle_events([make_added_event(MyState, lib_id)])
         container.on_library_enabled(FakeLibrary())
@@ -428,6 +435,7 @@ class TestOnLibraryEnabledCatchUp:
 
         class FakeLibrary:
             identity = lib_id
+            enabled = True
 
         container.on_library_enabled(FakeLibrary())
 
@@ -448,6 +456,7 @@ class TestOnLibraryEnabledCatchUp:
 
         class FakeLibrary:
             identity = lib_id
+            enabled = True
 
         container.on_lifecycle_events([make_added_event(MyState, lib_id)])
         container.on_library_enabled(FakeLibrary())
@@ -480,6 +489,7 @@ class TestOnLibraryEnabledCatchUp:
 
         class MidiLib:
             identity = midi
+            enabled = True
 
         # Only midi library enabled.
         container.on_library_enabled(MidiLib())
@@ -501,6 +511,7 @@ class TestOnLibraryDisabled:
 
         class FakeLibrary:
             identity = lib_id
+            enabled = True
 
         container.on_library_enabled(FakeLibrary())
         assert lib_id.id in container._enabled_library_ids
@@ -528,6 +539,7 @@ class TestOnLibraryDisabled:
 
         class FakeLibrary:
             identity = lib_id
+            enabled = True
 
         # Full enable cycle.
         container.on_lifecycle_events([make_added_event(MyState, lib_id)])
@@ -570,6 +582,7 @@ class TestOnLibraryDisabled:
 
         class FakeLibrary:
             identity = lib_id
+            enabled = True
 
         # First enable — two phases.
         container.on_lifecycle_events([make_added_event(MyState, lib_id)])
@@ -600,26 +613,45 @@ class TestOnLibraryDisabled:
 
         class FakeLibrary:
             identity = lib_id
+            enabled = True
 
         # Should not raise.
         container.on_library_disabled(FakeLibrary())
         assert lib_id.id not in container._enabled_library_ids
 
 
-class TestBindToLifecycle:
-    """bind_to_lifecycle subscribes the container to the three event
-    channels it reacts to. Tests use mock library_registries because the
-    real LibraryRegistry needs a full DI environment."""
+class TestSubscribeToLifecycleEvents:
+    """subscribe_to_lifecycle_events wires the CLASS_ADDED/REMOVED/RELOADED
+    channel on the state registry. It is intentionally separate from
+    subscribe_to_library_callbacks so the orchestrator can time phase 1
+    (instantiate-on-CLASS_ADDED) before enable_all_libraries() and phase 2
+    (on_enable via the library-enabled callback) after it."""
 
     def test_subscribes_to_state_registry_batch_events(self):
+        reg = LibraryStateRegistry()
+        container = LibraryStateContainer(reg)
+
+        container.subscribe_to_lifecycle_events()
+
+        assert container.on_lifecycle_events in reg._batch_event_subscribers
+
+    def test_does_not_register_library_callbacks(self):
+        """Phase-1 subscription must not touch the per-library callback channel."""
         reg = LibraryStateRegistry()
         container = LibraryStateContainer(reg)
         from unittest.mock import MagicMock
 
         library_registry = MagicMock()
-        container.bind_to_lifecycle(library_registry)
+        container.subscribe_to_lifecycle_events()
 
-        assert container.on_lifecycle_events in reg._batch_event_subscribers
+        library_registry.add_library_enabled_callback.assert_not_called()
+        library_registry.add_library_disabled_callback.assert_not_called()
+
+
+class TestSubscribeToLibraryCallbacks:
+    """subscribe_to_library_callbacks wires the per-library enabled/disabled
+    callbacks. Tests use mock library_registries because the real
+    LibraryRegistry needs a full DI environment."""
 
     def test_registers_library_enabled_callback(self):
         reg = LibraryStateRegistry()
@@ -627,7 +659,7 @@ class TestBindToLifecycle:
         from unittest.mock import MagicMock
 
         library_registry = MagicMock()
-        container.bind_to_lifecycle(library_registry)
+        container.subscribe_to_library_callbacks(library_registry)
 
         library_registry.add_library_enabled_callback.assert_called_once_with(container.on_library_enabled)
 
@@ -637,6 +669,17 @@ class TestBindToLifecycle:
         from unittest.mock import MagicMock
 
         library_registry = MagicMock()
-        container.bind_to_lifecycle(library_registry)
+        container.subscribe_to_library_callbacks(library_registry)
 
         library_registry.add_library_disabled_callback.assert_called_once_with(container.on_library_disabled)
+
+    def test_does_not_subscribe_to_state_registry_events(self):
+        """Phase-2 subscription must not touch the lifecycle-event channel."""
+        reg = LibraryStateRegistry()
+        container = LibraryStateContainer(reg)
+        from unittest.mock import MagicMock
+
+        library_registry = MagicMock()
+        container.subscribe_to_library_callbacks(library_registry)
+
+        assert container.on_lifecycle_events not in reg._batch_event_subscribers

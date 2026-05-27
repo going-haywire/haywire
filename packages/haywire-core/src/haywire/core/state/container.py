@@ -16,25 +16,39 @@ canonical instance.
 
 Two-phase lifecycle
 -------------------
-CLASS_ADDED events from ``on_lifecycle_events`` only **instantiate** the
-state class (storing the instance in ``_app`` / session bags). ``on_enable``
-is deferred until ``on_library_enabled`` fires, which happens after the
-owning library's ``enable()`` has fully returned and all its components
-(settings, types, nodes, panels, editors) are registered.
+The two subscriptions are wired in two stages by
+``LibrarySystemService.initialize`` so the phases can be timed
+independently:
 
-This means a state instance is reachable via ``ctx.app_data[Cls]`` as
-soon as its class is scanned — even before ``on_enable`` has resolved its
-DI dependencies — so editors and panels that draw during the same
-``_attach_to_registries`` pass see a valid (default-initialised) object
-rather than a KeyError.
+  * ``subscribe_to_lifecycle_events`` runs BEFORE ``enable_all_libraries``.
+    CLASS_ADDED events fired during each library's
+    ``_attach_to_registries`` instantiate the state class right away
+    (``_add`` with ``call_on_enable=False`` because the library is not
+    yet in ``_enabled_library_ids``). That means ``ctx.app_data[Cls]``
+    is reachable as soon as the owning library has registered its
+    state — editors/panels that draw during the same library's enable()
+    see a valid default-initialised instance, not a KeyError.
 
-CLASS_RELOADED events (hot-reload of an already-enabled library) still
-do the full disable-old / instantiate-new / enable-new cycle atomically
-inside ``on_lifecycle_events``, because by that point ``on_library_enabled``
-has already run for the library and the full environment is available.
+  * ``subscribe_to_library_callbacks`` runs AFTER the enable loop has
+    returned. The orchestrator then drives a startup catch-up loop that
+    invokes ``on_library_enabled`` for every already-enabled library,
+    which calls ``on_enable`` on each state instance. By that point
+    every library has registered all its components, so a state's
+    ``on_enable`` can safely reference types/nodes/panels from any
+    other library (e.g. haystack rehydrating a graph that references
+    visiongraph's FRAME type).
 
-``_enabled_library_ids`` now gates only ``on_enable`` calls, not
-instantiation.
+Hot-installed libraries (added after startup) collapse the two stages
+because no other libraries are loading concurrently: CLASS_ADDED events
+during the new library's ``enable()`` still defer ``on_enable`` (the
+library isn't in ``_enabled_library_ids`` until the post-enable
+callback fires), then ``on_library_enabled`` runs ``on_enable``.
+
+CLASS_RELOADED events (hot-reload of an already-enabled library) do
+the full disable-old / instantiate-new / enable-new cycle atomically
+inside ``on_lifecycle_events``, because by that point
+``on_library_enabled`` has already run for the library and the full
+environment is available.
 
 Dispatch decision is ``issubclass(cls, SessionState)`` at event time.
 See docs/architecture/session-and-state/session-and-state-arch.md §3.
@@ -265,26 +279,46 @@ class LibraryStateContainer:
     # AFTER enable_all_libraries() has returned.
     # ------------------------------------------------------------------
 
-    def bind_to_lifecycle(self, library_registry: "LibraryRegistry") -> None:
-        """Subscribe to the three channels the container reacts to.
+    def subscribe_to_lifecycle_events(self) -> None:
+        """Subscribe to CLASS_ADDED/REMOVED/RELOADED events on the state registry.
 
         Called by the orchestrator (``LibrarySystemService.initialize``)
-        before ``enable_all_libraries()``. This lets ``on_library_enabled``
-        fire naturally for each library as it enables, driving phase 2
-        (``on_enable``) right after each library's ``enable()`` returns.
-        CLASS_ADDED events received during ``enable()`` only instantiate
-        state (phase 1); ``on_enable`` is deferred to ``on_library_enabled``.
+        BEFORE ``enable_all_libraries()``. With this in place, every state
+        class scanned during a library's ``_attach_to_registries`` reaches
+        the container via ``on_lifecycle_events`` and gets instantiated
+        immediately (phase 1). That means ``ctx.app_data[Cls]`` is
+        available as soon as the owning library has registered its state
+        classes — even before later libraries finish enabling — so editors
+        and panels rendering during the same library's enable() see a
+        valid (default-initialised) instance rather than a KeyError.
 
-        Subscribes to:
-          1. State registry batch events — for hot-reload of classes
-             within already-enabled libraries.
-          2. Library-enabled callback — triggers on_enable for each
-             library's state instances once all components are registered.
-          3. Library-disabled callback — drops the library id from
-             ``_enabled_library_ids`` so subsequent events for it are
-             filtered out.
+        ``on_enable`` (phase 2) is NOT fired by this channel. That's the
+        job of ``subscribe_to_library_callbacks`` (see below), which is
+        wired after the whole enable loop so a state's ``on_enable``
+        never runs before every library has registered its components.
         """
         self._state_registry.add_batch_event_subscriber(self.on_lifecycle_events)
+
+    def subscribe_to_library_callbacks(self, library_registry: "LibraryRegistry") -> None:
+        """Subscribe to per-library enabled / disabled callbacks.
+
+        Called by the orchestrator AFTER ``enable_all_libraries()`` has
+        returned — timing matters: subscribing earlier would fire
+        ``on_library_enabled`` per-library mid-loop, so a state's
+        ``on_enable`` could run before later libraries had registered
+        their types/nodes/panels. That is the load-order race the
+        two-phase machinery exists to prevent (e.g. haystack rehydrating
+        a graph that references a type owned by a library enabled later
+        in the loop).
+
+        Right after this call, ``LibrarySystemService.initialize`` drives
+        a startup catch-up loop that invokes ``on_library_enabled`` for
+        every already-enabled library — running ``on_enable`` on each
+        library's state instances (which were already instantiated in
+        phase 1 via ``subscribe_to_lifecycle_events``). Future
+        hot-installed libraries reach ``on_library_enabled`` directly
+        via the callback registered here.
+        """
         library_registry.add_library_enabled_callback(self.on_library_enabled)
         library_registry.add_library_disabled_callback(self.on_library_disabled)
 
@@ -307,19 +341,20 @@ class LibraryStateContainer:
         Idempotent: classes already enabled (registry_key already in
         ``_enabled_library_ids`` from a prior call) are skipped.
         """
-        self._mark_library_enabled(library.identity.id)
-        classes = self._state_registry.get_classes_for_library(library.identity)
-        for registry_key, cls in classes.items():
-            try:
-                self._enable_library_instances(registry_key, cls)
-            except Exception as exc:
-                logger.error(
-                    "LibraryStateContainer on_enable failed for %s in library %s: %s",
-                    cls.__name__,
-                    library.identity.label,
-                    exc,
-                    exc_info=True,
-                )
+        if library.enabled:
+            self._mark_library_enabled(library.identity.id)
+            classes = self._state_registry.get_classes_for_library(library.identity)
+            for registry_key, cls in classes.items():
+                try:
+                    self._enable_library_instances(registry_key, cls)
+                except Exception as exc:
+                    logger.error(
+                        "LibraryStateContainer on_enable failed for %s in library %s: %s",
+                        cls.__name__,
+                        library.identity.label,
+                        exc,
+                        exc_info=True,
+                    )
 
     def _enable_library_instances(self, registry_key: str, cls: type[LibraryState]) -> None:
         """Ensure *registry_key* is instantiated and on_enable has been called.
