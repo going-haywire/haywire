@@ -1,6 +1,6 @@
 # Carveout: `haybale-marketplace`
 
-Implementation spec for the carve-out decided in [ADR-0001](../../docs/adr/0001-haybale-marketplace-carveout.md). Reads as a 10-step sequenced plan: prerequisites earlier, dependent moves later. The whole thing is one PR-sized refactor; no step requires further architectural decisions.
+Implementation spec for the carve-out decided in [ADR-0001](../../../docs/adr/0001-haybale-marketplace-carveout.md). Reads as a 10-step sequenced plan: prerequisites earlier, dependent moves later. The whole thing is one PR-sized refactor; no step requires further architectural decisions.
 
 Closes the loop opened by `internals/specs/marketstall-distribution.md` §3.1 and §17, which explicitly defer the carve-out.
 

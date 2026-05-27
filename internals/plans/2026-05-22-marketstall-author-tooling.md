@@ -8,7 +8,7 @@
 
 **Tech Stack:** Python 3.12, `dataclasses`, `toml` library, `pytest`. `haywire.core.marketstall.host_providers.resolve_host()` for URL derivation. No new third-party deps.
 
-**Spec reference:** [`internals/specs/marketstall-distribution.md`](../specs/marketstall-distribution.md). §2.1 (os validation), §6 (share command), §6.2 (output), §6.3 (failure modes), §6.4 (URL-only re-run), §6.5 (other share modes), §6.6 (README markers).
+**Spec reference:** [`internals/specs/marketstall-distribution.md`](../speculatives/archive/marketstall-distribution.md). §2.1 (os validation), §6 (share command), §6.2 (output), §6.3 (failure modes), §6.4 (URL-only re-run), §6.5 (other share modes), §6.6 (README markers).
 
 **Inquisition decisions this slice implements:** Q6 (os Edit dialog scope — code-side validation only; UI is slice 4), Q7 (gen-docs marker preservation — full README generation included per user choice).
 

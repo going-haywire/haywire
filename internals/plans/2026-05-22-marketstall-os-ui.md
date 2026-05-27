@@ -8,7 +8,7 @@
 
 **Tech Stack:** Python 3.12, NiceGUI (UI). Existing `Haybale.os` field + `current_os()` + `haybale_supports_current_os()` helpers from foundation. New write path in `update_library_identity` to persist `[tool.haywire].os` to a heap's `pyproject.toml`. No new third-party deps.
 
-**Spec reference:** [`internals/specs/marketstall-distribution.md`](../specs/marketstall-distribution.md). §2.1 (`os` field — declarable values, runtime sentinel, Edit dialog surface, Library Browser behavior).
+**Spec reference:** [`internals/specs/marketstall-distribution.md`](../speculatives/archive/marketstall-distribution.md). §2.1 (`os` field — declarable values, runtime sentinel, Edit dialog surface, Library Browser behavior).
 
 **Inquisition decisions this slice implements:** Q6 (`os` declarations limited to `"macos"`/`"windows"`/`"linux"`; Edit dialog gated to heap libraries; installed wheels show read-only; install gating with tooltip).
 

@@ -8,7 +8,7 @@
 
 **Tech Stack:** Python 3.12, NiceGUI (UI framework — see [.insights/feedback_nicegui_*](../../.insights/) for traps), `haywire.core.marketstall` foundation API, `pytest`. No new third-party deps.
 
-**Spec reference:** [`internals/specs/marketstall-distribution.md`](../specs/marketstall-distribution.md). §4.2 (four input forms), §4.3 (resolution algorithm), §7.1 (Add Source dialog), §7.4 (provenance display in Library Browser — the install-safety modal IS slice 5; only the provenance label is in scope here).
+**Spec reference:** [`internals/specs/marketstall-distribution.md`](../speculatives/archive/marketstall-distribution.md). §4.2 (four input forms), §4.3 (resolution algorithm), §7.1 (Add Source dialog), §7.4 (provenance display in Library Browser — the install-safety modal IS slice 5; only the provenance label is in scope here).
 
 **Inquisition decisions this slice implements:** Q4 (drop bare repo URL form 3 — already in url_resolution.py from foundation), Q9 (provenance display — the "via aggregator" affordance; install-safety modal is slice 5).
 
