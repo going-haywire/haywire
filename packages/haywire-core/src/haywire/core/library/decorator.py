@@ -24,6 +24,8 @@ def library(**kwargs: Any) -> Callable[[Type[T]], Type[T]]:
     Args:
         label (str, required): Human-readable library name.
         version (str, optional): Semantic version string. Defaults to '1.0.0'.
+            Ideally use _pkg_version("haybale-packagename")
+            from importlib.metadata import version as _pkg_version
         description (str, optional): Human-readable description of the library.
             Defaults to empty string.
         url (str, optional): Library's main URL. Defaults to empty string.

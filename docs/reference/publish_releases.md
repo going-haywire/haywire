@@ -74,6 +74,7 @@ publish_order = [
     "haywire-studio",
     "haybale-core",
     "haybale-studio",
+    "haybale-marketplace",
     "haybale-graph-editor",
     "haybale-haystack",
     "haybale-example",
