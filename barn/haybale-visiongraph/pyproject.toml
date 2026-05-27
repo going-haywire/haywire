@@ -1,6 +1,6 @@
 [project]
 name = "haybale-visiongraph"
-version = "0.0.1"
+version = "0.0.2"
 description = "Visiongraph library for Haywire node system demonstrating custom types, nodes, widgets, and renderers"
 readme = "README.md"
 requires-python = ">=3.9"
@@ -11,8 +11,8 @@ authors = [
 keywords = ["haywire", "node-editor", "visual-programming", "visiongraph"]
 
 dependencies = [
-    "haywire-core~=0.0.1",
-    "haybale-core~=0.0.1",
+    "haywire-core~=0.0.2",
+    "haybale-core~=0.0.2",
     "visiongraph[all]",
 ]
 
