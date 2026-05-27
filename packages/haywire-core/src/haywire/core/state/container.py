@@ -14,44 +14,10 @@ its class object is replaced, but the registry_key stays the same, so
 callers holding a pre-reload class reference still resolve to the
 canonical instance.
 
-Two-phase lifecycle
--------------------
-The two subscriptions are wired in two stages by
-``LibrarySystemService.initialize`` so the phases can be timed
-independently:
-
-  * ``subscribe_to_lifecycle_events`` runs BEFORE ``enable_all_libraries``.
-    CLASS_ADDED events fired during each library's
-    ``_attach_to_registries`` instantiate the state class right away
-    (``_add`` with ``call_on_enable=False`` because the library is not
-    yet in ``_enabled_library_ids``). That means ``ctx.app_data[Cls]``
-    is reachable as soon as the owning library has registered its
-    state — editors/panels that draw during the same library's enable()
-    see a valid default-initialised instance, not a KeyError.
-
-  * ``subscribe_to_library_callbacks`` runs AFTER the enable loop has
-    returned. The orchestrator then drives a startup catch-up loop that
-    invokes ``on_library_enabled`` for every already-enabled library,
-    which calls ``on_enable`` on each state instance. By that point
-    every library has registered all its components, so a state's
-    ``on_enable`` can safely reference types/nodes/panels from any
-    other library (e.g. haystack rehydrating a graph that references
-    visiongraph's FRAME type).
-
-Hot-installed libraries (added after startup) collapse the two stages
-because no other libraries are loading concurrently: CLASS_ADDED events
-during the new library's ``enable()`` still defer ``on_enable`` (the
-library isn't in ``_enabled_library_ids`` until the post-enable
-callback fires), then ``on_library_enabled`` runs ``on_enable``.
-
-CLASS_RELOADED events (hot-reload of an already-enabled library) do
-the full disable-old / instantiate-new / enable-new cycle atomically
-inside ``on_lifecycle_events``, because by that point
-``on_library_enabled`` has already run for the library and the full
-environment is available.
-
-Dispatch decision is ``issubclass(cls, SessionState)`` at event time.
-See docs/architecture/session-and-state/session-and-state-arch.md §3.
+Lifecycle model (two-phase startup, hot-install, hot-reload) and the
+overall subsystem rationale live in
+docs/architecture/session-and-state/session-and-state-arch.md §3.
+This file documents implementation details, not the contract.
 """
 
 from __future__ import annotations
