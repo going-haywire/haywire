@@ -26,6 +26,7 @@ from haywire.core.graph.base import BaseGraph
 from haywire.core.undo.config import DEVELOPMENT_CONFIG
 from haywire.core.di.config import create_library_system_service
 from haywire.core.di.context import set_workspace_root
+from haywire.core.host import HostStore
 
 # UI imports
 from haywire.ui.console_bridge import get_bridge
@@ -131,6 +132,12 @@ class HaywireApp:
         if os.path.isdir(workspace_libs):
             library_paths.append(workspace_libs)
 
+        # HostStore — engine bootstrap persistence the LibraryRegistry uses
+        # to remember which libraries the user has disabled. File-backed
+        # because this is a real workspace; an embedded / headless host
+        # could pass HostStore.in_memory() or omit the argument entirely.
+        host_store = HostStore(Path(self.workspace_root) / ".haywire" / "host.toml")
+
         # create_library_system_service.initialize() publishes both the
         # service (via set_library_system) and the injector (via
         # set_global_injector) BEFORE the enable phase, so AppState.on_enable
@@ -140,6 +147,7 @@ class HaywireApp:
             library_paths=library_paths if library_paths else None,
             enable_file_watching=True,
             watch_settings=False,
+            host_store=host_store,
         )
         print("Library system initialized.")
 

@@ -751,17 +751,13 @@ class LibraryOverviewEditor(BaseEditor):
     # ─────────────────────────────────────────────────────────────────────────
 
     def _enable_library(self, library_id: str, manager, context: "SessionContext"):
-        from haybale_marketplace.state.library_enable_state import LibraryEnableState
-
-        context.app_data[LibraryEnableState].enable(library_id)
+        manager.registry.enable_library(library_id)
         ui.notify(f"Enabled: {library_id}", type="positive")
         context.active_library = self._reload_installed(library_id, manager)
         self._notify_library_changed(context)
 
     def _disable_library(self, library_id: str, manager, context: "SessionContext"):
-        from haybale_marketplace.state.library_enable_state import LibraryEnableState
-
-        context.app_data[LibraryEnableState].disable(library_id)
+        manager.registry.disable_library(library_id)
         ui.notify(f"Disabled: {library_id}", type="warning")
         context.active_library = self._reload_installed(library_id, manager)
         self._notify_library_changed(context)

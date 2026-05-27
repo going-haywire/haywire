@@ -12,7 +12,12 @@ from .utils import format_external_exception
 from .discovery import LibraryDiscovery, DiscoveredLibrary
 from .install_type import InstallType
 from .identity import LibraryIdentity
+from ..host import HostStore
 from ..registry.base import BaseRegistry
+
+
+_HOST_STORE_SECTION = "libraries"
+_HOST_STORE_KEY_DISABLED = "disabled"
 
 logger = logging.getLogger(__name__)
 
@@ -30,9 +35,22 @@ class LibraryLoadError(LibraryDiscoveryError):
 
 
 class LibraryRegistry:
-    """Registry for managing loaded libraries"""
+    """Registry for managing loaded libraries.
 
-    def __init__(self):
+    The registry owns the persisted-disabled-state contract: writes go through
+    ``HostStore`` (under section ``libraries``, key ``disabled``) whenever
+    ``enable_library`` / ``disable_library`` is called. The bootstrap-apply
+    path is ``apply_persisted_disabled_state()`` — called once between
+    ``scan_for_libraries()`` and ``enable_all_libraries()`` and explicitly
+    suppresses the write-through (the values being applied came *from* the
+    store; re-writing them would be a no-op churn). See ADR-0001.
+
+    If the host supplied no ``HostStore``, the in-memory default returned by
+    ``HostStore.in_memory()`` is used: reads return defaults, writes are
+    kept in memory only.
+    """
+
+    def __init__(self, host_store: Optional[HostStore] = None):
         # Registry functionality moved from BaseRegistry
         self._libraries: Dict[str, BaseLibrary] = {}  # registry_id -> library_instance
         """key is library_registry_id (e.g. 'visiongraph'), value is the instantiated library object"""
@@ -50,6 +68,21 @@ class LibraryRegistry:
         self._library_sources: Dict[str, str] = {}  # library_id -> source path
         self._library_install_types: Dict[str, InstallType] = {}  # library_id -> install type
         self._library_distribution_names: Dict[str, str] = {}  # library_id -> pip package name
+
+        # Host-provided persistence (engine bootstrap state). When the host
+        # supplies no store, a detached in-memory one is used so the registry
+        # still has a uniform write interface.
+        self._host_store: HostStore = host_store if host_store is not None else HostStore.in_memory()
+        # Set of library_registry_ids the user has explicitly disabled. Honored
+        # by enable_all_libraries() (skipped during bootstrap) and by
+        # _fire_library_enabled paths. Populated from HostStore by
+        # apply_persisted_disabled_state() and mutated by
+        # enable_library / disable_library at runtime.
+        self._user_disabled: set[str] = set()
+        # Reentrancy flag: True while apply_persisted_disabled_state() applies
+        # values that came *from* the store, so disable_library() doesn't churn
+        # the same list back to disk.
+        self._suppress_disable_persist: bool = False
 
         # Loading configuration
         self.load_core_libraries = False  # Load core libraries from src/haywire/libraries
@@ -192,30 +225,76 @@ class LibraryRegistry:
                 )
 
     def enable_all_libraries(self):
-        """Enable file watching for all loaded libraries"""
-        for library in self._libraries.values():
+        """Enable every loaded library except those the user has explicitly disabled.
+
+        Libraries in ``self._user_disabled`` (populated from HostStore via
+        ``apply_persisted_disabled_state`` and mutated at runtime by
+        ``disable_library`` / ``enable_library``) skip the enable step.
+        """
+        for library_id, library in self._libraries.items():
+            if library_id in self._user_disabled:
+                continue
             library.enable()
             self._fire_library_enabled(library)
 
     def enable_library(self, library_registry_id: str) -> bool:
-        """Enable a specific library"""
+        """Enable a specific library. Removes it from the persisted-disabled set."""
         library = self._libraries.get(library_registry_id)
-        if library:
-            library.enable()
-            logger.info(f"Library '{library.identity.label}': Enabled")
-            self._fire_library_enabled(library)
-            return True
-        return False
+        if not library:
+            return False
+        self._user_disabled.discard(library_registry_id)
+        self._persist_disabled_set()
+        library.enable()
+        logger.info(f"Library '{library.identity.label}': Enabled")
+        self._fire_library_enabled(library)
+        return True
 
     def disable_library(self, library_registry_id: str) -> bool:
-        """Disable a specific library"""
+        """Disable a specific library. Adds it to the persisted-disabled set."""
         library = self._libraries.get(library_registry_id)
-        if library:
-            library.disable()
-            logger.info(f"Library '{library.identity.label}': Disabled")
-            self._fire_library_disabled(library)
-            return True
-        return False
+        if not library:
+            return False
+        self._user_disabled.add(library_registry_id)
+        self._persist_disabled_set()
+        library.disable()
+        logger.info(f"Library '{library.identity.label}': Disabled")
+        self._fire_library_disabled(library)
+        return True
+
+    def apply_persisted_disabled_state(self) -> None:
+        """Populate the user-disabled set from the host store.
+
+        Called once between ``scan_for_libraries()`` and
+        ``enable_all_libraries()``. The values being applied came *from* the
+        store, so the write-back is suppressed for this call.
+        """
+        disabled = self._host_store.get(_HOST_STORE_SECTION, _HOST_STORE_KEY_DISABLED, [])
+        if not isinstance(disabled, list):
+            logger.warning(
+                "HostStore: [%s].%s is not a list (got %r); ignoring",
+                _HOST_STORE_SECTION,
+                _HOST_STORE_KEY_DISABLED,
+                disabled,
+            )
+            return
+        self._suppress_disable_persist = True
+        try:
+            known = set(self._libraries.keys())
+            for lib_id in disabled:
+                if lib_id in known:
+                    self._user_disabled.add(lib_id)
+        finally:
+            self._suppress_disable_persist = False
+
+    def _persist_disabled_set(self) -> None:
+        """Write the current ``_user_disabled`` set to the host store."""
+        if self._suppress_disable_persist:
+            return
+        self._host_store.set(
+            _HOST_STORE_SECTION,
+            _HOST_STORE_KEY_DISABLED,
+            sorted(self._user_disabled),
+        )
 
     def remove_library(self, library_registry_id: str) -> bool:
         """Disable, unregister, and fully remove a library from all tracking dicts.

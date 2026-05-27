@@ -21,7 +21,7 @@ from ...ui.themes.registry import ThemeRegistry
 from ...ui.editor.registry import EditorTypeRegistry
 from ...ui.panel.registry import PanelRegistry
 
-from ..library.enable_settings import LibraryEnableSettings  # noqa: F401  # schema must be imported so __init_subclass__ queues it for SettingsRegistry
+from ..host import HostStore
 from ..library.registry import LibraryRegistry
 from ..node.registry import NodeRegistry
 from ..adapter.registry import AdapterRegistry
@@ -56,6 +56,7 @@ class HaywireModule(Module):
         enable_file_watching: bool = True,
         settings_path: Optional[str] = None,
         watch_settings: bool = True,
+        host_store: Optional[HostStore] = None,
     ):
         """
         Initialize the DI module.
@@ -67,11 +68,16 @@ class HaywireModule(Module):
             settings_path:      Path to the global settings TOML file
                                 (default: ~/.haywire/settings.toml, hand-edited by user).
             watch_settings:     Whether to watch settings files for hot reload.
+            host_store:         Optional HostStore the host has constructed for
+                                engine bootstrap state (e.g. ``[libraries] disabled``).
+                                ``None`` → an in-memory store; writes do not persist.
+                                See ``haywire.core.host.store``.
         """
         self.workspace_root = workspace_root or self._detect_project_root()
         self.library_paths = library_paths or []
         self.enable_file_watching = enable_file_watching
         self.watch_settings = watch_settings
+        self.host_store = host_store if host_store is not None else HostStore.in_memory()
 
         # Global-tier settings path (hand-edited by user, never written by the app)
         if settings_path:
@@ -108,9 +114,20 @@ class HaywireModule(Module):
 
     @provider
     @singleton
+    def provide_host_store(self) -> HostStore:
+        """Provide singleton HostStore for engine bootstrap state.
+
+        The store was supplied to ``HaywireModule.__init__`` by the host
+        application (or, if absent, an in-memory store was created). See
+        ``haywire.core.host.store`` for the design rationale.
+        """
+        return self.host_store
+
+    @provider
+    @singleton
     def provide_library_registry(self) -> LibraryRegistry:
         """Provide singleton LibraryRegistry."""
-        library_registry = LibraryRegistry()
+        library_registry = LibraryRegistry(host_store=self.host_store)
 
         # Core libraries are not used (loaded via pip entry points instead)
         library_registry.load_core_libraries = False
@@ -365,17 +382,10 @@ class LibrarySystemService:
 
         # Apply persisted-disabled state BEFORE the enable phase, so libraries
         # the user previously disabled never enter the enable cycle in the
-        # first place. Owning this step here — rather than on a LibraryManager
-        # post-hook — avoids a mid-bootstrap mutation cascade. See ADR-0001.
-        # The disabled list is a FrameworkSettings field (LibraryEnableSettings)
-        # registered into SettingsRegistry above; reading it here just consults
-        # the already-loaded workspace tier.
-        disabled_ids = LibraryEnableSettings().disabled
-        if disabled_ids:
-            known = set(library_registry.list_names())
-            for lib_id in disabled_ids:
-                if lib_id in known:
-                    library_registry.disable_library(lib_id)
+        # first place. The registry reads its own host-store; if the host
+        # supplied no store, the in-memory default returns an empty list and
+        # this is a no-op. See ADR-0001.
+        library_registry.apply_persisted_disabled_state()
 
         # Wire LibraryStateContainer before enabling libraries so that
         # on_library_enabled fires naturally for each library as it enables.
@@ -727,6 +737,7 @@ def create_haywire_injector(
     enable_file_watching: bool = True,
     settings_path: Optional[str] = None,
     watch_settings: bool = True,
+    host_store: Optional[HostStore] = None,
 ) -> Injector:
     """
     Create and configure a Haywire DI injector.
@@ -738,6 +749,8 @@ def create_haywire_injector(
         settings_path:        Path to the global settings TOML file
                               (default: ~/.haywire/settings.toml).
         watch_settings:       Whether to watch settings files for hot reload.
+        host_store:           Optional HostStore for engine bootstrap state.
+                              ``None`` → in-memory (writes don't persist).
 
     Returns:
         Configured DI injector.
@@ -748,6 +761,7 @@ def create_haywire_injector(
         enable_file_watching=enable_file_watching,
         settings_path=settings_path,
         watch_settings=watch_settings,
+        host_store=host_store,
     )
 
     return Injector([module])
@@ -759,6 +773,7 @@ def create_library_system_service(
     enable_file_watching: bool = True,
     settings_path: Optional[str] = None,
     watch_settings: bool = True,
+    host_store: Optional[HostStore] = None,
 ) -> LibrarySystemService:
     """
     Create and initialize a complete library system service.
@@ -773,6 +788,8 @@ def create_library_system_service(
         settings_path:        Path to the global settings TOML file
                               (default: ~/.haywire/settings.toml).
         watch_settings:       Whether to watch settings files for hot reload.
+        host_store:           Optional HostStore for engine bootstrap state.
+                              ``None`` → in-memory (writes don't persist).
 
     Returns:
         Initialized LibrarySystemService.
@@ -783,6 +800,7 @@ def create_library_system_service(
         enable_file_watching=enable_file_watching,
         settings_path=settings_path,
         watch_settings=watch_settings,
+        host_store=host_store,
     )
 
     service = LibrarySystemService(injector)
