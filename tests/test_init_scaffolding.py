@@ -267,6 +267,64 @@ class TestDevMode:
         assert data.get("caches", []) == []
 
 
+class TestLibBasename:
+    """_lib_basename strips a leading haybale- prefix so library names aren't doubled."""
+
+    def test_strips_haybale_hyphen_prefix(self):
+        from haywire_studio.init import _lib_basename
+
+        assert _lib_basename("haybale-weather") == "weather"
+
+    def test_strips_haybale_underscore_prefix(self):
+        from haywire_studio.init import _lib_basename
+
+        assert _lib_basename("haybale_weather") == "weather"
+
+    def test_leaves_unprefixed_name_untouched(self):
+        from haywire_studio.init import _lib_basename
+
+        assert _lib_basename("weather") == "weather"
+
+    def test_only_strips_leading_prefix(self):
+        from haywire_studio.init import _lib_basename
+
+        # An internal occurrence is not a prefix and must be preserved.
+        assert _lib_basename("my-haybale-thing") == "my-haybale-thing"
+
+
+class TestHaybalePrefixNotDoubled:
+    """`haywire init haybale-weather` must not yield a haybale-haybale-* library."""
+
+    @pytest.fixture
+    def prefixed_project(self, tmp_path, monkeypatch, fake_home):
+        monkeypatch.chdir(tmp_path)
+        from haywire_studio.init import init_project
+
+        init_project("haybale-weather", auto_sync=False)
+        return tmp_path / "haybale-weather"
+
+    def test_library_dir_not_doubled(self, prefixed_project):
+        assert (prefixed_project / "barn" / "haybale-weather").is_dir()
+        assert not (prefixed_project / "barn" / "haybale-haybale-weather").exists()
+
+    def test_library_module_not_doubled(self, prefixed_project):
+        assert (prefixed_project / "barn" / "haybale-weather" / "haybale_weather").is_dir()
+
+    def test_library_name_not_doubled(self, prefixed_project):
+        data = toml.loads((prefixed_project / "barn" / "haybale-weather" / "pyproject.toml").read_text())
+        assert data["project"]["name"] == "haybale-weather"
+
+    def test_library_decorator_id_not_doubled(self, prefixed_project):
+        init_content = (
+            prefixed_project / "barn" / "haybale-weather" / "haybale_weather" / "__init__.py"
+        ).read_text()
+        assert "id='weather'" in init_content
+
+    def test_project_name_kept_verbatim(self, prefixed_project):
+        data = toml.loads((prefixed_project / "pyproject.toml").read_text())
+        assert data["project"]["name"] == "haybale-weather"
+
+
 class TestNameSanitization:
     """Verify project names are correctly sanitized for Python modules."""
 
