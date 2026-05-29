@@ -183,15 +183,6 @@ wheels = [
 ]
 
 [[package]]
-name = "appnope"
-version = "0.1.4"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/35/5d/752690df9ef5b76e169e68d6a129fa6d08a7100ca7f754c89495db3c6019/appnope-0.1.4.tar.gz", hash = "sha256:1de3860566df9caf38f01f86f65e0e13e379af54f9e4bee1e66b48f2efffd1ee", size = 4170, upload-time = "2024-02-06T09:43:11.258Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/81/29/5ecc3a15d5a33e31b26c11426c45c501e439cb865d0bff96315d86443b78/appnope-0.1.4-py2.py3-none-any.whl", hash = "sha256:502575ee11cd7a28c0205f379b525beefebab9d161b7c964670864014ed7213c", size = 4321, upload-time = "2024-02-06T09:43:09.663Z" },
-]
-
-[[package]]
 name = "async-timeout"
 version = "5.0.1"
 source = { registry = "https://pypi.org/simple" }
@@ -464,33 +455,42 @@ toml = [
 ]
 
 [[package]]
+name = "deptry"
+version = "0.25.1"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "click" },
+    { name = "colorama", marker = "sys_platform == 'win32'" },
+    { name = "packaging" },
+    { name = "requirements-parser" },
+    { name = "tomli", marker = "python_full_version < '3.15'" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/b8/b2/50ccc99362ae7757342978b7ecb3b98e47fade721fd617d74db1948ec3a1/deptry-0.25.1.tar.gz", hash = "sha256:45c8cd982c85cd4faae573ddff6920de7eec735336db6973f26a765ae7950f7d", size = 509748, upload-time = "2026-03-18T23:22:18.139Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/33/1d/b538dc635e873b25360d761cfe1fa0ccd7d6c69b698047e552f33401e60d/deptry-0.25.1-cp310-abi3-macosx_10_12_x86_64.whl", hash = "sha256:a4dd1148db24a1ddacfa8b840836c6019c2f864fcb7579dd089fd217606338c8", size = 1850319, upload-time = "2026-03-18T23:22:15.65Z" },
+    { url = "https://files.pythonhosted.org/packages/fe/a9/511477a8f0ae4f6021d68a80bdca77e7ffb0722008dc24ee5d9ef49f5c88/deptry-0.25.1-cp310-abi3-macosx_11_0_arm64.whl", hash = "sha256:c67c666d916ef12013c0772e40d78be0f21577a495d8d99ec5fcb18c332d393d", size = 1759259, upload-time = "2026-03-18T23:22:30.853Z" },
+    { url = "https://files.pythonhosted.org/packages/4f/4b/c9f0bdda410912a6df79a789cb118fa29acae02a397794ead3c84adcda5c/deptry-0.25.1-cp310-abi3-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:58d39279828dbf4efc1abb40bf50a71b21499c36759bed5a8d8a3c0e3149b091", size = 1872012, upload-time = "2026-03-18T23:22:19.145Z" },
+    { url = "https://files.pythonhosted.org/packages/72/9c/6f6f9125bac74b5d5d2af89536cbdb3fa159b6466aa097b74e7e85e8e030/deptry-0.25.1-cp310-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:14bfcc28b4326ed8c6abb30691b19077d4ef8613cfba6c37ef5b1f471775bf6f", size = 1926575, upload-time = "2026-03-18T23:22:11.269Z" },
+    { url = "https://files.pythonhosted.org/packages/52/48/2a5e705a7f898295966ade67bd1223e2af96da433e25b39f6b9483ba2c7b/deptry-0.25.1-cp310-abi3-musllinux_1_1_aarch64.whl", hash = "sha256:555f5f9a487899ec9bf301eecba1745e14d212c4b354f4d3a5fd691e907366d3", size = 2050816, upload-time = "2026-03-18T23:22:27.439Z" },
+    { url = "https://files.pythonhosted.org/packages/5f/c6/50f189a894e1f3bf21266299112c8a06cb731838976e1b9a9cadd0b4a86e/deptry-0.25.1-cp310-abi3-musllinux_1_1_x86_64.whl", hash = "sha256:18d21b3545ab2bfec53f3f45c6f5f201d55f713323327f8d12674505469ae6b7", size = 2145416, upload-time = "2026-03-18T23:22:24.682Z" },
+    { url = "https://files.pythonhosted.org/packages/7a/6a/3f82f7a06217778282bc4456af1b4ffb3bc4b2c8e7891d00e8323f9ad0b8/deptry-0.25.1-cp310-abi3-win_amd64.whl", hash = "sha256:b59a560cb7dffb21832a98bb80d33d614cfb5630ea36ce21833eabf4eae3df99", size = 1718489, upload-time = "2026-03-18T23:22:28.589Z" },
+    { url = "https://files.pythonhosted.org/packages/c7/7f/cd6b3ac8cf95f2f1c5c7a74ff6452e9098af89a9b56607381f677880641e/deptry-0.25.1-cp310-abi3-win_arm64.whl", hash = "sha256:6efffd8116fb9d2c45a251382ce4ce1c38dbb17179f581ec9231ed5390f7fc12", size = 1647020, upload-time = "2026-03-18T23:22:23.311Z" },
+    { url = "https://files.pythonhosted.org/packages/46/e7/b554568a84197c0a4177b51c9880b55e9861de08d9acfd914a08148a1faa/deptry-0.25.1-pp311-pypy311_pp73-macosx_10_12_x86_64.whl", hash = "sha256:30d64d4df1c08bc69de56cb0b4ec1f4cd9fa2e42582347d5b1eb25fd0e401745", size = 1846779, upload-time = "2026-03-18T23:22:21.887Z" },
+    { url = "https://files.pythonhosted.org/packages/d9/63/38cf5ab4b81fcb1c58909ab0fe1ccc62b36f61c5f7d213a7d0474f620925/deptry-0.25.1-pp311-pypy311_pp73-macosx_11_0_arm64.whl", hash = "sha256:87bcd90f99a98bb059c7580bc315c3f87d97fe2db725530030bc974176834735", size = 1758420, upload-time = "2026-03-18T23:22:14.315Z" },
+    { url = "https://files.pythonhosted.org/packages/a8/fb/234c333d5dfcc810bb3ca5b3b420355bdd759901c75e41f0441a9871a1cd/deptry-0.25.1-pp311-pypy311_pp73-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:80f31eb5c520651b102568dd91f738222b250a3e44c9e95d4941322109b8d40a", size = 1870345, upload-time = "2026-03-18T23:22:29.734Z" },
+    { url = "https://files.pythonhosted.org/packages/59/62/cb63e5210d1ba36cf68cdc0e4fdea73e48f80ac3b7680228816f39ff696a/deptry-0.25.1-pp311-pypy311_pp73-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:df88952a2bab7517ef23cb304b979199b28449e5d9db2e9ba9bc27a286ac852b", size = 1922759, upload-time = "2026-03-18T23:22:17.121Z" },
+    { url = "https://files.pythonhosted.org/packages/a3/8c/e079c44ed98464930e83ca54ea5d40fec522d234e8428e06a1be7f6c7a9a/deptry-0.25.1-pp311-pypy311_pp73-musllinux_1_1_aarch64.whl", hash = "sha256:e6f7b8fa72932e51e86799b10dcd29381b2132dc799c790dca3b28ab08dffb28", size = 2049576, upload-time = "2026-03-18T23:22:12.797Z" },
+    { url = "https://files.pythonhosted.org/packages/4d/f2/6a89ad9e5e8e9d37def57a28020d6d7fbcf900b2e5f4dfbbace349cdca91/deptry-0.25.1-pp311-pypy311_pp73-musllinux_1_1_x86_64.whl", hash = "sha256:e3fa3321078e11cd1ac3f10ce3ff0547731c53f9253b87c757a8749c76fe8fa9", size = 2144676, upload-time = "2026-03-18T23:22:26.319Z" },
+    { url = "https://files.pythonhosted.org/packages/04/9a/b3358690a1a47381d995c3d3587798ab2cd086baf4b839e35183599aa2e1/deptry-0.25.1-pp311-pypy311_pp73-win_amd64.whl", hash = "sha256:03c032c32492fde434736954fbcaff09c02bf207b0f793b77e9040300e34b344", size = 1715518, upload-time = "2026-03-18T23:22:20.486Z" },
+]
+
+[[package]]
 name = "docutils"
 version = "0.22"
 source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/e9/86/5b41c32ecedcfdb4c77b28b6cb14234f252075f8cdb254531727a35547dd/docutils-0.22.tar.gz", hash = "sha256:ba9d57750e92331ebe7c08a1bbf7a7f8143b86c476acd51528b042216a6aad0f", size = 2277984, upload-time = "2025-07-29T15:20:31.06Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/44/57/8db39bc5f98f042e0153b1de9fb88e1a409a33cda4dd7f723c2ed71e01f6/docutils-0.22-py3-none-any.whl", hash = "sha256:4ed966a0e96a0477d852f7af31bdcb3adc049fbb35ccba358c2ea8a03287615e", size = 630709, upload-time = "2025-07-29T15:20:28.335Z" },
-]
-
-[[package]]
-name = "duit"
-version = "0.1.20"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "appnope", marker = "sys_platform == 'darwin'" },
-    { name = "numpy", version = "2.2.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
-    { name = "numpy", version = "2.3.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11' and python_full_version < '3.14'" },
-    { name = "numpy", version = "2.4.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.14'" },
-    { name = "pyperclip" },
-    { name = "vector" },
-]
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/2c/bb/315fb426ab7af6b1c63f3589a0e64e0beb044aa1cd107219f9c58af782a9/duit-0.1.20-py3-none-any.whl", hash = "sha256:2eb7644fa34af09fb6cb32bb12da2ecc0c97ed0493b5c40863d626451f152603", size = 152988, upload-time = "2025-09-12T13:35:44.494Z" },
-]
-
-[package.optional-dependencies]
-nicegui = [
-    { name = "nicegui" },
 ]
 
 [[package]]
@@ -517,20 +517,6 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/78/d7/6c8b3bfe33eeffa208183ec037fee0cce9f7f024089ab1c5d12ef04bd27c/fastapi-0.116.1.tar.gz", hash = "sha256:ed52cbf946abfd70c5a0dccb24673f0670deeb517a88b3544d03c2a6bf283143", size = 296485, upload-time = "2025-07-11T16:22:32.057Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/e5/47/d63c60f59a59467fda0f93f46335c9d18526d7071f025cb5b89d5353ea42/fastapi-0.116.1-py3-none-any.whl", hash = "sha256:c46ac7c312df840f0c9e220f7964bada936781bc4e2e6eb71f1c4d7553786565", size = 95631, upload-time = "2025-07-11T16:22:30.485Z" },
-]
-
-[[package]]
-name = "ffmpegio"
-version = "0.11.1"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "packaging" },
-    { name = "pluggy" },
-    { name = "typing-extensions" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/c9/b9/d5ebf2e5cc0c5c14094ebb31b32d0f84badc9c3089129df92e7b311764b0/ffmpegio-0.11.1.tar.gz", hash = "sha256:a9b1666c68fd2248045713919c0d84c5e992e89f82e25887afe7c88d33d7742a", size = 191703, upload-time = "2025-05-17T15:27:57.948Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/ee/c9/bf0e8c37cb0e2e42e34fd4cdc5947601ba4640dc667a63d02134e09864d0/ffmpegio-0.11.1-py3-none-any.whl", hash = "sha256:8aeb1b7505ea5d45c65d13b90dc3108b5ede68a9723aca7551971d8bfae38284", size = 182251, upload-time = "2025-05-17T15:27:56.012Z" },
 ]
 
 [[package]]
@@ -714,10 +700,16 @@ version = "0.0.2"
 source = { editable = "barn/haybale-core" }
 dependencies = [
     { name = "haywire-core" },
+    { name = "nicegui" },
+    { name = "typing-extensions" },
 ]
 
 [package.metadata]
-requires-dist = [{ name = "haywire-core", editable = "packages/haywire-core" }]
+requires-dist = [
+    { name = "haywire-core", editable = "packages/haywire-core" },
+    { name = "nicegui" },
+    { name = "typing-extensions" },
+]
 
 [[package]]
 name = "haybale-example"
@@ -725,13 +717,19 @@ version = "0.0.2"
 source = { editable = "barn/haybale-example" }
 dependencies = [
     { name = "haybale-core" },
+    { name = "haybale-studio" },
     { name = "haywire-core" },
+    { name = "nicegui" },
+    { name = "typing-extensions" },
 ]
 
 [package.metadata]
 requires-dist = [
     { name = "haybale-core", editable = "barn/haybale-core" },
+    { name = "haybale-studio", editable = "barn/haybale-studio" },
     { name = "haywire-core", editable = "packages/haywire-core" },
+    { name = "nicegui" },
+    { name = "typing-extensions" },
 ]
 
 [[package]]
@@ -740,13 +738,13 @@ version = "0.0.2"
 source = { editable = "barn/haybale-graph-editor" }
 dependencies = [
     { name = "haywire-core" },
-    { name = "haywire-studio" },
+    { name = "nicegui" },
 ]
 
 [package.metadata]
 requires-dist = [
     { name = "haywire-core", editable = "packages/haywire-core" },
-    { name = "haywire-studio", editable = "packages/haywire-studio" },
+    { name = "nicegui" },
 ]
 
 [[package]]
@@ -757,7 +755,8 @@ dependencies = [
     { name = "haybale-graph-editor" },
     { name = "haybale-studio" },
     { name = "haywire-core" },
-    { name = "haywire-studio" },
+    { name = "nicegui" },
+    { name = "toml" },
 ]
 
 [package.metadata]
@@ -765,7 +764,8 @@ requires-dist = [
     { name = "haybale-graph-editor", editable = "barn/haybale-graph-editor" },
     { name = "haybale-studio", editable = "barn/haybale-studio" },
     { name = "haywire-core", editable = "packages/haywire-core" },
-    { name = "haywire-studio", editable = "packages/haywire-studio" },
+    { name = "nicegui" },
+    { name = "toml", specifier = ">=0.10.2" },
 ]
 
 [[package]]
@@ -776,6 +776,8 @@ dependencies = [
     { name = "haybale-studio" },
     { name = "haywire-core" },
     { name = "haywire-studio" },
+    { name = "nicegui" },
+    { name = "packaging" },
     { name = "toml" },
 ]
 
@@ -784,6 +786,8 @@ requires-dist = [
     { name = "haybale-studio", editable = "barn/haybale-studio" },
     { name = "haywire-core", editable = "packages/haywire-core" },
     { name = "haywire-studio", editable = "packages/haywire-studio" },
+    { name = "nicegui" },
+    { name = "packaging" },
     { name = "toml" },
 ]
 
@@ -793,15 +797,13 @@ version = "0.0.2"
 source = { editable = "barn/haybale-studio" }
 dependencies = [
     { name = "haywire-core" },
-    { name = "haywire-studio" },
-    { name = "packaging" },
+    { name = "nicegui" },
 ]
 
 [package.metadata]
 requires-dist = [
     { name = "haywire-core", editable = "packages/haywire-core" },
-    { name = "haywire-studio", editable = "packages/haywire-studio" },
-    { name = "packaging" },
+    { name = "nicegui" },
 ]
 
 [[package]]
@@ -823,6 +825,8 @@ dependencies = [
     { name = "haybale-core" },
     { name = "haybale-graph-editor" },
     { name = "haywire-core" },
+    { name = "nicegui" },
+    { name = "typing-extensions" },
 ]
 
 [package.metadata]
@@ -830,6 +834,8 @@ requires-dist = [
     { name = "haybale-core", editable = "barn/haybale-core" },
     { name = "haybale-graph-editor", editable = "barn/haybale-graph-editor" },
     { name = "haywire-core", editable = "packages/haywire-core" },
+    { name = "nicegui" },
+    { name = "typing-extensions" },
 ]
 
 [[package]]
@@ -837,15 +843,25 @@ name = "haybale-visiongraph"
 version = "0.0.2"
 source = { editable = "barn/haybale-visiongraph" }
 dependencies = [
+    { name = "fastapi" },
     { name = "haybale-core" },
     { name = "haywire-core" },
+    { name = "nicegui" },
+    { name = "numpy", version = "2.2.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
+    { name = "numpy", version = "2.3.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11' and python_full_version < '3.14'" },
+    { name = "numpy", version = "2.4.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.14'" },
+    { name = "opencv-python" },
     { name = "visiongraph" },
 ]
 
 [package.metadata]
 requires-dist = [
+    { name = "fastapi" },
     { name = "haybale-core", editable = "barn/haybale-core" },
     { name = "haywire-core", editable = "packages/haywire-core" },
+    { name = "nicegui" },
+    { name = "numpy" },
+    { name = "opencv-python" },
     { name = "visiongraph", extras = ["all"] },
 ]
 
@@ -856,15 +872,11 @@ source = { editable = "packages/haywire-core" }
 dependencies = [
     { name = "attrs" },
     { name = "cattrs" },
-    { name = "duit", extra = ["nicegui"] },
-    { name = "ffmpegio" },
     { name = "injector" },
     { name = "nicegui" },
-    { name = "numpy", version = "2.2.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
-    { name = "numpy", version = "2.3.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11' and python_full_version < '3.14'" },
-    { name = "numpy", version = "2.4.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.14'" },
-    { name = "opencv-python" },
+    { name = "packaging" },
     { name = "toml" },
+    { name = "typing-extensions" },
     { name = "watchdog" },
 ]
 
@@ -872,13 +884,11 @@ dependencies = [
 requires-dist = [
     { name = "attrs", specifier = "==25.4.0" },
     { name = "cattrs", specifier = "==25.3.0" },
-    { name = "duit", extras = ["nicegui"] },
-    { name = "ffmpegio", specifier = "~=0.11.1" },
     { name = "injector", specifier = ">=0.22.0" },
     { name = "nicegui" },
-    { name = "numpy" },
-    { name = "opencv-python" },
+    { name = "packaging" },
     { name = "toml", specifier = ">=0.10.2" },
+    { name = "typing-extensions" },
     { name = "watchdog", specifier = ">=6.0.0" },
 ]
 
@@ -888,10 +898,16 @@ version = "0.0.2"
 source = { editable = "packages/haywire-studio" }
 dependencies = [
     { name = "haywire-core" },
+    { name = "nicegui" },
+    { name = "toml" },
 ]
 
 [package.metadata]
-requires-dist = [{ name = "haywire-core", editable = "packages/haywire-core" }]
+requires-dist = [
+    { name = "haywire-core", editable = "packages/haywire-core" },
+    { name = "nicegui" },
+    { name = "toml", specifier = ">=0.10.2" },
+]
 
 [[package]]
 name = "haywire-workspace"
@@ -900,6 +916,7 @@ source = { virtual = "." }
 
 [package.dev-dependencies]
 dev = [
+    { name = "deptry" },
     { name = "haybale-core" },
     { name = "haybale-example" },
     { name = "haybale-graph-editor" },
@@ -926,6 +943,7 @@ dev = [
 
 [package.metadata.requires-dev]
 dev = [
+    { name = "deptry", specifier = ">=0.25.1" },
     { name = "haybale-core", editable = "barn/haybale-core" },
     { name = "haybale-example", editable = "barn/haybale-example" },
     { name = "haybale-graph-editor", editable = "barn/haybale-graph-editor" },
@@ -2108,15 +2126,6 @@ wheels = [
 ]
 
 [[package]]
-name = "pyperclip"
-version = "1.11.0"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/e8/52/d87eba7cb129b81563019d1679026e7a112ef76855d6159d24754dbd2a51/pyperclip-1.11.0.tar.gz", hash = "sha256:244035963e4428530d9e3a6101a1ef97209c6825edab1567beac148ccc1db1b6", size = 12185, upload-time = "2025-09-26T14:40:37.245Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/df/80/fc9d01d5ed37ba4c42ca2b55b4339ae6e200b456be3a1aaddf4a9fa99b8c/pyperclip-1.11.0-py3-none-any.whl", hash = "sha256:299403e9ff44581cb9ba2ffeed69c7aa96a008622ad0c46cb575ca75b5b84273", size = 11063, upload-time = "2025-09-26T14:40:36.069Z" },
-]
-
-[[package]]
 name = "pytest"
 version = "8.4.1"
 source = { registry = "https://pypi.org/simple" }
@@ -2326,6 +2335,18 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/c9/74/b3ff8e6c8446842c3f5c837e9c3dfcfe2018ea6ecef224c710c85ef728f4/requests-2.32.5.tar.gz", hash = "sha256:dbba0bac56e100853db0ea71b82b4dfd5fe2bf6d3754a8893c3af500cec7d7cf", size = 134517, upload-time = "2025-08-18T20:46:02.573Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/1e/db/4254e3eabe8020b458f1a747140d32277ec7a271daf1d235b70dc0b4e6e3/requests-2.32.5-py3-none-any.whl", hash = "sha256:2462f94637a34fd532264295e186976db0f5d453d1cdd31473c85a6a161affb6", size = 64738, upload-time = "2025-08-18T20:46:00.542Z" },
+]
+
+[[package]]
+name = "requirements-parser"
+version = "0.13.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "packaging" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/95/96/fb6dbfebb524d5601d359a47c78fe7ba1eef90fc4096404aa60c9a906fbb/requirements_parser-0.13.0.tar.gz", hash = "sha256:0843119ca2cb2331de4eb31b10d70462e39ace698fd660a915c247d2301a4418", size = 22630, upload-time = "2025-05-21T13:42:05.464Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/bd/60/50fbb6ffb35f733654466f1a90d162bcbea358adc3b0871339254fbc37b2/requirements_parser-0.13.0-py3-none-any.whl", hash = "sha256:2b3173faecf19ec5501971b7222d38f04cb45bb9d87d0ad629ca71e2e62ded14", size = 14782, upload-time = "2025-05-21T13:42:04.007Z" },
 ]
 
 [[package]]

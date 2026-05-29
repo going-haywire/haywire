@@ -14,6 +14,10 @@ dependencies = [
     "haywire-core~=0.0.2",
     "haybale-core~=0.0.2",
     "visiongraph[all]",
+    "numpy",
+    "opencv-python",
+    "fastapi",
+    "nicegui",
 ]
 
 # Entry point for Haywire library discovery

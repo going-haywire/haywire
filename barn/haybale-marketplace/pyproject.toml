@@ -10,6 +10,8 @@ dependencies = [
     "haywire-studio~=0.0.2",
     "haybale-studio~=0.0.2",
     "toml",
+    "nicegui",
+    "packaging",
 ]
 
 [project.entry-points."haywire.libraries"]

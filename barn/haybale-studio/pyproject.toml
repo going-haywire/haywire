@@ -7,8 +7,7 @@ license = {text = "MIT"}
 
 dependencies = [
     "haywire-core~=0.0.2",
-    "haywire-studio~=0.0.2",
-    "packaging",
+    "nicegui",
 ]
 
 [project.entry-points."haywire.libraries"]

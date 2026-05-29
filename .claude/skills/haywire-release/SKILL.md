@@ -15,8 +15,9 @@ description: >
 # `/haywire-release`
 
 Operator's playbook for cutting a release of the haywire monorepo's Tier 1+2 packages.
-Composes the existing tools (`scripts/bump_version.py`, `git`, `gh`) into the 10-step
-flow documented in [`docs/reference/publish_releases.md`](../../../docs/reference/publish_releases.md).
+Composes the existing tools (`scripts/bump_version.py`, `scripts/check_deps.py`,
+`git`, `gh`) into the release flow documented in
+[`docs/reference/publish_releases.md`](../../../docs/reference/publish_releases.md).
 
 ## When to use
 
@@ -39,8 +40,9 @@ or commit them first.
 
 ## Procedure
 
-The procedure runs in 10 steps that mirror spec § release flow § local. Each step
-includes the exact command to run, what to expect, and what to do on failure.
+The procedure runs in the steps below (mirroring spec § release flow § local), with
+a non-blocking dependency audit at Step 2.5. Each step includes the exact command to
+run, what to expect, and what to do on failure.
 
 ### Step 0 — show the current release version
 
@@ -91,6 +93,35 @@ git status --short
 Expected: empty output (or only untracked files unrelated to packages/barn). If there
 are modified or staged files, STOP and ask the user to commit or stash them first —
 the release commit should contain only the version bump.
+
+### Step 2.5 — dependency audit (non-blocking report)
+
+Run the dependency checker to surface any package whose declared dependencies have
+drifted from what it actually imports (unused cruft, or imported-but-undeclared
+third-party deps that would break a fresh install from PyPI):
+
+```bash
+uv run python scripts/check_deps.py
+```
+
+This wraps `deptry` per package (using a module-name map so inter-package deps
+aren't mis-flagged) and prints `clean` or a per-package list of findings:
+
+- **MISSING (DEP003)** — imported but not declared. The most important class: a
+  package that imports e.g. `nicegui` without declaring it works in the dev
+  workspace (transitively present) but can break when installed standalone from
+  PyPI.
+- **UNUSED (DEP002)** — declared but never imported. Cosmetic; bloats install size.
+- **NOT INSTALLED (DEP001)** — imported but not available at all. A real bug.
+
+**This is a REPORT, not a gate.** The script always exits 0. Show the output to the
+user. If there are findings, summarize them and ask whether to fix now (edit the
+relevant `pyproject.toml`s, re-sync, re-run) or proceed with the release as-is.
+Do NOT auto-edit dependencies or block the release — `deptry` has known false
+positives (e.g. deliberate version pins like `attrs` that are transitive of
+`cattrs`, or extras like `visiongraph[all]`), so the operator decides. The
+`KNOWN_OK` map in the script already suppresses the documented ones; if a new
+false positive appears, add it there rather than removing a needed dep.
 
 ### Step 3 — pre-flight check for a clean ancestor
 
@@ -289,6 +320,9 @@ a real release — without any persistent or shared-state action. Rollback is a 
 
 - [`scripts/bump_version.py`](../../../scripts/bump_version.py) — the version-rewriting
   CLI this skill calls. Documented in [`scripts/README.md`](../../../scripts/README.md).
+- [`scripts/check_deps.py`](../../../scripts/check_deps.py) — the dependency auditor
+  this skill runs at Step 2.5. Wraps `deptry` per package; reports unused/missing
+  deps without blocking or editing.
 - [`scripts/generate_marketstall.py`](../../../scripts/generate_marketstall.py) — the
   marketplace generator that CI's deploy job runs. Not invoked by this skill (CI
   runs it after publish succeeds).

@@ -45,6 +45,7 @@ dev = [
     "haybale-graph-editor",
     "haybale-marketplace",
     "mkdocs-material>=9.7.6",
+    "deptry>=0.25.1",
 ]
 
 [tool.mypy]
