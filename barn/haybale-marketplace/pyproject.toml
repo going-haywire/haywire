@@ -1,14 +1,14 @@
 [project]
 name = "haybale-marketplace"
-version = "0.0.2"
+version = "0.0.3"
 description = "Library installer + browser editors for Haywire"
 requires-python = ">=3.10"
 license = {text = "MIT"}
 
 dependencies = [
-    "haywire-core~=0.0.2",
-    "haywire-studio~=0.0.2",
-    "haybale-studio~=0.0.2",
+    "haywire-core~=0.0.3",
+    "haywire-studio~=0.0.3",
+    "haybale-studio~=0.0.3",
     "toml",
     "nicegui",
     "packaging",
