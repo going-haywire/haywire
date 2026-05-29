@@ -1,0 +1,3212 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="A Blueprint-inspired visual programming system — dual-flow control + data, library plugin model, hot-reload-first development.">
+      
+      
+      
+        <link rel="canonical" href="https://going-haywire.github.io/haywire/docs/guides/sharing-libraries/">
+      
+      
+        <link rel="prev" href="../signals/">
+      
+      
+        <link rel="next" href="../subscribing-to-marketplaces/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>Sharing libraries - Haywire Documentation</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Inter:300,300i,400,400i,700,700i%7CJetBrains+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Inter";--md-code-font:"JetBrains Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#sharing-libraries-author-guide" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow md-header--lifted" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="Haywire Documentation" class="md-header__button md-logo" aria-label="Haywire Documentation" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Haywire Documentation
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Sharing libraries
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+  </nav>
+  
+    
+      
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../.." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../welcome/user/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Perspectives
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../components/nodes/node-canon/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Components
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../node-roles/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Guides
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../architecture/overview/overview-arch/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Architecture
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../reference/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Reference
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../archive/whitepaper/Haywire_design/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Archive
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+    
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="Haywire Documentation" class="md-nav__button md-logo" aria-label="Haywire Documentation" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    Haywire Documentation
+  </label>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../welcome/user/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Perspectives
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_2" id="__nav_2_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Perspectives
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../welcome/advanced/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Advanced (workbench extender)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../welcome/core/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Core (system architect)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Components
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Components
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../components/nodes/node-canon/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Nodes
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../components/datatypes/datatype-canon/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Datatypes
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../components/adapters/adapter-canon/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Adapters
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../components/settings/setting-canon/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Settings
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../components/widgets/widget-canon/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Widgets
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../components/skins/skin-canon/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Skins
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--placeholder"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../components/themes/theme-canon/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Themes
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../components/editors/editor-canon/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Editors
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../components/panels/panel-canon/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Panels
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../components/states/state-canon/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    States
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../components/libraries/library-canon/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Libraries
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../components/haybale-package/haybale-package-canon/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Haybale package
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Guides
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Guides
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../node-roles/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Node roles
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ports/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Ports
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../signals/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Signals
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Sharing libraries
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Sharing libraries
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#1-what-it-solves" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. What it solves
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-the-shape-of-a-haybale-library" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. The shape of a haybale library
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-keeping-the-manifests-honest" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Keeping the manifests honest
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-the-publish-flow" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. The publish flow
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="4. The publish flow">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#41-snippet-mode-one-library-stdout" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.1 Snippet mode (one library, stdout)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#42-save-mode-all-barn-libraries-writes-marketstalltoml" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.2 Save mode (all barn libraries, writes marketstall.toml)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#43-the-drift-gate" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.3 The drift gate
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#44-what-an-entry-looks-like" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.4 What an entry looks like
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-versioning" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. Versioning
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#6-hosting-your-marketstall" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. Hosting your marketstall
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#7-the-full-author-cycle" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7. The full author cycle
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#8-common-pitfalls" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8. Common pitfalls
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#9-reading-on" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        9. Reading on
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../subscribing-to-marketplaces/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Subscribing to marketplaces
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Architecture
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/overview/overview-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--placeholder"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/design/design-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Design
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--placeholder"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/graph/graph-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Graph
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_5_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_5_4" id="__nav_5_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Execution
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_5_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Execution
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/execution/execution-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/execution/assembly/assembly-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Assembly
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/execution/edges/edges-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Edges
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/execution/flow/flow-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Flow
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--placeholder"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/execution/virtual-machine/virtual-machine-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Virtual machine
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--placeholder"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/execution/lazy-evaluation/lazy-evaluation-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Lazy evaluation
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--placeholder"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/execution/callbacks/callbacks-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Callbacks
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/library-system/library-system-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Library system
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/library-manager/library-manager-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Library manager
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/sharing/sharing-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Sharing — philosophy
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/hot-reload/hot-reload-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Hot-reload
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/settings/settings-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Settings
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/session-and-state/session-and-state-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Session and state
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_5_11" >
+        
+          
+          <label class="md-nav__link" for="__nav_5_11" id="__nav_5_11_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Studio
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_5_11_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5_11">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Studio
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/studio/studio-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/studio/app-shell/app-shell-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    App shell
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--placeholder"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/studio/workspace/workspace-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Workspace
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--placeholder"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/studio/canvas/canvas-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Canvas
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--placeholder"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/studio/rendering/rendering-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Rendering
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--placeholder"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_6" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../reference/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reference
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_6" id="__nav_6_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/glossary/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Glossary
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/design-guide/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Design guide
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_7" >
+        
+          
+          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Archive
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Archive
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../archive/whitepaper/Haywire_design/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Whitepaper
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#1-what-it-solves" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. What it solves
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-the-shape-of-a-haybale-library" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. The shape of a haybale library
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-keeping-the-manifests-honest" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Keeping the manifests honest
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-the-publish-flow" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. The publish flow
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="4. The publish flow">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#41-snippet-mode-one-library-stdout" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.1 Snippet mode (one library, stdout)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#42-save-mode-all-barn-libraries-writes-marketstalltoml" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.2 Save mode (all barn libraries, writes marketstall.toml)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#43-the-drift-gate" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.3 The drift gate
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#44-what-an-entry-looks-like" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.4 What an entry looks like
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-versioning" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. Versioning
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#6-hosting-your-marketstall" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. Hosting your marketstall
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#7-the-full-author-cycle" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7. The full author cycle
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#8-common-pitfalls" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8. Common pitfalls
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#9-reading-on" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        9. Reading on
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+
+<h1 id="sharing-libraries-author-guide">Sharing libraries — Author guide<a class="headerlink" href="#sharing-libraries-author-guide" title="Permanent link">&para;</a></h1>
+<p>This guide walks an author through the full publish flow: scaffolding the library, keeping its dependency manifests honest as it evolves, producing the publish artifact, and hosting it so others can subscribe. For the conceptual model — <em>why</em> the flow is shaped this way — see <a href="../../architecture/sharing/sharing-arch/">sharing-arch</a>. For the consumer side, see <a href="../subscribing-to-marketplaces/">subscribing-to-marketplaces</a>.</p>
+<h2 id="1-what-it-solves">1. What it solves<a class="headerlink" href="#1-what-it-solves" title="Permanent link">&para;</a></h2>
+<p>A <strong>haybale library</strong> is a Python package containing one <code>BaseLibrary</code> subclass plus the components it contributes (nodes, types, widgets, skins, adapters, themes, panels, editors, states, settings). Sharing one means making it findable and installable by other people without going through a central registry. The mechanism is a small TOML file you host yourself, called a <strong>marketstall</strong>, that lists what you publish and how to install it.</p>
+<p>Three things have to be true for a shared library to land cleanly in someone else's project:</p>
+<ol>
+<li>The library's manifests (<code>@library(dependencies=...)</code> decorator and the library's own <code>pyproject.toml</code>) accurately describe what the source actually imports.</li>
+<li>The marketstall file contains a valid entry pointing at the library's git location.</li>
+<li>The marketstall is hosted somewhere a consumer can reach by URL.</li>
+</ol>
+<p>The tooling in this guide makes all three easy.</p>
+<h2 id="2-the-shape-of-a-haybale-library">2. The shape of a haybale library<a class="headerlink" href="#2-the-shape-of-a-haybale-library" title="Permanent link">&para;</a></h2>
+<p>A haybale library is a Python package with a specific layout. <code>haywire init</code> produces this for you; if you're starting from scratch, see <a href="../../components/haybale-package/haybale-package-canon/">components/haybale-package</a> for the full canon. The relevant parts for sharing:</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>haybale-my-lib/
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>├── pyproject.toml          ← library-level manifest (travels to PyPI / pip)
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>└── haybale_my_lib/
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    └── __init__.py         ← @library(...) decorator declares the haywire runtime contract
+</span></code></pre></div>
+<p>The two manifests answer different questions:</p>
+<table>
+<thead>
+<tr>
+<th>Manifest</th>
+<th>Audience</th>
+<th>Answers</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>pyproject.toml</code> <code>[project] dependencies</code></td>
+<td>pip / PyPI / <code>uv pip install</code></td>
+<td>"What Python distributions does this library need installed?"</td>
+</tr>
+<tr>
+<td><code>@library(dependencies=[...])</code> in <code>__init__.py</code></td>
+<td>haywire's runtime (LibraryManager)</td>
+<td>"Which <em>other haywire libraries</em> must be enabled for this one to enable?"</td>
+</tr>
+</tbody>
+</table>
+<p>The library's source imports are a third, implicit layer. The three have to agree at publish time — if your source <code>from haybale_core import types</code> but neither manifest declares <code>haybale-core</code>, the published library will fail to install or to enable for consumers.</p>
+<h2 id="3-keeping-the-manifests-honest">3. Keeping the manifests honest<a class="headerlink" href="#3-keeping-the-manifests-honest" title="Permanent link">&para;</a></h2>
+<p>As you add imports to your library's source, you'll add lines like <code>from haywire.ui.elements import elements as hui</code> or <code>from haybale_haystack.states import HaystackState</code>. Each new import is a new dependency — and the two manifests need to follow.</p>
+<p>You don't have to track this by hand. Open your library in the Library Overview Editor, click <strong>Edit</strong>, and click the magnifying-glass <strong>Detect Dependencies</strong> button next to the dependencies field.</p>
+<p>What happens:</p>
+<ol>
+<li>The runtime statically scans every <code>.py</code> file in your library's source tree.</li>
+<li>It resolves every top-level import to its installed Python distribution.</li>
+<li>It classifies each one: framework (<code>haywire-core</code>, <code>haywire-studio</code>), registered haywire library (anything declaring a <code>haywire.libraries</code> entry point), or third-party (<code>numpy</code>, <code>requests</code>, etc.).</li>
+<li>It diffs the result against what your two manifests currently declare.</li>
+<li>A diff modal previews the changes, with two ways to apply them:</li>
+</ol>
+<table>
+<thead>
+<tr>
+<th>Apply mode</th>
+<th>Effect</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Union</strong></td>
+<td>Add what's missing. Never remove. Safe against dynamic imports the static scan missed.</td>
+</tr>
+<tr>
+<td><strong>Replace</strong></td>
+<td>Overwrite both manifests with the detected set. Removes anything not detected. Useful for cleanup; risky if you have dynamic imports.</td>
+</tr>
+</tbody>
+</table>
+<p>After Apply:</p>
+<ul>
+<li>The Edit dialog's dependencies field updates immediately. You still have to click <strong>Save Changes</strong> to persist the <code>@library</code> decorator update.</li>
+<li>The library's <code>pyproject.toml</code> is written to disk right away (it isn't part of the identity-save bundle).</li>
+</ul>
+<p>A typical workflow is: write code → realize you've added an import → click Detect → Union → Save Changes. Done in five seconds.</p>
+<h2 id="4-the-publish-flow">4. The publish flow<a class="headerlink" href="#4-the-publish-flow" title="Permanent link">&para;</a></h2>
+<p>Once the manifests are honest, publishing is <code>haywire share</code>. Two modes:</p>
+<h3 id="41-snippet-mode-one-library-stdout">4.1 Snippet mode (one library, stdout)<a class="headerlink" href="#41-snippet-mode-one-library-stdout" title="Permanent link">&para;</a></h3>
+<div class="language-sh highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>uv<span class="w"> </span>run<span class="w"> </span>haywire<span class="w"> </span>share<span class="w"> </span>barn/haybale-my-lib
+</span></code></pre></div>
+<p>Prints a single <code>[[haybales]]</code> block to stdout. Useful for pasting into a shared marketplace file you don't own, or for double-checking what would publish before committing.</p>
+<h3 id="42-save-mode-all-barn-libraries-writes-marketstalltoml">4.2 Save mode (all barn libraries, writes marketstall.toml)<a class="headerlink" href="#42-save-mode-all-barn-libraries-writes-marketstalltoml" title="Permanent link">&para;</a></h3>
+<div class="language-sh highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>uv<span class="w"> </span>run<span class="w"> </span>haywire<span class="w"> </span>share<span class="w"> </span>--save
+</span></code></pre></div>
+<p>Walks <code>barn/*</code>, builds a <code>[[haybales]]</code> entry per library that has a <code>pyproject.toml</code>, and writes the aggregated list to <code>&lt;repo-root&gt;/marketstall.toml</code>. This is the file you host for consumers — see §6.</p>
+<h3 id="43-the-drift-gate">4.3 The drift gate<a class="headerlink" href="#43-the-drift-gate" title="Permanent link">&para;</a></h3>
+<p>Both modes run a <strong>drift gate</strong> before emitting. The gate checks each library: are there imports in the source that aren't declared in <em>either</em> manifest? Three flags control how the gate reacts.</p>
+<table>
+<thead>
+<tr>
+<th>Mode</th>
+<th>Flag</th>
+<th>Behavior on drift</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Default</td>
+<td>(none)</td>
+<td>Print drift to stderr; continue and emit anyway. Most permissive; relies on the author to notice.</td>
+</tr>
+<tr>
+<td>Strict</td>
+<td><code>--strict</code></td>
+<td>Exit non-zero before emitting anything. The marketstall is NOT written. Use in CI.</td>
+</tr>
+<tr>
+<td>Auto-fix</td>
+<td><code>--fix</code></td>
+<td>Write the missing entries to both manifests in place, then proceed. Equivalent to "Union all" applied across every barn library.</td>
+</tr>
+</tbody>
+</table>
+<p>Combining flags is fine — <code>--save --strict</code> produces a marketstall only if every library is clean; <code>--save --fix</code> first reconciles every library and then writes the marketstall.</p>
+<h3 id="44-what-an-entry-looks-like">4.4 What an entry looks like<a class="headerlink" href="#44-what-an-entry-looks-like" title="Permanent link">&para;</a></h3>
+<p>The output (snippet or save) follows the marketstall schema:</p>
+<div class="language-toml highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="k">[[haybales]]</span>
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="n">name</span><span class="w">         </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;haybale-my-lib&quot;</span>
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="n">label</span><span class="w">        </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;My Lib&quot;</span>
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="n">min_version</span><span class="w">  </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;0.1.0&quot;</span>
+</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="n">description</span><span class="w">  </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;One-line summary of what the library does.&quot;</span>
+</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="n">author</span><span class="w">       </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;Your Name&quot;</span>
+</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="n">source</span><span class="w">       </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;git&quot;</span>
+</span><span id="__span-3-8"><a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a><span class="n">install_spec</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;haybale-my-lib @ git+https://github.com/you/repo.git#subdirectory=barn/haybale-my-lib&quot;</span>
+</span><span id="__span-3-9"><a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a><span class="n">tags</span><span class="w">         </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;vision&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;experimental&quot;</span><span class="p">]</span>
+</span><span id="__span-3-10"><a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a><span class="n">os</span><span class="w">           </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;macos&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;linux&quot;</span><span class="p">]</span>
+</span><span id="__span-3-11"><a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a><span class="n">dependencies</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;haybale-core&quot;</span><span class="p">]</span>
+</span><span id="__span-3-12"><a id="__codelineno-3-12" name="__codelineno-3-12" href="#__codelineno-3-12"></a><span class="n">source_url</span><span class="w">   </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;https://github.com/you/repo&quot;</span>
+</span><span id="__span-3-13"><a id="__codelineno-3-13" name="__codelineno-3-13" href="#__codelineno-3-13"></a><span class="n">docs_url</span><span class="w">     </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;https://raw.githubusercontent.com/you/repo/main/barn/haybale-my-lib/haybale_my_lib/&quot;</span>
+</span></code></pre></div>
+<p>A few points worth knowing:</p>
+<ul>
+<li><code>source = "git"</code> and the <code>install_spec</code> with <code>#subdirectory=</code> are how <code>haywire share</code> packages a monorepo library. The consumer installs it directly from your git repo; you don't have to publish to PyPI.</li>
+<li><code>dependencies</code> lists pip distribution names of the haybale libraries you depend on — <em>not</em> the underscore form used inside the <code>@library</code> decorator.</li>
+<li><code>docs_url</code> points at the library's Python module directory. Generated <code>OVERVIEW.md</code> and <code>QUICKREF.md</code> live there and the Library Manager will fetch them for pre-install discovery.</li>
+<li><code>min_version</code> is a <em>floor</em>, not "latest". Consumers may install a higher version.</li>
+</ul>
+<p><code>haywire share</code> derives all this from your <code>pyproject.toml</code>, your <code>__init__.py</code>, and your git remote. SSH URLs are converted to HTTPS automatically.</p>
+<h2 id="5-versioning">5. Versioning<a class="headerlink" href="#5-versioning" title="Permanent link">&para;</a></h2>
+<p>Versions are managed at the monorepo level by <code>scripts/bump_version.py</code>, invoked through <code>/haywire-release</code>. See <a href="../../reference/publish_releases/">publish_releases</a> for the operational flow. The short version:</p>
+<ul>
+<li>The repo declares which packages release in lockstep (<code>[tool.haywire.release]</code> in the repo root <code>pyproject.toml</code>).</li>
+<li>A release bumps every member's <code>[project] version</code> to the same value.</li>
+<li>Inter-package dependencies use <code>~=</code> compatible-release operators (<code>haywire-core~=0.0.1</code>) so any patch within the lockstep tier is acceptable.</li>
+<li>CI publishes to PyPI; the marketstall in <code>gh-pages</code> is regenerated from <code>scripts/generate_marketstall.py</code> as part of the same workflow.</li>
+</ul>
+<p>Authors outside the official monorepo can use any versioning scheme they like — the marketstall format doesn't require lockstep. The <code>~=</code> convention is a haywire-team practice.</p>
+<h2 id="6-hosting-your-marketstall">6. Hosting your marketstall<a class="headerlink" href="#6-hosting-your-marketstall" title="Permanent link">&para;</a></h2>
+<p>A marketstall is just a TOML file. Wherever consumers can reach by URL, you can host one. Common patterns:</p>
+<table>
+<thead>
+<tr>
+<th>Hosting</th>
+<th>URL shape</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>GitHub Pages</td>
+<td><code>https://&lt;you&gt;.github.io/&lt;repo&gt;/marketstall.toml</code></td>
+<td>Free, persistent, served as raw bytes. Standard for monorepo libraries.</td>
+</tr>
+<tr>
+<td>GitHub raw</td>
+<td><code>https://raw.githubusercontent.com/&lt;you&gt;/&lt;repo&gt;/main/marketstall.toml</code></td>
+<td>Works without Pages setup. Counts against GitHub's rate limit; less appropriate for high-traffic.</td>
+</tr>
+<tr>
+<td>GitLab Pages</td>
+<td><code>https://&lt;you&gt;.gitlab.io/&lt;repo&gt;/marketstall.toml</code></td>
+<td>Same shape as GitHub Pages.</td>
+</tr>
+<tr>
+<td>Your own static host</td>
+<td>Any URL serving TOML</td>
+<td>No haywire-specific requirements; just must be reachable.</td>
+</tr>
+</tbody>
+</table>
+<p>The haywire team publishes the official marketstall at <code>https://maybites.github.io/haywire/marketplace.toml</code> (a marketplace aggregating multiple marketstalls — see <a href="../../architecture/sharing/sharing-arch/">sharing-arch</a> for the marketplace vs marketstall distinction). Your file is structurally the same.</p>
+<p>Once hosted, share the URL. Per spec §4.2 a consumer can paste any of four forms into the Library Manager's Add Source dialog — the GitHub <em>blob</em> URL of your <code>marketstall.toml</code> (e.g. <code>https://github.com/you/repo/blob/main/marketstall.toml</code>) is the recommended canonical form. The runtime recognizes the host, derives the raw URL, fetches the body, sees one <code>[[haybales]]</code> section, and writes a <code>[[stalls]]</code> subscription to the user's global marketplace. The next refresh picks up your library. See <a href="../subscribing-to-marketplaces/">subscribing-to-marketplaces</a> for the consumer side.</p>
+<h2 id="7-the-full-author-cycle">7. The full author cycle<a class="headerlink" href="#7-the-full-author-cycle" title="Permanent link">&para;</a></h2>
+<p>End-to-end, the flow is:</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>write code → add import → click Detect Dependencies → Union → Save Changes
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>                                                                    │
+</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>                                                                    ▼
+</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>                                                          [manifest layers in sync]
+</span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>                                                                    │
+</span><span id="__span-4-6"><a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a>                                                                    ▼
+</span><span id="__span-4-7"><a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a>                                                    git commit &amp;&amp; git push
+</span><span id="__span-4-8"><a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a>                                                                    │
+</span><span id="__span-4-9"><a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a>                                                                    ▼
+</span><span id="__span-4-10"><a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a>                                                       uv run haywire share --save
+</span><span id="__span-4-11"><a id="__codelineno-4-11" name="__codelineno-4-11" href="#__codelineno-4-11"></a>                                                                    │
+</span><span id="__span-4-12"><a id="__codelineno-4-12" name="__codelineno-4-12" href="#__codelineno-4-12"></a>                                                                    ▼
+</span><span id="__span-4-13"><a id="__codelineno-4-13" name="__codelineno-4-13" href="#__codelineno-4-13"></a>                                                    git commit marketstall.toml &amp;&amp; push
+</span><span id="__span-4-14"><a id="__codelineno-4-14" name="__codelineno-4-14" href="#__codelineno-4-14"></a>                                                                    │
+</span><span id="__span-4-15"><a id="__codelineno-4-15" name="__codelineno-4-15" href="#__codelineno-4-15"></a>                                                                    ▼
+</span><span id="__span-4-16"><a id="__codelineno-4-16" name="__codelineno-4-16" href="#__codelineno-4-16"></a>                                                      [marketstall hosted at URL]
+</span><span id="__span-4-17"><a id="__codelineno-4-17" name="__codelineno-4-17" href="#__codelineno-4-17"></a>                                                                    │
+</span><span id="__span-4-18"><a id="__codelineno-4-18" name="__codelineno-4-18" href="#__codelineno-4-18"></a>                                                                    ▼
+</span><span id="__span-4-19"><a id="__codelineno-4-19" name="__codelineno-4-19" href="#__codelineno-4-19"></a>                                              consumer subscribes via Add Source
+</span></code></pre></div>
+<p>For monorepo authors, <code>--save</code> is the daily command. For one-off snippet sharing (chat, gist, README), <code>share &lt;library&gt;</code> without <code>--save</code> is fine.</p>
+<h2 id="8-common-pitfalls">8. Common pitfalls<a class="headerlink" href="#8-common-pitfalls" title="Permanent link">&para;</a></h2>
+<p><strong>You ran <code>haywire share</code> and got "Refusing to share due to drift."</strong>
+You used <code>--strict</code>. Either run with <code>--fix</code> to auto-correct, or open the Library Overview Editor for the flagged library and Detect → Union, then re-run. The error message lists which manifest entries are missing.</p>
+<p><strong>Your marketstall has an entry but consumers don't see the library after subscribing.</strong>
+Three causes worth checking:</p>
+<ol>
+<li>Their <code>Refresh</code> hasn't run. Subscriptions are passive; the catalog updates only on refresh.</li>
+<li>The library's name collides with one they already have from another feed. They'll see a conflict prompt at Add Source time; if they picked the other source, your entry is in their <code>ignores</code>. They can edit <code>~/.haywire/marketplace.toml</code> to remove the ignore.</li>
+<li>The git URL in your <code>install_spec</code> is unreachable. Test with <code>uv pip install '&lt;install_spec&gt;'</code> directly.</li>
+</ol>
+<p><strong>Detect Dependencies didn't pick up an import.</strong>
+The scan is static AST analysis. Dynamic imports (<code>importlib.import_module(name)</code>, <code>__import__(...)</code>) are invisible. Declare those manually in both manifests.</p>
+<p><strong><code>haywire share</code> produces a URL with <code>&lt;REPO_URL&gt;</code> placeholder.</strong>
+The library has no git remote (<code>git remote -v</code> returns nothing). Add a remote: <code>git remote add origin &lt;url&gt;</code>.</p>
+<p><strong>You're working in <code>--dev</code> mode and want to share a library that has dev-repo dependencies.</strong>
+<code>haywire share</code>'s output uses <code>source = "git"</code> for haywire's <code>dependencies</code> field, which is correct — consumers don't have your dev workspace. But the dev-repo path-style <code>pyproject.toml</code> won't survive <code>pip install</code>. Make sure the published version of your library declares versioned dependencies (<code>haybale-core~=0.0.1</code>), not editable path sources. <code>haywire share</code> handles this correctly when the dependencies are listed in the library's <code>pyproject.toml</code> rather than in the project root's <code>pyproject.toml</code>.</p>
+<h2 id="9-reading-on">9. Reading on<a class="headerlink" href="#9-reading-on" title="Permanent link">&para;</a></h2>
+<ul>
+<li>The <strong>consumer side</strong> of this flow: <a href="../subscribing-to-marketplaces/">subscribing-to-marketplaces</a>.</li>
+<li>The <strong>conceptual model</strong> behind these mechanics: <a href="../../architecture/sharing/sharing-arch/">sharing-arch</a>.</li>
+<li>The <strong>library manager architecture</strong> these tools plug into: <a href="../../architecture/library-manager/library-manager-arch/">library-manager-arch</a>.</li>
+<li>The <strong>operational release flow</strong> for the monorepo (<code>/haywire-release</code>, CI, PyPI Trusted Publisher): <a href="../../reference/publish_releases/">publish_releases</a>.</li>
+<li>The <strong>per-author canon</strong> for the package itself (folder layout, pyproject shape, build/test/publish): <a href="../../components/haybale-package/haybale-package-canon/">components/haybale-package</a>.</li>
+</ul>
+
+
+
+
+
+
+
+  
+  
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+  <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var labels=set.querySelector(".tabbed-labels");for(var tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.instant", "navigation.tracking", "navigation.tabs", "navigation.tabs.sticky", "navigation.sections", "navigation.expand", "navigation.indexes", "navigation.top", "search.highlight", "search.suggest", "content.code.copy", "content.code.annotate", "content.tabs.link", "toc.follow"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>

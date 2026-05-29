@@ -1,0 +1,3867 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="A Blueprint-inspired visual programming system — dual-flow control + data, library plugin model, hot-reload-first development.">
+      
+      
+      
+        <link rel="canonical" href="https://going-haywire.github.io/haywire/docs/architecture/settings/settings-arch/">
+      
+      
+        <link rel="prev" href="../../hot-reload/hot-reload-arch/">
+      
+      
+        <link rel="next" href="../../session-and-state/session-and-state-arch/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>Settings - Haywire Documentation</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Inter:300,300i,400,400i,700,700i%7CJetBrains+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Inter";--md-code-font:"JetBrains Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#settings-architecture" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow md-header--lifted" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../../.." title="Haywire Documentation" class="md-header__button md-logo" aria-label="Haywire Documentation" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Haywire Documentation
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Settings
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+  </nav>
+  
+    
+      
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../.." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../welcome/user/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Perspectives
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../components/nodes/node-canon/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Components
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../guides/node-roles/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Guides
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../../overview/overview-arch/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Architecture
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../reference/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Reference
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../archive/whitepaper/Haywire_design/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Archive
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+    
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../../.." title="Haywire Documentation" class="md-nav__button md-logo" aria-label="Haywire Documentation" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    Haywire Documentation
+  </label>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../../welcome/user/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Perspectives
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_2" id="__nav_2_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Perspectives
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../welcome/advanced/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Advanced (workbench extender)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../welcome/core/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Core (system architect)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Components
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Components
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../components/nodes/node-canon/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Nodes
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../components/datatypes/datatype-canon/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Datatypes
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../components/adapters/adapter-canon/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Adapters
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../components/settings/setting-canon/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Settings
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../components/widgets/widget-canon/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Widgets
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../components/skins/skin-canon/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Skins
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--placeholder"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../components/themes/theme-canon/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Themes
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../components/editors/editor-canon/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Editors
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../components/panels/panel-canon/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Panels
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../components/states/state-canon/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    States
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../components/libraries/library-canon/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Libraries
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../components/haybale-package/haybale-package-canon/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Haybale package
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Guides
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Guides
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../guides/node-roles/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Node roles
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../guides/ports/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Ports
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../guides/signals/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Signals
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../guides/sharing-libraries/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Sharing libraries
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../guides/subscribing-to-marketplaces/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Subscribing to marketplaces
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Architecture
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../overview/overview-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--placeholder"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../design/design-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Design
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--placeholder"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../graph/graph-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Graph
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_5_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_5_4" id="__nav_5_4_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Execution
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_5_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Execution
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../execution/execution-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../execution/assembly/assembly-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Assembly
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../execution/edges/edges-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Edges
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../execution/flow/flow-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Flow
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--placeholder"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../execution/virtual-machine/virtual-machine-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Virtual machine
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--placeholder"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../execution/lazy-evaluation/lazy-evaluation-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Lazy evaluation
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--placeholder"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../execution/callbacks/callbacks-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Callbacks
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../library-system/library-system-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Library system
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../library-manager/library-manager-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Library manager
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sharing/sharing-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Sharing — philosophy
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../hot-reload/hot-reload-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Hot-reload
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Settings
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Settings
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#1-motivation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Motivation
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-the-picture" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. The picture
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-how-a-tier-expresses-its-opinion" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. How a tier expresses its opinion
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-the-resolution-chain" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. The resolution chain
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-worked-example" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. Worked example
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#6-contract-details" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. Contract details
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="6. Contract details">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#61-three-schema-classes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6.1 Three schema classes
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#62-the-four-key-identifiers" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6.2 The four key identifiers
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#63-the-write-path" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6.3 The write path
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="6.3 The write path">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#setting__set__-instance-local" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        setting.__set__ — instance-local
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#persistent_setting__set__-registry-backed" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        persistent_setting.__set__ — registry-backed
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#three-places-the-class-swap-happens" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Three places the class swap happens
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#why-the-descriptor-does-not-call-_on_property_change" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Why the descriptor does NOT call _on_property_change
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fallback-when-no-registry-is-wired" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Fallback when no registry is wired
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#7-lifecycle" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7. Lifecycle
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="7. Lifecycle">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#71-registration-and-_pending_global" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7.1 Registration and _pending_global
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#72-hot-reload-behaviour" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7.2 Hot-reload behaviour
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#73-change-notification-shadow-watch" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7.3 Change notification (shadow() / watch())
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#74-serialisation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7.4 Serialisation
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#8-examples" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8. Examples
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="8. Examples">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#81-the-full-registry-api" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8.1 The full registry API
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#82-reactive-non-node-access" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8.2 Reactive non-node access
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#9-test-utilities" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        9. Test utilities
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="9. Test utilities">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#91-create_test_settings_registrypredefined_settingsnone-register_builtinstrue" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        9.1 create_test_settings_registry(predefined_settings=None, register_builtins=True)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#92-create_test_bagbag_clsnone-predefined_localnone-predefined_globalnone" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        9.2 create_test_bag(bag_cls=None, predefined_local=None, predefined_global=None)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#93-settingstestcontext" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        9.3 SettingsTestContext
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#94-best-practices" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        9.4 Best practices
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#95-ui-test-harness" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        9.5 UI test harness
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#10-open-questions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        10. Open questions
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../session-and-state/session-and-state-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Session and state
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_5_11" >
+        
+          
+          <label class="md-nav__link" for="__nav_5_11" id="__nav_5_11_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Studio
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_5_11_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5_11">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Studio
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../studio/studio-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../studio/app-shell/app-shell-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    App shell
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--placeholder"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../studio/workspace/workspace-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Workspace
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--placeholder"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../studio/canvas/canvas-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Canvas
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--placeholder"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../studio/rendering/rendering-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Rendering
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--placeholder"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_6" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../../reference/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reference
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_6" id="__nav_6_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../reference/glossary/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Glossary
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../reference/design-guide/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Design guide
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_7" >
+        
+          
+          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Archive
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Archive
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../archive/whitepaper/Haywire_design/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Whitepaper
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#1-motivation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Motivation
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-the-picture" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. The picture
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-how-a-tier-expresses-its-opinion" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. How a tier expresses its opinion
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-the-resolution-chain" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. The resolution chain
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-worked-example" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. Worked example
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#6-contract-details" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. Contract details
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="6. Contract details">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#61-three-schema-classes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6.1 Three schema classes
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#62-the-four-key-identifiers" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6.2 The four key identifiers
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#63-the-write-path" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6.3 The write path
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="6.3 The write path">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#setting__set__-instance-local" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        setting.__set__ — instance-local
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#persistent_setting__set__-registry-backed" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        persistent_setting.__set__ — registry-backed
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#three-places-the-class-swap-happens" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Three places the class swap happens
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#why-the-descriptor-does-not-call-_on_property_change" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Why the descriptor does NOT call _on_property_change
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fallback-when-no-registry-is-wired" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Fallback when no registry is wired
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#7-lifecycle" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7. Lifecycle
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="7. Lifecycle">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#71-registration-and-_pending_global" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7.1 Registration and _pending_global
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#72-hot-reload-behaviour" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7.2 Hot-reload behaviour
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#73-change-notification-shadow-watch" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7.3 Change notification (shadow() / watch())
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#74-serialisation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7.4 Serialisation
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#8-examples" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8. Examples
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="8. Examples">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#81-the-full-registry-api" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8.1 The full registry API
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#82-reactive-non-node-access" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8.2 Reactive non-node access
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#9-test-utilities" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        9. Test utilities
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="9. Test utilities">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#91-create_test_settings_registrypredefined_settingsnone-register_builtinstrue" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        9.1 create_test_settings_registry(predefined_settings=None, register_builtins=True)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#92-create_test_bagbag_clsnone-predefined_localnone-predefined_globalnone" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        9.2 create_test_bag(bag_cls=None, predefined_local=None, predefined_global=None)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#93-settingstestcontext" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        9.3 SettingsTestContext
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#94-best-practices" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        9.4 Best practices
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#95-ui-test-harness" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        9.5 UI test harness
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#10-open-questions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        10. Open questions
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+
+<h1 id="settings-architecture">Settings — Architecture<a class="headerlink" href="#settings-architecture" title="Permanent link">&para;</a></h1>
+<h2 id="1-motivation">1. Motivation<a class="headerlink" href="#1-motivation" title="Permanent link">&para;</a></h2>
+<p>A node author writes <code>bg_color = "#fff"</code> as a default. The user opens the global settings panel and prefers <code>#000</code> everywhere. The user's workspace lead pins it to <code>#f0f0f0</code> for that project. A single graph picks one node and overrides the colour locally. And on a shared lab machine, the admin hand-edits a TOML file to <em>force</em> <code>#222</code> on every node, regardless of what anyone else asked for.</p>
+<p>All five claims are legitimate. Exactly one of them must win on every read, deterministically, with no surprises. The settings system exists to resolve that contest.</p>
+<p>It does so by:</p>
+<ul>
+<li>giving each claim a well-defined <em>home</em> (a tier),</li>
+<li>letting each tier mark a value as either <em>an opinion</em> or <em>a force</em>, and</li>
+<li>evaluating reads through a fixed precedence chain.</li>
+</ul>
+<p>What the system is <strong>not</strong> for:</p>
+<ul>
+<li>A general-purpose key-value store. Use <code>self.store</code> (per-node, persistent, hidden) or <code>self.cache</code> (per-node, transient, hidden). See <a href="../../../components/settings/setting-canon/#3-important-concepts">components/settings §3</a>.</li>
+<li>Live mutable state shared between editors and panels. Use <code>@state</code> and <code>LibraryStateContainer</code>. See <a href="../../../components/states/state-canon/">components/states</a>.</li>
+<li>A reactive UI primitive. Settings emit change callbacks; the rendering pipeline lives elsewhere.</li>
+<li>Per-node-class metadata (icon, colour, label) — that's <code>@node</code> decorator parameters, not a setting.</li>
+</ul>
+<p>Author-facing concerns (declaring NodeSettings, <code>setting()</code> parameters, <code>shadow()</code>/<code>watch()</code>, panel rendering) live in <a href="../../../components/settings/setting-canon/">components/settings</a>. This document covers what happens <em>under</em> that surface.</p>
+<h2 id="2-the-picture">2. The picture<a class="headerlink" href="#2-the-picture" title="Permanent link">&para;</a></h2>
+<p>Three things hold values, plus one central object that arbitrates between them.</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>              SettingsRegistry
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>              ┌────────────────────────────┐
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>              │ global tier   (TOML dict)  │   ← ~/.haywire/settings.toml
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>              │ workspace tier (TOML dict) │   ← &lt;workspace&gt;/.haywire/settings.toml
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>              │ schema definitions         │   ← every setting() ever declared
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>              └────────────────────────────┘
+</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>                          ▲
+</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>                resolves reads through
+</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>                the six-step chain
+</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>                          │
+</span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>        ┌─────────────────┼─────────────────┐
+</span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>        │                 │                 │
+</span><span id="__span-0-13"><a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a> FrameworkSettings   LibrarySettings   NodeSettings
+</span><span id="__span-0-14"><a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>   (one per ns,        (one per ns,     (one per node
+</span><span id="__span-0-15"><a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a>   auto-wired at       per loaded       instance, wired
+</span><span id="__span-0-16"><a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a>   import time)        library)         by @node)
+</span><span id="__span-0-17"><a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a>        │                 │                 │
+</span><span id="__span-0-18"><a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a>        └─────────────────┼─────────────────┘
+</span><span id="__span-0-19"><a id="__codelineno-0-19" name="__codelineno-0-19" href="#__codelineno-0-19"></a>                          │
+</span><span id="__span-0-20"><a id="__codelineno-0-20" name="__codelineno-0-20" href="#__codelineno-0-20"></a>                     _local_store
+</span><span id="__span-0-21"><a id="__codelineno-0-21" name="__codelineno-0-21" href="#__codelineno-0-21"></a>              (per-instance overrides —
+</span><span id="__span-0-22"><a id="__codelineno-0-22" name="__codelineno-0-22" href="#__codelineno-0-22"></a>               the third tier, but lives
+</span><span id="__span-0-23"><a id="__codelineno-0-23" name="__codelineno-0-23" href="#__codelineno-0-23"></a>               on the instance, not the
+</span><span id="__span-0-24"><a id="__codelineno-0-24" name="__codelineno-0-24" href="#__codelineno-0-24"></a>               registry)
+</span></code></pre></div>
+<p>Two things to notice:</p>
+<ol>
+<li><strong>The first two tiers (global, workspace) live inside <code>SettingsRegistry</code>.</strong> They're dicts the registry owns and consults during <code>resolve()</code>.</li>
+<li><strong>The third tier (per-instance) lives on each <code>Settings</code> instance</strong> as <code>_local_store</code>. It's passed <em>into</em> <code>resolve()</code> per call. This asymmetry matters: it's why the resolution chain has to be told about local values explicitly.</li>
+</ol>
+<p>A <strong>schema class</strong> (<code>FrameworkSettings</code>, <code>LibrarySettings</code>, <code>NodeSettings</code>) is just a <code>Settings</code> subclass that declares typed fields with <code>setting()</code>. <code>SettingsRegistry</code> is the runtime arbiter, not to be confused with <code>BaseRegistry</code> (the library system's class-tracking machinery, which is what registers <code>LibrarySettings</code> <em>classes</em> with the settings registry — see §6.1).</p>
+<h2 id="3-how-a-tier-expresses-its-opinion">3. How a tier expresses its opinion<a class="headerlink" href="#3-how-a-tier-expresses-its-opinion" title="Permanent link">&para;</a></h2>
+<p>Each tier (global, workspace) stores a <code>SettingValue(mode, value)</code> per key. The mode says <em>how strong the claim is</em>:</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="k">class</span><span class="w"> </span><span class="nc">SettingMode</span><span class="p">(</span><span class="n">Enum</span><span class="p">):</span>
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>    <span class="n">INHERIT</span>  <span class="o">=</span> <span class="n">auto</span><span class="p">()</span>  <span class="c1"># No opinion — defer to next tier up</span>
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>    <span class="n">EXPLICIT</span> <span class="o">=</span> <span class="n">auto</span><span class="p">()</span>  <span class="c1"># Deliberate value — wins unless OVERRIDE&#39;d from above</span>
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>    <span class="n">OVERRIDE</span> <span class="o">=</span> <span class="n">auto</span><span class="p">()</span>  <span class="c1"># Forced — beats everything below, including locals</span>
+</span></code></pre></div>
+<p>The third tier — per-instance <code>_local_store</code> — has no mode. Its presence <em>is</em> its opinion: if a key is in the dict, the instance has set it; otherwise it hasn't. Conceptually it sits at <code>EXPLICIT</code>-strength, between the workspace and global EXPLICITs but beneath any OVERRIDE.</p>
+<p>In TOML, <code>EXPLICIT</code> is a bare value and <code>OVERRIDE</code> uses an inline-table form:</p>
+<div class="language-toml highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="k">[ui.node]</span>
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="n">bg_color</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;#f0f0f0&quot;</span><span class="w">                              </span><span class="c1"># EXPLICIT — user&#39;s preference</span>
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="n">font_size</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">override</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span><span class="w"> </span><span class="n">value</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="mi">14</span><span class="w"> </span><span class="p">}</span><span class="w">       </span><span class="c1"># OVERRIDE — forced from this tier down</span>
+</span></code></pre></div>
+<p>The asymmetry is deliberate: writing an OVERRIDE is rare and demands a more visible syntax. <code>save_to_toml()</code> only ever writes the workspace tier; the global TOML is hand-edited and never touched by the app.</p>
+<h2 id="4-the-resolution-chain">4. The resolution chain<a class="headerlink" href="#4-the-resolution-chain" title="Permanent link">&para;</a></h2>
+<p>Given the three tiers and two strengths, precedence is fully determined: any OVERRIDE from above must beat a local value, and a local value must beat any non-OVERRIDE from below. Six cases fall out:</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>self.filter.threshold        — look up _setting_key for this descriptor
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>        │
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>        ▼
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>1. Global tier OVERRIDE?       → return it   (admin policy, hand-edited TOML)
+</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>        │ no
+</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>        ▼
+</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a>2. Workspace tier OVERRIDE?    → return it   (workspace-wide force)
+</span><span id="__span-3-8"><a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a>        │ no
+</span><span id="__span-3-9"><a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a>        ▼
+</span><span id="__span-3-10"><a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a>3. Local instance value?       → return it   (per-node override)
+</span><span id="__span-3-11"><a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a>        │ no
+</span><span id="__span-3-12"><a id="__codelineno-3-12" name="__codelineno-3-12" href="#__codelineno-3-12"></a>        ▼
+</span><span id="__span-3-13"><a id="__codelineno-3-13" name="__codelineno-3-13" href="#__codelineno-3-13"></a>4. Workspace tier EXPLICIT?    → return it   (set via UI, saved to workspace TOML)
+</span><span id="__span-3-14"><a id="__codelineno-3-14" name="__codelineno-3-14" href="#__codelineno-3-14"></a>        │ no
+</span><span id="__span-3-15"><a id="__codelineno-3-15" name="__codelineno-3-15" href="#__codelineno-3-15"></a>        ▼
+</span><span id="__span-3-16"><a id="__codelineno-3-16" name="__codelineno-3-16" href="#__codelineno-3-16"></a>5. Global tier EXPLICIT?       → return it   (user&#39;s global preference)
+</span><span id="__span-3-17"><a id="__codelineno-3-17" name="__codelineno-3-17" href="#__codelineno-3-17"></a>        │ no
+</span><span id="__span-3-18"><a id="__codelineno-3-18" name="__codelineno-3-18" href="#__codelineno-3-18"></a>        ▼
+</span><span id="__span-3-19"><a id="__codelineno-3-19" name="__codelineno-3-19" href="#__codelineno-3-19"></a>6. Descriptor _default         → return it   (what the author declared)
+</span></code></pre></div>
+<p><code>SettingsRegistry.resolve(name, local=None)</code> returns <code>(value, source)</code>, where <code>source</code> is one of <code>'global_override'</code>, <code>'workspace_override'</code>, <code>'local'</code>, <code>'workspace'</code>, <code>'global'</code>, <code>'default'</code> — useful for UIs that want to show <em>why</em> a value is what it is.</p>
+<p>Instances constructed without a registry skip steps 1–2 and 4–5 and fall through to a direct <code>_local_store</code> lookup. That path exists for unit tests; see <a href="#9-test-utilities">§9 Test utilities</a>.</p>
+<h2 id="5-worked-example">5. Worked example<a class="headerlink" href="#5-worked-example" title="Permanent link">&para;</a></h2>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="k">class</span><span class="w"> </span><span class="nc">ExecutionSettings</span><span class="p">(</span><span class="n">FrameworkSettings</span><span class="p">,</span> <span class="n">namespace</span><span class="o">=</span><span class="s1">&#39;execution&#39;</span><span class="p">):</span>
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>    <span class="n">max_threads</span> <span class="o">=</span> <span class="n">setting</span><span class="p">[</span><span class="nb">int</span><span class="p">](</span><span class="mi">4</span><span class="p">)</span>
+</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>
+</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="c1"># At app startup, no TOML loaded yet:</span>
+</span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="c1">#   resolve(&#39;execution.max_threads&#39;)  →  (4, &#39;default&#39;)           ← step 6</span>
+</span><span id="__span-4-6"><a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a>
+</span><span id="__span-4-7"><a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a><span class="c1"># User edits ~/.haywire/settings.toml:</span>
+</span><span id="__span-4-8"><a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a><span class="c1">#   [execution]</span>
+</span><span id="__span-4-9"><a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a><span class="c1">#   max_threads = 8</span>
+</span><span id="__span-4-10"><a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a><span class="c1"># After load:</span>
+</span><span id="__span-4-11"><a id="__codelineno-4-11" name="__codelineno-4-11" href="#__codelineno-4-11"></a><span class="c1">#   resolve(&#39;execution.max_threads&#39;)  →  (8, &#39;global&#39;)            ← step 5</span>
+</span><span id="__span-4-12"><a id="__codelineno-4-12" name="__codelineno-4-12" href="#__codelineno-4-12"></a>
+</span><span id="__span-4-13"><a id="__codelineno-4-13" name="__codelineno-4-13" href="#__codelineno-4-13"></a><span class="c1"># Workspace TOML adds:</span>
+</span><span id="__span-4-14"><a id="__codelineno-4-14" name="__codelineno-4-14" href="#__codelineno-4-14"></a><span class="c1">#   [execution]</span>
+</span><span id="__span-4-15"><a id="__codelineno-4-15" name="__codelineno-4-15" href="#__codelineno-4-15"></a><span class="c1">#   max_threads = 16</span>
+</span><span id="__span-4-16"><a id="__codelineno-4-16" name="__codelineno-4-16" href="#__codelineno-4-16"></a><span class="c1"># After load:</span>
+</span><span id="__span-4-17"><a id="__codelineno-4-17" name="__codelineno-4-17" href="#__codelineno-4-17"></a><span class="c1">#   resolve(&#39;execution.max_threads&#39;)  →  (16, &#39;workspace&#39;)        ← step 4</span>
+</span><span id="__span-4-18"><a id="__codelineno-4-18" name="__codelineno-4-18" href="#__codelineno-4-18"></a>
+</span><span id="__span-4-19"><a id="__codelineno-4-19" name="__codelineno-4-19" href="#__codelineno-4-19"></a><span class="c1"># A node instance sets a local override (instance._local_store[&#39;max_threads&#39;] = 32):</span>
+</span><span id="__span-4-20"><a id="__codelineno-4-20" name="__codelineno-4-20" href="#__codelineno-4-20"></a><span class="c1">#   resolve(&#39;execution.max_threads&#39;,</span>
+</span><span id="__span-4-21"><a id="__codelineno-4-21" name="__codelineno-4-21" href="#__codelineno-4-21"></a><span class="c1">#           local=SettingValue(EXPLICIT, 32))  →  (32, &#39;local&#39;)   ← step 3</span>
+</span><span id="__span-4-22"><a id="__codelineno-4-22" name="__codelineno-4-22" href="#__codelineno-4-22"></a>
+</span><span id="__span-4-23"><a id="__codelineno-4-23" name="__codelineno-4-23" href="#__codelineno-4-23"></a><span class="c1"># Admin appends OVERRIDE to global TOML:</span>
+</span><span id="__span-4-24"><a id="__codelineno-4-24" name="__codelineno-4-24" href="#__codelineno-4-24"></a><span class="c1">#   [execution]</span>
+</span><span id="__span-4-25"><a id="__codelineno-4-25" name="__codelineno-4-25" href="#__codelineno-4-25"></a><span class="c1">#   max_threads = { override = true, value = 2 }</span>
+</span><span id="__span-4-26"><a id="__codelineno-4-26" name="__codelineno-4-26" href="#__codelineno-4-26"></a><span class="c1"># After load:</span>
+</span><span id="__span-4-27"><a id="__codelineno-4-27" name="__codelineno-4-27" href="#__codelineno-4-27"></a><span class="c1">#   resolve(...)  →  (2, &#39;global_override&#39;)                       ← step 1 wins,</span>
+</span><span id="__span-4-28"><a id="__codelineno-4-28" name="__codelineno-4-28" href="#__codelineno-4-28"></a><span class="c1">#                                                                    beats all below</span>
+</span></code></pre></div>
+<p>Each step of the chain corresponds to one line above. If you can predict the <code>(value, source)</code> for each line without looking at the comments, you understand the system.</p>
+<h2 id="6-contract-details">6. Contract details<a class="headerlink" href="#6-contract-details" title="Permanent link">&para;</a></h2>
+<p>The earlier sections give you the model; this one is reference material you can skip on a first read.</p>
+<h3 id="61-three-schema-classes">6.1 Three schema classes<a class="headerlink" href="#61-three-schema-classes" title="Permanent link">&para;</a></h3>
+<p>All inherit from <code>Settings</code> (<code>packages/haywire-core/src/haywire/core/settings/settings.py</code>). They differ only in <em>how</em> they get wired to the registry:</p>
+<table>
+<thead>
+<tr>
+<th>Class</th>
+<th>File</th>
+<th>Registration</th>
+<th>When <code>cls._registry</code> is set</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>FrameworkSettings</code></td>
+<td><code>settings/schema.py</code></td>
+<td>Auto-register via <code>_pending_global</code> queue at registry init</td>
+<td>Drained by <code>SettingsRegistry.__init__</code> → <code>_drain_pending_global()</code></td>
+</tr>
+<tr>
+<td><code>LibrarySettings</code></td>
+<td><code>settings/schema.py</code></td>
+<td>Via <code>BaseRegistry</code> hot-reload machinery (<code>_class_filter</code> picks up <code>class_identity</code>)</td>
+<td>Set when the registry processes the class on library load</td>
+</tr>
+<tr>
+<td><code>NodeSettings</code></td>
+<td><code>settings/node_settings.py</code></td>
+<td>Never registered as a <em>class</em> — settings <em>instances</em> are bound per-node by <code>@node</code></td>
+<td>Per-instance: <code>__init__</code> accepts <code>registry</code>; <code>@node</code> injects it from the node's wrapper</td>
+</tr>
+</tbody>
+</table>
+<p>Field descriptors on <code>FrameworkSettings</code> and <code>LibrarySettings</code> are auto-promoted to <code>persistent_setting</code> (a <code>setting</code> subclass that routes writes through <code>registry.set_global</code> + <code>save_to_toml_debounced</code>). The swap happens during field setup — in <code>__init_subclass__</code> for the class-signature <code>namespace=</code> form, and in the <code>@settings</code> decorator for the decorator form. <code>NodeSettings</code> fields are NOT promoted; node-local settings persist with the graph, not the workspace TOML, so <code>_local_store</code>-only semantics is correct for them.</p>
+<p>Deep inheritance (subclassing a <code>FrameworkSettings</code> or <code>LibrarySettings</code> subclass) is blocked by <code>__init_subclass__</code> to keep namespaces clean.</p>
+<h3 id="62-the-four-key-identifiers">6.2 The four key identifiers<a class="headerlink" href="#62-the-four-key-identifiers" title="Permanent link">&para;</a></h3>
+<p>Four identifiers cooperate to thread a setting from class definition to TOML to panel. You won't normally write any of them by hand — the framework derives them — but you'll see them in tracebacks and registry dumps.</p>
+<p><strong><code>namespace</code></strong> — dot-separated prefix that identifies a schema. Set by <code>@settings(namespace='my_lib')</code> for <code>LibrarySettings</code> or <code>class FooSettings(FrameworkSettings, namespace='execution')</code> for <code>FrameworkSettings</code>.</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>namespace=&#39;execution&#39;   →   TOML section [execution]
+</span></code></pre></div>
+<p><strong><code>_setting_key</code></strong> — full TOML address of one field: <code>{namespace}.{field_attr_name}</code>. Set on each <code>setting()</code> descriptor by <code>@settings</code> / <code>__init_subclass__</code> (for global schemas) or by <code>@node</code> / <code>_wire_settings_schemas</code> (for <code>NodeSettings</code>). For <code>FrameworkSettings</code> and <code>LibrarySettings</code>, the same setup pass also swaps the descriptor's <code>__class__</code> to <code>persistent_setting</code> so writes route through the registry (see <a href="#63-the-write-path">6.3 The write path</a>).</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>namespace=&#39;execution&#39;, field &#39;max_threads&#39;
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>  →  _setting_key=&#39;execution.max_threads&#39;
+</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>
+</span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a>node registry_key=&#39;haybale_core:node:filter&#39;, accessor &#39;params&#39;, field &#39;threshold&#39;
+</span><span id="__span-6-5"><a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a>  →  _setting_key=&#39;haybale_core.node.filter.params.threshold&#39;
+</span></code></pre></div>
+<p>This is what <code>SettingsRegistry</code> stores, resolves, and what <code>shadow()</code>/<code>watch()</code> reference. Single shared identity between schema, TOML, and registry lookup.</p>
+<p><strong><code>registry_key</code></strong> — <code>BaseRegistry</code>-level identifier for the <em>class</em> (not a field). Set by <code>@settings</code> as <code>reg_key(library_id, "settings", namespace)</code>. Used internally by <code>BaseRegistry</code> for class tracking, hot-reload, and dependency graphs. Not normally used directly by authors.</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>namespace=&#39;my_lib&#39;, library_id=&#39;haybale_image&#39;
+</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>  →  registry_key=&#39;haybale_image:settings:my_lib&#39;
+</span></code></pre></div>
+<p><strong><code>scope</code></strong> — runtime concept, not a class attribute. The properties-panel system reads class hierarchy at render time:</p>
+<table>
+<thead>
+<tr>
+<th>Class type</th>
+<th>Panel location</th>
+<th>Scope label</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>FrameworkSettings</code> subclass</td>
+<td>Global settings panel</td>
+<td><code>global</code></td>
+</tr>
+<tr>
+<td><code>LibrarySettings</code> subclass</td>
+<td>Library section of properties editor</td>
+<td><code>library</code></td>
+</tr>
+<tr>
+<td><code>NodeSettings</code> instance</td>
+<td>Node section of properties editor</td>
+<td><code>node</code></td>
+</tr>
+</tbody>
+</table>
+<p>There is no <code>scope=</code> attribute on any settings class.</p>
+<h3 id="63-the-write-path">6.3 The write path<a class="headerlink" href="#63-the-write-path" title="Permanent link">&para;</a></h3>
+<p>Section 4 traced how a <code>setting</code> value is <em>read</em> through the tier chain. Writes are simpler but have a comparable structural twist: which descriptor handles <code>__set__</code> depends on the schema class.</p>
+<h4 id="setting__set__-instance-local"><code>setting.__set__</code> — instance-local<a class="headerlink" href="#setting__set__-instance-local" title="Permanent link">&para;</a></h4>
+<p>For <code>NodeSettings</code> and any plain <code>Settings</code> subclass, <code>setting.__set__</code> is the descriptor that runs. It writes to <code>obj._local_store[key]</code> and fires <code>_on_property_change</code> to notify subscribers. The registry is not consulted; the write is invisible to peer instances and is never serialised to the workspace TOML.</p>
+<h4 id="persistent_setting__set__-registry-backed"><code>persistent_setting.__set__</code> — registry-backed<a class="headerlink" href="#persistent_setting__set__-registry-backed" title="Permanent link">&para;</a></h4>
+<p>For <code>FrameworkSettings</code> and <code>LibrarySettings</code>, the descriptor is promoted to <code>persistent_setting</code> (a <code>setting</code> subclass) during field setup. Its <code>__set__</code> routes writes through the registry:</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="c1"># Roughly:</span>
+</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="n">registry</span><span class="o">.</span><span class="n">set_global</span><span class="p">(</span><span class="n">setting_key</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">SettingMode</span><span class="o">.</span><span class="n">EXPLICIT</span><span class="p">)</span>
+</span><span id="__span-8-3"><a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a><span class="n">registry</span><span class="o">.</span><span class="n">save_to_toml_debounced</span><span class="p">()</span>
+</span></code></pre></div>
+<p>Two consequences flow from this:</p>
+<ul>
+<li>The value lands in the registry's workspace tier, so a freshly-constructed peer instance sees it on its next read.</li>
+<li><code>save_to_toml_debounced</code> schedules a write to <code>&lt;workspace&gt;/.haywire/settings.toml</code>, so the value survives restart.</li>
+</ul>
+<p>The author never sees <code>persistent_setting</code>. They write <code>settings.field = value</code>; the framework's class swap ensures the right descriptor runs transparently:</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="c1"># Library settings panel writes this:</span>
+</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="n">my_settings</span><span class="o">.</span><span class="n">api_url</span> <span class="o">=</span> <span class="s2">&quot;https://example.com&quot;</span>
+</span><span id="__span-9-3"><a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a>
+</span><span id="__span-9-4"><a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a><span class="c1"># Because api_url&#39;s descriptor was promoted to persistent_setting at</span>
+</span><span id="__span-9-5"><a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a><span class="c1"># class-definition time, this call fans out to:</span>
+</span><span id="__span-9-6"><a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a><span class="c1">#   registry.set_global(&#39;my_lib.api_url&#39;, &#39;https://example.com&#39;, EXPLICIT)</span>
+</span><span id="__span-9-7"><a id="__codelineno-9-7" name="__codelineno-9-7" href="#__codelineno-9-7"></a><span class="c1">#   registry.save_to_toml_debounced()</span>
+</span><span id="__span-9-8"><a id="__codelineno-9-8" name="__codelineno-9-8" href="#__codelineno-9-8"></a><span class="c1"># …rather than writing to _local_store.</span>
+</span></code></pre></div>
+<h4 id="three-places-the-class-swap-happens">Three places the class swap happens<a class="headerlink" href="#three-places-the-class-swap-happens" title="Permanent link">&para;</a></h4>
+<p>Field descriptors get their <code>__class__</code> rewritten to <code>persistent_setting</code> in three places, depending on how the schema is registered:</p>
+<ol>
+<li><code>FrameworkSettings.__init_subclass__</code> — when a subclass uses class-signature <code>namespace=</code>.</li>
+<li><code>LibrarySettings.__init_subclass__</code> — same, for library-side schemas using the class-signature form.</li>
+<li><code>@settings(namespace=...)</code> decorator — the canonical pattern for <code>LibrarySettings</code>.</li>
+</ol>
+<p>All three paths iterate <code>cls._property_settings()</code> and set <code>descriptor._setting_key</code> + <code>descriptor._mirror_key</code> + <code>descriptor.__class__ = persistent_setting</code> in one pass. Keeping the three paths in sync matters: missing the swap in one path silently restores the <code>_local_store</code>-only semantics for any schema registered through that path.</p>
+<h4 id="why-the-descriptor-does-not-call-_on_property_change">Why the descriptor does NOT call <code>_on_property_change</code><a class="headerlink" href="#why-the-descriptor-does-not-call-_on_property_change" title="Permanent link">&para;</a></h4>
+<p><code>persistent_setting.__set__</code> deliberately omits the <code>_on_property_change</code> call that the base <code>setting</code> makes. <code>registry.set_global</code> fans out to every subscriber registered for that namespace — including the writing instance, if it subscribed via <code>Settings.subscribe(...)</code>. The chain there is <code>_notify_subscribers → _on_field_change → _on_property_change → user callback</code>. If the descriptor also called <code>_on_property_change</code> directly, any subscribed user callback would fire twice for the same write.</p>
+<p>Instances that never subscribed receive no callback either way — neither from the descriptor nor from the registry. That is intentional: the writer just performed the write, so it does not need to be told what changed. Code that does want to react to its own writes (e.g. a panel that re-renders) must call <code>Settings.subscribe(...)</code> to opt in.</p>
+<h4 id="fallback-when-no-registry-is-wired">Fallback when no registry is wired<a class="headerlink" href="#fallback-when-no-registry-is-wired" title="Permanent link">&para;</a></h4>
+<p>In test fixtures or unsaved workspaces, <code>persistent_setting.__set__</code> may run on an instance whose <code>_registry</code> is <code>None</code> or whose <code>_setting_key</code> is empty. In both cases it delegates to <code>super().__set__</code> — the base <code>setting</code>'s local-store write — so existing test fixtures and simple-mode usage are unaffected.</p>
+<p>A related guard sits in <code>save_to_toml_debounced</code> itself: when the registry has no workspace path configured (unsaved workspace), the debounce is a no-op rather than scheduling a timer whose firing would raise an error on a background thread. <code>set_global</code> still updates the in-memory workspace tier, so cross-instance visibility works even without disk persistence.</p>
+<h2 id="7-lifecycle">7. Lifecycle<a class="headerlink" href="#7-lifecycle" title="Permanent link">&para;</a></h2>
+<h3 id="71-registration-and-_pending_global">7.1 Registration and <code>_pending_global</code><a class="headerlink" href="#71-registration-and-_pending_global" title="Permanent link">&para;</a></h3>
+<p><code>FrameworkSettings</code> is the trickier case (it must self-register before the registry exists):</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>Module imports FrameworkSettings subclass
+</span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>  ↓
+</span><span id="__span-10-3"><a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a>__init_subclass__ runs:
+</span><span id="__span-10-4"><a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a>  - validates namespace=
+</span><span id="__span-10-5"><a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a>  - sets _setting_key on every descriptor
+</span><span id="__span-10-6"><a id="__codelineno-10-6" name="__codelineno-10-6" href="#__codelineno-10-6"></a>  - swaps each descriptor&#39;s __class__ to persistent_setting
+</span><span id="__span-10-7"><a id="__codelineno-10-7" name="__codelineno-10-7" href="#__codelineno-10-7"></a>  - appends class to schema._pending_global queue
+</span><span id="__span-10-8"><a id="__codelineno-10-8" name="__codelineno-10-8" href="#__codelineno-10-8"></a>  ↓
+</span><span id="__span-10-9"><a id="__codelineno-10-9" name="__codelineno-10-9" href="#__codelineno-10-9"></a>... (later in startup, when DI assembles the registry) ...
+</span><span id="__span-10-10"><a id="__codelineno-10-10" name="__codelineno-10-10" href="#__codelineno-10-10"></a>  ↓
+</span><span id="__span-10-11"><a id="__codelineno-10-11" name="__codelineno-10-11" href="#__codelineno-10-11"></a>SettingsRegistry.__init__:
+</span><span id="__span-10-12"><a id="__codelineno-10-12" name="__codelineno-10-12" href="#__codelineno-10-12"></a>  - calls _drain_pending_global()
+</span><span id="__span-10-13"><a id="__codelineno-10-13" name="__codelineno-10-13" href="#__codelineno-10-13"></a>  - for each queued class:
+</span><span id="__span-10-14"><a id="__codelineno-10-14" name="__codelineno-10-14" href="#__codelineno-10-14"></a>      - registers the schema
+</span><span id="__span-10-15"><a id="__codelineno-10-15" name="__codelineno-10-15" href="#__codelineno-10-15"></a>      - sets cls._registry = self
+</span><span id="__span-10-16"><a id="__codelineno-10-16" name="__codelineno-10-16" href="#__codelineno-10-16"></a>  ↓
+</span><span id="__span-10-17"><a id="__codelineno-10-17" name="__codelineno-10-17" href="#__codelineno-10-17"></a>Now FooSettings() with no args is fully registry-wired.
+</span></code></pre></div>
+<p><code>LibrarySettings</code> registers via the <code>BaseRegistry</code> hot-reload pipeline when the owning library loads (see <a href="../../library-system/library-system-arch/">architecture/library-system</a>). The <code>@settings</code> decorator sets <code>class_identity</code>, which is what <code>BaseRegistry._class_filter</code> looks for. The decorator also performs the descriptor <code>__class__ = persistent_setting</code> swap that <code>LibrarySettings.__init_subclass__</code> would do for the class-signature <code>namespace=</code> form — both paths must keep their field-setup loops symmetric.</p>
+<h3 id="72-hot-reload-behaviour">7.2 Hot-reload behaviour<a class="headerlink" href="#72-hot-reload-behaviour" title="Permanent link">&para;</a></h3>
+<p>When a library reloads (file watcher detects a <code>.py</code> change):</p>
+<ol>
+<li><code>BaseRegistry._on_change</code> re-imports the module.</li>
+<li><code>LibrarySettings</code> subclasses are re-registered under the same <code>_setting_key</code>s.</li>
+<li><code>cls._registry</code> is re-bound on the new class.</li>
+<li>Existing <code>Settings</code> instances <em>holding the old class as their type</em> keep working — their <code>_local_store</code> is unchanged, but their <code>_registry</code> reference must be re-acquired (the framework re-binds via the node-instance lifecycle).</li>
+<li>Subscribed mirror callbacks are re-attached on the new class.</li>
+</ol>
+<p>The hot-reload pipeline at large is documented in <a href="../../hot-reload/hot-reload-arch/">architecture/hot-reload</a>.</p>
+<h3 id="73-change-notification-shadow-watch">7.3 Change notification (<code>shadow()</code> / <code>watch()</code>)<a class="headerlink" href="#73-change-notification-shadow-watch" title="Permanent link">&para;</a></h3>
+<p>There is no cached resolved value — <code>setting.__get__</code> calls <code>obj._resolve()</code> → <code>registry.resolve()</code> on every read. What the framework propagates is <em>change callbacks</em>, not cache invalidations.</p>
+<p>The flow when a global value changes:</p>
+<ol>
+<li><code>SettingsRegistry.set_global()</code> updates the in-memory tier and calls <code>_notify_subscribers</code>.</li>
+<li><code>_notify_subscribers</code> walks <code>self._subscribers</code> — a dict of <code>namespace → list[weakref[callback]]</code> — and fires every callback whose namespace prefix matches the changed key.</li>
+<li>For a <code>Settings</code> instance that has subscribed via <code>Settings.subscribe(user_callback)</code>, the registry-side callback is the instance's <code>_on_field_change</code>. It identifies which mirrored field changed, re-reads the resolved value through the chain, and calls <code>_on_property_change</code> → <code>user_callback</code>.</li>
+<li>If the field has an <code>on_change</code> method on its node, <code>_on_property_change</code> calls it with the new value.</li>
+</ol>
+<p>Important: callbacks fire only for instances that have explicitly called <code>Settings.subscribe(...)</code>. An instance that holds settings but never subscribed will not receive notifications when other code changes the underlying TOML value — its next read will resolve to the new value, but no callback runs in the meantime.</p>
+<p><code>Settings._subscribe_settings()</code> (plural — wires every field with a <code>_mirror_key</code>) and <code>_subscribe_setting()</code> (singular — wires one field) set up the weakref subscriptions; both are called from <code>Settings.subscribe()</code>. <code>Settings.cleanup()</code> clears the local callback list and marks the instance as torn down; the registry-side weakrefs are dropped when the instance is garbage-collected.</p>
+<h3 id="74-serialisation">7.4 Serialisation<a class="headerlink" href="#74-serialisation" title="Permanent link">&para;</a></h3>
+<p><code>Settings.to_dict()</code> returns only fields whose value differs from the descriptor default. <code>watch()</code> fields are never included.</p>
+<p><code>Settings.from_dict(data, silent=True)</code> writes directly to <code>_local_store</code> without firing callbacks (used during graph load to avoid spurious triggers). <code>silent=False</code> uses normal <code>setattr</code> semantics.</p>
+<h2 id="8-examples">8. Examples<a class="headerlink" href="#8-examples" title="Permanent link">&para;</a></h2>
+<h3 id="81-the-full-registry-api">8.1 The full registry API<a class="headerlink" href="#81-the-full-registry-api" title="Permanent link">&para;</a></h3>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">haywire.core.di.config</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_settings_registry</span>
+</span><span id="__span-11-2"><a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">haywire.core.settings</span><span class="w"> </span><span class="kn">import</span> <span class="n">SettingMode</span>
+</span><span id="__span-11-3"><a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a>
+</span><span id="__span-11-4"><a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a><span class="n">registry</span> <span class="o">=</span> <span class="n">get_settings_registry</span><span class="p">()</span>
+</span><span id="__span-11-5"><a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a>
+</span><span id="__span-11-6"><a id="__codelineno-11-6" name="__codelineno-11-6" href="#__codelineno-11-6"></a><span class="c1"># Read with provenance</span>
+</span><span id="__span-11-7"><a id="__codelineno-11-7" name="__codelineno-11-7" href="#__codelineno-11-7"></a><span class="n">value</span><span class="p">,</span> <span class="n">source</span> <span class="o">=</span> <span class="n">registry</span><span class="o">.</span><span class="n">resolve</span><span class="p">(</span><span class="s1">&#39;execution.max_threads&#39;</span><span class="p">)</span>
+</span><span id="__span-11-8"><a id="__codelineno-11-8" name="__codelineno-11-8" href="#__codelineno-11-8"></a><span class="c1"># → (4, &#39;default&#39;)   or   (8, &#39;global&#39;)   etc.</span>
+</span><span id="__span-11-9"><a id="__codelineno-11-9" name="__codelineno-11-9" href="#__codelineno-11-9"></a>
+</span><span id="__span-11-10"><a id="__codelineno-11-10" name="__codelineno-11-10" href="#__codelineno-11-10"></a><span class="c1"># Programmatic write to the global tier</span>
+</span><span id="__span-11-11"><a id="__codelineno-11-11" name="__codelineno-11-11" href="#__codelineno-11-11"></a><span class="n">registry</span><span class="o">.</span><span class="n">set_global</span><span class="p">(</span><span class="s1">&#39;execution.max_threads&#39;</span><span class="p">,</span> <span class="mi">8</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="n">SettingMode</span><span class="o">.</span><span class="n">EXPLICIT</span><span class="p">)</span>
+</span><span id="__span-11-12"><a id="__codelineno-11-12" name="__codelineno-11-12" href="#__codelineno-11-12"></a><span class="n">registry</span><span class="o">.</span><span class="n">set_global</span><span class="p">(</span><span class="s1">&#39;debug.verbose_logging&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="n">SettingMode</span><span class="o">.</span><span class="n">OVERRIDE</span><span class="p">)</span>
+</span><span id="__span-11-13"><a id="__codelineno-11-13" name="__codelineno-11-13" href="#__codelineno-11-13"></a>
+</span><span id="__span-11-14"><a id="__codelineno-11-14" name="__codelineno-11-14" href="#__codelineno-11-14"></a><span class="c1"># Reset to INHERIT</span>
+</span><span id="__span-11-15"><a id="__codelineno-11-15" name="__codelineno-11-15" href="#__codelineno-11-15"></a><span class="n">registry</span><span class="o">.</span><span class="n">reset_global</span><span class="p">(</span><span class="s1">&#39;execution.max_threads&#39;</span><span class="p">)</span>
+</span><span id="__span-11-16"><a id="__codelineno-11-16" name="__codelineno-11-16" href="#__codelineno-11-16"></a>
+</span><span id="__span-11-17"><a id="__codelineno-11-17" name="__codelineno-11-17" href="#__codelineno-11-17"></a><span class="c1"># Schema introspection</span>
+</span><span id="__span-11-18"><a id="__codelineno-11-18" name="__codelineno-11-18" href="#__codelineno-11-18"></a><span class="n">registry</span><span class="o">.</span><span class="n">has_definition</span><span class="p">(</span><span class="s1">&#39;execution.max_threads&#39;</span><span class="p">)</span>   <span class="c1"># True</span>
+</span><span id="__span-11-19"><a id="__codelineno-11-19" name="__codelineno-11-19" href="#__codelineno-11-19"></a><span class="n">descriptor</span> <span class="o">=</span> <span class="n">registry</span><span class="o">.</span><span class="n">get_definition</span><span class="p">(</span><span class="s1">&#39;execution.max_threads&#39;</span><span class="p">)</span>
+</span><span id="__span-11-20"><a id="__codelineno-11-20" name="__codelineno-11-20" href="#__codelineno-11-20"></a><span class="n">all_settings</span> <span class="o">=</span> <span class="n">registry</span><span class="o">.</span><span class="n">all_definitions</span><span class="p">()</span>           <span class="c1"># dict[str, setting]</span>
+</span><span id="__span-11-21"><a id="__codelineno-11-21" name="__codelineno-11-21" href="#__codelineno-11-21"></a>
+</span><span id="__span-11-22"><a id="__codelineno-11-22" name="__codelineno-11-22" href="#__codelineno-11-22"></a><span class="c1"># Programmatic schema definition (rarely needed)</span>
+</span><span id="__span-11-23"><a id="__codelineno-11-23" name="__codelineno-11-23" href="#__codelineno-11-23"></a><span class="n">new_setting</span> <span class="o">=</span> <span class="n">registry</span><span class="o">.</span><span class="n">define</span><span class="p">(</span>
+</span><span id="__span-11-24"><a id="__codelineno-11-24" name="__codelineno-11-24" href="#__codelineno-11-24"></a>    <span class="s1">&#39;my.dynamic_setting&#39;</span><span class="p">,</span>
+</span><span id="__span-11-25"><a id="__codelineno-11-25" name="__codelineno-11-25" href="#__codelineno-11-25"></a>    <span class="n">default</span><span class="o">=</span><span class="mi">42</span><span class="p">,</span>
+</span><span id="__span-11-26"><a id="__codelineno-11-26" name="__codelineno-11-26" href="#__codelineno-11-26"></a>    <span class="n">type_</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span>
+</span><span id="__span-11-27"><a id="__codelineno-11-27" name="__codelineno-11-27" href="#__codelineno-11-27"></a>    <span class="n">label</span><span class="o">=</span><span class="s1">&#39;My Dynamic Setting&#39;</span><span class="p">,</span>
+</span><span id="__span-11-28"><a id="__codelineno-11-28" name="__codelineno-11-28" href="#__codelineno-11-28"></a><span class="p">)</span>
+</span><span id="__span-11-29"><a id="__codelineno-11-29" name="__codelineno-11-29" href="#__codelineno-11-29"></a>
+</span><span id="__span-11-30"><a id="__codelineno-11-30" name="__codelineno-11-30" href="#__codelineno-11-30"></a><span class="c1"># TOML I/O</span>
+</span><span id="__span-11-31"><a id="__codelineno-11-31" name="__codelineno-11-31" href="#__codelineno-11-31"></a><span class="n">registry</span><span class="o">.</span><span class="n">load_from_toml</span><span class="p">(</span><span class="s1">&#39;~/.haywire/settings.toml&#39;</span><span class="p">,</span> <span class="n">tier</span><span class="o">=</span><span class="s1">&#39;global&#39;</span><span class="p">)</span>
+</span><span id="__span-11-32"><a id="__codelineno-11-32" name="__codelineno-11-32" href="#__codelineno-11-32"></a><span class="n">registry</span><span class="o">.</span><span class="n">load_from_toml</span><span class="p">(</span><span class="s1">&#39;&lt;workspace&gt;/.haywire/settings.toml&#39;</span><span class="p">,</span> <span class="n">tier</span><span class="o">=</span><span class="s1">&#39;workspace&#39;</span><span class="p">)</span>
+</span><span id="__span-11-33"><a id="__codelineno-11-33" name="__codelineno-11-33" href="#__codelineno-11-33"></a><span class="n">registry</span><span class="o">.</span><span class="n">save_to_toml</span><span class="p">()</span>  <span class="c1"># writes workspace tier</span>
+</span><span id="__span-11-34"><a id="__codelineno-11-34" name="__codelineno-11-34" href="#__codelineno-11-34"></a>
+</span><span id="__span-11-35"><a id="__codelineno-11-35" name="__codelineno-11-35" href="#__codelineno-11-35"></a><span class="c1"># Subscribe (change-notification hook).</span>
+</span><span id="__span-11-36"><a id="__codelineno-11-36" name="__codelineno-11-36" href="#__codelineno-11-36"></a><span class="c1"># `namespace=None` fires on every key; &#39;execution&#39; fires on any</span>
+</span><span id="__span-11-37"><a id="__codelineno-11-37" name="__codelineno-11-37" href="#__codelineno-11-37"></a><span class="c1"># &#39;execution.*&#39; key; &#39;execution.max_threads&#39; fires only on that exact key.</span>
+</span><span id="__span-11-38"><a id="__codelineno-11-38" name="__codelineno-11-38" href="#__codelineno-11-38"></a><span class="c1"># Pass a plain callable — the registry stores it as a weakref internally,</span>
+</span><span id="__span-11-39"><a id="__codelineno-11-39" name="__codelineno-11-39" href="#__codelineno-11-39"></a><span class="c1"># so the caller must keep a strong reference (hold `self`, or assign the</span>
+</span><span id="__span-11-40"><a id="__codelineno-11-40" name="__codelineno-11-40" href="#__codelineno-11-40"></a><span class="c1"># function to a module-level name).</span>
+</span><span id="__span-11-41"><a id="__codelineno-11-41" name="__codelineno-11-41" href="#__codelineno-11-41"></a><span class="k">def</span><span class="w"> </span><span class="nf">on_namespace_change</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+</span><span id="__span-11-42"><a id="__codelineno-11-42" name="__codelineno-11-42" href="#__codelineno-11-42"></a>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s1"> = </span><span class="si">{</span><span class="n">value</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+</span><span id="__span-11-43"><a id="__codelineno-11-43" name="__codelineno-11-43" href="#__codelineno-11-43"></a>
+</span><span id="__span-11-44"><a id="__codelineno-11-44" name="__codelineno-11-44" href="#__codelineno-11-44"></a><span class="n">registry</span><span class="o">.</span><span class="n">subscribe</span><span class="p">(</span><span class="s1">&#39;execution&#39;</span><span class="p">,</span> <span class="n">on_namespace_change</span><span class="p">)</span>
+</span></code></pre></div>
+<h3 id="82-reactive-non-node-access">8.2 Reactive non-node access<a class="headerlink" href="#82-reactive-non-node-access" title="Permanent link">&para;</a></h3>
+<p>Library/UI code that wants live access to a <code>LibrarySettings</code> field instantiates the schema directly. Once the library has loaded and <code>cls._registry</code> is set, no explicit injection is needed:</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">my_lib.settings</span><span class="w"> </span><span class="kn">import</span> <span class="n">MyLibSettings</span>
+</span><span id="__span-12-2"><a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a>
+</span><span id="__span-12-3"><a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a><span class="k">class</span><span class="w"> </span><span class="nc">MyRenderer</span><span class="p">:</span>
+</span><span id="__span-12-4"><a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a>    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+</span><span id="__span-12-5"><a id="__codelineno-12-5" name="__codelineno-12-5" href="#__codelineno-12-5"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">settings</span> <span class="o">=</span> <span class="n">MyLibSettings</span><span class="p">()</span>        <span class="c1"># auto-wired to registry</span>
+</span><span id="__span-12-6"><a id="__codelineno-12-6" name="__codelineno-12-6" href="#__codelineno-12-6"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">settings</span><span class="o">.</span><span class="n">subscribe</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_on_change</span><span class="p">)</span>
+</span><span id="__span-12-7"><a id="__codelineno-12-7" name="__codelineno-12-7" href="#__codelineno-12-7"></a>
+</span><span id="__span-12-8"><a id="__codelineno-12-8" name="__codelineno-12-8" href="#__codelineno-12-8"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">render</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+</span><span id="__span-12-9"><a id="__codelineno-12-9" name="__codelineno-12-9" href="#__codelineno-12-9"></a>        <span class="n">url</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">settings</span><span class="o">.</span><span class="n">api_url</span>            <span class="c1"># resolves through chain on every read</span>
+</span><span id="__span-12-10"><a id="__codelineno-12-10" name="__codelineno-12-10" href="#__codelineno-12-10"></a>
+</span><span id="__span-12-11"><a id="__codelineno-12-11" name="__codelineno-12-11" href="#__codelineno-12-11"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">_on_change</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">old</span><span class="p">):</span>
+</span><span id="__span-12-12"><a id="__codelineno-12-12" name="__codelineno-12-12" href="#__codelineno-12-12"></a>        <span class="k">if</span> <span class="n">name</span> <span class="o">==</span> <span class="s1">&#39;api_url&#39;</span><span class="p">:</span>
+</span><span id="__span-12-13"><a id="__codelineno-12-13" name="__codelineno-12-13" href="#__codelineno-12-13"></a>            <span class="bp">self</span><span class="o">.</span><span class="n">_reconnect</span><span class="p">()</span>
+</span></code></pre></div>
+<p>For a one-off read without subscription:</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="n">registry</span> <span class="o">=</span> <span class="n">get_settings_registry</span><span class="p">()</span>
+</span><span id="__span-13-2"><a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a><span class="n">url</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">registry</span><span class="o">.</span><span class="n">resolve</span><span class="p">(</span><span class="s1">&#39;my_lib.api_url&#39;</span><span class="p">)</span>
+</span></code></pre></div>
+<h2 id="9-test-utilities">9. Test utilities<a class="headerlink" href="#9-test-utilities" title="Permanent link">&para;</a></h2>
+<p>All test helpers live in <code>haywire.core.di.test_config</code>:</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">haywire.core.di.test_config</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+</span><span id="__span-14-2"><a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a>    <span class="n">create_test_injector</span><span class="p">,</span>
+</span><span id="__span-14-3"><a id="__codelineno-14-3" name="__codelineno-14-3" href="#__codelineno-14-3"></a>    <span class="n">create_test_library_system</span><span class="p">,</span>
+</span><span id="__span-14-4"><a id="__codelineno-14-4" name="__codelineno-14-4" href="#__codelineno-14-4"></a>    <span class="n">create_test_settings_registry</span><span class="p">,</span>
+</span><span id="__span-14-5"><a id="__codelineno-14-5" name="__codelineno-14-5" href="#__codelineno-14-5"></a>    <span class="n">create_test_bag</span><span class="p">,</span>
+</span><span id="__span-14-6"><a id="__codelineno-14-6" name="__codelineno-14-6" href="#__codelineno-14-6"></a>    <span class="n">SettingsTestContext</span><span class="p">,</span>
+</span><span id="__span-14-7"><a id="__codelineno-14-7" name="__codelineno-14-7" href="#__codelineno-14-7"></a><span class="p">)</span>
+</span></code></pre></div>
+<h3 id="91-create_test_settings_registrypredefined_settingsnone-register_builtinstrue">9.1 <code>create_test_settings_registry(predefined_settings=None, register_builtins=True)</code><a class="headerlink" href="#91-create_test_settings_registrypredefined_settingsnone-register_builtinstrue" title="Permanent link">&para;</a></h3>
+<p>Isolated registry for unit tests. <code>predefined_settings</code> keys are full keys; values are applied in <code>EXPLICIT</code> mode at the global tier.</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-15-1"><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a><span class="n">registry</span> <span class="o">=</span> <span class="n">create_test_settings_registry</span><span class="p">({</span><span class="s1">&#39;ui.node.bg_color&#39;</span><span class="p">:</span> <span class="s1">&#39;#ff0000&#39;</span><span class="p">})</span>
+</span><span id="__span-15-2"><a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a><span class="n">value</span><span class="p">,</span> <span class="n">source</span> <span class="o">=</span> <span class="n">registry</span><span class="o">.</span><span class="n">resolve</span><span class="p">(</span><span class="s1">&#39;ui.node.bg_color&#39;</span><span class="p">)</span>
+</span><span id="__span-15-3"><a id="__codelineno-15-3" name="__codelineno-15-3" href="#__codelineno-15-3"></a><span class="c1"># → (&#39;#ff0000&#39;, &#39;global&#39;)</span>
+</span><span id="__span-15-4"><a id="__codelineno-15-4" name="__codelineno-15-4" href="#__codelineno-15-4"></a>
+</span><span id="__span-15-5"><a id="__codelineno-15-5" name="__codelineno-15-5" href="#__codelineno-15-5"></a><span class="n">registry</span> <span class="o">=</span> <span class="n">create_test_settings_registry</span><span class="p">()</span>  <span class="c1"># default builtins, no overrides</span>
+</span><span id="__span-15-6"><a id="__codelineno-15-6" name="__codelineno-15-6" href="#__codelineno-15-6"></a><span class="n">value</span><span class="p">,</span> <span class="n">source</span> <span class="o">=</span> <span class="n">registry</span><span class="o">.</span><span class="n">resolve</span><span class="p">(</span><span class="s1">&#39;ui.node.bg_color&#39;</span><span class="p">)</span>
+</span><span id="__span-15-7"><a id="__codelineno-15-7" name="__codelineno-15-7" href="#__codelineno-15-7"></a><span class="c1"># → (&#39;#ffffff&#39;, &#39;default&#39;)</span>
+</span></code></pre></div>
+<p>The framework's built-in <code>FrameworkSettings</code> schemas live under <code>haywire.ui.prefs</code> (<code>CanvasSettings</code>, <code>EdgeUISettings</code>, <code>EditorSettings</code>), <code>haywire.core.execution.settings</code> (<code>ExecutionSettings</code>), and <code>haywire.core.debug.debug_settings</code> (<code>DebugSettings</code>), plus skin/minimap/zoom variants under <code>haywire.ui.*</code>. <code>create_test_settings_registry</code> accepts a <code>register_builtins</code> parameter for opt-out, but at the time of writing the parameter is not yet wired through the function body — pass <code>predefined_settings</code> if you need specific keys pre-defined.</p>
+<h3 id="92-create_test_bagbag_clsnone-predefined_localnone-predefined_globalnone">9.2 <code>create_test_bag(bag_cls=None, predefined_local=None, predefined_global=None)</code><a class="headerlink" href="#92-create_test_bagbag_clsnone-predefined_localnone-predefined_globalnone" title="Permanent link">&para;</a></h3>
+<p>Returns <code>(registry, bag)</code> — a settings instance wired to an isolated registry. Default <code>bag_cls</code> is a minimal class with <code>bg_color</code>, <code>font_size</code>, <code>verbose</code>.</p>
+<ul>
+<li><code>predefined_local</code> keys are <strong>attr names</strong> (<code>'bg_color'</code>)</li>
+<li><code>predefined_global</code> keys are <strong>full keys</strong> (<code>'test.global.bg_color'</code>)</li>
+</ul>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-16-1"><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a><span class="n">registry</span><span class="p">,</span> <span class="n">bag</span> <span class="o">=</span> <span class="n">create_test_bag</span><span class="p">(</span>
+</span><span id="__span-16-2"><a id="__codelineno-16-2" name="__codelineno-16-2" href="#__codelineno-16-2"></a>    <span class="n">predefined_global</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;test.global.font_size&#39;</span><span class="p">:</span> <span class="mi">16</span><span class="p">},</span>
+</span><span id="__span-16-3"><a id="__codelineno-16-3" name="__codelineno-16-3" href="#__codelineno-16-3"></a>    <span class="n">predefined_local</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;font_size&#39;</span><span class="p">:</span> <span class="mi">20</span><span class="p">},</span>
+</span><span id="__span-16-4"><a id="__codelineno-16-4" name="__codelineno-16-4" href="#__codelineno-16-4"></a><span class="p">)</span>
+</span><span id="__span-16-5"><a id="__codelineno-16-5" name="__codelineno-16-5" href="#__codelineno-16-5"></a><span class="k">assert</span> <span class="n">bag</span><span class="o">.</span><span class="n">font_size</span> <span class="o">==</span> <span class="mi">20</span>         <span class="c1"># local wins (step 3 of resolution chain)</span>
+</span><span id="__span-16-6"><a id="__codelineno-16-6" name="__codelineno-16-6" href="#__codelineno-16-6"></a><span class="k">assert</span> <span class="n">bag</span><span class="o">.</span><span class="n">is_locally_set</span><span class="p">(</span><span class="s1">&#39;font_size&#39;</span><span class="p">)</span>
+</span><span id="__span-16-7"><a id="__codelineno-16-7" name="__codelineno-16-7" href="#__codelineno-16-7"></a>
+</span><span id="__span-16-8"><a id="__codelineno-16-8" name="__codelineno-16-8" href="#__codelineno-16-8"></a><span class="n">bag</span><span class="o">.</span><span class="n">reset</span><span class="p">(</span><span class="s1">&#39;font_size&#39;</span><span class="p">)</span>
+</span><span id="__span-16-9"><a id="__codelineno-16-9" name="__codelineno-16-9" href="#__codelineno-16-9"></a><span class="k">assert</span> <span class="n">bag</span><span class="o">.</span><span class="n">font_size</span> <span class="o">==</span> <span class="mi">16</span>         <span class="c1"># falls back to global (step 5)</span>
+</span></code></pre></div>
+<h3 id="93-settingstestcontext">9.3 <code>SettingsTestContext</code><a class="headerlink" href="#93-settingstestcontext" title="Permanent link">&para;</a></h3>
+<p>Context manager for temporary registry mutations with auto-restore:</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-17-1"><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a><span class="n">service</span>  <span class="o">=</span> <span class="n">create_test_library_system</span><span class="p">(</span><span class="n">load_libraries</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">use_temp_settings</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</span><span id="__span-17-2"><a id="__codelineno-17-2" name="__codelineno-17-2" href="#__codelineno-17-2"></a><span class="n">registry</span> <span class="o">=</span> <span class="n">service</span><span class="o">.</span><span class="n">get_settings_registry</span><span class="p">()</span>
+</span><span id="__span-17-3"><a id="__codelineno-17-3" name="__codelineno-17-3" href="#__codelineno-17-3"></a>
+</span><span id="__span-17-4"><a id="__codelineno-17-4" name="__codelineno-17-4" href="#__codelineno-17-4"></a><span class="k">with</span> <span class="n">SettingsTestContext</span><span class="p">(</span><span class="n">registry</span><span class="p">)</span> <span class="k">as</span> <span class="n">ctx</span><span class="p">:</span>
+</span><span id="__span-17-5"><a id="__codelineno-17-5" name="__codelineno-17-5" href="#__codelineno-17-5"></a>    <span class="n">ctx</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="s1">&#39;debug.verbose_logging&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>             <span class="c1"># SET mode</span>
+</span><span id="__span-17-6"><a id="__codelineno-17-6" name="__codelineno-17-6" href="#__codelineno-17-6"></a>    <span class="n">ctx</span><span class="o">.</span><span class="n">set_override</span><span class="p">(</span><span class="s1">&#39;ui.node.font_size&#39;</span><span class="p">,</span> <span class="mi">20</span><span class="p">)</span>          <span class="c1"># OVERRIDE mode</span>
+</span><span id="__span-17-7"><a id="__codelineno-17-7" name="__codelineno-17-7" href="#__codelineno-17-7"></a>
+</span><span id="__span-17-8"><a id="__codelineno-17-8" name="__codelineno-17-8" href="#__codelineno-17-8"></a>    <span class="k">assert</span> <span class="n">registry</span><span class="o">.</span><span class="n">resolve</span><span class="p">(</span><span class="s1">&#39;debug.verbose_logging&#39;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span> <span class="ow">is</span> <span class="kc">True</span>
+</span><span id="__span-17-9"><a id="__codelineno-17-9" name="__codelineno-17-9" href="#__codelineno-17-9"></a>    <span class="k">assert</span> <span class="n">registry</span><span class="o">.</span><span class="n">resolve</span><span class="p">(</span><span class="s1">&#39;ui.node.font_size&#39;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="mi">20</span>
+</span><span id="__span-17-10"><a id="__codelineno-17-10" name="__codelineno-17-10" href="#__codelineno-17-10"></a>
+</span><span id="__span-17-11"><a id="__codelineno-17-11" name="__codelineno-17-11" href="#__codelineno-17-11"></a><span class="c1"># After block: original values restored automatically</span>
+</span><span id="__span-17-12"><a id="__codelineno-17-12" name="__codelineno-17-12" href="#__codelineno-17-12"></a><span class="k">assert</span> <span class="n">registry</span><span class="o">.</span><span class="n">resolve</span><span class="p">(</span><span class="s1">&#39;debug.verbose_logging&#39;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span> <span class="ow">is</span> <span class="kc">False</span>
+</span></code></pre></div>
+<p>Methods: <code>set(key, value)</code>, <code>set_override(key, value)</code>, <code>reset(key)</code>.</p>
+<h3 id="94-best-practices">9.4 Best practices<a class="headerlink" href="#94-best-practices" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Always pass <code>use_temp_settings=True</code> to <code>create_test_library_system()</code> so tests don't read from the user's real <code>~/.haywire/settings.toml</code>.</li>
+<li><code>predefined_local</code> uses attr names; <code>predefined_global</code> and <code>registry.set_global()</code> use full keys. Mismatches fail silently.</li>
+<li>Test both default values and local overrides on the same field.</li>
+<li>Test <code>read_only=True</code> fields raise <code>AttributeError</code> on write.</li>
+</ul>
+<h3 id="95-ui-test-harness">9.5 UI test harness<a class="headerlink" href="#95-ui-test-harness" title="Permanent link">&para;</a></h3>
+<p>The settings UI harness in <code>tests/ui/harness/</code> lets Playwright tests verify rendered panel behaviour without spinning up the full Haywire app. It is a standalone NiceGUI app exposing three routes:</p>
+<ul>
+<li><code>GET /node?class=&lt;dotted.ClassName&gt;&amp;bag=&lt;bag_name&gt;</code> — renders a <code>NodeSettings</code> bag via <code>render_reactive()</code></li>
+<li><code>GET /schema?class=&lt;dotted.ClassName&gt;</code> — renders a <code>LibrarySettings</code> schema via <code>render_schema()</code></li>
+<li><code>POST /api/set?key=&lt;key&gt;&amp;value=&lt;value&gt;</code> — writes to the registry (for mirror propagation tests)</li>
+</ul>
+<p>The pytest fixture in <code>tests/ui/harness/conftest.py</code> starts the harness as a subprocess and shares one server across the session. Tests use <code>data-field</code> and <code>data-value</code> DOM attributes:</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-18-1"><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">playwright.sync_api</span><span class="w"> </span><span class="kn">import</span> <span class="n">Page</span><span class="p">,</span> <span class="n">expect</span>
+</span><span id="__span-18-2"><a id="__codelineno-18-2" name="__codelineno-18-2" href="#__codelineno-18-2"></a>
+</span><span id="__span-18-3"><a id="__codelineno-18-3" name="__codelineno-18-3" href="#__codelineno-18-3"></a><span class="k">def</span><span class="w"> </span><span class="nf">test_float_renders_default</span><span class="p">(</span><span class="n">page</span><span class="p">:</span> <span class="n">Page</span><span class="p">,</span> <span class="n">harness</span><span class="p">):</span>
+</span><span id="__span-18-4"><a id="__codelineno-18-4" name="__codelineno-18-4" href="#__codelineno-18-4"></a>    <span class="n">page</span><span class="o">.</span><span class="n">goto</span><span class="p">(</span><span class="s1">&#39;http://localhost:8090/node?class=...&amp;bag=example&#39;</span><span class="p">)</span>
+</span><span id="__span-18-5"><a id="__codelineno-18-5" name="__codelineno-18-5" href="#__codelineno-18-5"></a>    <span class="n">page</span><span class="o">.</span><span class="n">wait_for_selector</span><span class="p">(</span><span class="s1">&#39;[data-field]&#39;</span><span class="p">)</span>
+</span><span id="__span-18-6"><a id="__codelineno-18-6" name="__codelineno-18-6" href="#__codelineno-18-6"></a>    <span class="n">nd</span> <span class="o">=</span> <span class="n">page</span><span class="o">.</span><span class="n">locator</span><span class="p">(</span><span class="s1">&#39;[data-field=&quot;example_float&quot;] [data-number_drag]&#39;</span><span class="p">)</span>
+</span><span id="__span-18-7"><a id="__codelineno-18-7" name="__codelineno-18-7" href="#__codelineno-18-7"></a>    <span class="n">expect</span><span class="p">(</span><span class="n">nd</span><span class="p">)</span><span class="o">.</span><span class="n">to_have_attribute</span><span class="p">(</span><span class="s1">&#39;data-value&#39;</span><span class="p">,</span> <span class="s1">&#39;0.5&#39;</span><span class="p">)</span>
+</span></code></pre></div>
+<p>For mirror propagation tests, <code>reset_setting</code> fixture restores after the test:</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-19-1"><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">requests</span>
+</span><span id="__span-19-2"><a id="__codelineno-19-2" name="__codelineno-19-2" href="#__codelineno-19-2"></a>
+</span><span id="__span-19-3"><a id="__codelineno-19-3" name="__codelineno-19-3" href="#__codelineno-19-3"></a><span class="k">def</span><span class="w"> </span><span class="nf">test_global_change_propagates</span><span class="p">(</span><span class="n">page</span><span class="p">,</span> <span class="n">harness</span><span class="p">,</span> <span class="n">reset_setting</span><span class="p">):</span>
+</span><span id="__span-19-4"><a id="__codelineno-19-4" name="__codelineno-19-4" href="#__codelineno-19-4"></a>    <span class="n">reset_setting</span><span class="p">(</span><span class="s1">&#39;testing.default_intensity&#39;</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">)</span>
+</span><span id="__span-19-5"><a id="__codelineno-19-5" name="__codelineno-19-5" href="#__codelineno-19-5"></a>    <span class="n">requests</span><span class="o">.</span><span class="n">post</span><span class="p">(</span><span class="s1">&#39;http://localhost:8090/api/set&#39;</span><span class="p">,</span>
+</span><span id="__span-19-6"><a id="__codelineno-19-6" name="__codelineno-19-6" href="#__codelineno-19-6"></a>                  <span class="n">params</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;key&#39;</span><span class="p">:</span> <span class="s1">&#39;testing.default_intensity&#39;</span><span class="p">,</span> <span class="s1">&#39;value&#39;</span><span class="p">:</span> <span class="s1">&#39;0.9&#39;</span><span class="p">})</span>
+</span><span id="__span-19-7"><a id="__codelineno-19-7" name="__codelineno-19-7" href="#__codelineno-19-7"></a>    <span class="n">page</span><span class="o">.</span><span class="n">goto</span><span class="p">(</span><span class="s1">&#39;...&#39;</span><span class="p">)</span>
+</span><span id="__span-19-8"><a id="__codelineno-19-8" name="__codelineno-19-8" href="#__codelineno-19-8"></a>    <span class="n">nd</span> <span class="o">=</span> <span class="n">page</span><span class="o">.</span><span class="n">locator</span><span class="p">(</span><span class="s1">&#39;[data-field=&quot;intensity&quot;] [data-number_drag]&#39;</span><span class="p">)</span>
+</span><span id="__span-19-9"><a id="__codelineno-19-9" name="__codelineno-19-9" href="#__codelineno-19-9"></a>    <span class="n">expect</span><span class="p">(</span><span class="n">nd</span><span class="p">)</span><span class="o">.</span><span class="n">to_have_attribute</span><span class="p">(</span><span class="s1">&#39;data-value&#39;</span><span class="p">,</span> <span class="s1">&#39;0.9&#39;</span><span class="p">)</span>
+</span></code></pre></div>
+<p>DOM contract for tests:</p>
+<table>
+<thead>
+<tr>
+<th>Attribute</th>
+<th>Element</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>data-field="&lt;attr&gt;"</code></td>
+<td>row container <code>div</code></td>
+<td>field name as declared on the <code>Settings</code> class</td>
+</tr>
+<tr>
+<td><code>data-value="&lt;v&gt;"</code></td>
+<td>widget element</td>
+<td>current rendered value as a string</td>
+</tr>
+<tr>
+<td><code>data-number_drag=""</code></td>
+<td><code>NumberDrag</code> root</td>
+<td>present on all <code>NumberDrag</code> widgets</td>
+</tr>
+<tr>
+<td><code>data-error="true"</code></td>
+<td>error label</td>
+<td>present when last write was rejected by validator</td>
+</tr>
+</tbody>
+</table>
+<h2 id="10-open-questions">10. Open questions<a class="headerlink" href="#10-open-questions" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>Cross-tier conflict resolution UX.</strong> When global has <code>OVERRIDE</code> and workspace has <code>EXPLICIT</code>, the global wins silently. There's no in-app affordance that surfaces this to the user (they see a value they can't change but no explanation).</li>
+<li><strong>Schema migration.</strong> Renaming a <code>setting()</code> field is currently unsupported — existing TOML and per-node serialised data still reference the old key, and there's no aliasing layer.</li>
+<li><strong>Type evolution.</strong> Changing a field's <code>type_</code> (e.g. <code>int</code> → <code>float</code>) is a breaking change for existing graphs. Validators provide some safety but no migration path.</li>
+<li><strong>Per-graph settings tier.</strong> Currently graphs serialise per-node overrides only; there's no notion of "this graph as a whole forces these settings" beyond the workspace tier. Could be useful for portable graphs that bring their own configuration.</li>
+</ul>
+
+
+
+
+
+
+
+  
+  
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+  <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var labels=set.querySelector(".tabbed-labels");for(var tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../../..", "features": ["navigation.instant", "navigation.tracking", "navigation.tabs", "navigation.tabs.sticky", "navigation.sections", "navigation.expand", "navigation.indexes", "navigation.top", "search.highlight", "search.suggest", "content.code.copy", "content.code.annotate", "content.tabs.link", "toc.follow"], "search": "../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>

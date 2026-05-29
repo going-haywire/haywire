@@ -1,0 +1,3632 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="A Blueprint-inspired visual programming system — dual-flow control + data, library plugin model, hot-reload-first development.">
+      
+      
+      
+        <link rel="canonical" href="https://going-haywire.github.io/haywire/docs/architecture/execution/edges/edges-arch/">
+      
+      
+        <link rel="prev" href="../../assembly/assembly-arch/">
+      
+      
+        <link rel="next" href="../../flow/flow-arch/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>Edges - Haywire Documentation</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../../../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../../../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Inter:300,300i,400,400i,700,700i%7CJetBrains+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Inter";--md-code-font:"JetBrains Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#edges-architecture" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow md-header--lifted" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../../../.." title="Haywire Documentation" class="md-header__button md-logo" aria-label="Haywire Documentation" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Haywire Documentation
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Edges
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+  </nav>
+  
+    
+      
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../../.." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../../welcome/user/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Perspectives
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../../components/nodes/node-canon/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Components
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../../guides/node-roles/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Guides
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../../../overview/overview-arch/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Architecture
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../../reference/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Reference
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../../archive/whitepaper/Haywire_design/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Archive
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+    
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../../../.." title="Haywire Documentation" class="md-nav__button md-logo" aria-label="Haywire Documentation" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    Haywire Documentation
+  </label>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../../../welcome/user/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Perspectives
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_2" id="__nav_2_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Perspectives
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../welcome/advanced/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Advanced (workbench extender)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../welcome/core/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Core (system architect)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Components
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Components
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../components/nodes/node-canon/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Nodes
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../components/datatypes/datatype-canon/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Datatypes
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../components/adapters/adapter-canon/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Adapters
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../components/settings/setting-canon/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Settings
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../components/widgets/widget-canon/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Widgets
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../components/skins/skin-canon/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Skins
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--placeholder"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../components/themes/theme-canon/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Themes
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../components/editors/editor-canon/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Editors
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../components/panels/panel-canon/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Panels
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../components/states/state-canon/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    States
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../components/libraries/library-canon/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Libraries
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../components/haybale-package/haybale-package-canon/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Haybale package
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Guides
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Guides
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../guides/node-roles/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Node roles
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../guides/ports/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Ports
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../guides/signals/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Signals
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../guides/sharing-libraries/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Sharing libraries
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../guides/subscribing-to-marketplaces/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Subscribing to marketplaces
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Architecture
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../overview/overview-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--placeholder"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../design/design-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Design
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--placeholder"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../graph/graph-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Graph
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5_4" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_5_4" id="__nav_5_4_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Execution
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_5_4_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_5_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Execution
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../execution-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../assembly/assembly-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Assembly
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Edges
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Edges
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#1-mental-model" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Mental model
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-contract" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Contract
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="2. Contract">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#21-creation-flow" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.1 Creation flow
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#22-the-4-stage-build-pipeline" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.2 The 4-stage build pipeline
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#23-connection-rules-by-flowtype" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.3 Connection rules by FlowType
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#24-edgewrapper-lifecycle-methods" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.4 EdgeWrapper lifecycle methods
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-lifecycle" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Lifecycle
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="3. Lifecycle">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#31-adapter-chain-creation-data-edges-only" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.1 Adapter chain creation (DATA edges only)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#32-displacement-and-re-enablement" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.2 Displacement and re-enablement
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#33-lazy-propagation-and-the-unified-dirty-model" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.3 Lazy propagation and the unified dirty model
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#34-set_value-callback-rules" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.4 set_value() callback rules
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#35-pipe-based-data-transport" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.5 Pipe-based data transport
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#36-validationmanager-debounced-batch-processing" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.6 ValidationManager — debounced batch processing
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#37-hot-reload-coordination-node-rebuild" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.7 Hot-reload coordination — node rebuild
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-boundary" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Boundary
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-examples" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. Examples
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="5. Examples">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#51-adapter-chain-examples-with-the-test-types-in-haybale-testing" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.1 Adapter chain examples (with the test types in haybale-testing)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#52-pooled-inlet-receiving-multiple-sources" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.2 Pooled inlet receiving multiple sources
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#6-open-questions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. Open questions
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#appendix-key-state-locations" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Appendix — key state locations
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Appendix — key state locations">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#key-files" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Key files
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../flow/flow-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Flow
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--placeholder"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../virtual-machine/virtual-machine-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Virtual machine
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--placeholder"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../lazy-evaluation/lazy-evaluation-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Lazy evaluation
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--placeholder"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../callbacks/callbacks-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Callbacks
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../library-system/library-system-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Library system
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../library-manager/library-manager-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Library manager
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../sharing/sharing-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Sharing — philosophy
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../hot-reload/hot-reload-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Hot-reload
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../settings/settings-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Settings
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../session-and-state/session-and-state-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Session and state
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_5_11" >
+        
+          
+          <label class="md-nav__link" for="__nav_5_11" id="__nav_5_11_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Studio
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_5_11_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5_11">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Studio
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../studio/studio-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../studio/app-shell/app-shell-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    App shell
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--placeholder"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../studio/workspace/workspace-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Workspace
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--placeholder"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../studio/canvas/canvas-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Canvas
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--placeholder"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../studio/rendering/rendering-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Rendering
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--placeholder"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_6" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../../../reference/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reference
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_6" id="__nav_6_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../reference/glossary/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Glossary
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../reference/design-guide/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Design guide
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_7" >
+        
+          
+          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Archive
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Archive
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../archive/whitepaper/Haywire_design/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Whitepaper
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#1-mental-model" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Mental model
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-contract" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Contract
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="2. Contract">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#21-creation-flow" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.1 Creation flow
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#22-the-4-stage-build-pipeline" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.2 The 4-stage build pipeline
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#23-connection-rules-by-flowtype" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.3 Connection rules by FlowType
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#24-edgewrapper-lifecycle-methods" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.4 EdgeWrapper lifecycle methods
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-lifecycle" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Lifecycle
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="3. Lifecycle">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#31-adapter-chain-creation-data-edges-only" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.1 Adapter chain creation (DATA edges only)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#32-displacement-and-re-enablement" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.2 Displacement and re-enablement
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#33-lazy-propagation-and-the-unified-dirty-model" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.3 Lazy propagation and the unified dirty model
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#34-set_value-callback-rules" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.4 set_value() callback rules
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#35-pipe-based-data-transport" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.5 Pipe-based data transport
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#36-validationmanager-debounced-batch-processing" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.6 ValidationManager — debounced batch processing
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#37-hot-reload-coordination-node-rebuild" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.7 Hot-reload coordination — node rebuild
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-boundary" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Boundary
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-examples" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. Examples
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="5. Examples">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#51-adapter-chain-examples-with-the-test-types-in-haybale-testing" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.1 Adapter chain examples (with the test types in haybale-testing)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#52-pooled-inlet-receiving-multiple-sources" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.2 Pooled inlet receiving multiple sources
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#6-open-questions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. Open questions
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#appendix-key-state-locations" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Appendix — key state locations
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Appendix — key state locations">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#key-files" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Key files
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+
+<h1 id="edges-architecture">Edges — Architecture<a class="headerlink" href="#edges-architecture" title="Permanent link">&para;</a></h1>
+<h2 id="1-mental-model">1. Mental model<a class="headerlink" href="#1-mental-model" title="Permanent link">&para;</a></h2>
+<p>An <strong>edge</strong> connects an outlet port on a source node to an inlet port on a sink node. The data structure is <code>Edge</code> (a dataclass — connection identifiers, type, adapter chain keys, lazy flag). The lifecycle is owned by <code>EdgeWrapper</code> — a wrapper that runs the 4-stage build pipeline (formal validation → structural validation → adapter chain → test), manages the <code>link → unlink → detach</code> lifecycle, and handles displacement and re-enablement when ports are over-subscribed.</p>
+<p>Two-tier port storage is the core mental model. Each port keeps two dictionaries:</p>
+<ul>
+<li><strong><code>_linked_edges</code></strong> — active edges currently used for data pipes.</li>
+<li><strong><code>_all_edges</code></strong> — every edge ever registered, including displaced and non-functional ones. This is what makes re-enablement possible.</li>
+</ul>
+<p>When a new edge displaces an existing one on a single-connection inlet, the displaced edge stays in <code>_all_edges</code> but leaves <code>_linked_edges</code>. If the new edge later loses functionality (adapter broken by hot-reload), the port scans <code>_all_edges</code> for a candidate to re-enable. Edges aren't deleted — they're just not currently the active one.</p>
+<h2 id="2-contract">2. Contract<a class="headerlink" href="#2-contract" title="Permanent link">&para;</a></h2>
+<h3 id="21-creation-flow">2.1 Creation flow<a class="headerlink" href="#21-creation-flow" title="Permanent link">&para;</a></h3>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">graph</span><span class="o">.</span><span class="n">create_edge_wrapper</span><span class="p">(</span><span class="n">source_node_id</span><span class="p">,</span> <span class="n">outlet_port_id</span><span class="p">,</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>                          <span class="n">sink_node_id</span><span class="p">,</span> <span class="n">inlet_port_id</span><span class="p">,</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>                          <span class="n">lazy</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+</span></code></pre></div>
+<p>Internal sequence:</p>
+<ol>
+<li>Look up the outlet's <code>FlowType</code> to classify the edge (DATA / CONTROL / CALLBACK).</li>
+<li>Instantiate <code>EdgeWrapper</code> (which constructs the internal <code>Edge</code> dataclass).</li>
+<li>Call <code>edge_wrapper.build()</code> — runs the 4-stage pipeline (§3.1).</li>
+<li>Call <code>graph.add_edge_wrapper()</code> → <code>edge_wrapper.link()</code> — registers at both ports.</li>
+</ol>
+<h3 id="22-the-4-stage-build-pipeline">2.2 The 4-stage build pipeline<a class="headerlink" href="#22-the-4-stage-build-pipeline" title="Permanent link">&para;</a></h3>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>build()
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>  ├─ _formal_validation()    do nodes/ports exist? same direction? same FlowType?
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>  ├─ _structural_validation() domain rules (e.g. callback source must be event node)
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>  ├─ _build_adapter_chain()   find/create adapter chain (DATA edges only)
+</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>  └─ _test()                  run a sample value through the adapter chain
+</span></code></pre></div>
+<p>Sequential and short-circuiting on failure. Each stage sets flags and error fields on <code>EdgeWrapperState</code>.</p>
+<table>
+<thead>
+<tr>
+<th>State</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>functional</strong></td>
+<td>registered + formally validated + built + test passed</td>
+</tr>
+<tr>
+<td><strong>valid</strong></td>
+<td>functional + structural + linked on both ports</td>
+</tr>
+</tbody>
+</table>
+<h3 id="23-connection-rules-by-flowtype">2.3 Connection rules by FlowType<a class="headerlink" href="#23-connection-rules-by-flowtype" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>Outlet <code>allow_multiple</code></th>
+<th>Inlet <code>allow_multiple</code></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>DATA</strong></td>
+<td><code>True</code> (set by <code>DataPort.__post_init__</code>)</td>
+<td><code>False</code> (default)</td>
+</tr>
+<tr>
+<td><strong>CONTROL (EXEC)</strong></td>
+<td><code>False</code> (hardcoded in <code>__post_init__</code>)</td>
+<td><code>True</code> (hardcoded in <code>__post_init__</code>)</td>
+</tr>
+<tr>
+<td><strong>CALLBACK</strong></td>
+<td><code>False</code> (default)</td>
+<td><code>False</code> (default)</td>
+</tr>
+<tr>
+<td><strong>Pooled inlet</strong></td>
+<td>N/A (inlet only)</td>
+<td><code>True</code> (set by <code>PooledType._configure_port</code>)</td>
+</tr>
+</tbody>
+</table>
+<p>Cross-flow connections (e.g. EXEC→DATA) are rejected in <code>_formal_validation()</code>. Same-direction connections (outlet→outlet, inlet→inlet) are also rejected there.</p>
+<h3 id="24-edgewrapper-lifecycle-methods">2.4 EdgeWrapper lifecycle methods<a class="headerlink" href="#24-edgewrapper-lifecycle-methods" title="Permanent link">&para;</a></h3>
+<p>Three methods own the lifecycle (all on <code>EdgeWrapper</code>, not on the graph):</p>
+<ul>
+<li><strong><code>link()</code></strong> — Functional edge registers at both ports. May displace existing edges on single-connection ports. Displaced edges stay in <code>_all_edges</code> but leave <code>_linked_edges</code>.</li>
+<li><strong><code>unlink()</code></strong> — Edge lost functionality (e.g. adapter broke during hot-reload). Removed from <code>_linked_edges</code> but stays in <code>_all_edges</code>. Triggers re-enablement scan on the affected port.</li>
+<li><strong><code>detach()</code></strong> — Edge explicitly deleted. Full removal from both <code>_linked_edges</code> and <code>_all_edges</code>. Triggers re-enablement scan.</li>
+</ul>
+<p>Graph integration:</p>
+<ul>
+<li><code>graph.add_edge_wrapper()</code> → <code>edge_wrapper.link()</code></li>
+<li><code>graph.remove_edge_wrapper()</code> → <code>edge_wrapper.detach()</code></li>
+</ul>
+<p>Port-linking logic lives in <code>EdgeWrapper</code>, not <code>Graph</code> — each edge owns its own link/detach lifecycle.</p>
+<h2 id="3-lifecycle">3. Lifecycle<a class="headerlink" href="#3-lifecycle" title="Permanent link">&para;</a></h2>
+<h3 id="31-adapter-chain-creation-data-edges-only">3.1 Adapter chain creation (DATA edges only)<a class="headerlink" href="#31-adapter-chain-creation-data-edges-only" title="Permanent link">&para;</a></h3>
+<p><code>AdapterFactory.create_chain(source_type, sink_type)</code> handles four cases:</p>
+<ol>
+<li><strong>Both scalar</strong> → <code>_create_scalar_chain()</code>:</li>
+<li>Same type or child→parent (<code>issubclass</code>): <code>ReturnAdapter()</code> — no-op.</li>
+<li>Different types: BFS through <code>AdapterRegistry</code> to find shortest chain; walks source's MRO for derived types.</li>
+<li>
+<p>Chain is built right-to-left: <code>AdapterA(child=AdapterB(child=ReturnAdapter()))</code>.</p>
+</li>
+<li>
+<p><strong>Same compound structure</strong> (e.g. <code>ArrayType[X] → ArrayType[Y]</code>): <code>_create_element_chain()</code>:</p>
+</li>
+<li>Finds container adapter (e.g. <code>ArrayArrayAdapter</code>) via registry.</li>
+<li>Creates element chain for inner types.</li>
+<li>Same element type → <code>ReturnAdapter()</code>.</li>
+<li>
+<p>Different → wraps: <code>ArrayArrayAdapter(child=element_chain)</code>.</p>
+</li>
+<li>
+<p><strong>Different compound structure</strong> → <code>_create_structural_chain()</code> (structural transformation).</p>
+</li>
+<li>
+<p><strong>Scalar ↔ compound</strong> → rejected (no conversion possible).</p>
+</li>
+</ol>
+<p>The chain is stored as a list of registry keys in <code>edge.chain_adapter_keys</code>. <code>ReturnAdapter</code> has no keys, so <code>len(chain_adapter_keys) == 0</code> means direct/identity pass-through.</p>
+<p>Authoring adapters lives in <a href="../../../../components/adapters/adapter-canon/">components/adapters</a>.</p>
+<h3 id="32-displacement-and-re-enablement">3.2 Displacement and re-enablement<a class="headerlink" href="#32-displacement-and-re-enablement" title="Permanent link">&para;</a></h3>
+<p>When a new edge displaces an existing one on a single-connection port:</p>
+<ul>
+<li>The displaced edge is removed from <code>_linked_edges</code> but remains in <code>_all_edges</code>.</li>
+<li><strong>Asymmetric notification</strong>: inlet displacement informs the source outlet (it needs a pipe update); outlet displacement does NOT inform the sink inlet.</li>
+</ul>
+<p>When an active edge is removed (<code>detach</code>) or loses functionality (<code>unlink</code>), the port scans <code>_all_edges</code> FIFO for a functional candidate to re-enable. If found, <code>candidate.link() + candidate.redraw()</code> is called.</p>
+<h3 id="33-lazy-propagation-and-the-unified-dirty-model">3.3 Lazy propagation and the unified dirty model<a class="headerlink" href="#33-lazy-propagation-and-the-unified-dirty-model" title="Permanent link">&para;</a></h3>
+<p>Edges support two propagation modes via <code>Edge.is_lazy</code> (per-edge, not per-port):</p>
+<ul>
+<li><strong>Eager</strong> (<code>is_lazy=False</code>, default): outlet value is transformed through the adapter chain and pushed to the inlet immediately. The inlet is marked dirty; <code>on_change</code> is deferred to execution time.</li>
+<li><strong>Lazy</strong> (<code>is_lazy=True</code>): no transform or push at propagation time. The inlet is marked dirty with a reference to the pipe. At execution time, <code>resolve_dirty_data()</code> pulls the outlet's <em>current</em> value (always-latest semantics) through the adapter chain.</li>
+</ul>
+<p>Different edges to the same inlet can have different modes. The <code>lazy</code> parameter is passed to <code>create_edge_wrapper()</code> and stored on the <code>Edge</code> dataclass. It serialises via <code>to_dict()</code> and deserialises with <code>False</code> default for backward compatibility.</p>
+<p><strong>Unified dirty model.</strong> Both eager and lazy edges use the same deferred callback model. <code>on_change</code> callbacks for edge-driven inlet changes are <em>never</em> fired at push time — they are always deferred to <code>resolve_dirty_data()</code> at execution time. This debounces mixed pooled+lazy scenarios.</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>EAGER EDGE:
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>  outlet.set_value(value) → pipes.propagate(value)
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>    ├─ adapter chain transforms value
+</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>    └─ inlet.set_value(converted, edge_id=uuid)
+</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>       ├─ stores value (NO on_change)
+</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>       └─ inlet._mark_as_data_dirty()
+</span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>
+</span><span id="__span-2-8"><a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a>LAZY EDGE:
+</span><span id="__span-2-9"><a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a>  outlet.set_value(value) → pipes.propagate(value)
+</span><span id="__span-2-10"><a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a>    ├─ pipe sees lazy flag → skips transform
+</span><span id="__span-2-11"><a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a>    └─ inlet._mark_as_data_dirty(pipe=self, edge_id=uuid)
+</span><span id="__span-2-12"><a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a>
+</span><span id="__span-2-13"><a id="__codelineno-2-13" name="__codelineno-2-13" href="#__codelineno-2-13"></a>AT EXECUTION TIME (both):
+</span><span id="__span-2-14"><a id="__codelineno-2-14" name="__codelineno-2-14" href="#__codelineno-2-14"></a>  node._execute()
+</span><span id="__span-2-15"><a id="__codelineno-2-15" name="__codelineno-2-15" href="#__codelineno-2-15"></a>    ├─ for each dirty port: resolve_dirty_data()
+</span><span id="__span-2-16"><a id="__codelineno-2-16" name="__codelineno-2-16" href="#__codelineno-2-16"></a>    │     ├─ pull lazy pipe data (transform + store via pull_lazy())
+</span><span id="__span-2-17"><a id="__codelineno-2-17" name="__codelineno-2-17" href="#__codelineno-2-17"></a>    │     └─ fire on_change ONCE (debounced across all edge types)
+</span><span id="__span-2-18"><a id="__codelineno-2-18" name="__codelineno-2-18" href="#__codelineno-2-18"></a>    ├─ on_validate()
+</span><span id="__span-2-19"><a id="__codelineno-2-19" name="__codelineno-2-19" href="#__codelineno-2-19"></a>    └─ worker()
+</span></code></pre></div>
+<h3 id="34-set_value-callback-rules">3.4 <code>set_value()</code> callback rules<a class="headerlink" href="#34-set_value-callback-rules" title="Permanent link">&para;</a></h3>
+<p>The <code>set_value()</code> method on DataPort distinguishes between edge-driven and widget/programmatic changes:</p>
+<table>
+<thead>
+<tr>
+<th>Path</th>
+<th><code>edge_id</code></th>
+<th><code>on_change</code></th>
+<th>Behaviour</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Edge-driven inlet</td>
+<td>set</td>
+<td>(any)</td>
+<td>Value stored; <code>_mark_as_data_dirty()</code> called; <code>on_change</code> fires later in <code>resolve_dirty_data()</code></td>
+</tr>
+<tr>
+<td>Widget / programmatic inlet</td>
+<td><code>None</code></td>
+<td>exists</td>
+<td>Value stored; <code>on_change</code> fires <strong>immediately</strong>; no dirty mark (prevents double-fire)</td>
+</tr>
+<tr>
+<td>Widget / programmatic inlet</td>
+<td><code>None</code></td>
+<td>absent</td>
+<td>Value stored; <code>_mark_as_data_dirty()</code> called; <code>resolve_dirty_data()</code> skips callback (none)</td>
+</tr>
+<tr>
+<td>Outlet (any)</td>
+<td>(any)</td>
+<td>exists</td>
+<td><code>on_change</code> fires immediately; pipes propagate downstream</td>
+</tr>
+</tbody>
+</table>
+<p><code>set_value_by_lazy_link()</code> is a low-level method that stores the value without firing any callbacks. Used by <code>pull_lazy()</code> during lazy resolution. <code>set_value()</code> delegates to it for the actual storage step.</p>
+<h3 id="35-pipe-based-data-transport">3.5 Pipe-based data transport<a class="headerlink" href="#35-pipe-based-data-transport" title="Permanent link">&para;</a></h3>
+<p>The <code>Pipes</code> class owns all data transport — both eager push (<code>propagate()</code>) and lazy pull (<code>pull_lazy()</code>). It stores:</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>_outlet_port</code></td>
+<td>Reference to the source DataPort (for lazy reads)</td>
+</tr>
+<tr>
+<td><code>sinks</code></td>
+<td><code>dict[edge_id, DataPort]</code> — target inlets</td>
+</tr>
+<tr>
+<td><code>chains</code></td>
+<td><code>dict[edge_id, IAdapter]</code> — adapter chains per connection</td>
+</tr>
+<tr>
+<td><code>lazy_flags</code></td>
+<td><code>dict[edge_id, bool]</code> — propagation mode per connection</td>
+</tr>
+</tbody>
+</table>
+<p><code>pull_lazy(edge_id)</code> reads the outlet's current value (always-latest), transforms it through the adapter chain, and calls <code>set_value_by_lazy_link()</code> on the inlet.</p>
+<h3 id="36-validationmanager-debounced-batch-processing">3.6 ValidationManager — debounced batch processing<a class="headerlink" href="#36-validationmanager-debounced-batch-processing" title="Permanent link">&para;</a></h3>
+<p><code>ValidationManager</code> processes dirty nodes and edges in debounced batches (50ms default). Tests use <code>force_immediate_validation()</code> for synchronous execution.</p>
+<p><strong>Priority system (<code>ChangeReason</code>).</strong> Reasons are prioritised — higher priority overrides lower in the dirty queue:</p>
+<table>
+<thead>
+<tr>
+<th>Priority</th>
+<th>Reasons</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>100</td>
+<td><code>NODE_REMOVED</code>, <code>EDGE_REMOVED</code></td>
+</tr>
+<tr>
+<td>90</td>
+<td><code>NODE_ADDED</code>, <code>EDGE_ADDED</code></td>
+</tr>
+<tr>
+<td>80</td>
+<td><code>NODE_HOT_RELOADED</code>, <code>NODE_RESET_REQUESTED</code>, <code>EDGE_ADAPTERS_RELOADED</code>, <code>EDGE_RESET_REQUESTED</code></td>
+</tr>
+<tr>
+<td>70</td>
+<td><code>NODE_VALIDATION_REQUESTED</code>, <code>EDGE_VALIDATION_REQUESTED</code></td>
+</tr>
+<tr>
+<td>60</td>
+<td>Redraw reasons</td>
+</tr>
+<tr>
+<td>50</td>
+<td><code>GRAPH_REQUIRE_REASSEMBLY</code></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Important for testing</strong>: <code>create_node_wrapper()</code> leaves a pending <code>NODE_ADDED</code> (priority 90) in the dirty queue. Subsequent <code>mark_node_dirty()</code> calls with lower-priority reasons (like <code>NODE_HOT_RELOADED</code> at 80) are silently dropped. Tests must call <code>force_immediate_validation()</code> after setup to flush pending validations before testing specific scenarios.</p>
+<p><strong>Batch order:</strong></p>
+<ol>
+<li><strong>Nodes first</strong>: <code>requires_rebuild()</code> → <code>node_wrapper.build()</code> + mark attached edges dirty. <code>requires_validation()</code> → just mark attached edges dirty (no node rebuild).</li>
+<li><strong>Edges second</strong>: <code>requires_rebuild()</code> or <code>requires_validation()</code> → <code>edge.build()</code>, then <code>edge.link()</code> if functional, <code>edge.unlink()</code> if lost functionality.</li>
+</ol>
+<h3 id="37-hot-reload-coordination-node-rebuild">3.7 Hot-reload coordination — node rebuild<a class="headerlink" href="#37-hot-reload-coordination-node-rebuild" title="Permanent link">&para;</a></h3>
+<p><code>NODE_HOT_RELOADED</code> triggers full <code>node_wrapper.build()</code>:</p>
+<ol>
+<li><code>_instantiate()</code> — creates a brand new node instance (old instance cleaned up).</li>
+<li><code>_initialize()</code> — calls <code>init()</code> on new instance, creating new port objects.</li>
+<li>All attached edges are marked dirty and rebuilt in the edge phase.</li>
+<li>Edge <code>_formal_validation()</code> refreshes port references from the new node instance.</li>
+<li>Edge <code>link()</code> registers at the new port objects.</li>
+</ol>
+<p>The full hot-reload pipeline (file watcher → import → registry events → wrapper rebuild → graph revalidation) lives in <a href="../../../hot-reload/hot-reload-arch/">architecture/hot-reload</a>. The original visual diagram (<code>diagrams.md</code>) for the EdgeWrapper → UIEdge → GraphCanvasVue cascade is recoverable via git history.</p>
+<h2 id="4-boundary">4. Boundary<a class="headerlink" href="#4-boundary" title="Permanent link">&para;</a></h2>
+<p>The edge subsystem is <strong>not</strong>:</p>
+<ul>
+<li>The <strong>adapter authoring surface</strong> — see <a href="../../../../components/adapters/adapter-canon/">components/adapters</a>.</li>
+<li>The <strong>graph→flow assembly</strong> — assembly consumes edges to build the executable Flow; that pipeline lives in <a href="../../assembly/assembly-arch/">architecture/execution/assembly</a>.</li>
+<li>The <strong>VM</strong> — execution context creation, pause/resume, and the two-stack model live in <a href="../../virtual-machine/virtual-machine-arch/">architecture/execution/virtual-machine</a>.</li>
+<li>The <strong>on-canvas rendering</strong> — visual state propagates through <code>UIEdge → GraphCanvasVue</code>; that's in <a href="../../../studio/canvas/canvas-arch/">architecture/studio/canvas</a>.</li>
+</ul>
+<h2 id="5-examples">5. Examples<a class="headerlink" href="#5-examples" title="Permanent link">&para;</a></h2>
+<h3 id="51-adapter-chain-examples-with-the-test-types-in-haybale-testing">5.1 Adapter chain examples (with the test types in <code>haybale-testing</code>)<a class="headerlink" href="#51-adapter-chain-examples-with-the-test-types-in-haybale-testing" title="Permanent link">&para;</a></h3>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>BoolToIntAdapter:     TEST_BOOL  → TEST_INT
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>IntToFloatAdapter:    TEST_INT   → TEST_FLOAT
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>FloatToStringAdapter: TEST_FLOAT → TEST_STRING
+</span></code></pre></div>
+<p>Chains BFS-resolves to:</p>
+<table>
+<thead>
+<tr>
+<th>Source → Target</th>
+<th>Chain</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>BOOL → INT</td>
+<td>1 adapter</td>
+</tr>
+<tr>
+<td>BOOL → FLOAT</td>
+<td>2 adapters (BOOL→INT, INT→FLOAT)</td>
+</tr>
+<tr>
+<td>BOOL → STRING</td>
+<td>3 adapters</td>
+</tr>
+<tr>
+<td>INT → FLOAT</td>
+<td>1 adapter</td>
+</tr>
+<tr>
+<td>INT → STRING</td>
+<td>2 adapters</td>
+</tr>
+<tr>
+<td>FLOAT → STRING</td>
+<td>1 adapter</td>
+</tr>
+</tbody>
+</table>
+<p><code>TEST_TEMPERATURE</code> extends <code>TEST_FLOAT</code>, so:</p>
+<table>
+<thead>
+<tr>
+<th>Source → Target</th>
+<th>Chain</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>TEMPERATURE → FLOAT</td>
+<td>empty (child→parent passthrough)</td>
+</tr>
+<tr>
+<td>TEMPERATURE → STRING</td>
+<td>1 adapter (FLOAT→STRING resolved via MRO)</td>
+</tr>
+<tr>
+<td>FLOAT → TEMPERATURE</td>
+<td>rejected (parent→child narrowing, no implicit downcast)</td>
+</tr>
+</tbody>
+</table>
+<h3 id="52-pooled-inlet-receiving-multiple-sources">5.2 Pooled inlet receiving multiple sources<a class="headerlink" href="#52-pooled-inlet-receiving-multiple-sources" title="Permanent link">&para;</a></h3>
+<p>A pooled inlet accepts multiple simultaneous edges. Each edge's adapter chain is independent — different source types can all converge on one pooled inlet, each transformed through its own chain.</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>node_a outlet[BOOL]   ──┐
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>                        ├── pooled inlet[INT]   ─→ {node_a: 1, node_b: 42, node_c: 0}
+</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>node_b outlet[INT]    ──┤
+</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>node_c outlet[BOOL]   ──┘
+</span></code></pre></div>
+<p>Each edge gets its own entry in the pooled <code>dict[source_id, value]</code>.</p>
+<h2 id="6-open-questions">6. Open questions<a class="headerlink" href="#6-open-questions" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>Re-enablement priority.</strong> Currently FIFO. If multiple displaced edges are functional at re-enablement time, the first registered wins. A user-controllable priority mechanism may be useful.</li>
+<li><strong>Adapter chain caching.</strong> Chains are recomputed on every edge build. For libraries with many adapter pairs, caching the BFS result keyed by <code>(source_type, sink_type)</code> could help.</li>
+<li><strong>Lazy propagation hot-reload.</strong> When an adapter inside a lazy chain reloads, the edge marks dirty but the next <code>pull_lazy()</code> re-resolves through the new chain. This works today; whether the edge should <em>eagerly</em> re-pull on adapter change is undecided.</li>
+</ul>
+<h2 id="appendix-key-state-locations">Appendix — key state locations<a class="headerlink" href="#appendix-key-state-locations" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>EdgeWrapper._state</code> (<code>EdgeWrapperState</code>)</td>
+<td>All flags, errors, timing</td>
+</tr>
+<tr>
+<td><code>DataPort._linked_edges</code></td>
+<td><code>dict[edge_id, EdgeWrapper]</code> — active linked edges (used for pipes)</td>
+</tr>
+<tr>
+<td><code>DataPort._all_edges</code></td>
+<td><code>dict[edge_id, EdgeWrapper]</code> — all tracked edges including displaced/non-functional</td>
+</tr>
+<tr>
+<td><code>DataPort._pending_lazy_pipes</code></td>
+<td><code>set[(Pipes, edge_id)]</code> — lazy pipes needing resolution at execution time</td>
+</tr>
+<tr>
+<td><code>DataPort.allow_multiple_links</code></td>
+<td>Connection limit flag</td>
+</tr>
+<tr>
+<td><code>Edge.is_lazy</code></td>
+<td>Per-edge lazy propagation flag (default <code>False</code>)</td>
+</tr>
+<tr>
+<td><code>Edge.chain_adapter_keys</code></td>
+<td>List of adapter registry keys (empty = ReturnAdapter)</td>
+</tr>
+<tr>
+<td><code>EdgeWrapper._first_adapter</code></td>
+<td>Head of the executable adapter chain</td>
+</tr>
+<tr>
+<td><code>EdgeWrapper._outlet_port</code> / <code>_inlet_port</code></td>
+<td>Resolved DataPort references (set during formal validation)</td>
+</tr>
+<tr>
+<td><code>Pipes._outlet_port</code></td>
+<td>Source DataPort reference (for lazy reads)</td>
+</tr>
+<tr>
+<td><code>Pipes.lazy_flags</code></td>
+<td><code>dict[edge_id, bool]</code> — per-connection propagation mode</td>
+</tr>
+</tbody>
+</table>
+<h3 id="key-files">Key files<a class="headerlink" href="#key-files" title="Permanent link">&para;</a></h3>
+<ul>
+<li><code>src/haywire/core/edge/edge_wrapper.py</code> — <code>EdgeWrapper</code> + <code>EdgeWrapperState</code> (owns link/unlink/detach lifecycle)</li>
+<li><code>src/haywire/core/edge/edge.py</code> — <code>Edge</code> data object (includes <code>is_lazy</code> flag)</li>
+<li><code>src/haywire/core/types/port.py</code> — <code>DataPort</code> (two-tier storage, displacement, re-enablement, deferred on_change, lazy resolution)</li>
+<li><code>src/haywire/core/types/pipe.py</code> — <code>Pipes</code> (eager push via <code>propagate()</code>, lazy pull via <code>pull_lazy()</code>, always-latest semantics)</li>
+<li><code>src/haywire/core/graph/base.py</code> — <code>BaseGraph</code> (create/add/remove edge, delegates to edge methods)</li>
+<li><code>src/haywire/core/graph/validation.py</code> — <code>ValidationManager</code> (debounced batch validation, priority system)</li>
+<li><code>src/haywire/core/graph/types.py</code> — <code>ChangeReason</code> enum, <code>ValidationResult</code></li>
+<li><code>src/haywire/core/adapter/factory.py</code> — <code>AdapterFactory</code> (chain creation)</li>
+<li><code>src/haywire/core/adapter/registry.py</code> — <code>AdapterRegistry</code> (BFS chain discovery)</li>
+<li><code>src/haywire/core/adapter/base.py</code> — <code>IAdapter</code>, <code>ReturnAdapter</code>, <code>BaseAdapter</code></li>
+</ul>
+
+
+
+
+
+
+
+  
+  
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+  <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var labels=set.querySelector(".tabbed-labels");for(var tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../../../..", "features": ["navigation.instant", "navigation.tracking", "navigation.tabs", "navigation.tabs.sticky", "navigation.sections", "navigation.expand", "navigation.indexes", "navigation.top", "search.highlight", "search.suggest", "content.code.copy", "content.code.annotate", "content.tabs.link", "toc.follow"], "search": "../../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>

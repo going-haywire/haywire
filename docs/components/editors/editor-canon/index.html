@@ -1,0 +1,3373 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="A Blueprint-inspired visual programming system — dual-flow control + data, library plugin model, hot-reload-first development.">
+      
+      
+      
+        <link rel="canonical" href="https://going-haywire.github.io/haywire/docs/components/editors/editor-canon/">
+      
+      
+        <link rel="prev" href="../../themes/theme-canon/">
+      
+      
+        <link rel="next" href="../../panels/panel-canon/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>Editors - Haywire Documentation</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Inter:300,300i,400,400i,700,700i%7CJetBrains+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Inter";--md-code-font:"JetBrains Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#editor-canonical-example" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow md-header--lifted" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../../.." title="Haywire Documentation" class="md-header__button md-logo" aria-label="Haywire Documentation" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Haywire Documentation
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Editors
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+  </nav>
+  
+    
+      
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../.." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../welcome/user/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Perspectives
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../../nodes/node-canon/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Components
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../guides/node-roles/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Guides
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../architecture/overview/overview-arch/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Architecture
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../reference/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Reference
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../archive/whitepaper/Haywire_design/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Archive
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+    
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../../.." title="Haywire Documentation" class="md-nav__button md-logo" aria-label="Haywire Documentation" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    Haywire Documentation
+  </label>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../../welcome/user/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Perspectives
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_2" id="__nav_2_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Perspectives
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../welcome/advanced/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Advanced (workbench extender)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../welcome/core/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Core (system architect)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Components
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Components
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../nodes/node-canon/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Nodes
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../datatypes/datatype-canon/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Datatypes
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../adapters/adapter-canon/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Adapters
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../settings/setting-canon/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Settings
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../widgets/widget-canon/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Widgets
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../skins/skin-canon/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Skins
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--placeholder"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../themes/theme-canon/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Themes
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Editors
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Editors
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#1-what-it-solves" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. What it solves
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-how-it-fits" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. How it fits
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-important-concepts" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Important concepts
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-one-comprehensive-example" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. One comprehensive example
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#quick-reference" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Quick reference
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Quick reference">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#authoring-checklist" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Authoring checklist
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#imports" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Imports
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#slot-rules" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Slot rules
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../panels/panel-canon/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Panels
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../states/state-canon/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    States
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../libraries/library-canon/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Libraries
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../haybale-package/haybale-package-canon/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Haybale package
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Guides
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Guides
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../guides/node-roles/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Node roles
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../guides/ports/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Ports
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../guides/signals/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Signals
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../guides/sharing-libraries/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Sharing libraries
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../guides/subscribing-to-marketplaces/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Subscribing to marketplaces
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Architecture
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../architecture/overview/overview-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--placeholder"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../architecture/design/design-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Design
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--placeholder"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../architecture/graph/graph-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Graph
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_5_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_5_4" id="__nav_5_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Execution
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_5_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Execution
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../architecture/execution/execution-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../architecture/execution/assembly/assembly-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Assembly
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../architecture/execution/edges/edges-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Edges
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../architecture/execution/flow/flow-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Flow
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--placeholder"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../architecture/execution/virtual-machine/virtual-machine-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Virtual machine
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--placeholder"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../architecture/execution/lazy-evaluation/lazy-evaluation-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Lazy evaluation
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--placeholder"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../architecture/execution/callbacks/callbacks-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Callbacks
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../architecture/library-system/library-system-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Library system
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../architecture/library-manager/library-manager-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Library manager
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../architecture/sharing/sharing-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Sharing — philosophy
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../architecture/hot-reload/hot-reload-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Hot-reload
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../architecture/settings/settings-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Settings
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../architecture/session-and-state/session-and-state-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Session and state
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_5_11" >
+        
+          
+          <label class="md-nav__link" for="__nav_5_11" id="__nav_5_11_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Studio
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_5_11_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5_11">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Studio
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../architecture/studio/studio-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../architecture/studio/app-shell/app-shell-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    App shell
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--placeholder"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../architecture/studio/workspace/workspace-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Workspace
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--placeholder"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../architecture/studio/canvas/canvas-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Canvas
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--placeholder"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../architecture/studio/rendering/rendering-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Rendering
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--placeholder"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_6" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../../reference/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reference
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_6" id="__nav_6_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../reference/glossary/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Glossary
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../reference/design-guide/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Design guide
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_7" >
+        
+          
+          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Archive
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Archive
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../archive/whitepaper/Haywire_design/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Whitepaper
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#1-what-it-solves" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. What it solves
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-how-it-fits" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. How it fits
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-important-concepts" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Important concepts
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-one-comprehensive-example" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. One comprehensive example
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#quick-reference" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Quick reference
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Quick reference">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#authoring-checklist" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Authoring checklist
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#imports" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Imports
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#slot-rules" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Slot rules
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+
+<h1 id="editor-canonical-example">Editor — Canonical Example<a class="headerlink" href="#editor-canonical-example" title="Permanent link">&para;</a></h1>
+<h2 id="1-what-it-solves">1. What it solves<a class="headerlink" href="#1-what-it-solves" title="Permanent link">&para;</a></h2>
+<p>An <strong>editor</strong> is a self-contained UI module that fills one slot of the studio's workspace layout. As an author, you write a class that inherits from <code>BaseEditor</code>, decorate it with <code>@editor(...)</code>, implement <code>draw(context, container)</code> to build its NiceGUI subtree into a provided container, and optionally decorate handler methods with <code>@redraw_on(...)</code> (framework redraws the editor after the handler returns) or <code>@react_on(...)</code> (pure side-effect, no auto-redraw) to react to signals on the session bus.</p>
+<p>Editors are the primary extension point for adding workspace UI. Once your library's <code>register_components()</code> calls <code>add_folder_to_registry(..., EditorTypeRegistry)</code>, the editor is auto-discovered and available in any workspace where its <code>default_slot</code> is hostable. The studio binds editor instances to slots lazily, one per session.</p>
+<p>The lifecycle is: instance is constructed when its wrapper first occupies a slot → the framework auto-subscribes the editor's decorated handler methods to the session's typed signal bus → the framework calls <code>draw(context, container)</code> to build the subtree → every published <code>Signal</code> whose type matches a decorated handler invokes that handler; for <code>@redraw_on</code> handlers the wrapper redraws once after the dispatch pass → <code>cleanup()</code> runs when the editor is permanently removed.</p>
+<p>The redraw model is <em>clear-and-redraw</em>, not incremental. The framework clears the NiceGUI element subtree before each <code>draw()</code> call. Editors that need cheaper redraws should keep the panel-mounting work behind a local cache and rebuild only the parts that actually changed; the heavy lifting belongs in panels (which have their own <code>poll</code>/<code>draw</code> cycle within an editor's container).</p>
+<h2 id="2-how-it-fits">2. How it fits<a class="headerlink" href="#2-how-it-fits" title="Permanent link">&para;</a></h2>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>@editor(label=..., default_slot=...)    EditorTypeRegistry             AppShell + slot
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>class MyEditor(BaseEditor):              registers class                instantiates per slot;
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>    def draw(self, context,              on register_components()       wires bus subscriptions
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>             container): ...                                             for decorated handlers,
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>                                                                         calls draw() once,
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>    @redraw_on(SelectionMoved,                                           then redraws when a
+</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>               GraphDataMutated)                                         @redraw_on handler fires.
+</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>    def _refresh(self, ctx, signal): ...
+</span></code></pre></div>
+<p>Editors <em>host</em> panels (in panel-aware editors like <code>PropertiesEditor</code>) but they don't own panel content — that's <a href="../../panels/panel-canon/">components/panels</a>. Editors don't render themselves into the canvas — that's the studio's job. They render into the NiceGUI <code>Element</code> that AppShell hands to <code>draw()</code>.</p>
+<p><strong>Boundaries.</strong> What slots are, how the AppShell works, the workspace snapshot system — see <a href="../../../architecture/studio/studio-arch/">architecture/studio</a>. Panels — see <a href="../../panels/panel-canon/">components/panels</a>. Library/session state accessed inside editors (e.g. <code>EditState</code> for selection) — see <a href="../../states/state-canon/">components/states</a>. Signal classes (<code>Signal</code> base, <code>CommandSignal</code> for imperatives) — see <code>haywire/core/session/signals/</code>.</p>
+<h2 id="3-important-concepts">3. Important concepts<a class="headerlink" href="#3-important-concepts" title="Permanent link">&para;</a></h2>
+<p><strong>The <code>@editor</code> decorator.</strong> Required on every editor class. Sets <code>class_identity</code> (an <code>EditorIdentity</code> dataclass) and <code>class_library</code> (derived from the module). Computes <code>registry_key</code> as <code>&lt;library_id&gt;:editor:&lt;registry_id&gt;</code>.</p>
+<table>
+<thead>
+<tr>
+<th>Parameter</th>
+<th>Required</th>
+<th>Default</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>label</code></td>
+<td>no</td>
+<td>class name</td>
+<td>Display name in tabs and tooltips</td>
+</tr>
+<tr>
+<td><code>default_slot</code></td>
+<td>no</td>
+<td><code>'main'</code></td>
+<td><code>'left'</code> / <code>'right'</code> / <code>'main'</code> / <code>'bottom'</code></td>
+</tr>
+<tr>
+<td><code>icon</code></td>
+<td>no</td>
+<td><code>'extension'</code></td>
+<td>Material Design icon name</td>
+</tr>
+<tr>
+<td><code>opens</code></td>
+<td>no</td>
+<td><code>'required'</code></td>
+<td><code>'required'</code> / <code>'on_context'</code> / <code>'on_payload'</code> — see below</td>
+</tr>
+<tr>
+<td><code>description</code></td>
+<td>no</td>
+<td><code>''</code></td>
+<td>Tooltip / accessibility text</td>
+</tr>
+<tr>
+<td><code>registry_id</code></td>
+<td>no</td>
+<td>class name</td>
+<td>Unique short ID within the library</td>
+</tr>
+</tbody>
+</table>
+<p><code>@editor()</code> must be invoked with parentheses; the bare <code>@editor</code> form raises at class-definition time.</p>
+<p><strong><code>OpenBehavior</code> — how tabs come into being.</strong> Three values:</p>
+<ul>
+<li><strong><code>required</code></strong> — the shell guarantees exactly one auto-populated tab at startup. Uncloseable. Use for persistent panels: side editors, the main graph editor.</li>
+<li><strong><code>on_context</code></strong> — singleton tab, on-demand. Content mirrors a slice of session context (e.g. <code>active_library</code>); a <code>Reveal</code> lifecycle command opens it. Closeable.</li>
+<li><strong><code>on_payload</code></strong> — per-binding_id tab, on-demand. The binding_id is both the tab's identity and its content source; N distinct payloads → N distinct tabs. Closeable.</li>
+</ul>
+<p><strong>Slot constraints.</strong> <code>default_slot='left'</code> and <code>'right'</code> only support <code>opens='required'</code>. Bars don't have a tab structure to host on-demand or multi-instance editors. The decorator raises <code>ValueError</code> at class-definition time if you try.</p>
+<p><strong><code>draw(self, context, container)</code></strong> is the only abstract method. The framework calls it on first slot assignment and again whenever a <code>@redraw_on</code> handler fires. Before each call the framework <strong>clears</strong> <code>container</code> — your code starts inside an empty NiceGUI element. Use <code>with container:</code> (or store children of one of <code>container</code>'s descendants) to build into it.</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">draw</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">context</span><span class="p">:</span> <span class="n">SessionContext</span><span class="p">,</span> <span class="n">container</span><span class="p">:</span> <span class="n">Element</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>    <span class="k">with</span> <span class="n">container</span><span class="p">:</span>
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>        <span class="n">ui</span><span class="o">.</span><span class="n">label</span><span class="p">(</span><span class="s1">&#39;My Editor&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">classes</span><span class="p">(</span><span class="s1">&#39;text-lg p-4&#39;</span><span class="p">)</span>
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">_content</span> <span class="o">=</span> <span class="n">ui</span><span class="o">.</span><span class="n">column</span><span class="p">()</span><span class="o">.</span><span class="n">classes</span><span class="p">(</span><span class="s1">&#39;gap-2 p-4&#39;</span><span class="p">)</span>
+</span></code></pre></div>
+<p>Store references to UI elements you'll later mutate as instance attributes — but remember they live only until the next <code>draw()</code> call, since the container is cleared between draws.</p>
+<p><strong><code>@redraw_on(*signal_types)</code></strong> decorates a handler method. The framework subscribes the method to each listed <code>Signal</code> subclass on the per-session signal bus when the editor is instantiated. After every matching dispatch, the framework calls <code>wrapper.redraw()</code> for you — exactly once per dispatch pass even if several <code>@redraw_on</code> handlers on this editor match the same signal.</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="nd">@redraw_on</span><span class="p">(</span><span class="n">SelectionMoved</span><span class="p">,</span> <span class="n">ActiveGraphMoved</span><span class="p">,</span> <span class="n">GraphDataMutated</span><span class="p">)</span>
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="k">def</span><span class="w"> </span><span class="nf">_refresh_on_state_move</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ctx</span><span class="p">:</span> <span class="n">SessionContext</span><span class="p">,</span> <span class="n">signal</span><span class="p">:</span> <span class="n">Signal</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>    <span class="c1"># Empty body is fine — the redraw is the point. Use the body when</span>
+</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>    <span class="c1"># there&#39;s preparatory state to update before draw() re-runs.</span>
+</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>    <span class="o">...</span>
+</span></code></pre></div>
+<p>Method names are author-chosen; the decorator is the only marker. Multiple <code>@redraw_on</code> methods per class are allowed; each declares its own signal-type set. Both <code>@redraw_on</code> and <code>@react_on</code> fire regardless of whether the editor's wrapper is the active tab — backgrounded editors stay current (kept alive by Quasar <code>ui.tab_panels</code> keep-alive), so on focus they're already drawn correctly. <code>BaseEditor</code> has no abstract handler method to override; the decorator is the contract.</p>
+<p><strong><code>@react_on(*signal_types)</code></strong> is the pure side-effect variant. The framework dispatches the matching signal to the handler but does <strong>not</strong> auto-redraw afterwards. The author is responsible for any explicit <code>wrapper.redraw()</code>, <code>wrapper.force_close()</code>, or <code>session.publish(Reveal/Close/...)</code> calls inside the body.</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="nd">@react_on</span><span class="p">(</span><span class="n">HaystackTeardown</span><span class="p">)</span>
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="k">def</span><span class="w"> </span><span class="nf">_close_stale_tabs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ctx</span><span class="p">:</span> <span class="n">SessionContext</span><span class="p">,</span> <span class="n">signal</span><span class="p">:</span> <span class="n">HaystackTeardown</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>    <span class="k">for</span> <span class="n">eid</span> <span class="ow">in</span> <span class="n">signal</span><span class="o">.</span><span class="n">entry_ids</span><span class="p">:</span>
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>        <span class="n">ctx</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">publish</span><span class="p">(</span><span class="n">Close</span><span class="p">(</span><span class="n">binding_id</span><span class="o">=</span><span class="n">eid</span><span class="p">))</span>
+</span></code></pre></div>
+<p>Use <code>@react_on</code> when something must happen on every signal reaching this editor (including from backgrounded tabs) but doesn't warrant a redraw of <em>this</em> editor — for example, issuing lifecycle commands, marking caches stale, or persisting state. If both side-effect and redraw are needed, prefer two methods: one <code>@redraw_on</code> (empty body, framework redraws) and one <code>@react_on</code> (the side effect). Don't trigger redraws from inside a <code>@react_on</code> handler unless you know the redraw shouldn't be amortised across the dispatch pass.</p>
+<p>Handlers run synchronously on every matching publish; keep them cheap. The heavy lifting belongs in <code>draw()</code>, gated by the redraw decision.</p>
+<p><strong><code>on_focus(self, context)</code></strong> is called when the editor's wrapper becomes the active tab in its slot — on initial render, on programmatic <code>Slot.switch_to</code>, on user tab-click, or via <code>Slot.add_binding(activate=True)</code>. <strong>Not</strong> called when the user re-clicks the already-active tab. Runs <strong>before</strong> <code>draw()</code> on the newly-activated wrapper, so any context mutations this hook performs are visible to that draw and to any signals the hook broadcasts. Default is a no-op. Editors that own a slice of session state (e.g. a graph editor that updates <code>active_graph</code> when its tab becomes active) override this. Read <code>self.wrapper.binding_id</code> to disambiguate this instance from siblings.</p>
+<p><em><code>GraphEditor</code> lives in <code>haybale-graph-editor</code> and reads its container from <code>app_data[GraphAppState]</code>. To host a graph in <code>GraphEditor</code>, your library must (a) implement the <code>GraphContainer</code> protocol (structurally — a duck-typed match is sufficient) and (b) register every open container into <code>GraphAppState</code>. <code>haybale-haystack</code>'s <code>GraphEntry</code> is the reference implementation.</em></p>
+<p><strong><code>cleanup(self)</code></strong> runs when the editor is permanently removed (slot reassigned, hot-reload eviction). Release subscriptions, cancel timers, drop UI references. Default is a no-op.</p>
+<p><strong><code>get_tab_label(self, context) -&gt; str</code></strong> lets a tabbed editor (<code>opens='on_payload'</code>) return a dynamic label per instance. Default returns <code>self.class_identity.label</code>. Multi-instance editors typically derive the label from <code>self.wrapper.binding_id</code>.</p>
+<p><strong><code>async handle_close_request(self) -&gt; bool</code></strong> gates tab close. The slot awaits this when the user clicks the X. Return <code>True</code> to allow close, <code>False</code> to veto. Editors with unsaved state typically pop a save/discard/cancel dialog and <code>await</code> the user's choice. Default returns <code>True</code> (always allow). Read <code>self.wrapper.state.is_dirty</code> if your editor uses the framework's dirty-state tracking.</p>
+<p><strong>Reading and writing context.</strong> <code>SessionContext</code> carries a small set of signal fields (<code>active_file</code>, <code>active_library</code>, <code>active_component</code>, theme keys) and two namespaces:</p>
+<ul>
+<li><code>context.app_data[Cls]</code> — <code>AppState</code> lookups, shared across all sessions.</li>
+<li><code>context.data[Cls]</code> — <code>SessionState</code> lookups, scoped to this session. Selection state lives here. For the graph canvas, that's <code>EditState</code> (in <code>haybale-studio</code>):</li>
+</ul>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">haybale_graph_editor.state.edit_state</span><span class="w"> </span><span class="kn">import</span> <span class="n">EditState</span>
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>
+</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="n">node</span> <span class="o">=</span> <span class="n">context</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">EditState</span><span class="p">]</span><span class="o">.</span><span class="n">active_node</span>           <span class="c1"># NodeWrapper or None</span>
+</span></code></pre></div>
+<p>See <a href="../../states/state-canon/">components/states</a> for the full state model.</p>
+<p><strong>Driving other slots — lifecycle commands on the signal bus.</strong> To open or focus a tab in another slot, publish a <code>Reveal</code> command on <code>context.session</code>:</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">haywire.core.session.signals</span><span class="w"> </span><span class="kn">import</span> <span class="n">Reveal</span>
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>
+</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="n">context</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">publish</span><span class="p">(</span><span class="n">Reveal</span><span class="p">(</span>
+</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>    <span class="n">editor</span><span class="o">=</span><span class="n">LibraryDetailEditor</span><span class="p">,</span>
+</span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a>    <span class="n">binding_id</span><span class="o">=</span><span class="n">library_id</span><span class="p">,</span>    <span class="c1"># for opens=&#39;on_payload&#39;</span>
+</span><span id="__span-5-6"><a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a><span class="p">))</span>
+</span></code></pre></div>
+<p><code>Reveal</code>, <code>Close</code>, and <code>BroadcastClose</code> are <code>CommandSignal</code> payloads — the imperative half of the signal vocabulary. They travel on the same per-session typed bus as observation signals and are emitted with the same <code>session.publish(...)</code> call. The AppShell subscribes to each command type and routes it: <code>Reveal</code> resolves <code>editor.class_identity.default_slot</code> and dispatches to that slot; <code>Close(binding_id=...)</code> closes every tab bound to a <code>binding_id</code> across all slots in the issuing session.</p>
+<p>Lifecycle commands are <strong>local by default</strong> — session-scoped UI actions like <code>Reveal</code>-on-click belong to the issuing session. Subclasses can opt into cross-session fan-out by setting <code>cross_session: ClassVar[bool] = True</code> (same class-level flag used by <code>Signal</code>); <code>Session.publish(...)</code> then delegates to <code>SessionManager.broadcast(...)</code> so every session's AppShell receives the command. Use this for fact-driven imperatives where the underlying entity is gone for everyone — <code>BroadcastClose(binding_id=...)</code> is the built-in: close matching tabs in <strong>every</strong> session.</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">haywire.core.session.signals</span><span class="w"> </span><span class="kn">import</span> <span class="n">BroadcastClose</span>
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>
+</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="c1"># Underlying entry removed everywhere — close any GraphEditor tab bound</span>
+</span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="c1"># to it, in this session AND every peer session.</span>
+</span><span id="__span-6-5"><a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a><span class="n">context</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">publish</span><span class="p">(</span><span class="n">BroadcastClose</span><span class="p">(</span><span class="n">binding_id</span><span class="o">=</span><span class="n">entry_id</span><span class="p">))</span>
+</span></code></pre></div>
+<p><code>BroadcastClose</code> is a subclass of <code>Close</code>. Because the bus matches subscribers by exact type, AppShell subscribes separately to <code>Close</code> and <code>BroadcastClose</code>, but the close handler is the same and reads the shared <code>binding_id</code> field. Prefer <code>Close</code> for session-local UI actions; reserve <code>BroadcastClose</code> for cases where the close decision follows from a global fact rather than a session-local interaction.</p>
+<p><strong>Imports.</strong></p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">haywire.ui.editor.base</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseEditor</span>
+</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">haywire.ui.editor.decorator</span><span class="w"> </span><span class="kn">import</span> <span class="n">editor</span>
+</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="kn">from</span><span class="w"> </span><span class="nn">haywire.ui.editor.identity</span><span class="w"> </span><span class="kn">import</span> <span class="n">OpenBehavior</span>   <span class="c1"># for code that inspects the enum</span>
+</span><span id="__span-7-4"><a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="kn">from</span><span class="w"> </span><span class="nn">haywire.core.session.handlers</span><span class="w"> </span><span class="kn">import</span> <span class="n">redraw_on</span><span class="p">,</span> <span class="n">react_on</span>
+</span><span id="__span-7-5"><a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a><span class="kn">from</span><span class="w"> </span><span class="nn">haywire.core.session.signals</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+</span><span id="__span-7-6"><a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a>    <span class="n">Signal</span><span class="p">,</span>
+</span><span id="__span-7-7"><a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a>    <span class="n">SelectionMoved</span><span class="p">,</span> <span class="n">ActiveGraphMoved</span><span class="p">,</span> <span class="n">GraphDataMutated</span><span class="p">,</span>   <span class="c1"># observations</span>
+</span><span id="__span-7-8"><a id="__codelineno-7-8" name="__codelineno-7-8" href="#__codelineno-7-8"></a>    <span class="n">Reveal</span><span class="p">,</span> <span class="n">Close</span><span class="p">,</span> <span class="n">BroadcastClose</span><span class="p">,</span>                        <span class="c1"># lifecycle commands</span>
+</span><span id="__span-7-9"><a id="__codelineno-7-9" name="__codelineno-7-9" href="#__codelineno-7-9"></a><span class="p">)</span>
+</span></code></pre></div>
+<p><strong>Hot-reload.</strong> <code>EditorTypeRegistry</code> extends <code>BaseRegistry</code>. When an editor class is reloaded, the framework evicts cached instances, calls <code>cleanup()</code>, drops the bus subscriptions wired for the decorated handlers, and re-instantiates + <code>draw()</code> for any visible bindings. Subscribers that hold a reference to the old class object would see <code>isinstance()</code> checks fail spuriously after a reload — this is why library authors who declare their own <code>Signal</code> subclasses that other libraries subscribe to must list the declaring library in their own <code>LibraryIdentity.dependencies</code>.</p>
+<h2 id="4-one-comprehensive-example">4. One comprehensive example<a class="headerlink" href="#4-one-comprehensive-example" title="Permanent link">&para;</a></h2>
+<p>The studio's <code>PropertiesEditor</code> (<a href="../../../barn/haybale-studio/haybale_studio/editors/properties_editor.py">barn/haybale-studio/haybale_studio/editors/properties_editor.py</a>) is the validation case for the panel-driven bus subscription model: it has <strong>no</strong> <code>@redraw_on</code> / <code>@react_on</code> decorators of its own. Instead, the framework unions the <code>redraw_on=</code> declarations from every <strong>display</strong> panel registered for each focus the editor exposes, and subscribes the editor's wrapper to that effective set. When any of those signals publishes, the wrapper redraws and the registered panels re-mount with fresh state. The editor <em>also</em> subscribes to the panel registry's batch lifecycle channel so it can reconcile its subscriptions when the catalog changes (library install / uninstall / panel hot-reload).</p>
+<p><strong>Two-surface split.</strong> The panel registry exposes two distinct query surfaces:</p>
+<ul>
+<li><code>get_panels_for_focus(focus)</code> — returns <strong>display panels</strong> for that focus (no <code>actions:</code> annotation). Used by <code>PropertiesEditor</code>, which is long-lived and queries purely by focus.</li>
+<li><code>get_panels_for_action(action_protocol, focus)</code> — returns <strong>action panels</strong> whose <code>actions:</code> annotation matches <code>action_protocol</code> <em>and</em> whose focus matches. Used by context-menu hosts, which are ephemeral: they satisfy an action protocol structurally, open a popup, draw once, and dismiss.</li>
+<li><code>get_display_focuses()</code> — returns the distinct Focus classes across all display panels; drives the Properties editor's icon toolbar.</li>
+<li><code>get_redraw_signals_for_focus(focus)</code> — returns the union of <code>redraw_on</code> signals declared by display panels for that focus. The editor calls this once per focus to build its subscription set.</li>
+</ul>
+<p>This pattern only applies to host editors with third-party panel content. Most editors decorate their own handler methods directly — see <code>HaystackEditor</code> (<code>@redraw_on(ActiveGraphMoved, GraphDataMutated, HaystackReloaded)</code> + <code>@react_on(HaystackTeardown)</code>) or <code>LibraryComponentEditor</code> (<code>@redraw_on(SessionContext.active_component, SelectionMoved, SessionContext.active_workbench_theme_key)</code>).</p>
+<p>The salient excerpts:</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="nd">@editor</span><span class="p">(</span>
+</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>    <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Properties&quot;</span><span class="p">,</span>
+</span><span id="__span-8-3"><a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a>    <span class="n">icon</span><span class="o">=</span><span class="n">hui</span><span class="o">.</span><span class="n">icon</span><span class="o">.</span><span class="n">node_settings</span><span class="p">,</span>
+</span><span id="__span-8-4"><a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a>    <span class="n">default_slot</span><span class="o">=</span><span class="s2">&quot;right&quot;</span><span class="p">,</span>
+</span><span id="__span-8-5"><a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a>    <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Context-sensitive property panels for the active selection.&quot;</span><span class="p">,</span>
+</span><span id="__span-8-6"><a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a><span class="p">)</span>
+</span><span id="__span-8-7"><a id="__codelineno-8-7" name="__codelineno-8-7" href="#__codelineno-8-7"></a><span class="k">class</span><span class="w"> </span><span class="nc">PropertiesEditor</span><span class="p">(</span><span class="n">BaseEditor</span><span class="p">):</span>
+</span><span id="__span-8-8"><a id="__codelineno-8-8" name="__codelineno-8-8" href="#__codelineno-8-8"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+</span><span id="__span-8-9"><a id="__codelineno-8-9" name="__codelineno-8-9" href="#__codelineno-8-9"></a><span class="sd">    Focus-driven properties editor.</span>
+</span><span id="__span-8-10"><a id="__codelineno-8-10" name="__codelineno-8-10" href="#__codelineno-8-10"></a>
+</span><span id="__span-8-11"><a id="__codelineno-8-11" name="__codelineno-8-11" href="#__codelineno-8-11"></a><span class="sd">    The left toolbar shows one icon button per Focus class contributed by</span>
+</span><span id="__span-8-12"><a id="__codelineno-8-12" name="__codelineno-8-12" href="#__codelineno-8-12"></a><span class="sd">    registered panels. Clicking a button makes that Focus active and</span>
+</span><span id="__span-8-13"><a id="__codelineno-8-13" name="__codelineno-8-13" href="#__codelineno-8-13"></a><span class="sd">    re-renders the content area with the panels belonging to that Focus.</span>
+</span><span id="__span-8-14"><a id="__codelineno-8-14" name="__codelineno-8-14" href="#__codelineno-8-14"></a>
+</span><span id="__span-8-15"><a id="__codelineno-8-15" name="__codelineno-8-15" href="#__codelineno-8-15"></a><span class="sd">    Focus availability is determined by ``Focus.available(ctx)``. Unavailable</span>
+</span><span id="__span-8-16"><a id="__codelineno-8-16" name="__codelineno-8-16" href="#__codelineno-8-16"></a><span class="sd">    focuses are shown dimmed and are not clickable. The active focus is</span>
+</span><span id="__span-8-17"><a id="__codelineno-8-17" name="__codelineno-8-17" href="#__codelineno-8-17"></a><span class="sd">    never changed automatically after initial selection.</span>
+</span><span id="__span-8-18"><a id="__codelineno-8-18" name="__codelineno-8-18" href="#__codelineno-8-18"></a><span class="sd">    &quot;&quot;&quot;</span>
+</span><span id="__span-8-19"><a id="__codelineno-8-19" name="__codelineno-8-19" href="#__codelineno-8-19"></a>
+</span><span id="__span-8-20"><a id="__codelineno-8-20" name="__codelineno-8-20" href="#__codelineno-8-20"></a>    <span class="c1"># ------------------------------------------------------------------</span>
+</span><span id="__span-8-21"><a id="__codelineno-8-21" name="__codelineno-8-21" href="#__codelineno-8-21"></a>    <span class="c1"># Construction</span>
+</span><span id="__span-8-22"><a id="__codelineno-8-22" name="__codelineno-8-22" href="#__codelineno-8-22"></a>    <span class="c1"># ------------------------------------------------------------------</span>
+</span><span id="__span-8-23"><a id="__codelineno-8-23" name="__codelineno-8-23" href="#__codelineno-8-23"></a>
+</span><span id="__span-8-24"><a id="__codelineno-8-24" name="__codelineno-8-24" href="#__codelineno-8-24"></a>    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">wrapper</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="__span-8-25"><a id="__codelineno-8-25" name="__codelineno-8-25" href="#__codelineno-8-25"></a>        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">wrapper</span><span class="p">)</span>
+</span><span id="__span-8-26"><a id="__codelineno-8-26" name="__codelineno-8-26" href="#__codelineno-8-26"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">_container</span><span class="p">:</span> <span class="n">Element</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+</span><span id="__span-8-27"><a id="__codelineno-8-27" name="__codelineno-8-27" href="#__codelineno-8-27"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">_toolbar</span><span class="p">:</span> <span class="n">Element</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+</span><span id="__span-8-28"><a id="__codelineno-8-28" name="__codelineno-8-28" href="#__codelineno-8-28"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">_content</span><span class="p">:</span> <span class="n">Element</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+</span><span id="__span-8-29"><a id="__codelineno-8-29" name="__codelineno-8-29" href="#__codelineno-8-29"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">_context</span><span class="p">:</span> <span class="n">SessionContext</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+</span><span id="__span-8-30"><a id="__codelineno-8-30" name="__codelineno-8-30" href="#__codelineno-8-30"></a>        <span class="c1"># Focus id of the currently-active toolbar tab; None when no</span>
+</span><span id="__span-8-31"><a id="__codelineno-8-31" name="__codelineno-8-31" href="#__codelineno-8-31"></a>        <span class="c1"># focus is selected (initial state, or no available focus).</span>
+</span><span id="__span-8-32"><a id="__codelineno-8-32" name="__codelineno-8-32" href="#__codelineno-8-32"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">_active_focus_id</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+</span><span id="__span-8-33"><a id="__codelineno-8-33" name="__codelineno-8-33" href="#__codelineno-8-33"></a>        <span class="c1"># Per-editor expansion-section state, keyed by panel_key. Survives</span>
+</span><span id="__span-8-34"><a id="__codelineno-8-34" name="__codelineno-8-34" href="#__codelineno-8-34"></a>        <span class="c1"># content rebuilds but stays scoped to this editor instance.</span>
+</span><span id="__span-8-35"><a id="__codelineno-8-35" name="__codelineno-8-35" href="#__codelineno-8-35"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">_expansion_state</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">bool</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+</span><span id="__span-8-36"><a id="__codelineno-8-36" name="__codelineno-8-36" href="#__codelineno-8-36"></a>
+</span><span id="__span-8-37"><a id="__codelineno-8-37" name="__codelineno-8-37" href="#__codelineno-8-37"></a>        <span class="c1"># Panel-driven event-bus subscriptions. PropertiesEditor owns these</span>
+</span><span id="__span-8-38"><a id="__codelineno-8-38" name="__codelineno-8-38" href="#__codelineno-8-38"></a>        <span class="c1"># because it&#39;s the only host that mounts registry panels with</span>
+</span><span id="__span-8-39"><a id="__codelineno-8-39" name="__codelineno-8-39" href="#__codelineno-8-39"></a>        <span class="c1"># persistent redraw semantics — context-menu hosts open a popup,</span>
+</span><span id="__span-8-40"><a id="__codelineno-8-40" name="__codelineno-8-40" href="#__codelineno-8-40"></a>        <span class="c1"># draw once, and dismiss; no subscription needed there.</span>
+</span><span id="__span-8-41"><a id="__codelineno-8-41" name="__codelineno-8-41" href="#__codelineno-8-41"></a>        <span class="c1">#</span>
+</span><span id="__span-8-42"><a id="__codelineno-8-42" name="__codelineno-8-42" href="#__codelineno-8-42"></a>        <span class="c1"># Populated in ``_subscribe_panel_event_handlers`` (called from</span>
+</span><span id="__span-8-43"><a id="__codelineno-8-43" name="__codelineno-8-43" href="#__codelineno-8-43"></a>        <span class="c1"># first ``draw()``); reconciled in ``_on_panel_registry_event``</span>
+</span><span id="__span-8-44"><a id="__codelineno-8-44" name="__codelineno-8-44" href="#__codelineno-8-44"></a>        <span class="c1"># when the catalog changes; drained in ``cleanup``.</span>
+</span><span id="__span-8-45"><a id="__codelineno-8-45" name="__codelineno-8-45" href="#__codelineno-8-45"></a>        <span class="c1">#</span>
+</span><span id="__span-8-46"><a id="__codelineno-8-46" name="__codelineno-8-46" href="#__codelineno-8-46"></a>        <span class="c1"># NB: held as a flat list of handles for now — same shape as the</span>
+</span><span id="__span-8-47"><a id="__codelineno-8-47" name="__codelineno-8-47" href="#__codelineno-8-47"></a>        <span class="c1"># original wrapper-side implementation. Migrating to per-panel</span>
+</span><span id="__span-8-48"><a id="__codelineno-8-48" name="__codelineno-8-48" href="#__codelineno-8-48"></a>        <span class="c1"># redraw will keep these per-(panel_class, event_type) so a single</span>
+</span><span id="__span-8-49"><a id="__codelineno-8-49" name="__codelineno-8-49" href="#__codelineno-8-49"></a>        <span class="c1"># event publish can target only the panels that asked for it.</span>
+</span><span id="__span-8-50"><a id="__codelineno-8-50" name="__codelineno-8-50" href="#__codelineno-8-50"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">_panel_bus_unsubscribes</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">Callable</span><span class="p">[[],</span> <span class="kc">None</span><span class="p">]]</span> <span class="o">=</span> <span class="p">[]</span>
+</span><span id="__span-8-51"><a id="__codelineno-8-51" name="__codelineno-8-51" href="#__codelineno-8-51"></a>
+</span><span id="__span-8-52"><a id="__codelineno-8-52" name="__codelineno-8-52" href="#__codelineno-8-52"></a>        <span class="c1"># PanelRegistry this editor is currently subscribed to (lifecycle</span>
+</span><span id="__span-8-53"><a id="__codelineno-8-53" name="__codelineno-8-53" href="#__codelineno-8-53"></a>        <span class="c1"># batch channel). Held so cleanup / catalog reconciliation can</span>
+</span><span id="__span-8-54"><a id="__codelineno-8-54" name="__codelineno-8-54" href="#__codelineno-8-54"></a>        <span class="c1"># detach. ``None`` before first ``draw()`` and after ``cleanup``.</span>
+</span><span id="__span-8-55"><a id="__codelineno-8-55" name="__codelineno-8-55" href="#__codelineno-8-55"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">_attached_panel_registry</span><span class="p">:</span> <span class="n">PanelRegistry</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+</span><span id="__span-8-56"><a id="__codelineno-8-56" name="__codelineno-8-56" href="#__codelineno-8-56"></a>
+</span><span id="__span-8-57"><a id="__codelineno-8-57" name="__codelineno-8-57" href="#__codelineno-8-57"></a>    <span class="c1"># ------------------------------------------------------------------</span>
+</span><span id="__span-8-58"><a id="__codelineno-8-58" name="__codelineno-8-58" href="#__codelineno-8-58"></a>    <span class="c1"># BaseEditor interface (draw + panel registry hook)</span>
+</span><span id="__span-8-59"><a id="__codelineno-8-59" name="__codelineno-8-59" href="#__codelineno-8-59"></a>    <span class="c1"># ------------------------------------------------------------------</span>
+</span><span id="__span-8-60"><a id="__codelineno-8-60" name="__codelineno-8-60" href="#__codelineno-8-60"></a>
+</span><span id="__span-8-61"><a id="__codelineno-8-61" name="__codelineno-8-61" href="#__codelineno-8-61"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">_panel_registry</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">context</span><span class="p">:</span> <span class="n">SessionContext</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PanelRegistry</span><span class="p">:</span>
+</span><span id="__span-8-62"><a id="__codelineno-8-62" name="__codelineno-8-62" href="#__codelineno-8-62"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Return the registry whose panels appear in this editor.</span>
+</span><span id="__span-8-63"><a id="__codelineno-8-63" name="__codelineno-8-63" href="#__codelineno-8-63"></a>
+</span><span id="__span-8-64"><a id="__codelineno-8-64" name="__codelineno-8-64" href="#__codelineno-8-64"></a><span class="sd">        Resolved via the same path used by the panel-bus wiring below, so</span>
+</span><span id="__span-8-65"><a id="__codelineno-8-65" name="__codelineno-8-65" href="#__codelineno-8-65"></a><span class="sd">        the toolbar / content paths render against exactly the panel</span>
+</span><span id="__span-8-66"><a id="__codelineno-8-66" name="__codelineno-8-66" href="#__codelineno-8-66"></a><span class="sd">        catalog this editor subscribes to.</span>
+</span><span id="__span-8-67"><a id="__codelineno-8-67" name="__codelineno-8-67" href="#__codelineno-8-67"></a><span class="sd">        &quot;&quot;&quot;</span>
+</span><span id="__span-8-68"><a id="__codelineno-8-68" name="__codelineno-8-68" href="#__codelineno-8-68"></a>        <span class="k">return</span> <span class="n">context</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">library_service</span><span class="o">.</span><span class="n">get_panel_registry</span><span class="p">()</span>
+</span><span id="__span-8-69"><a id="__codelineno-8-69" name="__codelineno-8-69" href="#__codelineno-8-69"></a>
+</span><span id="__span-8-70"><a id="__codelineno-8-70" name="__codelineno-8-70" href="#__codelineno-8-70"></a>    <span class="c1"># ------------------------------------------------------------------</span>
+</span><span id="__span-8-71"><a id="__codelineno-8-71" name="__codelineno-8-71" href="#__codelineno-8-71"></a>    <span class="c1"># Panel-contributed event-bus subscriptions</span>
+</span><span id="__span-8-72"><a id="__codelineno-8-72" name="__codelineno-8-72" href="#__codelineno-8-72"></a>    <span class="c1"># ------------------------------------------------------------------</span>
+</span><span id="__span-8-73"><a id="__codelineno-8-73" name="__codelineno-8-73" href="#__codelineno-8-73"></a>    <span class="c1">#</span>
+</span><span id="__span-8-74"><a id="__codelineno-8-74" name="__codelineno-8-74" href="#__codelineno-8-74"></a>    <span class="c1"># PropertiesEditor subscribes to every event type a display panel</span>
+</span><span id="__span-8-75"><a id="__codelineno-8-75" name="__codelineno-8-75" href="#__codelineno-8-75"></a>    <span class="c1"># contributes via ``redraw_on=`` on ``@panel(...)`` — across every</span>
+</span><span id="__span-8-76"><a id="__codelineno-8-76" name="__codelineno-8-76" href="#__codelineno-8-76"></a>    <span class="c1"># focus this editor&#39;s toolbar exposes. When such an event publishes,</span>
+</span><span id="__span-8-77"><a id="__codelineno-8-77" name="__codelineno-8-77" href="#__codelineno-8-77"></a>    <span class="c1"># the editor&#39;s wrapper redraws and panels re-mount with fresh state.</span>
+</span><span id="__span-8-78"><a id="__codelineno-8-78" name="__codelineno-8-78" href="#__codelineno-8-78"></a>    <span class="c1"># Panels do not have their own handler dispatch — they declare intent</span>
+</span><span id="__span-8-79"><a id="__codelineno-8-79" name="__codelineno-8-79" href="#__codelineno-8-79"></a>    <span class="c1"># on the decorator; the editor drives the redraw.</span>
+</span><span id="__span-8-80"><a id="__codelineno-8-80" name="__codelineno-8-80" href="#__codelineno-8-80"></a>    <span class="c1">#</span>
+</span><span id="__span-8-81"><a id="__codelineno-8-81" name="__codelineno-8-81" href="#__codelineno-8-81"></a>    <span class="c1"># The editor also subscribes to the panel registry&#39;s batch lifecycle</span>
+</span><span id="__span-8-82"><a id="__codelineno-8-82" name="__codelineno-8-82" href="#__codelineno-8-82"></a>    <span class="c1"># channel so it can reconcile its subscriptions when the catalog</span>
+</span><span id="__span-8-83"><a id="__codelineno-8-83" name="__codelineno-8-83" href="#__codelineno-8-83"></a>    <span class="c1"># changes (library install / uninstall / panel hot-reload).</span>
+</span><span id="__span-8-84"><a id="__codelineno-8-84" name="__codelineno-8-84" href="#__codelineno-8-84"></a>
+</span><span id="__span-8-85"><a id="__codelineno-8-85" name="__codelineno-8-85" href="#__codelineno-8-85"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">_subscribe_panel_event_handlers</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">context</span><span class="p">:</span> <span class="n">SessionContext</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="__span-8-86"><a id="__codelineno-8-86" name="__codelineno-8-86" href="#__codelineno-8-86"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Resolve the panel registry and wire panel-driven event subscriptions.</span>
+</span><span id="__span-8-87"><a id="__codelineno-8-87" name="__codelineno-8-87" href="#__codelineno-8-87"></a>
+</span><span id="__span-8-88"><a id="__codelineno-8-88" name="__codelineno-8-88" href="#__codelineno-8-88"></a><span class="sd">        No-op when the session&#39;s context does not expose a panel registry</span>
+</span><span id="__span-8-89"><a id="__codelineno-8-89" name="__codelineno-8-89" href="#__codelineno-8-89"></a><span class="sd">        chain (test fixtures with stubbed context, hypothetical non-studio</span>
+</span><span id="__span-8-90"><a id="__codelineno-8-90" name="__codelineno-8-90" href="#__codelineno-8-90"></a><span class="sd">        hosts). ``AttributeError`` along</span>
+</span><span id="__span-8-91"><a id="__codelineno-8-91" name="__codelineno-8-91" href="#__codelineno-8-91"></a><span class="sd">        ``context.app.library_service.get_panel_registry()`` is caught</span>
+</span><span id="__span-8-92"><a id="__codelineno-8-92" name="__codelineno-8-92" href="#__codelineno-8-92"></a><span class="sd">        explicitly; other exceptions log a warning.</span>
+</span><span id="__span-8-93"><a id="__codelineno-8-93" name="__codelineno-8-93" href="#__codelineno-8-93"></a><span class="sd">        &quot;&quot;&quot;</span>
+</span><span id="__span-8-94"><a id="__codelineno-8-94" name="__codelineno-8-94" href="#__codelineno-8-94"></a>        <span class="k">try</span><span class="p">:</span>
+</span><span id="__span-8-95"><a id="__codelineno-8-95" name="__codelineno-8-95" href="#__codelineno-8-95"></a>            <span class="n">registry</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_panel_registry</span><span class="p">(</span><span class="n">context</span><span class="p">)</span>
+</span><span id="__span-8-96"><a id="__codelineno-8-96" name="__codelineno-8-96" href="#__codelineno-8-96"></a>        <span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>
+</span><span id="__span-8-97"><a id="__codelineno-8-97" name="__codelineno-8-97" href="#__codelineno-8-97"></a>            <span class="c1"># No panel registry reachable on this context — editor runs</span>
+</span><span id="__span-8-98"><a id="__codelineno-8-98" name="__codelineno-8-98" href="#__codelineno-8-98"></a>            <span class="c1"># without panel-driven redraws.</span>
+</span><span id="__span-8-99"><a id="__codelineno-8-99" name="__codelineno-8-99" href="#__codelineno-8-99"></a>            <span class="k">return</span>
+</span><span id="__span-8-100"><a id="__codelineno-8-100" name="__codelineno-8-100" href="#__codelineno-8-100"></a>        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">exc</span><span class="p">:</span>
+</span><span id="__span-8-101"><a id="__codelineno-8-101" name="__codelineno-8-101" href="#__codelineno-8-101"></a>            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;PropertiesEditor: resolving panel registry raised: </span><span class="si">{</span><span class="n">exc</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</span><span id="__span-8-102"><a id="__codelineno-8-102" name="__codelineno-8-102" href="#__codelineno-8-102"></a>            <span class="k">return</span>
+</span><span id="__span-8-103"><a id="__codelineno-8-103" name="__codelineno-8-103" href="#__codelineno-8-103"></a>        <span class="k">if</span> <span class="n">registry</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="__span-8-104"><a id="__codelineno-8-104" name="__codelineno-8-104" href="#__codelineno-8-104"></a>            <span class="k">return</span>
+</span><span id="__span-8-105"><a id="__codelineno-8-105" name="__codelineno-8-105" href="#__codelineno-8-105"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">_attach_panel_registry</span><span class="p">(</span><span class="n">registry</span><span class="p">)</span>
+</span><span id="__span-8-106"><a id="__codelineno-8-106" name="__codelineno-8-106" href="#__codelineno-8-106"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">_rebuild_panel_event_subscriptions</span><span class="p">()</span>
+</span><span id="__span-8-107"><a id="__codelineno-8-107" name="__codelineno-8-107" href="#__codelineno-8-107"></a>
+</span><span id="__span-8-108"><a id="__codelineno-8-108" name="__codelineno-8-108" href="#__codelineno-8-108"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">_rebuild_panel_event_subscriptions</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="__span-8-109"><a id="__codelineno-8-109" name="__codelineno-8-109" href="#__codelineno-8-109"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Recompute the panel-contributed event-bus subscription set.</span>
+</span><span id="__span-8-110"><a id="__codelineno-8-110" name="__codelineno-8-110" href="#__codelineno-8-110"></a>
+</span><span id="__span-8-111"><a id="__codelineno-8-111" name="__codelineno-8-111" href="#__codelineno-8-111"></a><span class="sd">        Drops current subs, queries the registry for the union of</span>
+</span><span id="__span-8-112"><a id="__codelineno-8-112" name="__codelineno-8-112" href="#__codelineno-8-112"></a><span class="sd">        redraw_on signals across display panels of every focus this</span>
+</span><span id="__span-8-113"><a id="__codelineno-8-113" name="__codelineno-8-113" href="#__codelineno-8-113"></a><span class="sd">        editor exposes, and re-subscribes.</span>
+</span><span id="__span-8-114"><a id="__codelineno-8-114" name="__codelineno-8-114" href="#__codelineno-8-114"></a><span class="sd">        &quot;&quot;&quot;</span>
+</span><span id="__span-8-115"><a id="__codelineno-8-115" name="__codelineno-8-115" href="#__codelineno-8-115"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">_unsubscribe_panel_event_handlers</span><span class="p">()</span>
+</span><span id="__span-8-116"><a id="__codelineno-8-116" name="__codelineno-8-116" href="#__codelineno-8-116"></a>        <span class="n">registry</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_attached_panel_registry</span>
+</span><span id="__span-8-117"><a id="__codelineno-8-117" name="__codelineno-8-117" href="#__codelineno-8-117"></a>        <span class="n">context</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_context</span>
+</span><span id="__span-8-118"><a id="__codelineno-8-118" name="__codelineno-8-118" href="#__codelineno-8-118"></a>        <span class="k">if</span> <span class="n">registry</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">context</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="__span-8-119"><a id="__codelineno-8-119" name="__codelineno-8-119" href="#__codelineno-8-119"></a>            <span class="k">return</span>
+</span><span id="__span-8-120"><a id="__codelineno-8-120" name="__codelineno-8-120" href="#__codelineno-8-120"></a>        <span class="n">signal_types</span><span class="p">:</span> <span class="nb">set</span><span class="p">[</span><span class="nb">type</span><span class="p">[</span><span class="n">Signal</span><span class="p">]]</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+</span><span id="__span-8-121"><a id="__codelineno-8-121" name="__codelineno-8-121" href="#__codelineno-8-121"></a>        <span class="k">try</span><span class="p">:</span>
+</span><span id="__span-8-122"><a id="__codelineno-8-122" name="__codelineno-8-122" href="#__codelineno-8-122"></a>            <span class="k">for</span> <span class="n">focus</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_compute_toolbar_focuses</span><span class="p">(</span><span class="n">registry</span><span class="p">):</span>
+</span><span id="__span-8-123"><a id="__codelineno-8-123" name="__codelineno-8-123" href="#__codelineno-8-123"></a>                <span class="n">signal_types</span> <span class="o">|=</span> <span class="n">registry</span><span class="o">.</span><span class="n">get_redraw_signals_for_focus</span><span class="p">(</span><span class="n">focus</span><span class="p">)</span>
+</span><span id="__span-8-124"><a id="__codelineno-8-124" name="__codelineno-8-124" href="#__codelineno-8-124"></a>        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">exc</span><span class="p">:</span>
+</span><span id="__span-8-125"><a id="__codelineno-8-125" name="__codelineno-8-125" href="#__codelineno-8-125"></a>            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;PropertiesEditor: get_redraw_signals_for_focus raised: </span><span class="si">{</span><span class="n">exc</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</span><span id="__span-8-126"><a id="__codelineno-8-126" name="__codelineno-8-126" href="#__codelineno-8-126"></a>            <span class="k">return</span>
+</span><span id="__span-8-127"><a id="__codelineno-8-127" name="__codelineno-8-127" href="#__codelineno-8-127"></a>        <span class="k">if</span> <span class="ow">not</span> <span class="n">signal_types</span><span class="p">:</span>
+</span><span id="__span-8-128"><a id="__codelineno-8-128" name="__codelineno-8-128" href="#__codelineno-8-128"></a>            <span class="k">return</span>
+</span><span id="__span-8-129"><a id="__codelineno-8-129" name="__codelineno-8-129" href="#__codelineno-8-129"></a>        <span class="n">bus_subscribe</span> <span class="o">=</span> <span class="n">context</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">subscribe</span>
+</span><span id="__span-8-130"><a id="__codelineno-8-130" name="__codelineno-8-130" href="#__codelineno-8-130"></a>        <span class="n">redraw_closure</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_make_panel_redraw_closure</span><span class="p">()</span>
+</span><span id="__span-8-131"><a id="__codelineno-8-131" name="__codelineno-8-131" href="#__codelineno-8-131"></a>        <span class="k">for</span> <span class="n">signal_type</span> <span class="ow">in</span> <span class="n">signal_types</span><span class="p">:</span>
+</span><span id="__span-8-132"><a id="__codelineno-8-132" name="__codelineno-8-132" href="#__codelineno-8-132"></a>            <span class="bp">self</span><span class="o">.</span><span class="n">_panel_bus_unsubscribes</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">bus_subscribe</span><span class="p">(</span><span class="n">signal_type</span><span class="p">,</span> <span class="n">redraw_closure</span><span class="p">))</span>
+</span><span id="__span-8-133"><a id="__codelineno-8-133" name="__codelineno-8-133" href="#__codelineno-8-133"></a>
+</span><span id="__span-8-134"><a id="__codelineno-8-134" name="__codelineno-8-134" href="#__codelineno-8-134"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">_make_panel_redraw_closure</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Callable</span><span class="p">[[</span><span class="s2">&quot;Signal&quot;</span><span class="p">],</span> <span class="kc">None</span><span class="p">]:</span>
+</span><span id="__span-8-135"><a id="__codelineno-8-135" name="__codelineno-8-135" href="#__codelineno-8-135"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Closure that, on any panel-contributed event publish, redraws the editor.</span>
+</span><span id="__span-8-136"><a id="__codelineno-8-136" name="__codelineno-8-136" href="#__codelineno-8-136"></a>
+</span><span id="__span-8-137"><a id="__codelineno-8-137" name="__codelineno-8-137" href="#__codelineno-8-137"></a><span class="sd">        Panel-contributed subscriptions have no editor-side handler body</span>
+</span><span id="__span-8-138"><a id="__codelineno-8-138" name="__codelineno-8-138" href="#__codelineno-8-138"></a><span class="sd">        — the panel author already declared the intent via ``redraw_on=``</span>
+</span><span id="__span-8-139"><a id="__codelineno-8-139" name="__codelineno-8-139" href="#__codelineno-8-139"></a><span class="sd">        on ``@panel(...)``. The closure just asks the wrapper to redraw</span>
+</span><span id="__span-8-140"><a id="__codelineno-8-140" name="__codelineno-8-140" href="#__codelineno-8-140"></a><span class="sd">        so panels re-mount with fresh state.</span>
+</span><span id="__span-8-141"><a id="__codelineno-8-141" name="__codelineno-8-141" href="#__codelineno-8-141"></a>
+</span><span id="__span-8-142"><a id="__codelineno-8-142" name="__codelineno-8-142" href="#__codelineno-8-142"></a><span class="sd">        Future per-panel-redraw optimisation hooks in here: a richer</span>
+</span><span id="__span-8-143"><a id="__codelineno-8-143" name="__codelineno-8-143" href="#__codelineno-8-143"></a><span class="sd">        closure could consult the (event_type → panel_classes) mapping</span>
+</span><span id="__span-8-144"><a id="__codelineno-8-144" name="__codelineno-8-144" href="#__codelineno-8-144"></a><span class="sd">        and rebuild only the affected panels&#39; DOM rather than the whole</span>
+</span><span id="__span-8-145"><a id="__codelineno-8-145" name="__codelineno-8-145" href="#__codelineno-8-145"></a><span class="sd">        editor. Today it forwards to ``wrapper.redraw()`` for the same</span>
+</span><span id="__span-8-146"><a id="__codelineno-8-146" name="__codelineno-8-146" href="#__codelineno-8-146"></a><span class="sd">        behaviour the framework previously provided.</span>
+</span><span id="__span-8-147"><a id="__codelineno-8-147" name="__codelineno-8-147" href="#__codelineno-8-147"></a><span class="sd">        &quot;&quot;&quot;</span>
+</span><span id="__span-8-148"><a id="__codelineno-8-148" name="__codelineno-8-148" href="#__codelineno-8-148"></a>
+</span><span id="__span-8-149"><a id="__codelineno-8-149" name="__codelineno-8-149" href="#__codelineno-8-149"></a>        <span class="k">def</span><span class="w"> </span><span class="nf">_redraw_on_panel_event</span><span class="p">(</span><span class="n">event</span><span class="p">:</span> <span class="s2">&quot;Signal&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="__span-8-150"><a id="__codelineno-8-150" name="__codelineno-8-150" href="#__codelineno-8-150"></a>            <span class="k">del</span> <span class="n">event</span>  <span class="c1"># forwarded, not inspected (yet)</span>
+</span><span id="__span-8-151"><a id="__codelineno-8-151" name="__codelineno-8-151" href="#__codelineno-8-151"></a>            <span class="bp">self</span><span class="o">.</span><span class="n">wrapper</span><span class="o">.</span><span class="n">redraw</span><span class="p">()</span>
+</span><span id="__span-8-152"><a id="__codelineno-8-152" name="__codelineno-8-152" href="#__codelineno-8-152"></a>
+</span><span id="__span-8-153"><a id="__codelineno-8-153" name="__codelineno-8-153" href="#__codelineno-8-153"></a>        <span class="k">return</span> <span class="n">_redraw_on_panel_event</span>
+</span><span id="__span-8-154"><a id="__codelineno-8-154" name="__codelineno-8-154" href="#__codelineno-8-154"></a>
+</span><span id="__span-8-155"><a id="__codelineno-8-155" name="__codelineno-8-155" href="#__codelineno-8-155"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">_unsubscribe_panel_event_handlers</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="__span-8-156"><a id="__codelineno-8-156" name="__codelineno-8-156" href="#__codelineno-8-156"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Drop the panel-contributed subscriptions.</span>
+</span><span id="__span-8-157"><a id="__codelineno-8-157" name="__codelineno-8-157" href="#__codelineno-8-157"></a>
+</span><span id="__span-8-158"><a id="__codelineno-8-158" name="__codelineno-8-158" href="#__codelineno-8-158"></a><span class="sd">        Used by the catalog-reconciliation path (registry lifecycle event)</span>
+</span><span id="__span-8-159"><a id="__codelineno-8-159" name="__codelineno-8-159" href="#__codelineno-8-159"></a><span class="sd">        and by ``cleanup``.</span>
+</span><span id="__span-8-160"><a id="__codelineno-8-160" name="__codelineno-8-160" href="#__codelineno-8-160"></a><span class="sd">        &quot;&quot;&quot;</span>
+</span><span id="__span-8-161"><a id="__codelineno-8-161" name="__codelineno-8-161" href="#__codelineno-8-161"></a>        <span class="k">for</span> <span class="n">unsub</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_panel_bus_unsubscribes</span><span class="p">:</span>
+</span><span id="__span-8-162"><a id="__codelineno-8-162" name="__codelineno-8-162" href="#__codelineno-8-162"></a>            <span class="k">try</span><span class="p">:</span>
+</span><span id="__span-8-163"><a id="__codelineno-8-163" name="__codelineno-8-163" href="#__codelineno-8-163"></a>                <span class="n">unsub</span><span class="p">()</span>
+</span><span id="__span-8-164"><a id="__codelineno-8-164" name="__codelineno-8-164" href="#__codelineno-8-164"></a>            <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">exc</span><span class="p">:</span>
+</span><span id="__span-8-165"><a id="__codelineno-8-165" name="__codelineno-8-165" href="#__codelineno-8-165"></a>                <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;PropertiesEditor: panel-bus unsubscribe raised: </span><span class="si">{</span><span class="n">exc</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</span><span id="__span-8-166"><a id="__codelineno-8-166" name="__codelineno-8-166" href="#__codelineno-8-166"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">_panel_bus_unsubscribes</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span>
+</span><span id="__span-8-167"><a id="__codelineno-8-167" name="__codelineno-8-167" href="#__codelineno-8-167"></a>
+</span><span id="__span-8-168"><a id="__codelineno-8-168" name="__codelineno-8-168" href="#__codelineno-8-168"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">_attach_panel_registry</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">registry</span><span class="p">:</span> <span class="n">PanelRegistry</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="__span-8-169"><a id="__codelineno-8-169" name="__codelineno-8-169" href="#__codelineno-8-169"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Bind to a panel registry&#39;s batch lifecycle channel.</span>
+</span><span id="__span-8-170"><a id="__codelineno-8-170" name="__codelineno-8-170" href="#__codelineno-8-170"></a>
+</span><span id="__span-8-171"><a id="__codelineno-8-171" name="__codelineno-8-171" href="#__codelineno-8-171"></a><span class="sd">        No-op if already attached to this registry. Replaces any prior</span>
+</span><span id="__span-8-172"><a id="__codelineno-8-172" name="__codelineno-8-172" href="#__codelineno-8-172"></a><span class="sd">        attachment.</span>
+</span><span id="__span-8-173"><a id="__codelineno-8-173" name="__codelineno-8-173" href="#__codelineno-8-173"></a><span class="sd">        &quot;&quot;&quot;</span>
+</span><span id="__span-8-174"><a id="__codelineno-8-174" name="__codelineno-8-174" href="#__codelineno-8-174"></a>        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_attached_panel_registry</span> <span class="ow">is</span> <span class="n">registry</span><span class="p">:</span>
+</span><span id="__span-8-175"><a id="__codelineno-8-175" name="__codelineno-8-175" href="#__codelineno-8-175"></a>            <span class="k">return</span>
+</span><span id="__span-8-176"><a id="__codelineno-8-176" name="__codelineno-8-176" href="#__codelineno-8-176"></a>        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_attached_panel_registry</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="__span-8-177"><a id="__codelineno-8-177" name="__codelineno-8-177" href="#__codelineno-8-177"></a>            <span class="bp">self</span><span class="o">.</span><span class="n">_detach_panel_registry</span><span class="p">()</span>
+</span><span id="__span-8-178"><a id="__codelineno-8-178" name="__codelineno-8-178" href="#__codelineno-8-178"></a>        <span class="k">try</span><span class="p">:</span>
+</span><span id="__span-8-179"><a id="__codelineno-8-179" name="__codelineno-8-179" href="#__codelineno-8-179"></a>            <span class="n">registry</span><span class="o">.</span><span class="n">add_batch_event_subscriber</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_on_panel_registry_event</span><span class="p">)</span>
+</span><span id="__span-8-180"><a id="__codelineno-8-180" name="__codelineno-8-180" href="#__codelineno-8-180"></a>        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">exc</span><span class="p">:</span>
+</span><span id="__span-8-181"><a id="__codelineno-8-181" name="__codelineno-8-181" href="#__codelineno-8-181"></a>            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;PropertiesEditor: failed to subscribe to panel registry: </span><span class="si">{</span><span class="n">exc</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</span><span id="__span-8-182"><a id="__codelineno-8-182" name="__codelineno-8-182" href="#__codelineno-8-182"></a>            <span class="k">return</span>
+</span><span id="__span-8-183"><a id="__codelineno-8-183" name="__codelineno-8-183" href="#__codelineno-8-183"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">_attached_panel_registry</span> <span class="o">=</span> <span class="n">registry</span>
+</span><span id="__span-8-184"><a id="__codelineno-8-184" name="__codelineno-8-184" href="#__codelineno-8-184"></a>
+</span><span id="__span-8-185"><a id="__codelineno-8-185" name="__codelineno-8-185" href="#__codelineno-8-185"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">_detach_panel_registry</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="__span-8-186"><a id="__codelineno-8-186" name="__codelineno-8-186" href="#__codelineno-8-186"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Unsubscribe from the panel registry&#39;s lifecycle channel, if attached.&quot;&quot;&quot;</span>
+</span><span id="__span-8-187"><a id="__codelineno-8-187" name="__codelineno-8-187" href="#__codelineno-8-187"></a>        <span class="n">registry</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_attached_panel_registry</span>
+</span><span id="__span-8-188"><a id="__codelineno-8-188" name="__codelineno-8-188" href="#__codelineno-8-188"></a>        <span class="k">if</span> <span class="n">registry</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="__span-8-189"><a id="__codelineno-8-189" name="__codelineno-8-189" href="#__codelineno-8-189"></a>            <span class="k">return</span>
+</span><span id="__span-8-190"><a id="__codelineno-8-190" name="__codelineno-8-190" href="#__codelineno-8-190"></a>        <span class="k">try</span><span class="p">:</span>
+</span><span id="__span-8-191"><a id="__codelineno-8-191" name="__codelineno-8-191" href="#__codelineno-8-191"></a>            <span class="n">registry</span><span class="o">.</span><span class="n">remove_batch_event_subscriber</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_on_panel_registry_event</span><span class="p">)</span>
+</span><span id="__span-8-192"><a id="__codelineno-8-192" name="__codelineno-8-192" href="#__codelineno-8-192"></a>        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">exc</span><span class="p">:</span>
+</span><span id="__span-8-193"><a id="__codelineno-8-193" name="__codelineno-8-193" href="#__codelineno-8-193"></a>            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;PropertiesEditor: failed to unsubscribe from panel registry: </span><span class="si">{</span><span class="n">exc</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</span><span id="__span-8-194"><a id="__codelineno-8-194" name="__codelineno-8-194" href="#__codelineno-8-194"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">_attached_panel_registry</span> <span class="o">=</span> <span class="kc">None</span>
+</span><span id="__span-8-195"><a id="__codelineno-8-195" name="__codelineno-8-195" href="#__codelineno-8-195"></a>
+</span><span id="__span-8-196"><a id="__codelineno-8-196" name="__codelineno-8-196" href="#__codelineno-8-196"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">_on_panel_registry_event</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">events</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="__span-8-197"><a id="__codelineno-8-197" name="__codelineno-8-197" href="#__codelineno-8-197"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Reconcile the panel-contributed subscription set on any catalog change.</span>
+</span><span id="__span-8-198"><a id="__codelineno-8-198" name="__codelineno-8-198" href="#__codelineno-8-198"></a>
+</span><span id="__span-8-199"><a id="__codelineno-8-199" name="__codelineno-8-199" href="#__codelineno-8-199"></a><span class="sd">        We don&#39;t inspect the event list: any event might change the</span>
+</span><span id="__span-8-200"><a id="__codelineno-8-200" name="__codelineno-8-200" href="#__codelineno-8-200"></a><span class="sd">        union (a new panel registers, an old one unregisters, a panel</span>
+</span><span id="__span-8-201"><a id="__codelineno-8-201" name="__codelineno-8-201" href="#__codelineno-8-201"></a><span class="sd">        reloads with a different ``redraw_on=``). Simplest correct</span>
+</span><span id="__span-8-202"><a id="__codelineno-8-202" name="__codelineno-8-202" href="#__codelineno-8-202"></a><span class="sd">        behaviour: drop all panel-contributed subs and recompute.</span>
+</span><span id="__span-8-203"><a id="__codelineno-8-203" name="__codelineno-8-203" href="#__codelineno-8-203"></a>
+</span><span id="__span-8-204"><a id="__codelineno-8-204" name="__codelineno-8-204" href="#__codelineno-8-204"></a><span class="sd">        Also asks for a redraw — a catalog change can mean new event</span>
+</span><span id="__span-8-205"><a id="__codelineno-8-205" name="__codelineno-8-205" href="#__codelineno-8-205"></a><span class="sd">        types appeared, so the current rendered state may be stale</span>
+</span><span id="__span-8-206"><a id="__codelineno-8-206" name="__codelineno-8-206" href="#__codelineno-8-206"></a><span class="sd">        relative to what those events would have triggered.</span>
+</span><span id="__span-8-207"><a id="__codelineno-8-207" name="__codelineno-8-207" href="#__codelineno-8-207"></a><span class="sd">        &quot;&quot;&quot;</span>
+</span><span id="__span-8-208"><a id="__codelineno-8-208" name="__codelineno-8-208" href="#__codelineno-8-208"></a>        <span class="k">del</span> <span class="n">events</span>  <span class="c1"># consumed by interface; not used here</span>
+</span><span id="__span-8-209"><a id="__codelineno-8-209" name="__codelineno-8-209" href="#__codelineno-8-209"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">_rebuild_panel_event_subscriptions</span><span class="p">()</span>
+</span><span id="__span-8-210"><a id="__codelineno-8-210" name="__codelineno-8-210" href="#__codelineno-8-210"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">wrapper</span><span class="o">.</span><span class="n">redraw</span><span class="p">()</span>
+</span><span id="__span-8-211"><a id="__codelineno-8-211" name="__codelineno-8-211" href="#__codelineno-8-211"></a>
+</span><span id="__span-8-212"><a id="__codelineno-8-212" name="__codelineno-8-212" href="#__codelineno-8-212"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">draw</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">context</span><span class="p">:</span> <span class="n">SessionContext</span><span class="p">,</span> <span class="n">container</span><span class="p">:</span> <span class="n">Element</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="__span-8-213"><a id="__codelineno-8-213" name="__codelineno-8-213" href="#__codelineno-8-213"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">_container</span> <span class="o">=</span> <span class="n">container</span>
+</span><span id="__span-8-214"><a id="__codelineno-8-214" name="__codelineno-8-214" href="#__codelineno-8-214"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">_context</span> <span class="o">=</span> <span class="n">context</span>
+</span><span id="__span-8-215"><a id="__codelineno-8-215" name="__codelineno-8-215" href="#__codelineno-8-215"></a>        <span class="c1"># First draw of this instance: wire panel-driven event-bus</span>
+</span><span id="__span-8-216"><a id="__codelineno-8-216" name="__codelineno-8-216" href="#__codelineno-8-216"></a>        <span class="c1"># subscriptions. Idempotent — subsequent redraws via</span>
+</span><span id="__span-8-217"><a id="__codelineno-8-217" name="__codelineno-8-217" href="#__codelineno-8-217"></a>        <span class="c1"># ``wrapper.redraw()`` re-enter draw() but skip re-subscription</span>
+</span><span id="__span-8-218"><a id="__codelineno-8-218" name="__codelineno-8-218" href="#__codelineno-8-218"></a>        <span class="c1"># because ``_attached_panel_registry`` is already set. Hot-reload</span>
+</span><span id="__span-8-219"><a id="__codelineno-8-219" name="__codelineno-8-219" href="#__codelineno-8-219"></a>        <span class="c1"># discards the instance, so the next instance&#39;s first draw()</span>
+</span><span id="__span-8-220"><a id="__codelineno-8-220" name="__codelineno-8-220" href="#__codelineno-8-220"></a>        <span class="c1"># subscribes against the fresh class / current registry.</span>
+</span><span id="__span-8-221"><a id="__codelineno-8-221" name="__codelineno-8-221" href="#__codelineno-8-221"></a>        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_attached_panel_registry</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="__span-8-222"><a id="__codelineno-8-222" name="__codelineno-8-222" href="#__codelineno-8-222"></a>            <span class="bp">self</span><span class="o">.</span><span class="n">_subscribe_panel_event_handlers</span><span class="p">(</span><span class="n">context</span><span class="p">)</span>
+</span><span id="__span-8-223"><a id="__codelineno-8-223" name="__codelineno-8-223" href="#__codelineno-8-223"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">_build_layout</span><span class="p">(</span><span class="n">context</span><span class="p">)</span>
+</span><span id="__span-8-224"><a id="__codelineno-8-224" name="__codelineno-8-224" href="#__codelineno-8-224"></a>
+</span><span id="__span-8-225"><a id="__codelineno-8-225" name="__codelineno-8-225" href="#__codelineno-8-225"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">cleanup</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="__span-8-226"><a id="__codelineno-8-226" name="__codelineno-8-226" href="#__codelineno-8-226"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Tear down panel-bus subscriptions when this editor instance goes away.</span>
+</span><span id="__span-8-227"><a id="__codelineno-8-227" name="__codelineno-8-227" href="#__codelineno-8-227"></a>
+</span><span id="__span-8-228"><a id="__codelineno-8-228" name="__codelineno-8-228" href="#__codelineno-8-228"></a><span class="sd">        Called by the framework on permanent removal and during hot-</span>
+</span><span id="__span-8-229"><a id="__codelineno-8-229" name="__codelineno-8-229" href="#__codelineno-8-229"></a><span class="sd">        reload (before the new instance is built). Drops every panel-</span>
+</span><span id="__span-8-230"><a id="__codelineno-8-230" name="__codelineno-8-230" href="#__codelineno-8-230"></a><span class="sd">        contributed subscription and detaches from the panel registry&#39;s</span>
+</span><span id="__span-8-231"><a id="__codelineno-8-231" name="__codelineno-8-231" href="#__codelineno-8-231"></a><span class="sd">        lifecycle channel.</span>
+</span><span id="__span-8-232"><a id="__codelineno-8-232" name="__codelineno-8-232" href="#__codelineno-8-232"></a><span class="sd">        &quot;&quot;&quot;</span>
+</span><span id="__span-8-233"><a id="__codelineno-8-233" name="__codelineno-8-233" href="#__codelineno-8-233"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">_unsubscribe_panel_event_handlers</span><span class="p">()</span>
+</span><span id="__span-8-234"><a id="__codelineno-8-234" name="__codelineno-8-234" href="#__codelineno-8-234"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">_detach_panel_registry</span><span class="p">()</span>
+</span></code></pre></div>
+<p>_rebuild_toolbar / _rebuild_content omitted for brevity — see source.</p>
+<p>What this example exercises:</p>
+<table>
+<thead>
+<tr>
+<th>Concept</th>
+<th>Where</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>@editor(label, icon, default_slot='right', description)</code> — implicit <code>opens='required'</code></td>
+<td>top of class</td>
+</tr>
+<tr>
+<td><code>class_identity</code> and <code>class_library</code> set automatically by the decorator</td>
+<td>(set on the class object)</td>
+</tr>
+<tr>
+<td>Per-instance state initialised in <code>__init__</code>, persisted across redraws</td>
+<td><code>_active_focus_id</code>, <code>_expansion_state</code></td>
+</tr>
+<tr>
+<td><code>draw(context, container)</code> builds the subtree; container starts cleared</td>
+<td><code>draw</code></td>
+</tr>
+<tr>
+<td>Panel-driven bus subscriptions: editor unions <code>redraw_on=</code> signals across display panels per focus and subscribes the wrapper to the effective set</td>
+<td><code>_subscribe_panel_event_handlers</code></td>
+</tr>
+<tr>
+<td>Reconciling subscriptions on catalog mutation (library install / uninstall / hot-reload)</td>
+<td><code>_on_panel_registry_event</code></td>
+</tr>
+<tr>
+<td>Pulling DI dependencies from <code>context.app</code> on first draw</td>
+<td><code>context.app.library_service.get_panel_registry()</code></td>
+</tr>
+<tr>
+<td>Querying display panels by focus only: <code>registry.get_panels_for_focus(focus)</code></td>
+<td><code>_rebuild_content</code> (full source)</td>
+</tr>
+<tr>
+<td>Querying focuses for the icon toolbar: <code>registry.get_display_focuses()</code></td>
+<td><code>_compute_toolbar_focuses</code></td>
+</tr>
+<tr>
+<td>Collecting redraw signals per focus: <code>registry.get_redraw_signals_for_focus(focus)</code></td>
+<td><code>_rebuild_panel_event_subscriptions</code></td>
+</tr>
+<tr>
+<td>Per-instance UI references (<code>_toolbar</code>, <code>_content</code>) re-fetched on each <code>draw</code></td>
+<td>layout fields</td>
+</tr>
+</tbody>
+</table>
+<p>For the <code>Focus</code> and <code>Panel</code> extension points the editor hosts, see <a href="../../panels/panel-canon/">components/panels</a>. For the <code>EditState</code> reactive state model, see <a href="../../states/state-canon/">components/states</a>. For the bus and the AppShell that subscribes to lifecycle commands, see <a href="../../../architecture/studio/studio-arch/">architecture/studio</a>.</p>
+<hr />
+<h2 id="quick-reference">Quick reference<a class="headerlink" href="#quick-reference" title="Permanent link">&para;</a></h2>
+<h3 id="authoring-checklist">Authoring checklist<a class="headerlink" href="#authoring-checklist" title="Permanent link">&para;</a></h3>
+<ul class="task-list">
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> <code>@editor(label='...', default_slot='...')</code> — both have sensible defaults; set them deliberately</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> Choose <code>opens='required'</code> / <code>'on_context'</code> / <code>'on_payload'</code></li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> Inherit from <code>BaseEditor</code>; implement <code>draw(self, context, container)</code> — required</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> Decorate handler methods with <code>@redraw_on(*SignalTypes)</code> for signals that warrant a full editor redraw — empty body is fine; the framework redraws once per dispatch pass</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> Decorate handler methods with <code>@react_on(*SignalTypes)</code> for pure side effects — no auto-redraw; the body owns any explicit <code>wrapper.redraw()</code> / <code>session.publish(Reveal/Close/...)</code> calls</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> Initialise instance state in <code>__init__</code>; container/UI refs re-fetched in <code>draw()</code></li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> Optional: <code>on_focus(self, context)</code> — runs <em>before</em> <code>draw()</code> on the newly-activated wrapper</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> Optional: <code>cleanup(self)</code> — release subscriptions / timers (the framework drops decorated-handler subscriptions automatically)</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> Optional: <code>get_tab_label(self, context)</code> — dynamic per-binding_id label</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> Optional: <code>async handle_close_request(self)</code> — veto/save dialog before tab close</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> Drive other slots with <code>context.session.publish(Reveal(editor=..., binding_id=...))</code></li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> Use <code>BroadcastClose(binding_id=...)</code> instead of <code>Close(binding_id=...)</code> when the underlying entity is gone for every session, not just yours</li>
+</ul>
+<h3 id="imports">Imports<a class="headerlink" href="#imports" title="Permanent link">&para;</a></h3>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">haywire.ui.editor.base</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseEditor</span>
+</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">haywire.ui.editor.decorator</span><span class="w"> </span><span class="kn">import</span> <span class="n">editor</span>
+</span><span id="__span-9-3"><a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a><span class="kn">from</span><span class="w"> </span><span class="nn">haywire.ui.editor.identity</span><span class="w"> </span><span class="kn">import</span> <span class="n">OpenBehavior</span>
+</span><span id="__span-9-4"><a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a><span class="kn">from</span><span class="w"> </span><span class="nn">haywire.core.session.handlers</span><span class="w"> </span><span class="kn">import</span> <span class="n">redraw_on</span><span class="p">,</span> <span class="n">react_on</span>
+</span><span id="__span-9-5"><a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a><span class="kn">from</span><span class="w"> </span><span class="nn">haywire.core.session.signals</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+</span><span id="__span-9-6"><a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a>    <span class="n">Signal</span><span class="p">,</span>
+</span><span id="__span-9-7"><a id="__codelineno-9-7" name="__codelineno-9-7" href="#__codelineno-9-7"></a>    <span class="n">SelectionMoved</span><span class="p">,</span> <span class="n">ActiveGraphMoved</span><span class="p">,</span> <span class="n">GraphDataMutated</span><span class="p">,</span>
+</span><span id="__span-9-8"><a id="__codelineno-9-8" name="__codelineno-9-8" href="#__codelineno-9-8"></a>    <span class="n">Reveal</span><span class="p">,</span> <span class="n">Close</span><span class="p">,</span> <span class="n">BroadcastClose</span><span class="p">,</span>
+</span><span id="__span-9-9"><a id="__codelineno-9-9" name="__codelineno-9-9" href="#__codelineno-9-9"></a><span class="p">)</span>
+</span></code></pre></div>
+<h3 id="slot-rules">Slot rules<a class="headerlink" href="#slot-rules" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th><code>default_slot</code></th>
+<th>Valid <code>opens</code> values</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>'left'</code></td>
+<td><code>'required'</code> only</td>
+</tr>
+<tr>
+<td><code>'right'</code></td>
+<td><code>'required'</code> only</td>
+</tr>
+<tr>
+<td><code>'main'</code></td>
+<td><code>'required'</code>, <code>'on_context'</code>, <code>'on_payload'</code></td>
+</tr>
+<tr>
+<td><code>'bottom'</code></td>
+<td><code>'required'</code>, <code>'on_context'</code>, <code>'on_payload'</code></td>
+</tr>
+</tbody>
+</table>
+
+
+
+
+
+
+
+  
+  
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+  <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var labels=set.querySelector(".tabbed-labels");for(var tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../../..", "features": ["navigation.instant", "navigation.tracking", "navigation.tabs", "navigation.tabs.sticky", "navigation.sections", "navigation.expand", "navigation.indexes", "navigation.top", "search.highlight", "search.suggest", "content.code.copy", "content.code.annotate", "content.tabs.link", "toc.follow"], "search": "../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>

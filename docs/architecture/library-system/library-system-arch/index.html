@@ -1,0 +1,3540 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="A Blueprint-inspired visual programming system — dual-flow control + data, library plugin model, hot-reload-first development.">
+      
+      
+      
+        <link rel="canonical" href="https://going-haywire.github.io/haywire/docs/architecture/library-system/library-system-arch/">
+      
+      
+        <link rel="prev" href="../../execution/callbacks/callbacks-arch/">
+      
+      
+        <link rel="next" href="../../library-manager/library-manager-arch/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>Library system - Haywire Documentation</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Inter:300,300i,400,400i,700,700i%7CJetBrains+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Inter";--md-code-font:"JetBrains Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#library-system-architecture" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow md-header--lifted" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../../.." title="Haywire Documentation" class="md-header__button md-logo" aria-label="Haywire Documentation" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Haywire Documentation
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Library system
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+  </nav>
+  
+    
+      
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../.." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../welcome/user/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Perspectives
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../components/nodes/node-canon/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Components
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../guides/node-roles/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Guides
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../../overview/overview-arch/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Architecture
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../reference/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Reference
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../archive/whitepaper/Haywire_design/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Archive
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+    
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../../.." title="Haywire Documentation" class="md-nav__button md-logo" aria-label="Haywire Documentation" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    Haywire Documentation
+  </label>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../../welcome/user/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Perspectives
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_2" id="__nav_2_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Perspectives
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../welcome/advanced/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Advanced (workbench extender)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../welcome/core/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Core (system architect)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Components
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Components
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../components/nodes/node-canon/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Nodes
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../components/datatypes/datatype-canon/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Datatypes
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../components/adapters/adapter-canon/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Adapters
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../components/settings/setting-canon/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Settings
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../components/widgets/widget-canon/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Widgets
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../components/skins/skin-canon/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Skins
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--placeholder"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../components/themes/theme-canon/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Themes
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../components/editors/editor-canon/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Editors
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../components/panels/panel-canon/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Panels
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../components/states/state-canon/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    States
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../components/libraries/library-canon/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Libraries
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../components/haybale-package/haybale-package-canon/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Haybale package
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Guides
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Guides
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../guides/node-roles/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Node roles
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../guides/ports/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Ports
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../guides/signals/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Signals
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../guides/sharing-libraries/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Sharing libraries
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../guides/subscribing-to-marketplaces/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Subscribing to marketplaces
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Architecture
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../overview/overview-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--placeholder"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../design/design-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Design
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--placeholder"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../graph/graph-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Graph
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_5_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_5_4" id="__nav_5_4_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Execution
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_5_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Execution
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../execution/execution-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../execution/assembly/assembly-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Assembly
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../execution/edges/edges-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Edges
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../execution/flow/flow-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Flow
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--placeholder"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../execution/virtual-machine/virtual-machine-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Virtual machine
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--placeholder"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../execution/lazy-evaluation/lazy-evaluation-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Lazy evaluation
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--placeholder"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../execution/callbacks/callbacks-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Callbacks
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Library system
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Library system
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#1-overview" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Overview
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-components" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Components
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="2. Components">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#21-librarydiscovery-haywirecorelibrarydiscoverypy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.1 LibraryDiscovery (haywire/core/library/discovery.py)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#22-libraryregistry-haywirecorelibraryregistrypy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.2 LibraryRegistry (haywire/core/library/registry.py)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#23-installtype-enum-haywirecorelibraryinstall_typepy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.3 InstallType enum (haywire/core/library/install_type.py)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#24-libraryidentity-haywirecorelibraryidentitypy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.4 LibraryIdentity (haywire/core/library/identity.py)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#25-filewatcher-haywirecorelibraryfile_watcherpy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.5 FileWatcher (haywire/core/library/file_watcher.py)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#26-baselibrary-and-library-haywirecorelibrarybasepy-decoratorpy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.6 BaseLibrary and @library (haywire/core/library/base.py, decorator.py)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-data-flow" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Data flow
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="3. Data flow">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#31-discovery-sequence-at-startup" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.1 Discovery sequence at startup
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#32-priority-order-when-multiple-sources-provide-the-same-library-id" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.2 Priority order when multiple sources provide the same library ID
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#33-hot-reload-trigger" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.3 Hot-reload trigger
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-performance-errors-and-boundaries" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Performance, errors, and boundaries
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="4. Performance, errors, and boundaries">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#41-entry-point-scanning" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.1 Entry-point scanning
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#42-module-resolution-cost" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.2 Module-resolution cost
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#43-hot-reload-memory" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.3 Hot-reload memory
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#44-error-handling" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.4 Error handling
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#45-boundary-what-the-library-system-is-not" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.5 Boundary — what the Library System is not
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#46-authoring-contract-for-libraries" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.6 Authoring contract for libraries
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-programmatic-embedding" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. Programmatic embedding
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="5. Programmatic embedding">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#create_library_system_service-most-callers" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        create_library_system_service(...) — most callers
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#create_haywire_injector-when-you-need-the-injector-itself" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        create_haywire_injector(...) — when you need the injector itself
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#parameter-reference-both-functions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Parameter reference (both functions)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../library-manager/library-manager-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Library manager
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sharing/sharing-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Sharing — philosophy
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../hot-reload/hot-reload-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Hot-reload
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../settings/settings-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Settings
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../session-and-state/session-and-state-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Session and state
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_5_11" >
+        
+          
+          <label class="md-nav__link" for="__nav_5_11" id="__nav_5_11_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Studio
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_5_11_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5_11">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Studio
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../studio/studio-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../studio/app-shell/app-shell-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    App shell
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--placeholder"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../studio/workspace/workspace-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Workspace
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--placeholder"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../studio/canvas/canvas-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Canvas
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--placeholder"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../studio/rendering/rendering-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Rendering
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--placeholder"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_6" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../../reference/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reference
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_6" id="__nav_6_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../reference/glossary/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Glossary
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../reference/design-guide/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Design guide
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_7" >
+        
+          
+          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Archive
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Archive
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../archive/whitepaper/Haywire_design/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Whitepaper
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#1-overview" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Overview
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-components" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Components
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="2. Components">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#21-librarydiscovery-haywirecorelibrarydiscoverypy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.1 LibraryDiscovery (haywire/core/library/discovery.py)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#22-libraryregistry-haywirecorelibraryregistrypy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.2 LibraryRegistry (haywire/core/library/registry.py)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#23-installtype-enum-haywirecorelibraryinstall_typepy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.3 InstallType enum (haywire/core/library/install_type.py)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#24-libraryidentity-haywirecorelibraryidentitypy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.4 LibraryIdentity (haywire/core/library/identity.py)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#25-filewatcher-haywirecorelibraryfile_watcherpy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.5 FileWatcher (haywire/core/library/file_watcher.py)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#26-baselibrary-and-library-haywirecorelibrarybasepy-decoratorpy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.6 BaseLibrary and @library (haywire/core/library/base.py, decorator.py)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-data-flow" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Data flow
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="3. Data flow">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#31-discovery-sequence-at-startup" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.1 Discovery sequence at startup
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#32-priority-order-when-multiple-sources-provide-the-same-library-id" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.2 Priority order when multiple sources provide the same library ID
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#33-hot-reload-trigger" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.3 Hot-reload trigger
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-performance-errors-and-boundaries" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Performance, errors, and boundaries
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="4. Performance, errors, and boundaries">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#41-entry-point-scanning" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.1 Entry-point scanning
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#42-module-resolution-cost" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.2 Module-resolution cost
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#43-hot-reload-memory" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.3 Hot-reload memory
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#44-error-handling" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.4 Error handling
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#45-boundary-what-the-library-system-is-not" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.5 Boundary — what the Library System is not
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#46-authoring-contract-for-libraries" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.6 Authoring contract for libraries
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-programmatic-embedding" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. Programmatic embedding
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="5. Programmatic embedding">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#create_library_system_service-most-callers" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        create_library_system_service(...) — most callers
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#create_haywire_injector-when-you-need-the-injector-itself" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        create_haywire_injector(...) — when you need the injector itself
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#parameter-reference-both-functions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Parameter reference (both functions)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+
+<h1 id="library-system-architecture">Library System — Architecture<a class="headerlink" href="#library-system-architecture" title="Permanent link">&para;</a></h1>
+<h2 id="1-overview">1. Overview<a class="headerlink" href="#1-overview" title="Permanent link">&para;</a></h2>
+<p>The Library System is the framework infrastructure that finds Haywire libraries on disk, loads their <code>Library</code> classes, and routes their components into the right registries (nodes, types, adapters, widgets, skins, themes). It runs at app startup and stays running for hot-reload.</p>
+<p>It is <strong>not</strong> the studio's library-manager UI — see <a href="../../library-manager/library-manager-arch/">library-manager</a> for that. It is <strong>not</strong> how a developer authors a library — see <a href="../../../components/libraries/library-canon/">components/libraries</a> for that. It is the layer between the package manager (uv/pip) and the registries.</p>
+<p>Two layers, one wrapper:</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>┌─────────────────────────────────────────────────────────────┐
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>│  Layer 1 — Package layer  (uv / pip)                        │
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>│  Installs Python distributions into the virtual environment │
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>│  and writes entry points to site-packages metadata.         │
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>└──────────────────────────┬──────────────────────────────────┘
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>                           │ importlib.metadata.entry_points()
+</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>┌──────────────────────────▼──────────────────────────────────┐
+</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>│  Layer 2 — Registry layer  (haywire-core)                   │
+</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>│  LibraryRegistry scans entry points, loads Library classes, │
+</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>│  and populates NodeRegistry / TypeRegistry / WidgetRegistry │
+</span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>│  / AdapterRegistry / SkinRegistry / ThemeRegistry.          │
+</span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>└─────────────────────────────────────────────────────────────┘
+</span></code></pre></div>
+<p>The studio adds a third UI layer (<a href="../../library-manager/library-manager-arch/">library-manager</a>) that wraps both — but the Library System works without it.</p>
+<h2 id="2-components">2. Components<a class="headerlink" href="#2-components" title="Permanent link">&para;</a></h2>
+<h3 id="21-librarydiscovery-haywirecorelibrarydiscoverypy">2.1 <code>LibraryDiscovery</code> (<code>haywire/core/library/discovery.py</code>)<a class="headerlink" href="#21-librarydiscovery-haywirecorelibrarydiscoverypy" title="Permanent link">&para;</a></h3>
+<p>Reads the <code>haywire.libraries</code> entry-point group. At startup, calls:</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="n">importlib</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">entry_points</span><span class="p">(</span><span class="n">group</span><span class="o">=</span><span class="s1">&#39;haywire.libraries&#39;</span><span class="p">)</span>
+</span></code></pre></div>
+<p>For each entry point, returns a <code>DiscoveredLibrary</code> record with the library ID, the dotted import path, and the install type (see §2.3).</p>
+<h3 id="22-libraryregistry-haywirecorelibraryregistrypy">2.2 <code>LibraryRegistry</code> (<code>haywire/core/library/registry.py</code>)<a class="headerlink" href="#22-libraryregistry-haywirecorelibraryregistrypy" title="Permanent link">&para;</a></h3>
+<p>Owns the registry-of-registries. For each discovered library:</p>
+<ol>
+<li>Imports the <code>Library</code> class.</li>
+<li>Reads its <code>@library(...)</code> decorator metadata and constructs a <code>LibraryIdentity</code>.</li>
+<li>Calls <code>Library.register_components()</code>, which uses <code>add_folder_to_registry()</code> calls to populate the global registries.</li>
+<li>If <code>file_watcher=True</code> on the decorator, starts a <code>FileWatcher</code> rooted at the library's source directory.</li>
+</ol>
+<p>Class registries it routes into (each is a <code>BaseRegistry</code> subclass):</p>
+<ul>
+<li><code>NodeRegistry</code> — <code>@node</code> classes</li>
+<li><code>TypeRegistry</code> — <code>@type</code> classes</li>
+<li><code>AdapterRegistry</code> — <code>@adapter</code> classes</li>
+<li><code>WidgetRegistry</code> — <code>@widget</code> classes</li>
+<li><code>SkinRegistry</code> — skin classes</li>
+<li><code>ThemeRegistry</code> — <code>WorkbenchTheme</code> / <code>NodeTheme</code> subclasses</li>
+</ul>
+<p><code>LibraryRegistry.add_class_registry(cls, instance)</code> is how the DI layer registers each one at startup.</p>
+<h3 id="23-installtype-enum-haywirecorelibraryinstall_typepy">2.3 <code>InstallType</code> enum (<code>haywire/core/library/install_type.py</code>)<a class="headerlink" href="#23-installtype-enum-haywirecorelibraryinstall_typepy" title="Permanent link">&para;</a></h3>
+<p>Three values, all set by <code>LibraryDiscovery</code> based on filesystem inspection:</p>
+<table>
+<thead>
+<tr>
+<th><code>InstallType</code></th>
+<th>Value</th>
+<th>Detection rule</th>
+<th>Hot-reload</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>REGULAR</code></td>
+<td><code>"regular"</code></td>
+<td>Source path is inside <code>site-packages</code></td>
+<td>No</td>
+</tr>
+<tr>
+<td><code>EDITABLE</code></td>
+<td><code>"editable"</code></td>
+<td>Source path is in the source tree (resolved via <code>.pth</code>)</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td><code>FOLDER</code></td>
+<td><code>"folder"</code></td>
+<td>Added via <code>library_paths</code> config (no entry point)</td>
+<td>Yes</td>
+</tr>
+</tbody>
+</table>
+<p>The install type is propagated to <code>LibraryIdentity</code> and exposed by the <a href="../../library-manager/library-manager-arch/">library-manager</a> UI to control which actions are available (Save source, Uninstall).</p>
+<h3 id="24-libraryidentity-haywirecorelibraryidentitypy">2.4 <code>LibraryIdentity</code> (<code>haywire/core/library/identity.py</code>)<a class="headerlink" href="#24-libraryidentity-haywirecorelibraryidentitypy" title="Permanent link">&para;</a></h3>
+<p>Frozen dataclass attached as <code>class_library</code> on every component class. Carries the library ID, version, label, install type, and source path. The identity is what every other registry uses to attribute a class to its owning library.</p>
+<h3 id="25-filewatcher-haywirecorelibraryfile_watcherpy">2.5 <code>FileWatcher</code> (<code>haywire/core/library/file_watcher.py</code>)<a class="headerlink" href="#25-filewatcher-haywirecorelibraryfile_watcherpy" title="Permanent link">&para;</a></h3>
+<p>A <code>watchdog</code>-based file-system observer started per library when <code>file_watcher=True</code>. On any <code>.py</code> change inside the library's source directory, it triggers the <a href="../../hot-reload/hot-reload-arch/">hot-reload</a> pipeline: re-import the module, re-register components, rebuild affected node and edge wrappers, revalidate the graph.</p>
+<p>Two switches gate file watching at different scopes:</p>
+<ul>
+<li><code>@library(file_watcher=True)</code> — per-library decorator field. Off by default. Tells <code>LibraryRegistry</code> to attach a watcher when this library is loaded.</li>
+<li><code>enable_file_watching: bool</code> — system-level switch passed to <code>create_library_system_service(...)</code> / <code>create_haywire_injector(...)</code> (see §5). Defaults to <code>True</code>. When <code>False</code>, no library gets a watcher regardless of the per-library decorator.</li>
+</ul>
+<p>The debounce delay (how long the watcher waits after the last <code>.py</code> change before triggering a reload) is hardcoded to <strong>0.5 s</strong> in <code>provide_library_registry</code> and is not currently a tunable parameter of the public API. If you need a different debounce, call <code>LibraryRegistry.enable_file_watching(debounce_delay=X, force=True)</code> directly after constructing the injector.</p>
+<h3 id="26-baselibrary-and-library-haywirecorelibrarybasepy-decoratorpy">2.6 <code>BaseLibrary</code> and <code>@library</code> (<code>haywire/core/library/base.py</code>, <code>decorator.py</code>)<a class="headerlink" href="#26-baselibrary-and-library-haywirecorelibrarybasepy-decoratorpy" title="Permanent link">&para;</a></h3>
+<p>Authoring surface — see <a href="../../../components/libraries/library-canon/">components/libraries</a>. The architecture-relevant facts:</p>
+<ul>
+<li><code>register_components()</code> is the mandatory hook called by <code>LibraryRegistry</code>.</li>
+<li><code>validate()</code> is called after registration; returning <code>False</code> aborts the load.</li>
+<li>The <code>@library</code> decorator's <code>file_watcher</code> parameter wires up §2.5.</li>
+<li>The decorator's <code>id</code> parameter is the library's stable identifier across the registries.</li>
+</ul>
+<h2 id="3-data-flow">3. Data flow<a class="headerlink" href="#3-data-flow" title="Permanent link">&para;</a></h2>
+<h3 id="31-discovery-sequence-at-startup">3.1 Discovery sequence at startup<a class="headerlink" href="#31-discovery-sequence-at-startup" title="Permanent link">&para;</a></h3>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>HaywireApp.__init__()
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>  │
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>  ├── LibraryDiscovery.scan()
+</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>  │     importlib.metadata.entry_points(group=&#39;haywire.libraries&#39;)
+</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>  │     → [DiscoveredLibrary(id, import_path, install_type), ...]
+</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>  │
+</span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>  ├── for each DiscoveredLibrary:
+</span><span id="__span-2-8"><a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a>  │     LibraryRegistry.load(discovered)
+</span><span id="__span-2-9"><a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a>  │       │
+</span><span id="__span-2-10"><a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a>  │       ├── importlib.import_module(import_path)
+</span><span id="__span-2-11"><a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a>  │       ├── Library = getattr(module, &#39;Library&#39;)
+</span><span id="__span-2-12"><a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a>  │       ├── LibraryIdentity(...) ← from @library decorator + install_type
+</span><span id="__span-2-13"><a id="__codelineno-2-13" name="__codelineno-2-13" href="#__codelineno-2-13"></a>  │       ├── library_instance = Library()
+</span><span id="__span-2-14"><a id="__codelineno-2-14" name="__codelineno-2-14" href="#__codelineno-2-14"></a>  │       ├── library_instance.register_components()
+</span><span id="__span-2-15"><a id="__codelineno-2-15" name="__codelineno-2-15" href="#__codelineno-2-15"></a>  │       │     └── self.add_folder_to_registry(folder=&#39;nodes&#39;, registry_cls=NodeRegistry)
+</span><span id="__span-2-16"><a id="__codelineno-2-16" name="__codelineno-2-16" href="#__codelineno-2-16"></a>  │       │     └── self.add_folder_to_registry(folder=&#39;types&#39;, registry_cls=TypeRegistry)
+</span><span id="__span-2-17"><a id="__codelineno-2-17" name="__codelineno-2-17" href="#__codelineno-2-17"></a>  │       │     └── ...
+</span><span id="__span-2-18"><a id="__codelineno-2-18" name="__codelineno-2-18" href="#__codelineno-2-18"></a>  │       ├── if not library_instance.validate(): abort
+</span><span id="__span-2-19"><a id="__codelineno-2-19" name="__codelineno-2-19" href="#__codelineno-2-19"></a>  │       └── if @library(file_watcher=True):
+</span><span id="__span-2-20"><a id="__codelineno-2-20" name="__codelineno-2-20" href="#__codelineno-2-20"></a>  │             FileWatcher(library_instance.source_path).start()
+</span><span id="__span-2-21"><a id="__codelineno-2-21" name="__codelineno-2-21" href="#__codelineno-2-21"></a>  │
+</span><span id="__span-2-22"><a id="__codelineno-2-22" name="__codelineno-2-22" href="#__codelineno-2-22"></a>  └── all class registries now populated; app proceeds
+</span></code></pre></div>
+<p>State classes registered via <code>LibraryStateRegistry</code> have a two-phase lifecycle that intersects this loop: instantiation happens per library as it enables, but <code>AppState.on_enable</code> is held back until the whole <code>enable_all_libraries()</code> loop returns and a catch-up pass runs. See <a href="../../session-and-state/session-and-state-arch/#31-appstate-lifecycle">session-and-state-arch §3.1</a> and <a href="../../session-and-state/session-and-state-arch/#52-librarysystemservice-wiring">§5.2</a> for the wiring and rationale.</p>
+<h3 id="32-priority-order-when-multiple-sources-provide-the-same-library-id">3.2 Priority order when multiple sources provide the same library ID<a class="headerlink" href="#32-priority-order-when-multiple-sources-provide-the-same-library-id" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Priority</th>
+<th>Source</th>
+<th>Origin</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>Core libraries</td>
+<td>Bundled with <code>haywire-core</code> (internal)</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Regular pip installs</td>
+<td><code>site-packages</code></td>
+</tr>
+<tr>
+<td>3</td>
+<td>Editable pip installs</td>
+<td><code>pip install -e</code> (resolved via <code>.pth</code>)</td>
+</tr>
+<tr>
+<td>4</td>
+<td>Folder paths</td>
+<td>Added through <code>library_paths</code> config (no entry point)</td>
+</tr>
+</tbody>
+</table>
+<p>First match wins. Detection is by the resolved filesystem location of the import.</p>
+<h3 id="33-hot-reload-trigger">3.3 Hot-reload trigger<a class="headerlink" href="#33-hot-reload-trigger" title="Permanent link">&para;</a></h3>
+<p>For libraries with <code>file_watcher=True</code>:</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>FileWatcher detects .py change
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>  │
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>  ├── importlib.reload(module)
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>  │
+</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>  ├── BaseRegistry._on_change fires for each registry that holds classes from this module
+</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>  │     → NodeRegistry, TypeRegistry, AdapterRegistry, WidgetRegistry, …
+</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a>  │     → For each registered class whose source is in the changed file:
+</span><span id="__span-3-8"><a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a>  │         drop old class, register new class under same registry_key
+</span><span id="__span-3-9"><a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a>  │
+</span><span id="__span-3-10"><a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a>  ├── Affected NodeWrappers rebuild from recipe (port specs serialized → re-instantiated)
+</span><span id="__span-3-11"><a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a>  │
+</span><span id="__span-3-12"><a id="__codelineno-3-12" name="__codelineno-3-12" href="#__codelineno-3-12"></a>  ├── Affected EdgeWrappers rebuild adapter chains
+</span><span id="__span-3-13"><a id="__codelineno-3-13" name="__codelineno-3-13" href="#__codelineno-3-13"></a>  │
+</span><span id="__span-3-14"><a id="__codelineno-3-14" name="__codelineno-3-14" href="#__codelineno-3-14"></a>  └── Graph revalidates; UI re-renders
+</span></code></pre></div>
+<p>See <a href="../../hot-reload/hot-reload-arch/">architecture/hot-reload</a> for the full pipeline.</p>
+<h2 id="4-performance-errors-and-boundaries">4. Performance, errors, and boundaries<a class="headerlink" href="#4-performance-errors-and-boundaries" title="Permanent link">&para;</a></h2>
+<h3 id="41-entry-point-scanning">4.1 Entry-point scanning<a class="headerlink" href="#41-entry-point-scanning" title="Permanent link">&para;</a></h3>
+<p><code>importlib.metadata.entry_points()</code> is fast (milliseconds) but scales linearly with the number of installed Python packages — not just Haywire libraries. There is no caching layer in the framework; if startup time becomes an issue with very large environments, this is the place to look first.</p>
+<h3 id="42-module-resolution-cost">4.2 Module-resolution cost<a class="headerlink" href="#42-module-resolution-cost" title="Permanent link">&para;</a></h3>
+<p>Each library import triggers Python's full import chain (its dependencies, its dependencies' dependencies). For libraries with heavy native dependencies (numpy, opencv), this dominates startup. The framework has no lazy-loading for libraries today — every discovered library is loaded eagerly so its types and nodes appear in the registries.</p>
+<h3 id="43-hot-reload-memory">4.3 Hot-reload memory<a class="headerlink" href="#43-hot-reload-memory" title="Permanent link">&para;</a></h3>
+<p>Hot-reload does not unload the <em>old</em> module — Python's import system keeps stale references in <code>sys.modules</code> and in any closures that captured them. The framework's discipline is to rebuild every wrapper that references a reloaded class (see §3.3) so user code sees only the new class. Memory grows on each reload; restart is the only cleanup.</p>
+<h3 id="44-error-handling">4.4 Error handling<a class="headerlink" href="#44-error-handling" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Error class</th>
+<th>Where raised</th>
+<th>Effect</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>LibraryDiscoveryError</code></td>
+<td><code>library/registry.py</code></td>
+<td>Wraps any error during entry-point scanning</td>
+</tr>
+<tr>
+<td><code>LibraryLoadError</code></td>
+<td><code>library/registry.py</code></td>
+<td>Wraps any error during a single library's load (import error, decorator failure, <code>register_components()</code> raises)</td>
+</tr>
+</tbody>
+</table>
+<p>A failed library does not abort the app — it is logged and skipped, its components do not appear in the registries.</p>
+<h3 id="45-boundary-what-the-library-system-is-not">4.5 Boundary — what the Library System is not<a class="headerlink" href="#45-boundary-what-the-library-system-is-not" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Not a package manager.</strong> It does not install, uninstall, or update Python packages. That is uv/pip (Layer 1) and the <a href="../../library-manager/library-manager-arch/">library-manager UI</a> (Layer 3) wrapping uv.</li>
+<li><strong>Not a marketplace.</strong> The <code>marketplace.toml</code> format and feed-fetching live with the library-manager UI, not here.</li>
+<li><strong>Not the place where component authoring is documented.</strong> That belongs in <a href="../../../components/libraries/library-canon/">components/libraries</a> and <a href="../../../components/haybale-package/haybale-package-canon/">components/haybale-package</a>.</li>
+</ul>
+<h3 id="46-authoring-contract-for-libraries">4.6 Authoring contract for libraries<a class="headerlink" href="#46-authoring-contract-for-libraries" title="Permanent link">&para;</a></h3>
+<p>A haybale library is a Python package with:</p>
+<ol>
+<li>A <code>pyproject.toml</code> declaring the entry point:
+   <div class="language-toml highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="k">[project.entry-points.</span><span class="s2">&quot;haywire.libraries&quot;</span><span class="k">]</span>
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="n">mylib</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;haybale_mylib:Library&quot;</span>
+</span></code></pre></div></li>
+<li>An <code>__init__.py</code> containing a <code>@library(...)</code> decorated <code>Library</code> class that subclasses <code>BaseLibrary</code>.</li>
+<li>Implements <code>register_components()</code> (mandatory) and <code>validate()</code> (returns <code>bool</code>).</li>
+</ol>
+<p>See <a href="../../../components/libraries/library-canon/">components/libraries</a> for the full authoring story and <a href="../../../components/haybale-package/haybale-package-canon/">components/haybale-package</a> for packaging and distribution.</p>
+<h2 id="5-programmatic-embedding">5. Programmatic embedding<a class="headerlink" href="#5-programmatic-embedding" title="Permanent link">&para;</a></h2>
+<p>Two factory functions in <code>packages/haywire-core/src/haywire/core/di/config.py</code> let you embed the library system outside the studio app — for headless scripts, integration tests, or alternative front-ends.</p>
+<h3 id="create_library_system_service-most-callers"><code>create_library_system_service(...)</code> — most callers<a class="headerlink" href="#create_library_system_service-most-callers" title="Permanent link">&para;</a></h3>
+<p>Convenience factory that creates the DI injector, constructs a <code>LibrarySystemService</code>, and runs <code>service.initialize()</code> in one call. Use this when you want a fully-loaded library system ready to read from.</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">haywire.core.di.config</span><span class="w"> </span><span class="kn">import</span> <span class="n">create_library_system_service</span>
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>
+</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="n">service</span> <span class="o">=</span> <span class="n">create_library_system_service</span><span class="p">(</span>
+</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>    <span class="n">workspace_root</span><span class="o">=</span><span class="s1">&#39;/path/to/project&#39;</span><span class="p">,</span>  <span class="c1"># or None to auto-detect</span>
+</span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a>    <span class="n">library_paths</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;/path/to/extra/libs&#39;</span><span class="p">],</span>  <span class="c1"># additional folder-loaded libraries</span>
+</span><span id="__span-5-6"><a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a>    <span class="n">enable_file_watching</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>              <span class="c1"># hot-reload (default True)</span>
+</span><span id="__span-5-7"><a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a>    <span class="n">settings_path</span><span class="o">=</span><span class="s1">&#39;~/.haywire/settings.toml&#39;</span><span class="p">,</span>  <span class="c1"># global settings (default)</span>
+</span><span id="__span-5-8"><a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a>    <span class="n">watch_settings</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>                    <span class="c1"># reload settings on file change (default True)</span>
+</span><span id="__span-5-9"><a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a><span class="p">)</span>
+</span><span id="__span-5-10"><a id="__codelineno-5-10" name="__codelineno-5-10" href="#__codelineno-5-10"></a>
+</span><span id="__span-5-11"><a id="__codelineno-5-11" name="__codelineno-5-11" href="#__codelineno-5-11"></a><span class="c1"># At this point all entry-point libraries are discovered and registered.</span>
+</span><span id="__span-5-12"><a id="__codelineno-5-12" name="__codelineno-5-12" href="#__codelineno-5-12"></a><span class="n">node_registry</span> <span class="o">=</span> <span class="n">service</span><span class="o">.</span><span class="n">get_node_registry</span><span class="p">()</span>
+</span><span id="__span-5-13"><a id="__codelineno-5-13" name="__codelineno-5-13" href="#__codelineno-5-13"></a><span class="n">panel_registry</span> <span class="o">=</span> <span class="n">service</span><span class="o">.</span><span class="n">get_panel_registry</span><span class="p">()</span>
+</span><span id="__span-5-14"><a id="__codelineno-5-14" name="__codelineno-5-14" href="#__codelineno-5-14"></a><span class="c1"># ... etc.</span>
+</span></code></pre></div>
+<h3 id="create_haywire_injector-when-you-need-the-injector-itself"><code>create_haywire_injector(...)</code> — when you need the injector itself<a class="headerlink" href="#create_haywire_injector-when-you-need-the-injector-itself" title="Permanent link">&para;</a></h3>
+<p>Returns the raw DI <code>Injector</code> without initializing the library system. Use this when you want to wire your own services on top, or when you need to defer <code>service.initialize()</code> until later in your bootstrap. Same parameter list as <code>create_library_system_service</code> (minus the auto-initialization).</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">haywire.core.di.config</span><span class="w"> </span><span class="kn">import</span> <span class="n">create_haywire_injector</span>
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">haywire.core.di.config</span><span class="w"> </span><span class="kn">import</span> <span class="n">LibrarySystemService</span>
+</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>
+</span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="n">injector</span> <span class="o">=</span> <span class="n">create_haywire_injector</span><span class="p">(</span>
+</span><span id="__span-6-5"><a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a>    <span class="n">workspace_root</span><span class="o">=</span><span class="s1">&#39;/path/to/project&#39;</span><span class="p">,</span>
+</span><span id="__span-6-6"><a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a>    <span class="n">enable_file_watching</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>  <span class="c1"># disable hot-reload in CI</span>
+</span><span id="__span-6-7"><a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a><span class="p">)</span>
+</span><span id="__span-6-8"><a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a>
+</span><span id="__span-6-9"><a id="__codelineno-6-9" name="__codelineno-6-9" href="#__codelineno-6-9"></a><span class="c1"># Wire your own services here, then initialize the library system:</span>
+</span><span id="__span-6-10"><a id="__codelineno-6-10" name="__codelineno-6-10" href="#__codelineno-6-10"></a><span class="n">service</span> <span class="o">=</span> <span class="n">injector</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">LibrarySystemService</span><span class="p">)</span>
+</span><span id="__span-6-11"><a id="__codelineno-6-11" name="__codelineno-6-11" href="#__codelineno-6-11"></a><span class="n">service</span><span class="o">.</span><span class="n">initialize</span><span class="p">()</span>
+</span></code></pre></div>
+<h3 id="parameter-reference-both-functions">Parameter reference (both functions)<a class="headerlink" href="#parameter-reference-both-functions" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Parameter</th>
+<th>Type</th>
+<th>Default</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>workspace_root</code></td>
+<td><code>Optional[str]</code></td>
+<td><code>None</code> (auto-detect)</td>
+<td>Project root used for <code>barn/</code> discovery and workspace settings.</td>
+</tr>
+<tr>
+<td><code>library_paths</code></td>
+<td><code>Optional[List[str]]</code></td>
+<td><code>None</code></td>
+<td>Extra folders scanned for <code>FOLDER</code>-install libraries (no pyproject required).</td>
+</tr>
+<tr>
+<td><code>enable_file_watching</code></td>
+<td><code>bool</code></td>
+<td><code>True</code></td>
+<td>System-level hot-reload switch. Set <code>False</code> in CI / tests to keep the suite deterministic.</td>
+</tr>
+<tr>
+<td><code>settings_path</code></td>
+<td><code>Optional[str]</code></td>
+<td><code>~/.haywire/settings.toml</code></td>
+<td>Path to the global settings file.</td>
+</tr>
+<tr>
+<td><code>watch_settings</code></td>
+<td><code>bool</code></td>
+<td><code>True</code></td>
+<td>Whether to reload settings TOML on file change.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>For tests:</strong> pass <code>enable_file_watching=False</code> and <code>watch_settings=False</code> to keep the watchdog observer from leaking threads across test runs. Tests that need to exercise hot-reload should construct the watcher explicitly via <code>LibraryRegistry.enable_file_watching(...)</code> after the test setup is complete.</p>
+<p><strong>Embedding outside <code>haywire-studio</code>:</strong> the service has no UI dependency — it's pure registry plumbing. You can use it in a Jupyter notebook, a Discord bot, or a CLI runner that loads libraries and reads <code>node_registry.list_nodes()</code> without touching NiceGUI.</p>
+
+
+
+
+
+
+
+  
+  
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+  <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var labels=set.querySelector(".tabbed-labels");for(var tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../../..", "features": ["navigation.instant", "navigation.tracking", "navigation.tabs", "navigation.tabs.sticky", "navigation.sections", "navigation.expand", "navigation.indexes", "navigation.top", "search.highlight", "search.suggest", "content.code.copy", "content.code.annotate", "content.tabs.link", "toc.follow"], "search": "../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>

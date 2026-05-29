@@ -1,0 +1,3754 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="A Blueprint-inspired visual programming system — dual-flow control + data, library plugin model, hot-reload-first development.">
+      
+      
+      
+        <link rel="canonical" href="https://going-haywire.github.io/haywire/docs/archive/whitepaper/Haywire_design/">
+      
+      
+        <link rel="prev" href="../../../reference/design-guide/">
+      
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>Whitepaper - Haywire Documentation</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Inter:300,300i,400,400i,700,700i%7CJetBrains+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Inter";--md-code-font:"JetBrains Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#haywire-node-system-specification-v100" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow md-header--lifted" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../../.." title="Haywire Documentation" class="md-header__button md-logo" aria-label="Haywire Documentation" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Haywire Documentation
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Whitepaper
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+  </nav>
+  
+    
+      
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../.." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../welcome/user/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Perspectives
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../components/nodes/node-canon/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Components
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../guides/node-roles/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Guides
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../architecture/overview/overview-arch/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Architecture
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../reference/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Reference
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="./" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Archive
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+    
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../../.." title="Haywire Documentation" class="md-nav__button md-logo" aria-label="Haywire Documentation" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    Haywire Documentation
+  </label>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../../welcome/user/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Perspectives
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_2" id="__nav_2_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Perspectives
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../welcome/advanced/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Advanced (workbench extender)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../welcome/core/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Core (system architect)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Components
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Components
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../components/nodes/node-canon/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Nodes
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../components/datatypes/datatype-canon/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Datatypes
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../components/adapters/adapter-canon/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Adapters
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../components/settings/setting-canon/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Settings
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../components/widgets/widget-canon/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Widgets
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../components/skins/skin-canon/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Skins
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--placeholder"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../components/themes/theme-canon/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Themes
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../components/editors/editor-canon/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Editors
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../components/panels/panel-canon/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Panels
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../components/states/state-canon/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    States
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../components/libraries/library-canon/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Libraries
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../components/haybale-package/haybale-package-canon/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Haybale package
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Guides
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Guides
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../guides/node-roles/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Node roles
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../guides/ports/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Ports
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../guides/signals/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Signals
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../guides/sharing-libraries/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Sharing libraries
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../guides/subscribing-to-marketplaces/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Subscribing to marketplaces
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Architecture
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../architecture/overview/overview-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--placeholder"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../architecture/design/design-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Design
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--placeholder"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../architecture/graph/graph-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Graph
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_5_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_5_4" id="__nav_5_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Execution
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_5_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Execution
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../architecture/execution/execution-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../architecture/execution/assembly/assembly-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Assembly
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../architecture/execution/edges/edges-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Edges
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../architecture/execution/flow/flow-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Flow
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--placeholder"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../architecture/execution/virtual-machine/virtual-machine-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Virtual machine
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--placeholder"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../architecture/execution/lazy-evaluation/lazy-evaluation-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Lazy evaluation
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--placeholder"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../architecture/execution/callbacks/callbacks-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Callbacks
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../architecture/library-system/library-system-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Library system
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../architecture/library-manager/library-manager-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Library manager
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../architecture/sharing/sharing-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Sharing — philosophy
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../architecture/hot-reload/hot-reload-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Hot-reload
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../architecture/settings/settings-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Settings
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../architecture/session-and-state/session-and-state-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Session and state
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_5_11" >
+        
+          
+          <label class="md-nav__link" for="__nav_5_11" id="__nav_5_11_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Studio
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_5_11_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5_11">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Studio
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../architecture/studio/studio-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../architecture/studio/app-shell/app-shell-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    App shell
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--placeholder"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../architecture/studio/workspace/workspace-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Workspace
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--placeholder"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../architecture/studio/canvas/canvas-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Canvas
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--placeholder"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../architecture/studio/rendering/rendering-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Rendering
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--placeholder"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_6" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../../reference/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reference
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_6" id="__nav_6_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../reference/glossary/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Glossary
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../reference/design-guide/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Design guide
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Archive
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_7">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Archive
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Whitepaper
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Whitepaper
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#table-of-contents" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Table of Contents
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#credits-license" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Credits &amp; License
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#table-of-contents" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Table of Contents
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#credits-license" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Credits &amp; License
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+
+<h1 id="haywire-node-system-specification-v100">Haywire Node System - Specification v1.0.0<a class="headerlink" href="#haywire-node-system-specification-v100" title="Permanent link">&para;</a></h1>
+<h2 id="table-of-contents">Table of Contents<a class="headerlink" href="#table-of-contents" title="Permanent link">&para;</a></h2>
+<ul>
+<li><a href="#haywire-node-system---specification-v100">Haywire Node System - Specification v1.0.0</a></li>
+<li><a href="#table-of-contents">Table of Contents</a></li>
+<li><a href="#credits--license">Credits \&amp; License</a></li>
+<li><a href="#overview">Overview</a><ul>
+<li><a href="#key-differentiators">Key Differentiators</a></li>
+<li><a href="#related-projects">Related Projects</a></li>
+</ul>
+</li>
+<li><a href="#graph-structure">Graph Structure</a></li>
+<li><a href="#the-graph-as-container">The Graph as Container</a><ul>
+<li><a href="#the-graph">The Graph</a></li>
+<li><a href="#variables">Variables</a></li>
+<li><a href="#validation-pipeline">Validation Pipeline</a></li>
+</ul>
+</li>
+<li><a href="#the-graph-node">The Graph-node</a></li>
+<li><a href="#connection-types">Connection Types</a><ul>
+<li><a href="#on-connections-edges-hooks-and-pipes">On Connections, Edges, Hooks and Pipes</a></li>
+<li><a href="#edges">Edges</a></li>
+<li><a href="#control-edges---hooks">Control-edges -&gt; Hooks</a></li>
+<li><a href="#data-edges---pipes">Data-edges -&gt; Pipes</a></li>
+<li><a href="#cycles">Cycles</a></li>
+</ul>
+</li>
+<li><a href="#node-architecture">Node Architecture</a></li>
+<li><a href="#node-types">Node Types</a><ul>
+<li><a href="#the-node">The node</a></li>
+<li><a href="#control-nodes">Control Nodes</a></li>
+<li><a href="#data-nodes">Data Nodes</a></li>
+<li><a href="#event-nodes">Event Nodes</a></li>
+<li><a href="#output-nodes">Output Nodes</a></li>
+<li><a href="#graph-nodes">Graph Nodes</a></li>
+<li><a href="#source-node">Source-node</a></li>
+<li><a href="#sink-node">Sink-node</a></li>
+<li><a href="#loopback-node-flag">Loopback-node** Flag</a></li>
+</ul>
+</li>
+<li><a href="#node-components">Node Components</a><ul>
+<li><a href="#ports-inlets--outlets--pins">Ports: Inlets \&amp; Outlets \&amp; Pins</a></li>
+<li><a href="#pins">Pins</a></li>
+<li><a href="#explanation-to-connection-types">Explanation to connection-types</a></li>
+<li><a href="#control-inlets">Control Inlets</a></li>
+<li><a href="#control-outlets">Control Outlets</a></li>
+<li><a href="#data-inlets">Data Inlets</a></li>
+<li><a href="#data-outlets">Data Outlets</a></li>
+<li><a href="#overview-of-nodes-configurables">Overview of Nodes Configurables</a></li>
+<li><a href="#worker-function">Worker Function</a></li>
+<li><a href="#data-types-and-categories">Data Types and Categories</a></li>
+<li><a href="#support-functions">Support Functions</a></li>
+<li><a href="#on_changed_config">ON_CHANGED_CONFIG:</a></li>
+<li><a href="#on_validation_lazy">ON_VALIDATION_LAZY:</a></li>
+<li><a href="#on_changed_async">ON_CHANGED_ASYNC:</a></li>
+<li><a href="#on_validation_input">ON_VALIDATION_INPUT:</a></li>
+</ul>
+</li>
+<li><a href="#advanced-features">Advanced Features</a></li>
+<li><a href="#lazy-evaluation">Lazy Evaluation</a></li>
+<li><a href="#callback-system">Callback System</a></li>
+<li><a href="#flow">Flow</a></li>
+<li><a href="#overview-1">Overview</a></li>
+<li><a href="#from-graph-to-flow">From Graph to Flow</a></li>
+<li><a href="#the-dual-flow-model">The Dual-Flow Model</a><ul>
+<li><a href="#control-flow">Control Flow</a></li>
+<li><a href="#localized-data-flow">(localized) Data Flow</a></li>
+</ul>
+</li>
+<li><a href="#generation">Generation</a></li>
+<li><a href="#finding-and-loading-available-node-libraries">Finding and Loading available Node Libraries</a></li>
+<li><a href="#loading-graphs-from-json-and-instantiating-required-nodes">Loading Graphs from JSON and instantiating required Nodes</a></li>
+<li><a href="#assembly">Assembly</a></li>
+<li><a href="#overview-2">Overview</a></li>
+<li><a href="#assembly-steps">Assembly Steps</a><ul>
+<li><a href="#graph-validation">Graph Validation</a></li>
+<li><a href="#graph-cleaning">Graph Cleaning</a></li>
+<li><a href="#graph-preprocessing">Graph Preprocessing</a></li>
+<li><a href="#flow-identification">Flow identification</a></li>
+<li><a href="#flow-assembly">Flow assembly</a></li>
+<li><a href="#just-in-time-assembly">Just-In-Time Assembly</a></li>
+</ul>
+</li>
+<li><a href="#just-in-time-assembly-for-a-future-implementation">Just-In-Time Assembly (For a future implementation)</a></li>
+<li><a href="#execution">Execution</a></li>
+<li><a href="#the-virtual-machine">The Virtual Machine</a><ul>
+<li><a href="#virtual-machine-architecture">Virtual Machine Architecture</a></li>
+<li><a href="#execution-context-management">Execution Context Management</a></li>
+<li><a href="#control-flow-translation">Control Flow Translation</a></li>
+<li><a href="#data-flow-translation">Data Flow Translation</a></li>
+<li><a href="#state-preservation">State Preservation:</a></li>
+</ul>
+</li>
+<li><a href="#flow-execution">Flow Execution</a><ul>
+<li><a href="#control-flow-execution">Control Flow Execution</a></li>
+<li><a href="#worker-function-executionevaluation">Worker function execution/evaluation</a></li>
+<li><a href="#for-control-nodes">for Control-nodes</a></li>
+<li><a href="#for-data-nodes">for Data-nodes</a></li>
+</ul>
+</li>
+<li><a href="#interpreter">Interpreter</a></li>
+<li><a href="#outstanding-design-questions">Outstanding Design Questions</a></li>
+<li><a href="#for-author-clarification">For Author Clarification</a></li>
+<li><a href="#suggested-enhancements">Suggested Enhancements</a></li>
+<li><a href="#appendix">Appendix</a></li>
+<li><a href="#complete-edge-data-structure">Complete Edge Data Structure</a></li>
+<li><a href="#complete-port-serialization">Complete Port Serialization</a><ul>
+<li><a href="#complete-node-definition-template">Complete Node Definition Template</a></li>
+<li><a href="#complete-node-initialization-sequence">Complete Node Initialization Sequence</a></li>
+</ul>
+</li>
+<li><a href="#complete-lazy-evaluation-algorithm">Complete Lazy Evaluation Algorithm</a></li>
+</ul>
+<hr />
+<h2 id="credits-license">Credits &amp; License<a class="headerlink" href="#credits-license" title="Permanent link">&para;</a></h2>
+<p>Created by Martin Fröhlich (aka maybites) © July 2025
+Released under <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/">CC-BY-NC-SA</a></p>
+<h1 id="overview">Overview<a class="headerlink" href="#overview" title="Permanent link">&para;</a></h1>
+<p>Haywire is a Blueprint-inspired visual programming system that combines <strong>execution flow</strong> with <strong>data flow</strong> to enable imperative-style programming within a visual graph interface. Unlike pure dataflow systems, Haywire uses explicit control connections to define execution order while maintaining data connections for value passing.</p>
+<h3 id="key-differentiators">Key Differentiators<a class="headerlink" href="#key-differentiators" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Dual-flow architecture</strong>: <a href="#pin-system">Control pins</a> define execution order, <a href="#pin-system">data pins</a> pass values</li>
+<li><strong>State machine execution</strong>: Complex control flows with pause/resume capabilities managed by the <a href="#the-virtual-machine">Haywire Virtual Machine</a></li>
+<li><strong>Event-driven model</strong>: Multiple independent execution chains triggered by <a href="#node-types">Event nodes</a></li>
+<li><strong>Just-in-time assembly</strong>: Dynamic <a href="#just-in-time-assembly">flow compilation</a> for performance</li>
+</ul>
+<h3 id="related-projects">Related Projects<a class="headerlink" href="#related-projects" title="Permanent link">&para;</a></h3>
+<ul>
+<li><a href="https://github.com/JLuebben/Floppy">Floppy</a> (Python-based)</li>
+<li><a href="https://github.com/p-ranav/box">Box</a> (Python-based)</li>
+<li><a href="https://cables.gl/">CablesGL</a> (JavaScript-based)</li>
+</ul>
+<p><strong>Execution Flow vs Data Flow</strong></p>
+<p>Unlike pure dataflow systems (<a href="https://github.com/comfyanonymous/ComfyUI">ComfyUI</a>, <a href="https://github.com/langflow-ai/langflow">Langflow</a>, <a href="https://github.com/chaiNNer-org/chaiNNer">ChaiNNer</a>, <a href="https://github.com/leon-thomm/Ryven">Ryven</a>, <a href="../research/nodes/_Execution_Classification.md">etc.</a>) that primarily pass data between nodes, Haywire uses an execution flow model in combination with a data flow model:</p>
+<ul>
+<li>Connections between <a href="#pin-system">Control-pins</a> specify the order of operations</li>
+<li>Connections between <a href="#pin-system">Data-pins</a> pass values between nodes</li>
+<li>This dual-pin system allows for imperative-style programming within a visual graph</li>
+<li>Nodes with Control-pins are called <a href="#node-types">Control-nodes</a>, those without are <a href="#node-types">Data-nodes</a></li>
+<li>The graph that is described by the connections between Control-pins is called <a href="#control-flow-vs-data-flow">Control-graph</a> and assembled into the Control-flow</li>
+<li>The graph that is described by the connections between Data-pins is called <a href="#control-flow-vs-data-flow">Data-graph</a> and assembled into a Data-flow</li>
+</ul>
+<p>This combination of explicit Control-flow, Data-flow, <a href="#execution-context-management">state management</a>, and <a href="#just-in-time-assembly">just in time Assembly</a> strategies allows Haywires to support more complex execution patterns than simple dataflow systems while maintaining visual clarity.</p>
+<hr />
+<h1 id="graph-structure">Graph Structure<a class="headerlink" href="#graph-structure" title="Permanent link">&para;</a></h1>
+<h2 id="the-graph-as-container">The Graph as Container<a class="headerlink" href="#the-graph-as-container" title="Permanent link">&para;</a></h2>
+<h3 id="the-graph">The Graph<a class="headerlink" href="#the-graph" title="Permanent link">&para;</a></h3>
+<p>The Haywire Graph is a data structure that describes the flow of data and control between nodes. As such, it is a collection of <a href="#variables">Variables</a>, <a href="#connection-types">Connections</a> and instantiations of <a href="#node-architecture">Nodes</a> and <a href="#graph-as-node-pattern">Graph-nodes</a>. All are described further down in their respective sections.</p>
+<ul>
+<li>A Graph can contain multiple disconnected node-trees that are assembled into individual <a href="#flow-execution-model">Flows</a>.</li>
+<li>A Graph cannot be executed directly. Only <a href="#flow-execution-model">Flows</a> can be executed.</li>
+</ul>
+<h3 id="variables">Variables<a class="headerlink" href="#variables" title="Permanent link">&para;</a></h3>
+<p>Only <a href="#graph-structure">Graphs</a> have <a href="#variables">Variables</a>. <a href="#variables">Variables</a> are used to enhance functionality of the <a href="#graph-structure">Graph</a> and allow statefulness during execution runs between nodes (and subsequent execution runs).</p>
+<ul>
+<li><a href="#variables">Variables</a> can be of specified datatypes.</li>
+<li><a href="#variables">Variables</a> have a default value that can be set on creation or by the user via the user interface.</li>
+<li>They are read/write accessible by the internal <a href="#worker-function-execution">Worker-function</a> of <a href="#node-types">Control-nodes</a></li>
+<li>When a <a href="#graph-structure">Graph</a> is stored to file, the default value is stored.</li>
+</ul>
+<p>The reason nodes have no <a href="#variables">Variables</a> is because they are not meant to be stateful. Nodes are meant to be stateless and their output should only depend on their input. There are exception though, like the <a href="#node-types">Loopback-nodes</a> that need to be stateful to function properly.</p>
+<h3 id="validation-pipeline">Validation Pipeline<a class="headerlink" href="#validation-pipeline" title="Permanent link">&para;</a></h3>
+<p><strong>Current Implementation Enhancement:</strong> The graph includes a sophisticated validation system that ensures structural integrity and type compatibility:</p>
+<ul>
+<li><strong>Debounced Validation:</strong> Changes trigger validation after a configurable delay (default 50ms) to batch rapid changes</li>
+<li><strong>Lifecycle Tracking:</strong> Each node and edge tracks its lifecycle state (registered → validated → built → tested → linked)</li>
+<li><strong>Change Reasons:</strong> Validation distinguishes between different change types:</li>
+<li><code>NODE_ADDED</code>, <code>NODE_REMOVED</code>: Node creation/deletion</li>
+<li><code>EDGE_ADDED</code>, <code>EDGE_REMOVED</code>: Connection changes</li>
+<li><code>PORT_RECONFIGURED</code>: Dynamic port structure changes</li>
+<li><code>EXTERNAL_TRIGGER</code>: User-initiated revalidation</li>
+<li><strong>Error Enrichment:</strong> Validation failures include context (node ID, port ID, lifecycle stage) for precise debugging</li>
+<li><strong>Callbacks:</strong> External systems can register callbacks to react to validation events</li>
+</ul>
+<p>This validation pipeline prevents invalid graphs from reaching the Assembly stage and provides immediate feedback during graph editing.</p>
+<h2 id="the-graph-node">The Graph-node<a class="headerlink" href="#the-graph-node" title="Permanent link">&para;</a></h2>
+<p><strong>The <a href="#node-types">Graph-node</a>: A graph is also a node</strong></p>
+<p>A Graph can be treated like a node and thus can be used as such within another graph: a Graph-node.</p>
+<p>There are three different ways a Graph-node can be implemented:</p>
+<ul>
+<li><strong>Subgraph</strong> is a graph that is used only once and inside its parent Graph.</li>
+<li><strong>Abstraction</strong> is a graph that can be used in multiple instances within its parent Graph.</li>
+<li><strong>Module</strong> is a graph that can be used in multiple instances within any Graph.</li>
+</ul>
+<p><strong>Subgraphs</strong> and <strong>Abstractions</strong> are stored with their parent graphs. <strong>Modules</strong> are stored on the local file system and are treated like custom nodes.</p>
+<p>As with nodes, a Graph-node can be of the type control or data, depending if it contains a <a href="#pin-system">Control-pin</a>.</p>
+<p><strong>Requirements:</strong></p>
+<ul>
+<li>A Graph-node <strong>must</strong> contain one <a href="#node-types">Source-node</a> and one <a href="#node-types">Sink-node</a> and <strong>cannot</strong> have any other <a href="#node-types">Event-</a> or <a href="#node-types">Output-nodes</a>.</li>
+</ul>
+<h2 id="connection-types">Connection Types<a class="headerlink" href="#connection-types" title="Permanent link">&para;</a></h2>
+<h3 id="on-connections-edges-hooks-and-pipes">On Connections, Edges, Hooks and Pipes<a class="headerlink" href="#on-connections-edges-hooks-and-pipes" title="Permanent link">&para;</a></h3>
+<p>To distinguish clearly between the visual representation of a Graph and the functional representation of a Flow, Haywire makes a clear distinction between the two on the level of connections, too. And in order to keep terms clear, when "connection(s)" is used in this text it is meant in a colloquial manner, while <a href="#edges">Edges</a>, <a href="#control-edges---hooks">Hooks</a>, and <a href="#data-edges---pipes">Pipes</a> are used to describe the effective data representation of the connections. So pay attention to the context in which "connections" are used:</p>
+<ul>
+<li>
+<p>On the Graph level, the connections between the Control- and Data-nodes describe also <a href="#edges">Edges</a>.</p>
+</li>
+<li>
+<p>On the Control-Flow level, the connections between the Control-nodes describe also <a href="#control-edges---hooks">Hooks</a>.</p>
+</li>
+<li>
+<p>On the Data-Flow level, the connections between the Data-nodes describe also <a href="#data-edges---pipes">Pipes</a>.</p>
+</li>
+</ul>
+<p><a href="#control-edges---hooks">Hooks</a> and <a href="#data-edges---pipes">Pipes</a> come only into existence during the <a href="#assembly-process">Assembly step</a> and are only used in the orchestration of Control- and Data-Flows.</p>
+<p>To summarize, for each <a href="#edges">Edge</a> there is either a corresponding <a href="#control-edges---hooks">Hook</a> or <a href="#data-edges---pipes">Pipe</a> and all of them can be called "connections".</p>
+<h3 id="edges">Edges<a class="headerlink" href="#edges" title="Permanent link">&para;</a></h3>
+<p><a href="#edges">Edges</a> define the connections between nodes in a Graph.</p>
+<p>There are three types of edges:</p>
+<ul>
+<li><strong>Control-edges</strong> are used to control the flow of execution between nodes.</li>
+<li><strong>Data-edges</strong> are used to transfer data between nodes.</li>
+<li><strong>Callback-edges</strong> are used to trigger an <a href="#node-types">Event-node</a> from another <a href="#flow-execution-model">Flow</a>. Contrary to Control- and Data-edges, Callback-edges are only used during the <a href="#assembly-process">Assembly step</a> to connect <a href="#flow-execution-model">Flows</a> through events.</li>
+</ul>
+<p>An <a href="#edges">Edge</a> is a simple data structure (see <a href="#complete-edge-data-structure">complete structure in Appendix</a>) that contains the output-node's node-id, outlet-pin-id, outlet-pin-data-type and input-node's node-id, inlet-pin-id, inlet-pin-data-type.</p>
+<p>Usually, only pins of the same type can be connected. But Haywire allows for connection between <a href="#pin-system">Data-pins</a> of different types if there are compatible adapters available. For <a href="#pin-system">Control-pins</a>, there are no data-types and such restrictions are not necessary.</p>
+<p>Edges are consirdered 'linked' when they are connected between two nodes and both the inlet and the outlet ports have accepted the connection.</p>
+<p><strong>Current Implementation: EdgeWrapper Lifecycle</strong></p>
+<p>Edges are managed through <code>EdgeWrapper</code> which handles their complete lifecycle:</p>
+<ol>
+<li><strong>Registration:</strong> Edge created with connection identifiers</li>
+<li><strong>Validation:</strong> Port existence and type compatibility checked</li>
+<li><strong>Build:</strong> Adapter chain constructed if types differ</li>
+<li><strong>Test:</strong> Adapter chain validated with sample data to catch runtime errors early</li>
+<li><strong>Link:</strong> Ports notified and connection finalized</li>
+</ol>
+<p><strong>Adapter Chain Testing:</strong> When connecting ports of different types, the system:
+- Searches for adapter chain (e.g., <code>FLOAT → INT</code> might use <code>FloatToIntAdapter</code>)
+- Creates sample data matching source port type
+- Executes full adapter chain to verify no runtime errors
+- Only accepts connection if chain succeeds
+- Stores adapter chain keys for serialization</p>
+<p>This proactive testing prevents type errors during execution by validating transformations at connection time rather than runtime. The adapter chain is rebuilt during hot reload if adapter code changes.</p>
+<h3 id="control-edges-hooks">Control-edges -&gt; Hooks<a class="headerlink" href="#control-edges-hooks" title="Permanent link">&para;</a></h3>
+<p>TBD</p>
+<h3 id="data-edges-pipes">Data-edges -&gt; Pipes<a class="headerlink" href="#data-edges-pipes" title="Permanent link">&para;</a></h3>
+<p>After the <a href="#assembly-process">Assembly Process</a>, each <a href="#pin-system">Data-pin-outlet</a> that has one/many connections will hold the same number of <a href="#data-edges---pipes">Pipes</a>. Each <a href="#data-edges---pipes">Pipe</a> holds within it self the reference to the connected <a href="#pin-system">Data-pin-inlet's</a> value. If the outlet-pin-data-type is different from the inlet-pin-data-type, the <a href="#data-edges---pipes">Pipe</a> also contains an adapter that will automatically transform the data.</p>
+<p>The idea: when the nodes <a href="#worker-function-execution">worker function</a> is finished and the <a href="#pin-system">data-pin-outlet</a> is set, all its containing <a href="#data-edges---pipes">Pipes</a> will be updated with the new value and automatically cascade the change to the connected <a href="#pin-system">data-pin-inlets</a> and set them to dirty.</p>
+<p>If an adapter is not available, the Editor should have shown an error when the edge was created. At the latest, the <a href="#assembly-process">Assembly Process</a> would have thrown an error, too.</p>
+<h3 id="cycles">Cycles<a class="headerlink" href="#cycles" title="Permanent link">&para;</a></h3>
+<p><a href="#cycles">Cycles</a> are connections between nodes that form a loop.</p>
+<ul>
+<li><a href="#cycles">Cycles</a> are allowed for Control-connections.</li>
+<li><a href="#cycles">Cycles</a> are <strong>NOT</strong> allowed for Data-connections.</li>
+<li>There is an exception though: if the data-connection-cycle is passing through a <a href="#node-types">Control-node</a>, it is allowed. This is because <a href="#node-types">Control-nodes</a> are not evaluated within a localized data flow.</li>
+</ul>
+<hr />
+<h1 id="node-architecture">Node Architecture<a class="headerlink" href="#node-architecture" title="Permanent link">&para;</a></h1>
+<h2 id="node-types">Node Types<a class="headerlink" href="#node-types" title="Permanent link">&para;</a></h2>
+<h3 id="the-node">The node<a class="headerlink" href="#the-node" title="Permanent link">&para;</a></h3>
+<p>A Haywire node is arguably the most central element of the system. A node consists of</p>
+<ul>
+<li><strong><a href="#ports-inlets--outlets--pins">Ports</a></strong> (Inlets and Outlets) to configure behavior and transfer data to and from other nodes.</li>
+<li><strong><a href="#pin-system">Pins</a></strong> to connect to and from other nodes.</li>
+<li><strong><a href="#worker-function-execution">Worker-function</a></strong> that contains its main logic.</li>
+</ul>
+<p><strong>Current Implementation: Node Lifecycle Management</strong></p>
+<p>Nodes are managed through <code>NodeWrapper</code> which provides:</p>
+<p><strong>Hot Reload System:</strong> Automatic detection and migration when node code changes:
+- File watchers detect modifications to node class files
+- Node class is reimported with fresh module
+- Port recipes are serialized from old instance
+- New instance created and ports reconstructed from recipes
+- Incompatible connections removed automatically
+- Graph revalidated with new node structure</p>
+<p><strong>Lifecycle States:</strong>
+1. <strong>Registered:</strong> Node wrapper created with registry key and ID
+2. <strong>Built:</strong> Node instance created and ports configured
+3. <strong>Validated:</strong> Ports checked, connections verified
+4. <strong>Ready:</strong> Node ready for execution</p>
+<p><strong>Middleware System:</strong> NodeWrapper supports middleware plugins for:
+- Custom validation rules
+- Execution preprocessing/postprocessing
+- Resource management
+- Profiling and debugging</p>
+<p>This wrapper architecture separates node business logic from lifecycle concerns, enabling hot reload without graph disruption.</p>
+<p>These are the basic building blocks of a Haywire graph:</p>
+<h3 id="control-nodes">Control Nodes<a class="headerlink" href="#control-nodes" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Drive execution flow</li>
+<li>Process and transform data</li>
+<li>Have both at least one <a href="#pin-system">Control-pin-inlet</a> and <a href="#pin-system">Control-pin-outlet</a></li>
+<li>Examples: Time-consuming algorithms, branches, loops, function calls</li>
+</ul>
+<h3 id="data-nodes">Data Nodes<a class="headerlink" href="#data-nodes" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Process and transform data</li>
+<li>Have <strong>only</strong> <a href="#pin-system">Data-pins</a> (no control pins)</li>
+<li>Examples: Lightweight algorithms, math operations, data transformations</li>
+</ul>
+<h3 id="event-nodes">Event Nodes<a class="headerlink" href="#event-nodes" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Entry points for starting execution of flows</li>
+<li>Special kind of <a href="#node-types">control nodes</a> with no input pins</li>
+<li>Not allowed inside of <a href="#graph-as-node-pattern">Graph-nodes</a></li>
+<li>Examples: BeginPlay, Tick, user input events</li>
+</ul>
+<h3 id="output-nodes">Output Nodes<a class="headerlink" href="#output-nodes" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Exit points for ending the execution of flows</li>
+<li>Special <a href="#node-types">control nodes</a> with no output pins</li>
+<li>Not allowed inside of <a href="#graph-as-node-pattern">Graph-nodes</a>.</li>
+<li>Examples: End, Return, Stop</li>
+</ul>
+<h3 id="graph-nodes">Graph Nodes<a class="headerlink" href="#graph-nodes" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Nodes that encapsulate a <a href="#graph-as-node-pattern">subgraph</a></li>
+<li>Can have <a href="#pin-system">Control-pins</a> and/or <a href="#pin-system">Data-pins</a></li>
+<li>Thus can be the equivalent of Control-nodes or Data-nodes depending on pin configuration</li>
+<li>Behave like other Control-nodes or Data-nodes</li>
+<li>Can have <a href="#variables">variables</a> like Graphs.</li>
+<li>Three variants: <a href="#graph-as-node-pattern">Subgraph, Abstraction, Module</a></li>
+</ul>
+<h3 id="source-node">Source-node<a class="headerlink" href="#source-node" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Special kind of Event-node</li>
+<li>Used only inside <a href="#graph-as-node-pattern">Graph-nodes</a></li>
+<li>Starts the execution of the Graph-node</li>
+<li>Its pin-outlets are dynamically configured by its Graph-node defined pin-inlets.</li>
+</ul>
+<h3 id="sink-node">Sink-node<a class="headerlink" href="#sink-node" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Special kind of output-node</li>
+<li>Used to only inside <a href="#graph-as-node-pattern">Graph-nodes</a></li>
+<li>Exit the execution of the Graph-node</li>
+<li>Its pin-inlets are dynamically configured by its Graph-node defined pin-outlets.</li>
+</ul>
+<h3 id="loopback-node-flag">Loopback-node** Flag<a class="headerlink" href="#loopback-node-flag" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Control-node with the Loopback flag set</li>
+<li>tells the VM to loop back execution within the Control-flow to itself if the branch ends without an <a href="#node-types">Output-node</a></li>
+<li>Examples: For-Loops, While-Loops, Sequences and other Control-flow constructs that allow <em>sequential</em> branching of the Control-flow.</li>
+<li>Counterexamples: Switches or If-Statements are not Loopback-nodes since they do <em>conditional</em> branching.</li>
+</ul>
+<h2 id="node-components">Node Components<a class="headerlink" href="#node-components" title="Permanent link">&para;</a></h2>
+<h3 id="ports-inlets-outlets-pins">Ports: Inlets &amp; Outlets &amp; Pins<a class="headerlink" href="#ports-inlets-outlets-pins" title="Permanent link">&para;</a></h3>
+<p>All node configurables are unified as <strong>DataPorts</strong> with behavior defined by flags and callbacks.</p>
+<p><strong>Configuration Ports:</strong>
+- Implemented as Inlets with <code>flow_type = FlowType.NONE</code>
+- Define the structure/behaviour/functionality of the node
+- Changes trigger callbacks (e.g., <code>on_change='reconfigure_ports'</code>) that:
+  - Can add/remove/enable/disable other Inlets and Outlets
+  - May invalidate incompatible Connections
+- Accessible read-only by the internal <a href="#worker-function-execution">Worker-function</a>
+- Serialized via "recipe" format (creation parameters, not runtime values)</p>
+<p><strong>Note:</strong> "Properties" as a separate concept have been removed. All configuration is now done through Inlets with appropriate callbacks.</p>
+<p><strong>Hierarchical Port Organization (Implementation Enhancement):</strong></p>
+<p>Ports support nested organization for complex nodes:</p>
+<ul>
+<li><strong>Groups:</strong> Container ports that organize related ports</li>
+<li>Can be collapsed/expanded in UI</li>
+<li>Support nested groups for hierarchical organization</li>
+<li>Context manager API: <code>with self.group('advanced'):</code></li>
+<li><strong>Sections:</strong> Organize ports in property panels</li>
+<li>Used for UI layout (e.g., 'inputs', 'outputs', 'settings')</li>
+<li>Multiple sections per node</li>
+<li><strong>Ghost Pins:</strong> Visual indicators when groups are collapsed</li>
+<li>Show connection state without revealing group contents</li>
+<li>One ghost pin per collapsed group</li>
+<li><strong>Dynamic Reconfiguration:</strong> Push/pop pattern for port changes</li>
+<li><code>push()</code>: Save current port configuration</li>
+<li>Modify ports (add/remove based on config changes)</li>
+<li><code>pop()</code>: Returns list of removed port IDs for cleanup</li>
+</ul>
+<p>This hierarchical system keeps complex nodes manageable while maintaining clean serialization (groups/sections are metadata, not separate node types).</p>
+<h4 id="pins">Pins<a class="headerlink" href="#pins" title="Permanent link">&para;</a></h4>
+<p><a href="#pin-system">Pins</a> are the visual icon to connect to and from a node. <a href="#pin-system">Pins</a> have a selection of different <a href="#configs">configs</a> that define their behaviour:</p>
+<ul>
+<li><strong>Flow-type</strong> defines if it is a control, data or callback pin</li>
+<li><strong>Socket-type</strong> defines if the pin is an inlet (for getting event/data in) or an outlet (for sending event/data out)</li>
+<li><strong>Data-type</strong> defines the data type the pin is associated with. And which other pins a pin can connect or not connect to.</li>
+<li><strong>Mate-type</strong> defines how many connections can be made on the pin. This is either one or many.</li>
+</ul>
+<p>The following table shows the only admissible pin configurations:</p>
+<table>
+<thead>
+<tr>
+<th>Types</th>
+<th>Flow</th>
+<th>Socket</th>
+<th>Data</th>
+<th>Mate</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Control-pin inlet</td>
+<td>ctrl</td>
+<td>inlet</td>
+<td>--</td>
+<td>many</td>
+</tr>
+<tr>
+<td>Control-pin outlet</td>
+<td>ctrl</td>
+<td>outlet</td>
+<td>--</td>
+<td>one</td>
+</tr>
+<tr>
+<td>Data-pin inlet</td>
+<td>data</td>
+<td>inlet</td>
+<td>type</td>
+<td>one/many</td>
+</tr>
+<tr>
+<td>Data-pin outlet</td>
+<td>data</td>
+<td>outlet</td>
+<td>type</td>
+<td>many</td>
+</tr>
+<tr>
+<td>Callback-pin inlet</td>
+<td>call</td>
+<td>inlet</td>
+<td>type</td>
+<td>many</td>
+</tr>
+<tr>
+<td>Callback-pin outlet</td>
+<td>call</td>
+<td>outlet</td>
+<td>type</td>
+<td>many</td>
+</tr>
+</tbody>
+</table>
+<h4 id="explanation-to-connection-types">Explanation to connection-types<a class="headerlink" href="#explanation-to-connection-types" title="Permanent link">&para;</a></h4>
+<ul>
+<li><strong>Control-pin-outlet</strong> can have only one Mate, since it must be clear which the next node is that needs to be executed.</li>
+<li><strong>Control-pin-inlet</strong> can have many mates, since there might be multiple execution paths that lead to this node.</li>
+<li><strong>Data-pin-outlet</strong> can have many mates, since multiple nodes might be interested in this data</li>
+<li><strong>Data-pin-inlet</strong> there are two mate-types possible, depending on the needed data. in case of many the provided data is in form of a list of values in the specified data-type.</li>
+<li><strong>Callback-pin-inlet</strong> can have many mates, since multiple <a href="#node-types">Event-nodes</a> can require the same callback.</li>
+<li><strong>Callback-pin-outlet</strong> can have many mates, since the <a href="#node-types">Event-node</a> might be interested in multiple callbacks.</li>
+</ul>
+<p><strong>Port Callbacks (Implementation Enhancement):</strong></p>
+<p>Ports support lifecycle callbacks for dynamic behavior:</p>
+<ul>
+<li><strong><code>on_change</code></strong>: Triggered when port value changes</li>
+<li>Common use: Configuration ports that reconfigure node structure</li>
+<li>Example: <code>on_change='reconfigure_ports'</code> calls <code>self.reconfigure_ports()</code></li>
+<li>
+<p>Enables dynamic port addition/removal based on settings</p>
+</li>
+<li>
+<p><strong><code>on_connect</code></strong>: Triggered when connection is established</p>
+</li>
+<li>Called with edge information (source/target ports)</li>
+<li>Can reject connection by raising exception</li>
+<li>
+<p>Enables connection-dependent behavior (e.g., inferring types)</p>
+</li>
+<li>
+<p><strong><code>on_disconnect</code></strong>: Triggered when connection is removed</p>
+</li>
+<li>Cleanup of connection-dependent state</li>
+<li>Can trigger port reconfiguration</li>
+</ul>
+<p>These callbacks enable sophisticated node behavior patterns:
+- Type inference from connected ports
+- Dynamic port count (e.g., variadic nodes)
+- Conditional port availability
+- Configuration cascades</p>
+<h4 id="control-inlets">Control Inlets<a class="headerlink" href="#control-inlets" title="Permanent link">&para;</a></h4>
+<p>Control Inlets are used to execute Control-flow.</p>
+<h4 id="control-outlets">Control Outlets<a class="headerlink" href="#control-outlets" title="Permanent link">&para;</a></h4>
+<p>Control Outlets are used to execute Control-flow.</p>
+<h4 id="data-inlets">Data Inlets<a class="headerlink" href="#data-inlets" title="Permanent link">&para;</a></h4>
+<p>Inlets are used to receive data.</p>
+<ul>
+<li>Inlets are of specified data_types and data_categories.</li>
+<li>Inlets can have a default value that can be set on creation or by the user via the user interface.</li>
+<li>They are only read accessible by the internal <a href="#worker-function-execution">Worker-function</a></li>
+<li>They can be directly set by <a href="#pin-system">Data-pin-inlets</a>.</li>
+<li>They can be set to required or optional to be connected to a <a href="#pin-system">Data-pin-outlet</a>.</li>
+<li>If the inlet is set to required, no widget is displayed.</li>
+<li>When a <a href="#graph-structure">Graph</a> is stored to file, only the default value is stored.</li>
+<li>If the Inlet has a data-type that can be edited via UI, the UI-Widget is displayed and is in effect a virtually attached Data source and sets the <a href="#pin-system">Data-pin-inlet</a> like a <a href="#pin-system">Data-pin-outlet</a> would.</li>
+</ul>
+<h4 id="data-outlets">Data Outlets<a class="headerlink" href="#data-outlets" title="Permanent link">&para;</a></h4>
+<p><a href="#data-outlets">Data Outlets</a> are used to send data out of a node.</p>
+<ul>
+<li><a href="#data-outlets">Data Outlets</a> are of specified datatypes.</li>
+<li><a href="#data-outlets">Data Outlets</a> are <strong>required</strong> to be set by the internal <a href="#worker-function-execution">Worker-function</a>. This assures a consistent behavior.</li>
+<li>They are only write accessible by the internal <a href="#worker-function-execution">Worker-function</a>.</li>
+<li><strong>Current Implementation:</strong> Outlets can have UI widgets for display/debugging purposes (e.g., to show output values).</li>
+</ul>
+<h4 id="overview-of-nodes-configurables">Overview of Nodes Configurables<a class="headerlink" href="#overview-of-nodes-configurables" title="Permanent link">&para;</a></h4>
+<p><strong>Current Implementation:</strong> Unified DataPort system with behavior flags.</p>
+<table>
+<thead>
+<tr>
+<th>Port Type</th>
+<th>Flow Type</th>
+<th>Function</th>
+<th>Default</th>
+<th>Callback Support</th>
+<th>Has Widget</th>
+<th>Required</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Config</td>
+<td>NONE</td>
+<td>Configuration</td>
+<td>yes</td>
+<td>yes (on_change)</td>
+<td>yes</td>
+<td>no</td>
+</tr>
+<tr>
+<td>Data Inlet</td>
+<td>DATA</td>
+<td>Input</td>
+<td>yes</td>
+<td>yes (on_change, on_connect, on_disconnect)</td>
+<td>optional</td>
+<td>optional</td>
+</tr>
+<tr>
+<td>Data Outlet</td>
+<td>DATA</td>
+<td>Output</td>
+<td>no</td>
+<td>yes (on_connect, on_disconnect)</td>
+<td>yes</td>
+<td>no</td>
+</tr>
+<tr>
+<td>Control Inlet</td>
+<td>CONTROL</td>
+<td>Execution</td>
+<td>no</td>
+<td>yes (on_connect, on_disconnect)</td>
+<td>no</td>
+<td>no</td>
+</tr>
+<tr>
+<td>Control Outlet</td>
+<td>CONTROL</td>
+<td>Execution</td>
+<td>no</td>
+<td>yes (on_connect, on_disconnect)</td>
+<td>no</td>
+<td>no</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Key Changes:</strong>
+- <strong>Outlets can have widgets:</strong> For display/debugging output values
+- <strong>Callback system:</strong> Ports have <code>on_change</code>, <code>on_connect</code>, <code>on_disconnect</code> callbacks
+- <strong>Serialization:</strong> Ports use "recipe" format (creation parameters) rather than storing runtime values</p>
+<h3 id="worker-function">Worker Function<a class="headerlink" href="#worker-function" title="Permanent link">&para;</a></h3>
+<p>This is where the real work is done. Each node, no matter of type, has one <a href="#worker-function-execution">Worker-function</a>. However, depending of the type of the node, the <a href="#worker-function-execution">Worker-function</a> is called through different mechanisms.</p>
+<p>The <a href="#worker-function-execution">Worker-function</a> has access to the nodes internal Data Inlets (including configuration ports), <a href="#variables">Variables</a> (for Control-nodes), and is able to set the <a href="#data-outlets">Data Outlets</a>.</p>
+<p>It returns status information that is interpreted differently depending on the execution/evaluation mechanism.</p>
+<p>More details can by found under <a href="#worker-function-execution/evaluation">Worker function execution/evaluation</a></p>
+<h3 id="data-types-and-categories">Data Types and Categories<a class="headerlink" href="#data-types-and-categories" title="Permanent link">&para;</a></h3>
+<p>The inlets or outlets define the Data-types and Data-category they require. This can be any python class. For the UI, Haywire provides a set of icons and colors to denote specific data-types.</p>
+<p>The Data-types include <code>int</code>, <code>float</code>, <code>str</code>, <code>bool</code>, <code>bytes</code>, <code>object</code>
+The Data-category include <code>scalar</code>, <code>list</code>, <code>tuple</code>, <code>set</code>, <code>array</code>, <code>dict</code></p>
+<p>ComfyUI follows a different strategy. It has keywords for each data-type. <a href="https://docs.comfy.org/custom-nodes/backend/datatypes">https://docs.comfy.org/custom-nodes/backend/datatypes</a></p>
+<p>LangFlow follows a different strategy. Its Data-type are only high level and wrapped in a dict. <a href="https://docs.langflow.org/data-types">https://docs.langflow.org/data-types</a></p>
+<p>Blueprints:</p>
+<ul>
+<li>Primitive types: integers, floats, booleans.</li>
+<li>Complex types: strings, vectors, rotators. These handle more detailed aspects of game behavior.</li>
+<li>Reference types: objects and assets.</li>
+</ul>
+<h3 id="support-functions">Support Functions<a class="headerlink" href="#support-functions" title="Permanent link">&para;</a></h3>
+<p>The support functions allow for more fine grained control over the execution of the node.</p>
+<h4 id="on_changed_config">ON_CHANGED_CONFIG:<a class="headerlink" href="#on_changed_config" title="Permanent link">&para;</a></h4>
+<ul>
+<li>handles changes to the configuration of the node.</li>
+<li>called whenever a Config of the node is changed.</li>
+</ul>
+<h4 id="on_validation_lazy">ON_VALIDATION_LAZY:<a class="headerlink" href="#on_validation_lazy" title="Permanent link">&para;</a></h4>
+<ul>
+<li>handles the validation of the lazy evaluation of the node.</li>
+<li>called every time before execution / evaluation of node.</li>
+</ul>
+<h4 id="on_changed_async">ON_CHANGED_ASYNC:<a class="headerlink" href="#on_changed_async" title="Permanent link">&para;</a></h4>
+<ul>
+<li>checks for changes that are outside of the haywire process</li>
+<li>called every time before execution / evaluation of node.</li>
+</ul>
+<h4 id="on_validation_input">ON_VALIDATION_INPUT:<a class="headerlink" href="#on_validation_input" title="Permanent link">&para;</a></h4>
+<ul>
+<li>checks for validation of the input data of the node.</li>
+<li>called every time before execution / evaluation of node.</li>
+</ul>
+<hr />
+<h1 id="advanced-features">Advanced Features<a class="headerlink" href="#advanced-features" title="Permanent link">&para;</a></h1>
+<h2 id="lazy-evaluation">Lazy Evaluation<a class="headerlink" href="#lazy-evaluation" title="Permanent link">&para;</a></h2>
+<p>This feature makes the evaluation of the Data-Flow more efficient by excluding unnecessary computations. This is done by specifying inside the node under which conditions which Inlets can be ignored to be evaluated.</p>
+<p>The Lazy Evaluation algorithm covers differnt areas of the haywire system, from node initialisation to execution.</p>
+<p>The <a href="#assembly-process">assembler</a> is responsible for generating the <a href="#control-flow-vs-data-flow">localized Data-Flow</a> for each <a href="#node-types">Control-node</a>. If Inlets have a lazy evaluation flag and the Data-Flows can be lazily evaluated, the VirtualMachine that lazily evaluates the Data-Flow would need some additional information beforehand. Haywire has the method <code>def ON_VALIDATION_LAZY</code> that is called before the <a href="#control-flow-vs-data-flow">localized Data-Flow</a> can be evaluated lazily or not. If this is the case, depending on which Data Inlets are required, only certain steps of the <a href="#control-flow-vs-data-flow">localized Data-Flow</a> need to be evaluated.</p>
+<p>The complete <a href="#complete-lazy-evaluation-algorithm">Lazy Evaluation Algorithm</a> is detailed in the <a href="#appendix">Appendix</a>.</p>
+<h2 id="callback-system">Callback System<a class="headerlink" href="#callback-system" title="Permanent link">&para;</a></h2>
+<p>Callbacks are used to notify other nodes about events that have occurred. With the Haywire system, it is the mechanism that allows from within executed <a href="#flow-execution-model">Flows</a> to trigger other <a href="#flow-execution-model">Flows</a> within the same <a href="#graph-structure">Graph</a>.</p>
+<p>Lets first disentangle the concepts of triggers, <a href="#node-types">Events-nodes</a>, Control-connections and Callbacks. In the context of Haywire,</p>
+<p><strong>triggers</strong> are the events that are generated by the outside system, while <strong><a href="#node-types">Event-node</a></strong> are the mechanism to pass on this trigger into the flow. Once an <strong><a href="#node-types">Event-node</a></strong> is triggered, it will emit through its <a href="#pin-system">Control-pin-outlet</a> (and its <a href="#pin-system">Data-pin-outlet</a> if so required).</p>
+<p><strong>callbacks</strong> is a mechanism to generate a <strong>trigger</strong> from within another flow. From the point of view of an <strong><a href="#node-types">Event-node</a></strong>, this looks like an event from the outside system, since it is generated by a flow that runs within a separate thread.</p>
+<p><strong><a href="#pin-system">Callback-pin-outlets</a> can only be implemented by <a href="#node-types">Event-nodes</a></strong>, since this are the nodes that trigger flows.</p>
+<p>On first sight, this seems to be counter-intuitive, why should an <a href="#node-types">Event-node</a> have a <a href="#pin-system">Callback-pin-outlet</a>. It is actually listening to a trigger, so shouldn't it have a <a href="#pin-system">Callback-pin-inlet</a> instead? The answer is no. The callback connection needs always be initiated by the listener, which is in this case the <a href="#node-types">Event-node</a> that is listening for the event. In other words: The callback connection is used by its node to notify other nodes that it is interested in the event and is asking for a callback. Though this is a bit misleading: the callback connection is only used during the <a href="#assembly-process">Assembly step</a>. This means that the callback connection is not used during the execution of any of the flows involved.</p>
+<p>Also, an <a href="#node-types">Event-node</a> can by definition have no pin-inlets.</p>
+<hr />
+<h1 id="flow">Flow<a class="headerlink" href="#flow" title="Permanent link">&para;</a></h1>
+<h2 id="overview_1">Overview<a class="headerlink" href="#overview_1" title="Permanent link">&para;</a></h2>
+<p><a href="#flow-execution-model">Flows</a> are used to organize and execute a sequence of nodes. A <a href="#flow-execution-model">Flow</a> is assembled by the <a href="#assembly-process">Assembler</a> from a <a href="#graph-structure">Graph</a>. A <a href="#flow-execution-model">Flow</a> has always at least one <a href="#node-types">Event-node</a> as an entry point.</p>
+<p>Each <a href="#flow-execution-model">Flow</a> keeps a reference of the <a href="#graph-structure">Graph</a> it is assembled from and uses the Graphs instantiations of <a href="#node-architecture">Nodes</a>, <a href="#graph-as-node-pattern">Subgraphs</a> etc to execute/evaluate the nodes. Thus, during the Interpretation of a <a href="#flow-execution-model">Flow</a>, the <a href="#graph-structure">Graph</a> is used as the database of the <a href="#flow-execution-model">Flow</a>. Once the Interpretation is finished, the Graphs nodes are reset to their default state.</p>
+<h2 id="from-graph-to-flow">From Graph to Flow<a class="headerlink" href="#from-graph-to-flow" title="Permanent link">&para;</a></h2>
+<p>Haywire uses a Control- (also known as an Execution-) flow model in combination with a Data-flow model.</p>
+<ul>
+<li>Control-connections specify the order of operations</li>
+<li>Data-connections pass values between nodes</li>
+<li>The Graph that is described by the Control-connections is called Control-graph and assembled into the Control-flow</li>
+<li>The Graph that is described by the Data-connections is called Data-graph and assembled into a Data-flow</li>
+</ul>
+<h2 id="the-dual-flow-model">The Dual-Flow Model<a class="headerlink" href="#the-dual-flow-model" title="Permanent link">&para;</a></h2>
+<p>Haywire's model is separating <strong>what executes when</strong>, and from <strong>what data flows where</strong>:</p>
+<p>During the <a href="#assembly-process">Assembly</a>, the Control-connections are traversed and the Control-flow is assembled. Then from each <a href="#node-types">Control-node</a>, the Data-graph is traversed and the localized Data-flow is assembled.</p>
+<h3 id="control-flow">Control Flow<a class="headerlink" href="#control-flow" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Defines the sequence of operations</li>
+<li>Follows Control-connections from <a href="#node-types">Control-node</a> to <a href="#node-types">Control-node</a></li>
+<li>Each control connection is essentially a "goto next instruction"</li>
+<li>Connected <a href="#pin-system">control pins</a> specify execution order</li>
+<li>Supports complex patterns: loops, branches, conditionals</li>
+<li>Start at <a href="#node-types">Event-nodes</a> (BeginPlay, Tick, InputAction, etc.)</li>
+</ul>
+<h3 id="localized-data-flow">(localized) Data Flow<a class="headerlink" href="#localized-data-flow" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Passes values between nodes</li>
+<li>generated from local Data-graph around a <a href="#node-types">Control-node</a> to be local node-related dependency tree of <a href="#node-types">Data-nodes</a></li>
+<li>Connects <a href="#pin-system">data pins</a> to transfer information</li>
+<li>Evaluated locally around each control node through <a href="#control-flow-vs-data-flow">localized Data-flow</a></li>
+<li>Every time a <a href="#node-types">Control-node</a> is executed, its localized Data-flow is evaluated.</li>
+<li>Supports <a href="#lazy-evaluation">lazy evaluation</a> strategies</li>
+</ul>
+<h1 id="generation">Generation<a class="headerlink" href="#generation" title="Permanent link">&para;</a></h1>
+<p>Under Generation falls currently everything  that is involved until a complete Graph is instantiated for further processing.</p>
+<p>This includes</p>
+<h2 id="finding-and-loading-available-node-libraries">Finding and Loading available Node Libraries<a class="headerlink" href="#finding-and-loading-available-node-libraries" title="Permanent link">&para;</a></h2>
+<p>loading nodes from filesystem: <a href="https://github.com/comfyanonymous/ComfyUI/blob/78672d0ee6d20d8269f324474643e5cc00f1c348/nodes.py#L2168">ComfyUI/nodes.py at 78672d0ee6d20d8269f324474643e5cc00f1c348 ? comfyanonymous/ComfyUI ? GitHub</a></p>
+<h2 id="loading-graphs-from-json-and-instantiating-required-nodes">Loading Graphs from JSON and instantiating required Nodes<a class="headerlink" href="#loading-graphs-from-json-and-instantiating-required-nodes" title="Permanent link">&para;</a></h2>
+<p>this example shows a first approach on how to load a graph from json, find, version check and instantiate the required nodes from a central registry: <a href="../../playground/node_API/node_discovery_system.py">node_discovery_system.py</a></p>
+<hr />
+<h1 id="assembly">Assembly<a class="headerlink" href="#assembly" title="Permanent link">&para;</a></h1>
+<h2 id="overview_2">Overview<a class="headerlink" href="#overview_2" title="Permanent link">&para;</a></h2>
+<p>As mentioned, <a href="#graph-structure">Graphs</a> core entity consist of <a href="#node-architecture">Nodes</a> and Connections. The <a href="#assembly-process">Assembly</a> converts a <a href="#graph-structure">Graph</a> into executable <a href="#flow-execution-model">Flows</a>. This is realized with the creation of a new data structure that can be executed (<a href="#flow-execution-model">Flow</a>) rather than be descriptive (<a href="#graph-structure">Graph</a>)</p>
+<ul>
+<li>The <a href="#graph-structure">Graph</a> is analyzed to identify execution paths, starting at <a href="#node-types">Event-nodes</a> and following <a href="#pin-system">Control-pins</a></li>
+<li>At each <a href="#node-types">Control-node</a>, its <a href="#pin-system">Data-pin</a> node dependencies are separated into a local Data-graph with a predefined sequence of execution for each involved node called a <a href="#control-flow-vs-data-flow">localized Data-flow</a>.</li>
+<li>whenever a the graph is manipulated (connection is added or removed), the <a href="#just-in-time-assembly">just in time Assembly</a> mechanism adapts the respective flow to the new graph description.</li>
+</ul>
+<p>Lets first focus on a complete <a href="#assembly-process">Assembly</a> of a graph into flows:</p>
+<p>We assume:</p>
+<ul>
+<li>graph is loaded from a file.</li>
+<li>graph loads its dependencies.</li>
+<li>validation to check for recursive dependencies.</li>
+<li>graph is instantiated.</li>
+</ul>
+<h2 id="assembly-steps">Assembly Steps<a class="headerlink" href="#assembly-steps" title="Permanent link">&para;</a></h2>
+<h3 id="graph-validation">Graph Validation<a class="headerlink" href="#graph-validation" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Checking for graph validity</li>
+<li>Node checking:<ul>
+<li>Checking for validity of node-types (see chapter of <a href="#node-types">node types</a> for details)</li>
+<li>Checking for multiples of the same <a href="#node-types">Event-nodes</a> (not allowed since undefined which Control-flow is should have precedence)</li>
+<li>Checking for <a href="#node-types">source</a> and <a href="#node-types">sink nodes</a> inside <a href="#graph-as-node-pattern">Graph-nodes</a> (required to be functional)</li>
+</ul>
+</li>
+</ul>
+<h3 id="graph-cleaning">Graph Cleaning<a class="headerlink" href="#graph-cleaning" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Clearing all connections that are stored inside pins. (clean house)</li>
+</ul>
+<h3 id="graph-preprocessing">Graph Preprocessing<a class="headerlink" href="#graph-preprocessing" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Storing Control-flow connections in their respective outlet-pins. This is because the Control-flow propagates in the direction from <a href="#pin-system">Control-pin-outlet</a> to <a href="#pin-system">Control-pin-inlet</a>. The next-to-be-executed-controlnode <a href="#pin-system">Control-pin-inlet</a> doesn't need to know with what node it is connected. It is actually allowed to be connected to multiple nodes. Once the node is executed, the VM will inform the from where the Control-flow came from.</li>
+<li>Storing Data-flow connections in their respective inlet-pins. This is because the Data-flow is assembled through backpropagation from the <a href="#pin-system">Data-pin-inlets</a> of its respective <a href="#node-types">Control-node</a>. the <a href="#pin-system">Data-pin-outlets</a> doesn't need to know with which inlet-pins it is connected to at the time of <a href="#assembly-process">Assembly</a>. once the Data-flow is created though, the outlet-pins "know" where to send their results. (this mechanism is not yet defined and can benefit from a suitable solution)</li>
+</ul>
+<h3 id="flow-identification">Flow identification<a class="headerlink" href="#flow-identification" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Identifies different Control-flows with the <a href="#graph-structure">Graph</a>.</li>
+<li>A Control-flows needs at least one <a href="#node-types">Event-node</a></li>
+<li>A Control-flows is considered separate from another Control-flows when there is no connection (control or data) between their respective nodes-trees.<ul>
+<li>The only exception here is the <a href="#callback-system">callback-connection</a>.</li>
+</ul>
+</li>
+</ul>
+<h3 id="flow-assembly">Flow assembly<a class="headerlink" href="#flow-assembly" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Stepping through each <a href="#node-types">Control-node</a>:</li>
+<li>its <a href="#pin-system">Data-pin-inlet</a> dependencies are separated into a localized Data-graph (containing only nodes and connections that influence the <a href="#pin-system">Data-pin-inlets</a> of the <a href="#node-types">Control-node</a> in focus).</li>
+<li>Checking for loops in the Data-graph (not allowed with the exception of loops that contain a <a href="#node-types">Control-node</a>)</li>
+<li>the Data-graph is sorted into a predefined sequence of executions called a <a href="#control-flow-vs-data-flow">localized Data-flow</a>.</li>
+<li>the <a href="#control-flow-vs-data-flow">localized Data-flow</a> is stored within the <a href="#node-types">Control-node</a>, ready to be executed.</li>
+<li>It does all of it iteratively with each <a href="#graph-as-node-pattern">Graph-node</a> as well.</li>
+<li>It identifies the <a href="#node-types">Event-nodes</a> and makes them available for hooking it up with the execution mechanism of the whole haystack.</li>
+</ul>
+<h3 id="just-in-time-assembly">Just-In-Time Assembly<a class="headerlink" href="#just-in-time-assembly" title="Permanent link">&para;</a></h3>
+<h2 id="just-in-time-assembly-for-a-future-implementation">Just-In-Time Assembly (For a future implementation)<a class="headerlink" href="#just-in-time-assembly-for-a-future-implementation" title="Permanent link">&para;</a></h2>
+<ul>
+<li>This happens whenever a connection is edited.</li>
+<li>This can be the case if a node is deleted, but not when a node is added.</li>
+</ul>
+<h1 id="execution">Execution<a class="headerlink" href="#execution" title="Permanent link">&para;</a></h1>
+<h2 id="the-virtual-machine">The Virtual Machine<a class="headerlink" href="#the-virtual-machine" title="Permanent link">&para;</a></h2>
+<h3 id="virtual-machine-architecture">Virtual Machine Architecture<a class="headerlink" href="#virtual-machine-architecture" title="Permanent link">&para;</a></h3>
+<p>The Haywire Virtual Machine (VM) maintains two control-flow- stacks</p>
+<ul>
+<li><strong>Done-stack</strong>: Tracks completed nodes</li>
+<li><strong>Loopback-stack</strong>: Manages nodes requiring return execution (loops, sequences)</li>
+</ul>
+<h4 id="execution-context-management">Execution Context Management<a class="headerlink" href="#execution-context-management" title="Permanent link">&para;</a></h4>
+<ul>
+<li>Tracks which node should execute next based on <a href="#pin-system">Control-pin</a> connections</li>
+<li>Manages global (from the outside) and local <a href="#variables">variables</a> and passing them between nodes</li>
+</ul>
+<h4 id="control-flow-translation">Control Flow Translation<a class="headerlink" href="#control-flow-translation" title="Permanent link">&para;</a></h4>
+<ul>
+<li>Each control connection is essentially a "goto next instruction"</li>
+<li><a href="#node-types">Loopback nodes</a> (ForLoop, WhileLoop) maintain internal state and can re-execute connected branches</li>
+<li><a href="#node-types">Branch nodes</a> evaluate conditions and direct execution down different paths- Infinite loop protection via stack overflow detection (via the Done-stack)</li>
+<li>The VM tracks loop iteration state and manages the evaluation context</li>
+</ul>
+<h4 id="data-flow-translation">Data Flow Translation<a class="headerlink" href="#data-flow-translation" title="Permanent link">&para;</a></h4>
+<ul>
+<li><a href="#node-types">Data nodes</a> are executed sequentialy defined by the localized Data-Flow</li>
+<li>The Engine supports <a href="#lazy-evaluation">Lazy Evaluation</a></li>
+</ul>
+<h4 id="state-preservation">State Preservation:<a class="headerlink" href="#state-preservation" title="Permanent link">&para;</a></h4>
+<ul>
+<li>The VM can pause execution (for async operations like delays)</li>
+<li>Maintains execution context</li>
+</ul>
+<h2 id="flow-execution">Flow Execution<a class="headerlink" href="#flow-execution" title="Permanent link">&para;</a></h2>
+<p>Each <a href="#flow-execution-model">Flow</a> has a Scheduler that manages the execution of the <a href="#flow-execution-model">Flow</a>. It makes sure that the <a href="#flow-execution-model">Flow</a> is executed from the <a href="#node-types">Event-node</a> that matches the trigger type.</p>
+<p>Once a <a href="#flow-execution-model">Flow</a> is executed, the scheduler locks the <a href="#flow-execution-model">Flow</a> for exclusive execution. All other Triggers are queued inside the Trigger-queue until the <a href="#flow-execution-model">Flow</a> is finished.</p>
+<p>Depending on the Trigger-queue's configuration, the Trigger-queue can be configured to either block or drop incoming events.</p>
+<p><a href="#flow-execution-model">Flows</a> should allowed to be executed in parallel. Not yet clear which architecture to use.</p>
+<h3 id="control-flow-execution">Control Flow Execution<a class="headerlink" href="#control-flow-execution" title="Permanent link">&para;</a></h3>
+<p>When a <a href="#flow-execution-model">Flow</a> is executed, it creates two stacks:</p>
+<ul>
+<li>The first stack is the Done-stack, which contains the nodes that have been executed.</li>
+<li>The second stack is the Loopback-stack, which contains the <a href="#node-types">Loopback-nodes</a>.</li>
+</ul>
+<p>Once a <a href="#node-types">Control-node</a> is executed, VM pushes it onto the Done-stack, and if its a <a href="#node-types">Loopback-node</a>, its pushed onto the Loopback-stack.</p>
+<p><a href="#node-types">Loopback-nodes</a> are <a href="#node-types">Control-nodes</a> that have one or multiple execution branches that have to come back to the node to continue. <a href="#node-types">Loopback-nodes</a> are designated as such by a flag.</p>
+<p>Once a branch finds its end without an <a href="#node-types">Output-node</a> (which would end the <a href="#flow-execution-model">Flow</a>), the VM checks the Loopback-stack for any <a href="#node-types">Loopback-nodes</a> that are waiting for the branch to complete. If there are no <a href="#node-types">Loopback-nodes</a> waiting, the <a href="#flow-execution-model">Flow</a> is considered complete.</p>
+<p>If there are <a href="#node-types">Loopback-nodes</a> waiting, the VM gets the last one out of the stack and removes all the nodes in the Done-stack up to the <a href="#node-types">Loopback-node</a>.</p>
+<p>It then continues executing the <a href="#flow-execution-model">Flow</a> from the <a href="#node-types">Loopback-node</a>.</p>
+<p>If there are cycles in the Control-Flow that spiral into infinity, the Done-stack will eventually overflow, causing the VM to throw an error.</p>
+<h3 id="worker-function-executionevaluation">Worker function execution/evaluation<a class="headerlink" href="#worker-function-executionevaluation" title="Permanent link">&para;</a></h3>
+<h4 id="for-control-nodes">for Control-nodes<a class="headerlink" href="#for-control-nodes" title="Permanent link">&para;</a></h4>
+<p>The VM follows the <a href="#pin-system">Control-pins</a> from node to node. To recap quickly: During the <a href="#assembly-process">Assembly</a> of the <a href="#graph-structure">Graph</a>, the connections, which are stored within the graph, are transferred to the respective pins. After <a href="#assembly-process">Assembly</a> of the <a href="#graph-structure">Graph</a>, there is a Control-flow containing a reference to each connected <a href="#node-types">Control-node</a> (TBD).</p>
+<ol>
+<li>
+<p>After the VM executed the previous <a href="#node-types">Control-node</a>, its return value indicates which <a href="#pin-system">Control-pin-outlet</a> it has to follow. This identifies the next to be executed <a href="#node-types">Control-node</a>.</p>
+</li>
+<li>
+<p>Before the <a href="#node-types">Control-node's</a> <a href="#worker-function-execution">Worker-function</a> is called, it first evaluates the <a href="#node-types">Control-node's</a> <a href="#control-flow-vs-data-flow">localized Data-flow</a> to update the <a href="#pin-system">Data-pin-inlets</a>.</p>
+</li>
+<li>
+<p>Then it executes the <a href="#worker-function-execution">Worker-function</a>. It provides a reference to</p>
+</li>
+<li>
+<p><strong>A global context</strong>: The global context comes in form of a dict and contains any data a dict can contain, including user specific data and references to data stored outside of the evaluation engine.</p>
+</li>
+<li><strong>A local context</strong>: The local context comes in form of a dict and gives access to the local graph and its <a href="#variables">variables</a>.</li>
+<li><strong>Control-pin</strong>: The identity of the <a href="#pin-system">Control-pin-input</a> that is executed.</li>
+<li><strong>Control-node</strong>: The identity of the node that called.</li>
+<li>
+<p>etc.</p>
+</li>
+<li>
+<p>Within the <a href="#worker-function-execution">Worker-function</a> at the end of its process,</p>
+</li>
+<li>
+<p>it sets the respective <a href="#pin-system">Data-pin-outlets</a>.</p>
+</li>
+<li>
+<p>then returns status information that includes the information which <a href="#pin-system">Control-pin-outlet</a> is to be followed.</p>
+</li>
+<li>
+<p>The VM takes this info, identifies the next <a href="#node-types">Control-node</a></p>
+</li>
+<li>
+<p>...and repeats above process..</p>
+</li>
+</ol>
+<h4 id="for-data-nodes">for Data-nodes<a class="headerlink" href="#for-data-nodes" title="Permanent link">&para;</a></h4>
+<p>To recap quickly: After <a href="#assembly-process">Assembly</a> of the graph, there is a <a href="#control-flow-vs-data-flow">localized Data-flow</a> for each <a href="#node-types">Control-node</a>. A <a href="#control-flow-vs-data-flow">localized Data-flow</a> is nothing but a sorted list of the <a href="#node-types">Data-nodes</a> that need to be evaluated in sequence to get the values for the <a href="#pin-system">Data-pin-inlets</a> of the <a href="#node-types">Control-node</a>.</p>
+<p>Before the execution of the <a href="#worker-function-execution">Worker-function</a> of a <a href="#node-types">Control-node</a>, its <a href="#control-flow-vs-data-flow">localized Data-flow</a> is <strong>required</strong> to be evaluated first.</p>
+<p>The evaluation of an individual <a href="#node-types">Data-node</a> follows these steps:</p>
+<p>Before the <a href="#node-types">Data-node's</a> <a href="#worker-function-execution">Worker-function</a> is called, it checks first if any of its own <a href="#pin-system">Data-pin-inlets</a> are dirty (value has changed).</p>
+<ol>
+<li>
+<p>If this is the case:</p>
+</li>
+<li>
+<p>then it runs the <a href="#worker-function-execution">Worker-function</a>. It provides a reference to</p>
+</li>
+<li>
+<p><strong>A global context</strong>: The global context comes in form of a dict and contains any data a dict can contain, including user specific data and references to data stored outside of the evaluation engine.</p>
+</li>
+<li>
+<p><strong>A local context</strong>: The local context comes in form of a dict and gives access to the local graph and its <a href="#variables">variables</a>.</p>
+</li>
+<li>
+<p>Within the <a href="#worker-function-execution">Worker-function</a> at the end of its process,</p>
+</li>
+<li>
+<p>it updates the <a href="#pin-system">Data-pin-outlets</a> so its connected downstream <a href="#pin-system">Data-pin-inlets</a> are set to dirty (value has changed).</p>
+</li>
+<li>
+<p>If there are no dirty inlets:</p>
+</li>
+<li>
+<p>the <a href="#worker-function-execution">Worker-function</a> is not called. And no outlets are updated.</p>
+</li>
+<li>
+<p>The sequence hops to the next <a href="#node-types">Data-node</a>.</p>
+</li>
+<li>
+<p>.. and so it continues...</p>
+</li>
+</ol>
+<hr />
+<h1 id="interpreter">Interpreter<a class="headerlink" href="#interpreter" title="Permanent link">&para;</a></h1>
+<ul>
+<li>The <a href="#interpreter">Interpreter</a> is responsible for running the individual <a href="#flow-execution-model">Flows</a> in their own Threads.</li>
+<li>It is responsible for piping external events to trigger the <a href="#flow-execution-model">Flows</a> that have matching <a href="#node-types">Event-nodes</a>.</li>
+</ul>
+<hr />
+<h1 id="outstanding-design-questions">Outstanding Design Questions<a class="headerlink" href="#outstanding-design-questions" title="Permanent link">&para;</a></h1>
+<h2 id="for-author-clarification">For Author Clarification<a class="headerlink" href="#for-author-clarification" title="Permanent link">&para;</a></h2>
+<ol>
+<li>
+<p><strong>Parallel Flow Execution</strong>: Should <a href="#flow-execution-model">flows</a> run in parallel? This impacts:</p>
+</li>
+<li>
+<p><a href="#graph-structure">Graph</a> reference management (each flow needs separate instance?)</p>
+</li>
+<li>Thread safety requirements</li>
+<li>State management complexity</li>
+<li>Only <a href="#graph-structure">Graphs</a> containing one <a href="#flow-execution-model">Flow</a> can run in parallel.</li>
+<li>They have to be designed to be truly stateless.</li>
+<li>
+<p>What would be the best architecture to cover both parallel and sequential execution?</p>
+</li>
+<li>
+<p><strong>Data-Flow Cycle Exceptions</strong>: The specification mentions data cycles are allowed "if passing through a <a href="#node-types">Control-node</a>" - this needs clearer definition of when/how this works.</p>
+</li>
+<li>
+<p><strong><a href="#data-outlets">Data Outlets</a> Implementation</strong>: Currently marked as "not yet defined" - needs specification for:</p>
+</li>
+<li>
+<p>How outputs are validated as "required to be set"</p>
+</li>
+<li>Runtime behavior when outputs aren't set</li>
+<li>
+<p>Integration with <a href="#data-edges---pipes">pipe system</a></p>
+</li>
+<li>
+<p><strong>Variable Scope</strong>: <a href="#variables">Variables</a> are <a href="#graph-structure">Graph</a>-only, but some nodes (like loops) seem to need state. How is this resolved?</p>
+</li>
+<li>
+<p><strong>What works with this spec?</strong></p>
+</li>
+<li>
+<p><strong>What does this specification desperately need to clarify the goal?</strong></p>
+</li>
+<li>
+<p><strong>What is the best way to implement this?</strong></p>
+</li>
+<li>
+<p><strong>Check the <a href="#complete-assembly-steps">Assembly steps</a> for missing requirements and generation steps.</strong></p>
+</li>
+</ol>
+<h2 id="suggested-enhancements">Suggested Enhancements<a class="headerlink" href="#suggested-enhancements" title="Permanent link">&para;</a></h2>
+<p><strong>?�� Performance Monitoring</strong>: Add execution profiling to identify bottlenecks in complex graphs</p>
+<p><strong>?�� Debug Infrastructure</strong>: Visual execution tracing, breakpoint support, step-through debugging</p>
+<p><strong>?�� Module System</strong>: Standardized packaging/distribution for custom nodes and abstractions</p>
+<p><strong>?�� Error Handling</strong>: Comprehensive error propagation and recovery strategies</p>
+<hr />
+<h1 id="appendix">Appendix<a class="headerlink" href="#appendix" title="Permanent link">&para;</a></h1>
+<h2 id="complete-edge-data-structure">Complete Edge Data Structure<a class="headerlink" href="#complete-edge-data-structure" title="Permanent link">&para;</a></h2>
+<p><strong>Specification:</strong></p>
+<p>An <a href="#edges">Edge</a> is a simple data structure that contains the:</p>
+<ul>
+<li><strong>Connection identifiers:</strong></li>
+<li><code>output_node_id</code>: Source node identifier</li>
+<li><code>outlet_port_id</code>: Source port identifier</li>
+<li><code>input_node_id</code>: Target node identifier</li>
+<li><code>inlet_port_id</code>: Target port identifier</li>
+<li><code>edge_type</code>: FlowType (CONTROL, DATA, CALLBACK)</li>
+<li><code>adapter_chain_keys</code>: List of adapter registry keys</li>
+<li><code>uuid</code>: Unique edge identifier</li>
+</ul>
+<p><strong>Implementation:</strong></p>
+<p>Edges are managed by <code>EdgeWrapper</code> which stores:</p>
+<ul>
+<li><strong>Adapter chain:</strong></li>
+<li><code>adapter_chain_keys</code>: List of adapter registry keys for type transformation</li>
+<li>Built during edge validation to convert between incompatible types</li>
+<li>
+<p>Example: <code>['adapter.float_to_int', 'adapter.scale']</code></p>
+</li>
+<li>
+<p><strong>State tracking:</strong></p>
+</li>
+<li>Lifecycle state (registered, validated, built, tested, linked)</li>
+<li>Error information for each lifecycle stage</li>
+<li>References to source/target port objects</li>
+</ul>
+<h2 id="complete-port-serialization">Complete Port Serialization<a class="headerlink" href="#complete-port-serialization" title="Permanent link">&para;</a></h2>
+<p><strong>Recipe-Based Serialization</strong></p>
+<p>Ports use a "recipe" format that stores the <strong>creation parameters</strong> rather than runtime values. This allows ports to be reconstructed with their exact configuration:</p>
+<p><strong>Key Features:</strong></p>
+<ol>
+<li><strong>Type Identity Storage:</strong></li>
+<li><code>type_cls</code>: Registry key for the IType class</li>
+<li><code>element_type_cls</code>: For compound types (e.g., ArrayType[FLOAT])</li>
+<li>
+<p>Allows reconstruction of exact type hierarchy</p>
+</li>
+<li>
+<p><strong>Default Values:</strong></p>
+</li>
+<li>Stored in type-appropriate format via DataField</li>
+<li>
+<p>Only creation defaults, not runtime state</p>
+</li>
+<li>
+<p><strong>Callbacks:</strong></p>
+</li>
+<li><code>on_change</code>: Method name to call on value change</li>
+<li><code>on_connect</code>: Method name to call on connection</li>
+<li>
+<p><code>on_disconnect</code>: Method name to call on disconnection</p>
+</li>
+<li>
+<p><strong>Hierarchical Structure:</strong></p>
+</li>
+<li><code>parent_group</code>: ID of parent group port</li>
+<li><code>section</code>: Property panel section name</li>
+<li>
+<p><code>is_group</code>, <code>is_section</code>, <code>is_ghost</code>: Organizational flags</p>
+</li>
+<li>
+<p><strong>Widget Configuration:</strong></p>
+</li>
+<li><code>widget_key</code>: Registry key for UI widget</li>
+<li><code>widget_config</code>: Additional widget parameters</li>
+</ol>
+<p>This recipe-based approach enables:
+- Hot reload: Ports can be rebuilt from recipes after code changes
+- Version migration: Recipes can be transformed during graph loading
+- Minimal storage: Only essential creation parameters are saved</p>
+<h3 id="complete-node-definition-template">Complete Node Definition Template<a class="headerlink" href="#complete-node-definition-template" title="Permanent link">&para;</a></h3>
+<p>see <a href="./Haywire_node_definition.md">Haywire_node_definition.md</a></p>
+<h3 id="complete-node-initialization-sequence">Complete Node Initialization Sequence<a class="headerlink" href="#complete-node-initialization-sequence" title="Permanent link">&para;</a></h3>
+<div class="language-console highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="gp"># </span>Initialization
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="go">1. first the node is initialized, calling __init__</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="go">2. Calling SETTINGS to set the Configs.</span>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="go">3. Calling ON_CHANGED_CONFIG to dynamically configure the node.</span>
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="go">4. Calling PARAMETERS to set the Properties.</span>
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="go">5. Calling INLETS to set the Inlets.</span>
+</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="go">6. Calling OUTLETS to set the Outlets.</span>
+</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>
+</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="gp"># </span>Assembly
+</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a><span class="go">1. Checking if there are lazy Inlets on the Control-node to configure the backpropagation.</span>
+</span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a><span class="go">2. Checking if there are lazy Inlets on the Data-node to configure the localized Data-Flow.</span>
+</span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>
+</span><span id="__span-0-13"><a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a><span class="gp"># </span>Execution<span class="w"> </span>Control-node
+</span><span id="__span-0-14"><a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a><span class="go">1. Calling ON_VALIDATION_LAZY on the Control-node generate the LAZY_MASK.</span>
+</span><span id="__span-0-15"><a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a><span class="go">2. Evaluation localized Data-Flow</span>
+</span><span id="__span-0-16"><a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a><span class="go">  2.1 Calling ON_VALIDATION_LAZY on the Data-node to see if there is the need for re-assembly.</span>
+</span><span id="__span-0-17"><a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a><span class="go">  2.2 Calling ON_CHANGED_ASYNC on the Data-node to see if there is change that is not from UI or Upstream nodes</span>
+</span><span id="__span-0-18"><a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a><span class="go">  2.3 Calling ON_VALIDATION_INPUT on the Data-node to validate the inputs before calling the worker FUNCTION.</span>
+</span><span id="__span-0-19"><a id="__codelineno-0-19" name="__codelineno-0-19" href="#__codelineno-0-19"></a><span class="go">  2.4 Calling the worker FUNCTION</span>
+</span><span id="__span-0-20"><a id="__codelineno-0-20" name="__codelineno-0-20" href="#__codelineno-0-20"></a><span class="go">3. Calling ON_CHANGED_ASYNC on the Data-node to see if there is change that is not from UI or Upstream nodes</span>
+</span><span id="__span-0-21"><a id="__codelineno-0-21" name="__codelineno-0-21" href="#__codelineno-0-21"></a><span class="go">4. Calling ON_VALIDATION_INPUT on the Control-node to validate the inputs before calling the worker FUNCTION.</span>
+</span><span id="__span-0-22"><a id="__codelineno-0-22" name="__codelineno-0-22" href="#__codelineno-0-22"></a><span class="go">5. Calling the worker FUNCTION</span>
+</span></code></pre></div>
+<h2 id="complete-lazy-evaluation-algorithm">Complete Lazy Evaluation Algorithm<a class="headerlink" href="#complete-lazy-evaluation-algorithm" title="Permanent link">&para;</a></h2>
+<p><strong>Algorithm:</strong></p>
+<p><strong>Setup</strong> of a <a href="#node-types">Control-node</a></p>
+<ul>
+<li>Some Inlets are configured to be lazy</li>
+<li>A ON_VALIDATION_LAZY function is defined to determine if the condition for a lazy evaluation is given.</li>
+</ul>
+<p><strong>Setup</strong> of a <a href="#node-types">Data-node</a> with the <a href="#control-flow-vs-data-flow">localized Data-Flow</a> of this <a href="#node-types">Control-node</a></p>
+<ul>
+<li>Some Inlets are configured to be lazy</li>
+<li>A ON_VALIDATION_LAZY function is defined to determine if the condition for a lazy evaluation is given.</li>
+</ul>
+<p><strong><a href="#assembly-process">Assembly</a></strong></p>
+<ul>
+<li>On the <a href="#node-types">Control-node</a>, the <a href="#assembly-process">assembler</a> creates a bit mask with a bit for each data-inlet. each data-inlet gets its own bit mask called EVAL_MASK where the bit that represents the inlet is set to 1, while all other bits are set to 0.</li>
+<li>On the <a href="#node-types">Data-node</a>, the ON_VALIDATION_LAZY function is called to determine which Data-inlets to follow in the backpropagation.(This, by the way has a severe edge case: the ON_VALIDATION_LAZY function on a <a href="#node-types">Data-node</a> should make its decision at assembly time for performance reasons. Otherwise the re-assembly of the <a href="#control-flow-vs-data-flow">localized Data-Flow</a> would be required on each execution of the <a href="#node-types">Control-node</a>, which we want to avoid. But implementing <a href="#lazy-evaluation">Lazy Evaluation</a> in a consistent manner for the user means that changes of <a href="#properties">Properties</a> or Inlets that could affect this decision on the <a href="#node-types">Data-node</a> during runtime actually needs to trigger a re-assembly of the <a href="#control-flow-vs-data-flow">localized Data-Flow</a>. Otherwise, the evaluation of the Data-Flow could lead to incoherent results. A slight performance penalty is preferable over an inconsistent user experience.)</li>
+<li>Upon generation of the <a href="#control-flow-vs-data-flow">localized Data-Flow</a>, this bit mask is passed on during the backpropagation, and is binary OR'ed with other bit masks from the same <a href="#node-types">Control-node</a> if they merge at that specific <a href="#node-types">Data-node</a>. This OR'ed bit mask is then passed further during backpropagation. At the end there is a list of all the required <a href="#node-types">Data-nodes</a> and their respective OR'ed bit masks (EVAL_MASK). Then the correct sequence of <a href="#node-types">Data-nodes</a> is determined to evaluate the Data-Flow correctly. This EVAL_MASK shows which Data-inlets require the evaluation of this specific <a href="#node-types">Data-node</a>.</li>
+</ul>
+<p><strong>Evaluation</strong></p>
+<ul>
+<li>On execution of the <a href="#node-types">Control-node</a>, the VM creates a bit mask called LAZY_MASK with a bit for each data-inlet, all set to 1.</li>
+<li>then the ON_VALIDATION_LAZY function is called to determine if the Data-Flow can be evaluated lazily or not. If this is the case, it sets the bits inside LAZY_MASK representing the data-inlets that are not needed to 0, while all others stay 1.</li>
+<li>Then the <a href="#control-flow-vs-data-flow">localized Data-Flow</a> is evaluated:</li>
+<li>It goes to the next <a href="#node-types">Data-node</a> in the sequence.</li>
+<li>First it checks if the <a href="#node-types">Data-Nodes</a> ON_VALIDATION_LAZY function has a different result than the previous run (i.e. during <a href="#assembly-process">Assembly</a>).<ul>
+<li>If yes, the evaluation of the <a href="#control-flow-vs-data-flow">localized Data-Flow</a> is stopped</li>
+<li>The VM reassembles the <a href="#control-flow-vs-data-flow">localized Data-Flow</a> from scratch.</li>
+<li>and restarts the evaluation process.</li>
+<li>If no, it continues ..</li>
+</ul>
+</li>
+<li>Second it checks if any Data-Inlets are dirty.<ul>
+<li>If yes, it makes a Binary AND between LAZY_MASK and EVAL_MASK.</li>
+<li>if the result is bigger than 0<ul>
+<li>this means at least one Data-Inlet requires the evaluation of this <a href="#node-types">Data-node</a>.</li>
+<li>it evaluates the node.</li>
+<li>sets the dirtied Data-Inlets to clean.</li>
+</ul>
+</li>
+<li>If not it continues. The <a href="#node-types">Data-node</a> has not been evaluated yet, so if downstream a <a href="#node-types">Control-node</a> with a different <a href="#control-flow-vs-data-flow">localized Data-Flow</a> encounters this node, it will only then be evaluated.</li>
+</ul>
+</li>
+<li>continues with the next <a href="#node-types">Data-node</a> in the sequence..</li>
+</ul>
+<p>It is not clear yet how fast the reassembly of the <a href="#control-flow-vs-data-flow">localized Data-Flow</a> from scratch is. I hope for an efficient algorithm. Depending on the time saved by lazy evaluation, it might be worth it. Its left to the node-designer to decide if such an effort makes sense. If there is no ON_VALIDATION_LAZY function defined, the algorithm should run at nominal speed. The additional binary AND operation and if statements in each step should be negligible.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+  <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var labels=set.querySelector(".tabbed-labels");for(var tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../../..", "features": ["navigation.instant", "navigation.tracking", "navigation.tabs", "navigation.tabs.sticky", "navigation.sections", "navigation.expand", "navigation.indexes", "navigation.top", "search.highlight", "search.suggest", "content.code.copy", "content.code.annotate", "content.tabs.link", "toc.follow"], "search": "../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>

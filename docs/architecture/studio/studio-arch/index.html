@@ -1,0 +1,3368 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="A Blueprint-inspired visual programming system — dual-flow control + data, library plugin model, hot-reload-first development.">
+      
+      
+      
+        <link rel="canonical" href="https://going-haywire.github.io/haywire/docs/architecture/studio/studio-arch/">
+      
+      
+        <link rel="prev" href="../../session-and-state/session-and-state-arch/">
+      
+      
+        <link rel="next" href="../app-shell/app-shell-arch/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>Overview - Haywire Documentation</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Inter:300,300i,400,400i,700,700i%7CJetBrains+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Inter";--md-code-font:"JetBrains Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#studio-architecture" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow md-header--lifted" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../../.." title="Haywire Documentation" class="md-header__button md-logo" aria-label="Haywire Documentation" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Haywire Documentation
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Overview
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+  </nav>
+  
+    
+      
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../.." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../welcome/user/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Perspectives
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../components/nodes/node-canon/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Components
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../guides/node-roles/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Guides
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../../overview/overview-arch/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Architecture
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../reference/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Reference
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../archive/whitepaper/Haywire_design/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Archive
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+    
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../../.." title="Haywire Documentation" class="md-nav__button md-logo" aria-label="Haywire Documentation" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    Haywire Documentation
+  </label>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../../welcome/user/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Perspectives
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_2" id="__nav_2_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Perspectives
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../welcome/advanced/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Advanced (workbench extender)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../welcome/core/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Core (system architect)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Components
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Components
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../components/nodes/node-canon/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Nodes
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../components/datatypes/datatype-canon/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Datatypes
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../components/adapters/adapter-canon/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Adapters
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../components/settings/setting-canon/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Settings
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../components/widgets/widget-canon/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Widgets
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../components/skins/skin-canon/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Skins
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--placeholder"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../components/themes/theme-canon/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Themes
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../components/editors/editor-canon/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Editors
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../components/panels/panel-canon/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Panels
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../components/states/state-canon/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    States
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../components/libraries/library-canon/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Libraries
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../components/haybale-package/haybale-package-canon/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Haybale package
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Guides
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Guides
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../guides/node-roles/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Node roles
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../guides/ports/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Ports
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../guides/signals/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Signals
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../guides/sharing-libraries/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Sharing libraries
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../guides/subscribing-to-marketplaces/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Subscribing to marketplaces
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Architecture
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../overview/overview-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--placeholder"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../design/design-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Design
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--placeholder"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../graph/graph-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Graph
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_5_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_5_4" id="__nav_5_4_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Execution
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_5_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Execution
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../execution/execution-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../execution/assembly/assembly-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Assembly
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../execution/edges/edges-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Edges
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../execution/flow/flow-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Flow
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--placeholder"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../execution/virtual-machine/virtual-machine-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Virtual machine
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--placeholder"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../execution/lazy-evaluation/lazy-evaluation-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Lazy evaluation
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--placeholder"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../execution/callbacks/callbacks-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Callbacks
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../library-system/library-system-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Library system
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../library-manager/library-manager-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Library manager
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sharing/sharing-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Sharing — philosophy
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../hot-reload/hot-reload-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Hot-reload
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../settings/settings-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Settings
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../session-and-state/session-and-state-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Session and state
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5_11" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_5_11" id="__nav_5_11_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Studio
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_5_11_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_5_11">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Studio
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#1-overview" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Overview
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-components" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Components
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="2. Components">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#21-the-layout-model-slots-and-bars" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.1 The layout model — slots and bars
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#22-workspaces" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.2 Workspaces
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#23-sessions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.3 Sessions
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#24-sessioncontext" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.4 SessionContext
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#25-the-signal-bus-observations-and-imperatives-on-one-channel" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.5 The signal bus — observations and imperatives on one channel
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#26-editors-and-panels" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.6 Editors and panels
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-data-flow" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Data flow
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="3. Data flow">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#31-page-render-at-session-connect" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.1 Page render at session connect
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#32-user-interaction-signal-propagation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.2 User interaction → signal propagation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#33-cross-session-broadcast-graph-mutation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.3 Cross-session broadcast (graph mutation)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-performance-errors-and-boundaries" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Performance, errors, and boundaries
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="4. Performance, errors, and boundaries">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#41-per-session-memory" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.1 Per-session memory
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#42-dispatch-cost" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.2 Dispatch cost
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#43-hot-reload" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.3 Hot-reload
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#44-boundary-what-the-studio-is-not" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.4 Boundary — what the studio is not
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-extensibility" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. Extensibility
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../app-shell/app-shell-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    App shell
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--placeholder"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../workspace/workspace-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Workspace
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--placeholder"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../canvas/canvas-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Canvas
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--placeholder"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../rendering/rendering-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Rendering
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--placeholder"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_6" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../../reference/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reference
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_6" id="__nav_6_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../reference/glossary/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Glossary
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../reference/design-guide/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Design guide
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_7" >
+        
+          
+          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Archive
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Archive
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../archive/whitepaper/Haywire_design/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Whitepaper
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#1-overview" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Overview
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-components" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Components
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="2. Components">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#21-the-layout-model-slots-and-bars" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.1 The layout model — slots and bars
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#22-workspaces" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.2 Workspaces
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#23-sessions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.3 Sessions
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#24-sessioncontext" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.4 SessionContext
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#25-the-signal-bus-observations-and-imperatives-on-one-channel" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.5 The signal bus — observations and imperatives on one channel
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#26-editors-and-panels" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.6 Editors and panels
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-data-flow" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Data flow
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="3. Data flow">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#31-page-render-at-session-connect" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.1 Page render at session connect
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#32-user-interaction-signal-propagation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.2 User interaction → signal propagation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#33-cross-session-broadcast-graph-mutation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.3 Cross-session broadcast (graph mutation)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-performance-errors-and-boundaries" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Performance, errors, and boundaries
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="4. Performance, errors, and boundaries">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#41-per-session-memory" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.1 Per-session memory
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#42-dispatch-cost" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.2 Dispatch cost
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#43-hot-reload" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.3 Hot-reload
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#44-boundary-what-the-studio-is-not" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.4 Boundary — what the studio is not
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-extensibility" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. Extensibility
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+
+<h1 id="studio-architecture">Studio — Architecture<a class="headerlink" href="#studio-architecture" title="Permanent link">&para;</a></h1>
+<h2 id="1-overview">1. Overview<a class="headerlink" href="#1-overview" title="Permanent link">&para;</a></h2>
+<p>The studio is the haywire UI as a product. It is modelled after the workspace paradigms of <strong>Blender</strong> and <strong>VS Code</strong>: a flexible, area-based layout where each region hosts a different <em>editor</em>, the layout is persisted per project as a JSON snapshot, and every UI decision is driven by a shared <code>SessionContext</code> plus library-owned <code>SessionState</code> rather than hard-wired component-to-component communication.</p>
+<p>Three design goals shape every decision in this layer:</p>
+<ul>
+<li><strong>Session isolation</strong> — each browser tab is a fully independent session with its own selection state, interaction mode, editor instances, and library-owned reactive state. Multiple users can connect to the same running haywire server simultaneously without interfering.</li>
+<li><strong>Pub/sub decoupling</strong> — editors, panels, and the shell do not talk to each other directly. Every interaction flows as a <code>Signal</code> published on a per-session typed bus: observations (concrete <code>Signal</code> subclasses like <code>SelectionMoved</code>, <code>GraphDataMutated</code>) describe state moves; imperatives (<code>CommandSignal</code> subclasses like <code>Reveal</code>, <code>Close</code>) request workspace-tree mutations. Authors emit with <code>Session.publish(...)</code> and subscribe with <code>Session.subscribe(SignalType, handler)</code> (or via the <code>@redraw_on</code> / <code>@react_on</code> decorators on editor methods). Cross-session synchronisation is opt-in per signal class.</li>
+<li><strong>Open extensibility</strong> — both editors and panels are registered via DI-managed registries (<code>EditorTypeRegistry</code>, <code>PanelRegistry</code>). A library can ship its own editors, panels, and <code>Focus</code> classes that are auto-discovered and inserted into the UI, following the same two-stage decorator + folder-scan pattern used by nodes, widgets, and themes.</li>
+</ul>
+<h2 id="2-components">2. Components<a class="headerlink" href="#2-components" title="Permanent link">&para;</a></h2>
+<h3 id="21-the-layout-model-slots-and-bars">2.1 The layout model — slots and bars<a class="headerlink" href="#21-the-layout-model-slots-and-bars" title="Permanent link">&para;</a></h3>
+<p>A studio session is a single-page workspace with four named <strong>slots</strong> arranged around a fixed-chrome <code>TopBar</code> and <code>StatusBar</code>:</p>
+<table>
+<thead>
+<tr>
+<th>Slot</th>
+<th>Class</th>
+<th>Layout</th>
+<th>Hosts</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Left</strong></td>
+<td><code>IconSlot</code></td>
+<td>Vertical icon bar + content area (drag-resizable width)</td>
+<td>One <code>opens='required'</code> editor visible at a time, switched by clicking icons</td>
+</tr>
+<tr>
+<td><strong>Right</strong></td>
+<td><code>IconSlot</code></td>
+<td>Vertical icon bar + content area (drag-resizable width)</td>
+<td>One <code>opens='required'</code> editor visible at a time, switched by clicking icons</td>
+</tr>
+<tr>
+<td><strong>Main</strong></td>
+<td><code>TabSlot</code></td>
+<td>Horizontal tab bar + content area (fills remaining space)</td>
+<td>Multiple tabbed editors, supports <code>required</code> / <code>on_context</code> / <code>on_payload</code></td>
+</tr>
+<tr>
+<td><strong>Bottom</strong></td>
+<td><code>TabSlot</code></td>
+<td>Horizontal tab bar + content area (drag-resizable height; foldable)</td>
+<td>Multiple tabbed editors, supports all <code>OpenBehavior</code> modes</td>
+</tr>
+</tbody>
+</table>
+<p>Each slot is a concrete subclass of <code>Slot</code> (<code>packages/haywire-core/src/haywire/ui/app/slot.py</code>):
+- <code>IconSlot</code> — uses an <code>IconSlotBar</code> with vertical icon buttons; only one binding is visible at a time and the bar acts as the selector. Only <code>opens='required'</code> editors are valid here (enforced by the <code>@editor</code> decorator at class-definition time).
+- <code>TabSlot</code> — uses a <code>TabSlotBar</code> with horizontal tab headers; multiple bindings can coexist; the user picks which is in front.</p>
+<p>Slots own:</p>
+<ul>
+<li>their list of <code>EditorWrapper</code> bindings (<code>self._bindings</code>),</li>
+<li>the currently active wrapper (<code>self._active</code>),</li>
+<li>the NiceGUI area container that hosts the active wrapper's UI subtree,</li>
+<li>visibility state and the divider that resizes them.</li>
+</ul>
+<p>The <code>AppShell</code> (<code>packages/haywire-core/src/haywire/ui/app/shell.py</code>) is the layout container that hosts the four slots, builds the resizable dividers between areas, and subscribes to <code>Reveal</code> / <code>Close</code> / <code>BroadcastClose</code> lifecycle commands on the session signal bus — <code>Reveal</code> is dispatched point-to-point to the editor's <code>default_slot</code>; <code>Close</code> (and <code>BroadcastClose</code>) fan out across every slot. <code>AppShell</code> is constructed once per browser session.</p>
+<h3 id="22-workspaces">2.2 Workspaces<a class="headerlink" href="#22-workspaces" title="Permanent link">&para;</a></h3>
+<p>A <strong>workspace snapshot</strong> is a plain JSON dict — one key per slot name — persisted to <code>.haywire/workspace_state.json</code> per project. (Earlier versions also stored a <code>"haystack"</code> key naming the active haystack TOML; that responsibility moved to <code>HaystackSettings.last_haystack_name</code> in the haybale-haystack library.) The <code>WorkspaceManager</code> (<code>packages/haywire-core/src/haywire/core/session/workspace/manager.py</code>) is intentionally dumb:</p>
+<ul>
+<li><code>WorkspaceManager.snapshot: dict</code> — the raw dict loaded from disk, or <code>{}</code> if the file is missing or unparseable.</li>
+<li><code>WorkspaceManager.save(snapshot)</code> — write the dict to disk and update <code>self.snapshot</code>.</li>
+</ul>
+<p>The structure of each slot's sub-dict is defined and interpreted by the slot classes themselves. <code>WorkspaceManager</code> knows nothing about editors, <code>OpenBehavior</code>, or active tabs. Slots produce a snapshot when asked and consume one when restoring (<code>Slot.populate_from_snapshot</code>).</p>
+<p>There is no named-preset system in the current implementation. The workspace state is a single snapshot per project; multi-preset support is future work.</p>
+<h3 id="23-sessions">2.3 Sessions<a class="headerlink" href="#23-sessions" title="Permanent link">&para;</a></h3>
+<p>A <code>Session</code> (<code>packages/haywire-core/src/haywire/core/session/session.py</code>) represents one connected browser tab. Each session owns:</p>
+<ul>
+<li>A <code>SessionContext</code> (per-session reactive state — see §2.4).</li>
+<li>A <code>WorkspaceManager</code> (the project's layout snapshot).</li>
+<li>Editor instances (cached per <code>EditorWrapper</code>; the slot owns the wrapper, the wrapper owns the instance).</li>
+<li>A per-session <code>SignalBus</code> instance — the only intra-session dispatch channel. Editors auto-subscribe their <code>@redraw_on</code> / <code>@react_on</code> decorated methods at instantiation; the AppShell subscribes its workspace-mutation handlers directly.</li>
+</ul>
+<p>Sessions are created and tracked by <code>SessionManager</code> (<code>packages/haywire-core/src/haywire/core/session/session_manager.py</code>). When a browser connects, <code>SessionManager.create_session(...)</code> constructs the <code>Session</code>, attaches its <code>session_id</code> to the global <code>LibraryStateContainer</code> (which fan-instantiates every registered <code>SessionState</code> class for the new session), and returns it. <code>SessionManager.remove_session(session_id)</code> reverses the dance: <code>Session.cleanup()</code> first, then <code>LibraryStateContainer.detach_session(...)</code>. Cleanup-before-detach is deliberate so editors that read <code>ctx.data[X]</code> during their own cleanup still see live state.</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">manager</span> <span class="o">=</span> <span class="n">SessionManager</span><span class="p">(</span><span class="n">container</span><span class="o">=</span><span class="n">app</span><span class="o">.</span><span class="n">library_state_container</span><span class="p">)</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="n">session</span> <span class="o">=</span> <span class="n">manager</span><span class="o">.</span><span class="n">create_session</span><span class="p">(</span><span class="n">project_state</span><span class="o">=</span><span class="n">app</span><span class="p">,</span> <span class="n">workspace_manager</span><span class="o">=</span><span class="n">ws</span><span class="p">)</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="n">manager</span><span class="o">.</span><span class="n">broadcast</span><span class="p">(</span><span class="n">some_signal</span><span class="p">)</span>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="n">manager</span><span class="o">.</span><span class="n">remove_session</span><span class="p">(</span><span class="n">session</span><span class="o">.</span><span class="n">session_id</span><span class="p">)</span>
+</span></code></pre></div>
+<h3 id="24-sessioncontext">2.4 SessionContext<a class="headerlink" href="#24-sessioncontext" title="Permanent link">&para;</a></h3>
+<p><code>SessionContext</code> (<code>packages/haywire-core/src/haywire/core/session/context.py</code>) is the small per-session reactive object visible to every editor and panel. Its surface is intentionally narrow:</p>
+<table>
+<thead>
+<tr>
+<th>Attribute</th>
+<th>Kind</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>session_id</code></td>
+<td>plain</td>
+<td>UUID of this session</td>
+</tr>
+<tr>
+<td><code>app</code></td>
+<td>plain</td>
+<td>The shared project state (graph data, settings, registries)</td>
+</tr>
+<tr>
+<td><code>session</code></td>
+<td>plain</td>
+<td>Back-reference to the owning <code>Session</code></td>
+</tr>
+<tr>
+<td><code>app_data</code></td>
+<td>plain</td>
+<td>Typed proxy over the global <code>LibraryStateContainer</code> for <code>AppState</code> lookups (shared across all sessions)</td>
+</tr>
+<tr>
+<td><code>data</code></td>
+<td>plain</td>
+<td>Typed proxy over the same container for <code>SessionState</code> lookups (scoped to <em>this</em> session)</td>
+</tr>
+<tr>
+<td><code>active_file</code></td>
+<td>signal field</td>
+<td>The currently-active project file</td>
+</tr>
+<tr>
+<td><code>active_library</code></td>
+<td>signal field</td>
+<td>The currently-selected library (in the Library Browser)</td>
+</tr>
+<tr>
+<td><code>active_component</code></td>
+<td>signal field</td>
+<td>The currently-selected library component</td>
+</tr>
+<tr>
+<td><code>active_workbench_theme_key</code></td>
+<td>signal field</td>
+<td>The active workbench theme</td>
+</tr>
+<tr>
+<td><code>active_node_theme_key</code></td>
+<td>signal field</td>
+<td>The active node theme</td>
+</tr>
+</tbody>
+</table>
+<p>Editor-specific reactive state — selection, clipboard, the active graph — does <strong>not</strong> live on <code>SessionContext</code>. It lives on a library-owned <code>SessionState</code> class. For the graph canvas, that state is <code>EditState</code> (<code>barn/haybale-studio/haybale_studio/state/edit_state.py</code>), accessed via <code>ctx.data[EditState]</code>:</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="n">edit</span> <span class="o">=</span> <span class="n">ctx</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">EditState</span><span class="p">]</span>
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="n">node</span> <span class="o">=</span> <span class="n">edit</span><span class="o">.</span><span class="n">active_node</span>          <span class="c1"># NodeWrapper or None</span>
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="n">selected</span> <span class="o">=</span> <span class="n">edit</span><span class="o">.</span><span class="n">selected_nodes</span>   <span class="c1"># set[str] of node IDs</span>
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="n">edit</span><span class="o">.</span><span class="n">active_node</span> <span class="o">=</span> <span class="n">my_wrapper</span>    <span class="c1"># writes emit a signal</span>
+</span></code></pre></div>
+<p>This separation keeps the framework's <code>SessionContext</code> stable while each library owns the reactive surface its editors need. See <a href="../../../components/states/state-canon/">components/states</a> for the full state model and <a href="../../session-and-state/session-and-state-arch/">session-and-state</a> for the container's two-namespace asymmetry.</p>
+<h3 id="25-the-signal-bus-observations-and-imperatives-on-one-channel">2.5 The signal bus — observations and imperatives on one channel<a class="headerlink" href="#25-the-signal-bus-observations-and-imperatives-on-one-channel" title="Permanent link">&para;</a></h3>
+<p>The studio runs a single per-session typed pub/sub bus (<code>packages/haywire-core/src/haywire/core/session/signals/bus.py</code>). Every payload subclasses <code>Signal</code> from <code>packages/haywire-core/src/haywire/core/session/signals/</code>. Authors emit with <code>Session.publish(s)</code> and listen with <code>Session.subscribe(SignalType, handler)</code>. Subscribers match by exact type — subclasses do not inherit subscriptions.</p>
+<p>Two payload flavours share the bus; the split is vocabulary, not transport:</p>
+<p><strong>Observations (concrete <code>Signal</code> subclasses).</strong> Describe a state move that already happened. Concrete subclasses include:</p>
+<ul>
+<li><strong>Workbench / focus</strong> — synthetic signals on <code>SessionContext</code>: <code>SessionContext.active_file</code>, <code>SessionContext.active_library</code>, <code>SessionContext.active_component</code>. Each is the field reference itself, which subscribers use directly as a subscription key. Plus the hand-authored <code>ActiveGraphMoved</code> (per-graph change beyond the simple field-write semantics).</li>
+<li><strong>Selection</strong> — <code>SelectionMoved</code>.</li>
+<li><strong>Data + lifecycle</strong> — <code>GraphDataMutated</code>, <code>LibraryCatalogChanged</code>.</li>
+<li><strong>Theme</strong> — synthetic signals <code>SessionContext.active_workbench_theme_key</code>, <code>SessionContext.active_node_theme_key</code>.</li>
+</ul>
+<p>Editors and panels declare interest via <code>@redraw_on(...)</code> / <code>@react_on(...)</code> on decorated methods, or via the <code>redraw_on=</code> keyword on <code>@panel(...)</code>; the framework wires the corresponding bus subscriptions at editor instantiation.</p>
+<p><strong>Imperatives (<code>CommandSignal</code>).</strong> Describe workspace-tree mutations. By convention there's one subscriber per command type — the AppShell — but the bus does not enforce that.</p>
+<ul>
+<li><code>Reveal(editor=Cls, binding_id=..., label=...)</code> — bring an editor to the front. The AppShell handler resolves <code>editor.class_identity.default_slot</code> and routes to that slot. If the slot is not hostable in the active workspace, the reveal is dropped with a warning. <code>binding_id</code> disambiguates multi-instance editors (<code>opens='on_payload'</code>).</li>
+<li><code>Close(binding_id=...)</code> — close every tab bound to <code>binding_id</code> across all slots in the issuing session. Used for session-local close decisions.</li>
+<li><code>BroadcastClose(binding_id=...)</code> — cross-session sibling of <code>Close</code>. Each receiving session's AppShell closes matching tabs. Used when the underlying entity is gone for everyone (e.g. a graph entry was removed from the haystack).</li>
+</ul>
+<p><strong>Cross-session routing.</strong> Independent of observation/imperative: set <code>cross_session: ClassVar[bool] = True</code> on any <code>Signal</code> subclass and <code>Session.publish(...)</code> delegates to <code>SessionManager.broadcast(...)</code>, which fans out to every session (including the origin). Among the built-ins, <code>GraphDataMutated</code>, <code>LibraryCatalogChanged</code>, and <code>BroadcastClose</code> are cross-session; everything else is local-only.</p>
+<p>Library authors who declare their own <code>Signal</code> subclasses that other libraries subscribe to <strong>must</strong> list the declaring library in their own <code>LibraryIdentity.dependencies</code>, so hot-reload reloads them as a pair. Without this, an <code>isinstance</code> check after a library reload can spuriously return <code>False</code> when the subscriber holds a stale class reference.</p>
+<h3 id="26-editors-and-panels">2.6 Editors and panels<a class="headerlink" href="#26-editors-and-panels" title="Permanent link">&para;</a></h3>
+<p>Editors fill slots; panels fill the inside of panel-aware editors. Both register via DI registries:</p>
+<ul>
+<li><code>EditorTypeRegistry</code> — <code>BaseEditor</code> subclasses, decorated with <code>@editor(...)</code>. Registered by libraries via <code>add_folder_to_registry(folder_path=..., registry_cls=EditorTypeRegistry)</code> in <code>register_components()</code>. Built-in framework editors (currently none — all editors live in <code>haybale-studio</code> or other libraries) would bootstrap via <code>register_builtin_editors()</code>.</li>
+<li><code>PanelRegistry</code> — <code>BasePanel</code> subclasses, decorated with <code>@panel(action=..., focus=...)</code>. Registered the same way. Panel-aware editors (e.g. <code>PropertiesEditor</code>) call <code>panel_registry.get_panels_for(actions_provider=self, focus=...)</code>, which filters panels by structural <code>isinstance(actions_provider, action)</code> and by <code>Focus.id</code> match.</li>
+</ul>
+<p>For the editor authoring surface — <code>BaseEditor</code>, <code>draw</code>, the <code>@redraw_on</code> / <code>@react_on</code> handler decorators, <code>OpenBehavior</code> modes, slot constraints — see <a href="../../../components/editors/editor-canon/">components/editors</a>. For the panel surface — <code>@panel</code>, <code>Focus</code> classes, <code>PanelLayout</code> — see <a href="../../../components/panels/panel-canon/">components/panels</a>.</p>
+<h2 id="3-data-flow">3. Data flow<a class="headerlink" href="#3-data-flow" title="Permanent link">&para;</a></h2>
+<h3 id="31-page-render-at-session-connect">3.1 Page render at session connect<a class="headerlink" href="#31-page-render-at-session-connect" title="Permanent link">&para;</a></h3>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>Browser opens NiceGUI page
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>  ├─ studio app.py page handler
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>  ├─ SessionManager.create_session(project_state=app, workspace_manager=ws)
+</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>  │   ├─ Session() — constructs SessionContext + per-session SignalBus, registers session_id
+</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>  │   └─ container.attach_session(session_id) — fan-instantiates SessionStates
+</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>  ├─ AppShell(session, editor_registry)
+</span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>  └─ shell.render()
+</span><span id="__span-2-8"><a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a>      ├─ subscribe Reveal / Close / BroadcastClose on session.subscribe(...)
+</span><span id="__span-2-9"><a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a>      ├─ build TopBar / StatusBar
+</span><span id="__span-2-10"><a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a>      ├─ instantiate four slots (left/right IconSlot, main/bottom TabSlot)
+</span><span id="__span-2-11"><a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a>      ├─ each slot.populate_from_snapshot(workspace_manager.snapshot[slot_name])
+</span><span id="__span-2-12"><a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a>      │   └─ each EditorWrapper wires its editor&#39;s @redraw_on / @react_on
+</span><span id="__span-2-13"><a id="__codelineno-2-13" name="__codelineno-2-13" href="#__codelineno-2-13"></a>      │      handlers as session.subscribe(...) closures
+</span><span id="__span-2-14"><a id="__codelineno-2-14" name="__codelineno-2-14" href="#__codelineno-2-14"></a>      ├─ each slot.render(parent) — builds area container, calls draw() on active wrapper
+</span><span id="__span-2-15"><a id="__codelineno-2-15" name="__codelineno-2-15" href="#__codelineno-2-15"></a>      └─ install drag-resize handles between areas
+</span></code></pre></div>
+<h3 id="32-user-interaction-signal-propagation">3.2 User interaction → signal propagation<a class="headerlink" href="#32-user-interaction-signal-propagation" title="Permanent link">&para;</a></h3>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>User clicks a node in the graph canvas
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>  ├─ GraphEditor handler:  ctx.data[EditState].active_node = wrapper
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>  ├─ GraphEditor handler:  session.publish(SelectionMoved())
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>  └─ Session.publish — local-only path (cross_session=False):
+</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>      └─ SignalBus.publish(signal)
+</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>          └─ for handler in subscribers of type(signal), in registration order:
+</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a>              ├─ wrapper closures wired from @redraw_on / @react_on
+</span><span id="__span-3-8"><a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a>              │     • @redraw_on:  handler(ctx, signal) → flag wrapper for redraw
+</span><span id="__span-3-9"><a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a>              │     • @react_on:   handler(ctx, signal) → side effect only
+</span><span id="__span-3-10"><a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a>              └─ after dispatch: each flagged wrapper calls wrapper.redraw()
+</span><span id="__span-3-11"><a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a>                 exactly once (slot clears area, calls editor.draw(ctx, area))
+</span></code></pre></div>
+<p>The <code>SelectionMoved</code> signal carries no payload (pointer-by-default rule, §6.3 of the design doc). Subscribers re-read <code>ctx.data[EditState]</code> to discover what the new selection is. Both <code>@redraw_on</code> and <code>@react_on</code> handlers fire regardless of whether their editor's wrapper is the active tab — backgrounded editors stay current (kept alive by Quasar <code>ui.tab_panels</code> keep-alive); on focus they're already drawn correctly.</p>
+<h3 id="33-cross-session-broadcast-graph-mutation">3.3 Cross-session broadcast (graph mutation)<a class="headerlink" href="#33-cross-session-broadcast-graph-mutation" title="Permanent link">&para;</a></h3>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>Session A: user edits a node&#39;s setting
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>  ├─ NodeWrapper.update_setting(...)
+</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>  ├─ session.publish(GraphDataMutated())
+</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>  └─ Session.publish — cross_session=True path:
+</span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>      └─ session_manager.broadcast(signal)
+</span><span id="__span-4-6"><a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a>          └─ For every session (A, B, C):
+</span><span id="__span-4-7"><a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a>              └─ session._dispatch(signal) → SignalBus.publish → subscribers
+</span></code></pre></div>
+<p>Cross-session signals never carry payload data either. Receivers re-read the relevant state from the shared project — for <code>GraphDataMutated</code> that's the entry in <code>ctx.app_data[HaystackState].get_by_id(&lt;entry_id&gt;)</code>. Peer-session state, if needed, can be reached through <code>session_manager.get_session(peer_id).context</code>.</p>
+<h2 id="4-performance-errors-and-boundaries">4. Performance, errors, and boundaries<a class="headerlink" href="#4-performance-errors-and-boundaries" title="Permanent link">&para;</a></h2>
+<h3 id="41-per-session-memory">4.1 Per-session memory<a class="headerlink" href="#41-per-session-memory" title="Permanent link">&para;</a></h3>
+<p>Each session holds editor instances, slots, a <code>WorkspaceManager</code>, and a <code>SessionContext</code> plus the per-session <code>SessionState</code> instances. For a typical workspace with four active editors, that's tens of KBs per session — comfortably scalable to dozens of concurrent connections on a single server.</p>
+<h3 id="42-dispatch-cost">4.2 Dispatch cost<a class="headerlink" href="#42-dispatch-cost" title="Permanent link">&para;</a></h3>
+<p>The typed bus dispatches by exact signal class: a publish of <code>SelectionMoved</code> only runs the handlers explicitly subscribed to <code>SelectionMoved</code>. Cost is <code>O(subscribers for type(signal))</code> plus the cost of each handler body. Editors that decorate their methods with <code>@redraw_on</code> / <code>@react_on</code> declare interest at the class level, so the framework auto-subscribes exactly once per editor instance — no broadcast-and-filter fan-out, no per-wrapper <code>isinstance</code> chain.</p>
+<p>The contract is: <em>handlers are cheap; the heavy work goes in <code>draw()</code>, gated by <code>@redraw_on</code> (framework redraws once per dispatch pass) or by an explicit <code>wrapper.redraw()</code> inside a <code>@react_on</code> handler</em>. Multiple <code>@redraw_on</code> handlers on the same editor matching the same signal still trigger exactly one redraw — the framework collects flags during dispatch and calls <code>wrapper.redraw()</code> at the end of the pass. Side effects belong in <code>@react_on</code> handlers; typical work is issuing a lifecycle command (<code>session.publish(Close(...))</code>), flipping a flag, or persisting state.</p>
+<h3 id="43-hot-reload">4.3 Hot-reload<a class="headerlink" href="#43-hot-reload" title="Permanent link">&para;</a></h3>
+<p><code>EditorTypeRegistry</code> and <code>PanelRegistry</code> extend <code>BaseRegistry</code> and participate in the framework hot-reload loop. When an editor class is replaced, the framework drops its bus subscriptions, evicts cached wrappers, calls <code>cleanup()</code> on the old instance, and re-instantiates + <code>draw()</code> (which re-wires fresh subscriptions for the new class's decorated handlers) for any visible bindings. Slots subscribe to the registry's batch-event channel to learn when new <code>opens='required'</code> editors should auto-bind on next render.</p>
+<p>The signal-class-reload caveat applies here too: handlers that hold a reference to an old <code>Signal</code> class object will see <code>isinstance()</code> / type lookup miss after a reload of that class. Library authors who declare their own <code>Signal</code> subclasses that other libraries subscribe to must list the declaring library in their dependencies.</p>
+<h3 id="44-boundary-what-the-studio-is-not">4.4 Boundary — what the studio is not<a class="headerlink" href="#44-boundary-what-the-studio-is-not" title="Permanent link">&para;</a></h3>
+<p>The studio layer does not own:</p>
+<ul>
+<li><strong>Graph data</strong> — that lives in <code>HaystackState</code> (the multi-graph registry, accessed via <code>ctx.app_data[HaystackState]</code>) — an <code>AppState</code> defined by the haybale-haystack library, not the studio.</li>
+<li><strong>Library state</strong> — that lives in <code>LibraryStateContainer</code>, accessed via <code>ctx.data[Cls]</code> / <code>ctx.app_data[Cls]</code>.</li>
+<li><strong>Settings resolution</strong> — that's <code>SettingsRegistry</code> (see <a href="../../settings/settings-arch/">architecture/settings</a>).</li>
+<li><strong>Execution</strong> — interpreters and assembly run server-side, independent of UI presence.</li>
+</ul>
+<p>The studio is a presentation and orchestration layer: it owns <em>which editor is in which slot, when does each get redrawn</em>. Everything else flows through the shared project state and the per-session signal bus.</p>
+<h2 id="5-extensibility">5. Extensibility<a class="headerlink" href="#5-extensibility" title="Permanent link">&para;</a></h2>
+<p>A library extends the studio by adding any of:</p>
+<ul>
+<li><strong>Editors</strong> — <code>@editor(...)</code> + <code>BaseEditor</code> subclass + <code>add_folder_to_registry(..., EditorTypeRegistry)</code> in <code>register_components()</code>. Decorate handler methods with <code>@redraw_on(...)</code> / <code>@react_on(...)</code> to subscribe to signals.</li>
+<li><strong>Panels</strong> — <code>@panel(action=..., focus=..., redraw_on=(...,))</code> + <code>BasePanel</code> subclass + <code>add_folder_to_registry(..., PanelRegistry)</code>. The host editor unions its registered panels' <code>redraw_on=</code> and subscribes the wrapper to the effective set.</li>
+<li><strong><code>Focus</code> classes</strong> — <code>Focus</code> subclass + register via panel/focus discovery; <code>PropertiesEditor</code> picks them up automatically through <code>PanelRegistry.get_focuses_for(...)</code>.</li>
+<li><strong>Custom <code>Signal</code> subclasses</strong> — declare in the library (concrete <code>Signal</code> for observations, <code>CommandSignal</code> for imperatives), emit via <code>session.publish(...)</code>, list the declaring library in <code>LibraryIdentity.dependencies</code> of any library that subscribes.</li>
+</ul>
+<p>The studio framework provides the slots, the signal/lifecycle channels, the editor and panel base classes, and <code>SessionContext</code>. Every concrete user-facing piece of the studio — graph editor, properties editor, library browser, file viewer, etc. — lives in <code>haybale-studio</code> or other libraries, registered through these extension points.</p>
+
+
+
+
+
+
+
+  
+  
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+  <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var labels=set.querySelector(".tabbed-labels");for(var tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../../..", "features": ["navigation.instant", "navigation.tracking", "navigation.tabs", "navigation.tabs.sticky", "navigation.sections", "navigation.expand", "navigation.indexes", "navigation.top", "search.highlight", "search.suggest", "content.code.copy", "content.code.annotate", "content.tabs.link", "toc.follow"], "search": "../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>

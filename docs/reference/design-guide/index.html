@@ -1,0 +1,6626 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="A Blueprint-inspired visual programming system — dual-flow control + data, library plugin model, hot-reload-first development.">
+      
+      
+      
+        <link rel="canonical" href="https://going-haywire.github.io/haywire/docs/reference/design-guide/">
+      
+      
+        <link rel="prev" href="../glossary/">
+      
+      
+        <link rel="next" href="../../archive/whitepaper/Haywire_design/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>Design guide - Haywire Documentation</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Inter:300,300i,400,400i,700,700i%7CJetBrains+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Inter";--md-code-font:"JetBrains Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#haywire-design-guide" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow md-header--lifted" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="Haywire Documentation" class="md-header__button md-logo" aria-label="Haywire Documentation" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Haywire Documentation
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Design guide
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+  </nav>
+  
+    
+      
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../.." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../welcome/user/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Perspectives
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../components/nodes/node-canon/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Components
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../guides/node-roles/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Guides
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../architecture/overview/overview-arch/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Architecture
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Reference
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../archive/whitepaper/Haywire_design/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Archive
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+    
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="Haywire Documentation" class="md-nav__button md-logo" aria-label="Haywire Documentation" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    Haywire Documentation
+  </label>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../welcome/user/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Perspectives
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_2" id="__nav_2_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Perspectives
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../welcome/advanced/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Advanced (workbench extender)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../welcome/core/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Core (system architect)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Components
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Components
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../components/nodes/node-canon/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Nodes
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../components/datatypes/datatype-canon/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Datatypes
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../components/adapters/adapter-canon/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Adapters
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../components/settings/setting-canon/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Settings
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../components/widgets/widget-canon/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Widgets
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../components/skins/skin-canon/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Skins
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--placeholder"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../components/themes/theme-canon/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Themes
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../components/editors/editor-canon/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Editors
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../components/panels/panel-canon/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Panels
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../components/states/state-canon/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    States
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../components/libraries/library-canon/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Libraries
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../components/haybale-package/haybale-package-canon/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Haybale package
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Guides
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Guides
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/node-roles/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Node roles
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/ports/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Ports
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/signals/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Signals
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/sharing-libraries/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Sharing libraries
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/subscribing-to-marketplaces/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Subscribing to marketplaces
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Architecture
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/overview/overview-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--placeholder"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/design/design-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Design
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--placeholder"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/graph/graph-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Graph
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_5_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_5_4" id="__nav_5_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Execution
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_5_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Execution
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/execution/execution-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/execution/assembly/assembly-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Assembly
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/execution/edges/edges-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Edges
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/execution/flow/flow-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Flow
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--placeholder"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/execution/virtual-machine/virtual-machine-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Virtual machine
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--placeholder"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/execution/lazy-evaluation/lazy-evaluation-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Lazy evaluation
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--placeholder"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/execution/callbacks/callbacks-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Callbacks
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/library-system/library-system-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Library system
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/library-manager/library-manager-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Library manager
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/sharing/sharing-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Sharing — philosophy
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/hot-reload/hot-reload-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Hot-reload
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/settings/settings-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Settings
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/session-and-state/session-and-state-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Session and state
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_5_11" >
+        
+          
+          <label class="md-nav__link" for="__nav_5_11" id="__nav_5_11_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Studio
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_5_11_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5_11">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Studio
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/studio/studio-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/studio/app-shell/app-shell-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    App shell
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--placeholder"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/studio/workspace/workspace-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Workspace
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--placeholder"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/studio/canvas/canvas-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Canvas
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--placeholder"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/studio/rendering/rendering-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Rendering
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--placeholder"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" checked>
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reference
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_6" id="__nav_6_label" tabindex="">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../glossary/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Glossary
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Design guide
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Design guide
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#1-design-principles" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Design Principles
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="1. Design Principles">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#11-ide-density-not-dashboard-density" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.1 IDE-density, not dashboard-density
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#12-theme-driven-never-hardcoded" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.2 Theme-driven, never hardcoded
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#13-quiet-by-default-loud-on-interaction" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.3 Quiet by default, loud on interaction
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#14-panels-own-their-scroll" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.4 Panels own their scroll
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#15-one-pattern-one-implementation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.5 One pattern, one implementation
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-colour-system" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Colour System
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="2. Colour System">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#21-background-elevation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.1 Background Elevation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#22-background-tokens" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.2 Background Tokens
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#23-text-tokens" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.3 Text Tokens
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#24-border-tokens" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.4 Border Tokens
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#25-accent-interactive-tokens" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.5 Accent &amp; Interactive Tokens
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#26-status-tokens" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.6 Status Tokens
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#27-canvas-node-tokens" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.7 Canvas &amp; Node Tokens
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#28-component-specific-tokens" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.8 Component-Specific Tokens
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#29-z-index-scale" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.9 Z-Index Scale
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#210-hover-and-selection" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.10 Hover and Selection
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#211-disabled-state" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.11 Disabled State
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#212-drag-and-drop-tokens" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.12 Drag-and-Drop Tokens
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-typography" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Typography
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="3. Typography">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#31-type-scale" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.1 Type Scale
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#32-weight" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.2 Weight
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#33-monospace" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.3 Monospace
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#34-tracking-labels" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.4 Tracking Labels
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#35-truncation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.5 Truncation
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-spacing-system" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Spacing System
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="4. Spacing System">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#41-the-scale" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.1 The Scale
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#42-panel-padding-rules" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.2 Panel Padding Rules
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#43-gap-rules" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.3 Gap Rules
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#44-height-fixtures" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.4 Height Fixtures
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#45-compact-fields-system" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.5 Compact-Fields System
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-border-radius" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. Border Radius
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="5. Border Radius">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#51-the-scale" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.1 The Scale
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#6-iconography" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. Iconography
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="6. Iconography">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#61-icon-set" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6.1 Icon Set
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#62-size-rules" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6.2 Size Rules
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#63-colour-rules" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6.3 Colour Rules
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#64-standard-icon-vocabulary" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6.4 Standard Icon Vocabulary
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#7-transitions-motion" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7. Transitions &amp; Motion
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="7. Transitions &amp; Motion">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#71-shell-panel-transitions-015s" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7.1 Shell / Panel Transitions (0.15s)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#72-canvas-node-transitions-up-to-03s" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7.2 Canvas / Node Transitions (up to 0.3s)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#73-animated-properties" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7.3 Animated Properties
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#74-not-animated" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7.4 Not Animated
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#8-component-patterns-hui-api" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8. Component Patterns (hui API)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="8. Component Patterns (hui API)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#81-huipanel_headertitle-iconnone" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8.1 hui.panel_header(title, icon=None)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#82-huiinfo_barlabel-badgenone-suffixnone" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8.2 hui.info_bar(label, badge=None, suffix=None)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#83-huiempty_statemessage-iconfolder_open-hintnone" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8.3 hui.empty_state(message, icon="folder_open", hint=None)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#84-huilist_itemlabel-sublabelnone-dot_colornone-is_activefalse-on_clicknone" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8.4 hui.list_item(label, sublabel=None, dot_color=None, is_active=False, on_click=None)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#85a-huilabeltext" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8.5a hui.label(text)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#85b-huisection_labeltext" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8.5b hui.section_label(text)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#86-huiinfo_rowlabel-value-copy_valuenone" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8.6 hui.info_row(label, value, copy_value=None)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#87-huicode_snippetcode-labelnone-copyabletrue" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8.7 hui.code_snippet(code, label=None, copyable=True)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#88-huiicon_actionicon-tooltipnone-on_clicknone-sizexs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8.8 hui.icon_action(icon, tooltip=None, on_click=None, size="xs")
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#88a-huibuttonlabel-iconnone-tooltipnone-on_clicknone-disabledfalse" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8.8a hui.button(label, icon=None, tooltip=None, on_click=None, disabled=False)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#89-huitoolbar_buttonicon-is_activefalse-tooltipnone-on_clicknone" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8.9 hui.toolbar_button(icon, is_active=False, tooltip=None, on_click=None)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#810-huiscope_buttonicon-is_activefalse-availabletrue-tooltipnone-on_clicknone" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8.10 hui.scope_button(icon, is_active=False, available=True, tooltip=None, on_click=None)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#811-huiexpansion_sectionlabel-iconnone-default_opentrue-contextnone-panel_keynone" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8.11 hui.expansion_section(label, icon=None, default_open=True, context=None, panel_key=None)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#812-huierror_labeltext" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8.12 hui.error_label(text)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#813-huiwarning_labeltext" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8.13 hui.warning_label(text)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#814-huitagtext-colorgrey" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8.14 hui.tag(text, color="grey")
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#815-huiinput_fieldlabelnone-props" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8.15 hui.input_field(label=None, **props)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#816-huitabstab_defs-densetrue" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8.16 hui.tabs(*tab_defs, dense=True)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#817-huinumber_fieldlabelnone-value0-props" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8.17 hui.number_field(label=None, value=0, **props)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#818-huiselect_fieldoptions-valuenone-labelnone-props" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8.18 hui.select_field(options, value=None, label=None, **props)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#819-huisection_dividertextnone" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8.19 hui.section_divider(text=None)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#819b-huiseparator" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8.19b hui.separator()
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#820-huisuccess_labeltext-huiinfo_labeltext" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8.20 hui.success_label(text) / hui.info_label(text)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#821-huicategory_grouplabel-settings-expansion-header" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8.21 hui.category_group(label) — settings expansion header
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#822-loading-async-states" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8.22 Loading &amp; Async States
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#823-popup-dialog-chrome" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8.23 Popup / Dialog Chrome
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#824-huidialog_cardwidthnone-and-huidialog_actions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8.24 hui.dialog_card(width=None) and hui.dialog_actions(...)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#825-field-focus-style-unified" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8.25 Field Focus Style (unified)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#9-layout-anatomy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        9. Layout Anatomy
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="9. Layout Anatomy">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#91-shell-structure" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        9.1 Shell Structure
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#92-editor-container" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        9.2 Editor Container
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#93-standard-editor-template" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        9.3 Standard Editor Template
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#94-scrollbar-style" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        9.4 Scrollbar Style
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#95-resizable-panel-handles" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        9.5 Resizable Panel Handles
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#96-node-skin-design-space" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        9.6 Node Skin Design Space
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#97-bottom-area-retraction" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        9.7 Bottom Area Retraction
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#10-naming-conventions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        10. Naming Conventions
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="10. Naming Conventions">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#101-terminology" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        10.1 Terminology
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#102-css-class-naming" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        10.2 CSS Class Naming
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#11-accessibility-minimum-requirements" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        11. Accessibility (Minimum Requirements)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="11. Accessibility (Minimum Requirements)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#111-keyboard-navigation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        11.1 Keyboard Navigation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#112-contrast" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        11.2 Contrast
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#113-interactive-targets" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        11.3 Interactive Targets
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#12-anti-patterns-do-not-do" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        12. Anti-Patterns (Do Not Do)
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_7" >
+        
+          
+          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Archive
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Archive
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../archive/whitepaper/Haywire_design/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Whitepaper
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#1-design-principles" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Design Principles
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="1. Design Principles">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#11-ide-density-not-dashboard-density" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.1 IDE-density, not dashboard-density
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#12-theme-driven-never-hardcoded" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.2 Theme-driven, never hardcoded
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#13-quiet-by-default-loud-on-interaction" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.3 Quiet by default, loud on interaction
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#14-panels-own-their-scroll" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.4 Panels own their scroll
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#15-one-pattern-one-implementation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.5 One pattern, one implementation
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-colour-system" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Colour System
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="2. Colour System">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#21-background-elevation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.1 Background Elevation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#22-background-tokens" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.2 Background Tokens
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#23-text-tokens" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.3 Text Tokens
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#24-border-tokens" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.4 Border Tokens
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#25-accent-interactive-tokens" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.5 Accent &amp; Interactive Tokens
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#26-status-tokens" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.6 Status Tokens
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#27-canvas-node-tokens" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.7 Canvas &amp; Node Tokens
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#28-component-specific-tokens" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.8 Component-Specific Tokens
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#29-z-index-scale" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.9 Z-Index Scale
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#210-hover-and-selection" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.10 Hover and Selection
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#211-disabled-state" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.11 Disabled State
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#212-drag-and-drop-tokens" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.12 Drag-and-Drop Tokens
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-typography" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Typography
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="3. Typography">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#31-type-scale" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.1 Type Scale
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#32-weight" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.2 Weight
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#33-monospace" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.3 Monospace
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#34-tracking-labels" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.4 Tracking Labels
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#35-truncation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.5 Truncation
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-spacing-system" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Spacing System
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="4. Spacing System">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#41-the-scale" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.1 The Scale
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#42-panel-padding-rules" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.2 Panel Padding Rules
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#43-gap-rules" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.3 Gap Rules
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#44-height-fixtures" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.4 Height Fixtures
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#45-compact-fields-system" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.5 Compact-Fields System
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-border-radius" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. Border Radius
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="5. Border Radius">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#51-the-scale" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.1 The Scale
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#6-iconography" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. Iconography
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="6. Iconography">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#61-icon-set" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6.1 Icon Set
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#62-size-rules" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6.2 Size Rules
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#63-colour-rules" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6.3 Colour Rules
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#64-standard-icon-vocabulary" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6.4 Standard Icon Vocabulary
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#7-transitions-motion" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7. Transitions &amp; Motion
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="7. Transitions &amp; Motion">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#71-shell-panel-transitions-015s" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7.1 Shell / Panel Transitions (0.15s)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#72-canvas-node-transitions-up-to-03s" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7.2 Canvas / Node Transitions (up to 0.3s)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#73-animated-properties" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7.3 Animated Properties
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#74-not-animated" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7.4 Not Animated
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#8-component-patterns-hui-api" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8. Component Patterns (hui API)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="8. Component Patterns (hui API)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#81-huipanel_headertitle-iconnone" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8.1 hui.panel_header(title, icon=None)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#82-huiinfo_barlabel-badgenone-suffixnone" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8.2 hui.info_bar(label, badge=None, suffix=None)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#83-huiempty_statemessage-iconfolder_open-hintnone" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8.3 hui.empty_state(message, icon="folder_open", hint=None)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#84-huilist_itemlabel-sublabelnone-dot_colornone-is_activefalse-on_clicknone" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8.4 hui.list_item(label, sublabel=None, dot_color=None, is_active=False, on_click=None)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#85a-huilabeltext" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8.5a hui.label(text)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#85b-huisection_labeltext" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8.5b hui.section_label(text)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#86-huiinfo_rowlabel-value-copy_valuenone" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8.6 hui.info_row(label, value, copy_value=None)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#87-huicode_snippetcode-labelnone-copyabletrue" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8.7 hui.code_snippet(code, label=None, copyable=True)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#88-huiicon_actionicon-tooltipnone-on_clicknone-sizexs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8.8 hui.icon_action(icon, tooltip=None, on_click=None, size="xs")
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#88a-huibuttonlabel-iconnone-tooltipnone-on_clicknone-disabledfalse" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8.8a hui.button(label, icon=None, tooltip=None, on_click=None, disabled=False)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#89-huitoolbar_buttonicon-is_activefalse-tooltipnone-on_clicknone" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8.9 hui.toolbar_button(icon, is_active=False, tooltip=None, on_click=None)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#810-huiscope_buttonicon-is_activefalse-availabletrue-tooltipnone-on_clicknone" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8.10 hui.scope_button(icon, is_active=False, available=True, tooltip=None, on_click=None)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#811-huiexpansion_sectionlabel-iconnone-default_opentrue-contextnone-panel_keynone" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8.11 hui.expansion_section(label, icon=None, default_open=True, context=None, panel_key=None)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#812-huierror_labeltext" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8.12 hui.error_label(text)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#813-huiwarning_labeltext" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8.13 hui.warning_label(text)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#814-huitagtext-colorgrey" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8.14 hui.tag(text, color="grey")
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#815-huiinput_fieldlabelnone-props" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8.15 hui.input_field(label=None, **props)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#816-huitabstab_defs-densetrue" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8.16 hui.tabs(*tab_defs, dense=True)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#817-huinumber_fieldlabelnone-value0-props" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8.17 hui.number_field(label=None, value=0, **props)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#818-huiselect_fieldoptions-valuenone-labelnone-props" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8.18 hui.select_field(options, value=None, label=None, **props)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#819-huisection_dividertextnone" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8.19 hui.section_divider(text=None)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#819b-huiseparator" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8.19b hui.separator()
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#820-huisuccess_labeltext-huiinfo_labeltext" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8.20 hui.success_label(text) / hui.info_label(text)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#821-huicategory_grouplabel-settings-expansion-header" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8.21 hui.category_group(label) — settings expansion header
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#822-loading-async-states" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8.22 Loading &amp; Async States
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#823-popup-dialog-chrome" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8.23 Popup / Dialog Chrome
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#824-huidialog_cardwidthnone-and-huidialog_actions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8.24 hui.dialog_card(width=None) and hui.dialog_actions(...)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#825-field-focus-style-unified" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8.25 Field Focus Style (unified)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#9-layout-anatomy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        9. Layout Anatomy
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="9. Layout Anatomy">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#91-shell-structure" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        9.1 Shell Structure
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#92-editor-container" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        9.2 Editor Container
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#93-standard-editor-template" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        9.3 Standard Editor Template
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#94-scrollbar-style" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        9.4 Scrollbar Style
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#95-resizable-panel-handles" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        9.5 Resizable Panel Handles
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#96-node-skin-design-space" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        9.6 Node Skin Design Space
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#97-bottom-area-retraction" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        9.7 Bottom Area Retraction
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#10-naming-conventions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        10. Naming Conventions
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="10. Naming Conventions">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#101-terminology" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        10.1 Terminology
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#102-css-class-naming" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        10.2 CSS Class Naming
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#11-accessibility-minimum-requirements" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        11. Accessibility (Minimum Requirements)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="11. Accessibility (Minimum Requirements)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#111-keyboard-navigation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        11.1 Keyboard Navigation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#112-contrast" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        11.2 Contrast
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#113-interactive-targets" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        11.3 Interactive Targets
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#12-anti-patterns-do-not-do" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        12. Anti-Patterns (Do Not Do)
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+
+<h1 id="haywire-design-guide">Haywire Design Guide<a class="headerlink" href="#haywire-design-guide" title="Permanent link">&para;</a></h1>
+<p>A prescriptive design reference for developers building editors, panels, and components in the Haywire workbench. This document defines the rules — not just what exists today, but what every new (and eventually every existing) piece of UI should follow.</p>
+<p>Where the <code>hui</code> module is referenced, it means <code>haywire.ui.elements</code> — the
+thin wrapper library that encodes these rules into reusable Python functions.
+Prefer <code>hui.*</code> over raw NiceGUI/Quasar calls for any pattern that appears here.</p>
+<p>this guide is a living document. If you encounter a design aspect that is not covered, report back to the user and suggest an addition. If the pattern you need doesn't exist in <code>hui</code>, add it — but follow the design rules and document the new function here in the guide.</p>
+<hr />
+<h2 id="1-design-principles">1. Design Principles<a class="headerlink" href="#1-design-principles" title="Permanent link">&para;</a></h2>
+<h3 id="11-ide-density-not-dashboard-density">1.1 IDE-density, not dashboard-density<a class="headerlink" href="#11-ide-density-not-dashboard-density" title="Permanent link">&para;</a></h3>
+<p>Haywire is a professional tool. Every pixel is working space. Panels are compact,
+chrome is minimal, and whitespace is used structurally — never decoratively.
+A good test: if you can remove a <code>gap-*</code> or <code>p-*</code> class and the layout still
+reads clearly, it was too much.</p>
+<h3 id="12-theme-driven-never-hardcoded">1.2 Theme-driven, never hardcoded<a class="headerlink" href="#12-theme-driven-never-hardcoded" title="Permanent link">&para;</a></h3>
+<p>No fixed colour values anywhere in structural UI. Every colour must reference a
+<code>--hw-*</code> CSS custom property or its <code>hui</code> equivalent. This is not a guideline —
+it is a hard rule. Violations break light themes and user-authored themes.</p>
+<p>The only exception: Quasar <code>color=</code> props that require named strings for semantic
+status badges (e.g. <code>color=green</code> for an "enabled" indicator). Even here, prefer
+the token-mapped approach when possible.</p>
+<h3 id="13-quiet-by-default-loud-on-interaction">1.3 Quiet by default, loud on interaction<a class="headerlink" href="#13-quiet-by-default-loud-on-interaction" title="Permanent link">&para;</a></h3>
+<p>Resting UI is muted and recessive. Colour and contrast appear in response to user
+action — hover, focus, selection, error. An unfocused panel should feel like a
+grey instrument panel; interaction lights it up.</p>
+<h3 id="14-panels-own-their-scroll">1.4 Panels own their scroll<a class="headerlink" href="#14-panels-own-their-scroll" title="Permanent link">&para;</a></h3>
+<p>The shell is <code>overflow: hidden</code> at every level. Each editor or panel is
+responsible for its own scrolling via <code>ui.scroll_area()</code>. Never assume a parent
+will scroll for you.</p>
+<h3 id="15-one-pattern-one-implementation">1.5 One pattern, one implementation<a class="headerlink" href="#15-one-pattern-one-implementation" title="Permanent link">&para;</a></h3>
+<p>If a visual pattern appears in more than one editor, it must be implemented via
+<code>hui</code>. Copy-pasting class strings between editors is a design debt that compounds.</p>
+<hr />
+<h2 id="2-colour-system">2. Colour System<a class="headerlink" href="#2-colour-system" title="Permanent link">&para;</a></h2>
+<h3 id="21-background-elevation">2.1 Background Elevation<a class="headerlink" href="#21-background-elevation" title="Permanent link">&para;</a></h3>
+<p>Haywire uses colour-stepped elevation rather than box shadows. Each layer in the
+visual stack uses a progressively lighter (or more opaque) background.</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>Layer 0   --hw-bg-page        Ground plane. Deepest.
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>Layer 1   --hw-bg-surface     Raised panels, topbar, cards.
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>Layer 2   --hw-bg-elevated    Dropdowns, tooltips, popovers.
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>Layer 3   --hw-bg-overlay     Modal scrims (rgba overlay).
+</span></code></pre></div>
+<p><strong>Rule:</strong> <code>box-shadow</code> is reserved exclusively for canvas nodes
+(<code>--hw-node-shadow</code>). Panel chrome never uses shadow.</p>
+<p><strong>Rule:</strong> Each container should be exactly one elevation step above its parent.
+Do not skip levels (e.g. page → elevated without a surface in between).</p>
+<h3 id="22-background-tokens">2.2 Background Tokens<a class="headerlink" href="#22-background-tokens" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Token</th>
+<th>Layer</th>
+<th>Use for</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>--hw-bg-page</code></td>
+<td>0</td>
+<td>Area containers, editor backgrounds</td>
+</tr>
+<tr>
+<td><code>--hw-bg-surface</code></td>
+<td>1</td>
+<td>Topbar, info bars, panel header backgrounds</td>
+</tr>
+<tr>
+<td><code>--hw-bg-sidebar</code></td>
+<td>0–1</td>
+<td>Activity bar, context bar</td>
+</tr>
+<tr>
+<td><code>--hw-bg-elevated</code></td>
+<td>2</td>
+<td>Dropdown menus, tooltips, toolbar hover</td>
+</tr>
+<tr>
+<td><code>--hw-bg-overlay</code></td>
+<td>3</td>
+<td>Modal backdrops</td>
+</tr>
+<tr>
+<td><code>--hw-bg-input</code></td>
+<td>—</td>
+<td>Input field backgrounds (special-purpose)</td>
+</tr>
+<tr>
+<td><code>--hw-bg-hover</code></td>
+<td>—</td>
+<td>Row hover background. Theme-aware; equals <code>--hw-bg-surface</code> at rest.</td>
+</tr>
+<tr>
+<td><code>--hw-bg-active</code></td>
+<td>—</td>
+<td>Selected/active row. Distinct from hover; not as heavy as a surface.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="23-text-tokens">2.3 Text Tokens<a class="headerlink" href="#23-text-tokens" title="Permanent link">&para;</a></h3>
+<p>Four tiers. Every piece of text in the application must use one of these.</p>
+<table>
+<thead>
+<tr>
+<th>Token</th>
+<th>Tier</th>
+<th>Use for</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>--hw-text-body</code></td>
+<td>1</td>
+<td>Primary content. Headings, labels, body copy.</td>
+</tr>
+<tr>
+<td><code>--hw-text-muted</code></td>
+<td>2</td>
+<td>Supporting text. Descriptions, tab labels.</td>
+</tr>
+<tr>
+<td><code>--hw-text-dim</code></td>
+<td>3</td>
+<td>Decorative text. Placeholders, captions, icons.</td>
+</tr>
+<tr>
+<td><code>--hw-text-expansion</code></td>
+<td>—</td>
+<td>Expansion panel header labels (special-purpose).</td>
+</tr>
+<tr>
+<td><code>--hw-text-on-accent</code></td>
+<td>—</td>
+<td>Text rendered on accent-coloured backgrounds.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Utility classes:</strong> <code>.hw-text-body</code>, <code>.hw-text-muted</code>, <code>.hw-text-dim</code> are
+globally available inside <code>.hw-panel</code> containers.</p>
+<p><strong>Rule:</strong> Never use Tailwind's <code>text-gray-*</code> classes for UI text. They are
+theme-unaware and will break on non-dark themes.</p>
+<h3 id="24-border-tokens">2.4 Border Tokens<a class="headerlink" href="#24-border-tokens" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Token</th>
+<th>Use for</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>--hw-border</code></td>
+<td>Subtle structural dividers. Felt, not seen.</td>
+</tr>
+<tr>
+<td><code>--hw-border-strong</code></td>
+<td>Visible separators. Section breaks, panel edges.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Rule:</strong> Every <code>border-b</code>, <code>border-r</code>, <code>border-l</code>, <code>border-t</code> in the shell
+and editor UI must use <code>var(--hw-border)</code> via inline style or an appropriate
+<code>hui</code> wrapper. Never use Tailwind border-colour utilities.</p>
+<h3 id="25-accent-interactive-tokens">2.5 Accent &amp; Interactive Tokens<a class="headerlink" href="#25-accent-interactive-tokens" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Token</th>
+<th>State</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>--hw-accent</code></td>
+<td>Rest. Focus rings, active markers.</td>
+</tr>
+<tr>
+<td><code>--hw-accent-hover</code></td>
+<td>Hover.</td>
+</tr>
+<tr>
+<td><code>--hw-accent-active</code></td>
+<td>Pressed / active.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="26-status-tokens">2.6 Status Tokens<a class="headerlink" href="#26-status-tokens" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Token</th>
+<th>Semantic</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>--hw-danger</code></td>
+<td>Error, destructive, failure.</td>
+</tr>
+<tr>
+<td><code>--hw-warning</code></td>
+<td>Caution, attention.</td>
+</tr>
+<tr>
+<td><code>--hw-success</code></td>
+<td>Confirmation, success state (indicators, labels).</td>
+</tr>
+<tr>
+<td><code>--hw-info</code></td>
+<td>Informational, neutral attention.</td>
+</tr>
+<tr>
+<td><code>--hw-positive</code></td>
+<td>Affirming action emphasis — confirm buttons, OK CTAs.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Rule:</strong> Error text uses <code>var(--hw-danger)</code>, not <code>text-red-400</code>. Warning text
+uses <code>var(--hw-warning)</code>, not <code>text-yellow-400</code>. This applies everywhere —
+inline messages, error labels, validation hints.</p>
+<p><strong>Rule:</strong> <code>--hw-positive</code> is for interactive affordances (button text/icons)
+that signal a confirming action. It is distinct from <code>--hw-success</code>, which is
+for status indicators and result labels. Do not use Quasar <code>color=positive</code> —
+it bypasses the theme. Style with <code>.style("color: var(--hw-positive)")</code> instead.</p>
+<h3 id="27-canvas-node-tokens">2.7 Canvas &amp; Node Tokens<a class="headerlink" href="#27-canvas-node-tokens" title="Permanent link">&para;</a></h3>
+<p>These tokens are defined on <code>WorkbenchTheme</code> and used exclusively by the graph
+canvas, node skins, and edge renderers. Panel and shell code must not reference
+them.</p>
+<table>
+<thead>
+<tr>
+<th>Token</th>
+<th>Use for</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>--hw-node-bg</code></td>
+<td>Default node card background</td>
+</tr>
+<tr>
+<td><code>--hw-node-border</code></td>
+<td>Default node card border</td>
+</tr>
+<tr>
+<td><code>--hw-node-header-bg</code></td>
+<td>Node header strip background</td>
+</tr>
+<tr>
+<td><code>--hw-node-header-text</code></td>
+<td>Node header text colour</td>
+</tr>
+<tr>
+<td><code>--hw-node-selected</code></td>
+<td>Node border/glow when selected</td>
+</tr>
+<tr>
+<td><code>--hw-node-shadow</code></td>
+<td>Node card drop shadow (only permitted <code>box-shadow</code> in the app)</td>
+</tr>
+<tr>
+<td><code>--hw-edge-default</code></td>
+<td>Default edge stroke colour</td>
+</tr>
+<tr>
+<td><code>--hw-edge-selected</code></td>
+<td>Selected edge stroke colour</td>
+</tr>
+<tr>
+<td><code>--hw-canvas-bg</code></td>
+<td>Canvas background fill</td>
+</tr>
+<tr>
+<td><code>--hw-canvas-grid</code></td>
+<td>Canvas grid dot/line colour</td>
+</tr>
+<tr>
+<td><code>--hw-ghost-pin</code></td>
+<td>Ghost/unconnected pin indicator colour (rgba, low opacity)</td>
+</tr>
+<tr>
+<td><code>--hw-danger-bg</code></td>
+<td>Error node background fill (used by error skin)</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Rule:</strong> <code>--hw-node-shadow</code> is the only permitted use of <code>box-shadow</code> in the
+entire application. Panel and shell chrome must use elevation colours instead.</p>
+<p><strong>Rule:</strong> <code>--hw-ghost-pin</code> replaces all hardcoded <code>rgba(128,128,128,…)</code> values
+used for ghost/unconnected pin indicators in node skins.</p>
+<p><strong>Rule:</strong> <code>--hw-danger-bg</code> replaces all hardcoded <code>#fef2f2</code>/<code>#fee2e2</code> values
+used in the error node skin. It should resolve to a low-saturation tint of
+<code>--hw-danger</code> at the theme level.</p>
+<h3 id="28-component-specific-tokens">2.8 Component-Specific Tokens<a class="headerlink" href="#28-component-specific-tokens" title="Permanent link">&para;</a></h3>
+<p>Tokens for named shell regions that need colours beyond the generic set.</p>
+<table>
+<thead>
+<tr>
+<th>Token</th>
+<th>Use for</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>--hw-topbar-bg</code></td>
+<td>TopBar background (may differ from surface)</td>
+</tr>
+<tr>
+<td><code>--hw-topbar-text</code></td>
+<td>TopBar text and icon colour</td>
+</tr>
+<tr>
+<td><code>--hw-sidebar-bg</code></td>
+<td>ActivityBar / ContextBar background</td>
+</tr>
+<tr>
+<td><code>--hw-sidebar-icon</code></td>
+<td>Sidebar icon colour at rest</td>
+</tr>
+<tr>
+<td><code>--hw-sidebar-icon-active</code></td>
+<td>Sidebar icon colour when active</td>
+</tr>
+<tr>
+<td><code>--hw-panel-bg</code></td>
+<td>Panel background (may equal <code>--hw-bg-page</code>)</td>
+</tr>
+<tr>
+<td><code>--hw-panel-text</code></td>
+<td>Panel text colour</td>
+</tr>
+<tr>
+<td><code>--hw-panel-header-0-bg</code></td>
+<td>Outer (depth-0) expansion header bg</td>
+</tr>
+<tr>
+<td><code>--hw-panel-header-1-bg</code></td>
+<td>Inner (depth-1) expansion header bg</td>
+</tr>
+<tr>
+<td><code>--hw-statusbar-bg</code></td>
+<td>StatusBar background</td>
+</tr>
+<tr>
+<td><code>--hw-statusbar-text</code></td>
+<td>StatusBar text colour</td>
+</tr>
+<tr>
+<td><code>--hw-console-bg</code></td>
+<td>Console editor background</td>
+</tr>
+<tr>
+<td><code>--hw-console-text</code></td>
+<td>Console editor text colour</td>
+</tr>
+<tr>
+<td><code>--hw-popup-shadow</code></td>
+<td>Drop shadow for floating popups and menus</td>
+</tr>
+</tbody>
+</table>
+<h3 id="29-z-index-scale">2.9 Z-Index Scale<a class="headerlink" href="#29-z-index-scale" title="Permanent link">&para;</a></h3>
+<p>Haywire uses a fixed z-index scale. Do not use arbitrary values.</p>
+<table>
+<thead>
+<tr>
+<th>Layer</th>
+<th>Value</th>
+<th>Use for</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>--hw-z-panel</code></td>
+<td>10</td>
+<td>Floating panels, resizable handles</td>
+</tr>
+<tr>
+<td><code>--hw-z-dropdown</code></td>
+<td>100</td>
+<td>Dropdown menus, autocomplete popups</td>
+</tr>
+<tr>
+<td><code>--hw-z-tooltip</code></td>
+<td>200</td>
+<td>Tooltips</td>
+</tr>
+<tr>
+<td><code>--hw-z-modal</code></td>
+<td>300</td>
+<td>Modal dialogs and their backdrops</td>
+</tr>
+<tr>
+<td><code>--hw-z-notify</code></td>
+<td>400</td>
+<td>Toast notifications (above everything)</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Rule:</strong> Never use a bare <code>z-index: 9999</code> or arbitrary integer. If a new stacking context is needed, add a token here.</p>
+<p><strong>Note:</strong> NiceGUI's <code>ui.scroll_area()</code> creates a stacking context. Any <code>position: absolute</code> child inside a scroll area is clipped to it — this is expected behaviour.</p>
+<h3 id="210-hover-and-selection">2.10 Hover and Selection<a class="headerlink" href="#210-hover-and-selection" title="Permanent link">&para;</a></h3>
+<p>Interactive list items and rows use a <strong>theme-derived token</strong> for hover, not a
+hardcoded white-alpha value.</p>
+<table>
+<thead>
+<tr>
+<th>State</th>
+<th>Token</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Hover</td>
+<td><code>--hw-bg-hover</code></td>
+<td>Equals <code>--hw-bg-surface</code> on the default dark theme.</td>
+</tr>
+<tr>
+<td>Active / selected</td>
+<td><code>--hw-bg-active</code></td>
+<td>Clearly distinguishable from hover. Applied to active row.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Rule:</strong> Never use <code>hover:bg-white/10</code>, <code>hover:bg-black/10</code>, or any
+opacity-alpha class for hover states. These only work on one background tone
+and break on light themes.</p>
+<p><strong>Rule:</strong> Active rows must not show the hover background in addition to the
+active background. Use <code>pointer-events: none</code> or CSS specificity to suppress
+hover styling when a row is active.</p>
+<p><strong>Rationale:</strong> <code>hover:bg-white/10</code> only works on dark themes. On a light theme
+it creates a washed-out flash. <code>bg-blue-900/40</code> (seen in graph_manager_editor)
+is likewise hardcoded and must be replaced with <code>--hw-bg-active</code>.</p>
+<h3 id="211-disabled-state">2.11 Disabled State<a class="headerlink" href="#211-disabled-state" title="Permanent link">&para;</a></h3>
+<p>Disabled elements use reduced opacity. No other visual treatment is applied.</p>
+<table>
+<thead>
+<tr>
+<th>Element</th>
+<th>Style</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Input, select</td>
+<td><code>opacity: 0.5; pointer-events: none</code></td>
+</tr>
+<tr>
+<td>Icon action button</td>
+<td><code>opacity: 0.4; pointer-events: none</code></td>
+</tr>
+<tr>
+<td>Scope button</td>
+<td><code>opacity: 0.3; pointer-events: none</code></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Rule:</strong> Always set both <code>opacity</code> and <code>pointer-events: none</code> together.
+Never use a grey fill or border change to indicate disabled state — opacity
+is the single, consistent signal.</p>
+<p><strong>Rule:</strong> Quasar's <code>:disable</code> prop handles both correctly for <code>QBtn</code> and
+<code>QInput</code>. Prefer it over manual class application where available.</p>
+<h3 id="212-drag-and-drop-tokens">2.12 Drag-and-Drop Tokens<a class="headerlink" href="#212-drag-and-drop-tokens" title="Permanent link">&para;</a></h3>
+<p>These tokens are used when items are dragged within or between panels.</p>
+<table>
+<thead>
+<tr>
+<th>Token</th>
+<th>Use for</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>--hw-drag-over</code></td>
+<td>Drop-target highlight (border or bg tint)</td>
+</tr>
+<tr>
+<td><code>--hw-drag-ghost</code></td>
+<td>Dragged item ghost opacity (typically 0.5)</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Rule:</strong> Drag-over state is indicated by a <code>2px solid var(--hw-drag-over)</code>
+border, not a background fill. The border is added/removed via a CSS class
+(e.g. <code>hw-drop-target</code>) toggled in JS drag event handlers.</p>
+<hr />
+<h2 id="3-typography">3. Typography<a class="headerlink" href="#3-typography" title="Permanent link">&para;</a></h2>
+<h3 id="31-type-scale">3.1 Type Scale<a class="headerlink" href="#31-type-scale" title="Permanent link">&para;</a></h3>
+<p>Haywire uses four deliberately chosen size tiers. The system font stack is
+inherited from Quasar (Roboto / system sans-serif).</p>
+<table>
+<thead>
+<tr>
+<th>Tier</th>
+<th>Tailwind class</th>
+<th>Line-height</th>
+<th>Use for</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Display</td>
+<td><code>text-2xl</code></td>
+<td>default</td>
+<td>Library name in detail view. Rare.</td>
+</tr>
+<tr>
+<td>Heading</td>
+<td><code>text-base</code></td>
+<td>default</td>
+<td>Component label, panel title.</td>
+</tr>
+<tr>
+<td>Body</td>
+<td><code>text-sm</code></td>
+<td>default</td>
+<td>Descriptions, list items, body copy.</td>
+</tr>
+<tr>
+<td>Caption</td>
+<td><code>text-xs</code></td>
+<td>default</td>
+<td>Metadata, versions, registry keys.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Rule:</strong> <code>text-lg</code> is not a design tier. It is only used for the application
+wordmark ("Haywire" in the topbar). Do not use it elsewhere.</p>
+<p><strong>Rule:</strong> <code>text-2xl</code> is only for the library detail display title. Do not use
+it elsewhere.</p>
+<h3 id="32-weight">3.2 Weight<a class="headerlink" href="#32-weight" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Weight</th>
+<th>Tailwind class</th>
+<th>Use for</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Regular (400)</td>
+<td>(default)</td>
+<td>Body text, descriptions</td>
+</tr>
+<tr>
+<td>Medium (500)</td>
+<td><code>font-medium</code></td>
+<td>List item names, panel header labels</td>
+</tr>
+<tr>
+<td>Bold (700)</td>
+<td><code>font-bold</code></td>
+<td>Headings, section group labels, emphasis</td>
+</tr>
+</tbody>
+</table>
+<h3 id="33-monospace">3.3 Monospace<a class="headerlink" href="#33-monospace" title="Permanent link">&para;</a></h3>
+<p>Use <code>.font-mono</code> for: file paths, registry keys, code snippets, module paths, import statements, and any machine-readable identifier.</p>
+<p>Always pair <code>.font-mono</code> with <code>.text-xs</code> — monospace text at <code>text-sm</code> feels too large relative to proportional text at the same size.</p>
+<h3 id="34-tracking-labels">3.4 Tracking Labels<a class="headerlink" href="#34-tracking-labels" title="Permanent link">&para;</a></h3>
+<p>Section group headers (REQUIRED, ENABLED, IDENTIFIERS, etc.) follow a fixed
+formula:</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>.text-xs .font-bold .tracking-wider .uppercase .hw-text-dim
+</span></code></pre></div>
+<p>These labels are structural markers, not content — they should be the dimmest text in the panel.</p>
+<h3 id="35-truncation">3.5 Truncation<a class="headerlink" href="#35-truncation" title="Permanent link">&para;</a></h3>
+<p><strong>Rule:</strong> Any text that can overflow its container must include <code>.truncate</code>.
+The parent flex container must include <code>.min-w-0</code> to allow truncation to work inside flex layouts.</p>
+<p>For values that are programmatically too long, truncate in Python and provide the full value via <code>.tooltip()</code>:</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="n">short</span> <span class="o">=</span> <span class="p">(</span><span class="n">value</span><span class="p">[:</span><span class="mi">48</span><span class="p">]</span> <span class="o">+</span> <span class="s2">&quot;…&quot;</span><span class="p">)</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">value</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">50</span> <span class="k">else</span> <span class="n">value</span>
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="n">hui</span><span class="o">.</span><span class="n">info_row</span><span class="p">(</span><span class="s2">&quot;Module&quot;</span><span class="p">,</span> <span class="n">short</span><span class="p">,</span> <span class="n">copy_value</span><span class="o">=</span><span class="n">full_value</span><span class="p">)</span>
+</span></code></pre></div>
+<hr />
+<h2 id="4-spacing-system">4. Spacing System<a class="headerlink" href="#4-spacing-system" title="Permanent link">&para;</a></h2>
+<h3 id="41-the-scale">4.1 The Scale<a class="headerlink" href="#41-the-scale" title="Permanent link">&para;</a></h3>
+<p>Haywire uses a constrained subset of Tailwind's spacing scale. Using values
+outside this set requires justification.</p>
+<table>
+<thead>
+<tr>
+<th>Token</th>
+<th>Value</th>
+<th>Name</th>
+<th>Primary use</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>0</code></td>
+<td>0px</td>
+<td>None</td>
+<td>Between tightly coupled elements</td>
+</tr>
+<tr>
+<td><code>0.5</code></td>
+<td>2px</td>
+<td>Hairline</td>
+<td>Between toggle buttons, icon groups</td>
+</tr>
+<tr>
+<td><code>1</code></td>
+<td>4px</td>
+<td>Tight</td>
+<td>Between port rows, compact field stacks</td>
+</tr>
+<tr>
+<td><code>1.5</code></td>
+<td>6px</td>
+<td>Snug</td>
+<td>Vertical padding on list items</td>
+</tr>
+<tr>
+<td><code>2</code></td>
+<td>8px</td>
+<td>Base</td>
+<td>Section padding, search bar, icon+label</td>
+</tr>
+<tr>
+<td><code>3</code></td>
+<td>12px</td>
+<td>Loose</td>
+<td>Between major sections, topbar padding</td>
+</tr>
+<tr>
+<td><code>4</code></td>
+<td>16px</td>
+<td>Spacious</td>
+<td>Content area padding (docs, detail)</td>
+</tr>
+<tr>
+<td><code>6</code></td>
+<td>24px</td>
+<td>Page</td>
+<td>Page-level padding (library detail)</td>
+</tr>
+</tbody>
+</table>
+<h3 id="42-panel-padding-rules">4.2 Panel Padding Rules<a class="headerlink" href="#42-panel-padding-rules" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Panel region</th>
+<th>Horizontal</th>
+<th>Vertical</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Panel header</td>
+<td><code>px-2</code></td>
+<td><code>py-1.5</code></td>
+</tr>
+<tr>
+<td>Info bar</td>
+<td><code>px-3</code></td>
+<td><code>py-1</code></td>
+</tr>
+<tr>
+<td>List item</td>
+<td><code>px-2</code></td>
+<td><code>py-1.5</code></td>
+</tr>
+<tr>
+<td>Section group label</td>
+<td><code>px-2</code></td>
+<td><code>pt-2 pb-1</code></td>
+</tr>
+<tr>
+<td>Content area (scroll)</td>
+<td><code>p-4</code></td>
+<td>—</td>
+</tr>
+<tr>
+<td>Detail page content</td>
+<td><code>px-6 pt-6</code></td>
+<td>—</td>
+</tr>
+</tbody>
+</table>
+<h3 id="43-gap-rules">4.3 Gap Rules<a class="headerlink" href="#43-gap-rules" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Context</th>
+<th>Gap</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Column of list items</td>
+<td><code>gap-0</code></td>
+</tr>
+<tr>
+<td>Compact field stack</td>
+<td><code>gap-1</code></td>
+</tr>
+<tr>
+<td>Icon + label in a row</td>
+<td><code>gap-2</code></td>
+</tr>
+<tr>
+<td>Sections within a panel</td>
+<td><code>gap-3</code></td>
+</tr>
+<tr>
+<td>Empty state icon + message</td>
+<td><code>gap-3</code></td>
+</tr>
+</tbody>
+</table>
+<h3 id="44-height-fixtures">4.4 Height Fixtures<a class="headerlink" href="#44-height-fixtures" title="Permanent link">&para;</a></h3>
+<p>Certain UI elements have fixed heights. These are not negotiable — they ensure
+the shell geometry is predictable.</p>
+<table>
+<thead>
+<tr>
+<th>Element</th>
+<th>Height</th>
+<th>Set via</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>TopBar</td>
+<td>48px</td>
+<td>inline style</td>
+</tr>
+<tr>
+<td>StatusBar</td>
+<td>24px</td>
+<td>inline style</td>
+</tr>
+<tr>
+<td>ActivityBar width</td>
+<td>48px</td>
+<td>inline style</td>
+</tr>
+<tr>
+<td>ContextBar width</td>
+<td>48px</td>
+<td>inline style</td>
+</tr>
+<tr>
+<td>Middle tab bar</td>
+<td>36px</td>
+<td><code>min-height</code> inline style</td>
+</tr>
+<tr>
+<td>Scope toolbar button</td>
+<td>36×36px</td>
+<td>inline style</td>
+</tr>
+<tr>
+<td>Compact field input</td>
+<td>26px</td>
+<td><code>--hw-compact-field-h</code></td>
+</tr>
+</tbody>
+</table>
+<h3 id="45-compact-fields-system">4.5 Compact-Fields System<a class="headerlink" href="#45-compact-fields-system" title="Permanent link">&para;</a></h3>
+<p>Settings panels use a container-query–based responsive layout system that
+compresses label/widget rows for dense display. This is distinct from ordinary
+<code>gap-1</code> padding — it activates a CSS container context and responsive classes.</p>
+<p><strong>How to use:</strong></p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="k">with</span> <span class="n">ui</span><span class="o">.</span><span class="n">column</span><span class="p">()</span><span class="o">.</span><span class="n">classes</span><span class="p">(</span><span class="s2">&quot;w-full gap-0 compact-fields&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">style</span><span class="p">(</span>
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>    <span class="s2">&quot;container-type: inline-size; container-name: settings-panel;&quot;</span>
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="p">):</span>
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>    <span class="c1"># Each row uses _ROW_CLASSES = &quot;w-full items-center justify-between gap-0 px-2&quot;</span>
+</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>    <span class="k">with</span> <span class="n">ui</span><span class="o">.</span><span class="n">row</span><span class="p">()</span><span class="o">.</span><span class="n">classes</span><span class="p">(</span><span class="s2">&quot;w-full items-center justify-between gap-0 px-2&quot;</span><span class="p">):</span>
+</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>        <span class="n">ui</span><span class="o">.</span><span class="n">label</span><span class="p">(</span><span class="s2">&quot;My Field&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">classes</span><span class="p">(</span><span class="s2">&quot;text-xs truncate sf-label&quot;</span><span class="p">)</span>
+</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a>        <span class="n">my_widget</span><span class="o">.</span><span class="n">classes</span><span class="p">(</span><span class="s2">&quot;sf-widget&quot;</span><span class="p">)</span>
+</span></code></pre></div>
+<p><strong>CSS classes in this system:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Class</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>compact-fields</code></td>
+<td>Applied to the outer column. Activates container context.</td>
+</tr>
+<tr>
+<td><code>sf-label</code></td>
+<td>Label cell. Responsive width — shrinks at narrow container.</td>
+</tr>
+<tr>
+<td><code>sf-widget</code></td>
+<td>Widget cell. Takes remaining space; right-aligned.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>CSS tokens for this system:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Token</th>
+<th>Default</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>--hw-compact-field-h</code></td>
+<td>26px</td>
+<td>Fixed input height for compact widgets.</td>
+</tr>
+<tr>
+<td><code>--hw-compact-gap</code></td>
+<td>1px</td>
+<td>Vertical gap between compact rows.</td>
+</tr>
+<tr>
+<td><code>--hw-compact-row-min-h</code></td>
+<td>28px</td>
+<td>Minimum row height in compact mode.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Rule:</strong> Only use <code>compact-fields</code> for settings/property panels. Regular
+editor content uses the standard gap/padding system (§4.1–4.3).</p>
+<p><strong>Rule:</strong> Never apply <code>compact-fields</code> and <code>p-4</code> to the same container. Compact
+panels use <code>p-0</code> or <code>p-1</code> on their outer column.</p>
+<hr />
+<h2 id="5-border-radius">5. Border Radius<a class="headerlink" href="#5-border-radius" title="Permanent link">&para;</a></h2>
+<h3 id="51-the-scale">5.1 The Scale<a class="headerlink" href="#51-the-scale" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Token</th>
+<th>Value</th>
+<th>Use for</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>none</code></td>
+<td>0</td>
+<td>Scope toolbar buttons, tab indicators</td>
+</tr>
+<tr>
+<td><code>sm</code></td>
+<td>4px</td>
+<td>Inputs, list items, code blocks, badges</td>
+</tr>
+<tr>
+<td><code>md</code></td>
+<td>8px</td>
+<td>Cards, dialogs, expansion panels</td>
+</tr>
+<tr>
+<td><code>lg</code></td>
+<td>10px</td>
+<td>Toolbar icon buttons</td>
+</tr>
+<tr>
+<td><code>full</code></td>
+<td>9999</td>
+<td>Status dots, circular icon buttons</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Rule:</strong> Toolbar icon buttons (activity bar, context bar) use <code>border-radius: 10px</code>
+(the <code>lg</code> tier). This is their identity — don't flatten them to <code>0</code> or round
+them to <code>full</code>.</p>
+<p><strong>Rule:</strong> Scope toolbar buttons in the properties editor use <code>border-radius: 0</code>.
+They tile vertically and any radius creates visual gaps.</p>
+<p><strong>Rule:</strong> Quasar <code>.rounded</code> maps to <code>4px</code> which is our <code>sm</code> tier. Use <code>.rounded</code>
+on list items and interactive rows.</p>
+<hr />
+<h2 id="6-iconography">6. Iconography<a class="headerlink" href="#6-iconography" title="Permanent link">&para;</a></h2>
+<h3 id="61-icon-set">6.1 Icon Set<a class="headerlink" href="#61-icon-set" title="Permanent link">&para;</a></h3>
+<p>Material Icons via Quasar. No other icon set.</p>
+<h3 id="62-size-rules">6.2 Size Rules<a class="headerlink" href="#62-size-rules" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Context</th>
+<th>Size</th>
+<th>Implementation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Toolbar button</td>
+<td>24px</td>
+<td>Quasar default (no prop)</td>
+</tr>
+<tr>
+<td>Panel header inline</td>
+<td>16px</td>
+<td><code>size="16px"</code></td>
+</tr>
+<tr>
+<td>Info bar inline</td>
+<td>14px</td>
+<td><code>size="14px"</code></td>
+</tr>
+<tr>
+<td>Empty state</td>
+<td>36–48px</td>
+<td><code>size="40px"</code> typical</td>
+</tr>
+<tr>
+<td>Inline text indicator</td>
+<td>10–14px</td>
+<td><code>size="10px"</code> / <code>"14px"</code></td>
+</tr>
+</tbody>
+</table>
+<h3 id="63-colour-rules">6.3 Colour Rules<a class="headerlink" href="#63-colour-rules" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Context</th>
+<th>Colour</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Decorative / structural</td>
+<td><code>.hw-text-dim</code></td>
+</tr>
+<tr>
+<td>Interactive (rest)</td>
+<td>Inherited (<code>--hw-text-muted</code>)</td>
+</tr>
+<tr>
+<td>Interactive (hover)</td>
+<td>Inherited (<code>--hw-text-body</code>)</td>
+</tr>
+<tr>
+<td>Interactive (active)</td>
+<td>Inherited (<code>--hw-accent</code>)</td>
+</tr>
+<tr>
+<td>Quasar <code>color=</code> prop</td>
+<td>Add <code>.hw-use-props-color</code> to opt out of the global dim override</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Rule:</strong> Never use <code>text-purple-500</code>, <code>text-blue-400</code>, or any Tailwind colour
+class on an icon. If an icon needs a semantic colour, use Quasar's <code>color=</code>
+prop with <code>.hw-use-props-color</code>, or style it with a <code>--hw-*</code> token.</p>
+<h3 id="64-standard-icon-vocabulary">6.4 Standard Icon Vocabulary<a class="headerlink" href="#64-standard-icon-vocabulary" title="Permanent link">&para;</a></h3>
+<p>see hui.icon for the most current mappings between use and icon name </p>
+<hr />
+<h2 id="7-transitions-motion">7. Transitions &amp; Motion<a class="headerlink" href="#7-transitions-motion" title="Permanent link">&para;</a></h2>
+<p>Two tiers of transition timing exist in Haywire. They are deliberately different
+because shell UI and canvas objects have different perceptual scales.</p>
+<h3 id="71-shell-panel-transitions-015s">7.1 Shell / Panel Transitions (0.15s)<a class="headerlink" href="#71-shell-panel-transitions-015s" title="Permanent link">&para;</a></h3>
+<p>All interactive state changes in the shell, panels, editors, and toolbars use:</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>transition: &lt;property&gt; 0.15s ease;
+</span></code></pre></div>
+<p>This applies to toolbar buttons, list item hover, scope buttons, input focus,
+and icon colour changes. <code>hui</code> encodes this via the <code>_TRANSITION_BG</code> constant.</p>
+<h3 id="72-canvas-node-transitions-up-to-03s">7.2 Canvas / Node Transitions (up to 0.3s)<a class="headerlink" href="#72-canvas-node-transitions-up-to-03s" title="Permanent link">&para;</a></h3>
+<p>Node skins and canvas-level animations may use longer durations because objects
+on the canvas are perceived at a greater visual distance and need slightly more
+time to read as intentional motion.</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>transition: &lt;property&gt; 0.2s ease;   /* node state changes */
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>transition: &lt;property&gt; 0.3s ease;   /* node enter/exit, error flash */
+</span></code></pre></div>
+<p><strong>Rule:</strong> Durations above <code>0.3s</code> are not permitted anywhere in the codebase.</p>
+<p><strong>Rule:</strong> <code>transition: all</code> is not permitted. Always name the specific property.</p>
+<h3 id="73-animated-properties">7.3 Animated Properties<a class="headerlink" href="#73-animated-properties" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Property</th>
+<th>Tier</th>
+<th>Context</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>background-color</code></td>
+<td>Shell</td>
+<td>Toolbar buttons, list item hover</td>
+</tr>
+<tr>
+<td><code>color</code></td>
+<td>Shell</td>
+<td>Icon and text colour on hover</td>
+</tr>
+<tr>
+<td><code>box-shadow</code></td>
+<td>Shell</td>
+<td>Active toolbar button ring</td>
+</tr>
+<tr>
+<td><code>opacity</code></td>
+<td>Both</td>
+<td>Disabled scope buttons; node widget appear</td>
+</tr>
+<tr>
+<td><code>border-color</code></td>
+<td>Shell</td>
+<td>Input focus</td>
+</tr>
+<tr>
+<td><code>background</code></td>
+<td>Canvas</td>
+<td>Node error state, node skin state changes</td>
+</tr>
+</tbody>
+</table>
+<h3 id="74-not-animated">7.4 Not Animated<a class="headerlink" href="#74-not-animated" title="Permanent link">&para;</a></h3>
+<p>Layout changes (panel show/hide, content rebuilds, scroll) are instant. No
+<code>transition</code> on <code>width</code>, <code>height</code>, <code>flex</code>, <code>padding</code>, <code>margin</code>, or <code>display</code>.</p>
+<hr />
+<h2 id="8-component-patterns-hui-api">8. Component Patterns (hui API)<a class="headerlink" href="#8-component-patterns-hui-api" title="Permanent link">&para;</a></h2>
+<p>Each pattern below is defined as a <code>hui</code> wrapper function. The function
+signature, visual rules, and example usage are documented together.</p>
+<h3 id="81-huipanel_headertitle-iconnone">8.1 <code>hui.panel_header(title, icon=None)</code><a class="headerlink" href="#81-huipanel_headertitle-iconnone" title="Permanent link">&para;</a></h3>
+<p>A slim bar at the top of a panel. Returns a <code>ui.row</code> context manager.
+Action buttons should be placed inside the <code>with</code> block.</p>
+<p><strong>Anatomy:</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>┌─[icon 16px]─[title text-sm font-medium]────────────[action buttons]─┐
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>│                         border-b                                      │
+</span></code></pre></div>
+<p><strong>Visual rules:</strong></p>
+<ul>
+<li>Padding: <code>px-2 py-1.5</code></li>
+<li>Background: inherited from parent (transparent)</li>
+<li>Bottom border: <code>1px solid var(--hw-border)</code></li>
+<li><code>flex-shrink-0</code> to prevent compression</li>
+<li>Icon: 16px, <code>hw-text-dim</code></li>
+<li>Title: <code>text-sm font-medium hw-text-body truncate flex-1</code></li>
+<li>Actions: <code>hui.icon_action()</code> buttons floated right</li>
+</ul>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="k">with</span> <span class="n">hui</span><span class="o">.</span><span class="n">panel_header</span><span class="p">(</span><span class="s2">&quot;Files&quot;</span><span class="p">,</span> <span class="n">icon</span><span class="o">=</span><span class="s2">&quot;folder&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">header</span><span class="p">:</span>
+</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>    <span class="n">hui</span><span class="o">.</span><span class="n">icon_action</span><span class="p">(</span><span class="s2">&quot;refresh&quot;</span><span class="p">,</span> <span class="n">tooltip</span><span class="o">=</span><span class="s2">&quot;Refresh&quot;</span><span class="p">,</span> <span class="n">on_click</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_refresh</span><span class="p">)</span>
+</span></code></pre></div>
+<h3 id="82-huiinfo_barlabel-badgenone-suffixnone">8.2 <code>hui.info_bar(label, badge=None, suffix=None)</code><a class="headerlink" href="#82-huiinfo_barlabel-badgenone-suffixnone" title="Permanent link">&para;</a></h3>
+<p>A contextual metadata bar (e.g. showing the open file name + language + size).</p>
+<p><strong>Visual rules:</strong></p>
+<ul>
+<li>Height: <code>min-height: 28px</code></li>
+<li>Padding: <code>px-3 py-1</code></li>
+<li>Background: <code>var(--hw-bg-surface)</code></li>
+<li>Bottom border: <code>1px solid var(--hw-border)</code></li>
+<li><code>flex-shrink-0</code></li>
+<li>Label: <code>text-xs font-medium hw-text-body</code></li>
+<li>Badge (optional): Quasar badge with <code>color=blue-grey rounded outline text-xs</code></li>
+<li>Suffix (optional): <code>text-xs hw-text-dim ml-auto</code></li>
+</ul>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="n">hui</span><span class="o">.</span><span class="n">info_bar</span><span class="p">(</span><span class="s2">&quot;main.py&quot;</span><span class="p">,</span> <span class="n">badge</span><span class="o">=</span><span class="s2">&quot;python&quot;</span><span class="p">,</span> <span class="n">suffix</span><span class="o">=</span><span class="s2">&quot;12,480 B&quot;</span><span class="p">)</span>
+</span></code></pre></div>
+<h3 id="83-huiempty_statemessage-iconfolder_open-hintnone">8.3 <code>hui.empty_state(message, icon="folder_open", hint=None)</code><a class="headerlink" href="#83-huiempty_statemessage-iconfolder_open-hintnone" title="Permanent link">&para;</a></h3>
+<p>Centered placeholder for panels with no content.</p>
+<p><strong>Visual rules:</strong></p>
+<ul>
+<li>Centred vertically and horizontally</li>
+<li>Vertical padding: <code>60–80px</code> top (pushes into upper-centre)</li>
+<li>Icon: <code>36–48px</code>, <code>hw-text-dim</code></li>
+<li>Primary message: <code>text-sm hw-text-muted</code></li>
+<li>Hint (optional): <code>text-xs hw-text-dim</code> or <code>hw-text-muted</code></li>
+<li>Gap between icon and text: <code>gap-3</code></li>
+</ul>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="n">hui</span><span class="o">.</span><span class="n">empty_state</span><span class="p">(</span>
+</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>    <span class="s2">&quot;Select a file from the Files panel&quot;</span><span class="p">,</span>
+</span><span id="__span-9-3"><a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a>    <span class="n">icon</span><span class="o">=</span><span class="s2">&quot;folder_open&quot;</span><span class="p">,</span>
+</span><span id="__span-9-4"><a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a><span class="p">)</span>
+</span></code></pre></div>
+<h3 id="84-huilist_itemlabel-sublabelnone-dot_colornone-is_activefalse-on_clicknone">8.4 <code>hui.list_item(label, sublabel=None, dot_color=None, is_active=False, on_click=None)</code><a class="headerlink" href="#84-huilist_itemlabel-sublabelnone-dot_colornone-is_activefalse-on_clicknone" title="Permanent link">&para;</a></h3>
+<p>An interactive row for browsers and selection lists.</p>
+<p><strong>Visual rules:</strong></p>
+<ul>
+<li>Padding: <code>px-2 py-1.5</code></li>
+<li>Full width, <code>rounded</code> (4px)</li>
+<li>Hover: <code>var(--hw-bg-hover)</code> background (not <code>bg-white/10</code>)</li>
+<li>Active (<code>is_active=True</code>): <code>var(--hw-bg-active)</code> background; hover suppressed</li>
+<li>Cursor: <code>pointer</code></li>
+<li>Gap: <code>gap-2</code></li>
+<li>Status dot (optional): <code>w-2 h-2 rounded-full</code>, Quasar named colour</li>
+<li>Label: <code>text-sm font-medium truncate</code>; <code>hw-text-body</code> when active, <code>hw-text-muted</code> otherwise</li>
+<li>Sublabel: <code>text-xs hw-text-dim</code></li>
+<li>Parent text column: <code>flex-1 gap-0 min-w-0</code></li>
+</ul>
+<p><strong>Rule:</strong> Never use <code>bg-blue-900/40</code> or other hardcoded colours for active rows.
+Always pass <code>is_active=True</code> and let the token do the work.</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="n">hui</span><span class="o">.</span><span class="n">list_item</span><span class="p">(</span>
+</span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>    <span class="s2">&quot;Visiongraph&quot;</span><span class="p">,</span>
+</span><span id="__span-10-3"><a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a>    <span class="n">sublabel</span><span class="o">=</span><span class="s2">&quot;v0.0.1&quot;</span><span class="p">,</span>
+</span><span id="__span-10-4"><a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a>    <span class="n">dot_color</span><span class="o">=</span><span class="s2">&quot;green&quot;</span><span class="p">,</span>
+</span><span id="__span-10-5"><a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a>    <span class="n">is_active</span><span class="o">=</span><span class="n">entry</span> <span class="ow">is</span> <span class="n">active_entry</span><span class="p">,</span>
+</span><span id="__span-10-6"><a id="__codelineno-10-6" name="__codelineno-10-6" href="#__codelineno-10-6"></a>    <span class="n">on_click</span><span class="o">=</span><span class="k">lambda</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_select</span><span class="p">(</span><span class="n">lib</span><span class="p">),</span>
+</span><span id="__span-10-7"><a id="__codelineno-10-7" name="__codelineno-10-7" href="#__codelineno-10-7"></a><span class="p">)</span>
+</span></code></pre></div>
+<h3 id="85a-huilabeltext">8.5a <code>hui.label(text)</code><a class="headerlink" href="#85a-huilabeltext" title="Permanent link">&para;</a></h3>
+<p>A body-tier text label.</p>
+<p><strong>Visual rules:</strong></p>
+<ul>
+<li>Text: <code>text-sm hw-text-body</code></li>
+</ul>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="n">hui</span><span class="o">.</span><span class="n">label</span><span class="p">(</span><span class="s2">&quot;No settings available.&quot;</span><span class="p">)</span>
+</span></code></pre></div>
+<h3 id="85b-huisection_labeltext">8.5b <code>hui.section_label(text)</code><a class="headerlink" href="#85b-huisection_labeltext" title="Permanent link">&para;</a></h3>
+<p>An uppercase tracking label that separates groups within a list or panel.</p>
+<p><strong>Visual rules:</strong></p>
+<ul>
+<li>Text: <code>text-xs font-bold tracking-wider uppercase hw-text-dim</code></li>
+<li>Padding: <code>px-2 pt-2 pb-1</code></li>
+</ul>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="n">hui</span><span class="o">.</span><span class="n">section_label</span><span class="p">(</span><span class="s2">&quot;REQUIRED&quot;</span><span class="p">)</span>
+</span></code></pre></div>
+<h3 id="86-huiinfo_rowlabel-value-copy_valuenone">8.6 <code>hui.info_row(label, value, copy_value=None)</code><a class="headerlink" href="#86-huiinfo_rowlabel-value-copy_valuenone" title="Permanent link">&para;</a></h3>
+<p>A key-value metadata row with optional copy button.</p>
+<p><strong>Visual rules:</strong></p>
+<ul>
+<li>Row: <code>w-full items-center gap-1 py-0.5</code></li>
+<li>Copy button (if <code>copy_value</code> provided): <code>hui.icon_action("content_copy")</code></li>
+<li>Label: <code>text-xs hw-text-dim</code>, fixed width <code>w-16 flex-shrink-0</code></li>
+<li>Value: <code>text-xs font-mono truncate flex-1 hw-text-body</code></li>
+</ul>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="n">hui</span><span class="o">.</span><span class="n">info_row</span><span class="p">(</span><span class="s2">&quot;Key&quot;</span><span class="p">,</span> <span class="s2">&quot;visiongraph:node:WebcamFrameEvent&quot;</span><span class="p">,</span> <span class="n">copy_value</span><span class="o">=</span><span class="n">full_key</span><span class="p">)</span>
+</span></code></pre></div>
+<h3 id="87-huicode_snippetcode-labelnone-copyabletrue">8.7 <code>hui.code_snippet(code, label=None, copyable=True)</code><a class="headerlink" href="#87-huicode_snippetcode-labelnone-copyabletrue" title="Permanent link">&para;</a></h3>
+<p>A read-only code snippet with optional label and copy button.</p>
+<p><strong>Visual rules:</strong></p>
+<ul>
+<li>Outer column: <code>w-full gap-0.5 py-1</code></li>
+<li>Label (optional): <code>text-xs hw-text-dim</code></li>
+<li>Code container: <code>var(--hw-bg-surface)</code> background, <code>rounded</code> (4px), <code>px-2 py-1</code>,
+  <code>1px solid var(--hw-border)</code></li>
+<li>Code text: <code>text-xs font-mono hw-text-body</code></li>
+<li>Copy button inline</li>
+</ul>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a><span class="n">hui</span><span class="o">.</span><span class="n">code_snippet</span><span class="p">(</span>
+</span><span id="__span-14-2"><a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a>    <span class="s2">&quot;from haybale_visiongraph import WebcamFrameEventNode&quot;</span><span class="p">,</span>
+</span><span id="__span-14-3"><a id="__codelineno-14-3" name="__codelineno-14-3" href="#__codelineno-14-3"></a>    <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Import&quot;</span><span class="p">,</span>
+</span><span id="__span-14-4"><a id="__codelineno-14-4" name="__codelineno-14-4" href="#__codelineno-14-4"></a><span class="p">)</span>
+</span></code></pre></div>
+<h3 id="88-huiicon_actionicon-tooltipnone-on_clicknone-sizexs">8.8 <code>hui.icon_action(icon, tooltip=None, on_click=None, size="xs")</code><a class="headerlink" href="#88-huiicon_actionicon-tooltipnone-on_clicknone-sizexs" title="Permanent link">&para;</a></h3>
+<p>A minimal icon-only button for inline actions.</p>
+<p><strong>Visual rules:</strong></p>
+<ul>
+<li>Props: <code>flat round dense size={size}</code></li>
+<li>Colour: inherited (theme-aware), no Quasar <code>color=</code> prop</li>
+<li>Tooltip applied if provided</li>
+</ul>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-15-1"><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a><span class="n">hui</span><span class="o">.</span><span class="n">icon_action</span><span class="p">(</span><span class="s2">&quot;refresh&quot;</span><span class="p">,</span> <span class="n">tooltip</span><span class="o">=</span><span class="s2">&quot;Refresh tree&quot;</span><span class="p">,</span> <span class="n">on_click</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_refresh</span><span class="p">)</span>
+</span></code></pre></div>
+<h3 id="88a-huibuttonlabel-iconnone-tooltipnone-on_clicknone-disabledfalse">8.8a <code>hui.button(label, icon=None, tooltip=None, on_click=None, disabled=False)</code><a class="headerlink" href="#88a-huibuttonlabel-iconnone-tooltipnone-on_clicknone-disabledfalse" title="Permanent link">&para;</a></h3>
+<p>A flat labelled action button for use inside panels. Distinct from <code>hui.icon_action</code>
+(icon-only) and <code>hui.dialog_actions</code> (confirm/cancel pair). Use when a visible text
+label is needed, optionally with a leading icon.</p>
+<p><strong>Visual rules:</strong></p>
+<ul>
+<li>Props: <code>flat dense align=left no-wrap</code></li>
+<li>Classes: <code>text-sm w-full</code></li>
+<li>Colour: inherited — never use Quasar <code>color=</code> prop</li>
+<li>Disabled: <code>opacity: 0.5; pointer-events: none</code></li>
+</ul>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-16-1"><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a><span class="n">hui</span><span class="o">.</span><span class="n">button</span><span class="p">(</span><span class="s2">&quot;Delete Node&quot;</span><span class="p">,</span> <span class="n">icon</span><span class="o">=</span><span class="s2">&quot;delete&quot;</span><span class="p">,</span> <span class="n">on_click</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_delete</span><span class="p">)</span>
+</span><span id="__span-16-2"><a id="__codelineno-16-2" name="__codelineno-16-2" href="#__codelineno-16-2"></a><span class="n">hui</span><span class="o">.</span><span class="n">button</span><span class="p">(</span><span class="s2">&quot;Refresh&quot;</span><span class="p">,</span> <span class="n">icon</span><span class="o">=</span><span class="s2">&quot;refresh&quot;</span><span class="p">,</span> <span class="n">on_click</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_refresh</span><span class="p">)</span>
+</span></code></pre></div>
+<h3 id="89-huitoolbar_buttonicon-is_activefalse-tooltipnone-on_clicknone">8.9 <code>hui.toolbar_button(icon, is_active=False, tooltip=None, on_click=None)</code><a class="headerlink" href="#89-huitoolbar_buttonicon-is_activefalse-tooltipnone-on_clicknone" title="Permanent link">&para;</a></h3>
+<p>An icon button for the activity bar or context bar.</p>
+<p><strong>Visual rules:</strong></p>
+<ul>
+<li>Size: <code>w-10 h-10</code> (40×40px)</li>
+<li>Classes: <code>hw-shell-toolbar-btn</code>, plus <code>hw-shell-toolbar-btn-active</code> if active</li>
+<li>Props: <code>flat round</code></li>
+<li>States: rest → muted, hover → elevated bg + body colour,
+  active → elevated bg + accent colour + inset ring</li>
+</ul>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-17-1"><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a><span class="n">hui</span><span class="o">.</span><span class="n">toolbar_button</span><span class="p">(</span><span class="s2">&quot;folder&quot;</span><span class="p">,</span> <span class="n">is_active</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">tooltip</span><span class="o">=</span><span class="s2">&quot;Files&quot;</span><span class="p">,</span> <span class="n">on_click</span><span class="o">=</span><span class="n">switch</span><span class="p">)</span>
+</span></code></pre></div>
+<h3 id="810-huiscope_buttonicon-is_activefalse-availabletrue-tooltipnone-on_clicknone">8.10 <code>hui.scope_button(icon, is_active=False, available=True, tooltip=None, on_click=None)</code><a class="headerlink" href="#810-huiscope_buttonicon-is_activefalse-availabletrue-tooltipnone-on_clicknone" title="Permanent link">&para;</a></h3>
+<p>A square button for the properties scope toolbar.</p>
+<p><strong>Visual rules:</strong></p>
+<ul>
+<li>Size: <code>36×36px</code></li>
+<li>Border-radius: <code>0</code></li>
+<li>Active: <code>var(--hw-accent)</code> background, <code>#ffffff</code> text</li>
+<li>Unavailable: <code>opacity: 0.3</code>, <code>pointer-events: none</code></li>
+<li>Transition: <code>background 0.15s</code></li>
+</ul>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-18-1"><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a><span class="n">hui</span><span class="o">.</span><span class="n">scope_button</span><span class="p">(</span><span class="s2">&quot;settings&quot;</span><span class="p">,</span> <span class="n">is_active</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">tooltip</span><span class="o">=</span><span class="s2">&quot;Node Properties&quot;</span><span class="p">)</span>
+</span></code></pre></div>
+<h3 id="811-huiexpansion_sectionlabel-iconnone-default_opentrue-contextnone-panel_keynone">8.11 <code>hui.expansion_section(label, icon=None, default_open=True, context=None, panel_key=None)</code><a class="headerlink" href="#811-huiexpansion_sectionlabel-iconnone-default_opentrue-contextnone-panel_keynone" title="Permanent link">&para;</a></h3>
+<p>A collapsible section for grouped content in property panels.</p>
+<p><strong>Visual rules:</strong></p>
+<ul>
+<li>Bottom border: <code>1px solid var(--hw-border)</code></li>
+<li>Header label colour: <code>--hw-text-expansion</code> (special-purpose token — set per theme)</li>
+<li>Header label size/weight: Quasar's default expansion header — <code>text-sm font-medium</code></li>
+<li>Persists expansion state to <code>context.metadata</code> under the given <code>panel_key</code></li>
+</ul>
+<p><strong>Rule:</strong> Do not use <code>ui.expansion()</code> directly in property panels. Header styling
+(font size, colour token, border) is only guaranteed correct via this wrapper.
+For settings category groups, use <code>hui.category_group()</code> instead (§8.21).</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-19-1"><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a><span class="k">with</span> <span class="n">hui</span><span class="o">.</span><span class="n">expansion_section</span><span class="p">(</span><span class="s2">&quot;Node&quot;</span><span class="p">,</span> <span class="n">icon</span><span class="o">=</span><span class="s2">&quot;settings&quot;</span><span class="p">,</span> <span class="n">context</span><span class="o">=</span><span class="n">ctx</span><span class="p">,</span> <span class="n">panel_key</span><span class="o">=</span><span class="s2">&quot;node&quot;</span><span class="p">):</span>
+</span><span id="__span-19-2"><a id="__codelineno-19-2" name="__codelineno-19-2" href="#__codelineno-19-2"></a>    <span class="c1"># Panel content</span>
+</span></code></pre></div>
+<h3 id="812-huierror_labeltext">8.12 <code>hui.error_label(text)</code><a class="headerlink" href="#812-huierror_labeltext" title="Permanent link">&para;</a></h3>
+<p>An error message label.</p>
+<p><strong>Visual rules:</strong></p>
+<ul>
+<li>Text: <code>text-sm</code> with <code>color: var(--hw-danger)</code></li>
+<li>Padding: <code>p-4</code></li>
+<li>Never use <code>text-red-400</code></li>
+</ul>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-20-1"><a id="__codelineno-20-1" name="__codelineno-20-1" href="#__codelineno-20-1"></a><span class="n">hui</span><span class="o">.</span><span class="n">error_label</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;File not found: </span><span class="si">{</span><span class="n">path</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</span></code></pre></div>
+<h3 id="813-huiwarning_labeltext">8.13 <code>hui.warning_label(text)</code><a class="headerlink" href="#813-huiwarning_labeltext" title="Permanent link">&para;</a></h3>
+<p>A warning message label.</p>
+<p><strong>Visual rules:</strong></p>
+<ul>
+<li>Text: <code>text-sm</code> with <code>color: var(--hw-warning)</code></li>
+<li>Never use <code>text-yellow-400</code></li>
+</ul>
+<h3 id="814-huitagtext-colorgrey">8.14 <code>hui.tag(text, color="grey")</code><a class="headerlink" href="#814-huitagtext-colorgrey" title="Permanent link">&para;</a></h3>
+<p>A small metadata tag / badge.</p>
+<p><strong>Visual rules:</strong></p>
+<ul>
+<li>Quasar badge: <code>outline</code> prop, <code>.text-xs</code></li>
+<li>Named colour via Quasar <code>color=</code> prop (acceptable exception to the no-hardcoded rule)</li>
+</ul>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-21-1"><a id="__codelineno-21-1" name="__codelineno-21-1" href="#__codelineno-21-1"></a><span class="n">hui</span><span class="o">.</span><span class="n">tag</span><span class="p">(</span><span class="s2">&quot;vision&quot;</span><span class="p">)</span>
+</span><span id="__span-21-2"><a id="__codelineno-21-2" name="__codelineno-21-2" href="#__codelineno-21-2"></a><span class="n">hui</span><span class="o">.</span><span class="n">tag</span><span class="p">(</span><span class="s2">&quot;editable&quot;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;green&quot;</span><span class="p">)</span>
+</span></code></pre></div>
+<h3 id="815-huiinput_fieldlabelnone-props">8.15 <code>hui.input_field(label=None, **props)</code><a class="headerlink" href="#815-huiinput_fieldlabelnone-props" title="Permanent link">&para;</a></h3>
+<p>A standard text input, pre-configured for panel use.</p>
+<p><strong>Visual rules:</strong></p>
+<ul>
+<li>Props: <code>dense outlined</code></li>
+<li>Classes: <code>w-full</code></li>
+<li>Background: <code>var(--hw-bg-input)</code> (automatic via global CSS)</li>
+<li>Border: <code>var(--hw-border)</code> rest, <code>var(--hw-border-strong)</code> hover/focus</li>
+<li>Focus ring: <code>2px solid var(--hw-accent)</code> via <code>:focus-visible</code> — keyboard-only,
+  not shown on mouse click (use <code>:focus-visible</code>, not <code>:focus</code>)</li>
+<li>Disabled: pass Quasar <code>:disable="True"</code> — renders <code>opacity: 0.5</code> automatically</li>
+<li>Validation error: pass Quasar <code>:rules=</code> and <code>lazy-rules="ondemand"</code> — error
+  text appears below the field using <code>var(--hw-danger)</code>; never use a separate
+  <code>hui.error_label()</code> to annotate a field inline</li>
+</ul>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-22-1"><a id="__codelineno-22-1" name="__codelineno-22-1" href="#__codelineno-22-1"></a><span class="n">hui</span><span class="o">.</span><span class="n">input_field</span><span class="p">(</span><span class="n">placeholder</span><span class="o">=</span><span class="s2">&quot;Search libraries…&quot;</span><span class="p">,</span> <span class="n">clearable</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</span><span id="__span-22-2"><a id="__codelineno-22-2" name="__codelineno-22-2" href="#__codelineno-22-2"></a><span class="n">hui</span><span class="o">.</span><span class="n">input_field</span><span class="p">(</span><span class="n">label</span><span class="o">=</span><span class="s2">&quot;Port&quot;</span><span class="p">,</span> <span class="n">rules</span><span class="o">=</span><span class="p">[</span><span class="k">lambda</span> <span class="n">v</span><span class="p">:</span> <span class="n">v</span><span class="o">.</span><span class="n">isdigit</span><span class="p">()</span> <span class="ow">or</span> <span class="s2">&quot;Must be a number&quot;</span><span class="p">])</span>
+</span></code></pre></div>
+<h3 id="816-huitabstab_defs-densetrue">8.16 <code>hui.tabs(*tab_defs, dense=True)</code><a class="headerlink" href="#816-huitabstab_defs-densetrue" title="Permanent link">&para;</a></h3>
+<p>A tab bar, pre-configured with <code>hw-slot-bar-tabs</code> styling.</p>
+<p><strong>Visual rules:</strong></p>
+<ul>
+<li>Classes: <code>w-full hw-slot-bar-tabs</code></li>
+<li>Props: <code>dense no-caps</code></li>
+<li>Tab label font: 12px (<code>text-xs</code>)</li>
+<li>Active indicator: <code>2px solid var(--hw-accent)</code> (bottom bar)</li>
+<li>Active tab label: <code>--hw-text-body</code></li>
+<li>Inactive tab label: <code>--hw-text-muted</code></li>
+<li>Tab bar bottom border: <code>1px solid var(--hw-border)</code></li>
+<li>Tab hover: <code>--hw-bg-hover</code> background</li>
+<li>Overflow: tabs scroll horizontally (<code>QTabs</code> default) — do not truncate or wrap</li>
+</ul>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-23-1"><a id="__codelineno-23-1" name="__codelineno-23-1" href="#__codelineno-23-1"></a><span class="k">with</span> <span class="n">hui</span><span class="o">.</span><span class="n">tabs</span><span class="p">((</span><span class="s2">&quot;Graph&quot;</span><span class="p">,</span> <span class="s2">&quot;account_tree&quot;</span><span class="p">),</span> <span class="p">(</span><span class="s2">&quot;Library&quot;</span><span class="p">,</span> <span class="s2">&quot;widgets&quot;</span><span class="p">))</span> <span class="k">as</span> <span class="n">tabs</span><span class="p">:</span>
+</span><span id="__span-23-2"><a id="__codelineno-23-2" name="__codelineno-23-2" href="#__codelineno-23-2"></a>    <span class="o">...</span>
+</span></code></pre></div>
+<h3 id="817-huinumber_fieldlabelnone-value0-props">8.17 <code>hui.number_field(label=None, value=0, **props)</code><a class="headerlink" href="#817-huinumber_fieldlabelnone-value0-props" title="Permanent link">&para;</a></h3>
+<p>A standard number input, pre-configured for panel use.</p>
+<p><strong>Visual rules:</strong> Same as <code>hui.input_field</code> — <code>dense outlined</code>, <code>w-full</code>.</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-24-1"><a id="__codelineno-24-1" name="__codelineno-24-1" href="#__codelineno-24-1"></a><span class="n">hui</span><span class="o">.</span><span class="n">number_field</span><span class="p">(</span><span class="n">label</span><span class="o">=</span><span class="s2">&quot;posX&quot;</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+</span></code></pre></div>
+<h3 id="818-huiselect_fieldoptions-valuenone-labelnone-props">8.18 <code>hui.select_field(options, value=None, label=None, **props)</code><a class="headerlink" href="#818-huiselect_fieldoptions-valuenone-labelnone-props" title="Permanent link">&para;</a></h3>
+<p>A standard dropdown select, pre-configured for panel use.</p>
+<p><strong>Visual rules:</strong></p>
+<ul>
+<li>Props: <code>dense outlined</code></li>
+<li>Classes: <code>text-sm</code></li>
+<li><code>min-width: 160px</code> by default (override via <code>min_width=</code>)</li>
+</ul>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-25-1"><a id="__codelineno-25-1" name="__codelineno-25-1" href="#__codelineno-25-1"></a><span class="n">hui</span><span class="o">.</span><span class="n">select_field</span><span class="p">(</span><span class="n">options</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;A&quot;</span><span class="p">,</span> <span class="s2">&quot;B&quot;</span><span class="p">],</span> <span class="n">value</span><span class="o">=</span><span class="s2">&quot;A&quot;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Mode&quot;</span><span class="p">)</span>
+</span></code></pre></div>
+<h3 id="819-huisection_dividertextnone">8.19 <code>hui.section_divider(text=None)</code><a class="headerlink" href="#819-huisection_dividertextnone" title="Permanent link">&para;</a></h3>
+<p>A visual break between sections. If <code>text</code> is provided, renders a
+<code>hui.section_label</code>. Otherwise renders a plain <code>ui.separator</code> with top margin.</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-26-1"><a id="__codelineno-26-1" name="__codelineno-26-1" href="#__codelineno-26-1"></a><span class="n">hui</span><span class="o">.</span><span class="n">section_divider</span><span class="p">(</span><span class="s2">&quot;ADVANCED&quot;</span><span class="p">)</span>  <span class="c1"># labelled divider</span>
+</span><span id="__span-26-2"><a id="__codelineno-26-2" name="__codelineno-26-2" href="#__codelineno-26-2"></a><span class="n">hui</span><span class="o">.</span><span class="n">section_divider</span><span class="p">()</span>            <span class="c1"># plain separator</span>
+</span></code></pre></div>
+<h3 id="819b-huiseparator">8.19b <code>hui.separator()</code><a class="headerlink" href="#819b-huiseparator" title="Permanent link">&para;</a></h3>
+<p>A plain themed horizontal rule (<code>ui.separator</code>). Use when you need a divider
+without a label and without the top margin added by <code>hui.section_divider()</code>.
+Prefer <code>hui.section_divider()</code> in most contexts; use <code>hui.separator()</code> only
+where the extra margin would break a tight layout.</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-27-1"><a id="__codelineno-27-1" name="__codelineno-27-1" href="#__codelineno-27-1"></a><span class="n">hui</span><span class="o">.</span><span class="n">separator</span><span class="p">()</span>
+</span></code></pre></div>
+<h3 id="820-huisuccess_labeltext-huiinfo_labeltext">8.20 <code>hui.success_label(text)</code> / <code>hui.info_label(text)</code><a class="headerlink" href="#820-huisuccess_labeltext-huiinfo_labeltext" title="Permanent link">&para;</a></h3>
+<p>Status message labels for non-error states.</p>
+<p><strong>Visual rules:</strong></p>
+<ul>
+<li><code>success_label</code>: <code>text-sm</code> with <code>color: var(--hw-success)</code>, <code>p-4</code></li>
+<li><code>info_label</code>: <code>text-sm</code> with <code>color: var(--hw-info)</code>, <code>p-4</code></li>
+</ul>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-28-1"><a id="__codelineno-28-1" name="__codelineno-28-1" href="#__codelineno-28-1"></a><span class="n">hui</span><span class="o">.</span><span class="n">success_label</span><span class="p">(</span><span class="s2">&quot;Library installed successfully.&quot;</span><span class="p">)</span>
+</span><span id="__span-28-2"><a id="__codelineno-28-2" name="__codelineno-28-2" href="#__codelineno-28-2"></a><span class="n">hui</span><span class="o">.</span><span class="n">info_label</span><span class="p">(</span><span class="s2">&quot;No changes detected.&quot;</span><span class="p">)</span>
+</span></code></pre></div>
+<h3 id="821-huicategory_grouplabel-settings-expansion-header">8.21 <code>hui.category_group(label)</code> — settings expansion header<a class="headerlink" href="#821-huicategory_grouplabel-settings-expansion-header" title="Permanent link">&para;</a></h3>
+<p>A foldable expansion used to group settings fields by category inside a
+<code>compact-fields</code> container. This is distinct from <code>hui.expansion_section</code>
+(which is for property panel scopes with state persistence).</p>
+<p><strong>Visual rules:</strong></p>
+<ul>
+<li>Props: <code>dense dense-toggle</code></li>
+<li>Header class: <code>text-xs font-bold hw-text-muted uppercase tracking-wide px-2 py-0 min-h-[24px]</code></li>
+<li>Default open: <code>True</code></li>
+<li>No state persistence (categories always reset to open)</li>
+</ul>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-29-1"><a id="__codelineno-29-1" name="__codelineno-29-1" href="#__codelineno-29-1"></a><span class="k">with</span> <span class="n">hui</span><span class="o">.</span><span class="n">category_group</span><span class="p">(</span><span class="s2">&quot;Rendering&quot;</span><span class="p">):</span>
+</span><span id="__span-29-2"><a id="__codelineno-29-2" name="__codelineno-29-2" href="#__codelineno-29-2"></a>    <span class="c1"># field rows rendered here</span>
+</span></code></pre></div>
+<p><strong>Rule:</strong> Use <code>hui.category_group</code> inside <code>compact-fields</code> columns only.
+Use <code>hui.expansion_section</code> for collapsible panels in the properties editor.</p>
+<h3 id="822-loading-async-states">8.22 Loading &amp; Async States<a class="headerlink" href="#822-loading-async-states" title="Permanent link">&para;</a></h3>
+<p><strong>Spinner (content pending):</strong> Use <code>ui.spinner(size="24px")</code> centred inside
+the panel's scroll area. Apply <code>hw-text-dim</code> colour. No custom spinner variants.</p>
+<p><strong>Skeleton rows:</strong> Not a standard pattern — use the spinner instead. Keep it
+simple.</p>
+<p><strong>Button loading state:</strong> Pass Quasar <code>:loading="True"</code> to any <code>QBtn</code> that
+triggers an async action. Do not disable the button manually; <code>:loading</code>
+handles both the spinner overlay and implicit <code>pointer-events: none</code>.</p>
+<p><strong>Rule:</strong> Never leave a panel blank while loading. Always show either the
+spinner or <code>hui.empty_state()</code> with a loading hint as a fallback.</p>
+<h3 id="823-popup-dialog-chrome">8.23 Popup / Dialog Chrome<a class="headerlink" href="#823-popup-dialog-chrome" title="Permanent link">&para;</a></h3>
+<p>Floating popups (context menus, connection info, node add menus) follow these
+rules. There is no single <code>hui</code> wrapper for full popups — they vary too much
+in structure — but the chrome rules are fixed.</p>
+<p><strong>Visual rules:</strong></p>
+<ul>
+<li>Background: <code>var(--hw-bg-elevated)</code></li>
+<li>Border: <code>1px solid var(--hw-border-strong)</code></li>
+<li>Border radius: <code>md</code> (8px)</li>
+<li>Shadow: <code>var(--hw-popup-shadow)</code> — defined on <code>WorkbenchTheme</code>, distinct from
+  <code>--hw-node-shadow</code> (nodes are canvas objects; popups are shell objects)</li>
+<li>Backdrop (modal overlays only): <code>var(--hw-bg-overlay)</code> — never <code>rgba(0,0,0,0.5)</code></li>
+</ul>
+<p><strong>Rule:</strong> Never hardcode <code>box-shadow</code> values on popups. Use <code>--hw-popup-shadow</code>.</p>
+<p><strong>Context menu items</strong> follow the same rules as <code>hui.list_item</code> rows:</p>
+<ul>
+<li>Padding: <code>px-2 py-1.5</code></li>
+<li>Hover: <code>var(--hw-bg-hover)</code></li>
+<li>Disabled: <code>opacity: 0.4; pointer-events: none</code></li>
+<li>Keyboard shortcut suffix: <code>text-xs hw-text-dim ml-auto font-mono</code></li>
+<li>Divider between groups: <code>hui.separator()</code></li>
+<li>Leading icon (optional): 16px, <code>hw-text-dim</code></li>
+</ul>
+<h3 id="824-huidialog_cardwidthnone-and-huidialog_actions">8.24 <code>hui.dialog_card(width=None)</code> and <code>hui.dialog_actions(...)</code><a class="headerlink" href="#824-huidialog_cardwidthnone-and-huidialog_actions" title="Permanent link">&para;</a></h3>
+<p>Two helpers that enforce §8.23 chrome rules on modal dialogs.</p>
+<p><strong><code>hui.dialog_card(width)</code></strong> — a context manager replacing <code>ui.card()</code> in the
+NiceGUI dialog idiom. Applies elevated background, strong border, 8px radius,
+and popup shadow via <code>--hw-*</code> tokens.</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-30-1"><a id="__codelineno-30-1" name="__codelineno-30-1" href="#__codelineno-30-1"></a><span class="k">with</span> <span class="n">ui</span><span class="o">.</span><span class="n">dialog</span><span class="p">()</span> <span class="k">as</span> <span class="n">dlg</span><span class="p">,</span> <span class="n">hui</span><span class="o">.</span><span class="n">dialog_card</span><span class="p">(</span><span class="s2">&quot;w-[480px]&quot;</span><span class="p">):</span>
+</span><span id="__span-30-2"><a id="__codelineno-30-2" name="__codelineno-30-2" href="#__codelineno-30-2"></a>    <span class="n">ui</span><span class="o">.</span><span class="n">textarea</span><span class="p">(</span><span class="o">...</span><span class="p">)</span><span class="o">.</span><span class="n">classes</span><span class="p">(</span><span class="s2">&quot;w-full text-xs hw-text-body&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">props</span><span class="p">(</span><span class="s2">&quot;dense autogrow&quot;</span><span class="p">)</span>
+</span><span id="__span-30-3"><a id="__codelineno-30-3" name="__codelineno-30-3" href="#__codelineno-30-3"></a>    <span class="n">hui</span><span class="o">.</span><span class="n">dialog_actions</span><span class="p">(</span><span class="n">on_confirm</span><span class="o">=</span><span class="n">_confirm</span><span class="p">,</span> <span class="n">on_cancel</span><span class="o">=</span><span class="n">dlg</span><span class="o">.</span><span class="n">close</span><span class="p">)</span>
+</span></code></pre></div>
+<p><strong><code>hui.dialog_actions(on_confirm, on_cancel, *, confirm_label="OK", cancel_label="Cancel")</code></strong> —
+a right-aligned action row. Cancel is flat/unstyled; the confirm button uses
+<code>color: var(--hw-positive)</code> for affirming emphasis.</p>
+<p><strong>Rule:</strong> Never use raw <code>ui.card()</code> inside <code>ui.dialog()</code>. Always use
+<code>hui.dialog_card()</code>.</p>
+<p><strong>Rule:</strong> Confirm button colour comes from <code>var(--hw-positive)</code> via
+<code>.style()</code>, not from Quasar <code>color=positive</code> (which is not theme-mapped).</p>
+<h3 id="825-field-focus-style-unified">8.25 Field Focus Style (unified)<a class="headerlink" href="#825-field-focus-style-unified" title="Permanent link">&para;</a></h3>
+<p>All editable fields — Quasar inputs/textareas and NumberDrag — share a unified
+focus treatment enforced by shell CSS and the NumberDrag Vue component:</p>
+<table>
+<thead>
+<tr>
+<th>State</th>
+<th>Underline</th>
+<th>Background</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Rest</td>
+<td><code>1px var(--hw-border)</code></td>
+<td><code>--hw-bg-input</code></td>
+</tr>
+<tr>
+<td>Hover</td>
+<td><code>1px var(--hw-border-strong)</code></td>
+<td><code>--hw-bg-input</code></td>
+</tr>
+<tr>
+<td>Focus</td>
+<td><code>2px var(--hw-accent)</code>, center-out animation</td>
+<td><code>--hw-bg-elevated</code></td>
+</tr>
+</tbody>
+</table>
+<p>The focus underline animates from the centre outwards using
+<code>transform: scale3d(0→1, 1, 1)</code> with <code>cubic-bezier(0.4, 0, 0.2, 1)</code> — the
+same easing Quasar uses on filled fields.</p>
+<p><strong>Rule:</strong> Do not add <code>outlined</code> or <code>filled</code> props to standard panel input
+fields — the unified focus style is applied to the default (<code>standard</code>) Quasar
+variant via shell CSS overrides. Using <code>outlined</code> or <code>filled</code> bypasses these
+rules.</p>
+<p><strong>Rule:</strong> Do not add custom <code>border</code> or <code>box-shadow</code> to NumberDrag to indicate
+focus. The <code>--editing</code> and <code>--dragging</code> CSS classes handle this consistently.</p>
+<hr />
+<h2 id="9-layout-anatomy">9. Layout Anatomy<a class="headerlink" href="#9-layout-anatomy" title="Permanent link">&para;</a></h2>
+<h3 id="91-shell-structure">9.1 Shell Structure<a class="headerlink" href="#91-shell-structure" title="Permanent link">&para;</a></h3>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-31-1"><a id="__codelineno-31-1" name="__codelineno-31-1" href="#__codelineno-31-1"></a>┌───────────────────────────────────────────────────────────────┐
+</span><span id="__span-31-2"><a id="__codelineno-31-2" name="__codelineno-31-2" href="#__codelineno-31-2"></a>│  TopBar  (48px)                 bg-surface, border-bottom     │
+</span><span id="__span-31-3"><a id="__codelineno-31-3" name="__codelineno-31-3" href="#__codelineno-31-3"></a>├──────┬──────┬─────────────────────────┬──────┬────────────────┤
+</span><span id="__span-31-4"><a id="__codelineno-31-4" name="__codelineno-31-4" href="#__codelineno-31-4"></a>│ Act. │ Left │      Main Slot          │Right │  Ctx.  │
+</span><span id="__span-31-5"><a id="__codelineno-31-5" name="__codelineno-31-5" href="#__codelineno-31-5"></a>│ Bar  │ Slot │  ┌───────────────────┐  │ Slot │  Bar   │
+</span><span id="__span-31-6"><a id="__codelineno-31-6" name="__codelineno-31-6" href="#__codelineno-31-6"></a>│      │ area │  │ MainTabBar (36px) │  │ area │        │
+</span><span id="__span-31-7"><a id="__codelineno-31-7" name="__codelineno-31-7" href="#__codelineno-31-7"></a>│ 48px │ 150+ │  ├───────────────────┤  │ 150+ │  48px  │
+</span><span id="__span-31-8"><a id="__codelineno-31-8" name="__codelineno-31-8" href="#__codelineno-31-8"></a>│      │  px  │  │                   │  │  px  │        │
+</span><span id="__span-31-9"><a id="__codelineno-31-9" name="__codelineno-31-9" href="#__codelineno-31-9"></a>│      │      │  │  Editor Content   │  │      │        │
+</span><span id="__span-31-10"><a id="__codelineno-31-10" name="__codelineno-31-10" href="#__codelineno-31-10"></a>│      │      │  │     (flex: 1)     │  │      │        │
+</span><span id="__span-31-11"><a id="__codelineno-31-11" name="__codelineno-31-11" href="#__codelineno-31-11"></a>│      │      │  │                   │  │      │        │
+</span><span id="__span-31-12"><a id="__codelineno-31-12" name="__codelineno-31-12" href="#__codelineno-31-12"></a>│      │      │  ├┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┤  │      │        │
+</span><span id="__span-31-13"><a id="__codelineno-31-13" name="__codelineno-31-13" href="#__codelineno-31-13"></a>│      │      │  │ BottomTabBar ▾    │  │      │        │ ← always-visible when bottom slot has tabs
+</span><span id="__span-31-14"><a id="__codelineno-31-14" name="__codelineno-31-14" href="#__codelineno-31-14"></a>│      │      │  ├───────────────────┤  │      │        │
+</span><span id="__span-31-15"><a id="__codelineno-31-15" name="__codelineno-31-15" href="#__codelineno-31-15"></a>│      │      │  │ Bottom Slot area  │  │      │        │ ← collapsible via chevron or drag
+</span><span id="__span-31-16"><a id="__codelineno-31-16" name="__codelineno-31-16" href="#__codelineno-31-16"></a>│      │      │  │   (optional)      │  │      │        │
+</span><span id="__span-31-17"><a id="__codelineno-31-17" name="__codelineno-31-17" href="#__codelineno-31-17"></a>│      │      │  └───────────────────┘  │      │        │
+</span><span id="__span-31-18"><a id="__codelineno-31-18" name="__codelineno-31-18" href="#__codelineno-31-18"></a>├──────┴──────┴─────────────────────────┴──────┴────────────────┤
+</span><span id="__span-31-19"><a id="__codelineno-31-19" name="__codelineno-31-19" href="#__codelineno-31-19"></a>│  StatusBar  (24px)             statusbar-bg, border-top       │
+</span><span id="__span-31-20"><a id="__codelineno-31-20" name="__codelineno-31-20" href="#__codelineno-31-20"></a>└───────────────────────────────────────────────────────────────┘
+</span></code></pre></div>
+<p>Every slot = a <strong>bar</strong> (control strip) + an <strong>area</strong> (content panel). Left and
+right slots have vertical icon bars (ActivityBar / ContextBar) classed with
+<code>hw-slot-bar hw-slot-bar-icons</code>; the main and bottom slots have horizontal tab
+bars (MainTabBar / BottomTabBar) classed with <code>hw-slot-bar hw-slot-bar-tabs</code>.
+See §9.7 for the bottom-slot retraction rules.</p>
+<h3 id="92-editor-container">9.2 Editor Container<a class="headerlink" href="#92-editor-container" title="Permanent link">&para;</a></h3>
+<p>Every editor is wrapped in a <code>.hw-panel</code> container by the shell. This container
+provides the global text colour cascade and icon dim rules. Editors do not need
+to set their own base text colour.</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-32-1"><a id="__codelineno-32-1" name="__codelineno-32-1" href="#__codelineno-32-1"></a><span class="c1"># This is done by AppShell — editors receive `container` with these already applied</span>
+</span><span id="__span-32-2"><a id="__codelineno-32-2" name="__codelineno-32-2" href="#__codelineno-32-2"></a><span class="n">container_div</span> <span class="o">=</span> <span class="p">(</span>
+</span><span id="__span-32-3"><a id="__codelineno-32-3" name="__codelineno-32-3" href="#__codelineno-32-3"></a>    <span class="n">ui</span><span class="o">.</span><span class="n">element</span><span class="p">(</span><span class="s2">&quot;div&quot;</span><span class="p">)</span>
+</span><span id="__span-32-4"><a id="__codelineno-32-4" name="__codelineno-32-4" href="#__codelineno-32-4"></a>    <span class="o">.</span><span class="n">classes</span><span class="p">(</span><span class="s2">&quot;hw-panel&quot;</span><span class="p">)</span>
+</span><span id="__span-32-5"><a id="__codelineno-32-5" name="__codelineno-32-5" href="#__codelineno-32-5"></a>    <span class="o">.</span><span class="n">style</span><span class="p">(</span><span class="s2">&quot;width: 100%; height: 100%; background: var(--hw-bg-page);&quot;</span><span class="p">)</span>
+</span><span id="__span-32-6"><a id="__codelineno-32-6" name="__codelineno-32-6" href="#__codelineno-32-6"></a><span class="p">)</span>
+</span></code></pre></div>
+<h3 id="93-standard-editor-template">9.3 Standard Editor Template<a class="headerlink" href="#93-standard-editor-template" title="Permanent link">&para;</a></h3>
+<p>Every editor should follow this vertical structure:</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-33-1"><a id="__codelineno-33-1" name="__codelineno-33-1" href="#__codelineno-33-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">render</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">container</span><span class="p">,</span> <span class="n">context</span><span class="p">):</span>
+</span><span id="__span-33-2"><a id="__codelineno-33-2" name="__codelineno-33-2" href="#__codelineno-33-2"></a>    <span class="k">with</span> <span class="n">container</span><span class="p">:</span>
+</span><span id="__span-33-3"><a id="__codelineno-33-3" name="__codelineno-33-3" href="#__codelineno-33-3"></a>        <span class="k">with</span> <span class="n">ui</span><span class="o">.</span><span class="n">column</span><span class="p">()</span><span class="o">.</span><span class="n">classes</span><span class="p">(</span><span class="s2">&quot;w-full h-full gap-0&quot;</span><span class="p">):</span>
+</span><span id="__span-33-4"><a id="__codelineno-33-4" name="__codelineno-33-4" href="#__codelineno-33-4"></a>            <span class="c1"># 1. Header (flex-shrink-0)</span>
+</span><span id="__span-33-5"><a id="__codelineno-33-5" name="__codelineno-33-5" href="#__codelineno-33-5"></a>            <span class="k">with</span> <span class="n">hui</span><span class="o">.</span><span class="n">panel_header</span><span class="p">(</span><span class="s2">&quot;My Editor&quot;</span><span class="p">,</span> <span class="n">icon</span><span class="o">=</span><span class="s2">&quot;tune&quot;</span><span class="p">):</span>
+</span><span id="__span-33-6"><a id="__codelineno-33-6" name="__codelineno-33-6" href="#__codelineno-33-6"></a>                <span class="n">hui</span><span class="o">.</span><span class="n">icon_action</span><span class="p">(</span><span class="s2">&quot;refresh&quot;</span><span class="p">,</span> <span class="n">on_click</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_refresh</span><span class="p">)</span>
+</span><span id="__span-33-7"><a id="__codelineno-33-7" name="__codelineno-33-7" href="#__codelineno-33-7"></a>
+</span><span id="__span-33-8"><a id="__codelineno-33-8" name="__codelineno-33-8" href="#__codelineno-33-8"></a>            <span class="c1"># 2. Scrollable content (flex-1)</span>
+</span><span id="__span-33-9"><a id="__codelineno-33-9" name="__codelineno-33-9" href="#__codelineno-33-9"></a>            <span class="k">with</span> <span class="n">ui</span><span class="o">.</span><span class="n">scroll_area</span><span class="p">()</span><span class="o">.</span><span class="n">classes</span><span class="p">(</span><span class="s2">&quot;flex-1 w-full&quot;</span><span class="p">):</span>
+</span><span id="__span-33-10"><a id="__codelineno-33-10" name="__codelineno-33-10" href="#__codelineno-33-10"></a>                <span class="bp">self</span><span class="o">.</span><span class="n">_content</span> <span class="o">=</span> <span class="n">ui</span><span class="o">.</span><span class="n">column</span><span class="p">()</span><span class="o">.</span><span class="n">classes</span><span class="p">(</span><span class="s2">&quot;w-full p-2 gap-1&quot;</span><span class="p">)</span>
+</span><span id="__span-33-11"><a id="__codelineno-33-11" name="__codelineno-33-11" href="#__codelineno-33-11"></a>                <span class="bp">self</span><span class="o">.</span><span class="n">_render_content</span><span class="p">(</span><span class="n">context</span><span class="p">)</span>
+</span></code></pre></div>
+<h3 id="94-scrollbar-style">9.4 Scrollbar Style<a class="headerlink" href="#94-scrollbar-style" title="Permanent link">&para;</a></h3>
+<p>Quasar's <code>QScrollArea</code> renders a custom scrollbar. Style it via the
+<code>thumb-style</code> and <code>bar-style</code> props — do not use <code>::-webkit-scrollbar</code> CSS.</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-34-1"><a id="__codelineno-34-1" name="__codelineno-34-1" href="#__codelineno-34-1"></a><span class="n">ui</span><span class="o">.</span><span class="n">scroll_area</span><span class="p">()</span><span class="o">.</span><span class="n">props</span><span class="p">(</span>
+</span><span id="__span-34-2"><a id="__codelineno-34-2" name="__codelineno-34-2" href="#__codelineno-34-2"></a>    <span class="s1">&#39;thumb-style=&quot;background: var(--hw-border-strong); border-radius: 4px; width: 4px;&quot;&#39;</span>
+</span><span id="__span-34-3"><a id="__codelineno-34-3" name="__codelineno-34-3" href="#__codelineno-34-3"></a>    <span class="s1">&#39; bar-style=&quot;background: transparent; width: 4px;&quot;&#39;</span>
+</span><span id="__span-34-4"><a id="__codelineno-34-4" name="__codelineno-34-4" href="#__codelineno-34-4"></a><span class="p">)</span>
+</span></code></pre></div>
+<p><strong>Rule:</strong> Scrollbars are 4px wide, use <code>--hw-border-strong</code> for the thumb, and
+transparent for the track. This applies to all <code>ui.scroll_area()</code> instances.</p>
+<h3 id="95-resizable-panel-handles">9.5 Resizable Panel Handles<a class="headerlink" href="#95-resizable-panel-handles" title="Permanent link">&para;</a></h3>
+<p>Left/right area panels are resizable. The drag handle is a thin strip between
+the panel and the adjacent column.</p>
+<p><strong>Visual rules:</strong></p>
+<ul>
+<li>Width: <code>4px</code></li>
+<li>Background at rest: transparent</li>
+<li>Background on hover/drag: <code>var(--hw-accent)</code> at 50% opacity</li>
+<li>Cursor: <code>col-resize</code></li>
+<li>Transition: <code>background 0.15s</code></li>
+</ul>
+<p><strong>Rule:</strong> The handle must not have a visible border or shadow at rest. It
+should only become visible when the user hovers over it.</p>
+<h3 id="96-node-skin-design-space">9.6 Node Skin Design Space<a class="headerlink" href="#96-node-skin-design-space" title="Permanent link">&para;</a></h3>
+<p>Node skins (<code>BaseSkin</code> subclasses) render inside the graph canvas and operate
+outside the <code>.hw-panel</code> cascade. They have a separate, more permissive set of
+design rules.</p>
+<p><strong>What skins may do:</strong></p>
+<ul>
+<li>Use any <code>--hw-node-*</code> and <code>--hw-canvas-*</code> token directly in inline styles</li>
+<li>Apply <code>--hw-danger-bg</code>, <code>--hw-ghost-pin</code>, and other canvas-specific tokens</li>
+<li>Use <code>box-shadow</code> via <code>var(--hw-node-shadow)</code> or an additional error-state
+  shadow — canvas objects are the only place where multiple shadows are allowed</li>
+<li>Use <code>backdrop-filter</code> for frosted-glass node effects (use sparingly)</li>
+<li>Apply canvas-tier transition durations (<code>0.2s</code>–<code>0.3s</code>)</li>
+</ul>
+<p><strong>Typography inside skins:</strong></p>
+<p>Canvas text is outside the <code>.hw-panel</code> cascade. Use these rules explicitly:</p>
+<table>
+<thead>
+<tr>
+<th>Purpose</th>
+<th>Classes / token</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Node title</td>
+<td><code>text-xs font-medium</code>, <code>--hw-node-header-text</code></td>
+</tr>
+<tr>
+<td>Port label</td>
+<td><code>text-xs</code>, <code>--hw-text-muted</code></td>
+</tr>
+<tr>
+<td>Error / warning</td>
+<td><code>text-xs</code>, <code>--hw-danger</code> / <code>--hw-warning</code></td>
+</tr>
+<tr>
+<td>Monospace value</td>
+<td><code>text-xs font-mono</code>, <code>--hw-text-body</code></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Rule:</strong> Do not use <code>text-sm</code> or larger inside node skins — canvas nodes
+are visually small and larger text breaks the density contract.</p>
+<p><strong>What skins must not do:</strong></p>
+<ul>
+<li>Hardcode <code>#hex</code> or <code>rgb()</code> values — all colours must be tokens</li>
+<li>Use <code>--hw-bg-*</code>, <code>--hw-text-*</code>, or <code>--hw-border</code> panel tokens directly
+  (they belong to the shell layer)</li>
+<li>Use <code>text-gray-*</code>, <code>text-red-*</code>, or any Tailwind colour class — use tokens
+  or Quasar <code>color=</code> props with <code>.hw-use-props-color</code></li>
+<li>Apply <code>hui.*</code> panel wrappers inside a skin — use raw <code>ui.*</code> elements</li>
+</ul>
+<p><strong>Error state skins</strong> (e.g. <code>ErrorSkin</code>) may introduce a second visual identity
+for the node (red gradient, danger border) provided all colour values reference
+tokens (<code>--hw-danger</code>, <code>--hw-danger-bg</code>). Hardcoded hex values like <code>#ef4444</code>
+or <code>#fef2f2</code> must be replaced.</p>
+<h3 id="97-bottom-area-retraction">9.7 Bottom Area Retraction<a class="headerlink" href="#97-bottom-area-retraction" title="Permanent link">&para;</a></h3>
+<p>The bottom area mirrors the middle-area tab structure: its own tab bar row plus
+a collapsible content panel. Retraction is governed by three rules so the
+region always presents one consistent entry point to the user.</p>
+<p><strong>Rule 1 — The tab bar is always visible when tabs exist.</strong> When the bottom
+registry contains at least one editor, the bottom tab bar row stays on screen
+in both expanded and retracted states. Users never lose sight of which bottom
+editors exist. If the registry has no bottom editors, the whole region (tab
+bar and content) is hidden.</p>
+<p><strong>Rule 2 — Retraction is chevron-only from a click path.</strong> The rightmost
+control in the bottom tab bar row is a single chevron button: <code>expand_less</code>
+when expanded, <code>expand_more</code> when retracted. Clicking it toggles only the
+content panel and the divider above it — not the tab bar row itself. There
+must be no secondary close buttons or tab-level close affordances.</p>
+<p><strong>Rule 3 — Drag auto-expands from retracted.</strong> The horizontal drag divider
+above the bottom tab bar is always hit-testable. Starting a drag while the
+panel is retracted auto-expands it; releasing a drag below a small snap
+threshold (~40px) retracts it again. Both paths flow through the same
+visibility-sync helper as the chevron click so Python state and DOM state
+never drift.</p>
+<p><strong>Visual rules:</strong></p>
+<ul>
+<li>The horizontal drag divider above the bottom tab bar uses the same visual
+  rules as §9.5 handles (<code>4px</code>, transparent at rest, <code>--hw-accent</code> 50% on
+  hover/drag, <code>row-resize</code> cursor).</li>
+<li>The BottomTabBar shares the <code>hw-slot-bar-tabs</code> styling with the MainTabBar
+  — same <code>36px</code> height, same active/hover behaviour, same label truncation
+  rules.</li>
+<li>The chevron uses standard <code>hui.icon_action</code> sizing (<code>xs</code>) and flips its
+  icon between <code>expand_less</code> and <code>expand_more</code>. It must not animate its
+  rotation; the icon swap is the state signal.</li>
+<li>When retracted, the content panel's <code>display: none</code> — it does not
+  contribute to flex layout — so the divider sits directly against the top
+  edge of the tab bar row.</li>
+</ul>
+<p><strong>Persistence:</strong> Only <code>bottom.visible</code>, <code>bottom.size</code>, and
+<code>bottom.active_tab_key</code> survive save/load cycles. The tab roster itself is
+re-derived from the editor registry on every load so newly-installed bottom
+editors appear automatically without requiring users to reset their
+workspace.</p>
+<hr />
+<h2 id="10-naming-conventions">10. Naming Conventions<a class="headerlink" href="#10-naming-conventions" title="Permanent link">&para;</a></h2>
+<h3 id="101-terminology">10.1 Terminology<a class="headerlink" href="#101-terminology" title="Permanent link">&para;</a></h3>
+<p>Every workspace slot (<strong>left</strong>, <strong>right</strong>, <strong>main</strong>, <strong>bottom</strong>) is composed of
+a <strong>bar</strong> (its control strip) and an <strong>area</strong> (its content panel). The shell
+also has two chrome bars (TopBar / StatusBar) and one editor-internal bar
+(ScopeToolbar). Use these names consistently in code and comments:</p>
+<table>
+<thead>
+<tr>
+<th>Name</th>
+<th>Slot</th>
+<th>Bar kind</th>
+<th>Content</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>TopBar</td>
+<td>—</td>
+<td>chrome</td>
+<td>App name, workspace switcher, global actions</td>
+</tr>
+<tr>
+<td>StatusBar</td>
+<td>—</td>
+<td>chrome</td>
+<td>Session info, status messages</td>
+</tr>
+<tr>
+<td>ActivityBar</td>
+<td>left slot</td>
+<td>icons</td>
+<td>Left slot editor switcher icons</td>
+</tr>
+<tr>
+<td>ContextBar</td>
+<td>right slot</td>
+<td>icons</td>
+<td>Right slot editor switcher icons</td>
+</tr>
+<tr>
+<td>MainTabBar</td>
+<td>main slot</td>
+<td>tabs</td>
+<td>Main slot tab switcher (horizontal tabs)</td>
+</tr>
+<tr>
+<td>BottomTabBar</td>
+<td>bottom slot</td>
+<td>tabs</td>
+<td>Bottom slot tab switcher + retract chevron</td>
+</tr>
+<tr>
+<td>ScopeToolbar</td>
+<td>(inside PropertiesEditor)</td>
+<td>icons</td>
+<td>Scope switcher icons (36px buttons)</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Rule:</strong> The left slot hosts activity-minded editors (library browser, file
+browser, graph manager); the right slot hosts context-minded editors that react
+to selection (properties, component detail). ActivityBar and ContextBar are
+synonyms for the left slot's bar and the right slot's bar respectively.</p>
+<p><strong>Rule:</strong> "Sidebar" in CSS tokens (<code>--hw-bg-sidebar</code>) refers to the narrow icon
+bars (ActivityBar / ContextBar), not the left/right slot content areas.</p>
+<h3 id="102-css-class-naming">10.2 CSS Class Naming<a class="headerlink" href="#102-css-class-naming" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Prefix</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>hw-</code></td>
+<td>Haywire design system (tokens, global utilities)</td>
+</tr>
+<tr>
+<td><code>hw-shell-</code></td>
+<td>Shell-specific structural classes</td>
+</tr>
+<tr>
+<td><code>hw-text-</code></td>
+<td>Semantic text colour utilities</td>
+</tr>
+<tr>
+<td><code>hw-panel</code></td>
+<td>Editor container marker (enables text cascade)</td>
+</tr>
+<tr>
+<td><code>hw-slot-bar</code></td>
+<td>Base class applied to every slot bar (icons or tabs)</td>
+</tr>
+<tr>
+<td><code>hw-slot-bar-tabs</code></td>
+<td>Tabbed slot bar modifier (MainTabBar, BottomTabBar)</td>
+</tr>
+<tr>
+<td><code>hw-slot-bar-icons</code></td>
+<td>Icon slot bar modifier (ActivityBar, ContextBar)</td>
+</tr>
+<tr>
+<td><code>hw-cm-isolate</code></td>
+<td>CodeMirror isolation wrapper (see rule below)</td>
+</tr>
+<tr>
+<td><code>compact-fields</code></td>
+<td>Dense field rendering mode</td>
+</tr>
+<tr>
+<td><code>sf-label</code></td>
+<td>Settings field label (responsive layout)</td>
+</tr>
+<tr>
+<td><code>sf-widget</code></td>
+<td>Settings field widget (responsive layout)</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Rule: <code>hw-cm-isolate</code></strong> must be applied to the direct wrapper <code>div</code> around
+any CodeMirror editor instance. Without it, Quasar and Haywire global CSS rules
+(particularly <code>--hw-text-body</code> colour cascade and <code>.hw-panel</code> font overrides)
+bleed into CodeMirror's internal DOM and corrupt its syntax highlighting. The
+class creates a CSS isolation boundary. Do not apply it to any element that is
+not a CodeMirror host.</p>
+<hr />
+<h2 id="11-accessibility-minimum-requirements">11. Accessibility (Minimum Requirements)<a class="headerlink" href="#11-accessibility-minimum-requirements" title="Permanent link">&para;</a></h2>
+<h3 id="111-keyboard-navigation">11.1 Keyboard Navigation<a class="headerlink" href="#111-keyboard-navigation" title="Permanent link">&para;</a></h3>
+<ul>
+<li>All interactive elements must be focusable via Tab</li>
+<li>Focus rings: <code>outline: 2px solid var(--hw-accent); outline-offset: 2px</code></li>
+<li>Use <code>:focus-visible</code>, not <code>:focus</code> — focus rings must not appear on mouse click</li>
+<li>Expansion panels are togglable via Enter/Space</li>
+<li><code>hui.input_field</code> and Quasar form components handle focus rings automatically
+  via global CSS; do not override them per-component</li>
+</ul>
+<h3 id="112-contrast">11.2 Contrast<a class="headerlink" href="#112-contrast" title="Permanent link">&para;</a></h3>
+<ul>
+<li><code>--hw-text-body</code> on <code>--hw-bg-page</code> must meet WCAG AA (4.5:1 minimum)</li>
+<li><code>--hw-text-muted</code> on <code>--hw-bg-page</code> must meet 3:1 minimum</li>
+<li><code>--hw-text-dim</code> is decorative and exempt, but should aim for 2:1</li>
+</ul>
+<h3 id="113-interactive-targets">11.3 Interactive Targets<a class="headerlink" href="#113-interactive-targets" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Minimum touch/click target: 36×36px (scope buttons are at this minimum)</li>
+<li>Toolbar buttons are 40×40px</li>
+</ul>
+<hr />
+<h2 id="12-anti-patterns-do-not-do">12. Anti-Patterns (Do Not Do)<a class="headerlink" href="#12-anti-patterns-do-not-do" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Anti-pattern</th>
+<th>Why it's wrong</th>
+<th>Correct approach</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>text-gray-400</code>, <code>text-gray-500</code>, <code>text-gray-600</code></td>
+<td>Not theme-aware</td>
+<td><code>.hw-text-muted</code> or <code>.hw-text-dim</code></td>
+</tr>
+<tr>
+<td><code>text-red-400</code> for errors</td>
+<td>Not theme-aware</td>
+<td><code>hui.error_label()</code> or <code>color: var(--hw-danger)</code></td>
+</tr>
+<tr>
+<td><code>text-yellow-400</code> for warnings</td>
+<td>Not theme-aware</td>
+<td><code>hui.warning_label()</code> or <code>color: var(--hw-warning)</code></td>
+</tr>
+<tr>
+<td><code>text-blue-400</code> on links/icons</td>
+<td>Not theme-aware</td>
+<td><code>color: var(--hw-accent)</code> or <code>var(--hw-info)</code></td>
+</tr>
+<tr>
+<td><code>text-purple-500</code> on icons</td>
+<td>Not theme-aware</td>
+<td>Quasar <code>color=</code> prop with <code>.hw-use-props-color</code></td>
+</tr>
+<tr>
+<td><code>text-amber-400</code> for unsaved/warning state</td>
+<td>Not theme-aware</td>
+<td><code>color: var(--hw-warning)</code></td>
+</tr>
+<tr>
+<td><code>hover:bg-white/10</code></td>
+<td>Breaks on light themes</td>
+<td><code>hui.list_item()</code> or class <code>hw-list-item-hover</code></td>
+</tr>
+<tr>
+<td><code>bg-blue-900/40</code> for active rows</td>
+<td>Hardcoded, dark-only</td>
+<td><code>hui.list_item(is_active=True)</code> → <code>var(--hw-bg-active)</code></td>
+</tr>
+<tr>
+<td><code>bg-green-500</code>, <code>bg-purple-500</code> as dots</td>
+<td>Acceptable only via Quasar <code>bg-{color}-500</code> for status dots</td>
+<td>Use Quasar named colours; document in <code>hui.list_item(dot_color=)</code></td>
+</tr>
+<tr>
+<td>Hardcoded <code>#hex</code> in <code>.style()</code></td>
+<td>Not theme-aware</td>
+<td>Use <code>var(--hw-*)</code> token</td>
+</tr>
+<tr>
+<td><code>rgba(0,0,0,0.5)</code> as modal backdrop</td>
+<td>Dark-only</td>
+<td><code>var(--hw-bg-overlay)</code></td>
+</tr>
+<tr>
+<td><code>rgba(128,128,128,…)</code> for ghost pins</td>
+<td>Not theme-aware</td>
+<td><code>var(--hw-ghost-pin)</code></td>
+</tr>
+<tr>
+<td><code>#ef4444</code>, <code>#fef2f2</code> in error skins</td>
+<td>Not theme-aware</td>
+<td><code>var(--hw-danger)</code>, <code>var(--hw-danger-bg)</code></td>
+</tr>
+<tr>
+<td><code>box-shadow</code> on panels</td>
+<td>Reserved for canvas nodes</td>
+<td>Use elevation colours</td>
+</tr>
+<tr>
+<td><code>box-shadow</code> hardcoded on popups</td>
+<td>Not theme-aware</td>
+<td>Use <code>var(--hw-node-shadow)</code> or add <code>--hw-popup-shadow</code></td>
+</tr>
+<tr>
+<td><code>transition: all</code></td>
+<td>Transitions unspecified properties</td>
+<td>Name the specific property</td>
+</tr>
+<tr>
+<td><code>0.2s</code>/<code>0.3s</code> transitions in shell/panel code</td>
+<td>Inconsistent with shell tier</td>
+<td><code>0.15s</code> for shell; <code>0.2–0.3s</code> only in canvas/skin code</td>
+</tr>
+<tr>
+<td><code>color=grey</code> on icon buttons</td>
+<td>Overrides theme cascade</td>
+<td>Remove; buttons inherit colour from <code>.hw-panel</code></td>
+</tr>
+<tr>
+<td><code>color=positive</code> on buttons</td>
+<td>Not theme-mapped — uses Quasar hardcoded green</td>
+<td>Use <code>.style("color: var(--hw-positive)")</code></td>
+</tr>
+<tr>
+<td><code>color=primary</code> on buttons</td>
+<td>Not mapped to Haywire theme</td>
+<td>Style via <code>--hw-accent</code></td>
+</tr>
+<tr>
+<td><code>ui.card()</code> inside <code>ui.dialog()</code></td>
+<td>Missing themed chrome (bg, border, shadow)</td>
+<td>Use <code>hui.dialog_card()</code></td>
+</tr>
+<tr>
+<td><code>ui.expansion()</code> directly in settings panels</td>
+<td>Inconsistent header styling</td>
+<td>Use <code>hui.category_group()</code></td>
+</tr>
+<tr>
+<td><code>ui.input()</code> / <code>ui.number()</code> with <code>dense outlined</code></td>
+<td>Duplicates hui config</td>
+<td>Use <code>hui.input_field()</code> / <code>hui.number_field()</code></td>
+</tr>
+<tr>
+<td>Re-implementing panel_header from scratch</td>
+<td>Drift and inconsistency</td>
+<td>Use <code>hui.panel_header()</code></td>
+</tr>
+<tr>
+<td><code>min-height: 28px</code> vs <code>min-height: 32px</code> for similar bars</td>
+<td>Inconsistent</td>
+<td>Use <code>hui.info_bar()</code> (standardizes to 28px)</td>
+</tr>
+<tr>
+<td>Inline <code>padding: 80px 0</code> vs <code>padding: 60px 0</code> for empty states</td>
+<td>Inconsistent</td>
+<td>Use <code>hui.empty_state()</code> (standardizes to 72px)</td>
+</tr>
+<tr>
+<td><code>--hw-node-*</code> tokens used in panel/shell code</td>
+<td>Wrong layer</td>
+<td>Canvas tokens are for skins only; use <code>--hw-bg-*</code> in panels</td>
+</tr>
+</tbody>
+</table>
+
+
+
+
+
+
+
+  
+  
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+  <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var labels=set.querySelector(".tabbed-labels");for(var tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.instant", "navigation.tracking", "navigation.tabs", "navigation.tabs.sticky", "navigation.sections", "navigation.expand", "navigation.indexes", "navigation.top", "search.highlight", "search.suggest", "content.code.copy", "content.code.annotate", "content.tabs.link", "toc.follow"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>

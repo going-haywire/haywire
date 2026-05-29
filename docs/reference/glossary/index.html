@@ -1,0 +1,4551 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="A Blueprint-inspired visual programming system — dual-flow control + data, library plugin model, hot-reload-first development.">
+      
+      
+      
+        <link rel="canonical" href="https://going-haywire.github.io/haywire/docs/reference/glossary/">
+      
+      
+        <link rel="prev" href="../">
+      
+      
+        <link rel="next" href="../design-guide/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>Glossary - Haywire Documentation</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Inter:300,300i,400,400i,700,700i%7CJetBrains+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Inter";--md-code-font:"JetBrains Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#ubiquitous-language" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow md-header--lifted" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="Haywire Documentation" class="md-header__button md-logo" aria-label="Haywire Documentation" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Haywire Documentation
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Glossary
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+  </nav>
+  
+    
+      
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../.." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../welcome/user/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Perspectives
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../components/nodes/node-canon/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Components
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../guides/node-roles/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Guides
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../architecture/overview/overview-arch/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Architecture
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Reference
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../archive/whitepaper/Haywire_design/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Archive
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+    
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="Haywire Documentation" class="md-nav__button md-logo" aria-label="Haywire Documentation" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    Haywire Documentation
+  </label>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../welcome/user/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Perspectives
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_2" id="__nav_2_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Perspectives
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../welcome/advanced/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Advanced (workbench extender)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../welcome/core/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Core (system architect)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Components
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Components
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../components/nodes/node-canon/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Nodes
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../components/datatypes/datatype-canon/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Datatypes
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../components/adapters/adapter-canon/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Adapters
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../components/settings/setting-canon/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Settings
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../components/widgets/widget-canon/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Widgets
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../components/skins/skin-canon/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Skins
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--placeholder"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../components/themes/theme-canon/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Themes
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../components/editors/editor-canon/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Editors
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../components/panels/panel-canon/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Panels
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../components/states/state-canon/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    States
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../components/libraries/library-canon/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Libraries
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../components/haybale-package/haybale-package-canon/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Haybale package
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Guides
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Guides
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/node-roles/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Node roles
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/ports/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Ports
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/signals/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Signals
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/sharing-libraries/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Sharing libraries
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/subscribing-to-marketplaces/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Subscribing to marketplaces
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Architecture
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/overview/overview-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--placeholder"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/design/design-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Design
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--placeholder"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/graph/graph-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Graph
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_5_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_5_4" id="__nav_5_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Execution
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_5_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Execution
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/execution/execution-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/execution/assembly/assembly-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Assembly
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/execution/edges/edges-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Edges
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/execution/flow/flow-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Flow
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--placeholder"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/execution/virtual-machine/virtual-machine-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Virtual machine
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--placeholder"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/execution/lazy-evaluation/lazy-evaluation-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Lazy evaluation
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--placeholder"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/execution/callbacks/callbacks-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Callbacks
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/library-system/library-system-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Library system
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/library-manager/library-manager-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Library manager
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/sharing/sharing-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Sharing — philosophy
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/hot-reload/hot-reload-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Hot-reload
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/settings/settings-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Settings
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/session-and-state/session-and-state-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Session and state
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_5_11" >
+        
+          
+          <label class="md-nav__link" for="__nav_5_11" id="__nav_5_11_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Studio
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_5_11_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5_11">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Studio
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/studio/studio-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/studio/app-shell/app-shell-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    App shell
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--placeholder"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/studio/workspace/workspace-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Workspace
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--placeholder"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/studio/canvas/canvas-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Canvas
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--placeholder"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/studio/rendering/rendering-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Rendering
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--placeholder"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" checked>
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reference
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_6" id="__nav_6_label" tabindex="">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Glossary
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Glossary
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#library-five-distinct-meanings" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        "Library" — five distinct meanings
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#haybale-three-distinct-meanings-new-marketstall-distribution" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        "Haybale" — three distinct meanings (new — marketstall distribution)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#graph-structure" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Graph &amp; Structure
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#flow-types-port-kinds" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Flow Types &amp; Port Kinds
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#node-behaviors" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Node Behaviors
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#execution-pipeline" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Execution Pipeline
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#edge-lifecycle" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Edge Lifecycle
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#library-plugin-system" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Library &amp; Plugin System
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#marketstall-distribution-runtime" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Marketstall distribution runtime
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#dependency-manifests-drift-new" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Dependency manifests &amp; drift (new)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#settings-system" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Settings System
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#graph-management" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Graph Management
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#ui-workspace-system" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        UI / Workspace System
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="UI / Workspace System">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#modals-new" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Modals (new)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#editor-instance-mode-terms" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Editor instance-mode terms
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#signals" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Signals
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#relationships" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Relationships
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#example-dialogues" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Example dialogues
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Example dialogues">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#adding-a-node" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Adding a node
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#haystack" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Haystack
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#signals-subscribing-and-emitting" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Signals — subscribing and emitting
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#settings" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Settings
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#subscribing-to-a-marketplace-new" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Subscribing to a marketplace (new)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#publishing-a-library-cleanly-new" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Publishing a library cleanly (new)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#flagged-ambiguities" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Flagged ambiguities
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../design-guide/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Design guide
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_7" >
+        
+          
+          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Archive
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Archive
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../archive/whitepaper/Haywire_design/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Whitepaper
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#library-five-distinct-meanings" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        "Library" — five distinct meanings
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#haybale-three-distinct-meanings-new-marketstall-distribution" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        "Haybale" — three distinct meanings (new — marketstall distribution)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#graph-structure" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Graph &amp; Structure
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#flow-types-port-kinds" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Flow Types &amp; Port Kinds
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#node-behaviors" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Node Behaviors
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#execution-pipeline" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Execution Pipeline
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#edge-lifecycle" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Edge Lifecycle
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#library-plugin-system" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Library &amp; Plugin System
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#marketstall-distribution-runtime" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Marketstall distribution runtime
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#dependency-manifests-drift-new" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Dependency manifests &amp; drift (new)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#settings-system" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Settings System
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#graph-management" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Graph Management
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#ui-workspace-system" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        UI / Workspace System
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="UI / Workspace System">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#modals-new" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Modals (new)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#editor-instance-mode-terms" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Editor instance-mode terms
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#signals" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Signals
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#relationships" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Relationships
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#example-dialogues" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Example dialogues
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Example dialogues">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#adding-a-node" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Adding a node
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#haystack" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Haystack
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#signals-subscribing-and-emitting" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Signals — subscribing and emitting
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#settings" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Settings
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#subscribing-to-a-marketplace-new" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Subscribing to a marketplace (new)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#publishing-a-library-cleanly-new" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Publishing a library cleanly (new)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#flagged-ambiguities" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Flagged ambiguities
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+
+<h1 id="ubiquitous-language">Ubiquitous Language<a class="headerlink" href="#ubiquitous-language" title="Permanent link">&para;</a></h1>
+<p><em>Domain glossary for the Haywire visual programming system. Use these terms precisely and consistently across all code, docs, and discussions.</em></p>
+<p>Where a term has a canonical home in this documentation, the <strong>Definition</strong> column links to it. The <strong>Aliases to avoid</strong> column lists synonyms that mean the same thing but blur the vocabulary — prefer the canonical term.</p>
+<hr />
+<h2 id="library-five-distinct-meanings">"Library" — five distinct meanings<a class="headerlink" href="#library-five-distinct-meanings" title="Permanent link">&para;</a></h2>
+<p>The word <strong>library</strong> appears five times in haywire with five different meanings. Always use the disambiguated term.</p>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Term</th>
+<th>What it is</th>
+<th>Canonical home</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td><strong>Library</strong> (<code>BaseLibrary</code>, <code>@library</code>)</td>
+<td>The plugin protocol class authored by a developer</td>
+<td><a href="../../components/libraries/library-canon/">components/libraries</a></td>
+</tr>
+<tr>
+<td>2</td>
+<td><strong>Library System</strong></td>
+<td>Framework infrastructure: <code>LibraryRegistry</code>, <code>LibraryDiscovery</code>, <code>LibraryIdentity</code>, <code>FileWatcher</code></td>
+<td><a href="../../architecture/library-system/library-system-arch/">architecture/library-system</a></td>
+</tr>
+<tr>
+<td>3</td>
+<td><strong>Haybale package</strong></td>
+<td>Distribution unit: a Python package containing a <code>BaseLibrary</code> subclass</td>
+<td><a href="../../components/haybale-package/haybale-package-canon/">components/haybale-package</a></td>
+</tr>
+<tr>
+<td>4</td>
+<td><strong>Library Manager</strong></td>
+<td>Studio's in-app package-manager UI</td>
+<td><a href="../../architecture/library-manager/library-manager-arch/">architecture/library-manager</a></td>
+</tr>
+<tr>
+<td>5</td>
+<td><strong>LibrarySettings / LibraryState</strong></td>
+<td>Per-library scope for cross-cutting subsystems</td>
+<td>Chapters inside <a href="../../components/settings/setting-canon/">components/settings</a> and <a href="../../components/states/state-canon/">components/states</a></td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="haybale-three-distinct-meanings-new-marketstall-distribution">"Haybale" — three distinct meanings <em>(new — marketstall distribution)</em><a class="headerlink" href="#haybale-three-distinct-meanings-new-marketstall-distribution" title="Permanent link">&para;</a></h2>
+<p>Once the marketstall-distribution spec lands (<a href="../../internals/speculatives/archive/marketstall-distribution.md"><code>internals/specs/marketstall-distribution.md</code></a>), the word <strong>haybale</strong> carries three closely-related but distinct meanings. They cluster around the same concept (a haywire library and its distribution metadata) but project it onto different surfaces.</p>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Term</th>
+<th>What it is</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td><strong>Haybale</strong> (naming convention)</td>
+<td>The pip-distribution naming convention for a haywire library package (<code>haybale-core</code>, <code>haybale-visiongraph</code>). Also used loosely as a synonym for the package itself.</td>
+</tr>
+<tr>
+<td>2</td>
+<td><strong><code>[[haybales]]</code></strong> (TOML section)</td>
+<td>The TOML section name in <code>marketstall.toml</code> (and optionally inside <code>marketplace.toml</code>) that lists one or more published library entries. Replaces the older <code>[[packages]]</code> section name.</td>
+</tr>
+<tr>
+<td>3</td>
+<td><strong><code>Haybale</code></strong> (dataclass)</td>
+<td>The runtime dataclass representing one entry from a <code>[[haybales]]</code> section. Renamed from <code>MarketplaceEntry</code>. Fields: <code>name</code>, <code>min_version</code>, <code>label</code>, <code>description</code>, <code>author</code>, <code>source</code>, <code>install_spec</code>, <code>tags</code>, <code>os</code>, <code>dependencies</code>, <code>source_url</code>, <code>docs_url</code>, plus cache-only fields (<code>via</code>, <code>last_seen</code>, <code>stale</code>).</td>
+</tr>
+</tbody>
+</table>
+<p>The three projections relate as: the <strong>dataclass</strong> (3) represents one entry in the <strong>TOML section</strong> (2), which catalogs the <strong>convention</strong> (1). Disambiguate when discussing schema vs. code vs. package names.</p>
+<hr />
+<h2 id="graph-structure">Graph &amp; Structure<a class="headerlink" href="#graph-structure" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Term</th>
+<th>Definition</th>
+<th>Aliases to avoid</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Graph</strong></td>
+<td>A container of nodes and edges that describes a visual program; saved as a <code>.haywire</code> JSON file. See <a href="../../architecture/graph/graph-arch/">architecture/graph</a></td>
+<td>Program, blueprint, scene, diagram</td>
+</tr>
+<tr>
+<td><strong>Node</strong></td>
+<td>A discrete processing unit in a graph with declared inlets, outlets, and a worker function. See <a href="../../components/nodes/node-canon/">components/nodes</a></td>
+<td>Block, component, element</td>
+</tr>
+<tr>
+<td><strong>NodeWrapper</strong></td>
+<td>The live runtime instance of a node inside a running graph; wraps the user-defined node class</td>
+<td>Node instance (ambiguous — use NodeWrapper for the runtime object, Node for the class)</td>
+</tr>
+<tr>
+<td><strong>Edge</strong></td>
+<td>A directed connection between an outlet on one node and an inlet on another. See <a href="../../architecture/execution/edges/edges-arch/">architecture/execution/edges</a></td>
+<td>Connection, wire, link (use only as a verb: "to link an edge")</td>
+</tr>
+<tr>
+<td><strong>EdgeWrapper</strong></td>
+<td>The runtime edge object that owns the <code>link/unlink/detach</code> lifecycle and the <code>is_lazy</code> flag</td>
+<td>—</td>
+</tr>
+<tr>
+<td><strong>Port</strong></td>
+<td>A typed, directional connection point on a node — either an inlet or an outlet. See <a href="../../guides/ports/">guides/ports</a></td>
+<td>Pin (avoid for data ports), socket</td>
+</tr>
+<tr>
+<td><strong>Inlet</strong></td>
+<td>A port that receives data or control into a node</td>
+<td>Input, sink port</td>
+</tr>
+<tr>
+<td><strong>Outlet</strong></td>
+<td>A port that emits data or control from a node</td>
+<td>Output, source port</td>
+</tr>
+<tr>
+<td><strong>Pin</strong></td>
+<td>Acceptable synonym for an EXEC (control) port specifically</td>
+<td>—</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="flow-types-port-kinds">Flow Types &amp; Port Kinds<a class="headerlink" href="#flow-types-port-kinds" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Term</th>
+<th>Definition</th>
+<th>Aliases to avoid</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>FlowType</strong></td>
+<td>The transport category of a port/edge: <code>DATA</code>, <code>CONTROL</code> (EXEC), <code>CALLBACK</code>, or <code>NONE</code></td>
+<td>Port type (ambiguous with data type)</td>
+</tr>
+<tr>
+<td><strong>DATA port</strong></td>
+<td>A port that carries typed values; outlets fan-out, inlets accept a single source</td>
+<td>Value port</td>
+</tr>
+<tr>
+<td><strong>EXEC port</strong></td>
+<td>A control port that carries execution order; outlets single-target, inlets multi-source</td>
+<td>Control pin (Pin is acceptable colloquially)</td>
+</tr>
+<tr>
+<td><strong>CALLBACK port</strong></td>
+<td>A port used for event-style signalling; no hardcoded multiplicity rules. See <a href="../../architecture/execution/callbacks/callbacks-arch/">architecture/execution/callbacks</a></td>
+<td>Event port (overloaded)</td>
+</tr>
+<tr>
+<td><strong>Pooled inlet</strong></td>
+<td>An inlet that accepts multiple sources and delivers them as a <code>dict[node_id, value]</code> to the worker</td>
+<td>Multi-inlet</td>
+</tr>
+<tr>
+<td><strong>Pipe</strong></td>
+<td>The internal transport object for a connected DATA port pair; handles eager push or lazy pull</td>
+<td>Channel, stream</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="node-behaviors">Node Behaviors<a class="headerlink" href="#node-behaviors" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Term</th>
+<th>Definition</th>
+<th>Aliases to avoid</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>NodeType</strong></td>
+<td>The execution role of a node (the <code>NodeType</code> enum: DATA, CONTROL, EVENT, OUTPUT, LOOPBACK), determined by its EXEC port configuration. <code>NodeBehavior</code> is the dataclass that holds this field — prefer <strong>NodeType</strong> in conversation</td>
+<td>Node category</td>
+</tr>
+<tr>
+<td><strong>DATA node</strong></td>
+<td>A pure value transformer; has no EXEC ports; runs only when its outputs are demanded</td>
+<td>Passive node</td>
+</tr>
+<tr>
+<td><strong>CONTROL node</strong></td>
+<td>A sequenced node with both EXEC inlet and EXEC outlet; runs in explicit execution order</td>
+<td>Active node</td>
+</tr>
+<tr>
+<td><strong>EVENT node</strong></td>
+<td>A node with an EXEC outlet but no EXEC inlet; originates an execution chain (timer, callback source)</td>
+<td>Source node (ambiguous with data source)</td>
+</tr>
+<tr>
+<td><strong>OUTPUT node</strong></td>
+<td>A terminal node with an EXEC inlet but no EXEC outlet; receives execution, produces no further control</td>
+<td>Sink node (ambiguous with data sink)</td>
+</tr>
+<tr>
+<td><strong>LOOPBACK node</strong></td>
+<td>A CONTROL node that uses the loopback-stack in the VM to implement loops or sequences</td>
+<td>Loop node</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="execution-pipeline">Execution Pipeline<a class="headerlink" href="#execution-pipeline" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Term</th>
+<th>Definition</th>
+<th>Aliases to avoid</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Assembly</strong></td>
+<td>The process of compiling a Graph into executable Flows; performed by <code>FlowAssemblyManager</code>. See <a href="../../architecture/execution/assembly/assembly-arch/">architecture/execution/assembly</a></td>
+<td>Compilation, build</td>
+</tr>
+<tr>
+<td><strong>Flow</strong></td>
+<td>An executable unit produced by assembly, rooted at an EVENT node; contains a control flow DAG + per-node data flows. See <a href="../../architecture/execution/flow/flow-arch/">architecture/execution/flow</a></td>
+<td>Execution graph, pipeline</td>
+</tr>
+<tr>
+<td><strong>Control Flow</strong></td>
+<td>The ordered sequence of CONTROL/EVENT/OUTPUT nodes visited during execution; follows EXEC edges</td>
+<td>Execution order</td>
+</tr>
+<tr>
+<td><strong>LocalizedDataFlow</strong></td>
+<td>The per-control-node data dependency DAG, backpropagated from that node's inlets; only the nodes needed for that step</td>
+<td>Global data flow (does not exist)</td>
+</tr>
+<tr>
+<td><strong>VM</strong></td>
+<td>The two-stack virtual machine that interprets a Flow: a done-stack (prevents re-execution) + loopback-stack (loops). See <a href="../../architecture/execution/virtual-machine/virtual-machine-arch/">architecture/execution/virtual-machine</a></td>
+<td>Runtime (too generic), executor</td>
+</tr>
+<tr>
+<td><strong>Interpreter</strong></td>
+<td>A per-graph component that drives the VM; owns scheduling, event dispatch, and graph load/unload; each executing <strong>GraphEntry</strong> creates its own instance</td>
+<td>Runner, shared interpreter (deprecated — no longer a singleton)</td>
+</tr>
+<tr>
+<td><strong>Worker</strong></td>
+<td>The <code>worker()</code> method on a node class; the main execution logic called by the VM per node evaluation</td>
+<td>Execute, run, process</td>
+</tr>
+<tr>
+<td><strong>Frame</strong></td>
+<td>One full execution pass through a Flow from its entry EVENT node to completion</td>
+<td>Tick (reserved for the Tick node event), cycle</td>
+</tr>
+<tr>
+<td><strong>Eager push</strong></td>
+<td>Data transport mode where a Pipe immediately propagates a new value downstream on write</td>
+<td>Synchronous push</td>
+</tr>
+<tr>
+<td><strong>Lazy pull</strong></td>
+<td>Data transport mode where a Pipe defers propagation; downstream calls <code>pull_lazy()</code> at execution time to get the latest value</td>
+<td>Deferred, on-demand (imprecise)</td>
+</tr>
+<tr>
+<td><strong>EVAL_MASK / LAZY_MASK</strong></td>
+<td>Per-inlet / per-control-node bitmasks computed during assembly to determine which DATA nodes actually run each step. See <a href="../../architecture/execution/lazy-evaluation/lazy-evaluation-arch/">architecture/execution/lazy-evaluation</a></td>
+<td>—</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="edge-lifecycle">Edge Lifecycle<a class="headerlink" href="#edge-lifecycle" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Term</th>
+<th>Definition</th>
+<th>Aliases to avoid</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>link</strong></td>
+<td>EdgeWrapper operation: functional edge registers at both ports; may displace an existing edge</td>
+<td>connect, attach</td>
+</tr>
+<tr>
+<td><strong>unlink</strong></td>
+<td>EdgeWrapper operation: edge loses functionality (e.g. adapter broke); removed from active pipes but stays registered</td>
+<td>disconnect</td>
+</tr>
+<tr>
+<td><strong>detach</strong></td>
+<td>EdgeWrapper operation: edge is explicitly deleted and fully removed from both port dictionaries</td>
+<td>destroy, remove</td>
+</tr>
+<tr>
+<td><strong>displacement</strong></td>
+<td>When a newly linked edge takes the slot of an existing edge on a single-connection port; the displaced edge stays in <code>_all_edges</code></td>
+<td>override, eviction</td>
+</tr>
+<tr>
+<td><strong>re-enablement</strong></td>
+<td>When an active edge is removed and the port scans <code>_all_edges</code> FIFO for a functional candidate to restore</td>
+<td>fallback restoration</td>
+</tr>
+<tr>
+<td><strong>Adapter</strong></td>
+<td>A converter object that transforms values between incompatible DATA port types during transport. See <a href="../../components/adapters/adapter-canon/">components/adapters</a></td>
+<td>Converter (prefer Adapter), transformer</td>
+</tr>
+<tr>
+<td><strong>Adapter chain</strong></td>
+<td>An ordered pipeline of one or more Adapters that converts a source type to a compatible sink type</td>
+<td>—</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="library-plugin-system">Library &amp; Plugin System<a class="headerlink" href="#library-plugin-system" title="Permanent link">&para;</a></h2>
+<p>See also the <strong>"Library" — five distinct meanings</strong> table at the top of this glossary.</p>
+<table>
+<thead>
+<tr>
+<th>Term</th>
+<th>Definition</th>
+<th>Aliases to avoid</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Library</strong></td>
+<td>A Python package that contributes nodes, types, adapters, widgets, skins, and/or themes to Haywire; declared with <code>@library</code>. See <a href="../../components/libraries/library-canon/">components/libraries</a></td>
+<td>Plugin (Library is the canonical term), extension</td>
+</tr>
+<tr>
+<td><strong>Library System</strong></td>
+<td>Framework infrastructure that discovers, loads, and tracks libraries: <code>LibraryRegistry</code>, <code>LibraryDiscovery</code>, <code>LibraryIdentity</code>, <code>FileWatcher</code>. See <a href="../../architecture/library-system/library-system-arch/">architecture/library-system</a></td>
+<td>"Library" alone (ambiguous)</td>
+</tr>
+<tr>
+<td><strong>Library Manager</strong></td>
+<td>Studio's in-app UI for installing, inspecting, and uninstalling Haybale packages. See <a href="../../architecture/library-manager/library-manager-arch/">architecture/library-manager</a></td>
+<td>"Library" alone (ambiguous), package manager</td>
+</tr>
+<tr>
+<td><strong>Library Browser</strong></td>
+<td>The left-slot editor that lists installed and marketplace-available libraries with filter toggles (REQUIRED, ENABLED, DISABLED, AVAILABLE). Distinct from the Library Manager, which is the broader subsystem. <em>(new)</em></td>
+<td>—</td>
+</tr>
+<tr>
+<td><strong>Library Overview Editor</strong></td>
+<td>The main-slot editor that shows one library's identity, components, and Edit / Enable / Disable / Uninstall actions; reached by selecting a library in the Library Browser. <em>(new)</em></td>
+<td>Library detail editor</td>
+</tr>
+<tr>
+<td><strong>Haybale</strong></td>
+<td>The naming convention for a Haywire library package (e.g. <code>haybale-core</code>, <code>haybale-visiongraph</code>). See <a href="../../components/haybale-package/haybale-package-canon/">components/haybale-package</a></td>
+<td>—</td>
+</tr>
+<tr>
+<td><strong>Barn</strong></td>
+<td>The monorepo folder containing all local haybale plugin libraries (<code>barn/</code>)</td>
+<td>Library folder</td>
+</tr>
+<tr>
+<td><strong>register_components()</strong></td>
+<td>The required method on <code>BaseLibrary</code> that scans subfolders and registers all library contributions</td>
+<td>setup, initialize</td>
+</tr>
+<tr>
+<td><strong>Hot-reload</strong></td>
+<td>The live reload of a library's components on file change without restarting the app; enabled by <code>file_watcher=True</code>. See <a href="../../architecture/hot-reload/hot-reload-arch/">architecture/hot-reload</a></td>
+<td>Live reload, auto-reload</td>
+</tr>
+<tr>
+<td><strong>entry_point</strong></td>
+<td>The <code>pyproject.toml</code> declaration under <code>haywire.libraries</code> that makes a package discoverable</td>
+<td>Registration</td>
+</tr>
+<tr>
+<td><strong>Marketstall</strong></td>
+<td>A TOML file hosted by a library author that lists their published haybale packages (<code>[[haybales]]</code>) consumed as a remote feed by haywire projects. Produced by <code>haywire share</code>. Lives at <code>marketstall.toml</code> in the repo root. Any author can host their own; the haywire monorepo publishes its official one to GitHub Pages.</td>
+<td>marketplace snippet, package feed</td>
+</tr>
+<tr>
+<td><strong>Marketplace</strong></td>
+<td>The aggregated catalog of haybales visible in the Library Manager's AVAILABLE section; built by merging the project's local <code>[[heaps]]</code> with all remote subscriptions (<code>[[markets]]</code> + <code>[[stalls]]</code>) resolved into <code>[[caches]]</code> by refresh. Multiple remote feeds are supported.</td>
+<td>package list, library catalog</td>
+</tr>
+<tr>
+<td><strong>haybale-marketplace</strong></td>
+<td>The planned haybale package that will own the Library Manager UI and all marketplace/marketstall logic; currently embedded in <code>haybale-studio</code>. The directory <code>~/.haywire/db/haybale-marketplace/</code> is already used by the marketstall runtime as a forward reference to this planned carve-out. Exact scope and split point TBD.</td>
+<td>Library Manager (use haybale-marketplace once the split lands)</td>
+</tr>
+<tr>
+<td><strong>README.md</strong></td>
+<td>Fully generated landing page for a haybale package. Lives at the package root (not shipped in wheel). Content: <code>NOTES.md</code> verbatim (if present) followed by the component catalog (identical to <code>OVERVIEW.md</code>), plus any <code>&lt;!-- marketstall:share-url --&gt;</code> marker blocks preserved verbatim. Rendered by PyPI (<code>info.description</code>) and git platforms — the universal pre-install discovery document reachable via every distribution method. Generated by <code>haywire-gen-docs</code> in the same pass as <code>OVERVIEW.md</code>. The marker blocks are managed by <code>haywire share --save</code> (spec §6.6); gen-docs preserves them so the two skills compose.</td>
+<td>—</td>
+</tr>
+<tr>
+<td><strong>OVERVIEW.md</strong></td>
+<td>Fully generated component catalog for a haybale package. Lives inside the Python module directory (ships in wheel). Read from disk post-install by the Library Manager via <code>lib.identity.folder_path</code>. Contains the catalog only — no <code>NOTES.md</code> prefix. <code>docs_url</code> in the marketstall points here for pre-install discovery.</td>
+<td>—</td>
+</tr>
+<tr>
+<td><strong>QUICKREF.md</strong></td>
+<td>Fully generated compact reference for a haybale package. Alphabetical, key-value format, no prose. One line per component field. Lives inside the Python module directory (ships in wheel).</td>
+<td>—</td>
+</tr>
+<tr>
+<td><strong>NOTES.md</strong></td>
+<td>Hand-authored supplement inside the Python module directory (ships in wheel). Design rationale, known quirks, interaction patterns, example graph descriptions. Never touched by <code>haywire-gen-docs</code>. Prepended verbatim to the generated <code>README.md</code>; appended as "Additional Notes" in <code>OVERVIEW.md</code>.</td>
+<td>LIBRARY.md (old name, deprecated)</td>
+</tr>
+<tr>
+<td><strong>haywire-gen-docs</strong></td>
+<td>The Claude skill that generates <code>README.md</code>, <code>OVERVIEW.md</code>, <code>QUICKREF.md</code>, and per-component <code>docs/</code> for a haybale package in one pass. Syncs docstrings first. Uses sha256 hashes to skip unchanged per-component docs. Preserves <code>&lt;!-- marketstall:share-url --&gt;</code> marker blocks in the README verbatim (spec §6.6). Never modifies <code>NOTES.md</code>.</td>
+<td>—</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="marketstall-distribution-runtime">Marketstall distribution runtime<a class="headerlink" href="#marketstall-distribution-runtime" title="Permanent link">&para;</a></h2>
+<p>The runtime that backs the Library Browser's Refresh / Add Source / Edit File flow. Spec: <a href="../../internals/speculatives/archive/marketstall-distribution.md"><code>internals/specs/marketstall-distribution.md</code></a>. Code: <code>haywire.core.marketstall</code>.</p>
+<table>
+<thead>
+<tr>
+<th>Term</th>
+<th>Definition</th>
+<th>Aliases to avoid</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Global marketplace</strong></td>
+<td>The user-scoped <code>~/.haywire/db/haybale-marketplace/marketplace.toml</code>. Holds the user's opt-in subscriptions (<code>[[markets]]</code>, <code>[[stalls]]</code>) and optionally inline <code>[[haybales]]</code>. Per-machine, never project-scoped. The <code>db/haybale-marketplace/</code> subdirectory is a forward reference to the planned <strong>haybale-marketplace</strong> library carve-out.</td>
+<td>user marketplace</td>
+</tr>
+<tr>
+<td><strong>Project marketplace</strong></td>
+<td>The project-scoped <code>&lt;project&gt;/.haywire/marketplace.toml</code>. Holds the project's own <code>[[heaps]]</code> (written by <code>haywire init</code>, including dev-repo libraries under <code>--dev</code>) and the <code>[[caches]]</code> populated by refresh. Never has <code>[[markets]]</code> or <code>[[stalls]]</code>.</td>
+<td>project file</td>
+</tr>
+<tr>
+<td><strong><code>[[markets]]</code></strong></td>
+<td>TOML section in the global marketplace declaring subscriptions to <em>remote marketplace feeds</em>. Each entry: <code>url</code>, <code>ignores</code>, <code>doubles</code>, <code>blocked</code>. Renamed from <code>[[marketplaces]]</code> (spec §14).</td>
+<td><code>[[marketplaces]]</code> (legacy schema)</td>
+</tr>
+<tr>
+<td><strong><code>[[stalls]]</code></strong></td>
+<td>TOML section declaring subscriptions to <em>remote marketstall feeds</em> (single-author publish files). Each entry: <code>url</code>, <code>ignores</code>, <code>doubles</code>, <code>blocked</code>. Renamed from <code>[[marketstalls]]</code>.</td>
+<td><code>[[marketstalls]]</code> (legacy schema)</td>
+</tr>
+<tr>
+<td><strong><code>[[haybales]]</code></strong></td>
+<td>TOML section listing one or more publishable library entries. Lives in <code>marketstall.toml</code> files; may also appear inline in <code>marketplace.toml</code> (PyPI-only / aggregator-publisher case). Replaces the older <code>[[packages]]</code> section name.</td>
+<td><code>[[packages]]</code> (legacy schema)</td>
+</tr>
+<tr>
+<td><strong><code>[[heaps]]</code></strong></td>
+<td>TOML section in the project marketplace declaring path-based libraries (always installed editably). Written by <code>haywire init</code>; manually editable. Renamed from <code>[[locals]]</code>.</td>
+<td><code>[[locals]]</code> (legacy schema)</td>
+</tr>
+<tr>
+<td><strong><code>[[caches]]</code></strong></td>
+<td>TOML section in the project marketplace holding the refresh result. Each entry is a fully-formed <code>Haybale</code> plus cache-only fields (<code>via</code>, <code>last_seen</code>, <code>stale</code>). Renamed from <code>[[packages]]</code> (project shape).</td>
+<td><code>[[packages]]</code> (project shape; legacy schema)</td>
+</tr>
+<tr>
+<td><strong>Subscription</strong></td>
+<td>A <code>[[markets]]</code> or <code>[[stalls]]</code> entry in the global marketplace — the user's opt-in to follow a remote feed. Identified by URL. Idempotent: re-adding the same URL is a no-op.</td>
+<td>feed, source (overloaded)</td>
+</tr>
+<tr>
+<td><strong><code>ignores</code></strong></td>
+<td>Per-subscription array of names skipped from that source. Populated by the conflict-resolution prompt at Add Source time. Soft preference — the user picked another source.</td>
+<td>skip list</td>
+</tr>
+<tr>
+<td><strong><code>blocked</code></strong></td>
+<td>Per-subscription array of names the user actively rejected via the install-safety modal (§7.4). Stronger than <code>ignores</code>: blocked haybales are hidden from the Library Browser entirely and filtered out of the stale-rescue step so they never survive as <code>stale=True</code>. Un-blockable only by editing the marketplace file.</td>
+<td>denylist (don't use — it's not a denylist, it's per-subscription)</td>
+</tr>
+<tr>
+<td><strong><code>doubles</code></strong></td>
+<td>Per-subscription array of names that two <code>[[markets]]</code> entries silently dedup to. Diagnostic only.</td>
+<td>—</td>
+</tr>
+<tr>
+<td><strong>Refresh</strong></td>
+<td>The orchestrator (<code>haywire.core.marketstall.refresh</code>) that fetches every subscribed feed, resolves the candidate haybale list, applies <code>blocked</code>/<code>ignores</code>/heaps shadow/FCFS, and writes the result to the project <code>[[caches]]</code>. Triggered by Refresh button or auto-fires after Add Source.</td>
+<td>sync, update</td>
+</tr>
+<tr>
+<td><strong>One-level-deep resolution</strong></td>
+<td>The hard limit on remote-marketplace chains: a remote marketplace's own <code>[[markets]]</code> entries are ignored — only its <code>[[stalls]]</code> URLs and inline <code>[[haybales]]</code> are consumed. Prevents infinite recursion and bounds the refresh blast radius.</td>
+<td>recursive resolution</td>
+</tr>
+<tr>
+<td><strong>Haybale (dataclass)</strong></td>
+<td>The canonical dataclass for one entry available to install. Fields: <code>name</code>, <code>min_version</code>, <code>label</code>, <code>description</code>, <code>author</code>, <code>source</code> (<code>"pypi"</code> / <code>"git"</code> / <code>"local"</code>), <code>install_spec</code>, <code>tags</code>, <code>os</code>, <code>dependencies</code>, <code>source_url</code>, <code>docs_url</code>, plus cache-shape fields (<code>via</code>, <code>last_seen</code>, <code>stale</code>) and source-tagging fields. Code: <code>haywire.core.marketstall.types</code>. Renamed from <code>MarketplaceEntry</code>.</td>
+<td><code>MarketplaceEntry</code> (legacy name)</td>
+</tr>
+<tr>
+<td><strong>Subscription (dataclass)</strong></td>
+<td>The frozen dataclass for one <code>[[markets]]</code> or <code>[[stalls]]</code> entry: <code>url</code>, <code>ignores</code>, <code>doubles</code>, <code>blocked</code>. Renamed from <code>RemoteSubscription</code>; gained the <code>blocked</code> field.</td>
+<td><code>RemoteSubscription</code> (legacy name)</td>
+</tr>
+<tr>
+<td><strong>Conflict resolution</strong></td>
+<td>The four-filter rule applied during refresh: <code>blocked</code> per subscription, then <code>ignores</code> per subscription, then heaps shadow (heaps always win), then first-come-first-served as the final safety net. Spec §8.2.</td>
+<td>—</td>
+</tr>
+<tr>
+<td><strong>Stale</strong></td>
+<td>Flag set on a project <code>[[caches]]</code> entry when a subsequent refresh did NOT re-resolve it. Renders as a red dot + "(stale)" suffix in the Library Browser. Stale + uninstalled entries are user-removable via the trash icon; stale + installed entries are locked until uninstalled.</td>
+<td>outdated, expired</td>
+</tr>
+<tr>
+<td><strong><code>os</code> field</strong></td>
+<td>Per-haybale list of supported platforms. Declarable values: <code>"macos"</code>, <code>"windows"</code>, <code>"linux"</code>. Source: each library's <code>pyproject.toml [tool.haywire].os</code>; copied into marketstalls by <code>haywire share</code>. Absent = "all platforms." <code>"other"</code> is the runtime sentinel for unmapped <code>platform.system()</code> results; never a declarable value.</td>
+<td>—</td>
+</tr>
+<tr>
+<td><strong>RefreshOutcome</strong></td>
+<td>Tri-state per-subscription refresh result: <code>FRESH</code> (HTTP 200, cache overwritten), <code>CACHE_FALLBACK</code> (HTTP failed, served from cache), <code>UNAVAILABLE</code> (HTTP failed, no cache).</td>
+<td>—</td>
+</tr>
+<tr>
+<td><strong>RefreshReport</strong></td>
+<td>Dataclass returned by <code>refresh()</code>: <code>sources_fetched</code>, <code>sources_from_cache</code>, <code>sources_unavailable</code>, <code>unavailable_urls</code>, <code>haybales_resolved</code>, <code>new_stale</code>, <code>updates_available</code>. The three <code>sources_*</code> counters partition the active subscription set.</td>
+<td>—</td>
+</tr>
+<tr>
+<td><strong>MarketplaceState</strong></td>
+<td>The <code>AppState</code> that owns marketplace orchestration. The UI calls <code>state.refresh()</code>, <code>state.get_global()</code>, <code>state.get_project_haybales()</code>, <code>state.remove_stale_haybale()</code> — never <code>haywire.core.marketstall</code> functions directly.</td>
+<td>—</td>
+</tr>
+<tr>
+<td><strong>MalformedMarketplaceError</strong></td>
+<td>Raised when a marketplace or marketstall file is invalid (TOML parse or schema violation). Library Manager surfaces this with an Edit File banner; the UI does not recover automatically. Renamed from <code>MalformedGlobalMarketplaceError</code>.</td>
+<td>—</td>
+</tr>
+<tr>
+<td><strong>HTTP cache</strong></td>
+<td><code>~/.haywire/cache/&lt;url-hash&gt;.toml</code>, one file per subscribed URL. Populated on successful fetch; consulted on fetch failure as a fallback. No TTL. Orphan cache files (no matching active subscription) are GC'd at end of each refresh.</td>
+<td>—</td>
+</tr>
+<tr>
+<td><strong>Host provider</strong></td>
+<td>One git host's URL conventions. Protocol with <code>parse_blob_url</code> / <code>parse_raw_url</code> / <code>raw_url</code> / <code>blob_url</code> methods. GitHub and GitLab ship in the first cut; Bitbucket and Gitea are deferred. Self-hosted instances declare themselves in <code>~/.haywire/config.toml</code>.</td>
+<td>—</td>
+</tr>
+<tr>
+<td><strong>Blob URL</strong></td>
+<td>The browser-friendly URL to a file on a git host (e.g. <code>https://github.com/alice/cool-libs/blob/main/marketstall.toml</code>). Canonical persisted form for <code>[[markets]]</code> and <code>[[stalls]]</code> subscriptions.</td>
+<td>—</td>
+</tr>
+<tr>
+<td><strong>Raw URL</strong></td>
+<td>The fetch-friendly URL to a file's content (e.g. <code>https://raw.githubusercontent.com/alice/cool-libs/main/marketstall.toml</code>). What the runtime actually HTTP-fetches.</td>
+<td>—</td>
+</tr>
+<tr>
+<td><strong>Marketstall</strong></td>
+<td>A TOML file hosted by a library author that lists their published haybale packages; consumed as a remote feed by haywire projects. Produced by <code>haywire share</code>. Lives at <code>marketstall.toml</code> in the repo root (single-author) or <code>stalls/&lt;dist-name&gt;.toml</code> (aggregator layout).</td>
+<td>marketplace snippet, package feed</td>
+</tr>
+<tr>
+<td><strong>Marketplace</strong></td>
+<td>The aggregated catalog of haybales visible in the Library Manager's AVAILABLE section. Built by merging the project's local <code>[[heaps]]</code> with all remote subscriptions (<code>[[markets]]</code> + <code>[[stalls]]</code>) resolved into <code>[[caches]]</code> by refresh.</td>
+<td>package list, library catalog</td>
+</tr>
+<tr>
+<td><strong>Install-safety modal</strong></td>
+<td>Three-button modal (Cancel / Block source / Install) interposing between every Install click and the actual <code>uv pip install</code>. Spec §7.4. Shows the haybale's <code>source_url</code> as a clickable link; Block writes the haybale's name to the resolving subscription's <code>blocked</code> array. Fires on every Install — there's no first-time-only suppression.</td>
+<td>first-install modal (legacy term)</td>
+</tr>
+<tr>
+<td><strong>Drift gate</strong></td>
+<td>The <code>detect_share_drift()</code> check that runs at <code>haywire share</code> time. Three checks: <code>pyproject_missing</code> (imports not declared in <code>pyproject.toml</code>), <code>decorator_missing</code> (imports not declared in <code>@library(dependencies=[...])</code>), <code>pyproject_version_lag</code> (declared haybale floors lagging the installed version). <code>--strict</code> exits non-zero on drift; <code>--fix</code> auto-rewrites. Spec §12.</td>
+<td>—</td>
+</tr>
+<tr>
+<td><strong><code>pyproject_version_lag</code></strong></td>
+<td>Field on <code>DepDrift</code> carrying <code>(dist_name, declared_floor, installed_version)</code> tuples for declared haybale-* deps whose <code>~=</code>/<code>&gt;=</code>/<code>&gt;</code> floor is below the installed version. Haybale-only by design — third-party deps are not lag-checked because the installed-version-as-truth assumption breaks outside the lockstep haybale ecosystem (spec §12.1).</td>
+<td>—</td>
+</tr>
+<tr>
+<td><strong><code>updates_available</code></strong></td>
+<td><code>RefreshReport</code> field counting installed haybales whose cache <code>min_version</code> exceeds the installed distribution version. Drives the post-refresh toast count and the per-row ▲ indicator + "v0.X.X available" hint in the Library Browser. Informational only — nothing auto-updates.</td>
+<td>update count</td>
+</tr>
+<tr>
+<td><strong>Aggregator layout</strong></td>
+<td>The two-tier feed shape used by the official haywire marketplace (spec §11): a top-level <code>marketplace.toml</code> with one <code>[[stalls]]</code> entry per library, plus a <code>stalls/</code> subdirectory with one marketstall file per library. Consumers can subscribe to the full feed (via the marketplace URL) or to a single library (via that stall's URL). Produced by <code>scripts/generate_marketstall.py</code>.</td>
+<td>per-haybale stall layout</td>
+</tr>
+<tr>
+<td><strong>Bare-repo URL rejection</strong></td>
+<td>Add Source refuses URLs that are just a repo (<code>https://github.com/alice/cool-libs</code>) with no file path — the resolver can't know whether to fetch <code>marketstall.toml</code> or a <code>marketplace.toml</code> from such a URL. The dialog asks for the blob/raw URL to the specific file. Spec §4.2.</td>
+<td>—</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="dependency-manifests-drift-new">Dependency manifests &amp; drift <em>(new)</em><a class="headerlink" href="#dependency-manifests-drift-new" title="Permanent link">&para;</a></h2>
+<p>A haybale library's dependencies live across three manifests with different audiences. They can drift; haywire provides tools to detect and reconcile.</p>
+<table>
+<thead>
+<tr>
+<th>Term</th>
+<th>Definition</th>
+<th>Aliases to avoid</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Project pyproject</strong></td>
+<td><code>&lt;project&gt;/pyproject.toml</code>. Audience: uv (workspace resolution). Lists what the <em>project</em> needs to run during dev. Never travels with a published library.</td>
+<td>root pyproject (acceptable, less precise)</td>
+</tr>
+<tr>
+<td><strong>Library pyproject</strong></td>
+<td><code>&lt;library&gt;/pyproject.toml</code>, e.g. <code>barn/haybale-foo/pyproject.toml</code>. Audience: pip / PyPI / <code>haywire share</code> consumers. The <code>[project] dependencies</code> here is what travels with the published library and what pip resolves at install time.</td>
+<td>package pyproject</td>
+</tr>
+<tr>
+<td><strong><code>@library(dependencies=[...])</code></strong></td>
+<td>The decorator parameter inside a library's <code>__init__.py</code>. Audience: haywire's runtime (LibraryManager). Lists which <em>other haywire libraries</em> must be enabled for this one to enable; gates Disable / Uninstall buttons via <code>get_installed_dependents()</code>. Uses underscore module names (e.g. <code>"haybale_core"</code>), NOT distribution names.</td>
+<td>library deps (ambiguous), runtime deps</td>
+</tr>
+<tr>
+<td><strong>Three manifest layers</strong></td>
+<td>The conceptual triple — source imports / <code>@library</code> decorator / library pyproject — that must agree for a library to ship cleanly. When they diverge (drift), <code>haywire share</code> may publish a package whose declared deps lie about what it needs.</td>
+<td>—</td>
+</tr>
+<tr>
+<td><strong>detect_deps()</strong></td>
+<td>Pure function in <code>haywire.core.library.dep_detect</code>. Statically AST-scans a library's source, resolves imports to distributions, and returns a <code>DetectedDeps</code> with one list shaped for the <code>@library</code> decorator and another shaped for the library's pyproject.</td>
+<td>—</td>
+</tr>
+<tr>
+<td><strong>DetectedDeps</strong></td>
+<td>Frozen dataclass returned by <code>detect_deps</code>. Fields: <code>library_decorator</code> (underscored module names of registered haywire libraries imported from source), <code>pyproject</code> (distribution names + version specifiers — framework, registered libraries, and third-party), <code>resolved</code> (module → distribution map), <code>unresolved</code> (imports that couldn't be mapped).</td>
+<td>—</td>
+</tr>
+<tr>
+<td><strong>HaywireLibrarySource</strong></td>
+<td>Protocol with <code>list_names()</code> and <code>get_library_distribution_name(id)</code>. The authoritative answer to "is this distribution a haywire library?" — by registration, not by name pattern. Live registry satisfies it; tests pass a fake.</td>
+<td>—</td>
+</tr>
+<tr>
+<td><strong>EntryPointLibrarySource</strong></td>
+<td><code>HaywireLibrarySource</code> implementation backed by <code>importlib.metadata.entry_points(group="haywire.libraries")</code>. Used by CLI flows (<code>haywire share</code>) that don't bootstrap the haywire runtime.</td>
+<td>—</td>
+</tr>
+<tr>
+<td><strong>Detect Dependencies button</strong></td>
+<td>The magnifying-glass button next to the Dependencies field in the Library Overview Editor's Edit dialog. Runs <code>detect_deps</code>, opens a diff modal showing what would change, offers Union or Replace as the apply mode.</td>
+<td>Scan deps button</td>
+</tr>
+<tr>
+<td><strong>Drift gate</strong></td>
+<td>The pre-publish check inside <code>haywire share</code> / <code>haywire share --save</code>. Default: warn-only on stderr. <code>--strict</code>: exit non-zero if any library has missing manifest entries. <code>--fix</code>: auto-correct by writing the missing entries to disk.</td>
+<td>—</td>
+</tr>
+<tr>
+<td><strong>DepDrift</strong></td>
+<td>Dataclass from <code>haywire_studio.share</code> recording one library's missing entries. Fields: <code>lib_dir</code>, <code>pyproject_missing</code>, <code>decorator_missing</code>, <code>unresolved</code>. <code>has_drift</code> is True iff either missing-list is non-empty. The gate flags missing entries only; extra (declared but unused) deps are not flagged.</td>
+<td>—</td>
+</tr>
+<tr>
+<td><strong>DriftError</strong></td>
+<td>Raised by <code>share_save_repo</code> in <code>--strict</code> mode when any library has drift. Aborts before any <code>marketstall.toml</code> is written.</td>
+<td>—</td>
+</tr>
+<tr>
+<td><strong>Diff modal</strong></td>
+<td>The <code>haywire.ui.modals.diff_modal</code> Popup that previews proposed changes and offers up to two action buttons + Cancel. Used by Detect Dependencies (Union / Replace). Generic — any "preview changes, choose how to apply" surface can reuse it.</td>
+<td>—</td>
+</tr>
+<tr>
+<td><strong>DiffSection</strong></td>
+<td>One labelled block inside a diff modal: title + additions (green <code>+</code>) + removals (red <code>−</code>) + unchanged (dim) + optional note.</td>
+<td>—</td>
+</tr>
+<tr>
+<td><strong>Union (apply mode)</strong></td>
+<td>The additive apply: current ∪ detected for each manifest. Never removes; safe against false positives from dynamic imports.</td>
+<td>merge</td>
+</tr>
+<tr>
+<td><strong>Replace (apply mode)</strong></td>
+<td>The destructive apply: detected only. Drops anything not detected. Useful for cleaning up obsolete declarations; risky against dynamic imports.</td>
+<td>overwrite</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="settings-system">Settings System<a class="headerlink" href="#settings-system" title="Permanent link">&para;</a></h2>
+<p>See <a href="../../architecture/settings/settings-arch/">architecture/settings</a> for the resolution chain and registry mechanics; see <a href="../../components/settings/setting-canon/">components/settings</a> for authoring.</p>
+<table>
+<thead>
+<tr>
+<th>Term</th>
+<th>Definition</th>
+<th>Aliases to avoid</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>NodeSettings</strong></td>
+<td>Base class for node-local settings; subclassed as an inner class on a <code>@node</code> class; class name becomes the accessor (<code>self.filter</code>, <code>self.output</code>, etc.); never registered with the global registry</td>
+<td>Config, options, Bag, Settings (avoid bare Settings for node inner classes)</td>
+</tr>
+<tr>
+<td><strong>FrameworkSettings</strong></td>
+<td>Base class for framework/app-defined settings schemas; subclassed with <code>namespace=</code>; auto-registers via <code>_pending_global</code> at registry init; <code>cls._registry</code> is set by the registry so instances need no explicit injection</td>
+<td>—</td>
+</tr>
+<tr>
+<td><strong>LibrarySettings</strong></td>
+<td>Base class for library plugin-defined settings schemas; subclassed with <code>namespace=</code>; registered via <code>BaseRegistry</code> hot-reload machinery; same <code>cls._registry</code> auto-wiring as <code>FrameworkSettings</code></td>
+<td>—</td>
+</tr>
+<tr>
+<td><strong>setting()</strong></td>
+<td>The descriptor that declares a typed, serializable field within any <code>Settings</code> subclass</td>
+<td>option, param, prop</td>
+</tr>
+<tr>
+<td><strong>mirrors</strong></td>
+<td>A <code>setting()</code> parameter that links a node field to a <code>FrameworkSettings</code> or <code>LibrarySettings</code> field, inheriting its default with per-node override capability</td>
+<td>shadow, reference</td>
+</tr>
+<tr>
+<td><strong>read_only</strong></td>
+<td>A <code>setting()</code> parameter (used with <code>mirrors=</code>) that makes a field a silent cache of a global value: invisible in panel, never stored, never writable per-instance</td>
+<td>watch (avoid), computed</td>
+</tr>
+<tr>
+<td><strong>accessor name</strong></td>
+<td>The inner <code>NodeSettings</code> class name as it appears on the node instance (e.g. <code>class filter</code> → <code>self.filter</code>); must not collide with existing <code>BaseNode</code> attributes</td>
+<td>settings name, bag name</td>
+</tr>
+<tr>
+<td><strong>SettingsRegistry</strong></td>
+<td>The central registry that holds all global setting schemas and their TOML-sourced values; used for the full resolution chain; inherits <code>BaseRegistry</code> hot-reload machinery</td>
+<td>—</td>
+</tr>
+<tr>
+<td><strong>Three-tier resolution</strong></td>
+<td>The precedence chain for a settings value: global TOML override → workspace TOML override → local instance value → workspace TOML set → global TOML set → descriptor default</td>
+<td>—</td>
+</tr>
+<tr>
+<td><strong>cache</strong></td>
+<td>Transient, non-serialized per-node storage for computation buffers or memoization</td>
+<td>temp, scratch</td>
+</tr>
+<tr>
+<td><strong>store</strong></td>
+<td>Persistent, serialized per-node internal state not shown in the UI</td>
+<td>private state</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="graph-management">Graph Management<a class="headerlink" href="#graph-management" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Term</th>
+<th>Definition</th>
+<th>Aliases to avoid</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>GraphEntry</strong></td>
+<td>A runtime container for one open graph: holds the <strong>Graph</strong>, <strong>Editor</strong>, file path, unsaved flag, session set, and per-graph <strong>Interpreter</strong>. Concrete implementation of the <strong>GraphContainer</strong> protocol in <code>haybale-haystack</code></td>
+<td>Graph slot, graph handle</td>
+</tr>
+<tr>
+<td><strong>GraphContainer</strong></td>
+<td>A protocol implemented by anything that can host a graph in <strong>GraphEditor</strong>: requires <code>binding_id</code>, <code>editor</code>, <code>path</code>, <code>unsaved</code>, <code>display_name</code>, and <code>save()</code>. <strong>GraphEntry</strong> is the haystack-flavoured implementation. See <a href="../../barn/haybale-graph-editor/">haybale-graph-editor</a></td>
+<td>Graph host, graph holder</td>
+</tr>
+<tr>
+<td><strong>GraphAppState</strong></td>
+<td>The app-wide registry mapping <code>binding_id</code> → <strong>GraphContainer</strong>. Source libraries (haystack, future cloud-graph libraries) <code>register</code> / <code>unregister</code> / <code>rekey</code> their containers here; <strong>GraphEditor</strong> reads from it on every render. Lives at <code>app_data[GraphAppState]</code></td>
+<td>Graph registry, graph index</td>
+</tr>
+<tr>
+<td><strong>Haystack</strong></td>
+<td>A named, curated selection of <strong>GraphEntry</strong>'s stored as a TOML file in <code>haystacks/</code>; records which graphs are open and which should auto-execute on load. See <a href="../../architecture/graph/graph-arch/">architecture/graph</a></td>
+<td>Session (overloaded with browser sessions), workspace (overloaded with layout), setlist, graphset</td>
+</tr>
+<tr>
+<td><strong>HaystackEditor</strong></td>
+<td>The left-slot editor that lists all open graphs, provides play/stop per row, and save/load haystack actions in the header</td>
+<td>GraphManagerEditor (renamed)</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="ui-workspace-system">UI / Workspace System<a class="headerlink" href="#ui-workspace-system" title="Permanent link">&para;</a></h2>
+<p>See <a href="../../architecture/studio/studio-arch/">architecture/studio</a> for the studio as a product; <a href="../../components/editors/editor-canon/">components/editors</a>, <a href="../../components/panels/panel-canon/">components/panels</a>, <a href="../../components/themes/theme-canon/">components/themes</a>, <a href="../../components/skins/skin-canon/">components/skins</a> for authoring.</p>
+<table>
+<thead>
+<tr>
+<th>Term</th>
+<th>Definition</th>
+<th>Aliases to avoid</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Editor</strong></td>
+<td>A full-slot UI component occupying one workspace Slot (Left, Main, Right, Bottom); one instance per slot per session</td>
+<td>Panel (Panels are sub-components of editors), view</td>
+</tr>
+<tr>
+<td><strong>Panel</strong></td>
+<td>A context-sensitive sub-section rendered inside a panel-aware editor (e.g. Properties); appears/disappears based on <code>poll()</code>; always wrapped in <code>.hw-panel</code> container</td>
+<td>Tab, widget (too generic)</td>
+</tr>
+<tr>
+<td><strong>Scope</strong></td>
+<td>A named tab within a panel-aware editor that groups panels (e.g. <code>node</code>, <code>graph</code>, <code>edge</code>)</td>
+<td>Context (overloaded), category</td>
+</tr>
+<tr>
+<td><strong>Slot</strong></td>
+<td>One of the four named positions in the AppShell where an editor is mounted: Left, Main, Right, Bottom; each slot = bar + area</td>
+<td>Area (deprecated), pane, region, zone</td>
+</tr>
+<tr>
+<td><strong>Bar</strong></td>
+<td>The control strip attached to a Slot; either a tab bar (horizontal, for Main/Bottom) or an icon bar (vertical, for Left/Right)</td>
+<td>—</td>
+</tr>
+<tr>
+<td><strong>default_slot</strong></td>
+<td>The <code>@editor()</code> decorator parameter and <code>EditorIdentity</code> field that declares which Slot an editor occupies by default; one of <code>'left'</code>, <code>'main'</code>, <code>'right'</code>, <code>'bottom'</code></td>
+<td>canvas_area (deprecated)</td>
+</tr>
+<tr>
+<td><strong>SlotState</strong></td>
+<td>Dataclass representing the persisted state of the Left or Right slot: <code>active_tab_key</code>, <code>visible</code>, <code>size</code></td>
+<td>AreaState (deprecated)</td>
+</tr>
+<tr>
+<td><strong>MainSlotState</strong></td>
+<td>Dataclass representing the Main slot's persisted state: a list of <code>TabState</code> tabs plus <code>active_tab_key</code></td>
+<td>MiddleAreaState (deprecated)</td>
+</tr>
+<tr>
+<td><strong>BottomSlotState</strong></td>
+<td>Dataclass representing the Bottom slot's persisted state: tab list, <code>active_tab_key</code>, <code>visible</code>, <code>size</code></td>
+<td>BottomAreaState (deprecated)</td>
+</tr>
+<tr>
+<td><strong>TabState</strong></td>
+<td>Dataclass for one tab within a tabbed slot (Main or Bottom): <code>editor_key</code>, <code>label</code>, <code>metadata</code></td>
+<td>—</td>
+</tr>
+<tr>
+<td><strong>active_tab_key</strong></td>
+<td>The unified field on all slot state dataclasses that stores which editor is currently shown in that slot</td>
+<td>editor_key (on slot state — deprecated), left_bar_active, right_bar_active (removed)</td>
+</tr>
+<tr>
+<td><strong>AppShell</strong></td>
+<td>The top-level layout component composed of: TopBar + ActivityBar + Left/Main/Right/Bottom Slots + ContextBar + StatusBar. See <a href="../../architecture/studio/app-shell/app-shell-arch/">architecture/studio/app-shell</a></td>
+<td>Shell, frame</td>
+</tr>
+<tr>
+<td><strong>TopBar</strong></td>
+<td>The 48px bar along the top edge of the AppShell; contains the app name, workspace switcher, and global actions</td>
+<td>Header, navbar</td>
+</tr>
+<tr>
+<td><strong>StatusBar</strong></td>
+<td>The 24px bar along the bottom edge of the AppShell; shows session info and status messages</td>
+<td>Footer, info bar (Info Bar is a Panel pattern, not the StatusBar)</td>
+</tr>
+<tr>
+<td><strong>ActivityBar</strong></td>
+<td>The 48px icon bar on the left edge; switches editors in the Left Slot; styled with <code>hw-slot-bar hw-slot-bar-icons</code></td>
+<td>Left sidebar, toolbar</td>
+</tr>
+<tr>
+<td><strong>ContextBar</strong></td>
+<td>The 48px icon bar on the right edge; switches editors in the Right Slot; styled with <code>hw-slot-bar hw-slot-bar-icons</code></td>
+<td>Right sidebar</td>
+</tr>
+<tr>
+<td><strong>MainTabBar</strong></td>
+<td>The horizontal tab bar above the Main Slot; switches between tabbed main editors; styled with <code>hw-slot-bar hw-slot-bar-tabs</code></td>
+<td>Middle tabs</td>
+</tr>
+<tr>
+<td><strong>BottomTabBar</strong></td>
+<td>The horizontal tab bar above the Bottom Slot; switches between tabbed bottom editors; styled with <code>hw-slot-bar hw-slot-bar-tabs</code></td>
+<td>Bottom tabs (use only for the metadata key)</td>
+</tr>
+<tr>
+<td><strong>hw-slot-bar</strong></td>
+<td>CSS base class for all slot bars (both icon bars and tab bars)</td>
+<td>hw-tabs (deprecated)</td>
+</tr>
+<tr>
+<td><strong>hw-slot-bar-tabs</strong></td>
+<td>CSS modifier for horizontal tabbed slot bars (MainTabBar, BottomTabBar)</td>
+<td>hw-tabs (deprecated)</td>
+</tr>
+<tr>
+<td><strong>hw-slot-bar-icons</strong></td>
+<td>CSS modifier for vertical icon slot bars (ActivityBar, ContextBar)</td>
+<td>—</td>
+</tr>
+<tr>
+<td><strong>ScopeToolbar</strong></td>
+<td>The vertical strip of 36×36px square buttons inside the PropertiesEditor that switches the active Scope</td>
+<td>Scope bar, scope selector</td>
+</tr>
+<tr>
+<td><strong>Session</strong></td>
+<td>A per-browser-connection state object; one per connected client. See <a href="../../architecture/session-and-state/session-and-state-arch/">architecture/session-and-state</a></td>
+<td>Connection, client</td>
+</tr>
+<tr>
+<td><strong>SessionContext</strong></td>
+<td>The state bag passed to every editor and panel render call; contains active graph, node, edge, and theme references</td>
+<td>Context (acceptable shorthand), state</td>
+</tr>
+<tr>
+<td><strong>Workspace</strong></td>
+<td>A named layout preset that records which editor occupies each slot; saved to <code>.haywire/workspace_state.json</code>. See <a href="../../architecture/studio/workspace/workspace-arch/">architecture/studio/workspace</a></td>
+<td>Layout, perspective</td>
+</tr>
+<tr>
+<td><strong>Skin</strong></td>
+<td>A <code>BaseSkin</code> subclass that renders the visual shape of a node on the Graph Canvas; operates outside the <code>.hw-panel</code> cascade and uses only <code>--hw-node-*</code> and <code>--hw-canvas-*</code> tokens. See <a href="../../components/skins/skin-canon/">components/skins</a></td>
+<td>Renderer (Skin is canonical in code), style</td>
+</tr>
+<tr>
+<td><strong>Widget</strong></td>
+<td>An inline UI control rendered inside a port on the node card, bound to the port's value. See <a href="../../components/widgets/widget-canon/">components/widgets</a></td>
+<td>Control, field input</td>
+</tr>
+<tr>
+<td><strong>Theme</strong></td>
+<td>A named set of CSS tokens (<code>WorkbenchTheme</code>) or per-node-type colour rules (<code>NodeTheme</code>); session-scoped for workbench. See <a href="../../components/themes/theme-canon/">components/themes</a></td>
+<td>Style, skin (Skin is distinct)</td>
+</tr>
+<tr>
+<td><strong>Graph Canvas</strong></td>
+<td>The Vue/NiceGUI hybrid component where nodes and edges are visually displayed and edited. See <a href="../../architecture/studio/canvas/canvas-arch/">architecture/studio/canvas</a></td>
+<td>Canvas (acceptable shorthand), viewport</td>
+</tr>
+<tr>
+<td><strong>hui</strong></td>
+<td>The <code>haywire.ui.elements</code> wrapper module; encodes design-system rules into reusable Python functions; prefer <code>hui.*</code> over raw NiceGUI/Quasar calls for any pattern it covers</td>
+<td>haywire.ui.elements (use <code>hui</code> as the import alias)</td>
+</tr>
+<tr>
+<td><strong>CSS token</strong></td>
+<td>A <code>--hw-*</code> CSS custom property that encodes a design-system value (colour, size, shadow); every structural colour in the app must reference a token, never a hardcoded value</td>
+<td>CSS variable (CSS token is the project term)</td>
+</tr>
+<tr>
+<td><strong>Compact-fields</strong></td>
+<td>A container-query–based responsive layout system for dense settings/property panels; activated by the <code>compact-fields</code> CSS class on the outer column</td>
+<td>Dense layout, settings layout</td>
+</tr>
+<tr>
+<td><strong>Ghost pin</strong></td>
+<td>The visual indicator (low-opacity colour via <code>--hw-ghost-pin</code>) on a port that is unconnected; rendered by node skins</td>
+<td>Unconnected pin, empty pin</td>
+</tr>
+</tbody>
+</table>
+<h3 id="modals-new">Modals <em>(new)</em><a class="headerlink" href="#modals-new" title="Permanent link">&para;</a></h3>
+<p><code>haywire.ui.modals</code> — the canonical set of reusable Popup-based modal dialogs. Use these instead of inline <code>ui.dialog()</code> for any new modal UI; the per-modal helpers carry the design-guide chrome (<code>--hw-popup-shadow</code>, <code>--hw-bg-elevated</code>, <code>--hw-border-strong</code>) and stack above legacy Quasar dialogs at z-index 7000/7001.</p>
+<table>
+<thead>
+<tr>
+<th>Term</th>
+<th>Definition</th>
+<th>Aliases to avoid</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Popup</strong></td>
+<td>The shared Vue component all haywire modals are built on. Centered or position-fixed, with optional backdrop, escape-close, and backdrop-click-close. Internal — modal authors use the helper functions below.</td>
+<td>—</td>
+</tr>
+<tr>
+<td><strong>info_modal</strong></td>
+<td>Single icon + title + message + OK button. Non-destructive notifications, blocked actions, status reports.</td>
+<td>—</td>
+</tr>
+<tr>
+<td><strong>confirm_modal</strong></td>
+<td>Title + message + Confirm/Cancel. Use <code>danger=True</code> for destructive confirms.</td>
+<td>—</td>
+</tr>
+<tr>
+<td><strong>pick_modal</strong></td>
+<td>Title + single-select dropdown + Confirm/Cancel. Pre-populated to the first option.</td>
+<td>—</td>
+</tr>
+<tr>
+<td><strong>rename_modal</strong></td>
+<td>Title + single name input with live classification (same / changed / existing collision) + Confirm/Cancel. The confirm button relabels per state.</td>
+<td>—</td>
+</tr>
+<tr>
+<td><strong>save_as_modal</strong></td>
+<td>The path-prompt variant of rename_modal: directory + filename input with extension control.</td>
+<td>—</td>
+</tr>
+<tr>
+<td><strong>diff_modal</strong></td>
+<td>Title + sectioned diff body (DiffSection blocks) + up to two action buttons + Cancel. Used by Detect Dependencies; reusable for any "preview changes, pick how to apply" surface. <em>(new)</em></td>
+<td>—</td>
+</tr>
+</tbody>
+</table>
+<h3 id="editor-instance-mode-terms">Editor instance-mode terms<a class="headerlink" href="#editor-instance-mode-terms" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong><code>OpenBehavior</code></strong> — Enum on <code>EditorIdentity</code> declaring how an editor's
+  tabs come into being. Three values (members are uppercase; <code>.value</code>
+  strings are lowercase):</li>
+<li><strong><code>REQUIRED</code></strong> (<code>"required"</code>): exactly one tab, always present,
+    auto-populated at startup, uncloseable.</li>
+<li><strong><code>ON_CONTEXT</code></strong> (<code>"on_context"</code>): singleton tab, on-demand. Content
+    mirrors a slice of session context; the tab has no binding_id.
+    Closeable. Not persisted.</li>
+<li><strong><code>ON_PAYLOAD</code></strong> (<code>"on_payload"</code>): per-binding_id tab, on-demand. The
+    <code>binding.binding_id</code> is both the tab's identity and its content source.
+    N tabs allowed. Closeable. Persisted across restart.</li>
+<li><strong><code>on_focus</code></strong> — <code>BaseEditor</code> lifecycle hook called by <code>Slot._activate</code> when a
+  binding transitions from not-active to active. Editors that own a slice of
+  session state (e.g. <code>GraphEditor</code> owns <code>active_graph</code>) override it to mutate
+  the context and broadcast the corresponding event. Replaces the shell-side
+  <code>context_field</code> / <code>OPEN_GRAPH_REQUESTED</code> dispatch.</li>
+<li><strong><code>binding_id</code> (tab)</strong> — A <code>str</code> that disambiguates per-binding_id tabs of
+  the same editor class. For GraphEditor the binding_id is the graph path;
+  for FileViewer it is the file path. Stored in <code>TabState.metadata.binding_id</code>
+  and mirrored in <code>EditorWrapper.binding_id</code>. The same string is the key used
+  in <code>GraphAppState</code>, the workspace-persisted identity in <code>slot.to_snapshot</code>,
+  and the disambiguator in <code>EditorWrapper.editor_binding_id</code>.</li>
+</ul>
+<hr />
+<h2 id="signals">Signals<a class="headerlink" href="#signals" title="Permanent link">&para;</a></h2>
+<p>See <a href="../../guides/signals/">guides/signals.md</a> for authoring patterns; <a href="../../architecture/studio/studio-arch/">architecture/studio</a> §2.5 for the bus dispatch model.</p>
+<table>
+<thead>
+<tr>
+<th>Term</th>
+<th>Definition</th>
+<th>Aliases to avoid</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Signal</strong></td>
+<td>The base class for everything dispatched on the per-session bus. Frozen dataclass with <code>kw_only=True</code>; <code>cross_session: ClassVar[bool] = False</code> controls broadcast routing. See <a href="../../packages/haywire-core/src/haywire/core/session/signals/signal.py"><code>session/signals/signal.py</code></a></td>
+<td>Event (deprecated; was the old base class), message</td>
+</tr>
+<tr>
+<td><strong>CommandSignal</strong></td>
+<td>A <code>Signal</code> subclass for imperatives — "do X" rather than "X happened". Concrete commands include <code>Reveal</code>, <code>Close</code>, <code>BroadcastClose</code></td>
+<td>LifecycleCommand (deprecated; was the old name)</td>
+</tr>
+<tr>
+<td><strong>SignalBus</strong></td>
+<td>Per-session typed pub/sub. One instance per <strong>Session</strong>; subscribers register a handler for an exact <code>Signal</code> subclass; publishes fan out by <code>type(signal)</code> exact match. See <a href="../../packages/haywire-core/src/haywire/core/session/signals/bus.py"><code>session/signals/bus.py</code></a></td>
+<td>EventBus (deprecated)</td>
+</tr>
+<tr>
+<td><strong>SignalSource</strong></td>
+<td>Abstract base class that hosts of <code>signal_field</code>s must inherit. Concrete implementors: <code>SessionContext</code>, <code>SessionState</code>, <code>AppState</code>. Declares the <code>@abstractmethod _signal_emit(signal)</code> contract</td>
+<td>—</td>
+</tr>
+<tr>
+<td><strong>signal_field</strong></td>
+<td>Descriptor declaring a reactive field on a <code>SignalSource</code> subclass. Writes emit a synthetic <code>Signal</code> subclass keyed by the field reference; reads return the stored value via bare attribute access. See <a href="../../packages/haywire-core/src/haywire/core/session/signals/descriptor.py"><code>session/signals/descriptor.py</code></a></td>
+<td>reactive_field (deprecated)</td>
+</tr>
+<tr>
+<td><strong>Synthetic signal class</strong></td>
+<td>The <code>Signal</code> subclass generated by <code>signal_field</code> at class-definition time, one per (host_class, attr_name) pair. Accessed via class-level attribute (<code>SessionContext.active_file</code>). Used as the subscription key</td>
+<td>—</td>
+</tr>
+<tr>
+<td><strong>Hand-authored signal</strong></td>
+<td>A <code>Signal</code> (or <code>CommandSignal</code>) subclass declared explicitly by a library or framework author. Carries payload fields. Emitted via <code>session.publish(signal_instance)</code></td>
+<td>Custom event class (use "hand-authored signal")</td>
+</tr>
+<tr>
+<td><strong><code>_signal_emit</code></strong></td>
+<td>The publish method on <code>SignalSource</code> subclasses. <code>SessionContext</code> forwards to <code>self.session.publish</code>; <code>SessionState</code> derefs <code>self.session()</code> weakref; <code>AppState</code> derefs <code>self._session_manager()</code> and calls <code>broadcast</code>. Internal — never called directly by author code</td>
+<td>—</td>
+</tr>
+<tr>
+<td><strong><code>cross_session</code></strong></td>
+<td><code>ClassVar[bool]</code> on a <code>Signal</code> subclass; when <code>True</code>, <code>Session.publish</code> routes via <code>SessionManager.broadcast</code> so every session receives the signal. Auto-set to <code>True</code> for synthetic signals on <code>AppState</code> hosts</td>
+<td>—</td>
+</tr>
+<tr>
+<td><strong><code>@redraw_on(*signal_types)</code></strong></td>
+<td>Editor / panel handler decorator. Subscribes the method to each signal type; after dispatch, the framework calls <code>wrapper.redraw()</code> exactly once per pass. Accepts both synthetic-signal class references (<code>SessionContext.active_file</code>) and hand-authored <code>Signal</code> subclasses</td>
+<td><code>@redraw_on(*event_types)</code> (parameter renamed)</td>
+</tr>
+<tr>
+<td><strong><code>@react_on(*signal_types)</code></strong></td>
+<td>Editor / panel handler decorator for pure side-effects without redraw. Same subscription model as <code>@redraw_on</code>; only differs in that the framework does not call <code>redraw()</code> after</td>
+<td>—</td>
+</tr>
+<tr>
+<td><strong>Reactive field</strong> <em>(historical)</em></td>
+<td>The pre-unification term for what is now a <strong>signal_field</strong>. The old <code>Reactive[T]</code> wrapper, <code>.value</code> accessor, and <code>iter_reactive_fields</code> helper were deleted in the signal-field unification</td>
+<td>Use <strong>signal_field</strong> going forward</td>
+</tr>
+<tr>
+<td><strong>Signal-defining library</strong></td>
+<td>The library that declares a <code>Signal</code> subclass (or hosts a <code>signal_field</code>). Subscribers in other libraries must list it in their own <code>LibraryIdentity.dependencies</code> so hot-reload reloads them as a pair — otherwise <code>isinstance</code> checks after a reload spuriously return <code>False</code></td>
+<td>—</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="relationships">Relationships<a class="headerlink" href="#relationships" title="Permanent link">&para;</a></h2>
+<ul>
+<li>A <strong>Graph</strong> contains zero or more <strong>Nodes</strong> and <strong>Edges</strong>; it is serialized as a <code>.haywire</code> file.</li>
+<li>An <strong>Edge</strong> connects exactly one <strong>Outlet</strong> to exactly one <strong>Inlet</strong>; they must share the same <strong>FlowType</strong> or can be cast to a different type with the help of an <strong>Adapter chain</strong>.</li>
+<li>A <strong>Node</strong> (class) defines <strong>Ports</strong> in <code>init()</code>; the <strong>NodeWrapper</strong> holds the live runtime state.</li>
+<li>Each connected DATA port pair owns exactly one <strong>Pipe</strong>; the Pipe's <code>is_lazy</code> flag comes from the <strong>EdgeWrapper</strong>, not the port.</li>
+<li><strong>Assembly</strong> produces one <strong>Flow</strong> per <strong>EVENT node</strong> in the graph.</li>
+<li>A <strong>Flow</strong> contains one global <strong>Control Flow</strong> DAG and one <strong>LocalizedDataFlow</strong> DAG per CONTROL node.</li>
+<li>A <strong>Library</strong> scans folders in <code>register_components()</code> to populate registries (nodes, types, adapters, widgets, skins, themes).</li>
+<li>A <strong>Haybale</strong> package is always a <strong>Library</strong>; not all Libraries are distributed as haybale packages.</li>
+<li>An <strong>Editor</strong> occupies one <strong>Slot</strong> in the <strong>AppShell</strong>; an <strong>Editor</strong> may host many <strong>Panels</strong> filtered by <strong>Scope</strong>.</li>
+<li>The <strong>AppShell</strong> is composed of: <strong>TopBar</strong>, <strong>ActivityBar</strong>, <strong>ContextBar</strong>, <strong>StatusBar</strong>, and the four <strong>Slots</strong> (Left, Main, Right, Bottom).</li>
+<li>Each <strong>Slot</strong> has a <strong>Bar</strong> and an area: Left and Right slots have icon bars (<strong>ActivityBar</strong>, <strong>ContextBar</strong>); Main and Bottom slots have tab bars (<strong>MainTabBar</strong>, <strong>BottomTabBar</strong>).</li>
+<li>The <strong>ActivityBar</strong> switches editors in the Left <strong>Slot</strong>; the <strong>ContextBar</strong> switches editors in the Right <strong>Slot</strong>; the <strong>ScopeToolbar</strong> (inside the PropertiesEditor) switches the active <strong>Scope</strong>.</li>
+<li>Each slot's state is tracked by a <strong>SlotState</strong> (Left/Right), <strong>MainSlotState</strong> (Main), or <strong>BottomSlotState</strong> (Bottom); all use <strong>active_tab_key</strong> to identify the currently-shown editor.</li>
+<li>A <strong>Panel</strong> is always rendered inside a <code>.hw-panel</code> container and must use <code>hui.*</code> wrappers for any pattern covered by the design guide.</li>
+<li>A <strong>Skin</strong> renders on the <strong>Graph Canvas</strong> and must use only <code>--hw-node-*</code> / <code>--hw-canvas-*</code> <strong>CSS tokens</strong>; it must not use <code>hui.*</code> panel wrappers.</li>
+<li>Every structural colour reference in the app must use a <strong>CSS token</strong> (<code>--hw-*</code>); hardcoded hex or rgba values are a design violation.</li>
+<li>A <strong>Node</strong> may declare one or more <strong>NodeSettings</strong> inner classes; each is accessible via its <strong>accessor name</strong> on the node instance.</li>
+<li>A <strong>NodeSettings</strong> field may <code>mirrors=</code> a <strong>FrameworkSettings</strong> or <strong>LibrarySettings</strong> field; the value resolves through the <strong>SettingsRegistry</strong> via <strong>Three-tier resolution</strong>.</li>
+<li><strong>FrameworkSettings</strong> classes auto-register at registry init; <strong>LibrarySettings</strong> classes register via the <strong>BaseRegistry</strong> hot-reload path when their <strong>Library</strong> loads.</li>
+<li>A <strong>GraphEntry</strong> wraps exactly one <strong>Graph</strong>, one <strong>Editor</strong> and one <strong>Interpreter</strong> when it is executing; these are created/destroyed by <code>start_execution()</code> / <code>stop_execution()</code>.</li>
+<li>A <strong>GraphEntry</strong> structurally implements the <strong>GraphContainer</strong> protocol; source libraries register their containers into <strong>GraphAppState</strong> so <strong>GraphEditor</strong> can resolve <code>binding_id</code> → container on render.</li>
+<li>A <strong>Haystack</strong> references zero or more <strong>GraphEntries</strong> by relative file path; it also records which graph is active and which graphs should auto-execute on load.</li>
+<li><code>workspace_state.json</code> stores the last-loaded <strong>Haystack</strong> name; on startup, <strong>HaywireApp</strong> auto-loads it if present.</li>
+<li>The <strong>HaystackEditor</strong> displays a <strong>Haystack</strong>'s entries and provides save/load <strong>Haystack</strong> actions and per-entry execution controls.</li>
+<li>A <strong>Signal</strong> travels on the <strong>SignalBus</strong>; one <strong>SignalBus</strong> per <strong>Session</strong>.</li>
+<li>A <strong>signal_field</strong> lives on a <strong>SignalSource</strong> subclass (<strong>SessionContext</strong>, <strong>SessionState</strong>, <strong>AppState</strong>); writes emit a <strong>synthetic signal class</strong> keyed by the field reference.</li>
+<li><strong>Hand-authored signals</strong> (<code>Signal</code> / <code>CommandSignal</code> subclasses) and synthetic ones from <strong>signal_field</strong> travel the same bus and use the same <code>@redraw_on</code> / <code>@react_on</code> subscription.</li>
+<li>A <strong>Signal</strong> subclass with <code>cross_session: ClassVar[bool] = True</code> routes through <code>SessionManager.broadcast</code> and is received by every active <strong>Session</strong>.</li>
+<li>A library that subscribes to another library's <strong>Signal</strong> must list the <strong>signal-defining library</strong> in its own <code>LibraryIdentity.dependencies</code>.</li>
+<li>The <strong>Global marketplace</strong> holds only what the user opts into (<code>[[markets]]</code> and <code>[[stalls]]</code> subscriptions, optional inline <code>[[haybales]]</code>); the <strong>Project marketplace</strong> holds the project's own <code>[[heaps]]</code> plus the refresh <code>[[caches]]</code>. <code>haywire init</code> writes only the project marketplace. <em>(new)</em></li>
+<li><strong>Refresh</strong> reads the <strong>Global marketplace</strong>, fetches every <strong>Subscription</strong> (one-level-deep), and writes the resolved candidates to the <strong>Project marketplace</strong>'s <code>[[caches]]</code>. <strong>Conflict resolution</strong> applies <code>blocked</code>, then <code>ignores</code>, then heaps shadow, then first-come-first-served. <em>(new)</em></li>
+<li>The Library Browser's <strong>REQUIRED</strong> filter and the Library Overview Editor's Disable/Uninstall gating both use <code>LibraryManager.get_installed_dependents()</code> — the <code>@library(dependencies=...)</code> graph. The two surfaces always agree. <em>(new)</em></li>
+<li>A library's published manifest survives <code>haywire share</code> only if the <strong>Three manifest layers</strong> agree. The <strong>Drift gate</strong> detects divergence; <strong>detect_deps</strong> + the Detect Dependencies button reconcile it inside the Edit dialog. <em>(new)</em></li>
+</ul>
+<hr />
+<h2 id="example-dialogues">Example dialogues<a class="headerlink" href="#example-dialogues" title="Permanent link">&para;</a></h2>
+<h3 id="adding-a-node">Adding a node<a class="headerlink" href="#adding-a-node" title="Permanent link">&para;</a></h3>
+<blockquote>
+<p><strong>Dev:</strong> "I want to add a node that reads from a camera and fires a new frame event."
+<strong>Domain expert:</strong> "That's an <strong>EVENT node</strong> — it has an EXEC <strong>outlet</strong> but no EXEC <strong>inlet</strong>. It originates the <strong>Flow</strong>."
+<strong>Dev:</strong> "So the camera frames go out of a DATA <strong>outlet</strong> on the same node?"
+<strong>Domain expert:</strong> "Yes — the DATA <strong>outlet</strong> connects via an <strong>Edge</strong> to downstream <strong>CONTROL nodes</strong>. The <strong>Pipe</strong> on that <strong>Edge</strong> can be eager or lazy depending on whether you want immediate push or always-latest pull."
+<strong>Dev:</strong> "When I add this to a <strong>Library</strong>, how does it get discovered?"
+<strong>Domain expert:</strong> "Declare it in <code>register_components()</code> with <code>scan_nodes(...)</code>, and the <strong>entry_point</strong> in <code>pyproject.toml</code> makes the whole <strong>Library</strong> discoverable at startup."
+<strong>Dev:</strong> "And if the user is in the <strong>Graph Canvas</strong> and selects the node, what shows in the right <strong>Slot</strong>?"
+<strong>Domain expert:</strong> "The <strong>Properties Editor</strong> queries the <strong>PanelRegistry</strong> for all <strong>Panels</strong> whose <code>poll()</code> returns <code>True</code> for the <code>node</code> <strong>Scope</strong>. Each matching <strong>Panel</strong> renders inside a collapsible section. The <strong>ContextBar</strong> icon tells you which editor is active in the right <strong>Slot</strong>."</p>
+</blockquote>
+<h3 id="haystack">Haystack<a class="headerlink" href="#haystack" title="Permanent link">&para;</a></h3>
+<blockquote>
+<p><strong>Dev:</strong> "I want to save the set of graphs I'm working on so I can come back to it later."
+<strong>Domain expert:</strong> "Save a <strong>Haystack</strong> — it's a named TOML file in <code>haystacks/</code> that records which graphs are open. Use the save button in the <strong>HaystackEditor</strong> header."
+<strong>Dev:</strong> "What if one of my graphs is currently executing? Does the <strong>Haystack</strong> capture that?"
+<strong>Domain expert:</strong> "Yes — each graph entry in the <strong>Haystack</strong> has an <code>execute</code> flag. When you load the <strong>Haystack</strong> later, any graph marked <code>execute = true</code> will auto-start its <strong>Interpreter</strong>."
+<strong>Dev:</strong> "And unsaved graphs — do they go into the <strong>Haystack</strong>?"
+<strong>Domain expert:</strong> "No. A <strong>Haystack</strong> only stores paths to saved <code>.haywire</code> files. Unsaved <strong>GraphEntries</strong> (ones with no file path) are ephemeral — save the graph to disk first if you want it in a <strong>Haystack</strong>."
+<strong>Dev:</strong> "When I load a <strong>Haystack</strong>, what happens to the graphs I already have open?"
+<strong>Domain expert:</strong> "It's a full replace. If any current <strong>GraphEntries</strong> have unsaved changes, you'll get a confirmation dialog before they're discarded."</p>
+</blockquote>
+<h3 id="signals-subscribing-and-emitting">Signals — subscribing and emitting<a class="headerlink" href="#signals-subscribing-and-emitting" title="Permanent link">&para;</a></h3>
+<blockquote>
+<p><strong>Dev:</strong> "I want my editor to refresh when the user picks a different file. What should I subscribe to?"
+<strong>Domain expert:</strong> "<code>SessionContext.active_file</code> is a <strong>signal_field</strong>. Decorate your handler with <code>@redraw_on(SessionContext.active_file)</code> — the field reference IS the subscription key."
+<strong>Dev:</strong> "And if I want the handler to fire but NOT trigger a redraw — just a side-effect?"
+<strong>Domain expert:</strong> "Use <code>@react_on(SessionContext.active_file)</code> instead. Same subscription model; the framework just doesn't call <code>redraw()</code> after."
+<strong>Dev:</strong> "I also need to emit a coarse event when calibration finishes — carrying device ID, quality score, duration. That's not a single field changing."
+<strong>Domain expert:</strong> "That's a <strong>hand-authored signal</strong>. Declare <code>class CalibrationCompleted(Signal):</code> as a frozen dataclass with those payload fields, then <code>ctx.session.publish(CalibrationCompleted(...))</code> from the calibration worker. Subscribers wire it the same way: <code>@redraw_on(CalibrationCompleted)</code>."
+<strong>Dev:</strong> "If my library defines that <strong>Signal</strong> and another library subscribes, anything special?"
+<strong>Domain expert:</strong> "Yes — the subscriber must list your library in its <code>LibraryIdentity.dependencies</code>. Otherwise hot-reload of your library can leave the subscriber holding a stale class reference, and <code>isinstance</code> checks return <code>False</code>."</p>
+</blockquote>
+<h3 id="settings">Settings<a class="headerlink" href="#settings" title="Permanent link">&para;</a></h3>
+<blockquote>
+<p><strong>Dev:</strong> "I want my node to respect the library's default quality setting, but let users override it per-node."
+<strong>Domain expert:</strong> "Declare a <strong>NodeSettings</strong> inner class with a field that <code>mirrors=</code> the <strong>LibrarySettings</strong> field. The <strong>accessor name</strong> is whatever you call the inner class — <code>self.output</code>, say."
+<strong>Dev:</strong> "What if I just want to read a global flag silently, without showing it in the panel?"
+<strong>Domain expert:</strong> "Add <code>read_only=True</code> to the same <code>mirrors=</code> field. It becomes a silent cache — invisible in the panel, never stored, never writable per-instance. The value updates automatically when the <strong>FrameworkSettings</strong> source changes."
+<strong>Dev:</strong> "Where does the actual value come from when the node runs?"
+<strong>Domain expert:</strong> "<strong>Three-tier resolution</strong>: global TOML override wins, then workspace TOML override, then the node's local instance value, then workspace SET, then global SET, then the descriptor default. The <strong>SettingsRegistry</strong> owns that chain."
+<strong>Dev:</strong> "And the framework's own <code>ExecutionSettings</code> — does it need to be registered manually?"
+<strong>Domain expert:</strong> "No — <strong>FrameworkSettings</strong> subclasses self-register via <code>_pending_global</code> at registry init. <strong>LibrarySettings</strong> come in through the <strong>BaseRegistry</strong> hot-reload machinery when the <strong>Library</strong> loads."</p>
+</blockquote>
+<h3 id="subscribing-to-a-marketplace-new">Subscribing to a marketplace <em>(new)</em><a class="headerlink" href="#subscribing-to-a-marketplace-new" title="Permanent link">&para;</a></h3>
+<blockquote>
+<p><strong>Dev:</strong> "I want my project to see haybales from a colleague's published feed. How?"
+<strong>Domain expert:</strong> "Click <strong>Add Source</strong> in the <strong>Library Browser</strong> and paste the URL on the Marketplace tab. That writes a <code>[[markets]]</code> entry to the <strong>Global marketplace</strong> — your <code>~/.haywire/db/haybale-marketplace/marketplace.toml</code>."
+<strong>Dev:</strong> "Will it fetch immediately?"
+<strong>Domain expert:</strong> "Yes — Add Source auto-fires <strong>Refresh</strong>. The fetch is one-level-deep: the runtime reads the remote's <code>[[stalls]]</code> URLs and inline <code>[[haybales]]</code>, but ignores its own <code>[[markets]]</code> to bound the resolution. Resolved candidates land in the <strong>Project marketplace</strong>'s <code>[[caches]]</code>."
+<strong>Dev:</strong> "What if two feeds advertise the same haybale name?"
+<strong>Domain expert:</strong> "You get a <strong>Conflict resolution</strong> prompt at Add Source time: pick which feed wins. The losing feed's <code>ignores</code> array gains that name so future refreshes silently skip it from that source."
+<strong>Dev:</strong> "And if a feed I'm subscribed to goes offline?"
+<strong>Domain expert:</strong> "Refresh falls back to the <strong>HTTP cache</strong> at <code>~/.haywire/cache/</code>. The Library Browser shows a yellow 'N sources unavailable' banner so you know what's not fresh. Cached entries that don't re-resolve get marked <strong>Stale</strong> with a red dot and a (stale) suffix; if they're uninstalled, a trash icon lets you drop them from the cache."</p>
+</blockquote>
+<h3 id="publishing-a-library-cleanly-new">Publishing a library cleanly <em>(new)</em><a class="headerlink" href="#publishing-a-library-cleanly-new" title="Permanent link">&para;</a></h3>
+<blockquote>
+<p><strong>Dev:</strong> "I added a new import to my library. What do I need to update before <code>haywire share</code>?"
+<strong>Domain expert:</strong> "Two manifests: the <code>@library(dependencies=...)</code> decorator in your <code>__init__.py</code> (haywire DI runtime), and the <code>[project] dependencies</code> in the <strong>library pyproject</strong> (pip / consumer install). Source imports are the third layer — these are the <strong>Three manifest layers</strong> that have to agree."
+<strong>Dev:</strong> "I keep forgetting one of them. Anything that helps?"
+<strong>Domain expert:</strong> "Open the <strong>Library Overview Editor</strong> for your library, hit Edit, then the magnifying-glass <strong>Detect Dependencies</strong> button next to the dependencies field. It runs <strong>detect_deps</strong> and shows a <strong>diff modal</strong> with Union or Replace — Union is safe, never removes; Replace drops anything not detected."
+<strong>Dev:</strong> "And at publish time?"
+<strong>Domain expert:</strong> "<code>haywire share --strict</code> runs the <strong>Drift gate</strong>. If any of your barn libraries are missing manifest entries the source actually imports, it refuses to emit. <code>--fix</code> auto-corrects both manifests in place; default mode is warn-only on stderr."
+<strong>Dev:</strong> "What's the difference between <code>detect_deps</code> finding something for <code>library_decorator</code> versus <code>pyproject</code>?"
+<strong>Domain expert:</strong> "<code>library_decorator</code> is registered haywire libraries only — what the authoritative <code>HaywireLibrarySource</code> (the registry, or <code>EntryPointLibrarySource</code> in CLI flows) confirms is a haywire library. <code>pyproject</code> is wider: framework (<code>haywire-core</code>, <code>haywire-studio</code>), registered libraries, AND third-party (numpy, requests, etc.). Naming convention <code>haybale-*</code> is a hint, not a contract."</p>
+</blockquote>
+<hr />
+<h2 id="flagged-ambiguities">Flagged ambiguities<a class="headerlink" href="#flagged-ambiguities" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>"library"</strong> has five distinct meanings (see top of this glossary). Always disambiguate.</li>
+<li><strong>"pin"</strong> appears in the codebase and docs as both the colloquial name for the icon port and a general synonym for any port. Canonical terms are <strong>Inlet</strong> / <strong>Outlet</strong>; <strong>Pin</strong> is acceptable only for EXEC ports.</li>
+<li><strong>"connection"</strong> is used loosely to mean both the act of connecting (verb) and the edge itself (noun). Prefer <strong>Edge</strong> for the object, and <strong>link</strong> for the action.</li>
+<li><strong>"context"</strong> is overloaded: <code>ExecutionContext</code> (passed to worker), <code>SessionContext</code> (UI state), and <code>context=</code> string in older panel decorators (now replaced by <strong>Scope</strong>). Always qualify: ExecutionContext, SessionContext, or Scope.</li>
+<li><strong>"flow"</strong> appears as both the general concept (data flow, control flow) and the specific assembled object (<code>LocalizedDataFlow</code>, <code>Flow</code>). Capitalize <strong>Flow</strong> when referring to the assembled execution unit.</li>
+<li><strong>"NodeBehavior" vs "NodeType"</strong>: <code>NodeType</code> is the enum (<code>DATA</code>, <code>CONTROL</code>, <code>EVENT</code>, <code>OUTPUT</code>, <code>LOOPBACK</code>); <code>NodeBehavior</code> is the dataclass that holds <code>node_type: NodeType</code> plus other flags. The glossary term <strong>NodeType</strong> is canonical for the execution role. "Node type" (lowercase) is used consistently in docs and code for this concept only.</li>
+<li><strong>"sidebar"</strong> is overloaded: the CSS token prefix <code>--hw-sidebar-*</code> refers specifically to the <strong>ActivityBar</strong> and <strong>ContextBar</strong> (the narrow 48px icon strips). It does NOT refer to the Left or Right <strong>Slots</strong> (the wider editor panels). Always qualify: use <strong>ActivityBar</strong>, <strong>ContextBar</strong>, or <strong>Slot</strong> for structural names; "sidebar" only appears as a CSS token prefix.</li>
+<li><strong>"info bar"</strong> appears in two distinct senses: <code>hui.info_bar()</code> is a Panel-level metadata bar pattern; <strong>StatusBar</strong> is a shell-level bar at the bottom of the AppShell. They are different things — never use "info bar" to mean the StatusBar.</li>
+<li><strong>"panel"</strong> in CSS token names (<code>--hw-panel-*</code>) refers to the <code>.hw-panel</code> editor container, not the <strong>Panel</strong> sub-component concept. The CSS token <code>--hw-panel-bg</code> is the background of the editor container, not a per-Panel background.</li>
+<li><strong>"area" vs "slot"</strong>: <strong>Slot</strong> is the canonical term for workspace positions. <strong>Area</strong> and <strong>canvas_area</strong> are deprecated. The term "area" now refers only to the content region within a slot (the part next to the bar). Each slot = bar + area; use <strong>Slot</strong> for the whole position, "area" (lowercase, informal) only for the content pane if disambiguation is needed.</li>
+<li><strong>"middle" vs "main"</strong>: The slot formerly called "middle" is now <strong>Main</strong>. Use <code>default_slot='main'</code> in code. "Middle" is deprecated and will cause deserialization failures in <code>workspace_state.json</code>.</li>
+<li><strong>"hw-tabs" vs "hw-slot-bar-tabs"</strong>: The CSS class <code>hw-tabs</code> is deprecated. Use <code>hw-slot-bar</code> (base) + <code>hw-slot-bar-tabs</code> (horizontal tab bars) or <code>hw-slot-bar-icons</code> (vertical icon bars).</li>
+<li><strong>"session" vs "haystack"</strong>: "Session" in Haywire means a per-browser-connection state object (<strong>Session</strong>, <strong>SessionContext</strong>). A named selection of graphs to work on is a <strong>Haystack</strong>, not a "session" — despite IDE conventions. Do not use "session" to mean a saved graph selection.</li>
+<li><strong>"interpreter"</strong>: Each <strong>GraphEntry</strong> owns its own <strong>Interpreter</strong> instance. References to "the interpreter" should be qualified: "the graph's Interpreter" or "entry.interpreter". The app-level <code>self.interpreter</code> is removed.</li>
+<li><strong>"signal" vs "Signal"</strong>: lowercase "signal" is the generic concept (a thing on the bus). Uppercase <strong>Signal</strong> is the base class. <code>Session.publish</code> previously had a <code>Session.signal = publish</code> alias — that alias was deleted; use <code>publish</code> only. <code>session.signal(...)</code> is no longer valid.</li>
+<li><strong>"event" vs "signal"</strong>: <strong>Signal</strong> is the canonical term for anything on the session bus. The old <code>Event</code>/<code>ContextSignal</code>/<code>LifecycleCommand</code> vocabulary was deleted in the signal-field unification. <strong>Event</strong> survives only in unrelated contexts: <code>NodeType.EVENT</code> (execution-engine role), <code>EVENT node</code> (a node category), <code>LifeCycleEvent</code> (registry batch events), <code>ContextChangedEvent</code> (slot context-change signal, distinct from session-bus signals). Never use "event" to mean a session-bus signal.</li>
+<li><strong>"reactive field" vs "signal field"</strong>: historical name for the same concept. The pre-unification <code>Reactive[T]</code> wrapper with <code>.value</code> accessor was deleted; <strong>signal_field</strong> is the canonical term. "Reactive field" appears only in historical design docs under <code>internals/speculatives/</code>.</li>
+<li><strong>"Signal class" overloaded</strong>: a <strong>synthetic signal class</strong> is generated by <code>signal_field</code> at class-definition; a <strong>hand-authored signal</strong> is a <code>Signal</code> subclass declared explicitly. Both inherit <code>Signal</code> directly and dispatch identically. Disambiguate when discussing implementation details.</li>
+<li><strong>"marketplace" overloaded</strong> <em>(new)</em>: refers to three distinct things — the runtime concept (the <strong>Marketplace</strong> catalog visible in the Library Manager's AVAILABLE section), the file (<strong>Global marketplace</strong> <code>~/.haywire/db/haybale-marketplace/marketplace.toml</code> or <strong>Project marketplace</strong> <code>&lt;project&gt;/.haywire/marketplace.toml</code>), and the TOML section type (<strong><code>[[markets]]</code></strong> subscriptions to remote marketplace feeds). Always qualify which sense — file vs section vs catalog.</li>
+<li><strong>"marketplace" vs "marketstall"</strong> <em>(new)</em>: a <strong>Marketstall</strong> is a single-author publish file listing <code>[[haybales]]</code> (produced by <code>haywire share</code>). A <strong>Marketplace</strong> in the file-shape sense (<code>marketplace.toml</code>) aggregates <code>[[markets]]</code> subscriptions, <code>[[stalls]]</code> subscriptions, optional inline <code>[[haybales]]</code>, and (project-only) <code>[[heaps]]</code> + <code>[[caches]]</code>. A <code>[[markets]]</code> URL points at another <code>marketplace.toml</code>; a <code>[[stalls]]</code> URL points at a <code>marketstall.toml</code>. Different schemas, different recursion rules.</li>
+<li><strong>"heaps" location</strong> <em>(new)</em>: <code>haywire init</code> writes <code>[[heaps]]</code> to the <strong>Project marketplace</strong>, NOT the Global marketplace. The Global marketplace has no <code>[[heaps]]</code> section in the new schema (the legacy <code>[[locals]]</code> cross-project case is unsupported; users with that need declare each project's heaps in its own project marketplace).</li>
+<li><strong>"dependencies" — three meanings</strong> <em>(new)</em>: (1) project pyproject <code>dependencies</code> (what uv resolves in dev), (2) library pyproject <code>dependencies</code> (what pip ships with the published package), (3) <code>@library(dependencies=[...])</code> (the haywire runtime DI graph). The <strong>Three manifest layers</strong> must agree at publish time; <strong>detect_deps</strong> and the <strong>Drift gate</strong> keep them honest. Never use bare "dependencies" without qualifying which manifest you mean.</li>
+<li><strong>"required" vs "dependent"</strong> <em>(new)</em>: a library is <strong>required</strong> if some installed haywire library lists it in <code>@library(dependencies=[...])</code>. The reverse-direction term is <strong>dependent</strong> — the library that <em>has</em> that declaration. Computed via <code>LibraryManager.get_installed_dependents(lib_id)</code>. Note: this is the <strong><code>@library</code></strong> graph, NOT pip's <code>Requires-Dist</code>. The pip-walk path (<code>is_required_by_another_package</code>) was removed in commit <code>f09c8558</code>.</li>
+<li><strong>"refresh" vs "scan"</strong> <em>(new)</em>: <strong>Refresh</strong> is the orchestration pipeline that fetches subscriptions, applies conflict resolution, and writes the project <code>[[caches]]</code>. "Scan" usually means file-watcher reload or library-registry rescan — different subsystem. Use <strong>Refresh</strong> for the marketplace pipeline.</li>
+<li><strong>"stale"</strong> <em>(new)</em>: in the marketplace runtime, <strong>stale</strong> means a project-marketplace <code>[[caches]]</code> entry that a subsequent <strong>Refresh</strong> did not re-resolve from any source. It does NOT mean "out of date" in the version sense. Stale + installed entries are locked from removal; stale + uninstalled entries are trash-icon removable.</li>
+<li><strong>"dialog" vs "modal" vs "popup"</strong> <em>(new)</em>: in the haywire codebase, <strong>Popup</strong> is the Vue component all canonical modals are built on. The helpers in <code>haywire.ui.modals</code> (info_modal, confirm_modal, pick_modal, rename_modal, save_as_modal, diff_modal) wrap Popup with task-specific bodies. "Dialog" is the legacy NiceGUI/Quasar surface (<code>ui.dialog()</code>) — being migrated to Popup; legacy dialogs sit at Quasar's default z-index 6000, Popup at 7000/7001 so haywire modals always stack on top.</li>
+</ul>
+
+
+
+
+
+
+
+  
+  
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+  <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var labels=set.querySelector(".tabbed-labels");for(var tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.instant", "navigation.tracking", "navigation.tabs", "navigation.tabs.sticky", "navigation.sections", "navigation.expand", "navigation.indexes", "navigation.top", "search.highlight", "search.suggest", "content.code.copy", "content.code.annotate", "content.tabs.link", "toc.follow"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>

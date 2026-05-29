@@ -1,0 +1,3268 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="A Blueprint-inspired visual programming system — dual-flow control + data, library plugin model, hot-reload-first development.">
+      
+      
+      
+        <link rel="canonical" href="https://going-haywire.github.io/haywire/docs/guides/subscribing-to-marketplaces/">
+      
+      
+        <link rel="prev" href="../sharing-libraries/">
+      
+      
+        <link rel="next" href="../../architecture/overview/overview-arch/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>Subscribing to marketplaces - Haywire Documentation</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Inter:300,300i,400,400i,700,700i%7CJetBrains+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Inter";--md-code-font:"JetBrains Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#subscribing-to-marketplaces-consumer-guide" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow md-header--lifted" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="Haywire Documentation" class="md-header__button md-logo" aria-label="Haywire Documentation" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Haywire Documentation
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Subscribing to marketplaces
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+  </nav>
+  
+    
+      
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../.." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../welcome/user/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Perspectives
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../components/nodes/node-canon/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Components
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../node-roles/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Guides
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../architecture/overview/overview-arch/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Architecture
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../reference/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Reference
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../archive/whitepaper/Haywire_design/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Archive
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+    
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="Haywire Documentation" class="md-nav__button md-logo" aria-label="Haywire Documentation" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    Haywire Documentation
+  </label>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../welcome/user/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Perspectives
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_2" id="__nav_2_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Perspectives
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../welcome/advanced/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Advanced (workbench extender)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../welcome/core/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Core (system architect)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Components
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Components
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../components/nodes/node-canon/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Nodes
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../components/datatypes/datatype-canon/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Datatypes
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../components/adapters/adapter-canon/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Adapters
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../components/settings/setting-canon/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Settings
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../components/widgets/widget-canon/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Widgets
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../components/skins/skin-canon/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Skins
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--placeholder"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../components/themes/theme-canon/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Themes
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../components/editors/editor-canon/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Editors
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../components/panels/panel-canon/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Panels
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../components/states/state-canon/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    States
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../components/libraries/library-canon/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Libraries
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../components/haybale-package/haybale-package-canon/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Haybale package
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Guides
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Guides
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../node-roles/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Node roles
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ports/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Ports
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../signals/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Signals
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../sharing-libraries/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Sharing libraries
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Subscribing to marketplaces
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Subscribing to marketplaces
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#1-what-it-solves" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. What it solves
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-the-two-tier-file-layout" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. The two-tier file layout
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-add-source-subscribing-to-a-feed" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Add Source: subscribing to a feed
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="3. Add Source: subscribing to a feed">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#31-what-happens-after-you-click-add" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.1 What happens after you click Add
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-handling-name-conflicts" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Handling name conflicts
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-refresh-pulling-the-latest-catalog" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. Refresh: pulling the latest catalog
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="5. Refresh: pulling the latest catalog">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#51-the-available-section" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.1 The Available section
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#52-the-install-safety-modal" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.2 The install-safety modal
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#6-sources-unavailable" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. Sources unavailable
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#7-stale-entries" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7. Stale entries
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#8-edit-file-when-you-need-the-toml" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8. Edit File: when you need the TOML
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#9-installing-and-updating-what-you-found" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        9. Installing and updating what you found
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="9. Installing and updating what you found">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#91-updates-available" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        9.1 Updates available
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#10-common-pitfalls" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        10. Common pitfalls
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#11-reading-on" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        11. Reading on
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Architecture
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/overview/overview-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--placeholder"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/design/design-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Design
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--placeholder"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/graph/graph-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Graph
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_5_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_5_4" id="__nav_5_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Execution
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_5_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Execution
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/execution/execution-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/execution/assembly/assembly-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Assembly
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/execution/edges/edges-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Edges
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/execution/flow/flow-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Flow
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--placeholder"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/execution/virtual-machine/virtual-machine-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Virtual machine
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--placeholder"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/execution/lazy-evaluation/lazy-evaluation-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Lazy evaluation
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--placeholder"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/execution/callbacks/callbacks-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Callbacks
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/library-system/library-system-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Library system
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/library-manager/library-manager-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Library manager
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/sharing/sharing-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Sharing — philosophy
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/hot-reload/hot-reload-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Hot-reload
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/settings/settings-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Settings
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/session-and-state/session-and-state-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Session and state
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_5_11" >
+        
+          
+          <label class="md-nav__link" for="__nav_5_11" id="__nav_5_11_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Studio
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_5_11_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5_11">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Studio
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/studio/studio-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/studio/app-shell/app-shell-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    App shell
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--placeholder"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/studio/workspace/workspace-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Workspace
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--placeholder"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/studio/canvas/canvas-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Canvas
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--placeholder"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/studio/rendering/rendering-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Rendering
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--placeholder"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_6" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../reference/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reference
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_6" id="__nav_6_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/glossary/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Glossary
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/design-guide/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Design guide
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_7" >
+        
+          
+          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Archive
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Archive
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../archive/whitepaper/Haywire_design/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Whitepaper
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#1-what-it-solves" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. What it solves
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-the-two-tier-file-layout" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. The two-tier file layout
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-add-source-subscribing-to-a-feed" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Add Source: subscribing to a feed
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="3. Add Source: subscribing to a feed">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#31-what-happens-after-you-click-add" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.1 What happens after you click Add
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-handling-name-conflicts" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Handling name conflicts
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-refresh-pulling-the-latest-catalog" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. Refresh: pulling the latest catalog
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="5. Refresh: pulling the latest catalog">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#51-the-available-section" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.1 The Available section
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#52-the-install-safety-modal" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.2 The install-safety modal
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#6-sources-unavailable" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. Sources unavailable
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#7-stale-entries" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7. Stale entries
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#8-edit-file-when-you-need-the-toml" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8. Edit File: when you need the TOML
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#9-installing-and-updating-what-you-found" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        9. Installing and updating what you found
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="9. Installing and updating what you found">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#91-updates-available" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        9.1 Updates available
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#10-common-pitfalls" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        10. Common pitfalls
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#11-reading-on" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        11. Reading on
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+
+<h1 id="subscribing-to-marketplaces-consumer-guide">Subscribing to marketplaces — Consumer guide<a class="headerlink" href="#subscribing-to-marketplaces-consumer-guide" title="Permanent link">&para;</a></h1>
+<p>This guide walks a consumer through following other authors' libraries: adding a source, refreshing the catalog, installing what you want, and handling the edge cases (conflicts, offline feeds, stale entries, malformed files). For the conceptual model — <em>why</em> the flow is shaped this way — see <a href="../../architecture/sharing/sharing-arch/">sharing-arch</a>. For the publisher side, see <a href="../sharing-libraries/">sharing-libraries</a>.</p>
+<h2 id="1-what-it-solves">1. What it solves<a class="headerlink" href="#1-what-it-solves" title="Permanent link">&para;</a></h2>
+<p>A <strong>subscription</strong> is the consumer's opt-in to follow what another author publishes. There's no central registry — there's a network of independent feeds, each one a TOML file hosted by its author, and each consumer chooses which to follow. Subscribing is explicit at every step: you add a source, you refresh, you install. Nothing pushes; nothing auto-installs.</p>
+<p>The Library Browser in haywire-studio is the surface that drives this. It lists what you currently have installed and what's available to install, with filter toggles to scope the view. The three buttons in its toolbar — Refresh, Add Source, Edit File — are the entire consumer-facing surface.</p>
+<h2 id="2-the-two-tier-file-layout">2. The two-tier file layout<a class="headerlink" href="#2-the-two-tier-file-layout" title="Permanent link">&para;</a></h2>
+<p>Your project's library state lives in two files. Knowing what each is for helps when you have to reason about what's happening.</p>
+<table>
+<thead>
+<tr>
+<th>File</th>
+<th>Path</th>
+<th>What it holds</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Global marketplace</strong></td>
+<td><code>~/.haywire/db/haybale-marketplace/marketplace.toml</code></td>
+<td>Your subscriptions: <code>[[markets]]</code> for remote aggregators, <code>[[stalls]]</code> for individual marketstall feeds. Pasted-TOML inputs are saved as a local stall file and referenced via a <code>file://</code> <code>[[stalls]]</code> entry. Per-machine.</td>
+</tr>
+<tr>
+<td><strong>Project marketplace</strong></td>
+<td><code>&lt;project&gt;/.haywire/marketplace.toml</code></td>
+<td>This project's path-based libraries (<code>[[heaps]]</code>, written by <code>haywire init</code>) and the resolved catalog cache (<code>[[caches]]</code>, written by Refresh). Per-project; travels with the source tree.</td>
+</tr>
+</tbody>
+</table>
+<p>You generally interact with the global file (subscriptions are a user concern). The project file is managed for you — <code>haywire init</code> sets up <code>[[heaps]]</code>, and Refresh maintains <code>[[caches]]</code>.</p>
+<p>For a deep dive into the split and why it exists, see <a href="../../architecture/sharing/sharing-arch/#why-two-tiers">sharing-arch §Why two tiers</a>.</p>
+<h2 id="3-add-source-subscribing-to-a-feed">3. Add Source: subscribing to a feed<a class="headerlink" href="#3-add-source-subscribing-to-a-feed" title="Permanent link">&para;</a></h2>
+<p>Click <strong>Add Source</strong> in the Library Browser toolbar. A single-field dialog opens — paste any of four forms:</p>
+<table>
+<thead>
+<tr>
+<th>Form</th>
+<th>What it looks like</th>
+<th>Result</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Blob URL</strong> (recommended)</td>
+<td><code>https://github.com/alice/cool-libs/blob/main/marketstall.toml</code></td>
+<td>The runtime recognizes the host, converts to the raw URL, and saves the appropriate <code>[[markets]]</code> or <code>[[stalls]]</code> subscription depending on the fetched body's shape.</td>
+</tr>
+<tr>
+<td><strong>Raw URL</strong></td>
+<td><code>https://raw.githubusercontent.com/alice/cool-libs/main/marketstall.toml</code></td>
+<td>Same as blob, but skips the URL transformation.</td>
+</tr>
+<tr>
+<td><strong>Plain TOML URL</strong></td>
+<td>Any URL that serves a TOML file (GitHub Pages, GitLab Pages, your own host)</td>
+<td>Fetched as-is; the body shape determines subscription type.</td>
+</tr>
+<tr>
+<td><strong>TOML block</strong> pasted directly</td>
+<td>A <code>[[haybales]]</code> (or <code>[[markets]]</code>/<code>[[stalls]]</code>) section pasted into the field</td>
+<td>Saved as a local file under <code>~/.haywire/db/haybale-marketplace/stalls/&lt;dist-name&gt;.toml</code> and referenced via a <code>file://</code> <code>[[stalls]]</code> entry.</td>
+</tr>
+</tbody>
+</table>
+<p>You don't pick a tab — the runtime inspects the fetched body and decides:</p>
+<ul>
+<li>If it contains <code>[[markets]]</code> or <code>[[stalls]]</code> references → saved as a <code>[[markets]]</code> subscription (it's an aggregator's catalog).</li>
+<li>If it contains only <code>[[haybales]]</code> → saved as a <code>[[stalls]]</code> subscription (it's a single marketstall).</li>
+</ul>
+<p>Bare repository URLs (e.g. <code>https://github.com/alice/cool-libs</code>) are rejected — the dialog asks for the full path to a <code>marketstall.toml</code> or <code>marketplace.toml</code> so the resolver always knows what it's fetching.</p>
+<p>Most authors share blob URLs (the canonical GitHub form). The official haywire feed lives at <code>https://maybites.github.io/haywire/marketplace.toml</code> — pasting that subscribes you as a <code>[[markets]]</code> entry. A <code>file://</code> URL also works, useful for testing local fixtures or air-gapped setups.</p>
+<h3 id="31-what-happens-after-you-click-add">3.1 What happens after you click Add<a class="headerlink" href="#31-what-happens-after-you-click-add" title="Permanent link">&para;</a></h3>
+<ol>
+<li>The URL (or pasted body) is classified by host provider and parsed.</li>
+<li>A new <code>[[markets]]</code> or <code>[[stalls]]</code> entry is written to your global marketplace.</li>
+<li>An auto-refresh fires.</li>
+<li>If the new source's haybales collide with anything you already have, a conflict-resolution prompt opens (see §4).</li>
+<li>After refresh: a green toast reports the result (e.g. <code>"Refreshed 3 package(s) · 1 update(s) available"</code>).</li>
+</ol>
+<p>The auto-refresh is a convenience — you don't have to remember to click Refresh after adding a source. If you ever subscribe by hand-editing the file (via Edit File), you'll need to click Refresh yourself.</p>
+<h2 id="4-handling-name-conflicts">4. Handling name conflicts<a class="headerlink" href="#4-handling-name-conflicts" title="Permanent link">&para;</a></h2>
+<p>Two authors can pick the same library name — there's no central namespace stopping them. The system surfaces collisions at the moment you're about to follow a new feed that would introduce one.</p>
+<p>When Add Source detects a conflict (a package in the new source whose name matches one your existing sources already provide), a conflict-resolution dialog opens with one row per colliding name. Each row shows the name and which sources offer it; you pick which to keep.</p>
+<p>The choice is permanent: the losing source's <code>ignores</code> array gains the name, and from then on refresh will silently skip it from that source. You won't be asked again for the same conflict.</p>
+<p>If you change your mind later, you can edit <code>~/.haywire/marketplace.toml</code> directly via the Edit File button — remove the entry from the <code>ignores</code> array, then click Refresh.</p>
+<p>For the principle behind asking at intake rather than at refresh, see <a href="../../architecture/sharing/sharing-arch/#resolving-conflicts">sharing-arch §Resolving conflicts</a>.</p>
+<h2 id="5-refresh-pulling-the-latest-catalog">5. Refresh: pulling the latest catalog<a class="headerlink" href="#5-refresh-pulling-the-latest-catalog" title="Permanent link">&para;</a></h2>
+<p>The <strong>Refresh</strong> button is the only operation that talks to the network. It does not run on a timer. You decide when to refresh.</p>
+<p>What refresh does, in concept:</p>
+<ol>
+<li>Reads your global marketplace.</li>
+<li>Fetches every subscribed <code>[[markets]]</code> and <code>[[stalls]]</code> URL.</li>
+<li>For each <code>[[markets]]</code> body, reads its <code>[[stalls]]</code> references one level deep and fetches those too. Inline <code>[[haybales]]</code> in the markets body are also collected.</li>
+<li>For each haybale, applies the subscription's <code>blocked</code> array first (silently drops names you've actively rejected), then <code>ignores</code> (drops names you chose against in a previous conflict prompt). Each surviving haybale is stamped with the subscription's URL as its <code>via</code> field.</li>
+<li>Assembles the combined candidate list and applies the heaps shadow (your project's path-based libraries win over any remote of the same name).</li>
+<li>Deduplicates by name (first occurrence wins for any straggler).</li>
+<li>Marks newly-missing entries as stale (see §7). Blocked names are filtered out of the stale-rescue step so they fully disappear rather than survive as <code>stale=true</code>.</li>
+<li>Counts installed libraries whose cache <code>min_version</code> exceeds the installed version (updates available, see §9).</li>
+<li>Writes the result to your project marketplace's <code>[[caches]]</code> section.</li>
+</ol>
+<p>After a successful refresh, a green toast summarizes: <code>"Refreshed N package(s) · M source(s) unavailable · K newly stale · L update(s) available"</code>. The middle phrases appear only when relevant.</p>
+<h3 id="51-the-available-section">5.1 The Available section<a class="headerlink" href="#51-the-available-section" title="Permanent link">&para;</a></h3>
+<p>The Library Browser's AVAILABLE filter (blue cloud-download icon) shows the resolved catalog: every haybale not currently installed. Clicking a row opens its Library Overview Editor for install.</p>
+<p>Each row carries a <strong>provenance label</strong> derived from the <code>via</code> cache field — "from github.com/alice" for direct stalls, "via going-haywire.github.io" for haybales that arrived through an aggregator. The tooltip names both the aggregator and the underlying stall so you can audit which feeds contribute which haybales. If an aggregator silently adds new sources, the new haybales' provenance labels make the expansion visible.</p>
+<p>Heaps — your project's path-based libraries — show up here too, even though they aren't on any remote feed. They're presented as <code>source = "local"</code> entries. Installing them runs <code>uv pip install -e &lt;path&gt;</code> so they become editable.</p>
+<h3 id="52-the-install-safety-modal">5.2 The install-safety modal<a class="headerlink" href="#52-the-install-safety-modal" title="Permanent link">&para;</a></h3>
+<p>Every Install click opens a modal interposing between the click and the actual <code>uv pip install</code>. The user is installing third-party code, and the modal makes that explicit:</p>
+<table>
+<thead>
+<tr>
+<th>Button</th>
+<th>Effect</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Cancel</strong></td>
+<td>Closes the modal, no change.</td>
+</tr>
+<tr>
+<td><strong>Block source</strong></td>
+<td>Adds the haybale's <code>name</code> to the <code>blocked</code> array on the subscription that resolved it (the one whose URL matches the cache entry's <code>via</code>). The haybale disappears from AVAILABLE immediately; the only un-block path is editing <code>marketplace.toml</code> by hand.</td>
+</tr>
+<tr>
+<td><strong>Install</strong></td>
+<td>Proceeds with <code>uv pip install &lt;install_spec&gt;</code> and triggers a Library System rescan.</td>
+</tr>
+</tbody>
+</table>
+<p>The modal also shows the haybale's <code>source_url</code> as a clickable "Review source" link so you can read the code at the source before installing. The modal fires on every Install click — there's no first-time-only suppression, since third-party install is a serious enough operation that the safety prompt is shown every time. Cancel dismisses it in one click if you're sure.</p>
+<h2 id="6-sources-unavailable">6. Sources unavailable<a class="headerlink" href="#6-sources-unavailable" title="Permanent link">&para;</a></h2>
+<p>If a refresh can't fetch a subscribed URL — network error, server down, 404 — the refresh doesn't abort. It records the failed URL and falls back to the HTTP cache at <code>~/.haywire/cache/</code>. If the cache has a previous successful fetch, the catalog still reflects that. If no cache exists, the URL is simply absent from the candidate list.</p>
+<p>You'll see a <strong>yellow banner</strong> above the library list: <code>"N source(s) unavailable"</code> with an info button. Click the info button for the specific URLs that failed.</p>
+<p>The catalog continues to work with whatever did fetch successfully. You can keep installing, browsing, and refreshing; the next refresh will retry the failed URLs. If a URL has gone permanently offline (the author moved their hosting, say), you can remove the subscription via Edit File.</p>
+<p>For the principle behind not aborting on partial failure, see <a href="../../architecture/sharing/sharing-arch/#drift-staleness-and-other-soft-signals">sharing-arch §Drift, staleness, and other soft signals</a>.</p>
+<h2 id="7-stale-entries">7. Stale entries<a class="headerlink" href="#7-stale-entries" title="Permanent link">&para;</a></h2>
+<p>A <strong>stale</strong> entry is a package that was in your project cache from a previous refresh but didn't re-resolve in the current one. Maybe the author dropped it, maybe the feed went offline, maybe the package was renamed. The cache entry persists with <code>stale = true</code> and a <code>last_seen</code> timestamp, so you can see what was there and decide what to do.</p>
+<p>In the Library Browser, stale entries render with a <strong>red dot + (stale) suffix</strong> in the row's sublabel, plus a tooltip showing when the entry was last seen fresh. Two cases:</p>
+<table>
+<thead>
+<tr>
+<th>State</th>
+<th>Action available</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Stale <strong>+ uninstalled</strong></td>
+<td>A trash icon appears on the row. Click to remove from the cache.</td>
+</tr>
+<tr>
+<td>Stale <strong>+ installed</strong></td>
+<td>The trash icon is suppressed. Uninstall the library first, then refresh again to re-evaluate.</td>
+</tr>
+</tbody>
+</table>
+<p>The asymmetry exists because removing the cache entry while the library is still installed on disk would leave the catalog inconsistent with reality.</p>
+<h2 id="8-edit-file-when-you-need-the-toml">8. Edit File: when you need the TOML<a class="headerlink" href="#8-edit-file-when-you-need-the-toml" title="Permanent link">&para;</a></h2>
+<p>Sometimes the UI doesn't cover what you need to do. Examples:</p>
+<ul>
+<li>Removing a subscription (no UI yet — coming).</li>
+<li>Removing a name from an <code>ignores</code> array to undo a conflict-resolution choice.</li>
+<li>Adding or removing a name from a <code>blocked</code> array to undo an install-safety-modal Block choice.</li>
+<li>Inspecting what subscriptions you actually have.</li>
+</ul>
+<p>The <strong>Edit File</strong> button in the Library Browser toolbar opens <code>~/.haywire/marketplace.toml</code> in the embedded code editor. Save your changes there, then click Refresh to apply them.</p>
+<p>If the file becomes malformed (a typo in TOML syntax), the Library Browser shows a <strong>red banner</strong> at the top of the list: <code>"Global marketplace is malformed..."</code> with a hint to click Edit File again to repair. The catalog stops rendering until the file is parseable. The Library Browser refuses to mask this kind of error — a half-resolved catalog is worse than no catalog.</p>
+<h2 id="9-installing-and-updating-what-you-found">9. Installing and updating what you found<a class="headerlink" href="#9-installing-and-updating-what-you-found" title="Permanent link">&para;</a></h2>
+<p>Browsing the catalog is one thing; installing is another. They're deliberately separate steps.</p>
+<p>To install: click an AVAILABLE row in the Library Browser. The Library Overview Editor opens on the right; click <strong>Install</strong> — and the install-safety modal opens (see §5.2). Behind the scenes:</p>
+<ul>
+<li>The runtime parses the entry's <code>install_spec</code>.</li>
+<li>It runs <code>uv pip install &lt;install_spec&gt;</code> (which routes to PyPI, git, or a local editable path depending on the entry's <code>source</code>).</li>
+<li>On success, the Library System rescans to pick up the new entry point.</li>
+<li>The row moves from AVAILABLE to ENABLED.</li>
+</ul>
+<p>If the library declares haybale dependencies that you don't have installed, the Overview Editor's gating lets you know — but it doesn't auto-install them. You install each library individually. This is by design: the dependency information is informational, not a directive (see <a href="../../architecture/library-manager/library-manager-arch/#8-boundary-what-the-library-manager-is-not">library-manager-arch §What the Library Manager is not</a>).</p>
+<h3 id="91-updates-available">9.1 Updates available<a class="headerlink" href="#91-updates-available" title="Permanent link">&para;</a></h3>
+<p>For each installed haybale, refresh compares the installed distribution version against the cache <code>min_version</code>. When the cache says you need at least <code>0.5.0</code> and you have <code>0.1.0</code> installed, an update is available:</p>
+<ul>
+<li>The Library Browser row shows a quiet <strong>▲ "v0.5.0 available"</strong> indicator alongside the installed version.</li>
+<li>The post-refresh toast appends a count: <code>"... · 2 update(s) available"</code>.</li>
+<li>The Library Overview Editor's actions menu adds an <strong>Update to v0.5.0</strong> entry. Clicking it runs the same install pipeline against the current <code>install_spec</code>, which pip resolves to a higher matching version.</li>
+</ul>
+<p>The signal is informational only — nothing auto-updates. You decide when to upgrade. The Update button does NOT open the install-safety modal: you already trusted this source by installing it originally.</p>
+<p>OS-incompatible haybales never appear as updates either. If a haybale declares <code>os = ["linux"]</code> and you're on macOS, the Library Browser row shows a disabled Install button with a "Not available on this OS" tooltip — you can still see the entry for awareness, but the install path is blocked at the gate.</p>
+<h2 id="10-common-pitfalls">10. Common pitfalls<a class="headerlink" href="#10-common-pitfalls" title="Permanent link">&para;</a></h2>
+<p><strong>You added a subscription but nothing shows in AVAILABLE.</strong>
+Check three things:</p>
+<ol>
+<li>Did the auto-refresh actually run? A green toast should have appeared. If not, click Refresh manually.</li>
+<li>Open Edit File and confirm the URL was actually written. It should appear under <code>[[markets]]</code> or <code>[[stalls]]</code>.</li>
+<li>Check for a yellow "sources unavailable" banner. If your URL is in the failed list, the feed isn't reachable.</li>
+</ol>
+<p><strong>A library you expected to see isn't in the catalog.</strong>
+Possible causes:</p>
+<ol>
+<li>A conflict resolution dropped it. Look in Edit File for the library's name in any subscription's <code>ignores</code> array.</li>
+<li>The feed actually doesn't carry it — check the author's marketstall directly via the URL.</li>
+<li>A local library with the same name is shadowing it. Locals always win.</li>
+</ol>
+<p><strong>You can't install — <code>uv pip install</code> fails.</strong>
+The marketplace's job ends at producing the catalog; the install step is uv's. Check:</p>
+<ol>
+<li>The <code>install_spec</code> URL is reachable.</li>
+<li>For git installs, you have git credentials configured if the repo is private.</li>
+<li>Your project's <code>pyproject.toml</code> doesn't conflict with the library's declared deps.</li>
+</ol>
+<p><strong>A library is marked stale but you want to keep using it.</strong>
+Stale is a soft signal — the library is still installed and works. The flag is purely informational, telling you it's no longer in any feed you subscribe to. You can keep using it indefinitely; if the original author republishes, the next refresh will mark it fresh again.</p>
+<p><strong>You uninstalled a stale library and want to re-evaluate.</strong>
+Click Refresh. Stale-uninstalled entries that aren't re-resolved by the refresh stay in the cache (so you can decide to remove them); they're not auto-pruned. Use the trash icon to remove the entry once you're done with it.</p>
+<h2 id="11-reading-on">11. Reading on<a class="headerlink" href="#11-reading-on" title="Permanent link">&para;</a></h2>
+<ul>
+<li>The <strong>publisher side</strong> of this flow: <a href="../sharing-libraries/">sharing-libraries</a>.</li>
+<li>The <strong>conceptual model</strong> behind these mechanics: <a href="../../architecture/sharing/sharing-arch/">sharing-arch</a>.</li>
+<li>The <strong>library manager architecture</strong> these tools plug into: <a href="../../architecture/library-manager/library-manager-arch/">library-manager-arch</a>.</li>
+<li>The <strong>canonical vocabulary</strong> (Marketplace, Marketstall, Subscription, Refresh, Stale, etc.): <a href="../../reference/glossary/">glossary</a>.</li>
+</ul>
+
+
+
+
+
+
+
+  
+  
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+  <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var labels=set.querySelector(".tabbed-labels");for(var tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.instant", "navigation.tracking", "navigation.tabs", "navigation.tabs.sticky", "navigation.sections", "navigation.expand", "navigation.indexes", "navigation.top", "search.highlight", "search.suggest", "content.code.copy", "content.code.annotate", "content.tabs.link", "toc.follow"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>
