@@ -39,7 +39,7 @@ DEFAULT_GLOBAL_CONFIG = {
 DEFAULT_MARKETPLACE: dict[str, list[dict]] = {
     "markets": [
         {
-            "url": "https://maybites.github.io/haywire/marketplace.toml",
+            "url": "https://going-haywire.github.io/haywire/marketplace.toml",
             "ignores": [],
             "doubles": [],
             "blocked": [],

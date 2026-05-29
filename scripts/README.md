@@ -59,4 +59,4 @@ defaults when the decorator omits a field.
 
 The output is deployed to GitHub Pages on every release tag by
 `.github/workflows/publish.yml`. Subscribers fetch it from
-`https://maybites.github.io/haywire/marketplace.toml`.
+`https://going-haywire.github.io/haywire/marketplace.toml`.

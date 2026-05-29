@@ -87,7 +87,7 @@ def test_get_global_returns_parsed(state_with_workspace, fake_home) -> None:
     global_mp.parent.mkdir(parents=True, exist_ok=True)
     global_mp.write_text(
         "[[markets]]\n"
-        'url = "https://maybites.github.io/haywire/marketplace.toml"\n'
+        'url = "https://going-haywire.github.io/haywire/marketplace.toml"\n'
         "ignores = []\n"
         "doubles = []\n"
     )
