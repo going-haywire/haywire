@@ -684,9 +684,24 @@ class SettingsRegistry(BaseRegistry):
                     except Exception as e:
                         logger.error(f"Failed to reload settings: {e}")
 
+        # The settings file may not exist yet ("create on save"), which means
+        # its parent directory may also be absent. Linux inotify raises when
+        # asked to watch a non-existent directory (macOS FSEvents tolerates
+        # it), so ensure the directory exists before scheduling the observer.
+        try:
+            path.parent.mkdir(parents=True, exist_ok=True)
+        except OSError as e:
+            logger.warning(f"Could not create settings dir {path.parent}; watching disabled: {e}")
+            return
+
         observer = Observer()
         observer.schedule(ConfigHandler(), str(path.parent), recursive=False)
-        observer.start()
+        try:
+            observer.start()
+        except OSError as e:
+            # File watching is non-essential; never let it break app init.
+            logger.warning(f"Could not start settings watcher for {path}; hot-reload disabled: {e}")
+            return
 
         if tier == "global":
             self._global_observer = observer
