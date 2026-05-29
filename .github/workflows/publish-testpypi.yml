@@ -107,6 +107,7 @@ jobs:
       name: testpypi
       url: https://test.pypi.org/project/haywire-core/
     permissions:
+      contents: read    # checkout needs this; an explicit block sets all others to none
       id-token: write   # required for Trusted Publisher (OIDC)
     steps:
       - name: Checkout repository
