@@ -2,8 +2,30 @@
 
 **Date raised:** 2026-05-29
 **Severity:** latent robustness bug — platform-dependent (Linux only)
-**Status:** open
+**Status:** RESOLVED 2026-05-29
 **Found during:** cutting release v0.0.2 (CI publish gate failures)
+
+## Resolution (2026-05-29)
+
+Fixed in `SettingsRegistry._start_file_watcher`
+(`packages/haywire-core/src/haywire/core/settings/registry.py`): the watcher
+now `path.parent.mkdir(parents=True, exist_ok=True)` before scheduling the
+observer (option 1 below), and wraps `observer.start()` in a try/except that
+degrades to no-watch on `OSError` (option 3) so a watcher failure can never
+break app init. Regression test added at
+`tests/core/test_settings/test_settings_file_watcher.py` covering both the
+missing-parent-dir case and the missing-file/existing-dir first-run case.
+
+The `watch_settings=False` workaround in `tests/core/test_state/test_di_wiring.py`
+was kept deliberately — unit tests should not spin up real OS watchers or
+touch the developer's home directory, independent of this fix.
+
+The related `ui` Playwright CI gap (see "Related" below) was also closed: a
+dedicated `ui` job was added to `.github/workflows/tests.yml` that runs
+`playwright install --with-deps chromium` then `pytest -m ui`.
+
+---
+*Original report below.*
 
 ## Symptom
 
