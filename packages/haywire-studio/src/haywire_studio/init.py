@@ -507,9 +507,7 @@ def init_project(name: str, auto_sync: bool = True, dev_repo: str | None = None)
 
     print(f"\nProject '{name}' created successfully!")
     print("\nNext steps:")
+    print(f"  cd {name}")
     if not auto_sync:
-        print(f"  cd {name}")
         print("  uv sync")
-    else:
-        print(f"  cd {name}")
     print("  uv run haywire")
