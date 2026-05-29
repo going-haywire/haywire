@@ -106,6 +106,7 @@ class MarketstallConfig:
     default_author: str
     default_tags: list[str]
     feed_base_url: str
+    git_packages: list[str]
 
 
 def read_marketstall_config(root_pyproject: Path) -> MarketstallConfig:
@@ -117,6 +118,7 @@ def read_marketstall_config(root_pyproject: Path) -> MarketstallConfig:
         default_author=block.get("default_author", ""),
         default_tags=list(block.get("default_tags", [])),
         feed_base_url=block.get("feed_base_url", "").rstrip("/"),
+        git_packages=list(block.get("git_packages", [])),
     )
 
 
@@ -126,11 +128,14 @@ def build_entry(
     config: MarketstallConfig,
     subdirectory: str,
     module_name: str,
+    source: str = "pypi",
 ) -> dict[str, object]:
     """Build one [[packages]] dict for a package.
 
     `subdirectory` is the package directory relative to the repo root (e.g. "barn/haybale-foo").
     `module_name` is the importable module dir name (e.g. "haybale_foo") inside that subdirectory.
+    `source` is "pypi" (default; install_spec is the bare dist name) or "git"
+    (install_spec is a git+subdirectory VCS URL pointing into the monorepo).
     """
     pyproject = tomllib.loads(pyproject_path.read_text(encoding="utf-8"))
     project = pyproject["project"]
@@ -147,14 +152,19 @@ def build_entry(
         f"{config.docs_branch}/{subdirectory}/{module_name}/"
     )
 
+    if source == "git":
+        install_spec = f"{name} @ git+{config.source_url}.git#subdirectory={subdirectory}"
+    else:
+        install_spec = name
+
     return {
         "name": name,
         "label": meta.label or name,
         "min_version": version,
         "description": meta.description or pyproject_description,
         "author": meta.author or config.default_author,
-        "source": "pypi",
-        "install_spec": name,
+        "source": source,
+        "install_spec": install_spec,
         "tags": meta.tags if meta.tags is not None else list(config.default_tags),
         "dependencies": sibling_haybale,
         "source_url": config.source_url,
@@ -315,9 +325,19 @@ def generate(root_pyproject: Path, *, feed_base_url: str | None = None) -> Gener
             "in pyproject.toml or pass --feed-base-url on the command line."
         )
 
+    # git_packages must be unpublished — a package can't be both on PyPI and
+    # offered as a git subdirectory in the same feed.
+    bad = set(config.git_packages) & set(release.publish_order)
+    if bad:
+        raise ValueError(
+            f"git_packages may not overlap publish_order (PyPI): {sorted(bad)}. "
+            "List git-only packages under [tool.haywire.release].lockstep_unpublished."
+        )
+
     stalls: list[tuple[str, str]] = []
     stall_urls: list[str] = []
-    for pkg_name in release.publish_order:
+
+    def _add(pkg_name: str, source: str) -> None:
         pyproject_path = located[pkg_name]
         pkg_dir = pyproject_path.parent
         module_path = _resolve_module_path(pyproject_path, pkg_dir)
@@ -331,10 +351,16 @@ def generate(root_pyproject: Path, *, feed_base_url: str | None = None) -> Gener
             config=config,
             subdirectory=subdirectory,
             module_name=module_name,
+            source=source,
         )
         dist_name = str(entry["name"])
         stalls.append((dist_name, emit_stall_toml(entry)))
         stall_urls.append(f"{base_url}/stalls/{dist_name}.toml")
+
+    for pkg_name in release.publish_order:
+        _add(pkg_name, "pypi")
+    for pkg_name in config.git_packages:
+        _add(pkg_name, "git")
 
     return GenerateResult(
         marketplace_toml=emit_marketplace_toml(stall_urls),

@@ -138,3 +138,11 @@ default_tags = []
 # subscription URLs as "{feed_base_url}/stalls/{dist-name}.toml". For the
 # official GitHub-Pages-hosted feed: https://going-haywire.github.io/haywire
 feed_base_url = "https://going-haywire.github.io/haywire"
+
+# Packages that are NOT on PyPI but should still appear in the official feed,
+# installed straight from the monorepo via a git subdirectory. Each entry gets
+# a stall with source = "git" and an install_spec of
+# "<name> @ git+{source_url}.git#subdirectory=<pkg dir>". Must be a subset of
+# [tool.haywire.release].lockstep_unpublished (a package can't be both pypi and
+# git). Example: haybale-visiongraph carries heavy binary deps, so it's git-only.
+git_packages = ["haybale-visiongraph"]

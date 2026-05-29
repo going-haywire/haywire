@@ -64,6 +64,7 @@ def test_build_entry_uses_decorator_values_over_pyproject() -> None:
         default_author="Fake Team",
         default_tags=[],
         feed_base_url="https://example.github.io/fake",
+        git_packages=[],
     )
 
     entry = generate_marketstall.build_entry(
@@ -92,6 +93,35 @@ def test_build_entry_uses_decorator_values_over_pyproject() -> None:
 
 
 @pytest.mark.unit
+def test_build_entry_emits_git_source_with_subdirectory_install_spec() -> None:
+    pkg_pyproject = FIXTURE_DIR / "sample_marketstall_package_pyproject.toml"
+    init_py = FIXTURE_DIR / "sample_marketstall_package_init.py"
+    config = generate_marketstall.MarketstallConfig(
+        source_url="https://github.com/example/fake-workspace",
+        docs_branch="main",
+        default_author="Fake Team",
+        default_tags=[],
+        feed_base_url="https://example.github.io/fake",
+        git_packages=["haybale-alpha"],
+    )
+
+    entry = generate_marketstall.build_entry(
+        pyproject_path=pkg_pyproject,
+        init_py=init_py,
+        config=config,
+        subdirectory="subdir-a/haybale-alpha",
+        module_name="haybale_alpha",
+        source="git",
+    )
+
+    assert entry["source"] == "git"
+    assert entry["install_spec"] == (
+        "haybale-alpha @ git+https://github.com/example/fake-workspace.git"
+        "#subdirectory=subdir-a/haybale-alpha"
+    )
+
+
+@pytest.mark.unit
 def test_build_entry_falls_back_to_pyproject_description_when_decorator_absent(tmp_path: Path) -> None:
     pkg_pyproject = tmp_path / "pyproject.toml"
     pkg_pyproject.write_text(
@@ -110,6 +140,7 @@ def test_build_entry_falls_back_to_pyproject_description_when_decorator_absent(t
         default_author="Fake Team",
         default_tags=["default-tag"],
         feed_base_url="https://example.github.io/fake",
+        git_packages=[],
     )
 
     entry = generate_marketstall.build_entry(
