@@ -103,7 +103,6 @@ publish_order = [
     "haybale-marketplace",
     "haybale-graph-editor",
     "haybale-haystack",
-    "haybale-example",
 ]
 
 # Packages versioned in lockstep with the release but NOT published.
@@ -112,6 +111,7 @@ publish_order = [
 # - haybale-testing, haybale-TEST_A: Tier 3 internal test fixtures.
 lockstep_unpublished = [
     "haybale-visiongraph",
+    "haybale-example",
     "haybale-testing",
     "haybale-TEST_A",
 ]
