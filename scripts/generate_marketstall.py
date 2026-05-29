@@ -206,7 +206,7 @@ _MARKETPLACE_HEADER = """\
 # Do not edit by hand — re-run the generator instead.
 #
 # Subscribers fetch this file from GitHub Pages:
-#   https://maybites.github.io/haywire/marketplace.toml
+#   https://going-haywire.github.io/haywire/marketplace.toml
 #
 # Per-library marketstalls live under stalls/<dist-name>.toml; a consumer who
 # wants only one library can subscribe to that stall URL directly.

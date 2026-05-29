@@ -123,7 +123,7 @@ lockstep_unpublished = [
 
 # Repo URL used as the `source_url` for every generated [[packages]] entry.
 # Also forms the base for the `docs_url` raw-githubusercontent URL.
-source_url = "https://github.com/maybites/haywire"
+source_url = "https://github.com/going-haywire/haywire"
 
 # Default branch used in the raw-githubusercontent docs_url. Update if
 # the repo's primary branch ever moves.
@@ -136,5 +136,5 @@ default_tags = []
 
 # Base URL where the deployed feed lives. The generator composes the per-stall
 # subscription URLs as "{feed_base_url}/stalls/{dist-name}.toml". For the
-# official GitHub-Pages-hosted feed: https://maybites.github.io/haywire
-feed_base_url = "https://maybites.github.io/haywire"
+# official GitHub-Pages-hosted feed: https://going-haywire.github.io/haywire
+feed_base_url = "https://going-haywire.github.io/haywire"
