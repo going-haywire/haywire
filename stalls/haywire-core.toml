@@ -6,12 +6,12 @@
 [[haybales]]
 name = "haywire-core"
 label = "haywire-core"
-min_version = "0.0.2"
+min_version = "0.0.3"
 description = "Haywire Node System Framework"
 author = "Haywire Team"
 source = "pypi"
 install_spec = "haywire-core"
 tags = []
 dependencies = []
-source_url = "https://github.com/maybites/haywire"
-docs_url = "https://raw.githubusercontent.com/maybites/haywire/main/packages/haywire-core/haywire/"
+source_url = "https://github.com/going-haywire/haywire"
+docs_url = "https://raw.githubusercontent.com/going-haywire/haywire/main/packages/haywire-core/haywire/"

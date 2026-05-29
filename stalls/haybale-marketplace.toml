@@ -6,12 +6,12 @@
 [[haybales]]
 name = "haybale-marketplace"
 label = "Library Marketplace"
-min_version = "0.0.2"
+min_version = "0.0.3"
 description = "Library installer + browser editors"
 author = "Haywire Team"
 source = "pypi"
 install_spec = "haybale-marketplace"
 tags = ["marketplace"]
 dependencies = ["haybale-studio"]
-source_url = "https://github.com/maybites/haywire"
-docs_url = "https://raw.githubusercontent.com/maybites/haywire/main/barn/haybale-marketplace/haybale_marketplace/"
+source_url = "https://github.com/going-haywire/haywire"
+docs_url = "https://raw.githubusercontent.com/going-haywire/haywire/main/barn/haybale-marketplace/haybale_marketplace/"

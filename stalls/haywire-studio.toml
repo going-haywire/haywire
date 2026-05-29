@@ -6,12 +6,12 @@
 [[haybales]]
 name = "haywire-studio"
 label = "haywire-studio"
-min_version = "0.0.2"
+min_version = "0.0.3"
 description = "Haywire Node Editor Application"
 author = "Haywire Team"
 source = "pypi"
 install_spec = "haywire-studio"
 tags = []
 dependencies = []
-source_url = "https://github.com/maybites/haywire"
-docs_url = "https://raw.githubusercontent.com/maybites/haywire/main/packages/haywire-studio/haywire_studio/"
+source_url = "https://github.com/going-haywire/haywire"
+docs_url = "https://raw.githubusercontent.com/going-haywire/haywire/main/packages/haywire-studio/haywire_studio/"

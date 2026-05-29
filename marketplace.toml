@@ -3,50 +3,50 @@
 # Do not edit by hand — re-run the generator instead.
 #
 # Subscribers fetch this file from GitHub Pages:
-#   https://maybites.github.io/haywire/marketplace.toml
+#   https://going-haywire.github.io/haywire/marketplace.toml
 #
 # Per-library marketstalls live under stalls/<dist-name>.toml; a consumer who
 # wants only one library can subscribe to that stall URL directly.
 
 
 [[stalls]]
-url = "https://maybites.github.io/haywire/stalls/haywire-core.toml"
+url = "https://going-haywire.github.io/haywire/stalls/haywire-core.toml"
 ignores = []
 doubles = []
 blocked = []
 
 [[stalls]]
-url = "https://maybites.github.io/haywire/stalls/haywire-studio.toml"
+url = "https://going-haywire.github.io/haywire/stalls/haywire-studio.toml"
 ignores = []
 doubles = []
 blocked = []
 
 [[stalls]]
-url = "https://maybites.github.io/haywire/stalls/haybale-core.toml"
+url = "https://going-haywire.github.io/haywire/stalls/haybale-core.toml"
 ignores = []
 doubles = []
 blocked = []
 
 [[stalls]]
-url = "https://maybites.github.io/haywire/stalls/haybale-studio.toml"
+url = "https://going-haywire.github.io/haywire/stalls/haybale-studio.toml"
 ignores = []
 doubles = []
 blocked = []
 
 [[stalls]]
-url = "https://maybites.github.io/haywire/stalls/haybale-marketplace.toml"
+url = "https://going-haywire.github.io/haywire/stalls/haybale-marketplace.toml"
 ignores = []
 doubles = []
 blocked = []
 
 [[stalls]]
-url = "https://maybites.github.io/haywire/stalls/haybale-graph-editor.toml"
+url = "https://going-haywire.github.io/haywire/stalls/haybale-graph-editor.toml"
 ignores = []
 doubles = []
 blocked = []
 
 [[stalls]]
-url = "https://maybites.github.io/haywire/stalls/haybale-haystack.toml"
+url = "https://going-haywire.github.io/haywire/stalls/haybale-haystack.toml"
 ignores = []
 doubles = []
 blocked = []

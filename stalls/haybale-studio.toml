@@ -6,12 +6,12 @@
 [[haybales]]
 name = "haybale-studio"
 label = "Haywire Studio"
-min_version = "0.0.2"
+min_version = "0.0.3"
 description = "Required library for haywire studio"
 author = "Haywire Team"
 source = "pypi"
 install_spec = "haybale-studio"
 tags = ["experimental", "project-local"]
 dependencies = []
-source_url = "https://github.com/maybites/haywire"
-docs_url = "https://raw.githubusercontent.com/maybites/haywire/main/barn/haybale-studio/haybale_studio/"
+source_url = "https://github.com/going-haywire/haywire"
+docs_url = "https://raw.githubusercontent.com/going-haywire/haywire/main/barn/haybale-studio/haybale_studio/"
