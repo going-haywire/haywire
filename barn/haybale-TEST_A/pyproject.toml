@@ -1,6 +1,6 @@
 [project]
 name = "haybale-TEST_A"
-version = "0.0.5"
+version = "0.0.6"
 description = "Test library for Haywire node system"
 readme = "README.md"
 requires-python = ">=3.9"
@@ -10,7 +10,7 @@ authors = [
 ]
 keywords = ["haywire", "node-editor", "visual-programming", "test"]
 
-dependencies = ["haywire-core~=0.0.5"]
+dependencies = ["haywire-core~=0.0.6"]
 
 # Entry point for Haywire library discovery
 [project.entry-points."haywire.libraries"]
