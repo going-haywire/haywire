@@ -10,18 +10,6 @@
 
 
 [[stalls]]
-url = "https://going-haywire.github.io/haywire/stalls/haywire-core.toml"
-ignores = []
-doubles = []
-blocked = []
-
-[[stalls]]
-url = "https://going-haywire.github.io/haywire/stalls/haywire-studio.toml"
-ignores = []
-doubles = []
-blocked = []
-
-[[stalls]]
 url = "https://going-haywire.github.io/haywire/stalls/haybale-core.toml"
 ignores = []
 doubles = []
