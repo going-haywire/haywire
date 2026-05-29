@@ -492,14 +492,18 @@ def init_project(name: str, auto_sync: bool = True, dev_repo: str | None = None)
 
     if auto_sync:
         print("\nRunning uv sync...")
+        # --refresh forces uv to re-query the package index rather than trust a
+        # cached view. A project scaffolded right after a release pins the just-
+        # published version; a stale index cache (common on machines that used
+        # haywire before the release) would otherwise fail to resolve it.
         result = subprocess.run(
-            ["uv", "sync"],
+            ["uv", "sync", "--refresh"],
             cwd=str(project_dir),
             capture_output=False,
         )
         if result.returncode != 0:
             print("\nWarning: uv sync failed. Run it manually:")
-            print(f"  cd {name} && uv sync")
+            print(f"  cd {name} && uv sync --refresh")
 
     print(f"\nProject '{name}' created successfully!")
     print("\nNext steps:")
