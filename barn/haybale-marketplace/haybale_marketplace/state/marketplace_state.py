@@ -62,10 +62,36 @@ class MarketplaceState(AppState):
         from haywire.core.di.context import get_workspace_root
 
         self._workspace_root = get_workspace_root()
+        self._auto_refresh_if_empty()
 
     def on_disable(self) -> None:
         self.last_report = None
         self.global_marketplace_error = None
+
+    def _auto_refresh_if_empty(self) -> None:
+        """Refresh on first enable when subscriptions exist but caches are empty.
+
+        Covers the fresh-init case: init pre-seeds the global [[markets]] entry
+        but the project [[caches]] starts empty, so the library list would be
+        blank until the user manually pressed Refresh.
+        """
+        try:
+            global_mf = parse_global_marketplace(self._global_path())
+        except MalformedMarketplaceError:
+            return
+        has_subscriptions = bool(global_mf.markets or global_mf.stalls or global_mf.haybales)
+        if not has_subscriptions:
+            return
+        project_path = self._project_path()
+        if project_path is None:
+            return
+        pm = parse_project_marketplace(project_path)
+        if pm.caches:
+            return
+        try:
+            self.refresh()
+        except Exception:
+            pass
 
     # ------------------------------------------------------------------
     # Path helpers
