@@ -3093,7 +3093,7 @@
 </tr>
 </tbody>
 </table>
-<p>The haywire team publishes the official marketstall at <code>https://maybites.github.io/haywire/marketplace.toml</code> (a marketplace aggregating multiple marketstalls — see <a href="../../architecture/sharing/sharing-arch/">sharing-arch</a> for the marketplace vs marketstall distinction). Your file is structurally the same.</p>
+<p>The haywire team publishes the official marketstall at <code>https://going-haywire.github.io/haywire/marketplace.toml</code> (a marketplace aggregating multiple marketstalls — see <a href="../../architecture/sharing/sharing-arch/">sharing-arch</a> for the marketplace vs marketstall distinction). Your file is structurally the same.</p>
 <p>Once hosted, share the URL. Per spec §4.2 a consumer can paste any of four forms into the Library Manager's Add Source dialog — the GitHub <em>blob</em> URL of your <code>marketstall.toml</code> (e.g. <code>https://github.com/you/repo/blob/main/marketstall.toml</code>) is the recommended canonical form. The runtime recognizes the host, derives the raw URL, fetches the body, sees one <code>[[haybales]]</code> section, and writes a <code>[[stalls]]</code> subscription to the user's global marketplace. The next refresh picks up your library. See <a href="../subscribing-to-marketplaces/">subscribing-to-marketplaces</a> for the consumer side.</p>
 <h2 id="7-the-full-author-cycle">7. The full author cycle<a class="headerlink" href="#7-the-full-author-cycle" title="Permanent link">&para;</a></h2>
 <p>End-to-end, the flow is:</p>
