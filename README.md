@@ -2,13 +2,7 @@
 
 Haywire is a Blueprint-inspired visual programming system that combines **execution flow** with **data flow** in a dual-flow architecture. Unlike pure dataflow systems, it uses explicit control connections to define execution order while maintaining data connections for value passing.
 
-Created by Martin Froehlich (aka maybites), released under [CC-BY-NC-SA](https://creativecommons.org/licenses/by-nc-sa/4.0/). (c) 2025
-
-Notable open source projects with similar goals but different use cases:
-
-* [Floppy](https://github.com/JLuebben/Floppy) — Python
-* [Box](https://github.com/p-ranav/box) — Python
-* [CablesGL](https://cables.gl/) — JavaScript
+**Documentation:** <https://going-haywire.github.io/haywire/docs/>
 
 ---
 
@@ -21,12 +15,9 @@ Notable open source projects with similar goals but different use cases:
 
 ### Create a New Project
 
-> **Pre-release note:** `haywire-studio` and `haywire-core` are not yet published to PyPI.
-> Until then, scaffold projects using `--dev` with a local clone of this repo.
-
 ```sh
-# Scaffold a new haywire project (requires a local clone of haywire-repo)
-uv run --project <path-to-haywire-repo> haywire init my-project --dev
+# Scaffold a new haywire project (installs haywire from PyPI)
+uvx --from haywire-studio haywire init my-project
 
 # Enter the project and install dependencies
 cd my-project
@@ -101,15 +92,6 @@ User-level settings are stored in `~/.haywire/`:
 └── recent_projects.toml    # recently opened projects
 ```
 
-### For Developers
-
-The following creates a new project in `/tmp/myTestProject` with a scaffolded local library, wired to the dev repo via editable path sources:
-
-```sh
-cd /tmp
-uv run --project <absolute path to haywire-repo> haywire init myTestProject --dev
-```
-
 ---
 
 ## For Developers
@@ -178,6 +160,26 @@ uv sync
 ```
 
 All workspace packages are installed as editable — changes take effect immediately.
+
+### Scaffold a Test Project (dev mode)
+
+To create a project wired to your local clone via editable workspace sources
+(instead of pulling haywire from PyPI), use `--dev` with a path to this repo:
+
+```sh
+cd /tmp
+uv run --project <absolute path to haywire-repo> haywire init myTestProject --dev
+```
+
+### Documentation
+
+The published docs at <https://going-haywire.github.io/haywire/docs/> are built from
+`docs/` with [Material for MkDocs](https://squidfunk.github.io/mkdocs-material/) and
+redeployed on every push to `master`. Preview locally with:
+
+```sh
+uv run mkdocs serve   # http://127.0.0.1:8000
+```
 
 ### Running
 
