@@ -102,7 +102,7 @@ class EditorWrapper:
     def __init__(
         self,
         editor_key: str,
-        editor_cls: "Optional[type[BaseEditor]]",
+        editor_cls: "type[BaseEditor]",
         registry: "EditorTypeRegistry",
         session: "Session",
         binding_id: Optional[str] = None,
@@ -112,9 +112,7 @@ class EditorWrapper:
         """
         Args:
             editor_key: Registry key of the editor class.
-            editor_cls: The editor class. None when the registry has no entry
-                for editor_key — error_import is populated and the wrapper
-                renders a placeholder until a successful hot-reload arrives.
+            editor_cls: The editor class.
             registry: Editor registry for self-subscription.
             session: Owning session — held for the wrapper's lifetime.
             binding_id: Optional disambiguator (e.g., file path string for
@@ -159,21 +157,6 @@ class EditorWrapper:
         # Subscribe per-key for hot-reload events
         self._registry.add_event_subscriber(self.editor_key, self._on_lifecycle_event)
 
-        # Eager import phase: validate the class exists
-        if self.editor_cls is None:
-            self._state.is_imported = False
-            self._state.error_import = HaywireException.create(
-                f"Editor class '{self.editor_key}' is not available in the registry."
-            ).enrich(
-                operation="Editor Import",
-                category="Editor Not Found",
-                registry_key=self.editor_key,
-                suggestions=[
-                    "Ensure the providing library is installed and loaded.",
-                    "Check for typos in the editor registry key.",
-                ],
-            )
-
     # ------------------------------------------------------------------
     # Identity
     # ------------------------------------------------------------------
@@ -205,11 +188,8 @@ class EditorWrapper:
         """Whether the host UI should render a close button.
 
         REQUIRED editors have no close button; everything else is closeable.
-        Missing identity defaults to closeable. A wrapper with no editor_cls
-        (broken state) is closeable so the user can dismiss it.
+        Missing identity defaults to closeable.
         """
-        if self.editor_cls is None:
-            return True
         opens = getattr(self.editor_cls.class_identity, "opens", None)
         return opens is not OpenBehavior.REQUIRED
 
@@ -340,8 +320,6 @@ class EditorWrapper:
         Returns:
             True on success, False if editor_cls is None or construction raised.
         """
-        if self.editor_cls is None:
-            return False
         try:
             self._instance = self.editor_cls(self)
             self._state.error_instantiate = None
@@ -378,7 +356,7 @@ class EditorWrapper:
         ``_instantiate``; not idempotent if called twice without a matching
         ``_unsubscribe_event_handlers`` (each call adds fresh subscriptions).
         """
-        if self._instance is None or self.editor_cls is None:
+        if self._instance is None:
             return
         index = discover_handlers(self.editor_cls)
         if not index:

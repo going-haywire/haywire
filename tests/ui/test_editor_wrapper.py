@@ -89,21 +89,6 @@ def test_wrapper_construction_with_class_sets_imported():
     assert w.state.is_valid() is True
 
 
-def test_wrapper_construction_with_none_class_sets_error_import():
-    reg = EditorTypeRegistry()
-    session = _make_session()
-    w = EditorWrapper(
-        editor_key="missing:editor:1",
-        editor_cls=None,
-        registry=reg,
-        session=session,
-    )
-    assert w.editor_cls is None
-    assert w.state.is_imported is False
-    assert w.state.error_import is not None
-    assert w.state.is_valid() is False
-
-
 def test_wrapper_subscribes_to_registry_on_construction():
     reg = EditorTypeRegistry()
     session = _make_session()
@@ -204,19 +189,6 @@ def test_instantiate_captures_exception_into_error_instantiate():
     assert w.instance is None
     assert w.state.error_instantiate is not None
     assert w.state.is_valid() is False
-
-
-def test_instantiate_returns_false_when_editor_cls_is_none():
-    reg = EditorTypeRegistry()
-    w = EditorWrapper(
-        editor_key="missing:editor:1",
-        editor_cls=None,
-        registry=reg,
-        session=_make_session(),
-    )
-    ok = w._instantiate()
-    assert ok is False
-    assert w.instance is None
 
 
 # ---------------------------------------------------------------------------
@@ -504,14 +476,16 @@ def test_on_focus_delegates_to_instance():
 
 
 def test_on_focus_no_op_without_instance():
+    """on_focus before any instantiation must not raise."""
     reg = EditorTypeRegistry()
     w = EditorWrapper(
-        editor_key="missing:editor:1",
-        editor_cls=None,
+        editor_key="raising:editor:1",
+        editor_cls=_RaisingEditorCls,
         registry=reg,
         session=_make_session(),
     )
-    # Must not raise
+    assert w.instance is None
+    # Must not raise — instantiate fails, on_focus returns early
     w.on_focus()
 
 
