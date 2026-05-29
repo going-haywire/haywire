@@ -1,0 +1,193 @@
+name: Publish to TestPyPI (verification)
+
+# End-to-end verification of the release pipeline against TestPyPI.
+# Triggered by tags shaped `vTEST-X.Y.Z` (e.g. vTEST-0.0.2). The real
+# release workflow (publish.yml) listens on `v*.*.*` and ignores these.
+#
+# Set up Trusted Publishers on https://test.pypi.org for each project
+# name in publish_order, pointing at this workflow (publish-testpypi.yml)
+# and the `testpypi` environment.
+
+on:
+  push:
+    tags:
+      - 'vTEST-*.*.*'
+  workflow_dispatch:
+
+env:
+  PYTHON_VERSION: '3.12'
+  TESTPYPI_UPLOAD_URL: https://test.pypi.org/legacy/
+  TESTPYPI_INDEX_URL: https://test.pypi.org/simple/
+
+jobs:
+  gate:
+    name: Test gate
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          enable-cache: true
+
+      - name: Set up Python ${{ env.PYTHON_VERSION }}
+        run: uv python install ${{ env.PYTHON_VERSION }}
+
+      - name: Install workspace
+        run: uv sync --dev
+
+      - name: Run fast test suite (gate)
+        run: uv run pytest -m "not integration" -q
+
+  build:
+    name: Build wheels
+    runs-on: ubuntu-latest
+    needs: gate
+    outputs:
+      packages: ${{ steps.read-config.outputs.packages }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          enable-cache: true
+
+      - name: Set up Python ${{ env.PYTHON_VERSION }}
+        run: uv python install ${{ env.PYTHON_VERSION }}
+
+      - name: Install workspace
+        run: uv sync --dev
+
+      - name: Read publish_order from [tool.haywire.release]
+        id: read-config
+        run: |
+          packages=$(uv run python -c "
+          import json, tomllib, pathlib
+          d = tomllib.loads(pathlib.Path('pyproject.toml').read_text())
+          print(json.dumps(d['tool']['haywire']['release']['publish_order']))
+          ")
+          echo "packages=$packages" >> "$GITHUB_OUTPUT"
+          echo "Will build: $packages"
+
+      - name: Build every wheel + sdist
+        run: |
+          rm -rf dist/
+          uv run python -c "
+          import json, subprocess, sys
+          packages = json.loads('${{ steps.read-config.outputs.packages }}')
+          for name in packages:
+              print(f'::group::Building {name}')
+              r = subprocess.run(['uv', 'build', '--package', name], check=False)
+              print('::endgroup::')
+              if r.returncode != 0:
+                  print(f'::error::Build failed for {name}', file=sys.stderr)
+                  sys.exit(1)
+          "
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: wheels
+          path: dist/
+          retention-days: 7
+          if-no-files-found: error
+
+  publish:
+    name: Publish to TestPyPI
+    runs-on: ubuntu-latest
+    needs: build
+    environment:
+      name: testpypi
+      url: https://test.pypi.org/project/haywire-core/
+    permissions:
+      id-token: write   # required for Trusted Publisher (OIDC)
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          enable-cache: true
+
+      - name: Set up Python ${{ env.PYTHON_VERSION }}
+        run: uv python install ${{ env.PYTHON_VERSION }}
+
+      - name: Install workspace
+        run: uv sync --dev
+
+      - name: Download wheels artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: wheels
+          path: dist/
+
+      - name: Read publish_order
+        id: read-config
+        run: |
+          packages=$(uv run python -c "
+          import json, tomllib, pathlib
+          d = tomllib.loads(pathlib.Path('pyproject.toml').read_text())
+          print(json.dumps(d['tool']['haywire']['release']['publish_order']))
+          ")
+          echo "packages=$packages" >> "$GITHUB_OUTPUT"
+
+      - name: Publish each package (sequential, idempotent, fail-fast)
+        run: |
+          uv run python <<'PY'
+          import json, os, pathlib, subprocess, sys, tomllib, urllib.request
+          from scripts.bump_version import locate_packages, read_release_config
+
+          packages = json.loads(os.environ["PACKAGES"])
+          upload_url = os.environ["UPLOAD_URL"]
+          check_url = os.environ["CHECK_URL"]
+          dist_root = pathlib.Path("dist")
+          root = pathlib.Path("pyproject.toml")
+          cfg = read_release_config(root)
+          located = locate_packages(root, cfg)
+
+          for name in packages:
+              underscore = name.replace("-", "_")
+              pkg_data = tomllib.loads(located[name].read_text())
+              version = pkg_data["project"]["version"]
+
+              url = f"https://test.pypi.org/pypi/{name}/{version}/json"
+              try:
+                  with urllib.request.urlopen(url, timeout=15) as r:
+                      already_published = r.status == 200
+              except Exception:
+                  already_published = False
+
+              if already_published:
+                  print(f"::notice::{name}=={version} already on TestPyPI — skipping.")
+                  continue
+
+              files = list(dist_root.glob(f"{underscore}-{version}*"))
+              if not files:
+                  print(f"::error::No artifacts in dist/ for {name}=={version}", file=sys.stderr)
+                  sys.exit(1)
+
+              print(f"::group::Publishing {name}=={version} to TestPyPI")
+              r = subprocess.run(
+                  [
+                      "uv", "publish",
+                      "--trusted-publishing", "always",
+                      "--publish-url", upload_url,
+                      "--check-url", check_url,
+                      *[str(f) for f in files],
+                  ],
+                  check=False,
+              )
+              print("::endgroup::")
+              if r.returncode != 0:
+                  print(f"::error::Publish failed for {name}=={version}", file=sys.stderr)
+                  sys.exit(1)
+          PY
+        env:
+          PACKAGES: ${{ steps.read-config.outputs.packages }}
+          UPLOAD_URL: ${{ env.TESTPYPI_UPLOAD_URL }}
+          CHECK_URL: ${{ env.TESTPYPI_INDEX_URL }}
