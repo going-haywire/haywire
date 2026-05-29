@@ -6,7 +6,7 @@
 [[haybales]]
 name = "haybale-visiongraph"
 label = "Visiongraph"
-min_version = "0.0.5"
+min_version = "0.0.6"
 description = "Visiongraph library"
 author = "Florian Briggisser, Martin Fröhlich"
 source = "git"
