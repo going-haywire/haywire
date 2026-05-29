@@ -60,13 +60,13 @@ jobs:
       - name: Install workspace
         run: uv sync --dev
 
-      - name: Read publish_order from [tool.haywire.release]
+      - name: Read pip_publish_order from [tool.haywire.release]
         id: read-config
         run: |
           packages=$(uv run python -c "
           import json, tomllib, pathlib
           d = tomllib.loads(pathlib.Path('pyproject.toml').read_text())
-          print(json.dumps(d['tool']['haywire']['release']['publish_order']))
+          print(json.dumps(d['tool']['haywire']['release']['pip_publish_order']))
           ")
           echo "packages=$packages" >> "$GITHUB_OUTPUT"
           echo "Will build: $packages"
@@ -127,13 +127,13 @@ jobs:
           name: wheels
           path: dist/
 
-      - name: Read publish_order
+      - name: Read pip_publish_order
         id: read-config
         run: |
           packages=$(uv run python -c "
           import json, tomllib, pathlib
           d = tomllib.loads(pathlib.Path('pyproject.toml').read_text())
-          print(json.dumps(d['tool']['haywire']['release']['publish_order']))
+          print(json.dumps(d['tool']['haywire']['release']['pip_publish_order']))
           ")
           echo "packages=$packages" >> "$GITHUB_OUTPUT"
 

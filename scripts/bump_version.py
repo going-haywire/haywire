@@ -23,19 +23,21 @@ from pathlib import Path
 
 @dataclass(frozen=True)
 class ReleaseConfig:
-    publish_order: list[str]
+    pip_publish_order: list[str]
+    git_publish_order: list[str]
     lockstep_unpublished: list[str]
 
     @property
     def all_packages(self) -> list[str]:
-        return [*self.publish_order, *self.lockstep_unpublished]
+        return [*self.pip_publish_order, *self.git_publish_order, *self.lockstep_unpublished]
 
 
 def read_release_config(root_pyproject: Path) -> ReleaseConfig:
     data = tomllib.loads(root_pyproject.read_text(encoding="utf-8"))
     block = data["tool"]["haywire"]["release"]
     return ReleaseConfig(
-        publish_order=list(block["publish_order"]),
+        pip_publish_order=list(block["pip_publish_order"]),
+        git_publish_order=list(block.get("git_publish_order", [])),
         lockstep_unpublished=list(block.get("lockstep_unpublished", [])),
     )
 
@@ -148,7 +150,7 @@ def apply_bump(
     diff_parts: list[str] = []
     edited = 0
 
-    # Walk in publish_order first, then lockstep_unpublished — deterministic ordering.
+    # Walk in pip_publish_order, git_publish_order, then lockstep_unpublished — deterministic ordering.
     for pkg_name in config.all_packages:
         path = located[pkg_name]
         original = path.read_text(encoding="utf-8")

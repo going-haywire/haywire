@@ -9,9 +9,12 @@ members = [
 ]
 
 [tool.haywire.release]
-publish_order = [
+pip_publish_order = [
     "alpha-pkg",
     "beta-pkg",
+]
+git_publish_order = [
+    "delta-pkg",
 ]
 lockstep_unpublished = [
     "gamma-pkg",

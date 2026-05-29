@@ -9,10 +9,11 @@ members = [
 ]
 
 [tool.haywire.release]
-publish_order = [
+pip_publish_order = [
     "haybale-alpha",
     "haybale-beta",
 ]
+git_publish_order = []
 lockstep_unpublished = [
     "haybale-internal",
 ]
@@ -22,3 +23,7 @@ source_url = "https://github.com/example/fake-workspace"
 docs_branch = "main"
 default_author = "Fake Team"
 default_tags = []
+marketplace = [
+    "haybale-alpha",
+    "haybale-beta",
+]

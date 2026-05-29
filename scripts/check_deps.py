@@ -1,7 +1,7 @@
 """Audit declared vs. imported dependencies for every haywire package.
 
 Wraps `deptry` and runs it once per package listed in
-[tool.haywire.release] (publish_order + lockstep_unpublished). Because the
+[tool.haywire.release] (pip_publish_order + git_publish_order + lockstep_unpublished). Because the
 monorepo's packages import each other by *module* name (e.g. `haywire`) while
 declaring each other by *distribution* name (e.g. `haywire-core`), a
 package-module-name map is supplied so inter-package deps are not mis-flagged.

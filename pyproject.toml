@@ -89,14 +89,12 @@ addopts = "-v --strict-markers --tb=short --maxfail=5"
 [tool.haywire.release]
 # Canonical machine-readable list of releasable packages.
 # Consumed by: scripts/bump_version.py (this repo),
-#              scripts/generate_marketstall.py (separate plan),
-#              .github/workflows/publish.yml (separate plan).
+#              scripts/generate_marketstall.py,
+#              .github/workflows/publish.yml.
 # Order is significant for the publish workflow: dependencies first.
-# If this disagrees with the §5 table in
-# internals/specs/versioning-and-publishing.md, this block wins.
 
 # Packages published to PyPI on every release tag, in dependency order.
-publish_order = [
+pip_publish_order = [
     "haywire-core",
     "haywire-studio",
     "haybale-core",
@@ -106,12 +104,15 @@ publish_order = [
     "haybale-haystack",
 ]
 
-# Packages versioned in lockstep with the release but NOT published.
-# The bump script updates these too so internal users stay coherent.
-# - haybale-visiongraph: Tier 2 git-only (binary deps, deferred from PyPI).
-# - haybale-testing, haybale-TEST_A: Tier 3 internal test fixtures.
-lockstep_unpublished = [
+# Packages published via git subdirectory URL (binary deps or deferred from PyPI).
+# Versioned in lockstep; installed as git+<source_url>#subdirectory=<pkg dir>.
+git_publish_order = [
     "haybale-visiongraph",
+]
+
+# Packages versioned in lockstep with the release but NOT published anywhere.
+# The bump script updates these too so internal users stay coherent.
+lockstep_unpublished = [
     "haybale-example",
     "haybale-testing",
     "haybale-TEST_A",
@@ -119,14 +120,13 @@ lockstep_unpublished = [
 
 [tool.haywire.marketstall]
 # Configuration for scripts/generate_marketstall.py.
-# Consumed by the marketplace generator (T3) and the CI publish workflow (T4).
+# Consumed by the marketplace generator and the CI publish workflow.
 
-# Repo URL used as the `source_url` for every generated [[packages]] entry.
+# Repo URL used as the `source_url` for every generated [[haybales]] entry.
 # Also forms the base for the `docs_url` raw-githubusercontent URL.
 source_url = "https://github.com/going-haywire/haywire"
 
-# Default branch used in the raw-githubusercontent docs_url. Update if
-# the repo's primary branch ever moves.
+# Default branch used in the raw-githubusercontent docs_url.
 docs_branch = "main"
 
 # Default author and tags applied when a package's @library decorator
@@ -135,14 +135,20 @@ default_author = "Haywire Team"
 default_tags = []
 
 # Base URL where the deployed feed lives. The generator composes the per-stall
-# subscription URLs as "{feed_base_url}/stalls/{dist-name}.toml". For the
-# official GitHub-Pages-hosted feed: https://going-haywire.github.io/haywire
+# subscription URLs as "{feed_base_url}/stalls/{dist-name}.toml".
 feed_base_url = "https://going-haywire.github.io/haywire"
 
-# Packages that are NOT on PyPI but should still appear in the official feed,
-# installed straight from the monorepo via a git subdirectory. Each entry gets
-# a stall with source = "git" and an install_spec of
-# "<name> @ git+{source_url}.git#subdirectory=<pkg dir>". Must be a subset of
-# [tool.haywire.release].lockstep_unpublished (a package can't be both pypi and
-# git). Example: haybale-visiongraph carries heavy binary deps, so it's git-only.
-git_packages = ["haybale-visiongraph"]
+# Explicit allowlist of packages that appear in the official marketplace feed,
+# in the order they appear in the feed. Source (pypi vs git) is derived by
+# lookup against pip_publish_order / git_publish_order above.
+# Rules enforced at generation time:
+#   - Every entry here must be in pip_publish_order or git_publish_order.
+#   - No package may be in both pip_publish_order and git_publish_order.
+marketplace = [
+    "haybale-core",
+    "haybale-studio",
+    "haybale-marketplace",
+    "haybale-graph-editor",
+    "haybale-haystack",
+    "haybale-visiongraph",
+]

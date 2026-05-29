@@ -99,6 +99,9 @@ class MarketstallConfig:
 
     ``feed_base_url`` (spec §11) is the deployed-feed root; the generator
     composes per-stall URLs as ``{feed_base_url}/stalls/{dist-name}.toml``.
+    ``marketplace`` is the explicit allowlist of package names that appear in
+    the official feed. Source (pypi vs git) is derived by lookup against the
+    release config's pip_publish_order / git_publish_order.
     """
 
     source_url: str
@@ -106,7 +109,7 @@ class MarketstallConfig:
     default_author: str
     default_tags: list[str]
     feed_base_url: str
-    git_packages: list[str]
+    marketplace: list[str]
 
 
 def read_marketstall_config(root_pyproject: Path) -> MarketstallConfig:
@@ -118,7 +121,7 @@ def read_marketstall_config(root_pyproject: Path) -> MarketstallConfig:
         default_author=block.get("default_author", ""),
         default_tags=list(block.get("default_tags", [])),
         feed_base_url=block.get("feed_base_url", "").rstrip("/"),
-        git_packages=list(block.get("git_packages", [])),
+        marketplace=list(block.get("marketplace", [])),
     )
 
 
@@ -299,22 +302,23 @@ def generate(root_pyproject: Path, *, feed_base_url: str | None = None) -> Gener
     """Build the two-tier official feed (spec §11) for the workspace.
 
     Reads:
-      - [tool.haywire.release] publish_order (consumed via bump_version)
-      - [tool.haywire.marketstall] (defaults; ``feed_base_url`` may also be
-        passed as a CLI override via the keyword argument)
-      - each publishable package's pyproject + __init__.py
+      - [tool.haywire.release] pip_publish_order, git_publish_order
+      - [tool.haywire.marketstall] marketplace (explicit allowlist), plus URL/defaults
+      - each marketplace package's pyproject + __init__.py
+
+    Validates:
+      - Every marketplace entry appears in exactly one of pip_publish_order or
+        git_publish_order (unknown name → ValueError).
+      - No name may appear in both pip_publish_order and git_publish_order.
 
     Returns a :class:`GenerateResult` carrying:
-      - ``marketplace_toml``: aggregator TOML with one ``[[stalls]]`` per
-        library, URL = ``{feed_base_url}/stalls/{dist-name}.toml``.
-      - ``stalls``: list of ``(dist-name, stall-toml)`` pairs, one per library
-        in publish order. Each stall contains exactly one ``[[haybales]]``.
+      - ``marketplace_toml``: aggregator TOML with one ``[[stalls]]`` per entry
+        in marketplace, URL = ``{feed_base_url}/stalls/{dist-name}.toml``.
+      - ``stalls``: list of ``(dist-name, stall-toml)`` pairs in marketplace order.
     """
-    # Reuse bump_version's package-location logic — same workspace-globs scan.
     from scripts.bump_version import locate_packages, read_release_config
 
     release = read_release_config(root_pyproject)
-    located = locate_packages(root_pyproject, release)
     config = read_marketstall_config(root_pyproject)
     root_dir = root_pyproject.parent
 
@@ -325,24 +329,38 @@ def generate(root_pyproject: Path, *, feed_base_url: str | None = None) -> Gener
             "in pyproject.toml or pass --feed-base-url on the command line."
         )
 
-    # git_packages must be unpublished — a package can't be both on PyPI and
-    # offered as a git subdirectory in the same feed.
-    bad = set(config.git_packages) & set(release.publish_order)
-    if bad:
+    pip_set = set(release.pip_publish_order)
+    git_set = set(release.git_publish_order)
+
+    # Validate: no package in both lists.
+    both = pip_set & git_set
+    if both:
         raise ValueError(
-            f"git_packages may not overlap publish_order (PyPI): {sorted(bad)}. "
-            "List git-only packages under [tool.haywire.release].lockstep_unpublished."
+            f"packages appear in both pip_publish_order and git_publish_order: {sorted(both)}. "
+            "A package can only have one source."
         )
+
+    # Validate: every marketplace entry must be in exactly one publish list.
+    marketplace_set = set(config.marketplace)
+    unknown = marketplace_set - pip_set - git_set
+    if unknown:
+        raise ValueError(
+            f"marketplace entries not found in pip_publish_order or git_publish_order: "
+            f"{sorted(unknown)}. "
+            "Add them to the appropriate publish list or remove them from marketplace."
+        )
+
+    located = locate_packages(root_pyproject, release)
 
     stalls: list[tuple[str, str]] = []
     stall_urls: list[str] = []
 
-    def _add(pkg_name: str, source: str) -> None:
+    for pkg_name in config.marketplace:
+        source = "pypi" if pkg_name in pip_set else "git"
         pyproject_path = located[pkg_name]
         pkg_dir = pyproject_path.parent
         module_path = _resolve_module_path(pyproject_path, pkg_dir)
         init_py = pkg_dir / module_path / "__init__.py"
-        # For docs_url we want the module dir name without the src/ prefix:
         module_name = Path(module_path).name
         subdirectory = pkg_dir.relative_to(root_dir).as_posix()
         entry = build_entry(
@@ -356,11 +374,6 @@ def generate(root_pyproject: Path, *, feed_base_url: str | None = None) -> Gener
         dist_name = str(entry["name"])
         stalls.append((dist_name, emit_stall_toml(entry)))
         stall_urls.append(f"{base_url}/stalls/{dist_name}.toml")
-
-    for pkg_name in release.publish_order:
-        _add(pkg_name, "pypi")
-    for pkg_name in config.git_packages:
-        _add(pkg_name, "git")
 
     return GenerateResult(
         marketplace_toml=emit_marketplace_toml(stall_urls),

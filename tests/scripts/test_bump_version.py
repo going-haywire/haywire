@@ -13,15 +13,16 @@ FIXTURE_DIR = Path(__file__).parent / "fixtures"
 
 
 @pytest.mark.unit
-def test_read_release_config_returns_publishable_and_lockstep_lists(tmp_path: Path) -> None:
+def test_read_release_config_returns_pip_git_and_lockstep_lists(tmp_path: Path) -> None:
     root = tmp_path / "pyproject.toml"
     root.write_text((FIXTURE_DIR / "sample_root_pyproject.toml").read_text())
 
     config = bump_version.read_release_config(root)
 
-    assert config.publish_order == ["alpha-pkg", "beta-pkg"]
+    assert config.pip_publish_order == ["alpha-pkg", "beta-pkg"]
+    assert config.git_publish_order == ["delta-pkg"]
     assert config.lockstep_unpublished == ["gamma-pkg"]
-    assert config.all_packages == ["alpha-pkg", "beta-pkg", "gamma-pkg"]
+    assert config.all_packages == ["alpha-pkg", "beta-pkg", "delta-pkg", "gamma-pkg"]
 
 
 @pytest.mark.unit
@@ -33,6 +34,7 @@ def test_locate_packages_finds_pyprojects_by_project_name(tmp_path: Path) -> Non
     for member_dir, pkg_name in [
         ("subdir-a/alpha", "alpha-pkg"),
         ("subdir-a/beta", "beta-pkg"),
+        ("subdir-a/delta", "delta-pkg"),
         ("subdir-b/gamma", "gamma-pkg"),
         ("subdir-b/unrelated", "noise-pkg"),  # not in release config
     ]:
@@ -43,7 +45,7 @@ def test_locate_packages_finds_pyprojects_by_project_name(tmp_path: Path) -> Non
     config = bump_version.read_release_config(root)
     located = bump_version.locate_packages(root, config)
 
-    assert set(located.keys()) == {"alpha-pkg", "beta-pkg", "gamma-pkg"}
+    assert set(located.keys()) == {"alpha-pkg", "beta-pkg", "delta-pkg", "gamma-pkg"}
     assert located["alpha-pkg"] == tmp_path / "subdir-a/alpha/pyproject.toml"
     assert located["gamma-pkg"] == tmp_path / "subdir-b/gamma/pyproject.toml"
 
@@ -52,17 +54,14 @@ def test_locate_packages_finds_pyprojects_by_project_name(tmp_path: Path) -> Non
 def test_locate_packages_raises_when_a_release_package_is_missing(tmp_path: Path) -> None:
     root = tmp_path / "pyproject.toml"
     root.write_text((FIXTURE_DIR / "sample_root_pyproject.toml").read_text())
-    # Only one of three packages exists on disk.
+    # Only one of four packages exists on disk.
     d = tmp_path / "subdir-a/alpha"
     d.mkdir(parents=True)
     (d / "pyproject.toml").write_text('[project]\nname = "alpha-pkg"\nversion = "0.0.1"\n')
 
     config = bump_version.read_release_config(root)
-    with pytest.raises(bump_version.MissingPackageError) as exc:
+    with pytest.raises(bump_version.MissingPackageError, match="beta-pkg"):
         bump_version.locate_packages(root, config)
-
-    assert "beta-pkg" in str(exc.value)
-    assert "gamma-pkg" in str(exc.value)
 
 
 @pytest.mark.unit
@@ -154,7 +153,7 @@ def test_rewrite_pyproject_raises_when_no_version_line() -> None:
 
 @pytest.mark.unit
 def test_apply_bump_writes_files_and_returns_diff(tmp_path: Path) -> None:
-    # Build a mini workspace with two packages on disk.
+    # Build a mini workspace with all packages from the fixture on disk.
     root = tmp_path / "pyproject.toml"
     root.write_text((FIXTURE_DIR / "sample_root_pyproject.toml").read_text())
 
@@ -168,6 +167,10 @@ def test_apply_bump_writes_files_and_returns_diff(tmp_path: Path) -> None:
     beta_dir.mkdir(parents=True)
     (beta_dir / "pyproject.toml").write_text('[project]\nname = "beta-pkg"\nversion = "0.0.1"\n')
 
+    delta_dir = tmp_path / "subdir-a/delta"
+    delta_dir.mkdir(parents=True)
+    (delta_dir / "pyproject.toml").write_text('[project]\nname = "delta-pkg"\nversion = "0.0.1"\n')
+
     gamma_dir = tmp_path / "subdir-b/gamma"
     gamma_dir.mkdir(parents=True)
     (gamma_dir / "pyproject.toml").write_text(
@@ -176,12 +179,13 @@ def test_apply_bump_writes_files_and_returns_diff(tmp_path: Path) -> None:
 
     diff_text, edited_count = bump_version.apply_bump(root, new_version="0.0.2", dry_run=False)
 
-    assert edited_count == 3
+    assert edited_count == 4
     assert 'version = "0.0.2"' in (alpha_dir / "pyproject.toml").read_text()
     assert '"alpha-pkg~=0.0.2"' in (gamma_dir / "pyproject.toml").read_text()
-    # Diff should reference all three files:
+    # Diff should reference all four files:
     assert "alpha/pyproject.toml" in diff_text
     assert "beta/pyproject.toml" in diff_text
+    assert "delta/pyproject.toml" in diff_text
     assert "gamma/pyproject.toml" in diff_text
 
 
@@ -197,6 +201,10 @@ def test_apply_bump_dry_run_does_not_write(tmp_path: Path) -> None:
     (tmp_path / "subdir-a/beta/pyproject.toml").write_text(
         '[project]\nname = "beta-pkg"\nversion = "0.0.1"\n'
     )
+    (tmp_path / "subdir-a/delta").mkdir(parents=True)
+    (tmp_path / "subdir-a/delta/pyproject.toml").write_text(
+        '[project]\nname = "delta-pkg"\nversion = "0.0.1"\n'
+    )
     (tmp_path / "subdir-b/gamma").mkdir(parents=True)
     (tmp_path / "subdir-b/gamma/pyproject.toml").write_text(
         '[project]\nname = "gamma-pkg"\nversion = "0.0.1"\n'
@@ -204,6 +212,6 @@ def test_apply_bump_dry_run_does_not_write(tmp_path: Path) -> None:
 
     diff_text, edited_count = bump_version.apply_bump(root, new_version="0.0.2", dry_run=True)
 
-    assert edited_count == 3
+    assert edited_count == 4
     assert (alpha_dir / "pyproject.toml").read_text() == original
     assert "0.0.2" in diff_text

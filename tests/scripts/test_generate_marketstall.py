@@ -52,6 +52,7 @@ def test_marketstall_config_reads_defaults_from_root_pyproject(tmp_path: Path) -
     # feed_base_url is optional in the fixture (defaults to empty); see the
     # generate-with-base-url test for the value-set path.
     assert config.feed_base_url == ""
+    assert config.marketplace == ["haybale-alpha", "haybale-beta"]
 
 
 @pytest.mark.unit
@@ -64,7 +65,7 @@ def test_build_entry_uses_decorator_values_over_pyproject() -> None:
         default_author="Fake Team",
         default_tags=[],
         feed_base_url="https://example.github.io/fake",
-        git_packages=[],
+        marketplace=[],
     )
 
     entry = generate_marketstall.build_entry(
@@ -102,7 +103,7 @@ def test_build_entry_emits_git_source_with_subdirectory_install_spec() -> None:
         default_author="Fake Team",
         default_tags=[],
         feed_base_url="https://example.github.io/fake",
-        git_packages=["haybale-alpha"],
+        marketplace=[],
     )
 
     entry = generate_marketstall.build_entry(
@@ -140,7 +141,7 @@ def test_build_entry_falls_back_to_pyproject_description_when_decorator_absent(t
         default_author="Fake Team",
         default_tags=["default-tag"],
         feed_base_url="https://example.github.io/fake",
-        git_packages=[],
+        marketplace=[],
     )
 
     entry = generate_marketstall.build_entry(
@@ -342,12 +343,13 @@ def test_generate_resolves_module_path_from_entry_points(tmp_path: Path) -> None
     root = tmp_path / "pyproject.toml"
     root.write_text(
         '[tool.uv.workspace]\nmembers = ["pkgs/*"]\n'
-        '[tool.haywire.release]\npublish_order = ["haybale-foo"]\nlockstep_unpublished = []\n'
+        '[tool.haywire.release]\npip_publish_order = ["haybale-foo"]\ngit_publish_order = []\nlockstep_unpublished = []\n'
         "[tool.haywire.marketstall]\n"
         'source_url = "https://github.com/example/fake-workspace"\n'
         'docs_branch = "main"\n'
         'default_author = ""\n'
         "default_tags = []\n"
+        'marketplace = ["haybale-foo"]\n'
     )
     pkg = tmp_path / "pkgs/haybale-foo"
     pkg.mkdir(parents=True)
@@ -372,12 +374,13 @@ def test_generate_resolves_src_layout_via_hatch_packages(tmp_path: Path) -> None
     root = tmp_path / "pyproject.toml"
     root.write_text(
         '[tool.uv.workspace]\nmembers = ["pkgs/*"]\n'
-        '[tool.haywire.release]\npublish_order = ["haywire-frame"]\nlockstep_unpublished = []\n'
+        '[tool.haywire.release]\npip_publish_order = ["haywire-frame"]\ngit_publish_order = []\nlockstep_unpublished = []\n'
         "[tool.haywire.marketstall]\n"
         'source_url = "https://github.com/example/repo"\n'
         'docs_branch = "main"\n'
         'default_author = "Team"\n'
         "default_tags = []\n"
+        "marketplace = []\n"
     )
     pkg = tmp_path / "pkgs/haywire-frame"
     pkg.mkdir(parents=True)
@@ -397,11 +400,10 @@ def test_generate_resolves_src_layout_via_hatch_packages(tmp_path: Path) -> None
     import tomllib
 
     result = generate_marketstall.generate(root, feed_base_url="https://feed.example/x")
-    stall_parsed = tomllib.loads(result.stalls[0][1])
-    entry = stall_parsed["haybales"][0]
-    assert entry["name"] == "haywire-frame"
-    # docs_url uses just the module name, not the src/ prefix:
-    assert entry["docs_url"].endswith("/pkgs/haywire-frame/haywire/")
+    # haywire-frame is a framework package — not in marketplace, not in the feed.
+    assert result.stalls == []
+    mp = tomllib.loads(result.marketplace_toml)
+    assert mp.get("stalls", []) == []
 
 
 @pytest.mark.unit
@@ -412,12 +414,13 @@ def test_generate_tolerates_missing_init_py(tmp_path: Path) -> None:
     root = tmp_path / "pyproject.toml"
     root.write_text(
         '[tool.uv.workspace]\nmembers = ["pkgs/*"]\n'
-        '[tool.haywire.release]\npublish_order = ["haybale-ghost"]\nlockstep_unpublished = []\n'
+        '[tool.haywire.release]\npip_publish_order = ["haybale-ghost"]\ngit_publish_order = []\nlockstep_unpublished = []\n'
         "[tool.haywire.marketstall]\n"
         'source_url = "https://github.com/example/repo"\n'
         'docs_branch = "main"\n'
         'default_author = "Default Author"\n'
         'default_tags = ["default-tag"]\n'
+        'marketplace = ["haybale-ghost"]\n'
     )
     pkg = tmp_path / "pkgs/haybale-ghost"
     pkg.mkdir(parents=True)
@@ -446,12 +449,13 @@ def test_generate_requires_feed_base_url(tmp_path: Path) -> None:
     root = tmp_path / "pyproject.toml"
     root.write_text(
         '[tool.uv.workspace]\nmembers = ["pkgs/*"]\n'
-        "[tool.haywire.release]\npublish_order = []\nlockstep_unpublished = []\n"
+        "[tool.haywire.release]\npip_publish_order = []\ngit_publish_order = []\nlockstep_unpublished = []\n"
         "[tool.haywire.marketstall]\n"
         'source_url = "https://github.com/example/repo"\n'
         'docs_branch = "main"\n'
         'default_author = ""\n'
         "default_tags = []\n"
+        "marketplace = []\n"
         # NOTE: no feed_base_url set
     )
 
@@ -519,3 +523,59 @@ def test_cli_writes_marketplace_and_stalls_to_out_dir(tmp_path: Path) -> None:
     ]
     alpha_parsed = tomllib.loads((out_dir / "stalls" / "haybale-alpha.toml").read_text())
     assert alpha_parsed["haybales"][0]["name"] == "haybale-alpha"
+
+
+@pytest.mark.unit
+def test_generate_errors_when_marketplace_entry_not_in_any_publish_list(tmp_path: Path) -> None:
+    root = tmp_path / "pyproject.toml"
+    root.write_text(
+        '[tool.uv.workspace]\nmembers = ["pkgs/*"]\n'
+        "[tool.haywire.release]\n"
+        'pip_publish_order = ["haybale-alpha"]\n'
+        "git_publish_order = []\n"
+        "lockstep_unpublished = []\n"
+        "[tool.haywire.marketstall]\n"
+        'source_url = "https://github.com/example/repo"\n'
+        'docs_branch = "main"\n'
+        'default_author = ""\n'
+        "default_tags = []\n"
+        'marketplace = ["haybale-alpha", "haybale-unknown"]\n'
+    )
+    pkg = tmp_path / "pkgs/haybale-alpha"
+    pkg.mkdir(parents=True)
+    (pkg / "pyproject.toml").write_text(
+        '[project]\nname = "haybale-alpha"\nversion = "0.0.1"\ndescription = "d"\ndependencies = []\n'
+    )
+    (pkg / "haybale_alpha").mkdir()
+    (pkg / "haybale_alpha" / "__init__.py").write_text('"""alpha."""\n')
+
+    with pytest.raises(ValueError, match="haybale-unknown"):
+        generate_marketstall.generate(root, feed_base_url="https://feed.example/x")
+
+
+@pytest.mark.unit
+def test_generate_errors_when_package_in_both_publish_lists(tmp_path: Path) -> None:
+    root = tmp_path / "pyproject.toml"
+    root.write_text(
+        '[tool.uv.workspace]\nmembers = ["pkgs/*"]\n'
+        "[tool.haywire.release]\n"
+        'pip_publish_order = ["haybale-alpha"]\n'
+        'git_publish_order = ["haybale-alpha"]\n'
+        "lockstep_unpublished = []\n"
+        "[tool.haywire.marketstall]\n"
+        'source_url = "https://github.com/example/repo"\n'
+        'docs_branch = "main"\n'
+        'default_author = ""\n'
+        "default_tags = []\n"
+        'marketplace = ["haybale-alpha"]\n'
+    )
+    pkg = tmp_path / "pkgs/haybale-alpha"
+    pkg.mkdir(parents=True)
+    (pkg / "pyproject.toml").write_text(
+        '[project]\nname = "haybale-alpha"\nversion = "0.0.1"\ndescription = "d"\ndependencies = []\n'
+    )
+    (pkg / "haybale_alpha").mkdir()
+    (pkg / "haybale_alpha" / "__init__.py").write_text('"""alpha."""\n')
+
+    with pytest.raises(ValueError, match="haybale-alpha"):
+        generate_marketstall.generate(root, feed_base_url="https://feed.example/x")
