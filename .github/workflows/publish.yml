@@ -74,9 +74,9 @@ jobs:
       - name: Build every wheel + sdist
         run: |
           rm -rf dist/
-          uv run python -c "
-          import json, subprocess, sys
-          packages = json.loads('${{ steps.read-config.outputs.packages }}')
+          uv run python <<'PY'
+          import json, os, subprocess, sys
+          packages = json.loads(os.environ["PACKAGES"])
           for name in packages:
               print(f'::group::Building {name}')
               r = subprocess.run(['uv', 'build', '--package', name], check=False)
@@ -84,7 +84,9 @@ jobs:
               if r.returncode != 0:
                   print(f'::error::Build failed for {name}', file=sys.stderr)
                   sys.exit(1)
-          "
+          PY
+        env:
+          PACKAGES: ${{ steps.read-config.outputs.packages }}
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
