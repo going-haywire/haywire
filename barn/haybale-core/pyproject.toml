@@ -1,7 +1,7 @@
 [project]
 name = "haybale-core"
 version = "0.0.4"
-description = "Core library for Haywire node system with core types, nodes, widgets, and renderers"
+description = "Haywire's core library with types, nodes, widgets, and renderers"
 readme = "README.md"
 requires-python = ">=3.9"
 license = {text = "MIT"}

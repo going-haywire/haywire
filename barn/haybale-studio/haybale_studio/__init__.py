@@ -33,7 +33,7 @@ from haywire.ui.widget.registry import WidgetRegistry
 
 
 @library(
-    label="Haywire Studio",
+    label="Haybale Studio",
     id="studio",
     version=_pkg_version("haybale-studio"),
     description="Required library for haywire studio",

@@ -1,6 +1,6 @@
-# Haywire Core Library
+# Haybale Core Library
 
-This is a core library providing essential types, nodes, widgets, and renderers for the Haywire library system.
+This is a core library providing essential types, nodes, widgets, and renderers for the haywire node system.
 
 ## Features
 
@@ -60,22 +60,6 @@ The library provides:
     ├── widgets/             # Core UI widgets
     ├── renderers/           # Core node renderers
     └── adapters/            # Core system adapters
-```
-
-## Development
-
-After making changes to the library code:
-
-1. **With editable install**: Changes are immediately reflected (after hot-reload)
-2. **Without editable install**: Reinstall the package
-
-## Entry Point
-
-This library is discoverable via the `haywire.libraries` entry point:
-
-```toml
-[project.entry-points."haywire.libraries"]
-core = "haybale_core:Library"
 ```
 
 ## Dependencies

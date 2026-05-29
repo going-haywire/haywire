@@ -1,7 +1,3 @@
-"""
-Built-in data type specifications for Haywire core library.
-"""
-
 from haywire.core.types import type, FlowType, PrimitiveType, PrimitiveField, BaseType
 
 
