@@ -1,0 +1,46 @@
+name: Deploy docs
+
+# Builds the mkdocs site and publishes it to the gh-pages branch under /docs/.
+# The marketplace feed lives at the gh-pages ROOT (published by the
+# deploy-marketstall job in publish.yml). This job uses destination_dir: docs
+# + keep_files: true so it only ever writes /docs/ and never touches the feed.
+
+on:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+permissions:
+  contents: write   # required to push the gh-pages branch
+
+jobs:
+  docs:
+    name: Build and deploy docs
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          enable-cache: true
+
+      - name: Set up Python
+        run: uv python install 3.12
+
+      - name: Install workspace
+        run: uv sync --dev
+
+      - name: Build docs
+        run: uv run mkdocs build   # outputs to ./site (site_dir in mkdocs.yml)
+
+      - name: Deploy to gh-pages/docs
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./site
+          publish_branch: gh-pages
+          destination_dir: docs   # isolate docs under /docs/ — leave feed at root alone
+          keep_files: true        # never delete files outside /docs/ (the feed)
+          commit_message: "Deploy docs for ${{ github.sha }}"

@@ -1,6 +1,6 @@
 site_name: Haywire Documentation
 site_description: A Blueprint-inspired visual programming system — dual-flow control + data, library plugin model, hot-reload-first development.
-site_url: https://haywire.dev/docs/
+site_url: https://going-haywire.github.io/haywire/docs/
 
 # All published content lives in docs/. internals/ holds working/historical
 # artefacts that are NOT part of the published site.
