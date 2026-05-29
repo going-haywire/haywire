@@ -16,14 +16,11 @@ Haywire is a Blueprint-inspired visual programming system that combines **execut
 ### Create a New Project
 
 ```sh
-# Scaffold a new haywire project (installs haywire from PyPI)
+# Scaffold a new haywire project (installs haywire from PyPI, runs uv sync)
 uvx --from haywire-studio haywire init my-project
 
-# Enter the project and install dependencies
-cd my-project
-uv sync
-
 # Launch the editor
+cd my-project
 uv run haywire
 ```
 
