@@ -10,7 +10,7 @@ authors = [
 ]
 keywords = ["haywire", "node-editor", "visual-programming", "test"]
 
-dependencies = ["haybale-core~=0.0.5", "haybale-graph-editor~=0.0.5", "haywire-core~=0.0.5", "nicegui", "typing_extensions"]
+dependencies = ["haybale-core~=0.0.5", "haybale-graph-editor~=0.0.5", "haywire-core~=0.0.5", "nicegui>=3.12.1", "typing_extensions"]
 
 # Entry point for Haywire library discovery
 [project.entry-points."haywire.libraries"]

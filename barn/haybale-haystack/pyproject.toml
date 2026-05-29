@@ -9,7 +9,7 @@ dependencies = [
     "haywire-core~=0.0.5",
     "haybale-studio~=0.0.5",
     "haybale-graph-editor~=0.0.5",
-    "nicegui",
+    "nicegui>=3.12.1",
     "toml>=0.10.2",
 ]
 

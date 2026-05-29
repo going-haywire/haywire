@@ -14,7 +14,7 @@ authors = [
 keywords = ["haywire", "node-editor", "visual-programming", "framework"]
 
 dependencies = [
-    "nicegui",
+    "nicegui>=3.12.1",
     "watchdog>=6.0.0",
     "injector>=0.22.0",
     "attrs==25.4.0",

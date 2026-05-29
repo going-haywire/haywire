@@ -229,6 +229,20 @@ class AppShell:
             "   padding: 0.25rem 0.5rem !important;"
             "   gap: 0 !important;"
             " }"
+            # NiceGUI 3.x wraps expansion content in .nicegui-expansion-content which
+            # sits INSIDE q-expansion-item__content and independently gets padding:1rem
+            # from nicegui.css. Override it across all hw-panel expansions so the inner
+            # wrapper doesn't add its own indent on top of the Quasar container's padding.
+            " .hw-panel .nicegui-expansion-content {"
+            "   padding: 0 !important;"
+            "   gap: 0 !important;"
+            " }"
+            # In compact-fields contexts, also zero the Quasar container so indentation
+            # does not compound across nested expansion levels.
+            " .compact-fields .q-expansion-item__content {"
+            "   padding: 0 !important;"
+            "   gap: 0 !important;"
+            " }"
             " .hw-panel .q-expansion-item__content::before,"
             " .hw-panel .q-expansion-item__content::after {"
             "   display: none !important;"

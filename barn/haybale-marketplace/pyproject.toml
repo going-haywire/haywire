@@ -10,7 +10,7 @@ dependencies = [
     "haywire-studio~=0.0.5",
     "haybale-studio~=0.0.5",
     "toml",
-    "nicegui",
+    "nicegui>=3.12.1",
     "packaging",
 ]
 

@@ -82,7 +82,7 @@ class Slot(ABC):
         session: "Session",
         name: str,
         registry: EditorTypeRegistry,
-        on_visibility_change: Optional[Callable[[bool], None]] = None,
+        on_visibility_change: Optional[Callable[[bool], object]] = None,
         bar_place: Literal["left", "right", "top", "bottom"] = "left",
         show_fold_toggle: bool = False,
         visible: bool = True,

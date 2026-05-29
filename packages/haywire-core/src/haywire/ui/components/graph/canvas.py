@@ -11,26 +11,15 @@ from typing import Optional, Callable
 from pathlib import Path
 
 from nicegui import ui
-from nicegui.dependencies import register_library
 
 from haywire.ui.components.graph.event_definitions import BaseGraphEvent, GRAPH_EVENT_REGISTRY
 
-# Register the auto-generated library
-script_dir = Path(__file__).parent
-library_path = script_dir / "generated" / "graph_events.js"
-
-if library_path.exists():
-    try:
-        my_library = register_library(library_path, max_time=library_path.stat().st_mtime)
-    except Exception as e:
-        print(f"❌ Failed to register library: {e}")
-else:
-    print(f"❌ Library not found at: {library_path}")
+_GRAPH_EVENTS_JS = Path(__file__).parent / "generated" / "graph_events.js"
 
 logger = logging.getLogger(__name__)
 
 
-class GraphCanvasVue(ui.element, component="canvas.vue"):
+class GraphCanvasVue(ui.element, component="canvas.vue", dependencies=[_GRAPH_EVENTS_JS]):
     """Vue-based graph canvas component with ONLY unified event handling."""
 
     def __init__(
@@ -41,7 +30,6 @@ class GraphCanvasVue(ui.element, component="canvas.vue"):
         canvas_height: int = 8000,
     ):
         super().__init__()
-        self.libraries.append(my_library)
 
         self._on_canvas_event = on_canvas_event
         self.zoom_container = zoom_container

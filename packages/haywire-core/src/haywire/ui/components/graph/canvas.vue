@@ -27,7 +27,10 @@
 </template>
 
 <script>
-// Import auto-generated event system
+// In NiceGUI 3.x, libraries are ES modules in the importmap and only execute when imported.
+// This side-effect import triggers graph_events.js to run, setting window.GraphEvents,
+// window.EventCreators, and window.EventValidators that the component uses as globals.
+import 'graph_events';
 
 export default {
     name: 'GraphCanvas',

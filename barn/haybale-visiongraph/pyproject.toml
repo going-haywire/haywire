@@ -17,7 +17,7 @@ dependencies = [
     "numpy",
     "opencv-python",
     "fastapi",
-    "nicegui",
+    "nicegui>=3.12.1",
 ]
 
 # Entry point for Haywire library discovery
