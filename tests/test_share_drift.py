@@ -114,9 +114,15 @@ def test_drift_when_pyproject_missing_haywire_core(tmp_path: Path) -> None:
 
 
 @pytest.mark.unit
-def test_drift_decorator_missing_registered_library(tmp_path: Path) -> None:
+def test_drift_decorator_missing_registered_library(tmp_path: Path, monkeypatch) -> None:
     """Source imports a registered haywire library but the decorator
     omits it — drift on the decorator side, not pyproject."""
+    import importlib.metadata as _meta
+
+    # Pin the installed version so the `~=0.0.1` floor below never lags it,
+    # keeping this test about decorator drift only (not version lag) regardless
+    # of the workspace's lockstep release version.
+    monkeypatch.setattr(_meta, "version", lambda dist: "0.0.1")
     lib = _make_library(
         tmp_path,
         pyproject_deps=["haybale-core~=0.0.1"],
@@ -130,8 +136,14 @@ def test_drift_decorator_missing_registered_library(tmp_path: Path) -> None:
 
 
 @pytest.mark.unit
-def test_drift_no_drift_when_everything_declared(tmp_path: Path) -> None:
+def test_drift_no_drift_when_everything_declared(tmp_path: Path, monkeypatch) -> None:
     """All imports declared in both places — no drift."""
+    import importlib.metadata as _meta
+
+    # Pin installed versions so the `~=0.0.1` floors never lag them; this test
+    # asserts "no drift", which must hold independent of the workspace's
+    # current lockstep release version.
+    monkeypatch.setattr(_meta, "version", lambda dist: "0.0.1")
     lib = _make_library(
         tmp_path,
         pyproject_deps=["haywire-core~=0.0.1", "haybale-core~=0.0.1"],
@@ -145,9 +157,12 @@ def test_drift_no_drift_when_everything_declared(tmp_path: Path) -> None:
 
 
 @pytest.mark.unit
-def test_drift_extra_declarations_dont_count_as_drift(tmp_path: Path) -> None:
+def test_drift_extra_declarations_dont_count_as_drift(tmp_path: Path, monkeypatch) -> None:
     """Declared but unused deps must NOT be flagged: false positives would
     block users with optional or transitive deps."""
+    import importlib.metadata as _meta
+
+    monkeypatch.setattr(_meta, "version", lambda dist: "0.0.1")
     lib = _make_library(
         tmp_path,
         pyproject_deps=["haywire-core~=0.0.1", "numpy>=1.0"],  # numpy is not imported

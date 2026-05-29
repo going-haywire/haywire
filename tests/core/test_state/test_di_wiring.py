@@ -6,14 +6,14 @@ from haywire.core.state import LibraryStateContainer, LibraryStateRegistry
 
 class TestDIWiring:
     def test_state_registry_is_provided_as_singleton(self):
-        injector = create_haywire_injector()
+        injector = create_haywire_injector(watch_settings=False)
         reg1 = injector.get(LibraryStateRegistry)
         reg2 = injector.get(LibraryStateRegistry)
         assert isinstance(reg1, LibraryStateRegistry)
         assert reg1 is reg2
 
     def test_state_container_is_provided_as_singleton(self):
-        injector = create_haywire_injector()
+        injector = create_haywire_injector(watch_settings=False)
         c1 = injector.get(LibraryStateContainer)
         c2 = injector.get(LibraryStateContainer)
         assert isinstance(c1, LibraryStateContainer)
@@ -24,7 +24,7 @@ class TestDIWiring:
         the registry's batch event subscriber list so lifecycle events flow."""
         from haywire.core.di.config import LibrarySystemService
 
-        injector = create_haywire_injector()
+        injector = create_haywire_injector(watch_settings=False)
         service = LibrarySystemService(injector)
         service.initialize()
 
@@ -37,7 +37,7 @@ class TestDIWiring:
         from haywire.core.di.config import LibrarySystemService
         from haywire.core.settings.registry import SettingsRegistry
 
-        injector = create_haywire_injector()
+        injector = create_haywire_injector(watch_settings=False)
         service = LibrarySystemService(injector)
         service.initialize()
 
@@ -53,7 +53,7 @@ class TestDIWiring:
         from haywire.ui.editor.registry import EditorTypeRegistry
         from haywire.ui.panel.registry import PanelRegistry
 
-        injector = create_haywire_injector()
+        injector = create_haywire_injector(watch_settings=False)
         service = LibrarySystemService(injector)
         service.initialize()
 

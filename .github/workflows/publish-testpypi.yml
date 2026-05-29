@@ -39,7 +39,8 @@ jobs:
         run: uv sync --dev
 
       - name: Run fast test suite (gate)
-        run: uv run pytest -m "not integration" -q
+        # See publish.yml: exclude `ui` Playwright tests (no browser on runner).
+        run: uv run pytest -m "not integration and not ui" -q
 
   build:
     name: Build wheels
