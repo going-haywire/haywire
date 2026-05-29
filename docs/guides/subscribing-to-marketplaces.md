@@ -50,7 +50,7 @@ You don't pick a tab — the runtime inspects the fetched body and decides:
 
 Bare repository URLs (e.g. `https://github.com/alice/cool-libs`) are rejected — the dialog asks for the full path to a `marketstall.toml` or `marketplace.toml` so the resolver always knows what it's fetching.
 
-Most authors share blob URLs (the canonical GitHub form). The official haywire feed lives at `https://maybites.github.io/haywire/marketplace.toml` — pasting that subscribes you as a `[[markets]]` entry. A `file://` URL also works, useful for testing local fixtures or air-gapped setups.
+Most authors share blob URLs (the canonical GitHub form). The official haywire feed lives at `https://going-haywire.github.io/haywire/marketplace.toml` — pasting that subscribes you as a `[[markets]]` entry. A `file://` URL also works, useful for testing local fixtures or air-gapped setups.
 
 ### 3.1 What happens after you click Add
 

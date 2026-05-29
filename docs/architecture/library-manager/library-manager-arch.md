@@ -283,7 +283,7 @@ The user clicks **Add Source** in the Library Browser, pastes one URL — the si
 
 ```toml
 [[markets]]
-url = "https://maybites.github.io/haywire/marketplace.toml"
+url = "https://going-haywire.github.io/haywire/marketplace.toml"
 ignores = []
 doubles = []
 blocked = []

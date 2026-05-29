@@ -50,7 +50,7 @@ branch. Enable Pages once:
 4. Save.
 
 The first publish workflow run creates the `gh-pages` branch automatically. After that, the
-URL `https://maybites.github.io/haywire/marketplace.toml` resolves.
+URL `https://going-haywire.github.io/haywire/marketplace.toml` resolves.
 
 ## Configuration locations
 
@@ -103,7 +103,7 @@ documentation only; if it ever disagrees with this section, the section wins.
 [tool.haywire.marketstall]
 # Repo URL used as the source_url for every generated [[haybales]] entry.
 # Also forms the base for the docs_url raw-githubusercontent URL.
-source_url = "https://github.com/maybites/haywire"
+source_url = "https://github.com/going-haywire/haywire"
 
 # Default branch used in the raw-githubusercontent docs_url.
 docs_branch = "main"
@@ -185,7 +185,7 @@ the marketstall-distribution spec §11 at `internals/specs/marketstall-distribut
 and the workflow deploys the entire directory to GitHub Pages at:
 
 ```text
-https://maybites.github.io/haywire/marketplace.toml
+https://going-haywire.github.io/haywire/marketplace.toml
 ```
 
 ## Recovery procedures
