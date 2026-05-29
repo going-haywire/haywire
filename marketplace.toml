@@ -50,3 +50,9 @@ url = "https://going-haywire.github.io/haywire/stalls/haybale-haystack.toml"
 ignores = []
 doubles = []
 blocked = []
+
+[[stalls]]
+url = "https://going-haywire.github.io/haywire/stalls/haybale-visiongraph.toml"
+ignores = []
+doubles = []
+blocked = []

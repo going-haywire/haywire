@@ -6,7 +6,7 @@
 [[haybales]]
 name = "haywire-studio"
 label = "haywire-studio"
-min_version = "0.0.3"
+min_version = "0.0.4"
 description = "Haywire Node Editor Application"
 author = "Haywire Team"
 source = "pypi"

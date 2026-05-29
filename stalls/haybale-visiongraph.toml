@@ -1,0 +1,17 @@
+# Marketstall for haybale-visiongraph (auto-generated; spec §2)
+# Source of truth: the package's pyproject.toml in the haywire monorepo.
+# Re-generated on every release tag by scripts/generate_marketstall.py.
+
+
+[[haybales]]
+name = "haybale-visiongraph"
+label = "Visiongraph"
+min_version = "0.0.4"
+description = "Visiongraph library"
+author = "Florian Briggisser, Martin Fröhlich"
+source = "git"
+install_spec = "haybale-visiongraph @ git+https://github.com/going-haywire/haywire.git#subdirectory=barn/haybale-visiongraph"
+tags = ["vision", "camera", "video", "opencv"]
+dependencies = ["haybale-core"]
+source_url = "https://github.com/going-haywire/haywire"
+docs_url = "https://raw.githubusercontent.com/going-haywire/haywire/main/barn/haybale-visiongraph/haybale_visiongraph/"
