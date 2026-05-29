@@ -11,12 +11,32 @@ Creates a new haywire project with:
 import re
 import subprocess
 import sys
+from importlib.metadata import PackageNotFoundError, version
 from pathlib import Path
 from typing import Any
 
 import toml
 
 from .config import ensure_global_config, ensure_project_config, add_recent_project
+
+
+def _release_pin(dist: str = "haywire-studio") -> str:
+    """Return a compatible-release specifier (``~=X.Y.Z``) for the running
+    haywire release, so scaffolded projects pin to the version that created
+    them rather than a stale hardcoded literal.
+
+    Reads the installed version of ``dist`` — when invoked via
+    ``uvx --from haywire-studio[==X] haywire init``, that is exactly the
+    version the user chose. Raises if it can't be determined, rather than
+    guessing a pin that would mislead the generated pyproject.
+    """
+    try:
+        return f"~={version(dist)}"
+    except PackageNotFoundError as exc:
+        raise RuntimeError(
+            f"Cannot determine the installed {dist} version to pin scaffolded "
+            f"dependencies. Is haywire installed correctly?"
+        ) from exc
 
 
 def _get_dev_repo_root() -> str:
@@ -47,6 +67,7 @@ def _generate_project_pyproject(name: str, dev_repo: str | None = None) -> str:
             Adds [tool.uv.sources] pointing to local editable packages.
     """
     lib_name = f"haybale-{name}"
+    pin = _release_pin()
     sources: dict[str, dict[str, object]] = {lib_name: {"workspace": True}}
     data: dict[str, Any] = {
         "project": {
@@ -54,8 +75,8 @@ def _generate_project_pyproject(name: str, dev_repo: str | None = None) -> str:
             "version": "0.1.0",
             "requires-python": ">=3.10",
             "dependencies": [
-                "haywire-studio~=0.0.1",
-                "haybale-marketplace~=0.0.1",
+                f"haywire-studio{pin}",
+                f"haybale-marketplace{pin}",
                 lib_name,
             ],
         },
@@ -93,6 +114,7 @@ def _generate_library_pyproject(name: str, module_name: str, dev_repo: str | Non
         dev_repo: If set, absolute path to the haywire dev repo.
     """
     lib_name = f"haybale-{name}"
+    pin = _release_pin()
     sources_section = ""
     if dev_repo:
         sources_section = f'''
@@ -107,7 +129,7 @@ description = "Local library for {name} project"
 requires-python = ">=3.10"
 license = {{text = "MIT"}}
 
-dependencies = ["haywire-core~=0.0.1"]
+dependencies = ["haywire-core{pin}"]
 
 [project.entry-points."haywire.libraries"]
 {name} = "{module_name}:Library"

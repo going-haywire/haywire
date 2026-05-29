@@ -117,9 +117,11 @@ class TestProjectPyproject:
         assert data["project"]["requires-python"] == ">=3.10"
 
     def test_dependencies(self, scaffold_project):
+        from haywire_studio.init import _release_pin
+
         data = toml.loads((scaffold_project / "pyproject.toml").read_text())
         deps = data["project"]["dependencies"]
-        assert "haywire-studio~=0.0.1" in deps
+        assert f"haywire-studio{_release_pin()}" in deps
         assert "haybale-core>=1.0.0" not in deps
 
     def test_workspace_members(self, scaffold_project):
@@ -137,10 +139,12 @@ class TestLibraryPyproject:
         assert data["project"]["name"] == "haybale-test-project"
 
     def test_library_dependency(self, scaffold_project):
+        from haywire_studio.init import _release_pin
+
         data = toml.loads(
             (scaffold_project / "barn" / "haybale-test-project" / "pyproject.toml").read_text()
         )
-        assert "haywire-core~=0.0.1" in data["project"]["dependencies"]
+        assert f"haywire-core{_release_pin()}" in data["project"]["dependencies"]
 
     def test_entry_point(self, scaffold_project):
         data = toml.loads(
