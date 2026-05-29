@@ -58,6 +58,22 @@ def _sanitize_name(name: str) -> str:
     return sanitized
 
 
+def _lib_basename(name: str) -> str:
+    """Strip a leading ``haybale-``/``haybale_`` from a project name so the
+    scaffolded library isn't double-prefixed.
+
+    The library dist name is always ``haybale-<base>``; if the user already
+    named their project ``haybale-weather`` we want the library to be
+    ``haybale-weather``, not ``haybale-haybale-weather``. Applied only when
+    composing library names/modules/paths — the project name itself is kept
+    verbatim.
+    """
+    for prefix in ("haybale-", "haybale_"):
+        if name.lower().startswith(prefix):
+            return name[len(prefix) :]
+    return name
+
+
 def _generate_project_pyproject(name: str, dev_repo: str | None = None) -> str:
     """Generate the project's pyproject.toml content.
 
@@ -66,7 +82,7 @@ def _generate_project_pyproject(name: str, dev_repo: str | None = None) -> str:
         dev_repo: If set, absolute path to the haywire dev repo.
             Adds [tool.uv.sources] pointing to local editable packages.
     """
-    lib_name = f"haybale-{name}"
+    lib_name = f"haybale-{_lib_basename(name)}"
     pin = _release_pin()
     sources: dict[str, dict[str, object]] = {lib_name: {"workspace": True}}
     data: dict[str, Any] = {
@@ -113,7 +129,7 @@ def _generate_library_pyproject(name: str, module_name: str, dev_repo: str | Non
         module_name: Python module name (e.g. haybale_my_project).
         dev_repo: If set, absolute path to the haywire dev repo.
     """
-    lib_name = f"haybale-{name}"
+    lib_name = f"haybale-{_lib_basename(name)}"
     pin = _release_pin()
     sources_section = ""
     if dev_repo:
@@ -193,6 +209,7 @@ def _generate_library_readme(name: str, label: str) -> str:
 
 def _generate_library_init(name: str, label: str) -> str:
     """Generate the local haybale library's __init__.py content."""
+    lib_base = _lib_basename(name)
     return f'''"""
 Local haybale library for the {name} project.
 
@@ -229,8 +246,8 @@ from haywire.ui.widget.registry import WidgetRegistry
 
 @library(
     label='{label}',
-    id='{name}',
-    version=_pkg_version('haybale-{name}'),
+    id='{lib_base}',
+    version=_pkg_version('haybale-{lib_base}'),
     description='Local library for {name} project',
     url='',
     help_url='',
@@ -370,9 +387,10 @@ def _generate_project_marketplace_locals_only(name: str, project_dir: Path) -> s
     [[caches]] is the refresh cache and stays empty at init time.
     """
     label = name.replace("-", " ").replace("_", " ").title()
+    lib_base = _lib_basename(name)
     entry = _local_entry(
-        name=f"haybale-{name}",
-        path=project_dir / "barn" / f"haybale-{name}",
+        name=f"haybale-{lib_base}",
+        path=project_dir / "barn" / f"haybale-{lib_base}",
         label=label,
         description=f"Local library for the {name} project",
     )
@@ -400,7 +418,7 @@ def init_project(name: str, auto_sync: bool = True, dev_repo: str | None = None)
         print(f"Error: Directory '{name}' already exists.")
         sys.exit(1)
 
-    module_name = f"haybale_{_sanitize_name(name)}"
+    module_name = f"haybale_{_sanitize_name(_lib_basename(name))}"
     label = name.replace("-", " ").replace("_", " ").title()
 
     print(f"Creating haywire project: {name}")
@@ -409,7 +427,7 @@ def init_project(name: str, auto_sync: bool = True, dev_repo: str | None = None)
     project_dir.mkdir()
     (project_dir / "graphs").mkdir()
 
-    lib_dir = project_dir / "barn" / f"haybale-{name}"
+    lib_dir = project_dir / "barn" / f"haybale-{_lib_basename(name)}"
     pkg_dir = lib_dir / module_name
     pkg_dir.mkdir(parents=True)
 
