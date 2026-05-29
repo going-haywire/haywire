@@ -1,0 +1,17 @@
+# Marketstall for haybale-core (auto-generated; spec §2)
+# Source of truth: the package's pyproject.toml in the haywire monorepo.
+# Re-generated on every release tag by scripts/generate_marketstall.py.
+
+
+[[haybales]]
+name = "haybale-core"
+label = "Haywire Core"
+min_version = "0.0.2"
+description = "Core Haywire library with fundamental components"
+author = "maybites"
+source = "pypi"
+install_spec = "haybale-core"
+tags = ["core", "types", "widgets", "skins"]
+dependencies = []
+source_url = "https://github.com/maybites/haywire"
+docs_url = "https://raw.githubusercontent.com/maybites/haywire/main/barn/haybale-core/haybale_core/"
