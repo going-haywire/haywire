@@ -117,7 +117,7 @@ export default {
 
     cardStyle() {
       const base = {
-        minWidth: this.popupWidth,
+        width: this.popupWidth,
         height: this.popupHeight,
         maxWidth: '90vw',
         maxHeight: '90vh',
