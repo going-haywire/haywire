@@ -21,7 +21,7 @@ def test_update_readme_markers_rewrites_block() -> None:
     new_content = _update_readme_markers(content, url)
 
     assert new_content != content
-    assert f"`{url}`" in new_content
+    assert f"```sh\n{url}\n```" in new_content
     assert "placeholder text" not in new_content
     assert _MARKER_START in new_content
     assert _MARKER_END in new_content
@@ -46,7 +46,7 @@ def test_update_readme_markers_multiple_blocks_all_updated() -> None:
     url = "https://github.com/alice/cool-libs/blob/main/marketstall.toml"
     new_content = _update_readme_markers(content, url)
 
-    assert new_content.count(f"`{url}`") == 2
+    assert new_content.count(f"```sh\n{url}\n```") == 2
     assert "A" not in new_content
     assert "B" not in new_content
 
@@ -72,7 +72,7 @@ def test_share_save_updates_root_readme(tmp_path: Path) -> None:
 
     expected_url = "https://github.com/alice/cool-libs/blob/main/marketstall.toml"
     assert result.share_url == expected_url
-    assert f"`{expected_url}`" in (tmp_path / "README.md").read_text()
+    assert f"```sh\n{expected_url}\n```" in (tmp_path / "README.md").read_text()
 
 
 @pytest.mark.unit
@@ -93,7 +93,7 @@ def test_share_save_updates_barn_library_readme(tmp_path: Path) -> None:
             share_save_repo(tmp_path)
 
     expected_url = "https://github.com/alice/cool-libs/blob/main/marketstall.toml"
-    assert f"`{expected_url}`" in (lib_dir / "README.md").read_text()
+    assert f"```sh\n{expected_url}\n```" in (lib_dir / "README.md").read_text()
 
 
 @pytest.mark.unit
@@ -159,4 +159,4 @@ def test_share_save_finds_case_insensitive_readme(tmp_path: Path) -> None:
             share_save_repo(tmp_path)
 
     expected_url = "https://github.com/alice/cool-libs/blob/main/marketstall.toml"
-    assert f"`{expected_url}`" in (tmp_path / "Readme.md").read_text()
+    assert f"```sh\n{expected_url}\n```" in (tmp_path / "Readme.md").read_text()

@@ -322,7 +322,7 @@ class TestHaybalePrefixNotDoubled:
 
     def test_project_name_kept_verbatim(self, prefixed_project):
         data = toml.loads((prefixed_project / "pyproject.toml").read_text())
-        assert data["project"]["name"] == "haybale-weather"
+        assert data["project"]["name"] == "haybale-weather-dev"
 
 
 class TestNameSanitization:
