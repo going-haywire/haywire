@@ -6,7 +6,7 @@
 [[haybales]]
 name = "haybale-core"
 label = "Haybale Core"
-min_version = "0.0.6"
+min_version = "0.0.7"
 description = "Haywire library with fundamental components"
 author = "maybites"
 source = "pypi"
