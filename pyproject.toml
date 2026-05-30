@@ -114,7 +114,6 @@ lockstep_unpublished = [
     "haybale-example",
     "haybale-testing",
     "haybale-TEST_A",
-    "haybale-visiongraph",
 ]
 
 [tool.haywire.marketstall]
