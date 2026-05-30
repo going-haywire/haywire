@@ -39,13 +39,18 @@ dev = [
     "haybale-studio",
     "haybale-example",
     "haybale-testing",
-    "haybale-visiongraph",
     "haybale-TEST_A",
     "haybale-haystack",
     "haybale-graph-editor",
     "haybale-marketplace",
     "mkdocs-material>=9.7.6",
     "deptry>=0.25.1",
+]
+
+# Optional group: only available when barn/haybale-visiongraph symlink exists locally.
+# CI excludes this with: uv sync --no-group visiongraph
+visiongraph = [
+    "haybale-visiongraph",
 ]
 
 [tool.mypy]

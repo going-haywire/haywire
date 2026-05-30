@@ -970,7 +970,6 @@ dev = [
     { name = "haybale-studio" },
     { name = "haybale-test-a" },
     { name = "haybale-testing" },
-    { name = "haybale-visiongraph" },
     { name = "haywire-core" },
     { name = "haywire-studio" },
     { name = "mkdocs-material" },
@@ -982,6 +981,9 @@ dev = [
     { name = "pytest-playwright" },
     { name = "requests" },
     { name = "ruff" },
+]
+visiongraph = [
+    { name = "haybale-visiongraph" },
 ]
 
 [package.metadata]
@@ -997,7 +999,6 @@ dev = [
     { name = "haybale-studio", editable = "barn/haybale-studio" },
     { name = "haybale-test-a", editable = "barn/haybale-TEST_A" },
     { name = "haybale-testing", editable = "barn/haybale-testing" },
-    { name = "haybale-visiongraph", editable = "barn/haybale-visiongraph" },
     { name = "haywire-core", editable = "packages/haywire-core" },
     { name = "haywire-studio", editable = "packages/haywire-studio" },
     { name = "mkdocs-material", specifier = ">=9.7.6" },
@@ -1010,6 +1011,7 @@ dev = [
     { name = "requests" },
     { name = "ruff" },
 ]
+visiongraph = [{ name = "haybale-visiongraph", editable = "barn/haybale-visiongraph" }]
 
 [[package]]
 name = "httpcore"

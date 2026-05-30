@@ -30,7 +30,7 @@ jobs:
         run: uv python install ${{ env.PYTHON_VERSION }}
 
       - name: Install workspace
-        run: uv sync --dev
+        run: uv sync --dev --no-group visiongraph
 
       - name: Run fast test suite (gate)
         # Exclude `ui`-marked tests: they drive a real Playwright browser that
@@ -58,7 +58,7 @@ jobs:
         run: uv python install ${{ env.PYTHON_VERSION }}
 
       - name: Install workspace
-        run: uv sync --dev
+        run: uv sync --dev --no-group visiongraph
 
       - name: Read pip_publish_order from [tool.haywire.release]
         id: read-config
@@ -119,7 +119,7 @@ jobs:
         run: uv python install ${{ env.PYTHON_VERSION }}
 
       - name: Install workspace
-        run: uv sync --dev
+        run: uv sync --dev --no-group visiongraph
 
       - name: Download wheels artifact
         uses: actions/download-artifact@v4
@@ -202,7 +202,7 @@ jobs:
         run: uv python install ${{ env.PYTHON_VERSION }}
 
       - name: Install workspace
-        run: uv sync --dev
+        run: uv sync --dev --no-group visiongraph
 
       - name: Generate official feed (marketplace.toml + stalls/*.toml)
         run: |
