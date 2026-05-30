@@ -308,9 +308,18 @@ class LibraryRegistry:
             return False
         library.disable()
         self._unregister(library_registry_id)
-        self._library_sources.pop(library_registry_id, None)
+        source_path = self._library_sources.pop(library_registry_id, None)
         self._library_install_types.pop(library_registry_id, None)
         self._library_distribution_names.pop(library_registry_id, None)
+
+        # Eject stale module objects so scan_for_libraries() does a fresh import
+        # rather than returning the cached pre-upgrade module from sys.modules.
+        if source_path:
+            module_name = os.path.basename(source_path.rstrip("/\\"))
+            to_remove = [k for k in sys.modules if k == module_name or k.startswith(module_name + ".")]
+            for k in to_remove:
+                del sys.modules[k]
+
         logger.info(f"Library '{library_registry_id}': Fully removed (ready for reload)")
         return True
 
@@ -725,3 +734,10 @@ class LibraryRegistry:
     def get_library_distribution_name(self, library_id: str) -> str | None:
         """Get the pip distribution name for a library (e.g. 'haybale-visiongraph')"""
         return self._library_distribution_names.get(library_id)
+
+    def find_library_by_distribution_name(self, dist_name: str) -> str | None:
+        """Return the library_id for a given pip distribution name, or None."""
+        return next(
+            (lid for lid, d in self._library_distribution_names.items() if d == dist_name),
+            None,
+        )
