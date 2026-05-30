@@ -203,3 +203,9 @@ site/
 
 # Local git worktrees (claude-code workflow)
 .worktrees/
+
+# Haywire project config (user-local, not repo state)
+.haywire/
+
+# Local symlink to external dev project (machine-specific path)
+barn/haybale-visiongraph
