@@ -17,7 +17,6 @@ haybale-core = { workspace = true }
 haybale-studio = { workspace = true }
 haybale-example = { workspace = true }
 haybale-testing = { workspace = true }
-haybale-visiongraph = { workspace = true }
 haybale-TEST_A = { workspace = true }
 haybale-haystack = { workspace = true }
 haybale-graph-editor = { workspace = true }
@@ -45,12 +44,6 @@ dev = [
     "haybale-marketplace",
     "mkdocs-material>=9.7.6",
     "deptry>=0.25.1",
-]
-
-# Optional group: only available when barn/haybale-visiongraph symlink exists locally.
-# CI excludes this with: uv sync --no-group visiongraph
-visiongraph = [
-    "haybale-visiongraph",
 ]
 
 [tool.mypy]

@@ -982,9 +982,6 @@ dev = [
     { name = "requests" },
     { name = "ruff" },
 ]
-visiongraph = [
-    { name = "haybale-visiongraph" },
-]
 
 [package.metadata]
 
@@ -1011,7 +1008,6 @@ dev = [
     { name = "requests" },
     { name = "ruff" },
 ]
-visiongraph = [{ name = "haybale-visiongraph", editable = "barn/haybale-visiongraph" }]
 
 [[package]]
 name = "httpcore"
