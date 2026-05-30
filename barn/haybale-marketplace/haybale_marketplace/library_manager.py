@@ -239,13 +239,61 @@ class LibraryManager:
         await proc.wait()
         return proc.returncode == 0, "\n".join(last_lines)
 
-    async def install_streaming(
+    def _parse_dry_run_removals(self, output: str) -> list[str]:
+        """Parse `uv pip install --dry-run` stdout and return distribution names
+        of packages that would be uninstalled (i.e. upgraded/replaced).
+
+        Lines of interest look like: ' - haybale-core==0.0.5'
+        """
+        names = []
+        for line in output.splitlines():
+            stripped = line.strip()
+            if stripped.startswith("- "):
+                pkg_spec = stripped[2:].strip()
+                dist_name = pkg_spec.split("==")[0].split("[")[0].strip()
+                if dist_name:
+                    names.append(dist_name)
+        return names
+
+    async def dry_run(self, install_spec: str) -> list[str]:
+        """Run `uv pip install --dry-run` and return distribution names of packages
+        that would be removed (upgraded) by the install.
+
+        Returns:
+            List of pip distribution names that would be uninstalled.
+            Empty list when the spec is already satisfied.
+
+        Raises:
+            RuntimeError: when uv's dependency resolver fails (non-zero exit).
+        """
+        if Path(install_spec).is_dir():
+            args = ["install", "--dry-run", "-e", install_spec]
+        else:
+            args = ["install", "--dry-run", install_spec]
+
+        collected: list[str] = []
+
+        def _collect(line: str) -> None:
+            collected.append(line)
+
+        success, stderr = await self._run_uv_streaming(args, _collect)
+        if not success:
+            raise RuntimeError(f"Dependency resolution failed: {stderr}")
+
+        full_output = "\n".join(collected)
+        return self._parse_dry_run_removals(full_output)
+
+    async def install(
         self,
         install_spec: str,
         on_output: Callable[[str], None],
         source_pkg: "Haybale | None" = None,
     ) -> tuple[bool, str]:
         """Install a package with live output streaming.
+
+        Before running pip, pre-evicts any already-loaded regular libraries that
+        would be upgraded by this install (discovered via a prior dry_run() call
+        stored in _pending_removals, or re-derived here if called directly).
 
         When ``source_pkg`` is supplied and ``self.project_dir`` is set, the
         project's pyproject.toml is updated after a successful install so the
@@ -255,6 +303,25 @@ class LibraryManager:
             args = ["install", "-e", install_spec]
         else:
             args = ["install", install_spec]
+
+        # Pre-evict libraries that pip is about to upgrade.
+        # dry_run() is cheap (instant when nothing changes); running it here
+        # ensures install() is always safe to call directly (e.g. from tests).
+        try:
+            to_remove = await self.dry_run(install_spec)
+        except RuntimeError:
+            # Resolver failure — the actual install will also fail and report it.
+            to_remove = []
+
+        evicted: list[str] = []
+        for dist_name in to_remove:
+            lib_id = self.registry.find_library_by_distribution_name(dist_name)
+            if lib_id and self.registry.get_library_install_type(lib_id) == InstallType.REGULAR:
+                self.registry.remove_library(lib_id)
+                evicted.append(dist_name)
+
+        if evicted:
+            on_output(f"Preparing upgrade: removing {', '.join(evicted)} from registry…")
 
         success, stderr = await self._run_uv_streaming(args, on_output)
         if not success:
@@ -273,6 +340,15 @@ class LibraryManager:
             self._sync_install_to_pyproject(source_pkg, on_output)
 
         return True, f"Installed: {install_spec}"
+
+    async def install_streaming(
+        self,
+        install_spec: str,
+        on_output: Callable[[str], None],
+        source_pkg: "Haybale | None" = None,
+    ) -> tuple[bool, str]:
+        """Deprecated alias for install(). Use install() directly."""
+        return await self.install(install_spec, on_output, source_pkg)
 
     async def uninstall_streaming(
         self,
