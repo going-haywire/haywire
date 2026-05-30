@@ -146,7 +146,7 @@ barn/haybale-foo/
       widgets/ClassName.md
 ```
 
-`marketstall.toml` lives at the repo root, not inside the haybale package directory — see [`internals/specs/marketstall-distribution.md`](../../../internals/speculatives/archive/marketstall-distribution.md) §2.
+`marketstall.toml` lives at the repo root, not inside the haybale package directory — see [`internals/specs/marketstall-distribution.md`](../../../internals/specs/archive/marketstall-distribution.md) §2.
 
 #### `README.md` content model
 
@@ -186,7 +186,7 @@ The PyPI JSON API returns `README.md` content as `info.description` — the only
 
 #### Coordination with `haywire share --save`
 
-`haywire share --save` updates README files in place between marker pairs (see [`internals/specs/marketstall-distribution.md`](../../../internals/speculatives/archive/marketstall-distribution.md) §6.6) to keep the published share URL current. When `haywire-gen-docs` generates a fresh README, it preserves the marker pair and any URL written between them — the generator's template includes the markers, and the share command's edits are confined to the block between them. The two tools coexist by convention: the generator owns everything outside the markers; the share command owns everything inside.
+`haywire share --save` updates README files in place between marker pairs (see [`internals/specs/marketstall-distribution.md`](../../../internals/specs/archive/marketstall-distribution.md) §6.6) to keep the published share URL current. When `haywire-gen-docs` generates a fresh README, it preserves the marker pair and any URL written between them — the generator's template includes the markers, and the share command's edits are confined to the block between them. The two tools coexist by convention: the generator owns everything outside the markers; the share command owns everything inside.
 
 ## 4. One comprehensive example
 
@@ -429,7 +429,7 @@ A third-party haybale library MUST provide:
 - **For PyPI publishing**: a valid PyPI package — Trusted Publisher (OIDC) recommended, but
   the author may use any auth method PyPI supports.
 - **For marketstall publishing**: a `marketstall.toml` conforming to
-  [`internals/specs/marketstall-distribution.md`](../../../internals/speculatives/archive/marketstall-distribution.md).
+  [`internals/specs/marketstall-distribution.md`](../../../internals/specs/archive/marketstall-distribution.md).
 
 A library meeting only the Required contract is installable, importable, and resolvable by
 the Library Manager. It may render with minimal UI affordances (no description, no tags,
@@ -442,7 +442,7 @@ A compliant library SHOULD additionally provide:
 - **`@library` decorator** fields: `description`, `author`, `tags`, `url`, `author_url`,
   `help_url`. These populate the Library Manager UI.
 - **Optional marketstall entry fields** beyond the required ones — see
-  [`internals/specs/marketstall-distribution.md`](../../../internals/speculatives/archive/marketstall-distribution.md)
+  [`internals/specs/marketstall-distribution.md`](../../../internals/specs/archive/marketstall-distribution.md)
   for the full list and the resolution strategy when fields are omitted.
 - **Generated documentation** via `haywire-gen-docs` — see §3 "Documentation files generated
   by `haywire-gen-docs`" above for the content model and file layout.

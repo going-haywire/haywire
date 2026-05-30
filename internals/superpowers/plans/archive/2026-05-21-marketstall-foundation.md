@@ -8,7 +8,7 @@
 
 **Tech Stack:** Python 3.12, `dataclasses`, `toml` library, `pytest` (markers: `unit`, `integration`), `ruff`, `mypy`. No new third-party deps.
 
-**Spec reference:** [`internals/specs/marketstall-distribution.md`](../speculatives/archive/marketstall-distribution.md). When this plan says "per §X", it means §X of that spec.
+**Spec reference:** [`internals/specs/marketstall-distribution.md`](../../specs/archive/marketstall-distribution.md). When this plan says "per §X", it means §X of that spec.
 
 ---
 
@@ -4976,7 +4976,7 @@ Find the line `## Two-tier marketplace runtime *(new)*` in `docs/reference/gloss
 ```markdown
 ## Marketstall distribution runtime
 
-The runtime that backs the Library Browser's Refresh / Add Source / Edit File flow. Spec: [`internals/specs/marketstall-distribution.md`](../speculatives/archive/marketstall-distribution.md). Code: `haywire.core.marketstall`.
+The runtime that backs the Library Browser's Refresh / Add Source / Edit File flow. Spec: [`internals/specs/marketstall-distribution.md`](../../specs/archive/marketstall-distribution.md). Code: `haywire.core.marketstall`.
 
 | Term | Definition | Aliases to avoid |
 |------|-----------|-----------------|

@@ -8,7 +8,7 @@
 
 **Tech Stack:** Python 3.12, NiceGUI (UI), `haywire.core.marketstall` foundation API (`record_block_on_source`, `refresh`), `haywire.ui.modals` (`Popup`-based new helper). No new third-party deps.
 
-**Spec reference:** [`internals/specs/marketstall-distribution.md`](../speculatives/archive/marketstall-distribution.md) §7.4 (first-install safety modal). Inquisition Q9 + Q10a (blocked-list semantics; hide blocked from AVAILABLE; per-source blocking).
+**Spec reference:** [`internals/specs/marketstall-distribution.md`](../../speculatives/archive/marketstall-distribution.md) §7.4 (first-install safety modal). Inquisition Q9 + Q10a (blocked-list semantics; hide blocked from AVAILABLE; per-source blocking).
 
 **Inquisition decisions this slice implements:** Q9 (the install-safety modal addition to the spec); Q10a (blocked haybales fully hidden from AVAILABLE — already done by foundation's `apply_blocked`); Q10b (per-source blocking — already enforced by foundation).
 

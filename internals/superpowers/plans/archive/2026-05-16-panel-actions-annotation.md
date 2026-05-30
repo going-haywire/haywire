@@ -12,7 +12,7 @@
 
 ## Design context
 
-This plan implements decisions reached in [handoff-panel-shape-annotation-actions.md](../../speculatives/archive/handoffs/handoff-panel-shape-annotation-actions.md) and refined in a follow-up inquisition session. Locked decisions:
+This plan implements decisions reached in [handoff-panel-shape-annotation-actions.md](../../specs/archive/handoffs/handoff-panel-shape-annotation-actions.md) and refined in a follow-up inquisition session. Locked decisions:
 
 - **D1 annotation-only** — no decorator argument. The `actions:` annotation is the single source of truth.
 - **Decorator does the introspection** — not `__init_subclass__`. `@panel(...)` calls `typing.get_type_hints(cls)` and stores the resolved protocol.

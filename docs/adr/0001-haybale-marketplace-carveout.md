@@ -63,4 +63,4 @@ Its single use of the manager (`ctx.app.library_manager.is_installed(...)` in `c
 
 - `haywire-studio` is no longer the home of library install/uninstall UI. The `[project.scripts]` CLI (`haywire init`, `haywire share`) stays in `haywire-studio` for now — that decision is deferred.
 - A small helper currently embedded in `library_manager.py` (`_set_decorator_list_field`, regex-rewriter for `@library(...)` decorators) moves to `haywire.core.library.decorator_io`. It is shared by `haywire share` and the marketplace Edit dialog, and neither belongs in the other's package.
-- The implementation sequence is detailed in [`internals/specs/carveout-haybale-marketplace.md`](../../internals/speculatives/archive/carveout-haybale-marketplace.md).
+- The implementation sequence is detailed in [`internals/specs/carveout-haybale-marketplace.md`](../../internals/specs/archive/carveout-haybale-marketplace.md).

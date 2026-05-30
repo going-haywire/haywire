@@ -5,7 +5,7 @@ Tier 1+2 packages and deploying the marketplace. It defines both the *why* and t
 prerequisites, configuration locations, release procedure, and recovery procedures.
 
 For the marketplace / marketstall file formats produced by the release flow, see
-[`internals/specs/marketstall-distribution.md`](../../internals/speculatives/archive/marketstall-distribution.md).
+[`internals/specs/marketstall-distribution.md`](../../internals/specs/archive/marketstall-distribution.md).
 
 ## TL;DR
 

@@ -6,9 +6,9 @@
 
 **Architecture:** The §4.3 resolution algorithm (classify → fetch → parse → decide subscription type → write) lives in `haywire.core.marketstall` as a pure helper (`resolve_and_subscribe`). The dialog becomes a thin UI wrapper that calls the helper, renders errors as `ui.notify`, and chains into the existing conflict-resolution prompt. The Library Browser reads each haybale's `via` cache field to render the provenance affordance.
 
-**Tech Stack:** Python 3.12, NiceGUI (UI framework — see [.insights/feedback_nicegui_*](../../.insights/) for traps), `haywire.core.marketstall` foundation API, `pytest`. No new third-party deps.
+**Tech Stack:** Python 3.12, NiceGUI (UI framework — see [.insights/feedback_nicegui_*](../../../.insights) for traps), `haywire.core.marketstall` foundation API, `pytest`. No new third-party deps.
 
-**Spec reference:** [`internals/specs/marketstall-distribution.md`](../speculatives/archive/marketstall-distribution.md). §4.2 (four input forms), §4.3 (resolution algorithm), §7.1 (Add Source dialog), §7.4 (provenance display in Library Browser — the install-safety modal IS slice 5; only the provenance label is in scope here).
+**Spec reference:** [`internals/specs/marketstall-distribution.md`](../../speculatives/archive/marketstall-distribution.md). §4.2 (four input forms), §4.3 (resolution algorithm), §7.1 (Add Source dialog), §7.4 (provenance display in Library Browser — the install-safety modal IS slice 5; only the provenance label is in scope here).
 
 **Inquisition decisions this slice implements:** Q4 (drop bare repo URL form 3 — already in url_resolution.py from foundation), Q9 (provenance display — the "via aggregator" affordance; install-safety modal is slice 5).
 
