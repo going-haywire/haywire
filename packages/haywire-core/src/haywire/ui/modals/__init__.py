@@ -1,4 +1,3 @@
-# packages/haywire-core/src/haywire/ui/modals/__init__.py
 """Reusable modal dialogs built on :class:`haywire.ui.components.popup.Popup`."""
 
 from .confirm_modal import confirm_modal
@@ -9,6 +8,7 @@ from .install_safety_modal import install_safety_modal
 from .pick_modal import pick_modal
 from .rename_modal import rename_modal
 from .save_as_modal import save_as_modal
+from .upgrade_impact_modal import upgrade_impact_modal
 
 __all__ = [
     "DiffSection",
@@ -21,4 +21,5 @@ __all__ = [
     "pick_modal",
     "rename_modal",
     "save_as_modal",
+    "upgrade_impact_modal",
 ]
