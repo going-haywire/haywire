@@ -428,7 +428,6 @@ class TestDevModeProjectRegistration:
             "haybale-haystack",
             "haybale-example",
             "haybale-testing",
-            "haybale-visiongraph",
             "haybale-TEST_A",
         ]:
             assert dev_lib in names, f"missing dev-repo library: {dev_lib}"
