@@ -88,6 +88,50 @@ async def test_dry_run_already_satisfied_returns_empty():
 
 
 @pytest.mark.unit
+async def test_dry_run_remote_spec_uses_no_sources():
+    """Regression: remote specs must pass --no-sources so [tool.uv.sources] inside a
+    cloned git tree (e.g. workspace dev path overrides) does not corrupt resolution.
+
+    A published haybale's git+URL may clone into a workspace whose root pyproject
+    has hardcoded local paths in [tool.uv.sources]; uv applies them and replaces
+    already-installed editable packages with bogus path-traversal git URLs.
+    """
+    mgr = _make_manager()
+    captured: dict[str, list[str]] = {}
+
+    async def fake_run(args, on_output):
+        captured["args"] = list(args)
+        return True, ""
+
+    with patch.object(mgr, "_run_uv_streaming", side_effect=fake_run):
+        await mgr.dry_run("haybale-visiongraph @ git+https://example.com/foo.git")
+
+    assert "--no-sources" in captured["args"]
+    assert "--dry-run" in captured["args"]
+
+
+@pytest.mark.unit
+async def test_dry_run_local_dir_omits_no_sources(tmp_path):
+    """Editable installs of a local directory must NOT pass --no-sources.
+
+    Local-dir installs are for project heaps which legitimately use
+    [tool.uv.sources] to point at the haywire dev repo.
+    """
+    mgr = _make_manager()
+    captured: dict[str, list[str]] = {}
+
+    async def fake_run(args, on_output):
+        captured["args"] = list(args)
+        return True, ""
+
+    with patch.object(mgr, "_run_uv_streaming", side_effect=fake_run):
+        await mgr.dry_run(str(tmp_path))
+
+    assert "--no-sources" not in captured["args"]
+    assert "-e" in captured["args"]
+
+
+@pytest.mark.unit
 async def test_dry_run_resolver_error_raises():
     """dry_run() must raise RuntimeError when uv exits non-zero."""
     mgr = _make_manager()

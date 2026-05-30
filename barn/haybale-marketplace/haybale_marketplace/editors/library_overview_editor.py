@@ -171,11 +171,33 @@ class LibraryOverviewEditor(BaseEditor):
             return
 
         if isinstance(lib, LibraryInfo):
-            self._render_center(lib, None, context)
+            self._render_center(lib, self._lookup_marketplace_pkg(lib, context), context)
         elif isinstance(lib, Haybale):
             self._render_center(None, lib, context)
         else:
             self._render_placeholder()
+
+    def _lookup_marketplace_pkg(self, lib: LibraryInfo, context: "SessionContext") -> Haybale | None:
+        """Find the marketplace [[caches]] entry that matches the installed library.
+
+        Matching by distribution_name mirrors the LibraryBrowser update-arrow logic
+        so the same packages flagged in the list also expose an Update button here.
+        """
+        from haybale_marketplace.state.marketplace_state import MarketplaceState
+
+        if context.app_data is None or MarketplaceState not in context.app_data:
+            return None
+        state = context.app_data[MarketplaceState]
+        dist_name = lib.distribution_name
+        if not dist_name:
+            return None
+        try:
+            return next(
+                (h for h in state.get_project_haybales() if h.name == dist_name),
+                None,
+            )
+        except Exception:
+            return None
 
     def _render_placeholder(self):
         """Placeholder shown when nothing is selected."""

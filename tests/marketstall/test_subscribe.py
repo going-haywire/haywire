@@ -10,7 +10,12 @@ import pytest
 
 @pytest.mark.unit
 def test_subscribe_marketstall_blob_url(tmp_path: Path) -> None:
-    """A blob URL pointing at a marketstall (haybales only) → [[stalls]] entry."""
+    """A blob URL pointing at a marketstall (haybales only) → [[stalls]] entry.
+
+    The persisted URL is the raw form (directly fetchable), not the original
+    blob URL — refresh fetches `sub.url` with no re-classification, so blob
+    URLs would return HTML.
+    """
     from haywire.core.marketstall import resolve_and_subscribe
     from haywire.core.marketstall.parsing import parse_global_marketplace
 
@@ -28,7 +33,7 @@ def test_subscribe_marketstall_blob_url(tmp_path: Path) -> None:
         )
 
     assert result.kind == "stall"
-    assert result.persist_url == "https://github.com/alice/cool-libs/blob/main/marketstall.toml"
+    assert result.persist_url == ("https://raw.githubusercontent.com/alice/cool-libs/main/marketstall.toml")
 
     mf = parse_global_marketplace(global_path)
     assert len(mf.stalls) == 1
@@ -94,24 +99,25 @@ def test_subscribe_marketplace_with_markets_only(tmp_path: Path) -> None:
 
 
 @pytest.mark.unit
-def test_subscribe_raw_url_persists_canonical_blob(tmp_path: Path) -> None:
-    """A raw URL is fetched as-is but persisted in canonical blob form."""
+def test_subscribe_raw_url_persists_as_is(tmp_path: Path) -> None:
+    """A raw URL is fetched and persisted unchanged — it is already directly fetchable."""
     from haywire.core.marketstall import resolve_and_subscribe
     from haywire.core.marketstall.parsing import parse_global_marketplace
 
     global_path = tmp_path / "marketplace.toml"
 
+    url = "https://raw.githubusercontent.com/alice/cool-libs/main/marketstall.toml"
     body = '[[haybales]]\nname = "haybale-foo"\nmin_version = "0.1.0"\n'
     with patch("haywire.core.marketstall.cache._urlopen") as mock_open:
         mock_open.return_value.__enter__.return_value.read.return_value = body.encode()
         result = resolve_and_subscribe(
             global_path,
-            "https://raw.githubusercontent.com/alice/cool-libs/main/marketstall.toml",
+            url,
             paste_dir=tmp_path / "stalls",
             cache_dir=tmp_path / "cache",
         )
 
-    assert result.persist_url == "https://github.com/alice/cool-libs/blob/main/marketstall.toml"
+    assert result.persist_url == url
     mf = parse_global_marketplace(global_path)
     assert mf.stalls[0].url == result.persist_url
 

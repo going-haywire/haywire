@@ -558,7 +558,7 @@ class LibraryBrowserEditor(BaseEditor):
         if has_update:
             with row:
                 ui.icon("arrow_upward", size="14px").classes(
-                    "hw-text-warning ml-auto flex-shrink-0"
+                    "hw-use-props-color hw-text-warning ml-auto flex-shrink-0"
                 ).tooltip("Update available")
         if is_stale:
             last_seen = getattr(lib, "last_seen", "") or "unknown"

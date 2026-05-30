@@ -1,11 +1,16 @@
 """Add Source input classification — spec §4.2, §4.3.
 
 Four input forms (form 3 / bare repo URL dropped per inquisition Q4):
-  1. Blob URL — host provider rewrites to raw for fetch; blob URL persisted.
-  2. Raw URL — fetched as-is; canonical blob URL reconstructed for persistence.
+  1. Blob URL — host provider rewrites to raw; raw URL is both fetched and persisted.
+  2. Raw URL — fetched and persisted as-is.
   3. Plain TOML URL — fetched as-is; persisted as-is.
   4. Pasted TOML block — written to ~/.haywire/db/.../stalls/<name>.toml,
      then referenced as file:// (handled by the caller after classify_input).
+
+Persistence rule: the URL written to marketplace.toml must be directly fetchable
+by the refresh pipeline (it calls fetch_with_cache_fallback on sub.url with no
+re-classification). Blob URLs return HTML, so any blob input is normalized to
+its raw form before persisting.
 
 Bare repo URLs (e.g. `https://github.com/alice/cool-libs`) are rejected with a
 clear error pointing at the README marker pattern (§6.6).
@@ -85,18 +90,19 @@ def classify_input(user_input: str) -> ClassifiedInput:
     if provider is not None:
         blob = provider.parse_blob_url(normalized)
         if blob is not None:
+            raw_url = provider.raw_url(blob.owner, blob.repo, blob.ref, blob.path)
             return ClassifiedInput(
                 form=InputForm.BLOB_URL,
-                fetch_url=provider.raw_url(blob.owner, blob.repo, blob.ref, blob.path),
-                persist_url=provider.blob_url(blob.owner, blob.repo, blob.ref, blob.path),
+                fetch_url=raw_url,
+                persist_url=raw_url,
             )
 
         raw = provider.parse_raw_url(normalized)
         if raw is not None:
             return ClassifiedInput(
                 form=InputForm.RAW_URL,
-                fetch_url=provider.raw_url(raw.owner, raw.repo, raw.ref, raw.path),
-                persist_url=provider.blob_url(raw.owner, raw.repo, raw.ref, raw.path),
+                fetch_url=normalized,
+                persist_url=normalized,
             )
 
         # Provider matched the hostname but URL didn't match blob or raw shape.
@@ -113,17 +119,18 @@ def classify_input(user_input: str) -> ClassifiedInput:
     for p in HOST_PROVIDERS:
         blob = p.parse_blob_url(normalized)
         if blob is not None:
+            raw_url = p.raw_url(blob.owner, blob.repo, blob.ref, blob.path)
             return ClassifiedInput(
                 form=InputForm.BLOB_URL,
-                fetch_url=p.raw_url(blob.owner, blob.repo, blob.ref, blob.path),
-                persist_url=p.blob_url(blob.owner, blob.repo, blob.ref, blob.path),
+                fetch_url=raw_url,
+                persist_url=raw_url,
             )
         raw = p.parse_raw_url(normalized)
         if raw is not None:
             return ClassifiedInput(
                 form=InputForm.RAW_URL,
-                fetch_url=p.raw_url(raw.owner, raw.repo, raw.ref, raw.path),
-                persist_url=p.blob_url(raw.owner, raw.repo, raw.ref, raw.path),
+                fetch_url=normalized,
+                persist_url=normalized,
             )
 
     # If it has a path that looks like /owner/repo with no further file, reject.

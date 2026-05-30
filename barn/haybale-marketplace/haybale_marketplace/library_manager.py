@@ -269,7 +269,13 @@ class LibraryManager:
         if Path(install_spec).is_dir():
             args = ["install", "--dry-run", "-e", install_spec]
         else:
-            args = ["install", "--dry-run", install_spec]
+            # --no-sources: ignore [tool.uv.sources] inside the resolved tree.
+            # A published haybale's git+URL may clone into a workspace whose
+            # root pyproject.toml has dev-time path overrides (uv treats the
+            # subdirectory as a workspace member and applies them). Without
+            # this flag the resolver replaces already-installed editable
+            # haywire packages with bogus path-traversal git URLs.
+            args = ["install", "--dry-run", "--no-sources", install_spec]
 
         collected: list[str] = []
 
@@ -302,7 +308,9 @@ class LibraryManager:
         if Path(install_spec).is_dir():
             args = ["install", "-e", install_spec]
         else:
-            args = ["install", install_spec]
+            # --no-sources: see dry_run() for rationale. Must match the dry-run
+            # flags or the pre-eviction set and the actual install diverge.
+            args = ["install", "--no-sources", install_spec]
 
         # Pre-evict libraries that pip is about to upgrade.
         # dry_run() is cheap (instant when nothing changes); running it here

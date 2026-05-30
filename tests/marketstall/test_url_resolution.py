@@ -7,23 +7,68 @@ import pytest
 
 @pytest.mark.unit
 def test_classify_blob_url_github() -> None:
+    """Blob URLs are normalized to raw before persisting so refresh can fetch them directly."""
     from haywire.core.marketstall.url_resolution import classify_input, InputForm
 
+    raw = "https://raw.githubusercontent.com/alice/cool-libs/main/marketstall.toml"
     result = classify_input("https://github.com/alice/cool-libs/blob/main/marketstall.toml")
     assert result.form is InputForm.BLOB_URL
-    assert result.fetch_url == ("https://raw.githubusercontent.com/alice/cool-libs/main/marketstall.toml")
-    assert result.persist_url == "https://github.com/alice/cool-libs/blob/main/marketstall.toml"
+    assert result.fetch_url == raw
+    assert result.persist_url == raw
 
 
 @pytest.mark.unit
 def test_classify_raw_url_github() -> None:
+    """Raw URLs round-trip unchanged — they are already fetchable."""
     from haywire.core.marketstall.url_resolution import classify_input, InputForm
 
-    result = classify_input("https://raw.githubusercontent.com/alice/cool-libs/main/marketstall.toml")
+    url = "https://raw.githubusercontent.com/alice/cool-libs/main/marketstall.toml"
+    result = classify_input(url)
     assert result.form is InputForm.RAW_URL
-    assert result.fetch_url == ("https://raw.githubusercontent.com/alice/cool-libs/main/marketstall.toml")
-    # Persisted URL is the canonical blob form for editability later.
-    assert result.persist_url == "https://github.com/alice/cool-libs/blob/main/marketstall.toml"
+    assert result.fetch_url == url
+    assert result.persist_url == url
+
+
+@pytest.mark.unit
+def test_classify_raw_url_github_with_refs_heads() -> None:
+    """The extended ref form `refs/heads/<branch>` is a valid raw URL and must persist unchanged.
+
+    Regression: previously the refresh pipeline rewrote this through blob form,
+    which is only valid for short refs, and ended up fetching an HTML page.
+    """
+    from haywire.core.marketstall.url_resolution import classify_input, InputForm
+
+    url = (
+        "https://raw.githubusercontent.com/going-haywire/haybale-visiongraph/"
+        "refs/heads/master/marketstall.toml"
+    )
+    result = classify_input(url)
+    assert result.form is InputForm.RAW_URL
+    assert result.fetch_url == url
+    assert result.persist_url == url
+
+
+@pytest.mark.unit
+def test_classify_blob_url_gitlab() -> None:
+    """Same persist-as-raw rule applies to GitLab: blob URLs would return HTML at fetch time."""
+    from haywire.core.marketstall.url_resolution import classify_input, InputForm
+
+    raw = "https://gitlab.com/alice/cool-libs/-/raw/main/marketstall.toml"
+    result = classify_input("https://gitlab.com/alice/cool-libs/-/blob/main/marketstall.toml")
+    assert result.form is InputForm.BLOB_URL
+    assert result.fetch_url == raw
+    assert result.persist_url == raw
+
+
+@pytest.mark.unit
+def test_classify_raw_url_gitlab() -> None:
+    from haywire.core.marketstall.url_resolution import classify_input, InputForm
+
+    url = "https://gitlab.com/alice/cool-libs/-/raw/main/marketstall.toml"
+    result = classify_input(url)
+    assert result.form is InputForm.RAW_URL
+    assert result.fetch_url == url
+    assert result.persist_url == url
 
 
 @pytest.mark.unit
