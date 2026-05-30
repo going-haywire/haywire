@@ -23,11 +23,6 @@ build-backend = "hatchling.build"
 [tool.hatch.build.targets.wheel]
 packages = ["haybale_testing"]
 
-[tool.uv.sources]
-haywire-core = { workspace = true }
-haybale-core = { workspace = true }
-haybale-graph-editor = { workspace = true }
-
 [tool.hatch.build.targets.sdist]
 include = [
     "haybale_testing/",

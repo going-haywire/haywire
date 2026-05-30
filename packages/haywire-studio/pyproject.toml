@@ -22,11 +22,6 @@ dependencies = [
 [project.scripts]
 haywire = "haywire_studio:main"
 
-[tool.uv.sources]
-haywire-core = { workspace = true }
-haybale-core = { workspace = true }
-haybale-studio = { workspace = true }
-
 [tool.hatch.build.targets.wheel]
 packages = ["src/haywire_studio"]
 
