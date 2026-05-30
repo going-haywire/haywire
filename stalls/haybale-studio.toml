@@ -6,7 +6,7 @@
 [[haybales]]
 name = "haybale-studio"
 label = "Haybale Studio"
-min_version = "0.0.8"
+min_version = "0.0.9"
 description = "Required library for haywire studio"
 author = "Haywire Team"
 source = "pypi"
