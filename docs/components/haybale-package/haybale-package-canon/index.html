@@ -3305,7 +3305,7 @@
 </span><span id="__span-6-10"><a id="__codelineno-6-10" name="__codelineno-6-10" href="#__codelineno-6-10"></a>      nodes/ClassName.md  ← generated, sha256 hash-tracked (ships inside wheel)
 </span><span id="__span-6-11"><a id="__codelineno-6-11" name="__codelineno-6-11" href="#__codelineno-6-11"></a>      widgets/ClassName.md
 </span></code></pre></div>
-<p><code>marketstall.toml</code> lives at the repo root, not inside the haybale package directory — see <a href="../../../internals/speculatives/archive/marketstall-distribution.md"><code>internals/specs/marketstall-distribution.md</code></a> §2.</p>
+<p><code>marketstall.toml</code> lives at the repo root, not inside the haybale package directory — see <a href="../../../internals/specs/archive/marketstall-distribution.md"><code>internals/specs/marketstall-distribution.md</code></a> §2.</p>
 <h4 id="readmemd-content-model"><code>README.md</code> content model<a class="headerlink" href="#readmemd-content-model" title="Permanent link">&para;</a></h4>
 <p><code>README.md</code> is <strong>fully generated</strong> by <code>haywire-gen-docs</code> in one pass alongside <code>OVERVIEW.md</code>. Hand-authored content belongs in <code>NOTES.md</code>.</p>
 <div class="language-text highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>README.md  (package root — NOT shipped in wheel; visible on PyPI and git platforms)
@@ -3356,7 +3356,7 @@
 <p>The PyPI JSON API returns <code>README.md</code> content as <code>info.description</code> — the only discovery path for a package with no git reference. This makes <code>README.md</code> the <strong>universal fallback</strong> discovery document reachable via every distribution method.</p>
 <p><code>NOTES.md</code> replaces the old <code>LIBRARY.md</code> name. Its content is prepended to <code>README.md</code> and also appended as "Additional Notes" in <code>OVERVIEW.md</code> by the generator.</p>
 <h4 id="coordination-with-haywire-share-save">Coordination with <code>haywire share --save</code><a class="headerlink" href="#coordination-with-haywire-share-save" title="Permanent link">&para;</a></h4>
-<p><code>haywire share --save</code> updates README files in place between marker pairs (see <a href="../../../internals/speculatives/archive/marketstall-distribution.md"><code>internals/specs/marketstall-distribution.md</code></a> §6.6) to keep the published share URL current. When <code>haywire-gen-docs</code> generates a fresh README, it preserves the marker pair and any URL written between them — the generator's template includes the markers, and the share command's edits are confined to the block between them. The two tools coexist by convention: the generator owns everything outside the markers; the share command owns everything inside.</p>
+<p><code>haywire share --save</code> updates README files in place between marker pairs (see <a href="../../../internals/specs/archive/marketstall-distribution.md"><code>internals/specs/marketstall-distribution.md</code></a> §6.6) to keep the published share URL current. When <code>haywire-gen-docs</code> generates a fresh README, it preserves the marker pair and any URL written between them — the generator's template includes the markers, and the share command's edits are confined to the block between them. The two tools coexist by convention: the generator owns everything outside the markers; the share command owns everything inside.</p>
 <h2 id="4-one-comprehensive-example">4. One comprehensive example<a class="headerlink" href="#4-one-comprehensive-example" title="Permanent link">&para;</a></h2>
 <p>A complete haybale <code>haybale-image</code> exercising every packaging concept: package layout, entry point, build configuration, dependency declaration, all six conventional subfolders (the <code>Library</code> class lives in <a href="../../libraries/library-canon/#5-live-example-from-the-codebase">components/libraries §5</a>), the README format the library manager renders, and a recommended <code>marketplace.toml</code> snippet for distribution.</p>
 <h3 id="folder-layout">Folder layout<a class="headerlink" href="#folder-layout" title="Permanent link">&para;</a></h3>
@@ -3603,7 +3603,7 @@
 <li><strong>For PyPI publishing</strong>: a valid PyPI package — Trusted Publisher (OIDC) recommended, but
   the author may use any auth method PyPI supports.</li>
 <li><strong>For marketstall publishing</strong>: a <code>marketstall.toml</code> conforming to
-  <a href="../../../internals/speculatives/archive/marketstall-distribution.md"><code>internals/specs/marketstall-distribution.md</code></a>.</li>
+  <a href="../../../internals/specs/archive/marketstall-distribution.md"><code>internals/specs/marketstall-distribution.md</code></a>.</li>
 </ul>
 <p>A library meeting only the Required contract is installable, importable, and resolvable by
 the Library Manager. It may render with minimal UI affordances (no description, no tags,
@@ -3614,7 +3614,7 @@ no docs link) — see Recommended below.</p>
 <li><strong><code>@library</code> decorator</strong> fields: <code>description</code>, <code>author</code>, <code>tags</code>, <code>url</code>, <code>author_url</code>,
   <code>help_url</code>. These populate the Library Manager UI.</li>
 <li><strong>Optional marketstall entry fields</strong> beyond the required ones — see
-  <a href="../../../internals/speculatives/archive/marketstall-distribution.md"><code>internals/specs/marketstall-distribution.md</code></a>
+  <a href="../../../internals/specs/archive/marketstall-distribution.md"><code>internals/specs/marketstall-distribution.md</code></a>
   for the full list and the resolution strategy when fields are omitted.</li>
 <li><strong>Generated documentation</strong> via <code>haywire-gen-docs</code> — see §3 "Documentation files generated
   by <code>haywire-gen-docs</code>" above for the content model and file layout.</li>
