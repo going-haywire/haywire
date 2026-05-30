@@ -41,7 +41,7 @@ def _update_readme_markers(content: str, share_url: str) -> str:
         re.escape(_README_MARKER_START) + r"\n.*?\n" + re.escape(_README_MARKER_END),
         re.DOTALL,
     )
-    replacement = f"{_README_MARKER_START}\n`{share_url}`\n{_README_MARKER_END}"
+    replacement = f"{_README_MARKER_START}\n```sh\n{share_url}\n```\n{_README_MARKER_END}"
     return pattern.sub(replacement, content)
 
 
@@ -856,11 +856,12 @@ def share_save_repo(
     if not barn.is_dir():
         raise NoBarnError(f"no barn/ directory at {repo_root}")
 
+    lib_dirs = sorted(d for d in barn.iterdir() if d.is_dir() and (d / "pyproject.toml").exists())
+
     # Pre-flight: run the drift gate on every library before emitting anything.
     drift_reports: list[DepDrift] = []
-    for lib_dir in sorted(barn.iterdir()):
-        if not lib_dir.is_dir() or not (lib_dir / "pyproject.toml").exists():
-            continue
+    for lib_dir in lib_dirs:
+        print(f"  checking {lib_dir.name}...", flush=True)
         drift = detect_share_drift(lib_dir)
         if drift.has_drift or drift.unresolved:
             drift_reports.append(drift)
@@ -889,9 +890,7 @@ def share_save_repo(
         print(_format_drift_report(d), file=sys.stderr)
 
     entries: list[dict] = []
-    for lib_dir in sorted(barn.iterdir()):
-        if not lib_dir.is_dir():
-            continue
+    for lib_dir in lib_dirs:
         entry = _build_entry_for_library(lib_dir)
         if entry is None:
             continue
@@ -911,3 +910,118 @@ def share_save_repo(
 
 class DriftError(RuntimeError):
     """Raised when `share --save --strict` is invoked and at least one library has drift."""
+
+
+def _read_version(pyproject_path: Path) -> str | None:
+    """Return the version string from a pyproject.toml, or None if unreadable."""
+    try:
+        data = toml.loads(pyproject_path.read_text())
+        return data.get("project", {}).get("version")
+    except (toml.TomlDecodeError, OSError):
+        return None
+
+
+def _write_version(pyproject_path: Path, new_version: str) -> None:
+    """Rewrite the version field in a pyproject.toml, preserving all other content."""
+    content = pyproject_path.read_text()
+    content = re.sub(
+        r'^(version\s*=\s*")[^"]*(")',
+        rf"\g<1>{new_version}\g<2>",
+        content,
+        count=1,
+        flags=re.MULTILINE,
+    )
+    pyproject_path.write_text(content)
+
+
+def bump_version(new_version: str | None, repo_root: Path) -> None:
+    """Bump the version in all barn/*/pyproject.toml and the root pyproject.toml.
+
+    If *new_version* is None, prints the current version (read from the first
+    barn library found) and returns without making any changes.
+
+    Creates a lightweight git tag ``v<new_version>`` after writing all files
+    and prints a push reminder.
+    """
+    barn = repo_root / "barn"
+    pyproject_files: list[Path] = []
+
+    root_pyproject = repo_root / "pyproject.toml"
+    if root_pyproject.exists():
+        pyproject_files.append(root_pyproject)
+
+    if barn.is_dir():
+        for lib_dir in sorted(barn.iterdir()):
+            p = lib_dir / "pyproject.toml"
+            if lib_dir.is_dir() and p.exists():
+                pyproject_files.append(p)
+
+    if new_version is None:
+        # Find and print the current version from the first barn library.
+        for p in pyproject_files:
+            if p.parent != repo_root:
+                v = _read_version(p)
+                if v:
+                    print(f"Current version: {v}")
+                    return
+        print("No versioned pyproject.toml found in barn/.")
+        return
+
+    # Validate format.
+    if not re.match(r"^\d+\.\d+\.\d+", new_version):
+        print(f"Error: '{new_version}' is not a valid version (expected X.Y.Z).")
+        sys.exit(1)
+
+    if not pyproject_files:
+        print("No pyproject.toml files found to bump.")
+        sys.exit(1)
+
+    for p in pyproject_files:
+        _write_version(p, new_version)
+        rel = p.relative_to(repo_root)
+        print(f"  bumped {rel}")
+
+    # Commit the bumped files, then tag that commit.
+    tag = f"v{new_version}"
+    git_root = _find_git_root(repo_root)
+    if git_root:
+        # Stage all bumped pyproject.toml files.
+        for p in pyproject_files:
+            subprocess.run(["git", "add", str(p)], cwd=str(git_root), capture_output=True)
+        commit = subprocess.run(
+            ["git", "commit", "-m", f"chore: bump version to {new_version}"],
+            cwd=str(git_root),
+            capture_output=True,
+            text=True,
+        )
+        if commit.returncode == 0:
+            print("✓ Committed version bump")
+        else:
+            print(f"⚠ Commit failed: {commit.stderr.strip()}")
+
+        result = subprocess.run(
+            ["git", "tag", tag],
+            cwd=str(git_root),
+            capture_output=True,
+            text=True,
+        )
+        if result.returncode == 0:
+            print(f"✓ Created tag {tag}")
+        else:
+            print(f"⚠ Could not create tag {tag}: {result.stderr.strip()}")
+        remote = _get_remote_url(git_root)
+        if remote:
+            remote_name_result = subprocess.run(
+                ["git", "remote"],
+                cwd=str(git_root),
+                capture_output=True,
+                text=True,
+            )
+            remote_name = (
+                remote_name_result.stdout.strip().splitlines()[0]
+                if remote_name_result.returncode == 0
+                else "origin"
+            )
+            print(f"\nTo publish: git push {remote_name} {tag}")
+    else:
+        print(f"⚠ Not in a git repo — tag {tag} not created.")

@@ -106,9 +106,7 @@ pip_publish_order = [
 
 # Packages published via git subdirectory URL (binary deps or deferred from PyPI).
 # Versioned in lockstep; installed as git+<source_url>#subdirectory=<pkg dir>.
-git_publish_order = [
-    "haybale-visiongraph",
-]
+git_publish_order = []
 
 # Packages versioned in lockstep with the release but NOT published anywhere.
 # The bump script updates these too so internal users stay coherent.
@@ -116,6 +114,7 @@ lockstep_unpublished = [
     "haybale-example",
     "haybale-testing",
     "haybale-TEST_A",
+    "haybale-visiongraph",
 ]
 
 [tool.haywire.marketstall]
@@ -150,5 +149,4 @@ marketplace = [
     "haybale-marketplace",
     "haybale-graph-editor",
     "haybale-haystack",
-    "haybale-visiongraph",
 ]

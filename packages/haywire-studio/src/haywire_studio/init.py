@@ -74,6 +74,20 @@ def _lib_basename(name: str) -> str:
     return name
 
 
+def _project_root_name(name: str) -> str:
+    """Return the name to use for the root pyproject.toml ``[project]`` section.
+
+    The root project must not collide with the barn workspace member, which is
+    always ``haybale-<base>``. When the user names their project ``haybale-foo``
+    the barn member is also ``haybale-foo`` — uv rejects duplicate workspace
+    member names. Appending ``-dev`` makes the root distinct.
+    """
+    for prefix in ("haybale-", "haybale_"):
+        if name.lower().startswith(prefix):
+            return f"{name}-dev"
+    return name
+
+
 def _generate_project_pyproject(name: str, dev_repo: str | None = None) -> str:
     """Generate the project's pyproject.toml content.
 
@@ -87,7 +101,7 @@ def _generate_project_pyproject(name: str, dev_repo: str | None = None) -> str:
     sources: dict[str, dict[str, object]] = {lib_name: {"workspace": True}}
     data: dict[str, Any] = {
         "project": {
-            "name": name,
+            "name": _project_root_name(name),
             "version": "0.1.0",
             "requires-python": ">=3.10",
             "dependencies": [
@@ -180,7 +194,9 @@ def _generate_root_readme(name: str, label: str) -> str:
         f"## Subscribe\n"
         f"\n"
         f"{_README_MARKER_START}\n"
+        f"```sh\n"
         f"{_README_PLACEHOLDER}\n"
+        f"```\n"
         f"{_README_MARKER_END}\n"
         f"\n"
         f"## Getting started\n"
@@ -188,6 +204,14 @@ def _generate_root_readme(name: str, label: str) -> str:
         f"```sh\n"
         f"uv sync\n"
         f"uv run haywire\n"
+        f"```\n"
+        f"## Share your library\n"
+        f"\n"
+        f"this will bump all the files to the specified version, commit, and sets the git-tag\n"
+        f"then it generates and saves the marketstall.toml file and updates the above\n"
+        f"subscribe link with the url to get this library.\n"
+        f"```sh\n"
+        f"uv run haywire share --bump x.y.z --save\n"
         f"```\n"
     )
 

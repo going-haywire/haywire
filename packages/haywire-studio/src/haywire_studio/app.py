@@ -36,6 +36,8 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
+_BUMP_ABSENT = object()  # sentinel: --bump flag was not passed at all
+
 
 class HaywireApp:
     """Main Haywire application.
@@ -350,6 +352,15 @@ def main():
         default=True,
         help="Don't rewrite the marketstall:share-url marker block in any README.",
     )
+    share_parser.add_argument(
+        "--bump",
+        nargs="?",
+        const="",
+        default=_BUMP_ABSENT,
+        metavar="VERSION",
+        help="Bump the version in all barn/*/pyproject.toml and the root pyproject.toml, "
+        "then create a local git tag. Prints the current version if VERSION is omitted.",
+    )
 
     args = parser.parse_args()
 
@@ -359,6 +370,20 @@ def main():
         dev_repo = _get_dev_repo_root() if args.dev else None
         init_project(args.name, auto_sync=not args.no_sync, dev_repo=dev_repo)
     elif args.command == "share":
+        if args.bump is not _BUMP_ABSENT:
+            from pathlib import Path
+
+            from .share import bump_version
+
+            # args.bump is "" when --bump given without a value (print current version)
+            # args.bump is "X.Y.Z" when --bump X.Y.Z given
+            new_ver = args.bump or None
+            bump_version(new_ver, Path.cwd())
+            if new_ver is None:
+                # Just printed current version — nothing more to do.
+                sys.exit(0)
+            # Fall through to --save if also requested.
+
         if args.save:
             from pathlib import Path
 
