@@ -454,21 +454,67 @@ class LibraryBrowserEditor(BaseEditor):
         # _library_item can decide whether a stale entry is user-removable.
         installed_names = {lib.distribution_name for lib in libraries if lib.distribution_name}
 
+        # Build set of distribution names that have an update available in the
+        # marketplace cache, so _library_item can show the arrow indicator.
+        updates_available: set[str] = set()
+        workspace_root = getattr(context.app, "workspace_root", None)
+        marketplace_path = Path(workspace_root) / ".haywire" / "marketplace.toml" if workspace_root else None
+        if marketplace_path and marketplace_path.exists():
+            try:
+                from packaging.version import Version
+
+                from haywire.core.marketstall import parse_project_marketplace
+
+                pm = parse_project_marketplace(marketplace_path)
+                for entry in pm.caches:
+                    if not entry.min_version or not entry.name:
+                        continue
+                    lib = next(
+                        (x for x in libraries if x.distribution_name == entry.name),
+                        None,
+                    )
+                    if lib and lib.identity.version:
+                        try:
+                            if Version(entry.min_version) > Version(lib.identity.version):
+                                updates_available.add(entry.name)
+                        except Exception:
+                            pass
+            except Exception:
+                pass
+
         with self._list_container:
             if required:
                 hui.section_label("REQUIRED")
                 for lib in required:
-                    self._library_item(lib, "purple", context, installed_names)
+                    self._library_item(
+                        lib,
+                        "purple",
+                        context,
+                        installed_names,
+                        has_update=lib.distribution_name in updates_available,
+                    )
 
             if enabled:
                 hui.section_label("ENABLED")
                 for lib in enabled:
-                    self._library_item(lib, "green", context, installed_names)
+                    self._library_item(
+                        lib,
+                        "green",
+                        context,
+                        installed_names,
+                        has_update=lib.distribution_name in updates_available,
+                    )
 
             if disabled:
                 hui.section_label("DISABLED")
                 for lib in disabled:
-                    self._library_item(lib, "orange", context, installed_names)
+                    self._library_item(
+                        lib,
+                        "orange",
+                        context,
+                        installed_names,
+                        has_update=lib.distribution_name in updates_available,
+                    )
 
             if available:
                 hui.section_label("AVAILABLE")
@@ -484,6 +530,7 @@ class LibraryBrowserEditor(BaseEditor):
         dot_color: str,
         context: "SessionContext",
         installed_names: set[str],
+        has_update: bool = False,
     ):
         if hasattr(lib, "identity"):
             label = lib.identity.label or "?"
@@ -508,6 +555,11 @@ class LibraryBrowserEditor(BaseEditor):
             dot_color=dot_color,
             on_click=lambda entry=lib, ctx=context: self._select_library(entry, ctx),
         )
+        if has_update:
+            with row:
+                ui.icon("arrow_upward", size="14px").classes(
+                    "hw-text-warning ml-auto flex-shrink-0"
+                ).tooltip("Update available")
         if is_stale:
             last_seen = getattr(lib, "last_seen", "") or "unknown"
             entry_name = getattr(lib, "name", "") or getattr(lib, "distribution_name", "")

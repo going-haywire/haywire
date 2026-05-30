@@ -409,31 +409,31 @@ class LibraryOverviewEditor(BaseEditor):
                                     ).props("size=sm color=negative flat")
                                 else:
                                     with ui.row().classes("gap-0 items-center"):
-                                        ui.button(
-                                            "Uninstall",
-                                            on_click=lambda lid=_lib_id,
-                                            ln=_lib_label,
-                                            m=manager,
-                                            ctx=context: (self._confirm_uninstall(lid, ln, m, ctx)),
-                                        ).props("size=sm color=negative flat")
+                                        if update_available and marketplace_pkg:
+                                            ui.button(
+                                                "Update",
+                                                icon="arrow_upward",
+                                                on_click=lambda e,
+                                                spec=marketplace_pkg.install_spec,
+                                                n=marketplace_pkg.name,
+                                                m=manager,
+                                                ctx=context,
+                                                pkg=marketplace_pkg: (
+                                                    self._install_package(spec, n, e.sender, m, ctx, pkg)
+                                                ),
+                                            ).props("size=sm color=warning flat")
+                                        else:
+                                            ui.button(
+                                                "Uninstall",
+                                                on_click=lambda lid=_lib_id,
+                                                ln=_lib_label,
+                                                m=manager,
+                                                ctx=context: (self._confirm_uninstall(lid, ln, m, ctx)),
+                                            ).props("size=sm color=negative flat")
                                         with ui.button(icon=hui.icon.dropdown).props(
                                             "size=sm color=negative flat"
                                         ):
                                             with ui.menu():
-                                                if update_available and marketplace_pkg:
-                                                    ui.menu_item(
-                                                        f"Update to v{marketplace_pkg.min_version}",
-                                                        on_click=lambda e,
-                                                        spec=marketplace_pkg.install_spec,
-                                                        n=marketplace_pkg.name,
-                                                        m=manager,
-                                                        ctx=context,
-                                                        pkg=marketplace_pkg: (
-                                                            self._install_package(
-                                                                spec, n, e.sender, m, ctx, pkg
-                                                            )
-                                                        ),
-                                                    )
                                                 if marketplace_pkg:
                                                     ui.menu_item(
                                                         "Install specific version…",
