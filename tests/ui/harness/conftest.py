@@ -10,6 +10,7 @@ reset_setting (function-scoped):
     a setting to its original value after a test that mutated it.
 """
 
+import os
 import subprocess
 import time
 from pathlib import Path
@@ -24,9 +25,13 @@ _REPO_ROOT = Path(__file__).resolve().parent.parent.parent.parent
 @pytest.fixture(scope="session")
 def harness():
     """Start the harness app subprocess and wait until it is ready."""
+    # Strip PYTEST_CURRENT_TEST so NiceGUI's is_pytest() check doesn't fire inside
+    # the subprocess — otherwise ui.run() reads NICEGUI_SCREEN_TEST_PORT and crashes.
+    env = {k: v for k, v in os.environ.items() if k != "PYTEST_CURRENT_TEST"}
     proc = subprocess.Popen(
         ["uv", "run", "python", "tests/ui/harness/app.py"],
         cwd=str(_REPO_ROOT),
+        env=env,
     )
     deadline = time.time() + 20
     while time.time() < deadline:

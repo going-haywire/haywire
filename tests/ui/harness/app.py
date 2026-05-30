@@ -20,6 +20,7 @@ from pathlib import Path
 from nicegui import ui, app
 
 from haywire.core.di.config import create_library_system_service, set_library_system, set_global_injector
+from haywire.core.di.context import set_workspace_root
 
 # Resolve barn/ relative to repo root (two levels up from tests/ui/harness/)
 _HERE = Path(__file__).resolve()
@@ -44,6 +45,7 @@ def main():
     )
     set_library_system(library_service)
     set_global_injector(library_service.injector)
+    set_workspace_root(workspace_root)
 
     # Register routes (imports NiceGUI page decorators — must happen after library boot)
     from tests.ui.harness.routes import register_routes
