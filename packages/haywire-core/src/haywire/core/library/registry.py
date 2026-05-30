@@ -622,9 +622,15 @@ class LibraryRegistry:
                 continue
 
             try:
+                # Regular pip installs live in site-packages and only change during
+                # uv pip install operations. Watching them causes spurious hot-reload
+                # events (file deletions, etc.) when other packages are installed.
+                # Only enforce file watching for editable or folder-based installs.
+                should_watch = self.enforce_file_watching and lib_info.install_type != InstallType.REGULAR
+
                 # Instantiate the library
                 library_instance = lib_info.library_cls(
-                    str(lib_info.library_path), self.enforce_file_watching, self.debounce_delay
+                    str(lib_info.library_path), should_watch, self.debounce_delay
                 )
 
                 instantiated[lib_id] = library_instance
