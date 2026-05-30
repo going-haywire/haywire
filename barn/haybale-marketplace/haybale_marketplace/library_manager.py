@@ -733,8 +733,6 @@ class LibraryManager:
         ejected from sys.modules so the caller can rescan to pick up the
         fresh decorator values.
         """
-        import sys
-
         workspace = Path(workspace_root)
 
         dist_name = self.registry.get_library_distribution_name(library_id) or ""
@@ -801,14 +799,7 @@ class LibraryManager:
             return False, f"Failed to update marketplace.toml: {e}"
 
         # Fully remove the library from the registry (disable + unregister + tracking
-        # dicts cleared) so scan_for_libraries() won't skip the "already instantiated"
-        # guard and will reimport it fresh.
+        # dicts cleared, sys.modules ejected) so scan_for_libraries() reimports fresh.
         self.registry.remove_library(library_id)
-
-        # Eject the module (and all submodules) from sys.modules so the fresh
-        # import triggered by scan_for_libraries() reads the updated __init__.py.
-        to_remove = [k for k in sys.modules if k == module_name or k.startswith(module_name + ".")]
-        for k in to_remove:
-            del sys.modules[k]
 
         return True, f"Updated identity for {dist_name}"
