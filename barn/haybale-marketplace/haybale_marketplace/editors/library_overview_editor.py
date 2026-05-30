@@ -1459,33 +1459,88 @@ class LibraryOverviewEditor(BaseEditor):
         context: "SessionContext",
         source_pkg: Haybale | None = None,
     ):
-        """Install a package with streaming log output.
+        """Install a package using the 3-step flow:
+        dry-run → optional upgrade-impact confirmation → streaming progress popup.
 
         ``source_pkg`` enables write-back to the project's pyproject.toml so the
         install is reproducible via ``uv sync`` (spec: library-manager-install-sync).
         """
+        from haywire.ui.modals import install_progress_modal, upgrade_impact_modal
+
         if button:
             try:
                 button.disable()
                 button.props("loading")
             except Exception:
                 pass
-        ui.notify(f"Installing {name}…", type="info")
-        log = self._create_log_in_card(self._fixed, f"Installing {name}…")
 
-        success, message = await manager.install_streaming(install_spec, log.push, source_pkg)
+        # Step 1: dry-run to discover collateral upgrades
+        try:
+            removals = await manager.dry_run(install_spec)
+        except RuntimeError as exc:
+            ui.notify(str(exc), type="negative")
+            if button:
+                try:
+                    button.enable()
+                    button.props(remove="loading")
+                except Exception:
+                    pass
+            return
+
+        # Step 2: if collateral upgrades exist, confirm with the user
+        if removals:
+            confirmed = {"value": False}
+
+            def _on_continue() -> None:
+                confirmed["value"] = True
+
+            upgrade_impact_modal(
+                installing=name,
+                also_upgrading=removals,
+                on_continue=_on_continue,
+            )
+
+            # Wait for the user's decision (poll via asyncio.sleep — the modal
+            # callbacks run on the NiceGUI event loop in the same task context).
+            for _ in range(600):  # 60 s timeout
+                if confirmed["value"]:
+                    break
+                await asyncio.sleep(0.1)
+            else:
+                # Timed out or cancelled — abort silently
+                if button:
+                    try:
+                        button.enable()
+                        button.props(remove="loading")
+                    except Exception:
+                        pass
+                return
+
+            if not confirmed["value"]:
+                if button:
+                    try:
+                        button.enable()
+                        button.props(remove="loading")
+                    except Exception:
+                        pass
+                return
+
+        # Step 3: open progress popup and run the install
+        progress = install_progress_modal(title=f"Installing {name}…")
+
+        success, message = await manager.install(install_spec, progress.push, source_pkg)
 
         if success:
-            log.push(f"--- {name} installed successfully ---")
+            progress.push(f"--- {name} installed successfully ---")
+            progress.finish()
             ui.notify(f"Installed: {name}", type="positive")
-            # Point context at the newly installed library so the detail view
-            # shows the full installed header + tabs on rebuild.
             installed = self._find_installed_by_dist_name(name, manager)
             if installed:
                 context.active_library = installed
             self._notify_library_changed(context)
         else:
-            log.push(f"--- ERROR: {message} ---")
+            progress.push(f"--- ERROR: {message} ---")
+            progress.finish(error=message)
             ui.notify(message, type="negative")
 
     def _open_version_picker(self, pkg: Haybale, manager, context: "SessionContext"):
