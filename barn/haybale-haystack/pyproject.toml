@@ -1,14 +1,14 @@
 [project]
 name = "haybale-haystack"
-version = "0.0.11"
+version = "0.0.12"
 description = "Haystack — file-centric multi-graph manager for Haywire"
 requires-python = ">=3.10"
 license = {text = "MIT"}
 
 dependencies = [
-    "haywire-core~=0.0.11",
-    "haybale-studio~=0.0.11",
-    "haybale-graph-editor~=0.0.11",
+    "haywire-core~=0.0.12",
+    "haybale-studio~=0.0.12",
+    "haybale-graph-editor~=0.0.12",
     "nicegui>=3.12.1",
     "toml>=0.10.2",
 ]
