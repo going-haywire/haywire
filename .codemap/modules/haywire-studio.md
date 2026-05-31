@@ -1,18 +1,18 @@
 # Module: Haywire Studio
 
-> CLI application package that composes `haywire-core` into the `haywire` executable. Owns app bootstrap, global/project TOML config, the file-centric haystack registry, and runtime library install/manage UI.
+> CLI application package that composes `haywire-core` into the `haywire` executable. Owns app bootstrap, global/project TOML config, init scaffolding, the share CLI, and the studio workspace. Runtime library install/manage UI has moved out to the optional `haybale-marketplace` plugin.
 
 **Path:** `packages/haywire-studio/src/haywire_studio/`
 **Language:** Python 3.10+
 **Owner:** Haywire studio team
-**Tree hash:** `32290f54f1e21c75972b6712c4e7576c2bbd360f`
-**Mapped at:** b2e5340b (2026-05-16)
+**Tree hash:** `07bbcb50e32549d38da4c35bde2be49484cd8fc7`
+**Mapped at:** 4e5c1da7 (2026-05-31)
 
 ---
 
 ## 1. Scope & Purpose
 
-`haywire-studio` is the end-user application: it provides the `haywire` CLI entry point, boots a NiceGUI server, loads installed haybale libraries, and exposes runtime UI for managing them. It glues `haywire-core` (engine + UI) to user-facing concerns: config files, init scaffolding, share/export, and the workspace that hosts haystack file groups.
+`haywire-studio` is the end-user application: it provides the `haywire` CLI entry point, boots a NiceGUI server, and loads installed haybale libraries. It glues `haywire-core` (engine + UI) to user-facing concerns: config files, init scaffolding, the share CLI, and the workspace that hosts haystack file groups. Note: runtime library install/browse UI is **no longer here** — it moved to the [haybale-marketplace](haybale-marketplace.md) plugin, and the install/share backend lives in engine `core/marketstall`.
 
 ## 2. Folder Architecture
 
@@ -20,15 +20,14 @@
 haywire_studio/
 ├── __init__.py         ← exposes `main` (CLI entry point)
 ├── __main__.py         ← `python -m haywire_studio`
-├── app.py              ← `HaywireApp` (~500 lines) – top-level orchestrator
+├── app.py              ← `HaywireApp` – top-level orchestrator
 ├── config.py           ← global + project TOML config readers/writers
 ├── init.py             ← CLI: `haywire init` scaffolding
-├── library_manager.py  ← runtime library install/UI (pip wrap + reload)
-├── share.py            ← CLI: `haywire share` (export/share flows)
+├── share.py            ← CLI: `haywire share` (thin wrapper over core/marketstall/share)
 └── workspace/          ← studio-specific workspace pieces
 ```
 
-> Note: the file-centric multi-graph registry (`haystack.py`) referenced in `CLAUDE.md` now lives in [haybale-haystack](haybale-haystack.md). The studio focuses on app/config/library-manager.
+> Notes: the file-centric multi-graph registry now lives in [haybale-haystack](haybale-haystack.md); `library_manager.py` moved to [haybale-marketplace](haybale-marketplace.md); the share *backend* lives in [core/marketstall/share.py](haywire-core-engine.md) (this `share.py` is the CLI surface).
 
 ## 3. Always-load vs On-demand
 
@@ -40,15 +39,14 @@ haywire_studio/
 
 ### On-demand
 
-- `library_manager.py` — when working on install/uninstall/reload UI for libraries.
-- `init.py`, `share.py` — only when modifying the corresponding CLI subcommands.
+- `init.py`, `share.py` — only when modifying the corresponding CLI subcommands (`share.py` delegates to `core/marketstall/share.py`).
 - `workspace/` — when changing how the studio mounts a workspace differently from core.
 
 ## 4. Rules & Boundaries
 
 - This package depends on `haywire-core`, `haybale-core`, `haybale-studio`. Pulling in other haybale libs must go through the library discovery path, not direct imports.
-- Keep `app.py` close to its current size (~500 lines). Split into helpers before it grows further.
-- Config: global TOML lives under the user config dir; project TOML lives in the project root. Both pass through `config.py` — do not parse TOMLs ad hoc.
+- Library install/uninstall/browse UI belongs in [haybale-marketplace](haybale-marketplace.md), not here.
+- Config: global TOML lives under the user config dir; project TOML lives in the project root. Both pass through `config.py` — do not parse TOMLs ad hoc. App-level state (enabled libs) is host.toml, owned by engine `core/host`.
 - The `haywire` script is the only sanctioned launcher; tests don't spawn it as a subprocess except via `tests/test_init_scaffolding.py`.
 
 ## 5. Source of Truth
@@ -58,7 +56,6 @@ haywire_studio/
 | CLI `haywire` entry | `__init__.py:main` | Defined in `pyproject.toml [project.scripts]` |
 | App orchestrator | `app.py` (`HaywireApp`) | Boots NiceGUI + libraries |
 | TOML config | `config.py` | Both global and project schemas |
-| Library install UI | `library_manager.py` | Wraps pip + library reload |
 
 ---
 
@@ -68,6 +65,7 @@ haywire_studio/
 
 - [haywire-core-engine](haywire-core-engine.md), [haywire-core-ui](haywire-core-ui.md).
 - [haybale-core](haybale-core.md), [haybale-studio](haybale-studio.md) — required at runtime.
+- [haybale-marketplace](haybale-marketplace.md) — optional plugin discovered at runtime for library UI.
 
 ### Depended on by
 

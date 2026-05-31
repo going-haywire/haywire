@@ -5,8 +5,8 @@
 **Path:** `packages/haywire-core/src/haywire/ui/`
 **Language:** Python + Vue 3 (.vue) + JS
 **Owner:** Haywire core team
-**Tree hash:** part of `packages/haywire-core` (`520f7ab7…`)
-**Mapped at:** b2e5340b (2026-05-16)
+**Tree hash:** part of `packages/haywire-core` (`c56f69bc…`)
+**Mapped at:** 4e5c1da7 (2026-05-31)
 
 ---
 

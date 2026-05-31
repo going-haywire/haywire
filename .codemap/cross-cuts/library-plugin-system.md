@@ -16,7 +16,8 @@ Crucially, DI uses **module-level globals** (not `ContextVar`). Switching to Con
 |--------|------|----------|
 | haywire-core-engine | Library base, registry, discovery, file_watcher, DI | [→ modules/haywire-core-engine.md](../modules/haywire-core-engine.md) |
 | haywire-core-ui | Editor/panel/theme/skin registries that libraries write into | [→ modules/haywire-core-ui.md](../modules/haywire-core-ui.md) |
-| haywire-studio | `library_manager.py` runtime install + reload UI | [→ modules/haywire-studio.md](../modules/haywire-studio.md) |
+| haywire-studio | Boots engine, discovers installed libraries | [→ modules/haywire-studio.md](../modules/haywire-studio.md) |
+| haybale-marketplace | Runtime install + reload UI (`library_manager.py`) | [→ modules/haybale-marketplace.md](../modules/haybale-marketplace.md) |
 | haybale-core / studio / haystack / other | Provide the `Library` classes that get discovered | [→ haybale-core](../modules/haybale-core.md) |
 
 ## Flow
@@ -43,7 +44,9 @@ Crucially, DI uses **module-level globals** (not `ContextVar`). Switching to Con
 - `packages/haywire-core/src/haywire/core/library/file_watcher.py` — hot-reload trigger.
 - `packages/haywire-core/src/haywire/core/library/registry.py` — library-level registry.
 - `packages/haywire-core/src/haywire/core/di/context.py` — module-level DI scopes.
-- `packages/haywire-studio/src/haywire_studio/library_manager.py` — runtime install/uninstall UI.
+- `packages/haywire-core/src/haywire/core/marketstall/` — install/share backend (manifest/sources/installer/provenance).
+- `packages/haywire-core/src/haywire/core/host/store.py` — host.toml persistence (enabled libraries).
+- `barn/haybale-marketplace/haybale_marketplace/library_manager.py` — runtime install/uninstall service (moved from haywire-studio).
 - `barn/haybale-*/pyproject.toml` — `[project.entry-points."haywire.libraries"]` declarations.
 
 ## Gotchas

@@ -1,12 +1,14 @@
-# Module: haybale-libs-other (example / testing / visiongraph / TEST_A)
+# Module: haybale-libs-other (example / testing / TEST_A)
 
-> Auxiliary haybale plugin libraries: an authoring example, a testing-only library, a vision/graph integration, and a fixture for library-system tests.
+> Auxiliary haybale plugin libraries: an authoring example, a testing-only library, and a fixture for library-system tests.
 
-**Path:** `barn/haybale-example/`, `barn/haybale-testing/`, `barn/haybale-visiongraph/`, `barn/haybale-TEST_A/`
+**Path:** `barn/haybale-example/`, `barn/haybale-testing/`, `barn/haybale-TEST_A/`
 **Language:** Python 3.10+
 **Owner:** Various (bundled plugins)
 **Tree hashes:** see [META.md](../META.md)
-**Mapped at:** b2e5340b (2026-05-16)
+**Mapped at:** 4e5c1da7 (2026-05-31)
+
+> ⚠️ `barn/haybale-visiongraph/` is now **gitignored** (`.gitignore:211`) and untracked in HEAD — it exists on disk as a local-only library and is no longer part of the committed repo. It is therefore dropped from this map's hash tracking.
 
 ---
 
@@ -16,7 +18,6 @@ These libraries collectively demonstrate and exercise the library plugin system:
 
 - **`haybale-example`** — minimal reference implementation; the "follow this template" library.
 - **`haybale-testing`** — nodes/types used exclusively in the test suite (e.g., side-effect probes, deterministic timing).
-- **`haybale-visiongraph`** — integration with visiongraph / OpenCV-based vision processing nodes.
 - **`haybale-TEST_A`** — fixture/regression library for the library-system tests (e.g., naming collisions, hot-reload). The unusual name is intentional.
 
 If you are documenting how to author a haybale library, point readers to `haybale-example` first.
@@ -25,10 +26,9 @@ If you are documenting how to author a haybale library, point readers to `haybal
 
 ```
 barn/
-├── haybale-example/      haybale_example/     ← README + nodes/types
-├── haybale-testing/      haybale_testing/     ← test-only nodes
-├── haybale-visiongraph/  haybale_visiongraph/ ← visiongraph integration
-└── haybale-TEST_A/       haybale_test_a/      ← library-system test fixture
+├── haybale-example/   haybale_example/   ← README + nodes/types
+├── haybale-testing/   haybale_testing/   ← test-only nodes
+└── haybale-TEST_A/    haybale_test_a/    ← library-system test fixture
 ```
 
 Each follows the standard layout: `__init__.py` exposes a `Library` subclass and registers components via `register_components()`.
@@ -49,7 +49,7 @@ Each follows the standard layout: `__init__.py` exposes a `Library` subclass and
 - All four follow the same plugin contract as [haybale-core](haybale-core.md): register via `Library.register_components()`; entry point in `pyproject.toml`.
 - `haybale-testing` and `haybale-TEST_A` are **not** for general use — keep production logic out of them.
 - `haybale-TEST_A`'s name intentionally exercises identifier normalization; don't "fix" it.
-- mypy roots: see root `pyproject.toml` `[tool.mypy]` and the CLAUDE.md mypy command — all four are included.
+- mypy roots: see root `pyproject.toml` `[tool.mypy]` and the CLAUDE.md mypy command — example/testing/TEST_A are included (visiongraph is no longer tracked/linted by default).
 
 ## 5. Source of Truth
 
@@ -58,7 +58,6 @@ Each follows the standard layout: `__init__.py` exposes a `Library` subclass and
 | Authoring template | `barn/haybale-example/haybale_example/__init__.py` | The "follow this" library |
 | Test-only nodes | `barn/haybale-testing/haybale_testing/__init__.py` | Used by `tests/` |
 | Library-system fixture | `barn/haybale-TEST_A/haybale_test_a/__init__.py` | Used by `tests/core/test_libraries` |
-| Vision integration | `barn/haybale-visiongraph/haybale_visiongraph/__init__.py` | OpenCV-touching code |
 
 ---
 

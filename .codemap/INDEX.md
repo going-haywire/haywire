@@ -2,9 +2,9 @@
 
 > Blueprint-inspired visual programming system (Python + NiceGUI) with a dual-flow node graph engine, reactive properties, and a plugin "barn" of haybale libraries.
 
-| Generated | Commit | Tool |
-|-----------|--------|------|
-| 2026-05-16 10:25 UTC | b2e5340b | codebase-cartographer |
+| Generated | Last refreshed | Commit | Tool |
+|-----------|----------------|--------|------|
+| 2026-05-16 10:25 UTC | 2026-05-31 | 4e5c1da7 | codebase-cartographer |
 
 ## Tech Stack
 
@@ -16,12 +16,13 @@ Python 3.10+, NiceGUI / Quasar / Vue 3, `injector` DI, `attrs`/`cattrs`, `duit[n
 |--------|---------|----------|
 | haywire-core-engine | Graph engine, DI, nodes, edges, execution VM, settings, registries | [→ modules/haywire-core-engine.md](modules/haywire-core-engine.md) |
 | haywire-core-ui | NiceGUI renderers: canvas, panels, editors, themes, skins, modals | [→ modules/haywire-core-ui.md](modules/haywire-core-ui.md) |
-| haywire-studio | Studio CLI app (`haywire` entry point): app shell, config, library manager | [→ modules/haywire-studio.md](modules/haywire-studio.md) |
+| haywire-studio | Studio CLI app (`haywire` entry point): app shell, config, init, share CLI, workspace | [→ modules/haywire-studio.md](modules/haywire-studio.md) |
 | haybale-core | Built-in plugin library: core node types, adapters, widgets, themes | [→ modules/haybale-core.md](modules/haybale-core.md) |
 | haybale-studio | Built-in studio plugin: editors, panels, file focus, state container | [→ modules/haybale-studio.md](modules/haybale-studio.md) |
 | haybale-graph-editor | Visual graph editor plugin: GraphContainer protocol, GraphAppState registry, GraphEditor surface | [→ modules/haybale-graph-editor.md](modules/haybale-graph-editor.md) |
 | haybale-haystack | File-centric multi-graph manager plugin; registers GraphEntry containers into GraphAppState | [→ modules/haybale-haystack.md](modules/haybale-haystack.md) |
-| haybale-libs-other | Example / testing / visiongraph / TEST_A plugin libraries | [→ modules/haybale-libs-other.md](modules/haybale-libs-other.md) |
+| haybale-marketplace | Optional plugin: library installer + browser UI, `LibraryManager` service over `core/marketstall` | [→ modules/haybale-marketplace.md](modules/haybale-marketplace.md) |
+| haybale-libs-other | Example / testing / TEST_A plugin libraries (visiongraph now gitignored) | [→ modules/haybale-libs-other.md](modules/haybale-libs-other.md) |
 | tests | pytest suite (unit + integration) covering core, ui, studio, libraries | [→ modules/tests.md](modules/tests.md) |
 | docs | mkdocs site: architecture, components, reference, guides | [→ modules/docs.md](modules/docs.md) |
 
@@ -43,6 +44,6 @@ Python 3.10+, NiceGUI / Quasar / Vue 3, `injector` DI, `attrs`/`cattrs`, `duit[n
 
 ## Quick Stats
 
-- Total modules: 10
-- Estimated source files: ~280 Python files (+ Vue/JS frontends)
-- Map coverage: ~95% of top-level dirs (excludes `playground/`, `site/`, `internals/` ephemera)
+- Total modules: 11 (added `haybale-marketplace`; `haybale-visiongraph` now gitignored)
+- Estimated source files: ~330 Python files (+ Vue/JS frontends)
+- Map coverage: ~95% of top-level dirs (excludes `playground/`, `site/`, `internals/`, `graphs/`, `haystacks/`, `scripts/`, `src/` ephemera)

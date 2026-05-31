@@ -5,8 +5,8 @@
 **Path:** `docs/`
 **Language:** Markdown (mkdocs-material)
 **Owner:** All teams (each owns docs near their module)
-**Tree hash:** `3af7cd1f25ad8f108543b468ccb69602f019bb5c`
-**Mapped at:** b2e5340b (2026-05-16)
+**Tree hash:** `1b72a3e4ced64c34af43bab1ba30832072d9d78d`
+**Mapped at:** 4e5c1da7 (2026-05-31)
 
 ---
 
