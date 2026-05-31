@@ -4,8 +4,9 @@ description: >
   Walk the author through cutting a release of the haywire monorepo. Runs the
   gate tests, bumps every Tier 1+2 package to a new lockstep version (via
   scripts/bump_version.py), shows a unified diff of every change, then on
-  confirmation commits with `chore: release vX.Y.Z`, tags `vX.Y.Z`, and pushes
-  the tag so the publish CI workflow takes over. Supports `--dry-run` to
+  confirmation commits with `chore: release vX.Y.Z`, tags `vX.Y.Z`, then hands the
+  user the `git push` command to run themselves (a local hook blocks the skill from
+  pushing) so the publish CI workflow takes over. Supports `--dry-run` to
   preview the flow without committing. Use this skill whenever the user wants
   to cut, ship, publish, release, or version-bump the monorepo. Trigger
   phrases: "/haywire-release", "cut a release", "ship a release", "release
@@ -173,8 +174,8 @@ Tell the user:
 
 **Otherwise (normal invocation)**: ask via `AskUserQuestion`:
 
-> "Apply the bump, commit as `chore: release v<NEW_VERSION>`, tag `v<NEW_VERSION>`,
-> and push the tag to `<REMOTE>`?"
+> "Apply the bump, commit as `chore: release v<NEW_VERSION>`, and tag `v<NEW_VERSION>`?
+> (You'll run the final `git push` yourself — I'll give you the exact command.)"
 
 Offer three options:
 
@@ -225,7 +226,15 @@ only if the user explicitly asked for a release-notes page:
 
 > "Create an annotated tag with a release-notes message? (Default: no, lightweight tag.)"
 
-### Step 8 — push the branch and the tag
+### Step 8 — hand the push command to the user (do NOT run it)
+
+**Do NOT run `git push` yourself.** A local `block-dangerous-git.sh` hook intercepts
+`git push` and blocks it; if the skill attempts the push it will fail silently mid-flow
+and the tag never reaches GitHub — which means the CI publish workflow never fires and
+nothing gets published to PyPI (the exact failure this step exists to prevent).
+
+Instead, detect the remote and then **print the exact command for the user to copy-paste
+and run in their own terminal**, where the hook doesn't apply.
 
 Detect the remote first:
 
@@ -234,27 +243,35 @@ git remote
 ```
 
 Expected: a single remote name. If there's exactly one, use it. If there are multiple,
-ask the user which one to push to via `AskUserQuestion`:
+ask the user which one to use via `AskUserQuestion`:
 
 > "Push to which remote? (options: each name from `git remote`)"
 
 If there are zero remotes, STOP and tell the user — the release can't reach CI without
 a remote.
 
-Then push the current branch and the tag together:
+Then present the push command to the user as a copy-paste block (substituting the real
+`<REMOTE>` and `<NEW_VERSION>`):
 
-```bash
-git push <REMOTE> HEAD v<NEW_VERSION>
-```
+> **Final step — run this in your terminal to ship the release:**
+>
+> ```bash
+> git push <REMOTE> HEAD v<NEW_VERSION>
+> ```
+>
+> This pushes the branch ref AND the new tag in a single round-trip. The tag triggers
+> the CI publish workflow (`.github/workflows/publish.yml`) on GitHub. Once it's
+> pushed, watch progress with `gh run watch`.
 
-This pushes the branch ref AND the new tag in a single round-trip. The tag triggers
-the CI publish workflow (`.github/workflows/publish.yml`) on GitHub.
+Do not proceed to Step 9's "tag pushed" wording as if the push already happened — the
+user runs it. Frame Step 9 as "once you've pushed, CI will…".
 
 ### Step 9 — CI handoff
 
-Tell the user:
+Tell the user (note: the push is theirs to run from Step 8 — phrase this as what
+happens *once they push*, not as something that already occurred):
 
-> Tag `v<NEW_VERSION>` pushed to `<REMOTE>`. CI will now:
+> Once you push tag `v<NEW_VERSION>` to `<REMOTE>` (Step 8), CI will:
 >
 > 1. Run the fast test suite (Job 1 — gate).
 > 2. Build all 7 wheels (Job 2 — build).
@@ -310,6 +327,8 @@ a real release — without any persistent or shared-state action. Rollback is a 
   the bump script handles it; CI doesn't publish those packages, but they still get
   versioned together).
 - Edit any file other than via the bump script.
+- Run `git push` itself. A local `block-dangerous-git.sh` hook blocks the skill from
+  pushing, so Step 8 hands the user a copy-paste command to run in their own terminal.
 - Force-push tags or branches. If a tag exists at the target version, the push fails
   loudly — the user must delete the old tag deliberately (per the recovery procedure
   above).
