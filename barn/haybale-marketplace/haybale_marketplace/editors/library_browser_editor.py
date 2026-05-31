@@ -63,6 +63,7 @@ def derive_provenance_label(haybale, mf) -> str | None:
     icon=hui.icon.library,
     default_slot="left",
     description="Searchable list of installed and available libraries.",
+    order=30,
 )
 class LibraryBrowserEditor(BaseEditor):
     """

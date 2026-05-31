@@ -613,7 +613,7 @@ from types import SimpleNamespace as _SN  # noqa: E402
 
 
 class _FakeEditorCls2:
-    def __init__(self, key, opens=None, slot="main"):
+    def __init__(self, key, opens=None, slot="main", order=100):
         from haywire.ui.editor.identity import OpenBehavior
 
         self.class_identity = _SN(
@@ -622,6 +622,7 @@ class _FakeEditorCls2:
             icon="icon",
             opens=opens or OpenBehavior.REQUIRED,
             default_slot=slot,
+            order=order,
         )
 
 
@@ -777,3 +778,72 @@ class TestSlotPopulateFromSnapshot:
         slot.populate_from_snapshot({"visible": False, "size": 275})
         assert slot.visible is False
         assert slot._size == 275
+
+
+class TestSlotHotLoadOrdering:
+    """A REQUIRED editor hot-loaded at runtime (CLASS_ADDED) lands at the bar
+    position dictated by class_identity.order, not at the end."""
+
+    def _emit_class_added(self, slot, cls):
+        from haywire.core.registry.lifecycle_event import LifeCycleEvent, LifeCycleEventType
+
+        event = LifeCycleEvent(
+            registry_key=cls.class_identity.registry_key,
+            event_type=LifeCycleEventType.CLASS_ADDED,
+            affected_class=cls,
+            library_identity=_SN(id="lib"),
+        )
+        slot._on_lifecycle_events([event])
+
+    def test_low_order_hot_load_inserts_before_higher_order(self):
+        existing = _FakeEditorCls2("ed:b", slot="main", order=100)
+        reg = _FakeRegistry2({"ed:b": existing})
+        slot = _make_tab_slot2(registry=reg)
+        slot.add_binding(editor_key="ed:b", editor_cls=existing)
+
+        new_cls = _FakeEditorCls2("ed:a", slot="main", order=10)
+        reg._classes["ed:a"] = new_cls
+        self._emit_class_added(slot, new_cls)
+
+        assert [b.editor_key for b in slot.bindings] == ["ed:a", "ed:b"]
+
+    def test_high_order_hot_load_appends_after_lower_order(self):
+        existing = _FakeEditorCls2("ed:a", slot="main", order=10)
+        reg = _FakeRegistry2({"ed:a": existing})
+        slot = _make_tab_slot2(registry=reg)
+        slot.add_binding(editor_key="ed:a", editor_cls=existing)
+
+        new_cls = _FakeEditorCls2("ed:z", slot="main", order=200)
+        reg._classes["ed:z"] = new_cls
+        self._emit_class_added(slot, new_cls)
+
+        assert [b.editor_key for b in slot.bindings] == ["ed:a", "ed:z"]
+
+    def test_hot_load_inserts_between_existing_required(self):
+        low = _FakeEditorCls2("ed:low", slot="main", order=10)
+        high = _FakeEditorCls2("ed:high", slot="main", order=100)
+        reg = _FakeRegistry2({"ed:low": low, "ed:high": high})
+        slot = _make_tab_slot2(registry=reg)
+        slot.add_binding(editor_key="ed:low", editor_cls=low)
+        slot.add_binding(editor_key="ed:high", editor_cls=high)
+
+        mid = _FakeEditorCls2("ed:mid", slot="main", order=50)
+        reg._classes["ed:mid"] = mid
+        self._emit_class_added(slot, mid)
+
+        assert [b.editor_key for b in slot.bindings] == ["ed:low", "ed:mid", "ed:high"]
+
+    def test_hot_load_required_stays_ahead_of_payload_tabs(self):
+        from haywire.ui.editor.identity import OpenBehavior
+
+        pay = _FakeEditorCls2("ed:graph", OpenBehavior.ON_PAYLOAD, slot="main", order=100)
+        reg = _FakeRegistry2({"ed:graph": pay})
+        slot = _make_tab_slot2(registry=reg)
+        slot.add_binding(editor_key="ed:graph", editor_cls=pay, binding_id="/a.haywire")
+
+        # A REQUIRED editor with high order must still precede the open tab.
+        new_cls = _FakeEditorCls2("ed:req", slot="main", order=200)
+        reg._classes["ed:req"] = new_cls
+        self._emit_class_added(slot, new_cls)
+
+        assert [b.editor_key for b in slot.bindings] == ["ed:req", "ed:graph"]

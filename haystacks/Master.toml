@@ -1,6 +1,6 @@
 [[graphs]]
 path = "graphs/webcam.haywire"
-execute = true
+execute = false
 
 [[graphs]]
 path = "graphs/loop.haywire"

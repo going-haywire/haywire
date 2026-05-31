@@ -52,6 +52,7 @@ _BATCH_DEPTH = 3
         " front, then 'Click to load children' sentinels appear at deeper"
         " folders so the user can pull in three more levels on demand."
     ),
+    order=10,
 )
 class LazyFileBrowserEditor(BaseEditor):
     """File tree that loads three levels at a time on demand."""

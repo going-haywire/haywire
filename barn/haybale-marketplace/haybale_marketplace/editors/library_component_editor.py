@@ -37,6 +37,7 @@ class _WidgetPreviewPort:
     icon=hui.icon.library_component,
     default_slot="right",
     description="Detailed documentation for the selected node component.",
+    order=30,
 )
 class LibraryComponentEditor(BaseEditor):
     """

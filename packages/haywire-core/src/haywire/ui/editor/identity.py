@@ -44,8 +44,12 @@ class EditorIdentity(BaseIdentity):
         default_slot: Which workspace slot this editor belongs in by default.
             One of: 'left', 'right', 'main', 'bottom'.
         opens: Instance-creation behavior. See OpenBehavior.
+        order: Sort priority within a slot (lower = earlier in the bar).
+            Editors without an explicit order default to 100; ties fall back
+            to registration order.
     """
 
     icon: str = "extension"
     default_slot: str = "main"
     opens: OpenBehavior = field(default=OpenBehavior.REQUIRED)
+    order: int = 100

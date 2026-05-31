@@ -52,6 +52,7 @@ logger = logging.getLogger(__name__)
     icon=hui.icon.haystack,
     default_slot="left",
     description='All open graphs. Click to switch; "+" to create a new graph.',
+    order=20,
 )
 class HaystackEditor(BaseEditor):
     """

@@ -80,9 +80,14 @@ class EditorTypeRegistry(BaseRegistry):
             slot: One of 'left', 'right', 'main', 'bottom'.
 
         Returns:
-            Dict mapping registry_key -> editor class.
+            Dict mapping registry_key -> editor class, sorted by the editor's
+            ``class_identity.order`` (lower = earlier). Equal-order editors
+            keep registration order (stable sort), so the slot/bar placement
+            is deterministic and independent of library load order.
         """
-        return {k: v for k, v in self._classes.items() if v.class_identity.default_slot == slot}
+        matching = [(k, v) for k, v in self._classes.items() if v.class_identity.default_slot == slot]
+        matching.sort(key=lambda kv: kv[1].class_identity.order)
+        return dict(matching)
 
     # ------------------------------------------------------------------
     # Per-key event subscription (mirrors NodeFactory.add_event_subscriber)

@@ -68,6 +68,7 @@ EDITABLE_EXTS = frozenset(_LANGUAGE_BY_EXT.keys())
         " YAML, JS/TS, CSS/HTML/XML, Shell, plain text). Markdown files have a"
         " Preview tab. Save and Save As supported."
     ),
+    order=20,
 )
 class CodeEditor(BaseEditor):
     """Tiny text/code editor with optional Markdown preview."""

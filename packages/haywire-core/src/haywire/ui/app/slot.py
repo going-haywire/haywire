@@ -680,6 +680,48 @@ class Slot(ABC):
                 self.switch_to(wrapper.editor_key, wrapper._binding_id)
         return wrapper
 
+    def _reorder_required_binding(self, wrapper: EditorWrapper) -> None:
+        """Move a just-appended REQUIRED wrapper to its ``order`` position.
+
+        ``add_binding`` always appends, which is correct for user-opened
+        ON_PAYLOAD/ON_CONTEXT tabs. For REQUIRED editors injected at runtime
+        (CLASS_ADDED hot-load), the bar position must instead follow
+        ``class_identity.order`` so it matches the deterministic placement
+        ``populate_from_snapshot`` gets from the sorted registry. Reposition
+        ``wrapper`` (currently last in ``self._bindings``) before the first
+        REQUIRED binding whose ``order`` is strictly greater, keeping it
+        ahead of any non-REQUIRED tabs.
+        """
+        from haywire.ui.editor.identity import OpenBehavior
+
+        def order_of(w: EditorWrapper) -> int:
+            return getattr(w.editor_cls.class_identity, "order", 100)
+
+        def is_required(w: EditorWrapper) -> bool:
+            opens = getattr(w.editor_cls.class_identity, "opens", OpenBehavior.REQUIRED)
+            return opens is OpenBehavior.REQUIRED
+
+        new_order = order_of(wrapper)
+        insert_at = None
+        for i, existing in enumerate(self._bindings):
+            if existing is wrapper:
+                continue
+            if not is_required(existing):
+                # First non-REQUIRED tab marks the end of the REQUIRED block;
+                # insert here at the latest so REQUIRED stays ahead of tabs.
+                insert_at = i
+                break
+            if order_of(existing) > new_order:
+                insert_at = i
+                break
+
+        if insert_at is None:
+            # Already belongs at the end of the REQUIRED block (append is fine).
+            return
+
+        self._bindings.remove(wrapper)
+        self._bindings.insert(insert_at, wrapper)
+
     # ------------------------------------------------------------------
     # Visibility
     # ------------------------------------------------------------------
@@ -813,7 +855,8 @@ class Slot(ABC):
                     continue
                 if self.find_binding(event.registry_key) is not None:
                     continue
-                self.add_binding(editor_key=event.registry_key, editor_cls=cls)
+                wrapper = self.add_binding(editor_key=event.registry_key, editor_cls=cls)
+                self._reorder_required_binding(wrapper)
                 bar_dirty = True
 
             elif event_type == LifeCycleEventType.CLASS_REMOVED:

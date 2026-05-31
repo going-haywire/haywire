@@ -44,6 +44,7 @@ logger = logging.getLogger(__name__)
     icon=hui.icon.node_settings,
     default_slot="right",
     description="Context-sensitive property panels for the active selection.",
+    order=10,
 )
 class PropertiesEditor(BaseEditor):
     """

@@ -25,6 +25,7 @@ def editor(
     icon: str = "extension",
     default_slot: str = "main",
     opens: Union[OpenBehavior, str] = OpenBehavior.REQUIRED,
+    order: int = 100,
     registry_id: Optional[str] = None,
 ):
     """
@@ -49,6 +50,9 @@ def editor(
             'on_payload'. Defaults to 'required'. Any value is permitted on
             any default_slot — choosing a UX-sensible pairing is up to the
             editor author.
+        order: Sort priority within a slot (lower = earlier in the bar).
+            Defaults to 100. Editors with equal order fall back to
+            registration order.
         description: Human-readable description.
         registry_id: Unique ID for this editor, e.g. 'graph_editor'.
             Defaults to the class name if not provided.
@@ -85,6 +89,7 @@ def editor(
             icon=icon,
             default_slot=default_slot,
             opens=opens_enum,
+            order=order,
             description=description,
             class_name=inner_cls.__name__,
             module=inner_cls.__module__,
