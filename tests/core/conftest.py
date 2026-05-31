@@ -6,6 +6,7 @@ Additional fixtures specific to core functionality testing.
 
 import pytest
 from haywire.core.graph.base import BaseGraph
+from haywire.core.graph.scheduler import SyncScheduler
 
 
 @pytest.fixture
@@ -15,8 +16,12 @@ def empty_graph() -> BaseGraph:
 
     This is a bare graph without library system loaded.
     Use for testing graph structure/API without nodes/edges.
+
+    Uses ``SyncScheduler`` so validation runs inline on each dirty mark —
+    tests can assert immediately after a mutation without calling
+    ``force_immediate_validation()`` to flush a background timer.
     """
-    return BaseGraph(graph_id="test_graph", name="Test Graph")
+    return BaseGraph(graph_id="test_graph", name="Test Graph", validation_scheduler=SyncScheduler())
 
 
 @pytest.fixture
@@ -29,8 +34,14 @@ def graph_with_library_system(library_system) -> BaseGraph:
 
     This fixture is marked with @pytest.mark.integration automatically
     since it depends on library_system.
+
+    Uses ``SyncScheduler`` for inline validation (see ``empty_graph``).
     """
-    return BaseGraph(graph_id="integration_test_graph", name="Integration Test Graph")
+    return BaseGraph(
+        graph_id="integration_test_graph",
+        name="Integration Test Graph",
+        validation_scheduler=SyncScheduler(),
+    )
 
 
 @pytest.fixture

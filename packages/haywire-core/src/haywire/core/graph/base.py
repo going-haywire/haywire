@@ -25,6 +25,7 @@ if TYPE_CHECKING:
     from ..types import DataPort
     from ..edge.edge_wrapper import EdgeWrapper
     from ..node.node_wrapper import NodeWrapper
+    from .scheduler import ValidationScheduler
 
 logger = logging.getLogger(__name__)
 
@@ -82,7 +83,13 @@ class BaseGraph:
     External code should use the graph's public API, not interact with managers directly.
     """
 
-    def __init__(self, graph_id: str, name: str, validation_delay_ms: float = 50.0):
+    def __init__(
+        self,
+        graph_id: str,
+        name: str,
+        validation_delay_ms: float = 50.0,
+        validation_scheduler: "Optional[ValidationScheduler]" = None,
+    ):
         """
         Initialize a new Haywire graph.
 
@@ -90,6 +97,9 @@ class BaseGraph:
             graph_id: Unique identifier for this graph
             name: Human-readable name for the graph
             validation_delay_ms: Debounce delay for validation (default 50ms)
+            validation_scheduler: Strategy that runs the debounced validation
+                pass. Defaults to a background ``threading.Timer`` (legacy
+                behavior). See ``haywire.core.graph.scheduler`` and ADR 0002.
         """
         self.graph_id: str = graph_id
         self.name: str = name or f"Graph_{graph_id}"
@@ -113,7 +123,9 @@ class BaseGraph:
         self._canvas_size_changed: bool = False
 
         # Internal managers (private - implementation details)
-        self._validation = ValidationManager(graph=self, debounce_ms=validation_delay_ms)
+        self._validation = ValidationManager(
+            graph=self, debounce_ms=validation_delay_ms, scheduler=validation_scheduler
+        )
 
         self._structural: IStructuralValidator = StructuralValidator(graph=self)
 

@@ -204,13 +204,19 @@ class HaystackState(AppState):
     # ------------------------------------------------------------------
 
     def _make_graph_and_editor(self, graph_id: str, name: str) -> tuple["BaseGraph", "Editor"]:
-        """Construct a fresh (BaseGraph, Editor) pair for this state's deps."""
+        """Construct a fresh (BaseGraph, Editor) pair for this state's deps.
+
+        Injects ``LoopScheduler`` so the debounced validation pass — and the
+        ``GraphDataMutated`` broadcast it triggers — runs on the NiceGUI main
+        thread rather than a background timer thread (ADR 0002).
+        """
         from haywire.core.graph.base import BaseGraph
         from haywire.core.graph.editor import Editor
         from haywire.core.undo.config import DEVELOPMENT_CONFIG
+        from haybale_studio.loop_scheduler import LoopScheduler
 
         assert self._node_factory is not None, "on_enable must run before _make_graph_and_editor"
-        graph = BaseGraph(graph_id, name)
+        graph = BaseGraph(graph_id, name, validation_scheduler=LoopScheduler())
         editor = Editor(graph, self._node_factory, undo_config=DEVELOPMENT_CONFIG)
         return graph, editor
 

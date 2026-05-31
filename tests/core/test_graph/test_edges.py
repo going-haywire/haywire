@@ -891,9 +891,8 @@ class TestEdges:
 
     def test_node_validation_edges_stay_valid(self, graph_with_library_system: BaseGraph, library_system):
         """
-        After marking a node dirty with NODE_VALIDATION_REQUESTED and
-        running force_immediate_validation(), all edges attached to that
-        node should remain valid and linked.
+        After marking a node dirty with NODE_VALIDATION_REQUESTED, all edges
+        attached to that node should remain valid and linked.
         """
         from haywire.core.graph.types import ChangeReason
 
@@ -901,13 +900,10 @@ class TestEdges:
         node_a, node_b = self._create_two_nodes(graph)
 
         edge = graph.create_edge_wrapper(node_a.node_id, "bool_outlet", node_b.node_id, "bool_inlet")
-        # Flush pending NODE_ADDED from creation
-        graph._validation.force_immediate_validation()
         assert edge.state.is_valid()
 
         # Simulate node validation request (e.g. port reconfiguration)
         graph._validation.mark_node_dirty(node_a.node_id, ChangeReason.NODE_VALIDATION_REQUESTED)
-        graph._validation.force_immediate_validation()
 
         # Edge should still be valid after validation
         assert edge.state.is_valid()
@@ -935,15 +931,11 @@ class TestEdges:
         edge = graph.create_edge_wrapper(node_a.node_id, "bool_outlet", node_b.node_id, "bool_inlet")
         assert edge.state.is_valid()
 
-        # Flush pending NODE_ADDED validation from create_node/edge_wrapper
-        graph._validation.force_immediate_validation()
-
         # Remember old port objects
         old_outlet = self._get_port(node_a, "bool_outlet")
 
         # Simulate hot reload — rebuilds the entire node
         graph._validation.mark_node_dirty(node_a.node_id, ChangeReason.NODE_HOT_RELOADED)
-        graph._validation.force_immediate_validation()
 
         # Edge should be valid after rebuild
         assert edge.state.is_valid()
@@ -974,14 +966,11 @@ class TestEdges:
 
         # bool→int requires BoolToIntAdapter
         edge = graph.create_edge_wrapper(node_a.node_id, "bool_outlet", node_b.node_id, "int_inlet")
-        # Flush pending NODE_ADDED from creation
-        graph._validation.force_immediate_validation()
         assert edge.state.is_valid()
         assert len(edge.edge.chain_adapter_keys) == 1
 
         # Hot reload the sink node
         graph._validation.mark_node_dirty(node_b.node_id, ChangeReason.NODE_HOT_RELOADED)
-        graph._validation.force_immediate_validation()
 
         # Edge should survive with adapter chain intact
         assert edge.state.is_valid()
@@ -1008,14 +997,11 @@ class TestEdges:
         edge_1 = graph.create_edge_wrapper(node_a.node_id, "bool_outlet", node_c.node_id, "bool_inlet")
         edge_2 = graph.create_edge_wrapper(node_b.node_id, "bool_outlet", node_c.node_id, "bool_inlet")
 
-        # Flush pending NODE_ADDED from creation
-        graph._validation.force_immediate_validation()
         assert not edge_1.state.is_linked
         assert edge_2.state.is_valid()
 
         # Hot reload the sink node (rebuilds ports)
         graph._validation.mark_node_dirty(node_c.node_id, ChangeReason.NODE_HOT_RELOADED)
-        graph._validation.force_immediate_validation()
 
         new_inlet = self._get_port(node_c, "bool_inlet")
 
@@ -1041,15 +1027,10 @@ class TestEdges:
 
         # Connect to dynamic_outlet_1 (exists with default port_count=2)
         edge = graph.create_edge_wrapper(dyn_node.node_id, "dynamic_outlet_1", node_b.node_id, "int_inlet")
-        # Flush pending NODE_ADDED from creation
-        graph._validation.force_immediate_validation()
         assert edge.state.is_valid()
 
         # Reconfigure to port_count=1 — removes dynamic_inlet_1, dynamic_outlet_1
         dyn_node.node.ports["port_count"].set_value(1)
-
-        # pop() already marked the node dirty; run validation
-        graph._validation.force_immediate_validation()
 
         # The dynamic port is gone
         assert "dynamic_outlet_1" not in dyn_node.node.ports
@@ -1072,15 +1053,10 @@ class TestEdges:
 
         # Connect to dynamic_outlet_0 (always present when count >= 1)
         edge = graph.create_edge_wrapper(dyn_node.node_id, "dynamic_outlet_0", node_b.node_id, "int_inlet")
-        # Flush pending NODE_ADDED from creation
-        graph._validation.force_immediate_validation()
         assert edge.state.is_valid()
 
         # Reconfigure to port_count=3 — dynamic_outlet_0 survives, adds 2
         dyn_node.node.ports["port_count"].set_value(3)
-
-        # pop() marked node dirty; run validation
-        graph._validation.force_immediate_validation()
 
         # Port still exists
         assert "dynamic_outlet_0" in dyn_node.node.ports
@@ -1106,15 +1082,10 @@ class TestEdges:
 
         # Connect to the static bool_outlet
         edge = graph.create_edge_wrapper(dyn_node.node_id, "bool_outlet", node_b.node_id, "bool_inlet")
-        # Flush pending NODE_ADDED from creation
-        graph._validation.force_immediate_validation()
         assert edge.state.is_valid()
 
         # Reconfigure dynamic ports to 0 — removes all dynamic ports
         dyn_node.node.ports["port_count"].set_value(0)
-
-        # Validate
-        graph._validation.force_immediate_validation()
 
         # Static edge should be completely unaffected
         assert edge.state.is_valid()
@@ -1172,7 +1143,6 @@ class TestEdges:
 
         # Connect bool→bool (eager, same type, no adapter)
         edge = graph.create_edge_wrapper(node_a.node_id, "bool_outlet", node_b.node_id, "bool_inlet")
-        graph._validation.force_immediate_validation()
         assert edge.state.is_valid()
 
         inlet_port = self._get_port(node_b, "bool_inlet")
@@ -1198,7 +1168,6 @@ class TestEdges:
         edge = graph.create_edge_wrapper(
             node_a.node_id, "bool_outlet", node_b.node_id, "bool_inlet", lazy=True
         )
-        graph._validation.force_immediate_validation()
         assert edge.state.is_valid()
 
         inlet_port = self._get_port(node_b, "bool_inlet")
@@ -1231,7 +1200,6 @@ class TestEdges:
         edge = graph.create_edge_wrapper(
             node_a.node_id, "bool_outlet", node_b.node_id, "int_inlet", lazy=True
         )
-        graph._validation.force_immediate_validation()
         assert edge.state.is_valid()
         assert len(edge.edge.chain_adapter_keys) == 1
 
@@ -1264,7 +1232,6 @@ class TestEdges:
         edge = graph.create_edge_wrapper(
             node_a.node_id, "int_outlet", node_b.node_id, "int_inlet", lazy=True
         )
-        graph._validation.force_immediate_validation()
         assert edge.state.is_valid()
 
         inlet_port = self._get_port(node_b, "int_inlet")
@@ -1295,7 +1262,6 @@ class TestEdges:
         lazy_edge = graph.create_edge_wrapper(
             node_b.node_id, "bool_outlet", node_c.node_id, "pooled_bool_inlet", lazy=True
         )
-        graph._validation.force_immediate_validation()
         assert eager_edge.state.is_valid()
         assert lazy_edge.state.is_valid()
 

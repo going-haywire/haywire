@@ -24,6 +24,7 @@ from nicegui import ui
 from haywire.ui import elements as hui
 from haywire.ui.editor.decorator import editor
 from haywire.ui.editor.base import BaseEditor
+from haywire.core.session.handlers import react_on
 from haywire.core.session.signals import ActiveGraphMoved, GraphDataMutated
 
 from ..editors.graph_canvas.graph_canvas_manager import GraphCanvasManager
@@ -90,11 +91,30 @@ class GraphEditor(BaseEditor):
     # poll / draw
     # ------------------------------------------------------------------
 
-    # No @redraw_on / @react_on subscriptions: each GraphEditor instance is
-    # pinned to one graph via its wrapper.binding_id. ActiveGraphMoved means
-    # "some tab became the foreground" — this instance's own graph hasn't
-    # changed, so there is nothing to redraw. The canvas keeps its zoom/pan,
-    # selection and DOM state across tab switches.
+    # No @redraw_on subscriptions: each GraphEditor instance is pinned to one
+    # graph via its wrapper.binding_id. ActiveGraphMoved means "some tab became
+    # the foreground" — this instance's own graph hasn't changed, so there is
+    # nothing to redraw. The canvas keeps its zoom/pan, selection and DOM state
+    # across tab switches, so we never want a full wrapper.redraw() here.
+    #
+    # GraphDataMutated, however, signals that *graph contents* changed (a node
+    # added/moved/deleted, an edge wired) — possibly by an edit in this very
+    # tab. The header chrome (dirty dot, tab dirty marker, undo/redo enablement)
+    # is derived from entry.unsaved / editor.can_undo(), which only change on
+    # such mutations. We react via @react_on (side-effect only, no redraw) to
+    # refresh that chrome in place without disturbing the canvas DOM.
+
+    @react_on(GraphDataMutated)
+    def _on_graph_data_mutated(self, context: "SessionContext", event: GraphDataMutated) -> None:
+        """Refresh header chrome when graph contents change.
+
+        ``GraphDataMutated`` is cross-session and broadcast to every editor,
+        including those whose graph did not change; ``_update_header`` simply
+        re-reads *this* tab's own entry (``_get_entry``) and reflects its
+        current dirty / undo state, so reacting unconditionally is correct and
+        cheap. ``_update_header`` no-ops when the header hasn't been drawn yet.
+        """
+        self._update_header(context)
 
     def on_focus(self, context: "SessionContext") -> None:
         """Claim ownership of session state when this tab becomes active.

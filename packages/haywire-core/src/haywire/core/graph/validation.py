@@ -15,6 +15,7 @@ import logging
 from typing import Dict, List, Callable, Optional, Any, TYPE_CHECKING
 
 from .types import ChangeReason, ValidationResult
+from .scheduler import ScheduleHandle, ThreadingTimerScheduler, ValidationScheduler
 
 if TYPE_CHECKING:
     from .base import BaseGraph
@@ -40,9 +41,18 @@ class ValidationManager:
     - Notify subscribers with categorized results
     """
 
-    def __init__(self, graph: "BaseGraph", debounce_ms: float = 50.0):
+    def __init__(
+        self,
+        graph: "BaseGraph",
+        debounce_ms: float = 50.0,
+        scheduler: Optional[ValidationScheduler] = None,
+    ):
         self._graph = graph
         self._debounce_ms = debounce_ms
+
+        # Injected debounce strategy; defaults to the legacy threading.Timer.
+        # See scheduler.py and ADR 0002.
+        self._scheduler: ValidationScheduler = scheduler or ThreadingTimerScheduler()
 
         self._dirty_graph: ChangeReason | None = None
         """If the whole graph is dirty, reason for it"""
@@ -54,9 +64,14 @@ class ValidationManager:
         self._dirty_edges: Dict[str, ChangeReason] = {}
         """edge_id -> reason for being dirty"""
 
-        # Timer and synchronization
-        self._validation_timer: Optional[threading.Timer] = None
+        # Pending debounced validation (from the injected scheduler) and the
+        # re-entrancy lock guarding all dirty-tracking mutation.
+        self._pending_handle: Optional[ScheduleHandle] = None
         self._validation_lock = threading.RLock()
+
+        # Monotonic batch counter. Lets _schedule_validation detect when a
+        # synchronous scheduler ran the batch re-entrantly inside schedule().
+        self._batch_generation = 0
 
         # Subscribers
         self._callbacks: List[ValidationCallback] = []
@@ -158,9 +173,7 @@ class ValidationManager:
                 "dirty_nodes": len(self._dirty_nodes),
                 "dirty_edges": len(self._dirty_edges),
                 "subscriber_count": len(self._callbacks),
-                "pending_validation": (
-                    self._validation_timer is not None and self._validation_timer.is_alive()
-                ),
+                "pending_validation": self._pending_handle is not None,
             }
 
     def force_immediate_validation(self) -> Optional[ValidationResult]:
@@ -173,9 +186,10 @@ class ValidationManager:
             ValidationResult if there were dirty elements, None otherwise
         """
         with self._validation_lock:
-            # Cancel pending timer
-            if self._validation_timer and self._validation_timer.is_alive():
-                self._validation_timer.cancel()
+            # Cancel any pending debounced run; we're validating now.
+            if self._pending_handle is not None:
+                self._pending_handle.cancel()
+                self._pending_handle = None
 
             # Only validate if there are dirty elements
             if not self._dirty_nodes and not self._dirty_edges:
@@ -192,9 +206,9 @@ class ValidationManager:
         """
         with self._validation_lock:
             # Cancel pending validation
-            if self._validation_timer and self._validation_timer.is_alive():
-                self._validation_timer.cancel()
-                self._validation_timer = None
+            if self._pending_handle is not None:
+                self._pending_handle.cancel()
+                self._pending_handle = None
 
             # Clear all tracking
             self._dirty_nodes.clear()
@@ -215,15 +229,23 @@ class ValidationManager:
         single validation pass, improving efficiency.
         """
         with self._validation_lock:
-            # Cancel existing timer if any
-            if self._validation_timer and self._validation_timer.is_alive():
-                self._validation_timer.cancel()
+            # Cancel any pending run before scheduling a fresh one — this is
+            # what coalesces a burst of marks into a single batch. cancel() is
+            # idempotent and a no-op if the previous run already fired.
+            if self._pending_handle is not None:
+                self._pending_handle.cancel()
+            self._pending_handle = None
 
-            # Schedule new validation
+            # Bump the generation, then schedule. A synchronous scheduler runs
+            # _validate_batch *inside* schedule(), which bumps the generation
+            # again and clears _pending_handle. In that case we must not adopt
+            # the (inert) returned handle, or pending_validation would lie.
+            scheduled_generation = self._batch_generation
             delay_seconds = self._debounce_ms / 1000.0
-            self._validation_timer = threading.Timer(delay_seconds, self._validate_batch)
-            self._validation_timer.daemon = True
-            self._validation_timer.start()
+            handle = self._scheduler.schedule(delay_seconds, self._validate_batch)
+            if self._batch_generation == scheduled_generation:
+                # No inline run happened — this is a genuinely pending handle.
+                self._pending_handle = handle
 
             logger.debug(
                 f"Scheduled validation in {self._debounce_ms}ms "
@@ -239,6 +261,15 @@ class ValidationManager:
         start_time = time.perf_counter()
 
         with self._validation_lock:
+            # This run consumes the pending schedule. Clearing it here keeps
+            # ``pending_validation`` honest and means a re-entrant mark during
+            # this batch schedules a genuinely new run. (When invoked via
+            # SyncScheduler the handle is already inert.) The generation bump
+            # lets _schedule_validation see that a synchronous batch ran
+            # inside its schedule() call.
+            self._pending_handle = None
+            self._batch_generation += 1
+
             # Snapshot dirty elements with their reasons
             dirty_nodes = dict(self._dirty_nodes)
             dirty_edges = dict(self._dirty_edges)
