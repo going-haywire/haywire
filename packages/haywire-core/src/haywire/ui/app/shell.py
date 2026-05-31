@@ -375,7 +375,8 @@ class AppShell:
   // Horizontal (.hw-area-divider) resizes left or right slot; middle fills
   // remaining space. Vertical (.hw-area-vdivider) resizes the bottom slot.
   // Dividers are only present in the DOM when their slot is visible, so
-  // retracted slots are unreachable by drag (use the fold toggle in the bar).
+  // retracted slots are unreachable by drag — re-open an icon slot by
+  // clicking any of its icons, or the bottom slot via its chevron toggle.
   document.addEventListener("mousedown", function (e) {
     var hdiv = e.target.closest ? e.target.closest(".hw-area-divider") : null;
     var vdiv = e.target.closest ? e.target.closest(".hw-area-vdivider") : null;

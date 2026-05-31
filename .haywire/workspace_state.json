@@ -2,26 +2,31 @@
   "name": "default",
   "haystack": "Master",
   "left": {
-    "active_key": "haystack:editor:HaystackEditor",
+    "active_key": "studio:editor:LazyFileBrowserEditor",
     "visible": true,
     "size": 241,
     "editors": []
   },
   "right": {
-    "active_key": "studio:editor:PropertiesEditor",
+    "active_key": "marketplace:editor:LibraryComponentEditor",
     "visible": true,
     "size": 369,
     "editors": []
   },
   "main": {
-    "active_key": "haystack:editor:GraphEditor::/Volumes/Ddrive/06_open_tracking_tool/haywire/haywire-repo/graphs/webcam.haywire",
+    "active_key": "graph_editor:editor:GraphEditor::/Volumes/Ddrive/06_open_tracking_tool/haywire/haywire-repo/graphs/webcam.haywire",
     "visible": true,
     "size": 300,
     "editors": [
       {
-        "key": "haystack:editor:GraphEditor",
+        "key": "graph_editor:editor:GraphEditor",
         "binding_id": "/Volumes/Ddrive/06_open_tracking_tool/haywire/haywire-repo/graphs/webcam.haywire",
-        "label": "webcam.haywire"
+        "label": "webcam"
+      },
+      {
+        "key": "studio:editor:CodeEditor",
+        "binding_id": "/Volumes/Ddrive/06_open_tracking_tool/haywire/haywire-repo/CLAUDE.md",
+        "label": "CLAUDE.md"
       }
     ]
   },

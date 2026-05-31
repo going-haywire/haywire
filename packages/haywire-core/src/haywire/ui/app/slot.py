@@ -133,6 +133,11 @@ class Slot(ABC):
 
     _ORIENTATION: ClassVar[Literal["horizontal", "vertical"]]
 
+    # Whether a reveal into a collapsed slot should auto-expand it. Icon slots
+    # set this True (a revealed editor should be visible); tab slots leave it
+    # False (their area is not collapsed by a click gesture). See :meth:`reveal`.
+    _expands_on_reveal: ClassVar[bool] = False
+
     @property
     def _is_horizontal(self) -> bool:
         return self._ORIENTATION == "horizontal"
@@ -538,17 +543,27 @@ class Slot(ABC):
         Single entry point used by the shell's reveal dispatcher — works the
         same in every slot type (icon or tab). If the wrapper exists, switches
         to it; otherwise constructs one via :meth:`add_binding` and activates
-        it. Refreshes the bar so the new/active tab is reflected. Returns
-        ``True`` iff the active wrapper actually changed.
+        it. Refreshes the bar so the new/active tab is reflected.
+
+        When :attr:`_expands_on_reveal` is set (icon slots), a reveal into a
+        currently-collapsed slot also re-opens it via :meth:`set_visible` so
+        the user sees the editor they triggered — even when that editor was
+        already the active one behind a collapsed bar.
+
+        Returns ``True`` iff the active wrapper actually changed *or* the slot
+        was expanded as a result of the reveal.
         """
         editor_cls = command.editor
         editor_key = editor_cls.class_identity.registry_key
         binding_id = command.binding_id
 
+        expanded = self._expand_for_reveal()
+
         existing = self.find_binding(editor_key, binding_id)
         if existing is not None:
             if self._active is existing:
-                return False
+                # Already active; the only observable change is the expand.
+                return expanded
             self.switch_to(editor_key, binding_id)
             self._refresh_bar()
             return True
@@ -565,6 +580,18 @@ class Slot(ABC):
             wrapper.label = command.label
         self._refresh_bar()
         return True
+
+    def _expand_for_reveal(self) -> bool:
+        """Re-open a collapsed slot ahead of a reveal, if this slot opts in.
+
+        Returns ``True`` iff the slot was collapsed and has now been expanded.
+        No-op (returns ``False``) for slots with ``_expands_on_reveal`` unset
+        or slots that are already visible.
+        """
+        if self._expands_on_reveal and not self._visible:
+            self.set_visible(True)
+            return True
+        return False
 
     def close_binding(self, wrapper: EditorWrapper) -> bool:
         """Close one wrapper — removes it and promotes a sibling if active.

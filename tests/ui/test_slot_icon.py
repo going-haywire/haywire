@@ -2,6 +2,7 @@
 
 from types import SimpleNamespace
 
+from haywire.core.session.signals import Reveal
 from haywire.ui.app.icon_slot import IconSlot
 
 
@@ -40,6 +41,7 @@ class _FakeContainer:
         self.value = None
         self.children = []
         self._props = {}
+        self.handlers: dict = {}
 
     def clear(self):
         self.clear_calls += 1
@@ -62,7 +64,11 @@ class _FakeContainer:
     def tooltip(self, *_a, **_k):
         return self
 
-    def on(self, *_a, **_k):
+    def on(self, event=None, handler=None, *_a, **_k):
+        # Capture per-element event handlers so tests can fire them
+        # (e.g. the per-tab "click" the IconSlot wires for collapse/expand).
+        if event is not None:
+            self.handlers.setdefault(event, []).append(handler)
         return self
 
     def __enter__(self):
@@ -175,12 +181,12 @@ def test_icon_slot_renders_row_with_bar_and_area(monkeypatch):
 
 
 def test_icon_slot_bar_change_switches_active_binding(monkeypatch):
-    """Selecting a tab swaps the active binding. The legacy
+    """Clicking a tab swaps the active binding. The legacy
     WORKSPACE_CHANGED emission was deleted (Q6A) — on_focus runs via
     Slot._activate during switch_to, no separate bus event is needed.
 
-    Drives the q-tabs change handler directly with the target tab element,
-    mirroring how NiceGUI delivers ``on_change`` events.
+    Drives the per-tab click handler — the sole switch/collapse driver now
+    that tabs ``on_change`` is no longer wired (it would race the click).
     """
     created = _install_ui_fakes(monkeypatch)
     a = _editor_cls("a")
@@ -199,15 +205,10 @@ def test_icon_slot_bar_change_switches_active_binding(monkeypatch):
     slot._active = slot.find_binding("a")
     slot.render(_FakeContainer())
 
-    tabs_container = next(c for (kind, c) in created if kind == "tabs")
     tab_elements = [c for (kind, c) in created if kind == "tab"]
     assert len(tab_elements) == 2, "one tab per wrapper expected"
 
-    # Simulate a Quasar value-change event: the binding_id's `value` is the
-    # selected ui.tab element, not its name string.
-    tab_b = next(t for t in tab_elements if t.name == "b")
-    event = SimpleNamespace(value=tab_b)
-    tabs_container.on_change(event)
+    _click_tab(created, "b")
 
     assert slot.active_key == "b"
     # No signal is emitted by the slot itself for the switch — on_focus
@@ -216,7 +217,34 @@ def test_icon_slot_bar_change_switches_active_binding(monkeypatch):
     assert signals == []
 
 
-def test_icon_slot_fold_toggle_flips_visible(monkeypatch):
+def _click_tab(created, name):
+    """Fire the per-tab 'click' handler the IconSlot wired for ``name``."""
+    tab = next(c for (kind, c) in created if kind == "tab" and c.name == name)
+    for handler in tab.handlers.get("click", []):
+        handler(SimpleNamespace())
+
+
+def test_icon_slot_has_no_fold_toggle_button(monkeypatch):
+    """The fold-toggle button is gone — collapse/expand is icon-driven now."""
+    created = _install_ui_fakes(monkeypatch)
+    a = _editor_cls("a")
+    reg = _FakeRegistry()
+    slot = IconSlot(
+        session=SimpleNamespace(context=None),
+        name="left",
+        registry=reg,
+        bar_place="left",
+    )
+    slot.add_binding(editor_key="a", editor_cls=a)
+    slot._active = slot.find_binding("a")
+    slot.render(_FakeContainer())
+
+    # No ui.button is created for the icon bar anymore.
+    assert not [c for (kind, c) in created if kind == "button"]
+
+
+def test_icon_slot_click_active_icon_collapses(monkeypatch):
+    """Clicking the active icon collapses the slot (VS Code idiom)."""
     created = _install_ui_fakes(monkeypatch)
     a = _editor_cls("a")
     vis_calls = []
@@ -232,9 +260,111 @@ def test_icon_slot_fold_toggle_flips_visible(monkeypatch):
     slot._active = slot.find_binding("a")
     slot.render(_FakeContainer())
 
-    # The fold toggle is the first button created (before the icon buttons).
-    fold_btns = [c for (kind, c) in created if kind == "button" and getattr(c, "icon", None) != "ic"]
-    assert fold_btns, "fold toggle button should be present"
-    fold_btns[0].on_click()
+    _click_tab(created, "a")  # "a" is the active icon
     assert slot.visible is False
     assert vis_calls == [False]
+
+
+def test_icon_slot_click_while_collapsed_reexpands(monkeypatch):
+    """Clicking any icon while collapsed re-opens the slot."""
+    created = _install_ui_fakes(monkeypatch)
+    a = _editor_cls("a")
+    vis_calls = []
+    reg = _FakeRegistry()
+    slot = IconSlot(
+        session=SimpleNamespace(context=None),
+        name="left",
+        registry=reg,
+        bar_place="left",
+        on_visibility_change=vis_calls.append,
+    )
+    slot.add_binding(editor_key="a", editor_cls=a)
+    slot._active = slot.find_binding("a")
+    slot.render(_FakeContainer())
+
+    _click_tab(created, "a")  # collapse
+    assert slot.visible is False
+    _click_tab(created, "a")  # re-expand
+    assert slot.visible is True
+    assert vis_calls == [False, True]
+
+
+def test_icon_slot_click_inactive_icon_switches_without_collapsing(monkeypatch):
+    """Clicking a different icon switches the active editor and stays open.
+
+    Regression: a tabs ``on_change`` handler used to race the per-tab click —
+    on_change switched first (mutating _active), then the click handler saw
+    the just-switched tab as active and collapsed the slot. The slot must NOT
+    toggle visibility on a plain cross-tab click.
+    """
+    created = _install_ui_fakes(monkeypatch)
+    a = _editor_cls("a")
+    b = _editor_cls("b")
+    vis_calls = []
+    reg = _FakeRegistry()
+    slot = IconSlot(
+        session=SimpleNamespace(context=None),
+        name="left",
+        registry=reg,
+        bar_place="left",
+        on_visibility_change=vis_calls.append,
+    )
+    slot.add_binding(editor_key="a", editor_cls=a)
+    slot.add_binding(editor_key="b", editor_cls=b)
+    slot._active = slot.find_binding("a")
+    slot.render(_FakeContainer())
+
+    _click_tab(created, "b")
+    assert slot.active_key == "b"
+    assert slot.visible is True
+    # No visibility transition fired — the click only switched.
+    assert vis_calls == []
+
+
+def test_icon_slot_collapsed_click_other_icon_expands_and_switches(monkeypatch):
+    """While collapsed, clicking a non-active icon expands AND switches to it."""
+    created = _install_ui_fakes(monkeypatch)
+    a = _editor_cls("a")
+    b = _editor_cls("b")
+    reg = _FakeRegistry()
+    slot = IconSlot(
+        session=SimpleNamespace(context=None),
+        name="left",
+        registry=reg,
+        bar_place="left",
+    )
+    slot.add_binding(editor_key="a", editor_cls=a)
+    slot.add_binding(editor_key="b", editor_cls=b)
+    slot._active = slot.find_binding("a")
+    slot.render(_FakeContainer())
+
+    _click_tab(created, "a")  # collapse (a is active)
+    assert slot.visible is False
+    _click_tab(created, "b")  # expand + switch to b
+    assert slot.visible is True
+    assert slot.active_key == "b"
+
+
+def test_icon_slot_reveal_into_collapsed_slot_auto_expands(monkeypatch):
+    """A programmatic reveal into a collapsed icon slot pops it open, even
+    when the revealed editor is already the active one."""
+    created = _install_ui_fakes(monkeypatch)
+    a = _editor_cls("a")
+    reg = _FakeRegistry()
+    slot = IconSlot(
+        session=SimpleNamespace(context=None),
+        name="right",
+        registry=reg,
+        bar_place="right",
+    )
+    slot.add_binding(editor_key="a", editor_cls=a)
+    slot._active = slot.find_binding("a")
+    slot.render(_FakeContainer())
+
+    _click_tab(created, "a")  # collapse; "a" stays the active binding
+    assert slot.visible is False
+
+    # Reveal the already-active editor — should re-open the slot.
+    changed = slot.reveal(Reveal(editor=a, binding_id=None, label="A"))
+    assert slot.visible is True
+    assert changed is True  # the expand is the observable change
