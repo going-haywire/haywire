@@ -27,7 +27,11 @@ def state_with_mocked_deps(settings_registry_wired):
     from haybale_haystack.state.haystack_state import HaystackState
 
     state = HaystackState()
+    # AppState's _session_manager is a weakref dereffed via self._session_manager().
+    # A mock returning itself lets the existing `_session_manager.broadcast`
+    # assertions target the same object the code calls broadcast on.
     state._session_manager = MagicMock()
+    state._session_manager.return_value = state._session_manager
     state._workspace_root = Path("/tmp/ws")
     state._node_factory = MagicMock()
     state._library_state_container = MagicMock()

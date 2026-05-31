@@ -35,7 +35,6 @@ from haywire.core.graph.base import BaseGraph
 from haywire.core.graph.editor import Editor
 from haywire.core.graph.validation import ValidationResult
 from haywire.core.node.factory import NodeFactory
-from haywire.core.session.session_manager import SessionManager
 from haywire.core.state import LibraryStateContainer
 
 from ..graph_entry import GraphEntry
@@ -60,8 +59,9 @@ class HaystackState(AppState):
         self._entries: dict[str, GraphEntry] = {}
         self._haystack_dirty: bool = False
 
-        # Dependencies resolved in on_enable.
-        self._session_manager: Optional[SessionManager] = None
+        # Dependencies resolved in on_enable. _session_manager is NOT among
+        # them: AppState's base class provides it as a container-stamped
+        # weakref (see state/base.py), dereffed via self._session_manager().
         self._workspace_root: Optional[Path] = None
         self._node_factory: Optional[NodeFactory] = None
         self._library_state_container: Optional[LibraryStateContainer] = None
@@ -82,11 +82,9 @@ class HaystackState(AppState):
         from haywire.core.di.context import (
             get_library_state_container,
             get_node_factory,
-            get_session_manager,
             get_workspace_root,
         )
 
-        self._session_manager = get_session_manager()
         self._workspace_root = get_workspace_root()
         self._node_factory = get_node_factory()
         self._library_state_container = get_library_state_container()
@@ -114,11 +112,12 @@ class HaystackState(AppState):
         # Announce that the haystack is back. HaystackEditor reacts by
         # re-rendering its list against the (new) registry. Cross-session,
         # so peer sessions also refresh.
-        if self._session_manager is not None:
+        session_manager = self._session_manager()
+        if session_manager is not None:
             from haybale_haystack.signals import HaystackReloaded
 
             try:
-                self._session_manager.broadcast(HaystackReloaded())
+                session_manager.broadcast(HaystackReloaded())
             except Exception as exc:
                 logger.warning(f"HaystackState.on_enable: HaystackReloaded broadcast failed: {exc}")
 
@@ -135,11 +134,12 @@ class HaystackState(AppState):
 
         entry_ids = tuple(self._entries.keys())
 
-        if self._session_manager is not None and entry_ids:
+        session_manager = self._session_manager()
+        if session_manager is not None and entry_ids:
             from haybale_haystack.signals import HaystackTeardown
 
             try:
-                self._session_manager.broadcast(HaystackTeardown(entry_ids=entry_ids))
+                session_manager.broadcast(HaystackTeardown(entry_ids=entry_ids))
             except Exception as exc:
                 logger.warning(f"HaystackState.on_disable: HaystackTeardown broadcast failed: {exc}")
 
@@ -169,12 +169,13 @@ class HaystackState(AppState):
         sessions automatically — no need for individual UI handlers
         to remember.
         """
-        if self._session_manager is None:
+        session_manager = self._session_manager()
+        if session_manager is None:
             return
         from haywire.core.session.signals import GraphDataMutated
 
         try:
-            self._session_manager.broadcast(GraphDataMutated())
+            session_manager.broadcast(GraphDataMutated())
         except Exception as exc:
             logger.warning(f"HaystackState: GraphDataMutated broadcast failed: {exc}")
 
