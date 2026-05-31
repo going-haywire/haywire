@@ -1488,7 +1488,7 @@ class LibraryOverviewEditor(BaseEditor):
         dry-run → optional upgrade-impact confirmation → streaming progress popup.
 
         ``source_pkg`` enables write-back to the project's pyproject.toml so the
-        install is reproducible via ``uv sync`` (spec: library-manager-install-sync).
+        install is reproducible via ``uv sync``.
         """
         from haywire.ui.modals import library_operation_progress_modal, upgrade_impact_modal
 

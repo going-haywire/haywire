@@ -1,6 +1,6 @@
 """TOML parsers and serializers for marketplace and marketstall files.
 
-The new section vocabulary per spec §1:
+The new section vocabulary:
   - [[markets]] / [[stalls]]: subscriptions, parsed as Subscription
   - [[haybales]]: inline haybale entries, parsed as Haybale
   - [[heaps]]: path-based libraries (raw dicts), project-only
@@ -127,7 +127,7 @@ def parse_project_marketplace(path: Path) -> ProjectMarketplaceFile:
 class RemoteMarketplaceContents:
     """What `parse_remote_marketplace_body` extracts from a [[markets]] response.
 
-    Per spec §8.1, resolution is one level deep: any [[markets]] entries
+    Resolution is one level deep: any [[markets]] entries
     inside the fetched marketplace body are ignored. Only [[stalls]] URLs and
     inline [[haybales]] are consumed.
     """
@@ -139,7 +139,7 @@ class RemoteMarketplaceContents:
 def parse_marketstall_body(body: str) -> list[Haybale]:
     """Parse a fetched marketstall TOML body into a list of Haybale.
 
-    A marketstall is [[haybales]]-only per spec §2. Other sections are silently
+    A marketstall is [[haybales]]-only. Other sections are silently
     dropped — a misbehaving server might return extra sections, but we never
     use them. Returns an empty list on malformed TOML or missing [[haybales]].
     """
@@ -182,7 +182,7 @@ def _subscription_to_dict(sub: Subscription) -> dict:
     """Serialize a Subscription back to its TOML dict shape.
 
     Always emits all four arrays (even when empty) so users editing the file
-    see the schema — spec §3.1 example shows them on every subscription.
+    see the schema — every subscription declares all four.
     """
     return {
         "url": sub.url,
@@ -195,7 +195,7 @@ def _subscription_to_dict(sub: Subscription) -> dict:
 def serialize_global_marketplace(mf: MarketplaceFile) -> str:
     """Serialize a MarketplaceFile to a TOML string.
 
-    Section order matches spec §3.1: [[markets]], [[stalls]], [[haybales]].
+    Section order: [[markets]], [[stalls]], [[haybales]].
     Empty sections are omitted entirely (no header) — caller can detect
     "nothing to write" by checking the empty-string result.
     """

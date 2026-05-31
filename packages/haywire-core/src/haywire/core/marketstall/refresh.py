@@ -1,10 +1,10 @@
-"""Refresh pipeline — spec §8.
+"""Refresh pipeline.
 
 Filter functions (apply_ignores, apply_blocked, apply_heaps_shadow,
 apply_first_come_first_served) are pure transformations over Haybale lists.
 The `refresh()` orchestrator composes them with the HTTP cache layer.
 
-Conflict-resolution order (spec §8.2):
+Conflict-resolution order:
   1. apply_blocked per subscription (hide rejected names)
   2. apply_ignores per subscription (skip names with another preferred source)
   3. apply_heaps_shadow across the combined candidate list
@@ -38,7 +38,7 @@ from haywire.core.marketstall.types import (
 
 
 def _count_updates_available(final: list[Haybale]) -> int:
-    """Per spec §10.3: for each non-stale cached haybale, compare its
+    """For each non-stale cached haybale, compare its
     `min_version` against the installed distribution version. Count
     entries where ``installed < cache.min_version``.
 
@@ -69,7 +69,7 @@ def _count_updates_available(final: list[Haybale]) -> int:
 def apply_ignores(haybales: list[Haybale], ignores: list[str]) -> list[Haybale]:
     """Drop haybales whose name is in `ignores`.
 
-    Per spec §8.2: the user picked another source for these names at conflict-
+    The user picked another source for these names at conflict-
     resolution time; this subscription is asked to step aside.
     """
     if not ignores:
@@ -81,7 +81,7 @@ def apply_ignores(haybales: list[Haybale], ignores: list[str]) -> list[Haybale]:
 def apply_blocked(haybales: list[Haybale], blocked: list[str]) -> list[Haybale]:
     """Drop haybales whose name is in `blocked`.
 
-    Per spec §7.4: the user actively rejected these names via the first-install
+    The user actively rejected these names via the first-install
     safety modal. Identical filter shape to apply_ignores; semantically a
     stronger statement (the haybale is hidden from the UI rather than just
     deduplicated against another source).
@@ -95,7 +95,7 @@ def apply_blocked(haybales: list[Haybale], blocked: list[str]) -> list[Haybale]:
 def apply_heaps_shadow(heaps: list[dict], haybales: list[Haybale]) -> list[Haybale]:
     """Drop haybales whose name matches any heap's name.
 
-    Per spec §8.2 row 3: local heaps always win. The dropped haybale's
+    Local heaps always win. The dropped haybale's
     contribution is silently shadowed — no prompt, no diagnostic.
     """
     if not heaps:
@@ -107,7 +107,7 @@ def apply_heaps_shadow(heaps: list[dict], haybales: list[Haybale]) -> list[Hayba
 def apply_first_come_first_served(haybales: list[Haybale]) -> list[Haybale]:
     """Deduplicate by name, keeping the first occurrence.
 
-    Per spec §8.2 row 4: a safety net for cases the per-subscription `ignores`
+    A safety net for cases the per-subscription `ignores`
     didn't cover (hand-edited marketplace file, or a brand-new collision the
     UI never prompted for).
     """
@@ -133,7 +133,7 @@ def mark_stale_against_previous(
 ) -> list[Haybale]:
     """Return a list where missing-from-fresh entries are stale-marked from previous.
 
-    Semantics per spec §8:
+    Semantics:
       - Entries in both: fresh wins (newest data, stale=False).
       - Entries in previous but not fresh: copied over, marked stale.
         If previous already had stale=True, the existing last_seen is preserved
@@ -203,7 +203,7 @@ def refresh(
     project_path: Path,
     cache_dir: Path | None = None,
 ) -> RefreshReport:
-    """Run the refresh pipeline — spec §8.
+    """Run the refresh pipeline.
 
     Step-by-step:
       1. Parse global marketplace + previous project file.
@@ -284,7 +284,7 @@ def refresh(
 
     # Step 6: stale marking against previous caches.
     # Drop blocked names from the previous list before stale-rescue: blocked
-    # entries must disappear, not be re-added as stale (spec §3.1, §7.4, §8).
+    # entries must disappear, not be re-added as stale.
     blocked_names: set[str] = set()
     for sub in mf.markets:
         blocked_names.update(sub.blocked)

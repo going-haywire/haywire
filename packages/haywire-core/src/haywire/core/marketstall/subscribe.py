@@ -1,6 +1,6 @@
-"""Add Source orchestrator — spec §4.3.
+"""Add Source orchestrator.
 
-The §4.3 resolution algorithm composes the foundation's classify_input,
+The resolution algorithm composes the foundation's classify_input,
 fetch_with_cache_fallback, parsers, and helpers into one pure function.
 The UI dialog calls this; the function has no I/O beyond what the underlying
 foundation primitives already do.
@@ -96,7 +96,7 @@ def resolve_and_subscribe(
     paste_dir: Path,
     cache_dir: Path | None = None,
 ) -> SubscribeResult:
-    """Run the full §4.3 Add Source algorithm.
+    """Run the full Add Source algorithm.
 
     Raises BareRepoUrlRejectedError (propagates from classify_input) on form-3
     bare repo URLs. Raises SubscribeError on fetch failure, malformed body,

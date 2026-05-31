@@ -154,7 +154,7 @@ def record_block_on_source(global_path: Path, *, source_url: str, haybale_name: 
     """Add `haybale_name` to the `blocked` array of the subscription at `source_url`.
 
     Idempotent. Searches both [[markets]] and [[stalls]] — first match wins.
-    Per spec §7.4: blocked entries are persistent; un-block only by editing the file.
+    Blocked entries are persistent; un-block only by editing the file.
     """
     mf = parse_global_marketplace(global_path)
 
@@ -201,7 +201,7 @@ def detect_subscription_conflicts(existing: list[Haybale], new: list[Haybale]) -
 def resolve_block_target(global_path: Path, via_url: str) -> str | None:
     """Pick the subscription URL that should receive a block for `via_url`.
 
-    Spec §7.4: the Block button writes to the subscription that resolved this
+    The Block button writes to the subscription that resolved this
     haybale. Three cases:
       - Direct stall: via matches a [[stalls]] URL → return that URL.
       - Direct market: via matches a [[markets]] URL → return that URL.

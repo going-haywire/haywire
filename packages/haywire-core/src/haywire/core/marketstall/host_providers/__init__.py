@@ -1,7 +1,7 @@
-"""Host-provider abstraction — spec §5.
+"""Host-provider abstraction.
 
 GitHub + GitLab ship in the first cut. Bitbucket and Gitea are deferred.
-Self-hosted instances declare themselves in ~/.haywire/config.toml — see §5.4.
+Self-hosted instances declare themselves in ~/.haywire/config.toml.
 """
 
 from haywire.core.marketstall.host_providers.base import HostProvider, ParsedRef
@@ -14,8 +14,8 @@ __all__ = ["HostProvider", "ParsedRef", "HOST_PROVIDERS", "resolve_host"]
 HOST_PROVIDERS: list[HostProvider] = [
     GitHubProvider(),
     GitLabProvider(),
-    # BitbucketProvider() — deferred; see spec §5.2
-    # GiteaProvider()     — deferred; see spec §5.2
+    # BitbucketProvider() — deferred
+    # GiteaProvider()     — deferred
 ]
 
 _PROVIDER_BY_NAME: dict[str, HostProvider] = {p.name: p for p in HOST_PROVIDERS}

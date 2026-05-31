@@ -1,7 +1,7 @@
-"""HostProvider Protocol + ParsedRef — spec §5.1.
+"""HostProvider Protocol + ParsedRef.
 
 No `parse_repo_url` and no `default_branch` — bare repo URLs are rejected
-at input time (§4.2), so no provider ever needs to probe for a default branch.
+at input time, so no provider ever needs to probe for a default branch.
 """
 
 from __future__ import annotations
@@ -21,7 +21,7 @@ class ParsedRef:
 
 
 class HostProvider(Protocol):
-    """One git host's URL conventions — spec §5.1."""
+    """One git host's URL conventions."""
 
     name: str  # "github", "gitlab", etc.
 

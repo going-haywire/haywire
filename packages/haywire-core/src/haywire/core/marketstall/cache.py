@@ -1,4 +1,4 @@
-"""HTTP cache with tri-state outcomes — spec §7.3.
+"""HTTP cache with tri-state outcomes.
 
 Cache lives at ~/.haywire/cache/<url-hash>.toml. No TTL: entries are valid
 until overwritten by a successful fetch. GC removes orphans (cache files
@@ -87,7 +87,7 @@ def fetch_with_cache_fallback(
 def gc_orphans(active_urls: set[str], *, cache_dir: Path | None = None) -> int:
     """Delete cache files whose URL is not in `active_urls`. Returns count deleted.
 
-    Per spec §7.3: at end of refresh, drop orphaned <url-hash>.toml files.
+    At end of refresh, drop orphaned <url-hash>.toml files.
     Resolves URLs to their hashes; deletes any cache file whose stem doesn't
     match any active subscription. Missing cache dir returns 0 (nothing to GC).
     """

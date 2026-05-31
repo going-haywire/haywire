@@ -1,9 +1,9 @@
-"""Marketstall runtime dataclasses — spec §2 and §14.
+"""Marketstall runtime dataclasses.
 
-The Haybale dataclass replaces the legacy MarketplaceEntry. Adds the `os` field
-from §2.1; same shape otherwise. Subscription dataclasses for [[markets]] and
+The Haybale dataclass replaces the legacy MarketplaceEntry. Adds the `os` field;
+same shape otherwise. Subscription dataclasses for [[markets]] and
 [[stalls]] gain the `blocked` array introduced for the first-install safety
-modal (§7.4); data-layer only in this plan, wired through the UI in slice 5.
+modal.
 """
 
 from __future__ import annotations
@@ -70,7 +70,7 @@ class Haybale:
 class Subscription:
     """One [[markets]] or [[stalls]] entry. Same shape; distinction is which list it lives in.
 
-    Per spec §3.1 / §7.4: `blocked` holds names the user actively rejected via
+    `blocked` holds names the user actively rejected via
     the first-install safety modal. Per-subscription; un-blockable only by
     editing the marketplace file.
     """
@@ -83,7 +83,7 @@ class Subscription:
 
 @dataclass
 class MarketplaceFile:
-    """Parsed ~/.haywire/db/haybale-marketplace/marketplace.toml — spec §3.1.
+    """Parsed ~/.haywire/db/haybale-marketplace/marketplace.toml.
 
     Three section types:
       - [[markets]]: subscriptions to remote marketplaces
@@ -100,7 +100,7 @@ class MarketplaceFile:
 
 @dataclass
 class ProjectMarketplaceFile:
-    """Parsed <project>/.haywire/marketplace.toml — spec §3.2.
+    """Parsed <project>/.haywire/marketplace.toml.
 
     Two section types:
       - [[heaps]]: unpublished path-based libraries (written by haywire init)
@@ -114,7 +114,7 @@ class ProjectMarketplaceFile:
 
 
 class RefreshOutcome(enum.Enum):
-    """Tri-state per-subscription refresh result — spec §7.3."""
+    """Tri-state per-subscription refresh result."""
 
     FRESH = "fresh"  # HTTP 200; cache overwritten
     CACHE_FALLBACK = "cache_fallback"  # HTTP failed; body served from cache
@@ -132,9 +132,9 @@ class FetchResult:
 
 @dataclass
 class RefreshReport:
-    """Summary of a refresh run — spec §9.
+    """Summary of a refresh run.
 
-    Per §7.3, sources_fetched + sources_from_cache + sources_unavailable always
+    sources_fetched + sources_from_cache + sources_unavailable always
     partition the active subscription set. `sources_from_cache` is the new
     middle tier that distinguishes "everything fresh" from "we recovered from
     cache" — both produce a populated catalog but only the latter warrants the

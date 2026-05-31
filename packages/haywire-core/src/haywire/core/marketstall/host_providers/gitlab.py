@@ -1,4 +1,4 @@
-"""GitLabProvider — spec §5.2 row 2.
+"""GitLabProvider.
 
 Blob URL: https://gitlab.com/{owner}/{repo}/-/blob/{ref}/{path}
 Raw URL:  https://gitlab.com/{owner}/{repo}/-/raw/{ref}/{path}

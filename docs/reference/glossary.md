@@ -29,7 +29,7 @@ The word **library** appears five times in haywire with five different meanings.
 
 ## "Haybale" — three distinct meanings *(new — marketstall distribution)*
 
-Once the marketstall-distribution spec lands ([`internals/specs/marketstall-distribution.md`](../../internals/specs/archive/marketstall-distribution.md)), the word **haybale** carries three closely-related but distinct meanings. They cluster around the same concept (a haywire library and its distribution metadata) but project it onto different surfaces.
+In the marketstall distribution system, the word **haybale** carries three closely-related but distinct meanings. They cluster around the same concept (a haywire library and its distribution metadata) but project it onto different surfaces.
 
 | # | Term | What it is |
 |---|---|---|
@@ -145,7 +145,7 @@ See also the **"Library" — five distinct meanings** table at the top of this g
 
 ## Marketstall distribution runtime
 
-The runtime that backs the Library Browser's Refresh / Add Source / Edit File flow. Spec: [`internals/specs/marketstall-distribution.md`](../../internals/specs/archive/marketstall-distribution.md). Code: `haywire.core.marketstall`.
+The runtime that backs the Library Browser's Refresh / Add Source / Edit File flow. Code: `haywire.core.marketstall`.
 
 | Term | Definition | Aliases to avoid |
 |------|-----------|-----------------|

@@ -1,4 +1,4 @@
-"""Add Source input classification — spec §4.2, §4.3.
+"""Add Source input classification.
 
 Four input forms (form 3 / bare repo URL dropped per inquisition Q4):
   1. Blob URL — host provider rewrites to raw; raw URL is both fetched and persisted.
@@ -13,7 +13,7 @@ re-classification). Blob URLs return HTML, so any blob input is normalized to
 its raw form before persisting.
 
 Bare repo URLs (e.g. `https://github.com/alice/cool-libs`) are rejected with a
-clear error pointing at the README marker pattern (§6.6).
+clear error pointing at the README marker pattern.
 """
 
 from __future__ import annotations
@@ -27,7 +27,7 @@ from haywire.core.marketstall.host_providers import HOST_PROVIDERS, resolve_host
 
 
 class InputForm(enum.Enum):
-    """The four accepted input forms — spec §4.2."""
+    """The four accepted input forms."""
 
     BLOB_URL = "blob_url"
     RAW_URL = "raw_url"
@@ -36,7 +36,7 @@ class InputForm(enum.Enum):
 
 
 class BareRepoUrlRejectedError(ValueError):
-    """Raised when the user pastes a bare repo URL — spec §4.2."""
+    """Raised when the user pastes a bare repo URL."""
 
 
 @dataclass(frozen=True)

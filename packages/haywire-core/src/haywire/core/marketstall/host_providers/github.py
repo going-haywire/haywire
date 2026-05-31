@@ -1,4 +1,4 @@
-"""GitHubProvider — spec §5.2 row 1.
+"""GitHubProvider.
 
 Blob URL: https://github.com/{owner}/{repo}/blob/{ref}/{path}
 Raw URL:  https://raw.githubusercontent.com/{owner}/{repo}/{ref}/{path}

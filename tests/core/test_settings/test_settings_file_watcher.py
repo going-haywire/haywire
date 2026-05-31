@@ -4,7 +4,6 @@
 Regression coverage for a Linux-only crash: starting the watcher against a
 settings path whose parent directory does not exist raised FileNotFoundError
 under the inotify backend (macOS FSEvents tolerated it, so it only bit in CI).
-See internals/follow-ups/2026-05-29-settings-watcher-missing-dir.md.
 """
 
 from pathlib import Path

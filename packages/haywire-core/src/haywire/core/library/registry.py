@@ -93,8 +93,7 @@ class LibraryRegistry:
         # successfully. Used by LibraryStateContainer to learn "library X
         # has finished registering all its components" so it can catch up
         # on that library's state classes — the key timing point that
-        # avoids the load-order race (see internals/superpowers/plans/...
-        # state-container-late-subscription).
+        # avoids the load-order race.
         self._library_enabled_callbacks: List[Callable[[BaseLibrary], None]] = []
         # Post-disable callbacks: mirror of the above, fired AFTER
         # library.disable() returns. By that point the CLASS_REMOVED events

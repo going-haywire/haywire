@@ -1,4 +1,4 @@
-"""Current-OS detection — spec §2.1 mapping table.
+"""Current-OS detection mapping table.
 
 `platform.system()` returns OS-family strings; we map them to the four-value
 runtime vocabulary (macos | windows | linux | other). `other` is a runtime-only

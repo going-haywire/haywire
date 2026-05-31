@@ -33,7 +33,7 @@ The Library Manager is not the Library System. It does not discover entry points
 
 ## 2. The two-tier marketplace
 
-Two files cooperate. Their concerns are deliberately separated. The full file-format spec lives in `internals/specs/marketstall-distribution.md` §3; this section is the architecture-level summary.
+Two files cooperate. Their concerns are deliberately separated. This section is the architecture-level summary of the file format.
 
 ### 2.1 Global marketplace
 

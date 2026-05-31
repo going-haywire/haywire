@@ -1,4 +1,4 @@
-"""Self-hosted host declarations from ~/.haywire/config.toml — spec §5.4.
+"""Self-hosted host declarations from ~/.haywire/config.toml.
 
 Example:
     [[hosts]]

@@ -4,9 +4,6 @@ This document is the operational reference for cutting a release of the haywire 
 Tier 1+2 packages and deploying the marketplace. It defines both the *why* and the *how* —
 prerequisites, configuration locations, release procedure, and recovery procedures.
 
-For the marketplace / marketstall file formats produced by the release flow, see
-[`internals/specs/marketstall-distribution.md`](../../internals/specs/archive/marketstall-distribution.md).
-
 ## TL;DR
 
 ```sh
@@ -180,8 +177,7 @@ uv run python scripts/generate_marketstall.py --out-dir gh-pages-content
 
 The generator reads each package's `pyproject.toml` and `__init__.py`, emits `source = "pypi"`
 entries with bare `haybale-*` sibling dependency names, writes the two-tier aggregator layout
-(top-level `marketplace.toml` plus one `stalls/<dist-name>.toml` per published library — see
-the marketstall-distribution spec §11 at `internals/specs/marketstall-distribution.md`),
+(top-level `marketplace.toml` plus one `stalls/<dist-name>.toml` per published library),
 and the workflow deploys the entire directory to GitHub Pages at:
 
 ```text
