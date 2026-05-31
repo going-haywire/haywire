@@ -343,7 +343,8 @@ def test_generate_resolves_module_path_from_entry_points(tmp_path: Path) -> None
     root = tmp_path / "pyproject.toml"
     root.write_text(
         '[tool.uv.workspace]\nmembers = ["pkgs/*"]\n'
-        '[tool.haywire.release]\npip_publish_order = ["haybale-foo"]\ngit_publish_order = []\nlockstep_unpublished = []\n'
+        '[tool.haywire.release]\npip_publish_order = ["haybale-foo"]\n'
+        "git_publish_order = []\nlockstep_unpublished = []\n"
         "[tool.haywire.marketstall]\n"
         'source_url = "https://github.com/example/fake-workspace"\n'
         'docs_branch = "main"\n'
@@ -374,7 +375,8 @@ def test_generate_resolves_src_layout_via_hatch_packages(tmp_path: Path) -> None
     root = tmp_path / "pyproject.toml"
     root.write_text(
         '[tool.uv.workspace]\nmembers = ["pkgs/*"]\n'
-        '[tool.haywire.release]\npip_publish_order = ["haywire-frame"]\ngit_publish_order = []\nlockstep_unpublished = []\n'
+        '[tool.haywire.release]\npip_publish_order = ["haywire-frame"]\n'
+        "git_publish_order = []\nlockstep_unpublished = []\n"
         "[tool.haywire.marketstall]\n"
         'source_url = "https://github.com/example/repo"\n'
         'docs_branch = "main"\n'
@@ -414,7 +416,8 @@ def test_generate_tolerates_missing_init_py(tmp_path: Path) -> None:
     root = tmp_path / "pyproject.toml"
     root.write_text(
         '[tool.uv.workspace]\nmembers = ["pkgs/*"]\n'
-        '[tool.haywire.release]\npip_publish_order = ["haybale-ghost"]\ngit_publish_order = []\nlockstep_unpublished = []\n'
+        '[tool.haywire.release]\npip_publish_order = ["haybale-ghost"]\n'
+        "git_publish_order = []\nlockstep_unpublished = []\n"
         "[tool.haywire.marketstall]\n"
         'source_url = "https://github.com/example/repo"\n'
         'docs_branch = "main"\n'

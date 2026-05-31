@@ -1,0 +1,41 @@
+name: mypy
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+  workflow_dispatch:
+
+jobs:
+  mypy:
+    name: mypy
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Install uv
+      uses: astral-sh/setup-uv@v3
+      with:
+        enable-cache: true
+
+    - name: Set up Python
+      run: uv python install 3.12
+
+    - name: Install dependencies
+      run: |
+        uv sync --all-extras --dev
+
+    - name: Run mypy
+      run: >
+        uv run mypy
+        packages/haywire-core/src/
+        packages/haywire-studio/src/
+        barn/haybale-core/haybale_core/
+        barn/haybale-studio/haybale_studio/
+        barn/haybale-testing/haybale_testing/
+        barn/haybale-example/haybale_example/
+        barn/haybale-visiongraph/haybale_visiongraph/
+        barn/haybale-TEST_A/haybale_test_a/

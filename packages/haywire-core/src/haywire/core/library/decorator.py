@@ -54,17 +54,17 @@ def library(**kwargs: Any) -> Callable[[Type[T]], Type[T]]:
         Minimal usage - only label is required::
 
             @library(label="my.library")
-            class Library(BaseLibrary): 
+            class Library(BaseLibrary):
 
         Common customization::
 
             @library(
-                label="my.library", 
-                version=_pkg_version("haybale-my.library"), 
+                label="my.library",
+                version=_pkg_version("haybale-my.library"),
                 description="My custom library")
-            class Library(BaseLibrary): 
+            class Library(BaseLibrary):
                 ...
-        
+
         Full customization::
 
             @library(
@@ -82,11 +82,11 @@ def library(**kwargs: Any) -> Callable[[Type[T]], Type[T]]:
             class Library(BaseLibrary): ...
 
         With file watching::
-                    
+
             @library(
-                label="dev.library", 
+                label="dev.library",
                 version=_pkg_version("haybale-dev.library"))
-                file_watcher=True, 
+                file_watcher=True,
             class Library(BaseLibrary): ...
     """
 
