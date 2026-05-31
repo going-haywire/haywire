@@ -3,9 +3,9 @@ status: draft
 doc_template: guide
 scope: Authoring a haybale library and publishing it for others — from new import to a hosted marketstall consumers can subscribe to
 see-also:
-  - ../components/haybale-package/haybale-package-canon.md
+  - ../haybale/haybale-package-canon.md
   - ../architecture/sharing/sharing-arch.md
-  - ../architecture/library-manager/library-manager-arch.md
+  - ../haybale/haybale-marketplace-arch.md
   - ./subscribing-to-marketplaces.md
   - ../reference/publish_releases.md
   - ../reference/glossary.md
@@ -29,7 +29,7 @@ The tooling in this guide makes all three easy.
 
 ## 2. The shape of a haybale library
 
-A haybale library is a Python package with a specific layout. `haywire init` produces this for you; if you're starting from scratch, see [components/haybale-package](../components/haybale-package/haybale-package-canon.md) for the full canon. The relevant parts for sharing:
+A haybale library is a Python package with a specific layout. `haywire init` produces this for you; if you're starting from scratch, see [haybale/haybale-package](../haybale/haybale-package-canon.md) for the full canon. The relevant parts for sharing:
 
 ```
 haybale-my-lib/
@@ -213,6 +213,6 @@ The library has no git remote (`git remote -v` returns nothing). Add a remote: `
 
 - The **consumer side** of this flow: [subscribing-to-marketplaces](./subscribing-to-marketplaces.md).
 - The **conceptual model** behind these mechanics: [sharing-arch](../architecture/sharing/sharing-arch.md).
-- The **library manager architecture** these tools plug into: [library-manager-arch](../architecture/library-manager/library-manager-arch.md).
+- The **library manager architecture** these tools plug into: [haybale-marketplace-arch](../haybale/marketplace/haybale-marketplace-arch.md).
 - The **operational release flow** for the monorepo (`/haywire-release`, CI, PyPI Trusted Publisher): [publish_releases](../reference/publish_releases.md).
-- The **per-author canon** for the package itself (folder layout, pyproject shape, build/test/publish): [components/haybale-package](../components/haybale-package/haybale-package-canon.md).
+- The **per-author canon** for the package itself (folder layout, pyproject shape, build/test/publish): [haybale/haybale-package](../haybale/haybale-package-canon.md).

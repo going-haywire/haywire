@@ -3,20 +3,20 @@ status: draft
 doc_template: canonical-example
 scope: Packaging a Haybale — pyproject.toml shape, folder layout, entry points, install/build/publish workflow
 see-also:
-  - ../libraries/library-canon.md
-  - ../../architecture/library-system/library-system-arch.md
-  - ../../architecture/library-manager/library-manager-arch.md
-  - ../../architecture/sharing/sharing-arch.md
-  - ../../guides/sharing-libraries.md
-  - ../../guides/subscribing-to-marketplaces.md
-  - ../../reference/glossary.md
+  - library-canon.md
+  - ../architecture/library-system/library-system-arch.md
+  - haybale-marketplace-arch.md
+  - ../architecture/sharing/sharing-arch.md
+  - ../guides/sharing-libraries.md
+  - ../guides/subscribing-to-marketplaces.md
+  - ../reference/glossary.md
 ---
 
 # Haybale Package — Canonical Example
 
 ## 1. What it solves
 
-A **Haybale package** is the distribution unit of a haywire library — a Python package whose `pyproject.toml` declares an entry point under `haywire.libraries`, containing exactly one `BaseLibrary` subclass. It is meaning **#3** of the five "library" concepts in haywire (see [reference/glossary §Library — five distinct meanings](../../reference/glossary.md#library-five-distinct-meanings)).
+A **Haybale package** is the distribution unit of a haywire library — a Python package whose `pyproject.toml` declares an entry point under `haywire.libraries`, containing exactly one `BaseLibrary` subclass. It is meaning **#3** of the five "library" concepts in haywire (see [reference/glossary §Library — five distinct meanings](../reference/glossary.md#library-five-distinct-meanings)).
 
 You package a haybale when you want to:
 
@@ -50,7 +50,7 @@ haybale-mylib/                 [project]                      uv pip install:
 
 The pip distribution name (`haybale-mylib`) and the Python module name (`haybale_mylib`) are *different things*. Pip uses hyphens, Python imports use underscores; the entry point connects them.
 
-**Boundaries.** What `BaseLibrary`, `register_components()`, and `validate()` actually do — see [components/libraries](../libraries/library-canon.md). What `LibraryDiscovery` reads at runtime, the install-type rules, hot-reload mechanics — see [architecture/library-system](../../architecture/library-system/library-system-arch.md). The studio's library manager UI that consumes `marketplace.toml` and runs `uv pip install` — see [architecture/library-manager](../../architecture/library-manager/library-manager-arch.md).
+**Boundaries.** What `BaseLibrary`, `register_components()`, and `validate()` actually do — see [haybale/library](library-canon.md). What `LibraryDiscovery` reads at runtime, the install-type rules, hot-reload mechanics — see [architecture/library-system](../architecture/library-system/library-system-arch.md). The studio's library manager UI that consumes `marketplace.toml` and runs `uv pip install` — see [haybale/marketplace](marketplace/haybale-marketplace-arch.md).
 
 ## 3. Important concepts
 
@@ -70,7 +70,7 @@ haybale-mylib/                  ← git repo / pip distribution name
     themes/
 ```
 
-You can omit any subfolder you don't use. The `Library.register_components()` method makes one `add_folder_to_registry()` call per category (see [components/libraries §5](../libraries/library-canon.md#5-live-example-from-the-codebase)).
+You can omit any subfolder you don't use. The `Library.register_components()` method makes one `add_folder_to_registry()` call per category (see [haybale/library §5](library-canon.md#5-live-example-from-the-codebase)).
 
 **Two valid layouts: package or flat.** *Package* layout is what you want for any distributable library — `haybale-mylib/` contains a `pyproject.toml` and the Python module nested below it. *Flat* layout (the Python module sitting alone in a directory, no `pyproject.toml`) is only useful for ad-hoc libraries loaded via the framework's `library_paths` config — they get the `FOLDER` install type and skip the pip layer entirely. Use package layout unless you have a specific reason not to.
 
@@ -105,11 +105,11 @@ Each entry imports a different module/class pair from the same distribution.
 | `uv pip install git+https://...` | Regular — checked out into pip cache | No | Installing from git without publishing |
 | `uv pip install <name> @ git+...#subdirectory=...` | Regular — monorepo subdirectory | No | When one repo holds many haybales |
 
-The studio's [library manager](../../architecture/library-manager/library-manager-arch.md) wraps these commands behind a UI; users rarely run them directly.
+The studio's [library manager](marketplace/haybale-marketplace-arch.md) wraps these commands behind a UI; users rarely run them directly.
 
 **Hot-reload requires editable install.** `file_watcher=True` only does something when the framework can find the live source directory. For pip-from-wheel (`REGULAR` install type), there is no source path to watch — the wheel is unpacked into `site-packages`. Editable installs (`EDITABLE`) and folder-loaded packages (`FOLDER`) both work.
 
-**`marketstall.toml` is how libraries are listed for the studio.** A marketstall TOML file lists `[[haybales]]` entries with metadata + an `install_spec` that gets passed verbatim to `uv pip install`. The Library Manager UI reads subscribed marketstalls (and remote marketplaces that reference them) at refresh time and surfaces the result as the "Available" list. Full coverage in [architecture/library-manager §The two-tier marketplace](../../architecture/library-manager/library-manager-arch.md#2-the-two-tier-marketplace).
+**`marketstall.toml` is how libraries are listed for the studio.** A marketstall TOML file lists `[[haybales]]` entries with metadata + an `install_spec` that gets passed verbatim to `uv pip install`. The Library Manager UI reads subscribed marketstalls (and remote marketplaces that reference them) at refresh time and surfaces the result as the "Available" list. Full coverage in [haybale/marketplace §The two-tier marketplace](marketplace/haybale-marketplace-arch.md#2-the-two-tier-marketplace).
 
 **`haywire share`** generates a marketplace snippet for a published library:
 
@@ -146,7 +146,7 @@ barn/haybale-foo/
       widgets/ClassName.md
 ```
 
-`marketstall.toml` lives at the repo root, not inside the haybale package directory — see [`internals/specs/marketstall-distribution.md`](../../../internals/specs/archive/marketstall-distribution.md) §2.
+`marketstall.toml` lives at the repo root, not inside the haybale package directory — see [`internals/specs/marketstall-distribution.md`](../../internals/specs/archive/marketstall-distribution.md) §2.
 
 #### `README.md` content model
 
@@ -186,11 +186,11 @@ The PyPI JSON API returns `README.md` content as `info.description` — the only
 
 #### Coordination with `haywire share --save`
 
-`haywire share --save` updates README files in place between marker pairs (see [`internals/specs/marketstall-distribution.md`](../../../internals/specs/archive/marketstall-distribution.md) §6.6) to keep the published share URL current. When `haywire-gen-docs` generates a fresh README, it preserves the marker pair and any URL written between them — the generator's template includes the markers, and the share command's edits are confined to the block between them. The two tools coexist by convention: the generator owns everything outside the markers; the share command owns everything inside.
+`haywire share --save` updates README files in place between marker pairs (see [`internals/specs/marketstall-distribution.md`](../../internals/specs/archive/marketstall-distribution.md) §6.6) to keep the published share URL current. When `haywire-gen-docs` generates a fresh README, it preserves the marker pair and any URL written between them — the generator's template includes the markers, and the share command's edits are confined to the block between them. The two tools coexist by convention: the generator owns everything outside the markers; the share command owns everything inside.
 
 ## 4. One comprehensive example
 
-A complete haybale `haybale-image` exercising every packaging concept: package layout, entry point, build configuration, dependency declaration, all six conventional subfolders (the `Library` class lives in [components/libraries §5](../libraries/library-canon.md#5-live-example-from-the-codebase)), the README format the library manager renders, and a recommended `marketplace.toml` snippet for distribution.
+A complete haybale `haybale-image` exercising every packaging concept: package layout, entry point, build configuration, dependency declaration, all six conventional subfolders (the `Library` class lives in [haybale/library §5](library-canon.md#5-live-example-from-the-codebase)), the README format the library manager renders, and a recommended `marketplace.toml` snippet for distribution.
 
 ### Folder layout
 
@@ -398,9 +398,9 @@ What this example exercises:
 | `haywire share` generating a marketplace snippet | distribution |
 | Both `source = "git"` (subdirectory) and `source = "pypi"` snippet variants | distribution |
 
-For the `Library` class that lives in `__init__.py`, see [components/libraries](../libraries/library-canon.md). For the framework that loads your published package at app startup, see [architecture/library-system](../../architecture/library-system/library-system-arch.md). For the studio's library manager UI that consumes the marketplace snippet, see [architecture/library-manager](../../architecture/library-manager/library-manager-arch.md).
+For the `Library` class that lives in `__init__.py`, see [haybale/library](library-canon.md). For the framework that loads your published package at app startup, see [architecture/library-system](../architecture/library-system/library-system-arch.md). For the studio's library manager UI that consumes the marketplace snippet, see [haybale/marketplace](marketplace/haybale-marketplace-arch.md).
 
-If you need to embed the Haywire library system programmatically (in a script, headless tool, or integration test) without launching the studio app, see [architecture/library-system §5 — Programmatic embedding](../../architecture/library-system/library-system-arch.md#5-programmatic-embedding).
+If you need to embed the Haywire library system programmatically (in a script, headless tool, or integration test) without launching the studio app, see [architecture/library-system §5 — Programmatic embedding](../architecture/library-system/library-system-arch.md#5-programmatic-embedding).
 
 ---
 
@@ -429,7 +429,7 @@ A third-party haybale library MUST provide:
 - **For PyPI publishing**: a valid PyPI package — Trusted Publisher (OIDC) recommended, but
   the author may use any auth method PyPI supports.
 - **For marketstall publishing**: a `marketstall.toml` conforming to
-  [`internals/specs/marketstall-distribution.md`](../../../internals/specs/archive/marketstall-distribution.md).
+  [`internals/specs/marketstall-distribution.md`](../../internals/specs/archive/marketstall-distribution.md).
 
 A library meeting only the Required contract is installable, importable, and resolvable by
 the Library Manager. It may render with minimal UI affordances (no description, no tags,
@@ -442,7 +442,7 @@ A compliant library SHOULD additionally provide:
 - **`@library` decorator** fields: `description`, `author`, `tags`, `url`, `author_url`,
   `help_url`. These populate the Library Manager UI.
 - **Optional marketstall entry fields** beyond the required ones — see
-  [`internals/specs/marketstall-distribution.md`](../../../internals/specs/archive/marketstall-distribution.md)
+  [`internals/specs/marketstall-distribution.md`](../../internals/specs/archive/marketstall-distribution.md)
   for the full list and the resolution strategy when fields are omitted.
 - **Generated documentation** via `haywire-gen-docs` — see §3 "Documentation files generated
   by `haywire-gen-docs`" above for the content model and file layout.
@@ -520,7 +520,7 @@ uv pip install "haybale-mylib @ git+https://github.com/user/repo.git#subdirector
 | `uv run haywire init my-project` | Scaffold a new project. Writes `<my-project>/.haywire/marketplace.toml` with the project's own library as a `[[heaps]]` entry. |
 | `uv run haywire init my-project --dev` | Same, but additionally writes one `[[heaps]]` per haybale in the local dev repo into the project marketplace — *not* the global marketplace. The user's `~/.haywire/db/haybale-marketplace/marketplace.toml` is left untouched. |
 
-For the full author flow including how to keep manifests in sync without `--fix`, see the [sharing-libraries guide](../../guides/sharing-libraries.md). For the consumer flow that subscribes to what you publish, see [subscribing-to-marketplaces](../../guides/subscribing-to-marketplaces.md).
+For the full author flow including how to keep manifests in sync without `--fix`, see the [sharing-libraries guide](../guides/sharing-libraries.md). For the consumer flow that subscribes to what you publish, see [subscribing-to-marketplaces](../guides/subscribing-to-marketplaces.md).
 
 ### Common pitfalls
 

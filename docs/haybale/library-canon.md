@@ -3,10 +3,10 @@ status: draft
 doc_template: canonical-example
 scope: Authoring a Library — BaseLibrary subclass, @library decorator, register_components, validate, hot-reload
 see-also:
-  - ../haybale-package/haybale-package-canon.md
-  - ../../architecture/library-system/library-system-arch.md
-  - ../../architecture/hot-reload/hot-reload-arch.md
-  - ../../reference/glossary.md
+  - haybale-package-canon.md
+  - ../architecture/library-system/library-system-arch.md
+  - ../architecture/hot-reload/hot-reload-arch.md
+  - ../reference/glossary.md
 ---
 
 # Library — Canonical Example
@@ -15,7 +15,7 @@ see-also:
 
 A **Library** (the haywire `BaseLibrary` subclass, decorated with `@library`) is the plugin protocol that contributes nodes, types, adapters, widgets, skins, themes, and settings to a running haywire app. As an author, you write one Library class per haybale package — the framework discovers it through the `pyproject.toml` entry point, calls `register_components()` to populate the global registries, and (optionally) starts a file watcher so your changes hot-reload without restart.
 
-This is meaning **#1** of the five "library" concepts in haywire (see [reference/glossary §Library — five distinct meanings](../../reference/glossary.md#library-five-distinct-meanings)). For the runtime infrastructure that *uses* your Library class (LibraryRegistry, LibraryDiscovery, FileWatcher), see [architecture/library-system](../../architecture/library-system/library-system-arch.md). For packaging a Library as a distributable Haybale package (pyproject layout, entry points, publishing), see [components/haybale-package](../haybale-package/haybale-package-canon.md).
+This is meaning **#1** of the five "library" concepts in haywire (see [reference/glossary §Library — five distinct meanings](../reference/glossary.md#library-five-distinct-meanings)). For the runtime infrastructure that *uses* your Library class (LibraryRegistry, LibraryDiscovery, FileWatcher), see [architecture/library-system](../architecture/library-system/library-system-arch.md). For packaging a Library as a distributable Haybale package (pyproject layout, entry points, publishing), see [haybale/haybale-package](haybale-package-canon.md).
 
 ## 2. How it fits
 
@@ -45,7 +45,7 @@ The Library class has two mandatory hooks:
 
 Optional: `@library(file_watcher=True)` enables hot-reload — the framework starts a file watcher rooted at the library's source directory and re-runs `register_components()` whenever a `.py` file changes.
 
-**Boundaries.** What the registries actually do at runtime, what `LibraryDiscovery` checks, how `InstallType` is determined, the discovery priority order — all in [architecture/library-system](../../architecture/library-system/library-system-arch.md). The `pyproject.toml` shape, build/publish workflow, and `marketplace.toml` distribution — all in [components/haybale-package](../haybale-package/haybale-package-canon.md).
+**Boundaries.** What the registries actually do at runtime, what `LibraryDiscovery` checks, how `InstallType` is determined, the discovery priority order — all in [architecture/library-system](../architecture/library-system/library-system-arch.md). The `pyproject.toml` shape, build/publish workflow, and `marketplace.toml` distribution — all in [haybale/haybale-package](haybale-package-canon.md).
 
 ## 3. Important concepts
 
@@ -133,7 +133,7 @@ from haywire.ui.themes.registry import ThemeRegistry
 | `EditorTypeRegistry` | `haywire.ui.editor.registry` | `editors/` | `@editor`-decorated classes |
 | `PanelRegistry` | `haywire.ui.panel.registry` | `panels/` | `@panel`-decorated classes |
 
-Most libraries only need the first six. `SettingsRegistry`, `LibraryStateRegistry`, `EditorTypeRegistry`, and `PanelRegistry` are needed for libraries that contribute studio UI or persistent state. See `barn/haybale-studio/haybale_studio/__init__.py` for the canonical example that registers all ten. The architecture-side view (how `LibraryRegistry` routes into each registry at startup) is in [architecture/library-system §2.2](../../architecture/library-system/library-system-arch.md#22-libraryregistry-haywirecorelibrary).
+Most libraries only need the first six. `SettingsRegistry`, `LibraryStateRegistry`, `EditorTypeRegistry`, and `PanelRegistry` are needed for libraries that contribute studio UI or persistent state. See `barn/haybale-studio/haybale_studio/__init__.py` for the canonical example that registers all ten. The architecture-side view (how `LibraryRegistry` routes into each registry at startup) is in [architecture/library-system §2.2](../architecture/library-system/library-system-arch.md#22-libraryregistry-haywirecorelibrary).
 
 **Hot-reload.** When `file_watcher=True`, the framework starts a `watchdog` observer rooted at your library's source directory. On any `.py` change:
 
@@ -142,7 +142,7 @@ Most libraries only need the first six. `SettingsRegistry`, `LibraryStateRegistr
 3. Existing wrappers (NodeWrapper, EdgeWrapper) rebuild from their recipes against the new class.
 4. The graph revalidates; the UI re-renders.
 
-Hot-reload only works for **editable** installs (`uv pip install -e .`) or **folder-loaded** libraries — `REGULAR` (pip-installed-from-wheel) installs don't have a writable source path, so the file watcher has nothing to watch. Note that `file_watcher=True` on the decorator is a **per-library switch**; the system-level switch `enable_file_watching` in `create_library_system_service()` must also be `True` (it is `True` by default in `haywire-studio`) — if it is `False`, no hot-reload fires regardless of the decorator. See [architecture/library-system §5](../../architecture/library-system/library-system-arch.md#5-programmatic-embedding) for the `enable_file_watching` and `debounce_delay` parameters, and [architecture/hot-reload](../../architecture/hot-reload/hot-reload-arch.md) for the full pipeline.
+Hot-reload only works for **editable** installs (`uv pip install -e .`) or **folder-loaded** libraries — `REGULAR` (pip-installed-from-wheel) installs don't have a writable source path, so the file watcher has nothing to watch. Note that `file_watcher=True` on the decorator is a **per-library switch**; the system-level switch `enable_file_watching` in `create_library_system_service()` must also be `True` (it is `True` by default in `haywire-studio`) — if it is `False`, no hot-reload fires regardless of the decorator. See [architecture/library-system §5](../architecture/library-system/library-system-arch.md#5-programmatic-embedding) for the `enable_file_watching` and `debounce_delay` parameters, and [architecture/hot-reload](../architecture/hot-reload/hot-reload-arch.md) for the full pipeline.
 
 **`__all__` is required.** Export the `Library` class so the entry point can find it:
 
@@ -210,7 +210,7 @@ For a maximally complete example that registers all ten component categories, se
 
 ## 5. Live example from the codebase
 
-Source: [`barn/haybale-testing/haybale_testing/__init__.py`](../../../barn/haybale-testing/haybale_testing/__init__.py)
+Source: [`barn/haybale-testing/haybale_testing/__init__.py`](../../barn/haybale-testing/haybale_testing/__init__.py)
 
 `haybale_testing` is the framework's own test library — it registers all nine component categories (types, adapters, themes, widgets, skins, settings, nodes, panels, state), enables hot-reload, and includes a `validate()` that always passes. It is the most complete `Library` subclass in the codebase:
 
@@ -218,7 +218,7 @@ Source: [`barn/haybale-testing/haybale_testing/__init__.py`](../../../barn/hayba
 --8<-- "barn/haybale-testing/haybale_testing/__init__.py:testing_library"
 ```
 
-The companion `pyproject.toml` (full coverage in [components/haybale-package](../haybale-package/haybale-package-canon.md)):
+The companion `pyproject.toml` (full coverage in [haybale/haybale-package](haybale-package-canon.md)):
 
 ```toml
 [project]
@@ -252,7 +252,7 @@ What this example exercises:
 | Imports from canonical paths (not the obsolete `library/library` / `library/registries/`) | every import |
 | Hot-reload via `file_watcher=True` | `@library(file_watcher=True)` |
 
-For the `pyproject.toml` shape, build/publish workflow, distribution via `marketplace.toml`, and the full commands for `uv pip install -e .` etc., see [components/haybale-package](../haybale-package/haybale-package-canon.md). For the runtime infrastructure that loads your Library, see [architecture/library-system](../../architecture/library-system/library-system-arch.md). For the studio's in-app library manager UI, see [architecture/library-manager](../../architecture/library-manager/library-manager-arch.md).
+For the `pyproject.toml` shape, build/publish workflow, distribution via `marketplace.toml`, and the full commands for `uv pip install -e .` etc., see [haybale/haybale-package](haybale-package-canon.md). For the runtime infrastructure that loads your Library, see [architecture/library-system](../architecture/library-system/library-system-arch.md). For the studio's in-app library manager UI, see [haybale/marketplace](marketplace/haybale-marketplace-arch.md).
 
 ---
 

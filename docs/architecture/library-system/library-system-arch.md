@@ -3,10 +3,10 @@ status: draft
 doc_template: system-reference
 scope: Runtime infrastructure that discovers, loads, and tracks libraries — LibraryRegistry, LibraryDiscovery, LibraryIdentity, FileWatcher
 see-also:
-  - ../library-manager/library-manager-arch.md
+  - ../../haybale/haybale-marketplace-arch.md
   - ../hot-reload/hot-reload-arch.md
-  - ../../components/libraries/library-canon.md
-  - ../../components/haybale-package/haybale-package-canon.md
+  - ../../haybale/library-canon.md
+  - ../../haybale/haybale-package-canon.md
   - ../../reference/glossary.md
 ---
 
@@ -16,7 +16,7 @@ see-also:
 
 The Library System is the framework infrastructure that finds Haywire libraries on disk, loads their `Library` classes, and routes their components into the right registries (nodes, types, adapters, widgets, skins, themes). It runs at app startup and stays running for hot-reload.
 
-It is **not** the studio's library-manager UI — see [library-manager](../library-manager/library-manager-arch.md) for that. It is **not** how a developer authors a library — see [components/libraries](../../components/libraries/library-canon.md) for that. It is the layer between the package manager (uv/pip) and the registries.
+It is **not** the studio's library-manager UI — see [haybale/marketplace — architecture](../../haybale/marketplace/haybale-marketplace-arch.md) for that. It is **not** how a developer authors a library — see [haybale/library](../../haybale/library-canon.md) for that. It is the layer between the package manager (uv/pip) and the registries.
 
 Two layers, one wrapper:
 
@@ -35,7 +35,7 @@ Two layers, one wrapper:
 └─────────────────────────────────────────────────────────────┘
 ```
 
-The studio adds a third UI layer ([library-manager](../library-manager/library-manager-arch.md)) that wraps both — but the Library System works without it.
+The studio adds a third UI layer ([haybale/marketplace — architecture](../../haybale/marketplace/haybale-marketplace-arch.md)) that wraps both — but the Library System works without it.
 
 ## 2. Components
 
@@ -79,7 +79,7 @@ Three values, all set by `LibraryDiscovery` based on filesystem inspection:
 | `EDITABLE` | `"editable"` | Source path is in the source tree (resolved via `.pth`) | Yes |
 | `FOLDER` | `"folder"` | Added via `library_paths` config (no entry point) | Yes |
 
-The install type is propagated to `LibraryIdentity` and exposed by the [library-manager](../library-manager/library-manager-arch.md) UI to control which actions are available (Save source, Uninstall).
+The install type is propagated to `LibraryIdentity` and exposed by the [haybale/marketplace — architecture](../../haybale/marketplace/haybale-marketplace-arch.md) UI to control which actions are available (Save source, Uninstall).
 
 ### 2.4 `LibraryIdentity` (`haywire/core/library/identity.py`)
 
@@ -98,7 +98,7 @@ The debounce delay (how long the watcher waits after the last `.py` change befor
 
 ### 2.6 `BaseLibrary` and `@library` (`haywire/core/library/base.py`, `decorator.py`)
 
-Authoring surface — see [components/libraries](../../components/libraries/library-canon.md). The architecture-relevant facts:
+Authoring surface — see [haybale/library](../../haybale/library-canon.md). The architecture-relevant facts:
 
 - `register_components()` is the mandatory hook called by `LibraryRegistry`.
 - `validate()` is called after registration; returning `False` aborts the load.
@@ -195,9 +195,9 @@ A failed library does not abort the app — it is logged and skipped, its compon
 
 ### 4.5 Boundary — what the Library System is not
 
-- **Not a package manager.** It does not install, uninstall, or update Python packages. That is uv/pip (Layer 1) and the [library-manager UI](../library-manager/library-manager-arch.md) (Layer 3) wrapping uv.
+- **Not a package manager.** It does not install, uninstall, or update Python packages. That is uv/pip (Layer 1) and the [library-manager UI](../../haybale/marketplace/haybale-marketplace-arch.md) (Layer 3) wrapping uv.
 - **Not a marketplace.** The `marketplace.toml` format and feed-fetching live with the library-manager UI, not here.
-- **Not the place where component authoring is documented.** That belongs in [components/libraries](../../components/libraries/library-canon.md) and [components/haybale-package](../../components/haybale-package/haybale-package-canon.md).
+- **Not the place where component authoring is documented.** That belongs in [haybale/library](../../haybale/library-canon.md) and [haybale/haybale-package](../../haybale/haybale-package-canon.md).
 
 ### 4.6 Authoring contract for libraries
 
@@ -211,7 +211,7 @@ A haybale library is a Python package with:
 2. An `__init__.py` containing a `@library(...)` decorated `Library` class that subclasses `BaseLibrary`.
 3. Implements `register_components()` (mandatory) and `validate()` (returns `bool`).
 
-See [components/libraries](../../components/libraries/library-canon.md) for the full authoring story and [components/haybale-package](../../components/haybale-package/haybale-package-canon.md) for packaging and distribution.
+See [haybale/library](../../haybale/library-canon.md) for the full authoring story and [haybale/haybale-package](../../haybale/haybale-package-canon.md) for packaging and distribution.
 
 ## 5. Programmatic embedding
 

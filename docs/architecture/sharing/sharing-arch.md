@@ -3,9 +3,9 @@ status: draft
 doc_template: philosophy
 scope: The philosophy behind haywire's sharing model — how libraries move between authors and consumers, the trust assumptions, the lifecycle, the non-goals
 see-also:
-  - ../library-manager/library-manager-arch.md
+  - ../../haybale/haybale-marketplace-arch.md
   - ../library-system/library-system-arch.md
-  - ../../components/haybale-package/haybale-package-canon.md
+  - ../../haybale/haybale-package-canon.md
   - ../../guides/sharing-libraries.md
   - ../../guides/subscribing-to-marketplaces.md
   - ../../reference/glossary.md
@@ -174,4 +174,4 @@ If you are an **author**, the next stop is the [sharing-libraries guide](../../g
 
 If you are a **consumer**, the next stop is the [subscribing-to-marketplaces guide](../../guides/subscribing-to-marketplaces.md): Add Source, Refresh, handling conflicts and unavailable feeds, installing what you find.
 
-If you want the **architectural picture** of how the surface is built — file layouts, refresh pipeline, conflict-resolution implementation, the editors driving it all — see [library-manager-arch](../library-manager/library-manager-arch.md).
+If you want the **architectural picture** of how the surface is built — file layouts, refresh pipeline, conflict-resolution implementation, the editors driving it all — see [haybale-marketplace-arch](../../haybale/marketplace/haybale-marketplace-arch.md).

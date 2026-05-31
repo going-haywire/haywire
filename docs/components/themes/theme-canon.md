@@ -4,7 +4,7 @@ doc_template: canonical-example
 scope: Authoring WorkbenchTheme and NodeTheme subclasses, registering them in a library, hot-reload behaviour
 see-also:
   - ../skins/skin-canon.md
-  - ../libraries/library-canon.md
+  - ../../haybale/library-canon.md
   - ../../architecture/studio/studio-arch.md
   - ../../architecture/hot-reload/hot-reload-arch.md
   - ../../reference/glossary.md

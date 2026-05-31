@@ -1,15 +1,4 @@
-"""
-Editor - High-level graph manipulation interface with simple callback notifications
-
-This class provides a clean, semantic API for graph operations while using
-simple callbacks for change notifications. It wraps the graph, history manager,
-and node factory to provide convenient methods for graph manipulation.
-
-Design Philosophy:
-- Simple callback-based notifications for graph changes (upstream: graph → UI)
-- Complex event system remains for UI interactions (downstream: UI → graph)
-- Clean separation between business logic and presentation layer
-"""
+"""Editor - High-level graph manipulation interface with callback notifications."""
 
 import logging
 from typing import List, Optional, Tuple

@@ -80,9 +80,10 @@ plugins:
   - search
 
 # Perspectives are navigational entry points; components/ holds extension-point
-# stories; guides/ holds cross-component patterns and worked examples;
-# architecture/ holds system internals; reference/ holds shared truth
-# (glossary, design guide).
+# stories; haybale/ holds the library/package/marketplace story (authoring,
+# packaging, distribution, and the marketplace plugin + its architecture);
+# guides/ holds cross-component patterns and worked examples; architecture/
+# holds system internals; reference/ holds shared truth (glossary, design guide).
 nav:
   - Home: index.md
 
@@ -102,8 +103,12 @@ nav:
       - Editors: components/editors/editor-canon.md
       - Panels: components/panels/panel-canon.md
       - States: components/states/state-canon.md
-      - Libraries: components/libraries/library-canon.md
-      - Haybale package: components/haybale-package/haybale-package-canon.md
+
+  - Haybale:
+      - Library: haybale/library-canon.md
+      - Haybale package: haybale/haybale-package-canon.md
+      - Marketplace: haybale/marketplace-canon.md
+      - Marketplace — architecture: haybale/haybale-marketplace-arch.md
 
   - Guides:
       - Node roles: guides/node-roles.md
@@ -125,7 +130,6 @@ nav:
           - Lazy evaluation: architecture/execution/lazy-evaluation/lazy-evaluation-arch.md
           - Callbacks: architecture/execution/callbacks/callbacks-arch.md
       - Library system: architecture/library-system/library-system-arch.md
-      - Library manager: architecture/library-manager/library-manager-arch.md
       - Sharing — philosophy: architecture/sharing/sharing-arch.md
       - Hot-reload: architecture/hot-reload/hot-reload-arch.md
       - Settings: architecture/settings/settings-arch.md

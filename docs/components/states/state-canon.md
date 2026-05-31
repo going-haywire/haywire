@@ -6,7 +6,7 @@ see-also:
   - ../../architecture/session-and-state/session-and-state-arch.md
   - ../../guides/signals.md
   - ../settings/setting-canon.md
-  - ../libraries/library-canon.md
+  - ../../haybale/library-canon.md
   - ../../reference/glossary.md
 ---
 
@@ -61,7 +61,7 @@ Three architectural slots state fills, distinct from anything else:
 | **App-global library runtime state** | **`AppState`** |
 | **Per-session library runtime state** | **`SessionState`** |
 
-**Boundaries.** Framework mechanics — registry events, container subscription, hot-reload coordination, lifecycle ordering — live in [architecture/session-and-state](../../architecture/session-and-state/session-and-state-arch.md). The `LibrarySettings` system that AppState compositions sometimes wrap lives in [components/settings](../settings/setting-canon.md). The `Library` class that registers state folders lives in [components/libraries](../libraries/library-canon.md).
+**Boundaries.** Framework mechanics — registry events, container subscription, hot-reload coordination, lifecycle ordering — live in [architecture/session-and-state](../../architecture/session-and-state/session-and-state-arch.md). The `LibrarySettings` system that AppState compositions sometimes wrap lives in [components/settings](../settings/setting-canon.md). The `Library` class that registers state folders lives in [haybale/library](../../haybale/library-canon.md).
 
 ## 3. Important concepts
 

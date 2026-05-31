@@ -4,14 +4,14 @@ doc_template: guide
 scope: Subscribing to other authors' libraries — Add Source, Refresh, conflict resolution, stale handling, what to do when feeds go offline
 see-also:
   - ../architecture/sharing/sharing-arch.md
-  - ../architecture/library-manager/library-manager-arch.md
+  - ../haybale/haybale-marketplace-arch.md
   - ./sharing-libraries.md
   - ../reference/glossary.md
 ---
 
-# Subscribing to marketplaces — Consumer guide
+# Subscribing to marketplaces — User guide
 
-This guide walks a consumer through following other authors' libraries: adding a source, refreshing the catalog, installing what you want, and handling the edge cases (conflicts, offline feeds, stale entries, malformed files). For the conceptual model — *why* the flow is shaped this way — see [sharing-arch](../architecture/sharing/sharing-arch.md). For the publisher side, see [sharing-libraries](./sharing-libraries.md).
+This guide walks a user through following other authors' libraries: adding a source, refreshing the catalog, installing what you want, and handling the edge cases (conflicts, offline feeds, stale entries, malformed files). For the conceptual model — *why* the flow is shaped this way — see [sharing-arch](../architecture/sharing/sharing-arch.md). For the publisher side, see [sharing-libraries](./sharing-libraries.md).
 
 ## 1. What it solves
 
@@ -159,7 +159,7 @@ To install: click an AVAILABLE row in the Library Browser. The Library Overview 
 - On success, the Library System rescans to pick up the new entry point.
 - The row moves from AVAILABLE to ENABLED.
 
-If the library declares haybale dependencies that you don't have installed, the Overview Editor's gating lets you know — but it doesn't auto-install them. You install each library individually. This is by design: the dependency information is informational, not a directive (see [library-manager-arch §What the Library Manager is not](../architecture/library-manager/library-manager-arch.md#8-boundary-what-the-library-manager-is-not)).
+If the library declares haybale dependencies that you don't have installed, the Overview Editor's gating lets you know — but it doesn't auto-install them. You install each library individually. This is by design: the dependency information is informational, not a directive (see [library-manager-arch §What the Library Manager is not](../haybale/marketplace/haybale-marketplace-arch.md#8-boundary-what-the-library-manager-is-not)).
 
 ### 9.1 Updates available
 
@@ -206,5 +206,5 @@ Click Refresh. Stale-uninstalled entries that aren't re-resolved by the refresh 
 
 - The **publisher side** of this flow: [sharing-libraries](./sharing-libraries.md).
 - The **conceptual model** behind these mechanics: [sharing-arch](../architecture/sharing/sharing-arch.md).
-- The **library manager architecture** these tools plug into: [library-manager-arch](../architecture/library-manager/library-manager-arch.md).
+- The **library manager architecture** these tools plug into: [haybale-marketplace-arch](../haybale/marketplace/haybale-marketplace-arch.md).
 - The **canonical vocabulary** (Marketplace, Marketstall, Subscription, Refresh, Stale, etc.): [glossary](../reference/glossary.md).

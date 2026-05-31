@@ -1,27 +1,30 @@
 ---
 status: draft
 doc_template: impl-spec
-scope: Studio's in-app package-manager surface — the two-tier marketplace files, refresh pipeline, conflict resolution, drift detection, and the editors that drive them
+scope: The haybale-marketplace plugin — the optional library installer/browser surface, its two-tier marketplace files, refresh pipeline, conflict resolution, drift detection, and the editors and states that drive them
 see-also:
-  - ../sharing/sharing-arch.md
-  - ../library-system/library-system-arch.md
-  - ../studio/studio-arch.md
-  - ../../components/haybale-package/haybale-package-canon.md
-  - ../../guides/sharing-libraries.md
-  - ../../guides/subscribing-to-marketplaces.md
-  - ../../reference/glossary.md
+  - marketplace-canon.md
+  - ../architecture/sharing/sharing-arch.md
+  - ../architecture/library-system/library-system-arch.md
+  - ../architecture/studio/studio-arch.md
+  - haybale-package-canon.md
+  - ../guides/sharing-libraries.md
+  - ../guides/subscribing-to-marketplaces.md
+  - ../reference/glossary.md
 ---
 
-# Library Manager — Architecture
+# haybale-marketplace — Architecture
 
-This document describes *how* the library-management surface is built: the file layout it reads and writes, the pipeline that turns subscriptions into a usable catalog, the editors that drive that pipeline, and the boundary between this subsystem and the rest of haywire. For the *why* — the conceptual model behind these mechanics — see [sharing-arch](../sharing/sharing-arch.md).
+This document describes *how* the library-management surface is built: the file layout it reads and writes, the pipeline that turns subscriptions into a usable catalog, the editors that drive that pipeline, and the boundary between this subsystem and the rest of haywire. For the *why* — the conceptual model behind these mechanics — see [sharing-arch](../../architecture/sharing/sharing-arch.md). For the author-facing view of the plugin (what it ships, how it self-registers, optionality), see [marketplace-canon](../marketplace-canon.md).
+
+The library-management surface lives in its own optional haybale package, **`haybale-marketplace`** (`barn/haybale-marketplace/`), carved out of `haybale-studio` per [ADR-0001](../../adr/0001-haybale-marketplace-carveout.md). The studio runs without it: if the package is absent, the left-slot library browser simply doesn't appear — no defensive code in `haybale-studio`. `haywire init` installs it by default.
 
 ## 1. Mental model
 
-The Library Manager is a UI layer in `haywire-studio` that aggregates three things behind two editors:
+The Library Manager is the `haybale-marketplace` plugin — a UI layer that self-registers its editors and states into the studio and aggregates three things behind its editors:
 
 - **uv / pip** — the package layer that installs Python distributions.
-- **The [Library System](../library-system/library-system-arch.md)** — the framework infrastructure that loads `Library` classes once installed.
+- **The [Library System](../../architecture/library-system/library-system-arch.md)** — the framework infrastructure that loads `Library` classes once installed.
 - **The marketplace runtime** — the discovery layer that turns user-opt-in subscriptions into a browsable catalog of installable packages.
 
 Users see the **Library Browser** (left slot, lists installed and available libraries) and the **Library Overview Editor** (main slot, shows one library's identity / components / actions). The data behind both comes from two `marketplace.toml` files following a two-tier scheme.
@@ -132,7 +135,7 @@ The pipeline owns no install logic. It produces a catalog; installation runs sep
 
 ### 3.1 One-level-deep resolution
 
-When a remote `[[markets]]` body lists its *own* `[[markets]]` subscriptions, those are ignored. Only the remote's `[[stalls]]` references and inline `[[haybales]]` are consumed. This bounds the resolution to a single hop and keeps the trust model legible — see [sharing-arch §Bounded resolution](../sharing/sharing-arch.md#bounded-resolution).
+When a remote `[[markets]]` body lists its *own* `[[markets]]` subscriptions, those are ignored. Only the remote's `[[stalls]]` references and inline `[[haybales]]` are consumed. This bounds the resolution to a single hop and keeps the trust model legible — see [sharing-arch §Bounded resolution](../../architecture/sharing/sharing-arch.md#bounded-resolution).
 
 ### 3.2 HTTP cache and fallback
 
@@ -180,16 +183,22 @@ The UI calls **`MarketplaceState`**, not `marketplace_runtime` directly. The sta
 | `last_report` | property | UI banners read this to render after a refresh |
 | `global_marketplace_error` | property | Set when `get_global()` saw a malformed file; surfaces the red banner |
 
-`MarketplaceState` is designed for an eventual carve-out: when `haybale-marketplace` becomes its own package, this state object moves with the editors.
+`MarketplaceState` lives in `barn/haybale-marketplace/haybale_marketplace/state/marketplace_state.py`. It self-registers via `LibraryStateRegistry` when the plugin loads; consumers reach it the usual way (`ctx.app_data[MarketplaceState]`).
 
-### 4.2 The two editors
+### 4.2 The editors and the manager state
+
+`haybale-marketplace` registers five editors (`barn/haybale-marketplace/haybale_marketplace/editors/`); the two primary ones are:
 
 | Editor | Slot | Drives |
 |---|---|---|
 | **Library Browser** | left | Lists installed + available libraries. Filter toggles for REQUIRED / ENABLED / DISABLED / AVAILABLE. Toolbar exposes Refresh, Add Source, Edit File. |
 | **Library Overview Editor** | main | One library's identity, component breakdown, and Edit / Enable / Disable / Uninstall actions. Reached by clicking a row in the Library Browser. |
 
-`LibraryManager` (the orchestrator class in `haywire-studio/src/haywire_studio/library_manager.py`) is shared by both editors and owns the install / uninstall / enable / disable / rename / edit-identity verbs.
+The remaining three (`library_component_editor`, `component_source_editor`, `library_marketplace_dialog`) handle per-component inspection, editable source viewing, and the Add-Source flow. The full editor/state inventory is in [marketplace-canon §What it ships](../marketplace-canon.md#3-what-the-plugin-ships).
+
+`LibraryManager` (the orchestrator class in `barn/haybale-marketplace/haybale_marketplace/library_manager.py`) owns the install / uninstall / enable / disable / rename / edit-identity verbs. It is a plain class — *not* an `AppState`. It is published to the other editors through a thin `LibraryManagerState(AppState)` holder (composition, not inheritance — see [ADR-0001 §Why composition](../../adr/0001-haybale-marketplace-carveout.md)), so consumers reach it via `ctx.app_data[LibraryManagerState].manager.X`. The state resolves the registry and workspace root from the ambient DI context in `on_enable()`.
+
+Enable/disable **persistence** is not a manager concern: the core `LibraryRegistry` owns it via `HostStore` (`<workspace>/.haywire/host.toml`). The editors call `manager.registry.enable_library(id)` / `disable_library(id)` directly and the registry writes through. See [ADR-0001 §Why persistence moves out of the manager](../../adr/0001-haybale-marketplace-carveout.md).
 
 ### 4.3 The Library Browser's filter rules
 
@@ -233,7 +242,7 @@ Uninstall is the inverse: `uv pip uninstall <dist_name>`, then rescan. The Overv
 
 ### 5.1 InstallType detection
 
-After install, the Library System inspects each library's filesystem location and assigns an `InstallType` (`REGULAR`, `EDITABLE`, `FOLDER` — see [library-system §InstallType](../library-system/library-system-arch.md#23-installtype-enum-haywirecorelibraryinstall_typepy)). The Overview Editor uses this to decide which actions are available:
+After install, the Library System inspects each library's filesystem location and assigns an `InstallType` (`REGULAR`, `EDITABLE`, `FOLDER` — see [library-system §InstallType](../../architecture/library-system/library-system-arch.md#23-installtype-enum-haywirecorelibraryinstall_typepy)). The Overview Editor uses this to decide which actions are available:
 
 | Action | `EDITABLE` | `REGULAR` | `FOLDER` |
 |---|---|---|---|
@@ -269,11 +278,11 @@ The Library Browser handles three classes of failure with three distinct visual 
 
 ## 8. Boundary — what the Library Manager is not
 
-- **Not a registry.** The class registries belong to the [Library System](../library-system/library-system-arch.md). The Library Manager *triggers* a rescan; it does not own registry state.
+- **Not a registry.** The class registries belong to the [Library System](../../architecture/library-system/library-system-arch.md). The Library Manager *triggers* a rescan; it does not own registry state.
 - **Not a publisher.** It consumes marketplace and marketstall files; producing one is `haywire share`'s job — see the [sharing-libraries guide](../../guides/sharing-libraries.md).
 - **Not a build tool.** It does not build wheels, run `uv build`, or run `uv publish`. Releases go through `/haywire-release` and CI — see [publish_releases](../../reference/publish_releases.md).
 - **Not a transitive dep resolver.** When a library's `Haybale.dependencies` lists other haybale packages, the Library Manager does not install them automatically. The user installs each library individually; uv handles the actual pip-level resolution.
-- **Not a curator.** No source is more authoritative than any other in the data. The official haywire feed is one feed among many — see [sharing-arch §The aggregator, not the publisher](../sharing/sharing-arch.md#the-aggregator-not-the-publisher).
+- **Not a curator.** No source is more authoritative than any other in the data. The official haywire feed is one feed among many — see [sharing-arch §The aggregator, not the publisher](../../architecture/sharing/sharing-arch.md#the-aggregator-not-the-publisher).
 
 ## 9. Examples
 
@@ -339,7 +348,8 @@ A consumer pastes the file's blob URL (e.g. `https://github.com/you/repo/blob/ma
 
 ## 10. Open questions
 
-- **Lazy library loading.** Every discovered library loads eagerly at startup (see [library-system §4.2](../library-system/library-system-arch.md#42-module-resolution-cost)). Should the Library Browser surface a Defer-loading option for heavy libraries?
+- **Lazy library loading.** Every discovered library loads eagerly at startup (see [library-system §4.2](../../architecture/library-system/library-system-arch.md#42-module-resolution-cost)). Should the Library Browser surface a Defer-loading option for heavy libraries?
 - **Cross-feed dep resolution.** When a library's `dependencies` lists another haybale package not yet installed, should the Library Manager offer to install both? Currently the user installs each individually.
-- **Auto-refresh on a schedule.** Refresh is explicit by design — see [sharing-arch §The refresh cycle](../sharing/sharing-arch.md#the-refresh-cycle) — but a "refresh on first open of the day" option may be worth exposing.
-- **`haybale-marketplace` carve-out.** The current Library Browser + Library Overview Editor + `MarketplaceState` are all in `haybale-studio`. The plan is to extract them as a standalone haybale package once the surface stabilizes.
+- **Auto-refresh on a schedule.** Refresh is explicit by design — see [sharing-arch §The refresh cycle](../../architecture/sharing/sharing-arch.md#the-refresh-cycle) — but a "refresh on first open of the day" option may be worth exposing.
+
+> **Resolved:** the `haybale-marketplace` carve-out has landed. The Library Browser, Library Overview Editor, `MarketplaceState`, and `LibraryManager` now live in the standalone `barn/haybale-marketplace/` package — see [ADR-0001](../../adr/0001-haybale-marketplace-carveout.md) and [marketplace-canon](../marketplace-canon.md).
