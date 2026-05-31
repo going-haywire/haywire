@@ -51,32 +51,43 @@ def library(**kwargs: Any) -> Callable[[Type[T]], Type[T]]:
     See the LibraryIdentity dataclass for the complete list of available fields.
 
     Usage:
-        # Minimal usage - only label is required
-        @library(label="my.library")
-        class Library(BaseLibrary): ...
+        Minimal usage - only label is required::
 
-        # Common customization
-        @library(label="my.library", version="1.2.0", description="My custom library")
-        class Library(BaseLibrary): ...
+            @library(label="my.library")
+            class Library(BaseLibrary): 
 
-        # Full customization
-        @library(
-            label="advanced.library",
-            version="2.0.0",
-            description="Advanced library with many features",
-            url="https://github.com/user/advanced-library",
-            help_url="https://advanced-library.readthedocs.io",
-            author="John Doe",
-            author_url="https://johndoe.com",
-            id="advanced_lib",
-            dependencies=["haywire.core", "numpy"],
-            file_watcher=True
-        )
-        class Library(BaseLibrary): ...
+        Common customization::
 
-        # With file watching
-        @library(label="dev.library", file_watcher=True, version="0.1.0")
-        class Library(BaseLibrary): ...
+            @library(
+                label="my.library", 
+                version=_pkg_version("haybale-my.library"), 
+                description="My custom library")
+            class Library(BaseLibrary): 
+                ...
+        
+        Full customization::
+
+            @library(
+                label="advanced.library",
+                version=_pkg_version("haybale-advanced.library"),
+                description="Advanced library with many features",
+                url="https://github.com/user/advanced-library",
+                help_url="https://advanced-library.readthedocs.io",
+                author="John Doe",
+                author_url="https://johndoe.com",
+                id="advanced_lib",
+                dependencies=["haywire.core", "numpy"],
+                file_watcher=True
+            )
+            class Library(BaseLibrary): ...
+
+        With file watching::
+                    
+            @library(
+                label="dev.library", 
+                version=_pkg_version("haybale-dev.library"))
+                file_watcher=True, 
+            class Library(BaseLibrary): ...
     """
 
     def decorator(inner_cls: Type[T]) -> Type[T]:

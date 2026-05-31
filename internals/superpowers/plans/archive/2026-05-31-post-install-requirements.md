@@ -8,7 +8,7 @@
 
 **Tech Stack:** Python 3.12, NiceGUI 3.12+, pytest with `pytest.mark.unit` + `pytest.mark.anyio`, `MagicMock`-based registry stubs (see `tests/test_library_manager_dry_run.py` for the pattern).
 
-**Glossary entry:** [docs/reference/glossary.md](../../reference/glossary.md) — "Post-install requirements" (already landed).
+**Glossary entry:** [docs/reference/glossary.md](../../docs/reference/glossary.md) — "Post-install requirements" (already landed).
 
 **Layering rule (must be honored):** `haywire.core` → `haywire.ui` → `haybale-*`. `PostInstallHints` lives in `haywire.ui` (sibling of the modal); haybale-marketplace imports it from there.
 
@@ -1458,7 +1458,7 @@ These are deliberate omissions, captured per the design summary:
 
 - **Auto-detection or publish-time / import-time lint of missing flags** (rejected per Q2, Q7). The trust-the-author model is explicit; do not add cross-checks at any layer.
 
-- **Changes to the upgrade-impact-modal flow** ([library_overview_editor.py:1490-1548](../../../barn/haybale-marketplace/haybale_marketplace/editors/library_overview_editor.py)). That modal already handles its concern (warn about collateral upgrades before install runs). It is upstream of the install-progress modal and unaffected by hints.
+- **Changes to the upgrade-impact-modal flow** ([library_overview_editor.py:1490-1548](../../barn/haybale-marketplace/haybale_marketplace/editors/library_overview_editor.py)). That modal already handles its concern (warn about collateral upgrades before install runs). It is upstream of the install-progress modal and unaffected by hints.
 
 ---
 
