@@ -209,7 +209,12 @@ class AppShell:
             " .hw-icon-bar-tabs .q-tab:hover { color: var(--hw-text-body) !important; }"
             " .hw-icon-bar-tabs .q-tab--active { color: var(--hw-text-body) !important; }"
             " .hw-icon-bar-tabs .q-tab__indicator { background: var(--hw-accent) !important; }"
-            " .hw-icon-bar-tabs .q-tab__icon { font-size: 22px; }"
+            # Size both Quasar's own tab icon (the `icon=` arg path) and a
+            # child `.q-icon` an editor draws via `draw_tab` — the latter
+            # lacks the `q-tab__icon` class, so without this it would fall
+            # back to the default (smaller) ui.icon size.
+            " .hw-icon-bar-tabs .q-tab__icon,"
+            " .hw-icon-bar-tabs .q-tab__content .q-icon { font-size: 22px; }"
             # All editor area containers and their child text.
             # .hw-cm-isolate wrappers (CodeMirror editors) are excluded so that
             # the CodeMirror theme controls all token colours uncontested.

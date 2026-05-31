@@ -73,17 +73,16 @@ class TabSlot(Slot):
                     tab_el = ui.tab(name=wrapper.editor_binding_id, label="").props("no-caps")
                     with tab_el:
                         with ui.row().classes("items-center gap-1 no-wrap"):
-                            if wrapper.label:
-                                label = wrapper.label
-                            elif wrapper.editor_cls is not None:
-                                label = getattr(
-                                    wrapper.editor_cls.class_identity, "label", wrapper.editor_key
-                                )
-                            else:
-                                label = wrapper.editor_key
+                            # Slot-owned chrome: dirty marker renders for every
+                            # editor (including custom draw_tab overrides) so
+                            # the unsaved-work signal can never be forgotten.
                             if wrapper.state is not None and wrapper.state.is_dirty:
-                                label = f"• {label}"
-                            ui.label(label)
+                                ui.icon("circle").classes("hw-tab-dirty").style(
+                                    "font-size: 8px; color: var(--hw-text-body);"
+                                )
+                            # Editor-owned interior: icon and/or label.
+                            wrapper.render_tab_into(orientation="horizontal")
+                            # Slot-owned chrome: close button.
                             if wrapper.can_close:
                                 tab_id = wrapper.editor_binding_id
                                 (

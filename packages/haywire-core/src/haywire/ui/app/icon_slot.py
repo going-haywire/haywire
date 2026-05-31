@@ -112,13 +112,22 @@ class IconSlot(Slot):
         active_tab = None
         with tabs:
             for wrapper in renderable:
-                icon = wrapper.editor_cls.class_identity.icon  # type: ignore[union-attr]
-                tooltip = wrapper.editor_cls.class_identity.label  # type: ignore[union-attr]
                 # ui.tab defaults label to `name` when label is None; pass
                 # label="" so the binding_id doesn't render as text under
-                # the icon. The hover tooltip carries the human-readable
-                # editor label instead.
-                tab = ui.tab(name=wrapper.editor_binding_id, label="", icon=icon).tooltip(tooltip)
+                # the icon. The editor draws its own icon (and tooltip) via
+                # render_tab_into; the slot owns only the tab shell, the
+                # active indicator, and the dirty marker.
+                tab = ui.tab(name=wrapper.editor_binding_id, label="")
+                with tab:
+                    # Slot-owned chrome: dirty marker — a small corner dot,
+                    # rendered for every editor including custom overrides.
+                    if wrapper.state is not None and wrapper.state.is_dirty:
+                        ui.icon("circle").classes("hw-tab-dirty").style(
+                            "position: absolute; top: 4px; right: 4px; font-size: 8px; "
+                            "color: var(--hw-text-body);"
+                        )
+                    # Editor-owned interior: icon (+ tooltip) by default.
+                    wrapper.render_tab_into(orientation="vertical")
                 if wrapper is active_wrapper:
                     active_tab = tab
         if active_tab is not None:

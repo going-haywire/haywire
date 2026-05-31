@@ -172,11 +172,5 @@ class FileViewerEditor(BaseEditor):
                 "border-radius: 0; min-height: 100%;"
             )
 
-    def get_tab_label(self, context: "SessionContext") -> str:
-        path = self._resolve_path()
-        if path is not None:
-            return path.name
-        return self.class_identity.label
-
     def cleanup(self) -> None:
         pass

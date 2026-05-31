@@ -18,7 +18,9 @@ Lifecycle outside the bus channel:
 """
 
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, ClassVar
+from typing import TYPE_CHECKING, ClassVar, Literal
+
+from nicegui import ui
 
 from .identity import EditorIdentity
 
@@ -43,7 +45,8 @@ class BaseEditor(ABC):
     Subclasses may override:
         - on_focus(context): Called when this wrapper becomes active.
         - cleanup(): Release resources when permanently removed.
-        - get_tab_label(context): Dynamic tab label for tabbed slots.
+        - draw_tab(context, *, orientation): Inner content of this editor's
+          tab (horizontal slots) or icon button (vertical slots).
 
     Signal-bus subscriptions are declared per-method via
     ``@redraw_on(...)`` / ``@react_on(...)`` decorators from
@@ -119,6 +122,33 @@ class BaseEditor(ABC):
         """
         ...
 
+    def draw_tab(
+        self,
+        context: "SessionContext",
+        *,
+        orientation: Literal["horizontal", "vertical"],
+    ) -> None:
+        """Render the inner content of this editor's bar representation.
+
+        Called by the owning slot while building the bar
+
+        Override to customise the tab's appearance — a badge, a colored
+        icon, a thumbnail, a two-line label.
+
+        The framework draws the dirty marker and close button around this
+        content, so an override never needs to reproduce them.
+
+        Args:
+            context: The current session context.
+            orientation: ``"horizontal"`` for tab slots, ``"vertical"`` for
+                icon slots.
+        """
+        label = self.wrapper.label or self.class_identity.label
+        if orientation == "vertical":
+            ui.icon(self.class_identity.icon).tooltip(self.class_identity.label)
+        else:
+            ui.label(label)
+
     def cleanup(self) -> None:
         """
         Optional cleanup when the editor is permanently removed.
@@ -142,10 +172,3 @@ class BaseEditor(ABC):
         provides the gate but no default dialog.
         """
         return True
-
-    def get_tab_label(self, context: "SessionContext") -> str:
-        """
-        Return the label to show in a tab header (for tabbed slots — main, bottom).
-        Defaults to class_identity.label. Override for dynamic labels (e.g., graph name).
-        """
-        return self.class_identity.label

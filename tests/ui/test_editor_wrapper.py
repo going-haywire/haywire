@@ -958,3 +958,147 @@ def test_lifecycle_class_reloaded_clears_is_dirty():
     w._on_lifecycle_event(event)
 
     assert w.state.is_dirty is False
+
+
+# ---------------------------------------------------------------------------
+# render_tab_into — instance delegation + class fallback
+# ---------------------------------------------------------------------------
+
+from haywire.ui.editor import wrapper as _wrapper_mod  # noqa: E402  draw_tab tests below
+
+
+class _FakeUiElement:
+    def __init__(self, *args, **kwargs):
+        self._args = args
+        self._kwargs = kwargs
+
+    def tooltip(self, *_a, **_k):
+        return self
+
+    def classes(self, *_a, **_k):
+        return self
+
+    def style(self, *_a, **_k):
+        return self
+
+
+def _install_wrapper_ui_fakes(monkeypatch):
+    """Record ui.icon / ui.label calls made on the wrapper module."""
+    created: list = []
+
+    def _factory(kind):
+        def _make(*a, **k):
+            el = _FakeUiElement(*a, **k)
+            created.append((kind, el))
+            return el
+
+        return _make
+
+    monkeypatch.setattr(_wrapper_mod.ui, "icon", _factory("icon"), raising=False)
+    monkeypatch.setattr(_wrapper_mod.ui, "label", _factory("label"), raising=False)
+    return created
+
+
+class _RenderTabRecordingEditorCls:
+    """A draw_tab override that records the orientation it was called with."""
+
+    class_identity = SimpleNamespace(
+        registry_key="rtab:editor:1",
+        label="Recording",
+        icon="palette",
+        default_slot="main",
+        opens=None,
+    )
+
+    def __init__(self, wrapper):
+        self.wrapper = wrapper
+        self.render_calls: list = []
+
+    def draw_tab(self, context, *, orientation):
+        self.render_calls.append(orientation)
+
+
+def test_render_tab_into_delegates_to_instance(monkeypatch):
+    _install_wrapper_ui_fakes(monkeypatch)
+    reg = EditorTypeRegistry()
+    w = EditorWrapper(
+        editor_key="rtab:editor:1",
+        editor_cls=_RenderTabRecordingEditorCls,
+        registry=reg,
+        session=_make_session(),
+    )
+
+    w.render_tab_into(orientation="horizontal")
+
+    assert w.instance is not None
+    assert w.instance.render_calls == ["horizontal"]
+    assert w.state.error_runtime is None
+
+
+class _RenderRaisingEditorCls:
+    class_identity = SimpleNamespace(
+        registry_key="rec:editor:1",
+        label="Boom",
+        icon="warning",
+        default_slot="main",
+        opens=None,
+    )
+
+    def __init__(self, wrapper):
+        self.wrapper = wrapper
+
+    def draw_tab(self, context, *, orientation):
+        raise RuntimeError("draw_tab explodes")
+
+
+def test_render_tab_into_captures_render_error_and_falls_back(monkeypatch):
+    created = _install_wrapper_ui_fakes(monkeypatch)
+    reg = EditorTypeRegistry()
+    w = EditorWrapper(
+        editor_key="rec:editor:1",
+        editor_cls=_RenderRaisingEditorCls,
+        registry=reg,
+        session=_make_session(),
+    )
+
+    w.render_tab_into(orientation="horizontal")
+
+    # Exception captured into runtime error slot (mirrors draw()).
+    assert w.state.error_runtime is not None
+    # Fallback label drawn so the tab stays visible.
+    assert any(kind == "label" for kind, _ in created)
+
+
+def test_render_tab_into_fallback_when_instantiation_fails(monkeypatch):
+    created = _install_wrapper_ui_fakes(monkeypatch)
+    reg = EditorTypeRegistry()
+    w = EditorWrapper(
+        editor_key="raising:editor:1",
+        editor_cls=_RaisingEditorCls,
+        registry=reg,
+        session=_make_session(),
+        label="my.graph",
+    )
+
+    w.render_tab_into(orientation="horizontal")
+
+    assert w.instance is None
+    # Horizontal fallback draws a label carrying the wrapper label.
+    label_calls = [el for kind, el in created if kind == "label"]
+    assert any(el._args and el._args[0] == "my.graph" for el in label_calls)
+
+
+def test_render_tab_into_vertical_fallback_draws_icon(monkeypatch):
+    created = _install_wrapper_ui_fakes(monkeypatch)
+    reg = EditorTypeRegistry()
+    w = EditorWrapper(
+        editor_key="raising:editor:1",
+        editor_cls=_RaisingEditorCls,
+        registry=reg,
+        session=_make_session(),
+    )
+
+    w.render_tab_into(orientation="vertical")
+
+    # Vertical fallback draws an icon (default 'extension' — identity has no icon).
+    assert any(kind == "icon" for kind, _ in created)

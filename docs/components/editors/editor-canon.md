@@ -104,7 +104,7 @@ Handlers run synchronously on every matching publish; keep them cheap. The heavy
 
 **`cleanup(self)`** runs when the editor is permanently removed (slot reassigned, hot-reload eviction). Release subscriptions, cancel timers, drop UI references. Default is a no-op.
 
-**`get_tab_label(self, context) -> str`** lets a tabbed editor (`opens='on_payload'`) return a dynamic label per instance. Default returns `self.class_identity.label`. Multi-instance editors typically derive the label from `self.wrapper.binding_id`.
+**`draw_tab(self, context, *, orientation) -> None`** lets an editor control the **interior** of its bar representation — the tab in a tabbed slot (main / bottom) or the icon button in an icon slot (left / right). The slot owns the surrounding `ui.tab` shell: its `name` (binding-id routing), the active-state indicator, the click handler, the unsaved-work (dirty) marker, and the close button. This hook fills only the inside, so an override never reproduces that chrome. `orientation` is `'horizontal'` for tabbed slots (the default draws the label — `self.wrapper.label` when set, else `self.class_identity.label`) and `'vertical'` for icon slots (the default draws `self.class_identity.icon` with the label as a hover tooltip). Override for a custom look — a badge, a colored icon, a thumbnail. Do **not** create a `ui.tab` or set its `name`; render directly into the current slot. For a dynamic per-instance label, set `self.wrapper.label` (e.g. from a save-as / rename flow via `self.wrapper.repayload(..., new_label=...)`); the default `draw_tab` reads it.
 
 **`async handle_close_request(self) -> bool`** gates tab close. The slot awaits this when the user clicks the X. Return `True` to allow close, `False` to veto. Editors with unsaved state typically pop a save/discard/cancel dialog and `await` the user's choice. Default returns `True` (always allow). Read `self.wrapper.state.is_dirty` if your editor uses the framework's dirty-state tracking.
 
@@ -215,7 +215,7 @@ For the `Focus` and `Panel` extension points the editor hosts, see [components/p
 - [ ] Initialise instance state in `__init__`; container/UI refs re-fetched in `draw()`
 - [ ] Optional: `on_focus(self, context)` — runs *before* `draw()` on the newly-activated wrapper
 - [ ] Optional: `cleanup(self)` — release subscriptions / timers (the framework drops decorated-handler subscriptions automatically)
-- [ ] Optional: `get_tab_label(self, context)` — dynamic per-binding_id label
+- [ ] Optional: `draw_tab(self, context, *, orientation)` — custom tab/icon interior (default draws label / icon; slot owns dirty marker + close button)
 - [ ] Optional: `async handle_close_request(self)` — veto/save dialog before tab close
 - [ ] Drive other slots with `context.session.publish(Reveal(editor=..., binding_id=...))`
 - [ ] Use `BroadcastClose(binding_id=...)` instead of `Close(binding_id=...)` when the underlying entity is gone for every session, not just yours

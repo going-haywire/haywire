@@ -104,10 +104,6 @@ class CodeEditor(BaseEditor):
     def _is_markdown(self, path: Optional[Path]) -> bool:
         return path is not None and path.suffix.lower() == ".md"
 
-    def get_tab_label(self, context: "SessionContext") -> str:
-        path = self._resolve_path()
-        return path.name if path is not None else self.class_identity.label
-
     # ------------------------------------------------------------------
     # rendering
     # ------------------------------------------------------------------

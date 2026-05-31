@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, Callable, Optional
+from typing import TYPE_CHECKING, Any, Callable, Literal, Optional
 from nicegui import ui
 
 from haywire.core.errors.haywire_exception import HaywireException
@@ -471,6 +471,62 @@ class EditorWrapper:
             ).enrich(registry_key=self.editor_key)
             error.log(logger)
             self._state.error_runtime = error
+
+    def render_tab_into(self, *, orientation: Literal["horizontal", "vertical"]) -> None:
+        """Render the editor's tab interior into the current NiceGUI slot.
+
+        Called by the owning slot from ``_render_bar_contents`` while a
+        ``ui.tab`` element is open. Delegates to the editor instance's
+        :meth:`BaseEditor.draw_tab`, lazy-instantiating the editor first
+        (eager — every wrapper in the bar instantiates when the bar renders,
+        which also brings the instance's ``@redraw_on`` / ``@react_on``
+        subscriptions live; ``on_focus`` / ``draw`` still fire only on
+        activation).
+
+        When the wrapper has no usable instance — ``editor_cls`` failed to
+        load, or instantiation raised — a minimal class-derived fallback is
+        rendered (icon for vertical / label for horizontal) so a broken tab
+        stays visible and closeable. Exceptions from the editor's
+        ``draw_tab`` are captured into ``state.error_runtime`` (mirroring
+        :meth:`draw`) and the same fallback is drawn.
+
+        The slot draws the dirty marker and close button *around* this call;
+        they are never this method's concern.
+        """
+        if self._instance is None:
+            self._instantiate()
+
+        if self._instance is None:
+            self._draw_tab_fallback(orientation)
+            return
+
+        try:
+            self._instance.draw_tab(self._session.context, orientation=orientation)
+        except Exception as exc:
+            error = HaywireException.from_exception(
+                exception=exc,
+                operation="Editor Draw Tab",
+                message=f"draw_tab() raised in editor '{self.editor_key}'",
+            ).enrich(registry_key=self.editor_key)
+            error.log(logger)
+            self._state.error_runtime = error
+            self._draw_tab_fallback(orientation)
+
+    def _draw_tab_fallback(self, orientation: Literal["horizontal", "vertical"]) -> None:
+        """Render a class-derived tab interior when no instance is available.
+
+        Mirrors :meth:`BaseEditor.draw_tab`'s default using only the
+        editor class identity (no instance required). When even the class is
+        missing, falls back to the registry key so the tab is never blank.
+        """
+        identity = getattr(self.editor_cls, "class_identity", None)
+        label = self.label or getattr(identity, "label", None) or self.editor_key
+        if orientation == "vertical":
+            icon = getattr(identity, "icon", "extension")
+            tooltip = getattr(identity, "label", None) or self.editor_key
+            ui.icon(icon).tooltip(tooltip)
+        else:
+            ui.label(label)
 
     def on_focus(self) -> None:
         """Notify the editor that it became active.

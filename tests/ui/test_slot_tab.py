@@ -335,9 +335,15 @@ def test_on_tab_close_clicked_no_longer_emits_tab_close_requested(monkeypatch):
 # ---------------------------------------------------------------------------
 
 
-def test_dirty_wrapper_label_has_bullet_prefix(monkeypatch):
-    """When state.is_dirty is True, the bar's tab label is prefixed
-    with '• ' so the user sees there's unsaved work."""
+def _dirty_icon_calls(created):
+    """Slot-drawn dirty markers — `ui.icon('circle')` elements in the bar."""
+    return [c for kind, c in created if kind == "icon" and c._args and c._args[0] == "circle"]
+
+
+def test_dirty_wrapper_renders_slot_owned_dirty_marker(monkeypatch):
+    """When state.is_dirty is True, the slot draws a 'circle' dirty marker
+    around the editor's tab interior so the user sees unsaved work — and the
+    label text itself is never mutated (no '• ' prefix)."""
     created = _install_ui_fakes(monkeypatch)
     cls = _editor_cls("a", label="MyEditor")
     reg = _FakeRegistry()
@@ -356,14 +362,14 @@ def test_dirty_wrapper_label_has_bullet_prefix(monkeypatch):
     created.clear()
     slot._render_bar_contents()
 
-    # The label call args for the dirty tab should have '• ' prefix.
+    # A slot-owned 'circle' dirty marker is drawn.
+    assert _dirty_icon_calls(created), "No slot-owned 'circle' dirty marker found"
+    # The label text is not bullet-prefixed — the dirty signal lives in the icon.
     label_calls = [c for kind, c in created if kind == "label"]
-    assert any(c._args and c._args[0].startswith("• ") for c in label_calls), (
-        f"No dirty-prefixed label found in {[c._args for c in label_calls]}"
-    )
+    assert not any(c._args and c._args[0].startswith("• ") for c in label_calls)
 
 
-def test_clean_wrapper_label_has_no_bullet_prefix(monkeypatch):
+def test_clean_wrapper_renders_no_dirty_marker(monkeypatch):
     created = _install_ui_fakes(monkeypatch)
     cls = _editor_cls("a", label="MyEditor")
     reg = _FakeRegistry()
@@ -381,5 +387,4 @@ def test_clean_wrapper_label_has_no_bullet_prefix(monkeypatch):
     created.clear()
     slot._render_bar_contents()
 
-    label_calls = [c for kind, c in created if kind == "label"]
-    assert not any(c._args and c._args[0].startswith("• ") for c in label_calls)
+    assert not _dirty_icon_calls(created), "Clean wrapper should draw no dirty marker"
