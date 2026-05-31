@@ -3589,6 +3589,11 @@
 <td>Registration</td>
 </tr>
 <tr>
+<td><strong>Post-install requirements</strong></td>
+<td>Two <code>@library(...)</code> flags — <code>needs_refresh</code> and <code>needs_restart</code> — declared by a library author and surfaced by the install/uninstall flow as a terminal-state prompt. <code>needs_refresh=True</code>: installing the library registers new Vue components or JS resources that the running browser tab cannot pick up; user must reload the page. <code>needs_restart=True</code>: installing or uninstalling leaves the Python process in a state requiring a Studio restart (typically C-extension modules, haywire-core upgrades, or import-time global mutation); symmetric to uninstall. Both default to False; trust-the-author model — no auto-detection. Read by <code>LibraryManager.install()</code>/<code>.uninstall_streaming()</code>, unioned across newly-imported and evicted libraries, returned to the install-progress modal as <code>PostInstallHints</code>.</td>
+<td><code>requires_browser_refresh</code>, <code>requires_app_restart</code> (verbose), reload flag</td>
+</tr>
+<tr>
 <td><strong>Marketstall</strong></td>
 <td>A TOML file hosted by a library author that lists their published haybale packages (<code>[[haybales]]</code>) consumed as a remote feed by haywire projects. Produced by <code>haywire share</code>. Lives at <code>marketstall.toml</code> in the repo root. Any author can host their own; the haywire monorepo publishes its official one to GitHub Pages.</td>
 <td>marketplace snippet, package feed</td>
