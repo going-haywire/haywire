@@ -5,8 +5,8 @@
 **Path:** `barn/haybale-studio/haybale_studio/`
 **Language:** Python 3.10+
 **Owner:** Haywire studio team (bundled plugin)
-**Tree hash:** `87f375f7c060a3115d30a59a0db070cc7f8ae3bb`
-**Mapped at:** 4e5c1da7 (2026-05-31)
+**Tree hash:** `ed61ffe797fe53ab3b8c5aa30b73c6fa4121870c`
+**Mapped at:** a08a6931 (2026-05-31)
 
 ---
 
@@ -30,7 +30,8 @@ haybale_studio/
 ├── types/          ← studio value/port types
 ├── widgets/        ← studio widgets
 ├── focuses.py      ← focus model (which object the workspace is on)
-└── file_focus.py   ← file-typed focus
+├── file_focus.py   ← file-typed focus
+└── loop_scheduler.py ← LoopScheduler: NiceGUI event-loop ValidationScheduler the studio injects into graphs (ADR 0002)
 ```
 
 ## 3. Always-load vs On-demand
@@ -47,6 +48,7 @@ haybale_studio/
 - `panels/` — when modifying built-in panels.
 - `themes/`, `skins/` — when touching visual presentation.
 - `settings/` — when surfacing studio settings.
+- `loop_scheduler.py` — when changing how validation is debounced onto the NiceGUI event loop; implements `haywire.core.graph.scheduler.ValidationScheduler` (see [engine](haywire-core-engine.md) + ADR 0002).
 
 ## 4. Rules & Boundaries
 

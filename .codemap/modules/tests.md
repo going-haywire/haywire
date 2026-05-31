@@ -5,8 +5,8 @@
 **Path:** `tests/`
 **Language:** Python 3.10+ (pytest, pytest-playwright)
 **Owner:** All teams (each owns tests near their module)
-**Tree hash:** `fb5365bf9b1ff23d177af4855d4d264132c83c65`
-**Mapped at:** 4e5c1da7 (2026-05-31)
+**Tree hash:** `aca64c64228dd8a4ac1348515225f0ca9915f4ce`
+**Mapped at:** a08a6931 (2026-05-31)
 
 ---
 
@@ -14,7 +14,8 @@
 
 The full automated test suite for the workspace. Tests are grouped by the area of the codebase they cover:
 
-- `tests/core/` — engine: di, execution, graph, node, settings, signals, state, session, reactive.
+- `tests/core/` — engine: di, execution, graph (incl. `test_graph/test_validation_scheduler.py`), node, settings, signals, state, session, reactive.
+- `tests/graph_editor/` — graph-editor plugin: `test_graph_editor_dirty_sync.py` (dirty-state propagation).
 - `tests/ui/` — UI primitives: editor/panel/slot/theme/signals/canvas handlers.
 - `tests/studio/` — studio app: app shell, library state container, edit state, focus, haystack editor.
 - `tests/libraries/` — library-system behaviour (focus IDs, reactive clipboard).

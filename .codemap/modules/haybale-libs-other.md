@@ -6,7 +6,7 @@
 **Language:** Python 3.10+
 **Owner:** Various (bundled plugins)
 **Tree hashes:** see [META.md](../META.md)
-**Mapped at:** 4e5c1da7 (2026-05-31)
+**Mapped at:** a08a6931 (2026-05-31)
 
 > ⚠️ `barn/haybale-visiongraph/` is now **gitignored** (`.gitignore:211`) and untracked in HEAD — it exists on disk as a local-only library and is no longer part of the committed repo. It is therefore dropped from this map's hash tracking.
 

@@ -5,8 +5,8 @@
 **Path:** `packages/haywire-core/src/haywire/core/`
 **Language:** Python 3.10+
 **Owner:** Haywire core team
-**Tree hash:** `(part of packages/haywire-core: c56f69bc)`
-**Mapped at:** 4e5c1da7 (2026-05-31)
+**Tree hash:** `(part of packages/haywire-core: 93e6c623)`
+**Mapped at:** a08a6931 (2026-05-31)
 
 ---
 
@@ -19,7 +19,7 @@ This is the engine layer. It defines the graph data model (nodes, edges, pins/po
 ```
 haywire/core/
 ├── di/           ← dependency injection (module-level globals, NOT ContextVar)
-├── graph/        ← graph model + editor; import `graph.editor` first in tests
+├── graph/        ← graph model + editor + scheduler.py (injectable validation debounce, ADR 0002)
 ├── node/         ← node base classes, ports, workers
 ├── edge/         ← edge model, connection rules
 ├── assembly/     ← graph→execution assembly pipeline
@@ -57,6 +57,7 @@ haywire/core/
 - `settings/` — when adding or changing settings descriptors/resolution.
 - `edge/`, `adapter/`, `types/` — when changing the type/connection system.
 - `session/`, `state/`, `undo/`, `validation/` — persistence, reactive state, undo, validation.
+- `graph/scheduler.py` — when changing the validation debounce strategy; defines the `ValidationScheduler`/`ScheduleHandle` protocols + `ThreadingTimerScheduler` (default) and `SyncScheduler` (tests). The studio injects `haybale_studio.loop_scheduler.LoopScheduler`. See ADR 0002.
 - `registry/` — when adding a new registry or component kind.
 
 ## 4. Rules & Boundaries

@@ -3,8 +3,8 @@
 | Field | Value |
 |-------|-------|
 | Generated at | 2026-05-16 10:25 UTC |
-| Last refreshed at | 2026-05-31 |
-| Commit | 4e5c1da7522a14c917d5743305a36e0af1486e8a |
+| Last refreshed at | 2026-05-31 (2nd refresh) |
+| Commit | a08a693148be827b608ee86cab865f6cc9d0983b |
 | Branch | master |
 | Generator | codebase-cartographer |
 | Modules mapped | 11 |
@@ -19,18 +19,18 @@ This table enables incremental refresh. Each hash is the output of `git rev-pars
 |--------|------|-----------|--------------|
 | haywire-core-engine | `packages/haywire-core/src/haywire/core` | (part of haywire-core) | 2026-05-31 |
 | haywire-core-ui | `packages/haywire-core/src/haywire/ui` | (part of haywire-core) | 2026-05-31 |
-| haywire-core (whole pkg) | `packages/haywire-core` | c56f69bcdeda2aa726bdfc4580c22f80d4d9dfe4 | 2026-05-31 |
-| haywire-studio | `packages/haywire-studio` | 07bbcb50e32549d38da4c35bde2be49484cd8fc7 | 2026-05-31 |
-| haybale-core | `barn/haybale-core` | 565c78a5600104fb5ac0624e2c87bb85c232878b | 2026-05-31 |
-| haybale-studio | `barn/haybale-studio` | 87f375f7c060a3115d30a59a0db070cc7f8ae3bb | 2026-05-31 |
-| haybale-graph-editor | `barn/haybale-graph-editor` | 49ead920cde1cd306348edc762e472529f36cc70 | 2026-05-31 |
-| haybale-haystack | `barn/haybale-haystack` | 7e81488ee91f1a3c54ff7fc15049ff9fe7be1fae | 2026-05-31 |
-| haybale-marketplace | `barn/haybale-marketplace` | 0f34300b1cdf312246d8b37385899620552c1912 | 2026-05-31 |
-| haybale-example | `barn/haybale-example` | ff804015005f21bd288c6e13802e17bc573637e6 | 2026-05-31 |
-| haybale-testing | `barn/haybale-testing` | e0cf3eeb0ffd7d192b8c5e5ec653a039400868c7 | 2026-05-31 |
-| haybale-TEST_A | `barn/haybale-TEST_A` | 444fc891ea2e80e60b860657795622ac6e0d1334 | 2026-05-31 |
-| tests | `tests` | fb5365bf9b1ff23d177af4855d4d264132c83c65 | 2026-05-31 |
-| docs | `docs` | 1b72a3e4ced64c34af43bab1ba30832072d9d78d | 2026-05-31 |
+| haywire-core (whole pkg) | `packages/haywire-core` | 93e6c623fc9092d45300cc7f3d9173ad63693441 | 2026-05-31 |
+| haywire-studio | `packages/haywire-studio` | 087438af63732dd1bd342783491c55fa978d07ea | 2026-05-31 |
+| haybale-core | `barn/haybale-core` | 9a75ac86ea0138cde74883f7b3e706ef7d926d5e | 2026-05-31 |
+| haybale-studio | `barn/haybale-studio` | ed61ffe797fe53ab3b8c5aa30b73c6fa4121870c | 2026-05-31 |
+| haybale-graph-editor | `barn/haybale-graph-editor` | 49b500c3f465d76712dc745b2ca24986897b97a5 | 2026-05-31 |
+| haybale-haystack | `barn/haybale-haystack` | 73d73f00b120b5140f992547f83004cd5e047c28 | 2026-05-31 |
+| haybale-marketplace | `barn/haybale-marketplace` | 7343cfdffeb8007c634928ebd07bdad322b70188 | 2026-05-31 |
+| haybale-example | `barn/haybale-example` | 8b79e5fb383e84e9a998314927b97f10860e2bf7 | 2026-05-31 |
+| haybale-testing | `barn/haybale-testing` | 96a5e9e459cc3192a037b873bd6e258a399c6923 | 2026-05-31 |
+| haybale-TEST_A | `barn/haybale-TEST_A` | 7794d44c22fe03427f75d3620db65193fb156ba6 | 2026-05-31 |
+| tests | `tests` | aca64c64228dd8a4ac1348515225f0ca9915f4ce | 2026-05-31 |
+| docs | `docs` | 26b10d7a19ba6492c43f6cbe2ba1e5bbf407f878 | 2026-05-31 |
 
 > `barn/haybale-visiongraph` was tree `672b0163…` at the initial generation but is now **gitignored** (`.gitignore:211`) and untracked in HEAD — removed from hash tracking. It still exists on disk as a local-only library.
 
@@ -49,7 +49,7 @@ To refresh this map:
 
 If `git status --porcelain` shows uncommitted changes at refresh time, the map only reflects the last committed state.
 
-Last check (2026-05-31): clean working tree.
+Last check (2026-05-31, 2nd refresh): clean working tree.
 
 ## Change Log
 
@@ -57,6 +57,7 @@ Last check (2026-05-31): clean working tree.
 |------|--------|---------|
 | 2026-05-16 | b2e5340b | Initial generation — 9 modules + 3 cross-cuts mapped |
 | 2026-05-31 | 4e5c1da7 | Full refresh — all modules changed. Added `haybale-marketplace`. Dropped `haybale-visiongraph` (now gitignored). Reflected `core/marketstall` + `core/host` engine subsystems and the move of `library_manager.py` out of haywire-studio. |
+| 2026-05-31 | a08a6931 | 2nd refresh — content updates to `haywire-core-engine` (new `graph/scheduler.py`, ADR 0002), `haybale-studio` (new `loop_scheduler.py`), `docs` (docs/components/{libraries,haybale-package} → docs/haybale/; library-manager → marketplace), `tests` (scheduler + dirty-sync + editor-base tests). Hash-only refresh on 7 modules; no module added/removed. |
 
 ### Diff since b2e5340b
 

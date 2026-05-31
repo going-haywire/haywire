@@ -5,8 +5,8 @@
 **Path:** `docs/`
 **Language:** Markdown (mkdocs-material)
 **Owner:** All teams (each owns docs near their module)
-**Tree hash:** `1b72a3e4ced64c34af43bab1ba30832072d9d78d`
-**Mapped at:** 4e5c1da7 (2026-05-31)
+**Tree hash:** `26b10d7a19ba6492c43f6cbe2ba1e5bbf407f878`
+**Mapped at:** a08a6931 (2026-05-31)
 
 ---
 
@@ -24,7 +24,11 @@ docs/
 ├── architecture/          ← framework internals
 │   └── <area>/<area>-arch.md     e.g., execution-pipeline, library-system, settings-resolution
 ├── components/            ← extension-point authoring guides
-│   └── <area>/<area>-canon.md    e.g., nodes-canon, types-canon, ports-canon, libraries-canon
+│   └── <area>/<area>-canon.md    e.g., nodes-canon, types-canon, ports-canon, editor-canon
+├── haybale/               ← library/package authoring + marketplace docs (moved out of components/)
+│   ├── library-canon.md   ← was components/libraries/library-canon.md
+│   ├── haybale-package-canon.md ← was components/haybale-package/…
+│   └── marketplace/       ← marketplace-canon.md + haybale-marketplace-arch.md (was architecture/library-manager/)
 ├── guides/                ← how-tos
 ├── reference/             ← glossary + design guide
 │   ├── glossary.md        ← canonical vocabulary (incl. 5 meanings of "library")
@@ -42,8 +46,9 @@ docs/
 ### On-demand (by task)
 
 - Authoring nodes/types/ports/widgets/themes/editors/panels → the matching `docs/components/<area>/<area>-canon.md`.
+- Authoring a library / haybale package, or marketplace behaviour → `docs/haybale/` (canon under `docs/haybale/`, marketplace under `docs/haybale/marketplace/`).
 - Understanding execution/library/settings/session internals → the matching `docs/architecture/<area>/<area>-arch.md`.
-- ADRs → `docs/adr/` only when explicitly investigating an old decision.
+- ADRs → `docs/adr/` only when explicitly investigating an old decision (e.g. ADR 0002 — validation-scheduler injection).
 - Building UI → `docs/reference/design-guide.md` is non-optional.
 
 ## 4. Rules & Boundaries
