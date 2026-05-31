@@ -21,6 +21,7 @@ from haywire.core.library.info import LibraryInfo
 from haywire.core.library.install_type import InstallType
 from haywire.core.library.decorator_io import _set_decorator_list_field
 from haywire.core.marketstall import Haybale
+from haywire.ui.modals.install_progress_modal import PostInstallHints
 import toml
 
 
@@ -255,6 +256,21 @@ class LibraryManager:
                     names.append(dist_name)
         return names
 
+    def _hints_for_library(self, library_id: str) -> PostInstallHints:
+        """Read the post-install flags off a library's identity.
+
+        Returns an empty PostInstallHints if the library is no longer registered
+        (e.g. we're querying after it's been evicted).
+        """
+        try:
+            identity = self.registry.get_library_identity(library_id)
+        except KeyError:
+            return PostInstallHints()
+        return PostInstallHints(
+            needs_refresh=identity.needs_refresh,
+            needs_restart=identity.needs_restart,
+        )
+
     async def dry_run(self, install_spec: str) -> list[str]:
         """Run `uv pip install --dry-run` and return distribution names of packages
         that would be removed (upgraded) by the install.
@@ -294,16 +310,13 @@ class LibraryManager:
         install_spec: str,
         on_output: Callable[[str], None],
         source_pkg: "Haybale | None" = None,
-    ) -> tuple[bool, str]:
+    ) -> tuple[bool, str, PostInstallHints]:
         """Install a package with live output streaming.
 
-        Before running pip, pre-evicts any already-loaded regular libraries that
-        would be upgraded by this install (discovered via a prior dry_run() call
-        stored in _pending_removals, or re-derived here if called directly).
-
-        When ``source_pkg`` is supplied and ``self.project_dir`` is set, the
-        project's pyproject.toml is updated after a successful install so the
-        next ``uv sync`` reproduces the install (spec: library-manager-install-sync).
+        Returns ``(success, message, hints)`` where ``hints`` is a
+        :class:`PostInstallHints` unioned across newly-imported libraries
+        (success path) and any evicted libraries (success OR failure path,
+        for ``needs_restart`` only).
         """
         if Path(install_spec).is_dir():
             args = ["install", "-e", install_spec]
@@ -312,28 +325,42 @@ class LibraryManager:
             # flags or the pre-eviction set and the actual install diverge.
             args = ["install", "--no-sources", install_spec]
 
-        # Pre-evict libraries that pip is about to upgrade.
-        # dry_run() is cheap (instant when nothing changes); running it here
-        # ensures install() is always safe to call directly (e.g. from tests).
+        # Pre-evict libraries that pip is about to upgrade. Capture each
+        # evicted library's hints BEFORE remove_library() drops the identity.
         try:
             to_remove = await self.dry_run(install_spec)
         except RuntimeError:
             # Resolver failure — the actual install will also fail and report it.
             to_remove = []
 
+        evicted_restart_hint = PostInstallHints()
         evicted: list[str] = []
         for dist_name in to_remove:
             lib_id = self.registry.find_library_by_distribution_name(dist_name)
             if lib_id and self.registry.get_library_install_type(lib_id) == InstallType.REGULAR:
+                # Capture needs_restart only (per Q5/B: refresh is install-only,
+                # and Q12.A: a failed install with an evicted restart-lib should
+                # still surface the restart hint).
+                lib_hints = self._hints_for_library(lib_id)
+                evicted_restart_hint = evicted_restart_hint.merge(
+                    PostInstallHints(needs_restart=lib_hints.needs_restart)
+                )
                 self.registry.remove_library(lib_id)
                 evicted.append(dist_name)
 
         if evicted:
             on_output(f"Preparing upgrade: removing {', '.join(evicted)} from registry…")
 
+        # Capture post-eviction registered library_ids so we can compute the
+        # newly-imported set after the scan. Evicted libs are absent from this
+        # snapshot, so when the upgraded version reappears in the post-scan it
+        # is correctly counted as "newly imported" and its flags propagate.
+        pre_install_ids = set(self.registry.list_names())
+
         success, stderr = await self._run_uv_streaming(args, on_output)
         if not success:
-            return False, f"Install failed: {stderr}"
+            # Failure path: needs_refresh always False; needs_restart from evictions only.
+            return False, f"Install failed: {stderr}", evicted_restart_hint
 
         on_output("Invalidating caches...")
         self._invalidate_caches()
@@ -347,14 +374,21 @@ class LibraryManager:
         if source_pkg is not None:
             self._sync_install_to_pyproject(source_pkg, on_output)
 
-        return True, f"Installed: {install_spec}"
+        # Success path: union evicted-restart with the freshly-imported set.
+        post_install_ids = set(self.registry.list_names())
+        new_ids = post_install_ids - pre_install_ids
+        hints = evicted_restart_hint
+        for lid in new_ids:
+            hints = hints.merge(self._hints_for_library(lid))
+
+        return True, f"Installed: {install_spec}", hints
 
     async def install_streaming(
         self,
         install_spec: str,
         on_output: Callable[[str], None],
         source_pkg: "Haybale | None" = None,
-    ) -> tuple[bool, str]:
+    ) -> tuple[bool, str, PostInstallHints]:
         """Deprecated alias for install(). Use install() directly."""
         return await self.install(install_spec, on_output, source_pkg)
 
@@ -362,16 +396,21 @@ class LibraryManager:
         self,
         library_id: str,
         on_output: Callable[[str], None],
-    ) -> tuple[bool, str]:
+    ) -> tuple[bool, str, PostInstallHints]:
         """Uninstall a library with live output streaming.
 
-        After a successful uninstall, removes the corresponding entry from the
-        project's pyproject.toml (spec: library-manager-install-sync).
-        Workspace members under ``barn/`` are left untouched.
+        Returns ``(success, message, hints)`` where ``hints.needs_refresh`` is
+        always False (per Q5/B) and ``hints.needs_restart`` reflects the
+        removed library's declared flag, captured before disable.
         """
         dist_name = self.registry.get_library_distribution_name(library_id)
         if not dist_name:
-            return False, f"Cannot find pip package name for library '{library_id}'"
+            return False, f"Cannot find pip package name for library '{library_id}'", PostInstallHints()
+
+        # Capture the library's hints before disabling — registry may drop the identity.
+        lib_hints = self._hints_for_library(library_id)
+        # Per Q5/B: refresh is install-only for uninstall.
+        hints = PostInstallHints(needs_restart=lib_hints.needs_restart)
 
         self.registry.disable_library(library_id)
 
@@ -380,7 +419,7 @@ class LibraryManager:
             on_output,
         )
         if not success:
-            return False, f"Uninstall failed: {stderr}"
+            return False, f"Uninstall failed: {stderr}", hints
 
         on_output("Invalidating caches...")
         self._invalidate_caches()
@@ -390,7 +429,7 @@ class LibraryManager:
 
         self._sync_uninstall_from_pyproject(dist_name, on_output)
 
-        return True, f"Uninstalled: {dist_name}"
+        return True, f"Uninstalled: {dist_name}", hints
 
     def _sync_install_to_pyproject(self, pkg: "Haybale", on_output: Callable[[str], None]) -> None:
         """Write a successful install back to the project's pyproject.toml.

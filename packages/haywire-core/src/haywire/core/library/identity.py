@@ -25,6 +25,10 @@ class LibraryIdentity:
     dependencies: list[str] | None = None
     tags: list[str] | None = None  # Searchable tags for marketplace/discovery
     file_watcher: bool = False  # Whether to watch for file changes
+    # Post-install requirements (author-declared; default False).
+    # See: docs/reference/glossary.md → "Post-install requirements".
+    needs_refresh: bool = False
+    needs_restart: bool = False
 
     def __post_init__(self):
         if self.dependencies is None:

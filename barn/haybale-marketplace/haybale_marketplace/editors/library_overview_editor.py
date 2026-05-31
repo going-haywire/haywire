@@ -860,22 +860,25 @@ class LibraryOverviewEditor(BaseEditor):
         manager,
         context: "SessionContext",
     ):
-        """Perform uninstall with streaming log output."""
-        ui.notify(f"Uninstalling {label}…", type="info")
-        log = self._create_log_in_card(self._fixed, f"Uninstalling {label}…")
+        """Perform uninstall with streaming log output, surfacing post-uninstall hints."""
+        from haywire.ui.modals import library_operation_progress_modal
 
-        success, message = await manager.uninstall_streaming(library_id, log.push)
+        ui.notify(f"Uninstalling {label}…", type="info")
+        progress = library_operation_progress_modal(title=f"Uninstalling {label}…")
+
+        success, message, hints = await manager.uninstall_streaming(library_id, progress.push)
 
         if success:
-            log.push(f"--- {label} uninstalled successfully ---")
+            progress.push(f"--- {label} uninstalled successfully ---")
+            progress.finish(hints=hints)
             ui.notify(f"Uninstalled: {label}", type="positive")
+            # Clear the active library and notify all editors — only on success.
+            context.active_library = None
+            self._notify_library_changed(context)
         else:
-            log.push(f"--- ERROR: {message} ---")
+            progress.push(f"--- ERROR: {message} ---")
+            progress.finish(error=message, hints=hints)
             ui.notify(message, type="negative")
-
-        # Clear the active library and notify all editors
-        context.active_library = None
-        self._notify_library_changed(context)
 
     # ─────────────────────────────────────────────────────────────────────────
     # Edit dialog (project library identity + optional rename)
@@ -1487,7 +1490,7 @@ class LibraryOverviewEditor(BaseEditor):
         ``source_pkg`` enables write-back to the project's pyproject.toml so the
         install is reproducible via ``uv sync`` (spec: library-manager-install-sync).
         """
-        from haywire.ui.modals import install_progress_modal, upgrade_impact_modal
+        from haywire.ui.modals import library_operation_progress_modal, upgrade_impact_modal
 
         if button:
             try:
@@ -1548,13 +1551,13 @@ class LibraryOverviewEditor(BaseEditor):
                 return
 
         # Step 3: open progress popup and run the install
-        progress = install_progress_modal(title=f"Installing {name}…")
+        progress = library_operation_progress_modal(title=f"Installing {name}…")
 
-        success, message = await manager.install(install_spec, progress.push, source_pkg)
+        success, message, hints = await manager.install(install_spec, progress.push, source_pkg)
 
         if success:
             progress.push(f"--- {name} installed successfully ---")
-            progress.finish()
+            progress.finish(hints=hints)
             ui.notify(f"Installed: {name}", type="positive")
             installed = self._find_installed_by_dist_name(name, manager)
             if installed:
@@ -1562,7 +1565,7 @@ class LibraryOverviewEditor(BaseEditor):
             self._notify_library_changed(context)
         else:
             progress.push(f"--- ERROR: {message} ---")
-            progress.finish(error=message)
+            progress.finish(error=message, hints=hints)
             ui.notify(message, type="negative")
 
     def _open_version_picker(self, pkg: Haybale, manager, context: "SessionContext"):

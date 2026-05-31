@@ -38,6 +38,14 @@ def library(**kwargs: Any) -> Callable[[Type[T]], Type[T]]:
             Defaults to empty list.
         file_watcher (bool, optional): Whether to enable file watching for this library.
             Defaults to False.
+        needs_refresh (bool, optional): Declares that installing this library registers
+            new Vue components or JS resources that an already-open browser tab cannot
+            pick up; install completion prompts the user to reload the page. Defaults
+            to False. See docs/reference/glossary.md → "Post-install requirements".
+        needs_restart (bool, optional): Declares that installing or uninstalling this
+            library leaves the Python process in a state requiring a Studio restart
+            (typically C-extension modules, haywire-core upgrades, or import-time
+            global mutation). Symmetric — applied on uninstall too. Defaults to False.
 
     Any other keyword arguments will be passed through to the LibraryIdentity constructor.
     See the LibraryIdentity dataclass for the complete list of available fields.
