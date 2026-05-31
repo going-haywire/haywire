@@ -741,7 +741,7 @@ wheels = [
 
 [[package]]
 name = "haybale-core"
-version = "0.0.9"
+version = "0.0.10"
 source = { editable = "barn/haybale-core" }
 dependencies = [
     { name = "haywire-core" },
@@ -758,7 +758,7 @@ requires-dist = [
 
 [[package]]
 name = "haybale-example"
-version = "0.0.9"
+version = "0.0.10"
 source = { editable = "barn/haybale-example" }
 dependencies = [
     { name = "haybale-core" },
@@ -779,7 +779,7 @@ requires-dist = [
 
 [[package]]
 name = "haybale-graph-editor"
-version = "0.0.9"
+version = "0.0.10"
 source = { editable = "barn/haybale-graph-editor" }
 dependencies = [
     { name = "haywire-core" },
@@ -794,7 +794,7 @@ requires-dist = [
 
 [[package]]
 name = "haybale-haystack"
-version = "0.0.9"
+version = "0.0.10"
 source = { editable = "barn/haybale-haystack" }
 dependencies = [
     { name = "haybale-graph-editor" },
@@ -815,7 +815,7 @@ requires-dist = [
 
 [[package]]
 name = "haybale-marketplace"
-version = "0.0.9"
+version = "0.0.10"
 source = { editable = "barn/haybale-marketplace" }
 dependencies = [
     { name = "haybale-studio" },
@@ -838,7 +838,7 @@ requires-dist = [
 
 [[package]]
 name = "haybale-studio"
-version = "0.0.9"
+version = "0.0.10"
 source = { editable = "barn/haybale-studio" }
 dependencies = [
     { name = "haywire-core" },
@@ -853,7 +853,7 @@ requires-dist = [
 
 [[package]]
 name = "haybale-test-a"
-version = "0.0.9"
+version = "0.0.10"
 source = { editable = "barn/haybale-TEST_A" }
 dependencies = [
     { name = "haywire-core" },
@@ -864,7 +864,7 @@ requires-dist = [{ name = "haywire-core", editable = "packages/haywire-core" }]
 
 [[package]]
 name = "haybale-testing"
-version = "0.0.9"
+version = "0.0.10"
 source = { editable = "barn/haybale-testing" }
 dependencies = [
     { name = "haybale-core" },
@@ -885,7 +885,7 @@ requires-dist = [
 
 [[package]]
 name = "haybale-visiongraph"
-version = "0.0.9"
+version = "0.0.11"
 source = { editable = "barn/haybale-visiongraph" }
 dependencies = [
     { name = "fastapi" },
@@ -912,7 +912,7 @@ requires-dist = [
 
 [[package]]
 name = "haywire-core"
-version = "0.0.9"
+version = "0.0.10"
 source = { editable = "packages/haywire-core" }
 dependencies = [
     { name = "attrs" },
@@ -939,7 +939,7 @@ requires-dist = [
 
 [[package]]
 name = "haywire-studio"
-version = "0.0.9"
+version = "0.0.10"
 source = { editable = "packages/haywire-studio" }
 dependencies = [
     { name = "haywire-core" },

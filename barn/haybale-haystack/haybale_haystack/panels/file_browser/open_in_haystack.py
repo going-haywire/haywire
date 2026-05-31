@@ -15,6 +15,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from haybale_graph_editor.editors.graph_editor import GraphEditor
 from haybale_haystack.state.haystack_state import HaystackState
 from haybale_studio.editors.file_browser_menu.actions import FileBrowserActions
 from haybale_studio.file_focus import FileFocus
@@ -53,8 +54,6 @@ class OpenInHaystackPanel(BasePanel):
         ctx: "SessionContext",
         layout: PanelLayout,
     ) -> None:
-        from haybale_graph_editor.editors.graph_editor import GraphEditor
-
         path = ctx.data[FileBrowserState].right_clicked_file
         if path is None:
             return
