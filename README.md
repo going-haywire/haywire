@@ -1,6 +1,6 @@
 # Haywire Node System
 
-[![Latest release](https://img.shields.io/github/v/release/going-haywire/haywire?label=release&sort=semver)](https://github.com/going-haywire/haywire/releases/latest)
+[![PyPI version](https://img.shields.io/pypi/v/haywire-studio?label=pypi)](https://pypi.org/project/haywire-studio/)
 [![Tests](https://github.com/going-haywire/haywire/actions/workflows/publish.yml/badge.svg)](https://github.com/going-haywire/haywire/actions/workflows/publish.yml)
 [![ruff](https://github.com/going-haywire/haywire/actions/workflows/ruff.yml/badge.svg?branch=master)](https://github.com/going-haywire/haywire/actions/workflows/ruff.yml)
 [![mypy](https://github.com/going-haywire/haywire/actions/workflows/mypy.yml/badge.svg?branch=master)](https://github.com/going-haywire/haywire/actions/workflows/mypy.yml)
