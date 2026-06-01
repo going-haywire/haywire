@@ -2613,6 +2613,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#clipboard-copypaste-new" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Clipboard &amp; Copy/Paste (new)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#library-plugin-system" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -3063,6 +3074,17 @@
     <span class="md-ellipsis">
       
         Edge Lifecycle
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#clipboard-copypaste-new" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Clipboard &amp; Copy/Paste (new)
       
     </span>
   </a>
@@ -3630,6 +3652,50 @@
 <tr>
 <td><strong>Adapter chain</strong></td>
 <td>An ordered pipeline of one or more Adapters that converts a source type to a compatible sink type</td>
+<td>—</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="clipboard-copypaste-new">Clipboard &amp; Copy/Paste <em>(new)</em><a class="headerlink" href="#clipboard-copypaste-new" title="Permanent link">&para;</a></h2>
+<p>The copy/paste subsystem moves a selection of nodes and edges between graphs — within a session, across sessions, and across separate Studio processes on the same machine — by serializing a slice of the graph to JSON on the OS system clipboard.</p>
+<table>
+<thead>
+<tr>
+<th>Term</th>
+<th>Definition</th>
+<th>Aliases to avoid</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Clipboard payload</strong></td>
+<td>The JSON document written to the OS system clipboard on copy. A serialized graph <strong>slice</strong> (<code>NodeWrapper.serialize()</code> dicts + <code>Edge.to_dict()</code> dicts) plus paste metadata: <code>bounding_box</code>, <code>format_version</code>, and a source stamp (<code>timestamp</code>, source session/graph id). Reuses the native <code>.haywire</code> node/edge shapes.</td>
+<td>Clipboard data (ambiguous with the <code>ClipboardData</code> dataclass), copy buffer</td>
+</tr>
+<tr>
+<td><strong>Clipboard slice</strong></td>
+<td>The subset of a graph captured by a copy: the selected nodes plus only those edges whose <strong>both</strong> endpoints are in the selection (the <strong>both-endpoints rule</strong>). Boundary-crossing edges are dropped.</td>
+<td>sub-graph (overloaded), selection (selection is the live UI state; the slice is its serialized projection)</td>
+</tr>
+<tr>
+<td><strong>Both-endpoints rule</strong></td>
+<td>The edge-inclusion rule for a clipboard slice: an edge is copied iff its source node <em>and</em> its sink node are both in the selection. Guarantees a self-consistent paste — a pasted edge never dangles to a node that isn't on the clipboard.</td>
+<td>—</td>
+</tr>
+<tr>
+<td><strong>Clipboard mirror</strong></td>
+<td>The in-process <code>ClipboardData</code> object (<code>{payload, timestamp}</code>) held per-session in <code>EditState.clipboard</code> and managed by <code>SelectionHandlers</code> — a synchronous, permission-independent fast path for copy→paste within the same session. On paste, the OS clipboard text (read browser-side and shipped back via the paste round-trip) wins if it holds a valid haywire payload newer (by <code>timestamp</code>) than the mirror; otherwise the mirror is used. Cross-tab and cross-process paste fall through to the OS clipboard.</td>
+<td>clipboard cache</td>
+</tr>
+<tr>
+<td><strong>ID remapping</strong></td>
+<td>The paste-time rewrite: each clipboard node is assigned a fresh <code>node_id</code> via <code>generate_unique_node_id()</code>, an <code>old_id → new_id</code> map is built, every edge's <code>source_node_id</code>/<code>sink_node_id</code> is rewritten through it, and each edge's <code>edge_id</code> is recomputed from the new endpoints. Prevents id collisions with existing nodes.</td>
+<td>id rewiring</td>
+</tr>
+<tr>
+<td><strong>PasteClipboardAction</strong></td>
+<td>The undoable <code>CompositeAction</code> that applies a paste: mints fresh node ids, remaps edge endpoints, offsets positions to the paste point, and composes <code>AddNodeAction</code>s (carrying serialized <code>node_data</code>) + <code>AddEdgeAction</code>s. <strong>Placeholder-tolerant</strong> — it does <em>not</em> validate <code>registry_key</code>s; unknown node types paste as placeholder error nodes exactly as <code>Graph.load_from_dict</code> handles a file whose library is missing. Atomic: a paste undoes as one step.</td>
 <td>—</td>
 </tr>
 </tbody>
