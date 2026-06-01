@@ -24,7 +24,7 @@ logger = logging.getLogger(__name__)
 @state(label="Haystack State")
 class HaystackState(AppState):
     """In-memory registry of open graphs (one entry per file path)
-    Validation broadcast goes directly via``SessionManager``. 
+    Validation broadcast goes directly via``SessionManager``.
     Haystack file load/dump live in ``persistence.py``
     """
 

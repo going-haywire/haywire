@@ -23,9 +23,9 @@ from haywire.ui.editor.registry import EditorTypeRegistry
 )
 class Library(BaseLibrary):
     """Marketplace library — install/uninstall/enable UI
-        - publishes the LibraryManager for editor consumption
-        - marketstall orchestration (parse/refresh/etc.)
-        - library browser, overview, component..
+    - publishes the LibraryManager for editor consumption
+    - marketstall orchestration (parse/refresh/etc.)
+    - library browser, overview, component..
     """
 
     def register_components(self):

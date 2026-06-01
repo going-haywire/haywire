@@ -55,7 +55,7 @@ class HaystackEditor(BaseEditor):
     - Start / stop per-graph execution via play/stop buttons on each row
     - Save / Save-As / Rename / Delete graphs via per-row overflow menu
 
-     """
+    """
 
     def __init__(self, wrapper):
         super().__init__(wrapper)

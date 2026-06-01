@@ -13,8 +13,8 @@ _FLYOUT_PROPS = 'anchor="top end" self="top start"'
 
 class NodeMenuBuilder:
     """Builds organized, hierarchical menus using node identity information
-        from the NodeFactory, based on the menu paths defined in node decorators
-        (e.g., menu='core/basic').
+    from the NodeFactory, based on the menu paths defined in node decorators
+    (e.g., menu='core/basic').
     """
 
     def __init__(

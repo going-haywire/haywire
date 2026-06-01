@@ -21,10 +21,10 @@ class SessionContext(SignalSource):
     Writing: bare attribute access — ``ctx.active_file = new_path``.
     Identity-equal writes are no-ops.
 
-    plain fields: session_id, app, session, app_data, date are non-reactive. 
-    
+    plain fields: session_id, app, session, app_data, date are non-reactive.
+
     ``ctx.data`` is a typed proxy for ``SessionState`` lookups, scoped
-    to this session; 
+    to this session;
     ``ctx.app_data`` is the matching proxy for app-global ``AppState`` lookups.
 
     Subscribing: reference the class-level active-* field as the signal type::

@@ -28,7 +28,7 @@ def state(
                       Used as the final segment of the registry_key.
 
     Usage::
-    
+
         @state(label='Edit State')
         class EditState(SessionState):
             active_node = signal_field(None)
