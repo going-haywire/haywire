@@ -20,12 +20,13 @@ logger = logging.getLogger(__name__)
 
 class BaseLibrary(ABC):
     """
-    Abstract base class for all libraries
+    Abstract base class for all libraries.
 
-    Usage:
+    A subclass must be named ``Library`` and decorated with ``@library``::
 
-    Libraries that extend this class **must** be named 'Library'
-    and be decorated with the @library decorator.
+        @library(label="my.library")
+        class Library(BaseLibrary):
+            ...
     """
 
     # Set by @library decorator at class definition time

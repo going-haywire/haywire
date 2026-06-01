@@ -28,27 +28,7 @@ if TYPE_CHECKING:
 @dataclass
 class DataPort(DataTypeIdentity):
     """
-    Unified port class for both inlets and outlets.
-
-    Direction is determined by the `is_inlet` field:
-    - is_inlet=True: Port receives data from connections (inlet)
-    - is_inlet=False: Port sends data to connections (outlet)
-
-    Adds runtime-specific fields on top of the identity:
-    - id: Port identifier within the node
-    - flow_type: CTRL, DATA, CALLBACK, or NONE
-    - data: Runtime data field for storing values (created by type)
-    - Edge state, element type, etc.
-
-    Key simplification: Field is created by type.create_field(), not factory.
-
-    Type tracking:
-    - type_cls: The IType class (FLOAT, MeshData, ArrayType)
-    - element_type_cls: For compound types, the element IType (FLOAT, MeshData)
-
-    Hierarchical access:
-        port.element_type_cls → FLOAT (for ArrayType[FLOAT])
-        port.element_type_cls.element_type_cls → float (Python type)
+    Unified port for both inlets and outlets; direction is set by ``port_type``.
     """
 
     # Port identifier within node (different from registry_id!)
@@ -70,11 +50,11 @@ class DataPort(DataTypeIdentity):
     )
     """Active linked EdgeWrapper instances. Used for pipe building."""
 
+    # All EdgeWrapper instances targeting this port (linked + denied/displaced);
+    # used for re-enablement when an active edge is removed.
     _all_edges: dict[str, EdgeWrapper] = field(
         default_factory=dict, repr=False, metadata={"serialize": False}
     )
-    """ALL EdgeWrapper instances targeting this port (linked + denied/displaced).
-    Used for re-enablement when an active edge is removed."""
 
     # Outlet-specific
     _pipes: Optional[Pipes] = field(default=None, repr=False, metadata={"serialize": False})
@@ -93,7 +73,7 @@ class DataPort(DataTypeIdentity):
         return hash(self.id)
 
     def is_config(self) -> bool:
-        """True for outlet, False for anything else"""
+        """True for a config port, False for anything else."""
         return self.port_type == PortType.CONFIG
 
     def is_outlet(self) -> bool:

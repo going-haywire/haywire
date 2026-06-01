@@ -50,8 +50,7 @@ def _is_app_state(owner: type) -> bool:
         from haywire.core.state.base import AppState
     except ImportError:
         # state.base is mid-import; owner can't be AppState by construction.
-        # Log at debug for observability if a future cycle introduces a real
-        # AppState subclass that hits this race.
+        # Log at debug for observability of this import race.
         logger.debug(
             "_is_app_state: AppState import not yet resolved for owner %s; treating as not-AppState.",
             owner.__qualname__,

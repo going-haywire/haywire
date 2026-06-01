@@ -1,4 +1,4 @@
-"""Install safety modal — spec §7.4 first-install confirmation.
+"""Install safety modal — first-install confirmation.
 
 Three-button modal interposing between Install click and actual `uv pip install`.
 Cancel / Block / Install. Includes safety copy and a source-URL link button.

@@ -15,18 +15,14 @@ class LibraryIdentity:
     folder_path: str  # Path to the library folder
     module_name: str  # Python module name
     id: str  # Unique identifier for the library
-    # List of referenced haywire libraries.
-    # For hot reloading to work, the dependencies must be specified.
-    # This includes any library whose ``Signal`` subclasses this
-    # library subscribes to in editor poll() methods — without the
-    # dependency, hot-reload of the signal-declaring library can leave
-    # the subscriber holding a stale class reference, causing
-    # ``isinstance`` checks to spuriously return False.
     dependencies: list[str] | None = None
+    """Referenced haywire libraries (Python package names). Must be specified for
+        hot-reload: this includes any library whose subclasses this one
+        subscribes to — without the dependency, hot-reload
+        leaves the subscriber holding a stale class reference"""
     tags: list[str] | None = None  # Searchable tags for marketplace/discovery
     file_watcher: bool = False  # Whether to watch for file changes
     # Post-install requirements (author-declared; default False).
-    # See: docs/reference/glossary.md → "Post-install requirements".
     needs_refresh: bool = False
     needs_restart: bool = False
 

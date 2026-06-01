@@ -1,35 +1,3 @@
-"""
-Slot and EditorWrapper — runtime containers for the AppShell's four slots.
-
-A :class:`Slot` owns the editor wrappers that can be hosted in one of the
-four shell slots (``left``, ``right``, ``main``, ``bottom``), the live area
-container those editors draw into, and the currently active wrapper.
-
-An :class:`EditorWrapper` pairs an editor class + binding_id with its live
-instance and self-subscribes to the editor registry for hot-reload events.
-The ``binding_id`` field enables multi-instance editors (e.g., a GraphEditor
-per open graph file).
-
-Relationship to AppShell:
-
-* The shell owns the slot dict ``{"left": Slot, "right": Slot, ...}``.
-* The shell renders bars (activity bar, context bar, main/bottom tab bars)
-  because those are layout chrome outside the slot's area.
-* The shell calls ``slot.render(parent)`` (or ``slot._render_area`` directly
-  at existing call sites until Task 10) to mount each slot's container at
-  the right spot in the layout.
-* On user click (bar) or a ``Reveal`` lifecycle command, the shell calls
-  ``slot.switch_to(key)`` and does its own follow-up (bar refresh).
-  ``Slot._activate`` calls ``editor.on_focus`` for the newly-active
-  wrapper. The slot handles everything inside its area — container
-  clear, instance lazy-create, draw.
-* Signals are not dispatched through slots. Editors subscribe
-  to the typed signal bus on ``Session`` directly (via ``@redraw_on`` /
-  ``@react_on`` decorated methods, auto-wired at instantiation); the
-  bus delivers signals to those editors regardless of which tab is
-  active. See ``haywire.core.session.signals``.
-"""
-
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
@@ -53,28 +21,11 @@ logger = logging.getLogger(__name__)
 
 class Slot(ABC):
     """
-    Runtime manager for one of the four shell slots.
+    Runtime manager for shell slots.
 
     Owns its editor wrappers, the currently active wrapper, its area
     container, and the slot's visibility state. Provides the switch,
     reveal, and poll/draw entry points used by the AppShell.
-
-    Lifecycle:
-        * Constructed by the shell once per slot. After construction,
-          callers must call :meth:`populate_from_snapshot` or
-          :meth:`add_binding` before any rendering.
-        * ``render(parent)`` creates the slot's area container as a
-          child of ``parent`` and draws the active wrapper.
-        * ``switch_to(key)`` changes the active wrapper, clears the area,
-          re-draws the new active wrapper's editor. Returns ``True`` only
-          when the active key actually changed.
-        * ``set_visible(visible)`` toggles the area container visibility.
-
-    Instance state:
-        * The editor instance of a previously-active wrapper is kept in its
-          :class:`EditorWrapper` so its Python-side state survives being
-          hidden. The container DOM is cleared on switch and re-built on
-          reactivation (``draw()`` runs on a fresh container).
     """
 
     def __init__(
@@ -309,12 +260,10 @@ class Slot(ABC):
         Lookup a wrapper by ``(editor_key, binding_id)``.
 
         An exact match (both fields equal) always wins. When ``binding_id`` is
-        ``None`` and no exact match exists, falls back to the first wrapper
-        whose ``editor_key`` matches — this preserves the behavior every
-        pre-multi-instance call site relied on.
+        ``None`` and no exact match exists, falls back to the first wrapper whose
+        ``editor_key`` matches.
 
-        Warns on ambiguous matches so the multi-instance migration surfaces
-        any call site that still looks up by key alone when duplicates exist.
+        Warns on ambiguous matches — a key-only lookup when duplicate wrappers exist.
         """
         exact = [b for b in self._bindings if b.editor_key == editor_key and b._binding_id == binding_id]
         if exact:

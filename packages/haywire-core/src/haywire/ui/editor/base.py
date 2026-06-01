@@ -1,22 +1,4 @@
 # packages/haywire-core/src/haywire/ui/editor_framework/base.py
-"""
-Abstract base class for all Haywire editor types.
-
-Editors react to Signals through the typed signal bus: methods
-decorated with ``@redraw_on(...)`` / ``@react_on(...)`` from
-:mod:`haywire.core.session.handlers` are auto-subscribed at editor
-instantiation. ``@redraw_on`` triggers ``wrapper.redraw()`` after the
-handler returns; ``@react_on`` is the pure side-effect channel.
-
-Lifecycle outside the bus channel:
-
-    * On first assignment to a slot, the orchestrator calls draw()
-      directly — no handler runs first.
-    * On hot-reload of the editor class, the orchestrator evicts the
-      cached instance, calls cleanup(), and re-instantiates + draw() if
-      visible.
-"""
-
 from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING, ClassVar, Literal
 
@@ -34,31 +16,13 @@ class BaseEditor(ABC):
     """
     Abstract base class for all editor types.
 
-    An editor is a self-contained UI module that renders into a slot
-    of the workspace layout. Editor instances are lazily created and
-    cached — when two browser windows are open, each session has its
-    own editor instances.
+    An editor is a self-contained UI module that renders into a slot of the
+    workspace layout, one instance per session.
 
-    Subclasses must implement:
-        - draw(context, container): Build the editor UI into the given container.
-
-    Subclasses may override:
-        - on_focus(context): Called when this wrapper becomes active.
-        - cleanup(): Release resources when permanently removed.
-        - draw_tab(context, *, orientation): Inner content of this editor's
-          tab (horizontal slots) or icon button (vertical slots).
-
-    Signal-bus subscriptions are declared per-method via
-    ``@redraw_on(...)`` / ``@react_on(...)`` decorators from
-    :mod:`haywire.core.session.handlers`. The framework auto-subscribes
-    decorated methods at editor instantiation, and additionally
-    subscribes the editor to any ``redraw_on=`` signals declared by
-    panels whose action contract this editor satisfies — resolved via
-    the session's ``context.app.library_service.get_panel_registry()``.
-
-    Class attributes (set by @editor decorator):
-        - class_identity: EditorIdentity with registry_key, label, icon, default_slot.
-        - class_library: LibraryIdentity of the owning library (None for builtins).
+    Methods decorated with ``@redraw_on(...)`` / ``@react_on(...)`` from
+    :mod:`haywire.core.session.handlers` are auto-subscribed to the signal bus at
+    instantiation; the editor is also subscribed to ``redraw_on=`` signals declared
+    by panels whose action contract it satisfies.
     """
 
     class_identity: ClassVar[EditorIdentity]
@@ -78,24 +42,12 @@ class BaseEditor(ABC):
 
     def on_focus(self, context: "SessionContext") -> None:
         """
-        Called when this wrapper transitions from not-active to active
-        in its slot.
+        Called when this wrapper transitions from not-active to active in its slot
+        (not when re-selecting the already-active wrapper).
 
-        Fires on: initial slot render (first active wrapper), Slot.switch_to
-        (programmatic reveal or user tab click), Slot.add_binding(activate=True).
-        Does NOT fire when re-selecting the already-active wrapper.
-
-        Runs before draw() on the newly-activated wrapper, so any context
-        mutations this hook performs are visible to that draw() call and
-        to any signals this hook emits.
-
-        The default implementation is a no-op. Editors that own session
-        state (via a library-supplied SessionState — e.g., a graph editor
-        whose library owns an ``active_graph`` field on its SessionState)
-        override this to update the state and emit the corresponding
-        signal.
-
-        Read ``self.wrapper.binding_id`` for this instance's identity.
+        Runs before draw() on the newly-activated wrapper, so context mutations here
+        are visible to that draw() and to signals this hook emits. Default is a no-op;
+        override to update owned SessionState and emit the corresponding signal.
 
         Args:
             context: The current session context.
@@ -108,8 +60,6 @@ class BaseEditor(ABC):
         Build the editor UI into the given NiceGUI container element.
 
         The orchestrator clears the container before calling this method.
-        Called once on first assignment to a slot, and again whenever
-        poll() returns True.
 
         Multi-instance editors (e.g. GraphEditor) read their own identity
         from :attr:`wrapper` (set by the slot at instance-creation time);

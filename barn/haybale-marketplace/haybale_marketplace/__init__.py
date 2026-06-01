@@ -1,20 +1,3 @@
-"""
-haybale-marketplace — library installer + browser editors.
-
-Optional plugin. When enabled, registers:
-- state/library_manager_state.py — publishes the LibraryManager for editor consumption
-- state/marketplace_state.py — marketstall orchestration (parse/refresh/etc.)
-- editors/* — the library browser, overview, component, marketplace dialog, and component-source editors
-
-Library enable/disable persistence is owned by the core ``LibraryRegistry``
-via ``HostStore`` (see ``haywire.core.host.store``); the editors call
-``manager.registry.enable_library/disable_library`` directly. The
-registry writes through to host.toml.
-
-If absent, the library browser slot is simply empty; haybale-studio works
-unmodified. See ADR-0001.
-"""
-
 from importlib.metadata import version as _pkg_version
 from pathlib import Path
 
@@ -39,7 +22,11 @@ from haywire.ui.editor.registry import EditorTypeRegistry
     file_watcher=True,
 )
 class Library(BaseLibrary):
-    """Marketplace library — install/uninstall/enable UI + manager service."""
+    """Marketplace library — install/uninstall/enable UI
+        - publishes the LibraryManager for editor consumption
+        - marketstall orchestration (parse/refresh/etc.)
+        - library browser, overview, component..
+    """
 
     def register_components(self):
         base_path = Path(__file__).parent

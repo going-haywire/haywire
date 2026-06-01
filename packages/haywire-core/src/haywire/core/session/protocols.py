@@ -29,7 +29,5 @@ class IProjectState(Protocol):
     node_registry: Any  # NodeRegistry
     node_factory: Any  # NodeFactory
     library_state_container: "LibraryStateContainer"
-    """Pool of live LibraryState instances.
-
-    See docs/architecture/session-and-state/session-and-state-arch.md."""
+    """Pool of live LibraryState instances."""
     panel_registry: Any  # PanelRegistry — set by HaywireApp.setup_shared_services()

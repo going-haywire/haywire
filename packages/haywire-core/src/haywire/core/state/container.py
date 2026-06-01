@@ -1,25 +1,3 @@
-"""LibraryStateContainer — owns the LibraryState instance pool.
-
-Subscribes to LibraryStateRegistry batch lifecycle events. Holds three
-internal maps, all keyed by ``class_identity.registry_key``:
-
-  - ``_app``: registry_key → AppState (one instance per class)
-  - ``_sessions``: registry_key → dict[session_id, SessionState] (one per (class, session))
-  - ``_class_by_registry_key``: registry_key → live class (used to find
-    the class behind a key for instantiation and reload)
-
-Keying by registry_key (a stable string) rather than by class object
-makes lookups resilient to hot-reload: when a state module is reloaded
-its class object is replaced, but the registry_key stays the same, so
-callers holding a pre-reload class reference still resolve to the
-canonical instance.
-
-Lifecycle model (two-phase startup, hot-install, hot-reload) and the
-overall subsystem rationale live in
-docs/architecture/session-and-state/session-and-state-arch.md §3.
-This file documents implementation details, not the contract.
-"""
-
 from __future__ import annotations
 
 import logging

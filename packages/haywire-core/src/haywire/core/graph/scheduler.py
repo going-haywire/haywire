@@ -1,18 +1,6 @@
 # haywire/core/graph/scheduler.py
 """Injectable debounce strategy for the validation pipeline.
-
-``ValidationManager`` debounces validation — coalescing a burst of
-``mark_*_dirty`` calls into one ``_validate_batch`` pass — via a scheduler it
-is given rather than a hardcoded ``threading.Timer``. This lets the
-application choose which thread validation runs on without ``haywire-core``
-depending on NiceGUI or asyncio.
-
-Built-ins: :class:`ThreadingTimerScheduler` (default; legacy behavior),
-:class:`SyncScheduler` (inline; deterministic for tests). The studio supplies
-a loop-based scheduler (``haybale_studio.loop_scheduler.LoopScheduler``).
-
-See ADR 0002 (docs/adr/0002-validation-scheduler-injection.md) for why the
-timer was replaced and why injection is the chosen shape.
+See ADR 0002 for the scheduler-injection design.
 """
 
 from __future__ import annotations

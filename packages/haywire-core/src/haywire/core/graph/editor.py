@@ -1,5 +1,3 @@
-"""Editor - High-level graph manipulation interface with callback notifications."""
-
 import logging
 from typing import List, Optional, Tuple
 from haywire.core.graph.base import BaseGraph

@@ -1,15 +1,4 @@
 # packages/haywire-core/src/haywire/ui/panel/panel.py
-"""BasePanel — base class for panels.
-
-BasePanel defines the panel contract:
-  - poll(cls, ctx) -> bool: classmethod; default True. Host evaluates
-    before instantiating the panel.
-  - draw(self, ctx, layout) -> None: instance method; abstract. Host
-    calls only when poll returned True.
-
-Panels with an `actions:` annotation access the host via `self.actions`.
-"""
-
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
@@ -26,23 +15,21 @@ if TYPE_CHECKING:
 class BasePanel(ABC):
     """Base class for panels.
 
-    Subclasses are decorated with `@panel(...)` and inherit from `BasePanel`:
+    Subclasses are decorated with `@panel(...)` and inherit from `BasePanel`::
 
-        .. code-block:: python
         @panel(
-            actions=NodeContextActions,  # -> decorator  < ━┓
-            focus=NodeFocus,                                ┃
-            label="Delete Node"                             ┃
-        )                                                   ┃
-        class DeleteNodePanel(BasePanel):                   ┃
-            actions: NodeContextActions  # -> annotation < ━┛
+            actions=NodeContextActions,  # -> decorator
+            focus=NodeFocus,
+            label="Delete Node",
+        )
+        class DeleteNodePanel(BasePanel):
+            actions: NodeContextActions  # -> annotation
 
             def draw(self, ctx, layout):
                 self.actions.delete_node(...)
 
-    Panels with `actions` need to enter both the decorator and the annotation
-
-    Panels with no `actions` just don't don't write them.
+    Panels with `actions` enter it in both the decorator and the annotation;
+    panels with no `actions` omit it.
     """
 
     # Set by @panel decorator.

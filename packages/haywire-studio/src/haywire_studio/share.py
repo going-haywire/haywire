@@ -90,7 +90,7 @@ def _update_repo_readmes(repo_root: Path, share_url: str) -> list[Path]:
 class InvalidOsDeclarationError(RuntimeError):
     """Raised when a library's [tool.haywire].os contains an invalid value.
 
-    Per spec §2.1: only "macos", "windows", "linux" are declarable. "other" is
+    Only "macos", "windows", "linux" are declarable. "other" is
     a runtime sentinel for unmapped platform.system() results and must not be
     declared.
     """
@@ -355,7 +355,7 @@ class DepDrift:
     only and does not count as drift.
 
     ``pyproject_version_lag`` entries are ``(dist_name, declared_floor,
-    installed_version)`` tuples. Scoped to haybale-* deps only (spec §12.1).
+    installed_version)`` tuples. Scoped to haybale-* deps only.
     """
 
     lib_dir: Path
@@ -443,7 +443,7 @@ def _parse_floor_spec(spec: str) -> tuple[str, str] | None:
     floor operators. Returns None for operators we don't lag-check (==, <,
     !=, no operator, or anything we can't parse).
 
-    Recognized lag-eligible operators (per spec §12.2): ``~=``, ``>=``, ``>``.
+    Recognized lag-eligible operators: ``~=``, ``>=``, ``>``.
     """
     # Operators ordered longest-first so ``>=`` doesn't match as ``>``.
     for op in ("~=", ">=", ">"):
@@ -484,7 +484,7 @@ def union_pyproject_deps(
     detected: list[str],
     libraries: object,
 ) -> list[str]:
-    """Per spec §12.3: merge declared and detected pyproject deps by distribution
+    """Merge declared and detected pyproject deps by distribution
     NAME (not by full specifier string).
 
     For each distribution:
@@ -523,8 +523,8 @@ def _detect_pyproject_version_lag(
     *,
     libraries: EntryPointLibrarySource,
 ) -> list[tuple[str, str, str]]:
-    """Per spec §12.2: flag declared haybale-* deps whose floor lags the
-    installed version. Only ``~=``, ``>=``, ``>`` operators are checked.
+    """Flag declared haybale-* deps whose floor lags the installed version.
+    Only ``~=``, ``>=``, ``>`` operators are checked.
     """
     import importlib.metadata as _meta
 
@@ -593,8 +593,7 @@ def apply_drift_fix(drift: DepDrift) -> None:
     lib_dir = drift.lib_dir
 
     # 1. pyproject.toml: re-run detect_deps to get the proper specifiers, then
-    #    union with what's already declared. Also rewrite lagging haybale-*
-    #    floors per spec §12.3.
+    #    union with what's already declared. Also rewrite lagging haybale-* floors.
     if drift.pyproject_missing or drift.pyproject_version_lag:
         libraries = EntryPointLibrarySource()
         detected = detect_deps(lib_dir, libraries=libraries)
@@ -607,7 +606,7 @@ def apply_drift_fix(drift: DepDrift) -> None:
             except toml.TomlDecodeError:
                 declared = []
         # Bump any lagging haybale floors to the installed version, preserving
-        # the original operator (~=, >=, or >). Spec §12.3.
+        # the declared operator (~=, >=, or >).
         lag_by_dist = {dist: installed for dist, _floor, installed in drift.pyproject_version_lag}
         rewritten: list[str] = []
         for spec in declared:
@@ -808,7 +807,7 @@ def derive_share_url_only(
     ref: str | None = None,
     tag: str | None = None,
 ) -> ShareSaveResult:
-    """Re-derive the share URL for an existing marketstall.toml. Spec §6.4.
+    """Re-derive the share URL for an existing marketstall.toml.
 
     Does NOT write any file. Returns a ShareSaveResult mirroring share_save_repo's
     output so callers can format the same way.

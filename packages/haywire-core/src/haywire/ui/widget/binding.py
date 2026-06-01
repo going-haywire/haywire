@@ -248,9 +248,6 @@ class PropertyBinding:
         """
         Update nested property and notify observers.
 
-        This is the property update logic that was previously in DataField.
-        Now it lives in PropertyBinding for better separation of concerns.
-
         Args:
             path: Property path (e.g., 'radius', 'transform.scale')
             value: New value for the property

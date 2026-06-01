@@ -33,7 +33,7 @@ def _sanitize_name(name: str) -> str:
     return sanitized
 
 
-_DECLARABLE_OS_VALUES = ("macos", "windows", "linux")  # spec §2.1
+_DECLARABLE_OS_VALUES = ("macos", "windows", "linux")
 
 
 def _parse_git_install_spec(install_spec: str) -> tuple[str, str | None]:
@@ -61,7 +61,7 @@ def _write_install_to_pyproject(
 ) -> None:
     """Write/update a project pyproject.toml entry for an installed haybale.
 
-    Spec rows:
+    Writes one of:
       - pypi → only ``[project] dependencies = "<name>~=X.Y.Z"``
       - git  → ``[project] dependencies`` + ``[tool.uv.sources]`` with git+subdirectory
       - local (heap outside barn) → ``[project] dependencies`` +
@@ -129,7 +129,7 @@ def _dep_name(dep_entry: str) -> str:
 def _apply_os_to_pyproject(pyproject_path: Path, os_values: list[str]) -> None:
     """Write or remove [tool.haywire].os in the library's pyproject.toml.
 
-    Spec §2.1 rules:
+    Rules:
       - Filter to allowed values (macos, windows, linux); silently drop others.
       - Empty list after filtering OR all three present → remove [tool.haywire].os
         entirely (absent = "all platforms").
@@ -897,9 +897,9 @@ class LibraryManager:
         except OSError as e:
             return False, f"Failed to update __init__.py: {e}"
 
-        # Write [tool.haywire].os to the heap's pyproject.toml.
-        # Per spec §2.1: this is editable only on heaps (project libraries),
-        # which is exactly where update_library_identity operates.
+        # Write [tool.haywire].os to the heap's pyproject.toml. This is editable
+        # only on heaps (project libraries), which is where update_library_identity
+        # operates.
         os_list = identity.get("os")
         if os_list is not None:  # caller opted in
             try:

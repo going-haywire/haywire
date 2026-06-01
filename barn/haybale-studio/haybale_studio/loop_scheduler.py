@@ -1,14 +1,6 @@
 # barn/haybale-studio/haybale_studio/loop_scheduler.py
 """Event-loop-based validation scheduler.
-
-Implements ``haywire.core.graph.scheduler.ValidationScheduler`` by debouncing
-the validation pass on the NiceGUI event loop, so ``_validate_batch`` and its
-UI subscribers (canvas redraw, the ``GraphDataMutated`` dirty broadcast) run
-on the main thread. The application injects this at graph-construction time;
-``haywire-core`` itself stays NiceGUI-free.
-
-See ADR 0002 (docs/adr/0002-validation-scheduler-injection.md) for the design
-rationale.
+See ADR 0002 for the design rationale.
 """
 
 from __future__ import annotations

@@ -90,7 +90,7 @@ class NodeBehaviorFlags:
     """
 
     # =========================================================================
-    # COMPUTED PROPERTIES - For backward compatibility and convenience
+    # COMPUTED PROPERTIES
     # =========================================================================
 
     @property

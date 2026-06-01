@@ -41,8 +41,7 @@ class ExecutionContext:
     None if the VM was constructed without a container reference (test
     contexts only). ExecutionContext does not have a `data` (SessionState)
     namespace because graphs run app-globally — the VM has no notion of
-    which UI session triggered execution. See
-    docs/architecture/session-and-state/session-and-state-arch.md §2.3."""
+    which UI session triggered execution."""
 
     def emit_callback(self, event_name: str, payload: Optional[Dict] = None):
         """

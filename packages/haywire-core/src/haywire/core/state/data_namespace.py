@@ -9,10 +9,7 @@ Two namespaces, scope-bound:
 
 Each namespace binds its TypeVar tightly so a wrong-scope lookup is a
 type-check error at the call site. Each access does a live container
-lookup — no caching. Phase 2 reactive auto-tracking will subscribe
-through the container, not these proxies.
-
-See docs/architecture/session-and-state/session-and-state-arch.md §2.3.
+lookup — no caching.
 """
 
 from __future__ import annotations

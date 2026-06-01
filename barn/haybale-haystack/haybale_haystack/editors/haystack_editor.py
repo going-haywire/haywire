@@ -1,18 +1,4 @@
 # barn/haybale-haystack/haybale_haystack/editors/haystack_editor.py
-"""
-HaystackEditor — open-graphs list for the left area.
-
-Shows every graph currently loaded by Haystack (open files + any new
-untitled/unnamed graphs). The user can:
-  - Click a row to make that graph active in the GraphEditor
-  - Click the "+" button in the header to create a new unnamed graph
-  - Save / load haystacks (named graph selections) via the header
-  - Start / stop per-graph execution via play/stop buttons on each row
-  - Save / Save-As / Rename / Delete graphs via per-row overflow menu
-
-The list rebuilds on ``ActiveGraphMoved`` (to refresh the active highlight)
-and ``GraphDataMutated`` (to reflect unsaved/modified state).
-"""
 
 import logging
 from pathlib import Path
@@ -63,10 +49,13 @@ class HaystackEditor(BaseEditor):
     The shell reveals the matching tab, then GraphEditor.on_focus updates
     context.data[EditState].active_graph / active_graph_path and emits ``ActiveGraphMoved``.
 
-    The "+" header button calls HaystackState.create_new() and fires
-    EDITOR_FOCUSED with reveal_editor=GraphEditor to activate the
-    freshly created entry.
-    """
+    - Click a row to make that graph active in the GraphEditor
+    - Click the "+" button in the header to create a new unnamed graph
+    - Save / load haystacks (named graph selections) via the header
+    - Start / stop per-graph execution via play/stop buttons on each row
+    - Save / Save-As / Rename / Delete graphs via per-row overflow menu
+
+     """
 
     def __init__(self, wrapper):
         super().__init__(wrapper)
@@ -115,11 +104,9 @@ class HaystackEditor(BaseEditor):
             except Exception as exc:
                 logger.warning(f"HaystackEditor: Close({eid}) failed during teardown: {exc}")
 
-    # No on_focus override needed: the signal-bus migration (event-bus
-    # redesign §"Dispatch Loop Semantics") has @redraw_on fire regardless
-    # of active-tab state, so backgrounded HaystackEditor instances stay
-    # current with ActiveGraphMoved / GraphDataMutated / HaystackReloaded
-    # without the legacy on_focus → emit GraphDataMutated catch-up trick.
+    # No on_focus override needed: @redraw_on fires regardless of active-tab
+    # state, so backgrounded HaystackEditor instances stay current with
+    # ActiveGraphMoved / GraphDataMutated / HaystackReloaded.
 
     def draw(self, context: "SessionContext", container: ui.element) -> None:
         with container:
@@ -804,10 +791,7 @@ class HaystackEditor(BaseEditor):
     def _get_active_haystack_name(self, context: "SessionContext") -> Optional[str]:
         """Return the currently-active haystack name (or None).
 
-        Reads ``HaystackSettings.last_haystack_name`` — that is the
-        authoritative location after PR2's carve-out (Q1-A). The legacy
-        ``workspace_manager.snapshot["haystack"]`` key is no longer
-        consulted here.
+        Reads ``HaystackSettings.last_haystack_name`` — the authoritative location.
         """
         from haybale_haystack.settings.haystack_settings import HaystackSettings
 

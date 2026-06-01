@@ -92,7 +92,7 @@ _CFG_EDITORS = TabConfig("editors", EDITOR)
 
 
 def should_block_install_for_os(haybale) -> str | None:
-    """Per spec §2.1: return a tooltip message when the current OS doesn't match.
+    """Return a tooltip message when the current OS doesn't match.
 
     Returns None when the haybale supports all platforms (empty os) or
     includes the current OS. The return value (string or None) drives the
@@ -805,8 +805,7 @@ class LibraryOverviewEditor(BaseEditor):
 
     def _notify_library_changed(self, context: "SessionContext") -> None:
         """Broadcast LibraryCatalogChanged so all editors (incl. LibraryBrowser)
-        refresh — and so peer sessions update too (latent-bug-flip per §11:
-        was local-only, now cross-session via ``cross_session=True``).
+        refresh — cross-session via ``cross_session=True``, so peer sessions update too.
         """
         session = context.session
         if session is not None:
@@ -964,7 +963,7 @@ class LibraryOverviewEditor(BaseEditor):
                     ),
                 )
 
-            # OS multi-select — spec §2.1. Visible only for heaps (writable pyproject.toml).
+            # OS multi-select. Visible only for heaps (writable pyproject.toml).
             is_heap = self._is_project_library(lib, marketplace_path)
             current_os = self._read_os_from_pyproject(lib, marketplace_path) if is_heap else []
             os_select = None
@@ -1199,10 +1198,10 @@ class LibraryOverviewEditor(BaseEditor):
 
         def _apply_union() -> None:
             new_decorator = sorted(cur_dec_set | det_dec_set)
-            # Per spec §12.3: union pyproject deps by distribution NAME, not
-            # by full specifier string. For each dist, prefer the detected
-            # spec when it's a registered haybale (so lagging floors bump
-            # to the installed version); otherwise keep the user's spec.
+            # Union pyproject deps by distribution NAME, not by full specifier
+            # string. For each dist, prefer the detected spec when it's a
+            # registered haybale (so lagging floors bump to the installed
+            # version); otherwise keep the user's spec.
             new_pyproject = _union_pyproject_deps(
                 current=current_pyproject,
                 detected=detected_pyproject,
@@ -1419,7 +1418,7 @@ class LibraryOverviewEditor(BaseEditor):
         manager,
         context: "SessionContext",
     ):
-        """Interpose the spec §7.4 safety modal before _install_package.
+        """Interpose the safety modal before _install_package.
 
         The modal fires on every Install click. The user can Cancel, Block the
         source (drops the haybale from AVAILABLE permanently), or Install.

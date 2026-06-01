@@ -1,10 +1,7 @@
 """Marketstall distribution runtime.
 
-Replaces the legacy haywire.core.marketplace + marketplace_runtime + marketplace_errors
-trio. The submodules here implement the new section vocabulary ([[markets]], [[stalls]],
-[[haybales]], [[heaps]], [[caches]]), the host-provider abstraction, and the URL
-resolution/refresh pipeline. The directory naming reflects the future haybale-marketplace
-carve-out.
+Implements the section vocabulary ([[markets]], [[stalls]], [[haybales]], [[heaps]],
+[[caches]]), the host-provider abstraction, and the URL resolution/refresh pipeline.
 """
 
 from haywire.core.marketstall.cache import (

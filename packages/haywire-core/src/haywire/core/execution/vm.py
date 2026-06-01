@@ -1,13 +1,4 @@
-"""
-Haywire Virtual Machine - Executes control and data flows.
-
-The VM is responsible for:
-- Navigating control flow based on runtime decisions
-- Managing execution stacks (done, loopback)
-- Evaluating localized data flows
-- Managing execution context
-- Detecting infinite loops
-"""
+"""Haywire Virtual Machine - executes control and data flows."""
 
 from __future__ import annotations
 from typing import Dict, List, Optional, Any, TYPE_CHECKING

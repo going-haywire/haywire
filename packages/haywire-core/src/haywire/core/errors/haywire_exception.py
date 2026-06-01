@@ -415,7 +415,6 @@ class HaywireException(Exception):
     Unified exception with structured error data for UI rendering.
 
     This is the single source of truth for all user-facing errors in Haywire.
-    Combines the functionality of the old HaywireError and HaywireException.
 
     Usage:
         ```
@@ -739,7 +738,6 @@ class HaywireException(Exception):
         """
         Create from a caught Python exception with auto-extraction.
 
-        This replaces the old generate_haywire_error() function.
         Automatically extracts: traceback, source location, error type, etc.
         Uses smart frame detection to find the most relevant user code.
 
@@ -929,7 +927,6 @@ class HaywireException(Exception):
         Format for detailed console output.
 
         This is the FALLBACK - primary display is ErrorWidget.
-        Maintains the beautiful formatting from the original HaywireError.
         """
         # Calculate box width based on category text
         category_text = f"    {self.category}    "

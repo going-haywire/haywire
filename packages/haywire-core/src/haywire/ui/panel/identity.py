@@ -28,14 +28,14 @@ class PanelIdentity(BaseIdentity):
         class_name:   Python class name — set by decorator.
         module:       Python module name — set by decorator.
 
-    Additional attributes (legacy form — string-keyed):
+    Placement attributes:
         editor_keys:  One or more editor registry keys this panel belongs to.
         scopes:       One or more scope IDs this panel appears under.
         icon:         Optional Material Design icon name.
         order:        Sort priority (lower = higher in the panel list).
         default_open: Whether the panel starts expanded.
 
-    New-contract attributes:
+    Contract attributes:
         action_protocol: The Protocol/ABC class resolved from the panel's
                 `actions:` annotation; `None` for display panels.
         focus:  The Focus subclass discriminator this panel applies to.

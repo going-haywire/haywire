@@ -1,6 +1,6 @@
 """Add Source dialog for the Library Manager.
 
-Single input field accepting four forms per spec §4.2:
+Single input field accepting four forms:
   - Blob URL  (github.com/.../blob/{ref}/marketstall.toml)
   - Raw URL   (raw.githubusercontent.com/.../...)
   - Plain TOML URL  (anything else)
@@ -62,7 +62,7 @@ def show_add_source_dialog(on_added: Callable[[], None]) -> None:
 
 
 def _handle_add_source(user_input: str, dialog: "ui.dialog", on_added: Callable[[], None]) -> None:
-    """Validate input, run the §4.3 algorithm, route the conflict prompt on success."""
+    """Validate input, run the URL-resolution algorithm, route the conflict prompt on success."""
     from haywire.core.marketstall import (
         BareRepoUrlRejectedError,
         SubscribeError,

@@ -33,8 +33,8 @@ logger = logging.getLogger(__name__)
 def derive_provenance_label(haybale, mf) -> str | None:
     """Return a short provenance label for a haybale.
 
-    Spec §7.4: shows direct subscriptions as 'from {host}' and transitive
-    aggregator routing as 'via {host}'. Inline haybales (no `via`) return None.
+    Shows direct subscriptions as 'from {host}' and transitive aggregator routing
+    as 'via {host}'. Inline haybales (no `via`) return None.
 
     `mf` is the parsed MarketplaceFile (global). `haybale.via` is the URL that
     supplied this haybale during the most recent refresh.
@@ -83,7 +83,7 @@ class LibraryBrowserEditor(BaseEditor):
         self._filter_enabled: bool = True
         self._filter_disabled: bool = True
         self._filter_available: bool = True
-        # Plan E Phase 4: refresh-button error surfacing.
+        # Refresh-button error surfacing.
         self._refresh_error: str | None = None
 
     @redraw_on(SessionContext.active_library, LibraryCatalogChanged)
@@ -303,9 +303,9 @@ class LibraryBrowserEditor(BaseEditor):
             return
         self._list_container.clear()
 
-        # Plan E Phase 4: surface refresh errors inline. Uses the design-guide
-        # token pattern (--hw-danger / --hw-danger-bg + left border) instead of
-        # Tailwind bg-red-* so the banner stays legible across themes.
+        # Surface refresh errors inline. Uses the design-guide token pattern
+        # (--hw-danger / --hw-danger-bg + left border) instead of Tailwind
+        # bg-red-* so the banner stays legible across themes.
         if self._refresh_error:
             with self._list_container:
                 with (
@@ -316,7 +316,7 @@ class LibraryBrowserEditor(BaseEditor):
                     ui.icon("error", size="18px").classes("hw-text-danger flex-shrink-0 mt-0.5")
                     ui.label(self._refresh_error).classes("text-xs hw-text-danger")
 
-        # Plan E Phase 4: surface partial-failure (some sources unavailable).
+        # Surface partial-failure (some sources unavailable).
         # No --hw-warning-bg token exists; use the warning token for the border
         # accent and rely on hw-text-warning for the foreground.
         unavailable = self._get_unavailable_urls(context)
@@ -545,7 +545,7 @@ class LibraryBrowserEditor(BaseEditor):
         if is_stale:
             sublabel = f"{sublabel} (stale)" if sublabel else "(stale)"
 
-        # Provenance label per spec §7.4 — only for cache entries with a `via` URL.
+        # Provenance label — only for cache entries with a `via` URL.
         provenance = self._provenance_label_for(lib, context)
         if provenance:
             sublabel = f"{provenance} — {sublabel}" if sublabel else provenance

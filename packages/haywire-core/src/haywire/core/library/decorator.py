@@ -41,7 +41,7 @@ def library(**kwargs: Any) -> Callable[[Type[T]], Type[T]]:
         needs_refresh (bool, optional): Declares that installing this library registers
             new Vue components or JS resources that an already-open browser tab cannot
             pick up; install completion prompts the user to reload the page. Defaults
-            to False. See docs/reference/glossary.md → "Post-install requirements".
+            to False.
         needs_restart (bool, optional): Declares that installing or uninstalling this
             library leaves the Python process in a state requiring a Studio restart
             (typically C-extension modules, haywire-core upgrades, or import-time

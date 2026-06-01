@@ -1,12 +1,9 @@
 """
 PropertiesEditor + canvas-context-menu edge panels.
 
-Phase 1.5: dual-host panels (EdgeErrors, EdgeWarnings) split into
-explicit per-host classes. DeleteEdgePanel migrates to
-EdgeContextActions. ExecutionStatistics and ConnectionPath stay as
-they were after Phase 1 (PropertiesEditor only).
-
-Module-private helpers ensure both host versions render identically.
+Dual-host panels (EdgeErrors, EdgeWarnings) have explicit per-host classes;
+DeleteEdgePanel uses EdgeContextActions. Module-private helpers ensure both
+host versions render identically.
 """
 
 from __future__ import annotations
@@ -213,8 +210,7 @@ class DeleteEdgePanel(BasePanel):
 
 
 # ---------------------------------------------------------------------------
-# ExecutionStatistics + ConnectionPath — already migrated in Phase 1
-# (PropertiesEditor only).
+# ExecutionStatistics + ConnectionPath — PropertiesEditor only.
 # ---------------------------------------------------------------------------
 
 

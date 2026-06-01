@@ -1,12 +1,4 @@
 # packages/haywire-core/src/haywire/ui/session_manager.py
-"""
-SessionManager — manages the lifecycle of all active browser sessions.
-
-Each browser connection gets its own Session. The SessionManager creates,
-tracks, and removes sessions. It also provides :meth:`broadcast` to fan a
-:class:`~haywire.core.session.signals.Signal` out to every session — used for
-cross-session updates when the signal class declares ``cross_session = True``.
-"""
 
 import logging
 from typing import Dict, Optional, TYPE_CHECKING
@@ -23,9 +15,8 @@ logger = logging.getLogger(__name__)
 
 class SessionManager:
     """
-    Manages all active Sessions across browser connections.
+    Manages all active Sessions across browser connections::
 
-    Usage:
         manager = SessionManager(container=app.library_state_container)
         session = manager.create_session(project_state=app, workspace_manager=ws)
         manager.remove_session(session.session_id)
@@ -70,12 +61,6 @@ class SessionManager:
         """
         Clean up and remove a session by ID.
 
-        Order: session.cleanup() runs first (UI / editors / slots tear
-        down), then container.detach_session() runs (SessionState
-        on_disable fires, instances dropped). This way a panel/editor
-        that reads ctx.data[X] during its own cleanup still sees the
-        instance.
-
         Args:
             session_id: The full session ID string.
         """
@@ -85,9 +70,10 @@ class SessionManager:
                 session.cleanup()
             except Exception as e:
                 logger.warning(f"SessionManager: error cleaning up session {session_id[:8]}: {e}")
-        # Detach AFTER cleanup so on_disable can't observe a half-torn-down
-        # session. The call is idempotent — safe to run even when the session
-        # was unknown (e.g., already removed).
+        # Detach AFTER cleanup so a panel/editor reading ctx.data[X] during its
+        # own cleanup still sees the instance, and on_disable can't observe a
+        # half-torn-down session. The call is idempotent — safe to run even when
+        # the session was unknown (e.g., already removed).
         self._container.detach_session(session_id)
         if session is not None:
             logger.info(f"SessionManager: removed session {session_id[:8]}")
@@ -120,8 +106,7 @@ class SessionManager:
         sessions close tabs bound to a vanishing entity).
 
         Per-peer exceptions are swallowed and logged — a subscriber
-        raising in one session does not abort delivery to others. See
-        §6.5 of the design doc for the cross-session delivery contract.
+        raising in one session does not abort delivery to others.
 
         Args:
             signal: The :class:`Signal` to fan out.

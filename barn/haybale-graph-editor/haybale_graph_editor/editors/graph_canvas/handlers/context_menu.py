@@ -121,11 +121,6 @@ class _OpenMenuContext:
     """Per-popup gesture state held by SessionContextMenuProvider.
 
     Created when _open_menu opens a popup; cleared on popup close.
-    Replaces several entries from the legacy metadata dict
-    (canvas_position, canvas_x, canvas_y, edge_state,
-    context_menu_screen_pos, edge_reconnect_end, pending_connection).
-
-    Phase 1.5 of the panel-contract migration.
     """
 
     click_pos: Tuple[float, float]
@@ -311,7 +306,7 @@ class SessionContextMenuProvider(IContextMenuProvider, BaseContextMenuProvider):
         self._open_menu(NodeContextActions, focus, pos)
 
     # ------------------------------------------------------------------
-    # ContextMenuActions Protocol implementations (Phase 1.5)
+    # ContextMenuActions Protocol implementations
     # ------------------------------------------------------------------
 
     def _emit(self, event) -> None:

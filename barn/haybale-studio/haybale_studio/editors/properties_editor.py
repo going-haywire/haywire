@@ -1,17 +1,4 @@
 # barn/haybale-studio/haybale_studio/editors/properties_editor.py
-"""
-PropertiesEditor — focus-driven properties sidebar.
-
-Displays a left-hand icon toolbar (one button per Focus) and a content area
-showing display panels registered against the active Focus. The toolbar is
-sourced from ``registry.get_display_focuses()``; panels are mounted via
-``registry.get_panels_for_focus(focus)``.
-
-Active-focus state is held per-editor on ``self._active_focus_id``. The
-active focus is never changed automatically once set; while it remains
-``None`` (initial state), the editor defaults to the lowest-order
-*available* focus on each refresh.
-"""
 
 from __future__ import annotations
 
@@ -76,24 +63,13 @@ class PropertiesEditor(BaseEditor):
         # content rebuilds but stays scoped to this editor instance.
         self._expansion_state: dict[str, bool] = {}
 
-        # Panel-driven event-bus subscriptions. PropertiesEditor owns these
-        # because it's the only host that mounts registry panels with
-        # persistent redraw semantics — context-menu hosts open a popup,
-        # draw once, and dismiss; no subscription needed there.
-        #
-        # Populated in ``_subscribe_panel_event_handlers`` (called from
-        # first ``draw()``); reconciled in ``_on_panel_registry_event``
-        # when the catalog changes; drained in ``cleanup``.
-        #
-        # NB: held as a flat list of handles for now — same shape as the
-        # original wrapper-side implementation. Migrating to per-panel
-        # redraw will keep these per-(panel_class, event_type) so a single
-        # event publish can target only the panels that asked for it.
+        # Panel-driven event-bus unsubscribe handles. Populated in
+        # _subscribe_panel_event_handlers (first draw()), reconciled in
+        # _on_panel_registry_event on catalog change, drained in cleanup.
         self._panel_bus_unsubscribes: list[Callable[[], None]] = []
 
-        # PanelRegistry this editor is currently subscribed to (lifecycle
-        # batch channel). Held so cleanup / catalog reconciliation can
-        # detach. ``None`` before first ``draw()`` and after ``cleanup``.
+        # PanelRegistry this editor is subscribed to (lifecycle batch channel),
+        # held so cleanup / reconciliation can detach. None before first draw().
         self._attached_panel_registry: PanelRegistry | None = None
 
     # ------------------------------------------------------------------
@@ -113,16 +89,11 @@ class PropertiesEditor(BaseEditor):
     # Panel-contributed event-bus subscriptions
     # ------------------------------------------------------------------
     #
-    # PropertiesEditor subscribes to every event type a display panel
-    # contributes via ``redraw_on=`` on ``@panel(...)`` — across every
-    # focus this editor's toolbar exposes. When such an event publishes,
-    # the editor's wrapper redraws and panels re-mount with fresh state.
-    # Panels do not have their own handler dispatch — they declare intent
-    # on the decorator; the editor drives the redraw.
-    #
-    # The editor also subscribes to the panel registry's batch lifecycle
-    # channel so it can reconcile its subscriptions when the catalog
-    # changes (library install / uninstall / panel hot-reload).
+    # Subscribes to every event type a display panel declares via ``redraw_on=``
+    # on ``@panel(...)``; on publish the editor's wrapper redraws and panels
+    # re-mount. Also subscribes to the panel registry's batch lifecycle channel
+    # to reconcile subscriptions when the catalog changes (install / uninstall /
+    # hot-reload).
 
     def _subscribe_panel_event_handlers(self, context: SessionContext) -> None:
         """Resolve the panel registry and wire panel-driven event subscriptions.
@@ -180,16 +151,10 @@ class PropertiesEditor(BaseEditor):
         — the panel author already declared the intent via ``redraw_on=``
         on ``@panel(...)``. The closure just asks the wrapper to redraw
         so panels re-mount with fresh state.
-
-        Future per-panel-redraw optimisation hooks in here: a richer
-        closure could consult the (event_type → panel_classes) mapping
-        and rebuild only the affected panels' DOM rather than the whole
-        editor. Today it forwards to ``wrapper.redraw()`` for the same
-        behaviour the framework previously provided.
         """
 
         def _redraw_on_panel_event(event: "Signal") -> None:
-            del event  # forwarded, not inspected (yet)
+            del event  # forwarded, not inspected
             self.wrapper.redraw()
 
         return _redraw_on_panel_event

@@ -1,23 +1,3 @@
-"""Decorator for registering AppState and SessionState classes.
-
-@state(...) — marks an AppState or SessionState subclass for auto-discovery
-by LibraryStateRegistry when a library calls add_folder_to_registry().
-
-Consistent with @node, @editor, @panel, @theme, @settings:
-  - Derives library identity via derive_library_identity()
-  - Attaches class_library so hot-reload works
-  - Auto-detects scope from the base class (AppState vs SessionState)
-  - Validates the base class with issubclass()
-
-Per session_state.md §1: scope is decided by the base class
-(AppState vs SessionState), not by a decorator parameter. The
-decorator only attaches identity metadata.
-
-Decoration is optional — undecorated AppState/SessionState subclasses
-still work; LibraryStateRegistry auto-creates a class_identity at
-registration time as a fallback.
-"""
-
 from __future__ import annotations
 
 from typing import Callable, Type, TypeVar
@@ -37,9 +17,6 @@ def state(
 ) -> Callable[[Type[T]], Type[T]]:
     """Decorator that registers an AppState or SessionState subclass.
 
-    Always invoked with parentheses — ``@state(...)`` or ``@state()``.
-    The bare ``@state`` form (no parens) is not supported.
-
     Scope (app-global vs per-session) is auto-detected from the base
     class. ``class X(AppState)`` is app-scoped; ``class X(SessionState)``
     is per-session.
@@ -50,7 +27,8 @@ def state(
         registry_id:  Unique state identifier. Defaults to the class name.
                       Used as the final segment of the registry_key.
 
-    Usage:
+    Usage::
+    
         @state(label='Edit State')
         class EditState(SessionState):
             active_node = signal_field(None)

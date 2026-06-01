@@ -16,8 +16,6 @@ The terminal state is driven by ``hints`` (and optionally ``error``):
     manual-restart instructions panel (no auto-quit; restart subsumes refresh).
   * ``error=…`` → red banner stays visible; button label becomes "Close" unless
     ``needs_restart`` is also set, in which case the restart button takes over.
-
-See docs/reference/glossary.md → "Post-install requirements".
 """
 
 from __future__ import annotations
@@ -38,8 +36,6 @@ class PostInstallHints:
     needs_restart=True)``. Unioned across newly-imported and evicted libraries
     by the install/uninstall flow and consumed by
     :meth:`LibraryOperationProgressModal.finish` to render the terminal state.
-
-    See docs/reference/glossary.md → "Post-install requirements".
     """
 
     needs_refresh: bool = False

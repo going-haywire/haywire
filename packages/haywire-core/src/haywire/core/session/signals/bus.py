@@ -1,39 +1,3 @@
-"""
-Session-scoped typed signal bus.
-
-The bus is the primary dispatch channel within a session: editors,
-panels, and the AppShell declare which
-:class:`~haywire.core.session.signals.signal.Signal` subclasses they
-care about (via :func:`~haywire.core.session.handlers.redraw_on` /
-:func:`~haywire.core.session.handlers.react_on` on editors, the
-``redraw_on=`` kwarg on ``@panel(...)``, or direct
-``session.subscribe(SignalType, handler)`` calls), and the framework
-dispatches matching signals only to those subscribers. Plain
-``Signal`` subclasses (observations) and ``CommandSignal`` subclasses
-(imperatives) both travel through this same bus.
-
-The bus itself is intentionally small: a ``defaultdict[type, list]`` of
-handlers, an exact-class match on publish, error isolation per handler.
-Cross-session routing and decorator-driven auto-subscription live on
-``Session`` (see :mod:`haywire.core.session.session`) — the bus does not
-know they exist.
-
-Design choices worth keeping in mind:
-
-- **Exact-class match, not isinstance.** A subscriber to ``SelectionMoved``
-  does not fire for a hypothetical ``CanvasSelectionMoved(SelectionMoved)``.
-  Shallow hierarchies are allowed only when a real grouping subscription
-  appears; we'd add it explicitly then.
-- **Registration order.** Handlers fire in subscribe order. Authors should
-  not rely on any other ordering primitive.
-- **Error isolation per handler.** A raising handler is logged and the
-  next one runs. Authors should not rely on cross-handler ordering for
-  correctness.
-- **Sync only.** Handlers are plain callables; coroutines are not awaited.
-  Aligns with today's sync signal-callback semantics and avoids the
-  NiceGUI async slot-stack footgun.
-"""
-
 from __future__ import annotations
 
 import logging
@@ -63,9 +27,7 @@ class SignalBus:
     out only to handlers registered for ``type(signal)``.
 
     Not thread-safe by design — all session work runs on the NiceGUI event
-    loop's main thread. If cross-thread emission becomes a requirement,
-    revisit at that point (and probably wrap with ``call_soon_threadsafe``
-    on the ``Session`` layer rather than complicating the bus itself).
+    loop's main thread.
     """
 
     def __init__(self) -> None:
@@ -138,6 +100,8 @@ class SignalBus:
         handlers = tuple(self._handlers.get(type(signal), ()))
         for handler in handlers:
             try:
+                # Sync call only; coroutines are not awaited. Awaiting here would
+                # hit the NiceGUI async slot-stack footgun (.insights/feedback_nicegui_async.md).
                 handler(signal)
             except Exception:
                 logger.exception(

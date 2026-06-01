@@ -1,27 +1,3 @@
-"""HaystackState — AppState replacing the old studio.haystack.Haystack class.
-
-In-memory registry of open graphs. One instance per app, shared across
-sessions. Dependencies are resolved from the ambient DI context in
-``on_enable`` rather than constructor arguments — this is the contract
-``LibraryStateContainer`` enforces (it instantiates AppState classes
-with ``cls()``, no args).
-
-Three structural changes vs the legacy Haystack:
-
-1. Subclass ``AppState``; instantiated by ``LibraryStateContainer``.
-2. ``on_enable`` resolves dependencies from ambient context.
-3. Validation broadcast goes directly via ``SessionManager`` — no
-   editor or library-bridge intermediary.
-
-Behavioral parity with legacy ``haywire_studio.haystack.Haystack`` is
-maintained for every public method documented in the carve-out plan
-(create_new, open_graph, save_graph, rename_graph, remove_entry,
-get_by_id, get_by_path, get_by_graph, all_entries, has_unsaved,
-unsaved_entries, list_haystacks, list_graph_files, rename_haystack,
-delete_haystack). Haystack file load/dump are now provided by free
-functions in ``persistence.py``; thin wrappers here forward to them.
-"""
-
 from __future__ import annotations
 
 import logging
@@ -47,11 +23,9 @@ logger = logging.getLogger(__name__)
 
 @state(label="Haystack State")
 class HaystackState(AppState):
-    """In-memory registry of open graphs (one entry per file path).
-
-    Replaces ``haywire_studio.haystack.Haystack``. Dependencies are
-    resolved from the ambient DI context inside ``on_enable``; the
-    no-arg constructor is required by ``LibraryStateContainer``.
+    """In-memory registry of open graphs (one entry per file path)
+    Validation broadcast goes directly via``SessionManager``. 
+    Haystack file load/dump live in ``persistence.py``
     """
 
     def __init__(self) -> None:
@@ -180,13 +154,13 @@ class HaystackState(AppState):
             logger.warning(f"HaystackState: GraphDataMutated broadcast failed: {exc}")
 
     # ------------------------------------------------------------------
-    # Validation handler — legacy parity with Haystack._on_entry_validation
+    # Validation handler
     # ------------------------------------------------------------------
 
     def _on_entry_validation(self, entry: GraphEntry, result: "ValidationResult") -> None:
         """Stop execution if reassembly is required, mark unsaved, broadcast.
 
-        Mirrors the three concerns from the legacy Haystack:
+        Handles three concerns:
 
         1. Stop execution when the result requires graph reassembly.
         2. Mark the entry unsaved if nodes or edges changed.
@@ -201,7 +175,7 @@ class HaystackState(AppState):
             self._broadcast_data_mutated()
 
     # ------------------------------------------------------------------
-    # Graph factory (private; mirrors legacy app._graph_factory)
+    # Graph factory (private)
     # ------------------------------------------------------------------
 
     def _make_graph_and_editor(self, graph_id: str, name: str) -> tuple["BaseGraph", "Editor"]:
@@ -279,13 +253,11 @@ class HaystackState(AppState):
         return entry
 
     def save_graph(self, entry: GraphEntry, save_as: Optional[Path] = None) -> bool:
-        """Public alias preserved for backward compatibility.
+        """Save ``entry``, returning True on success.
 
-        Most callers should use ``entry.save(save_as=...)`` now; this
-        method routes to the same implementation. Returns True on
-        successful save (legacy bool contract); ``entry.save`` returns
-        the new binding_id string on rename for the
-        :class:`GraphContainer` protocol.
+        Routes to the same implementation as ``entry.save(save_as=...)``, but
+        returns a bool rather than the new binding_id string ``entry.save``
+        returns on rename for the :class:`GraphContainer` protocol.
         """
         return self._save_entry(entry, save_as=save_as) is not False
 
@@ -403,11 +375,7 @@ class HaystackState(AppState):
         return None
 
     def all_entries(self) -> list[GraphEntry]:
-        """Return a list of all open entries (snapshot).
-
-        Note: legacy Haystack returned a dict; PR2 review mandated a
-        list. ``persistence.py`` and tests expect a list.
-        """
+        """Return a list of all open entries (snapshot)."""
         return list(self._entries.values())
 
     # ------------------------------------------------------------------
@@ -531,8 +499,8 @@ class HaystackState(AppState):
 
         Defensively skips if the graph has no subscribe_to_validation
         method (e.g. test mocks). Does not store the callback for
-        unsubscribe — legacy parity, plus the entry's lifetime is
-        bounded by ``remove_entry``/``on_disable``.
+        unsubscribe — the entry's lifetime is bounded by
+        ``remove_entry``/``on_disable``.
         """
         try:
             entry.graph.subscribe_to_validation(

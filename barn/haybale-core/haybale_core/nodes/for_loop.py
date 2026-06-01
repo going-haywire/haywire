@@ -85,25 +85,16 @@ class ForLoopNode(BaseNode):
 
     def worker(self, context: ExecutionContext, start: int = 0, end: int = 10, step: int = 1) -> str | None:
         """
-        Execute loop iteration.
-
-        The VM will:
-        1. Call worker with execute pin
-        2. Get loop_body outlet
-        3. Execute loop body flow
-        4. Return to this node
-        5. Call worker again (iteration continues)
-        6. Repeat until loop completes or breaks
+        Execute one loop iteration.
 
         Args:
-            context: Execution context
-            start: Starting index
-            end: Ending index (exclusive)
-            step: Step increment
+            context: Execution context.
+            start: Starting index.
+            end: Ending index (exclusive).
+            step: Step increment.
 
         Returns:
-            - 'loop_body' with index for next iteration
-            - 'completed' when loop finishes
+            'loop_body' with the index for the next iteration, or 'completed' when the loop finishes.
         """
         # Check which control pin triggered us
         control_pin = context.control_pin

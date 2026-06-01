@@ -1,17 +1,3 @@
-"""
-HaywireApp — main application entry point.
-
-Manages shared services (libraries) and per-session UI shells.
-Each browser connection gets its own Session and AppShell; all sessions share
-the same library registry.
-
-Execution is per-graph: each GraphEntry owns its own Interpreter,
-started/stopped via entry.start_execution() / entry.stop_execution().
-
-Haystack lifecycle (open graphs, auto-load on startup) is handled by
-HaystackState, accessed via ctx.app_data[HaystackState].
-"""
-
 import os
 import logging
 import sys

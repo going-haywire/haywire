@@ -116,7 +116,7 @@ class LibraryComponentEditor(BaseEditor):
 
             # height:100% + flex column so tab_panels can fill remaining space
             with ui.column().classes("w-full p-4 gap-0").style("height: 100%;"):
-                # ── Phase 5: Header bar ────────────────────────────────────
+                # ── Header bar ─────────────────────────────────────────────
                 with ui.row().classes("w-full items-center justify-between mb-3"):
                     with ui.row().classes("items-center gap-2"):
                         ui.icon(icon).classes("text-xl hw-use-props-color").props("color=purple")
@@ -137,7 +137,7 @@ class LibraryComponentEditor(BaseEditor):
                         for tag in tags:
                             hui.tag(str(tag), color="purple")
 
-                # ── Phase 1: Identifiers ──────────────────────────────────
+                # ── Identifiers ────────────────────────────────────────────
                 hui.section_label("Identifiers")
                 hui.info_row("Key", registry_key)
                 hui.info_row("Class", actual_name)
@@ -147,7 +147,7 @@ class LibraryComponentEditor(BaseEditor):
                 if comp_type == "nodes" and menu:
                     hui.info_row("Menu", menu)
 
-                # ── Phase 2: Usage snippets ───────────────────────────────
+                # ── Usage snippets ─────────────────────────────────────────
                 if comp_type == "types":
                     hui.section_label("Usage")
                     if module_path:

@@ -138,7 +138,6 @@ class IType(ABC):
         Create the DataField for this type.
 
         Each type is responsible for creating its own field instance.
-        This replaces the DataFieldFactory pattern - types know what they need!
 
         Args:
             default_override: Override default kwargs from @type decorator

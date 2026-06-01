@@ -345,7 +345,7 @@ class Library(BaseLibrary):
 
 
 def _local_entry(name: str, path: Path, label: str = "", description: str = "") -> dict:
-    """Build a [[heaps]] entry per spec §3.2.
+    """Build a [[heaps]] entry.
 
     Heaps have a different schema than [[caches]]: only `name` and `path` are
     required; label and description are optional metadata. Heaps are always
@@ -481,7 +481,7 @@ def init_project(name: str, auto_sync: bool = True, dev_repo: str | None = None)
 
     (pkg_dir / "__init__.py").write_text(_generate_library_init(name, label))
 
-    # README.md at repo root (with marketstall share-url marker pair per spec §6.6)
+    # README.md at repo root (with marketstall share-url marker pair)
     (project_dir / "README.md").write_text(_generate_root_readme(name, label))
 
     # README.md inside the scaffolded barn library (with marker pair)

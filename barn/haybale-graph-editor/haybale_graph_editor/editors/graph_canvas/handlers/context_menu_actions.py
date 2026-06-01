@@ -3,8 +3,6 @@
 Five Protocols, one per right-click context. Each Protocol declares only
 the verbs valid in that context. The provider implements all five
 structurally on a single class.
-
-Phase 1.5 of the panel-contract migration.
 """
 
 from __future__ import annotations

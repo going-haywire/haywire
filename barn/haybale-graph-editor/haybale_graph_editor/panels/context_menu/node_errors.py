@@ -1,8 +1,8 @@
 """
 Node error panels — dual-host (PropertiesEditor + context-menu).
 
-Phase 1.5: split into two explicit per-host classes (matches edge_panels
-pattern). Both render identical content via a shared helper and gate on
+Two explicit per-host classes (matching the edge_panels pattern). Both render
+identical content via a shared helper and gate on
 ctx.data[EditState].active_node.state.get_errors() being non-empty.
 """
 

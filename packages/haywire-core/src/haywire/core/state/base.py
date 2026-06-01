@@ -1,15 +1,3 @@
-"""LibraryState taxonomy — abstract marker + concrete scope bases.
-
-A library author **never directly subclasses `LibraryState`**. They pick
-one of the concrete scope bases:
-
-  - `AppState`     — one instance, shared across all sessions and execution.
-  - `SessionState` — one instance per UI session.
-
-The mental rule is one line: *scope = base class*. Inheritance picks
-multiplicity. See docs/architecture/session-and-state/session-and-state-arch.md.
-"""
-
 from __future__ import annotations
 
 import weakref
@@ -72,8 +60,6 @@ class AppState(LibraryState):
     shared across every browser session and the execution VM. The
     framework calls `on_enable()` after instantiation and `on_disable()`
     before teardown; both default to no-op on the base class.
-
-    See docs/architecture/session-and-state/session-and-state-arch.md.
     """
 
     # Set by LibraryStateContainer.bind_session_manager (and re-stamped by
@@ -85,9 +71,8 @@ class AppState(LibraryState):
     def __init__(self) -> None:
         """Seed per-instance storage for every `signal_field` descriptor.
 
-        Subclasses with their own `__init__` MUST call `super().__init__()`
-        — otherwise signal fields silently lose their seeded defaults
-        (mutable defaults would be shared across instances).
+        Subclasses overriding `__init__` MUST call `super().__init__()`, or
+        signal fields lose their seeded defaults.
         """
         _seed_signal_fields(self)
 
@@ -109,7 +94,7 @@ class AppState(LibraryState):
 class SessionState(LibraryState):
     """Concrete base for per-UI-session library state.
 
-    One instance is created per active session × per registered SessionState
+    One instance is created per active session per registered SessionState
     class. The container stamps ``self.session_id`` between ``cls()`` and
     ``on_enable()`` — read it in ``on_enable`` or any later method, never
     in ``__init__``.
@@ -117,8 +102,6 @@ class SessionState(LibraryState):
     A SessionState **must not** compose ``LibrarySettings`` as a field —
     settings are app-global, sessions are per-session. The
     ``__init_subclass__`` check below catches this at class-definition time.
-
-    See docs/architecture/session-and-state/session-and-state-arch.md.
     """
 
     session_id: str  # set by the container before on_enable runs
@@ -130,9 +113,8 @@ class SessionState(LibraryState):
     def __init__(self) -> None:
         """Seed per-instance storage for every `signal_field` descriptor.
 
-        Subclasses with their own `__init__` MUST call `super().__init__()`
-        — otherwise signal fields silently lose their seeded defaults
-        (mutable defaults would be shared across instances).
+        Subclasses overriding `__init__` MUST call `super().__init__()`, or
+        signal fields lose their seeded defaults.
         """
         _seed_signal_fields(self)
 

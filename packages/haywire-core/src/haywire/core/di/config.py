@@ -382,16 +382,15 @@ class LibrarySystemService:
 
         # --8<-- [start:startup-state-wiring]
         # Startup wiring for the LibraryStateContainer's two-phase lifecycle.
-        # Full rationale: docs/architecture/session-and-state/session-and-state-arch.md §3.1, §5.2.
         print("\n🔍 Scanning for libraries...")
         library_registry.scan_for_libraries()
 
         # Skip user-disabled libraries before the enable loop (ADR-0001).
         library_registry.apply_persisted_disabled_state()
 
-        # Phase 1 — subscribe BEFORE the enable loop so CLASS_ADDED events
-        # during each library's enable() instantiate its state classes
-        # immediately. on_enable is deferred to phase 2.
+        # Subscribe BEFORE the enable loop so CLASS_ADDED events during each
+        # library's enable() instantiate its state classes immediately.
+        # on_enable is deferred until after the loop.
         library_state_container.subscribe_to_lifecycle_events()
 
         # AppState.on_enable resolves framework services from these globals
@@ -402,9 +401,9 @@ class LibrarySystemService:
         print("\n⚡ Enabling libraries...")
         library_registry.enable_all_libraries()
 
-        # Phase 2 — subscribe AFTER the enable loop, then catch up on every
-        # library that was enabled. Filter on library.enabled so persisted-
-        # disabled libraries (skipped above) aren't falsely marked enabled.
+        # Subscribe AFTER the enable loop, then catch up on every library that
+        # was enabled. Filter on library.enabled so persisted-disabled libraries
+        # (skipped above) aren't falsely marked enabled.
         library_state_container.subscribe_to_library_callbacks(library_registry)
         for library in library_registry._libraries.values():
             if library.enabled:

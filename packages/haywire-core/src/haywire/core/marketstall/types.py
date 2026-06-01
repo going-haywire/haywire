@@ -1,9 +1,7 @@
 """Marketstall runtime dataclasses.
 
-The Haybale dataclass replaces the legacy MarketplaceEntry. Adds the `os` field;
-same shape otherwise. Subscription dataclasses for [[markets]] and
-[[stalls]] gain the `blocked` array introduced for the first-install safety
-modal.
+``Haybale`` is one row in [[haybales]]. The [[markets]] and [[stalls]]
+subscription dataclasses carry a ``blocked`` array for the first-install safety modal.
 """
 
 from __future__ import annotations
@@ -15,7 +13,7 @@ from typing import ClassVar
 
 @dataclass
 class Haybale:
-    """One entry from a [[haybales]] section. Renamed from MarketplaceEntry."""
+    """One entry from a [[haybales]] section."""
 
     name: str
     min_version: str

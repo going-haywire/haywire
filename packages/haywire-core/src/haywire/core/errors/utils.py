@@ -1,9 +1,4 @@
-"""
-Error handling utilities for Haywire.
-
-This module is maintained for backward compatibility.
-New code should use HaywireException methods directly.
-"""
+"""Re-exports the Haywire exception API (:class:`HaywireException`, :class:`ErrorSeverity`)."""
 
 from .haywire_exception import HaywireException, ErrorSeverity
 

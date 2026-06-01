@@ -4,9 +4,7 @@ Global and project-level configuration management for Haywire.
 Global config lives at ~/.haywire/ and stores user preferences,
 marketplace sources, and recently opened projects.
 
-Per spec §3.1, the global marketplace file lives under a forward-reference
-subdirectory `~/.haywire/db/haybale-marketplace/` so the future
-haybale-marketplace library carve-out doesn't require a migration. The
+The global marketplace file lives under `~/.haywire/db/haybale-marketplace/`. The
 `GLOBAL_MARKETPLACE_DIR` constant is the canonical home for ALL marketplace
 state (marketplace.toml, stalls/, cache/) — every caller that
 reads or writes marketplace files must use it, not `GLOBAL_CONFIG_DIR`.
@@ -33,9 +31,7 @@ DEFAULT_GLOBAL_CONFIG = {
     },
 }
 
-# Spec §3.3 / §11: the official haywire feed is pre-seeded as a [[markets]]
-# subscription on first run. Per slice 1's §14 rename, the section name is
-# `markets` (not the legacy `marketplaces`).
+# The official haywire feed is pre-seeded as a [[markets]] subscription on first run.
 DEFAULT_MARKETPLACE: dict[str, list[dict]] = {
     "markets": [
         {

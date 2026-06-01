@@ -2,23 +2,11 @@
 """
 Ambient context for app-scoped singletons.
 
-Set once at startup by HaywireModule providers; read by deep entity constructors
-(BaseNode, NodeWrapper, EdgeWrapper) that cannot receive these via constructor
-injection without polluting unrelated intermediaries.
+Set once at startup by DI providers; read by deep entity constructors that cannot
+receive these via constructor injection::
 
-Uses module-level globals (not ContextVar) because these are true app-wide
-singletons that must be accessible from any thread — including the watchdog
-file-watcher thread used for hot-reload.
-
-Usage
------
-Read (in entity constructors):
-    from haywire.core.di.context import get_node_factory
-    self._node_factory = get_node_factory()
-
-Write (in DI providers only):
-    from haywire.core.di.context import set_node_factory
-    set_node_factory(factory)
+    self._node_factory = get_node_factory()   # read (entity constructors)
+    set_node_factory(factory)                  # write (DI providers only)
 """
 
 from pathlib import Path
@@ -33,6 +21,10 @@ if TYPE_CHECKING:
     from ..state import LibraryStateContainer
 
 
+# Module-level globals (not ContextVar): these are true app-wide singletons that must
+# be reachable from any thread, including the watchdog file-watcher thread used for
+# hot-reload. ContextVar broke hot-reload (a reload captured a different ContextVar
+# instance than the rest of the app).
 _node_factory: Optional["NodeFactory"] = None
 _adapter_factory: Optional["AdapterFactory"] = None
 _type_registry: Optional["TypeRegistry"] = None

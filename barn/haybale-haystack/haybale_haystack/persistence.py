@@ -1,14 +1,11 @@
 """Persistence — free functions for per-haystack TOML I/O.
 
-These functions move the file-I/O logic out of HaystackState (an AppState)
-into pure helpers. HaystackState holds the in-memory registry; persistence.py
-serializes/deserializes named haystacks to/from ``<workspace>/haystacks/*.toml``.
+Serializes/deserializes named haystacks to/from ``<workspace>/haystacks/*.toml``;
+HaystackState holds the in-memory registry. Each TOML file is one named haystack —
+a list of per-graph entries to restore together, plus optional active-graph metadata.
 
-Each TOML file represents one named haystack — a list of per-graph entries the
-user wants restored together, plus optional metadata for the active graph.
-
-TOML schema (compatible with haywire-studio's legacy Haystack.save_haystack)
------------------------------------------------------------------------------
+TOML schema
+-----------
 
     [haystack]
     name = "default"
@@ -20,11 +17,8 @@ TOML schema (compatible with haywire-studio's legacy Haystack.save_haystack)
 
 Notes
 -----
-- ``active_path`` is stored relative to ``workspace_root``; on load it is
-  reconstructed as an absolute ``Path`` and returned from ``load_haystack``.
-- Paths are always stored as *relative* strings so haystacks are portable
-  when the workspace is moved. If a path is outside workspace_root (edge case)
-  the absolute form is stored as a fallback, matching legacy behaviour.
+- Paths are stored as *relative* strings so haystacks stay portable when the
+  workspace moves; a path outside workspace_root falls back to its absolute form.
 - The project uses the ``toml`` package (both reads and writes) — do NOT
   switch to ``tomli`` / ``tomli_w`` without updating all callers.
 """
@@ -90,9 +84,8 @@ def dump_haystack(
     Only file-backed entries (``entry.path is not None``) are written.
     Entries without a path (untitled / never-saved) are silently skipped.
 
-    The written format is backward-compatible with haywire-studio's legacy
-    ``Haystack.save_haystack``: top-level ``[haystack]`` section with an
-    optional ``active_graph`` key, and ``[[graphs]]`` array of tables.
+    The written format is a top-level ``[haystack]`` section with an optional
+    ``active_graph`` key, and a ``[[graphs]]`` array of tables.
 
     Args:
         state:          Object with an ``all_entries()`` method returning an
@@ -158,9 +151,8 @@ def load_haystack(
     warning. Graphs marked ``execute = true`` have ``start_execution()`` called
     on their entry after opening.
 
-    Unlike the legacy ``Haystack.load_haystack``, this function does **not**
-    clear existing entries — that side effect belongs to the caller
-    (``HaystackState``). This keeps persistence.py a pure I/O helper.
+    This function does **not** clear existing entries — that side effect belongs
+    to the caller (``HaystackState``), keeping persistence.py a pure I/O helper.
 
     Args:
         state:          Object with an ``open_graph(path: Path) -> GraphEntry``

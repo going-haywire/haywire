@@ -1,30 +1,3 @@
-"""EditState — per-session graph-editor selection and clipboard state.
-
-Each field is a ``signal_field``: reads/writes use bare attribute
-access, identity-equal writes are no-ops, and the framework synthesizes
-one ``Signal`` subclass per field at class definition::
-
-    edit = ctx.data[EditState]
-    edit.active_node = wrapper      # writes value, emits EditState.active_node
-    node = edit.active_node         # reads stored value
-
-Subscribers reference the class-level field as the signal type::
-
-    @redraw_on(EditState.active_node)
-    def _on(self, ctx, signal): ...
-
-The field reference IS the subscription key — there is no separate
-event class to import.
-
-Hot-reload: when this file is re-imported, EditState's per-session
-instance is torn down and recreated, dropping field values. Each
-synthesized ``Signal`` subclass is also fresh; editor subscriptions are
-re-bound during the editor teardown/recreate pass. Resetting selection
-mid-session as a developer action is acceptable.
-
-See docs/architecture/session-and-state/session-and-state-arch.md.
-"""
-
 from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, Optional, Set
