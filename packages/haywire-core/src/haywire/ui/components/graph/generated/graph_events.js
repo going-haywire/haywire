@@ -20,8 +20,8 @@ window.GraphEvents = {
     CONTEXT_MENU_NODE: 'contextMenuNode', // Node context menu triggered
     CONTEXT_MENU_EDGE: 'contextMenuEdge', // Connection context menu triggered
     CONTEXT_MENU_SELECTED: 'contextMenuSelected', // Context menu triggered on selected elements
-    CONTEXT_MENU_CUSTOM: 'contextMenuCustom', // Custom-scope context menu triggered via data-hw-custom-menu-scope attribute
-    CONTEXT_MENU_PORT: 'contextMenuPort', // Port context menu triggered via data-hw-port-menu-scope attribute
+    CONTEXT_MENU_CUSTOM: 'contextMenuCustom', // Custom-scope context menu triggered via data-hw-custom-menu-focus-id attribute
+    CONTEXT_MENU_PORT: 'contextMenuPort', // Port context menu triggered via data-hw-port-menu-focus-id attribute
     USER_PASTE_CLIPBOARD: 'userPasteClipboard', // Paste clipboard contents
   },
   
@@ -29,16 +29,17 @@ window.GraphEvents = {
     SYNC_NODE_ADDITION: 'syncNodeAddition', // Sync node addition to UI
     SYNC_NODE_REMOVAL: 'syncNodeRemoval', // Sync node removal from UI
     SYNC_NODE_POSITION: 'syncNodePosition', // Sync node position to UI
-    SYNC_NODE_REDRAW: 'syncNodeRedraw', // Node DOM was rebuilt — re-attach observer and redraw edges
     SYNC_EDGE_ADDITION: 'syncEdgeAddition', // Sync connection addition/update to UI with visual properties
     SYNC_EDGE_REMOVAL: 'syncEdgeRemoval', // Sync connection removal from UI
+    SYNC_SELECTIONS: 'syncSelections', // Sync selection state to UI
+    SYNC_CANVAS_CLEAR: 'syncCanvasClear', // Clear entire canvas
+    SYNC_ALL_EDGES: 'syncAllEdges', // Sync all connections to UI
+    SYNC_NODE_REDRAW: 'syncNodeRedraw', // Node DOM was rebuilt — re-attach observer and redraw edges
     SYNC_EDGES_UPDATE: 'syncEdgesUpdate', // Update connections for node
     SYNC_EDGE_RECONNECT: 'syncEdgeReconnect', // Remove an edge and start a new connection drag from the anchor pin
     SYNC_EDGE_CONNECT_RESUME: 'syncEdgeConnectResume', // Resume a paused pending connection drag (context menu dismissed without action)
     SYNC_EDGE_CONNECT_CANCEL: 'syncEdgeConnectCancel', // Cancel an in-progress connection drag (e.g. after auto-wire committed the edge)
-    SYNC_SELECTIONS: 'syncSelections', // Sync selection state to UI
-    SYNC_CANVAS_CLEAR: 'syncCanvasClear', // Clear entire canvas
-    SYNC_ALL_EDGES: 'syncAllEdges', // Sync all connections to UI
+    SYNC_REQUEST_CLIPBOARD_PASTE: 'syncRequestClipboardPaste', // Ask Vue to read the OS clipboard and emit a paste
   }
 };
 
@@ -74,12 +75,12 @@ window.EventCreators = {
     };
   },
 
-  createNodeCreateRequest(registryKey, position, sessionId = 'default') {
+  createNodeCreateRequest(registryKey, position, pending_connection, sessionId = 'default') {
     return {
       event_type: 'nodeCreateRequest',
       source_session_id: sessionId,
       timestamp: Date.now(),
-      data: { registryKey, position },
+      data: { registryKey, position, pending_connection },
       requires_broadcast: true
     };
   },
@@ -224,12 +225,12 @@ window.EventCreators = {
     };
   },
 
-  createUserPasteClipboard(canvasX, canvasY, sessionId = 'default') {
+  createUserPasteClipboard(canvasX, canvasY, clipboardText, sessionId = 'default') {
     return {
       event_type: 'userPasteClipboard',
       source_session_id: sessionId,
       timestamp: Date.now(),
-      data: { canvasX, canvasY },
+      data: { canvasX, canvasY, clipboardText },
       requires_broadcast: true
     };
   }
@@ -253,7 +254,7 @@ window.EventValidators = {
   },
 
   validateNodeCreateRequest(data) {
-    const requiredFields = ["registryKey", "position"];
+    const requiredFields = ["registryKey", "position", "pending_connection"];
     return requiredFields.every(field => field in data);
   },
 
@@ -328,9 +329,8 @@ window.EventValidators = {
   },
 
   validateUserPasteClipboard(data) {
-    const requiredFields = ["canvasX", "canvasY"];
+    const requiredFields = ["canvasX", "canvasY", "clipboardText"];
     return requiredFields.every(field => field in data);
   }
 };
-
 

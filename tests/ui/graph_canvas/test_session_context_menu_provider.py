@@ -191,12 +191,21 @@ def test_copy_selection_uses_session_context_selection():
     assert event.selectedEdges == ["e1"]
 
 
-def test_paste_at_click_emits_paste_event_with_canvas_pos():
-    """paste_at_click emits UserPasteClipboardEvent using _open_ctx.canvas_pos."""
-    from haywire.ui.components.graph.event_definitions import UserPasteClipboardEvent
+def test_paste_at_click_emits_clipboard_paste_request_via_sync_channel():
+    """paste_at_click asks Vue to read the OS clipboard via the sync channel.
+
+    The OS clipboard can only be read async in the browser, so the menu click
+    emits SyncRequestClipboardPasteEvent (Python→Vue); Vue reads the clipboard
+    and emits the actual UserPasteClipboardEvent back.
+    """
+    from haywire.ui.components.graph.event_definitions import SyncRequestClipboardPasteEvent
 
     captured = []
-    provider = _make_provider(on_emit_event=captured.append)
+    sync_captured = []
+    provider = _make_provider(
+        on_emit_event=captured.append,
+        on_emit_sync_event=sync_captured.append,
+    )
     provider._open_ctx = _OpenMenuContext(
         click_pos=(0.0, 0.0),
         canvas_pos=(123.0, 456.0),
@@ -204,9 +213,10 @@ def test_paste_at_click_emits_paste_event_with_canvas_pos():
 
     provider.paste_at_click()
 
-    assert len(captured) == 1
-    event = captured[0]
-    assert isinstance(event, UserPasteClipboardEvent)
+    assert captured == []
+    assert len(sync_captured) == 1
+    event = sync_captured[0]
+    assert isinstance(event, SyncRequestClipboardPasteEvent)
     assert event.canvasX == 123.0
     assert event.canvasY == 456.0
 

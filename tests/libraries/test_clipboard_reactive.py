@@ -54,7 +54,7 @@ def test_copy_selection_handler_writes_to_session_context(register_edit_state):
     # Now ctx.data[EditState].clipboard is a ClipboardData
     assert edit.clipboard is not None
     assert isinstance(edit.clipboard, ClipboardData)
-    assert edit.clipboard.nodes == ["a"]
+    assert list(edit.clipboard.payload["nodes"].keys()) == ["a"]
 
 
 def test_paste_clipboard_handler_reads_from_session_context(register_edit_state):
@@ -66,21 +66,26 @@ def test_paste_clipboard_handler_reads_from_session_context(register_edit_state)
     session = MagicMock()
     session.context = ctx
 
-    handlers = SelectionHandlers(graph=MagicMock(), editor=MagicMock(), session_id="t", session=session)
+    editor = MagicMock()
+    editor.paste_clipboard.return_value = (["a_new"], [])  # (new_node_ids, new_edge_ids)
+    handlers = SelectionHandlers(graph=MagicMock(), editor=editor, session_id="t", session=session)
 
     # No clipboard → no-op (logs warning, doesn't crash)
     handlers.process_paste_clipboard(UserPasteClipboardEvent(canvasX=0, canvasY=0))
     # No assertion — just verify no crash.
 
-    # With clipboard → handler reads ctx.data[EditState].clipboard
+    # With clipboard → handler reads ctx.data[EditState].clipboard and pastes it
     ctx.data[EditStateCls].clipboard = ClipboardData(
-        nodes=["a"],
-        edges=[],
-        original_to_new_ids={},
-        bounding_box={"min_x": 0, "min_y": 0, "max_x": 0, "max_y": 0},
+        payload={
+            "haywire_clipboard": True,
+            "format_version": 1,
+            "source": {"session_id": "t", "timestamp": 1.0},
+            "bounding_box": {"min_x": 0, "min_y": 0, "max_x": 0, "max_y": 0},
+            "nodes": {"a": {"node_id": "a"}},
+            "edges": {},
+        },
         timestamp=1.0,
-        source_session_id="t",
     )
     handlers.process_paste_clipboard(UserPasteClipboardEvent(canvasX=10, canvasY=20))
-    # Handler reads clipboard from ctx; the actual paste logic is pending.
-    # Verify no crash.
+    # Handler reads the clipboard from ctx and routes it to editor.paste_clipboard.
+    editor.paste_clipboard.assert_called_once()

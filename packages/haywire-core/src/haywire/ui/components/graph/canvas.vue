@@ -271,6 +271,18 @@ export default {
             }
         },
 
+        async _handleClipboardPasteRequest(data) {
+            let text = "";
+            try {
+                text = await navigator.clipboard.readText();
+            } catch (err) {
+                // Permission denied / unavailable — emit empty text; the Python paste
+                // handler falls back to its in-process mirror.
+                console.warn("clipboard.readText() failed; emitting empty text (Python uses mirror)", err);
+            }
+            this.emitCanvasEvent(EventCreators.createUserPasteClipboard(data.canvasX, data.canvasY, text));
+        },
+
         handleSyncEvent(syncEvent) {
             console.log(`🔄 Python→Vue Sync: ${syncEvent.event_type}`, syncEvent.data);
             
@@ -306,6 +318,9 @@ export default {
                     break;
                 case GraphEvents.SyncCommands.SYNC_EDGE_CONNECT_CANCEL:
                     this._syncEdgeConnectCancel();
+                    break;
+                case GraphEvents.SyncCommands.SYNC_REQUEST_CLIPBOARD_PASTE:
+                    this._handleClipboardPasteRequest(data);
                     break;
                 default:
                     console.warn(`Unknown sync event: ${event_type}`);
@@ -398,8 +413,10 @@ export default {
         },
 
         _syncSelections(data) {
-            const { nodes, connections } = data;
-            
+            // SyncSelectionsEvent serializes the edge list under `edges`; alias
+            // it to `connections` for the rest of this handler.
+            const { nodes, edges: connections } = data;
+
             // Get current selection sets
             const currentNodes = this.selectionState.selectedNodes;
             const currentEdges = this.selectionState.selectedEdges;
@@ -1859,7 +1876,7 @@ export default {
         // VISUAL SELECTION UPDATES
         // =============================================================================
 
-        _updateNodeVisualSelection(nodeId, selected) {
+        _updateNodeVisualSelection(nodeId, selected, _retries = 6) {
             const nodeElement = document.getElementById(nodeId);
             if (nodeElement) {
                 if (selected) {
@@ -1867,10 +1884,16 @@ export default {
                 } else {
                     nodeElement.classList.remove('node-selected');
                 }
+            } else if (selected && _retries > 0) {
+                // The node's DOM element may not have rendered yet — e.g. right
+                // after a paste, where node-addition (a NiceGUI element pushed
+                // over the socket) and the selection sync arrive close together.
+                // Retry shortly until it appears.
+                setTimeout(() => this._updateNodeVisualSelection(nodeId, selected, _retries - 1), 50);
             }
         },
 
-        _updateEdgeVisualSelection(edge_id, selected) {
+        _updateEdgeVisualSelection(edge_id, selected, _retries = 6) {
             const edgeInfo = this.edgePaths.get(edge_id);
             if (edgeInfo && edgeInfo.path) {
                 if (selected) {
@@ -1880,6 +1903,10 @@ export default {
                     edgeInfo.path.classList.remove('connection-selected');
                     edgeInfo.path.style.strokeWidth = '2';
                 }
+            } else if (selected && _retries > 0) {
+                // Edge path may not be registered yet (e.g. just after a paste);
+                // retry shortly until edgePaths has it.
+                setTimeout(() => this._updateEdgeVisualSelection(edge_id, selected, _retries - 1), 50);
             }
         },
 

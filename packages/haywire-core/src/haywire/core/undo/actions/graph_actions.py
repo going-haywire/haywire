@@ -5,13 +5,16 @@ This module contains actions that operate on the graph structure,
 including node and edge manipulation, positioning, and selection.
 """
 
-from typing import Optional, Dict, List, Tuple
+import copy
+from typing import Any, Optional, Dict, List, Tuple
 from dataclasses import dataclass
 
 from ...node import NodeWrapper
 from ...graph.base import BaseGraph
 from ...edge.edge_wrapper import EdgeWrapper
+from ....ui.utils import generate_edge_uuid
 from ..base_action import ActionBase, CompositeAction
+from ..interfaces import IAction
 
 
 class AddNodeAction(ActionBase):
@@ -23,6 +26,8 @@ class AddNodeAction(ActionBase):
         registry_key: str,
         position: Tuple[float, float] = (3750, 3750),
         description: Optional[str] = None,
+        node_data: Optional[Dict[str, Any]] = None,
+        node_id: Optional[str] = None,
     ):
         """
         Initialize the add node action.
@@ -32,11 +37,18 @@ class AddNodeAction(ActionBase):
             registry_key: Node type to create
             position: Initial position for the node
             description: Optional description override
+            node_data: Optional serialized node state to recreate the node
+                from (used by paste). Only applied on first execution.
+            node_id: Optional pre-minted node id to adopt on first execution
+                (used by paste so remapped edges connect to the created node).
+                Only applied on first execution.
         """
         super().__init__(description or f"Add node '{registry_key}'")
         self.graph = graph
         self.registry_key = registry_key
         self.position = position
+        self.node_data = node_data
+        self.node_id = node_id
         self.wrapper: "NodeWrapper | None" = None
 
         self.undo_wrapper: "NodeWrapper | None" = None
@@ -46,7 +58,10 @@ class AddNodeAction(ActionBase):
         if self.wrapper is None:
             # First execution: Create new wrapper via graph
             self.wrapper = self.graph.create_node_wrapper(
-                registry_key=self.registry_key, position=self.position
+                registry_key=self.registry_key,
+                position=self.position,
+                node_data=self.node_data,
+                node_id=self.node_id,
             )
         else:
             # Redo: Re-add existing wrapper
@@ -398,39 +413,35 @@ class DuplicateNodeAction(CompositeAction):
 
 @dataclass
 class ClipboardData:
-    """Session-specific clipboard containing IDs of selected nodes/edges.
+    """Session clipboard mirror: the serialized payload + a copy timestamp.
 
-    Currently stores IDs only — the paste feature (PasteClipboardAction)
-    is not yet implemented. When implemented, this may be revised to hold
-    actual node/edge instances or serialized state.
+    Holds the same dict written to the OS clipboard (see
+    haywire.core.graph.clipboard.build_clipboard_payload), enabling a
+    synchronous, permission-independent copy->paste within one session.
     """
 
-    # IDs of selected nodes/edges in the source graph
-    nodes: List[str]
-    edges: List[str]
-
-    # Mapping for paste operations (filled in when paste implements id remapping)
-    original_to_new_ids: Dict[str, str]  # original_node_id -> new_node_id
-
-    # Positioning data
-    bounding_box: Dict[str, float]  # min_x, min_y, max_x, max_y
-
-    # Metadata
+    payload: Dict[str, Any]
     timestamp: float
-    source_session_id: str
-
-    def get_paste_offset(self, target_x: float, target_y: float) -> Tuple[float, float]:
-        """Calculate offset to position upper-left corner at target position"""
-        return (target_x - self.bounding_box["min_x"], target_y - self.bounding_box["min_y"])
 
 
 class PasteClipboardAction(CompositeAction):
-    """Composite action for pasting clipboard contents."""
+    """Undoable composite that pastes a clipboard payload into a graph.
+
+    Mints fresh node IDs, remaps edge endpoints through the old->new map,
+    offsets node positions so the selection's top-left lands at
+    (paste_x, paste_y), and composes AddNodeAction (carrying node_data) +
+    AddEdgeAction children. Undo/redo of all children is inherited from
+    CompositeAction.
+
+    Does NOT validate registry_keys: unknown node types degrade to placeholder
+    error nodes (carrying their node_data) via create_node_wrapper/build —
+    exactly as Graph.load_from_dict handles a file whose library is missing.
+    """
 
     def __init__(
         self,
         graph: BaseGraph,
-        clipboard_data: "ClipboardData",
+        payload: Dict[str, Any],
         paste_x: float,
         paste_y: float,
         description: Optional[str] = None,
@@ -440,18 +451,79 @@ class PasteClipboardAction(CompositeAction):
 
         Args:
             graph: The graph to paste into
-            clipboard_data: The clipboard data containing nodes and edges
+            payload: The clipboard payload (see build_clipboard_payload)
             paste_x: X position where to paste (upper-left corner)
             paste_y: Y position where to paste (upper-left corner)
             description: Optional description override
         """
-        # NOT YET IMPLEMENTED — scaffolding for a future paste feature.
-        # The previous body passed BaseNode instances to AddNodeAction (expects
-        # registry_key str), assigned `node.graph = graph` (BaseNode has no
-        # `graph` attribute), and called AddEdgeAction(graph, edge, ...) with
-        # the wrong signature. See git history for the broken sketch.
-        raise NotImplementedError(
-            "PasteClipboardAction is not yet implemented. "
-            "Requires AddNodeAction to accept a pre-built node (or use a separate "
-            "instantiate-from-instance action), and a paste-specific edge action."
-        )
+        self.graph = graph
+
+        nodes = payload.get("nodes", {})
+        edges = payload.get("edges", {})
+
+        # 1. Compute paste offset from the stored bounding box.
+        bbox = payload.get("bounding_box") or {}
+        off_x = paste_x - bbox.get("min_x", 0.0)
+        off_y = paste_y - bbox.get("min_y", 0.0)
+
+        actions: List[IAction] = []
+
+        # New element ids, exposed so the paste handler can auto-select the
+        # freshly pasted subgraph on the canvas.
+        self.new_node_ids: List[str] = []
+        self.new_edge_ids: List[str] = []
+
+        # 2. Mint new ids + build child AddNodeActions (no registry_key
+        #    validation — unknown types become placeholders, like file load).
+        id_map: Dict[str, str] = {}
+        for old_id, node in nodes.items():
+            new_id = graph.generate_unique_node_id()
+            id_map[old_id] = new_id
+            self.new_node_ids.append(new_id)
+            pos = node.get("position") or [0.0, 0.0]
+            new_x = float(pos[0]) + off_x
+            new_y = float(pos[1]) + off_y
+
+            # Copy node_data and force the restored position to the paste
+            # point. NodeWrapper.build() applies position via set_position
+            # early, but _initialize_from_dict() then restores the ORIGINAL
+            # posX/posY from the serialized props, landing the pasted node on
+            # top of its source. Overwriting the props here makes the restored
+            # position the paste point. deepcopy keeps the shared payload dict
+            # (mirror / OS-clipboard) intact for re-paste.
+            node_data = copy.deepcopy(node.get("node_data") or {})
+            props = node_data.setdefault("props", {})
+            props["posX"] = new_x
+            props["posY"] = new_y
+
+            actions.append(
+                AddNodeAction(
+                    graph=graph,
+                    registry_key=node["registry_key"],
+                    position=(new_x, new_y),
+                    node_data=node_data,
+                    node_id=new_id,
+                )
+            )
+
+        # 3. Remap edges through id_map (both endpoints guaranteed present by
+        #    the both-endpoints copy rule; skip defensively if not).
+        for edge in edges.values():
+            src = id_map.get(edge["source_node_id"])
+            sink = id_map.get(edge["sink_node_id"])
+            if src is None or sink is None:
+                continue
+            outlet = edge["outlet_port_id"]
+            inlet = edge["inlet_port_id"]
+            self.new_edge_ids.append(generate_edge_uuid(src, outlet, sink, inlet))
+            actions.append(
+                AddEdgeAction(
+                    graph=graph,
+                    source_node_id=src,
+                    outlet_pin_id=outlet,
+                    sink_node_id=sink,
+                    inlet_pin_id=inlet,
+                )
+            )
+
+        super().__init__(actions, description or "Paste clipboard")

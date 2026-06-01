@@ -16,7 +16,6 @@ from haywire.ui.panel import BasePanel
 from haywire.ui.panel.layout import PanelLayout
 from haywire.ui.panel.decorator import panel
 
-from ...state.edit_state import EditState
 from ...editors.graph_canvas.handlers.context_menu_actions import CanvasContextActions
 from ...editors.graph_canvas.node_menu_builder import NodeMenuBuilder
 
@@ -85,7 +84,10 @@ class CanvasPasteSelectionPanel(BasePanel):
 
     @classmethod
     def poll(cls, ctx: "SessionContext") -> bool:
-        return ctx.data[EditState].clipboard is not None
+        # Always show Paste: the OS clipboard is unreadable synchronously at
+        # poll time, so we can't know whether there is something to paste.
+        # The paste handler shows "Nothing to paste" if both sources are empty.
+        return True
 
     def draw(
         self,

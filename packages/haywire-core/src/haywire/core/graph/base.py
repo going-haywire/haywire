@@ -254,7 +254,11 @@ class BaseGraph:
                 return node_id
 
     def create_node_wrapper(
-        self, registry_key: str, position: Tuple[float, float] = (3750, 3750)
+        self,
+        registry_key: str,
+        position: Tuple[float, float] = (3750, 3750),
+        node_data: Optional[Dict[str, Any]] = None,
+        node_id: Optional[str] = None,
     ) -> Optional["NodeWrapper"]:
         """
         Create and add NodeWrapper (graph-managed factory pattern).
@@ -265,17 +269,23 @@ class BaseGraph:
         Args:
             registry_key: Node type to create
             position: (x, y) position for the node
+            node_data: Optional serialized node data to build the node from
+                (e.g. for paste/load). When None, the node is built blank.
+            node_id: Optional pre-minted node id to adopt. When None, a fresh
+                unique id is generated. Used by paste so edges remapped to a
+                pre-minted id connect to the node that actually gets created.
 
         Returns:
             NodeWrapper if successful, None if failed
         """
         from ..node.node_wrapper import NodeWrapper
 
-        node_id = self.generate_unique_node_id(get_registry_id_from_key(registry_key))
+        if node_id is None:
+            node_id = self.generate_unique_node_id(get_registry_id_from_key(registry_key))
         # Create new wrapper
         wrapper = NodeWrapper(registry_key=registry_key, node_id=node_id, graph=self, position=position)
 
-        wrapper.build()
+        wrapper.build(node_data or {})
 
         # Add to graph's collection (triggers validation)
         return self.add_node_wrapper(wrapper)

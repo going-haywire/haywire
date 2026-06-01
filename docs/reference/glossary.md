@@ -115,6 +115,21 @@ The three projections relate as: the **dataclass** (3) represents one entry in t
 
 ---
 
+## Clipboard & Copy/Paste *(new)*
+
+The copy/paste subsystem moves a selection of nodes and edges between graphs — within a session, across sessions, and across separate Studio processes on the same machine — by serializing a slice of the graph to JSON on the OS system clipboard.
+
+| Term | Definition | Aliases to avoid |
+|------|-----------|-----------------|
+| **Clipboard payload** | The JSON document written to the OS system clipboard on copy. A serialized graph **slice** (`NodeWrapper.serialize()` dicts + `Edge.to_dict()` dicts) plus paste metadata: `bounding_box`, `format_version`, and a source stamp (`timestamp`, source session/graph id). Reuses the native `.haywire` node/edge shapes. | Clipboard data (ambiguous with the `ClipboardData` dataclass), copy buffer |
+| **Clipboard slice** | The subset of a graph captured by a copy: the selected nodes plus only those edges whose **both** endpoints are in the selection (the **both-endpoints rule**). Boundary-crossing edges are dropped. | sub-graph (overloaded), selection (selection is the live UI state; the slice is its serialized projection) |
+| **Both-endpoints rule** | The edge-inclusion rule for a clipboard slice: an edge is copied iff its source node *and* its sink node are both in the selection. Guarantees a self-consistent paste — a pasted edge never dangles to a node that isn't on the clipboard. | — |
+| **Clipboard mirror** | The in-process `ClipboardData` object (`{payload, timestamp}`) held per-session in `EditState.clipboard` and managed by `SelectionHandlers` — a synchronous, permission-independent fast path for copy→paste within the same session. On paste, the OS clipboard text (read browser-side and shipped back via the paste round-trip) wins if it holds a valid haywire payload newer (by `timestamp`) than the mirror; otherwise the mirror is used. Cross-tab and cross-process paste fall through to the OS clipboard. | clipboard cache |
+| **ID remapping** | The paste-time rewrite: each clipboard node is assigned a fresh `node_id` via `generate_unique_node_id()`, an `old_id → new_id` map is built, every edge's `source_node_id`/`sink_node_id` is rewritten through it, and each edge's `edge_id` is recomputed from the new endpoints. Prevents id collisions with existing nodes. | id rewiring |
+| **PasteClipboardAction** | The undoable `CompositeAction` that applies a paste: mints fresh node ids, remaps edge endpoints, offsets positions to the paste point, and composes `AddNodeAction`s (carrying serialized `node_data`) + `AddEdgeAction`s. **Placeholder-tolerant** — it does *not* validate `registry_key`s; unknown node types paste as placeholder error nodes exactly as `Graph.load_from_dict` handles a file whose library is missing. Atomic: a paste undoes as one step. | — |
+
+---
+
 ## Library & Plugin System
 
 See also the **"Library" — five distinct meanings** table at the top of this glossary.

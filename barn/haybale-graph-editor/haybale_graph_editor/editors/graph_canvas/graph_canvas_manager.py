@@ -70,6 +70,7 @@ class GraphCanvasManager:
             editor=self.editor,
             session_id=self.session_id,
             session=self._session,
+            visual_layer=self.visual_layer,
         )
         self.interactions = InteractionHandlers(editor=self.editor)
 
@@ -198,7 +199,7 @@ class GraphCanvasManager:
 
     def _has_clipboard_content(self) -> bool:
         clipboard = self._session.context.data[EditState].clipboard
-        return clipboard is not None and len(clipboard.nodes) > 0
+        return clipboard is not None and len(clipboard.payload.get("nodes", {})) > 0
 
     def cleanup(self):
         """Unsubscribe from graph validation and release resources."""

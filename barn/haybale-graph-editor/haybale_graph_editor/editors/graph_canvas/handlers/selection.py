@@ -4,13 +4,14 @@ SelectionHandlers — selection state and clipboard (copy/paste) events.
 Owns: selected_nodes, selected_edges, clipboard.
 """
 
+import json
 import logging
-import time
 import traceback
 from typing import Optional, Set, TYPE_CHECKING
 
 from nicegui import ui
 
+from haywire.core.graph.clipboard import build_clipboard_payload, is_haywire_payload
 from haywire.core.undo.actions.graph_actions import ClipboardData
 from haywire.core.session.signals import SelectionMoved
 
@@ -26,6 +27,7 @@ if TYPE_CHECKING:
     from haywire.core.graph.editor import Editor
     from haywire.core.graph.base import BaseGraph
     from haywire.core.session.session import Session
+    from .visual_layer import VisualLayerHandlers
 
 logger = logging.getLogger(__name__)
 
@@ -44,11 +46,13 @@ class SelectionHandlers:
         editor: "Editor",
         session_id: str,
         session: Optional["Session"] = None,
+        visual_layer: Optional["VisualLayerHandlers"] = None,
     ):
         self.graph = graph
         self.editor = editor
         self.session_id = session_id
         self._session = session
+        self._visual_layer = visual_layer
 
         self.selected_nodes: Set[str] = set()
         self.selected_edges: Set[str] = set()
@@ -81,23 +85,24 @@ class SelectionHandlers:
 
     @handles_event(UserCopySelectedEvent)
     def process_copy_selection(self, event: UserCopySelectedEvent):
-        """Store selected elements in the session clipboard."""
+        """Serialize the selection to a payload; mirror it and write the OS clipboard."""
         logger.info(
             f"📋 Copying {len(event.selectedNodes)} nodes and {len(event.selectedEdges)} connections"
         )
         if self._session is None:
             logger.warning("Copy ignored: no session bound to handler")
             return
+        if not event.selectedNodes:
+            return
         try:
-            bounding_box = self._calculate_selection_bounds(event.selectedNodes)
-            self._session.context.data[EditState].clipboard = ClipboardData(
-                nodes=event.selectedNodes,
-                edges=event.selectedEdges,
-                original_to_new_ids={},
-                bounding_box=bounding_box,
-                timestamp=time.time(),
-                source_session_id=self.session_id,
+            payload = build_clipboard_payload(
+                self.graph, event.selectedNodes, event.selectedEdges, self.session_id
             )
+            self._session.context.data[EditState].clipboard = ClipboardData(
+                payload=payload, timestamp=payload["source"]["timestamp"]
+            )
+            # Write to the OS clipboard as JSON text (cross-process export).
+            ui.run_javascript(f"navigator.clipboard.writeText({json.dumps(json.dumps(payload))})")
         except Exception as e:
             logger.error(f"❌ Error during copy operation: {e}")
             ui.notify(f"Copy failed: {e}", type="negative")
@@ -105,43 +110,53 @@ class SelectionHandlers:
 
     @handles_event(UserPasteClipboardEvent)
     def process_paste_clipboard(self, event: UserPasteClipboardEvent):
-        """Paste clipboard contents — full implementation pending."""
+        """Paste: pick the newer of OS-clipboard text vs in-process mirror, then paste."""
         if self._session is None:
             logger.warning("Paste ignored: no session bound to handler")
             return
 
-        clipboard = self._session.context.data[EditState].clipboard
-        if not clipboard:
-            logger.warning("❌ No clipboard content to paste")
+        os_payload = None
+        if event.clipboardText:
+            try:
+                parsed = json.loads(event.clipboardText)
+                if is_haywire_payload(parsed):
+                    os_payload = parsed
+            except (ValueError, TypeError):
+                os_payload = None
+
+        mirror = self._session.context.data[EditState].clipboard
+        mirror_payload = mirror.payload if mirror is not None else None
+
+        # Arbitrate by timestamp: OS clipboard wins if newer (or mirror absent).
+        if os_payload is not None and mirror is not None:
+            os_ts = os_payload["source"]["timestamp"]
+            chosen = os_payload if os_ts >= mirror.timestamp else mirror_payload
+        else:
+            chosen = os_payload or mirror_payload
+
+        if chosen is None:
             ui.notify("Nothing to paste", type="warning")
             return
 
-        logger.info(
-            f"📄 Pasting {len(clipboard.nodes)} nodes and "
-            f"{len(clipboard.edges)} connections "
-            f"at ({event.canvasX}, {event.canvasY})"
-        )
-        # Full paste implementation: editor.paste(clipboard, x, y) — pending
+        result = self.editor.paste_clipboard(chosen, event.canvasX, event.canvasY)
+        if result is None:
+            # Unknown node types do NOT cause failure (they paste as placeholders);
+            # None here means an unexpected error.
+            ui.notify("Paste failed", type="negative")
+            return
 
-    # -------------------------------------------------------------------------
+        new_node_ids, new_edge_ids = result
+        n = len(new_node_ids)
+        ui.notify(f"Pasted {n} node{'s' if n != 1 else ''}", type="positive")
 
-    def _calculate_selection_bounds(self, node_ids) -> dict:
-        """Calculate bounding box of the given node IDs."""
-        if not node_ids:
-            return {"min_x": 0, "min_y": 0, "max_x": 0, "max_y": 0}
-
-        positions: list[tuple[float, float]] = []
-        for node_id in node_ids:
-            wrapper = self.graph.get_node_wrapper(node_id)
-            if wrapper and wrapper.node:
-                positions.append((wrapper.node.props.posX, wrapper.node.props.posY))
-
-        if not positions:
-            return {"min_x": 0, "min_y": 0, "max_x": 0, "max_y": 0}
-
-        return {
-            "min_x": min(p[0] for p in positions),
-            "min_y": min(p[1] for p in positions),
-            "max_x": max(p[0] for p in positions),
-            "max_y": max(p[1] for p in positions),
-        }
+        # Auto-select the freshly pasted subgraph so the user can drag it
+        # immediately. Update both the local record and the session EditState,
+        # then push the selection to the canvas.
+        self.selected_nodes = set(new_node_ids)
+        self.selected_edges = set(new_edge_ids)
+        if self._session is not None:
+            edit_state = self._session.context.data[EditState]
+            edit_state.selected_nodes = self.selected_nodes
+            edit_state.selected_edges = self.selected_edges
+        if self._visual_layer is not None:
+            self._visual_layer.sync_selections(new_node_ids, new_edge_ids)

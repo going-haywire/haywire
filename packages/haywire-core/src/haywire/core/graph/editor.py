@@ -1,5 +1,5 @@
 import logging
-from typing import List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 from haywire.core.graph.base import BaseGraph
 from haywire.core.edge.edge_wrapper import EdgeWrapper
 from haywire.core.node.node_wrapper import NodeWrapper
@@ -12,6 +12,7 @@ from haywire.core.undo.actions.graph_actions import (
     MoveNodesAction,
     RemoveElementsAction,
     AddEdgeAction,
+    PasteClipboardAction,
 )
 
 logger = logging.getLogger(__name__)
@@ -72,6 +73,30 @@ class Editor:
 
         except Exception as e:
             logger.error(f"Error creating node of type {registry_key}: {e}")
+            return None
+
+    def paste_clipboard(
+        self, payload: Dict[str, Any], paste_x: float, paste_y: float
+    ) -> Optional[Tuple[List[str], List[str]]]:
+        """Paste a clipboard payload at (paste_x, paste_y) as one undoable action.
+
+        Unknown node types in the payload are NOT rejected — they paste as
+        placeholder error nodes (like loading a .haywire file whose library is
+        missing).
+
+        Returns ``(new_node_ids, new_edge_ids)`` for the freshly pasted
+        elements (so callers can auto-select them), or ``None`` on an
+        unexpected error.
+        """
+        try:
+            action = PasteClipboardAction(
+                graph=self.graph, payload=payload, paste_x=paste_x, paste_y=paste_y
+            )
+            self.history_manager.add_action(action)
+            logger.info(f"Pasted {len(payload.get('nodes', {}))} nodes at ({paste_x}, {paste_y})")
+            return (action.new_node_ids, action.new_edge_ids)
+        except Exception as e:
+            logger.error(f"Error pasting clipboard: {e}")
             return None
 
     def move_nodes(self, nodes: List[str], deltaX: float, deltaY: float) -> bool:

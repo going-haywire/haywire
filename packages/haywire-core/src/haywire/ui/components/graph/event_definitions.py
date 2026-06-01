@@ -258,6 +258,10 @@ class ContextMenuPortEvent(BaseGraphEvent):
 class UserPasteClipboardEvent(BaseGraphEvent):
     canvasX: float
     canvasY: float
+    # OS-clipboard text read in the Vue layer (avoids a NiceGUI async trap on
+    # the synchronous Python dispatcher). Empty when the in-process mirror
+    # should be used instead. See docs/superpowers/plans/2026-06-01-node-copy-paste.md.
+    clipboardText: str = ""
 
 
 # =============================================================================
@@ -389,3 +393,14 @@ class SyncEdgeConnectResumeEvent(BaseGraphEvent):
 @dataclass
 class SyncEdgeConnectCancelEvent(BaseGraphEvent):
     pass
+
+
+@graph_event(
+    "syncRequestClipboardPaste",
+    category="sync",
+    description="Ask Vue to read the OS clipboard and emit a paste",
+)
+@dataclass
+class SyncRequestClipboardPasteEvent(BaseGraphEvent):
+    canvasX: float
+    canvasY: float

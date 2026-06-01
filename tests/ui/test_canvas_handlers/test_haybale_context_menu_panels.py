@@ -320,12 +320,15 @@ def test_copy_selection_poll_false_when_nothing_selected(register_edit_state):
 
 def test_paste_selection_poll_true_when_clipboard_has_content(register_edit_state):
     clipboard = ClipboardData(
-        nodes=["n1"],
-        edges=[],
-        original_to_new_ids={},
-        bounding_box={"min_x": 0, "min_y": 0, "max_x": 0, "max_y": 0},
+        payload={
+            "haywire_clipboard": True,
+            "format_version": 1,
+            "source": {"session_id": "test", "timestamp": 0.0},
+            "bounding_box": {"min_x": 0, "min_y": 0, "max_x": 0, "max_y": 0},
+            "nodes": {"n1": {"node_id": "n1"}},
+            "edges": {},
+        },
         timestamp=0.0,
-        source_session_id="test",
     )
     ctx, _ = make_context(register_edit_state, clipboard=clipboard)
     assert PasteSelectionPanel.poll(ctx) is True

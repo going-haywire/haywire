@@ -321,6 +321,17 @@ class SessionContextMenuProvider(IContextMenuProvider, BaseContextMenuProvider):
         if self._open_popup is not None:
             self._open_popup.close()
 
+    def _emit_sync(self, event) -> None:
+        """Emit a sync event from a context-menu action and close the popup.
+
+        Sync sibling of ``_emit``: selecting a menu item that drives a Python→Vue
+        sync round-trip (e.g. paste) should dismiss the menu just like any other.
+        """
+        if self._on_emit_sync_event:
+            self._on_emit_sync_event(event)
+        if self._open_popup is not None:
+            self._open_popup.close()
+
     # CanvasContextActions
 
     def create_node_at_click(self, registry_key: str) -> None:
@@ -347,13 +358,13 @@ class SessionContextMenuProvider(IContextMenuProvider, BaseContextMenuProvider):
         )
 
     def paste_at_click(self) -> None:
-        """Emit UserPasteClipboardEvent at the click's canvas position."""
-        from haywire.ui.components.graph.event_definitions import UserPasteClipboardEvent
+        """Ask Vue to read the OS clipboard and emit a paste at the click position."""
+        from haywire.ui.components.graph.event_definitions import SyncRequestClipboardPasteEvent
 
         if self._open_ctx is None or self._open_ctx.canvas_pos is None:
             return
         x, y = self._open_ctx.canvas_pos
-        self._emit(UserPasteClipboardEvent(canvasX=x, canvasY=y))
+        self._emit_sync(SyncRequestClipboardPasteEvent(canvasX=x, canvasY=y))
 
     # NodeContextActions
 
@@ -432,6 +443,21 @@ class SessionContextMenuProvider(IContextMenuProvider, BaseContextMenuProvider):
             UserCopySelectedEvent(
                 selectedNodes=list(edit.selected_nodes),
                 selectedEdges=list(edit.selected_edges),
+            )
+        )
+
+    def delete_selection(self) -> None:
+        """Emit UserRemoveEvent for the whole ctx.data[EditState] selection.
+
+        Removal is a single undoable operation (editor.remove_elements).
+        """
+        from haywire.ui.components.graph.event_definitions import UserRemoveEvent
+
+        edit = self._context.data[EditState]
+        self._emit(
+            UserRemoveEvent(
+                nodes=list(edit.selected_nodes),
+                edges=list(edit.selected_edges),
             )
         )
 

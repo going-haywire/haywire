@@ -66,7 +66,10 @@ class SelectionPasteSelectionPanel(BasePanel):
 
     @classmethod
     def poll(cls, ctx: "SessionContext") -> bool:
-        return ctx.data[EditState].clipboard is not None
+        # Always show Paste: the OS clipboard is unreadable synchronously at
+        # poll time, so we can't know whether there is something to paste.
+        # The paste handler shows "Nothing to paste" if both sources are empty.
+        return True
 
     def draw(
         self,
@@ -77,4 +80,33 @@ class SelectionPasteSelectionPanel(BasePanel):
             "Paste",
             icon=hui.icon.paste,
             on_click=self.actions.paste_at_click,
+        )
+
+
+@panel(
+    actions=SelectionContextActions,
+    focus=SelectionFocus,
+    label="Delete Selection",
+    icon=hui.icon.delete,
+    order=30,
+)
+class DeleteSelectionPanel(BasePanel):
+    """Delete every node and edge in the current selection in one undoable step."""
+
+    actions: SelectionContextActions
+
+    @classmethod
+    def poll(cls, ctx: "SessionContext") -> bool:
+        edit = ctx.data[EditState]
+        return bool(edit.selected_nodes or edit.selected_edges)
+
+    def draw(
+        self,
+        ctx: "SessionContext",
+        layout: PanelLayout,
+    ) -> None:
+        layout.button(
+            "Delete Selection",
+            icon=hui.icon.delete,
+            on_click=self.actions.delete_selection,
         )
