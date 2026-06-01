@@ -82,6 +82,7 @@ Things that aren't visible from the code itself — bugs we hit, framework quirk
 - [feedback_nicegui_autofocus.md](.insights/feedback_nicegui_autofocus.md) — autofocus in dynamic popups needs `ui.timer(0.1, ...) + run_javascript`.
 - [feedback_nicegui_compact_panels.md](.insights/feedback_nicegui_compact_panels.md) — `compact-fields` utility class for dense field layouts.
 - [feedback_nicegui_headless_tab_panels.md](.insights/feedback_nicegui_headless_tab_panels.md) — `ui.tab_panels` works without `ui.tabs`; keep-alive container pattern.
+- [feedback_nicegui_nested_menu_flyouts.md](.insights/feedback_nicegui_nested_menu_flyouts.md) — nested `ui.menu` flyouts: 3.x drops closed-menu DOM, QMenu z-6000 < Popup z-7001, hover-open + sibling/cascade close must be wired (no close-timers).
 - [project_popup_vue.md](.insights/project_popup_vue.md) — `__enter__` must return a `ui.column`; Vue 3 doesn't proxy `_`-prefixed `data()` properties.
 
 ### Test traps

@@ -1,18 +1,21 @@
-"""
-This component builds organized, hierarchical menus using node identity information
-from the NodeFactory, creating nested ui.menu structures based on the menu paths
-defined in node decorators (e.g., menu='core/basic').
-"""
-
 from nicegui import ui
 from typing import Any, Dict, List, Optional, Callable
 from haywire.core.node.info import NodeInfo
 from haywire.core.node.factory import NodeFactory
 from haywire.ui import elements as hui
 
+# Above the context-menu popup card (z-index 7001); Quasar QMenu defaults to 6000.
+_MENU_Z = "z-index: 7100"
+
+# Flyout to the right of the anchor, cascading rightward for nested submenus.
+_FLYOUT_PROPS = 'anchor="top end" self="top start"'
+
 
 class NodeMenuBuilder:
-    """Builds hierarchical NiceGUI menus from NodeFactory node information."""
+    """Builds organized, hierarchical menus using node identity information
+        from the NodeFactory, based on the menu paths defined in node decorators
+        (e.g., menu='core/basic').
+    """
 
     def __init__(
         self,
@@ -58,24 +61,27 @@ class NodeMenuBuilder:
                 # Container for search results (initially hidden)
                 self._search_results = ui.column().classes("w-96 gap-1").style("display: none")
 
-            # Main menu content - "Add Nodes" button with menu
+            # Main menu content — the "Add Nodes" trigger and its flyout menu.
             self._main_menu = ui.column().classes("w-full")
 
             with self._main_menu:
-                # Create "Add Nodes" button with complete menu
                 with (
                     ui.button("➕ Add Nodes")
                     .props("flat")
                     .classes("w-full hw-text-body hw-list-item-hover text-sm")
                 ):
-                    with ui.menu():
-                        # Add recent nodes section if provided
+                    # Click-opened menu, raised above the popup and flown to the right.
+                    with ui.menu().props(_FLYOUT_PROPS).style(_MENU_Z):
+                        # Top-level flyouts are siblings: opening one closes the rest.
+                        top_level: List[ui.menu] = []
+
+                        # Recent nodes section if provided
                         if recent_nodes:
-                            self._add_recent_nodes_section(recent_nodes)
+                            self._add_recent_nodes_section(recent_nodes, top_level)
                             ui.separator()
 
-                        # Build hierarchical menu
-                        self._build_hierarchical_menu()
+                        # Build hierarchical category tree
+                        self._build_hierarchical_menu(top_level)
 
         return menu_container
 
@@ -136,28 +142,31 @@ class NodeMenuBuilder:
         tooltip_text = f"{description}\nLibrary: {library_id}"
         btn.tooltip(tooltip_text)
 
-    def _add_recent_nodes_section(self, recent_nodes: List[str]):
-        """Add section for recently created nodes using native menu with hover functionality."""
+    def _add_recent_nodes_section(self, recent_nodes: List[str], siblings: List[ui.menu]):
+        """Add a hover-opening flyout submenu for recently created nodes."""
         if not recent_nodes:
             return
 
-        with ui.menu_item("⏱️ Recent Nodes", auto_close=False).props("dense") as menu_item:
+        with ui.menu_item("⏱️ Recent Nodes", auto_close=False).props("dense") as item:
             with ui.item_section().props("side"):
                 ui.icon("keyboard_arrow_right")
 
-            # Create submenu that opens on hover
-            submenu = ui.menu().props('anchor="top end" self="top start" auto-close')
+            submenu = ui.menu().props(f"{_FLYOUT_PROPS} auto-close").style(_MENU_Z)
             with submenu:
                 for registry_key in recent_nodes:
                     node_info = self.node_factory.get_node_info(registry_key)
                     if node_info:
                         self._create_menu_item_for_node(node_info)
 
-            # Add hover functionality with better mouse handling
-            self._add_hover_behavior(menu_item, submenu)
+            siblings.append(submenu)
+            self._open_on_hover(item, submenu, siblings)
 
-    def _build_hierarchical_menu(self):
-        """Build hierarchical menu using menu paths from node identities."""
+    def _build_hierarchical_menu(self, siblings: List[ui.menu]):
+        """Build hierarchical menu using menu paths from node identities.
+
+        ``siblings`` is the open-flyout group for this level: the top-level
+        categories share it with the recent-nodes flyout so only one stays open.
+        """
         # Get menu structure from factory
         menu_structure = self._get_menu_structure()
 
@@ -165,7 +174,7 @@ class NodeMenuBuilder:
         menu_tree = self._build_menu_tree(menu_structure)
 
         # Create menu UI elements
-        self._create_menu_tree_ui(menu_tree)
+        self._create_menu_tree_ui(menu_tree, siblings)
 
     def _get_menu_structure(self) -> Dict[str, List[NodeInfo]]:
         """Get menu structure from factory with caching."""
@@ -208,114 +217,50 @@ class NodeMenuBuilder:
         self._menu_tree_cache = tree
         return tree
 
-    def _create_menu_tree_ui(self, menu_tree: Dict, level: int = 0):
-        """Create UI elements for the menu tree using native ui.menu components."""
+    def _create_menu_tree_ui(self, menu_tree: Dict, siblings: List[ui.menu]):
+        """Render the menu tree as a category list with nested flyout submenus.
+
+        Each category becomes a ``ui.menu_item`` whose nested ``ui.menu``
+        flyout opens on hover; direct nodes are clickable menu items, and
+        subcategories recurse into further flyouts. ``siblings`` is the shared
+        open-flyout group for this level (see ``_open_on_hover``).
+        """
         for category_name, category_data in sorted(menu_tree.items()):
-            nodes: List[NodeInfo] = category_data.get("_nodes", [])
-            children = category_data.get("_children", {})
+            self._create_category_submenu(category_name, category_data, siblings)
 
-            if not nodes and not children:
-                continue
+    def _create_category_submenu(self, category_name: str, category_data: Dict, siblings: List[ui.menu]):
+        """Render one category as a hover-opening flyout holding its nodes and subcategories."""
+        nodes: List[NodeInfo] = category_data.get("_nodes", [])
+        children: Dict = category_data.get("_children", {})
 
-            # Create menu button and associated menu
-            if children and nodes:
-                # Category has both subcategories and direct nodes
-                self._create_mixed_category_menu(category_name, nodes, children)
-            elif children:
-                # Category only has subcategories
-                self._create_submenu_category(category_name, children)
-            else:
-                # Category only has direct nodes
-                self._create_leaf_category_menu(category_name, nodes)
-
-    def _create_mixed_category_menu(self, category_name: str, nodes: List[NodeInfo], children: Dict):
-        """Create menu for category that has both direct nodes and
-        subcategories with hover functionality."""
-        with ui.menu_item(f"📁 {category_name}", auto_close=False).props("dense") as menu_item:
-            with ui.item_section().props("side"):
-                ui.icon("keyboard_arrow_right")
-
-            # Create submenu that opens on hover
-            submenu = ui.menu().props('anchor="top end" self="top start" auto-close')
-            with submenu:
-                # Add direct nodes first
-                for node_info in sorted(nodes, key=lambda x: x.identity.label):
-                    node_item = self._create_menu_item_for_node(node_info)
-                    # Add hover behavior to prevent menu closing on leaf nodes
-                    node_item.on("mouseenter", lambda: None)  # Keep menu open
-
-                if nodes:  # Add separator if we have both nodes and subcategories
-                    ui.separator()
-
-                # Add subcategories
-                for subcat_name, subcat_data in sorted(children.items()):
-                    self._create_submenu_item(subcat_name, subcat_data)
-
-            # Add hover functionality with better mouse handling
-            self._add_hover_behavior(menu_item, submenu)
-
-    def _create_submenu_category(self, category_name: str, children: Dict):
-        """Create menu for category that only has subcategories with hover functionality."""
-        with ui.menu_item(f"📁 {category_name}", auto_close=False).props("dense") as menu_item:
-            with ui.item_section().props("side"):
-                ui.icon("keyboard_arrow_right")
-
-            # Create submenu that opens on hover
-            submenu = ui.menu().props('anchor="top end" self="top start" auto-close')
-            with submenu:
-                for subcat_name, subcat_data in sorted(children.items()):
-                    self._create_submenu_item(subcat_name, subcat_data)
-
-            # Add hover functionality with better mouse handling
-            self._add_hover_behavior(menu_item, submenu)
-
-    def _create_leaf_category_menu(self, category_name: str, nodes: List[NodeInfo]):
-        """Create menu for category that only has direct nodes with hover functionality."""
-        with ui.menu_item(f"📁 {category_name}", auto_close=False).props("dense") as menu_item:
-            with ui.item_section().props("side"):
-                ui.icon("keyboard_arrow_right")
-
-            # Create submenu that opens on hover
-            submenu = ui.menu().props('anchor="top end" self="top start" auto-close')
-            with submenu:
-                for node_info in sorted(nodes, key=lambda x: x.identity.label):
-                    self._create_menu_item_for_node(node_info)
-
-            # Add hover functionality with better mouse handling
-            self._add_hover_behavior(menu_item, submenu)
-
-    def _create_submenu_item(self, subcat_name: str, subcat_data: Dict):
-        """Create a submenu item for a subcategory with hover functionality."""
-        subnodes = subcat_data.get("_nodes", [])
-        subchildren = subcat_data.get("_children", {})
-
-        if not subnodes and not subchildren:
+        if not nodes and not children:
             return
 
-        # Create menu item with hover-triggered submenu
-        with ui.menu_item(f"📁 {subcat_name}", auto_close=False).props("dense") as menu_item:
+        with ui.menu_item(f"📁 {category_name}", auto_close=False).props("dense") as item:
             with ui.item_section().props("side"):
                 ui.icon("keyboard_arrow_right")
 
-            # Create submenu that opens on hover
-            submenu = ui.menu().props('anchor="top end" self="top start" auto-close')
+            submenu = ui.menu().props(f"{_FLYOUT_PROPS} auto-close").style(_MENU_Z)
+            # Child flyouts form their own sibling group, one level deeper.
+            child_siblings: List[ui.menu] = []
             with submenu:
-                # Add direct nodes if any
-                for node_info in sorted(subnodes, key=lambda x: x.identity.label):
+                # Direct nodes first
+                for node_info in sorted(nodes, key=lambda x: x.identity.label):
                     self._create_menu_item_for_node(node_info)
 
-                if subnodes and subchildren:
+                if nodes and children:
                     ui.separator()
 
-                # Add nested subcategories
-                for nested_name, nested_data in sorted(subchildren.items()):
-                    self._create_submenu_item(nested_name, nested_data)
+                # Nested subcategories
+                for subcat_name, subcat_data in sorted(children.items()):
+                    self._create_category_submenu(subcat_name, subcat_data, child_siblings)
 
-            # Add hover functionality with better mouse handling
-            self._add_hover_behavior(menu_item, submenu)
+            submenu._child_flyouts = child_siblings  # type: ignore[attr-defined]
+            siblings.append(submenu)
+            self._open_on_hover(item, submenu, siblings)
 
     def _create_menu_item_for_node(self, node_info: NodeInfo):
-        """Create a menu item for a single node."""
+        """Create a clickable menu item for a single node."""
         menu_item = ui.menu_item(
             f"+ {node_info.identity.label}", lambda ni=node_info: self._on_node_selected(ni)
         ).props("dense")
@@ -332,58 +277,29 @@ class NodeMenuBuilder:
 
         return menu_item
 
-    def _add_hover_behavior(self, menu_item, submenu):
-        """Add hover behavior with delay to prevent premature closing."""
-        import asyncio
+    def _open_on_hover(self, anchor: ui.menu_item, submenu: ui.menu, siblings: List[ui.menu]) -> None:
+        """Open ``submenu`` on hover of ``anchor``, closing its sibling flyouts.
 
-        # Store timer reference
-        close_timer = None
+        Quasar's QMenu opens on its anchor's *click*, not hover, so we open it
+        explicitly on ``mouseenter``. ``auto-close`` dismisses a flyout on item
+        selection or click-away, but NOT when the mouse moves to a *sibling*
+        category at the same level — so each open first closes the other flyouts
+        in its ``siblings`` group (and their open descendants), leaving exactly
+        one open path from the root at a time. Closing on click-away is still
+        left to ``auto-close``, which avoids the close-timer machinery that broke
+        this under NiceGUI 3.x's render model.
+        """
 
-        def open_submenu():
-            nonlocal close_timer
-            # Cancel any pending close timer
-            if close_timer:
-                close_timer.cancel()
-                close_timer = None
+        def open_and_close_siblings() -> None:
+            for other in siblings:
+                if other is not submenu:
+                    self._close_flyout(other)
             submenu.open()
 
-        def schedule_close():
-            nonlocal close_timer
+        anchor.on("mouseenter", open_and_close_siblings)
 
-            # Schedule closing with a longer delay
-            async def delayed_close():
-                await asyncio.sleep(0.8)  # Increased to 800ms delay
-                submenu.close()
-
-            if close_timer:
-                close_timer.cancel()
-            close_timer = asyncio.create_task(delayed_close())
-
-        def cancel_close():
-            nonlocal close_timer
-            # Cancel scheduled close when mouse enters submenu
-            if close_timer:
-                close_timer.cancel()
-                close_timer = None
-
-        # Add hover events to menu item - only trigger close when leaving the menu item
-        menu_item.on("mouseenter", open_submenu)
-        menu_item.on("mouseleave", schedule_close)
-
-        # Add hover events to submenu to prevent closing when mouse is over submenu content
-        submenu.on("mouseenter", cancel_close)
-
-        # Store the cancel_close function on the submenu so child nodes can access it
-        submenu._cancel_close = cancel_close
-
-    def _create_global_menu_leave_handler(self):
-        """Create a handler that closes all open submenus when leaving the main menu area."""
-        import asyncio
-
-        async def close_all_submenus():
-            await asyncio.sleep(0.5)  # Longer delay for main menu
-            # This will close all open submenus
-            # The individual submenu close handlers will handle their own menus
-            pass
-
-        return lambda: asyncio.create_task(close_all_submenus())
+    def _close_flyout(self, submenu: ui.menu) -> None:
+        """Close ``submenu`` and any open descendant flyouts (depth-first)."""
+        for child in getattr(submenu, "_child_flyouts", ()):
+            self._close_flyout(child)
+        submenu.close()
