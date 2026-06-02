@@ -12,13 +12,14 @@ class PrintTerminalMessageNode(BaseNode):
 
     def init(self):
         from haybale_core.types import EXEC, STRING
+        from haybale_core.widgets import TextWidget
 
         # Control flow
         self.add(EXEC.as_inlet("exec"))
         self.add(EXEC.as_outlet("done"))
 
         # Data input
-        self.add(STRING.as_inlet("message", default="Hello, World!"))
+        self.add(STRING.as_inlet("message", default="Hello, World!", widget=TextWidget.config()))
 
     def worker(self, context: ExecutionContext) -> str | None:
         message = self.value("message")

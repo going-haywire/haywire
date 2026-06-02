@@ -314,3 +314,115 @@ class TestInterpreter:
         assert "queued" in scheduler
 
         interpreter.shutdown()
+
+    # ------------------------------------------------------------------
+    # Shutdown protocol end-to-end smoke tests: stopping a graph with
+    # running TickEmit producer threads must return (not hang) in both the
+    # no-Shutdown-node and graceful-Shutdown-wired cases.
+    #
+    # NOTE: the deterministic regression for the underlying deadlock lives
+    # in test_scheduler_wait.py (wait_for_completion timeout contract).
+    # These integration tests exercise the full stop_execution protocol but
+    # cannot reliably reproduce the hang on their own, because an idle Tick
+    # flow drains faster than the emitter produces.
+    # ------------------------------------------------------------------
+
+    def _build_two_tick_emitters(self, graph: BaseGraph, with_shutdown: bool) -> BaseGraph:
+        """Two BeginPlay→TickEmit→Tick chains; optionally wire Shutdown→stop.
+
+        Mirrors the user's reproduction graph: two independent TickEmit
+        producers, each emitting callbacks into its own Tick event flow. When
+        ``with_shutdown`` is True a single Shutdown node drives both emitters'
+        ``stop`` inlets (the graceful path).
+        """
+        from haybale_core.nodes.emits.tick_emit import TickEmitNode
+        from haybale_core.nodes.events.tick_event import TickEventNode
+        from haybale_core.nodes.events.begin_play import BeginPlayNode
+        from haybale_core.nodes.events.shutdown import ShutdownNode
+
+        begin = graph.create_node_wrapper(BeginPlayNode.class_identity.registry_key, position=(0, 0))
+        shutdown = (
+            graph.create_node_wrapper(ShutdownNode.class_identity.registry_key, position=(0, 200))
+            if with_shutdown
+            else None
+        )
+
+        for i in range(2):
+            emit = graph.create_node_wrapper(
+                TickEmitNode.class_identity.registry_key, position=(200, i * 300)
+            )
+            tick = graph.create_node_wrapper(
+                TickEventNode.class_identity.registry_key, position=(400, i * 300)
+            )
+            # Tick listener feeds the emitter's pooled callback inlet.
+            graph.create_edge_wrapper(tick.node_id, "listen_callback", emit.node_id, "callback_names")
+            # BeginPlay starts each emitter.
+            graph.create_edge_wrapper(begin.node_id, "exec", emit.node_id, "start")
+            # Shutdown stops each emitter (graceful path).
+            if shutdown is not None:
+                graph.create_edge_wrapper(shutdown.node_id, "exec", emit.node_id, "stop")
+
+        return graph
+
+    def _stop_must_not_hang(self, interpreter: Interpreter, ceiling: float = 8.0) -> float:
+        """Run stop_execution on a watchdog; fail if it exceeds ``ceiling``."""
+        import threading
+        import time as _time
+
+        done = threading.Event()
+        start = _time.monotonic()
+
+        def _stop():
+            interpreter.stop_execution()
+            done.set()
+
+        worker = threading.Thread(target=_stop, daemon=True)
+        worker.start()
+        if not done.wait(timeout=ceiling):
+            raise AssertionError(
+                f"stop_execution did not return within {ceiling}s — shutdown hang regression"
+            )
+        return _time.monotonic() - start
+
+    def test_stop_with_tick_emitters_no_shutdown_node(
+        self, graph_with_library_system: BaseGraph, library_system: LibrarySystemService
+    ):
+        """Two running TickEmit producers, no Shutdown node: stop must not hang.
+
+        This is the original reported bug. Without a Shutdown flow there is no
+        graceful path, so stop skips the grace period and force-tears-down
+        immediately; on_shutdown is the last-resort thread kill.
+        """
+        import time
+
+        graph = self._build_two_tick_emitters(graph_with_library_system, with_shutdown=False)
+
+        interpreter = Interpreter()
+        interpreter.load_graph(graph)
+        interpreter.start_execution()
+
+        # Let the tick threads spin up and start feeding the Tick queues.
+        time.sleep(0.2)
+
+        elapsed = self._stop_must_not_hang(interpreter)
+        # No graceful path => no grace period => fast stop.
+        assert elapsed < 4.0
+        assert not interpreter.is_executing
+
+    def test_stop_with_tick_emitters_graceful_shutdown(
+        self, graph_with_library_system: BaseGraph, library_system: LibrarySystemService
+    ):
+        """Two running TickEmit producers with Shutdown→stop wired: stop is graceful."""
+        import time
+
+        graph = self._build_two_tick_emitters(graph_with_library_system, with_shutdown=True)
+
+        interpreter = Interpreter()
+        interpreter.load_graph(graph)
+        interpreter.start_execution()
+
+        time.sleep(0.2)
+
+        # Graceful path runs during the grace period; must still not hang.
+        self._stop_must_not_hang(interpreter)
+        assert not interpreter.is_executing

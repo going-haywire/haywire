@@ -5,7 +5,7 @@
   "version": "1.0.0",
   "author": "",
   "created_at": null,
-  "modified_at": "2026-05-11T23:12:01.774278",
+  "modified_at": "2026-06-02T22:38:36.956231",
   "nodes": {
     "BeginPlayNode_8d7335c8": {
       "node_id": "BeginPlayNode_8d7335c8",
@@ -60,7 +60,7 @@
               "registry_key": "core:type:FLOAT"
             },
             "field_data": {
-              "value": 1776278658.577015
+              "value": 1780432634.060287
             }
           }
         },
@@ -96,11 +96,11 @@
           "_error_priority": 0
         },
         "library": {
-          "label": "Haywire Core",
-          "version": "1.0.0",
-          "description": "Core Haywire library with fundamental components",
-          "url": "https://github.com/maybites/haywire",
-          "help_url": "https://github.com/maybites/haywire",
+          "label": "Haybale Core",
+          "version": "0.0.13",
+          "description": "Haywire library with fundamental components",
+          "url": "https://github.com/going-haywire/haywire",
+          "help_url": "https://github.com/going-haywire/haywire",
           "author": "maybites",
           "author_url": "https://maybites.ch",
           "folder_path": "/Volumes/Ddrive/06_open_tracking_tool/haywire/haywire-repo/barn/haybale-core/haybale_core",
@@ -111,9 +111,12 @@
             "core",
             "types",
             "widgets",
-            "skins"
+            "skins",
+            "adapters"
           ],
-          "file_watcher": false
+          "file_watcher": false,
+          "needs_refresh": false,
+          "needs_restart": false
         }
       }
     },
@@ -309,11 +312,11 @@
           "_error_priority": 0
         },
         "library": {
-          "label": "Haywire Core",
-          "version": "1.0.0",
-          "description": "Core Haywire library with fundamental components",
-          "url": "https://github.com/maybites/haywire",
-          "help_url": "https://github.com/maybites/haywire",
+          "label": "Haybale Core",
+          "version": "0.0.13",
+          "description": "Haywire library with fundamental components",
+          "url": "https://github.com/going-haywire/haywire",
+          "help_url": "https://github.com/going-haywire/haywire",
           "author": "maybites",
           "author_url": "https://maybites.ch",
           "folder_path": "/Volumes/Ddrive/06_open_tracking_tool/haywire/haywire-repo/barn/haybale-core/haybale_core",
@@ -324,9 +327,12 @@
             "core",
             "types",
             "widgets",
-            "skins"
+            "skins",
+            "adapters"
           ],
-          "file_watcher": false
+          "file_watcher": false,
+          "needs_refresh": false,
+          "needs_restart": false
         }
       }
     },
@@ -409,7 +415,7 @@
               "registry_key": "core:type:FLOAT"
             },
             "field_data": {
-              "value": 0.01580774993635714
+              "value": 0.04502645810134709
             }
           }
         },
@@ -446,11 +452,11 @@
           "_error_priority": 0
         },
         "library": {
-          "label": "Haywire Core",
-          "version": "1.0.0",
-          "description": "Core Haywire library with fundamental components",
-          "url": "https://github.com/maybites/haywire",
-          "help_url": "https://github.com/maybites/haywire",
+          "label": "Haybale Core",
+          "version": "0.0.13",
+          "description": "Haywire library with fundamental components",
+          "url": "https://github.com/going-haywire/haywire",
+          "help_url": "https://github.com/going-haywire/haywire",
           "author": "maybites",
           "author_url": "https://maybites.ch",
           "folder_path": "/Volumes/Ddrive/06_open_tracking_tool/haywire/haywire-repo/barn/haybale-core/haybale_core",
@@ -461,9 +467,12 @@
             "core",
             "types",
             "widgets",
-            "skins"
+            "skins",
+            "adapters"
           ],
-          "file_watcher": false
+          "file_watcher": false,
+          "needs_refresh": false,
+          "needs_restart": false
         }
       }
     },
@@ -521,7 +530,7 @@
               "registry_key": "core:type:INT"
             },
             "field_data": {
-              "value": -5
+              "value": 0
             }
           },
           "end": {
@@ -701,11 +710,11 @@
           "_error_priority": 0
         },
         "library": {
-          "label": "Haywire Core",
-          "version": "1.0.0",
-          "description": "Core Haywire library with fundamental components",
-          "url": "https://github.com/maybites/haywire",
-          "help_url": "https://github.com/maybites/haywire",
+          "label": "Haybale Core",
+          "version": "0.0.13",
+          "description": "Haywire library with fundamental components",
+          "url": "https://github.com/going-haywire/haywire",
+          "help_url": "https://github.com/going-haywire/haywire",
           "author": "maybites",
           "author_url": "https://maybites.ch",
           "folder_path": "/Volumes/Ddrive/06_open_tracking_tool/haywire/haywire-repo/barn/haybale-core/haybale_core",
@@ -716,9 +725,12 @@
             "core",
             "types",
             "widgets",
-            "skins"
+            "skins",
+            "adapters"
           ],
-          "file_watcher": false
+          "file_watcher": false,
+          "needs_refresh": false,
+          "needs_restart": false
         }
       }
     },
@@ -726,8 +738,8 @@
       "node_id": "ControlSwitch_48a0d650",
       "registry_key": "core:node:ControlSwitch",
       "position": [
-        1979.7642719190924,
-        1250.1108019567882
+        1983.0960756684008,
+        1251.7767038314423
       ],
       "node_data": {
         "node_id": "ControlSwitch_48a0d650",
@@ -885,7 +897,7 @@
               },
               "id": "condition",
               "port_type": "config",
-              "order": 26
+              "order": 38
             },
             "recipe": {
               "registry_key": "core:type:STRING"
@@ -911,7 +923,7 @@
               "widget_key": "core:widget:NumberWidget",
               "id": "compare",
               "port_type": "inlet",
-              "order": 27
+              "order": 39
             },
             "recipe": {
               "registry_key": "core:type:FLOAT"
@@ -937,7 +949,7 @@
               "widget_key": "core:widget:NumberWidget",
               "id": "with",
               "port_type": "inlet",
-              "order": 28
+              "order": 40
             },
             "recipe": {
               "registry_key": "core:type:FLOAT"
@@ -949,13 +961,13 @@
         },
         "settings": {
           "props": {
-            "posX": 1979.7642719190924,
-            "posY": 1250.1108019567882
+            "posX": 1983.0960756684008,
+            "posY": 1251.7767038314423
           }
         },
         "props": {
-          "posX": 1979.7642719190924,
-          "posY": 1250.1108019567882
+          "posX": 1983.0960756684008,
+          "posY": 1251.7767038314423
         },
         "store": {},
         "identity": {
@@ -979,11 +991,11 @@
           "_error_priority": 0
         },
         "library": {
-          "label": "Haywire Core",
-          "version": "1.0.0",
-          "description": "Core Haywire library with fundamental components",
-          "url": "https://github.com/maybites/haywire",
-          "help_url": "https://github.com/maybites/haywire",
+          "label": "Haybale Core",
+          "version": "0.0.13",
+          "description": "Haywire library with fundamental components",
+          "url": "https://github.com/going-haywire/haywire",
+          "help_url": "https://github.com/going-haywire/haywire",
           "author": "maybites",
           "author_url": "https://maybites.ch",
           "folder_path": "/Volumes/Ddrive/06_open_tracking_tool/haywire/haywire-repo/barn/haybale-core/haybale_core",
@@ -994,9 +1006,12 @@
             "core",
             "types",
             "widgets",
-            "skins"
+            "skins",
+            "adapters"
           ],
-          "file_watcher": false
+          "file_watcher": false,
+          "needs_refresh": false,
+          "needs_restart": false
         }
       }
     },
@@ -1158,7 +1173,7 @@
         },
         "library": {
           "label": "Example",
-          "version": "0.1.0",
+          "version": "0.0.13",
           "description": "Example library for demonstrating multi-library support",
           "url": "https://github.com/author/haywire_library",
           "help_url": "https://docs.github.io/haywire_library",
@@ -1168,15 +1183,16 @@
           "module_name": "haybale_example",
           "id": "example",
           "dependencies": [
-            "haybale_core",
-            "haybale_test_a"
+            "haybale_core"
           ],
           "tags": [
             "example",
             "demo",
             "tutorial"
           ],
-          "file_watcher": false
+          "file_watcher": false,
+          "needs_refresh": false,
+          "needs_restart": false
         }
       }
     },
@@ -1197,7 +1213,7 @@
               "label": "Execution Signal",
               "description": "Signal for controlling execution flow between nodes",
               "class_name": "EXEC",
-              "module": "haybale_core.types",
+              "module": "haybale_core.types.specs",
               "flow_type": "control",
               "default": {},
               "store_strategy": 2,
@@ -1218,7 +1234,7 @@
               "label": "Execution Signal",
               "description": "Signal for controlling execution flow between nodes",
               "class_name": "EXEC",
-              "module": "haybale_core.types",
+              "module": "haybale_core.types.specs",
               "flow_type": "control",
               "default": {},
               "store_strategy": 14,
@@ -1239,13 +1255,14 @@
               "label": "String",
               "description": "Text data",
               "class_name": "STRING",
-              "module": "haybale_core.types",
+              "module": "haybale_core.types.specs",
               "flow_type": "data",
               "default": {
                 "value": "Hello, World!"
               },
               "store_strategy": 2,
               "color": "#ffc107",
+              "widget_key": "core:widget:TextWidget",
               "id": "message",
               "port_type": "inlet",
               "order": 2
@@ -1290,11 +1307,11 @@
           "_error_priority": 0
         },
         "library": {
-          "label": "Haywire Core",
-          "version": "1.0.0",
-          "description": "Core Haywire library with fundamental components",
-          "url": "https://github.com/maybites/haywire",
-          "help_url": "https://github.com/maybites/haywire",
+          "label": "Haybale Core",
+          "version": "0.0.13",
+          "description": "Haywire library with fundamental components",
+          "url": "https://github.com/going-haywire/haywire",
+          "help_url": "https://github.com/going-haywire/haywire",
           "author": "maybites",
           "author_url": "https://maybites.ch",
           "folder_path": "/Volumes/Ddrive/06_open_tracking_tool/haywire/haywire-repo/barn/haybale-core/haybale_core",
@@ -1305,9 +1322,125 @@
             "core",
             "types",
             "widgets",
-            "skins"
+            "skins",
+            "adapters"
           ],
-          "file_watcher": false
+          "file_watcher": false,
+          "needs_refresh": false,
+          "needs_restart": false
+        }
+      }
+    },
+    "ShutdownNode_0fb7bb57": {
+      "node_id": "ShutdownNode_0fb7bb57",
+      "registry_key": "core:node:ShutdownNode",
+      "position": [
+        930.0919174880954,
+        1218.0529496758252
+      ],
+      "node_data": {
+        "node_id": "ShutdownNode_0fb7bb57",
+        "ports": {
+          "exec": {
+            "kwargs": {
+              "registry_id": "EXEC",
+              "registry_key": "core:type:EXEC",
+              "label": "Execute",
+              "description": "Signal for controlling execution flow between nodes",
+              "class_name": "EXEC",
+              "module": "haybale_core.types.specs",
+              "flow_type": "control",
+              "default": {},
+              "store_strategy": 14,
+              "color": "#004cff",
+              "id": "exec",
+              "port_type": "outlet"
+            },
+            "recipe": {
+              "registry_key": "core:type:EXEC"
+            },
+            "field_data": {}
+          },
+          "timestamp": {
+            "kwargs": {
+              "registry_id": "FLOAT",
+              "registry_key": "core:type:FLOAT",
+              "label": "Shutdown Time",
+              "description": "Decimal numberer",
+              "class_name": "FLOAT",
+              "module": "haybale_core.types.specs",
+              "flow_type": "data",
+              "default": {
+                "value": 0.0
+              },
+              "store_strategy": 14,
+              "color": "#50b0ff",
+              "id": "timestamp",
+              "port_type": "outlet",
+              "allow_multiple_links": true,
+              "order": 1
+            },
+            "recipe": {
+              "registry_key": "core:type:FLOAT"
+            },
+            "field_data": {
+              "value": 1780432642.577302
+            }
+          }
+        },
+        "settings": {
+          "props": {
+            "posX": 930.0919174880954,
+            "posY": 1218.0529496758252
+          }
+        },
+        "props": {
+          "posX": 930.0919174880954,
+          "posY": 1218.0529496758252
+        },
+        "store": {},
+        "identity": {
+          "registry_id": "ShutdownNode",
+          "registry_key": "core:node:ShutdownNode",
+          "label": "Shutdown",
+          "description": "Triggered when execution is shutting down",
+          "deprecation_warning": "",
+          "class_name": "ShutdownNode",
+          "module": "haybale_core.nodes.events.shutdown",
+          "search_tags": [
+            "stop",
+            "end",
+            "cleanup",
+            "event"
+          ],
+          "menu": "event/runtime",
+          "help_md": null,
+          "help_url": "https://haywire.io/internals/node-help",
+          "_is_error": false,
+          "_error_priority": 0
+        },
+        "library": {
+          "label": "Haybale Core",
+          "version": "0.0.13",
+          "description": "Haywire library with fundamental components",
+          "url": "https://github.com/going-haywire/haywire",
+          "help_url": "https://github.com/going-haywire/haywire",
+          "author": "maybites",
+          "author_url": "https://maybites.ch",
+          "folder_path": "/Volumes/Ddrive/06_open_tracking_tool/haywire/haywire-repo/barn/haybale-core/haybale_core",
+          "module_name": "haybale_core",
+          "id": "core",
+          "dependencies": [],
+          "tags": [
+            "core",
+            "types",
+            "widgets",
+            "skins",
+            "adapters"
+          ],
+          "file_watcher": false,
+          "needs_refresh": false,
+          "needs_restart": false
         }
       }
     }
@@ -1380,15 +1513,6 @@
       "chain_adapter_keys": [],
       "is_lazy": false
     },
-    "edge::true@ControlSwitch_48a0d650>>exec@PrintTerminalMessageNode_abf2fa64": {
-      "source_node_id": "ControlSwitch_48a0d650",
-      "outlet_port_id": "true",
-      "sink_node_id": "PrintTerminalMessageNode_abf2fa64",
-      "inlet_port_id": "exec",
-      "edge_type": "control",
-      "chain_adapter_keys": [],
-      "is_lazy": false
-    },
     "edge::result@MathOP_cdb83482>>message@PrintTerminalMessageNode_abf2fa64": {
       "source_node_id": "MathOP_cdb83482",
       "outlet_port_id": "result",
@@ -1398,6 +1522,24 @@
       "chain_adapter_keys": [
         "core:adapter:FloatToStringAdapter"
       ],
+      "is_lazy": false
+    },
+    "edge::exec@ShutdownNode_0fb7bb57>>stop@TickEmitNode_8accf22d": {
+      "source_node_id": "ShutdownNode_0fb7bb57",
+      "outlet_port_id": "exec",
+      "sink_node_id": "TickEmitNode_8accf22d",
+      "inlet_port_id": "stop",
+      "edge_type": "control",
+      "chain_adapter_keys": [],
+      "is_lazy": false
+    },
+    "edge::true@ControlSwitch_48a0d650>>exec@PrintTerminalMessageNode_abf2fa64": {
+      "source_node_id": "ControlSwitch_48a0d650",
+      "outlet_port_id": "true",
+      "sink_node_id": "PrintTerminalMessageNode_abf2fa64",
+      "inlet_port_id": "exec",
+      "edge_type": "control",
+      "chain_adapter_keys": [],
       "is_lazy": false
     }
   },

@@ -154,24 +154,44 @@ class Interpreter:
 
     def stop_execution(self, timeout: float = 2.0) -> None:
         """
-        Stop graph execution gracefully.
+        Stop graph execution.
 
-        Dispatches SHUTDOWN event, waits for shutdown flows to complete,
-        then stops all schedulers and cleans up.
+        Dispatches SHUTDOWN, then grants a *scoped* grace period for any
+        author-wired graceful teardown to run before forcibly tearing down all
+        schedulers.
+
+        The grace period waits only on the flow(s) rooted at a Shutdown event
+        node — the single subscriber to ``system:shutdown``. That flow is where
+        the designer wires graceful stops (e.g. ``Shutdown → TickEmit.stop``),
+        which halt producer threads so downstream queues stop being fed. We do
+        NOT wait on the other flows: producer-fed queues (e.g. a Tick flow
+        receiving callbacks) never drain on their own, so joining them would
+        hang (see the TickEmit shutdown deadlock).
+
+        If no Shutdown flow exists there is no graceful path to wait for, so we
+        skip the grace period and force teardown immediately. Force teardown
+        (``_cleanup_current_graph``) stops every scheduler, and each scheduler
+        thread's shutdown runs node ``on_shutdown`` — the last-resort backstop
+        that kills any producer threads the designer didn't stop explicitly.
 
         Args:
-            timeout: Maximum time to wait for flows to complete.
+            timeout: Grace-period budget for the Shutdown flow to complete.
         """
         if not self._executing:
             return
 
-        # Dispatch SHUTDOWN so ShutdownNode flows can run
+        # Dispatch SHUTDOWN so a Shutdown-rooted flow can run its graceful path.
         self.dispatch_system_event(SystemEventType.SHUTDOWN)
 
-        # Wait for SHUTDOWN flows to finish processing
-        self.wait_all(timeout=timeout, stop_after=False)
+        # Scoped grace: wait (bounded) only for the Shutdown flow(s) to finish.
+        shutdown_key = SystemEvent(type=SystemEventType.SHUTDOWN).get_subscription_key()
+        shutdown_flows = self.event_subscriptions.get(shutdown_key, [])
+        for flow in shutdown_flows:
+            if flow.scheduler:
+                flow.scheduler.wait_for_completion(timeout)
 
-        # Now stop all schedulers and clean up
+        # Force teardown: stop all schedulers; on_shutdown backstops any
+        # producer threads not stopped by a graceful path.
         self._cleanup_current_graph(print_stats=True)
 
         self._executing = False

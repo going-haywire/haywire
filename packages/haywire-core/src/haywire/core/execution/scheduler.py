@@ -259,14 +259,29 @@ class FlowScheduler:
         """
         Wait for all queued triggers to complete.
 
+        ``Queue.join()`` has no timeout, so when a producer keeps feeding the
+        queue (e.g. a TickEmit thread emitting callbacks) a bare join never
+        returns. We instead wait on the queue's ``all_tasks_done`` condition
+        with a deadline so the caller's ``timeout`` is honoured and a still-busy
+        queue can never wedge shutdown.
+
         Args:
             timeout: Maximum time to wait (None = wait forever)
 
         Returns:
-            True if completed, False if timed out
+            True if the queue drained, False if the timeout elapsed first
         """
-        # Use join with timeout for queue completion
-        self.trigger_queue.join()
+        if timeout is None:
+            self.trigger_queue.join()
+            return True
+
+        deadline = time.monotonic() + timeout
+        with self.trigger_queue.all_tasks_done:
+            while self.trigger_queue.unfinished_tasks:
+                remaining = deadline - time.monotonic()
+                if remaining <= 0.0:
+                    return False
+                self.trigger_queue.all_tasks_done.wait(timeout=remaining)
         return True
 
     def stop(self, timeout: float = 2.0, print_stats: bool = False) -> bool:
