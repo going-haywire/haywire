@@ -217,12 +217,14 @@ class FlowScheduler:
             start_ns = time.perf_counter_ns()
 
             # >>>>>>>>>>>
-            # Execute via VM with timing
-            self.vm.execute_control_flow(self.flow, trigger, self._frame_count)
+            # Execute via VM with timing. The node count is returned (not read
+            # off the VM) because the VM instance is shared across all flow
+            # scheduler threads; a VM-instance counter would be corrupted by
+            # concurrent frames.
+            node_count = self.vm.execute_control_flow(self.flow, trigger, self._frame_count)
             # >>>>>>>>>>>
 
             elapsed_ns = time.perf_counter_ns() - start_ns
-            node_count = self.vm.execution_count
 
             # Update execution statistics
             self._exec_time_sum_ns += elapsed_ns

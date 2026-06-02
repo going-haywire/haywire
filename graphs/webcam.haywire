@@ -5,7 +5,7 @@
   "version": "1.0.0",
   "author": "",
   "created_at": null,
-  "modified_at": "2026-05-31T21:02:45.391738",
+  "modified_at": "2026-06-02T22:56:57.501129",
   "nodes": {
     "BeginPlayNode_87f32274": {
       "node_id": "BeginPlayNode_87f32274",
@@ -60,7 +60,7 @@
               "registry_key": "core:type:FLOAT"
             },
             "field_data": {
-              "value": 1780254053.6403358
+              "value": 1780433786.687746
             }
           }
         },
@@ -97,7 +97,7 @@
         },
         "library": {
           "label": "Haybale Core",
-          "version": "0.0.11",
+          "version": "0.0.13",
           "description": "Haywire library with fundamental components",
           "url": "https://github.com/going-haywire/haywire",
           "help_url": "https://github.com/going-haywire/haywire",
@@ -498,8 +498,8 @@
       "node_id": "WebcamFrameEventNode_a450f436",
       "registry_key": "visiongraph:node:WebcamFrameEventNode",
       "position": [
-        549.6387811665327,
-        1683.6834575628718
+        536.1696430672648,
+        1764.4982861584788
       ],
       "node_data": {
         "node_id": "WebcamFrameEventNode_a450f436",
@@ -600,7 +600,7 @@
               "registry_key": "core:type:FLOAT"
             },
             "field_data": {
-              "value": 7.658366918563843
+              "value": 5.737639904022217
             }
           },
           "frame_number": {
@@ -626,7 +626,7 @@
               "registry_key": "core:type:INT"
             },
             "field_data": {
-              "value": 220
+              "value": 174
             }
           },
           "width": {
@@ -684,13 +684,13 @@
         },
         "settings": {
           "props": {
-            "posX": 549.6387811665327,
-            "posY": 1683.6834575628718
+            "posX": 536.1696430672648,
+            "posY": 1764.4982861584788
           }
         },
         "props": {
-          "posX": 549.6387811665327,
-          "posY": 1683.6834575628718
+          "posX": 536.1696430672648,
+          "posY": 1764.4982861584788
         },
         "store": {},
         "identity": {
@@ -831,7 +831,7 @@
               "registry_key": "core:type:STRING"
             },
             "field_data": {
-              "value": "Frame #220 | 1920x1080x3 | 7.66s | 28.7 FPS"
+              "value": "Frame #174 | 1920x1080x3 | 5.74s | 30.3 FPS"
             }
           },
           "frame_ready": {
@@ -906,7 +906,7 @@
               "registry_key": "core:type:FLOAT"
             },
             "field_data": {
-              "value": 7.658366918563843
+              "value": 5.737639904022217
             }
           },
           "frame_number": {
@@ -932,7 +932,7 @@
               "registry_key": "core:type:INT"
             },
             "field_data": {
-              "value": 220
+              "value": 174
             }
           },
           "width": {
@@ -1138,7 +1138,7 @@
               "registry_key": "core:type:STRING"
             },
             "field_data": {
-              "value": "Frame #220 | 1920x1080x3 | 7.66s | 28.7 FPS"
+              "value": "Frame #174 | 1920x1080x3 | 5.74s | 30.3 FPS"
             }
           },
           "frame_ready": {
@@ -1213,7 +1213,7 @@
               "registry_key": "core:type:FLOAT"
             },
             "field_data": {
-              "value": 7.658366918563843
+              "value": 5.737639904022217
             }
           },
           "frame_number": {
@@ -1239,7 +1239,7 @@
               "registry_key": "core:type:INT"
             },
             "field_data": {
-              "value": 220
+              "value": 174
             }
           },
           "width": {
@@ -1445,7 +1445,7 @@
               "registry_key": "core:type:STRING"
             },
             "field_data": {
-              "value": "Frame #220 | 1920x1080x3 | 7.66s | 28.7 FPS"
+              "value": "Frame #174 | 1920x1080x3 | 5.74s | 30.3 FPS"
             }
           },
           "frame_ready": {
@@ -1520,7 +1520,7 @@
               "registry_key": "core:type:FLOAT"
             },
             "field_data": {
-              "value": 7.658366918563843
+              "value": 5.737639904022217
             }
           },
           "frame_number": {
@@ -1546,7 +1546,7 @@
               "registry_key": "core:type:INT"
             },
             "field_data": {
-              "value": 220
+              "value": 174
             }
           },
           "width": {
@@ -1660,6 +1660,119 @@
           "needs_restart": false
         }
       }
+    },
+    "ShutdownNode_f1b20b45": {
+      "node_id": "ShutdownNode_f1b20b45",
+      "registry_key": "core:node:ShutdownNode",
+      "position": [
+        549.540829882956,
+        1613.3034301123037
+      ],
+      "node_data": {
+        "node_id": "ShutdownNode_f1b20b45",
+        "ports": {
+          "exec": {
+            "kwargs": {
+              "registry_id": "EXEC",
+              "registry_key": "core:type:EXEC",
+              "label": "Execute",
+              "description": "Signal for controlling execution flow between nodes",
+              "class_name": "EXEC",
+              "module": "haybale_core.types.specs",
+              "flow_type": "control",
+              "default": {},
+              "store_strategy": 14,
+              "color": "#004cff",
+              "id": "exec",
+              "port_type": "outlet"
+            },
+            "recipe": {
+              "registry_key": "core:type:EXEC"
+            },
+            "field_data": {}
+          },
+          "timestamp": {
+            "kwargs": {
+              "registry_id": "FLOAT",
+              "registry_key": "core:type:FLOAT",
+              "label": "Shutdown Time",
+              "description": "Decimal numberer",
+              "class_name": "FLOAT",
+              "module": "haybale_core.types.specs",
+              "flow_type": "data",
+              "default": {
+                "value": 0.0
+              },
+              "store_strategy": 14,
+              "color": "#50b0ff",
+              "id": "timestamp",
+              "port_type": "outlet",
+              "allow_multiple_links": true,
+              "order": 1
+            },
+            "recipe": {
+              "registry_key": "core:type:FLOAT"
+            },
+            "field_data": {
+              "value": 0.0
+            }
+          }
+        },
+        "settings": {
+          "props": {
+            "posX": 549.540829882956,
+            "posY": 1613.3034301123037
+          }
+        },
+        "props": {
+          "posX": 549.540829882956,
+          "posY": 1613.3034301123037
+        },
+        "store": {},
+        "identity": {
+          "registry_id": "ShutdownNode",
+          "registry_key": "core:node:ShutdownNode",
+          "label": "Shutdown",
+          "description": "Triggered when execution is shutting down",
+          "deprecation_warning": "",
+          "class_name": "ShutdownNode",
+          "module": "haybale_core.nodes.events.shutdown",
+          "search_tags": [
+            "stop",
+            "end",
+            "cleanup",
+            "event"
+          ],
+          "menu": "event/runtime",
+          "help_md": null,
+          "help_url": "https://haywire.io/internals/node-help",
+          "_is_error": false,
+          "_error_priority": 0
+        },
+        "library": {
+          "label": "Haybale Core",
+          "version": "0.0.13",
+          "description": "Haywire library with fundamental components",
+          "url": "https://github.com/going-haywire/haywire",
+          "help_url": "https://github.com/going-haywire/haywire",
+          "author": "maybites",
+          "author_url": "https://maybites.ch",
+          "folder_path": "/Volumes/Ddrive/06_open_tracking_tool/haywire/haywire-repo/barn/haybale-core/haybale_core",
+          "module_name": "haybale_core",
+          "id": "core",
+          "dependencies": [],
+          "tags": [
+            "core",
+            "types",
+            "widgets",
+            "skins",
+            "adapters"
+          ],
+          "file_watcher": false,
+          "needs_refresh": false,
+          "needs_restart": false
+        }
+      }
     }
   },
   "edges": {
@@ -1732,6 +1845,15 @@
       "sink_node_id": "WebcamFrameInfoDisplayNode_f6b52713",
       "inlet_port_id": "frame",
       "edge_type": "data",
+      "chain_adapter_keys": [],
+      "is_lazy": false
+    },
+    "edge::exec@ShutdownNode_f1b20b45>>stop@StartWebcamStreamNode_15b5bccb": {
+      "source_node_id": "ShutdownNode_f1b20b45",
+      "outlet_port_id": "exec",
+      "sink_node_id": "StartWebcamStreamNode_15b5bccb",
+      "inlet_port_id": "stop",
+      "edge_type": "control",
       "chain_adapter_keys": [],
       "is_lazy": false
     }

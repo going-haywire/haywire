@@ -19,9 +19,11 @@ class PrintTerminalMessageNode(BaseNode):
         self.add(EXEC.as_outlet("done"))
 
         # Data input
-        self.add(STRING.as_inlet("message", default="Hello, World!", widget=TextWidget.config()))
+        self.add(STRING.as_inlet("prepend", label="Prepend", default="My Message to you:", widget=TextWidget.config()))
+        # Data input
+        self.add(STRING.as_inlet("message", default="Hello, World!"))
 
-    def worker(self, context: ExecutionContext) -> str | None:
+    def worker(self, context: ExecutionContext, prepend: str) -> str | None:
         message = self.value("message")
-        logger.info(message)
+        logger.info(prepend + message)
         return "done"

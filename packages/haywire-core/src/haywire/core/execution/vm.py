@@ -49,7 +49,6 @@ class HaywireVM:
         """
         self.global_context = global_context or {}
         self.max_stack_depth = max_stack_depth
-        self.execution_count: int = 0
 
         # Callback manager reference (set by interpreter)
         self.callback_manager: Optional[CallbackManager] = None
@@ -135,7 +134,7 @@ class HaywireVM:
             except Exception as e:
                 self.catch_exception(e, node, "Node on_shutdown() Execution")
 
-    def execute_control_flow(self, flow: "Flow", trigger: "Trigger", frame_number: int = 0):
+    def execute_control_flow(self, flow: "Flow", trigger: "Trigger", frame_number: int = 0) -> int:
         """
         Execute a flow's control flow.
 
@@ -149,6 +148,13 @@ class HaywireVM:
             flow: Flow to execute
             trigger: Trigger that activated this flow
             frame_number: int = 0
+
+        Returns:
+            The number of nodes executed in this frame. This is returned (not
+            read off the VM) because a single VM instance is shared across all
+            flow schedulers running on separate threads — a VM-instance counter
+            would be corrupted by concurrent frames. The per-frame count is
+            tracked in a local and threaded through ``exec_ctx.exec_count``.
         """
         if not flow.is_assembled():
             raise RuntimeError(f"Cannot execute flow {flow.flow_id}: not assembled")
@@ -159,8 +165,6 @@ class HaywireVM:
         #     f"(trigger: {trigger.source_key})"
         # )
 
-        # Reset execution tracking for this flow
-        self.execution_count = 0
         loopback_stack: List[str] = []
 
         # Create execution context
@@ -215,6 +219,8 @@ class HaywireVM:
             except Exception as e:
                 self.catch_exception(e, node, "Node on_frame_end() Execution")
 
+        return exec_ctx.exec_count or 0
+
     def _execute_control_node(
         self, node_info: "ControlNodeInfo", flow: "Flow", exec_ctx: ExecutionContext
     ) -> Optional[str]:
@@ -252,8 +258,7 @@ class HaywireVM:
             )
             # >>>>>>>>>>>
 
-        self.execution_count += 1
-        exec_ctx.exec_count = self.execution_count
+        exec_ctx.exec_count = (exec_ctx.exec_count or 0) + 1
 
         # >>>>>>>>>>>
         # 2. Execute control node
@@ -356,8 +361,7 @@ class HaywireVM:
             exec_ctx: Execution context
         """
         for data_node in data_flow.execution_sequence:
-            self.execution_count += 1
-            exec_ctx.exec_count = self.execution_count
+            exec_ctx.exec_count = (exec_ctx.exec_count or 0) + 1
 
             # Execute data node
             try:
