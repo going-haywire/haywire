@@ -179,10 +179,13 @@ class LazyFileBrowserEditor(BaseEditor):
                     # Without it the server is blind to arrow-driven expansion
                     # until the first .update(), so the first sentinel click's
                     # _expand_sentinel re-applies a stale (empty) expanded set
-                    # and collapses the whole tree. The handler itself is a
-                    # no-op — the side effect (initialising the prop) is the
-                    # point.
-                    on_expand=lambda e: None,
+                    # and collapses the whole tree.
+                    #
+                    # The handler also auto-loads sentinels: expanding a folder
+                    # whose only child is a "Click to load children" sentinel
+                    # pulls in the next batch, so the sentinel never has to be
+                    # clicked separately.
+                    on_expand=lambda e: self._on_expand(e.value),
                 )
                 .props("dense no-transition")
                 .classes("w-full text-sm hw-file-tree")
@@ -356,6 +359,29 @@ class LazyFileBrowserEditor(BaseEditor):
             return  # Folders don't get a context menu yet
         provider = self._ensure_menu_provider(context)
         provider.on_file_context(pos=(screen_x, screen_y), path=path)
+
+    @staticmethod
+    def _has_sentinel_child(node: dict) -> bool:
+        """True when ``node``'s children are still just the load-more sentinel."""
+        children = node.get("children") or []
+        return any(child["id"].endswith(_LOAD_MORE_ID) for child in children)
+
+    def _on_expand(self, expanded_ids: list[str]) -> None:
+        """Auto-load sentinels when a folder is expanded.
+
+        Fires on every expansion change (the controlled ``expanded`` prop).
+        Any newly-expanded folder whose children are still an unloaded
+        sentinel gets its next batch pulled in immediately, so the user
+        never has to click the sentinel separately. ``_expand_sentinel``
+        is a no-op once a folder has already been loaded, so re-expanding
+        an old folder costs nothing.
+        """
+        for node_id in expanded_ids or []:
+            if node_id.endswith(_LOAD_MORE_ID):
+                continue
+            node = self._nodes_by_id.get(node_id)
+            if node is not None and self._has_sentinel_child(node):
+                self._expand_sentinel(node_id)
 
     def _on_select(self, node_id: Optional[str], context: "SessionContext") -> None:
         """Left-click handler.
