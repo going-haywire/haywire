@@ -22,6 +22,7 @@ Haywire is a Blueprint-inspired visual programming system that combines **execut
 
 ```sh
 # Scaffold a new haywire project (installs haywire from PyPI, runs uv sync)
+# this command creates a project folder name 'my-project'
 uvx --from haywire-studio haywire init my-project
 
 # Launch the editor
@@ -29,10 +30,11 @@ cd my-project
 uv run haywire
 ```
 
-This creates the following project structure:
+The folder has the following project structure:
 
 ```
 my-project/
+├── readme.md                   # project readme
 ├── pyproject.toml              # project manifest (dependencies, workspace config)
 ├── uv.lock                     # pinned dependency versions
 ├── .haywire/                   # project settings
@@ -49,7 +51,7 @@ my-project/
 
 ### Managing Libraries
 
-From within the running app, navigate to **marketplace** (button in the left action bar:
+From within the haywire studio app, navigate to **marketplace** (icon in the left action bar):
 
 - Browse available haybale libraries from the marketplace
 - Install / uninstall libraries
@@ -66,7 +68,7 @@ cd my-project
 uv run haywire share --save
 ```
 
-This reads the library's `pyproject.toml` metadata and detects the git remote URL to produce a ready-to-use entry:
+This reads the library's `pyproject.toml` metadata and detects the git remote URL to produce a ready-to-use entry, and adds the link to the readme
 
 ```toml
 # Copy this snippet into a marketplace.toml:
@@ -81,7 +83,7 @@ install_spec = "haybale-my-project @ git+https://github.com/you/my-project.git#s
 tags = []
 ```
 
-Recipients paste this into their `.haywire/marketplace.toml` and install the library from the Library Manager UI. Works with any git host (GitHub, GitLab, Bitbucket, etc.) and automatically converts SSH remote URLs to HTTPS.
+Recipients add in the marketplace UI. Works with any git host (GitHub, GitLab, Bitbucket, etc.) and automatically converts SSH remote URLs to HTTPS.
 
 ### Global Configuration
 
