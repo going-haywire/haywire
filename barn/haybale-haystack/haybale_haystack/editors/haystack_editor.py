@@ -319,11 +319,18 @@ class HaystackEditor(BaseEditor):
 
         hs = context.app_data[HaystackState]
         if entry.path is not None:
+            # save_graph marks the entry clean, which fires GraphDataMutated →
+            # @redraw_on rebuilds _render_list and clears _list_container,
+            # deleting *this* row (and the slot this handler runs in). Capture
+            # the client first so the post-save notify resolves against the
+            # surviving client context instead of the now-deleted row slot.
+            client = ui.context.client
             success = hs.save_graph(entry)
-            if success:
-                ui.notify(f"Saved: {entry.path.name}", type="positive", position="top-right")
-            else:
-                ui.notify("Save failed", type="negative", position="top-right")
+            with client:
+                if success:
+                    ui.notify(f"Saved: {entry.path.name}", type="positive", position="top-right")
+                else:
+                    ui.notify("Save failed", type="negative", position="top-right")
             return
 
         # No path — open save-as dialog

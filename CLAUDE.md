@@ -84,6 +84,7 @@ Things that aren't visible from the code itself — bugs we hit, framework quirk
 - [feedback_nicegui_headless_tab_panels.md](.insights/feedback_nicegui_headless_tab_panels.md) — `ui.tab_panels` works without `ui.tabs`; keep-alive container pattern.
 - [feedback_nicegui_nested_menu_flyouts.md](.insights/feedback_nicegui_nested_menu_flyouts.md) — nested `ui.menu` flyouts: 3.x drops closed-menu DOM, QMenu z-6000 < Popup z-7001, hover-open + sibling/cascade close must be wired (no close-timers).
 - [project_popup_vue.md](.insights/project_popup_vue.md) — `__enter__` must return a `ui.column`; Vue 3 doesn't proxy `_`-prefixed `data()` properties.
+- [feedback_nicegui_redraw_deletes_handler_slot.md](.insights/feedback_nicegui_redraw_deletes_handler_slot.md) — a row handler that mutates state then redraws its own container deletes its slot mid-flight; capture `ui.context.client` first, then `ui.notify()` under `with client:`.
 
 ### Test traps
 
