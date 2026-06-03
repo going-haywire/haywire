@@ -107,6 +107,16 @@ class LazyFileBrowserEditor(BaseEditor):
             ".hw-file-tree .q-tree__node-header {"
             " border-color: var(--hw-border);"
             " }"
+            # Connector lines (the elbow + vertical guides) are drawn by Quasar
+            # as pseudo-element borders using `currentColor` — i.e. the bright
+            # text colour. Recolour them to the faint theme border token so they
+            # read as quiet guides instead of stark white lines.
+            ".hw-file-tree .q-tree__node:after,"
+            ".hw-file-tree .q-tree__node-header:before,"
+            ".hw-file-tree .q-tree__node--parent"
+            " > .q-tree__node-collapsible > .q-tree__node-body:after {"
+            " border-color: var(--hw-border);"
+            " }"
         )
         cls._CSS_INSTALLED = True
 
