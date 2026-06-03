@@ -88,44 +88,16 @@ class LazyFileBrowserEditor(BaseEditor):
     # render
     # ------------------------------------------------------------------
 
-    # Class-level guard: ui.add_css is page-global and stacking it on every
-    # draw() injected duplicate <style> tags AND triggered a Vue mounting
-    # race that broke other editors (notably the graph editor's ZoomPan
-    # canvas — it ended up sized 0×0 and threw "$refs is undefined" on
-    # first run_method). Fire it exactly once per process.
-    _CSS_INSTALLED: bool = False
-
-    @classmethod
-    def _install_css(cls) -> None:
-        if cls._CSS_INSTALLED:
-            return
-        ui.add_css(
-            ".hw-file-tree .q-tree__node-header {"
-            " padding-top: 2px; padding-bottom: 3px;"
-            " }"
-            ".hw-file-tree .q-tree__node-collapsible,"
-            ".hw-file-tree .q-tree__node-header {"
-            " border-color: var(--hw-border);"
-            " }"
-            # Connector lines (the elbow + vertical guides) are drawn by Quasar
-            # as pseudo-element borders using `currentColor` — i.e. the bright
-            # text colour. Recolour them to the faint theme border token so they
-            # read as quiet guides instead of stark white lines.
-            ".hw-file-tree .q-tree__node:after,"
-            ".hw-file-tree .q-tree__node-header:before,"
-            ".hw-file-tree .q-tree__node--parent"
-            " > .q-tree__node-collapsible > .q-tree__node-body:after {"
-            " border-color: var(--hw-border);"
-            " }"
-        )
-        cls._CSS_INSTALLED = True
+    # Tree connector-line styling lives in the framework shell as the reusable
+    # `.hw-tree` class (see haywire.ui.app.shell._static_css). The tree opts in
+    # by adding `hw-tree` to its classes below — no per-editor CSS injection,
+    # so it survives a browser refresh and avoids the Vue-mount race that the
+    # old per-draw() ui.add_css() caused.
 
     def draw(self, context: "SessionContext", container: "Element") -> None:
         app = context.app
         if app and hasattr(app, "workspace_root"):
             self._root_path = Path(app.workspace_root)
-
-        self._install_css()
 
         with container:
             with ui.column().classes("w-full h-full gap-0"):
@@ -188,7 +160,7 @@ class LazyFileBrowserEditor(BaseEditor):
                     on_expand=lambda e: self._on_expand(e.value),
                 )
                 .props("dense no-transition")
-                .classes("w-full text-sm hw-file-tree")
+                .classes("w-full text-sm hw-tree")
             )
             # Wire right-click on individual tree nodes.  Quasar's q-tree
             # doesn't expose a per-node contextmenu signal, and emitting from

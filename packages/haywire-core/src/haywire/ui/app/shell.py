@@ -352,6 +352,25 @@ class AppShell:
             " .hw-text-success { color: var(--hw-success) !important; }"
             " .hw-text-info    { color: var(--hw-info) !important; }"
             " .hw-text-accent  { color: var(--hw-accent) !important; }"
+            # ── hw-tree: quiet, theme-aware Quasar q-tree ──
+            # Opt-in via .classes("... hw-tree") on any ui.tree. Quasar draws
+            # the connector lines (elbow + vertical guides) as pseudo-element
+            # borders using `currentColor` (the bright text colour); recolour
+            # them to the faint theme border token so they read as quiet guides
+            # instead of stark white lines. Also tightens row density.
+            " .hw-tree .q-tree__node-header {"
+            "   padding-top: 2px; padding-bottom: 3px;"
+            " }"
+            " .hw-tree .q-tree__node-collapsible,"
+            " .hw-tree .q-tree__node-header {"
+            "   border-color: var(--hw-border);"
+            " }"
+            " .hw-tree .q-tree__node:after,"
+            " .hw-tree .q-tree__node-header:before,"
+            " .hw-tree .q-tree__node--parent"
+            "   > .q-tree__node-collapsible > .q-tree__node-body:after {"
+            "   border-color: var(--hw-border);"
+            " }"
         )
         ui.add_css(self._build_initial_theme_css() + _static_css)
 
