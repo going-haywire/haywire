@@ -7,7 +7,7 @@ log_ui = ""
 
 [haystack]
 last_haystack_name = "Master"
-new_counter = 5
+new_counter = 6
 
 [workbench]
 theme = "studio:theme:workbench:HaywireDarkTheme"

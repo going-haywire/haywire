@@ -677,8 +677,14 @@ class HaystackEditor(BaseEditor):
 
         hs = context.app_data[HaystackState]
         active_path = context.data[EditState].active_graph_path
+        # save_haystack clears _haystack_dirty, triggering a redraw that
+        # rebuilds _render_header and deletes this save icon's slot. Capture
+        # the client first so the notify resolves against the surviving client
+        # context instead of the now-deleted header slot.
+        client = ui.context.client
         hs.save_haystack(active, active_path=active_path)
-        ui.notify(f"Haystack '{active}' saved", type="positive")
+        with client:
+            ui.notify(f"Haystack '{active}' saved", type="positive")
 
     def _on_load_haystack(self, context: "SessionContext") -> None:
         """Load a haystack, replacing all currently open graphs."""

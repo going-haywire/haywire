@@ -14,14 +14,14 @@
     "editors": []
   },
   "main": {
-    "active_key": "studio:editor:CodeEditor::/Volumes/Ddrive/06_open_tracking_tool/haywire/haywire-repo/CLAUDE.md",
+    "active_key": "graph_editor:editor:GraphEditor::/Volumes/Ddrive/06_open_tracking_tool/haywire/haywire-repo/graphs/webcam.haywire",
     "visible": true,
     "size": 300,
     "editors": [
       {
-        "key": "studio:editor:CodeEditor",
-        "binding_id": "/Volumes/Ddrive/06_open_tracking_tool/haywire/haywire-repo/CLAUDE.md",
-        "label": "CLAUDE.md"
+        "key": "graph_editor:editor:GraphEditor",
+        "binding_id": "/Volumes/Ddrive/06_open_tracking_tool/haywire/haywire-repo/graphs/webcam.haywire",
+        "label": "webcam"
       }
     ]
   },
