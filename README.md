@@ -49,7 +49,7 @@ my-project/
 
 ### Managing Libraries
 
-From within the running app, navigate to **Libraries** (button in the header, or go to `http://localhost:8082/libraries`) to:
+From within the running app, navigate to **marketplace** (button in the left action bar:
 
 - Browse available haybale libraries from the marketplace
 - Install / uninstall libraries
@@ -63,7 +63,7 @@ If you've built custom nodes in your project's local library and want to share t
 
 ```sh
 cd my-project
-uv run haywire share
+uv run haywire share --save
 ```
 
 This reads the library's `pyproject.toml` metadata and detects the git remote URL to produce a ready-to-use entry:
