@@ -22,6 +22,16 @@
         "key": "graph_editor:editor:GraphEditor",
         "binding_id": "/Volumes/Ddrive/06_open_tracking_tool/haywire/haywire-repo/graphs/webcam.haywire",
         "label": "webcam"
+      },
+      {
+        "key": "studio:editor:CodeEditor",
+        "binding_id": "/Volumes/Ddrive/06_open_tracking_tool/haywire/haywire-repo/mkdocs.yml",
+        "label": "mkdocs.yml"
+      },
+      {
+        "key": "graph_editor:editor:GraphEditor",
+        "binding_id": "/Volumes/Ddrive/06_open_tracking_tool/haywire/haywire-repo/graphs/loop.haywire",
+        "label": "loop"
       }
     ]
   },

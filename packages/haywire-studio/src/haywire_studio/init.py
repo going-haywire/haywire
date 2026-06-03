@@ -180,6 +180,43 @@ _README_PLACEHOLDER = (
 )
 
 
+def _generate_gitignore() -> str:
+    """Generate a default .gitignore for a scaffolded haywire project."""
+    return """\
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Distribution / packaging
+build/
+dist/
+*.egg-info/
+*.egg
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Test / type-check caches
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.tox/
+.coverage
+htmlcov/
+
+# Editor / OS
+.DS_Store
+.idea/
+.vscode/
+
+# Haywire per-session UI state (open graph, pan/zoom) — not project state
+.haywire/workspace_state.json
+"""
+
+
 def _generate_root_readme(name: str, label: str) -> str:
     """Generate the root README.md for a haywire-init scaffolded project.
 
@@ -483,6 +520,9 @@ def init_project(name: str, auto_sync: bool = True, dev_repo: str | None = None)
 
     # README.md at repo root (with marketstall share-url marker pair)
     (project_dir / "README.md").write_text(_generate_root_readme(name, label))
+
+    # Default .gitignore (Python caches, virtualenvs, editor/OS cruft)
+    (project_dir / ".gitignore").write_text(_generate_gitignore())
 
     # README.md inside the scaffolded barn library (with marker pair)
     (lib_dir / "README.md").write_text(_generate_library_readme(name, label))
