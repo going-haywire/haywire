@@ -163,6 +163,16 @@ class LazyFileBrowserEditor(BaseEditor):
                     label_key="label",
                     node_key="id",
                     on_select=lambda e: self._on_select(e.value, context),
+                    # on_expand makes `expanded` a controlled v-model prop, so
+                    # Quasar emits update:expanded on every arrow click and
+                    # NiceGUI keeps self._tree._props["expanded"] in sync.
+                    # Without it the server is blind to arrow-driven expansion
+                    # until the first .update(), so the first sentinel click's
+                    # _expand_sentinel re-applies a stale (empty) expanded set
+                    # and collapses the whole tree. The handler itself is a
+                    # no-op — the side effect (initialising the prop) is the
+                    # point.
+                    on_expand=lambda e: None,
                 )
                 .props("dense no-transition")
                 .classes("w-full text-sm hw-file-tree")
