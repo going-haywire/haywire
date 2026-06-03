@@ -78,11 +78,15 @@ class LibraryBrowserEditor(BaseEditor):
         super().__init__(wrapper)
         self._container = None
         self._list_container = None
+        # Slot holding the search field — rebuilt when _filter_search toggles.
+        self._search_container: "Element | None" = None
         self._search_query: str = ""
         self._filter_required: bool = True
         self._filter_enabled: bool = True
         self._filter_disabled: bool = True
         self._filter_available: bool = True
+        # Search field hidden until the user enables the search toggle.
+        self._filter_search: bool = False
         # Refresh-button error surfacing.
         self._refresh_error: str | None = None
 
@@ -98,51 +102,36 @@ class LibraryBrowserEditor(BaseEditor):
 
     def _build_ui(self, context: "SessionContext") -> None:
         with ui.column().classes("w-full h-full gap-0"):
-            # Toolbar (Refresh, Add Source, Edit File)
-            with ui.row().classes("p-2 gap-2 border-b flex-shrink-0 items-center"):
-                with (
-                    ui.button()
-                    .props("flat dense size=sm")
-                    .tooltip("Refresh marketplace from subscribed sources") as refresh_btn
-                ):
-                    ui.icon("refresh").classes("hw-use-props-color").props("color=blue")
-                    ui.label("Refresh").classes("text-xs ml-1")
-                refresh_btn.on("click", lambda c=context: self._on_refresh_click(c))
+            # Header: editor icon + title + overflow (burger) menu, with the
+            # standard panel separator beneath — matches the Haystack editor.
+            with hui.panel_header("Marketplace", icon=hui.icon.library):
+                # Burger menu — actions that used to live in the toolbar:
+                # Refresh, Add Source, Edit File.
+                with ui.button(icon="more_vert").props("flat round dense size=sm").classes("flex-shrink-0"):
+                    with ui.menu():
+                        ui.menu_item(
+                            "Refresh",
+                            on_click=lambda c=context: self._on_refresh_click(c),
+                        )
+                        ui.menu_item(
+                            "Add Source…",
+                            on_click=lambda c=context: self._on_add_source_click(c),
+                        )
+                        ui.separator()
+                        ui.menu_item(
+                            "Edit File…",
+                            on_click=lambda c=context: self._on_edit_file_click(c),
+                        )
 
-                with (
-                    ui.button()
-                    .props("flat dense size=sm")
-                    .tooltip("Add a marketplace or marketstall source") as add_source_btn
-                ):
-                    ui.icon("add_circle").classes("hw-use-props-color").props("color=green")
-                    ui.label("Add Source").classes("text-xs ml-1")
-                add_source_btn.on("click", lambda c=context: self._on_add_source_click(c))
-
-                with (
-                    ui.button()
-                    .props("flat dense size=sm")
-                    .tooltip(
-                        "Open ~/.haywire/db/haybale-marketplace/marketplace.toml in your text editor"
-                    ) as edit_file_btn
-                ):
-                    ui.icon("edit").classes("hw-use-props-color").props("color=gray")
-                    ui.label("Edit File").classes("text-xs ml-1")
-                edit_file_btn.on("click", lambda c=context: self._on_edit_file_click(c))
-
-            # Search bar
-            with ui.column().classes("p-2 gap-1 border-b flex-shrink-0"):
-                search = hui.input_field(
-                    placeholder="Search libraries…",
-                    clearable=True,
-                )
-                search.on(
-                    "update:model-value",
-                    lambda e: self._on_search(e.args, context),
-                )
-                search.on("clear", lambda e: self._on_search("", context))
-
-                # Filter toggles
-                with ui.row().classes("items-center gap-0.5"):
+            # Filter row: "Show:" toggles + search toggle. Uses the same
+            # full-width 1px var(--hw-border) separator as panel_header so the
+            # line matches the header and the main-slot editor's tab divider.
+            with (
+                ui.column()
+                .classes("w-full px-2 py-1.5 gap-1 flex-shrink-0")
+                .style("border-bottom: 1px solid var(--hw-border);")
+            ):
+                with ui.row().classes("items-center gap-0.5 w-full"):
                     ui.label("Show:").classes("text-xs hw-text-dim mr-1")
                     self._make_toggle("required", "purple", "lock", "Required (cannot be disabled)", context)
                     self._make_toggle("enabled", "green", "check_circle", "Enabled", context)
@@ -150,15 +139,40 @@ class LibraryBrowserEditor(BaseEditor):
                     self._make_toggle(
                         "available", "blue", "cloud_download", "Available in marketplace", context
                     )
+                    self._make_search_toggle(context)
+
+                # Search field — rendered only when the search toggle is on.
+                self._search_container = ui.column().classes("w-full gap-0")
+                self._render_search_field(context)
 
             # Scrollable list
             with ui.scroll_area().classes("flex-1 w-full"):
                 self._list_container = ui.column().classes("w-full gap-0 p-0")
                 self._render_list(context)
 
+    def _render_search_field(self, context: "SessionContext") -> None:
+        """(Re)build the search field slot based on _filter_search."""
+        if self._search_container is None:
+            return
+        self._search_container.clear()
+        if not self._filter_search:
+            return
+        with self._search_container:
+            search = hui.input_field(
+                placeholder="Search libraries…",
+                value=self._search_query,
+                clearable=True,
+                autofocus=True,
+            )
+            search.on(
+                "update:model-value",
+                lambda e: self._on_search(e.args, context),
+            )
+            search.on("clear", lambda e: self._on_search("", context))
+
     def _make_toggle(self, attr: str, color: str, icon: str, tooltip: str, context: "SessionContext"):
         active = getattr(self, f"_filter_{attr}")
-        with ui.button().props("flat round dense size=sm").tooltip(tooltip) as btn:
+        with ui.button().props("flat round dense size=xs").tooltip(tooltip) as btn:
             icon_el = ui.icon(icon).classes("hw-use-props-color")
             icon_el.props(f"color={color if active else 'grey'}")
         btn.on("click", lambda a=attr, ie=icon_el, c=color, ctx=context: self._toggle(a, ie, c, ctx))
@@ -168,6 +182,24 @@ class LibraryBrowserEditor(BaseEditor):
         setattr(self, f"_filter_{attr}", not current)
         icon_el.props(f"color={color if not current else 'grey'}")
         self._render_list(context)
+
+    def _make_search_toggle(self, context: "SessionContext"):
+        """Toggle that shows/hides the search field (rather than filtering the list)."""
+        active = self._filter_search
+        with ui.button().props("flat round dense size=xs").tooltip("Search libraries") as btn:
+            icon_el = ui.icon("search").classes("hw-use-props-color")
+            icon_el.props(f"color={'blue' if active else 'grey'}")
+        btn.on("click", lambda ie=icon_el, ctx=context: self._toggle_search(ie, ctx))
+
+    def _toggle_search(self, icon_el, context: "SessionContext"):
+        self._filter_search = not self._filter_search
+        icon_el.props(f"color={'blue' if self._filter_search else 'grey'}")
+        if not self._filter_search:
+            # Hiding the search clears the query so a hidden filter never
+            # silently narrows the list.
+            self._search_query = ""
+            self._render_list(context)
+        self._render_search_field(context)
 
     def _on_search(self, args, context: "SessionContext"):
         if isinstance(args, (list, tuple)):

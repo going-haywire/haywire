@@ -121,9 +121,17 @@ class LazyFileBrowserEditor(BaseEditor):
             with ui.column().classes("w-full h-full gap-0"):
                 name = self._root_path.name if self._root_path else "No project"
                 with hui.panel_header(name, icon=hui.icon.folder_open):
-                    hui.icon_action(
-                        "refresh", tooltip="Refresh tree", on_click=lambda: self._refresh(context)
-                    )
+                    # Burger menu — matches the Marketplace header pattern.
+                    with (
+                        ui.button(icon="more_vert")
+                        .props("flat round dense size=sm")
+                        .classes("flex-shrink-0")
+                    ):
+                        with ui.menu():
+                            ui.menu_item(
+                                "Refresh",
+                                on_click=lambda: self._refresh(context),
+                            )
 
                 with ui.scroll_area().classes("flex-1 w-full"):
                     self._tree_container = ui.column().classes("w-full p-1 gap-0")
