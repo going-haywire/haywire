@@ -113,7 +113,7 @@ class NodeSkin(BaseSkin, ABC):
                 )
             ):
                 if self._ui_settings.show_labels:
-                    ui.label(port.label).classes("text-xs")
+                    ui.label(port.label).classes("text-xs zoom-pan-lod2")
                 if not port.allow_multiple_links and port.widget_key:
                     self.render_widget(port, wrapper.node_id, classes=widget_classes)
 
@@ -136,7 +136,7 @@ class NodeSkin(BaseSkin, ABC):
             )
         ):
             if self._ui_settings.show_labels:
-                ui.label(port.label).classes("text-xs")
+                ui.label(port.label).classes("text-xs zoom-pan-lod2")
             if not port.allow_multiple_links and port.widget_key:
                 self.render_widget(port, wrapper.node_id, classes=widget_classes)
 
