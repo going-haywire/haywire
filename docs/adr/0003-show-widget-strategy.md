@@ -74,12 +74,19 @@ It lives on the port, not as a private skin helper, because the same decision is
 
 `NOT_LINKED` and `WHEN_LINKED` are *dynamic* — they depend on live link state, so the widget must appear/disappear when the user connects or disconnects a pin. This did not happen for free.
 
-In `visual_layer.on_validated`, `EDGE_ADDED` / `EDGE_REMOVED` only added/removed the **edge visual** (the line). Node redraw is driven by *node*-level reasons (`requires_redraw()`); an edge add/remove carries no node reason, so the connected nodes were never re-rendered. Without a fix, `should_show_widget()` would be evaluated only at initial render and the widget would not toggle on connect — the feature would ship looking broken.
+Node redraw is driven by *node*-level reasons (`ChangeReason.requires_redraw()`); an edge add/remove carries only an *edge* reason, so the connected nodes were never re-rendered. Without a fix, `should_show_widget()` would be evaluated only at initial render and the widget would not toggle on connect — the feature would ship looking broken.
 
-The fix: on `EDGE_ADDED` / `EDGE_REMOVED`, after handling the edge visual, also `refresh_node_visual` **both endpoint nodes**. Both, not just the inlet side: the inlet default (`NOT_LINKED`) always needs it, and an author who sets an outlet to `WHEN_LINKED` would otherwise silently break. The cost — two node re-renders per connect — is negligible because connects are discrete, user-driven events, not high-frequency.
+The fix lives in `EdgeWrapper`, at the point link state actually transitions. `link()`, `unlink()`, and `detach()` already orchestrate both ports and (elsewhere) already call their own `redraw()`; they now also call `_request_endpoint_redraw()`, which marks **both endpoint nodes** dirty with `NODE_REDRAW_REQUESTED` via `mark_node_dirty`. The existing `visual_layer.on_validated` node loop then re-renders them — no UI-side inference, no new visual-layer code. Both endpoints, not just the inlet side: the inlet default (`NOT_LINKED`) always needs it, and an author who sets an outlet to `WHEN_LINKED` would otherwise silently break.
+
+Why `EdgeWrapper`, not the visual layer or the graph mutation API:
+
+- The endpoint node ids (`source_node_id` / `sink_node_id`) are plain attributes that **survive `detach()`**, so the removal case needs no captured side-state — unlike a visual-layer or validator approach, which loses the wrapper once the graph deletes it.
+- Routing through `mark_node_dirty` → `_set_reason` means a stronger node reason already in the batch wins: paste (`NODE_ADDED`) and `clear()` (`NODE_REMOVED`) both outrank `NODE_REDRAW_REQUESTED`, so the redraw never downgrades a structural change.
+- It covers **every** link path, including the validator's internal relink (`ValidationManager._validate_batch` calls `edge_wrapper.link()` during a batch). Re-entrant dirty marks are safe by design — the batch snapshots and clears the dirty dicts up front under its `RLock`, so a mark added during validation is carried to the next batch (see ADR 0002). Worst case on relink is a one-batch-deferred redraw, irrelevant to user connect/disconnect.
 
 Considered and rejected for reactivity:
 
+- **Refresh endpoint nodes from `visual_layer.on_validated` on `EDGE_ADDED`/`EDGE_REMOVED`** (the first working version): the UI re-derives "edge change → endpoint nodes dirty," duplicating inference every subscriber would have to repeat, and the `EDGE_REMOVED` case must capture the wrapper before the graph drops it. Moved into `EdgeWrapper` so the `ValidationResult` reports the node impact honestly, once, for all subscribers.
 - **CSS-only toggle in Vue** (always render the widget, flip `display:none` on a `data-linked` attribute): keeps a dead widget instance alive and splits visibility policy across Python and Vue.
 - **Hook the `on_connect`/`on_disconnect` port callbacks** to request a redraw: those are author-facing node-method callbacks, not a framework redraw channel; hijacking them collides with user-defined callbacks.
 

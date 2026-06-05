@@ -274,6 +274,23 @@ class EdgeWrapper:
         if self._graph:
             self._graph._validation.mark_edge_dirty(self._edge_id, ChangeReason.EDGE_VALIDATION_REQUESTED)
 
+    def _request_endpoint_redraw(self) -> None:
+        """
+        Request a visual redraw of both endpoint nodes.
+
+        Linking/unlinking changes a port's link state, which port-level rendering
+        depends on (widget visibility via ShowWidgetStrategy — see ADR 0003). The
+        node redraw is routed through ``mark_node_dirty`` so the priority system
+        lets a stronger node reason already in the batch (NODE_ADDED on paste,
+        NODE_REMOVED on clear) win over this NODE_REDRAW_REQUESTED. The endpoint
+        node ids are plain attributes that survive detach, so this is valid from
+        link(), unlink(), and detach() alike.
+        """
+        if not self._graph:
+            return
+        for node_id in (self.source_node_id, self.sink_node_id):
+            self._graph._validation.mark_node_dirty(node_id, ChangeReason.NODE_REDRAW_REQUESTED)
+
     # =========================================================================
     # LINK LIFECYCLE
     # =========================================================================
@@ -318,6 +335,9 @@ class EdgeWrapper:
         self._inlet_port._housekeeping()
         self._outlet_port._housekeeping()
 
+        # Link state changed → endpoint nodes may need a visual redraw.
+        self._request_endpoint_redraw()
+
     def unlink(self) -> None:
         """
         Remove this edge from the linked set of both ports.
@@ -342,6 +362,9 @@ class EdgeWrapper:
         if self._outlet_port:
             self._outlet_port._housekeeping()
 
+        # Link state changed → endpoint nodes may need a visual redraw.
+        self._request_endpoint_redraw()
+
     def detach(self) -> None:
         """
         Fully remove this edge from both ports (both tiers).
@@ -362,6 +385,9 @@ class EdgeWrapper:
             self._inlet_port._housekeeping()
         if self._outlet_port:
             self._outlet_port._housekeeping()
+
+        # Link state changed → endpoint nodes may need a visual redraw.
+        self._request_endpoint_redraw()
 
     # =========================================================================
     # ASYMMETRIC DISPLACEMENT HANDLERS
