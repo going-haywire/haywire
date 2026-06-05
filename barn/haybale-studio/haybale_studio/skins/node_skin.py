@@ -62,28 +62,25 @@ class NodeSkin(BaseSkin, ABC):
     def render_port(self, port: DataPort, wrapper: NodeWrapper, widget_classes: str = ""):
         """Render a port according to its ort type"""
         if port.is_inlet():
-            self._render_inlet(port, wrapper, widget_classes="widget-container zoom-pan-lod2")
+            self._render_left(port, wrapper, widget_classes="widget-container zoom-pan-lod2")
         elif port.is_outlet():
-            self._render_outlet(port, wrapper, widget_classes="widget-container zoom-pan-lod2")
+            self._render_right(port, wrapper, widget_classes="widget-container zoom-pan-lod2")
         elif port.is_config():
             self._render_config(port, wrapper, widget_classes="widget-container zoom-pan-lod2")
 
-    def _render_inlet(self, port: DataPort, wrapper: NodeWrapper, widget_classes: str = ""):
-        """Render an inlet port: fixed PIN_GUTTER pin column | flex content column.
+    def _render_left(self, port: DataPort, wrapper: NodeWrapper, widget_classes: str = ""):
+        """Render a port with its pin on the LEFT: pin column | flex content column.
 
-        Collapses the former gutter wrapper into the grid cell — the pin sits
-        directly in column 1, centered by the cell (``place-items: center``),
-        with ``overflow: visible`` so it still straddles the card edge. The
-        content column keeps its own flex element to stack label + widget.
-        Net: 3 structural divs/port → 2.
+        The pin sits in column 1, centered by the cell; the content column
+        stacks the label and optional widget. ``overflow: visible`` lets the pin
+        straddle the card edge. Used for inlets.
         """
         g, gap, h = self.PIN_GUTTER, self.CONTENT_GAP, self.PIN_ROW_HEIGHT
         with ui.element("div").style(
             f"display: grid; grid-template-columns: {g}px 1fr; width: 100%; align-items: start; "
             "overflow: visible;"
         ):
-            # Pin directly in grid column 1 (no wrapper div) — centered in the
-            # PIN_GUTTER-wide cell, with min-height to match a single content row.
+            # Pin in grid column 1, centered in the PIN_GUTTER-wide cell.
             self._render_pin(
                 port,
                 wrapper,
@@ -91,12 +88,15 @@ class NodeSkin(BaseSkin, ABC):
                 cell_style=f"grid-column: 1; justify-self: center; align-self: center; min-height: {h}px;",
             )
 
-            # Content column — label and optional widget stacked vertically
+            # Content column — label and optional widget stacked vertically.
+            # `gap` toward the pin (left), `g` on the far side (right) so the
+            # content inset matches regardless of pin side. `align-self: center`
+            # matches the pin so the label/widget share the pin's vertical center.
             with (
                 ui.element("div")
                 .classes("compact-fields")
                 .style(
-                    f"grid-column: 2; display: flex; flex-direction: column; "
+                    f"grid-column: 2; align-self: center; display: flex; flex-direction: column; "
                     f"margin-left: {gap}px; margin-right: {g}px; min-width: 0;"
                 )
             ):
@@ -105,24 +105,26 @@ class NodeSkin(BaseSkin, ABC):
                 if not port.allow_multiple_links and port.widget_key:
                     self.render_widget(port, wrapper.node_id, classes=widget_classes)
 
-    def _render_outlet(self, port, wrapper: NodeWrapper, widget_classes: str = ""):
-        """Render an outlet port: flex content | fixed PIN_GUTTER pin column.
+    def _render_right(self, port, wrapper: NodeWrapper, widget_classes: str = ""):
+        """Render a port with its pin on the RIGHT: flex content column | pin column.
 
-        Pin sits directly in grid column 2 (no wrapper div). 3 structural
-        divs/port → 2. See :meth:`_render_inlet`.
+        Mirror of :meth:`_render_left` with the pin in column 2. Used for outlets.
         """
         g, gap, h = self.PIN_GUTTER, self.CONTENT_GAP, self.PIN_ROW_HEIGHT
         with ui.element("div").style(
             f"display: grid; grid-template-columns: 1fr {g}px; width: 100%; align-items: start; "
             "overflow: visible;"
         ):
-            # Content column — label right-aligned and optional widget
+            # Content column — label right-aligned and optional widget.
+            # Margins mirror the inlet: `gap` toward the pin (right), `g` on the
+            # far side (left) so the content inset matches regardless of pin side.
+            # `align-self: center` matches the pin's vertical center.
             with (
                 ui.element("div")
                 .classes("compact-fields")
                 .style(
-                    f"grid-column: 1; display: flex; flex-direction: column; align-items: flex-end; "
-                    f"margin-right: {gap}px; min-width: 0;"
+                    f"grid-column: 1; align-self: center; display: flex; flex-direction: column; "
+                    f"align-items: flex-end; margin-left: {g}px; margin-right: {gap}px; min-width: 0;"
                 )
             ):
                 if self._ui_settings.show_labels:
@@ -130,7 +132,7 @@ class NodeSkin(BaseSkin, ABC):
                 if not port.allow_multiple_links and port.widget_key:
                     self.render_widget(port, wrapper.node_id, classes=widget_classes)
 
-            # Pin directly in grid column 2 (no wrapper div).
+            # Pin in grid column 2, centered in the PIN_GUTTER-wide cell.
             self._render_pin(
                 port,
                 wrapper,
@@ -159,10 +161,9 @@ class NodeSkin(BaseSkin, ABC):
     ):
         """Render a pin with connection system compatibility.
 
-        ``cell_style`` is appended to the pin element's own style so the pin can
-        be placed directly into a grid cell (grid-column / *-self centering)
-        without a wrapper div — keeping the pin count and geometry identical
-        while removing one element per port.
+        ``cell_style`` is appended to the pin element's own style, letting the
+        caller place the pin directly into a grid cell (grid-column / *-self
+        centering).
         """
         # Create unique pin ID and determine port type for connection system
         pin_direction = "inlet" if pin.is_inlet() else "outlet"
@@ -193,13 +194,14 @@ class NodeSkin(BaseSkin, ABC):
 
         port_menu_props = 'data-hw-port-menu-focus-id="port.info"'
 
+        pin_el: ui.element | None = None
         if pin.flow_type == FlowType.CONTROL:
             ctrl_color = pin.color
             if pin.is_inlet():
                 ctrl_icon = pin.icon_in or ICONS.JOIN_LEFT
             else:
                 ctrl_icon = pin.icon_out or ICONS.JOIN_RIGHT
-            (
+            pin_el = (
                 ui.icon(ctrl_icon, color=ctrl_color, size=pin_size)
                 .classes("port input-port connection-pin zoom-pan-lod0")
                 .style(pin_offset)
@@ -212,7 +214,7 @@ class NodeSkin(BaseSkin, ABC):
                 callback_icon = pin.icon_in or ICONS.SWIPE_LEFT_ALT
             else:
                 callback_icon = pin.icon_out or ICONS.SWIPE_RIGHT_ALT
-            (
+            pin_el = (
                 ui.icon(callback_icon, color=callback_color, size=pin_size)
                 .classes("port input-port connection-pin zoom-pan-lod0")
                 .style(pin_offset)
@@ -243,7 +245,7 @@ class NodeSkin(BaseSkin, ABC):
                     data_icon = pin._data.get_stored_type().class_identity.icon_out_multi or ICONS.VIEW_DAY
                 else:
                     data_icon = pin._data.get_stored_type().class_identity.icon_out_multi or ICONS.CIRCLE
-            (
+            pin_el = (
                 ui.icon(data_icon, color=pin_color, size=pin_size)
                 .classes("port connection-pin zoom-pan-lod0")
                 .style(pin_offset)
@@ -252,6 +254,20 @@ class NodeSkin(BaseSkin, ABC):
                     f'data-pin-color="{pin_color}" {port_menu_props}'
                 )
             )
+
+        if pin_el is not None and self._ui_settings.show_tooltips:
+            self._add_pin_tooltip(pin_el, pin)
+
+    def _add_pin_tooltip(self, pin_el: ui.element, pin: DataPort) -> None:
+        """Attach a hover tooltip to a pin showing its label and description.
+
+        The description line is omitted when the port has no description.
+        """
+        with pin_el, ui.tooltip().classes("text-xs"):
+            ui.label(pin.label).classes("font-bold")
+            description = (pin.description or "").strip()
+            if description:
+                ui.label(description)
 
     def _add_resize_handle(self, main_card: ui.card, wrapper: NodeWrapper):
         """Add a draggable resize handle to the bottom-right corner."""

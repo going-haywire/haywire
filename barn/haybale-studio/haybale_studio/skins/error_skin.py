@@ -90,7 +90,7 @@ class ErrorNodeSkin(NodeSkin):
                         ui.label("Outputs").classes("font-bold text-sm")
                         for outlet in node.ports.values():
                             if outlet.is_outlet():
-                                self._render_outlet(outlet, wrapper)
+                                self._render_right(outlet, wrapper)
 
             # Footer with port counts
             with ui.row().classes("w-full justify-between mt-2"):
