@@ -156,7 +156,7 @@ class SimpleWidget(IWidget, ABC):
         """Drop the widget's model subscription.
 
         Subscriptions-only: this detaches the model→view callback from
-        the ports. It does NOT remove the widget from the DOM 
+        the ports. It does NOT remove the widget from the DOM
 
         Callers must not access the widget's fields after cleanup() returns —
         the contract is signalled by ``self._cleaned_up = True``.
