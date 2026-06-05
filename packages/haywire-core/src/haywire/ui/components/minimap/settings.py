@@ -43,10 +43,3 @@ class MinimapSettings(FrameworkSettings, namespace=NAMESPACE_UI_MINIMAP):
         min=0.0,
         max=1.0,
     )
-    debug_info = setting[bool](
-        False,
-        label="Show Debug Info",
-        description="Overlay zoom/pan/scale values on the minimap",
-        category="debug",
-        order=60,
-    )

@@ -18,6 +18,7 @@ from haywire.ui.panel import BasePanel, PanelLayout
 from haywire.ui.panel.decorator import panel
 from haywire.ui.panel.render_utils import render_schema
 from haywire.ui.components.minimap.settings import MinimapSettings
+from haywire.ui.components.debug_overlay.settings import DebugOverlaySettings
 from haywire.ui.prefs.canvas import CanvasSettings
 from haywire.ui.prefs.edge_ui import EdgeUISettings
 from haywire.ui.panel.focus import CanvasFocus
@@ -122,3 +123,22 @@ class MinimapSettingsPanel(BasePanel):
     ) -> None:
         registry = ctx.app.library_service.get_settings_registry()
         render_schema(MinimapSettings, registry)
+
+
+@panel(
+    focus=CanvasFocus,
+    label="Debug Overlay",
+    icon=hui.icon.debug,
+    order=50,
+    default_open=False,
+)
+class DebugOverlaySettingsPanel(BasePanel):
+    """Performance/debug HUD visibility and position."""
+
+    def draw(
+        self,
+        ctx: "SessionContext",
+        layout: PanelLayout,
+    ) -> None:
+        registry = ctx.app.library_service.get_settings_registry()
+        render_schema(DebugOverlaySettings, registry)

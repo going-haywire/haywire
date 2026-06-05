@@ -6,6 +6,7 @@ NAMESPACE_LIBRARY_LOG = "debug.library"
 NAMESPACE_EDITOR_PAN_ZOOM = "editor.pan_zoom"
 NAMESPACE_UI_NODE_DEFAULT_SKIN = "ui.node.default.skin"
 NAMESPACE_UI_MINIMAP = "ui.minimap"
+NAMESPACE_UI_DEBUG_OVERLAY = "ui.debug_overlay"
 
 # Category contants for FrameworkSetting fields.
 CATEGORY_LOG_LEVEL = "log_level"

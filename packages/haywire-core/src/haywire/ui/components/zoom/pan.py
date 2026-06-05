@@ -6,6 +6,7 @@ import logging
 
 from haywire.ui.components.zoom.settings import EditorPanZoomSettings
 from haywire.ui.components.minimap.minimap import MinimapCanvas
+from haywire.ui.components.debug_overlay.debug_overlay import DebugOverlay
 
 _log = logging.getLogger(__name__)
 
@@ -52,6 +53,9 @@ class ZoomPanContainer(ui.element, component="pan.vue"):
 
         # Minimap instance — created in _setup_container after DOM is ready
         self.minimap: Optional["MinimapCanvas"] = None
+
+        # Debug/performance overlay — created in _setup_container after DOM is ready
+        self.debug_overlay: Optional["DebugOverlay"] = None
 
         # Current state tracking
         self.current_zoom = initial_zoom
@@ -124,6 +128,7 @@ class ZoomPanContainer(ui.element, component="pan.vue"):
         # still a DOM child of the container div (required for position: absolute).
         with self.add_slot("overlay"):
             self.minimap = MinimapCanvas(zoom_container=self)
+            self.debug_overlay = DebugOverlay(zoom_container=self)
 
     def _handle_transform_changed(self, e: events.GenericEventArguments) -> None:
         """Handle zoom change events from Vue component."""

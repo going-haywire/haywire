@@ -6,6 +6,7 @@ from .canvas_settings import NodeSkinSettingsPanel
 from .canvas_settings import EdgeUISettingsPanel
 from .canvas_settings import EditorZoomPanSettingsPanel
 from .canvas_settings import MinimapSettingsPanel
+from .canvas_settings import DebugOverlaySettingsPanel
 from .debug_panel import DebugSettingsPanel
 from .execution_panel import ExecutionSettingsPanel
 from .context_menu.file_actions import OpenInCodeEditorPanel
@@ -13,6 +14,7 @@ from .context_menu.file_actions import OpenInFileViewerPanel
 
 __all__ = [
     "CanvasSettingsPanel",
+    "DebugOverlaySettingsPanel",
     "DebugSettingsPanel",
     "EdgeUISettingsPanel",
     "EditorSettingsPanel",

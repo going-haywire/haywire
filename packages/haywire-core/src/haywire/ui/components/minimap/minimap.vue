@@ -31,7 +31,6 @@ export default {
     position:      { type: String,  default: 'top-right' },
     activeOpacity: { type: Number,  default: 0.88 },
     ghostOpacity:  { type: Number,  default: 0.15 },
-    debugInfo:     { type: Boolean, default: false },
     visible:       { type: Boolean, default: true },
     canvasWidth:   { type: Number,  default: 8000 },
     canvasHeight:  { type: Number,  default: 8000 },
@@ -81,9 +80,6 @@ export default {
     this._nodeRects     = [];
     this._scaleFactor   = 1.0;
     this._viewportRect  = { x: 0, y: 0, width: 50, height: 50 };
-    this._zoom          = 1.0;
-    this._panX          = 0;
-    this._panY          = 0;
     this._isDragging    = false;
     this._dragMoved     = false;
     this._lastMouseX    = 0;
@@ -189,21 +185,6 @@ export default {
       ctx.lineWidth   = 2;
       ctx.fillRect(cx, cy, cw, ch);
       ctx.strokeRect(cx, cy, cw, ch);
-
-      if (this.debugInfo) {
-        ctx.fillStyle = 'rgba(0,0,0,0.75)';
-        ctx.fillRect(0, h - 80, w, 80);
-        ctx.fillStyle = this._getThemeColor('--hw-text-body', '#e0e0f0');
-        ctx.font = '9px monospace';
-        const lines = [
-          `zoom: ${this._zoom.toFixed(3)}`,
-          `pan:  ${this._panX.toFixed(0)}, ${this._panY.toFixed(0)}`,
-          `view: ${Math.round(cw)} x ${Math.round(ch)}`,
-          `scale: ${sf.toFixed(4)}`,
-          `canvas: ${Math.round(maxX)} x ${Math.round(maxY)}`,
-        ];
-        lines.forEach((line, i) => ctx.fillText(line, 4, h - 80 + 11 + i * 13));
-      }
     },
 
     // ── State ─────────────────────────────────────────────────────────────────
@@ -223,10 +204,6 @@ export default {
     },
 
     _updateViewport(zoom, panX, panY) {
-      this._zoom = zoom;
-      this._panX = panX;
-      this._panY = panY;
-
       const el = this._getMainContainer();
       if (!el) return;
 
@@ -373,10 +350,6 @@ export default {
       this._draw();
       this.blendIn();
       this.scheduleBlendOut();
-    },
-
-    debugInfo() {
-      this._draw();
     },
 
     visible(newVal) {

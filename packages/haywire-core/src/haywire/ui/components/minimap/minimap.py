@@ -23,7 +23,7 @@ class MinimapCanvas(ui.element, component="minimap.vue"):
     - Click-to-center and drag-to-pan navigation
     - Real-time viewport sync via DOM events
     - Fade in/out opacity transitions
-    - Settings-driven: size, position, opacity, debug overlay
+    - Settings-driven: size, position, opacity
     """
 
     def __init__(
@@ -44,7 +44,6 @@ class MinimapCanvas(ui.element, component="minimap.vue"):
         self._props["position"] = mm.position
         self._props["active-opacity"] = mm.opacity
         self._props["ghost-opacity"] = mm.ghost_opacity
-        self._props["debug-info"] = mm.debug_info
         self._props["visible"] = mm.enabled
 
         self._settings.subscribe(self._on_setting_changed)
@@ -61,8 +60,6 @@ class MinimapCanvas(ui.element, component="minimap.vue"):
             self.set_opacity(value)
         elif name == "ghost_opacity":
             self.set_ghost_opacity(value)
-        elif name == "debug_info":
-            self.set_debug_info(value)
 
     # ── Public API ────────────────────────────────────────────────────────────
 
@@ -95,11 +92,6 @@ class MinimapCanvas(ui.element, component="minimap.vue"):
     def set_ghost_opacity(self, opacity: float) -> None:
         """Set the resting (idle) opacity."""
         self._props["ghost-opacity"] = opacity
-        self.update()
-
-    def set_debug_info(self, enabled: bool) -> None:
-        """Toggle the debug overlay on the minimap canvas."""
-        self._props["debug-info"] = enabled
         self.update()
 
     def set_canvas_size(self, width: int, height: int) -> None:
