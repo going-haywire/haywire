@@ -57,4 +57,4 @@ class TestGroupAndSectionNode(BaseNode):
         self,
         context: ExecutionContext,
     ) -> str | None:
-        return
+        return None
