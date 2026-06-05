@@ -304,9 +304,27 @@ class VisualLayerHandlers:
         self.canvas_vue.emit_sync_event(SyncCanvasClearEvent())
 
     def cleanup(self):
-        """Release all visual state, properly cleaning up each UINode/UIEdge."""
-        self.remove_all_edge_visuals()
-        self.remove_all_node_visuals()
+        """Bulk-teardown path for full canvas close.
+
+        Drops each node's Haywire-side subscriptions (no per-node DOM delete —
+        the owning container's clear/delete removes all node DOM in one batch)
+        and clears edge state without emitting per-edge sync events. Use
+        ``remove_node_visual`` / ``remove_edge_visual`` for in-session
+        single-element removal, which do delete DOM / emit sync.
+        """
+        for ui_node in self.node_panels.values():
+            try:
+                ui_node.teardown_subscriptions()
+            except Exception as exc:
+                logger.warning(f"VisualLayer.cleanup: node teardown error: {exc}")
+        self.node_panels.clear()
+
+        for ui_edge in self.edge_paths.values():
+            try:
+                ui_edge.cleanup()
+            except Exception as exc:
+                logger.warning(f"VisualLayer.cleanup: edge teardown error: {exc}")
+        self.edge_paths.clear()
 
     # -------------------------------------------------------------------------
     # Event handlers — graph mutation requests

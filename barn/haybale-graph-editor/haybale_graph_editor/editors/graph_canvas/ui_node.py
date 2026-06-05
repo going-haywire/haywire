@@ -250,42 +250,41 @@ class UINode:
         return None
 
     def delete(self):
+        """Tear down subscriptions and remove the node's DOM. For single-node
+        removal (``remove_node_visual``).
         """
-        Delete the UINode and clean up resources.
-        """
-        # Unregister from factory tracking
-        self.factory._unregister_node(self._node_id)
-        # Clean up this session resources
-        self.cleanup()
+        self.teardown_subscriptions()
+        self.delete_dom()
 
     def cleanup(self):
+        """Subscriptions-only teardown (alias of :meth:`teardown_subscriptions`)."""
+        self.teardown_subscriptions()
+
+    def teardown_subscriptions(self):
+        """Detach this node's factory tracking, lifecycle subscriber, and widget
+        callbacks. Does NOT touch the DOM. Idempotent.
         """
-        Clean up resources and remove UI elements.
-        Enhanced to unsubscribe from wrapper and factory callbacks.
-        """
-        logger.info(f"🔌 Cleaning up UINode {self._node_id} ..")
+        logger.info(f"🔌 Tearing down subscriptions for UINode {self._node_id} ..")
+        self.factory._unregister_node(self._node_id)
         self.factory.remove_factory_lifecycle_subscriber(
             self._node_id, self._listen_on_factory_lifecycle_event
         )
-
-        # Clean up widgets before clearing UI
         if self.current_ui_card:
             self.current_ui_card.cleanup()
+        self.current_ui_card = None
+        logger.info(f".. Done 🔌 subscription teardown for UINode {self._node_id}.")
 
-        # Clear the container slot (reliable cleanup)
+    def delete_dom(self):
+        """Remove this node's container DOM. For single-node deletion only;
+        the bulk close path relies on the container teardown instead.
+        """
         if self.container_slot:
             try:
                 self.container_slot.clear()
-                # Optionally remove the container itself
                 self.container_slot.delete()
             except Exception as e:
                 logger.warning(f"Failed to clean up container slot: {e}", exc_info=True)
             self.container_slot = None
-
-        # Clear references
-        self.current_ui_card = None
-
-        logger.info(f".. Done 🔌 Cleaning up UINode {self._node_id}.")
 
     def is_rendered(self) -> bool:
         """Check if the node is currently rendered."""
