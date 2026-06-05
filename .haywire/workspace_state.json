@@ -8,13 +8,13 @@
     "editors": []
   },
   "right": {
-    "active_key": "marketplace:editor:LibraryComponentEditor",
+    "active_key": "studio:editor:PropertiesEditor",
     "visible": true,
     "size": 369,
     "editors": []
   },
   "main": {
-    "active_key": "graph_editor:editor:GraphEditor::/Volumes/Ddrive/06_open_tracking_tool/haywire/haywire-repo/graphs/webcam.haywire",
+    "active_key": "graph_editor:editor:GraphEditor::/Volumes/Ddrive/06_open_tracking_tool/haywire/haywire-repo/graphs/loop.haywire",
     "visible": true,
     "size": 300,
     "editors": [

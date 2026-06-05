@@ -1,5 +1,5 @@
 [debug]
-log_level = "WARNING"
+log_level = "INFO"
 log_library = ""
 log_node = ""
 log_to_file = false
@@ -7,7 +7,7 @@ log_ui = ""
 
 [haystack]
 last_haystack_name = "Master"
-new_counter = 7
+new_counter = 9
 
 [workbench]
 theme = "studio:theme:workbench:HaywireDarkTheme"
@@ -15,13 +15,17 @@ theme = "studio:theme:workbench:HaywireDarkTheme"
 [editor.pan_zoom]
 hover_enter_delay = 200
 hover_exit_delay = 0
-hover_scale_cutoff_zoom = 0.5
-hover_scale_enabled = true
+hover_scale_cutoff_zoom = 0.3
+hover_scale_enabled = false
 hover_scale_max = 5.0
 max_zoom = 1.8
-min_zoom = 0.0
+min_zoom = 0.01
 pan_sensitivity = 5.0
 zoom_sensitivity = 0.56
+
+[ui.debug_overlay]
+enabled = false
+position = "top-left"
 
 [ui.minimap]
 debug_info = false
@@ -33,3 +37,13 @@ width = 116
 
 [debug.library.core]
 log_level = ""
+
+[ui.node.skin]
+content_gap = -15
+inspect_on_click = false
+pin_gutter = 20
+pin_protrusion = 0
+show_labels = false
+show_node_ids = false
+show_resize_handle = false
+show_tooltips = true
