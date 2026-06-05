@@ -4342,6 +4342,11 @@
 <td>Control, field input</td>
 </tr>
 <tr>
+<td><strong>ShowWidgetStrategy</strong></td>
+<td>Per-port enum (<code>NEVER</code>, <code>NOT_LINKED</code>, <code>WHEN_LINKED</code>, <code>ALWAYS</code>) declaring whether a port's Widget is rendered for each link state. Resolved by <code>DataPort.should_show_widget()</code> against <code>is_linked()</code>. Direction defaults: inlet <code>NOT_LINKED</code>, outlet <code>NEVER</code>, config <code>ALWAYS</code>. See <a href="../../adr/0003-show-widget-strategy/">adr/0003</a></td>
+<td>Widget visibility flag</td>
+</tr>
+<tr>
 <td><strong>Theme</strong></td>
 <td>A named set of CSS tokens (<code>WorkbenchTheme</code>) or per-node-type colour rules (<code>NodeTheme</code>); session-scoped for workbench. See <a href="../../components/themes/theme-canon/">components/themes</a></td>
 <td>Style, skin (Skin is distinct)</td>
