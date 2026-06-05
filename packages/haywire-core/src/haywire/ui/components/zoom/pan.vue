@@ -28,6 +28,8 @@ export default {
   props: {
     containerId: { type: String, required: true },
     maxZoom: { type: Number, default: 5.0 },
+    // 0 = automatic (canvas-fills-viewport). >0 overrides as the absolute min.
+    minZoom: { type: Number, default: 0.0 },
     initialZoom: { type: Number, default: 1.0 },
     zoomSensitivity: { type: Number, default: 0.1 },
     panSensitivity: { type: Number, default: 1.0 },
@@ -108,6 +110,17 @@ export default {
     },
 
     _updateMinZoom() {
+      // Explicit override: the minZoom setting becomes the absolute floor,
+      // ignoring the auto-fit computation. This can allow zooming out past the
+      // canvas-fills-viewport point; _clampPanValues already centers any axis
+      // where the scaled canvas is smaller than the viewport, so panning stays
+      // well-behaved.
+      if (this.minZoom > 0) {
+        this._minZoom = this.minZoom;
+        return;
+      }
+      // Automatic (minZoom == 0): most zoomed-out is when the canvas exactly
+      // fills the viewport.
       const rect = this.$el.getBoundingClientRect();
       if (rect.width > 0 && rect.height > 0) {
         this._minZoom = Math.max(rect.width / this.canvasWidth, rect.height / this.canvasHeight);
@@ -264,28 +277,18 @@ export default {
    
     _updateZoomAndLODClass() {
       const container = this.$el;
-      let hoverScale, lodLevel;
-      
+      let lodLevel;
+
       if (this._zoom <= 0.3) {
-        hoverScale = 1.5;
         lodLevel = 'raw';  // Show only lod0
       } else if (this._zoom <= 0.5) {
-        hoverScale = 1.25;
         lodLevel = 'low';   // Show lod0 and lod1
       } else if (this._zoom <= 0.75) {
-        hoverScale = 1.0;
         lodLevel = 'medium';  // Show lod0, lod1 and lod2
-      } else if (this._zoom <= 1.0) {
-        hoverScale = 1.0;
-        lodLevel = 'high';  // Show lod0, lod1, lod2 and lod3
       } else {
-        hoverScale = 1.0;
         lodLevel = 'high';  // Show lod0, lod1, lod2 and lod3
       }
-      
-      // Set CSS variable for hover scaling
-      container.style.setProperty('--hover-scale', hoverScale);
-      
+
       // Set LOD level for visibility control
       container.setAttribute('data-lod-level', lodLevel);
     },
@@ -424,6 +427,17 @@ export default {
       this._clampPanValues();
       this._updateTransformDirect(true);
     },
+    minZoom() {
+      // Recompute the floor and pull the current zoom up to it if the new floor
+      // is higher than where we are (e.g. user raised the setting while zoomed
+      // far out). Then re-clamp pan and redraw.
+      this._updateMinZoom();
+      if (this._zoom < this._minZoom) {
+        this._zoom = this._minZoom;
+      }
+      this._clampPanValues();
+      this._updateTransformDirect(true);
+    },
   }
 }
 </script>
@@ -439,8 +453,6 @@ export default {
   -webkit-user-select: none;
   -moz-user-select: none;
   -ms-user-select: none;
-
-  --hover-scale: 1.1;
 }
 
 /* Allow user selection and interactions for interactive elements */
@@ -633,15 +645,18 @@ export default {
   --lod-3-pointer-events: auto;
 }
 
-/* Hover scaling for cards based on zoom level */
+/* Card hover affordance + magnifier transition.
+ * The hover magnifier (canvas.vue) sets an inline `transform: scale(...)` on
+ * `.zoom-pan-lod0` after a dwell delay; the transform transition here animates
+ * that magnify/shrink. A subtle box-shadow gives the "hovered" cue. The
+ * magnifier is gated by a setting and a dwell timer, so it no longer fires on
+ * every accidental fly-over the way the old CSS `:hover` scale did. */
 .zoom-pan-lod0 {
-  transition: transform 0.2s ease-out, box-shadow 0.2s ease-out;
+  transition: box-shadow 0.2s ease-out, transform 0.14s ease-out;
   cursor: pointer;
 }
 
 .zoom-pan-lod0:hover {
-  /* This inherits --hover-scale from .zoom-pan-container */
-  transform: scale(var(--hover-scale, 1.1));
   box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
   z-index: 10;
   position: relative;

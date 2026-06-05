@@ -40,6 +40,12 @@ export default {
         zoomContainerId: { type: String, default: '' },
         canvasWidth:  { type: Number, default: 8000 },
         canvasHeight: { type: Number, default: 8000 },
+        // Hover magnifier (readability aid; see _setupHoverObserver).
+        hoverScaleEnabled:    { type: Boolean, default: true },
+        hoverScaleMax:        { type: Number,  default: 1.5 },
+        hoverScaleCutoffZoom: { type: Number,  default: 0.5 },
+        hoverEnterDelay:      { type: Number,  default: 350 },
+        hoverExitDelay:       { type: Number,  default: 0 },
     },
 
     data() {
@@ -156,6 +162,8 @@ export default {
         this._cleanupEventListeners();
         this._cleanupObservers();
         this._cleanupZoomPanListener();
+        // Clear any pending magnify timers so they don't fire post-unmount.
+        this._clearAllMagnified();
     },
 
     methods: {
@@ -201,16 +209,122 @@ export default {
                 this._scheduleEdgeUpdates(nodeId, nodeElement);
             };
 
-            // Listen for transform transitions (zoom scaling effects)
+            // Listen for transform transitions (the magnifier scales `transform`,
+            // which shifts pin positions — refresh edges as it animates).
             lodElement.addEventListener('transitionstart', (e) => {
                 if (e.propertyName === 'transform') {
                     this._scheduleEdgeUpdates(nodeId, nodeElement);
                 }
             });
-        
-            // Listen for hover enter/leave for size changes
-            lodElement.addEventListener('mouseenter', scheduleEdgeUpdates);
-            lodElement.addEventListener('mouseleave', scheduleEdgeUpdates);
+
+            // Hover magnifier: dwell to magnify, release on leave. Timers are
+            // stored on the element so leave can cancel a pending enter, and so
+            // cleanup can clear them. Edge refresh is driven by the transition
+            // above (no extra call needed here beyond the size-change schedule).
+            lodElement.addEventListener('mouseenter', () => {
+                scheduleEdgeUpdates();
+                this._onNodeHoverEnter(lodElement);
+            });
+            lodElement.addEventListener('mouseleave', () => {
+                scheduleEdgeUpdates();
+                this._onNodeHoverLeave(lodElement);
+            });
+        },
+
+        // ── Hover magnifier ───────────────────────────────────────────────────
+
+        /** Linear, zoom-compensated magnify scale for the current zoom.
+         *  Returns 1.0 (no magnify) at/above the cutoff zoom, rising to
+         *  hoverScaleMax as zoom approaches 0. */
+        _magnifyScaleForZoom() {
+            const cutoff = this.hoverScaleCutoffZoom;
+            const zoom = this.zoomState.zoom || 1;
+            if (zoom >= cutoff) return 1.0;
+            // t: 0 at the cutoff, 1 at (or below) the inner reference zoom.
+            // Reference floor of 0.1 keeps the curve well-defined when cutoff is
+            // small; clamp so t stays within [0, 1].
+            const floor = Math.min(0.1, cutoff * 0.5);
+            const span = cutoff - floor;
+            const t = span > 0 ? Math.min(1, Math.max(0, (cutoff - zoom) / span)) : 1;
+            return 1.0 + t * (this.hoverScaleMax - 1.0);
+        },
+
+        /** True if a magnify would be disruptive right now (mid gesture). */
+        _magnifySuppressed() {
+            return this.dragState.isDragging || this.edgeDrag.mode !== 'idle';
+        },
+
+        _onNodeHoverEnter(lodElement) {
+            // Clear any pending release so re-entering keeps it magnified.
+            if (lodElement._magnifyExitTimer) {
+                clearTimeout(lodElement._magnifyExitTimer);
+                lodElement._magnifyExitTimer = null;
+            }
+            if (!this.hoverScaleEnabled) return;
+            if (this._magnifySuppressed()) return;
+            // Already magnified (re-enter after a cancelled exit) — nothing to do.
+            if (lodElement._magnified) return;
+
+            const arm = () => {
+                lodElement._magnifyEnterTimer = null;
+                // Re-check on fire: pointer may have moved / a gesture may have
+                // started during the dwell.
+                if (!this.hoverScaleEnabled || this._magnifySuppressed()) return;
+                const scale = this._magnifyScaleForZoom();
+                if (scale <= 1.0) return;  // nothing to do at/above cutoff
+                this._applyMagnify(lodElement, scale);
+            };
+
+            if (this.hoverEnterDelay > 0) {
+                lodElement._magnifyEnterTimer = setTimeout(arm, this.hoverEnterDelay);
+            } else {
+                arm();
+            }
+        },
+
+        _onNodeHoverLeave(lodElement) {
+            // Cancel a pending magnify that never fired.
+            if (lodElement._magnifyEnterTimer) {
+                clearTimeout(lodElement._magnifyEnterTimer);
+                lodElement._magnifyEnterTimer = null;
+            }
+            if (!lodElement._magnified) return;
+
+            const release = () => {
+                lodElement._magnifyExitTimer = null;
+                this._clearMagnify(lodElement);
+            };
+            if (this.hoverExitDelay > 0) {
+                lodElement._magnifyExitTimer = setTimeout(release, this.hoverExitDelay);
+            } else {
+                release();
+            }
+        },
+
+        _applyMagnify(lodElement, scale) {
+            lodElement._magnified = true;
+            // Lift above neighbours so the magnified node isn't clipped by them.
+            lodElement.style.zIndex = '1001';
+            lodElement.style.position = 'relative';
+            lodElement.style.transform = `scale(${scale})`;
+        },
+
+        _clearMagnify(lodElement) {
+            lodElement._magnified = false;
+            lodElement.style.transform = '';
+            lodElement.style.zIndex = '';
+            // Leave position alone — node-selected / other rules may rely on it;
+            // resetting transform/zIndex is enough to undo the magnify.
+        },
+
+        /** Snap any magnified node back. Called when a gesture (drag / edge
+         *  connect) starts, so magnify never interferes mid-operation. */
+        _clearAllMagnified() {
+            document.querySelectorAll('.zoom-pan-lod0').forEach((el) => {
+                if (el._magnifyEnterTimer) { clearTimeout(el._magnifyEnterTimer); el._magnifyEnterTimer = null; }
+                if (el._magnifyExitTimer) { clearTimeout(el._magnifyExitTimer); el._magnifyExitTimer = null; }
+                if (el._magnified) this._clearMagnify(el);
+            });
         },
 
         _setupZoomPanListener() {
@@ -882,6 +996,9 @@ export default {
 
             console.log('Starting unified drag for:', draggedElement.type, draggedElement.id);
 
+            // A magnified node shifts pins; clear magnify before dragging.
+            this._clearAllMagnified();
+
             this.dragState.isDragging = true;
             this.dragState.startMousePos = { x: e.clientX, y: e.clientY };
             this.dragState.hasActuallyMoved = false;
@@ -1359,6 +1476,9 @@ export default {
 
         /** Transition to active connection mode from a pin. */
         _enterActiveEdge(pin) {
+            // A magnified node shifts pins; clear magnify before wiring an edge.
+            this._clearAllMagnified();
+
             this.edgeDrag.mode = 'active';
             this.edgeDrag.anchorPin = pin;
             this.edgeDrag.nearestCompatiblePin = null;

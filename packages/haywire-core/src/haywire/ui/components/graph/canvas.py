@@ -13,10 +13,22 @@ from pathlib import Path
 from nicegui import ui
 
 from haywire.ui.components.graph.event_definitions import BaseGraphEvent, GRAPH_EVENT_REGISTRY
+from haywire.ui.components.zoom.settings import EditorPanZoomSettings
 
 _GRAPH_EVENTS_JS = Path(__file__).parent / "generated" / "graph_events.js"
 
 logger = logging.getLogger(__name__)
+
+# Hover-magnifier settings → Vue prop names. The magnifier lives in canvas.vue
+# (graph-aware: it owns per-node hover hooks, edge refresh and zoomState), so the
+# settings are routed here rather than to the generic ZoomPanContainer.
+_HOVER_SETTING_PROPS: dict[str, str] = {
+    "hover_scale_enabled": "hover-scale-enabled",
+    "hover_scale_max": "hover-scale-max",
+    "hover_scale_cutoff_zoom": "hover-scale-cutoff-zoom",
+    "hover_enter_delay": "hover-enter-delay",
+    "hover_exit_delay": "hover-exit-delay",
+}
 
 
 class GraphCanvasVue(ui.element, component="canvas.vue", dependencies=[_GRAPH_EVENTS_JS]):
@@ -45,8 +57,25 @@ class GraphCanvasVue(ui.element, component="canvas.vue", dependencies=[_GRAPH_EV
         # corrupt editor A's zoomState and render edges with wrong coords).
         self._props["zoomContainerId"] = zoom_container.container_id if zoom_container else ""
 
+        # Hover-magnifier settings: push initial values and live-update on change.
+        self._pz_settings = EditorPanZoomSettings()
+        self._apply_hover_setting_props()
+        self._pz_settings.subscribe(self._on_setting_changed)
+
         # Register single unified event handler
         self.on("canvasEvent", self._handle_canvas_event)
+
+    def _apply_hover_setting_props(self) -> None:
+        """Push current hover-magnifier settings to Vue props."""
+        for name, prop in _HOVER_SETTING_PROPS.items():
+            self._props[prop] = getattr(self._pz_settings, name)
+
+    def _on_setting_changed(self, name: str, value, old) -> None:
+        """Propagate a hover-magnifier settings change to the Vue component."""
+        prop = _HOVER_SETTING_PROPS.get(name)
+        if prop is not None:
+            self._props[prop] = value
+            self.update()
 
     def _handle_canvas_event(self, event_data):
         """Unified canvas event handler - routes to GraphCanvasManager"""
@@ -94,5 +123,11 @@ class GraphCanvasVue(ui.element, component="canvas.vue", dependencies=[_GRAPH_EV
     def cleanup(self):
         """Cleanup resources and references."""
         self._is_cleanup = True
+        # Drop the settings subscription so this instance isn't kept alive (and
+        # doesn't fire into a torn-down component) across hot-reload / tab close.
+        try:
+            self._pz_settings.unsubscribe(self._on_setting_changed)
+        except Exception:
+            pass
         self._on_canvas_event = None
         self.zoom_container = None
