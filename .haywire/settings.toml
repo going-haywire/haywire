@@ -7,14 +7,19 @@ log_ui = ""
 
 [haystack]
 last_haystack_name = "Master"
-new_counter = 6
+new_counter = 7
 
 [workbench]
 theme = "studio:theme:workbench:HaywireDarkTheme"
 
 [editor.pan_zoom]
+hover_enter_delay = 200
+hover_exit_delay = 0
+hover_scale_cutoff_zoom = 0.5
+hover_scale_enabled = true
+hover_scale_max = 5.0
 max_zoom = 1.8
-min_zoom = 0.05
+min_zoom = 0.0
 pan_sensitivity = 5.0
 zoom_sensitivity = 0.56
 
@@ -22,7 +27,7 @@ zoom_sensitivity = 0.56
 debug_info = false
 enabled = true
 ghost_opacity = 0.2
-opacity = 0.5
+opacity = 1.0
 position = "bottom-right"
 width = 116
 
