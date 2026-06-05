@@ -214,6 +214,20 @@ export default {
             lodElement.addEventListener('transitionstart', (e) => {
                 if (e.propertyName === 'transform') {
                     this._scheduleEdgeUpdates(nodeId, nodeElement);
+                    // If an edge drag is in progress, the magnify shifts this
+                    // node's pins — recompute the preview/suggestions against the
+                    // new positions so aiming stays accurate even if the pointer
+                    // is held still while the node scales up.
+                    if (this.edgeDrag.mode === 'active') {
+                        this._handleEdgeDragMove({
+                            target: document.elementFromPoint(
+                                this.edgeDrag.lastMousePos.x,
+                                this.edgeDrag.lastMousePos.y
+                            ) || document.body,
+                            clientX: this.edgeDrag.lastMousePos.x,
+                            clientY: this.edgeDrag.lastMousePos.y,
+                        });
+                    }
                 }
             });
 
@@ -249,9 +263,13 @@ export default {
             return 1.0 + t * (this.hoverScaleMax - 1.0);
         },
 
-        /** True if a magnify would be disruptive right now (mid gesture). */
+        /** True if a magnify would be disruptive right now (mid gesture).
+         *  Node-drag suppresses it (the node you're moving shouldn't jump in
+         *  scale under the cursor). Edge-drag deliberately does NOT: magnifying
+         *  the hovered target node makes it — and its pins — readable and easier
+         *  to aim at while connecting from a zoomed-out overview. */
         _magnifySuppressed() {
-            return this.dragState.isDragging || this.edgeDrag.mode !== 'idle';
+            return this.dragState.isDragging;
         },
 
         _onNodeHoverEnter(lodElement) {
@@ -1526,6 +1544,10 @@ export default {
 
         /** Transition to idle — clean up all connection drag visuals. */
         _returnToIdleEdge() {
+            // A target node may have magnified under the cursor during the drag
+            // (suppression is lifted for edge-drag). Snap it back now so it
+            // doesn't stay scaled up after the gesture ends (commit or cancel).
+            this._clearAllMagnified();
             if (this.edgeDrag.previewPath) {
                 this.edgeDrag.previewPath.remove();
                 this.edgeDrag.previewPath = null;

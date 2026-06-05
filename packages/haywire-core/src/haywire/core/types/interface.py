@@ -257,7 +257,7 @@ class IType(ABC):
                 flow_type (FlowType): DATA, CONTROL, CALLBACK, or NONE
                     (default: DATA)
                 store_strategy (StoreStrategy): NEVER, HAS_WIDGET, WHEN_LINKED, NODE_SET or ALWAYS
-                    (default: WIDGET if not set on type identity)
+                    (default: HAS_WIDGET if not set on type identity)
                 color (str): Pin color as hex string (e.g. '#FF0000')
                 icon (str): Pin icon (sets all icon variants)
                 icon_in (str): Icon for inlet pin
