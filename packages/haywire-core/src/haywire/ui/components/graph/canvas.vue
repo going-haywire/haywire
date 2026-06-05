@@ -996,9 +996,6 @@ export default {
 
             console.log('Starting unified drag for:', draggedElement.type, draggedElement.id);
 
-            // A magnified node shifts pins; clear magnify before dragging.
-            this._clearAllMagnified();
-
             this.dragState.isDragging = true;
             this.dragState.startMousePos = { x: e.clientX, y: e.clientY };
             this.dragState.hasActuallyMoved = false;
@@ -1072,7 +1069,13 @@ export default {
 
             if (!this.dragState.hasActuallyMoved && distance > this.dragState.dragThreshold) {
                 this.dragState.hasActuallyMoved = true;
-                
+
+                // A confirmed drag (not a plain click) moves pins, so clear any
+                // magnify now. Doing this here rather than on mousedown means a
+                // plain click leaves the hovered node magnified — clicking a
+                // magnified node no longer shrinks it permanently.
+                this._clearAllMagnified();
+
                 // Emit unified drag start event
                 this.emitCanvasEvent(EventCreators.createUserDragStart(
                     this._extractNodeIds(this.dragState.draggedElements)
