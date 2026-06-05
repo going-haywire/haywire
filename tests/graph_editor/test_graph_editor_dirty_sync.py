@@ -50,6 +50,7 @@ def test_graph_data_mutated_handler_is_react_not_redraw():
 def test_handler_refreshes_header():
     """Invoking the handler calls _update_header with the given context."""
     editor = GraphEditor.__new__(GraphEditor)  # bypass wrapper construction
+    editor._canvas_manager = None  # no canvas → recovery short-circuits
     editor._update_header = MagicMock()  # type: ignore[method-assign]
 
     bindings = discover_handlers(GraphEditor)[GraphDataMutated]
@@ -59,3 +60,41 @@ def test_handler_refreshes_header():
     method(context, GraphDataMutated())
 
     editor._update_header.assert_called_once_with(context)
+
+
+def test_handler_recovers_stale_binding_id_after_external_rekey():
+    """A save-as from another editor rekeys the container; this tab follows.
+
+    Reproduces the new-graph-saved-from-HaystackEditor bug: the container's
+    binding_id changes from ``__unsaved_1__`` to a file path (and the old key
+    is popped from GraphAppState) without the GraphEditor tab being told. The
+    GraphDataMutated handler must recover the tab's identity by matching its
+    canvas graph and repayload the wrapper, so the tab label + dirty marker
+    refresh instead of resolving to "No graph".
+    """
+    from haybale_graph_editor.state.graph_app_state import GraphAppState
+
+    graph = object()
+
+    editor = GraphEditor.__new__(GraphEditor)  # bypass wrapper construction
+    editor._canvas_manager = MagicMock()
+    editor._canvas_manager.graph = graph
+    editor.wrapper = MagicMock()
+    editor.wrapper._binding_id = "__unsaved_1__"  # stale after rekey
+    editor._update_header = MagicMock()  # type: ignore[method-assign]
+
+    gas = GraphAppState()
+    container = MagicMock()
+    container.binding_id = "graphs/foo.haywire"
+    container.display_name = "foo.haywire"
+    container.editor.graph = graph
+    gas.register(container)  # only the new key exists; old key is gone
+
+    context = MagicMock()
+    context.app_data.get.return_value = gas
+
+    bindings = discover_handlers(GraphEditor)[GraphDataMutated]
+    method = getattr(editor, bindings[0].method_name)
+    method(context, GraphDataMutated())
+
+    editor.wrapper.repayload.assert_called_once_with("graphs/foo.haywire", new_label="foo.haywire")

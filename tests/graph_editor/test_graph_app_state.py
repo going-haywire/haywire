@@ -33,6 +33,37 @@ def test_get_unknown_id_returns_none():
     assert state.get("missing") is None
 
 
+@dataclass
+class _Editor:
+    graph: object
+
+
+def test_get_by_graph_finds_container_by_identity():
+    """A container is recoverable by its graph object even after a rekey.
+
+    This backs GraphEditor's stale-binding recovery: a save-as from another
+    editor rekeys the container, but the graph survives, so the tab locates
+    its new identity via the graph object.
+    """
+    state = GraphAppState()
+    graph = object()
+    c = _Container(binding_id="__unsaved_1__", editor=_Editor(graph=graph))
+    state.register(c)
+    # Simulate a save-as rekey: the owning library updates the container's
+    # binding_id and moves the registry key; the graph object is unchanged.
+    c.binding_id = "graphs/foo.haywire"
+    state.rekey("__unsaved_1__", "graphs/foo.haywire")
+    found = state.get_by_graph(graph)
+    assert found is c
+    assert found.binding_id == "graphs/foo.haywire"
+
+
+def test_get_by_graph_unknown_graph_returns_none():
+    state = GraphAppState()
+    state.register(_Container(binding_id="a", editor=_Editor(graph=object())))
+    assert state.get_by_graph(object()) is None
+
+
 def test_unregister_removes_container():
     state = GraphAppState()
     c = _Container(binding_id="a")

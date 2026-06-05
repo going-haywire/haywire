@@ -114,7 +114,34 @@ class GraphEditor(BaseEditor):
         current dirty / undo state, so reacting unconditionally is correct and
         cheap. ``_update_header`` no-ops when the header hasn't been drawn yet.
         """
+        self._recover_stale_binding_id(context)
         self._update_header(context)
+
+    def _recover_stale_binding_id(self, context: "SessionContext") -> None:
+        """Re-key this tab if its ``binding_id`` was rekeyed elsewhere.
+
+        A save-as initiated from another editor (e.g. the HaystackEditor row
+        save) rekeys the container in ``GraphAppState`` (``__unsaved_N__`` →
+        file path) but cannot reach this tab's wrapper to follow. The result
+        is that ``_get_entry`` resolves to None — the tab keeps its stale
+        label and dirty marker. The graph object itself survives the rekey,
+        so we recover the container by identity and repayload the tab.
+        """
+        # No canvas means the tab hasn't been drawn (or has no graph) — there
+        # is no graph identity to recover against, so nothing to do. Mirrors
+        # ``_update_header``'s no-op-when-undrawn contract.
+        canvas_manager = getattr(self, "_canvas_manager", None)
+        if canvas_manager is None:
+            return
+        if self._get_entry(context) is not None:
+            return  # binding_id still resolves — nothing to recover
+        graph_app_state = context.app_data.get(GraphAppState)
+        if graph_app_state is None:
+            return
+        entry = graph_app_state.get_by_graph(canvas_manager.graph)
+        if entry is None or entry.binding_id == self.wrapper._binding_id:
+            return
+        self.wrapper.repayload(entry.binding_id, new_label=entry.display_name)
 
     def on_focus(self, context: "SessionContext") -> None:
         """Claim ownership of session state when this tab becomes active.

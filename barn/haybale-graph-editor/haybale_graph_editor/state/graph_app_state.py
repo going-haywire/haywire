@@ -48,6 +48,19 @@ class GraphAppState(AppState):
         """Look up a container by ``binding_id``. Returns None when absent."""
         return self._graphs.get(binding_id)
 
+    def get_by_graph(self, graph: object) -> Optional[GraphContainer]:
+        """Find the container wrapping ``graph`` by identity, or None.
+
+        Used to recover a container whose ``binding_id`` changed out from
+        under a holder (e.g. a save-as that rekeyed the entry from another
+        editor): the graph object survives the rekey, so a tab can locate
+        its new identity by matching ``container.editor.graph is graph``.
+        """
+        for container in self._graphs.values():
+            if container.editor.graph is graph:
+                return container
+        return None
+
     def rekey(self, old_id: str, new_id: str) -> None:
         """Move a container from ``old_id`` to ``new_id``.
 
