@@ -51,3 +51,29 @@ class StoreStrategy(IntFlag):
     WHEN_LINKED = 4
     NODE_SET = 8
     ALWAYS = HAS_WIDGET | WHEN_LINKED | NODE_SET  # 14
+
+
+class ShowWidgetStrategy(Enum):
+    """
+    When a port's inline widget is rendered on the node card, relative to link state.
+
+    The states are mutually exclusive — link state is a single boolean, so the
+    widget shows in the linked state, the unlinked state, both, or neither. This
+    is a plain ``Enum``, NOT an ``IntFlag`` like ``StoreStrategy``: visibility has
+    no orthogonal dimension to combine (``ALWAYS`` already *is* linked-or-unlinked,
+    ``NEVER`` is the empty case). See ADR 0003.
+
+    - NEVER: widget never rendered on the node
+    - NOT_LINKED: shown only when the pin is NOT linked (a connected inlet's
+      widget is misleading — the upstream edge overrides it)
+    - WHEN_LINKED: shown only when the pin IS linked
+    - ALWAYS: always rendered
+
+    Resolved by ``DataPort.should_show_widget()`` against ``is_linked()``.
+    Direction defaults: inlet ``NOT_LINKED``, outlet ``NEVER``, config ``ALWAYS``.
+    """
+
+    NEVER = "never"
+    NOT_LINKED = "not_linked"
+    WHEN_LINKED = "when_linked"
+    ALWAYS = "always"

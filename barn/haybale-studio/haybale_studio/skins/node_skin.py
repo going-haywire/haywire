@@ -102,7 +102,7 @@ class NodeSkin(BaseSkin, ABC):
             ):
                 if self._ui_settings.show_labels:
                     ui.label(port.label).classes("text-xs zoom-pan-lod2")
-                if not port.allow_multiple_links and port.widget_key:
+                if port.widget_key is not None and port.should_show_widget():
                     self.render_widget(port, wrapper.node_id, classes=widget_classes)
 
     def _render_right(self, port, wrapper: NodeWrapper, widget_classes: str = ""):
@@ -129,7 +129,7 @@ class NodeSkin(BaseSkin, ABC):
             ):
                 if self._ui_settings.show_labels:
                     ui.label(port.label).classes("text-xs zoom-pan-lod2")
-                if not port.allow_multiple_links and port.widget_key:
+                if port.widget_key is not None and port.should_show_widget():
                     self.render_widget(port, wrapper.node_id, classes=widget_classes)
 
             # Pin in grid column 2, centered in the PIN_GUTTER-wide cell.
@@ -153,7 +153,7 @@ class NodeSkin(BaseSkin, ABC):
         ):
             if self._ui_settings.show_labels:
                 ui.label(port.label).classes("text-xs zoom-pan-lod2")
-            if not port.allow_multiple_links and port.widget_key:
+            if port.widget_key is not None and port.should_show_widget():
                 self.render_widget(port, wrapper.node_id, classes=widget_classes)
 
     def _render_pin(

@@ -9,7 +9,7 @@ from __future__ import annotations
 from dataclasses import MISSING, dataclass, field, fields
 from typing import Any, Dict, Optional, TYPE_CHECKING
 
-from haywire.core.types.enums import FlowType, PortType, StoreStrategy
+from haywire.core.types.enums import FlowType, PortType, ShowWidgetStrategy, StoreStrategy
 from haywire.core.edge.edge_wrapper import EdgeWrapper
 from haywire.core.types.identity import DataTypeIdentity
 from haywire.core.types.interface import IType
@@ -136,6 +136,11 @@ class DataPort(DataTypeIdentity):
 
     widget_config: dict[str, Any] = field(default_factory=dict)
     """Widget configuration dict (merged from widget["config"] in __post_init__)"""
+
+    show_widget: ShowWidgetStrategy = ShowWidgetStrategy.NOT_LINKED
+    """When the inline widget is rendered relative to link state. Per-direction
+    defaults (inlet NOT_LINKED, outlet NEVER, config ALWAYS) are injected by
+    as_inlet/as_outlet/as_config; override per-port via kwargs. See ADR 0003."""
 
     # Runtime reference (not serialized)
     _wrapper: Optional["NodeWrapper"] = field(default=None, repr=False, metadata={"serialize": False})
@@ -312,6 +317,24 @@ class DataPort(DataTypeIdentity):
     def is_linked(self) -> bool:
         """Check if port has any linked edges"""
         return len(self._linked_edges) > 0
+
+    def should_show_widget(self) -> bool:
+        """
+        Resolve whether this port's inline widget should be rendered, given its
+        ``show_widget`` strategy and current link state. See ADR 0003.
+
+        Note: this does NOT check ``widget_key`` — a caller must still confirm the
+        port has a widget to render. It answers only the strategy-vs-link question.
+        """
+        strategy = self.show_widget
+        if strategy == ShowWidgetStrategy.ALWAYS:
+            return True
+        if strategy == ShowWidgetStrategy.NEVER:
+            return False
+        if strategy == ShowWidgetStrategy.WHEN_LINKED:
+            return self.is_linked()
+        # NOT_LINKED
+        return not self.is_linked()
 
     def _add_link(self, edge_wrapper: EdgeWrapper) -> EdgeWrapper | None:
         """
@@ -545,6 +568,12 @@ class DataPort(DataTypeIdentity):
         flow_type = FlowType(kwargs.pop("flow_type", FlowType.DATA.value))
         port_type = PortType(kwargs.pop("port_type", PortType.UNDEFINED.value))
 
+        # show_widget arrives as a raw string from JSON; reconstruct the enum.
+        # Absent means the field's static default applies (as_inlet/as_outlet/
+        # as_config inject the per-direction default at spec-creation time).
+        if "show_widget" in kwargs:
+            kwargs["show_widget"] = ShowWidgetStrategy(kwargs["show_widget"])
+
         port_kwargs = {
             **kwargs,  # Spec already has identity + user overrides
             "flow_type": flow_type,
@@ -600,6 +629,8 @@ class DataPort(DataTypeIdentity):
             if isinstance(value, FlowType):
                 value = value.value
             if isinstance(value, PortType):
+                value = value.value
+            if isinstance(value, ShowWidgetStrategy):
                 value = value.value
 
             result["kwargs"][f.name] = value

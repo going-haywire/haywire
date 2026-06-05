@@ -5,7 +5,7 @@
   "version": "1.0.0",
   "author": "",
   "created_at": null,
-  "modified_at": "2026-06-02T23:18:06.748408",
+  "modified_at": "2026-06-05T22:27:38.778430",
   "nodes": {
     "BeginPlayNode_8d7335c8": {
       "node_id": "BeginPlayNode_8d7335c8",
@@ -60,7 +60,7 @@
               "registry_key": "core:type:FLOAT"
             },
             "field_data": {
-              "value": 1780435006.5064142
+              "value": 1780691219.0086982
             }
           }
         },
@@ -97,7 +97,7 @@
         },
         "library": {
           "label": "Haybale Core",
-          "version": "0.0.13",
+          "version": "0.0.14",
           "description": "Haywire library with fundamental components",
           "url": "https://github.com/going-haywire/haywire",
           "help_url": "https://github.com/going-haywire/haywire",
@@ -313,7 +313,7 @@
         },
         "library": {
           "label": "Haybale Core",
-          "version": "0.0.13",
+          "version": "0.0.14",
           "description": "Haywire library with fundamental components",
           "url": "https://github.com/going-haywire/haywire",
           "help_url": "https://github.com/going-haywire/haywire",
@@ -415,7 +415,7 @@
               "registry_key": "core:type:FLOAT"
             },
             "field_data": {
-              "value": 0.018349207937717438
+              "value": 0.017088625114411116
             }
           }
         },
@@ -453,7 +453,7 @@
         },
         "library": {
           "label": "Haybale Core",
-          "version": "0.0.13",
+          "version": "0.0.14",
           "description": "Haywire library with fundamental components",
           "url": "https://github.com/going-haywire/haywire",
           "help_url": "https://github.com/going-haywire/haywire",
@@ -711,7 +711,7 @@
         },
         "library": {
           "label": "Haybale Core",
-          "version": "0.0.13",
+          "version": "0.0.14",
           "description": "Haywire library with fundamental components",
           "url": "https://github.com/going-haywire/haywire",
           "help_url": "https://github.com/going-haywire/haywire",
@@ -897,7 +897,8 @@
               },
               "id": "condition",
               "port_type": "config",
-              "order": 44
+              "order": 47,
+              "show_widget": "always"
             },
             "recipe": {
               "registry_key": "core:type:STRING"
@@ -923,7 +924,7 @@
               "widget_key": "core:widget:NumberWidget",
               "id": "compare",
               "port_type": "inlet",
-              "order": 45
+              "order": 48
             },
             "recipe": {
               "registry_key": "core:type:FLOAT"
@@ -949,7 +950,7 @@
               "widget_key": "core:widget:NumberWidget",
               "id": "with",
               "port_type": "inlet",
-              "order": 46
+              "order": 49
             },
             "recipe": {
               "registry_key": "core:type:FLOAT"
@@ -992,7 +993,7 @@
         },
         "library": {
           "label": "Haybale Core",
-          "version": "0.0.13",
+          "version": "0.0.14",
           "description": "Haywire library with fundamental components",
           "url": "https://github.com/going-haywire/haywire",
           "help_url": "https://github.com/going-haywire/haywire",
@@ -1173,7 +1174,7 @@
         },
         "library": {
           "label": "Example",
-          "version": "0.0.13",
+          "version": "0.0.14",
           "description": "Example library for demonstrating multi-library support",
           "url": "https://github.com/author/haywire_library",
           "help_url": "https://docs.github.io/haywire_library",
@@ -1333,7 +1334,7 @@
         },
         "library": {
           "label": "Haybale Core",
-          "version": "0.0.13",
+          "version": "0.0.14",
           "description": "Haywire library with fundamental components",
           "url": "https://github.com/going-haywire/haywire",
           "help_url": "https://github.com/going-haywire/haywire",
@@ -1409,7 +1410,7 @@
               "registry_key": "core:type:FLOAT"
             },
             "field_data": {
-              "value": 1780435009.7958632
+              "value": 1780691222.029421
             }
           }
         },
@@ -1446,7 +1447,7 @@
         },
         "library": {
           "label": "Haybale Core",
-          "version": "0.0.13",
+          "version": "0.0.14",
           "description": "Haywire library with fundamental components",
           "url": "https://github.com/going-haywire/haywire",
           "help_url": "https://github.com/going-haywire/haywire",

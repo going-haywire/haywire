@@ -2,7 +2,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING, Any, ClassVar, Dict, Optional
 
-from haywire.core.types.enums import PortType, StoreStrategy
+from haywire.core.types.enums import PortType, ShowWidgetStrategy, StoreStrategy
 
 if TYPE_CHECKING:
     from ..library.identity import LibraryIdentity
@@ -275,6 +275,9 @@ class IType(ABC):
                     WidgetClass.config(**kwargs) to generate correct format
                 allow_multiple_links (bool): Allow multiple incoming
                     connections (default: False)
+                show_widget (ShowWidgetStrategy): When the inline widget is
+                    rendered relative to link state — NEVER, NOT_LINKED,
+                    WHEN_LINKED, ALWAYS (default: NOT_LINKED for inlets)
                 use_mode (str): 'optional' or 'required' (default: 'optional')
 
             Callbacks:
@@ -300,6 +303,7 @@ class IType(ABC):
         cls._validate_port_type(PortType.INLET)
 
         kwargs.setdefault("store_strategy", cls._resolve_store_strategy(StoreStrategy.HAS_WIDGET))
+        kwargs.setdefault("show_widget", ShowWidgetStrategy.NOT_LINKED)
         return create_port_spec(cls, id=id, port_type=PortType.INLET, **kwargs)
 
     @classmethod
@@ -351,6 +355,9 @@ class IType(ABC):
                     WidgetClass.config(**kwargs) to generate correct format
                 allow_multiple_links (bool): Allow multiple outgoing
                     connections (default: True for DATA flow)
+                show_widget (ShowWidgetStrategy): When the inline widget is
+                    rendered relative to link state — NEVER, NOT_LINKED,
+                    WHEN_LINKED, ALWAYS (default: NEVER for outlets)
                 needs_loopback (bool): Set to True if the control flow from
                     this outlet needs to loop back to the node (default: False)
 
@@ -374,6 +381,7 @@ class IType(ABC):
         cls._validate_port_type(PortType.OUTLET)
 
         kwargs.setdefault("store_strategy", cls._resolve_store_strategy(StoreStrategy.ALWAYS))
+        kwargs.setdefault("show_widget", ShowWidgetStrategy.NEVER)
         return create_port_spec(cls, id=id, port_type=PortType.OUTLET, **kwargs)
 
     @classmethod
@@ -414,6 +422,9 @@ class IType(ABC):
                     optional 'config' fields. Decomposed into widget_key and
                     widget_config during port creation. Use
                     WidgetClass.config(**kwargs) to generate correct format
+                show_widget (ShowWidgetStrategy): When the inline widget is
+                    rendered. Config ports are never linked, so NOT_LINKED/ALWAYS
+                    both show and WHEN_LINKED hides (default: ALWAYS for config)
                 use_mode (str): 'optional' or 'required' (default: 'optional')
 
             Callbacks:
@@ -437,6 +448,7 @@ class IType(ABC):
 
         kwargs["flow_type"] = FlowType.NONE
         kwargs.setdefault("store_strategy", cls._resolve_store_strategy(StoreStrategy.ALWAYS))
+        kwargs.setdefault("show_widget", ShowWidgetStrategy.ALWAYS)
 
         return create_port_spec(cls, id=id, port_type=PortType.CONFIG, **kwargs)
 

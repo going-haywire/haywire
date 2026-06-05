@@ -153,7 +153,7 @@ class DefaultNodeSkin(NodeSkin):
             # Group header with toggle
             with ui.row().classes("w-full items-center gap-1"):
                 # Render group toggle widget
-                if group_port.widget_key:
+                if group_port.widget_key is not None and group_port.should_show_widget():
                     self.render_widget(group_port, wrapper.node_id, classes="zoom-pan-lod2")
 
             # Group children (if expanded)

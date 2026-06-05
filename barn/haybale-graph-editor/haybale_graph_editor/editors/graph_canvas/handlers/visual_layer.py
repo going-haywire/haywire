@@ -131,11 +131,17 @@ class VisualLayerHandlers:
                 if edge_wrapper and edge_uuid not in self.edge_paths:
                     self.add_edge_visual(edge_wrapper)
                     logger.debug(f"  + Added edge UI: {edge_uuid}")
+                    # Link state changed → re-render both endpoint nodes so
+                    # widget visibility (ShowWidgetStrategy) re-resolves. ADR 0003.
+                    self._refresh_edge_endpoints(edge_wrapper, ChangeReason.NODE_REDRAW_REQUESTED)
 
             elif reason == ChangeReason.EDGE_REMOVED:
                 if edge_uuid in self.edge_paths:
+                    # Capture endpoints before the UIEdge (and its wrapper) is dropped.
+                    removed_wrapper = self.edge_paths[edge_uuid].wrapper
                     self.remove_edge_visual(edge_uuid)
                     logger.debug(f"  - Removed edge UI: {edge_uuid}")
+                    self._refresh_edge_endpoints(removed_wrapper, ChangeReason.NODE_REDRAW_REQUESTED)
 
             elif reason.requires_redraw():
                 ui_edge = self.edge_paths.get(edge_uuid)
@@ -210,6 +216,21 @@ class VisualLayerHandlers:
     def refresh_node_visual(self, ui_node: UINode, reason: ChangeReason) -> None:
         """Refresh a node's visual representation."""
         ui_node.refresh(reason)
+
+    def _refresh_edge_endpoints(self, edge_wrapper: "EdgeWrapper", reason: ChangeReason) -> None:
+        """
+        Re-render both nodes an edge connects, so port-level state that depends on
+        link state (widget visibility via ShowWidgetStrategy) re-resolves when the
+        edge is added or removed. See ADR 0003.
+
+        Skips endpoints whose UINode is not present (e.g. mid-add in the same
+        batch); a node added this batch already renders with current link state.
+        """
+        for node_id in (edge_wrapper.source_node_id, edge_wrapper.sink_node_id):
+            ui_node = self.node_panels.get(node_id)
+            if ui_node:
+                self.refresh_node_visual(ui_node, reason)
+                logger.debug(f"  🔄 Redrawn endpoint node for link change: {node_id}")
 
     def remove_node_visual(self, node_id: str) -> bool:
         """Remove a node's visual representation and any connected edge visuals."""

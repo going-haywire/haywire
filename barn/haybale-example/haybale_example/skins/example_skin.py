@@ -59,7 +59,7 @@ class ExampleNodeSkin(NodeSkin):
                             if inlet.is_inlet():
                                 with ui.row().classes("w-full items-center gap-1"):
                                     ui.label(inlet.label).classes("text-xs")
-                                    if inlet.widget_key:
+                                    if inlet.widget_key is not None and inlet.should_show_widget():
                                         self.render_widget(
                                             inlet,
                                             wrapper.node_id,
