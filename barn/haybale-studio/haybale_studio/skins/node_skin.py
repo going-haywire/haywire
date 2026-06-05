@@ -150,11 +150,16 @@ class NodeSkin(BaseSkin, ABC):
                 f"display: flex; flex-direction: column; width: 100%; "
                 f"padding-left: {indent}px; padding-right: {indent}px;"
             )
-        ):
+        ) as config_row:
             if self._ui_settings.show_labels:
                 ui.label(port.label).classes("text-xs zoom-pan-lod2")
             if port.widget_key is not None and port.should_show_widget():
                 self.render_widget(port, wrapper.node_id, classes=widget_classes)
+
+        # Config ports render no pin, so they cannot carry a pin tooltip.
+        # Attach the same label/description tooltip to the whole config row.
+        if self._ui_settings.show_tooltips:
+            self._add_pin_tooltip(config_row, port)
 
     def _render_pin(
         self, pin: DataPort, wrapper: NodeWrapper, direction: str = "left", cell_style: str = ""
@@ -259,9 +264,11 @@ class NodeSkin(BaseSkin, ABC):
             self._add_pin_tooltip(pin_el, pin)
 
     def _add_pin_tooltip(self, pin_el: ui.element, pin: DataPort) -> None:
-        """Attach a hover tooltip to a pin showing its label and description.
+        """Attach a hover tooltip showing a port's label and description.
 
-        The description line is omitted when the port has no description.
+        Anchored to the pin element for inlets/outlets, or the config row for
+        config ports (which have no pin). The description line is omitted when
+        the port has no description.
         """
         with pin_el, ui.tooltip().classes("text-xs"):
             ui.label(pin.label).classes("font-bold")
