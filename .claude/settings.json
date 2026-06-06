@@ -1,4 +1,16 @@
 {
+  "permissions": {
+    "allow": [
+      "Bash(uvx ty *)",
+      "Bash(cd /Volumes/Ddrive/06_open_tracking_tool/haywire/haywire-repo *)",
+      "Bash(python3 -c \"print\\(repr\\(str\\(\\)\\), repr\\(int\\(\\)\\), repr\\(float\\(\\)\\), repr\\(bool\\(\\)\\), repr\\(list\\(\\)\\), repr\\(dict\\(\\)\\)\\)\")",
+      "Bash(awk 'NR>=289 && NR<=520 && /def cleanup/{print NR\": found cleanup\"}' packages/haywire-core/src/haywire/core/di/config.py)",
+      "Bash(awk 'NR>=289 && NR<=600 && /def /{print NR\": \"$0}' packages/haywire-core/src/haywire/core/di/config.py)"
+    ],
+    "additionalDirectories": [
+      "/tmp"
+    ]
+  },
   "hooks": {
     "PreToolUse": [
       {
