@@ -44,7 +44,7 @@ class NodePortsPanel(BasePanel):
             try:
                 hw_node = node.node if hasattr(node, "node") else None
                 if hw_node is None:
-                    hui.label("No port data available")
+                    hui.empty_state("No port data available", icon=hui.icon.node_ports)
                     return
 
                 inlets = list(getattr(hw_node, "inlets", {}).values())
@@ -55,27 +55,22 @@ class NodePortsPanel(BasePanel):
                     if hasattr(p, "flow_type") and str(getattr(p.flow_type, "name", "")) == "NONE"
                 ]
 
-                hui.label(f"Inlets ({len(inlets)})")
-                for port in inlets:
-                    port_id = getattr(port, "port_id", "?")
+                def _type_name(port: object) -> str:
                     port_type = getattr(port, "data_type", None)
-                    type_name = port_type.__class__.__name__ if port_type else "?"
-                    hui.label(f"  • {port_id}: {type_name}")
+                    return port_type.__class__.__name__ if port_type else "—"
 
-                hui.separator()
-                hui.label(f"Outlets ({len(outlets)})")
+                hui.section_label(f"Inlets ({len(inlets)})")
+                for port in inlets:
+                    hui.info_row(str(getattr(port, "port_id", "?")), _type_name(port))
+
+                hui.section_label(f"Outlets ({len(outlets)})")
                 for port in outlets:
-                    port_id = getattr(port, "port_id", "?")
-                    port_type = getattr(port, "data_type", None)
-                    type_name = port_type.__class__.__name__ if port_type else "?"
-                    hui.label(f"  • {port_id}: {type_name}")
+                    hui.info_row(str(getattr(port, "port_id", "?")), _type_name(port))
 
                 if configs:
-                    hui.separator()
-                    hui.label(f"Config ({len(configs)})")
+                    hui.section_label(f"Config ({len(configs)})")
                     for port in configs:
-                        port_id = getattr(port, "port_id", "?")
-                        hui.label(f"  • {port_id}")
+                        hui.info_row(str(getattr(port, "port_id", "?")), _type_name(port))
 
             except Exception:
-                hui.label("Error reading ports")
+                hui.error_label("Error reading ports")

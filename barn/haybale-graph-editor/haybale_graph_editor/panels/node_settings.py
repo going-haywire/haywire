@@ -61,7 +61,7 @@ class NodeSettingsPanel(BasePanel):
         bags = node.node.list_setting_bags()
         if not bags:
             with layout:
-                hui.label("No settings bags found.")
+                hui.empty_state("No settings bags found.", icon=hui.icon.node_settings)
             return
 
         for bag_name, bag in bags.items():

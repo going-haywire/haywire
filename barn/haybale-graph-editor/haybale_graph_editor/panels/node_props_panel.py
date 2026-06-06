@@ -48,9 +48,9 @@ class NodeInfoPanel(BasePanel):
         except Exception:
             label, cls_name, node_id = "?", "?", "?"
         with layout:
-            hui.label(f"Name: {label}")
-            hui.label(f"Class: {cls_name}")
-            hui.label(f"ID: {node_id}")
+            hui.info_row("Name", str(label))
+            hui.info_row("Class", str(cls_name))
+            hui.info_row("ID", str(node_id))
 
 
 @panel(

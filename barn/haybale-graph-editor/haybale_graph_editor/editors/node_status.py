@@ -44,24 +44,23 @@ class NodeStatusPanel(BasePanel):
             try:
                 wrapper_state = getattr(node, "state", None)
                 if wrapper_state is None:
-                    hui.label("No state available")
+                    hui.empty_state("No state available", icon=hui.icon.node_status)
                     return
 
                 _is_valid_fn = getattr(wrapper_state, "is_valid", None)
                 is_valid = wrapper_state.is_valid() if callable(_is_valid_fn) else "?"
-                hui.label(f"Valid: {is_valid}")
-                hui.label(f"Registered: {getattr(wrapper_state, 'is_registered', '?')}")
-                hui.label(f"Initialized: {getattr(wrapper_state, 'is_initialized', '?')}")
-                hui.label(f"Structural: {getattr(wrapper_state, 'is_structural', '?')}")
-                hui.label(f"Tested: {getattr(wrapper_state, 'has_test_passed', '?')}")
+                hui.info_row("Valid", str(is_valid))
+                hui.info_row("Registered", str(getattr(wrapper_state, "is_registered", "?")))
+                hui.info_row("Initialized", str(getattr(wrapper_state, "is_initialized", "?")))
+                hui.info_row("Structural", str(getattr(wrapper_state, "is_structural", "?")))
+                hui.info_row("Tested", str(getattr(wrapper_state, "has_test_passed", "?")))
 
                 _get_errors_fn = getattr(wrapper_state, "get_errors", None)
                 errors = wrapper_state.get_errors() if callable(_get_errors_fn) else None
                 if errors:
-                    hui.separator()
-                    hui.label("Errors:")
+                    hui.section_label("Errors")
                     for err in errors:
-                        hui.label(f"  ! {err}")
+                        hui.error_label(str(err))
 
             except Exception:
-                hui.label("Error reading status")
+                hui.error_label("Error reading status")

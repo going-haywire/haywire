@@ -45,9 +45,9 @@ class GraphInfoPanel(BasePanel):
                 edges = graph.list_edge_wrappers
                 node_count = len(nodes) if hasattr(nodes, "__len__") else "?"
                 edge_count = len(edges) if hasattr(edges, "__len__") else "?"
-                hui.label(f"Nodes: {node_count}")
-                hui.label(f"Edges: {edge_count}")
                 graph_name = getattr(graph, "name", None) or getattr(graph, "graph_id", "?")
-                hui.label(f"Graph: {graph_name}")
+                hui.info_row("Graph", str(graph_name))
+                hui.info_row("Nodes", str(node_count))
+                hui.info_row("Edges", str(edge_count))
             except Exception:
-                hui.label("Error reading graph info")
+                hui.error_label("Error reading graph info")

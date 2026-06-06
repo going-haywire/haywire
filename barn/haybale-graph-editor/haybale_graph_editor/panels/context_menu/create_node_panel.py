@@ -47,7 +47,7 @@ class CreateNodePanel(BasePanel):
         node_factory = ctx.app.node_factory
         if node_factory is None:
             with layout:
-                hui.label("No node factory available.")
+                hui.error_label("No node factory available.")
             return
 
         def _on_node_selected(node_info: NodeInfo) -> None:

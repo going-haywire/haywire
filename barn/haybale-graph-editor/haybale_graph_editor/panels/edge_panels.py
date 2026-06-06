@@ -236,19 +236,13 @@ class ExecutionStatisticsEdgePanel(BasePanel):
         if edge_wrapper is None:
             return
         state = edge_wrapper.get_state()
-        with (
-            ui.card()
-            .classes("w-full p-3")
-            .style("background: var(--hw-bg-surface); border: 1px solid var(--hw-border);")
-        ):
-            hui.label(f"Execution Count: {state.execution_count}")
-            avg_time = state.average_execution_time_us
-            if avg_time > 0:
-                hui.label(f"Average Time: {avg_time:.1f} μs")
-            else:
-                hui.label("Average Time: Not measured")
-            hui.label(f"Tested value: {state.example_test_value}")
-            hui.label(f"Tested result: {state.example_test_result}")
+        avg_time = state.average_execution_time_us
+        avg_display = f"{avg_time:.1f} μs" if avg_time > 0 else "Not measured"
+        with layout:
+            hui.info_row("Count", str(state.execution_count))
+            hui.info_row("Avg time", avg_display)
+            hui.info_row("Test value", str(state.example_test_value))
+            hui.info_row("Test result", str(state.example_test_result))
 
 
 @panel(
@@ -271,10 +265,6 @@ class ConnectionPathEdgePanel(BasePanel):
         edge_wrapper = ctx.data[EditState].active_edge
         if edge_wrapper is None:
             return
-        with (
-            ui.card()
-            .classes("w-full p-3")
-            .style("background: var(--hw-bg-surface); border: 1px solid var(--hw-border);")
-        ):
-            hui.label(f"{edge_wrapper.source_node_id}[{edge_wrapper.outlet_port_id}]")
-            hui.label(f"{edge_wrapper.sink_node_id}[{edge_wrapper.inlet_port_id}]")
+        with layout:
+            hui.info_row("From", f"{edge_wrapper.source_node_id}[{edge_wrapper.outlet_port_id}]")
+            hui.info_row("To", f"{edge_wrapper.sink_node_id}[{edge_wrapper.inlet_port_id}]")
