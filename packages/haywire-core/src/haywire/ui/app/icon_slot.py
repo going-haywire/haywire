@@ -1,5 +1,5 @@
 """
-IconSlot — the Slot subclass for left / right slots.
+IconSlot — the Slot subclass for the ACTION / CONTEXT slots.
 
 Renders a horizontal row with a narrow vertical bar (48px) of icon buttons on
 one side and the area ``ui.tab_panels`` on the other.
@@ -11,8 +11,9 @@ icon collapses the area; clicking any icon while collapsed re-expands it
 the icons remain clickable to re-expand a collapsed slot.
 
 The side the bar renders on is configured via the ``bar_place`` constructor
-arg: ``"left"`` places the bar before the area (used by the left slot);
-``"right"`` places it after (right slot / ContextBar).
+arg (unchanged directional values): ``"left"`` places the bar before the area
+(used by the ACTION slot); ``"right"`` places it after (CONTEXT slot /
+ContextBar).
 """
 
 from __future__ import annotations
@@ -26,7 +27,7 @@ from haywire.ui.editor.wrapper import EditorWrapper
 
 
 class IconSlot(Slot):
-    """Icon-driven slot for the left and right shell slots.
+    """Icon-driven slot for the ACTION and CONTEXT shell slots.
 
     Notes:
         The bar holds one icon button per wrapper. Clicking an icon switches

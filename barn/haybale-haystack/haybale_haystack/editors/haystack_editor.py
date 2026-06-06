@@ -7,7 +7,7 @@ from typing import Callable, Optional
 from nicegui import ui
 
 from haywire.ui import elements as hui
-from haywire.ui.editor import BaseEditor, editor
+from haywire.ui.editor import BaseEditor, SlotName, editor
 from haywire.core.session import (
     IProjectState,
     SessionContext,
@@ -36,7 +36,7 @@ logger = logging.getLogger(__name__)
 @editor(
     label="Haystack",
     icon=hui.icon.haystack,
-    default_slot="left",
+    default_slot=SlotName.ACTION,
     description='All open graphs. Click to switch; "+" to create a new graph.',
     order=20,
 )

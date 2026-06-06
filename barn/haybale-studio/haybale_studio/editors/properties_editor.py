@@ -11,6 +11,7 @@ from haywire.core.errors.haywire_exception import HaywireException
 from haywire.ui import elements as hui
 from haywire.ui.editor.base import BaseEditor
 from haywire.ui.editor.decorator import editor
+from haywire.ui.editor.identity import SlotName
 from haywire.ui.panel.base import BasePanel
 from haywire.ui.panel.layout import PanelLayout
 from haywire.ui.panel.focus import Focus
@@ -29,7 +30,7 @@ logger = logging.getLogger(__name__)
 @editor(
     label="Properties",
     icon=hui.icon.node_settings,
-    default_slot="right",
+    default_slot=SlotName.CONTEXT,
     description="Context-sensitive property panels for the active selection.",
     order=10,
 )

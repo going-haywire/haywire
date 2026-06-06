@@ -2,7 +2,7 @@
 name = "haybale-studio"
 version = "0.0.15"
 description = "haywire studio library for basic functionality"
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 license = {text = "MIT"}
 
 dependencies = [

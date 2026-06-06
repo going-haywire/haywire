@@ -8,7 +8,7 @@ from haywire.core.library.identity import LibraryIdentity
 from haywire.core.registry.lifecycle_event import LifeCycleEvent, LifeCycleEventType
 from haywire.ui.editor.base import BaseEditor
 from haywire.ui.editor.decorator import editor
-from haywire.ui.editor.identity import OpenBehavior
+from haywire.ui.editor.identity import OpenBehavior, SlotName
 from haywire.ui.editor.registry import EditorTypeRegistry
 
 
@@ -33,9 +33,11 @@ _FAKE_LIBRARY_IDENTITY = LibraryIdentity(
 
 @editor(
     registry_id="test_editor",
+    # Intentionally a bare string: test_default_slot asserts the decorator
+    # coerces it to SlotName.EDIT. Every other editor here uses the enum.
     label="Test Editor",
     icon="star",
-    default_slot="main",
+    default_slot="edit",
     description="An editor for unit tests.",
 )
 class _TestEditor(BaseEditor):
@@ -46,7 +48,7 @@ class _TestEditor(BaseEditor):
 @editor(
     registry_id="test_left_editor",
     label="Test Left Editor",
-    default_slot="left",
+    default_slot=SlotName.ACTION,
 )
 class _TestLeftEditor(BaseEditor):
     def draw(self, context, container):
@@ -77,7 +79,8 @@ class TestEditorDecorator:
         assert _TestEditor.class_identity.icon == "star"
 
     def test_default_slot(self):
-        assert _TestEditor.class_identity.default_slot == "main"
+        # The decorator coerces the bare "edit" string (above) to the enum.
+        assert _TestEditor.class_identity.default_slot is SlotName.EDIT
 
     def test_description(self):
         assert _TestEditor.class_identity.description == "An editor for unit tests."
@@ -93,7 +96,7 @@ class TestEditorDecorator:
     def test_rejects_non_base_editor(self):
         with pytest.raises(TypeError):
 
-            @editor(registry_id="bad", editor="x", default_slot="main")
+            @editor(registry_id="bad", editor="x", default_slot=SlotName.EDIT)
             class NotAnEditor:
                 pass
 
@@ -133,15 +136,15 @@ class TestEditorTypeRegistry:
     def test_get_by_default_slot_main(self):
         self.registry._register_class(_TestEditor, library_identity=_FAKE_LIBRARY_IDENTITY)
         self.registry._register_class(_TestLeftEditor, library_identity=_FAKE_LIBRARY_IDENTITY)
-        main = self.registry.get_by_default_slot("main")
-        left = self.registry.get_by_default_slot("left")
+        main = self.registry.get_by_default_slot("edit")
+        left = self.registry.get_by_default_slot("action")
         assert _TestEditor.class_identity.registry_key in main
         assert _TestEditor.class_identity.registry_key not in left
         assert _TestLeftEditor.class_identity.registry_key in left
 
     def test_get_by_default_slot_no_results(self):
         self.registry._register_class(_TestEditor, library_identity=_FAKE_LIBRARY_IDENTITY)
-        bottom = self.registry.get_by_default_slot("bottom")
+        bottom = self.registry.get_by_default_slot("info")
         assert len(bottom) == 0
 
     def test_class_filter_accepts_decorated_subclass(self):
@@ -177,7 +180,7 @@ class TestOpenBehavior:
         assert _TestEditor.class_identity.opens is OpenBehavior.REQUIRED
 
     def test_opens_accepts_string(self):
-        @editor(registry_id="op_str", default_slot="main", opens="on_payload")
+        @editor(registry_id="op_str", default_slot=SlotName.EDIT, opens="on_payload")
         class _OpensStrEditor(BaseEditor):
             def draw(self, context, container):
                 pass
@@ -185,7 +188,7 @@ class TestOpenBehavior:
         assert _OpensStrEditor.class_identity.opens is OpenBehavior.ON_PAYLOAD
 
     def test_opens_accepts_enum(self):
-        @editor(registry_id="op_enum", default_slot="main", opens=OpenBehavior.ON_CONTEXT)
+        @editor(registry_id="op_enum", default_slot=SlotName.EDIT, opens=OpenBehavior.ON_CONTEXT)
         class _OpensEnumEditor(BaseEditor):
             def draw(self, context, container):
                 pass
@@ -195,31 +198,31 @@ class TestOpenBehavior:
     def test_opens_rejects_typo(self):
         with pytest.raises(ValueError):
 
-            @editor(registry_id="op_bad", default_slot="main", opens="per_documnt")
+            @editor(registry_id="op_bad", default_slot=SlotName.EDIT, opens="per_documnt")
             class _OpensTypoEditor(BaseEditor):
                 def draw(self, context, container):
                     pass
 
     def test_opens_on_payload_allowed_on_left(self):
-        @editor(registry_id="op_left_pay", default_slot="left", opens="on_payload")
+        @editor(registry_id="op_left_pay", default_slot=SlotName.ACTION, opens=OpenBehavior.ON_PAYLOAD)
         class _OpensLeftPayloadEditor(BaseEditor):
             def draw(self, context, container):
                 pass
 
-        assert _OpensLeftPayloadEditor.class_identity.default_slot == "left"
+        assert _OpensLeftPayloadEditor.class_identity.default_slot is SlotName.ACTION
         assert _OpensLeftPayloadEditor.class_identity.opens is OpenBehavior.ON_PAYLOAD
 
     def test_opens_on_context_allowed_on_right(self):
-        @editor(registry_id="op_right_ctx", default_slot="right", opens="on_context")
+        @editor(registry_id="op_right_ctx", default_slot=SlotName.CONTEXT, opens=OpenBehavior.ON_CONTEXT)
         class _OpensRightContextEditor(BaseEditor):
             def draw(self, context, container):
                 pass
 
-        assert _OpensRightContextEditor.class_identity.default_slot == "right"
+        assert _OpensRightContextEditor.class_identity.default_slot is SlotName.CONTEXT
         assert _OpensRightContextEditor.class_identity.opens is OpenBehavior.ON_CONTEXT
 
     def test_opens_required_ok_on_left(self):
-        @editor(registry_id="op_left_req", default_slot="left", opens="required")
+        @editor(registry_id="op_left_req", default_slot=SlotName.ACTION, opens=OpenBehavior.REQUIRED)
         class _OpensLeftReqEditor(BaseEditor):
             def draw(self, context, container):
                 pass

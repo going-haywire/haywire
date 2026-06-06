@@ -36,6 +36,7 @@ from haywire.core.session.handlers import (
 from haywire.core.session.session import Session
 from haywire.core.session.signals import Signal
 from haywire.ui.editor.base import BaseEditor
+from haywire.ui.editor.identity import SlotName
 from haywire.ui.editor.registry import EditorTypeRegistry
 from haywire.ui.editor.wrapper import EditorWrapper
 
@@ -106,7 +107,7 @@ def _identity(key: str = "test:editor") -> SimpleNamespace:
     return SimpleNamespace(
         registry_key=key,
         label=key,
-        default_slot="main",
+        default_slot=SlotName.EDIT,
         opens=None,
     )
 

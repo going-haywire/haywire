@@ -10,6 +10,7 @@ from haywire.ui.app.tab_slot import TabSlot
 import pytest
 
 from haywire.ui.editor.base import BaseEditor
+from haywire.ui.editor.identity import SlotName
 
 
 class _FakeContainer:
@@ -73,7 +74,7 @@ class _FakeEditor(BaseEditor):
     class_identity = SimpleNamespace(
         registry_key="test:editor:fake",
         label="Fake",
-        default_slot="main",
+        default_slot=SlotName.EDIT,
     )
 
     def __init__(self, wrapper) -> None:
@@ -125,7 +126,7 @@ class _FakeRegistry:
 def _make_slot(session, *keys):
     """Build a TabSlot with wrappers for each key; first key is active."""
     reg = _FakeRegistry()
-    slot = TabSlot(session=session, name="main", registry=reg)
+    slot = TabSlot(session=session, name=SlotName.EDIT, registry=reg)
     for k in keys:
         slot.add_binding(editor_key=k, editor_cls=_FakeEditor, binding_id=None)
     if keys:
@@ -176,7 +177,7 @@ def test_add_binding_activate_true_calls_on_focus():
     once its instance has been created by the subsequent draw."""
     session = _make_session()
     reg = _FakeRegistry()
-    slot = TabSlot(session=session, name="main", registry=reg)
+    slot = TabSlot(session=session, name=SlotName.EDIT, registry=reg)
     slot._area_panel_container = MagicMock()
 
     slot.add_binding(editor_key="e_new", editor_cls=_FakeEditor, binding_id=None, activate=True)
@@ -199,7 +200,7 @@ def test_on_focus_raising_is_captured_in_wrapper_state():
 
     session = _make_session()
     reg = _FakeRegistry()
-    slot = TabSlot(session=session, name="main", registry=reg)
+    slot = TabSlot(session=session, name=SlotName.EDIT, registry=reg)
     slot.add_binding(editor_key="e1", editor_cls=_RaisingEditor, binding_id=None)
     slot.add_binding(editor_key="e2", editor_cls=_FakeEditor, binding_id=None)
     b1 = slot.find_binding("e1")

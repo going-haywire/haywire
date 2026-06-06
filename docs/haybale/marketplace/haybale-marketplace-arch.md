@@ -27,7 +27,7 @@ The Library Manager is the `haybale-marketplace` plugin — a UI layer that self
 - **The [Library System](../../architecture/library-system/library-system-arch.md)** — the framework infrastructure that loads `Library` classes once installed.
 - **The marketplace runtime** — the discovery layer that turns user-opt-in subscriptions into a browsable catalog of installable packages.
 
-Users see the **Library Browser** (left slot, lists installed and available libraries) and the **Library Overview Editor** (main slot, shows one library's identity / components / actions). The data behind both comes from two `marketplace.toml` files following a two-tier scheme.
+Users see the **Library Browser** (ACTION slot, lists installed and available libraries) and the **Library Overview Editor** (EDIT slot, shows one library's identity / components / actions). The data behind both comes from two `marketplace.toml` files following a two-tier scheme.
 
 The Library Manager is not the Library System. It does not discover entry points, load classes, or own registry state — it issues `uv pip install / uninstall` commands and asks the Library System to rescan. Below the wrapper, everything is the Library System's job.
 

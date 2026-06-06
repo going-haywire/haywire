@@ -21,17 +21,17 @@ from types import SimpleNamespace
 import haywire.core.graph.editor as graph_editor_module
 from haywire.ui.app.shell import AppShell
 from haywire.core.session.signals import Close, Reveal
-from haywire.ui.editor.identity import OpenBehavior
+from haywire.ui.editor.identity import OpenBehavior, SlotName
 
 
 class _FakeSession:
     def __init__(self) -> None:
         self.workspace_manager = SimpleNamespace(
             snapshot={
-                "left": {"active_key": "left:editor:one", "visible": True, "size": 300, "editors": []},
-                "right": {"active_key": "right:editor:one", "visible": True, "size": 300, "editors": []},
-                "main": {"active_key": "main:editor:one", "editors": []},
-                "bottom": {"active_key": None, "visible": False, "size": 200, "editors": []},
+                "action": {"active_key": "left:editor:one", "visible": True, "size": 300, "editors": []},
+                "context": {"active_key": "right:editor:one", "visible": True, "size": 300, "editors": []},
+                "edit": {"active_key": "main:editor:one", "editors": []},
+                "info": {"active_key": None, "visible": False, "size": 200, "editors": []},
             }
         )
         self._editors = {}
@@ -130,9 +130,9 @@ class _FakeEditorRegistry:
 
 def test_on_slot_resize_routes_to_named_slot() -> None:
     shell = AppShell(session=_FakeSession(), editor_registry=_FakeEditorRegistry({}))
-    slot = _FakeSlot("bottom")
-    shell._managed_slots["bottom"] = slot
-    shell._on_slot_resize(SimpleNamespace(args={"slot": "bottom", "size": 275}))
+    slot = _FakeSlot("info")
+    shell._managed_slots[SlotName.INFO] = slot
+    shell._on_slot_resize(SimpleNamespace(args={"slot": "info", "size": 275}))
     assert slot.size_calls == [275]
 
 
@@ -143,11 +143,11 @@ def test_on_slot_resize_ignores_unknown_slot() -> None:
 
 def test_on_slot_resize_ignores_malformed_args() -> None:
     shell = AppShell(session=_FakeSession(), editor_registry=_FakeEditorRegistry({}))
-    slot = _FakeSlot("bottom")
-    shell._managed_slots["bottom"] = slot
+    slot = _FakeSlot("info")
+    shell._managed_slots[SlotName.INFO] = slot
     shell._on_slot_resize(SimpleNamespace(args="not a dict"))
     shell._on_slot_resize(SimpleNamespace(args=None))
-    shell._on_slot_resize(SimpleNamespace(args={"slot": "bottom"}))
+    shell._on_slot_resize(SimpleNamespace(args={"slot": "info"}))
     assert slot.size_calls == []
 
 
@@ -158,11 +158,11 @@ def test_on_slot_resize_ignores_malformed_args() -> None:
 
 def test_reveal_editor_routes_through_slot() -> None:
     target_key = "right:editor:two"
-    cls = _make_editor_cls(target_key, "right", OpenBehavior.REQUIRED)
+    cls = _make_editor_cls(target_key, SlotName.CONTEXT, OpenBehavior.REQUIRED)
     registry = _FakeEditorRegistry({target_key: cls})
     shell = AppShell(session=_FakeSession(), editor_registry=registry)
-    fake = _FakeSlot("right", active_key="right:editor:one")
-    shell._managed_slots["right"] = fake
+    fake = _FakeSlot("context", active_key="right:editor:one")
+    shell._managed_slots[SlotName.CONTEXT] = fake
 
     shell._reveal_editor(Reveal(editor=cls))
 
@@ -176,8 +176,8 @@ def test_reveal_editor_unhostable_slot_logs_warning(caplog) -> None:
     registry = _FakeEditorRegistry({target_key: cls})
     shell = AppShell(session=_FakeSession(), editor_registry=registry)
     # No slot registered under "ghost-slot", so the reveal must be dropped.
-    fake = _FakeSlot("right", active_key="right:editor:one")
-    shell._managed_slots["right"] = fake
+    fake = _FakeSlot("context", active_key="right:editor:one")
+    shell._managed_slots[SlotName.CONTEXT] = fake
 
     with caplog.at_level(logging.WARNING, logger="haywire.ui.app.shell"):
         shell._reveal_editor(Reveal(editor=cls))
@@ -193,12 +193,12 @@ def test_reveal_editor_unhostable_slot_logs_warning(caplog) -> None:
 
 def test_close_lifecycle_command_closes_matching_wrappers_in_every_slot() -> None:
     shell = AppShell(session=_FakeSession(), editor_registry=_FakeEditorRegistry({}))
-    left = _FakeSlot("left")
-    main = _FakeSlot("main")
-    bottom = _FakeSlot("bottom")
-    shell._managed_slots["left"] = left
-    shell._managed_slots["main"] = main
-    shell._managed_slots["bottom"] = bottom
+    left = _FakeSlot("action")
+    main = _FakeSlot("edit")
+    bottom = _FakeSlot("info")
+    shell._managed_slots[SlotName.ACTION] = left
+    shell._managed_slots[SlotName.EDIT] = main
+    shell._managed_slots[SlotName.INFO] = bottom
 
     shell._close_payload(Close(binding_id="/tmp/a.graph"))
     assert left.close_tabs_for_calls == ["/tmp/a.graph"]

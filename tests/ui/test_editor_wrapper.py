@@ -3,6 +3,7 @@
 from types import SimpleNamespace
 
 from haywire.core.errors.haywire_exception import HaywireException
+from haywire.ui.editor.identity import SlotName
 from haywire.ui.editor.wrapper import EditorWrapperState
 
 
@@ -60,7 +61,7 @@ class _FakeEditorCls:
     class_identity = SimpleNamespace(
         registry_key="fake:editor:1",
         label="Fake",
-        default_slot="main",
+        default_slot=SlotName.EDIT,
         opens=None,
     )
 
@@ -153,7 +154,7 @@ class _RaisingEditorCls:
     class_identity = SimpleNamespace(
         registry_key="raising:editor:1",
         label="Raising",
-        default_slot="main",
+        default_slot=SlotName.EDIT,
         opens=None,
     )
 
@@ -217,7 +218,7 @@ class _NewFakeEditorCls:
     class_identity = SimpleNamespace(
         registry_key="fake:editor:1",
         label="NewFake",
-        default_slot="main",
+        default_slot=SlotName.EDIT,
         opens=None,
     )
 
@@ -350,7 +351,7 @@ class _RecordingEditorCls:
     class_identity = SimpleNamespace(
         registry_key="rec:editor:1",
         label="Rec",
-        default_slot="main",
+        default_slot=SlotName.EDIT,
         opens=None,
     )
 
@@ -439,7 +440,7 @@ def test_draw_captures_runtime_exception_into_error_runtime():
         class_identity = SimpleNamespace(
             registry_key="dr:editor:1",
             label="DR",
-            default_slot="main",
+            default_slot=SlotName.EDIT,
             opens=None,
         )
 
@@ -512,7 +513,7 @@ def test_on_focus_captures_runtime_exception():
         class_identity = SimpleNamespace(
             registry_key="fr:editor:1",
             label="FR",
-            default_slot="main",
+            default_slot=SlotName.EDIT,
             opens=None,
         )
 
@@ -679,7 +680,7 @@ def test_base_editor_handle_close_request_defaults_to_true():
             registry_id="close-default",
             registry_key="test:close-default",
             label="Test",
-            default_slot="main",
+            default_slot=SlotName.EDIT,
         )
 
         def draw(self, context, container):
@@ -720,7 +721,7 @@ class _ConsentingEditorCls:
     class_identity = SimpleNamespace(
         registry_key="consent:editor:1",
         label="Consent",
-        default_slot="main",
+        default_slot=SlotName.EDIT,
         opens=None,
     )
 
@@ -770,7 +771,7 @@ def test_request_close_allows_when_handle_close_request_raises():
         class_identity = SimpleNamespace(
             registry_key="rc:editor:1",
             label="RC",
-            default_slot="main",
+            default_slot=SlotName.EDIT,
             opens=None,
         )
 
@@ -1006,7 +1007,7 @@ class _RenderTabRecordingEditorCls:
         registry_key="rtab:editor:1",
         label="Recording",
         icon="palette",
-        default_slot="main",
+        default_slot=SlotName.EDIT,
         opens=None,
     )
 
@@ -1040,7 +1041,7 @@ class _RenderRaisingEditorCls:
         registry_key="rec:editor:1",
         label="Boom",
         icon="warning",
-        default_slot="main",
+        default_slot=SlotName.EDIT,
         opens=None,
     )
 

@@ -29,6 +29,7 @@ from nicegui import ui
 from haywire.ui import elements as hui
 from haywire.ui.editor.base import BaseEditor
 from haywire.ui.editor.decorator import editor
+from haywire.ui.editor.identity import SlotName
 
 if TYPE_CHECKING:
     from haywire.core.session.context import SessionContext
@@ -46,7 +47,7 @@ _BATCH_DEPTH = 3
 @editor(
     label="Files",
     icon=hui.icon.folder,
-    default_slot="left",
+    default_slot=SlotName.ACTION,
     description=(
         "Project file tree, eager-then-lazy: three levels are loaded up"
         " front, then 'Click to load children' sentinels appear at deeper"

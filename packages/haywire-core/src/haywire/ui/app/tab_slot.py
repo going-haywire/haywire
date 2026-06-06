@@ -1,8 +1,8 @@
 """
-TabSlot — the Slot subclass for main / bottom slots.
+TabSlot — the Slot subclass for the EDIT / INFO slots.
 
 Renders a column containing a horizontal tab bar on top (``ui.tabs``, plus an
-optional chevron for the bottom slot that folds the area in/out) and the
+optional chevron for the INFO slot that folds the area in/out) and the
 ``ui.tab_panels`` area below. Wrapper mutation is inherited from :class:`Slot`
 (``reveal`` / ``close_binding`` / ``repayload`` / ``close_tabs_for``); the bar
 re-renders on each mutation via ``_refresh_bar``.
@@ -23,10 +23,10 @@ logger = logging.getLogger(__name__)
 
 
 class TabSlot(Slot):
-    """Tabbed slot for the main and bottom shell slots.
+    """Tabbed slot for the EDIT and INFO shell slots.
 
     The optional ``show_fold_toggle`` flag renders the chevron expand/retract
-    button at the end of the bar — used by the bottom slot.
+    button at the end of the bar — used by the INFO slot.
     """
 
     _ORIENTATION: ClassVar[Literal["horizontal", "vertical"]] = "vertical"
@@ -100,7 +100,7 @@ class TabSlot(Slot):
             self._fold_button = (
                 ui.button(icon=chevron_icon, on_click=self._on_fold_toggle_clicked)
                 .props("flat round dense size=sm")
-                .tooltip(f"Toggle {self.name} slot")
+                .tooltip(f"Toggle {self.name.label} slot")
                 .classes("flex-shrink-0 mr-1")
             )
 

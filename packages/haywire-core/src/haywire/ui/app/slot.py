@@ -8,6 +8,7 @@ from typing import Any, Callable, ClassVar, Literal, Optional, TYPE_CHECKING
 from nicegui import ui
 
 from haywire.core.registry.lifecycle_event import LifeCycleEvent, LifeCycleEventType
+from haywire.ui.editor.identity import SlotName
 from haywire.ui.editor.registry import EditorTypeRegistry
 from haywire.ui.editor.wrapper import EditorWrapper
 
@@ -31,7 +32,7 @@ class Slot(ABC):
     def __init__(
         self,
         session: "Session",
-        name: str,
+        name: SlotName,
         registry: EditorTypeRegistry,
         on_visibility_change: Optional[Callable[[bool], object]] = None,
         bar_place: Literal["left", "right", "top", "bottom"] = "left",
@@ -42,8 +43,8 @@ class Slot(ABC):
         """
         Args:
             session: The owning session.
-            name: Slot identifier — one of ``"left"``, ``"right"``,
-                ``"main"``, ``"bottom"``.
+            name: Slot identifier — a :class:`SlotName`
+                (ACTION, CONTEXT, EDIT, INFO).
             registry: Editor type registry; passed through to wrappers
                 constructed via add_binding / populate_from_snapshot.
             on_visibility_change: Optional callback fired when the slot's

@@ -16,6 +16,7 @@ from nicegui import ui
 from haywire.ui import elements as hui
 
 from haywire.ui.editor.decorator import editor
+from haywire.ui.editor.identity import SlotName
 from haywire.ui.editor.base import BaseEditor
 from haywire.core.session.context import SessionContext
 from haywire.core.session.handlers import redraw_on
@@ -35,7 +36,7 @@ class _WidgetPreviewPort:
 @editor(
     label="Component Detail",
     icon=hui.icon.library_component,
-    default_slot="right",
+    default_slot=SlotName.CONTEXT,
     description="Detailed documentation for the selected node component.",
     order=30,
 )

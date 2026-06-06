@@ -157,7 +157,7 @@ Browser opens NiceGUI page
   └─ shell.render()
       ├─ subscribe Reveal / Close / BroadcastClose on session.subscribe(...)
       ├─ build TopBar / StatusBar
-      ├─ instantiate four slots (left/right IconSlot, main/bottom TabSlot)
+      ├─ instantiate four slots (ACTION/CONTEXT IconSlot, EDIT/INFO TabSlot)
       ├─ each slot.populate_from_snapshot(workspace_manager.snapshot[slot_name])
       │   └─ each EditorWrapper wires its editor's @redraw_on / @react_on
       │      handlers as session.subscribe(...) closures

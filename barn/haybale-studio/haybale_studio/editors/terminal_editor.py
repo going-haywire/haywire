@@ -20,6 +20,7 @@ from nicegui.timer import Timer
 
 from haywire.ui import elements as hui
 from haywire.ui.editor.decorator import editor
+from haywire.ui.editor.identity import SlotName
 from haywire.ui.editor.base import BaseEditor
 
 if TYPE_CHECKING:
@@ -80,7 +81,7 @@ class _LogHandler(logging.Handler):
 @editor(
     label="Terminal",
     icon=hui.icon.terminal,
-    default_slot="bottom",
+    default_slot=SlotName.INFO,
     description="Application log output. Captures Python logging messages.",
 )
 class TerminalEditor(BaseEditor):

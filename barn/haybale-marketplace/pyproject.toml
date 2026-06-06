@@ -2,7 +2,7 @@
 name = "haybale-marketplace"
 version = "0.0.15"
 description = "Library installer + browser editors for Haywire"
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 license = {text = "MIT"}
 
 dependencies = [

@@ -6,13 +6,15 @@ Provides BaseEditor, EditorIdentity, the @editor decorator, and EditorTypeRegist
 The graph canvas implementation lives in haybale_studio.editors.graph_canvas.
 """
 
-from .identity import EditorIdentity
+from .identity import EditorIdentity, OpenBehavior, SlotName
 from .base import BaseEditor
 from .decorator import editor
 from .registry import EditorTypeRegistry
 
 __all__ = [
     "EditorIdentity",
+    "OpenBehavior",
+    "SlotName",
     "BaseEditor",
     "editor",
     "EditorTypeRegistry",

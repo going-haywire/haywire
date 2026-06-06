@@ -15,7 +15,7 @@ from typing import Optional, Union
 from haywire.core.library.utils import EDITOR, derive_library_identity, reg_key
 
 from .base import BaseEditor
-from .identity import EditorIdentity, OpenBehavior
+from .identity import EditorIdentity, OpenBehavior, SlotName
 
 
 def editor(
@@ -23,7 +23,7 @@ def editor(
     label: Optional[str] = None,
     description: str = "",
     icon: str = "extension",
-    default_slot: str = "main",
+    default_slot: Union[SlotName, str] = SlotName.EDIT,
     opens: Union[OpenBehavior, str] = OpenBehavior.REQUIRED,
     order: int = 100,
     registry_id: Optional[str] = None,
@@ -44,8 +44,10 @@ def editor(
     Args:
         label: Human-readable display name. Defaults to class name.
         icon: Material Design icon name. Defaults to 'extension'.
-        default_slot: Which slot this editor belongs in by default.
-            One of: 'left', 'right', 'main', 'bottom'. Defaults to 'main'.
+        default_slot: Which slot this editor belongs in by default. A
+            :class:`SlotName` or its string value — one of 'action',
+            'context', 'edit', 'info'. Defaults to ``SlotName.EDIT``. An
+            unknown value raises ``ValueError`` at class-definition time.
         opens: Instance-creation behavior. One of 'required', 'on_context',
             'on_payload'. Defaults to 'required'. Any value is permitted on
             any default_slot — choosing a UX-sensible pairing is up to the
@@ -61,7 +63,7 @@ def editor(
         @editor(
             label='Graph Editor',
             icon='account_tree',
-            default_slot='main',
+            default_slot='edit',
             opens='on_payload',
             description='Visual node graph editor',
         )
@@ -73,8 +75,9 @@ def editor(
         if not issubclass(inner_cls, BaseEditor):
             raise TypeError(f"@editor can only be applied to BaseEditor subclasses, got {inner_cls}")
 
-        # Coerce string to enum; raises ValueError at class-definition time on typo.
+        # Coerce strings to enums; raises ValueError at class-definition time on typo.
         opens_enum = OpenBehavior(opens) if isinstance(opens, str) else opens
+        slot_enum = SlotName(default_slot) if not isinstance(default_slot, SlotName) else default_slot
 
         _registry_id = registry_id or inner_cls.__name__
         _label = label or inner_cls.__name__
@@ -87,7 +90,7 @@ def editor(
             registry_key=_registry_key,
             label=_label,
             icon=icon,
-            default_slot=default_slot,
+            default_slot=slot_enum,
             opens=opens_enum,
             order=order,
             description=description,

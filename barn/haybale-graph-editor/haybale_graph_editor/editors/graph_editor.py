@@ -23,6 +23,7 @@ from nicegui import ui
 
 from haywire.ui import elements as hui
 from haywire.ui.editor.decorator import editor
+from haywire.ui.editor.identity import OpenBehavior, SlotName
 from haywire.ui.editor.base import BaseEditor
 from haywire.core.session.handlers import react_on
 from haywire.core.session.signals import ActiveGraphMoved, GraphDataMutated
@@ -42,8 +43,8 @@ logger = logging.getLogger(__name__)
 @editor(
     label="Graph Editor",
     icon=hui.icon.graph,
-    default_slot="main",
-    opens="on_payload",
+    default_slot=SlotName.EDIT,
+    opens=OpenBehavior.ON_PAYLOAD,
     description="Visual node graph editor for wiring data processing pipelines.",
 )
 class GraphEditor(BaseEditor):

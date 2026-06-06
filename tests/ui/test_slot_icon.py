@@ -1,9 +1,10 @@
-"""Tests for IconSlot — the bar-of-icons variant for left/right slots."""
+"""Tests for IconSlot — the bar-of-icons variant for the ACTION / CONTEXT slots."""
 
 from types import SimpleNamespace
 
 from haywire.core.session.signals import Reveal
 from haywire.ui.app.icon_slot import IconSlot
+from haywire.ui.editor.identity import SlotName
 
 
 class _FakeRegistry:
@@ -164,7 +165,7 @@ def test_icon_slot_renders_row_with_bar_and_area(monkeypatch):
     reg = _FakeRegistry()
     slot = IconSlot(
         session=SimpleNamespace(context=None),
-        name="left",
+        name=SlotName.ACTION,
         registry=reg,
         bar_place="left",
     )
@@ -196,7 +197,7 @@ def test_icon_slot_bar_change_switches_active_binding(monkeypatch):
     reg = _FakeRegistry()
     slot = IconSlot(
         session=session,
-        name="left",
+        name=SlotName.ACTION,
         registry=reg,
         bar_place="left",
     )
@@ -231,7 +232,7 @@ def test_icon_slot_has_no_fold_toggle_button(monkeypatch):
     reg = _FakeRegistry()
     slot = IconSlot(
         session=SimpleNamespace(context=None),
-        name="left",
+        name=SlotName.ACTION,
         registry=reg,
         bar_place="left",
     )
@@ -251,7 +252,7 @@ def test_icon_slot_click_active_icon_collapses(monkeypatch):
     reg = _FakeRegistry()
     slot = IconSlot(
         session=SimpleNamespace(context=None),
-        name="left",
+        name=SlotName.ACTION,
         registry=reg,
         bar_place="left",
         on_visibility_change=vis_calls.append,
@@ -273,7 +274,7 @@ def test_icon_slot_click_while_collapsed_reexpands(monkeypatch):
     reg = _FakeRegistry()
     slot = IconSlot(
         session=SimpleNamespace(context=None),
-        name="left",
+        name=SlotName.ACTION,
         registry=reg,
         bar_place="left",
         on_visibility_change=vis_calls.append,
@@ -304,7 +305,7 @@ def test_icon_slot_click_inactive_icon_switches_without_collapsing(monkeypatch):
     reg = _FakeRegistry()
     slot = IconSlot(
         session=SimpleNamespace(context=None),
-        name="left",
+        name=SlotName.ACTION,
         registry=reg,
         bar_place="left",
         on_visibility_change=vis_calls.append,
@@ -329,7 +330,7 @@ def test_icon_slot_collapsed_click_other_icon_expands_and_switches(monkeypatch):
     reg = _FakeRegistry()
     slot = IconSlot(
         session=SimpleNamespace(context=None),
-        name="left",
+        name=SlotName.ACTION,
         registry=reg,
         bar_place="left",
     )
@@ -353,7 +354,7 @@ def test_icon_slot_reveal_into_collapsed_slot_auto_expands(monkeypatch):
     reg = _FakeRegistry()
     slot = IconSlot(
         session=SimpleNamespace(context=None),
-        name="right",
+        name=SlotName.CONTEXT,
         registry=reg,
         bar_place="right",
     )

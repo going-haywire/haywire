@@ -264,24 +264,21 @@ See [architecture/studio](../architecture/studio/studio-arch.md) for the studio 
 
 | Term | Definition | Aliases to avoid |
 |------|-----------|-----------------|
-| **Editor** | A full-slot UI component occupying one workspace Slot (Left, Main, Right, Bottom); one instance per slot per session | Panel (Panels are sub-components of editors), view |
+| **Editor** | A full-slot UI component occupying one workspace Slot (ACTION, CONTEXT, EDIT, INFO); one instance per slot per session | Panel (Panels are sub-components of editors), view |
 | **Panel** | A context-sensitive sub-section rendered inside a panel-aware editor (e.g. Properties); appears/disappears based on `poll()`; always wrapped in `.hw-panel` container | Tab, widget (too generic) |
 | **Scope** | A named tab within a panel-aware editor that groups panels (e.g. `node`, `graph`, `edge`) | Context (overloaded), category |
-| **Slot** | One of the four named positions in the AppShell where an editor is mounted: Left, Main, Right, Bottom; each slot = bar + area | Area (deprecated), pane, region, zone |
-| **Bar** | The control strip attached to a Slot; either a tab bar (horizontal, for Main/Bottom) or an icon bar (vertical, for Left/Right) | — |
-| **default_slot** | The `@editor()` decorator parameter and `EditorIdentity` field that declares which Slot an editor occupies by default; one of `'left'`, `'main'`, `'right'`, `'bottom'` | canvas_area (deprecated) |
-| **SlotState** | Dataclass representing the persisted state of the Left or Right slot: `active_tab_key`, `visible`, `size` | AreaState (deprecated) |
-| **MainSlotState** | Dataclass representing the Main slot's persisted state: a list of `TabState` tabs plus `active_tab_key` | MiddleAreaState (deprecated) |
-| **BottomSlotState** | Dataclass representing the Bottom slot's persisted state: tab list, `active_tab_key`, `visible`, `size` | BottomAreaState (deprecated) |
-| **TabState** | Dataclass for one tab within a tabbed slot (Main or Bottom): `editor_key`, `label`, `metadata` | — |
-| **active_tab_key** | The unified field on all slot state dataclasses that stores which editor is currently shown in that slot | editor_key (on slot state — deprecated), left_bar_active, right_bar_active (removed) |
-| **AppShell** | The top-level layout component composed of: TopBar + ActivityBar + Left/Main/Right/Bottom Slots + ContextBar + StatusBar. See [architecture/studio/app-shell](../architecture/studio/app-shell/app-shell-arch.md) | Shell, frame |
+| **Slot** | One of the four named positions in the AppShell where an editor is mounted, identified by a `SlotName`: **ACTION** (left edge), **CONTEXT** (right edge), **EDIT** (centre), **INFO** (bottom). Each slot = bar + area | Area (deprecated), pane, region, zone; left/main/right/bottom (former slot names — removed) |
+| **SlotName** | The `StrEnum` of the four slot identifiers: `ACTION` / `CONTEXT` / `EDIT` / `INFO`, with string values `'action'` / `'context'` / `'edit'` / `'info'`. A member *is* a `str`, so it serializes to its value in `workspace_state.json` and the `hw-slot-<value>` DOM ids with no conversion. `SlotName(x).label` gives the human-facing name (e.g. `'Edit'`) | slot string, slot key |
+| **Bar** | The control strip attached to a Slot; either a tab bar (horizontal, for EDIT/INFO) or an icon bar (vertical, for ACTION/CONTEXT) | — |
+| **default_slot** | The `@editor()` decorator parameter and `EditorIdentity` field that declares which Slot an editor occupies by default; a `SlotName` (`ACTION` / `CONTEXT` / `EDIT` / `INFO`), defaulting to `SlotName.EDIT`. The decorator coerces a bare string value and raises `ValueError` on an unknown one | canvas_area (deprecated) |
+| **slot snapshot** | The persisted state of one slot — a plain dict produced by `Slot.to_snapshot()` with keys `active_key` (the active binding id), `visible`, `size`, and `editors` (the per-tab list). Keyed by `SlotName` value in `workspace_state.json`. There are no per-slot state *dataclasses* — all four slots use this uniform dict shape | SlotState / MainSlotState / BottomSlotState / TabState (former dataclasses — removed), active_tab_key (removed; the field is `active_key`) |
+| **AppShell** | The top-level layout component composed of: TopBar + ActivityBar + ACTION/CONTEXT/EDIT/INFO Slots + ContextBar + StatusBar. See [architecture/studio/app-shell](../architecture/studio/app-shell/app-shell-arch.md) | Shell, frame |
 | **TopBar** | The 48px bar along the top edge of the AppShell; contains the app name, workspace switcher, and global actions | Header, navbar |
 | **StatusBar** | The 24px bar along the bottom edge of the AppShell; shows session info and status messages | Footer, info bar (Info Bar is a Panel pattern, not the StatusBar) |
-| **ActivityBar** | The 48px icon bar on the left edge; switches editors in the Left Slot; styled with `hw-slot-bar hw-slot-bar-icons` | Left sidebar, toolbar |
-| **ContextBar** | The 48px icon bar on the right edge; switches editors in the Right Slot; styled with `hw-slot-bar hw-slot-bar-icons` | Right sidebar |
-| **MainTabBar** | The horizontal tab bar above the Main Slot; switches between tabbed main editors; styled with `hw-slot-bar hw-slot-bar-tabs` | Middle tabs |
-| **BottomTabBar** | The horizontal tab bar above the Bottom Slot; switches between tabbed bottom editors; styled with `hw-slot-bar hw-slot-bar-tabs` | Bottom tabs (use only for the metadata key) |
+| **ActivityBar** | The 48px icon bar on the left edge; switches editors in the ACTION Slot; styled with `hw-slot-bar hw-slot-bar-icons` | Left sidebar, toolbar |
+| **ContextBar** | The 48px icon bar on the right edge; switches editors in the CONTEXT Slot; styled with `hw-slot-bar hw-slot-bar-icons` | Right sidebar |
+| **MainTabBar** | The horizontal tab bar above the EDIT Slot; switches between tabbed edit editors; styled with `hw-slot-bar hw-slot-bar-tabs` | Middle tabs, EditTabBar |
+| **BottomTabBar** | The horizontal tab bar above the INFO Slot; switches between tabbed info editors; styled with `hw-slot-bar hw-slot-bar-tabs` | Bottom tabs (use only for the metadata key) |
 | **hw-slot-bar** | CSS base class for all slot bars (both icon bars and tab bars) | hw-tabs (deprecated) |
 | **hw-slot-bar-tabs** | CSS modifier for horizontal tabbed slot bars (MainTabBar, BottomTabBar) | hw-tabs (deprecated) |
 | **hw-slot-bar-icons** | CSS modifier for vertical icon slot bars (ActivityBar, ContextBar) | — |
@@ -373,10 +370,10 @@ See [guides/signals.md](../guides/signals.md) for authoring patterns; [architect
 - A **Library** scans folders in `register_components()` to populate registries (nodes, types, adapters, widgets, skins, themes).
 - A **Haybale** package is always a **Library**; not all Libraries are distributed as haybale packages.
 - An **Editor** occupies one **Slot** in the **AppShell**; an **Editor** may host many **Panels** filtered by **Scope**.
-- The **AppShell** is composed of: **TopBar**, **ActivityBar**, **ContextBar**, **StatusBar**, and the four **Slots** (Left, Main, Right, Bottom).
-- Each **Slot** has a **Bar** and an area: Left and Right slots have icon bars (**ActivityBar**, **ContextBar**); Main and Bottom slots have tab bars (**MainTabBar**, **BottomTabBar**).
-- The **ActivityBar** switches editors in the Left **Slot**; the **ContextBar** switches editors in the Right **Slot**; the **ScopeToolbar** (inside the PropertiesEditor) switches the active **Scope**.
-- Each slot's state is tracked by a **SlotState** (Left/Right), **MainSlotState** (Main), or **BottomSlotState** (Bottom); all use **active_tab_key** to identify the currently-shown editor.
+- The **AppShell** is composed of: **TopBar**, **ActivityBar**, **ContextBar**, **StatusBar**, and the four **Slots** (**ACTION**, **CONTEXT**, **EDIT**, **INFO**).
+- Each **Slot** has a **Bar** and an area: the ACTION and CONTEXT slots have icon bars (**ActivityBar**, **ContextBar**); the EDIT and INFO slots have tab bars (**MainTabBar**, **BottomTabBar**).
+- The **ActivityBar** switches editors in the **ACTION Slot**; the **ContextBar** switches editors in the **CONTEXT Slot**; the **ScopeToolbar** (inside the PropertiesEditor) switches the active **Scope**.
+- Each slot's persisted state is a uniform **slot snapshot** dict (`active_key`, `visible`, `size`, `editors`) produced by `Slot.to_snapshot()` and keyed by **SlotName** value in `workspace_state.json`; there are no per-slot state dataclasses.
 - A **Panel** is always rendered inside a `.hw-panel` container and must use `hui.*` wrappers for any pattern covered by the design guide.
 - A **Skin** renders on the **Graph Canvas** and must use only `--hw-node-*` / `--hw-canvas-*` **CSS tokens**; it must not use `hui.*` panel wrappers.
 - Every structural colour reference in the app must use a **CSS token** (`--hw-*`); hardcoded hex or rgba values are a design violation.
@@ -410,8 +407,8 @@ See [guides/signals.md](../guides/signals.md) for authoring patterns; [architect
 > **Domain expert:** "Yes — the DATA **outlet** connects via an **Edge** to downstream **CONTROL nodes**. The **Pipe** on that **Edge** can be eager or lazy depending on whether you want immediate push or always-latest pull."
 > **Dev:** "When I add this to a **Library**, how does it get discovered?"
 > **Domain expert:** "Declare it in `register_components()` with `scan_nodes(...)`, and the **entry_point** in `pyproject.toml` makes the whole **Library** discoverable at startup."
-> **Dev:** "And if the user is in the **Graph Canvas** and selects the node, what shows in the right **Slot**?"
-> **Domain expert:** "The **Properties Editor** queries the **PanelRegistry** for all **Panels** whose `poll()` returns `True` for the `node` **Scope**. Each matching **Panel** renders inside a collapsible section. The **ContextBar** icon tells you which editor is active in the right **Slot**."
+> **Dev:** "And if the user is in the **Graph Canvas** and selects the node, what shows in the **CONTEXT Slot**?"
+> **Domain expert:** "The **Properties Editor** queries the **PanelRegistry** for all **Panels** whose `poll()` returns `True` for the `node` **Scope**. Each matching **Panel** renders inside a collapsible section. The **ContextBar** icon tells you which editor is active in the **CONTEXT Slot** (the right edge)."
 
 ### Haystack
 
@@ -482,7 +479,7 @@ See [guides/signals.md](../guides/signals.md) for authoring patterns; [architect
 - **"info bar"** appears in two distinct senses: `hui.info_bar()` is a Panel-level metadata bar pattern; **StatusBar** is a shell-level bar at the bottom of the AppShell. They are different things — never use "info bar" to mean the StatusBar.
 - **"panel"** in CSS token names (`--hw-panel-*`) refers to the `.hw-panel` editor container, not the **Panel** sub-component concept. The CSS token `--hw-panel-bg` is the background of the editor container, not a per-Panel background.
 - **"area" vs "slot"**: **Slot** is the canonical term for workspace positions. **Area** and **canvas_area** are deprecated. The term "area" now refers only to the content region within a slot (the part next to the bar). Each slot = bar + area; use **Slot** for the whole position, "area" (lowercase, informal) only for the content pane if disambiguation is needed.
-- **"middle" vs "main"**: The slot formerly called "middle" is now **Main**. Use `default_slot='main'` in code. "Middle" is deprecated and will cause deserialization failures in `workspace_state.json`.
+- **slot names — `left`/`right`/`main`/`bottom` are removed**: the four slots are now the semantic **SlotName** members **ACTION** / **CONTEXT** / **EDIT** / **INFO** (the centre slot, once "middle" then "main", is now **EDIT**). The old position strings — and the older "middle" — are no longer accepted: the `@editor` decorator raises `ValueError` on them and `workspace_state.json` files keyed by the old names fall back to defaults (no migration shim; the rename was a clean break). Use the `SlotName` member or its lowercase string value (`'action'`/`'context'`/`'edit'`/`'info'`) in code.
 - **"hw-tabs" vs "hw-slot-bar-tabs"**: The CSS class `hw-tabs` is deprecated. Use `hw-slot-bar` (base) + `hw-slot-bar-tabs` (horizontal tab bars) or `hw-slot-bar-icons` (vertical icon bars).
 - **"session" vs "haystack"**: "Session" in Haywire means a per-browser-connection state object (**Session**, **SessionContext**). A named selection of graphs to work on is a **Haystack**, not a "session" — despite IDE conventions. Do not use "session" to mean a saved graph selection.
 - **"interpreter"**: Each **GraphEntry** owns its own **Interpreter** instance. References to "the interpreter" should be qualified: "the graph's Interpreter" or "entry.interpreter". The app-level `self.interpreter` is removed.

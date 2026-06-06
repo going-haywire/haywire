@@ -4,6 +4,7 @@ from types import SimpleNamespace
 
 from haywire.ui.editor import base as base_mod
 from haywire.ui.editor.base import BaseEditor
+from haywire.ui.editor.identity import SlotName
 
 
 class _FakeUiElement:
@@ -44,7 +45,7 @@ class _MinimalEditor(BaseEditor):
         registry_key="t:editor:1",
         label="My Editor",
         icon="account_tree",
-        default_slot="main",
+        default_slot=SlotName.EDIT,
     )
 
     def draw(self, context, container) -> None:  # pragma: no cover - unused here

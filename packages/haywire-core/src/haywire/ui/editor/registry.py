@@ -8,13 +8,16 @@ events, dependency tracking, and snapshot rollback.
 
 import inspect
 import logging
-from typing import Dict, List
+from typing import Dict, List, TYPE_CHECKING
 
 from haywire.core.registry.base import BaseRegistry
 from haywire.core.registry.lifecycle_event import LifeCycleEventCallback
 from haywire.core.library.identity import LibraryIdentity
 
 from .base import BaseEditor
+
+if TYPE_CHECKING:
+    from .identity import SlotName
 
 logger = logging.getLogger(__name__)
 
@@ -73,11 +76,13 @@ class EditorTypeRegistry(BaseRegistry):
         """
         return self._classes.get(registry_key)
 
-    def get_by_default_slot(self, slot: str) -> "Dict[str, type[BaseEditor]]":
+    def get_by_default_slot(self, slot: "SlotName | str") -> "Dict[str, type[BaseEditor]]":
         """Get all editor classes suggested for a given default slot.
 
         Args:
-            slot: One of 'left', 'right', 'main', 'bottom'.
+            slot: A :class:`SlotName` (or its string value) — one of
+                ACTION, CONTEXT, EDIT, INFO. ``SlotName`` is a ``str``,
+                so the ``==`` comparison below works for either form.
 
         Returns:
             Dict mapping registry_key -> editor class, sorted by the editor's

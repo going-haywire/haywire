@@ -16,6 +16,7 @@ from haywire.core.session.handlers import redraw_on
 from haywire.core.session.signals import Signal
 from haywire.ui.editor.base import BaseEditor
 from haywire.ui.editor.decorator import editor
+from haywire.ui.editor.identity import OpenBehavior, SlotName
 
 if TYPE_CHECKING:
     from nicegui.element import Element
@@ -61,8 +62,8 @@ EDITABLE_EXTS = frozenset(_LANGUAGE_BY_EXT.keys())
 @editor(
     label="Code Editor",
     icon="code",
-    default_slot="main",
-    opens="on_payload",
+    default_slot=SlotName.EDIT,
+    opens=OpenBehavior.ON_PAYLOAD,
     description=(
         "Text/code editor with syntax highlighting (Markdown, Python, JSON, TOML,"
         " YAML, JS/TS, CSS/HTML/XML, Shell, plain text). Markdown files have a"

@@ -1037,7 +1037,7 @@ focus. The `--editing` and `--dragging` CSS classes handle this consistently.
 ┌───────────────────────────────────────────────────────────────┐
 │  TopBar  (48px)                 bg-surface, border-bottom     │
 ├──────┬──────┬─────────────────────────┬──────┬────────────────┤
-│ Act. │ Left │      Main Slot          │Right │  Ctx.  │
+│ Act. │ACTION│      EDIT Slot          │CNTXT │  Ctx.  │
 │ Bar  │ Slot │  ┌───────────────────┐  │ Slot │  Bar   │
 │      │ area │  │ MainTabBar (36px) │  │ area │        │
 │ 48px │ 150+ │  ├───────────────────┤  │ 150+ │  48px  │
@@ -1046,9 +1046,9 @@ focus. The `--editing` and `--dragging` CSS classes handle this consistently.
 │      │      │  │     (flex: 1)     │  │      │        │
 │      │      │  │                   │  │      │        │
 │      │      │  ├┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┤  │      │        │
-│      │      │  │ BottomTabBar ▾    │  │      │        │ ← always-visible when bottom slot has tabs
+│      │      │  │ BottomTabBar ▾    │  │      │        │ ← always-visible when INFO slot has tabs
 │      │      │  ├───────────────────┤  │      │        │
-│      │      │  │ Bottom Slot area  │  │      │        │ ← collapsible via chevron or drag
+│      │      │  │  INFO Slot area   │  │      │        │ ← collapsible via chevron or drag
 │      │      │  │   (optional)      │  │      │        │
 │      │      │  └───────────────────┘  │      │        │
 ├──────┴──────┴─────────────────────────┴──────┴────────────────┤
@@ -1056,11 +1056,11 @@ focus. The `--editing` and `--dragging` CSS classes handle this consistently.
 └───────────────────────────────────────────────────────────────┘
 ```
 
-Every slot = a **bar** (control strip) + an **area** (content panel). Left and
-right slots have vertical icon bars (ActivityBar / ContextBar) classed with
-`hw-slot-bar hw-slot-bar-icons`; the main and bottom slots have horizontal tab
-bars (MainTabBar / BottomTabBar) classed with `hw-slot-bar hw-slot-bar-tabs`.
-See §9.7 for the bottom-slot retraction rules.
+Every slot = a **bar** (control strip) + an **area** (content panel). The ACTION
+and CONTEXT slots (left and right edges) have vertical icon bars (ActivityBar /
+ContextBar) classed with `hw-slot-bar hw-slot-bar-icons`; the EDIT and INFO slots
+(centre and bottom) have horizontal tab bars (MainTabBar / BottomTabBar) classed
+with `hw-slot-bar hw-slot-bar-tabs`. See §9.7 for the INFO-slot retraction rules.
 
 ### 9.2 Editor Container
 
@@ -1209,11 +1209,10 @@ never drift.
   contribute to flex layout — so the divider sits directly against the top
   edge of the tab bar row.
 
-**Persistence:** Only `bottom.visible`, `bottom.size`, and
-`bottom.active_tab_key` survive save/load cycles. The tab roster itself is
-re-derived from the editor registry on every load so newly-installed bottom
-editors appear automatically without requiring users to reset their
-workspace.
+**Persistence:** Only the INFO slot snapshot's `visible`, `size`, and
+`active_key` survive save/load cycles. The tab roster itself is re-derived from
+the editor registry on every load so newly-installed INFO-slot editors appear
+automatically without requiring users to reset their workspace.
 
 ---
 
@@ -1230,19 +1229,20 @@ also has two chrome bars (TopBar / StatusBar) and one editor-internal bar
 | ------------ | ------------------------- | -------- | -------------------------------------------- |
 | TopBar       | —                         | chrome   | App name, workspace switcher, global actions |
 | StatusBar    | —                         | chrome   | Session info, status messages                |
-| ActivityBar  | left slot                 | icons    | Left slot editor switcher icons              |
-| ContextBar   | right slot                | icons    | Right slot editor switcher icons             |
-| MainTabBar   | main slot                 | tabs     | Main slot tab switcher (horizontal tabs)     |
-| BottomTabBar | bottom slot               | tabs     | Bottom slot tab switcher + retract chevron   |
+| ActivityBar  | ACTION slot (left edge)   | icons    | ACTION slot editor switcher icons            |
+| ContextBar   | CONTEXT slot (right edge) | icons    | CONTEXT slot editor switcher icons           |
+| MainTabBar   | EDIT slot (centre)        | tabs     | EDIT slot tab switcher (horizontal tabs)     |
+| BottomTabBar | INFO slot (bottom)        | tabs     | INFO slot tab switcher + retract chevron     |
 | ScopeToolbar | (inside PropertiesEditor) | icons    | Scope switcher icons (36px buttons)          |
 
-**Rule:** The left slot hosts activity-minded editors (library browser, file
-browser, graph manager); the right slot hosts context-minded editors that react
-to selection (properties, component detail). ActivityBar and ContextBar are
-synonyms for the left slot's bar and the right slot's bar respectively.
+**Rule:** The ACTION slot (left edge) hosts activity-minded editors (library
+browser, file browser, graph manager); the CONTEXT slot (right edge) hosts
+context-minded editors that react to selection (properties, component detail).
+ActivityBar and ContextBar are the bars of the ACTION and CONTEXT slots
+respectively.
 
 **Rule:** "Sidebar" in CSS tokens (`--hw-bg-sidebar`) refers to the narrow icon
-bars (ActivityBar / ContextBar), not the left/right slot content areas.
+bars (ActivityBar / ContextBar), not the ACTION/CONTEXT slot content areas.
 
 ### 10.2 CSS Class Naming
 

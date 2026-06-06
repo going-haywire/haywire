@@ -46,7 +46,7 @@ Editors *host* panels (in panel-aware editors like `PropertiesEditor`) but they 
 | Parameter | Required | Default | Purpose |
 |---|---|---|---|
 | `label` | no | class name | Display name in tabs and tooltips |
-| `default_slot` | no | `'main'` | `'left'` / `'right'` / `'main'` / `'bottom'` |
+| `default_slot` | no | `SlotName.EDIT` | `SlotName.ACTION` / `CONTEXT` / `EDIT` / `INFO` (or their string values `'action'` / `'context'` / `'edit'` / `'info'`) |
 | `icon` | no | `'extension'` | Material Design icon name |
 | `opens` | no | `'required'` | `'required'` / `'on_context'` / `'on_payload'` — see below |
 | `description` | no | `''` | Tooltip / accessibility text |
@@ -60,7 +60,7 @@ Editors *host* panels (in panel-aware editors like `PropertiesEditor`) but they 
 - **`on_context`** — singleton tab, on-demand. Content mirrors a slice of session context (e.g. `active_library`); a `Reveal` lifecycle command opens it. Closeable.
 - **`on_payload`** — per-binding_id tab, on-demand. The binding_id is both the tab's identity and its content source; N distinct payloads → N distinct tabs. Closeable.
 
-**Slot constraints.** `default_slot='left'` and `'right'` only support `opens='required'`. Bars don't have a tab structure to host on-demand or multi-instance editors. The decorator raises `ValueError` at class-definition time if you try.
+**Slot × opens.** Any `opens` value is permitted on any `default_slot` — choosing a UX-sensible pairing is up to the editor author (icon slots, ACTION / CONTEXT, are typically `required`, but the decorator does not enforce it). The decorator only raises `ValueError` at class-definition time for an unknown `default_slot` or `opens` value.
 
 **`draw(self, context, container)`** is the only abstract method. The framework calls it on first slot assignment and again whenever a `@redraw_on` handler fires. Before each call the framework **clears** `container` — your code starts inside an empty NiceGUI element. Use `with container:` (or store children of one of `container`'s descendants) to build into it.
 
@@ -151,7 +151,7 @@ context.session.publish(BroadcastClose(binding_id=entry_id))
 ```python
 from haywire.ui.editor.base import BaseEditor
 from haywire.ui.editor.decorator import editor
-from haywire.ui.editor.identity import OpenBehavior   # for code that inspects the enum
+from haywire.ui.editor.identity import OpenBehavior, SlotName   # for code that inspects the enum
 from haywire.core.session.handlers import redraw_on, react_on
 from haywire.core.session.signals import (
     Signal,
@@ -187,7 +187,7 @@ What this example exercises:
 
 | Concept | Where |
 |---|---|
-| `@editor(label, icon, default_slot='right', description)` — implicit `opens='required'` | top of class |
+| `@editor(label, icon, default_slot=SlotName.CONTEXT, description)` — implicit `opens='required'` | top of class |
 | `class_identity` and `class_library` set automatically by the decorator | (set on the class object) |
 | Per-instance state initialised in `__init__`, persisted across redraws | `_active_focus_id`, `_expansion_state` |
 | `draw(context, container)` builds the subtree; container starts cleared | `draw` |
@@ -207,7 +207,7 @@ For the `Focus` and `Panel` extension points the editor hosts, see [components/p
 
 ### Authoring checklist
 
-- [ ] `@editor(label='...', default_slot='...')` — both have sensible defaults; set them deliberately
+- [ ] `@editor(label='...', default_slot=SlotName.…)` — both have sensible defaults; set them deliberately
 - [ ] Choose `opens='required'` / `'on_context'` / `'on_payload'`
 - [ ] Inherit from `BaseEditor`; implement `draw(self, context, container)` — required
 - [ ] Decorate handler methods with `@redraw_on(*SignalTypes)` for signals that warrant a full editor redraw — empty body is fine; the framework redraws once per dispatch pass
@@ -225,7 +225,7 @@ For the `Focus` and `Panel` extension points the editor hosts, see [components/p
 ```python
 from haywire.ui.editor.base import BaseEditor
 from haywire.ui.editor.decorator import editor
-from haywire.ui.editor.identity import OpenBehavior
+from haywire.ui.editor.identity import OpenBehavior, SlotName
 from haywire.core.session.handlers import redraw_on, react_on
 from haywire.core.session.signals import (
     Signal,
@@ -236,9 +236,11 @@ from haywire.core.session.signals import (
 
 ### Slot rules
 
-| `default_slot` | Valid `opens` values |
-|---|---|
-| `'left'` | `'required'` only |
-| `'right'` | `'required'` only |
-| `'main'` | `'required'`, `'on_context'`, `'on_payload'` |
-| `'bottom'` | `'required'`, `'on_context'`, `'on_payload'` |
+The decorator does not constrain `opens` by slot; every combination below is accepted. The "typical" column is convention only — icon slots (ACTION / CONTEXT) render a bar of icons rather than tabs, so multi-instance `on_payload` editors there are unusual but not rejected.
+
+| `default_slot` | Bar style | Typical `opens` |
+| --- | --- | --- |
+| `SlotName.ACTION` (left edge) | icon bar | `required` |
+| `SlotName.CONTEXT` (right edge) | icon bar | `required` |
+| `SlotName.EDIT` (centre) | tab bar | `required`, `on_context`, `on_payload` |
+| `SlotName.INFO` (bottom) | tab bar | `required`, `on_context`, `on_payload` |

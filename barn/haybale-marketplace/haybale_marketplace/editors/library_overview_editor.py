@@ -44,6 +44,7 @@ from haywire.core.library.utils import (
     WIDGET,
 )
 from haywire.ui.editor.decorator import editor
+from haywire.ui.editor.identity import OpenBehavior, SlotName
 from haywire.ui.editor.base import BaseEditor
 from haywire.ui.editor.registry import EditorTypeRegistry
 from haywire.ui.panel.registry import PanelRegistry
@@ -109,8 +110,8 @@ def should_block_install_for_os(haybale) -> str | None:
 @editor(
     label="Library Detail",
     icon=hui.icon.node_info,
-    default_slot="main",
-    opens="on_context",
+    default_slot=SlotName.EDIT,
+    opens=OpenBehavior.ON_CONTEXT,
     description="Detailed information for the selected library.",
 )
 class LibraryOverviewEditor(BaseEditor):

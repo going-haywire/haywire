@@ -3,9 +3,37 @@ EditorIdentity dataclass for the Haywire editor type system.
 """
 
 from dataclasses import dataclass, field
-from enum import Enum
+from enum import Enum, StrEnum
 
 from haywire.core.registry.identity import BaseIdentity
+
+
+class SlotName(StrEnum):
+    """The four named positions in the AppShell where an editor is mounted.
+
+    Each member's *value* is the canonical wire string used in persistence
+    (``workspace_state.json``), the ``@editor(default_slot=...)`` decorator,
+    and the ``hw-slot-<value>`` DOM ids. Because this is a ``StrEnum`` a
+    member *is* a ``str``: ``SlotName.EDIT == "edit"`` and it serializes /
+    hashes as ``"edit"`` with no conversion layer.
+
+    Use :attr:`label` for human-facing text (tooltips, settings UI).
+
+    - ACTION:  left edge, icon slot — primary navigation / launchers.
+    - CONTEXT: right edge, icon slot — context for the current selection.
+    - EDIT:    centre, tab slot — the primary editing surface.
+    - INFO:    bottom, tab slot — supplementary / status output.
+    """
+
+    ACTION = "action"
+    CONTEXT = "context"
+    EDIT = "edit"
+    INFO = "info"
+
+    @property
+    def label(self) -> str:
+        """Human-readable display name for this slot (e.g. ``"Edit"``)."""
+        return self.value.capitalize()
 
 
 class OpenBehavior(Enum):
@@ -42,7 +70,7 @@ class EditorIdentity(BaseIdentity):
     Additional attributes:
         icon: Material Design icon name, e.g. 'account_tree'.
         default_slot: Which workspace slot this editor belongs in by default.
-            One of: 'left', 'right', 'main', 'bottom'.
+            A :class:`SlotName` — one of ACTION, CONTEXT, EDIT, INFO.
         opens: Instance-creation behavior. See OpenBehavior.
         order: Sort priority within a slot (lower = earlier in the bar).
             Editors without an explicit order default to 100; ties fall back
@@ -50,6 +78,6 @@ class EditorIdentity(BaseIdentity):
     """
 
     icon: str = "extension"
-    default_slot: str = "main"
+    default_slot: SlotName = SlotName.EDIT
     opens: OpenBehavior = field(default=OpenBehavior.REQUIRED)
     order: int = 100

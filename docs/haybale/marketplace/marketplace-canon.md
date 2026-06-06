@@ -28,11 +28,11 @@ haywire.core.marketstall          haybale-marketplace             haybale-studio
 ────────────────────────          ───────────────────             ──────────────
 the runtime:                      the plugin (this doc):          the host studio:
  parse / refresh / resolve        - 4 editors (browser,            provides the editor
- marketplace + marketstall          overview, component,           slots (left/main/right)
+ marketplace + marketstall          overview, component,           slots (action/edit/context)
  files into a Haybale catalog       source) + 1 dialog module      into which the editors
                           ◀──────  - MarketplaceState              self-register.
                                     - LibraryManager (+            If haybale-marketplace
-                                      LibraryManagerState)         is absent, the left slot
+                                      LibraryManagerState)         is absent, the ACTION slot
                                   - drives uv pip install          is simply empty — no
                                                                    defensive code needed.
        LibraryRegistry  ◀──────── manager.registry.enable/

@@ -3,7 +3,7 @@
 AppShell renders the workspace layout for a single browser session.
 
 It is a layout container that hosts four :class:`Slot` subclass instances
-(left/right as :class:`IconSlot`, main/bottom as :class:`TabSlot`). The shell
+(ACTION/CONTEXT as :class:`IconSlot`, EDIT/INFO as :class:`TabSlot`). The shell
 orchestrates editor reveal/open operations across them, handles workspace
 layout DOM construction (TopBar, StatusBar, resizable dividers), and delegates
 context-change events to each slot for their independent poll/draw cycles.
@@ -28,6 +28,7 @@ from haywire.core.session.signals import (
     Reveal,
 )
 from haywire.ui.app.slot import Slot
+from haywire.ui.editor.identity import SlotName
 
 logger = logging.getLogger(__name__)
 
@@ -42,10 +43,10 @@ class AppShell:
 
     Structure:
         TopBar          → fixed top row
-        Left Area       → IconSlot (left side, vertical icon buttons + active editor)
-        Main Area       → TabSlot (center, tabbed editors)
-        Bottom Area     → TabSlot (split from main, optional, with fold toggle)
-        Right Area      → IconSlot (right side, vertical icon buttons + active editor)
+        Action Area     → IconSlot (left side, vertical icon buttons + active editor)
+        Edit Area       → TabSlot (center, tabbed editors)
+        Info Area       → TabSlot (split from edit, optional, with fold toggle)
+        Context Area    → IconSlot (right side, vertical icon buttons + active editor)
         StatusBar       → fixed bottom row
 
     The AppShell does NOT contain business logic. It delegates to:
@@ -67,9 +68,9 @@ class AppShell:
         self.session = session
         self._editor_registry = editor_registry
 
-        # Poll/draw orchestrator state — every slot (left, right, main,
-        # bottom) is a managed :class:`Slot` that owns its area and wrappers.
-        self._managed_slots: dict[str, Slot] = {}
+        # Poll/draw orchestrator state — every slot (ACTION, CONTEXT, EDIT,
+        # INFO) is a managed :class:`Slot` that owns its area and wrappers.
+        self._managed_slots: dict[SlotName, Slot] = {}
 
         # DOM references -------------------------------------------------------
         self._left_divider: ui.element | None = None  # drag handle between left and main slots
@@ -388,14 +389,28 @@ class AppShell:
         # with NiceGUI's re-rendering.
         # The dividers are only visible when their adjacent panel is visible,
         # so they won't interfere with mouse events when not needed.
-        ui.add_head_html("""<script>
+        #
+        # The slot id/name tokens the JS uses (DOM ids `hw-slot-<value>` and the
+        # `slot:` field emitted back) are derived from SlotName so JS and Python
+        # agree by construction — the JS never hand-types a slot string. The
+        # inbound `slot` value is re-validated in _on_slot_resize via SlotName(...).
+        _slot_js_consts = (
+            f'var HW_SLOT_ACTION = "{SlotName.ACTION.value}";'
+            f'var HW_SLOT_CONTEXT = "{SlotName.CONTEXT.value}";'
+            f'var HW_SLOT_INFO = "{SlotName.INFO.value}";'
+        )
+        ui.add_head_html(
+            """<script>
 (function () {
+  """
+            + _slot_js_consts
+            + """
   var drag = null;
-  // Horizontal (.hw-area-divider) resizes left or right slot; middle fills
-  // remaining space. Vertical (.hw-area-vdivider) resizes the bottom slot.
+  // Horizontal (.hw-area-divider) resizes the action or context slot; the edit
+  // slot fills remaining space. Vertical (.hw-area-vdivider) resizes the info slot.
   // Dividers are only present in the DOM when their slot is visible, so
   // retracted slots are unreachable by drag — re-open an icon slot by
-  // clicking any of its icons, or the bottom slot via its chevron toggle.
+  // clicking any of its icons, or the info slot via its chevron toggle.
   document.addEventListener("mousedown", function (e) {
     var hdiv = e.target.closest ? e.target.closest(".hw-area-divider") : null;
     var vdiv = e.target.closest ? e.target.closest(".hw-area-vdivider") : null;
@@ -404,22 +419,23 @@ class AppShell:
     e.stopPropagation();
     if (hdiv) {
       var isLeft = hdiv.classList.contains("hw-area-divider-left");
-      var panel = document.getElementById(isLeft ? "hw-slot-left" : "hw-slot-right");
+      var slotName = isLeft ? HW_SLOT_ACTION : HW_SLOT_CONTEXT;
+      var panel = document.getElementById("hw-slot-" + slotName);
       if (!panel) return;
       var startW = panel.getBoundingClientRect().width;
       panel.style.flex = "none";
       panel.style.width = startW + "px";
-      drag = { panel: panel, vertical: false, slotName: isLeft ? "left" : "right",
+      drag = { panel: panel, vertical: false, slotName: slotName,
                isLeft: isLeft, startPos: e.clientX, startSize: startW, minSize: 150 };
       document.body.style.cursor = "col-resize";
     } else {
-      var panel = document.getElementById("hw-slot-bottom");
+      var panel = document.getElementById("hw-slot-" + HW_SLOT_INFO);
       if (!panel) return;
       var startH = panel.getBoundingClientRect().height;
       panel.style.flex = "none";
       panel.style.minHeight = "0";
       panel.style.height = startH + "px";
-      drag = { panel: panel, vertical: true, slotName: "bottom",
+      drag = { panel: panel, vertical: true, slotName: HW_SLOT_INFO,
                startPos: e.clientY, startSize: startH, minSize: 80 };
       document.body.style.cursor = "row-resize";
     }
@@ -453,7 +469,8 @@ class AppShell:
     document.body.style.userSelect = "";
   }, true);
 })();
-</script>""")
+</script>"""
+        )
 
         # Drag-resize event emitted by the JS handler above.
         ui.on("hw-slot-resize", lambda e: self._on_slot_resize(e))
@@ -476,10 +493,10 @@ class AppShell:
                 .classes("w-full gap-0 no-wrap")
                 .style("flex: 1; overflow: hidden; min-height: 0; flex-wrap: nowrap;")
             ):
-                # ---------------- Left slot ----------------
-                left_data = snapshot.get("left", {})
-                if left_data.get("active_key") or self._editor_registry.get_by_default_slot("left"):
-                    left_slot = self._build_managed_slot("left", bar_place="left")
+                # ---------------- Action slot (left edge) ----------------
+                left_data = snapshot.get(SlotName.ACTION, {})
+                if left_data.get("active_key") or self._editor_registry.get_by_default_slot(SlotName.ACTION):
+                    left_slot = self._build_managed_slot(SlotName.ACTION, bar_place="left")
                     # Slot wrapper lives inside main_content_row; slot renders bar + area into it.
                     left_wrapper = ui.element("div").style("height: 100%;")
                     left_slot.render(left_wrapper)
@@ -498,37 +515,41 @@ class AppShell:
                     .classes("gap-0")
                     .style("flex: 1; height: 100%; overflow: hidden; min-width: 0;") as main_col
                 ):
-                    main_col._props["id"] = "hw-slot-main-container"
-                    main_data = snapshot.get("main", {})
-                    if main_data.get("editors") or self._editor_registry.get_by_default_slot("main"):
-                        main_slot = self._build_managed_slot("main", bar_place="top")
+                    main_col._props["id"] = "hw-slot-edit-container"
+                    main_data = snapshot.get(SlotName.EDIT, {})
+                    if main_data.get("editors") or self._editor_registry.get_by_default_slot(SlotName.EDIT):
+                        main_slot = self._build_managed_slot(SlotName.EDIT, bar_place="top")
                         main_slot.render(main_col)
                     else:
                         ui.label("No editor").classes("hw-text-muted p-4")
 
-                    bottom_data = snapshot.get("bottom", {})
-                    if bottom_data.get("editors") or self._editor_registry.get_by_default_slot("bottom"):
+                    bottom_data = snapshot.get(SlotName.INFO, {})
+                    if bottom_data.get("editors") or self._editor_registry.get_by_default_slot(
+                        SlotName.INFO
+                    ):
                         self._bottom_divider = (
                             ui.element("div")
                             .classes("hw-area-vdivider w-full flex-shrink-0")
                             .style("height: 5px; cursor: row-resize;")
                         )
                         bottom_slot = self._build_managed_slot(
-                            "bottom", bar_place="top", show_fold_toggle=True
+                            SlotName.INFO, bar_place="top", show_fold_toggle=True
                         )
                         self._bottom_divider.set_visibility(bottom_slot.visible)
                         bottom_slot.render(main_col)
                         bottom_slot._on_visibility_change = self._bottom_divider.set_visibility
 
-                # ---------------- Right slot ----------------
-                right_data = snapshot.get("right", {})
-                if right_data.get("active_key") or self._editor_registry.get_by_default_slot("right"):
+                # ---------------- Context slot (right edge) ----------------
+                right_data = snapshot.get(SlotName.CONTEXT, {})
+                if right_data.get("active_key") or self._editor_registry.get_by_default_slot(
+                    SlotName.CONTEXT
+                ):
                     self._right_divider = (
                         ui.element("div")
                         .classes("hw-area-divider hw-area-divider-right flex-shrink-0")
                         .style("width: 5px; height: 100%; cursor: col-resize;")
                     )
-                    right_slot = self._build_managed_slot("right", bar_place="right")
+                    right_slot = self._build_managed_slot(SlotName.CONTEXT, bar_place="right")
                     self._right_divider.set_visibility(right_slot.visible)
                     right_wrapper = ui.element("div").style("height: 100%;")
                     right_slot.render(right_wrapper)
@@ -574,14 +595,14 @@ class AppShell:
 
     def _build_managed_slot(
         self,
-        slot_name: str,
+        slot_name: SlotName,
         bar_place: Literal["left", "right", "top", "bottom"] = "left",
         show_fold_toggle: bool = False,
         on_visibility_change=None,
     ) -> Slot:
         """Construct and cache a Slot for ``slot_name`` from the workspace snapshot.
 
-        Left / right → IconSlot. Main / bottom → TabSlot.
+        ACTION / CONTEXT → IconSlot. EDIT / INFO → TabSlot.
         """
         from haywire.ui.app.icon_slot import IconSlot
         from haywire.ui.app.tab_slot import TabSlot
@@ -589,7 +610,7 @@ class AppShell:
         snapshot = self.session.workspace_manager.snapshot
         data = snapshot.get(slot_name, {})
 
-        cls = IconSlot if slot_name in ("left", "right") else TabSlot
+        cls = IconSlot if slot_name in (SlotName.ACTION, SlotName.CONTEXT) else TabSlot
         slot = cls(
             session=self.session,
             name=slot_name,
@@ -673,17 +694,23 @@ class AppShell:
     def _on_slot_resize(self, event) -> None:
         """Dispatch ``hw-slot-resize`` events from the drag JS to the target slot.
 
-        The JS emits ``{slot: "left"|"right"|"bottom", size: int}``. NiceGUI
-        delivers the binding_id in ``event.args`` as a dict. Unknown or malformed
-        payloads are ignored silently — a drag gesture that races a slot
-        removal shouldn't raise.
+        The JS emits ``{slot: SlotName.value, size: int}`` (action/context/info).
+        NiceGUI delivers the payload in ``event.args`` as a dict. The raw slot
+        string is the JS bridge's only untyped boundary, so it is coerced back
+        to :class:`SlotName` here — an unknown value raises ``ValueError`` and is
+        treated as malformed. Unknown or malformed payloads are ignored silently:
+        a drag gesture that races a slot removal shouldn't raise.
         """
         args = getattr(event, "args", None)
         if not isinstance(args, dict):
             return
-        slot_name = args.get("slot")
+        raw_slot = args.get("slot")
         size = args.get("size")
-        if not slot_name or not isinstance(size, (int, float)):
+        if not raw_slot or not isinstance(size, (int, float)):
+            return
+        try:
+            slot_name = SlotName(raw_slot)
+        except ValueError:
             return
         slot = self._managed_slots.get(slot_name)
         if slot is None:

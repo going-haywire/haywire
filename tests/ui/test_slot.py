@@ -3,6 +3,7 @@
 from types import SimpleNamespace
 
 from haywire.ui.app.tab_slot import TabSlot
+from haywire.ui.editor.identity import SlotName
 from haywire.ui.editor.wrapper import EditorWrapper
 
 
@@ -131,7 +132,7 @@ def _make_slot(*keys, session=None, active_key=None):
     """Build a TabSlot with one wrapper per key (no binding_id)."""
     reg = _FakeRegistry()
     sess = session or _session_with_context()
-    slot = TabSlot(session=sess, name="left", registry=reg)
+    slot = TabSlot(session=sess, name=SlotName.ACTION, registry=reg)
     for k in keys:
         slot.add_binding(editor_key=k, editor_cls=_FakeEditor)
     if active_key is not None:
@@ -163,7 +164,7 @@ def test_slot_falls_back_to_first_binding_when_active_key_unknown() -> None:
 
 def test_slot_with_no_bindings_has_no_active_binding() -> None:
     reg = _FakeRegistry()
-    slot = TabSlot(session=_session_with_context(), name="left", registry=reg)
+    slot = TabSlot(session=_session_with_context(), name=SlotName.ACTION, registry=reg)
     assert slot.active_binding is None
     assert slot.active_key is None
 
@@ -173,7 +174,7 @@ def test_slot_resolves_initial_active_with_payload() -> None:
     not fall through to the first same-key binding."""
     reg = _FakeRegistry()
     sess = _session_with_context()
-    slot = TabSlot(session=sess, name="main", registry=reg)
+    slot = TabSlot(session=sess, name=SlotName.EDIT, registry=reg)
     slot.add_binding(editor_key="a:e:graph", editor_cls=_FakeEditor, binding_id=None)
     slot.add_binding(editor_key="a:e:graph", editor_cls=_FakeEditor, binding_id="/tmp/a.haywire")
     slot.add_binding(editor_key="a:e:graph", editor_cls=_FakeEditor, binding_id="/tmp/b.haywire")
@@ -195,7 +196,7 @@ def test_render_area_creates_tab_panels_and_draws_active(monkeypatch) -> None:
     binding, and eagerly draws only the active binding."""
     reg = _FakeRegistry()
     sess = _session_with_context()
-    slot = TabSlot(session=sess, name="left", registry=reg)
+    slot = TabSlot(session=sess, name=SlotName.ACTION, registry=reg)
     slot.add_binding(editor_key="a:e:1", editor_cls=_FakeEditor)
     slot.add_binding(editor_key="a:e:2", editor_cls=_FakeEditor)
     w1 = slot.find_binding("a:e:1")
@@ -227,7 +228,7 @@ def test_switch_to_toggles_active_panel_without_clearing(monkeypatch) -> None:
     binding into its own panel — the area container is not cleared."""
     reg = _FakeRegistry()
     sess = _session_with_context()
-    slot = TabSlot(session=sess, name="left", registry=reg)
+    slot = TabSlot(session=sess, name=SlotName.ACTION, registry=reg)
     slot.add_binding(editor_key="a:e:1", editor_cls=_FakeEditor)
     slot.add_binding(editor_key="a:e:2", editor_cls=_FakeEditor)
     w1 = slot.find_binding("a:e:1")
@@ -256,7 +257,7 @@ def test_switch_to_second_time_does_not_redraw(monkeypatch) -> None:
     no second draw() call."""
     reg = _FakeRegistry()
     sess = _session_with_context()
-    slot = TabSlot(session=sess, name="left", registry=reg)
+    slot = TabSlot(session=sess, name=SlotName.ACTION, registry=reg)
     slot.add_binding(editor_key="a:e:1", editor_cls=_FakeEditor)
     slot.add_binding(editor_key="a:e:2", editor_cls=_FakeEditor)
     w1 = slot.find_binding("a:e:1")
@@ -312,7 +313,7 @@ def test_find_binding_returns_match() -> None:
 def test_find_binding_disambiguates_by_payload() -> None:
     reg = _FakeRegistry()
     sess = _session_with_context()
-    slot = TabSlot(session=sess, name="main", registry=reg)
+    slot = TabSlot(session=sess, name=SlotName.EDIT, registry=reg)
     key = "studio:editor:graph_editor"
     slot.add_binding(editor_key=key, editor_cls=_FakeEditor, binding_id="/a.haywire")
     slot.add_binding(editor_key=key, editor_cls=_FakeEditor, binding_id="/b.haywire")
@@ -331,7 +332,7 @@ def test_find_binding_payload_less_caller_still_matches_first_binding() -> None:
     """Callers that pre-date payloads (pass no binding_id) keep working."""
     reg = _FakeRegistry()
     sess = _session_with_context()
-    slot = TabSlot(session=sess, name="main", registry=reg)
+    slot = TabSlot(session=sess, name=SlotName.EDIT, registry=reg)
     slot.add_binding(
         editor_key="studio:editor:graph_editor", editor_cls=_FakeEditor, binding_id="/a.haywire"
     )
@@ -342,7 +343,7 @@ def test_find_binding_payload_less_caller_still_matches_first_binding() -> None:
 def test_switch_to_disambiguates_by_payload(monkeypatch) -> None:
     reg = _FakeRegistry()
     sess = _session_with_context()
-    slot = TabSlot(session=sess, name="main", registry=reg)
+    slot = TabSlot(session=sess, name=SlotName.EDIT, registry=reg)
     slot.add_binding(
         editor_key="studio:editor:graph_editor", editor_cls=_FakeEditor, binding_id="/a.haywire"
     )
@@ -368,7 +369,7 @@ def test_find_binding_warns_on_ambiguous_match(caplog) -> None:
 
     reg = _FakeRegistry()
     sess = _session_with_context()
-    slot = TabSlot(session=sess, name="left", registry=reg)
+    slot = TabSlot(session=sess, name=SlotName.ACTION, registry=reg)
     slot.add_binding(editor_key="a:e:1", editor_cls=_FakeEditor)
     slot.add_binding(editor_key="a:e:1", editor_cls=_FakeEditor)
 
@@ -386,7 +387,7 @@ def test_find_binding_warns_on_ambiguous_match(caplog) -> None:
 
 def test_set_visible_syncs_content_container() -> None:
     reg = _FakeRegistry()
-    slot = TabSlot(session=_session_with_context(), name="left", registry=reg)
+    slot = TabSlot(session=_session_with_context(), name=SlotName.ACTION, registry=reg)
     container = _FakeContainer()
     slot._area_panel_container = container
 
@@ -429,7 +430,7 @@ def test_add_binding_creates_panel_and_optionally_activates(monkeypatch) -> None
 def test_remove_binding_drops_matching_and_promotes_first_remaining(monkeypatch) -> None:
     reg = _FakeRegistry()
     sess = _session_with_context()
-    slot = TabSlot(session=sess, name="left", registry=reg)
+    slot = TabSlot(session=sess, name=SlotName.ACTION, registry=reg)
     slot.add_binding(editor_key="a:e:1", editor_cls=_FakeEditor)
     slot.add_binding(editor_key="a:e:2", editor_cls=_FakeEditor)
     w1 = slot.find_binding("a:e:1")
@@ -474,7 +475,7 @@ def test_wrapper_split_id_roundtrips_multi_instance():
 def test_wrapper_split_id_round_trip_with_binding_id():
     reg = _FakeRegistry()
     sess = _session_with_context()
-    slot = TabSlot(session=sess, name="main", registry=reg)
+    slot = TabSlot(session=sess, name=SlotName.EDIT, registry=reg)
     slot.add_binding(editor_key="editor:one", editor_cls=_FakeEditor, binding_id="/tmp/a.graph")
     w = slot.find_binding("editor:one", "/tmp/a.graph")
     assert EditorWrapper.split_id(w.editor_binding_id) == ("editor:one", "/tmp/a.graph")
@@ -491,7 +492,7 @@ def test_can_close_required_is_false():
     cls = type("_C", (), {"class_identity": SimpleNamespace(opens=OpenBehavior.REQUIRED)})
     reg = _FakeRegistry()
     sess = _session_with_context()
-    slot = TabSlot(session=sess, name="main", registry=reg)
+    slot = TabSlot(session=sess, name=SlotName.EDIT, registry=reg)
     slot.add_binding(editor_key="e", editor_cls=cls)
     w = slot.find_binding("e")
     assert w.can_close is False
@@ -503,7 +504,7 @@ def test_can_close_on_payload_is_true():
     cls = type("_C", (), {"class_identity": SimpleNamespace(opens=OpenBehavior.ON_PAYLOAD)})
     reg = _FakeRegistry()
     sess = _session_with_context()
-    slot = TabSlot(session=sess, name="main", registry=reg)
+    slot = TabSlot(session=sess, name=SlotName.EDIT, registry=reg)
     slot.add_binding(editor_key="e", editor_cls=cls)
     w = slot.find_binding("e")
     assert w.can_close is True
@@ -515,7 +516,7 @@ def test_can_close_on_context_is_true():
     cls = type("_C", (), {"class_identity": SimpleNamespace(opens=OpenBehavior.ON_CONTEXT)})
     reg = _FakeRegistry()
     sess = _session_with_context()
-    slot = TabSlot(session=sess, name="main", registry=reg)
+    slot = TabSlot(session=sess, name=SlotName.EDIT, registry=reg)
     slot.add_binding(editor_key="e", editor_cls=cls)
     w = slot.find_binding("e")
     assert w.can_close is True
@@ -526,7 +527,7 @@ def test_can_close_missing_opens_defaults_true():
     cls = type("_C", (), {"class_identity": SimpleNamespace()})
     reg = _FakeRegistry()
     sess = _session_with_context()
-    slot = TabSlot(session=sess, name="main", registry=reg)
+    slot = TabSlot(session=sess, name=SlotName.EDIT, registry=reg)
     slot.add_binding(editor_key="e", editor_cls=cls)
     w = slot.find_binding("e")
     assert w.can_close is True
@@ -538,7 +539,7 @@ def test_slot_switch_to_updates_active_key(monkeypatch):
     cls_b = type("_B", (), {"class_identity": SimpleNamespace(opens="required")})
     reg = _FakeRegistry()
     sess = SimpleNamespace(context=None)
-    slot = TabSlot(session=sess, name="left", registry=reg)
+    slot = TabSlot(session=sess, name=SlotName.ACTION, registry=reg)
     slot.add_binding(editor_key="a", editor_cls=cls_a)
     slot.add_binding(editor_key="b", editor_cls=cls_b)
     slot._active = slot.find_binding("a")
@@ -557,7 +558,7 @@ def test_slot_set_visible_fires_on_visibility_change(monkeypatch):
     reg = _FakeRegistry()
     slot = TabSlot(
         session=SimpleNamespace(context=None),
-        name="left",
+        name=SlotName.ACTION,
         registry=reg,
         on_visibility_change=calls.append,
     )
@@ -576,7 +577,7 @@ def test_slot_set_visible_updates_internal_state(monkeypatch):
     reg = _FakeRegistry()
     slot = TabSlot(
         session=SimpleNamespace(context=None),
-        name="left",
+        name=SlotName.ACTION,
         registry=reg,
     )
     slot.add_binding(editor_key="e", editor_cls=cls)
@@ -596,7 +597,7 @@ def test_slot_set_size_updates_internal_size():
     reg = _FakeRegistry()
     slot = TabSlot(
         session=SimpleNamespace(context=None),
-        name="bottom",
+        name=SlotName.INFO,
         registry=reg,
         size=300,
     )
@@ -613,7 +614,7 @@ from types import SimpleNamespace as _SN  # noqa: E402
 
 
 class _FakeEditorCls2:
-    def __init__(self, key, opens=None, slot="main", order=100):
+    def __init__(self, key, opens=None, slot=SlotName.EDIT, order=100):
         from haywire.ui.editor.identity import OpenBehavior
 
         self.class_identity = _SN(
@@ -654,7 +655,7 @@ def _make_tab_slot2(registry=None, visible=True, size=200):
 
     return TabSlot(
         session=_SN(context=None),
-        name="main",
+        name=SlotName.EDIT,
         registry=registry or _FakeRegistry2({}),
         bar_place="top",
         show_fold_toggle=False,
@@ -718,12 +719,12 @@ class TestSlotPopulateFromSnapshot:
     def test_required_editors_injected(self):
         from haywire.ui.editor.identity import OpenBehavior
 
-        cls = _FakeEditorCls2("ed:required", OpenBehavior.REQUIRED, slot="main")
+        cls = _FakeEditorCls2("ed:required", OpenBehavior.REQUIRED, slot=SlotName.EDIT)
         registry = _FakeRegistry2({"ed:required": cls})
         session = _SN(context=None)
         slot = TabSlot(
             session=session,
-            name="main",
+            name=SlotName.EDIT,
             registry=registry,
             bar_place="top",
             show_fold_toggle=False,
@@ -734,7 +735,7 @@ class TestSlotPopulateFromSnapshot:
     def test_on_payload_editors_restored(self):
         from haywire.ui.editor.identity import OpenBehavior
 
-        cls = _FakeEditorCls2("ed:graph", OpenBehavior.ON_PAYLOAD, slot="main")
+        cls = _FakeEditorCls2("ed:graph", OpenBehavior.ON_PAYLOAD, slot=SlotName.EDIT)
         registry = _FakeRegistry2({"ed:graph": cls})
         session = _SN(context=None)
         data = {
@@ -743,7 +744,7 @@ class TestSlotPopulateFromSnapshot:
         }
         slot = TabSlot(
             session=session,
-            name="main",
+            name=SlotName.EDIT,
             registry=registry,
             bar_place="top",
             show_fold_toggle=False,
@@ -757,7 +758,7 @@ class TestSlotPopulateFromSnapshot:
         data = {"editors": [{"key": "ed:gone", "binding_id": "/x.haywire", "label": "x"}]}
         slot = TabSlot(
             session=session,
-            name="main",
+            name=SlotName.EDIT,
             registry=registry,
             bar_place="top",
             show_fold_toggle=False,
@@ -770,7 +771,7 @@ class TestSlotPopulateFromSnapshot:
         session = _SN(context=None)
         slot = TabSlot(
             session=session,
-            name="bottom",
+            name=SlotName.INFO,
             registry=registry,
             bar_place="top",
             show_fold_toggle=True,
@@ -796,38 +797,38 @@ class TestSlotHotLoadOrdering:
         slot._on_lifecycle_events([event])
 
     def test_low_order_hot_load_inserts_before_higher_order(self):
-        existing = _FakeEditorCls2("ed:b", slot="main", order=100)
+        existing = _FakeEditorCls2("ed:b", slot=SlotName.EDIT, order=100)
         reg = _FakeRegistry2({"ed:b": existing})
         slot = _make_tab_slot2(registry=reg)
         slot.add_binding(editor_key="ed:b", editor_cls=existing)
 
-        new_cls = _FakeEditorCls2("ed:a", slot="main", order=10)
+        new_cls = _FakeEditorCls2("ed:a", slot=SlotName.EDIT, order=10)
         reg._classes["ed:a"] = new_cls
         self._emit_class_added(slot, new_cls)
 
         assert [b.editor_key for b in slot.bindings] == ["ed:a", "ed:b"]
 
     def test_high_order_hot_load_appends_after_lower_order(self):
-        existing = _FakeEditorCls2("ed:a", slot="main", order=10)
+        existing = _FakeEditorCls2("ed:a", slot=SlotName.EDIT, order=10)
         reg = _FakeRegistry2({"ed:a": existing})
         slot = _make_tab_slot2(registry=reg)
         slot.add_binding(editor_key="ed:a", editor_cls=existing)
 
-        new_cls = _FakeEditorCls2("ed:z", slot="main", order=200)
+        new_cls = _FakeEditorCls2("ed:z", slot=SlotName.EDIT, order=200)
         reg._classes["ed:z"] = new_cls
         self._emit_class_added(slot, new_cls)
 
         assert [b.editor_key for b in slot.bindings] == ["ed:a", "ed:z"]
 
     def test_hot_load_inserts_between_existing_required(self):
-        low = _FakeEditorCls2("ed:low", slot="main", order=10)
-        high = _FakeEditorCls2("ed:high", slot="main", order=100)
+        low = _FakeEditorCls2("ed:low", slot=SlotName.EDIT, order=10)
+        high = _FakeEditorCls2("ed:high", slot=SlotName.EDIT, order=100)
         reg = _FakeRegistry2({"ed:low": low, "ed:high": high})
         slot = _make_tab_slot2(registry=reg)
         slot.add_binding(editor_key="ed:low", editor_cls=low)
         slot.add_binding(editor_key="ed:high", editor_cls=high)
 
-        mid = _FakeEditorCls2("ed:mid", slot="main", order=50)
+        mid = _FakeEditorCls2("ed:mid", slot=SlotName.EDIT, order=50)
         reg._classes["ed:mid"] = mid
         self._emit_class_added(slot, mid)
 
@@ -836,13 +837,13 @@ class TestSlotHotLoadOrdering:
     def test_hot_load_required_stays_ahead_of_payload_tabs(self):
         from haywire.ui.editor.identity import OpenBehavior
 
-        pay = _FakeEditorCls2("ed:graph", OpenBehavior.ON_PAYLOAD, slot="main", order=100)
+        pay = _FakeEditorCls2("ed:graph", OpenBehavior.ON_PAYLOAD, slot=SlotName.EDIT, order=100)
         reg = _FakeRegistry2({"ed:graph": pay})
         slot = _make_tab_slot2(registry=reg)
         slot.add_binding(editor_key="ed:graph", editor_cls=pay, binding_id="/a.haywire")
 
         # A REQUIRED editor with high order must still precede the open tab.
-        new_cls = _FakeEditorCls2("ed:req", slot="main", order=200)
+        new_cls = _FakeEditorCls2("ed:req", slot=SlotName.EDIT, order=200)
         reg._classes["ed:req"] = new_cls
         self._emit_class_added(slot, new_cls)
 

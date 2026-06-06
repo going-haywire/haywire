@@ -16,6 +16,7 @@ from nicegui import ui
 
 from haywire.ui import elements as hui
 from haywire.ui.editor.decorator import editor
+from haywire.ui.editor.identity import SlotName
 from haywire.ui.editor.base import BaseEditor
 from haywire.core.session.context import SessionContext
 from haywire.core.session.handlers import redraw_on
@@ -61,7 +62,7 @@ def derive_provenance_label(haybale, mf) -> str | None:
 @editor(
     label="Libraries",
     icon=hui.icon.library,
-    default_slot="left",
+    default_slot=SlotName.ACTION,
     description="Searchable list of installed and available libraries.",
     order=30,
 )

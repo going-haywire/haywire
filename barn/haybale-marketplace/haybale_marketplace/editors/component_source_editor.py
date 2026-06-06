@@ -45,6 +45,7 @@ from haywire.core.session.handlers import redraw_on
 from haywire.core.session.signals import Signal
 from haywire.ui.editor.base import BaseEditor
 from haywire.ui.editor.decorator import editor
+from haywire.ui.editor.identity import SlotName
 
 if TYPE_CHECKING:
     from haywire.core.registry.base import BaseRegistry
@@ -72,7 +73,7 @@ _REGISTRY_GETTER = {
 @editor(
     label="Component Source",
     icon=hui.icon.node_source,
-    default_slot="right",
+    default_slot=SlotName.CONTEXT,
     description="Source code of the currently selected component.",
 )
 class ComponentSourceEditor(BaseEditor):

@@ -1,10 +1,10 @@
-"""Tests for TabSlot — the tabbed variant for main/bottom slots."""
+"""Tests for TabSlot — the tabbed variant for the EDIT / INFO slots."""
 
 from types import SimpleNamespace
 
 from haywire.core.session.signals import Reveal
 from haywire.ui.app.tab_slot import TabSlot
-from haywire.ui.editor.identity import OpenBehavior
+from haywire.ui.editor.identity import OpenBehavior, SlotName
 
 
 class _FakeRegistry:
@@ -118,7 +118,7 @@ def test_tab_slot_reveal_adds_binding_and_makes_active(monkeypatch):
     reg = _FakeRegistry()
     slot = TabSlot(
         session=SimpleNamespace(context=None),
-        name="main",
+        name=SlotName.EDIT,
         registry=reg,
     )
     slot.render(_FakeContainer())
@@ -135,7 +135,7 @@ def test_tab_slot_reveal_existing_activates_no_duplicate(monkeypatch):
     reg = _FakeRegistry()
     slot = TabSlot(
         session=SimpleNamespace(context=None),
-        name="main",
+        name=SlotName.EDIT,
         registry=reg,
     )
     slot.add_binding(editor_key="a", editor_cls=cls, binding_id="/tmp/a")
@@ -155,7 +155,7 @@ def test_tab_slot_close_binding_removes_and_promotes_sibling(monkeypatch):
     reg = _FakeRegistry()
     slot = TabSlot(
         session=SimpleNamespace(context=None),
-        name="main",
+        name=SlotName.EDIT,
         registry=reg,
     )
     slot.add_binding(editor_key="a", editor_cls=cls_a, binding_id="p1")
@@ -175,7 +175,7 @@ def test_tab_slot_repayload_updates_ids(monkeypatch):
     reg = _FakeRegistry()
     slot = TabSlot(
         session=SimpleNamespace(context=None),
-        name="main",
+        name=SlotName.EDIT,
         registry=reg,
     )
     slot.add_binding(editor_key="a", editor_cls=cls, binding_id="old")
@@ -195,7 +195,7 @@ def test_tab_slot_close_tabs_for_payload_closes_matching(monkeypatch):
     reg = _FakeRegistry()
     slot = TabSlot(
         session=SimpleNamespace(context=None),
-        name="main",
+        name=SlotName.EDIT,
         registry=reg,
     )
     slot.add_binding(editor_key="a", editor_cls=cls, binding_id="p1")
@@ -247,7 +247,7 @@ class _VetoEditor:
     class_identity = SimpleNamespace(
         registry_key="veto:editor:1",
         label="Veto",
-        default_slot="main",
+        default_slot=SlotName.EDIT,
         opens=OpenBehavior.ON_PAYLOAD,
     )
 
@@ -269,7 +269,7 @@ def test_on_tab_close_clicked_calls_wrapper_close(monkeypatch):
     reg = _FakeRegistry()
     slot = TabSlot(
         session=SimpleNamespace(context=None),
-        name="main",
+        name=SlotName.EDIT,
         registry=reg,
     )
     slot.add_binding(editor_key="veto:editor:1", editor_cls=_VetoEditor)
@@ -290,7 +290,7 @@ def test_on_tab_close_clicked_respects_veto(monkeypatch):
     reg = _FakeRegistry()
     slot = TabSlot(
         session=SimpleNamespace(context=None),
-        name="main",
+        name=SlotName.EDIT,
         registry=reg,
     )
     slot.add_binding(editor_key="veto:editor:1", editor_cls=_VetoEditor)
@@ -318,7 +318,7 @@ def test_on_tab_close_clicked_no_longer_emits_tab_close_requested(monkeypatch):
         signal=lambda s: signals_seen.append(s),
         reveal=lambda r: None,
     )
-    slot = TabSlot(session=sess, name="main", registry=reg)
+    slot = TabSlot(session=sess, name=SlotName.EDIT, registry=reg)
     slot.add_binding(editor_key="a", editor_cls=cls)
     target = slot.find_binding("a")
     slot._active = target
@@ -349,7 +349,7 @@ def test_dirty_wrapper_renders_slot_owned_dirty_marker(monkeypatch):
     reg = _FakeRegistry()
     slot = TabSlot(
         session=SimpleNamespace(context=None),
-        name="main",
+        name=SlotName.EDIT,
         registry=reg,
     )
     slot.add_binding(editor_key="a", editor_cls=cls, binding_id="p1")
@@ -375,7 +375,7 @@ def test_clean_wrapper_renders_no_dirty_marker(monkeypatch):
     reg = _FakeRegistry()
     slot = TabSlot(
         session=SimpleNamespace(context=None),
-        name="main",
+        name=SlotName.EDIT,
         registry=reg,
     )
     slot.add_binding(editor_key="a", editor_cls=cls, binding_id="p1")

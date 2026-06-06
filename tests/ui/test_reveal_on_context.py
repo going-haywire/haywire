@@ -158,11 +158,11 @@ class TestOnContextRevealDispatch:
     def test_first_reveal_opens_payload_less_tab(self):
         shell, session = _build_test_shell_with_editors(
             [
-                ("studio:editor:Ctx", "main", OpenBehavior.ON_CONTEXT),
+                ("studio:editor:Ctx", "edit", OpenBehavior.ON_CONTEXT),
             ]
         )
         _reveal(shell, "studio:editor:Ctx")
-        main_slot = shell._managed_slots["main"]
+        main_slot = shell._managed_slots["edit"]
         binding = main_slot.find_binding("studio:editor:Ctx", None)
         assert binding is not None
         assert binding.binding_id is None
@@ -170,24 +170,24 @@ class TestOnContextRevealDispatch:
     def test_second_reveal_does_not_duplicate(self):
         shell, session = _build_test_shell_with_editors(
             [
-                ("studio:editor:Ctx", "main", OpenBehavior.ON_CONTEXT),
+                ("studio:editor:Ctx", "edit", OpenBehavior.ON_CONTEXT),
             ]
         )
         _reveal(shell, "studio:editor:Ctx")
         _reveal(shell, "studio:editor:Ctx")
-        main_slot = shell._managed_slots["main"]
+        main_slot = shell._managed_slots["edit"]
         matching = [b for b in main_slot.bindings if b.editor_key == "studio:editor:Ctx"]
         assert len(matching) == 1
 
     def test_second_reveal_activates_existing_tab(self):
         shell, session = _build_test_shell_with_editors(
             [
-                ("studio:editor:Ctx", "main", OpenBehavior.ON_CONTEXT),
-                ("studio:editor:Other", "main", OpenBehavior.REQUIRED),
+                ("studio:editor:Ctx", "edit", OpenBehavior.ON_CONTEXT),
+                ("studio:editor:Other", "edit", OpenBehavior.REQUIRED),
             ]
         )
         _reveal(shell, "studio:editor:Ctx")
-        main_slot = shell._managed_slots["main"]
+        main_slot = shell._managed_slots["edit"]
         # Simulate switching to a different tab.
         main_slot.switch_to("studio:editor:Other", None)
         assert main_slot.active_key == "studio:editor:Other"

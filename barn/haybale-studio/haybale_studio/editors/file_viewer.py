@@ -16,6 +16,7 @@ from nicegui import ui
 from haywire.ui import elements as hui
 from haywire.ui.editor.base import BaseEditor
 from haywire.ui.editor.decorator import editor
+from haywire.ui.editor.identity import OpenBehavior, SlotName
 
 if TYPE_CHECKING:
     from haywire.core.session.context import SessionContext
@@ -43,8 +44,8 @@ _LANGUAGE_MAP: dict = {
 @editor(
     label="File Viewer",
     icon=hui.icon.library_component,
-    default_slot="main",
-    opens="on_payload",
+    default_slot=SlotName.EDIT,
+    opens=OpenBehavior.ON_PAYLOAD,
     description="Displays the contents of a file selected in the Files browser.",
 )
 class FileViewerEditor(BaseEditor):

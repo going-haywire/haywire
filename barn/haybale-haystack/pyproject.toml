@@ -2,7 +2,7 @@
 name = "haybale-haystack"
 version = "0.0.15"
 description = "Haystack — file-centric multi-graph manager for Haywire"
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 license = {text = "MIT"}
 
 dependencies = [
