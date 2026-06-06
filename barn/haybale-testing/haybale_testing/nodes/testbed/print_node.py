@@ -42,4 +42,3 @@ class TestPrintNode(BaseNode):
         message = self.value("message")
         logger.info(prepend + message)
         return "done"
-
