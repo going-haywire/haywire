@@ -27,7 +27,7 @@ class TestInterpreter:
             The populated graph
         """
         from haybale_testing.nodes.testbed.begin_play_node import TestBeginPlayNode as BeginPlayNode
-        from haybale_core.nodes.print_terminal import PrintTerminalMessageNode
+        from haybale_testing.nodes.testbed.print_node import TestPrintNode as PrintTerminalMessageNode
 
         begin_play = graph.create_node_wrapper(
             BeginPlayNode.class_identity.registry_key, position=(100, 100)
@@ -52,7 +52,7 @@ class TestInterpreter:
             The populated graph
         """
         from haybale_testing.nodes.testbed.begin_play_node import TestBeginPlayNode as BeginPlayNode
-        from haybale_core.nodes.print_terminal import PrintTerminalMessageNode
+        from haybale_testing.nodes.testbed.print_node import TestPrintNode as PrintTerminalMessageNode
         from haybale_testing.nodes.testbed.math_op_node import TestAddFloatNode as MathOP
 
         begin_play = graph.create_node_wrapper(
@@ -133,7 +133,7 @@ class TestInterpreter:
         from haybale_testing.nodes.testbed.custom_callback_node import (
             TestCustomCallbackNode as CustomCallbackNode,
         )
-        from haybale_core.nodes.print_terminal import PrintTerminalMessageNode
+        from haybale_testing.nodes.testbed.print_node import TestPrintNode as PrintTerminalMessageNode
 
         graph = graph_with_library_system
 
@@ -335,6 +335,12 @@ class TestInterpreter:
         ``with_shutdown`` is True a single Shutdown node drives both emitters'
         ``stop`` inlets (the graceful path).
         """
+        # These two shutdown-hang tests deliberately use the REAL haybale_core
+        # nodes (not haybale_testing equivalents): they are regression guards
+        # for a deadlock in TickEmitNode's threaded emitter / ShutdownNode's
+        # graceful-stop protocol. The guard must watch the production node, so
+        # this is the rule's "tests specifically of another library's
+        # components" exemption — do not migrate to testbed copies.
         from haybale_core.nodes.emits.tick_emit import TickEmitNode
         from haybale_core.nodes.events.tick_event import TickEventNode
         from haybale_core.nodes.events.begin_play import BeginPlayNode

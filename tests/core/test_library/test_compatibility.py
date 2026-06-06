@@ -65,16 +65,16 @@ class TestCompatibilityChecker:
         warnings = [
             CompatibilityWarning(
                 version="0.0.14",
-                component="visiongraph:node:WebcamFrameInfoDisplayNode",
+                component="testing:node:Foo",
                 message="inlet widget strategy became author-declared",
             )
         ]
-        checker = CompatibilityChecker(_history_lookup({"visiongraph": warnings}))
+        checker = CompatibilityChecker(_history_lookup({"testing": warnings}))
         saved = [
             SavedNode(
                 node_id="n1",
-                registry_key="visiongraph:node:WebcamFrameInfoDisplayNode",
-                library_id="visiongraph",
+                registry_key="testing:node:Foo",
+                library_id="testing",
                 saved_version="0.0.13",
             )
         ]
@@ -91,36 +91,36 @@ class TestCompatibilityChecker:
         warnings = [
             CompatibilityWarning(
                 version="0.0.14",
-                component="visiongraph:node:WebcamFrameInfoDisplayNode",
+                component="testing:node:Foo",
                 message="x",
             )
         ]
-        checker = CompatibilityChecker(_history_lookup({"visiongraph": warnings}))
+        checker = CompatibilityChecker(_history_lookup({"testing": warnings}))
         saved = [
-            SavedNode("n1", "visiongraph:node:WebcamFrameInfoDisplayNode", "visiongraph", "0.0.14"),
-            SavedNode("n2", "visiongraph:node:WebcamFrameInfoDisplayNode", "visiongraph", "0.1.0"),
+            SavedNode("n1", "testing:node:Foo", "testing", "0.0.14"),
+            SavedNode("n2", "testing:node:Foo", "testing", "0.1.0"),
         ]
         assert checker.check(saved) == []
 
     def test_node_warning_matches_by_registry_key(self):
-        warnings = [CompatibilityWarning(version="0.0.14", component="visiongraph:node:Other", message="x")]
-        checker = CompatibilityChecker(_history_lookup({"visiongraph": warnings}))
-        saved = [SavedNode("n1", "visiongraph:node:WebcamFrameInfoDisplayNode", "visiongraph", "0.0.13")]
+        warnings = [CompatibilityWarning(version="0.0.14", component="testing:node:Other", message="x")]
+        checker = CompatibilityChecker(_history_lookup({"testing": warnings}))
+        saved = [SavedNode("n1", "testing:node:Foo", "testing", "0.0.13")]
         assert checker.check(saved) == []  # different node, no match
 
     def test_missing_saved_version_treated_as_infinitely_old(self):
-        warnings = [CompatibilityWarning(version="0.0.14", component="visiongraph:node:Foo", message="x")]
-        checker = CompatibilityChecker(_history_lookup({"visiongraph": warnings}))
-        saved = [SavedNode("n1", "visiongraph:node:Foo", "visiongraph", saved_version=None)]
+        warnings = [CompatibilityWarning(version="0.0.14", component="testing:node:Foo", message="x")]
+        checker = CompatibilityChecker(_history_lookup({"testing": warnings}))
+        saved = [SavedNode("n1", "testing:node:Foo", "testing", saved_version=None)]
         findings = checker.check(saved)
         assert findings == [CompatibilityFinding("n1", "x", source_version=None)]
 
     def test_library_wide_warning_fires_once_per_graph(self):
         warnings = [CompatibilityWarning(version="0.0.14", component=None, message="lib-wide")]
-        checker = CompatibilityChecker(_history_lookup({"visiongraph": warnings}))
+        checker = CompatibilityChecker(_history_lookup({"testing": warnings}))
         saved = [
-            SavedNode("n1", "visiongraph:node:Foo", "visiongraph", "0.0.13"),
-            SavedNode("n2", "visiongraph:node:Bar", "visiongraph", "0.0.13"),
+            SavedNode("n1", "testing:node:Foo", "testing", "0.0.13"),
+            SavedNode("n2", "testing:node:Bar", "testing", "0.0.13"),
         ]
         findings = checker.check(saved)
         # Exactly one library-wide finding, not one per node. node_id is None.
@@ -129,8 +129,8 @@ class TestCompatibilityChecker:
 
     def test_library_wide_does_not_fire_if_all_nodes_current(self):
         warnings = [CompatibilityWarning(version="0.0.14", component=None, message="lib-wide")]
-        checker = CompatibilityChecker(_history_lookup({"visiongraph": warnings}))
-        saved = [SavedNode("n1", "visiongraph:node:Foo", "visiongraph", "0.0.14")]
+        checker = CompatibilityChecker(_history_lookup({"testing": warnings}))
+        saved = [SavedNode("n1", "testing:node:Foo", "testing", "0.0.14")]
         assert checker.check(saved) == []
 
     def test_unknown_library_yields_no_findings(self):
