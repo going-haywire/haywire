@@ -38,6 +38,8 @@ from .descriptor import setting, shadow, watch
 if TYPE_CHECKING:
     from haywire.core.settings.registry import SettingsRegistry
     from haywire.core.settings.value import SettingValue
+    from haywire.core.settings.decorator import SettingsClassIdentity
+    from haywire.core.library.identity import LibraryIdentity
 
 logger = logging.getLogger(__name__)
 
@@ -57,6 +59,12 @@ class Settings:
     # with an instance attribute when constructed.
     _registry: "SettingsRegistry | None" = None
     _namespace: ClassVar[str] = ""
+    # Set by the settings decorator on registerable subclasses (Library/
+    # FrameworkSettings). Declared here so SettingsRegistry can bind
+    # BaseRegistry[Settings] against the RegisteredClass structural bound
+    # (every managed class has both a class_identity and a class_library).
+    class_identity: ClassVar["SettingsClassIdentity"]
+    class_library: ClassVar["LibraryIdentity"]
 
     def __init__(self, registry: "SettingsRegistry | None" = None) -> None:
         self._callbacks: list[Callable] = []

@@ -12,7 +12,7 @@ from ..types.interface import IType
 from .base import BaseAdapter
 
 
-class AdapterRegistry(BaseRegistry):
+class AdapterRegistry(BaseRegistry[BaseAdapter]):
     """
     Registry for IType-to-IType conversion adapters.
 
@@ -53,7 +53,7 @@ class AdapterRegistry(BaseRegistry):
             return False
 
     def _register_class(
-        self, adapter_cls: type[BaseAdapter], library_identity: Optional[LibraryIdentity] = None
+        self, cls: type[BaseAdapter], library_identity: Optional[LibraryIdentity] = None
     ) -> str | None:
         """
         Register adapter class.
@@ -62,7 +62,7 @@ class AdapterRegistry(BaseRegistry):
         then stores by type pair with priority sorting.
 
         Args:
-            adapter_cls: The adapter class to register
+            cls: The adapter class to register
             library_identity: Optional library metadata
 
         Returns:
@@ -71,20 +71,18 @@ class AdapterRegistry(BaseRegistry):
         Raises:
             TypeError: If converts_from/to are not IType subclasses
         """
-        identity = adapter_cls.class_identity
+        identity = cls.class_identity
         source_itype = identity.converts_from
         target_itype = identity.converts_to
 
         # Validate ITypes
         if not issubclass(source_itype, IType):
             raise TypeError(
-                f"Adapter {adapter_cls.__name__} converts_from must be IType subclass, got {source_itype}"
+                f"Adapter {cls.__name__} converts_from must be IType subclass, got {source_itype}"
             )
 
         if not issubclass(target_itype, IType):
-            raise TypeError(
-                f"Adapter {adapter_cls.__name__} converts_to must be IType subclass, got {target_itype}"
-            )
+            raise TypeError(f"Adapter {cls.__name__} converts_to must be IType subclass, got {target_itype}")
 
         # Extract registry keys from types
         source_key = source_itype.class_identity.registry_key
@@ -107,11 +105,11 @@ class AdapterRegistry(BaseRegistry):
                 break
             insert_idx = i + 1
 
-        adapters.insert(insert_idx, adapter_cls)
+        adapters.insert(insert_idx, cls)
 
         # Register with base registry
         registry_key = identity.registry_key
-        return super()._register(registry_key, adapter_cls, library_identity)
+        return super()._register(registry_key, cls, library_identity)
 
     def _unregister_class(self, registry_key: str) -> type[BaseAdapter] | None:
         """

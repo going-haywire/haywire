@@ -75,13 +75,6 @@ class HaywireApp:
         except Exception as e:
             print(f"  Error cleaning up console bridge: {e}")
 
-        # 3. Cleanup library system
-        try:
-            if hasattr(self.library_service, "cleanup"):
-                self.library_service.cleanup()
-        except Exception as e:
-            print(f"  Error cleaning up library system: {e}")
-
         print("Application shutdown complete")
 
     def on_disconnect(self, client):

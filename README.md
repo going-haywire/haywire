@@ -4,6 +4,7 @@
 [![Tests](https://github.com/going-haywire/haywire/actions/workflows/publish.yml/badge.svg)](https://github.com/going-haywire/haywire/actions/workflows/publish.yml)
 [![ruff](https://github.com/going-haywire/haywire/actions/workflows/ruff.yml/badge.svg?branch=master)](https://github.com/going-haywire/haywire/actions/workflows/ruff.yml)
 [![mypy](https://github.com/going-haywire/haywire/actions/workflows/mypy.yml/badge.svg?branch=master)](https://github.com/going-haywire/haywire/actions/workflows/mypy.yml)
+[![ty](https://github.com/going-haywire/haywire/actions/workflows/ty.yml/badge.svg?branch=master)](https://github.com/going-haywire/haywire/actions/workflows/ty.yml)
 
 Haywire is a Blueprint-inspired visual programming system that combines **execution flow** with **data flow** in a dual-flow architecture. Unlike pure dataflow systems, it uses explicit control connections to define execution order while maintaining data connections for value passing.
 

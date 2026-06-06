@@ -141,11 +141,12 @@ class FormattingConverter(BindingConverter):
         if hasattr(extracted, "value"):
             extracted = extracted.value
 
-        # Apply formatting
-        if callable(self.format_spec):
-            return self.format_spec(extracted)
-        else:
+        # Apply formatting: a format string uses str.format, otherwise it's a
+        # callable formatter. (isinstance(str) narrows cleanly where callable()
+        # would leave an uncallable intersection.)
+        if isinstance(self.format_spec, str):
             return self.format_spec.format(extracted)
+        return self.format_spec(extracted)
 
 
 class CompositeConverter(BindingConverter):
@@ -245,7 +246,10 @@ class PropertyPathConverter(BindingConverter):
                 elif isinstance(current, dict):
                     current = current.get(part, self.default)
                 elif part in ("length", "count", "size"):
-                    current = len(current)
+                    # `current` is runtime-shaped navigation data; len() on a
+                    # non-Sized value raises TypeError, which the surrounding
+                    # try/except deliberately handles by returning self.default.
+                    current = len(current)  # ty: ignore[invalid-argument-type]
                 else:
                     return self.default
             return current

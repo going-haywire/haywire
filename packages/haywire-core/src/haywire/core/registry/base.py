@@ -2,7 +2,7 @@
 Base classes for the Haywire library system
 """
 
-from typing import Dict, Any, Optional, Type, List, Tuple
+from typing import Dict, Any, Generic, Optional, Protocol, Type, TypeVar, List, Tuple, cast
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field as dc_field
 from enum import Enum
@@ -14,6 +14,7 @@ import logging
 from ..errors import HaywireException
 from ..library.identity import LibraryIdentity
 from .dependency_graph import DependencyGraph
+from .identity import BaseIdentity
 from .folder_scan import FolderScanMixin
 from .lifecycle_event import LifeCycleEvent, LifeCycleEventType, LifeCycleBatchCallback
 
@@ -52,16 +53,42 @@ class HotReloadRegistry(ABC):
         pass
 
 
-class BaseRegistry(HotReloadRegistry, FolderScanMixin):
-    """
-    Abstract base class for all class registries
+class RegisteredClass(Protocol):
+    """Structural bound for registry element types.
 
+    The registry contract: every managed class carries both a
+    ``class_identity`` (its registry metadata) and a ``class_library`` (the
+    owning library, used for hot-reload) — set by its component decorator.
+
+    Both are typed as read-only properties so concrete element classes may
+    declare them as ``ClassVar`` of narrower subtypes (``NodeIdentity``,
+    ``AdapterIdentity``, ...). A writable Protocol member (plain annotation
+    or ``ClassVar``) would be invariant and reject them.
+    """
+
+    @property
+    def class_identity(self) -> BaseIdentity: ...
+
+    @property
+    def class_library(self) -> LibraryIdentity: ...
+
+
+T = TypeVar("T", bound=RegisteredClass)
+
+
+class BaseRegistry(HotReloadRegistry, FolderScanMixin, Generic[T]):
+    """
+    Abstract base class for all class registries.
+
+    Generic over ``T``, the element type each concrete registry stores
+    (e.g. ``NodeRegistry(BaseRegistry[BaseNode])``). Subclasses bind ``T``
+    rather than narrowing the ``_register_class`` parameter.
     """
 
     def __init__(self):
         self._dependency_graph = DependencyGraph()  # For hot-reload dependency tracking
 
-        self._classes: Dict[str, Any] = {}  # registry_key -> class
+        self._classes: Dict[str, type[T]] = {}  # registry_key -> class
 
         # stores the last life-cycle event for each class that has been processed
         # it keeps track of what was the last event type for each class,
@@ -96,12 +123,14 @@ class BaseRegistry(HotReloadRegistry, FolderScanMixin):
         pass
 
     @abstractmethod
-    def _register_class(self, cls: Type, library_identity: LibraryIdentity) -> str | None:
+    def _register_class(
+        self, cls: type[T], library_identity: Optional[LibraryIdentity] = None
+    ) -> str | None:
         """Register a class with its library metadata"""
         pass
 
     @abstractmethod
-    def _unregister_class(self, registry_key: str) -> type[Any] | None:
+    def _unregister_class(self, registry_key: str) -> type[T] | None:
         """Unregister a class by its registry_key"""
         pass
 
@@ -109,7 +138,7 @@ class BaseRegistry(HotReloadRegistry, FolderScanMixin):
     # Core Registry (Pure State Management)
     # ============================================================================
 
-    def get(self, registry_key: str) -> Any | None:
+    def get(self, registry_key: str) -> type[T] | None:
         """Retrieve a registered class by its haywire registry_key"""
         return self._classes.get(registry_key)
 
@@ -122,7 +151,7 @@ class BaseRegistry(HotReloadRegistry, FolderScanMixin):
         return list(self._classes.keys())
 
     def _register(
-        self, registry_key: str, cls: Any, library_identity: Optional[LibraryIdentity] = None
+        self, registry_key: str, cls: type[T], library_identity: Optional[LibraryIdentity] = None
     ) -> str | None:
         """
         Register a class with its name and optional metadata
@@ -149,7 +178,7 @@ class BaseRegistry(HotReloadRegistry, FolderScanMixin):
         if self.has(registry_key):
             raise ValueError(
                 f"Library '{library_label}': "
-                f"Attempt to register Node '{cls.class_identity.label}' "
+                f"Attempt to register Node '{cast(BaseIdentity, cls.class_identity).label}' "
                 f"under an existing registry_key '{registry_key}'. "
                 f"This is not allowed. Indication of double use of a node "
                 f"registry_id or node class name."
@@ -169,7 +198,7 @@ class BaseRegistry(HotReloadRegistry, FolderScanMixin):
 
         return registry_key
 
-    def _unregister(self, registry_key: str) -> type[Any] | None:
+    def _unregister(self, registry_key: str) -> type[T] | None:
         """
         Remove a class from the registry
         Args:
@@ -491,7 +520,9 @@ class BaseRegistry(HotReloadRegistry, FolderScanMixin):
             self._dependency_graph.add_managed_module(module_name, scope_prefixes)
 
             for cls in added_classes:
-                new_key = self._register_class(cls, library_identity)
+                # module_scan_for_classes yields bare `type` filtered by
+                # _class_filter, so each is a T at runtime.
+                new_key = self._register_class(cast(type[T], cls), library_identity)
                 # Emit event for added class
                 if new_key:
                     lc_event = LifeCycleEvent(
@@ -726,7 +757,8 @@ class BaseRegistry(HotReloadRegistry, FolderScanMixin):
                         self._queue_lifecycle_event(event)
             if classes_to_add:
                 for cls in classes_to_add:
-                    new_key = self._register_class(cls, library_identity)
+                    # Same as above: filtered scan output is a T at runtime.
+                    new_key = self._register_class(cast(type[T], cls), library_identity)
                     # Notify customer callbacks about added class
                     if new_key:
                         event = LifeCycleEvent(
@@ -866,7 +898,9 @@ class BaseRegistry(HotReloadRegistry, FolderScanMixin):
         """
         if callback not in self._batch_event_subscribers:
             self._batch_event_subscribers.append(callback)
-            self.logger.debug(f"Registered customer callback: {callback.__name__}")
+            self.logger.debug(
+                f"Registered customer callback: {getattr(callback, '__name__', repr(callback))}"
+            )
 
     def remove_batch_event_subscriber(self, callback: LifeCycleBatchCallback) -> None:
         """
@@ -877,7 +911,7 @@ class BaseRegistry(HotReloadRegistry, FolderScanMixin):
         """
         if callback in self._batch_event_subscribers:
             self._batch_event_subscribers.remove(callback)
-            self.logger.debug(f"Removed customer callback: {callback.__name__}")
+            self.logger.debug(f"Removed customer callback: {getattr(callback, '__name__', repr(callback))}")
 
     def add_registry_subscriber(self, registry: HotReloadRegistry) -> None:
         """

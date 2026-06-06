@@ -9,7 +9,7 @@ Key changes:
 """
 
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional, Type, TypeVar
+from typing import Any, Dict, List, Optional, Type, TypeVar, cast
 
 from haywire.core.types import type, FlowType, CompoundType, DataField, IType
 from haywire.core.types.enums import PortType
@@ -206,7 +206,11 @@ class PooledField(DataField):
         # other than most other fields, pooled field actually stores the element type
         element_type = self.type_cls.element_type_cls
         assert element_type is not None
-        return element_type
+        # element_type_cls is declared `type | None` because for PrimitiveType[T]
+        # it holds a plain Python type (float, int, ...). PooledType is a
+        # CompoundType, so here it is always an IType subclass — narrow to match
+        # the contract every caller relies on (.class_identity / issubclass).
+        return cast(Type[IType], element_type)
 
     def reset(self) -> None:
         """Clear all sources"""

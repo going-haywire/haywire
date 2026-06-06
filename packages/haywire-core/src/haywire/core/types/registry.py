@@ -6,7 +6,7 @@ validation, and retrieval of all data types (type variants and custom compound t
 """
 
 import inspect
-from typing import Type, Any
+from typing import Optional, Type, Any, cast
 
 from .interface import IType
 from .identity import DataTypeIdentity
@@ -14,7 +14,7 @@ from ..registry.base import BaseRegistry
 from ..library.identity import LibraryIdentity
 
 
-class TypeRegistry(BaseRegistry):
+class TypeRegistry(BaseRegistry[IType]):
     """
     Universal registry for all data types.
 
@@ -70,12 +70,14 @@ class TypeRegistry(BaseRegistry):
         except (TypeError, AttributeError):
             return False
 
-    def _register_class(self, type_cls: type[IType], library_identity: LibraryIdentity) -> str | None:
+    def _register_class(
+        self, cls: type[IType], library_identity: Optional[LibraryIdentity] = None
+    ) -> str | None:
         """
         Register a type class with library metadata.
 
         Args:
-            type_cls: The type class to register
+            cls: The type class to register
             library_identity: Library metadata to associate with the type
 
         Returns:
@@ -85,12 +87,12 @@ class TypeRegistry(BaseRegistry):
             ValueError: If a type with the same key is already registered
         """
         # Use registry_key that was set by the decorator
-        registry_key = type_cls.class_identity.registry_key
+        registry_key = cls.class_identity.registry_key
 
         # Register using parent class method
-        return super()._register(registry_key, type_cls, library_identity)
+        return super()._register(registry_key, cls, library_identity)
 
-    def _unregister_class(self, registry_key: str) -> type | None:
+    def _unregister_class(self, registry_key: str) -> type[IType] | None:
         """
         Unregister a type by its registry_key.
 
@@ -102,7 +104,7 @@ class TypeRegistry(BaseRegistry):
         """
         return super()._unregister(registry_key)
 
-    def get_type_class(self, key: str) -> Type | None:
+    def get_type_class(self, key: str) -> type[IType] | None:
         """
         Get type class by registry key.
 
@@ -191,9 +193,13 @@ class TypeRegistry(BaseRegistry):
         if not type_cls:
             raise ValueError(f"Type '{registry_key}' not found in registry")
 
-        # Recursively resolve element type for compounds
+        # Recursively resolve element type for compounds. An element_type in
+        # the spec means type_cls is a CompoundType, which parameterizes via
+        # __class_getitem__. mypy and ty disagree on typing that subscript, so
+        # bridge through Any (the runtime type is a CompoundType subclass).
         if "element_type" in spec:
             element_type_cls = self.resolve_type_from_spec(spec["element_type"])
-            return type_cls[element_type_cls]
+            compound_cls: Any = type_cls
+            return cast("type[IType]", compound_cls[element_type_cls])
 
         return type_cls

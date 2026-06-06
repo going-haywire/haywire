@@ -167,7 +167,7 @@ class setting(SettingDescriptor, Generic[T]):
 
     def __init__(
         self,
-        default: "T | Callable[[], T]" = None,  # type: ignore[assignment]
+        default: "T | Callable[[], T]" = None,  # type: ignore[assignment]  # ty: ignore[invalid-parameter-default]
         *,
         label: str = "",
         description: str = "",

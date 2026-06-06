@@ -9,13 +9,14 @@ This factory:
 - Provides adapter discovery services
 """
 
-from typing import Dict, List, Optional, Set
+from typing import Dict, List, Optional, Set, cast
 import logging
 
-from .base import ReturnAdapter, IAdapter
+from .base import ReturnAdapter, IAdapter, BaseAdapter
 from .registry import AdapterRegistry
 from ..registry.lifecycle_event import LifeCycleEvent, LifeCycleBatchCallback
 from ..types.interface import IType
+from ..types.identity import DataTypeIdentity
 from ..types.base import CompoundType
 
 
@@ -231,7 +232,7 @@ class AdapterFactory:
 
         try:
             # Build chain from right to left (terminal to first)
-            chain = ReturnAdapter()  # Terminal
+            chain: IAdapter = ReturnAdapter()  # Terminal
 
             for cls in reversed(adapter_classes):
                 chain = cls(child=chain)
@@ -243,7 +244,7 @@ class AdapterFactory:
 
     def _find_chain_with_ancestors(
         self, source_type: type[IType], sink_key: str, max_depth: int
-    ) -> list[type] | None:
+    ) -> list[type[BaseAdapter]] | None:
         """
         Find adapter chain, falling back to source type's ancestors.
 
@@ -266,7 +267,10 @@ class AdapterFactory:
         for ancestor in source_type.__mro__:
             if not hasattr(ancestor, "class_identity"):
                 continue
-            ancestor_key = ancestor.class_identity.registry_key
+            # ancestor comes from __mro__ as a bare `type`; class_identity is the
+            # framework ClassVar a checker can't see through the MRO walk.
+            ancestor_identity = cast(DataTypeIdentity, ancestor.class_identity)
+            ancestor_key = ancestor_identity.registry_key
             chain = self.adapter_registry.find_adapter_chain(ancestor_key, sink_key, max_depth)
             if chain is not None:
                 return chain

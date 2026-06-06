@@ -1,4 +1,5 @@
 import inspect
+from typing import Optional
 
 from haywire.core.errors.haywire_exception import HaywireException, ErrorSeverity
 from haywire.core.registry.lifecycle_event import LifeCycleEvent
@@ -9,7 +10,7 @@ from haywire.ui.widget.interface import IWidget
 from .globals import register_widget_globally, unregister_widget_globally
 
 
-class WidgetRegistry(BaseRegistry):
+class WidgetRegistry(BaseRegistry[IWidget]):
     """Registry for UI widgets that can render data fields"""
 
     def __init__(self):
@@ -26,7 +27,9 @@ class WidgetRegistry(BaseRegistry):
         except TypeError:
             return False
 
-    def _register_class(self, widget_cls: type[IWidget], library_identity: LibraryIdentity) -> str | None:
+    def _register_class(
+        self, cls: type[IWidget], library_identity: Optional[LibraryIdentity] = None
+    ) -> str | None:
         """Register a UI widget with its metadata
 
         Uses the registry_key that was set by the @widget decorator during class definition.
@@ -38,12 +41,12 @@ class WidgetRegistry(BaseRegistry):
             str: The haywire registry_key of the registered widget.
         """
         # Use registry_key that was set by the decorator
-        registry_key = widget_cls.class_identity.registry_key
+        registry_key = cls.class_identity.registry_key
 
-        reg = super()._register(registry_key, widget_cls, library_identity)
+        reg = super()._register(registry_key, cls, library_identity)
 
         if reg:
-            register_widget_globally(registry_key, widget_cls)
+            register_widget_globally(registry_key, cls)
 
         return reg
 

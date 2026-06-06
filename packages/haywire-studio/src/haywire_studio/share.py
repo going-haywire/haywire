@@ -107,13 +107,15 @@ def _read_os_field(data: dict, lib_dir: Path) -> list[str]:
             f"[tool.haywire].os in {lib_dir / 'pyproject.toml'} must be a list, "
             f"got {type(os_decl).__name__}."
         )
+    validated: list[str] = []
     for value in os_decl:
         if not isinstance(value, str) or value not in _DECLARABLE_OS_VALUES:
             raise InvalidOsDeclarationError(
                 f"Invalid os value {value!r} in {lib_dir / 'pyproject.toml'} [tool.haywire].os. "
                 f"Declarable values: macos, windows, linux."
             )
-    return list(os_decl)
+        validated.append(value)
+    return validated
 
 
 def _find_git_root(start: Path) -> Path | None:
@@ -499,8 +501,10 @@ def union_pyproject_deps(
     """
     haybale_dists: set[str] = set()
     if hasattr(libraries, "list_names") and hasattr(libraries, "get_library_distribution_name"):
-        for lib_id in libraries.list_names():  # type: ignore[attr-defined]
-            dist = libraries.get_library_distribution_name(lib_id)  # type: ignore[attr-defined]
+        # libraries: object is duck-typed (HaywireLibrarySource) and guarded by
+        # the hasattr() check above; both checkers need the methods waved through.
+        for lib_id in libraries.list_names():  # type: ignore[attr-defined]  # ty: ignore[call-non-callable]
+            dist = libraries.get_library_distribution_name(lib_id)  # type: ignore[attr-defined]  # ty: ignore[call-non-callable]
             if dist:
                 haybale_dists.add(dist)
 

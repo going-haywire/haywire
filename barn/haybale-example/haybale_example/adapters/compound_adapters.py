@@ -36,8 +36,8 @@ class MapsStringArrayAdapter(BaseAdapter):
     """
 
     @override
-    def convert(self, values: Dict[str, Any]) -> List[Any]:
-        return list(values.values())
+    def convert(self, value: Dict[str, Any]) -> List[Any]:
+        return list(value.values())
 
     @override
     def get_test_value(self):

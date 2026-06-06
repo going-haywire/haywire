@@ -37,7 +37,7 @@ class AppDataNamespace:
     def get(self, cls: type[A]) -> A | None:
         return self._container.get(cls)
 
-    def __contains__(self, cls: type) -> bool:
+    def __contains__(self, cls: type[AppState]) -> bool:
         return cls in self._container
 
 
@@ -56,5 +56,5 @@ class SessionDataNamespace:
     def get(self, cls: type[S]) -> S | None:
         return self._container.get_session_optional(cls, self._session_id)
 
-    def __contains__(self, cls: type) -> bool:
+    def __contains__(self, cls: type[SessionState]) -> bool:
         return self._container.has_session(cls, self._session_id)

@@ -4,7 +4,7 @@ Node decorator for registering node classes.
 """
 
 from dataclasses import asdict
-from typing import Any, Callable, Type, TypeVar
+from typing import Any, Callable, Type, TypeVar, cast
 
 from haywire.core.library.utils import NODE, derive_library_identity, reg_key
 from haywire.core.node import BaseNode, NodeIdentity, NodeBehaviorFlags, BEHAVIOR_FIELDS
@@ -198,20 +198,25 @@ def node(**kwargs: Any) -> Callable[[Type[T]], Type[T]]:
             raise TypeError(f"@node can only be applied to BaseNode subclasses, got {inner_cls}")
 
         # Check for parent class attributes to inherit
-        parent_identity = None
-        parent_behavior = None
+        parent_identity: NodeIdentity | None = None
+        parent_behavior: NodeBehaviorFlags | None = None
 
         for base in inner_cls.__bases__:
+            # base is a bare `type`; class_identity/class_behavior are framework
+            # ClassVars whose attribute type a checker can't see through __bases__.
             if hasattr(base, "class_identity"):
-                parent_identity = base.class_identity
+                parent_identity = cast(NodeIdentity, base.class_identity)
             if hasattr(base, "class_behavior"):
-                parent_behavior = base.class_behavior
+                parent_behavior = cast(NodeBehaviorFlags, base.class_behavior)
             if parent_identity and parent_behavior:
                 break
 
-        # Split kwargs into identity and behavior
-        behavior_kwargs = {}
-        identity_kwargs = {}
+        # Split kwargs into identity and behavior. Freeform bags (mirrors the
+        # NodeIdentity/NodeBehaviorFlags field sets); typed dict[str, Any] so the
+        # **-splat into those dataclass constructors below isn't checked key-by-key
+        # against a widened value union.
+        behavior_kwargs: dict[str, Any] = {}
+        identity_kwargs: dict[str, Any] = {}
 
         for key, value in kwargs.items():
             if key in BEHAVIOR_FIELDS:

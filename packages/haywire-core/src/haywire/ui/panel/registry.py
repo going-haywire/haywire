@@ -13,7 +13,7 @@ Focus matching is by Focus.id (stable across hot-reload).
 
 import inspect
 import logging
-from typing import Iterable, List, Set, TYPE_CHECKING
+from typing import Iterable, List, Optional, Set, TYPE_CHECKING
 
 from haywire.core.registry.base import BaseRegistry
 from haywire.core.library.identity import LibraryIdentity
@@ -22,11 +22,12 @@ from .base import BasePanel
 
 if TYPE_CHECKING:
     from haywire.core.session.signals import Signal
+    from .focus import Focus
 
 logger = logging.getLogger(__name__)
 
 
-class PanelRegistry(BaseRegistry):
+class PanelRegistry(BaseRegistry[BasePanel]):
     """Registry of panels.
 
     Provided as a DI singleton by HaywireModule.
@@ -48,7 +49,9 @@ class PanelRegistry(BaseRegistry):
         except TypeError:
             return False
 
-    def _register_class(self, cls: type[BasePanel], library_identity: LibraryIdentity) -> "str | None":
+    def _register_class(
+        self, cls: type[BasePanel], library_identity: Optional[LibraryIdentity] = None
+    ) -> "str | None":
         registry_key = cls.class_identity.registry_key
         result = super()._register(registry_key, cls, library_identity)
         if result:
@@ -61,7 +64,7 @@ class PanelRegistry(BaseRegistry):
             )
         return result
 
-    def _unregister_class(self, registry_key: str) -> "type | None":
+    def _unregister_class(self, registry_key: str) -> "type[BasePanel] | None":
         return super()._unregister(registry_key)
 
     # ------------------------------------------------------------------
@@ -122,13 +125,13 @@ class PanelRegistry(BaseRegistry):
         result.sort(key=lambda c: getattr(getattr(c, "class_identity", None), "order", 100))
         return result
 
-    def get_display_focuses(self) -> List[type]:
+    def get_display_focuses(self) -> List[type["Focus"]]:
         """Distinct focuses referenced by display panels (no action_protocol).
 
         Deduplicated by Focus.id. Used by PropertiesEditor to build its
         focus toolbar.
         """
-        focuses: List[type] = []
+        focuses: List[type["Focus"]] = []
         seen_ids: set[str] = set()
         for cls in self._all_panel_classes():
             identity = getattr(cls, "class_identity", None)
@@ -168,5 +171,5 @@ class PanelRegistry(BaseRegistry):
             signals.update(getattr(identity, "redraw_on", ()))
         return signals
 
-    def _all_panel_classes(self) -> Iterable[type]:
+    def _all_panel_classes(self) -> Iterable[type[BasePanel]]:
         return self._classes.values()

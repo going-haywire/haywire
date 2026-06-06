@@ -31,7 +31,8 @@ _HOVER_SETTING_PROPS: dict[str, str] = {
 }
 
 
-class GraphCanvasVue(ui.element, component="canvas.vue", dependencies=[_GRAPH_EVENTS_JS]):
+# list[Path] vs ui.element's invariant list[str | Path]; a list of paths is a valid dependencies arg.
+class GraphCanvasVue(ui.element, component="canvas.vue", dependencies=[_GRAPH_EVENTS_JS]):  # ty: ignore[invalid-argument-type]
     """Vue-based graph canvas component with ONLY unified event handling."""
 
     def __init__(

@@ -146,7 +146,7 @@ class SliderWidget(SimpleWidget):
 
     def create_element(self) -> Any:
         props = self._config.get("properties", {})
-        kwargs = {
+        kwargs: dict[str, Any] = {
             "value": 0,
             "min": props.get("min", 0),
             "max": props.get("max", 100),
@@ -179,7 +179,7 @@ class SelectWidget(SimpleWidget):
 
     def create_element(self) -> Any:
         props = self._config.get("properties", {})
-        kwargs = {"options": props.get("options", []), "value": None}
+        kwargs: dict[str, Any] = {"options": props.get("options", []), "value": None}
 
         for prop in ["clearable", "multiple"]:
             if prop in props:

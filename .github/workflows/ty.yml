@@ -1,0 +1,44 @@
+name: ty
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+  workflow_dispatch:
+
+jobs:
+  ty:
+    name: ty
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Install uv
+      uses: astral-sh/setup-uv@v3
+      with:
+        enable-cache: true
+
+    - name: Set up Python
+      run: uv python install 3.12
+
+    - name: Install dependencies
+      run: |
+        uv sync --all-extras --dev
+
+    # Non-blocking: ty is pre-1.0 and runs alongside mypy (which remains the
+    # gating type check, see mypy.yml). Surfaces ty's view without failing CI.
+    # Flip continue-on-error to false once ty is adopted as the gate.
+    - name: Run ty
+      continue-on-error: true
+      run: >
+        uv run ty check
+        packages/haywire-core/src/
+        packages/haywire-studio/src/
+        barn/haybale-core/haybale_core/
+        barn/haybale-studio/haybale_studio/
+        barn/haybale-testing/haybale_testing/
+        barn/haybale-example/haybale_example/
+        barn/haybale-TEST_A/haybale_test_a/

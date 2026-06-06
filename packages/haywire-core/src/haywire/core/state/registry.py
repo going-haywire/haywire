@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import inspect
 import logging
+from typing import Optional
 
 from haywire.core.library.identity import LibraryIdentity
 from haywire.core.registry.base import BaseRegistry
@@ -22,7 +23,7 @@ logger = logging.getLogger(__name__)
 _MARKER_BASES: tuple[type, ...] = (LibraryState, AppState, SessionState)
 
 
-class LibraryStateRegistry(BaseRegistry):
+class LibraryStateRegistry(BaseRegistry[LibraryState]):
     """Registry for LibraryState classes.
 
     Registry key format: '{library_id}:state:{class_name}'.
@@ -42,8 +43,14 @@ class LibraryStateRegistry(BaseRegistry):
         except TypeError:
             return False
 
-    def _register_class(self, cls: type[LibraryState], library_identity: LibraryIdentity) -> str | None:
+    def _register_class(
+        self, cls: type[LibraryState], library_identity: Optional[LibraryIdentity] = None
+    ) -> str | None:
         """Attach a class_identity if missing, then delegate to BaseRegistry._register."""
+        # LibraryState classes derive their registry_key from the owning library,
+        # so unlike other registries this one requires a non-None identity.
+        if library_identity is None:
+            raise ValueError("LibraryStateRegistry._register_class requires a library_identity")
         if not hasattr(cls, "class_identity"):
             registry_key = f"{library_identity.id}:state:{cls.__name__}"
             cls.class_identity = LibraryStateClassIdentity(
@@ -65,7 +72,7 @@ class LibraryStateRegistry(BaseRegistry):
             self._regkey_to_library_id[result] = library_identity.id
         return result
 
-    def _unregister_class(self, registry_key: str) -> type | None:
+    def _unregister_class(self, registry_key: str) -> type[LibraryState] | None:
         self._regkey_to_library_id.pop(registry_key, None)
         return super()._unregister(registry_key)
 

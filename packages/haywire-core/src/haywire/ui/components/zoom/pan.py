@@ -288,7 +288,8 @@ class ZoomPanContainer(ui.element, component="pan.vue"):
         else:
             return super().__enter__()
 
-    def __exit__(self, exc_type, exc_value, traceback):
+    # Canonical context-manager signature; NiceGUI's Element.__exit__ uses *_.
+    def __exit__(self, exc_type, exc_value, traceback):  # ty: ignore[invalid-method-override]
         """Context manager exit."""
         if hasattr(self, "content_container") and self.content_container:
             return self.content_container.__exit__(exc_type, exc_value, traceback)

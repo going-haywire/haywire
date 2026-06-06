@@ -1,4 +1,4 @@
-# No typing imports needed for current functionality
+from typing import Optional
 
 import inspect
 import logging
@@ -13,7 +13,7 @@ from . import BaseNode
 logger = logging.getLogger(__name__)
 
 
-class NodeRegistry(BaseRegistry):
+class NodeRegistry(BaseRegistry[BaseNode]):
     """registry for managing nodes using library.name:node:node.name keys"""
 
     def __init__(self):
@@ -32,14 +32,16 @@ class NodeRegistry(BaseRegistry):
         except TypeError:
             return False
 
-    def _register_class(self, node_cls: type[BaseNode], library_identity: LibraryIdentity) -> str | None:
+    def _register_class(
+        self, cls: type[BaseNode], library_identity: Optional[LibraryIdentity] = None
+    ) -> str | None:
         """
         Register a node class with library metadata.
 
         Uses the registry_key that was set by the @node decorator during class definition.
 
         Args:
-            node_class: The node class to register
+            cls: The node class to register
             library_identity: Library metadata to use for setting node attributes
         Returns:
             str: The haywire registry_key of the registered node.
@@ -48,25 +50,25 @@ class NodeRegistry(BaseRegistry):
             ValueError: If a node with the same key is already registered
         """
         # Use registry_key that was set by the decorator
-        registry_key = node_cls.class_identity.registry_key
+        registry_key = cls.class_identity.registry_key
 
         # Check if this is an error node and register it automatically
-        if node_cls.class_identity._is_error:
+        if cls.class_identity._is_error:
             if self._error_node is not None:
-                if node_cls.class_identity._error_priority > self._error_node.class_identity._error_priority:
+                if cls.class_identity._error_priority > self._error_node.class_identity._error_priority:
                     logger.warning(
                         f"Overriding already registered error node: "
                         f"'{self._error_node.class_identity.registry_key}'."
-                        f" with : '{node_cls.class_identity.registry_key}'"
+                        f" with : '{cls.class_identity.registry_key}'"
                         f" due to higher _error_priority "
-                        f"({node_cls.class_identity._error_priority} > "
+                        f"({cls.class_identity._error_priority} > "
                         f"{self._error_node.class_identity._error_priority})"
                     )
-                    self._error_node = node_cls
+                    self._error_node = cls
             else:
-                self._error_node = node_cls
+                self._error_node = cls
 
-        return super()._register(registry_key, node_cls, library_identity)
+        return super()._register(registry_key, cls, library_identity)
 
     def _unregister_class(self, registry_key) -> type[BaseNode] | None:
         """Unregister a node by its registry_key

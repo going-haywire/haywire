@@ -107,26 +107,26 @@ class UnitConversionConverter(BindingConverter):
     def __init__(self, unit: str):
         self.unit = unit
 
-    def to_view(self, celsius_value: Any) -> float:
+    def to_view(self, model_value: Any) -> float:
         """Convert stored Celsius to display unit"""
         # Unwrap if needed
-        if hasattr(celsius_value, "value"):
-            celsius_value = celsius_value.value
+        if hasattr(model_value, "value"):
+            model_value = model_value.value
 
-        if celsius_value is None:
+        if model_value is None:
             return 0.0
 
         if self.unit == "celsius":
-            return celsius_value
+            return model_value
         else:  # fahrenheit
-            return (celsius_value * 9 / 5) + 32
+            return (model_value * 9 / 5) + 32
 
-    def to_model(self, display_value: float) -> float:
+    def to_model(self, view_value: float) -> float:
         """Convert display unit back to Celsius for storage"""
         if self.unit == "celsius":
-            return display_value
+            return view_value
         else:  # fahrenheit
-            return (display_value - 32) * 5 / 9
+            return (view_value - 32) * 5 / 9
 
 
 class ConversionDisplayConverter(BindingConverter):
@@ -135,17 +135,17 @@ class ConversionDisplayConverter(BindingConverter):
     def __init__(self, primary_unit: str):
         self.primary_unit = primary_unit
 
-    def to_view(self, celsius_value: Any) -> str:
+    def to_view(self, model_value: Any) -> str:
         """Format conversion display text"""
         # Unwrap if needed
-        if hasattr(celsius_value, "value"):
-            celsius_value = celsius_value.value
+        if hasattr(model_value, "value"):
+            model_value = model_value.value
 
-        if celsius_value is None:
+        if model_value is None:
             return ""
 
         if self.primary_unit == "celsius":
-            fahrenheit = (celsius_value * 9 / 5) + 32
+            fahrenheit = (model_value * 9 / 5) + 32
             return f"({fahrenheit:.1f}°F)"
         else:
-            return f"({celsius_value:.1f}°C)"
+            return f"({model_value:.1f}°C)"

@@ -13,7 +13,7 @@ Resolution priority:
 """
 
 from __future__ import annotations
-from typing import TYPE_CHECKING, Any, Callable, Iterator, Type
+from typing import Any, Callable, Iterator, Optional, Type
 import threading
 import logging
 import weakref
@@ -25,9 +25,7 @@ from .value import SettingValue
 from .descriptor import setting
 from ..registry.base import BaseRegistry
 from ..library.identity import LibraryIdentity
-
-if TYPE_CHECKING:
-    from .settings import Settings
+from .settings import Settings
 
 logger = logging.getLogger(__name__)
 
@@ -47,7 +45,7 @@ FRAMEWORK_IDENTITY = LibraryIdentity(
 )
 
 
-class SettingsRegistry(BaseRegistry):
+class SettingsRegistry(BaseRegistry[Settings]):
     """
     Central registry for setting definitions and global values.
 
@@ -83,13 +81,15 @@ class SettingsRegistry(BaseRegistry):
         "dict": dict,
     }
 
-    TYPE_DEFAULTS = {
-        str: "",
-        int: 0,
-        float: 0.0,
-        bool: False,
-        list: list,  # factory
-        dict: dict,  # factory
+    # Zero-arg factories per type (str() == "", int() == 0, ...). Uniform
+    # callables so the lookup result is always called, not type-tested.
+    TYPE_DEFAULTS: dict[type, Callable[[], Any]] = {
+        str: str,
+        int: int,
+        float: float,
+        bool: bool,
+        list: list,
+        dict: dict,
     }
 
     def __init__(self):
@@ -146,7 +146,9 @@ class SettingsRegistry(BaseRegistry):
             and hasattr(cls, "class_identity")
         )
 
-    def _register_class(self, cls: Type, library_identity: LibraryIdentity) -> str | None:
+    def _register_class(
+        self, cls: type[Settings], library_identity: Optional[LibraryIdentity] = None
+    ) -> str | None:
         """Register schema class fields then store class in BaseRegistry.
 
         After registering the fields, re-reads both TOML files (global +
@@ -169,7 +171,7 @@ class SettingsRegistry(BaseRegistry):
                 self._repopulate_from_toml_for_keys(schema_keys, self._workspace_path, tier="workspace")
         return super()._register(registry_key, cls, library_identity or FRAMEWORK_IDENTITY)
 
-    def _unregister_class(self, registry_key: str) -> type | None:
+    def _unregister_class(self, registry_key: str) -> type[Settings] | None:
         """Unregister a schema class and remove its field definitions."""
         removed_cls = super()._unregister(registry_key)
         if removed_cls is not None:
@@ -530,8 +532,8 @@ class SettingsRegistry(BaseRegistry):
         elif value is not None:
             default = value
         else:
-            default_factory = self.TYPE_DEFAULTS.get(type_, "")
-            default = default_factory() if callable(default_factory) else default_factory
+            default_factory = self.TYPE_DEFAULTS.get(type_, str)
+            default = default_factory()
 
         if "label" in parsed:
             label = parsed["label"]

@@ -137,7 +137,7 @@ class ValidationManager:
         """
         if callback not in self._callbacks:
             self._callbacks.append(callback)
-            logger.debug(f"Added validation subscriber: {callback.__name__}")
+            logger.debug(f"Added validation subscriber: {getattr(callback, '__name__', repr(callback))}")
 
     def unsubscribe(self, callback: ValidationCallback) -> None:
         """
@@ -148,7 +148,7 @@ class ValidationManager:
         """
         if callback in self._callbacks:
             self._callbacks.remove(callback)
-            logger.debug(f"Removed validation subscriber: {callback.__name__}")
+            logger.debug(f"Removed validation subscriber: {getattr(callback, '__name__', repr(callback))}")
 
     def get_statistics(self) -> Dict[str, Any]:
         """
@@ -446,4 +446,7 @@ class ValidationManager:
             try:
                 callback(result)
             except Exception as e:
-                logger.error(f"Validation callback error in {callback.__name__}: {e}", exc_info=True)
+                logger.error(
+                    f"Validation callback error in {getattr(callback, '__name__', repr(callback))}: {e}",
+                    exc_info=True,
+                )

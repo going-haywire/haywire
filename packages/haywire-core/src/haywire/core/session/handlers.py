@@ -66,7 +66,7 @@ def validate_signal_types(
     args: Tuple[Any, ...],
     *,
     allow_empty: bool = False,
-) -> Tuple[type, ...]:
+) -> Tuple[type[Signal], ...]:
     """Validate ``args`` are Signal subclasses; return them as a tuple.
 
     Catches the two most common authoring mistakes at decoration time

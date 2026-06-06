@@ -173,7 +173,7 @@ class NodeWrapper:
         self._state: NodeWrapperState = NodeWrapperState()
 
         self._node_cls: type["BaseNode"] | None = None
-        self._node_instance: "BaseNode" | None = None
+        self._node_instance: Optional["BaseNode"] = None
 
         # Store initial position for later initialization
         self._initial_position = position

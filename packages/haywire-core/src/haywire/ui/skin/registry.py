@@ -1,6 +1,6 @@
 import inspect
 import logging
-from typing import Optional, TYPE_CHECKING
+from typing import Optional
 
 from haywire.core.errors.haywire_exception import ErrorSeverity, HaywireException
 from haywire.core.registry.lifecycle_event import LifeCycleEvent
@@ -8,14 +8,12 @@ from haywire.core.library.identity import LibraryIdentity
 from haywire.core.registry.base import BaseRegistry
 
 from .interface import IBaseSkin
-
-if TYPE_CHECKING:
-    from .base import BaseSkin
+from .base import BaseSkin
 
 logger = logging.getLogger(__name__)
 
 
-class SkinRegistry(BaseRegistry):
+class SkinRegistry(BaseRegistry[BaseSkin]):
     """Registry for NodeSkin classes with fallback support"""
 
     def __init__(self):
@@ -25,7 +23,7 @@ class SkinRegistry(BaseRegistry):
         self._error_skin_name: str | None = None
         self._error_priority: int = -1
 
-        self._error_skin: "type[BaseSkin] | None" = None
+        self._error_skin: type[BaseSkin] | None = None
 
     def _class_filter(self, cls):
         try:
@@ -39,7 +37,7 @@ class SkinRegistry(BaseRegistry):
             return False
 
     def _register_class(
-        self, skin_cls: "type[BaseSkin]", library_identity: Optional[LibraryIdentity] = None
+        self, cls: type[BaseSkin], library_identity: Optional[LibraryIdentity] = None
     ) -> str | None:
         """
         Register a skin class.
@@ -47,33 +45,33 @@ class SkinRegistry(BaseRegistry):
         Uses the registry_key that was set by the @skin decorator during class definition.
 
         Args:
-            skin_cls: The NodeSkin class
+            cls: The NodeSkin class
             library_identity: Optional library metadata for the skin.
         Returns:
             str: The haywire registry_key of the registered skin.
         """
         # Use registry_key that was set by the decorator
-        registry_key = skin_cls.class_identity.registry_key
+        registry_key = cls.class_identity.registry_key
 
         # Check if this is an error node and register it automatically
-        if skin_cls.class_identity._is_error:
+        if cls.class_identity._is_error:
             if self._error_skin is not None:
-                if skin_cls.class_identity._error_priority > self._error_skin.class_identity._error_priority:
+                if cls.class_identity._error_priority > self._error_skin.class_identity._error_priority:
                     logger.warning(
                         f"Overriding already registered error skin: "
                         f"'{self._error_skin.class_identity.registry_key}'"
-                        f" with : '{skin_cls.class_identity.registry_key}'"
+                        f" with : '{cls.class_identity.registry_key}'"
                         f" due to higher _error_priority "
-                        f"({skin_cls.class_identity._error_priority} > "
+                        f"({cls.class_identity._error_priority} > "
                         f"{self._error_skin.class_identity._error_priority})"
                     )
-                    self._error_skin = skin_cls
+                    self._error_skin = cls
             else:
-                self._error_skin = skin_cls
+                self._error_skin = cls
 
         # Check if this is an error node and register it as such
-        if skin_cls.class_identity._is_error:
-            new_error_priority = skin_cls.class_identity._error_priority
+        if cls.class_identity._is_error:
+            new_error_priority = cls.class_identity._error_priority
             if new_error_priority > self._error_priority:
                 if self._error_skin_name:
                     logger.warning(
@@ -87,8 +85,8 @@ class SkinRegistry(BaseRegistry):
                 self._error_priority = new_error_priority
 
         # Check if this is a default node and register it as such
-        if skin_cls.class_identity._is_default:
-            new_default_priority = skin_cls.class_identity._default_priority
+        if cls.class_identity._is_default:
+            new_default_priority = cls.class_identity._default_priority
             if new_default_priority > self._default_priority:
                 if self._default_skin_name:
                     logger.warning(
@@ -101,9 +99,9 @@ class SkinRegistry(BaseRegistry):
                 self._default_skin_name = registry_key
                 self._default_priority = new_default_priority
 
-        return super()._register(registry_key, skin_cls, library_identity)
+        return super()._register(registry_key, cls, library_identity)
 
-    def _unregister_class(self, registry_key: str) -> "type[BaseSkin] | None":
+    def _unregister_class(self, registry_key: str) -> type[BaseSkin] | None:
         """Unregister a skin by its registry_key
         Args:
             registry_key: The haywire registry_key of the skin to unregister
@@ -133,11 +131,11 @@ class SkinRegistry(BaseRegistry):
 
     def _find_next_error_skin(self) -> None:
         """Find and set the error skin with the highest priority from remaining skins"""
-        for key, skin_cls in self._classes.items():
-            if hasattr(skin_cls, "class_identity") and skin_cls.class_identity._is_error:
-                priority = skin_cls.class_identity._error_priority
+        for key, cls in self._classes.items():
+            if hasattr(cls, "class_identity") and cls.class_identity._is_error:
+                priority = cls.class_identity._error_priority
                 if priority > self._error_priority:
-                    self._error_skin = skin_cls
+                    self._error_skin = cls
                     self._error_skin_name = key
                     self._error_priority = priority
 
@@ -150,9 +148,9 @@ class SkinRegistry(BaseRegistry):
 
     def _find_next_default_skin(self) -> None:
         """Find and set the default skin with the highest priority from remaining skins"""
-        for key, skin_cls in self._classes.items():
-            if hasattr(skin_cls, "class_identity") and skin_cls.class_identity._is_default:
-                priority = skin_cls.class_identity._default_priority
+        for key, cls in self._classes.items():
+            if hasattr(cls, "class_identity") and cls.class_identity._is_default:
+                priority = cls.class_identity._default_priority
                 if priority > self._default_priority:
                     self._default_skin_name = key
                     self._default_priority = priority

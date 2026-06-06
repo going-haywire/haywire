@@ -24,7 +24,23 @@ class _FieldProxy:
         self._attr_name = attr_name
 
 
-class WorkbenchTheme:
+class BaseTheme:
+    """Common base for registerable themes (WorkbenchTheme, NodeTheme).
+
+    Exists so ThemeRegistry can bind ``BaseRegistry[BaseTheme]`` — both theme
+    families share the field-proxy structure and carry a ``class_identity``
+    set by their decorator (@workbench_theme / @node_theme). Subclasses keep
+    their own ``__init_subclass__`` field-wrapping behaviour.
+    """
+
+    class_identity: ClassVar[ThemeClassIdentity]
+    class_library: ClassVar[LibraryIdentity]
+
+    _fields: ClassVar[dict[str, _FieldProxy]] = {}
+    _namespace: ClassVar[str] = ""
+
+
+class WorkbenchTheme(BaseTheme):
     """
     Base class for workbench (app-shell) themes.
 

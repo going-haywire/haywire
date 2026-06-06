@@ -5,16 +5,13 @@ Extends BaseRegistry for library folder scan and hot-reload support.
 """
 
 from __future__ import annotations
-from typing import Type, TYPE_CHECKING
+from typing import Optional, Type
 
 from haywire.core.registry.base import BaseRegistry
 from haywire.core.library.identity import LibraryIdentity
 
-from .workbench import WorkbenchTheme
+from .workbench import WorkbenchTheme, BaseTheme
 from .node_theme import NodeTheme
-
-if TYPE_CHECKING:
-    pass
 
 
 # Framework identity used for built-in theme registration
@@ -32,7 +29,7 @@ _FRAMEWORK_THEME_IDENTITY = LibraryIdentity(
 )
 
 
-class ThemeRegistry(BaseRegistry):
+class ThemeRegistry(BaseRegistry[BaseTheme]):
     """
     Registry for WorkbenchTheme and NodeTheme classes.
 
@@ -58,16 +55,18 @@ class ThemeRegistry(BaseRegistry):
         """
         return (
             isinstance(cls, type)
-            and issubclass(cls, (WorkbenchTheme, NodeTheme))
-            and cls not in (WorkbenchTheme, NodeTheme)
+            and issubclass(cls, BaseTheme)
+            and cls not in (WorkbenchTheme, NodeTheme, BaseTheme)
             and getattr(cls, "class_identity", None) is not None
         )
 
-    def _register_class(self, cls: Type, library_identity: LibraryIdentity) -> str | None:
+    def _register_class(
+        self, cls: type[BaseTheme], library_identity: Optional[LibraryIdentity] = None
+    ) -> str | None:
         registry_key = cls.class_identity.registry_key
         return super()._register(registry_key, cls, library_identity or _FRAMEWORK_THEME_IDENTITY)
 
-    def _unregister_class(self, registry_key: str) -> type | None:
+    def _unregister_class(self, registry_key: str) -> type[BaseTheme] | None:
         return super()._unregister(registry_key)
 
     # =========================================================================

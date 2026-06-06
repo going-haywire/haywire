@@ -9,10 +9,10 @@ auto-wrapped into _FieldProxy objects by __init_subclass__.
 from __future__ import annotations
 from typing import ClassVar
 
-from .workbench import _FieldProxy
+from .workbench import _FieldProxy, BaseTheme
 
 
-class NodeTheme:
+class NodeTheme(BaseTheme):
     """
     Base class for node rendering themes.
 

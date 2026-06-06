@@ -27,6 +27,9 @@ dev = [
     "pytest",
     "pytest-cov",
     "mypy",
+    # ty is pre-1.0 and ships new diagnostics frequently; pin exactly so the
+    # non-blocking CI check (and local runs) stay reproducible. Bump deliberately.
+    "ty==0.0.44",
     # Pin the minor series: ruff's formatter rules can change across minor
     # bumps, which would silently drift CI from local. Patch bumps are safe.
     "ruff>=0.12.8,<0.13",

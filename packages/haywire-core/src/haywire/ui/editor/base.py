@@ -9,6 +9,7 @@ from .identity import EditorIdentity
 if TYPE_CHECKING:
     from haywire.ui.editor.wrapper import EditorWrapper
     from haywire.core.session.context import SessionContext
+    from haywire.core.library.identity import LibraryIdentity
     from nicegui.element import Element
 
 
@@ -26,6 +27,8 @@ class BaseEditor(ABC):
     """
 
     class_identity: ClassVar[EditorIdentity]
+    # Set by the @editor decorator at registration time.
+    class_library: ClassVar["LibraryIdentity"]
 
     def __init__(self, wrapper: "EditorWrapper") -> None:
         """Construct the editor and bind it to its runtime wrapper.

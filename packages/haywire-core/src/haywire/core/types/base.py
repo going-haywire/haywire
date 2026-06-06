@@ -60,7 +60,8 @@ class PrimitiveType(IType, ABC, Generic[T]):
 
         # Extract T from PrimitiveType[T]
         if hasattr(cls, "__orig_bases__"):
-            for base in cls.__orig_bases__:
+            # __orig_bases__ is a typing-runtime tuple the checker types as object.
+            for base in cls.__orig_bases__:  # ty: ignore[not-iterable]
                 if hasattr(base, "__origin__"):
                     origin_name = getattr(base.__origin__, "__name__", None)
                     if origin_name == "PrimitiveType":
@@ -260,7 +261,9 @@ class BaseType(IType, ABC):
         import dataclasses
 
         if dataclasses.is_dataclass(self):
-            return dataclasses.asdict(self)
+            # Guarded by is_dataclass; ty's narrowing leaves an intersection it
+            # won't accept as a DataclassInstance.
+            return dataclasses.asdict(self)  # ty: ignore[invalid-argument-type]
 
         # Fallback: return decorator default
         return self._get_default_dict()

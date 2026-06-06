@@ -176,7 +176,7 @@ def signal_field(initial: T) -> T:
     class-body annotation type so `x: int = signal_field(0)` reads as `x: int`
     to type-checkers and IDEs.
     """
-    return _SignalFieldDescriptor(initial)  # type: ignore[return-value]
+    return _SignalFieldDescriptor(initial)  # type: ignore[return-value]  # ty: ignore[invalid-return-type]
 
 
 def iter_signal_fields(cls: type) -> Iterator[tuple[str, Any]]:

@@ -574,7 +574,11 @@ class DataPort(DataTypeIdentity):
         if "show_widget" in kwargs:
             kwargs["show_widget"] = ShowWidgetStrategy(kwargs["show_widget"])
 
-        port_kwargs = {
+        # Freeform constructor-kwargs bag (mirrors PortSpec.kwargs: Dict[str, Any]).
+        # Annotated explicitly so the merge of the Any-valued spec kwargs with the
+        # typed literals below stays Any rather than widening to a concrete union
+        # that a type checker would then check key-by-key against cls.__init__.
+        port_kwargs: dict[str, Any] = {
             **kwargs,  # Spec already has identity + user overrides
             "flow_type": flow_type,
             "port_type": port_type,

@@ -34,19 +34,19 @@ class ArrayArrayAdapter(BaseAdapter):
     """
 
     @override
-    def convert(self, values: List[Any]) -> List[Any]:
+    def convert(self, value: List[Any]) -> List[Any]:
         """
         Transform each element or pass through.
 
         Args:
-            values: List of source elements
+            value: List of source elements
 
         Returns:
             List of transformed elements (None values skipped)
         """
         return [
             self._chain.execute(v)
-            for v in values
+            for v in value
             if v is not None  # Always skip None
         ]
 

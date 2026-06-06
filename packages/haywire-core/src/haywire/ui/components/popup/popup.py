@@ -1,5 +1,5 @@
 from nicegui import ui
-from typing import Optional, Callable
+from typing import Any, Optional, Callable
 
 
 class Popup(ui.element, component="popup.vue"):
@@ -70,7 +70,8 @@ class Popup(ui.element, component="popup.vue"):
     def __enter__(self):
         return self._content.__enter__()
 
-    def __exit__(self, exc_type, exc_val, exc_tb) -> None:
+    # Canonical context-manager signature; NiceGUI's Element.__exit__ uses *_.
+    def __exit__(self, exc_type, exc_val, exc_tb) -> None:  # ty: ignore[invalid-method-override]
         self._content.__exit__(exc_type, exc_val, exc_tb)
         if self._escape_close:
             ui.keyboard(self._handle_escape_key)
@@ -148,7 +149,10 @@ class Popup(ui.element, component="popup.vue"):
             "draggable": True,
             "clamp_to_viewport": True,
         }
-        config = {**defaults, **kwargs}
+        # Freeform constructor-kwargs bag; annotated dict[str, Any] so merging the
+        # str/bool defaults with **kwargs stays Any rather than widening to a union
+        # that a type checker would check key-by-key against cls.__init__.
+        config: dict[str, Any] = {**defaults, **kwargs}
         return cls(title=title, position_x=x, position_y=y, **config)
 
 

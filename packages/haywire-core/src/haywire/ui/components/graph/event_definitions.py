@@ -14,8 +14,9 @@ import time
 from dataclasses import dataclass, field
 from typing import ClassVar, Dict, Any, List, Optional, Type
 
-# Global registry for all event types
-GRAPH_EVENT_REGISTRY: Dict[str, Type] = {}
+# Global registry for all event types (every registered class is a BaseGraphEvent
+# subclass via the @graph_event decorator).
+GRAPH_EVENT_REGISTRY: "Dict[str, Type[BaseGraphEvent]]" = {}
 
 
 def graph_event(event_type: str, category: str = "user", description: str = ""):

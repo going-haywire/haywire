@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 import weakref
-from typing import TYPE_CHECKING, TypeVar
+from typing import TYPE_CHECKING, TypeVar, cast
 
 from haywire.core.errors import HaywireException
 from haywire.core.registry.lifecycle_event import LifeCycleEvent, LifeCycleEventType
@@ -86,7 +86,8 @@ class LibraryStateContainer:
 
     def __getitem__(self, cls: type[A]) -> A:
         try:
-            return self._app[cls.class_identity.registry_key]  # type: ignore[return-value]
+            # _app stores the concrete AppState keyed by this class's registry_key.
+            return cast(A, self._app[cls.class_identity.registry_key])
         except KeyError:
             raise KeyError(
                 f"No AppState instance registered for class {cls.__name__}. "
@@ -95,7 +96,7 @@ class LibraryStateContainer:
             ) from None
 
     def get(self, cls: type[A]) -> A | None:
-        return self._app.get(cls.class_identity.registry_key)  # type: ignore[return-value]
+        return cast("A | None", self._app.get(cls.class_identity.registry_key))
 
     def __contains__(self, cls: type[LibraryState]) -> bool:
         return cls.class_identity.registry_key in self._app
@@ -114,7 +115,7 @@ class LibraryStateContainer:
                 f"a registered SessionState subclass."
             ) from None
         try:
-            return bag[session_id]  # type: ignore[return-value]
+            return cast(S, bag[session_id])
         except KeyError:
             raise KeyError(
                 f"SessionState {cls.__name__} has no instance for session {session_id!r}. "
@@ -125,7 +126,7 @@ class LibraryStateContainer:
         bag = self._sessions.get(cls.class_identity.registry_key)
         if bag is None:
             return None
-        return bag.get(session_id)  # type: ignore[return-value]
+        return cast("S | None", bag.get(session_id))
 
     def has_session(self, cls: type[S], session_id: str) -> bool:
         bag = self._sessions.get(cls.class_identity.registry_key)

@@ -8,7 +8,7 @@ events, dependency tracking, and snapshot rollback.
 
 import inspect
 import logging
-from typing import Dict, List, TYPE_CHECKING
+from typing import Dict, List, Optional, TYPE_CHECKING
 
 from haywire.core.registry.base import BaseRegistry
 from haywire.core.registry.lifecycle_event import LifeCycleEventCallback
@@ -22,7 +22,7 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-class EditorTypeRegistry(BaseRegistry):
+class EditorTypeRegistry(BaseRegistry[BaseEditor]):
     """
     Registry of editor types.
 
@@ -51,7 +51,9 @@ class EditorTypeRegistry(BaseRegistry):
         except TypeError:
             return False
 
-    def _register_class(self, cls: type[BaseEditor], library_identity: LibraryIdentity) -> "str | None":
+    def _register_class(
+        self, cls: type[BaseEditor], library_identity: Optional[LibraryIdentity] = None
+    ) -> "str | None":
         """Register an editor class by its registry_key."""
         registry_key = cls.class_identity.registry_key
         logger.debug(f"EditorTypeRegistry: Registering '{registry_key}' ({cls.__name__})")

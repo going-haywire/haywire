@@ -66,14 +66,14 @@ class SignalBus:
         # generic on the signature is only for caller ergonomics. Dispatch
         # narrows by exact ``type(signal)`` match, so the runtime always passes
         # the right subclass into the handler.
-        self._handlers[signal_type].append(handler)  # type: ignore[arg-type]
+        self._handlers[signal_type].append(handler)  # type: ignore[arg-type]  # ty: ignore[invalid-argument-type]
 
         def _unsubscribe() -> None:
             handlers = self._handlers.get(signal_type)
             if handlers is None:
                 return
             try:
-                handlers.remove(handler)  # type: ignore[arg-type]
+                handlers.remove(handler)  # type: ignore[arg-type]  # ty: ignore[invalid-argument-type]
             except ValueError:
                 # Already removed — double-unsubscribe is a no-op.
                 return

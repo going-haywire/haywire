@@ -55,7 +55,7 @@ class SettingDescriptor:
     _max: Any = None
     """Maximum allowed value — used as the upper bound for numeric widgets."""
 
-    _choices: list | dict | Callable | None = None
+    _choices: list | dict | Callable[[], list | dict] | None = None
     """Dropdown options: a static list, a ``{value: label}`` dict, or a callable returning either."""
 
     _setting_key: str = ""
@@ -67,9 +67,11 @@ class SettingDescriptor:
     @property
     def choices(self) -> list | dict | None:
         """Resolve choices — calls the provider if it is a callable."""
-        if callable(self._choices):
-            return self._choices()
-        return self._choices
+        choices = self._choices
+        if choices is None or isinstance(choices, (list, dict)):
+            return choices
+        # Remaining branch: a callable provider returning list | dict.
+        return choices()
 
     def __set_name__(self, owner: type, name: str) -> None:
         self._attr_name = name
