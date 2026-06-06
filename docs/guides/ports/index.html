@@ -3069,13 +3069,51 @@
 <td>Name of a node method to call when an edge disconnects</td>
 </tr>
 <tr>
-<td><code>store_data</code></td>
-<td><code>bool</code></td>
-<td>Override whether values persist on graph save</td>
+<td><code>show_widget</code></td>
+<td><code>ShowWidgetStrategy</code></td>
+<td>When the port's inline widget renders, relative to link state (see below)</td>
+</tr>
+<tr>
+<td><code>store_strategy</code></td>
+<td><code>StoreStrategy</code></td>
+<td>When values persist on graph save (older docs called this <code>store_data: bool</code> — out of date)</td>
 </tr>
 </tbody>
 </table>
 <p>The <code>on_change</code> callback is what you wire to a <code>hb_*</code> reconfigure method when a config port should rebuild dynamic ports. See <a href="../../components/nodes/node-canon/">components/nodes</a> §3 for the rejig pattern.</p>
+<p><strong>Widget visibility (<code>show_widget</code>).</strong> A <code>ShowWidgetStrategy</code> controlling whether a port's inline widget is rendered on the node card, relative to whether the pin is linked:</p>
+<table>
+<thead>
+<tr>
+<th>Value</th>
+<th>Not linked</th>
+<th>Linked</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>NEVER</code></td>
+<td>hidden</td>
+<td>hidden</td>
+</tr>
+<tr>
+<td><code>NOT_LINKED</code></td>
+<td>shown</td>
+<td>hidden</td>
+</tr>
+<tr>
+<td><code>WHEN_LINKED</code></td>
+<td>hidden</td>
+<td>shown</td>
+</tr>
+<tr>
+<td><code>ALWAYS</code></td>
+<td>shown</td>
+<td>shown</td>
+</tr>
+</tbody>
+</table>
+<p>Defaults are per-direction and usually correct without setting anything: <strong>inlet → <code>NOT_LINKED</code></strong> (a connected inlet's widget is misleading, since the upstream edge overrides it), <strong>outlet → <code>NEVER</code></strong> (an outlet's value is produced by the node, not entered), <strong>config → <code>ALWAYS</code></strong> (a config port has no pin, so it is never linked). Because a widget can be assigned once at the type level, these defaults let the same type render an editable widget on inlets and suppress it on outlets automatically. Override per-port when needed, e.g. <code>FLOAT.as_inlet('gain', widget=..., show_widget=ShowWidgetStrategy.ALWAYS)</code>. Widgets toggle live when you connect/disconnect a pin. The full rationale is in <a href="../../adr/0003-show-widget-strategy/">ADR 0003</a>.</p>
 <p><strong>Three port shapes per type.</strong> Every datatype gives you three connection shapes:</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="c1"># Single value</span>
 </span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="n">FLOAT</span><span class="o">.</span><span class="n">as_inlet</span><span class="p">(</span><span class="s1">&#39;threshold&#39;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mf">0.5</span><span class="p">)</span>

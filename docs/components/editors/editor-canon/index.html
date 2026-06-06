@@ -2949,8 +2949,8 @@
 <tr>
 <td><code>default_slot</code></td>
 <td>no</td>
-<td><code>'main'</code></td>
-<td><code>'left'</code> / <code>'right'</code> / <code>'main'</code> / <code>'bottom'</code></td>
+<td><code>SlotName.EDIT</code></td>
+<td><code>SlotName.ACTION</code> / <code>CONTEXT</code> / <code>EDIT</code> / <code>INFO</code> (or their string values <code>'action'</code> / <code>'context'</code> / <code>'edit'</code> / <code>'info'</code>)</td>
 </tr>
 <tr>
 <td><code>icon</code></td>
@@ -2985,7 +2985,7 @@
 <li><strong><code>on_context</code></strong> — singleton tab, on-demand. Content mirrors a slice of session context (e.g. <code>active_library</code>); a <code>Reveal</code> lifecycle command opens it. Closeable.</li>
 <li><strong><code>on_payload</code></strong> — per-binding_id tab, on-demand. The binding_id is both the tab's identity and its content source; N distinct payloads → N distinct tabs. Closeable.</li>
 </ul>
-<p><strong>Slot constraints.</strong> <code>default_slot='left'</code> and <code>'right'</code> only support <code>opens='required'</code>. Bars don't have a tab structure to host on-demand or multi-instance editors. The decorator raises <code>ValueError</code> at class-definition time if you try.</p>
+<p><strong>Slot × opens.</strong> Any <code>opens</code> value is permitted on any <code>default_slot</code> — choosing a UX-sensible pairing is up to the editor author (icon slots, ACTION / CONTEXT, are typically <code>required</code>, but the decorator does not enforce it). The decorator only raises <code>ValueError</code> at class-definition time for an unknown <code>default_slot</code> or <code>opens</code> value.</p>
 <p><strong><code>draw(self, context, container)</code></strong> is the only abstract method. The framework calls it on first slot assignment and again whenever a <code>@redraw_on</code> handler fires. Before each call the framework <strong>clears</strong> <code>container</code> — your code starts inside an empty NiceGUI element. Use <code>with container:</code> (or store children of one of <code>container</code>'s descendants) to build into it.</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">draw</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">context</span><span class="p">:</span> <span class="n">SessionContext</span><span class="p">,</span> <span class="n">container</span><span class="p">:</span> <span class="n">Element</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 </span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>    <span class="k">with</span> <span class="n">container</span><span class="p">:</span>
@@ -3044,7 +3044,7 @@
 <p><strong>Imports.</strong></p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">haywire.ui.editor.base</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseEditor</span>
 </span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">haywire.ui.editor.decorator</span><span class="w"> </span><span class="kn">import</span> <span class="n">editor</span>
-</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="kn">from</span><span class="w"> </span><span class="nn">haywire.ui.editor.identity</span><span class="w"> </span><span class="kn">import</span> <span class="n">OpenBehavior</span>   <span class="c1"># for code that inspects the enum</span>
+</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="kn">from</span><span class="w"> </span><span class="nn">haywire.ui.editor.identity</span><span class="w"> </span><span class="kn">import</span> <span class="n">OpenBehavior</span><span class="p">,</span> <span class="n">SlotName</span>   <span class="c1"># for code that inspects the enum</span>
 </span><span id="__span-7-4"><a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="kn">from</span><span class="w"> </span><span class="nn">haywire.core.session.handlers</span><span class="w"> </span><span class="kn">import</span> <span class="n">redraw_on</span><span class="p">,</span> <span class="n">react_on</span>
 </span><span id="__span-7-5"><a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a><span class="kn">from</span><span class="w"> </span><span class="nn">haywire.core.session.signals</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
 </span><span id="__span-7-6"><a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a>    <span class="n">Signal</span><span class="p">,</span>
@@ -3067,7 +3067,7 @@
 <div class="language-python highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="nd">@editor</span><span class="p">(</span>
 </span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>    <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Properties&quot;</span><span class="p">,</span>
 </span><span id="__span-8-3"><a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a>    <span class="n">icon</span><span class="o">=</span><span class="n">hui</span><span class="o">.</span><span class="n">icon</span><span class="o">.</span><span class="n">node_settings</span><span class="p">,</span>
-</span><span id="__span-8-4"><a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a>    <span class="n">default_slot</span><span class="o">=</span><span class="s2">&quot;right&quot;</span><span class="p">,</span>
+</span><span id="__span-8-4"><a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a>    <span class="n">default_slot</span><span class="o">=</span><span class="n">SlotName</span><span class="o">.</span><span class="n">CONTEXT</span><span class="p">,</span>
 </span><span id="__span-8-5"><a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a>    <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Context-sensitive property panels for the active selection.&quot;</span><span class="p">,</span>
 </span><span id="__span-8-6"><a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a>    <span class="n">order</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span>
 </span><span id="__span-8-7"><a id="__codelineno-8-7" name="__codelineno-8-7" href="#__codelineno-8-7"></a><span class="p">)</span>
@@ -3289,7 +3289,7 @@
 </thead>
 <tbody>
 <tr>
-<td><code>@editor(label, icon, default_slot='right', description)</code> — implicit <code>opens='required'</code></td>
+<td><code>@editor(label, icon, default_slot=SlotName.CONTEXT, description)</code> — implicit <code>opens='required'</code></td>
 <td>top of class</td>
 </tr>
 <tr>
@@ -3339,7 +3339,7 @@
 <h2 id="quick-reference">Quick reference<a class="headerlink" href="#quick-reference" title="Permanent link">&para;</a></h2>
 <h3 id="authoring-checklist">Authoring checklist<a class="headerlink" href="#authoring-checklist" title="Permanent link">&para;</a></h3>
 <ul class="task-list">
-<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> <code>@editor(label='...', default_slot='...')</code> — both have sensible defaults; set them deliberately</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> <code>@editor(label='...', default_slot=SlotName.…)</code> — both have sensible defaults; set them deliberately</li>
 <li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> Choose <code>opens='required'</code> / <code>'on_context'</code> / <code>'on_payload'</code></li>
 <li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> Inherit from <code>BaseEditor</code>; implement <code>draw(self, context, container)</code> — required</li>
 <li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> Decorate handler methods with <code>@redraw_on(*SignalTypes)</code> for signals that warrant a full editor redraw — empty body is fine; the framework redraws once per dispatch pass</li>
@@ -3355,7 +3355,7 @@
 <h3 id="imports">Imports<a class="headerlink" href="#imports" title="Permanent link">&para;</a></h3>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">haywire.ui.editor.base</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseEditor</span>
 </span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">haywire.ui.editor.decorator</span><span class="w"> </span><span class="kn">import</span> <span class="n">editor</span>
-</span><span id="__span-9-3"><a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a><span class="kn">from</span><span class="w"> </span><span class="nn">haywire.ui.editor.identity</span><span class="w"> </span><span class="kn">import</span> <span class="n">OpenBehavior</span>
+</span><span id="__span-9-3"><a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a><span class="kn">from</span><span class="w"> </span><span class="nn">haywire.ui.editor.identity</span><span class="w"> </span><span class="kn">import</span> <span class="n">OpenBehavior</span><span class="p">,</span> <span class="n">SlotName</span>
 </span><span id="__span-9-4"><a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a><span class="kn">from</span><span class="w"> </span><span class="nn">haywire.core.session.handlers</span><span class="w"> </span><span class="kn">import</span> <span class="n">redraw_on</span><span class="p">,</span> <span class="n">react_on</span>
 </span><span id="__span-9-5"><a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a><span class="kn">from</span><span class="w"> </span><span class="nn">haywire.core.session.signals</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
 </span><span id="__span-9-6"><a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a>    <span class="n">Signal</span><span class="p">,</span>
@@ -3364,29 +3364,35 @@
 </span><span id="__span-9-9"><a id="__codelineno-9-9" name="__codelineno-9-9" href="#__codelineno-9-9"></a><span class="p">)</span>
 </span></code></pre></div>
 <h3 id="slot-rules">Slot rules<a class="headerlink" href="#slot-rules" title="Permanent link">&para;</a></h3>
+<p>The decorator does not constrain <code>opens</code> by slot; every combination below is accepted. The "typical" column is convention only — icon slots (ACTION / CONTEXT) render a bar of icons rather than tabs, so multi-instance <code>on_payload</code> editors there are unusual but not rejected.</p>
 <table>
 <thead>
 <tr>
 <th><code>default_slot</code></th>
-<th>Valid <code>opens</code> values</th>
+<th>Bar style</th>
+<th>Typical <code>opens</code></th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td><code>'left'</code></td>
-<td><code>'required'</code> only</td>
+<td><code>SlotName.ACTION</code> (left edge)</td>
+<td>icon bar</td>
+<td><code>required</code></td>
 </tr>
 <tr>
-<td><code>'right'</code></td>
-<td><code>'required'</code> only</td>
+<td><code>SlotName.CONTEXT</code> (right edge)</td>
+<td>icon bar</td>
+<td><code>required</code></td>
 </tr>
 <tr>
-<td><code>'main'</code></td>
-<td><code>'required'</code>, <code>'on_context'</code>, <code>'on_payload'</code></td>
+<td><code>SlotName.EDIT</code> (centre)</td>
+<td>tab bar</td>
+<td><code>required</code>, <code>on_context</code>, <code>on_payload</code></td>
 </tr>
 <tr>
-<td><code>'bottom'</code></td>
-<td><code>'required'</code>, <code>'on_context'</code>, <code>'on_payload'</code></td>
+<td><code>SlotName.INFO</code> (bottom)</td>
+<td>tab bar</td>
+<td><code>required</code>, <code>on_context</code>, <code>on_payload</code></td>
 </tr>
 </tbody>
 </table>

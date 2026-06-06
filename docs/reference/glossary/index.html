@@ -4208,7 +4208,7 @@
 <tbody>
 <tr>
 <td><strong>Editor</strong></td>
-<td>A full-slot UI component occupying one workspace Slot (Left, Main, Right, Bottom); one instance per slot per session</td>
+<td>A full-slot UI component occupying one workspace Slot (ACTION, CONTEXT, EDIT, INFO); one instance per slot per session</td>
 <td>Panel (Panels are sub-components of editors), view</td>
 </tr>
 <tr>
@@ -4223,47 +4223,32 @@
 </tr>
 <tr>
 <td><strong>Slot</strong></td>
-<td>One of the four named positions in the AppShell where an editor is mounted: Left, Main, Right, Bottom; each slot = bar + area</td>
-<td>Area (deprecated), pane, region, zone</td>
+<td>One of the four named positions in the AppShell where an editor is mounted, identified by a <code>SlotName</code>: <strong>ACTION</strong> (left edge), <strong>CONTEXT</strong> (right edge), <strong>EDIT</strong> (centre), <strong>INFO</strong> (bottom). Each slot = bar + area</td>
+<td>Area (deprecated), pane, region, zone; left/main/right/bottom (former slot names — removed)</td>
+</tr>
+<tr>
+<td><strong>SlotName</strong></td>
+<td>The <code>StrEnum</code> of the four slot identifiers: <code>ACTION</code> / <code>CONTEXT</code> / <code>EDIT</code> / <code>INFO</code>, with string values <code>'action'</code> / <code>'context'</code> / <code>'edit'</code> / <code>'info'</code>. A member <em>is</em> a <code>str</code>, so it serializes to its value in <code>workspace_state.json</code> and the <code>hw-slot-&lt;value&gt;</code> DOM ids with no conversion. <code>SlotName(x).label</code> gives the human-facing name (e.g. <code>'Edit'</code>)</td>
+<td>slot string, slot key</td>
 </tr>
 <tr>
 <td><strong>Bar</strong></td>
-<td>The control strip attached to a Slot; either a tab bar (horizontal, for Main/Bottom) or an icon bar (vertical, for Left/Right)</td>
+<td>The control strip attached to a Slot; either a tab bar (horizontal, for EDIT/INFO) or an icon bar (vertical, for ACTION/CONTEXT)</td>
 <td>—</td>
 </tr>
 <tr>
 <td><strong>default_slot</strong></td>
-<td>The <code>@editor()</code> decorator parameter and <code>EditorIdentity</code> field that declares which Slot an editor occupies by default; one of <code>'left'</code>, <code>'main'</code>, <code>'right'</code>, <code>'bottom'</code></td>
+<td>The <code>@editor()</code> decorator parameter and <code>EditorIdentity</code> field that declares which Slot an editor occupies by default; a <code>SlotName</code> (<code>ACTION</code> / <code>CONTEXT</code> / <code>EDIT</code> / <code>INFO</code>), defaulting to <code>SlotName.EDIT</code>. The decorator coerces a bare string value and raises <code>ValueError</code> on an unknown one</td>
 <td>canvas_area (deprecated)</td>
 </tr>
 <tr>
-<td><strong>SlotState</strong></td>
-<td>Dataclass representing the persisted state of the Left or Right slot: <code>active_tab_key</code>, <code>visible</code>, <code>size</code></td>
-<td>AreaState (deprecated)</td>
-</tr>
-<tr>
-<td><strong>MainSlotState</strong></td>
-<td>Dataclass representing the Main slot's persisted state: a list of <code>TabState</code> tabs plus <code>active_tab_key</code></td>
-<td>MiddleAreaState (deprecated)</td>
-</tr>
-<tr>
-<td><strong>BottomSlotState</strong></td>
-<td>Dataclass representing the Bottom slot's persisted state: tab list, <code>active_tab_key</code>, <code>visible</code>, <code>size</code></td>
-<td>BottomAreaState (deprecated)</td>
-</tr>
-<tr>
-<td><strong>TabState</strong></td>
-<td>Dataclass for one tab within a tabbed slot (Main or Bottom): <code>editor_key</code>, <code>label</code>, <code>metadata</code></td>
-<td>—</td>
-</tr>
-<tr>
-<td><strong>active_tab_key</strong></td>
-<td>The unified field on all slot state dataclasses that stores which editor is currently shown in that slot</td>
-<td>editor_key (on slot state — deprecated), left_bar_active, right_bar_active (removed)</td>
+<td><strong>slot snapshot</strong></td>
+<td>The persisted state of one slot — a plain dict produced by <code>Slot.to_snapshot()</code> with keys <code>active_key</code> (the active binding id), <code>visible</code>, <code>size</code>, and <code>editors</code> (the per-tab list). Keyed by <code>SlotName</code> value in <code>workspace_state.json</code>. There are no per-slot state <em>dataclasses</em> — all four slots use this uniform dict shape</td>
+<td>SlotState / MainSlotState / BottomSlotState / TabState (former dataclasses — removed), active_tab_key (removed; the field is <code>active_key</code>)</td>
 </tr>
 <tr>
 <td><strong>AppShell</strong></td>
-<td>The top-level layout component composed of: TopBar + ActivityBar + Left/Main/Right/Bottom Slots + ContextBar + StatusBar. See <a href="../../architecture/studio/app-shell/app-shell-arch/">architecture/studio/app-shell</a></td>
+<td>The top-level layout component composed of: TopBar + ActivityBar + ACTION/CONTEXT/EDIT/INFO Slots + ContextBar + StatusBar. See <a href="../../architecture/studio/app-shell/app-shell-arch/">architecture/studio/app-shell</a></td>
 <td>Shell, frame</td>
 </tr>
 <tr>
@@ -4278,22 +4263,22 @@
 </tr>
 <tr>
 <td><strong>ActivityBar</strong></td>
-<td>The 48px icon bar on the left edge; switches editors in the Left Slot; styled with <code>hw-slot-bar hw-slot-bar-icons</code></td>
+<td>The 48px icon bar on the left edge; switches editors in the ACTION Slot; styled with <code>hw-slot-bar hw-slot-bar-icons</code></td>
 <td>Left sidebar, toolbar</td>
 </tr>
 <tr>
 <td><strong>ContextBar</strong></td>
-<td>The 48px icon bar on the right edge; switches editors in the Right Slot; styled with <code>hw-slot-bar hw-slot-bar-icons</code></td>
+<td>The 48px icon bar on the right edge; switches editors in the CONTEXT Slot; styled with <code>hw-slot-bar hw-slot-bar-icons</code></td>
 <td>Right sidebar</td>
 </tr>
 <tr>
 <td><strong>MainTabBar</strong></td>
-<td>The horizontal tab bar above the Main Slot; switches between tabbed main editors; styled with <code>hw-slot-bar hw-slot-bar-tabs</code></td>
-<td>Middle tabs</td>
+<td>The horizontal tab bar above the EDIT Slot; switches between tabbed edit editors; styled with <code>hw-slot-bar hw-slot-bar-tabs</code></td>
+<td>Middle tabs, EditTabBar</td>
 </tr>
 <tr>
 <td><strong>BottomTabBar</strong></td>
-<td>The horizontal tab bar above the Bottom Slot; switches between tabbed bottom editors; styled with <code>hw-slot-bar hw-slot-bar-tabs</code></td>
+<td>The horizontal tab bar above the INFO Slot; switches between tabbed info editors; styled with <code>hw-slot-bar hw-slot-bar-tabs</code></td>
 <td>Bottom tabs (use only for the metadata key)</td>
 </tr>
 <tr>
@@ -4542,10 +4527,10 @@
 <li>A <strong>Library</strong> scans folders in <code>register_components()</code> to populate registries (nodes, types, adapters, widgets, skins, themes).</li>
 <li>A <strong>Haybale</strong> package is always a <strong>Library</strong>; not all Libraries are distributed as haybale packages.</li>
 <li>An <strong>Editor</strong> occupies one <strong>Slot</strong> in the <strong>AppShell</strong>; an <strong>Editor</strong> may host many <strong>Panels</strong> filtered by <strong>Scope</strong>.</li>
-<li>The <strong>AppShell</strong> is composed of: <strong>TopBar</strong>, <strong>ActivityBar</strong>, <strong>ContextBar</strong>, <strong>StatusBar</strong>, and the four <strong>Slots</strong> (Left, Main, Right, Bottom).</li>
-<li>Each <strong>Slot</strong> has a <strong>Bar</strong> and an area: Left and Right slots have icon bars (<strong>ActivityBar</strong>, <strong>ContextBar</strong>); Main and Bottom slots have tab bars (<strong>MainTabBar</strong>, <strong>BottomTabBar</strong>).</li>
-<li>The <strong>ActivityBar</strong> switches editors in the Left <strong>Slot</strong>; the <strong>ContextBar</strong> switches editors in the Right <strong>Slot</strong>; the <strong>ScopeToolbar</strong> (inside the PropertiesEditor) switches the active <strong>Scope</strong>.</li>
-<li>Each slot's state is tracked by a <strong>SlotState</strong> (Left/Right), <strong>MainSlotState</strong> (Main), or <strong>BottomSlotState</strong> (Bottom); all use <strong>active_tab_key</strong> to identify the currently-shown editor.</li>
+<li>The <strong>AppShell</strong> is composed of: <strong>TopBar</strong>, <strong>ActivityBar</strong>, <strong>ContextBar</strong>, <strong>StatusBar</strong>, and the four <strong>Slots</strong> (<strong>ACTION</strong>, <strong>CONTEXT</strong>, <strong>EDIT</strong>, <strong>INFO</strong>).</li>
+<li>Each <strong>Slot</strong> has a <strong>Bar</strong> and an area: the ACTION and CONTEXT slots have icon bars (<strong>ActivityBar</strong>, <strong>ContextBar</strong>); the EDIT and INFO slots have tab bars (<strong>MainTabBar</strong>, <strong>BottomTabBar</strong>).</li>
+<li>The <strong>ActivityBar</strong> switches editors in the <strong>ACTION Slot</strong>; the <strong>ContextBar</strong> switches editors in the <strong>CONTEXT Slot</strong>; the <strong>ScopeToolbar</strong> (inside the PropertiesEditor) switches the active <strong>Scope</strong>.</li>
+<li>Each slot's persisted state is a uniform <strong>slot snapshot</strong> dict (<code>active_key</code>, <code>visible</code>, <code>size</code>, <code>editors</code>) produced by <code>Slot.to_snapshot()</code> and keyed by <strong>SlotName</strong> value in <code>workspace_state.json</code>; there are no per-slot state dataclasses.</li>
 <li>A <strong>Panel</strong> is always rendered inside a <code>.hw-panel</code> container and must use <code>hui.*</code> wrappers for any pattern covered by the design guide.</li>
 <li>A <strong>Skin</strong> renders on the <strong>Graph Canvas</strong> and must use only <code>--hw-node-*</code> / <code>--hw-canvas-*</code> <strong>CSS tokens</strong>; it must not use <code>hui.*</code> panel wrappers.</li>
 <li>Every structural colour reference in the app must use a <strong>CSS token</strong> (<code>--hw-*</code>); hardcoded hex or rgba values are a design violation.</li>
@@ -4577,8 +4562,8 @@
 <strong>Domain expert:</strong> "Yes — the DATA <strong>outlet</strong> connects via an <strong>Edge</strong> to downstream <strong>CONTROL nodes</strong>. The <strong>Pipe</strong> on that <strong>Edge</strong> can be eager or lazy depending on whether you want immediate push or always-latest pull."
 <strong>Dev:</strong> "When I add this to a <strong>Library</strong>, how does it get discovered?"
 <strong>Domain expert:</strong> "Declare it in <code>register_components()</code> with <code>scan_nodes(...)</code>, and the <strong>entry_point</strong> in <code>pyproject.toml</code> makes the whole <strong>Library</strong> discoverable at startup."
-<strong>Dev:</strong> "And if the user is in the <strong>Graph Canvas</strong> and selects the node, what shows in the right <strong>Slot</strong>?"
-<strong>Domain expert:</strong> "The <strong>Properties Editor</strong> queries the <strong>PanelRegistry</strong> for all <strong>Panels</strong> whose <code>poll()</code> returns <code>True</code> for the <code>node</code> <strong>Scope</strong>. Each matching <strong>Panel</strong> renders inside a collapsible section. The <strong>ContextBar</strong> icon tells you which editor is active in the right <strong>Slot</strong>."</p>
+<strong>Dev:</strong> "And if the user is in the <strong>Graph Canvas</strong> and selects the node, what shows in the <strong>CONTEXT Slot</strong>?"
+<strong>Domain expert:</strong> "The <strong>Properties Editor</strong> queries the <strong>PanelRegistry</strong> for all <strong>Panels</strong> whose <code>poll()</code> returns <code>True</code> for the <code>node</code> <strong>Scope</strong>. Each matching <strong>Panel</strong> renders inside a collapsible section. The <strong>ContextBar</strong> icon tells you which editor is active in the <strong>CONTEXT Slot</strong> (the right edge)."</p>
 </blockquote>
 <h3 id="haystack">Haystack<a class="headerlink" href="#haystack" title="Permanent link">&para;</a></h3>
 <blockquote>
@@ -4648,7 +4633,7 @@
 <li><strong>"info bar"</strong> appears in two distinct senses: <code>hui.info_bar()</code> is a Panel-level metadata bar pattern; <strong>StatusBar</strong> is a shell-level bar at the bottom of the AppShell. They are different things — never use "info bar" to mean the StatusBar.</li>
 <li><strong>"panel"</strong> in CSS token names (<code>--hw-panel-*</code>) refers to the <code>.hw-panel</code> editor container, not the <strong>Panel</strong> sub-component concept. The CSS token <code>--hw-panel-bg</code> is the background of the editor container, not a per-Panel background.</li>
 <li><strong>"area" vs "slot"</strong>: <strong>Slot</strong> is the canonical term for workspace positions. <strong>Area</strong> and <strong>canvas_area</strong> are deprecated. The term "area" now refers only to the content region within a slot (the part next to the bar). Each slot = bar + area; use <strong>Slot</strong> for the whole position, "area" (lowercase, informal) only for the content pane if disambiguation is needed.</li>
-<li><strong>"middle" vs "main"</strong>: The slot formerly called "middle" is now <strong>Main</strong>. Use <code>default_slot='main'</code> in code. "Middle" is deprecated and will cause deserialization failures in <code>workspace_state.json</code>.</li>
+<li><strong>slot names — <code>left</code>/<code>right</code>/<code>main</code>/<code>bottom</code> are removed</strong>: the four slots are now the semantic <strong>SlotName</strong> members <strong>ACTION</strong> / <strong>CONTEXT</strong> / <strong>EDIT</strong> / <strong>INFO</strong> (the centre slot, once "middle" then "main", is now <strong>EDIT</strong>). The old position strings — and the older "middle" — are no longer accepted: the <code>@editor</code> decorator raises <code>ValueError</code> on them and <code>workspace_state.json</code> files keyed by the old names fall back to defaults (no migration shim; the rename was a clean break). Use the <code>SlotName</code> member or its lowercase string value (<code>'action'</code>/<code>'context'</code>/<code>'edit'</code>/<code>'info'</code>) in code.</li>
 <li><strong>"hw-tabs" vs "hw-slot-bar-tabs"</strong>: The CSS class <code>hw-tabs</code> is deprecated. Use <code>hw-slot-bar</code> (base) + <code>hw-slot-bar-tabs</code> (horizontal tab bars) or <code>hw-slot-bar-icons</code> (vertical icon bars).</li>
 <li><strong>"session" vs "haystack"</strong>: "Session" in Haywire means a per-browser-connection state object (<strong>Session</strong>, <strong>SessionContext</strong>). A named selection of graphs to work on is a <strong>Haystack</strong>, not a "session" — despite IDE conventions. Do not use "session" to mean a saved graph selection.</li>
 <li><strong>"interpreter"</strong>: Each <strong>GraphEntry</strong> owns its own <strong>Interpreter</strong> instance. References to "the interpreter" should be qualified: "the graph's Interpreter" or "entry.interpreter". The app-level <code>self.interpreter</code> is removed.</li>

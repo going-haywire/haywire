@@ -6199,7 +6199,7 @@ focus. The <code>--editing</code> and <code>--dragging</code> CSS classes handle
 <div class="language-text highlight"><pre><span></span><code><span id="__span-31-1"><a id="__codelineno-31-1" name="__codelineno-31-1" href="#__codelineno-31-1"></a>┌───────────────────────────────────────────────────────────────┐
 </span><span id="__span-31-2"><a id="__codelineno-31-2" name="__codelineno-31-2" href="#__codelineno-31-2"></a>│  TopBar  (48px)                 bg-surface, border-bottom     │
 </span><span id="__span-31-3"><a id="__codelineno-31-3" name="__codelineno-31-3" href="#__codelineno-31-3"></a>├──────┬──────┬─────────────────────────┬──────┬────────────────┤
-</span><span id="__span-31-4"><a id="__codelineno-31-4" name="__codelineno-31-4" href="#__codelineno-31-4"></a>│ Act. │ Left │      Main Slot          │Right │  Ctx.  │
+</span><span id="__span-31-4"><a id="__codelineno-31-4" name="__codelineno-31-4" href="#__codelineno-31-4"></a>│ Act. │ACTION│      EDIT Slot          │CNTXT │  Ctx.  │
 </span><span id="__span-31-5"><a id="__codelineno-31-5" name="__codelineno-31-5" href="#__codelineno-31-5"></a>│ Bar  │ Slot │  ┌───────────────────┐  │ Slot │  Bar   │
 </span><span id="__span-31-6"><a id="__codelineno-31-6" name="__codelineno-31-6" href="#__codelineno-31-6"></a>│      │ area │  │ MainTabBar (36px) │  │ area │        │
 </span><span id="__span-31-7"><a id="__codelineno-31-7" name="__codelineno-31-7" href="#__codelineno-31-7"></a>│ 48px │ 150+ │  ├───────────────────┤  │ 150+ │  48px  │
@@ -6208,20 +6208,20 @@ focus. The <code>--editing</code> and <code>--dragging</code> CSS classes handle
 </span><span id="__span-31-10"><a id="__codelineno-31-10" name="__codelineno-31-10" href="#__codelineno-31-10"></a>│      │      │  │     (flex: 1)     │  │      │        │
 </span><span id="__span-31-11"><a id="__codelineno-31-11" name="__codelineno-31-11" href="#__codelineno-31-11"></a>│      │      │  │                   │  │      │        │
 </span><span id="__span-31-12"><a id="__codelineno-31-12" name="__codelineno-31-12" href="#__codelineno-31-12"></a>│      │      │  ├┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┤  │      │        │
-</span><span id="__span-31-13"><a id="__codelineno-31-13" name="__codelineno-31-13" href="#__codelineno-31-13"></a>│      │      │  │ BottomTabBar ▾    │  │      │        │ ← always-visible when bottom slot has tabs
+</span><span id="__span-31-13"><a id="__codelineno-31-13" name="__codelineno-31-13" href="#__codelineno-31-13"></a>│      │      │  │ BottomTabBar ▾    │  │      │        │ ← always-visible when INFO slot has tabs
 </span><span id="__span-31-14"><a id="__codelineno-31-14" name="__codelineno-31-14" href="#__codelineno-31-14"></a>│      │      │  ├───────────────────┤  │      │        │
-</span><span id="__span-31-15"><a id="__codelineno-31-15" name="__codelineno-31-15" href="#__codelineno-31-15"></a>│      │      │  │ Bottom Slot area  │  │      │        │ ← collapsible via chevron or drag
+</span><span id="__span-31-15"><a id="__codelineno-31-15" name="__codelineno-31-15" href="#__codelineno-31-15"></a>│      │      │  │  INFO Slot area   │  │      │        │ ← collapsible via chevron or drag
 </span><span id="__span-31-16"><a id="__codelineno-31-16" name="__codelineno-31-16" href="#__codelineno-31-16"></a>│      │      │  │   (optional)      │  │      │        │
 </span><span id="__span-31-17"><a id="__codelineno-31-17" name="__codelineno-31-17" href="#__codelineno-31-17"></a>│      │      │  └───────────────────┘  │      │        │
 </span><span id="__span-31-18"><a id="__codelineno-31-18" name="__codelineno-31-18" href="#__codelineno-31-18"></a>├──────┴──────┴─────────────────────────┴──────┴────────────────┤
 </span><span id="__span-31-19"><a id="__codelineno-31-19" name="__codelineno-31-19" href="#__codelineno-31-19"></a>│  StatusBar  (24px)             statusbar-bg, border-top       │
 </span><span id="__span-31-20"><a id="__codelineno-31-20" name="__codelineno-31-20" href="#__codelineno-31-20"></a>└───────────────────────────────────────────────────────────────┘
 </span></code></pre></div>
-<p>Every slot = a <strong>bar</strong> (control strip) + an <strong>area</strong> (content panel). Left and
-right slots have vertical icon bars (ActivityBar / ContextBar) classed with
-<code>hw-slot-bar hw-slot-bar-icons</code>; the main and bottom slots have horizontal tab
-bars (MainTabBar / BottomTabBar) classed with <code>hw-slot-bar hw-slot-bar-tabs</code>.
-See §9.7 for the bottom-slot retraction rules.</p>
+<p>Every slot = a <strong>bar</strong> (control strip) + an <strong>area</strong> (content panel). The ACTION
+and CONTEXT slots (left and right edges) have vertical icon bars (ActivityBar /
+ContextBar) classed with <code>hw-slot-bar hw-slot-bar-icons</code>; the EDIT and INFO slots
+(centre and bottom) have horizontal tab bars (MainTabBar / BottomTabBar) classed
+with <code>hw-slot-bar hw-slot-bar-tabs</code>. See §9.7 for the INFO-slot retraction rules.</p>
 <h3 id="92-editor-container">9.2 Editor Container<a class="headerlink" href="#92-editor-container" title="Permanent link">&para;</a></h3>
 <p>Every editor is wrapped in a <code>.hw-panel</code> container by the shell. This container
 provides the global text colour cascade and icon dim rules. Editors do not need
@@ -6361,11 +6361,10 @@ never drift.</p>
   contribute to flex layout — so the divider sits directly against the top
   edge of the tab bar row.</li>
 </ul>
-<p><strong>Persistence:</strong> Only <code>bottom.visible</code>, <code>bottom.size</code>, and
-<code>bottom.active_tab_key</code> survive save/load cycles. The tab roster itself is
-re-derived from the editor registry on every load so newly-installed bottom
-editors appear automatically without requiring users to reset their
-workspace.</p>
+<p><strong>Persistence:</strong> Only the INFO slot snapshot's <code>visible</code>, <code>size</code>, and
+<code>active_key</code> survive save/load cycles. The tab roster itself is re-derived from
+the editor registry on every load so newly-installed INFO-slot editors appear
+automatically without requiring users to reset their workspace.</p>
 <hr />
 <h2 id="10-naming-conventions">10. Naming Conventions<a class="headerlink" href="#10-naming-conventions" title="Permanent link">&para;</a></h2>
 <h3 id="101-terminology">10.1 Terminology<a class="headerlink" href="#101-terminology" title="Permanent link">&para;</a></h3>
@@ -6397,27 +6396,27 @@ also has two chrome bars (TopBar / StatusBar) and one editor-internal bar
 </tr>
 <tr>
 <td>ActivityBar</td>
-<td>left slot</td>
+<td>ACTION slot (left edge)</td>
 <td>icons</td>
-<td>Left slot editor switcher icons</td>
+<td>ACTION slot editor switcher icons</td>
 </tr>
 <tr>
 <td>ContextBar</td>
-<td>right slot</td>
+<td>CONTEXT slot (right edge)</td>
 <td>icons</td>
-<td>Right slot editor switcher icons</td>
+<td>CONTEXT slot editor switcher icons</td>
 </tr>
 <tr>
 <td>MainTabBar</td>
-<td>main slot</td>
+<td>EDIT slot (centre)</td>
 <td>tabs</td>
-<td>Main slot tab switcher (horizontal tabs)</td>
+<td>EDIT slot tab switcher (horizontal tabs)</td>
 </tr>
 <tr>
 <td>BottomTabBar</td>
-<td>bottom slot</td>
+<td>INFO slot (bottom)</td>
 <td>tabs</td>
-<td>Bottom slot tab switcher + retract chevron</td>
+<td>INFO slot tab switcher + retract chevron</td>
 </tr>
 <tr>
 <td>ScopeToolbar</td>
@@ -6427,12 +6426,13 @@ also has two chrome bars (TopBar / StatusBar) and one editor-internal bar
 </tr>
 </tbody>
 </table>
-<p><strong>Rule:</strong> The left slot hosts activity-minded editors (library browser, file
-browser, graph manager); the right slot hosts context-minded editors that react
-to selection (properties, component detail). ActivityBar and ContextBar are
-synonyms for the left slot's bar and the right slot's bar respectively.</p>
+<p><strong>Rule:</strong> The ACTION slot (left edge) hosts activity-minded editors (library
+browser, file browser, graph manager); the CONTEXT slot (right edge) hosts
+context-minded editors that react to selection (properties, component detail).
+ActivityBar and ContextBar are the bars of the ACTION and CONTEXT slots
+respectively.</p>
 <p><strong>Rule:</strong> "Sidebar" in CSS tokens (<code>--hw-bg-sidebar</code>) refers to the narrow icon
-bars (ActivityBar / ContextBar), not the left/right slot content areas.</p>
+bars (ActivityBar / ContextBar), not the ACTION/CONTEXT slot content areas.</p>
 <h3 id="102-css-class-naming">10.2 CSS Class Naming<a class="headerlink" href="#102-css-class-naming" title="Permanent link">&para;</a></h3>
 <table>
 <thead>
