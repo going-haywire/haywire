@@ -1216,6 +1216,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#6-compatibility-warnings" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. Compatibility Warnings
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#quick-reference" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2916,6 +2927,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#6-compatibility-warnings" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. Compatibility Warnings
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#quick-reference" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -3484,6 +3506,50 @@
 </table>
 <p>For the <code>pyproject.toml</code> shape, build/publish workflow, distribution via <code>marketplace.toml</code>, and the full commands for <code>uv pip install -e .</code> etc., see <a href="../haybale-package-canon/">haybale/haybale-package</a>. For the runtime infrastructure that loads your Library, see <a href="../../architecture/library-system/library-system-arch/">architecture/library-system</a>. For the studio's in-app library manager UI, see <a href="../marketplace/haybale-marketplace-arch/">haybale/marketplace</a>.</p>
 <hr />
+<h2 id="6-compatibility-warnings">6. Compatibility Warnings<a class="headerlink" href="#6-compatibility-warnings" title="Permanent link">&para;</a></h2>
+<p>Declare advisory notices for users who open graphs saved by an older version of
+your library. When a node's saved library version predates a behavioural change
+you made, Haywire shows an amber warning badge on the affected nodes and a
+summary when the graph opens. It is <strong>advisory only</strong> — it never modifies the
+user's saved graph.</p>
+<p>Override <code>compatibility_warnings()</code> on your <code>BaseLibrary</code> subclass to return an
+<strong>append-only</strong> history:</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">haywire.core.library.compatibility</span><span class="w"> </span><span class="kn">import</span> <span class="n">CompatibilityWarning</span>
+</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">.nodes</span><span class="w"> </span><span class="kn">import</span> <span class="n">WebcamFrameInfoDisplayNode</span>
+</span><span id="__span-8-3"><a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a>
+</span><span id="__span-8-4"><a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a><span class="k">class</span><span class="w"> </span><span class="nc">VisiongraphLibrary</span><span class="p">(</span><span class="n">BaseLibrary</span><span class="p">):</span>
+</span><span id="__span-8-5"><a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">compatibility_warnings</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">CompatibilityWarning</span><span class="p">]:</span>
+</span><span id="__span-8-6"><a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a>        <span class="k">return</span> <span class="p">[</span>
+</span><span id="__span-8-7"><a id="__codelineno-8-7" name="__codelineno-8-7" href="#__codelineno-8-7"></a>            <span class="n">CompatibilityWarning</span><span class="p">(</span>
+</span><span id="__span-8-8"><a id="__codelineno-8-8" name="__codelineno-8-8" href="#__codelineno-8-8"></a>                <span class="n">version</span><span class="o">=</span><span class="s2">&quot;0.0.14&quot;</span><span class="p">,</span>                       <span class="c1"># the version the change landed in</span>
+</span><span id="__span-8-9"><a id="__codelineno-8-9" name="__codelineno-8-9" href="#__codelineno-8-9"></a>                <span class="n">component</span><span class="o">=</span><span class="n">WebcamFrameInfoDisplayNode</span><span class="p">,</span>   <span class="c1"># a node class, or None for library-wide</span>
+</span><span id="__span-8-10"><a id="__codelineno-8-10" name="__codelineno-8-10" href="#__codelineno-8-10"></a>                <span class="n">message</span><span class="o">=</span><span class="s2">&quot;The &#39;frame&#39; inlet widget strategy became author-declared; &quot;</span>
+</span><span id="__span-8-11"><a id="__codelineno-8-11" name="__codelineno-8-11" href="#__codelineno-8-11"></a>                        <span class="s2">&quot;graphs saved before 0.0.14 may hide the preview widget. &quot;</span>
+</span><span id="__span-8-12"><a id="__codelineno-8-12" name="__codelineno-8-12" href="#__codelineno-8-12"></a>                        <span class="s2">&quot;Reset the node to re-derive it from current code.&quot;</span><span class="p">,</span>
+</span><span id="__span-8-13"><a id="__codelineno-8-13" name="__codelineno-8-13" href="#__codelineno-8-13"></a>            <span class="p">),</span>
+</span><span id="__span-8-14"><a id="__codelineno-8-14" name="__codelineno-8-14" href="#__codelineno-8-14"></a>        <span class="p">]</span>
+</span></code></pre></div>
+<p>Rules:</p>
+<ul>
+<li><strong><code>version</code></strong> is a strict <code>MAJOR.MINOR.PATCH</code> semver string — the version the
+  change <em>landed in</em>. A graph whose node was saved with a library version
+  <em>below</em> this value triggers the warning. A malformed version fails loudly at
+  library load.</li>
+<li><strong>Always explicit, never derived.</strong> The version is a historical fact. Do not
+  tie it to your library's current version — that would re-date entries on every
+  release and break the trigger for users who saved in between.</li>
+<li><strong>Append-only.</strong> Never remove or re-date an entry. A graph saved at any past
+  version must still trigger the right historical entries.</li>
+<li><strong><code>component</code></strong> is a node class (anything exposing <code>class_identity</code>), a
+  registry-key string, or <code>None</code> for a library-wide notice (shown once per graph
+  in the open summary).</li>
+<li>The suggested remedy shown to users is the <strong>Reset Node</strong> action (re-derives
+  the node from current code). Note it discards dynamically-created ports, so it
+  is suggested, not promised safe.</li>
+</ul>
+<p>See <a href="../../adr/0005-compatibility-warnings/">ADR-0005</a> for the rationale (why
+advisory-only and not auto-migration).</p>
+<hr />
 <h2 id="quick-reference">Quick reference<a class="headerlink" href="#quick-reference" title="Permanent link">&para;</a></h2>
 <h3 id="authoring-checklist">Authoring checklist<a class="headerlink" href="#authoring-checklist" title="Permanent link">&para;</a></h3>
 <ul class="task-list">
@@ -3497,14 +3563,14 @@
 <li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> Match folder layout to convention: <code>types/</code>, <code>adapters/</code>, <code>nodes/</code>, <code>widgets/</code>, <code>skins/</code>, <code>themes/</code></li>
 </ul>
 <h3 id="imports">Imports<a class="headerlink" href="#imports" title="Permanent link">&para;</a></h3>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">haywire.core.library.base</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseLibrary</span>
-</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">haywire.core.library.decorator</span><span class="w"> </span><span class="kn">import</span> <span class="n">library</span>
-</span><span id="__span-8-3"><a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a><span class="kn">from</span><span class="w"> </span><span class="nn">haywire.core.node.registry</span><span class="w"> </span><span class="kn">import</span> <span class="n">NodeRegistry</span>
-</span><span id="__span-8-4"><a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a><span class="kn">from</span><span class="w"> </span><span class="nn">haywire.core.types.registry</span><span class="w"> </span><span class="kn">import</span> <span class="n">TypeRegistry</span>
-</span><span id="__span-8-5"><a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a><span class="kn">from</span><span class="w"> </span><span class="nn">haywire.core.adapter.registry</span><span class="w"> </span><span class="kn">import</span> <span class="n">AdapterRegistry</span>
-</span><span id="__span-8-6"><a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a><span class="kn">from</span><span class="w"> </span><span class="nn">haywire.ui.widget.registry</span><span class="w"> </span><span class="kn">import</span> <span class="n">WidgetRegistry</span>
-</span><span id="__span-8-7"><a id="__codelineno-8-7" name="__codelineno-8-7" href="#__codelineno-8-7"></a><span class="kn">from</span><span class="w"> </span><span class="nn">haywire.ui.skin.registry</span><span class="w"> </span><span class="kn">import</span> <span class="n">SkinRegistry</span>
-</span><span id="__span-8-8"><a id="__codelineno-8-8" name="__codelineno-8-8" href="#__codelineno-8-8"></a><span class="kn">from</span><span class="w"> </span><span class="nn">haywire.ui.themes.registry</span><span class="w"> </span><span class="kn">import</span> <span class="n">ThemeRegistry</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">haywire.core.library.base</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseLibrary</span>
+</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">haywire.core.library.decorator</span><span class="w"> </span><span class="kn">import</span> <span class="n">library</span>
+</span><span id="__span-9-3"><a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a><span class="kn">from</span><span class="w"> </span><span class="nn">haywire.core.node.registry</span><span class="w"> </span><span class="kn">import</span> <span class="n">NodeRegistry</span>
+</span><span id="__span-9-4"><a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a><span class="kn">from</span><span class="w"> </span><span class="nn">haywire.core.types.registry</span><span class="w"> </span><span class="kn">import</span> <span class="n">TypeRegistry</span>
+</span><span id="__span-9-5"><a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a><span class="kn">from</span><span class="w"> </span><span class="nn">haywire.core.adapter.registry</span><span class="w"> </span><span class="kn">import</span> <span class="n">AdapterRegistry</span>
+</span><span id="__span-9-6"><a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a><span class="kn">from</span><span class="w"> </span><span class="nn">haywire.ui.widget.registry</span><span class="w"> </span><span class="kn">import</span> <span class="n">WidgetRegistry</span>
+</span><span id="__span-9-7"><a id="__codelineno-9-7" name="__codelineno-9-7" href="#__codelineno-9-7"></a><span class="kn">from</span><span class="w"> </span><span class="nn">haywire.ui.skin.registry</span><span class="w"> </span><span class="kn">import</span> <span class="n">SkinRegistry</span>
+</span><span id="__span-9-8"><a id="__codelineno-9-8" name="__codelineno-9-8" href="#__codelineno-9-8"></a><span class="kn">from</span><span class="w"> </span><span class="nn">haywire.ui.themes.registry</span><span class="w"> </span><span class="kn">import</span> <span class="n">ThemeRegistry</span>
 </span></code></pre></div>
 <h3 id="common-pitfalls">Common pitfalls<a class="headerlink" href="#common-pitfalls" title="Permanent link">&para;</a></h3>
 <table>
@@ -3548,19 +3614,19 @@
 <ol>
 <li><strong>Verify the package is installed:</strong></li>
 </ol>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>uv<span class="w"> </span>pip<span class="w"> </span>list<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>haybale-
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>uv<span class="w"> </span>pip<span class="w"> </span>list<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>haybale-
 </span></code></pre></div>
 <p>If your library is missing, run <code>uv pip install -e .</code> (editable) or <code>uv pip install .</code> from the library's directory.</p>
 <ol>
 <li><strong>Check the entry point is registered:</strong></li>
 </ol>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>python<span class="w"> </span>-c<span class="w"> </span><span class="s2">&quot;from importlib.metadata import entry_points; print([ep.name for ep in entry_points(group=&#39;haywire.libraries&#39;)])&quot;</span>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>python<span class="w"> </span>-c<span class="w"> </span><span class="s2">&quot;from importlib.metadata import entry_points; print([ep.name for ep in entry_points(group=&#39;haywire.libraries&#39;)])&quot;</span>
 </span></code></pre></div>
 <p>Your library's entry-point name (the key in <code>[project.entry-points."haywire.libraries"]</code>) should appear. If it does not, the package was not installed with entry-point metadata — re-install it.</p>
 <ol>
 <li><strong>Verify the Library class loads:</strong></li>
 </ol>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>python<span class="w"> </span>-c<span class="w"> </span><span class="s2">&quot;from haybale_mylib import Library; print(Library.class_identity)&quot;</span>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a>python<span class="w"> </span>-c<span class="w"> </span><span class="s2">&quot;from haybale_mylib import Library; print(Library.class_identity)&quot;</span>
 </span></code></pre></div>
 <p>Replace <code>haybale_mylib</code> with your module name. An import error here means the module is broken independently of Haywire.</p>
 <ol>
@@ -3571,13 +3637,13 @@
 <ol>
 <li><strong>Confirm editable install:</strong></li>
 </ol>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a>uv<span class="w"> </span>pip<span class="w"> </span>list<span class="w"> </span>--editable<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>haybale-
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a>uv<span class="w"> </span>pip<span class="w"> </span>list<span class="w"> </span>--editable<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>haybale-
 </span></code></pre></div>
 <p>Regular (non-editable) installs have no live source path — the file watcher has nothing to watch.</p>
 <ol>
 <li><strong>Confirm <code>file_watcher=True</code> in the <code>@library</code> decorator:</strong></li>
 </ol>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="nd">@library</span><span class="p">(</span><span class="n">label</span><span class="o">=</span><span class="s1">&#39;My Library&#39;</span><span class="p">,</span> <span class="nb">id</span><span class="o">=</span><span class="s1">&#39;my_library&#39;</span><span class="p">,</span> <span class="n">file_watcher</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a><span class="nd">@library</span><span class="p">(</span><span class="n">label</span><span class="o">=</span><span class="s1">&#39;My Library&#39;</span><span class="p">,</span> <span class="nb">id</span><span class="o">=</span><span class="s1">&#39;my_library&#39;</span><span class="p">,</span> <span class="n">file_watcher</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 </span></code></pre></div>
 <p>Without this, no watcher is started for this library regardless of system settings.</p>
 <ol>

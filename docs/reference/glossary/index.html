@@ -3807,6 +3807,21 @@
 <td>The Claude skill that generates <code>README.md</code>, <code>OVERVIEW.md</code>, <code>QUICKREF.md</code>, and per-component <code>docs/</code> for a haybale package in one pass. Syncs docstrings first. Uses sha256 hashes to skip unchanged per-component docs. Preserves <code>&lt;!-- marketstall:share-url --&gt;</code> marker blocks in the README verbatim (spec §6.6). Never modifies <code>NOTES.md</code>.</td>
 <td>—</td>
 </tr>
+<tr>
+<td><strong>Compatibility Warning</strong></td>
+<td>An advisory, author-declared notice that a graph saved by an older library version may not reflect a later behavioural change. Declared as an append-only history via <code>BaseLibrary.compatibility_warnings()</code>; each entry is a <code>CompatibilityWarning(version, component, message)</code>. On load, the <code>CompatibilityChecker</code> fires it when a node's saved <code>library.version</code> is <em>below</em> the entry's <code>version</code>. Read-only — never mutates saved data; the suggested remedy is the Reset Node action. See <a href="../../adr/0005-compatibility-warnings/">ADR-0005</a>.</td>
+<td>migration (implies data transformation — this never transforms), changelog</td>
+</tr>
+<tr>
+<td><strong>CompatibilityChecker</strong></td>
+<td>The stateless service run once inside <code>Graph.load_from_dict</code> that resolves which Compatibility Warnings fire for a loaded graph and writes <code>NodeWarning</code> records onto node state. Pure logic; takes a library-history lookup, returns findings.</td>
+<td>—</td>
+</tr>
+<tr>
+<td><strong>NodeWarning</strong></td>
+<td>An advisory record on <code>NodeWrapperState.warnings</code> (distinct from errors; does not affect <code>is_valid()</code>). First writer is the Compatibility Warning feature (<code>kind="compatibility"</code>).</td>
+<td>node error (errors invalidate; warnings advise)</td>
+</tr>
 </tbody>
 </table>
 <hr />
