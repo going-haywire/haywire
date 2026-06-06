@@ -65,9 +65,21 @@ FLOAT (IType cls)   →   FLOAT.as_inlet(    →   DataPort instance
 | `on_change` | `str` | Name of a node method to call when the port's value changes |
 | `on_connect` | `str` | Name of a node method to call when an edge connects |
 | `on_disconnect` | `str` | Name of a node method to call when an edge disconnects |
-| `store_data` | `bool` | Override whether values persist on graph save |
+| `show_widget` | `ShowWidgetStrategy` | When the port's inline widget renders, relative to link state (see below) |
+| `store_strategy` | `StoreStrategy` | When values persist on graph save (older docs called this `store_data: bool` — out of date) |
 
 The `on_change` callback is what you wire to a `hb_*` reconfigure method when a config port should rebuild dynamic ports. See [components/nodes](../components/nodes/node-canon.md) §3 for the rejig pattern.
+
+**Widget visibility (`show_widget`).** A `ShowWidgetStrategy` controlling whether a port's inline widget is rendered on the node card, relative to whether the pin is linked:
+
+| Value | Not linked | Linked |
+|---|---|---|
+| `NEVER` | hidden | hidden |
+| `NOT_LINKED` | shown | hidden |
+| `WHEN_LINKED` | hidden | shown |
+| `ALWAYS` | shown | shown |
+
+Defaults are per-direction and usually correct without setting anything: **inlet → `NOT_LINKED`** (a connected inlet's widget is misleading, since the upstream edge overrides it), **outlet → `NEVER`** (an outlet's value is produced by the node, not entered), **config → `ALWAYS`** (a config port has no pin, so it is never linked). Because a widget can be assigned once at the type level, these defaults let the same type render an editable widget on inlets and suppress it on outlets automatically. Override per-port when needed, e.g. `FLOAT.as_inlet('gain', widget=..., show_widget=ShowWidgetStrategy.ALWAYS)`. Widgets toggle live when you connect/disconnect a pin. The full rationale is in [ADR 0003](../adr/0003-show-widget-strategy.md).
 
 **Three port shapes per type.** Every datatype gives you three connection shapes:
 
