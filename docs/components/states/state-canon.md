@@ -126,8 +126,9 @@ Type-checker enforces the asymmetry: `exec_ctx.data` is an `AttributeError` at r
 # Recommended — re-resolves on each access
 def draw(self, ctx, layout):
     pool = ctx.app_data[MidiPool]
-    for device in pool.devices:
-        layout.label(device.name)
+    with layout:
+        for device in pool.devices:
+            hui.label(device.name)
 
 # Acceptable inside a short worker body — captured once
 def worker(self, exec_ctx):

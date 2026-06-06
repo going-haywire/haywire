@@ -65,8 +65,9 @@ class OpenInHaystackPanel(BasePanel):
             entry = hs.open_graph(path)
             self.actions.reveal(GraphEditor, binding_id=entry.binding_id, label=entry.display_name)
 
-        layout.button(
-            "Open in Haystack",
-            icon=hui.icon.graph,
-            on_click=_do_open,
-        )
+        with layout:
+            hui.button(
+                "Open in Haystack",
+                icon=hui.icon.graph,
+                on_click=_do_open,
+            )

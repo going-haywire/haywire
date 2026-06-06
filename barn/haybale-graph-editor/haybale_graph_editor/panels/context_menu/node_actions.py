@@ -44,11 +44,12 @@ class DeleteNodePanel(BasePanel):
         if node is None:
             return
         node_id = node.node_id
-        layout.button(
-            "Delete Node",
-            icon=hui.icon.delete,
-            on_click=lambda: self.actions.delete_node(node_id),
-        )
+        with layout:
+            hui.button(
+                "Delete Node",
+                icon=hui.icon.delete,
+                on_click=lambda: self.actions.delete_node(node_id),
+            )
 
 
 @panel(
@@ -74,11 +75,12 @@ class CopyNodePanel(BasePanel):
         if node is None:
             return
         node_id = node.node_id
-        layout.button(
-            "Copy Node",
-            icon=hui.icon.copy,
-            on_click=lambda: self.actions.copy_node(node_id),
-        )
+        with layout:
+            hui.button(
+                "Copy Node",
+                icon=hui.icon.copy,
+                on_click=lambda: self.actions.copy_node(node_id),
+            )
 
 
 @panel(
@@ -104,11 +106,12 @@ class RedrawNodePanel(BasePanel):
         if node is None:
             return
         node_id = node.node_id
-        layout.button(
-            "Redraw Node",
-            icon=hui.icon.refresh,
-            on_click=lambda: self.actions.redraw_node(node_id),
-        )
+        with layout:
+            hui.button(
+                "Redraw Node",
+                icon=hui.icon.refresh,
+                on_click=lambda: self.actions.redraw_node(node_id),
+            )
 
 
 @panel(
@@ -134,11 +137,12 @@ class RevalidateNodePanel(BasePanel):
         if node is None:
             return
         node_id = node.node_id
-        layout.button(
-            "Revalidate Node",
-            icon=hui.icon.node_status,
-            on_click=lambda: self.actions.revalidate_node(node_id),
-        )
+        with layout:
+            hui.button(
+                "Revalidate Node",
+                icon=hui.icon.node_status,
+                on_click=lambda: self.actions.revalidate_node(node_id),
+            )
 
 
 @panel(
@@ -164,8 +168,9 @@ class ResetNodePanel(BasePanel):
         if node is None:
             return
         node_id = node.node_id
-        layout.button(
-            "Reset Node",
-            icon=hui.icon.reset,
-            on_click=lambda: self.actions.reset_node(node_id),
-        )
+        with layout:
+            hui.button(
+                "Reset Node",
+                icon=hui.icon.reset,
+                on_click=lambda: self.actions.reset_node(node_id),
+            )

@@ -202,11 +202,12 @@ class DeleteEdgePanel(BasePanel):
             return
         edge_id = edge.edge_id
 
-        layout.button(
-            "Delete Connection",
-            icon=hui.icon.delete,
-            on_click=lambda: self.actions.delete_edge(edge_id),
-        )
+        with layout:
+            hui.button(
+                "Delete Connection",
+                icon=hui.icon.delete,
+                on_click=lambda: self.actions.delete_edge(edge_id),
+            )
 
 
 # ---------------------------------------------------------------------------

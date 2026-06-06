@@ -40,27 +40,28 @@ class NodeStatusPanel(BasePanel):
         node = ctx.data[EditState].active_node
         if node is None:
             return
-        try:
-            wrapper_state = getattr(node, "state", None)
-            if wrapper_state is None:
-                layout.label("No state available")
-                return
+        with layout:
+            try:
+                wrapper_state = getattr(node, "state", None)
+                if wrapper_state is None:
+                    hui.label("No state available")
+                    return
 
-            _is_valid_fn = getattr(wrapper_state, "is_valid", None)
-            is_valid = wrapper_state.is_valid() if callable(_is_valid_fn) else "?"
-            layout.label(f"Valid: {is_valid}")
-            layout.label(f"Registered: {getattr(wrapper_state, 'is_registered', '?')}")
-            layout.label(f"Initialized: {getattr(wrapper_state, 'is_initialized', '?')}")
-            layout.label(f"Structural: {getattr(wrapper_state, 'is_structural', '?')}")
-            layout.label(f"Tested: {getattr(wrapper_state, 'has_test_passed', '?')}")
+                _is_valid_fn = getattr(wrapper_state, "is_valid", None)
+                is_valid = wrapper_state.is_valid() if callable(_is_valid_fn) else "?"
+                hui.label(f"Valid: {is_valid}")
+                hui.label(f"Registered: {getattr(wrapper_state, 'is_registered', '?')}")
+                hui.label(f"Initialized: {getattr(wrapper_state, 'is_initialized', '?')}")
+                hui.label(f"Structural: {getattr(wrapper_state, 'is_structural', '?')}")
+                hui.label(f"Tested: {getattr(wrapper_state, 'has_test_passed', '?')}")
 
-            _get_errors_fn = getattr(wrapper_state, "get_errors", None)
-            errors = wrapper_state.get_errors() if callable(_get_errors_fn) else None
-            if errors:
-                layout.separator()
-                layout.label("Errors:")
-                for err in errors:
-                    layout.label(f"  ! {err}")
+                _get_errors_fn = getattr(wrapper_state, "get_errors", None)
+                errors = wrapper_state.get_errors() if callable(_get_errors_fn) else None
+                if errors:
+                    hui.separator()
+                    hui.label("Errors:")
+                    for err in errors:
+                        hui.label(f"  ! {err}")
 
-        except Exception:
-            layout.label("Error reading status")
+            except Exception:
+                hui.label("Error reading status")

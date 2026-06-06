@@ -47,8 +47,9 @@ class ReconnectEdgePanel(BasePanel):
         ctx: "SessionContext",
         layout: PanelLayout,
     ) -> None:
-        layout.button(
-            "Reconnect",
-            icon=hui.icon.edge,
-            on_click=self.actions.reconnect_active_edge,
-        )
+        with layout:
+            hui.button(
+                "Reconnect",
+                icon=hui.icon.edge,
+                on_click=self.actions.reconnect_active_edge,
+            )

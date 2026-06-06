@@ -39,11 +39,12 @@ class TestCopySelectionPanel(BasePanel):
         ctx: "SessionContext",
         layout: PanelLayout,
     ) -> None:
-        layout.button(
-            "Copy Selection",
-            icon=hui.icon.copy,
-            on_click=self.actions.test_copy_selection,
-        )
+        with layout:
+            hui.button(
+                "Copy Selection",
+                icon=hui.icon.copy,
+                on_click=self.actions.test_copy_selection,
+            )
 
 
 @panel(
@@ -65,8 +66,9 @@ class TestPasteSelectionPanel(BasePanel):
         ctx: "SessionContext",
         layout: PanelLayout,
     ) -> None:
-        layout.button(
-            "Paste",
-            icon=hui.icon.paste,
-            on_click=self.actions.test_paste_at_click,
-        )
+        with layout:
+            hui.button(
+                "Paste",
+                icon=hui.icon.paste,
+                on_click=self.actions.test_paste_at_click,
+            )

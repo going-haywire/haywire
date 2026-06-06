@@ -16,6 +16,7 @@ from typing import TYPE_CHECKING
 from haybale_testing.state import TestSessionState
 from haybale_testing.test_actions import TestCanvasContextActions
 from haybale_testing.test_focuses import TestCanvasFocus
+from haywire.ui import elements as hui
 from haywire.ui.panel import BasePanel
 from haywire.ui.panel.decorator import panel
 from haywire.ui.panel.layout import PanelLayout
@@ -46,7 +47,8 @@ class TestSessionStatePanel(BasePanel):
         layout: PanelLayout,
     ) -> None:
         counter = ctx.data[TestSessionState].counter
-        layout.label(f"counter: {counter}")
+        with layout:
+            hui.label(f"counter: {counter}")
 
 
 # --8<-- [end:test_session_state_panel]

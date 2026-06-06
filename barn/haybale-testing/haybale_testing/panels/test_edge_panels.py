@@ -50,11 +50,12 @@ class TestDeleteEdgePanel(BasePanel):
         if edge is None:
             return
         edge_id = edge.edge_id
-        layout.button(
-            "Delete Connection",
-            icon=hui.icon.delete,
-            on_click=lambda: self.actions.test_delete_edge(edge_id),
-        )
+        with layout:
+            hui.button(
+                "Delete Connection",
+                icon=hui.icon.delete,
+                on_click=lambda: self.actions.test_delete_edge(edge_id),
+            )
 
 
 @panel(
@@ -80,11 +81,12 @@ class TestInspectEdgePanel(BasePanel):
         if edge is None:
             return
         edge_id = edge.edge_id
-        layout.button(
-            "Inspect Connection",
-            icon=hui.icon.node_info,
-            on_click=lambda: self.actions.test_inspect_edge(edge_id),
-        )
+        with layout:
+            hui.button(
+                "Inspect Connection",
+                icon=hui.icon.node_info,
+                on_click=lambda: self.actions.test_inspect_edge(edge_id),
+            )
 
 
 @panel(

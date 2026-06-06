@@ -47,9 +47,10 @@ class NodeInfoPanel(BasePanel):
             node_id = getattr(node, "node_id", str(node))
         except Exception:
             label, cls_name, node_id = "?", "?", "?"
-        layout.label(f"Name: {label}")
-        layout.label(f"Class: {cls_name}")
-        layout.label(f"ID: {node_id}")
+        with layout:
+            hui.label(f"Name: {label}")
+            hui.label(f"Class: {cls_name}")
+            hui.label(f"ID: {node_id}")
 
 
 @panel(

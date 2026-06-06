@@ -46,7 +46,8 @@ class CreateNodePanel(BasePanel):
     ) -> None:
         node_factory = ctx.app.node_factory
         if node_factory is None:
-            layout.label("No node factory available.")
+            with layout:
+                hui.label("No node factory available.")
             return
 
         def _on_node_selected(node_info: NodeInfo) -> None:
@@ -94,8 +95,9 @@ class CanvasPasteSelectionPanel(BasePanel):
         ctx: "SessionContext",
         layout: PanelLayout,
     ) -> None:
-        layout.button(
-            "Paste",
-            icon=hui.icon.paste,
-            on_click=self.actions.paste_at_click,
-        )
+        with layout:
+            hui.button(
+                "Paste",
+                icon=hui.icon.paste,
+                on_click=self.actions.paste_at_click,
+            )

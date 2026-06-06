@@ -41,11 +41,13 @@ class TestCreateNodePanel(BasePanel):
         node_factory = ctx.app.node_factory
 
         if node_factory is None:
-            layout.label("No node factory available.")
+            with layout:
+                hui.label("No node factory available.")
             return
 
         def _on_node_selected(node_info: NodeInfo) -> None:
             self.actions.test_create_node_at_click(node_info.identity.registry_key)
 
-        builder = NodeMenuBuilder(node_factory, on_node_selected=_on_node_selected)
-        builder.create_node_menu(recent_nodes=[], show_search=True)
+        with layout:
+            builder = NodeMenuBuilder(node_factory, on_node_selected=_on_node_selected)
+            builder.create_node_menu(recent_nodes=[], show_search=True)

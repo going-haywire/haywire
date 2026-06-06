@@ -39,14 +39,15 @@ class GraphInfoPanel(BasePanel):
         graph = ctx.data[EditState].active_graph
         if graph is None:
             return
-        try:
-            nodes = graph.list_node_wrappers()
-            edges = graph.list_edge_wrappers
-            node_count = len(nodes) if hasattr(nodes, "__len__") else "?"
-            edge_count = len(edges) if hasattr(edges, "__len__") else "?"
-            layout.label(f"Nodes: {node_count}")
-            layout.label(f"Edges: {edge_count}")
-            graph_name = getattr(graph, "name", None) or getattr(graph, "graph_id", "?")
-            layout.label(f"Graph: {graph_name}")
-        except Exception:
-            layout.label("Error reading graph info")
+        with layout:
+            try:
+                nodes = graph.list_node_wrappers()
+                edges = graph.list_edge_wrappers
+                node_count = len(nodes) if hasattr(nodes, "__len__") else "?"
+                edge_count = len(edges) if hasattr(edges, "__len__") else "?"
+                hui.label(f"Nodes: {node_count}")
+                hui.label(f"Edges: {edge_count}")
+                graph_name = getattr(graph, "name", None) or getattr(graph, "graph_id", "?")
+                hui.label(f"Graph: {graph_name}")
+            except Exception:
+                hui.label("Error reading graph info")

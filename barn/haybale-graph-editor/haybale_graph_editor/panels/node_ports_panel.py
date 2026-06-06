@@ -40,41 +40,42 @@ class NodePortsPanel(BasePanel):
         node = ctx.data[EditState].active_node
         if node is None:
             return
-        try:
-            hw_node = node.node if hasattr(node, "node") else None
-            if hw_node is None:
-                layout.label("No port data available")
-                return
+        with layout:
+            try:
+                hw_node = node.node if hasattr(node, "node") else None
+                if hw_node is None:
+                    hui.label("No port data available")
+                    return
 
-            inlets = list(getattr(hw_node, "inlets", {}).values())
-            outlets = list(getattr(hw_node, "outlets", {}).values())
-            configs = [
-                p
-                for p in getattr(hw_node, "ports", {}).values()
-                if hasattr(p, "flow_type") and str(getattr(p.flow_type, "name", "")) == "NONE"
-            ]
+                inlets = list(getattr(hw_node, "inlets", {}).values())
+                outlets = list(getattr(hw_node, "outlets", {}).values())
+                configs = [
+                    p
+                    for p in getattr(hw_node, "ports", {}).values()
+                    if hasattr(p, "flow_type") and str(getattr(p.flow_type, "name", "")) == "NONE"
+                ]
 
-            layout.label(f"Inlets ({len(inlets)})")
-            for port in inlets:
-                port_id = getattr(port, "port_id", "?")
-                port_type = getattr(port, "data_type", None)
-                type_name = port_type.__class__.__name__ if port_type else "?"
-                layout.label(f"  • {port_id}: {type_name}")
-
-            layout.separator()
-            layout.label(f"Outlets ({len(outlets)})")
-            for port in outlets:
-                port_id = getattr(port, "port_id", "?")
-                port_type = getattr(port, "data_type", None)
-                type_name = port_type.__class__.__name__ if port_type else "?"
-                layout.label(f"  • {port_id}: {type_name}")
-
-            if configs:
-                layout.separator()
-                layout.label(f"Config ({len(configs)})")
-                for port in configs:
+                hui.label(f"Inlets ({len(inlets)})")
+                for port in inlets:
                     port_id = getattr(port, "port_id", "?")
-                    layout.label(f"  • {port_id}")
+                    port_type = getattr(port, "data_type", None)
+                    type_name = port_type.__class__.__name__ if port_type else "?"
+                    hui.label(f"  • {port_id}: {type_name}")
 
-        except Exception:
-            layout.label("Error reading ports")
+                hui.separator()
+                hui.label(f"Outlets ({len(outlets)})")
+                for port in outlets:
+                    port_id = getattr(port, "port_id", "?")
+                    port_type = getattr(port, "data_type", None)
+                    type_name = port_type.__class__.__name__ if port_type else "?"
+                    hui.label(f"  • {port_id}: {type_name}")
+
+                if configs:
+                    hui.separator()
+                    hui.label(f"Config ({len(configs)})")
+                    for port in configs:
+                        port_id = getattr(port, "port_id", "?")
+                        hui.label(f"  • {port_id}")
+
+            except Exception:
+                hui.label("Error reading ports")

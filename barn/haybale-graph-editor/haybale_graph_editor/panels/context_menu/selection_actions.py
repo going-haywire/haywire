@@ -41,11 +41,12 @@ class CopySelectionPanel(BasePanel):
         ctx: "SessionContext",
         layout: PanelLayout,
     ) -> None:
-        layout.button(
-            "Copy Selection",
-            icon=hui.icon.copy,
-            on_click=self.actions.copy_selection,
-        )
+        with layout:
+            hui.button(
+                "Copy Selection",
+                icon=hui.icon.copy,
+                on_click=self.actions.copy_selection,
+            )
 
 
 @panel(
@@ -76,11 +77,12 @@ class SelectionPasteSelectionPanel(BasePanel):
         ctx: "SessionContext",
         layout: PanelLayout,
     ) -> None:
-        layout.button(
-            "Paste",
-            icon=hui.icon.paste,
-            on_click=self.actions.paste_at_click,
-        )
+        with layout:
+            hui.button(
+                "Paste",
+                icon=hui.icon.paste,
+                on_click=self.actions.paste_at_click,
+            )
 
 
 @panel(
@@ -105,8 +107,9 @@ class DeleteSelectionPanel(BasePanel):
         ctx: "SessionContext",
         layout: PanelLayout,
     ) -> None:
-        layout.button(
-            "Delete Selection",
-            icon=hui.icon.delete,
-            on_click=self.actions.delete_selection,
-        )
+        with layout:
+            hui.button(
+                "Delete Selection",
+                icon=hui.icon.delete,
+                on_click=self.actions.delete_selection,
+            )

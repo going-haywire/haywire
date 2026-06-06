@@ -114,7 +114,8 @@ def draw(
     layout: PanelLayout,
 ) -> None:
     """Render the panel content. Called only when poll() returned True."""
-    layout.label(f'Active: {ctx.data[EditState].active_node.name}')
+    with layout:
+        hui.label(f'Active: {ctx.data[EditState].active_node.name}')
 ```
 
 `poll` is a classmethod (no instance state needed for visibility decisions). `draw` is an instance method — the host editor instantiates the panel before calling it. Action panels access the injected host via `self.actions`; display panels leave `self.actions` at its default `None`.
@@ -122,6 +123,7 @@ def draw(
 **Action panel** (has an `actions:` annotation; mounted by a context-menu host):
 
 ```python
+from haywire.ui import elements as hui
 from haywire.ui.panel import BasePanel
 from haywire.ui.panel.decorator import panel
 from my_lib.actions import NodeContextActions
@@ -133,7 +135,8 @@ class DeleteNodePanel(BasePanel):
 
     def draw(self, ctx, layout):
         node = ctx.data[EditState].active_node
-        layout.button("Delete", on_click=lambda: self.actions.delete_node(node.node_id))
+        with layout:
+            hui.button("Delete", on_click=lambda: self.actions.delete_node(node.node_id))
 ```
 
 **Display panel** (no `actions:` annotation; mounted by PropertiesEditor):
@@ -156,22 +159,24 @@ return False                                              # never visible (debug
 
 Library-owned reactive state lives on a `SessionState` subclass (`ctx.data[Cls]`) or `AppState` subclass (`ctx.app_data[Cls]`). For the canvas, that state is `EditState`. See [components/states](../states/state-canon.md).
 
-**`PanelLayout` API — what `draw` gets.** A thin wrapper over the `hui` design-system primitives ([reference/design-guide](../../reference/design-guide.md) §8) bound to the panel's container. Common methods:
+**`PanelLayout` API — what `draw` gets.** `PanelLayout` is **not** a façade over `hui`. It is the panel's container, bound as a context manager. Render by activating it with `with layout:` and calling `hui.*` functions directly — `hui` ([reference/design-guide](../../reference/design-guide.md) §8) is the single rendering vocabulary:
 
-| Method | Purpose |
-|---|---|
-| `layout.label(text)` | Body-tier text label (`--hw-text-body`). |
-| `layout.section_label(text)` | Uppercase tracking label that separates groups. |
-| `layout.section_divider(text=None)` | Visual break between sections, optional label. |
-| `layout.separator()` | Plain themed horizontal rule. |
-| `layout.panel_header(title, icon=...)` | Slim header bar; context manager for trailing action buttons. |
-| `layout.expansion_section(label, icon=..., default_open=True, panel_key=...)` | Collapsible context manager with persisted open/closed state. |
-| `layout.button(text, icon=..., on_click=...)` | Flat labelled action button. |
-| `layout.icon_action(icon, tooltip=..., on_click=...)` | Icon-only action button. |
-| `layout.empty_state(message, icon=..., hint=...)` | Centred placeholder for panels with no content. |
-| `layout.error_label(text)` / `layout.warning_label(text)` | Tinted message labels. |
+```python
+def draw(self, ctx, layout):
+    with layout:
+        hui.section_label("PORTS")
+        hui.info_row("Inlet", "Image")
+        hui.button("Delete Node", icon=hui.icon.delete, on_click=self._delete)
+```
 
-`PanelLayout` also works as a context manager — `with layout:` activates the underlying container so you can call `hui.*` functions directly inside it for full design-system access.
+It exposes exactly two members:
+
+| Member | Purpose |
+| --- | --- |
+| `with layout:` / `layout.container` | Activates / returns the panel's container element. |
+| `layout.expansion_state` | Caller-owned persistence bag (or `None`). Pass to `hui.expansion_section(..., state=layout.expansion_state, panel_key=...)` to persist a section's open/closed state across rebuilds. |
+
+**Rule:** Do not look for `layout.label()` / `layout.button()` / `layout.empty_state()` style helpers — they no longer exist. Use the `hui.*` function of the same name inside `with layout:`. For key/value metadata prefer `hui.info_row()` over `hui.label("Key: value")` (see design-guide §8.6).
 
 **Ordering.** `order=` controls vertical position within a focus. Convention: 0–99 for built-in panels, 100+ for library panels, 1000+ for "always-last" panels (debug, advanced).
 
@@ -195,13 +200,13 @@ from haybale_studio.focuses import NodeFocus, GraphFocus, EdgeFocus
 
 Source: [`barn/haybale-testing/haybale_testing/panels/`](../../../barn/haybale-testing/haybale_testing/panels/)
 
-**Simple action panel** — `TestDeleteNodePanel` from [`test_node_panels.py`](../../../barn/haybale-testing/haybale_testing/panels/test_node_panels.py). Demonstrates the minimal action-panel skeleton: `@panel` decorator, `actions: TestNodeContextActions` class-body annotation, `poll()` checking `EditState`, `draw()` calling `layout.button()` and dispatching through `self.actions`:
+**Simple action panel** — `TestDeleteNodePanel` from [`test_node_panels.py`](../../../barn/haybale-testing/haybale_testing/panels/test_node_panels.py). Demonstrates the minimal action-panel skeleton: `@panel` decorator, `actions: TestNodeContextActions` class-body annotation, `poll()` checking `EditState`, `draw()` rendering with `with layout: hui.button(...)` and dispatching through `self.actions`:
 
 ```python
 --8<-- "barn/haybale-testing/haybale_testing/panels/test_node_panels.py:test_delete_node_panel"
 ```
 
-**SessionState-reading panel** — `TestSessionStatePanel` from [`test_session_state_panel.py`](../../../barn/haybale-testing/haybale_testing/panels/test_session_state_panel.py). Demonstrates `poll()` reading a `SessionState` signal field and `draw()` displaying it with `layout.label()`:
+**SessionState-reading panel** — `TestSessionStatePanel` from [`test_session_state_panel.py`](../../../barn/haybale-testing/haybale_testing/panels/test_session_state_panel.py). Demonstrates `poll()` reading a `SessionState` signal field and `draw()` displaying it with `with layout: hui.label(...)`:
 
 ```python
 --8<-- "barn/haybale-testing/haybale_testing/panels/test_session_state_panel.py:test_session_state_panel"
@@ -216,13 +221,13 @@ What these examples exercise:
 | `poll(cls, ctx)` as `@classmethod` | both panels |
 | `ctx.data[Cls].signal_field` (bare attribute) in `poll` | both panels |
 | `draw(self, ctx, layout)` 2-arg signature | both panels |
-| `layout.button(label, icon, on_click)` | `TestDeleteNodePanel` |
+| `with layout: hui.button(label, icon, on_click)` | `TestDeleteNodePanel` |
 | Dispatching through the action contract via `self.actions` | `self.actions.test_delete_node(node_id)` |
-| `layout.label(text)` | `TestSessionStatePanel` |
+| `with layout: hui.label(text)` | `TestSessionStatePanel` |
 | Reading `SessionState` via `ctx.data[Cls]` | `TestSessionStatePanel` |
 | `TYPE_CHECKING` guard for `SessionContext` import | both panels |
 
-For the host Properties editor (a panel-aware editor in `haybale-studio`), see [components/editors](../editors/editor-canon.md). For the AppState that backs the metrics, see [components/states](../states/state-canon.md). For the `PanelLayout` design-system primitives in detail, see [reference/design-guide](../../reference/design-guide.md) §8.
+For the host Properties editor (a panel-aware editor in `haybale-studio`), see [components/editors](../editors/editor-canon.md). For the AppState that backs the metrics, see [components/states](../states/state-canon.md). For the `hui.*` design-system primitives a panel renders with, see [reference/design-guide](../../reference/design-guide.md) §8.
 
 ---
 
@@ -236,7 +241,7 @@ For the host Properties editor (a panel-aware editor in `haybale-studio`), see [
 - [ ] Implement `poll(cls, ctx) -> bool` — fast visibility check (`@classmethod`)
 - [ ] Implement `draw(self, ctx, layout)` — render content; access host as `self.actions.method(...)`
 - [ ] Set `order=` deliberately (100+ for library panels)
-- [ ] Use `PanelLayout` methods first; drop into raw `hui.*` / `ui.*` when needed
+- [ ] Render via `with layout:` then call `hui.*` directly (`hui.info_row`, `hui.button`, `hui.empty_state`, …); drop to raw `ui.*` only for patterns `hui` doesn't cover
 - [ ] Custom helpers: `hb_*` prefix
 - [ ] Place in `panels/` folder; register via `add_folder_to_registry(folder_path=..., registry_cls=PanelRegistry)` in `register_components`
 

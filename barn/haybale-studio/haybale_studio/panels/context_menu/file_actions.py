@@ -72,11 +72,12 @@ class OpenInCodeEditorPanel(BasePanel):
             ctx.active_file = path
             self.actions.reveal(CodeEditor, binding_id=str(path), label=path.name)
 
-        layout.button(
-            "Open in Code Editor",
-            icon=hui.icon.edit,
-            on_click=_do_open,
-        )
+        with layout:
+            hui.button(
+                "Open in Code Editor",
+                icon=hui.icon.edit,
+                on_click=_do_open,
+            )
 
 
 @panel(
@@ -115,8 +116,9 @@ class OpenInFileViewerPanel(BasePanel):
             ctx.active_file = path
             self.actions.reveal(FileViewerEditor, binding_id=str(path), label=path.name)
 
-        layout.button(
-            "Open in File Viewer",
-            icon=hui.icon.library_component,
-            on_click=_do_open,
-        )
+        with layout:
+            hui.button(
+                "Open in File Viewer",
+                icon=hui.icon.library_component,
+                on_click=_do_open,
+            )
