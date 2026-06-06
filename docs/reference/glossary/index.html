@@ -4362,6 +4362,11 @@
 <td>haywire.ui.elements (use <code>hui</code> as the import alias)</td>
 </tr>
 <tr>
+<td><strong>PanelLayout</strong></td>
+<td>The container handle passed to <code>BasePanel.draw()</code>. A context manager bound to the panel's container — <strong>not</strong> a façade over <code>hui</code>. Panels render via <code>with layout:</code> then call <code>hui.*</code> directly; <code>hui</code> is the single rendering vocabulary. The only content helper it carries is <code>expansion_section</code>, which threads container-bound expansion-state persistence. See <a href="../../components/panels/panel-canon/">components/panels</a></td>
+<td>layout (the <code>draw</code> arg); <em>not</em> "layout helper" — it is not a façade</td>
+</tr>
+<tr>
 <td><strong>CSS token</strong></td>
 <td>A <code>--hw-*</code> CSS custom property that encodes a design-system value (colour, size, shadow); every structural colour in the app must reference a token, never a hardcoded value</td>
 <td>CSS variable (CSS token is the project term)</td>
