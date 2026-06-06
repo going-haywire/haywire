@@ -7,8 +7,6 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from nicegui import ui
-
 from haybale_graph_editor.state.edit_state import EditState
 from haybale_testing.test_actions import TestEdgeContextActions
 from haybale_testing.test_focuses import TestEdgeFocus
@@ -117,14 +115,12 @@ class TestEdgeErrorsPanel(BasePanel):
         if error is None:
             return
 
-        with layout.container:
-            with ui.column().classes("w-full gap-1 p-2"):
-                ui.label("⚠ Connection Error").classes("text-red-500 font-semibold text-sm")
-                if isinstance(error, HaywireException):
-                    ui.label(f"Category: {error.category}").classes("text-xs text-red-400 ml-1")
-                    error_render_detail(error)
-                else:
-                    ui.label(str(error)).classes("text-red-400 text-xs whitespace-pre-wrap break-words")
+        with layout:
+            if isinstance(error, HaywireException):
+                hui.info_row("Category", str(error.category))
+                error_render_detail(error)
+            else:
+                hui.error_label(str(error)).classes("whitespace-pre-wrap break-words")
 
 
 @panel(
@@ -152,12 +148,9 @@ class TestEdgeConnectionPathPanel(BasePanel):
             return
         edge = wrapper.edge
 
-        with layout.container:
-            with ui.column().classes("w-full gap-1 p-2"):
-                ui.label("Connection Path").classes("font-semibold text-sm")
-                ui.label(f"{edge.source_node_id} [{edge.outlet_port_id}]").classes("text-xs opacity-70")
-                ui.label("↓").classes("text-xs opacity-50 ml-2")
-                ui.label(f"{edge.sink_node_id} [{edge.inlet_port_id}]").classes("text-xs opacity-70")
+        with layout:
+            hui.info_row("From", f"{edge.source_node_id}[{edge.outlet_port_id}]")
+            hui.info_row("To", f"{edge.sink_node_id}[{edge.inlet_port_id}]")
 
 
 @panel(
@@ -184,10 +177,7 @@ class TestEdgeWarningsPanel(BasePanel):
         if state is None:
             return
 
-        with layout.container:
-            with ui.column().classes("w-full gap-1 p-2"):
-                ui.label("⚠ Warnings").classes("text-orange-500 font-semibold text-sm")
-                for warning in state.warnings:
-                    ui.label(f"• {warning}").classes(
-                        "text-orange-400 text-xs whitespace-pre-wrap break-words ml-1"
-                    )
+        with layout:
+            hui.warning_label("Warnings").classes("font-semibold")
+            for warning in state.warnings:
+                hui.warning_label(f"• {warning}").classes("whitespace-pre-wrap break-words ml-1")
