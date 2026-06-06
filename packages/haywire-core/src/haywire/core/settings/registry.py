@@ -711,12 +711,20 @@ class SettingsRegistry(BaseRegistry):
         logger.info(f"Watching settings file ({tier} tier): {path}")
 
     def stop_watching(self) -> None:
-        """Stop all file watchers."""
+        """Stop all file watchers.
+
+        ``join`` is bounded so a watchdog observer thread that fails to
+        terminate (seen with the macOS FSEvents backend) degrades to a warning
+        instead of wedging the caller — the watcher is non-essential, and an
+        unbounded ``join()`` here can hang app shutdown or a whole test suite.
+        """
         for attr in ("_global_observer", "_workspace_observer"):
             observer = getattr(self, attr, None)
             if observer:
                 observer.stop()
-                observer.join()
+                observer.join(timeout=2.0)
+                if observer.is_alive():
+                    logger.warning(f"Settings watcher thread did not stop within 2s ({attr}); abandoning.")
                 setattr(self, attr, None)
         self._global_watch_enabled = False
         self._workspace_watch_enabled = False
