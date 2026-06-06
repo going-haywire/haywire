@@ -48,6 +48,26 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
+def summarize_compatibility(node_warning_count: int, library_messages: list[str]) -> str | None:
+    """Build the on-open compatibility summary text, or None if nothing to report.
+
+    Pure/UI-free so it is unit-testable. Library-wide messages are listed
+    verbatim; per-node warnings are summarised as a count (the badges carry
+    the detail per node).
+    """
+    if node_warning_count == 0 and not library_messages:
+        return None
+    parts: list[str] = []
+    if node_warning_count:
+        noun = "node" if node_warning_count == 1 else "nodes"
+        parts.append(
+            f"{node_warning_count} {noun} were saved with an older library "
+            f"version and may not reflect later changes (see the warning badges)."
+        )
+    parts.extend(library_messages)
+    return " ".join(parts)
+
+
 class VisualLayerHandlers:
     """
     Manage the Python-side visual registry for the graph canvas.
@@ -159,6 +179,12 @@ class VisualLayerHandlers:
             )
             self.on_validated(synthetic_result)
             logger.info("✅ Initial sync completed via validation pipeline")
+            # One-time compatibility summary for this load.
+            node_warning_count = sum(1 for w in self.graph.node_wrappers.values() if w.state.has_warning())
+            library_messages = list(getattr(self.graph, "library_compatibility_findings", []))
+            summary = summarize_compatibility(node_warning_count, library_messages)
+            if summary:
+                ui.notify(summary, type="warning", multi_line=True, timeout=0, close_button=True)
         except Exception as e:
             logger.error(f"❌ Error during initial sync: {e}")
             traceback.print_exc()

@@ -15,6 +15,7 @@ from ..settings.node_skin_settings import NodeSkinSettings
 
 if TYPE_CHECKING:
     from haywire.ui.widget.factory_interface import IWidgetFactory
+    from haywire.core.node.node_warning import NodeWarning
 
 
 class NodeSkin(BaseSkin, ABC):
@@ -394,3 +395,27 @@ class NodeSkin(BaseSkin, ABC):
         btn.props(f'data-node-id="{node_id}"')
         with btn:
             ui.badge(str(error_count), color="red").props("floating")
+
+    def _render_warnings_button(self, warnings: List["NodeWarning"], node_id: str) -> None:
+        """Render a non-fatal warnings badge with a popup listing the messages.
+
+        Advisory only — these never make a node invalid. For compatibility
+        warnings, the suggested remedy is the Reset Node action (re-derives the
+        node from current code; note it discards dynamically-created ports).
+        """
+        btn = ui.button(icon=hui.icon.warning, color="amber").props("flat dense round")
+        btn.classes("text-xl px-2 py-1")
+        # Offset right of the errors badge (which sits at top:-25px, left edge) so
+        # a node with both errors and warnings shows both badges side by side.
+        btn.style("position: absolute; top: -25px; left: 40px;")
+        btn.props(f'data-node-id="{node_id}"')
+        with btn:
+            with ui.menu():
+                with ui.column().classes("p-2 gap-1 max-w-sm"):
+                    ui.label("Compatibility warnings").classes("text-sm font-bold")
+                    for w in warnings:
+                        ui.label(w.message).classes("text-xs hw-text-warning")
+                    ui.label(
+                        "Tip: 'Reset Node' re-derives this node from current code "
+                        "(note: this discards any dynamically-added ports)."
+                    ).classes("text-xs hw-text-dim mt-1")

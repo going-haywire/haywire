@@ -1,0 +1,89 @@
+"""Integration: loading a graph applies Compatibility Warnings to node state."""
+
+import haywire.core.graph.editor  # noqa: F401  circular-import guard (CLAUDE.md)
+
+import pytest
+
+from haywire.core.graph.base import BaseGraph
+from haywire.core.graph.scheduler import SyncScheduler
+from haywire.core.library.compatibility import CompatibilityWarning
+
+
+@pytest.mark.integration
+def test_load_applies_node_compatibility_warning(library_system, monkeypatch):
+    reg = library_system.get_node_registry()
+    disp_key = next(k for k in reg.list_names() if "WebcamFrameInfoDisplay" in k)
+
+    # Author a warning on the visiongraph library, landing in a FUTURE version
+    # relative to whatever the live library is, so a saved-below-version node fires.
+    lib_registry = library_system.get_library_registry()
+    visiongraph = lib_registry._libraries["visiongraph"]
+    live_version = visiongraph.identity.version  # e.g. "0.0.16"
+
+    # Pick a warning version strictly ABOVE the saved version we will fake below.
+    warning = CompatibilityWarning(
+        version="999.0.0",
+        component=disp_key,  # registry_key string is accepted
+        message="frame inlet widget strategy became author-declared",
+    )
+    monkeypatch.setattr(type(visiongraph), "compatibility_warnings", lambda self: [warning], raising=False)
+
+    # Build a one-node graph, serialize, then force the saved library.version low.
+    g1 = BaseGraph(graph_id="g1", name="g1", validation_scheduler=SyncScheduler())
+    a = g1.create_node_wrapper(disp_key, position=(100, 100))
+    data = g1.to_dict(include_data=False)
+    # Stamp an OLD saved version on the node's library block.
+    data["nodes"][a.node_id]["node_data"]["library"]["version"] = "0.0.1"
+
+    g2 = BaseGraph(graph_id="g2", name="g2", validation_scheduler=SyncScheduler())
+    assert g2.load_from_dict(data) is True
+
+    state = g2.get_node_wrapper(a.node_id).state
+    assert state.has_warning() is True
+    assert any(w.kind == "compatibility" and "author-declared" in w.message for w in state.warnings)
+    assert live_version  # sanity: live version was readable
+
+
+@pytest.mark.integration
+def test_load_does_not_warn_when_saved_version_current(library_system, monkeypatch):
+    reg = library_system.get_node_registry()
+    disp_key = next(k for k in reg.list_names() if "WebcamFrameInfoDisplay" in k)
+    lib_registry = library_system.get_library_registry()
+    visiongraph = lib_registry._libraries["visiongraph"]
+
+    warning = CompatibilityWarning(version="0.0.2", component=disp_key, message="x")
+    monkeypatch.setattr(type(visiongraph), "compatibility_warnings", lambda self: [warning], raising=False)
+
+    g1 = BaseGraph(graph_id="g1", name="g1", validation_scheduler=SyncScheduler())
+    a = g1.create_node_wrapper(disp_key, position=(100, 100))
+    data = g1.to_dict(include_data=False)
+    data["nodes"][a.node_id]["node_data"]["library"]["version"] = "9.9.9"  # newer than warning
+
+    g2 = BaseGraph(graph_id="g2", name="g2", validation_scheduler=SyncScheduler())
+    g2.load_from_dict(data)
+    assert g2.get_node_wrapper(a.node_id).state.has_warning() is False
+
+
+@pytest.mark.integration
+def test_library_wide_finding_lands_on_graph(library_system, monkeypatch):
+    reg = library_system.get_node_registry()
+    disp_key = next(k for k in reg.list_names() if "WebcamFrameInfoDisplay" in k)
+    lib_registry = library_system.get_library_registry()
+    visiongraph = lib_registry._libraries["visiongraph"]
+
+    warning = CompatibilityWarning(
+        version="999.0.0", component=None, message="A library-wide convention changed."
+    )
+    monkeypatch.setattr(type(visiongraph), "compatibility_warnings", lambda self: [warning], raising=False)
+
+    g1 = BaseGraph(graph_id="g1", name="g1", validation_scheduler=SyncScheduler())
+    a = g1.create_node_wrapper(disp_key, position=(100, 100))
+    data = g1.to_dict(include_data=False)
+    data["nodes"][a.node_id]["node_data"]["library"]["version"] = "0.0.1"
+
+    g2 = BaseGraph(graph_id="g2", name="g2", validation_scheduler=SyncScheduler())
+    g2.load_from_dict(data)
+
+    # Library-wide finding stashed on the graph; node itself has no per-node badge.
+    assert "A library-wide convention changed." in g2.library_compatibility_findings
+    assert g2.get_node_wrapper(a.node_id).state.has_warning() is False

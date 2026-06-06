@@ -44,6 +44,10 @@ class DefaultNodeSkin(NodeSkin):
             if runtime_errors:
                 self._render_errors_button(runtime_errors, wrapper.node_id)
 
+            # Advisory warnings indicator (e.g. compatibility warnings).
+            if wrapper.state.has_warning():
+                self._render_warnings_button(wrapper.state.warnings, wrapper.node_id)
+
             # Header with node label and ghost pins for hidden connected ports
             with ui.row().classes("drag-handle w-full items-center"):
                 # Root ghost pins — always-present fallback connection anchors,

@@ -9,10 +9,11 @@ import time
 import threading
 import logging
 from typing import List, Optional, Tuple, Any, Dict, TYPE_CHECKING
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from abc import ABC, abstractmethod
 
 from ..graph.types import ChangeReason
+from haywire.core.node.node_warning import NodeWarning
 from ..errors import HaywireException
 from ..registry.lifecycle_event import LifeCycleEvent
 from ..validation.interface import IStructuralValidator
@@ -61,6 +62,9 @@ class NodeWrapperState:
     """node runtime error (startup, execution, shutdown)"""
     test_execution_time_ns: float = 0.0
     """Last transform() execution time"""
+    warnings: list[NodeWarning] = field(default_factory=list)
+    """Advisory, non-fatal notices (e.g. compatibility warnings). Does NOT
+    affect is_valid() — these are informational only. See ADR 0005."""
 
     def is_valid(self) -> bool:
         """Check if node is in valid state (initialized and tested)"""
@@ -103,6 +107,18 @@ class NodeWrapperState:
         self.error_test = None
         self.error_custom = None
         self.error_runtime = None
+
+    def add_warning(self, warning: NodeWarning) -> None:
+        """Append an advisory warning."""
+        self.warnings.append(warning)
+
+    def has_warning(self) -> bool:
+        """True if any advisory warning is present."""
+        return bool(self.warnings)
+
+    def clear_warnings(self) -> None:
+        """Drop all advisory warnings (e.g. before a re-check)."""
+        self.warnings.clear()
 
 
 class NodeMiddleware(ABC):

@@ -5,6 +5,7 @@ from typing import Any, ClassVar, Dict, List, Tuple, Type, Optional
 
 from haywire.core.namespaces import CATEGORY_LIBRARY_LOG
 
+from haywire.core.library.compatibility import CompatibilityWarning
 from haywire.core.library.file_watcher import FileWatcher
 from haywire.core.library.identity import LibraryIdentity
 from haywire.core.registry.base import BaseRegistry
@@ -79,6 +80,32 @@ class BaseLibrary(ABC):
     @property
     def identity(self) -> LibraryIdentity:
         return self.__class__.class_identity
+
+    def compatibility_warnings(self) -> list[CompatibilityWarning]:
+        """Author-declared, APPEND-ONLY history of compatibility notices.
+
+        Override in a library subclass to advise users when a graph saved by an
+        older version of this library may not reflect a later behavioural change.
+        Entries are NEVER removed or re-dated — a graph saved at any past version
+        must still trigger the right historical entries. See ADR 0005.
+
+        Example::
+
+            def compatibility_warnings(self) -> list[CompatibilityWarning]:
+                return [
+                    CompatibilityWarning(
+                        version="0.0.14",                       # where the change landed
+                        component=WebcamFrameInfoDisplayNode,   # or None for library-wide
+                        message="The 'frame' inlet widget strategy became "
+                                "author-declared; graphs saved before 0.0.14 may "
+                                "hide the preview widget. Reset the node to "
+                                "re-derive it from current code.",
+                    ),
+                ]
+
+        Returns an empty list by default (no warnings declared).
+        """
+        return []
 
     def add_registry(self, cls, instance):
         """Add a registry instance for a given registry class"""

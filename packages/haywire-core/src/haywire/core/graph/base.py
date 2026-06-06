@@ -122,6 +122,10 @@ class BaseGraph:
         self.canvas_height: int = _CANVAS_MIN_SIZE
         self._canvas_size_changed: bool = False
 
+        # Library-wide compatibility findings from the most recent load_from_dict call.
+        # Node-specific findings are written directly onto node state as NodeWarnings.
+        self.library_compatibility_findings: list[str] = []
+
         # Internal managers (private - implementation details)
         self._validation = ValidationManager(
             graph=self, debounce_ms=validation_delay_ms, scheduler=validation_scheduler
@@ -996,11 +1000,82 @@ class BaseGraph:
             for wrapper in self.node_wrappers.values():
                 wrapper._housekeeping()
 
+            # Apply author-declared Compatibility Warnings for nodes whose saved
+            # library version predates a behavioural change. Advisory only — never
+            # mutates node data. See ADR 0005.
+            self._apply_compatibility_warnings(data)
+
             return True
 
         except Exception as e:
             logger.error(f"Error loading graph from dictionary: {e}", exc_info=True)
             return False
+
+    def _apply_compatibility_warnings(self, data: Dict[str, Any]) -> None:
+        """Run the CompatibilityChecker over just-loaded nodes and apply findings.
+
+        Reads each node's SAVED library version from ``data`` (not the live
+        class), resolves each library's append-only warning history from the
+        live LibraryRegistry, and writes NodeWarning records onto node state.
+        Library-wide findings are stashed on ``library_compatibility_findings``
+        for the editor summary. Best-effort: never raises into the load path.
+        """
+        from haywire.core.library.compatibility import (
+            CompatibilityChecker,
+            SavedNode,
+        )
+        from haywire.core.node.node_warning import NodeWarning
+
+        self.library_compatibility_findings = []
+
+        try:
+            from haywire.core.di.config import get_library_system
+
+            lib_registry = get_library_system().get_library_registry()
+        except Exception as exc:  # no library system (bare graph) — nothing to check
+            logger.debug(f"Compatibility check skipped (no library system): {exc}")
+            return
+
+        def history_lookup(lib_id: str):
+            lib = lib_registry._libraries.get(lib_id)
+            if lib is None:
+                return []
+            try:
+                return lib.compatibility_warnings()
+            except Exception as exc:
+                logger.warning(f"compatibility_warnings() failed for '{lib_id}': {exc}")
+                return []
+
+        saved_nodes: list[SavedNode] = []
+        for node_id, wrapper_data in data.get("nodes", {}).items():
+            node_data = wrapper_data.get("node_data", {})
+            library_block = node_data.get("library", {})
+            registry_key = wrapper_data.get("registry_key", "")
+            saved_nodes.append(
+                SavedNode(
+                    node_id=node_id,
+                    registry_key=registry_key,
+                    library_id=library_block.get("id", ""),
+                    saved_version=library_block.get("version"),
+                )
+            )
+
+        checker = CompatibilityChecker(history_lookup)
+        findings = checker.check(saved_nodes)
+
+        for finding in findings:
+            if finding.node_id is None:
+                self.library_compatibility_findings.append(finding.message)
+                continue
+            wrapper = self.node_wrappers.get(finding.node_id)
+            if wrapper is not None:
+                wrapper.state.add_warning(
+                    NodeWarning(
+                        message=finding.message,
+                        source_version=finding.source_version,
+                        kind="compatibility",
+                    )
+                )
 
     def __str__(self) -> str:
         """String representation of the graph"""

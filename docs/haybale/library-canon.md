@@ -256,6 +256,57 @@ For the `pyproject.toml` shape, build/publish workflow, distribution via `market
 
 ---
 
+## 6. Compatibility Warnings
+
+Declare advisory notices for users who open graphs saved by an older version of
+your library. When a node's saved library version predates a behavioural change
+you made, Haywire shows an amber warning badge on the affected nodes and a
+summary when the graph opens. It is **advisory only** — it never modifies the
+user's saved graph.
+
+Override `compatibility_warnings()` on your `BaseLibrary` subclass to return an
+**append-only** history:
+
+```python
+from haywire.core.library.compatibility import CompatibilityWarning
+from .nodes import WebcamFrameInfoDisplayNode
+
+class VisiongraphLibrary(BaseLibrary):
+    def compatibility_warnings(self) -> list[CompatibilityWarning]:
+        return [
+            CompatibilityWarning(
+                version="0.0.14",                       # the version the change landed in
+                component=WebcamFrameInfoDisplayNode,   # a node class, or None for library-wide
+                message="The 'frame' inlet widget strategy became author-declared; "
+                        "graphs saved before 0.0.14 may hide the preview widget. "
+                        "Reset the node to re-derive it from current code.",
+            ),
+        ]
+```
+
+Rules:
+
+- **`version`** is a strict `MAJOR.MINOR.PATCH` semver string — the version the
+  change *landed in*. A graph whose node was saved with a library version
+  *below* this value triggers the warning. A malformed version fails loudly at
+  library load.
+- **Always explicit, never derived.** The version is a historical fact. Do not
+  tie it to your library's current version — that would re-date entries on every
+  release and break the trigger for users who saved in between.
+- **Append-only.** Never remove or re-date an entry. A graph saved at any past
+  version must still trigger the right historical entries.
+- **`component`** is a node class (anything exposing `class_identity`), a
+  registry-key string, or `None` for a library-wide notice (shown once per graph
+  in the open summary).
+- The suggested remedy shown to users is the **Reset Node** action (re-derives
+  the node from current code). Note it discards dynamically-created ports, so it
+  is suggested, not promised safe.
+
+See [ADR-0005](../adr/0005-compatibility-warnings.md) for the rationale (why
+advisory-only and not auto-migration).
+
+---
+
 ## Quick reference
 
 ### Authoring checklist
