@@ -87,3 +87,32 @@ def test_library_wide_finding_lands_on_graph(library_system, monkeypatch):
     # Library-wide finding stashed on the graph; node itself has no per-node badge.
     assert "A library-wide convention changed." in g2.library_compatibility_findings
     assert g2.get_node_wrapper(a.node_id).state.has_warning() is False
+
+
+@pytest.mark.integration
+def test_reset_clears_compatibility_warning(library_system, monkeypatch):
+    """Resetting a node rebuilds it from current code, so the advisory
+    compatibility warning (derived from the saved file) must clear."""
+    reg = library_system.get_node_registry()
+    disp_key = next(k for k in reg.list_names() if "WebcamFrameInfoDisplay" in k)
+    lib_registry = library_system.get_library_registry()
+    visiongraph = lib_registry._libraries["visiongraph"]
+
+    warning = CompatibilityWarning(
+        version="999.0.0", component=disp_key, message="frame inlet widget strategy changed"
+    )
+    monkeypatch.setattr(type(visiongraph), "compatibility_warnings", lambda self: [warning], raising=False)
+
+    g1 = BaseGraph(graph_id="g1", name="g1", validation_scheduler=SyncScheduler())
+    a = g1.create_node_wrapper(disp_key, position=(100, 100))
+    data = g1.to_dict(include_data=False)
+    data["nodes"][a.node_id]["node_data"]["library"]["version"] = "0.0.1"
+
+    g2 = BaseGraph(graph_id="g2", name="g2", validation_scheduler=SyncScheduler())
+    g2.load_from_dict(data)
+    wrapper = g2.get_node_wrapper(a.node_id)
+    assert wrapper.state.has_warning() is True
+
+    # Reset = full rebuild from current code (what request_node_reset triggers).
+    wrapper.build()
+    assert wrapper.state.has_warning() is False

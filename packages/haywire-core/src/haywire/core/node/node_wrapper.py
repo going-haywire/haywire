@@ -291,6 +291,10 @@ class NodeWrapper:
             logger.debug(f"Start node building: {self._node_id} ... ")
 
             self._state._clear_errors()
+            # Advisory warnings (e.g. compatibility warnings) are derived from the
+            # SAVED file at load time. A rebuild re-derives the node from current
+            # code (Reset / hot-reload), so any such warning no longer applies.
+            self._state.clear_warnings()
 
             if self._instantiate():
                 if self._initialize(node_info):

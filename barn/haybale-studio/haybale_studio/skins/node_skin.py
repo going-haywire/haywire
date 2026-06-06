@@ -410,12 +410,14 @@ class NodeSkin(BaseSkin, ABC):
         btn.style("position: absolute; top: -25px; left: 40px;")
         btn.props(f'data-node-id="{node_id}"')
         with btn:
-            with ui.menu():
-                with ui.column().classes("p-2 gap-1 max-w-sm"):
-                    ui.label("Compatibility warnings").classes("text-sm font-bold")
-                    for w in warnings:
-                        ui.label(w.message).classes("text-xs hw-text-warning")
-                    ui.label(
-                        "Tip: 'Reset Node' re-derives this node from current code "
-                        "(note: this discards any dynamically-added ports)."
-                    ).classes("text-xs hw-text-dim mt-1")
+            # ui.menu renders on Layer 2 (--hw-bg-elevated) per the design system.
+            # Body copy stays quiet (body/dim tokens) — the amber lives on the
+            # badge icon, not the prose. Messages wrap, so override `truncate`.
+            with ui.menu(), ui.column().classes("p-2 gap-1").style("max-width: 22rem"):
+                hui.section_label("Compatibility warnings")
+                for w in warnings:
+                    ui.label(w.message).classes("text-sm hw-text-body whitespace-normal")
+                ui.label(
+                    "Tip: 'Reset Node' re-derives this node from current code "
+                    "(note: this discards any dynamically-added ports)."
+                ).classes("text-xs hw-text-dim whitespace-normal")
