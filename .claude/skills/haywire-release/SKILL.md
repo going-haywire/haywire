@@ -85,6 +85,23 @@ uv run pytest -m "not integration" -q
 Expected: all tests pass (current baseline: 1156 passed). If anything fails, STOP. Show
 the failures to the user and do not proceed — releases must not ship on a red gate.
 
+Then run the ruff gate — **both** the linter and the formatter check. The release
+commit (`chore: release vX.Y.Z`) is pushed to `master`, where the separate
+`ruff.yml` workflow runs `ruff check .` AND `ruff format --check .`. If either fails,
+the release commit lands red on `master`. Catch it here, before committing:
+
+```bash
+uv run ruff check .
+uv run ruff format --check .
+```
+
+Expected: `All checks passed!` and `N files already formatted`. If `ruff format --check`
+reports `Would reformat: <file>`, STOP. Tell the user formatting has drifted and offer
+to fix it with `uv run ruff format .` followed by a separate commit — do **not** fold
+the reformat into the release commit, which must contain only the version bump.
+(`ruff format` rewrites files silently with no `--check`, which is exactly how this
+drift reaches `master` undetected; this is the most common release-only CI failure.)
+
 Also check the working tree is clean:
 
 ```bash
@@ -194,7 +211,20 @@ uv run python scripts/bump_version.py <NEW_VERSION> --yes
 
 (Idempotent if already applied in step 5's middle option.)
 
-Then stage the bumped files plus the lockfile and commit:
+Then regenerate the lockfile. `bump_version.py` rewrites only the `pyproject.toml`
+manifests — it does NOT touch `uv.lock`. Every workspace package carries its own
+`version = "X.Y.Z"` line in the lockfile, so without this step `uv.lock` is committed
+still pinning the OLD versions, leaving it stale on `master` after every release:
+
+```bash
+uv lock
+```
+
+Expected: `uv.lock` is rewritten with the new versions for all bumped packages.
+The `visiongraph==1.1.0.1 does not have an extra named 'all'` warning is pre-existing
+(the gitignored local symlink package) and unrelated — ignore it.
+
+Then stage the bumped files plus the freshly-locked file and commit:
 
 ```bash
 git add packages/*/pyproject.toml barn/*/pyproject.toml uv.lock
@@ -205,8 +235,8 @@ Single-line subject, no body. The commit subject is exactly that — `chore: rel
 prefix followed by the version. The CI workflow doesn't care about the message, but
 following the convention keeps `git log --oneline` searchable for past releases.
 
-If `uv.lock` wasn't regenerated (e.g. the bump didn't change any dependency strings),
-`git add uv.lock` is a no-op — fine, leave the command as-is.
+After `uv lock`, `uv.lock` will always have changed (the version lines moved), so
+`git add uv.lock` stages a real diff — confirm it's in the commit with `git status`.
 
 ### Step 7 — create the tag
 

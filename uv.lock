@@ -906,7 +906,7 @@ dev = [
     { name = "pytest-cov" },
     { name = "pytest-playwright" },
     { name = "requests" },
-    { name = "ruff" },
+    { name = "ruff", specifier = ">=0.12.8,<0.13" },
 ]
 
 [[package]]

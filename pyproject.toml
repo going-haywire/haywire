@@ -27,7 +27,9 @@ dev = [
     "pytest",
     "pytest-cov",
     "mypy",
-    "ruff",
+    # Pin the minor series: ruff's formatter rules can change across minor
+    # bumps, which would silently drift CI from local. Patch bumps are safe.
+    "ruff>=0.12.8,<0.13",
     "pyinstaller>=6.14.1",
     "playwright",
     "pytest-playwright",
