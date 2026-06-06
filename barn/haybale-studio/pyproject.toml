@@ -1,12 +1,12 @@
 [project]
 name = "haybale-studio"
-version = "0.0.15"
+version = "0.0.16"
 description = "haywire studio library for basic functionality"
 requires-python = ">=3.11"
 license = {text = "MIT"}
 
 dependencies = [
-    "haywire-core~=0.0.15",
+    "haywire-core~=0.0.16",
     "nicegui>=3.12.1",
 ]
 

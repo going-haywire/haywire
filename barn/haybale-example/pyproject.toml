@@ -1,6 +1,6 @@
 [project]
 name = "haybale-example"
-version = "0.0.15"
+version = "0.0.16"
 description = "Example library for Haywire node system demonstrating custom types, nodes, widgets, and renderers"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -11,9 +11,9 @@ authors = [
 keywords = ["haywire", "node-editor", "visual-programming", "example"]
 
 dependencies = [
-    "haywire-core~=0.0.15",
-    "haybale-core~=0.0.15",
-    "haybale-studio~=0.0.15",
+    "haywire-core~=0.0.16",
+    "haybale-core~=0.0.16",
+    "haybale-studio~=0.0.16",
     "nicegui>=3.12.1",
     "typing_extensions"]
 
