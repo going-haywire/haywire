@@ -10,6 +10,7 @@ Responsible for:
 """
 
 import logging
+import time
 import traceback
 from typing import Dict, Optional, Tuple, TYPE_CHECKING
 
@@ -167,9 +168,9 @@ class VisualLayerHandlers:
 
     def sync_with_graph(self):
         """Synthesise a full-add ValidationResult and process it via on_validated."""
-        logger.info(
-            f"🔄 Initial sync: {len(self.graph.node_wrappers)} nodes, {len(self.graph.edge_wrappers)} edges"
-        )
+        node_count = len(self.graph.node_wrappers)
+        edge_count = len(self.graph.edge_wrappers)
+        logger.info(f"🔄 Initial sync: {node_count} nodes, {edge_count} edges")
         try:
             synthetic_result = ValidationResult(
                 nodes={node_id: ChangeReason.NODE_ADDED for node_id in self.graph.node_wrappers.keys()},
@@ -177,7 +178,17 @@ class VisualLayerHandlers:
                 canvas_size=(self.graph.canvas_width, self.graph.canvas_height),
                 validation_time_ms=0.0,
             )
+            # Measure the full node/edge render (on_validated → per-node
+            # UINode.render via add_node_visual). This is the Python-side cost of
+            # selecting/opening a graph; browser-side Vue mount is not included.
+            render_t0 = time.perf_counter()
             self.on_validated(synthetic_result)
+            render_ms = (time.perf_counter() - render_t0) * 1000.0
+            per_node = render_ms / node_count if node_count else 0.0
+            logger.info(
+                f"⏱️ Graph render: {render_ms:.1f} ms for {node_count} nodes "
+                f"({per_node:.2f} ms/node), {edge_count} edges"
+            )
             logger.info("✅ Initial sync completed via validation pipeline")
             # One-time compatibility summary for this load.
             node_warning_count = sum(1 for w in self.graph.node_wrappers.values() if w.state.has_warning())

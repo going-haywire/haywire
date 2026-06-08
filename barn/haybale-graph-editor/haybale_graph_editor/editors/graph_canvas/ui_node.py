@@ -264,7 +264,7 @@ class UINode:
         """Detach this node's factory tracking, lifecycle subscriber, and widget
         callbacks. Does NOT touch the DOM. Idempotent.
         """
-        logger.info(f"🔌 Tearing down subscriptions for UINode {self._node_id} ..")
+        logger.debug(f"🔌 Tearing down subscriptions for UINode {self._node_id} ..")
         self.factory._unregister_node(self._node_id)
         self.factory.remove_factory_lifecycle_subscriber(
             self._node_id, self._listen_on_factory_lifecycle_event
@@ -272,7 +272,7 @@ class UINode:
         if self.current_ui_card:
             self.current_ui_card.cleanup()
         self.current_ui_card = None
-        logger.info(f".. Done 🔌 subscription teardown for UINode {self._node_id}.")
+        logger.debug(f".. Done 🔌 subscription teardown for UINode {self._node_id}.")
 
     def delete_dom(self):
         """Remove this node's container DOM. For single-node deletion only;
