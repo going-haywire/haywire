@@ -61,9 +61,34 @@ misses the first hover (tooltip appears only on the second). Manually calling
 - The `expects_arguments` patch is a startup-time monkeypatch of a third-party
   internal — flagged in code with a guard and a removal condition (upstream
   cache lands).
-- Culling / deferred mount of off-screen node cards remains the larger,
-  unaddressed lever (helps both graph-open and pan; the upstream-endorsed
-  approach). These two optimizations are orthogonal to it and do not block it.
 - The measurement instruments (profile, attribution, cache benchmark) are kept
   as `@pytest.mark.perf` tests, excluded from the default suite. See
   `tests/ui/widget/README.md`.
+
+**Considered and declined.** Two further levers were evaluated and deliberately
+NOT pursued — recorded so they are not re-litigated as the "obvious next step":
+
+- *Off-screen node culling / deferred mount.* Three layers exist:
+  (1) CSS `display:none` for off-viewport nodes — but the existing zoom-based
+  LOD system (`pan.vue`, `data-lod-level` → `opacity:0`/`pointer-events:none`)
+  already covers pan smoothness, so this duplicates a banked win;
+  (2) Vue `v-if` unmount of off-screen subtrees — fights NiceGUI's 1:1
+  Python-`Element` ↔ Vue-component coupling;
+  (3) Python-side deferred construction (skip `add_node_visual` for off-viewport
+  nodes) — the only layer that would help the graph-open / editor-switch render,
+  but it carries a long tail of edge cases (edges crossing the built/culled
+  boundary, selection/state for UI-less nodes, teardown/rebuild policy). High
+  effort, high regression surface, for a node count most users rarely reach.
+  The reference graph having 0 edges makes layer 3 look deceptively easy; a real
+  edged graph is where the hard part lives. Not worth it now.
+
+- *Reducing structural wrapper divs per port row* (the ~44 grid+content
+  `ui.element("div")` per node in `_render_left`/`_render_right`, ~28% of
+  elements). The pin/label/widget alignment is load-bearing CSS grid; collapsing
+  these divs risks alignment regressions that are tedious to chase, for a modest
+  element-count reduction. Worse risk/reward than the tooltip fix, which had no
+  layout exposure. Left as-is.
+
+The two optimizations above (cache + lazy tooltips) are the high-leverage,
+low-risk levers; the work stops here by choice, at diminishing returns and
+rising risk — not because render cost is exhausted.
