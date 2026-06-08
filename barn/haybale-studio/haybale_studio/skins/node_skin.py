@@ -270,12 +270,48 @@ class NodeSkin(BaseSkin, ABC):
         Anchored to the pin element for inlets/outlets, or the config row for
         config ports (which have no pin). The description line is omitted when
         the port has no description.
+
+        Lazy construction: the tooltip (a QTooltip + 1–2 labels = 3 elements) is
+        built on the pin's first ``mouseenter`` rather than at render time. A
+        large graph has ~one tooltip per port (23 per PerformanceTester node →
+        ~69 elements), all invisible until hovered — building them eagerly was
+        measured at ~30% of graph-render time. Deferring to first hover pays that
+        cost only for pins the user actually hovers.
+
+        Visibility is driven explicitly by ``mouseenter`` → show / ``mouseleave``
+        → hide, and the QTooltip is given ``no-parent-event`` so Quasar does NOT
+        also run its own hover show/hide. Without that, two controllers fight:
+        the tooltip mounts after the current ``mouseenter`` (so Quasar misses the
+        first show — the "appears on second hover" bug) and a manual ``show``
+        then leaves Quasar's hide unreconciled (so tooltips orphan on screen).
+        Making our handlers the sole controller keeps the state deterministic.
+        Mirrors how node_menu_builder drives flyouts explicitly on hover.
         """
-        with pin_el, ui.tooltip().classes("text-xs"):
-            ui.label(pin.label).classes("font-bold")
-            description = (pin.description or "").strip()
-            if description:
-                ui.label(description)
+        tooltip: ui.tooltip | None = None
+
+        def show_tooltip() -> None:
+            nonlocal tooltip
+            if tooltip is None:
+                # Build inside the (stable) pin element. pin_el is not torn down
+                # by this handler, so its slot is safe to populate — unlike the
+                # redraw-during-handler case in
+                # .insights/feedback_nicegui_redraw_deletes_handler_slot.md.
+                with pin_el:
+                    # no-parent-event: we are the sole show/hide controller.
+                    tooltip = ui.tooltip().classes("text-xs").props("no-parent-event")
+                    with tooltip:
+                        ui.label(pin.label).classes("font-bold")
+                        description = (pin.description or "").strip()
+                        if description:
+                            ui.label(description)
+            tooltip.run_method("show")
+
+        def hide_tooltip() -> None:
+            if tooltip is not None:
+                tooltip.run_method("hide")
+
+        pin_el.on("mouseenter", lambda _: show_tooltip())
+        pin_el.on("mouseleave", lambda _: hide_tooltip())
 
     def _add_resize_handle(self, main_card: ui.card, wrapper: NodeWrapper):
         """Add a draggable resize handle to the bottom-right corner."""
