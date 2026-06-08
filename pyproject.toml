@@ -86,8 +86,9 @@ markers = [
     "slow: Slow running tests",
     "ui: UI-related tests",
     "core: Core functionality tests",
+    "perf: Performance micro/graph benchmarks (excluded from default run; `uv run pytest -m perf`)",
 ]
-addopts = "-v --strict-markers --tb=short --maxfail=5"
+addopts = "-v --strict-markers --tb=short --maxfail=5 -m 'not perf'"
 
 [tool.haywire.release]
 # Canonical machine-readable list of releasable packages.
