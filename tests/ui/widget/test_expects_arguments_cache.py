@@ -67,7 +67,11 @@ def test_expects_arguments_cache_speedup(library_system):
     import nicegui.helpers as helpers
     from nicegui.helpers.functions import expects_arguments as _orig
 
-    @lru_cache(maxsize=None)
+    # Bounded to match the shipped patch (haywire.ui.nicegui_patches): keys are
+    # per-element bound methods, so maxsize=None would leak. Per-element fires
+    # are consecutive, so a small bound keeps the full speedup — every size from
+    # 4 to None measured the same 73% hit rate / ~1.4x on this graph.
+    @lru_cache(maxsize=1024)
     def _cached(func):
         return _orig(func)
 

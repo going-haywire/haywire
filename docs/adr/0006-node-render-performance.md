@@ -120,9 +120,24 @@ Vue↔Python ownership boundary.
 
 2. **`expects_arguments` cached at startup** (this session;
    `haywire.ui.nicegui_patches`, applied from `HaywireApp.__init__` before any
-   render). `functools.lru_cache` over the pure introspection. Guarded: raises at
-   startup if the NiceGUI internal moves/renames, rather than silently reverting.
-   Measured: real-app render 2.72 s → 2.18 s (~1.25×). Attacks Axis A CPU.
+   render). A **bounded** `functools.lru_cache(maxsize=1024)` over the pure
+   introspection. Guarded: raises at startup if the NiceGUI internal moves/
+   renames, rather than silently reverting. Measured: real-app render 2.72 s →
+   2.18 s (~1.25×). Attacks Axis A CPU.
+
+   *Bounded, not unbounded — corrected after maintainer review.* The first
+   version used `maxsize=None`. The NiceGUI maintainer pointed out (reviewing our
+   upstream proposal) that this leaks: the cache key is the handler object, and
+   the handlers are NOT a small fixed set — the observable `_update` handlers are
+   bound methods (one per Props/Style/Classes instance → one key per element per
+   collection), and `handle_event` also dispatches every user `on_click`/
+   `on_change` lambda. An unbounded cache pins each handler, and through bound
+   methods their elements, for the process lifetime → unbounded growth on a
+   long-running server. A `WeakKeyDictionary` does not help (bound methods are
+   recreated per access, so weak keys evict before they hit). A bounded cache is
+   leak-free and loses nothing: per-element fires are consecutive, so a small
+   bound captures them — measured, every `maxsize` from 4 to None gave the same
+   73% hit rate and ~1.4× speedup on the 200-node graph.
 
 3. **Lazy pin tooltips** (this session; `NodeSkin._add_pin_tooltip`). The tooltip
    (3 elements) is built on the pin's first `mouseenter` rather than at render,
@@ -136,9 +151,15 @@ Combined, graph-open dropped from ~2.7 s toward ~1.4 s.
 ## Rationale for the tricky choices
 
 **Patching a vendored internal (`expects_arguments`).** Not cached upstream; the
-cache is a tiny, pure-function, correctness-neutral win unavailable any other way
-short of forking. The guard keeps it safe across version bumps; the long-term fix
-is an upstream `functools.cache` PR, after which this patch is deleted.
+win is unavailable any other way short of forking. Bounded (see decision 2) to
+avoid the handler-pinning leak. The guard keeps it safe across version bumps.
+The long-term fix is NOT a cache at all: the NiceGUI maintainer's preferred
+resolution (on review of our proposal) is to resolve `expects_arguments` ONCE at
+handler-registration time and store the bool on the handler — mirroring
+`Callback.expect_args` in `nicegui/event.py`, which the Event system already
+does — so `_handle_change` reads a stored flag with no per-fire introspection.
+That is leak-free and the right upstream home. Our bounded cache is the local
+bridge until that lands; remove it then.
 
 **`no-parent-event` + explicit show/hide for tooltips.** A tooltip built on
 `mouseenter` mounts *after* the event fired, so Quasar's hover listener misses
