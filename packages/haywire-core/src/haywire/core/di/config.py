@@ -668,6 +668,10 @@ class LibrarySystemService:
         """Get the skin factory."""
         return self.injector.get(SkinFactory)
 
+    def get_widget_factory(self) -> WidgetFactory:
+        """Get the widget factory."""
+        return self.injector.get(WidgetFactory)
+
     def get_theme_registry(self) -> ThemeRegistry:
         """Get the theme registry."""
         return self.injector.get(ThemeRegistry)

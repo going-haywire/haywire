@@ -31,3 +31,5 @@ class IProjectState(Protocol):
     library_state_container: "LibraryStateContainer"
     """Pool of live LibraryState instances."""
     panel_registry: Any  # PanelRegistry — set by HaywireApp.setup_shared_services()
+    widget_factory: Any  # WidgetFactory — set by HaywireApp.setup_shared_services()
+    """Singleton factory that builds inline port Widgets. See get_widget_factory()."""
