@@ -182,18 +182,40 @@ class NodePortsPanel(BasePanel):
 
                 node_id = getattr(node, "node_id", "")
 
+                # Persist each section's open/closed state via the editor-owned
+                # bag threaded through PanelLayout. The panel_key omits the node
+                # id on purpose: section expansion is a per-section-type
+                # preference that stays stable as you select different nodes
+                # (see expansion-state scope decision), not a per-node setting.
+                exp_state = layout.expansion_state
+
                 if configs:
-                    with hui.expansion_section(label=f"Config ({len(configs)})", default_open=False):
+                    with hui.expansion_section(
+                        label=f"Config ({len(configs)})",
+                        default_open=False,
+                        state=exp_state,
+                        panel_key="node:ports:config",
+                    ):
                         for port in configs:
                             self._render_port(port, node_id, widget_factory)
 
                 if inlets:
-                    with hui.expansion_section(label=f"Inlets ({len(inlets)})", default_open=False):
+                    with hui.expansion_section(
+                        label=f"Inlets ({len(inlets)})",
+                        default_open=False,
+                        state=exp_state,
+                        panel_key="node:ports:inlets",
+                    ):
                         for port in inlets:
                             self._render_port(port, node_id, widget_factory)
 
                 if outlets:
-                    with hui.expansion_section(label=f"Outlets ({len(outlets)})", default_open=False):
+                    with hui.expansion_section(
+                        label=f"Outlets ({len(outlets)})",
+                        default_open=False,
+                        state=exp_state,
+                        panel_key="node:ports:outlets",
+                    ):
                         for port in outlets:
                             self._render_port(port, node_id, widget_factory)
 
