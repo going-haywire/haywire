@@ -246,9 +246,10 @@ def _generate_root_readme(name: str, label: str) -> str:
         f"\n"
         f"this will bump all the files to the specified version, commit, and sets the git-tag\n"
         f"then it generates and saves the marketstall.toml file and updates the above\n"
-        f"subscribe link with the url to get this library.\n"
+        f"subscribe link with the url to get this library. The version can be an explicit\n"
+        f"`x.y.z` or an npm-style `major`/`minor`/`patch` keyword.\n"
         f"```sh\n"
-        f"uv run haywire share --bump x.y.z --save\n"
+        f"uv run haywire share --bump patch --save\n"
         f"```\n"
     )
 

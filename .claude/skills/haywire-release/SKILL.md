@@ -221,8 +221,8 @@ uv lock
 ```
 
 Expected: `uv.lock` is rewritten with the new versions for all bumped packages.
-The `visiongraph==1.1.0.1 does not have an extra named 'all'` warning is pre-existing
-(the gitignored local symlink package) and unrelated — ignore it.
+(`haybale-visiongraph` lives in its own repo and is excluded from the workspace in
+`[tool.uv.workspace].exclude`, so it never appears in the lock or the bump.)
 
 Then stage the bumped files plus the freshly-locked file and commit:
 

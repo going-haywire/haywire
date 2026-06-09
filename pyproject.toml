@@ -9,6 +9,14 @@ members = [
     "packages/*",
     "barn/*",
 ]
+# haybale-visiongraph lives in its own repo and is symlinked into barn/ for
+# local editing. It is installed into the venv manually via
+# `uv pip install -e .../barn/haybale-visiongraph`, NOT as a workspace member —
+# excluding it here stops the `barn/*` glob from pulling the gitignored symlink
+# into uv.lock (which CI can't resolve).
+exclude = [
+    "barn/haybale-visiongraph",
+]
 
 [tool.uv.sources]
 haywire-core = { workspace = true }
@@ -60,7 +68,6 @@ mypy_path = [
     "barn/haybale-studio",
     "barn/haybale-testing",
     "barn/haybale-example",
-    "barn/haybale-visiongraph",
     "barn/haybale-TEST_A",
     "barn/haybale-haystack",
     "barn/haybale-graph-editor",

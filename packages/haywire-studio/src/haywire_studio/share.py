@@ -937,14 +937,50 @@ def _write_version(pyproject_path: Path, new_version: str) -> None:
     pyproject_path.write_text(content)
 
 
+_BUMP_KEYWORDS = ("major", "minor", "patch")
+
+
+def _compute_next_version(spec: str, current: str | None) -> str | None:
+    """Resolve a ``--bump`` argument to a concrete ``X.Y.Z`` version.
+
+    *spec* is either an npm-style keyword (``major``/``minor``/``patch``) or an
+    explicit version string. Keywords apply standard semver arithmetic to
+    *current* (``X.Y.Z`` → patch ``X.Y.(Z+1)``, minor ``X.(Y+1).0``, major
+    ``(X+1).0.0``). An explicit version is returned unchanged (validated later).
+
+    Returns None if a keyword was given but *current* is missing/unparsable, so
+    the caller can report the error.
+    """
+    if spec not in _BUMP_KEYWORDS:
+        return spec  # explicit version — bump_version() validates the format.
+
+    if not current:
+        return None
+    m = re.match(r"^(\d+)\.(\d+)\.(\d+)", current)
+    if not m:
+        return None
+    major, minor, patch = (int(g) for g in m.groups())
+    if spec == "major":
+        major, minor, patch = major + 1, 0, 0
+    elif spec == "minor":
+        minor, patch = minor + 1, 0
+    else:  # patch
+        patch += 1
+    return f"{major}.{minor}.{patch}"
+
+
 def bump_version(new_version: str | None, repo_root: Path) -> None:
     """Bump the version in all barn/*/pyproject.toml and the root pyproject.toml.
 
     If *new_version* is None, prints the current version (read from the first
     barn library found) and returns without making any changes.
 
-    Creates a lightweight git tag ``v<new_version>`` after writing all files
-    and prints a push reminder.
+    *new_version* may be an explicit ``X.Y.Z`` string or an npm-style keyword
+    (``major``/``minor``/``patch``) that is resolved against the current version.
+
+    Refreshes ``uv.lock`` (if present) so the bumped version is reflected there,
+    then commits the bumped manifests + lockfile, creates a lightweight git tag
+    ``v<new_version>``, and prints a push reminder.
     """
     barn = repo_root / "barn"
     pyproject_files: list[Path] = []
@@ -959,16 +995,28 @@ def bump_version(new_version: str | None, repo_root: Path) -> None:
             if lib_dir.is_dir() and p.exists():
                 pyproject_files.append(p)
 
+    # Current version, read from the first barn library (None if none found).
+    current_version: str | None = next(
+        (v for p in pyproject_files if p.parent != repo_root and (v := _read_version(p)) is not None),
+        None,
+    )
+
     if new_version is None:
-        # Find and print the current version from the first barn library.
-        for p in pyproject_files:
-            if p.parent != repo_root:
-                v = _read_version(p)
-                if v:
-                    print(f"Current version: {v}")
-                    return
-        print("No versioned pyproject.toml found in barn/.")
+        if current_version is not None:
+            print(f"Current version: {current_version}")
+        else:
+            print("No versioned pyproject.toml found in barn/.")
         return
+
+    # Resolve an npm-style keyword (major/minor/patch) against the current
+    # version; an explicit X.Y.Z passes straight through.
+    if new_version in _BUMP_KEYWORDS:
+        resolved = _compute_next_version(new_version, current_version)
+        if resolved is None:
+            print(f"Error: cannot '{new_version}' bump — no current version found in barn/.")
+            sys.exit(1)
+        print(f"Bumping {new_version}: {current_version} → {resolved}")
+        new_version = resolved
 
     # Validate format.
     if not re.match(r"^\d+\.\d+\.\d+", new_version):
@@ -984,13 +1032,31 @@ def bump_version(new_version: str | None, repo_root: Path) -> None:
         rel = p.relative_to(repo_root)
         print(f"  bumped {rel}")
 
+    # Refresh the lockfile so the bumped version lands in uv.lock too. Without
+    # this, uv.lock keeps recording the previous version and drifts one release
+    # behind on every bump (it gets rewritten by the next stray `uv` invocation).
+    lock_file = repo_root / "uv.lock"
+    if lock_file.exists():
+        lock = subprocess.run(
+            ["uv", "lock"],
+            cwd=str(repo_root),
+            capture_output=True,
+            text=True,
+        )
+        if lock.returncode == 0:
+            print("  re-locked uv.lock")
+        else:
+            print(f"⚠ uv lock failed (uv.lock left stale): {lock.stderr.strip()}")
+
     # Commit the bumped files, then tag that commit.
     tag = f"v{new_version}"
     git_root = _find_git_root(repo_root)
     if git_root:
-        # Stage all bumped pyproject.toml files.
+        # Stage all bumped pyproject.toml files, plus the refreshed lockfile.
         for p in pyproject_files:
             subprocess.run(["git", "add", str(p)], cwd=str(git_root), capture_output=True)
+        if lock_file.exists():
+            subprocess.run(["git", "add", str(lock_file)], cwd=str(git_root), capture_output=True)
         commit = subprocess.run(
             ["git", "commit", "-m", f"chore: bump version to {new_version}"],
             cwd=str(git_root),

@@ -298,8 +298,8 @@ def main():
         "library_path",
         nargs="?",
         default=None,
-        help="Path to the library directory (e.g. libs/haybale-myproject). "
-        "Auto-detected if libs/ contains exactly one library.",
+        help="Path to the library directory (e.g. barn/haybale-myproject). "
+        "Auto-detected if barn/ contains exactly one library.",
     )
     share_parser.add_argument(
         "--save",
@@ -343,7 +343,9 @@ def main():
         default=_BUMP_ABSENT,
         metavar="VERSION",
         help="Bump the version in all barn/*/pyproject.toml and the root pyproject.toml, "
-        "then create a local git tag. Prints the current version if VERSION is omitted.",
+        "then create a local git tag. VERSION may be an explicit X.Y.Z or an npm-style "
+        "keyword (major|minor|patch) computed from the current version. Prints the "
+        "current version if VERSION is omitted.",
     )
 
     args = parser.parse_args()

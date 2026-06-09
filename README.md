@@ -33,7 +33,7 @@ uv run haywire
 
 The folder has the following project structure:
 
-```
+```text
 my-project/
 ├── readme.md                   # project readme
 ├── pyproject.toml              # project manifest (dependencies, workspace config)
@@ -71,6 +71,12 @@ uv run haywire share --save
 
 This reads the library's `pyproject.toml` metadata and detects the git remote URL to produce a ready-to-use entry, and adds the link to the readme
 
+To cut a release of your library, bump the version (npm-style `patch`/`minor`/`major`, or an explicit `x.y.z`) — this rewrites every `pyproject.toml`, commits, and tags `v<version>`:
+
+```sh
+uv run haywire share --bump patch --save
+```
+
 ```toml
 # Copy this snippet into a marketplace.toml:
 
@@ -80,7 +86,7 @@ version = "0.1.0"
 description = "Local library for my-project"
 author = "Your Name"
 source = "git"
-install_spec = "haybale-my-project @ git+https://github.com/you/my-project.git#subdirectory=libs/haybale-my-project"
+install_spec = "haybale-my-project @ git+https://github.com/you/my-project.git#subdirectory=barn/haybale-my-project"
 tags = []
 ```
 
@@ -90,7 +96,7 @@ Recipients add in the marketplace UI. Works with any git host (GitHub, GitLab, B
 
 User-level settings are stored in `~/.haywire/`:
 
-```
+```text
 ~/.haywire/
 ├── config.toml             # default theme, preferences
 ├── marketplace.toml        # marketplace source URLs
@@ -105,7 +111,7 @@ User-level settings are stored in `~/.haywire/`:
 
 Haywire is organized as a **uv workspace monorepo**:
 
-```
+```text
 haywire-repo/
 ├── pyproject.toml                  # workspace root (not a package itself)
 ├── uv.lock

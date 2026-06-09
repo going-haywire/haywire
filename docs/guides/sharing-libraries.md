@@ -134,7 +134,29 @@ A few points worth knowing:
 
 `haywire share` derives all this from your `pyproject.toml`, your `__init__.py`, and your git remote. SSH URLs are converted to HTTPS automatically.
 
+### 4.5 Bumping the version (`--bump`)
+
+For a standalone library repo (one you scaffolded with `haywire init`, *not* the haywire monorepo — see §5 for that case), `--bump` rewrites the `[project] version` in the root `pyproject.toml` and every `barn/*/pyproject.toml`, commits the change, and creates a lightweight git tag `v<version>`.
+
+```sh
+uv run haywire share --bump            # print the current version, change nothing
+uv run haywire share --bump patch      # 0.3.7 → 0.3.8
+uv run haywire share --bump minor      # 0.3.7 → 0.4.0
+uv run haywire share --bump major      # 0.3.7 → 1.0.0
+uv run haywire share --bump 1.2.3      # set an explicit version
+```
+
+The `major`/`minor`/`patch` keywords are npm-style: they read the current version (from the first `barn/*` library) and apply standard semver arithmetic. An explicit `X.Y.Z` is written verbatim. Combine with `--save` to bump, tag, and regenerate the marketstall in one go:
+
+```sh
+uv run haywire share --bump patch --save
+```
+
+After tagging, push the tag (`git push --tags`) so consumers can install at that ref via the `install_spec`.
+
 ## 5. Versioning
+
+> `--bump` (§4.5) is the tool for a **standalone** library repo. The haywire **monorepo** uses a different, lockstep flow described below.
 
 Versions are managed at the monorepo level by `scripts/bump_version.py`, invoked through `/haywire-release`. See [publish_releases](../reference/publish_releases.md) for the operational flow. The short version:
 
