@@ -22,12 +22,21 @@ the panel keeps those ports editable.
   `render_widget` in `render()`, which is orthogonal to `should_show_widget()`,
   so the panel surfaces the omitted widget for free without knowing the active
   Skin.
-- **Panel owns widget lifecycle.** `BaseWidget.render()` subscribes to
-  `port.on_changed` and only unsubscribes in the final, idempotent `cleanup()`.
-  The panel re-mounts on every `redraw_on` signal and selection change, so it
-  stores the instances it creates and disposes the prior batch at the top of
-  every `draw()`, plus a one-time client-disconnect sweep. This is contained in
-  the panel; the shared panel framework gained no new teardown hook.
+- **Widget cleanup is anchored to the DOM element, not the panel instance.**
+  `BaseWidget.render()` subscribes to `port.on_changed` and only unsubscribes in
+  the final, idempotent `cleanup()`. The panel cannot own this via instance
+  state: `PropertiesEditor` builds a *fresh* panel object on every redraw
+  (`panel_cls().draw(...)` after `content.clear()`), so an instance-held batch
+  would never be disposed and its subscription would leak on each redraw.
+  Instead each rendered widget's container element gets its `_handle_delete`
+  overridden to call `widget.cleanup()`. NiceGUI fires `_handle_delete` for
+  every element removed by `content.clear()` (redraw) and by
+  `client.remove_all_elements()` (page close), so cleanup runs exactly when the
+  DOM is torn down, regardless of which transient panel instance built it. This
+  is contained in the panel; the shared panel framework gained no new teardown
+  hook. (An earlier instance-owned design — dispose the prior batch at the top
+  of `draw()` plus a client-disconnect sweep — was abandoned once the
+  fresh-instance-per-redraw behaviour was confirmed; it never actually ran.)
 - **Namespaced factory tracking key.** The singleton `WidgetFactory` tracks
   `widget_key -> {node_ids}` for hot-reload and purges by `node_id` in
   `unregister_widget_for_node`. The panel registers its widgets under
@@ -38,6 +47,17 @@ the panel keeps those ports editable.
   `panel_registry`. Chosen over a module-level global-injector accessor to keep
   the access typed and consistent with the established `ctx.app.<service>`
   pattern, and to avoid introducing global-injector usage in the UI layer.
+- **Ports read from `get_visible_ports()`.** `BaseNode` keeps every port in a
+  single `ports` dict and exposes direction via `is_inlet()` / `is_outlet()` /
+  `is_config()`; it has no `.inlets` / `.outlets` attributes. The panel reads
+  the same visible-port set the skins render (`get_visible_ports()`) and
+  classifies each port the way `render_port()` does, so the panel mirrors the
+  node card and hidden / section-internal ports stay out of both surfaces.
+- **Section expansion persisted via `PanelLayout.expansion_state`.** Because the
+  panel is rebuilt each redraw, the Config / Inlets / Outlets sections persist
+  their open/closed state through the editor-owned `PanelLayout.expansion_state`
+  bag, keyed by a node-id-free `panel_key` (`node:ports:<section>`) so expansion
+  is a stable per-section-type preference rather than per-node.
 
 ## Considered alternatives
 
@@ -48,9 +68,9 @@ the panel keeps those ports editable.
 - **Panel ignores `should_show_widget()` and renders every widget:** rejected —
   shows dead controls for linked inlets / outlets (the edge or display semantics
   make editing meaningless), adding noise.
-- **A new panel teardown hook on `BasePanel`:** rejected for now — the
-  top-of-`draw()` dispose pattern is sufficient and keeps the shared framework
-  unchanged.
+- **A new panel teardown hook on `BasePanel`:** rejected — anchoring cleanup to
+  each widget's container element (`_handle_delete`) handles teardown without a
+  framework change, so no shared hook is needed.
 - **Global-injector accessor for the factory:** rejected in favour of
   `IProjectState` exposure (typed, consistent with existing service access).
 

@@ -41,31 +41,15 @@ def _type_name(port: object) -> str:
     redraw_on=(SelectionMoved, GraphDataMutated, ActiveGraphMoved),
 )
 class NodePortsPanel(BasePanel):
-    """Displays the inlet, outlet, and config ports of the selected node."""
+    """Displays the inlet, outlet, and config ports of the selected node.
 
-    def __init__(self) -> None:
-        super().__init__()
-        # Live widget instances this panel created, keyed by port id. The panel
-        # owns their lifecycle: the previous batch is cleaned up at the top of
-        # every draw() (redraws + selection changes share this teardown), and a
-        # final sweep runs on client disconnect.
-        self._widgets: dict[str, "IWidget"] = {}
-        self._disconnect_registered: bool = False
-
-    def _dispose_widgets(self) -> None:
-        """Clean up every widget instance this panel created, then forget them.
-
-        Called at the top of each draw() before rebuilding, and once on client
-        disconnect. BaseWidget.cleanup() is idempotent, so overlapping calls are
-        safe. Each cleanup() drops the widget's port.on_changed subscription.
-        """
-        for widget in self._widgets.values():
-            try:
-                widget.cleanup()
-            except Exception:
-                # A widget that fails to clean up must not block the others.
-                pass
-        self._widgets.clear()
+    Widget lifecycle note: PropertiesEditor builds a fresh panel instance on
+    every redraw (``panel_cls().draw(...)`` after ``content.clear()``), so the
+    panel cannot own widget cleanup via instance state. Instead each rendered
+    widget's container element carries its own teardown (see
+    ``_anchor_cleanup_to_element``), which NiceGUI fires on both redraw
+    (``content.clear()``) and page close (``client.remove_all_elements``).
+    """
 
     def _render_port(self, port, node_id: str, widget_factory) -> None:
         """Render one port: its live widget (label above) when one applies,
@@ -81,14 +65,9 @@ class NodePortsPanel(BasePanel):
         tearing down the node card (unregister_widget_for_node(node_id)) can't
         clobber it.
 
-        Widget cleanup is anchored to the per-widget container element, NOT to
-        this panel instance: PropertiesEditor instantiates a fresh panel object
-        on every redraw (``panel_cls().draw(...)`` after ``content.clear()``),
-        so an instance-held batch would never get disposed and its
-        ``port.on_changed`` subscription would leak on each redraw. Overriding
-        the container's ``_handle_delete`` (fired by ``content.clear()`` via the
-        client's ``remove_elements``) calls ``widget.cleanup()`` exactly when the
-        DOM is torn down, regardless of which panel instance built it.
+        Widget cleanup is anchored to the per-widget container element (see
+        ``_anchor_cleanup_to_element``), not to this panel instance, because the
+        panel is rebuilt fresh on every redraw.
         """
         try:
             shows_widget = (
@@ -104,7 +83,6 @@ class NodePortsPanel(BasePanel):
                         node_id=f"panel:{node_id}",
                     )
                 if instance is not None:
-                    self._widgets[port.id] = instance
                     self._anchor_cleanup_to_element(container, instance)
             else:
                 hui.info_row(str(port.id), _type_name(port))
@@ -140,11 +118,6 @@ class NodePortsPanel(BasePanel):
         ctx: "SessionContext",
         layout: PanelLayout,
     ) -> None:
-        # Dispose the previous batch before building a new one. draw() is the
-        # single teardown point: a redraw_on redraw and a selection change both
-        # re-enter here, and BaseWidget.cleanup() is idempotent.
-        self._dispose_widgets()
-
         node = ctx.data[EditState].active_node
         if node is None:
             return
@@ -152,15 +125,6 @@ class NodePortsPanel(BasePanel):
         widget_factory = getattr(ctx.app, "widget_factory", None)
 
         with layout:
-            # Register a one-time client-disconnect sweep so the final batch is
-            # cleaned up when the page closes (draw() won't run again then).
-            if not self._disconnect_registered:
-                try:
-                    ui.context.client.on_disconnect(self._dispose_widgets)
-                    self._disconnect_registered = True
-                except Exception:
-                    pass
-
             try:
                 hw_node = node.node if hasattr(node, "node") else None
                 if hw_node is None:
