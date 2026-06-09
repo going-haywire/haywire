@@ -814,7 +814,7 @@
     
   
   
-    <span class="md-status md-status--draft"></span>
+    <span class="md-status md-status--stable"></span>
   
 
   
@@ -2719,6 +2719,17 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#verdict-recorded-2026-06-09" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Verdict (recorded 2026-06-09)
+      
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -2750,11 +2761,11 @@ overhead is acceptable, or make <code>create_default_binding()</code> provably a
 <p>The hot path is <strong>model → view</strong> (<code>_sync_to_view</code>), which fires on <em>every</em> port
 value change — i.e. every edge propagation, every worker write. For one port:</p>
 <ul>
-<li><strong>SimpleWidget</strong> (<a href="../../packages/haywire-core/src/haywire/ui/widget/simple.py#L129">simple.py:129</a>):
+<li><strong>SimpleWidget</strong> (<code>simple.py</code>):
   <code>port.get_value()</code> → (None? default) → <code>setattr(el, prop, value)</code>. One virtual
   call + one setattr. No converter, no isinstance branch.</li>
 <li><strong>BaseWidget</strong> via <code>PropertyBinding._sync_to_view</code>
-  (<a href="../../packages/haywire-core/src/haywire/ui/widget/binding.py#L112">binding.py:112</a>):
+  (<code>binding.py</code>):
   <code>source_property=="value"</code> branch → <code>port.get_value()</code> →
   <code>converter.to_view(model_value)</code> (virtual call into <code>PrimitiveUnwrappingConverter</code>,
   which does an <code>isinstance(dict)</code> check + <code>hasattr(value,"value")</code> unwrap) →
@@ -2983,6 +2994,14 @@ directly resolves review finding #3 and tells us whether to delete <code>SimpleW
   unfairly penalize the proposal with code that would be deleted anyway.
 ```</li>
 </ul>
+<hr />
+<h2 id="verdict-recorded-2026-06-09">Verdict (recorded 2026-06-09)<a class="headerlink" href="#verdict-recorded-2026-06-09" title="Permanent link">&para;</a></h2>
+<p><strong>GREEN — unified.</strong> Per ADR-0007 Finding B, the SimpleWidget-vs-BaseWidget
+sync-path delta is performance-irrelevant: <code>render_widget</code> is ~13% of node-card
+render and the sync delta is a small fraction of that. No fast path was needed;
+<code>SimpleWidget</code> was deleted and <code>BaseWidget</code> is the single canonical base. The
+unification was implemented on branch <code>widget-unification</code> (see
+<a href="../../adr/0007-widget-unification-basewidget/"><code>adr/0007</code></a>).</p>
 
 
 

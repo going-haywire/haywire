@@ -10,29 +10,27 @@
       
       
       
-        <link rel="canonical" href="https://going-haywire.github.io/haywire/docs/">
+        <link rel="canonical" href="https://going-haywire.github.io/haywire/docs/adr/0007-widget-unification-basewidget/">
       
       
-      
-        <link rel="next" href="welcome/user/">
       
       
         
       
       
-      <link rel="icon" href="assets/images/favicon.png">
+      <link rel="icon" href="../../assets/images/favicon.png">
       <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
     
     
       
-        <title>Haywire Documentation</title>
+        <title>Widget unification — one canonical BaseWidget with a floor + bind() sugar - Haywire Documentation</title>
       
     
     
-      <link rel="stylesheet" href="assets/stylesheets/main.484c7ddc.min.css">
+      <link rel="stylesheet" href="../../assets/stylesheets/main.484c7ddc.min.css">
       
         
-        <link rel="stylesheet" href="assets/stylesheets/palette.ab4e12ef.min.css">
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
       
       
 
@@ -51,7 +49,7 @@
       
     
     
-    <script>__md_scope=new URL(".",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
     
       
 
@@ -76,7 +74,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#haywire-documentation" class="md-skip">
+        <a href="#widget-unification-one-canonical-basewidget-with-a-floor-bind-sugar" class="md-skip">
           Skip to content
         </a>
       
@@ -92,7 +90,7 @@
 
 <header class="md-header md-header--shadow md-header--lifted" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
-    <a href="." title="Haywire Documentation" class="md-header__button md-logo" aria-label="Haywire Documentation" data-md-component="logo">
+    <a href="../.." title="Haywire Documentation" class="md-header__button md-logo" aria-label="Haywire Documentation" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
@@ -112,7 +110,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Home
+              Widget unification — one canonical BaseWidget with a floor + bind() sugar
             
           </span>
         </div>
@@ -205,11 +203,9 @@
   
   
   
-    
   
-  
-    <li class="md-tabs__item md-tabs__item--active">
-      <a href="." class="md-tabs__link">
+    <li class="md-tabs__item">
+      <a href="../.." class="md-tabs__link">
         
   
   
@@ -230,7 +226,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="welcome/user/" class="md-tabs__link">
+        <a href="../../welcome/user/" class="md-tabs__link">
           
   
   
@@ -252,7 +248,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="components/nodes/node-canon/" class="md-tabs__link">
+        <a href="../../components/nodes/node-canon/" class="md-tabs__link">
           
   
   
@@ -274,7 +270,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="haybale/library-canon/" class="md-tabs__link">
+        <a href="../../haybale/library-canon/" class="md-tabs__link">
           
   
   
@@ -296,7 +292,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="guides/node-roles/" class="md-tabs__link">
+        <a href="../../guides/node-roles/" class="md-tabs__link">
           
   
   
@@ -318,7 +314,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="architecture/overview/overview-arch/" class="md-tabs__link">
+        <a href="../../architecture/overview/overview-arch/" class="md-tabs__link">
           
   
   
@@ -340,7 +336,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="reference/" class="md-tabs__link">
+        <a href="../../reference/" class="md-tabs__link">
           
   
   
@@ -362,7 +358,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="archive/whitepaper/Haywire_design/" class="md-tabs__link">
+        <a href="../../archive/whitepaper/Haywire_design/" class="md-tabs__link">
           
   
   
@@ -404,7 +400,7 @@
 
 <nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
-    <a href="." title="Haywire Documentation" class="md-nav__button md-logo" aria-label="Haywire Documentation" data-md-component="logo">
+    <a href="../.." title="Haywire Documentation" class="md-nav__button md-logo" aria-label="Haywire Documentation" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
@@ -419,19 +415,10 @@
       
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-      <a href="." class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
         
   
   
@@ -447,7 +434,6 @@
   
 
       </a>
-      
     </li>
   
 
@@ -488,7 +474,7 @@
         
           
           <div class="md-nav__link md-nav__container">
-            <a href="welcome/user/" class="md-nav__link ">
+            <a href="../../welcome/user/" class="md-nav__link ">
               
   
   
@@ -532,7 +518,7 @@
   
   
     <li class="md-nav__item">
-      <a href="welcome/advanced/" class="md-nav__link">
+      <a href="../../welcome/advanced/" class="md-nav__link">
         
   
   
@@ -560,7 +546,7 @@
   
   
     <li class="md-nav__item">
-      <a href="welcome/core/" class="md-nav__link">
+      <a href="../../welcome/core/" class="md-nav__link">
         
   
   
@@ -671,7 +657,7 @@
   
   
     <li class="md-nav__item">
-      <a href="components/nodes/node-canon/" class="md-nav__link">
+      <a href="../../components/nodes/node-canon/" class="md-nav__link">
         
   
   
@@ -706,7 +692,7 @@
   
   
     <li class="md-nav__item">
-      <a href="components/datatypes/datatype-canon/" class="md-nav__link">
+      <a href="../../components/datatypes/datatype-canon/" class="md-nav__link">
         
   
   
@@ -741,7 +727,7 @@
   
   
     <li class="md-nav__item">
-      <a href="components/adapters/adapter-canon/" class="md-nav__link">
+      <a href="../../components/adapters/adapter-canon/" class="md-nav__link">
         
   
   
@@ -776,7 +762,7 @@
   
   
     <li class="md-nav__item">
-      <a href="components/settings/setting-canon/" class="md-nav__link">
+      <a href="../../components/settings/setting-canon/" class="md-nav__link">
         
   
   
@@ -811,7 +797,7 @@
   
   
     <li class="md-nav__item">
-      <a href="components/widgets/widget-canon/" class="md-nav__link">
+      <a href="../../components/widgets/widget-canon/" class="md-nav__link">
         
   
   
@@ -846,7 +832,7 @@
   
   
     <li class="md-nav__item">
-      <a href="components/skins/skin-canon/" class="md-nav__link">
+      <a href="../../components/skins/skin-canon/" class="md-nav__link">
         
   
   
@@ -881,7 +867,7 @@
   
   
     <li class="md-nav__item">
-      <a href="components/themes/theme-canon/" class="md-nav__link">
+      <a href="../../components/themes/theme-canon/" class="md-nav__link">
         
   
   
@@ -916,7 +902,7 @@
   
   
     <li class="md-nav__item">
-      <a href="components/editors/editor-canon/" class="md-nav__link">
+      <a href="../../components/editors/editor-canon/" class="md-nav__link">
         
   
   
@@ -951,7 +937,7 @@
   
   
     <li class="md-nav__item">
-      <a href="components/panels/panel-canon/" class="md-nav__link">
+      <a href="../../components/panels/panel-canon/" class="md-nav__link">
         
   
   
@@ -986,7 +972,7 @@
   
   
     <li class="md-nav__item">
-      <a href="components/states/state-canon/" class="md-nav__link">
+      <a href="../../components/states/state-canon/" class="md-nav__link">
         
   
   
@@ -1092,7 +1078,7 @@
   
   
     <li class="md-nav__item">
-      <a href="haybale/library-canon/" class="md-nav__link">
+      <a href="../../haybale/library-canon/" class="md-nav__link">
         
   
   
@@ -1127,7 +1113,7 @@
   
   
     <li class="md-nav__item">
-      <a href="haybale/haybale-package-canon/" class="md-nav__link">
+      <a href="../../haybale/haybale-package-canon/" class="md-nav__link">
         
   
   
@@ -1162,7 +1148,7 @@
   
   
     <li class="md-nav__item">
-      <a href="haybale/marketplace-canon.md" class="md-nav__link">
+      <a href="../../haybale/marketplace-canon.md" class="md-nav__link">
         
   
   
@@ -1190,7 +1176,7 @@
   
   
     <li class="md-nav__item">
-      <a href="haybale/haybale-marketplace-arch.md" class="md-nav__link">
+      <a href="../../haybale/haybale-marketplace-arch.md" class="md-nav__link">
         
   
   
@@ -1291,7 +1277,7 @@
   
   
     <li class="md-nav__item">
-      <a href="guides/node-roles/" class="md-nav__link">
+      <a href="../../guides/node-roles/" class="md-nav__link">
         
   
   
@@ -1326,7 +1312,7 @@
   
   
     <li class="md-nav__item">
-      <a href="guides/ports/" class="md-nav__link">
+      <a href="../../guides/ports/" class="md-nav__link">
         
   
   
@@ -1361,7 +1347,7 @@
   
   
     <li class="md-nav__item">
-      <a href="guides/signals/" class="md-nav__link">
+      <a href="../../guides/signals/" class="md-nav__link">
         
   
   
@@ -1396,7 +1382,7 @@
   
   
     <li class="md-nav__item">
-      <a href="guides/sharing-libraries/" class="md-nav__link">
+      <a href="../../guides/sharing-libraries/" class="md-nav__link">
         
   
   
@@ -1431,7 +1417,7 @@
   
   
     <li class="md-nav__item">
-      <a href="guides/subscribing-to-marketplaces/" class="md-nav__link">
+      <a href="../../guides/subscribing-to-marketplaces/" class="md-nav__link">
         
   
   
@@ -1549,7 +1535,7 @@
   
   
     <li class="md-nav__item">
-      <a href="architecture/overview/overview-arch/" class="md-nav__link">
+      <a href="../../architecture/overview/overview-arch/" class="md-nav__link">
         
   
   
@@ -1584,7 +1570,7 @@
   
   
     <li class="md-nav__item">
-      <a href="architecture/design/design-arch/" class="md-nav__link">
+      <a href="../../architecture/design/design-arch/" class="md-nav__link">
         
   
   
@@ -1619,7 +1605,7 @@
   
   
     <li class="md-nav__item">
-      <a href="architecture/graph/graph-arch/" class="md-nav__link">
+      <a href="../../architecture/graph/graph-arch/" class="md-nav__link">
         
   
   
@@ -1717,7 +1703,7 @@
   
   
     <li class="md-nav__item">
-      <a href="architecture/execution/execution-arch/" class="md-nav__link">
+      <a href="../../architecture/execution/execution-arch/" class="md-nav__link">
         
   
   
@@ -1745,7 +1731,7 @@
   
   
     <li class="md-nav__item">
-      <a href="architecture/execution/assembly/assembly-arch/" class="md-nav__link">
+      <a href="../../architecture/execution/assembly/assembly-arch/" class="md-nav__link">
         
   
   
@@ -1780,7 +1766,7 @@
   
   
     <li class="md-nav__item">
-      <a href="architecture/execution/edges/edges-arch/" class="md-nav__link">
+      <a href="../../architecture/execution/edges/edges-arch/" class="md-nav__link">
         
   
   
@@ -1815,7 +1801,7 @@
   
   
     <li class="md-nav__item">
-      <a href="architecture/execution/flow/flow-arch/" class="md-nav__link">
+      <a href="../../architecture/execution/flow/flow-arch/" class="md-nav__link">
         
   
   
@@ -1850,7 +1836,7 @@
   
   
     <li class="md-nav__item">
-      <a href="architecture/execution/virtual-machine/virtual-machine-arch/" class="md-nav__link">
+      <a href="../../architecture/execution/virtual-machine/virtual-machine-arch/" class="md-nav__link">
         
   
   
@@ -1885,7 +1871,7 @@
   
   
     <li class="md-nav__item">
-      <a href="architecture/execution/lazy-evaluation/lazy-evaluation-arch/" class="md-nav__link">
+      <a href="../../architecture/execution/lazy-evaluation/lazy-evaluation-arch/" class="md-nav__link">
         
   
   
@@ -1920,7 +1906,7 @@
   
   
     <li class="md-nav__item">
-      <a href="architecture/execution/callbacks/callbacks-arch/" class="md-nav__link">
+      <a href="../../architecture/execution/callbacks/callbacks-arch/" class="md-nav__link">
         
   
   
@@ -1963,7 +1949,7 @@
   
   
     <li class="md-nav__item">
-      <a href="architecture/library-system/library-system-arch/" class="md-nav__link">
+      <a href="../../architecture/library-system/library-system-arch/" class="md-nav__link">
         
   
   
@@ -1998,7 +1984,7 @@
   
   
     <li class="md-nav__item">
-      <a href="architecture/sharing/sharing-arch/" class="md-nav__link">
+      <a href="../../architecture/sharing/sharing-arch/" class="md-nav__link">
         
   
   
@@ -2033,7 +2019,7 @@
   
   
     <li class="md-nav__item">
-      <a href="architecture/hot-reload/hot-reload-arch/" class="md-nav__link">
+      <a href="../../architecture/hot-reload/hot-reload-arch/" class="md-nav__link">
         
   
   
@@ -2068,7 +2054,7 @@
   
   
     <li class="md-nav__item">
-      <a href="architecture/settings/settings-arch/" class="md-nav__link">
+      <a href="../../architecture/settings/settings-arch/" class="md-nav__link">
         
   
   
@@ -2103,7 +2089,7 @@
   
   
     <li class="md-nav__item">
-      <a href="architecture/session-and-state/session-and-state-arch/" class="md-nav__link">
+      <a href="../../architecture/session-and-state/session-and-state-arch/" class="md-nav__link">
         
   
   
@@ -2204,7 +2190,7 @@
   
   
     <li class="md-nav__item">
-      <a href="architecture/studio/studio-arch/" class="md-nav__link">
+      <a href="../../architecture/studio/studio-arch/" class="md-nav__link">
         
   
   
@@ -2239,7 +2225,7 @@
   
   
     <li class="md-nav__item">
-      <a href="architecture/studio/app-shell/app-shell-arch/" class="md-nav__link">
+      <a href="../../architecture/studio/app-shell/app-shell-arch/" class="md-nav__link">
         
   
   
@@ -2274,7 +2260,7 @@
   
   
     <li class="md-nav__item">
-      <a href="architecture/studio/workspace/workspace-arch/" class="md-nav__link">
+      <a href="../../architecture/studio/workspace/workspace-arch/" class="md-nav__link">
         
   
   
@@ -2309,7 +2295,7 @@
   
   
     <li class="md-nav__item">
-      <a href="architecture/studio/canvas/canvas-arch/" class="md-nav__link">
+      <a href="../../architecture/studio/canvas/canvas-arch/" class="md-nav__link">
         
   
   
@@ -2344,7 +2330,7 @@
   
   
     <li class="md-nav__item">
-      <a href="architecture/studio/rendering/rendering-arch/" class="md-nav__link">
+      <a href="../../architecture/studio/rendering/rendering-arch/" class="md-nav__link">
         
   
   
@@ -2423,7 +2409,7 @@
         
           
           <div class="md-nav__link md-nav__container">
-            <a href="reference/" class="md-nav__link ">
+            <a href="../../reference/" class="md-nav__link ">
               
   
   
@@ -2467,7 +2453,7 @@
   
   
     <li class="md-nav__item">
-      <a href="reference/glossary/" class="md-nav__link">
+      <a href="../../reference/glossary/" class="md-nav__link">
         
   
   
@@ -2502,7 +2488,7 @@
   
   
     <li class="md-nav__item">
-      <a href="reference/design-guide/" class="md-nav__link">
+      <a href="../../reference/design-guide/" class="md-nav__link">
         
   
   
@@ -2602,7 +2588,7 @@
   
   
     <li class="md-nav__item">
-      <a href="archive/whitepaper/Haywire_design/" class="md-nav__link">
+      <a href="../../archive/whitepaper/Haywire_design/" class="md-nav__link">
         
   
   
@@ -2650,6 +2636,58 @@
     
   
   
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#why-now-why-this-shape" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Why now / why this shape
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#key-sub-decisions-and-their-reasons" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Key sub-decisions and their reasons
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#considered-alternatives" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Considered alternatives
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#consequences" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Consequences
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
 </nav>
                   </div>
                 </div>
@@ -2665,20 +2703,86 @@
 
 
 
-<h1 id="haywire-documentation">Haywire Documentation<a class="headerlink" href="#haywire-documentation" title="Permanent link">&para;</a></h1>
-<p><em>This is a placeholder for the docs landing page.</em></p>
-<p>Pick a perspective:</p>
+<h1 id="widget-unification-one-canonical-basewidget-with-a-floor-bind-sugar">Widget unification — one canonical <code>BaseWidget</code> with a floor + <code>bind()</code> sugar<a class="headerlink" href="#widget-unification-one-canonical-basewidget-with-a-floor-bind-sugar" title="Permanent link">&para;</a></h1>
+<p>Haywire had two widget base classes: <code>SimpleWidget</code> (a fast, single-element
+primitive binder used by all 7 production widgets) and <code>BaseWidget</code> (a
+declarative multi-binding base used only by the demo library). We collapse them
+into <strong>one canonical <code>BaseWidget</code></strong> and delete <code>SimpleWidget</code>. The unified base
+exposes a two-layer authoring model — a general <strong>floor</strong> (<code>build()</code> plus an
+overridable <code>on_model_changed()</code> hook, giving an author full manual access to
+build any NiceGUI tree for any <code>BaseType</code> and sync it however they want) and a
+<strong><code>bind()</code> sugar</strong> layer on top for the common flat-scalar case
+(<code>self.bind(element, to="x")</code>). A primitive widget is the degenerate case
+(<code>to="value"</code>, the default), which is what lets the two classes merge.</p>
+<h2 id="why-now-why-this-shape">Why now / why this shape<a class="headerlink" href="#why-now-why-this-shape" title="Permanent link">&para;</a></h2>
+<p>The motivating roadmap is real multi-element widgets — Vector2/3/4, Quaternion,
+Matrix3x3/4x4, ColorRGB/RGBA — which <code>SimpleWidget</code> structurally cannot serve
+(it is hardwired to one element, one binding). That is the only irreducible
+reason to keep a sophisticated base; with it confirmed, maintaining two bases is
+no longer justified.</p>
+<p>The design was validated against the one genuinely complex production widget,
+<code>OpencvViewerWidget</code>, which today bypasses <strong>both</strong> base classes and implements
+<code>IWidget</code> directly. On the unified base it becomes a floor-only widget
+(<code>build()</code> returns a streaming card, <code>on_model_changed()</code> pushes frames, no
+<code>bind()</code> call) and shrinks — evidence the two-class system was incomplete and
+the floor is a genuine need, not speculation.</p>
+<h2 id="key-sub-decisions-and-their-reasons">Key sub-decisions and their reasons<a class="headerlink" href="#key-sub-decisions-and-their-reasons" title="Permanent link">&para;</a></h2>
 <ul>
-<li><strong><a href="welcome/user/">User</a></strong> — writing nodes, types, ports, adapters, settings, widgets</li>
-<li><strong><a href="welcome/advanced/">Advanced</a></strong> — editors, panels, themes, skins, states, libraries, haybale packaging</li>
-<li><strong><a href="welcome/core/">Core</a></strong> — system architecture, execution, library system, studio internals</li>
+<li><strong>No fast-path.</strong> Measurement (<code>docs/plans/widget-unification-perf-verification.md</code>,
+  Finding B) showed the <code>SimpleWidget</code>-vs-<code>BaseWidget</code> sync delta is
+  perf-irrelevant: <code>render_widget</code> is ~13% of render and the sync delta is a
+  fraction of that. The verification plan's YELLOW fast-path was contingent on a
+  regression measurement did not find, so the unified base has a single sync path
+  with no special-casing.</li>
+<li><strong>Nested-property navigation is kept</strong> (<code>source_property != "value"</code>). A prior
+  audit filed it as dead "Pile B", correct under its zero-roadmap premise; the
+  Vector/Matrix roadmap flips that premise — it is the binding spine for
+  composite component fields.</li>
+<li><strong>Override safety via template method.</strong> Base public methods (<code>cleanup</code>,
+  model-change dispatch) are final; subclasses override protected hooks
+  (<code>_on_cleanup()</code>, <code>on_model_changed()</code>) and cannot skip base teardown. This
+  prevents the silent <code>on_changed</code> subscription-leak class (cf. the
+  <code>expects_arguments</code> handler-leak fix).</li>
+<li><strong>Double-activation designed out.</strong> The latent double-activation in the old
+  <code>add_binding</code> (masked only by <code>PropertyBinding._is_active</code>) is eliminated by
+  the new <code>bind()</code>/<code>build()</code> timing — bindings register inline and activate once,
+  centrally. The old <code>add_binding</code> path is deleted, not patched.</li>
+<li><strong>Agnostic boundary held at <code>haywire.core</code> vs <code>haywire.ui</code>.</strong> The widget API
+  lives in <code>haywire.ui</code>, speaks NiceGUI natively, and mirrors NiceGUI's
+  <code>bind_value</code> mental model. UI-agnosticism is enforced by the namespace
+  boundary (<code>haywire.core</code> stays NiceGUI-free, reached only through <code>DataPort</code>'s
+  neutral surface), not by abstracting NiceGUI out of the widget layer.</li>
 </ul>
-<p>Or browse:</p>
+<h2 id="considered-alternatives">Considered alternatives<a class="headerlink" href="#considered-alternatives" title="Permanent link">&para;</a></h2>
 <ul>
-<li><strong><a href="components/">Components</a></strong> — extension-point stories</li>
-<li><strong><a href="architecture/">Architecture</a></strong> — system internals</li>
-<li><strong><a href="reference/">Reference</a></strong> — glossary, design guide, API</li>
-<li><strong><a href="archive/">Archive</a></strong> — foundational historical material (e.g. the original whitepaper)</li>
+<li><strong>Keep both base classes.</strong> <code>SimpleWidget</code> as a deliberate fast path — rejected:
+  measurement retired the perf justification, leaving only duplication.</li>
+<li><strong>Field-map (<code>FIELDS = {...}</code>) authoring instead of <code>bind()</code>.</strong> Shortest for
+  uniform grids (Vector3) but forces a second paradigm plus a spec mini-language
+  the moment a widget is irregular (ColorRGBA = swatch + channels + hex, labeled
+  matrices). <code>bind()</code> keeps one mental model across uniform and irregular cases.</li>
+<li><strong>Move <code>BaseWidget</code> + converters out to the demo library.</strong> The honest move
+  <em>if</em> no multi-element widgets were coming; the named roadmap makes them core.</li>
+<li><strong>Keep the <code>validation</code>/<code>on_error</code> callback path.</strong> Cut — zero callers and
+  cleanly re-addable as additive <code>bind()</code> kwargs if a widget ever needs
+  reject-with-feedback (clamp-in-converter stays).</li>
+<li><strong>Strangler migration / deprecated <code>SimpleWidget</code> shim.</strong> Rejected: the entire
+  widget population (8 widgets) is in-repo and enumerated, with a parity test as
+  the gate — big-bang reaches the clean end state without a transitional
+  two-base period.</li>
+</ul>
+<h2 id="consequences">Consequences<a class="headerlink" href="#consequences" title="Permanent link">&para;</a></h2>
+<ul>
+<li><code>SimpleWidget</code> is deleted; its 7 widgets and <code>OpencvViewerWidget</code> migrate to
+  <code>BaseWidget</code> (<code>build()</code> + <code>bind()</code>/floor) in one change.</li>
+<li>The <code>UI_PROPERTY</code> / <code>UI_EVENT</code> / <code>IS_READONLY</code> class attributes are replaced by
+  bind-site arguments (<code>prop=</code>, <code>event=</code>, <code>one_way=</code>).</li>
+<li>"Pile B" is deleted: debounce/<code>UpdateTrigger</code> variants, four orphan converters,
+  and the binding-level <code>validation</code>/<code>on_error</code> callbacks.</li>
+<li>Authors override <code>on_model_changed()</code> (calling <code>super()</code> to keep <code>bind()</code>-ings
+  live, or owning sync entirely) for whole-value or non-field-mapped widgets.</li>
+<li><code>widget-canon.md</code> must be rewritten — its current "use <code>SimpleWidget</code> first,
+  graduate to <code>BaseWidget</code>" guidance is reversed by this decision.</li>
 </ul>
 
 
@@ -2686,6 +2790,9 @@
 
 
 
+
+  
+  
 
 
 
@@ -2737,10 +2844,10 @@
     
       
       
-      <script id="__config" type="application/json">{"annotate": null, "base": ".", "features": ["navigation.instant", "navigation.tracking", "navigation.tabs", "navigation.tabs.sticky", "navigation.sections", "navigation.expand", "navigation.indexes", "navigation.top", "search.highlight", "search.suggest", "content.code.copy", "content.code.annotate", "content.tabs.link", "toc.follow"], "search": "assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.instant", "navigation.tracking", "navigation.tabs", "navigation.tabs.sticky", "navigation.sections", "navigation.expand", "navigation.indexes", "navigation.top", "search.highlight", "search.suggest", "content.code.copy", "content.code.annotate", "content.tabs.link", "toc.follow"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
     
     
-      <script src="assets/javascripts/bundle.79ae519e.min.js"></script>
+      <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
       
     
   </body>

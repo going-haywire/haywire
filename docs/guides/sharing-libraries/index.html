@@ -820,7 +820,7 @@
     
   
   
-    <span class="md-status md-status--draft"></span>
+    <span class="md-status md-status--stable"></span>
   
 
   
@@ -1547,6 +1547,17 @@
     <span class="md-ellipsis">
       
         4.4 What an entry looks like
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#45-bumping-the-version-bump" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.5 Bumping the version (--bump)
       
     </span>
   </a>
@@ -2943,6 +2954,17 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#45-bumping-the-version-bump" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.5 Bumping the version (--bump)
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -3159,7 +3181,22 @@
 <li><code>min_version</code> is a <em>floor</em>, not "latest". Consumers may install a higher version.</li>
 </ul>
 <p><code>haywire share</code> derives all this from your <code>pyproject.toml</code>, your <code>__init__.py</code>, and your git remote. SSH URLs are converted to HTTPS automatically.</p>
+<h3 id="45-bumping-the-version-bump">4.5 Bumping the version (<code>--bump</code>)<a class="headerlink" href="#45-bumping-the-version-bump" title="Permanent link">&para;</a></h3>
+<p>For a standalone library repo (one you scaffolded with <code>haywire init</code>, <em>not</em> the haywire monorepo — see §5 for that case), <code>--bump</code> rewrites the <code>[project] version</code> in the root <code>pyproject.toml</code> and every <code>barn/*/pyproject.toml</code>, commits the change, and creates a lightweight git tag <code>v&lt;version&gt;</code>.</p>
+<div class="language-sh highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>uv<span class="w"> </span>run<span class="w"> </span>haywire<span class="w"> </span>share<span class="w"> </span>--bump<span class="w">            </span><span class="c1"># print the current version, change nothing</span>
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>uv<span class="w"> </span>run<span class="w"> </span>haywire<span class="w"> </span>share<span class="w"> </span>--bump<span class="w"> </span>patch<span class="w">      </span><span class="c1"># 0.3.7 → 0.3.8</span>
+</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>uv<span class="w"> </span>run<span class="w"> </span>haywire<span class="w"> </span>share<span class="w"> </span>--bump<span class="w"> </span>minor<span class="w">      </span><span class="c1"># 0.3.7 → 0.4.0</span>
+</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>uv<span class="w"> </span>run<span class="w"> </span>haywire<span class="w"> </span>share<span class="w"> </span>--bump<span class="w"> </span>major<span class="w">      </span><span class="c1"># 0.3.7 → 1.0.0</span>
+</span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>uv<span class="w"> </span>run<span class="w"> </span>haywire<span class="w"> </span>share<span class="w"> </span>--bump<span class="w"> </span><span class="m">1</span>.2.3<span class="w">      </span><span class="c1"># set an explicit version</span>
+</span></code></pre></div>
+<p>The <code>major</code>/<code>minor</code>/<code>patch</code> keywords are npm-style: they read the current version (from the first <code>barn/*</code> library) and apply standard semver arithmetic. An explicit <code>X.Y.Z</code> is written verbatim. Combine with <code>--save</code> to bump, tag, and regenerate the marketstall in one go:</p>
+<div class="language-sh highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>uv<span class="w"> </span>run<span class="w"> </span>haywire<span class="w"> </span>share<span class="w"> </span>--bump<span class="w"> </span>patch<span class="w"> </span>--save
+</span></code></pre></div>
+<p>After tagging, push the tag (<code>git push --tags</code>) so consumers can install at that ref via the <code>install_spec</code>.</p>
 <h2 id="5-versioning">5. Versioning<a class="headerlink" href="#5-versioning" title="Permanent link">&para;</a></h2>
+<blockquote>
+<p><code>--bump</code> (§4.5) is the tool for a <strong>standalone</strong> library repo. The haywire <strong>monorepo</strong> uses a different, lockstep flow described below.</p>
+</blockquote>
 <p>Versions are managed at the monorepo level by <code>scripts/bump_version.py</code>, invoked through <code>/haywire-release</code>. See <a href="../../reference/publish_releases/">publish_releases</a> for the operational flow. The short version:</p>
 <ul>
 <li>The repo declares which packages release in lockstep (<code>[tool.haywire.release]</code> in the repo root <code>pyproject.toml</code>).</li>
@@ -3205,25 +3242,25 @@
 <p>Once hosted, share the URL. Per spec §4.2 a consumer can paste any of four forms into the Library Manager's Add Source dialog — the GitHub <em>blob</em> URL of your <code>marketstall.toml</code> (e.g. <code>https://github.com/you/repo/blob/main/marketstall.toml</code>) is the recommended canonical form. The runtime recognizes the host, derives the raw URL, fetches the body, sees one <code>[[haybales]]</code> section, and writes a <code>[[stalls]]</code> subscription to the user's global marketplace. The next refresh picks up your library. See <a href="../subscribing-to-marketplaces/">subscribing-to-marketplaces</a> for the consumer side.</p>
 <h2 id="7-the-full-author-cycle">7. The full author cycle<a class="headerlink" href="#7-the-full-author-cycle" title="Permanent link">&para;</a></h2>
 <p>End-to-end, the flow is:</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>write code → add import → click Detect Dependencies → Union → Save Changes
-</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>                                                                    │
-</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>                                                                    ▼
-</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>                                                          [manifest layers in sync]
-</span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>                                                                    │
-</span><span id="__span-4-6"><a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a>                                                                    ▼
-</span><span id="__span-4-7"><a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a>                                                    git commit &amp;&amp; git push
-</span><span id="__span-4-8"><a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a>                                                                    │
-</span><span id="__span-4-9"><a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a>                                                                    ▼
-</span><span id="__span-4-10"><a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a>                                                       uv run haywire share --save
-</span><span id="__span-4-11"><a id="__codelineno-4-11" name="__codelineno-4-11" href="#__codelineno-4-11"></a>                                                                    │
-</span><span id="__span-4-12"><a id="__codelineno-4-12" name="__codelineno-4-12" href="#__codelineno-4-12"></a>                                                                    ▼
-</span><span id="__span-4-13"><a id="__codelineno-4-13" name="__codelineno-4-13" href="#__codelineno-4-13"></a>                                                    git commit marketstall.toml &amp;&amp; push
-</span><span id="__span-4-14"><a id="__codelineno-4-14" name="__codelineno-4-14" href="#__codelineno-4-14"></a>                                                                    │
-</span><span id="__span-4-15"><a id="__codelineno-4-15" name="__codelineno-4-15" href="#__codelineno-4-15"></a>                                                                    ▼
-</span><span id="__span-4-16"><a id="__codelineno-4-16" name="__codelineno-4-16" href="#__codelineno-4-16"></a>                                                      [marketstall hosted at URL]
-</span><span id="__span-4-17"><a id="__codelineno-4-17" name="__codelineno-4-17" href="#__codelineno-4-17"></a>                                                                    │
-</span><span id="__span-4-18"><a id="__codelineno-4-18" name="__codelineno-4-18" href="#__codelineno-4-18"></a>                                                                    ▼
-</span><span id="__span-4-19"><a id="__codelineno-4-19" name="__codelineno-4-19" href="#__codelineno-4-19"></a>                                              consumer subscribes via Add Source
+<div class="language-text highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>write code → add import → click Detect Dependencies → Union → Save Changes
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>                                                                    │
+</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>                                                                    ▼
+</span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a>                                                          [manifest layers in sync]
+</span><span id="__span-6-5"><a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a>                                                                    │
+</span><span id="__span-6-6"><a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a>                                                                    ▼
+</span><span id="__span-6-7"><a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a>                                                    git commit &amp;&amp; git push
+</span><span id="__span-6-8"><a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a>                                                                    │
+</span><span id="__span-6-9"><a id="__codelineno-6-9" name="__codelineno-6-9" href="#__codelineno-6-9"></a>                                                                    ▼
+</span><span id="__span-6-10"><a id="__codelineno-6-10" name="__codelineno-6-10" href="#__codelineno-6-10"></a>                                                       uv run haywire share --save
+</span><span id="__span-6-11"><a id="__codelineno-6-11" name="__codelineno-6-11" href="#__codelineno-6-11"></a>                                                                    │
+</span><span id="__span-6-12"><a id="__codelineno-6-12" name="__codelineno-6-12" href="#__codelineno-6-12"></a>                                                                    ▼
+</span><span id="__span-6-13"><a id="__codelineno-6-13" name="__codelineno-6-13" href="#__codelineno-6-13"></a>                                                    git commit marketstall.toml &amp;&amp; push
+</span><span id="__span-6-14"><a id="__codelineno-6-14" name="__codelineno-6-14" href="#__codelineno-6-14"></a>                                                                    │
+</span><span id="__span-6-15"><a id="__codelineno-6-15" name="__codelineno-6-15" href="#__codelineno-6-15"></a>                                                                    ▼
+</span><span id="__span-6-16"><a id="__codelineno-6-16" name="__codelineno-6-16" href="#__codelineno-6-16"></a>                                                      [marketstall hosted at URL]
+</span><span id="__span-6-17"><a id="__codelineno-6-17" name="__codelineno-6-17" href="#__codelineno-6-17"></a>                                                                    │
+</span><span id="__span-6-18"><a id="__codelineno-6-18" name="__codelineno-6-18" href="#__codelineno-6-18"></a>                                                                    ▼
+</span><span id="__span-6-19"><a id="__codelineno-6-19" name="__codelineno-6-19" href="#__codelineno-6-19"></a>                                              consumer subscribes via Add Source
 </span></code></pre></div>
 <p>For monorepo authors, <code>--save</code> is the daily command. For one-off snippet sharing (chat, gist, README), <code>share &lt;library&gt;</code> without <code>--save</code> is fine.</p>
 <h2 id="8-common-pitfalls">8. Common pitfalls<a class="headerlink" href="#8-common-pitfalls" title="Permanent link">&para;</a></h2>

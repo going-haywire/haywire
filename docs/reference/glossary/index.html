@@ -820,7 +820,7 @@
     
   
   
-    <span class="md-status md-status--draft"></span>
+    <span class="md-status md-status--stable"></span>
   
 
   
@@ -4340,6 +4340,11 @@
 <td><strong>Widget</strong></td>
 <td>An inline UI control rendered inside a port on the node card, bound to the port's value. See <a href="../../components/widgets/widget-canon/">components/widgets</a></td>
 <td>Control, field input</td>
+</tr>
+<tr>
+<td><strong>BaseWidget</strong></td>
+<td>The single canonical widget base class (in <code>haywire.ui.widget</code>). Authors implement <code>build()</code> (construct the NiceGUI tree) and may either call the <code>bind()</code> sugar for flat-scalar fields or override the <code>on_model_changed()</code> floor hook for arbitrary model→view sync. Lives on the UI side of the agnostic line; reaches the model only through <code>DataPort</code>. See <a href="../../adr/0007-widget-unification-basewidget/">adr/0007</a></td>
+<td>SimpleWidget (removed — folded into BaseWidget)</td>
 </tr>
 <tr>
 <td><strong>ShowWidgetStrategy</strong></td>
