@@ -4232,6 +4232,11 @@
 <td>Tab, widget (too generic)</td>
 </tr>
 <tr>
+<td><strong>Ports Panel</strong></td>
+<td>The node-scoped Panel that lists a selected node's inlets, outlets, and config ports. Renders each port's live Widget (the same one the node card shows, honouring <code>should_show_widget()</code>) where one applies, and a read-only id/type row otherwise — a second editing surface for ports whose Skin omits the Widget (e.g. flow-direction skins)</td>
+<td>port inspector, ports list</td>
+</tr>
+<tr>
 <td><strong>Scope</strong></td>
 <td>A named tab within a panel-aware editor that groups panels (e.g. <code>node</code>, <code>graph</code>, <code>edge</code>)</td>
 <td>Context (overloaded), category</td>
@@ -4338,7 +4343,7 @@
 </tr>
 <tr>
 <td><strong>Widget</strong></td>
-<td>An inline UI control rendered inside a port on the node card, bound to the port's value. See <a href="../../components/widgets/widget-canon/">components/widgets</a></td>
+<td>An inline UI control bound to a port's value. Rendered inside the port's row on the node card (by the Skin), and — independently — inside the Ports Panel; the same port may have a live Widget instance in both surfaces at once, each with its own model subscription. See <a href="../../components/widgets/widget-canon/">components/widgets</a></td>
 <td>Control, field input</td>
 </tr>
 <tr>
