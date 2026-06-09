@@ -4233,12 +4233,22 @@
 </tr>
 <tr>
 <td><strong>Ports Panel</strong></td>
-<td>The node-scoped Panel that lists a selected node's inlets, outlets, and config ports. Renders each port's live Widget (the same one the node card shows, honouring <code>should_show_widget()</code>) where one applies, and a read-only id/type row otherwise — a second editing surface for ports whose Skin omits the Widget (e.g. flow-direction skins)</td>
+<td>The Panel under the <code>ports</code> Scope (<code>PortFocus</code>, available when a node is selected) that lists the selected node's inlets, outlets, and config ports. Renders each port's live Widget (the same one the node card shows, honouring <code>should_show_widget()</code>) where one applies, and a read-only id/type row otherwise — a second editing surface for ports whose Skin omits the Widget (e.g. flow-direction skins)</td>
 <td>port inspector, ports list</td>
 </tr>
 <tr>
+<td><strong>PortFocus</strong></td>
+<td>The Scope (<code>id="ports"</code>, available when <code>active_node</code> is set) that hosts the Ports Panel — the selected node's full port list. Distinct from <strong>PinFocus</strong> (<code>id="pin"</code>), the per-pin right-click context-menu scope keyed on <code>active_port</code></td>
+<td>ports scope</td>
+</tr>
+<tr>
+<td><strong>PinFocus</strong></td>
+<td>The Scope (<code>id="pin"</code>, available when <code>active_port</code> is set) for the per-pin right-click context menu (hosts <code>PortInfoPanel</code>). Distinct from <strong>PortFocus</strong> (the node-scoped ports list). Was named <code>PortFocus</code> before the ports list took that name</td>
+<td>per-pin menu scope</td>
+</tr>
+<tr>
 <td><strong>Scope</strong></td>
-<td>A named tab within a panel-aware editor that groups panels (e.g. <code>node</code>, <code>graph</code>, <code>edge</code>)</td>
+<td>A named tab within a panel-aware editor that groups panels (e.g. <code>node</code>, <code>ports</code>, <code>graph</code>, <code>edge</code>)</td>
 <td>Context (overloaded), category</td>
 </tr>
 <tr>
