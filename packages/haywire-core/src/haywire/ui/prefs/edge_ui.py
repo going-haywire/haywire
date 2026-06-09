@@ -4,6 +4,7 @@
 from haywire.core.settings import setting
 from haywire.core.settings.schema import FrameworkSettings
 
+# TODO: Find the right place for EdgeUISettings
 
 class EdgeUISettings(FrameworkSettings, namespace="ui.edge"):
     """Global preferences controlling edge routing, width, and animation behaviour."""

@@ -14,7 +14,7 @@ Before editing any file, read it first. Before modifying a function, grep for al
 
 ### Package Layout
 
-`codemap/INDEX.md` provides an entry point to get a grasp on the layout of this repo.
+`.codemap/INDEX.md` provides an entry point to get a grasp on the layout of this repo.
 
 ## Documentation
 
