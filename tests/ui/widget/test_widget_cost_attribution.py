@@ -11,12 +11,10 @@ discussion:
   center 1+2  render_widget calls + element constructions
               (build + mount the NumberDrag elements — base-class-independent)
   center 3    outbox.enqueue_update calls during render vs. during a
-              simulated value-change pass (the only place SimpleWidget vs
-              BaseWidget differs — and it only fires on value churn)
+              simulated value-change pass (only fires on value churn)
 
 The hypothesis under test: with 0 edges, cost is dominated by centers 1+2
-(construction/mounting), and center 3 barely fires because nothing propagates —
-so the SimpleWidget-vs-BaseWidget decision is performance-irrelevant here.
+(construction/mounting), and center 3 barely fires because nothing propagates.
 
 This is instrumentation, not a pass/fail gate. It prints a table and asserts
 only the structural facts (2200 widgets rendered, 0 edges) so the numbers can't

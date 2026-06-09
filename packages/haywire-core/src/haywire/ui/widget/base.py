@@ -1,208 +1,138 @@
 from abc import ABC, abstractmethod
-from typing import Any, Dict, List, Optional
+import logging
+from typing import Any, Optional
 
 from haywire.core.types import DataPort
 from haywire.ui.widget.binding import PropertyBinding
 from haywire.ui.widget.converters import BindingConverter, BindingMode, PrimitiveUnwrappingConverter
 from haywire.ui.widget.interface import IWidget
 
-# ============================================================================
-#    BASE WIDGET CLASS
-# ============================================================================
-
 
 class BaseWidget(IWidget, ABC):
-    """
-    Base class for sophisticated widgets with declarative binding support.
+    """The single canonical widget base.
 
-    Features:
-    - Multiple bindings per widget
-    - Custom converters and validators
-    - Multiple UI elements with targeted bindings
-    - Debouncing, validation, error handling
+    Floor (always available, serves any BaseType):
+      - ``build()``            : construct & return the NiceGUI root element.
+      - ``on_model_changed(v)``: override for arbitrary model→view sync. Fires on
+                                 every port change and once at render. Default
+                                 refreshes any ``bind()``-registered bindings.
 
-    Widgets override configure_bindings() to setup data flow declaratively,
-    eliminating boilerplate for common patterns.
+    Sugar (flat-scalar convenience):
+      - ``bind(element, to=...)``: register a two-way (or one-way) binding from a
+                                   model field to a NiceGUI element property.
     """
 
     def __init__(self, port: DataPort):
-        """
-        Initialize widget.
-
-        Args:
-            port: DataPort containing the data to bind to
-        """
         self.port = port
         self.port_id: str = port.id
         widget_config = port.widget_config if hasattr(port, "widget_config") and port.widget_config else {}
-        self._config: Dict[str, Any] = widget_config
+        self._config: dict[str, Any] = widget_config
 
-        # UI element (created during render)
         self.ui_element: Optional[Any] = None
-
-        # Binding management
-        self._bindings: Dict[str, List[PropertyBinding]] = {}
-
-        # Sub-element references (for complex widgets)
-        self._ui_element_refs: Dict[str, Any] = {}
-
-        # Cleanup flag — signals cleanup() has run; callers must not access
-        # the widget's fields after that. Mirrors Settings._cleaned_up.
+        self._bindings: list[PropertyBinding] = []
+        self._model_dispatch_cb: Optional[Any] = None
         self._cleaned_up: bool = False
+        self.logger = logging.getLogger(__name__)
 
+    # ---- FLOOR ----------------------------------------------------------
     @abstractmethod
-    def configure_bindings(self) -> None:
+    def build(self) -> Any:
+        """Construct and return the NiceGUI root element for this widget."""
+        ...
+
+    def get_value(self) -> Any:
+        return self.port.get_value()
+
+    def set_value(self, value: Any) -> None:
+        self.port.set_value(value)
+
+    def on_model_changed(self, value: Any) -> None:
+        """Override for custom model→view sync. Default drives bind()-ings.
+
+        Subclasses that override should call ``super().on_model_changed(value)``
+        to keep their bind()-registered elements live, or omit the super() call
+        to take full ownership of sync.
         """
-        Configure bindings for this widget.
+        for binding in self._bindings:
+            binding.sync_to_view()
 
-        Override this method to setup declarative bindings.
-        Called after create_element(), before render completes.
-
-        Example:
-            def configure_bindings(self):
-                # Simple binding with default converter
-                self.add_binding(self.create_default_binding())
-
-                # Custom binding with formatting
-                self.add_binding(PropertyBinding(
-                    source_property="value",
-                    converter=FormattingConverter("{:.2f}"),
-                    mode=BindingMode.ONE_WAY
-                ))
-        """
-        pass
-
-    @abstractmethod
-    def create_element(self) -> Any:
-        """
-        Create and return the NiceGUI element for this widget.
-
-        For complex widgets with multiple sub-elements, store references:
-
-        Example:
-            def create_element(self):
-                with ui.card() as card:
-                    self.label = ui.label()
-                    self.button = ui.button()
-
-                # Store refs for targeted bindings
-                self._ui_element_refs['label'] = self.label
-                self._ui_element_refs['button'] = self.button
-
-                return card
-        """
-        pass
-
-    def add_binding(self, binding: PropertyBinding, target_element: Optional[str] = None) -> None:
-        """
-        Add a binding to this widget.
-
-        Args:
-            binding: Binding configuration
-            target_element: Optional name of sub-element (for complex widgets)
-                          If None, binds to the main ui_element
-        """
-        target_key = target_element or "__main__"
-
-        if target_key not in self._bindings:
-            self._bindings[target_key] = []
-
-        self._bindings[target_key].append(binding)
-
-        # Activate immediately if target element exists
-        if target_element and target_element in self._ui_element_refs:
-            binding.activate(self.port, self._ui_element_refs[target_element])
-        elif not target_element and self.ui_element is not None:
-            binding.activate(self.port, self.ui_element)
-
-    def create_default_binding(
+    # ---- SUGAR ----------------------------------------------------------
+    def bind(
         self,
-        source_property: str = "value",
-        target_property: str = "value",
-        target_event: str = "update:modelValue",
+        element: Any,
+        *,
+        to: str = "value",
+        prop: str = "value",
+        event: str = "update:modelValue",
         converter: Optional[BindingConverter] = None,
-        mode: BindingMode = BindingMode.TWO_WAY,
-        **kwargs,
-    ) -> PropertyBinding:
+        one_way: bool = False,
+    ) -> Any:
+        """Register a binding from model field ``to`` to ``element.prop``.
+
+        ``to="value"`` (default) binds the whole port value (primitive case).
+        ``to="x"`` / ``to="position.x"`` navigates a BaseType field path.
+        Returns ``element`` so it composes inside ``with ui.row():`` blocks.
         """
-        Create standard binding for this widget's data port.
-
-        This is a convenience method that most simple widgets can use.
-
-        Args:
-            source_property: Property path in container (default: "value")
-            target_property: Property name to bind (default: "value")
-            target_event: Event name to listen for (default: "update:modelValue")
-            converter: Optional custom converter (default: PrimitiveUnwrappingConverter)
-            mode: Binding mode (default: TWO_WAY)
-            **kwargs: Additional PropertyBinding arguments
-
-        Returns:
-            Configured PropertyBinding
-        """
-        return PropertyBinding(
-            source_property=source_property,
-            target_property=target_property,
-            target_event=target_event,
+        binding = PropertyBinding(
+            source_property=to,
+            target_property=prop,
+            target_event=event,
             converter=converter or PrimitiveUnwrappingConverter(),
-            mode=mode,
-            **kwargs,
+            mode=BindingMode.ONE_WAY if one_way else BindingMode.TWO_WAY,
         )
+        binding._pending_element = element  # activated once, in render()
+        self._bindings.append(binding)
+        return element
 
+    # ---- RENDER + LIFECYCLE (final) -------------------------------------
     def render(self) -> Any:
-        """
-        Render widget with automatic binding setup.
-
-        Returns:
-            The rendered UI element
-        """
+        """Build the element, activate bindings exactly once, wire dispatch."""
+        if self._cleaned_up:
+            raise RuntimeError("Cannot render a widget after cleanup()")
         if self.ui_element is None:
-            # Create UI element
-            self.ui_element = self.create_element()
+            self.ui_element = self.build()
 
-            # Let subclass configure bindings
-            self.configure_bindings()
+            # Activate each bind()-ed binding once, against its pending element.
+            # The widget owns model→view (via _model_dispatch_cb below); each
+            # binding owns only view→model, so suppress its self-subscription.
+            for binding in self._bindings:
+                binding.activate(self.port, binding._pending_element, subscribe_model_to_view=False)
+                binding._pending_element = None  # drop the round-trip element reference
 
-            # Activate all bindings
-            self._activate_all_bindings()
+            # Single model→view dispatch channel → on_model_changed.
+            self._model_dispatch_cb = lambda _: self.on_model_changed(self.port.get_value())
+            self.port._data.on_changed += self._model_dispatch_cb
 
-            # Cleanup on disconnect
+            # Initial sync.
+            self.on_model_changed(self.port.get_value())
+
             if hasattr(self.ui_element, "client"):
-                self.ui_element.client.on_disconnect(lambda: self.cleanup())
+                self.ui_element.client.on_disconnect(self.cleanup)
 
         return self.ui_element
 
-    def _activate_all_bindings(self) -> None:
-        """Activate all configured bindings"""
-        # Activate main bindings
-        if "__main__" in self._bindings:
-            for binding in self._bindings["__main__"]:
-                binding.activate(self.port, self.ui_element)
-
-        # Activate sub-element bindings
-        for element_name, bindings in self._bindings.items():
-            if element_name != "__main__" and element_name in self._ui_element_refs:
-                target_element = self._ui_element_refs[element_name]
-                for binding in bindings:
-                    binding.activate(self.port, target_element)
-
     def cleanup(self) -> None:
-        """Clean up bindings and resources.
-
-        Callers must not access the widget's fields after cleanup() returns —
-        the contract is signalled by ``self._cleaned_up = True``.
-        """
+        """Final teardown. Drops the dispatch subscription, deactivates bindings,
+        then calls the subclass hook ``_on_cleanup()``. Idempotent."""
         if self._cleaned_up:
             return
-        print(f"Cleaning up widget: {self.class_identity.registry_key} for element ID: {self.port_id}")
+        if self._model_dispatch_cb is not None and self.port is not None:
+            try:
+                self.port._data.on_changed -= self._model_dispatch_cb
+            except Exception as e:
+                self.logger.warning(f"Failed to drop model dispatch: {e}", exc_info=True)
+        self._model_dispatch_cb = None
 
-        # Deactivate all bindings
-        for bindings_list in self._bindings.values():
-            for binding in bindings_list:
-                binding.deactivate()
-
+        for binding in self._bindings:
+            binding.deactivate()
         self._bindings.clear()
-        self._ui_element_refs.clear()
+
+        self._on_cleanup()
 
         self.ui_element = None
         self._cleaned_up = True
+
+    def _on_cleanup(self) -> None:
+        """Override to release subclass-owned resources (e.g. a backend).
+        Called by the final ``cleanup()``; do NOT override ``cleanup()`` itself."""
+        ...

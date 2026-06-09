@@ -1,7 +1,7 @@
 ---
-status: draft
+status: stable
 doc_template: canonical-example
-scope: Authoring widgets — SimpleWidget / BaseWidget subclasses, the @widget decorator, type binding, lifecycle
+scope: Authoring widgets — BaseWidget subclasses, the @widget decorator, the build()/bind() surface, the on_model_changed() floor, lifecycle
 see-also:
   - ../datatypes/datatype-canon.md
   - ../../guides/ports.md
@@ -13,124 +13,167 @@ see-also:
 
 ## 1. What it solves
 
-A **widget** is the inline UI control rendered inside a port on a node card. It binds bidirectionally to the port's value: dragging a slider updates the port; setting the port from a worker writes the new value to the slider. Widgets exist so node authors don't have to think about UI plumbing — declare a port type with a widget binding, and the canvas renders the right control.
+A **widget** is the inline UI control rendered inside a port on a node card. It is bound to the port's value: dragging a slider updates the port; setting the port from a worker writes the new value back into the slider. Widgets exist so node authors don't have to think about UI plumbing — declare a port with a widget, and the canvas renders the right control inside the port row.
 
 You author a widget when:
 
-- You have a custom datatype that needs its own input control (a `Color` type with a colour picker, a `MathOperation` enum with a select dropdown, a `Vector3` type with three coupled inputs).
+- You have a custom datatype that needs its own input control (a `Color` type with a colour picker, a `Vector3` type with three coupled inputs, a `MathOperation` enum with a select dropdown).
 - You want a richer control than the framework's defaults for an existing type (a Blender-style number drag instead of a plain spinbox).
-- You're building a read-only display widget for an outlet or pooled inlet (table, list, formatted preview).
+- You need a whole-value display (a streaming image preview, a formatted label, a swatch) driven from the port value.
 
 A widget is *not* an editor or a panel — those are workspace-level UI components. A widget lives **inside a port row** on a node card.
 
 ## 2. How it fits
 
 ```text
-@widget(compatible_types=[FLOAT])  ──► WidgetRegistry  ──►  port renders a widget
-class FastNumberWidget(SimpleWidget):                          when the canvas
-    def create_element(self):                                  draws the node card
-        return ui.number(value=0)
-                                       Bidirectional binding:
-                                         port → ui_element     (worker write)
-                                         ui_element → port    (user interaction)
+@widget(compatible_types=[FLOAT])  ──► WidgetRegistry  ──►  port renders the widget
+class KnobWidget(BaseWidget):                                 when the canvas
+    def build(self):                                          draws the node card
+        knob = ui.knob(value=0)
+        return self.bind(knob)          model → view : on_model_changed() / bind()-ings
+                                        view → model : each bind()-ed element
 ```
 
-Two base classes cover the surface:
+Every widget subclasses **`BaseWidget`** and implements **`build()`**, which constructs and returns the NiceGUI root element. Inside `build()` you either:
 
-| Class | Use when… |
-|---|---|
-| **`SimpleWidget`** | Single UI element bound to one DataPort. Direct two-way sync. No converter, no validator, no debouncing. ~95% of widgets in the codebase use this. |
-| **`BaseWidget`** | Multiple UI elements bound to one DataPort (e.g. a Vector3 with x/y/z inputs), or per-element validation, or read-only display widgets that transform the port value into a custom view. |
+- call **`bind()`** (the *sugar*) to wire each value-bound element to a model field, or
+- override **`on_model_changed()`** (the *floor*) and drive the view yourself for whole-value or non-field widgets.
 
-Both implement `IWidget`. The `@widget` decorator attaches `class_identity` (used by `WidgetRegistry` for hot-reload) and registers `compatible_types` (which datatypes the widget accepts).
+`BaseWidget` implements the minimal `IWidget` contract. The `@widget` decorator attaches `class_identity` (used by `WidgetRegistry` for hot-reload) and registers `compatible_types` (which datatypes the widget accepts).
 
-**Boundaries.** What datatypes *are* lives in [components/datatypes](../datatypes/datatype-canon.md). How a port binds a widget at creation time (the `widget_key` / `widget_config` kwargs on `as_inlet`) lives in [guides/ports](../../guides/ports.md). The runtime layer that converts values between incompatible types lives in [components/adapters](../adapters/adapter-canon.md) and [architecture/execution/edges](../../architecture/execution/edges/edges-arch.md).
+**Boundaries.** What datatypes *are* lives in [components/datatypes](../datatypes/datatype-canon.md). How a port binds a widget at creation time (`as_inlet(widget=...)`) lives in [guides/ports](../../guides/ports.md). The runtime layer that converts values between incompatible *types* on an edge lives in [components/adapters](../adapters/adapter-canon.md) and [architecture/execution/edges](../../architecture/execution/edges/edges-arch.md).
 
 ## 3. Important concepts
 
-**The `@widget` decorator.** Sets `class_identity` and `class_library` on the widget class so `WidgetRegistry` (a `BaseRegistry` subclass) can find it. The `compatible_types` parameter is the list of `IType` classes this widget can edit. A widget is offered for a port when the port's type is in (or inherits from) one of the compatible types.
+### The `@widget` decorator
+
+`@widget(...)` registers the class with `WidgetRegistry` and attaches its identity. It is always invoked with parentheses.
 
 ```python
-@widget(description='Fast number input', compatible_types=[FLOAT, INT])
-class NumberWidget(SimpleWidget):
+@widget(description="Fast number input", compatible_types=[FLOAT, INT])
+class NumberWidget(BaseWidget):
     ...
 ```
 
-**`SimpleWidget` lifecycle.** Three methods you override; the rest is handled by the base:
+- **`compatible_types`** (required) — the list (or set) of `IType` classes this widget can edit. A widget is offered for a port when the port's type is in — or inherits from — one of the compatible types. Pass an explicit empty list to register a widget with no type constraint.
+- **`class_identity`** — derived from the class and its owning library, exposed as `class_identity.registry_key` (`<library_id>:widget:<registry_id>`). This is the key `WidgetRegistry` uses, and the value `config()` embeds for the call site.
+
+### `build()`
+
+Required. Construct and return the NiceGUI root element for the widget. Call `bind()` inline on each value-bound element; because `bind()` returns the element, it composes naturally inside `with ui.row():` / `with ui.column():` layout blocks. `build()` runs once per rendered widget; the base wires up the model subscription and activates bindings after it returns.
+
+### The `bind()` sugar
+
+`bind()` registers a binding from a model field to a NiceGUI element property and returns the element:
 
 ```python
-class MyWidget(SimpleWidget):
-    UI_PROPERTY = "value"            # default — the NiceGUI element prop to bind
-    UI_EVENT = "update:modelValue"   # default — the event that fires on user change
-    IS_READONLY = False              # default
-
-    def create_element(self):        # required: build and return the NiceGUI element
-        return ui.number(value=0)
-
-    def get_default_value(self):     # optional: what to show when the port has no value
-        return 0.0
+def bind(
+    self,
+    element,
+    *,
+    to: str = "value",
+    prop: str = "value",
+    event: str = "update:modelValue",
+    converter: BindingConverter | None = None,
+    one_way: bool = False,
+) -> Any: ...
 ```
 
-The base class handles:
+- **`to`** — the model field path. `to="value"` (the default) binds the *whole* port value, which is the primitive / single-value case. For a composite `BaseType`, navigate component fields: `to="x"`, or a nested path `to="position.x"`.
+- **`prop`** — the element property to write. Defaults to `"value"`; a label binds `prop="text"`.
+- **`event`** — the NiceGUI event that signals a user-driven change (defaults to `"update:modelValue"`). Set it for elements that emit a different change event.
+- **`converter`** — see below; defaults to `PrimitiveUnwrappingConverter()`.
+- **`one_way=True`** — model → view only. Use for read-only elements (a display label, a derived swatch).
 
-- **Two-way binding.** `port._data.on_changed += self._sync_to_view` (model → view); `ui_element.on(UI_EVENT, self._sync_to_model)` (view → model).
-- **Initial sync.** Reads from the port and writes to the element on first render.
-- **Cleanup.** When the page client disconnects (browser tab closed), `cleanup()` unsubscribes from events and detaches the element.
-
-**`SimpleWidget` constraints (when to graduate to `BaseWidget`).**
-
-- Single UI element only.
-- Single value binding only.
-- No custom converters between port value and UI value (the framework unwraps `PrimitiveType` automatically; for anything else you need `BaseWidget`).
-- No debouncing or per-keystroke validation.
-
-**Configuration via `widget_config`.** The port author passes config to the widget when wiring it up:
+A composite widget calls `bind()` once per component field, each navigating a different `to` path:
 
 ```python
-# In a node's init():
+def build(self):
+    with ui.row().classes("w-full") as root:
+        self.bind(ui.number(value=0, label="X").classes("w-full"), to="x")
+        self.bind(ui.number(value=0, label="Y").classes("w-full"), to="y")
+        self.bind(ui.number(value=0, label="Z").classes("w-full"), to="z")
+    return root
+```
+
+### The `on_model_changed()` floor
+
+When a widget isn't a flat field map — a whole-value display, a streaming preview — override `on_model_changed(self, value)` and drive the view yourself. It fires on **every** port change and **once at render** with the current value.
+
+```python
+def on_model_changed(self, value):
+    super().on_model_changed(value)          # keeps any bind()-ings live
+    self._swatch.style(f"background:{value.hex}")
+```
+
+The `super()` contract is the lever:
+
+- **Call `super().on_model_changed(value)`** to refresh every `bind()`-registered element, then add your own custom sync on top. Use this when you mix `bind()`-ed elements with hand-driven ones.
+- **Omit the `super()` call** to take full ownership of model → view sync (a floor-only widget with no `bind()` calls — e.g. an image preview that pushes frames).
+
+### `converter`
+
+A `BindingConverter` translates between the model value and the view value in both directions.
+
+- **`PrimitiveUnwrappingConverter`** is the default. It unwraps a `PrimitiveType` to its underlying scalar (and handles pooled fields). Pass a default to show something for an unset port:
+
+  ```python
+  self.bind(knob, converter=PrimitiveUnwrappingConverter(default_value=0.0))
+  ```
+
+- **`Converters.chain(...)`** composes converters left-to-right on the way to the view (and reversed on the way to the model) — e.g. unwrap then clamp:
+
+  ```python
+  self.bind(el, converter=Converters.chain(
+      Converters.primitive(default_value=0),
+      Converters.range(min_value=0, max_value=100, clamp=True),
+  ))
+  ```
+
+- **`Converters.range(...)`** clamps (or rejects) numeric values to a range.
+- **Custom `BindingConverter` subclasses** handle anything else — unit conversion, formatting a derived display string. Implement `to_view()` (and `to_model()` for two-way bindings); the default `to_model()` makes the converter read-only.
+
+### `config()` call-site pattern
+
+Every widget exposes the `config()` classmethod (from `IWidget`). `Widget.config(properties={...})` returns a `{"key": <registry_key>, "config": {...}}` dict that you hand to a port:
+
+```python
 self.add(FLOAT.as_inlet(
-    'amount',
-    widget_key='haybale_core:widget:NumberWidget',
-    widget_config={
-        'properties': {'min': 0, 'max': 100, 'step': 0.5, 'precision': 2},
-    },
+    "amount",
+    widget=NumberWidget.config(properties={"min": 0, "max": 100, "step": 0.5}),
 ))
 ```
 
-Inside the widget, `self._config` holds the `widget_config` dict. Convention: read user-facing properties from `self._config.get('properties', {})`:
+Inside the widget, that config is available as `self._config`; the convention is to read user-facing values from `self._config.get("properties", {})`.
+
+### `_on_cleanup()` and final cleanup
+
+The base `cleanup()` is **final**: when the page client disconnects it drops the model subscription, deactivates every binding, and *then* calls the `_on_cleanup()` hook. **Never override `cleanup()`.** To release subclass-owned resources (a backend, a timer, an open stream), override `_on_cleanup()`:
 
 ```python
-def create_element(self):
-    props = self._config.get('properties', {})
-    kwargs: dict[str, Any] = {'value': 0}
-    for prop in ['min', 'max', 'step', 'precision']:
-        if prop in props:
-            kwargs[prop] = props[prop]
-    return NumberDrag(**kwargs).classes('w-full')
+def _on_cleanup(self):
+    self._backend.stop()
 ```
 
-**The `T.config(...)` pattern.** Widget classes expose a `config()` classmethod that returns a `widget_config` dict — letting node authors call `NumberWidget.config(properties={'min': 0, 'max': 100})` instead of manually constructing the dict and passing the registry key.
+This template-method split guarantees base teardown always runs, so a subclass can't accidentally leak the model subscription.
 
-**Read-only display widgets.** Set `IS_READONLY = True`. The base class skips registering the view-to-model handler, so user interaction (if any UI element is interactive) won't propagate back. Useful for outlet display, pooled-value tables, status indicators.
+### Hot-reload
 
-**`BaseWidget` for multi-element widgets.** When one DataPort has multiple UI elements (a Vector3 with x/y/z inputs, a colour picker with both a swatch and a hex input). You override more methods, manage your own bindings, and read/write the port directly. Less common; use `SimpleWidget` first and graduate only when necessary.
+`WidgetRegistry` re-registers widget classes when a library reloads. Widgets already mounted in the running UI are **not** swapped (tearing down a connected NiceGUI element is risky); newly-created widgets pick up the new class.
 
-**Hot-reload.** `WidgetRegistry` extends `BaseRegistry`, so when a library reloads, widget classes are re-registered. Existing widgets in the running UI are *not* swapped (tearing down a NiceGUI element while it's connected is risky); newly-created widgets pick up the new class.
-
-**Imports** (verified against codebase 2026-05):
+### The imports you need
 
 ```python
-from haywire.ui.widget.simple import SimpleWidget
 from haywire.ui.widget.base import BaseWidget
 from haywire.ui.widget.decorator import widget
-from haywire.ui.widget.interface import IWidget
+from haywire.ui.widget.converters import Converters, BindingConverter, PrimitiveUnwrappingConverter
 ```
 
 ## 4. Live example from the codebase
 
-Source: [`barn/haybale-example/haybale_example/widgets/knob_widget.py`](../../../barn/haybale-example/haybale_example/widgets/knob_widget.py)
+Source: `barn/haybale-example/haybale_example/widgets/knob_widget.py`
 
-`KnobWidget` — a `SimpleWidget` binding a `ui.knob` element to `FLOAT` or `INT` ports. Demonstrates the full `SimpleWidget` authoring surface: `@widget` decorator with `compatible_types`, `create_element()` reading `self._config`, and `get_default_value()`:
+`KnobWidget` is a `BaseWidget` that binds a `ui.knob` to `FLOAT` or `INT` ports. It shows the common single-value path: `build()` reads `self._config`, constructs the element, and returns it through `self.bind()` with a default-bearing converter.
 
 ```python
 --8<-- "barn/haybale-example/haybale_example/widgets/knob_widget.py:knob_widget"
@@ -140,25 +183,26 @@ Using it from a node's `init()`:
 
 ```python
 self.add(FLOAT.as_inlet(
-    'angle',
-    label='Angle',
-    widget=KnobWidget.config(properties={'min': 0, 'max': 360, 'step': 1, 'color': 'teal'}),
+    "angle",
+    label="Angle",
+    widget=KnobWidget.config(properties={"min": 0, "max": 360, "step": 1, "color": "teal"}),
 ))
 ```
+
+**Multiple elements.** A widget can bind several elements to one port. A `Vector3` widget calls `bind()` three times, each with a different `to=` field path (`"x"`, `"y"`, `"z"`); for a worked example that mixes a two-way input with a read-only derived label, see `TemperatureWidget` in `barn/haybale-example/haybale_example/widgets/example_widget.py` — it binds a `ui.number` (custom converter, two-way) alongside a `ui.label` (`prop="text"`, `one_way=True`).
 
 What this example exercises:
 
 | Concept | Where |
 |---|---|
 | `@widget(compatible_types=[FLOAT, INT])` decorator | class decoration |
-| `SimpleWidget` subclass for two-way primitive binding | `KnobWidget(SimpleWidget)` |
-| `create_element()` returning a NiceGUI element | `ui.knob(...)` |
-| `self._config.get('properties', {})` driving element kwargs | `min`, `max`, `step`, `color`, `size` |
-| `get_default_value()` override | returns `0.0` |
-| `UI_PROPERTY` / `UI_EVENT` at defaults (`'value'` / `'update:modelValue'`) | not overridden — knob uses the defaults |
-| `T.config(properties={...})` call-site pattern | usage example above |
+| `BaseWidget` subclass | `class KnobWidget(BaseWidget)` |
+| `build()` returning a NiceGUI element | constructs `ui.knob(...)`, returns it |
+| `self.bind(...)` with the default `to="value"` | `self.bind(knob, converter=...)` |
+| `PrimitiveUnwrappingConverter(default_value=0.0)` | unwraps the primitive, shows `0.0` when unset |
+| `config()` call-site pattern | `KnobWidget.config(properties={...})` above |
 
-For datatype authoring (including the `MathOperation` derived primitive used here), see [components/datatypes](../datatypes/datatype-canon.md). For the underlying port surface (`as_inlet`, `widget_config`, `widget_key`), see [guides/ports](../../guides/ports.md). For type-pair adapters (used when an outlet of one type connects to an inlet of a different type), see [components/adapters](../adapters/adapter-canon.md).
+For datatype authoring (including the derived primitive types used here), see [components/datatypes](../datatypes/datatype-canon.md). For the port surface (`as_inlet`, `widget=`), see [guides/ports](../../guides/ports.md). For type-pair adapters (used when an outlet of one type connects to an inlet of a different type), see [components/adapters](../adapters/adapter-canon.md).
 
 ---
 
@@ -166,40 +210,46 @@ For datatype authoring (including the `MathOperation` derived primitive used her
 
 ### Authoring checklist
 
-- [ ] `@widget(description='...', compatible_types=[Type1, Type2])` decorator
-- [ ] Inherit from `SimpleWidget` (default) or `BaseWidget` (for multi-element)
-- [ ] Implement `create_element()` returning a NiceGUI element
-- [ ] Implement `get_default_value()` for the type
-- [ ] Override `UI_PROPERTY` / `UI_EVENT` if the element doesn't use `'value'` / `'update:modelValue'`
-- [ ] Set `IS_READONLY = True` for display-only widgets
-- [ ] Override `_sync_to_view` if you need value formatting before display
+- [ ] `@widget(description="...", compatible_types=[Type1, Type2])` on the class
+- [ ] Subclass `BaseWidget`
+- [ ] Implement `build()` returning the NiceGUI root element
+- [ ] Call `self.bind(element, ...)` for each value-bound element
+- [ ] Pass `prop=` / `event=` for elements that don't use `value` / `update:modelValue`
+- [ ] Pass `one_way=True` for read-only (display) elements
+- [ ] Override `on_model_changed()` (call `super()` to keep `bind()`-ings live) for whole-value / custom sync
+- [ ] Override `_on_cleanup()` to release subclass-owned resources — never override `cleanup()`
 
 ### Imports
 
 ```python
-from haywire.ui.widget.simple import SimpleWidget
 from haywire.ui.widget.base import BaseWidget
 from haywire.ui.widget.decorator import widget
-from haywire.ui.widget.interface import IWidget
+from haywire.ui.widget.converters import Converters, BindingConverter, PrimitiveUnwrappingConverter
 ```
 
-### Common UI_PROPERTY / UI_EVENT pairs
+### Common `prop` / `event` pairs
 
-| Element | `UI_PROPERTY` | `UI_EVENT` |
+| Element | `prop` | `event` |
 |---|---|---|
 | `ui.number`, `ui.input`, `ui.select`, `ui.slider`, `ui.switch`, `ui.checkbox` | `value` (default) | `update:modelValue` (default) |
-| `ui.label` | `text` | (read-only — set `IS_READONLY = True`) |
-| `NumberDrag` (custom) | `value` | `update:modelValue` |
-| `ui.color_input` | `value` | `update:modelValue` |
+| `ui.knob`, `ui.color_input`, `NumberDrag` (custom) | `value` (default) | `update:modelValue` (default) |
+| `ui.label` | `text` | (read-only — pass `one_way=True`) |
 
 ### Per-port override at the call site
 
 ```python
+# Preferred: config() builds the {key, config} dict for you.
 self.add(FLOAT.as_inlet(
-    'amount',
-    widget_key='my_lib:widget:NumberWidget',
-    widget_config={'properties': {'min': 0, 'max': 100}},
+    "amount",
+    widget=NumberWidget.config(properties={"min": 0, "max": 100}),
+))
+
+# Lower-level: pass the registry key and config explicitly.
+self.add(FLOAT.as_inlet(
+    "amount",
+    widget_key="my_lib:widget:NumberWidget",
+    widget_config={"properties": {"min": 0, "max": 100}},
 ))
 ```
 
-The `widget_key` is `<library_id>:widget:<class_name>`. Register it once via `@widget` and you can reference it from any node.
+The `widget_key` is `<library_id>:widget:<registry_id>`. Register the class once with `@widget` and reference it from any node.

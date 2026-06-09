@@ -6,14 +6,15 @@ from typing import Any
 from nicegui import ui
 
 from haywire.ui.widget.decorator import widget
-from haywire.ui.widget.simple import SimpleWidget
+from haywire.ui.widget.base import BaseWidget
+from haywire.ui.widget.converters import PrimitiveUnwrappingConverter
 from haywire.ui.components.number.drag import NumberDrag
 
 from haybale_core.types import BOOL, FLOAT, INT, STRING
 
 
 @widget(description="Fast number input widget", compatible_types=[FLOAT, INT])
-class NumberWidget(SimpleWidget):
+class NumberWidget(BaseWidget):
     """
     Blender-style number input widget for float and int ports.
 
@@ -35,7 +36,7 @@ class NumberWidget(SimpleWidget):
         NumberWidget.config(properties={'min': 0, 'max': 200, 'step': 0.5})
     """
 
-    def create_element(self) -> Any:
+    def build(self) -> Any:
         props = self._config.get("properties", {})
         kwargs: dict[str, Any] = {"value": 0}
 
@@ -43,14 +44,14 @@ class NumberWidget(SimpleWidget):
             if prop in props:
                 kwargs[prop] = props[prop]
 
-        return NumberDrag(**kwargs).classes("w-full")
-
-    def get_default_value(self) -> float:
-        return 0.0
+        return self.bind(
+            NumberDrag(**kwargs).classes("w-full"),
+            converter=PrimitiveUnwrappingConverter(default_value=0.0),
+        )
 
 
 @widget(description="Fast text input widget", compatible_types=[STRING])
-class TextWidget(SimpleWidget):
+class TextWidget(BaseWidget):
     """
     Text input widget for string ports.
 
@@ -65,21 +66,21 @@ class TextWidget(SimpleWidget):
         TextWidget.config(properties={'label': 'Name', 'placeholder': 'Enter name...'})
     """
 
-    def create_element(self) -> Any:
+    def build(self) -> Any:
         props = self._config.get("properties", {})
-        return ui.input(
-            value="",
-            label=props.get("label", ""),
-            placeholder=props.get("placeholder", ""),
-            password=props.get("password", False),
-        ).classes("w-full")
-
-    def get_default_value(self) -> str:
-        return ""
+        return self.bind(
+            ui.input(
+                value="",
+                label=props.get("label", ""),
+                placeholder=props.get("placeholder", ""),
+                password=props.get("password", False),
+            ).classes("w-full"),
+            converter=PrimitiveUnwrappingConverter(default_value=""),
+        )
 
 
 @widget(description="checkbox widget", compatible_types=[BOOL])
-class CheckboxWidget(SimpleWidget):
+class CheckboxWidget(BaseWidget):
     """
     Checkbox widget for boolean ports.
 
@@ -92,19 +93,16 @@ class CheckboxWidget(SimpleWidget):
         CheckboxWidget.config(properties={'text': 'Enable feature'})
     """
 
-    def create_element(self) -> Any:
+    def build(self) -> Any:
         props = self._config.get("properties", {})
-        return ui.checkbox(
-            value=False,
-            text=props.get("text", ""),
-        ).classes("w-full")
-
-    def get_default_value(self) -> bool:
-        return False
+        return self.bind(
+            ui.checkbox(value=False, text=props.get("text", "")).classes("w-full"),
+            converter=PrimitiveUnwrappingConverter(default_value=False),
+        )
 
 
 @widget(description="switch widget", compatible_types=[BOOL])
-class SwitchWidget(SimpleWidget):
+class SwitchWidget(BaseWidget):
     """
     Toggle switch widget for boolean ports.
 
@@ -117,19 +115,16 @@ class SwitchWidget(SimpleWidget):
         SwitchWidget.config(properties={'text': 'Active'})
     """
 
-    def create_element(self) -> Any:
+    def build(self) -> Any:
         props = self._config.get("properties", {})
-        return ui.switch(
-            value=False,
-            text=props.get("text", ""),
-        ).classes("w-full text-xs")
-
-    def get_default_value(self) -> bool:
-        return False
+        return self.bind(
+            ui.switch(value=False, text=props.get("text", "")).classes("w-full text-xs"),
+            converter=PrimitiveUnwrappingConverter(default_value=False),
+        )
 
 
 @widget(description="slider widget", compatible_types=[FLOAT, INT])
-class SliderWidget(SimpleWidget):
+class SliderWidget(BaseWidget):
     """
     Horizontal slider widget for numeric ports.
 
@@ -144,7 +139,7 @@ class SliderWidget(SimpleWidget):
         SliderWidget.config(properties={'min': -1.0, 'max': 1.0, 'step': 0.01})
     """
 
-    def create_element(self) -> Any:
+    def build(self) -> Any:
         props = self._config.get("properties", {})
         kwargs: dict[str, Any] = {
             "value": 0,
@@ -153,15 +148,15 @@ class SliderWidget(SimpleWidget):
             "step": props.get("step", 1),
         }
 
-        return ui.slider(**kwargs).classes("w-full text-xs").props("label-always")
-
-    def get_default_value(self) -> float:
-        props = self._config.get("properties", {})
-        return float(props.get("min", 0))
+        default = float(props.get("min", 0))
+        return self.bind(
+            ui.slider(**kwargs).classes("w-full text-xs").props("label-always"),
+            converter=PrimitiveUnwrappingConverter(default_value=default),
+        )
 
 
 @widget(description="select widget", compatible_types=[INT, STRING])
-class SelectWidget(SimpleWidget):
+class SelectWidget(BaseWidget):
     """
     Dropdown select widget for int and string ports.
 
@@ -177,7 +172,7 @@ class SelectWidget(SimpleWidget):
         SelectWidget.config(properties={'options': {0: 'Off', 1: 'On'}, 'clearable': True})
     """
 
-    def create_element(self) -> Any:
+    def build(self) -> Any:
         props = self._config.get("properties", {})
         kwargs: dict[str, Any] = {"options": props.get("options", []), "value": None}
 
@@ -185,11 +180,11 @@ class SelectWidget(SimpleWidget):
             if prop in props:
                 kwargs[prop] = props[prop]
 
-        return ui.select(**kwargs).classes("w-full text-xs")
+        return self.bind(ui.select(**kwargs).classes("w-full text-xs"))
 
 
 @widget(description="Simple label for display only", compatible_types=[STRING, FLOAT, INT])
-class SimpleLabelWidget(SimpleWidget):
+class SimpleLabelWidget(BaseWidget):
     """
     Read-only label widget that displays the port value as text.
 
@@ -201,11 +196,10 @@ class SimpleLabelWidget(SimpleWidget):
         SimpleLabelWidget.config()
     """
 
-    UI_PROPERTY = "text"
-    IS_READONLY = True
-
-    def create_element(self) -> Any:
-        return ui.label("").classes("text-base text-xs")
-
-    def get_default_value(self) -> str:
-        return ""
+    def build(self) -> Any:
+        return self.bind(
+            ui.label("").classes("text-base text-xs"),
+            prop="text",
+            one_way=True,
+            converter=PrimitiveUnwrappingConverter(default_value=""),
+        )

@@ -4,39 +4,19 @@ from nicegui import ui
 
 from haybale_core.types import FLOAT, INT
 from haywire.ui.widget.base import BaseWidget
-from haywire.ui.widget.binding import PropertyBinding
-from haywire.ui.widget.converters import BindingConverter, BindingMode, Converters
+from haywire.ui.widget.converters import BindingConverter, Converters
 from haywire.ui.widget.decorator import widget
 
 from haybale_example.types.specs import Temperature
 
 
-@widget(description="Number widget with validation", compatible_types=[FLOAT, INT])
+@widget(description="Number widget with range clamping", compatible_types=[FLOAT, INT])
 class ValidatedNumberWidget(BaseWidget):
     """Number widget with range validation and custom formatting"""
 
-    def configure_bindings(self) -> None:
+    def build(self) -> Any:
         props = self._config.get("properties", {})
-        min_val = props.get("min")
-        max_val = props.get("max")
-
-        if min_val is not None or max_val is not None:
-            # Use range validation
-            self.add_binding(
-                self.create_default_binding(
-                    converter=Converters.chain(
-                        Converters.primitive(default_value=0),
-                        Converters.range(min_value=min_val, max_value=max_val, clamp=True),
-                    )
-                )
-            )
-        else:
-            # Simple binding
-            self.add_binding(self.create_default_binding())
-
-    def create_element(self) -> Any:
-        props = self._config.get("properties", {})
-        return ui.number(
+        el = ui.number(
             value=0,
             label=props.get("label", ""),
             min=props.get("min"),
@@ -46,6 +26,17 @@ class ValidatedNumberWidget(BaseWidget):
             prefix=props.get("prefix", ""),
             suffix=props.get("suffix", ""),
         ).classes("w-full")
+        min_val = props.get("min")
+        max_val = props.get("max")
+        if min_val is not None or max_val is not None:
+            return self.bind(
+                el,
+                converter=Converters.chain(
+                    Converters.primitive(default_value=0),
+                    Converters.range(min_value=min_val, max_value=max_val, clamp=True),
+                ),
+            )
+        return self.bind(el)
 
 
 @widget(description="Temperature with unit conversion", compatible_types=[Temperature])
@@ -57,47 +48,23 @@ class TemperatureWidget(BaseWidget):
     - Read-only conversion display
     """
 
-    def __init__(self, element):
-        super().__init__(element)
+    def __init__(self, port) -> None:
+        super().__init__(port)
         self.unit = self._config.get("properties", {}).get("unit", "celsius")
-        self.conversion_label = None
 
-    def configure_bindings(self) -> None:
-        # Main input with unit conversion
-        self.add_binding(
-            PropertyBinding(
-                source_property="value",
-                converter=UnitConversionConverter(self.unit),
-                mode=BindingMode.TWO_WAY,
-            )
-        )
-
-        # Conversion display (read-only)
-        self.add_binding(
-            PropertyBinding(
-                source_property="value",
-                target_property="text",
-                converter=ConversionDisplayConverter(self.unit),
-                mode=BindingMode.ONE_WAY,
-            ),
-            target_element="conversion_label",
-        )
-
-    def create_element(self) -> Any:
-        with ui.column().classes("w-full"):
-            # Main input
+    def build(self) -> Any:
+        with ui.column().classes("w-full") as root:
             temp_input = ui.number(
                 value=0,
                 suffix="°C" if self.unit == "celsius" else "°F",
                 step=0.1,
                 precision=1,
             ).classes("w-full")
+            self.bind(temp_input, converter=UnitConversionConverter(self.unit))
 
-            # Conversion display
-            self.conversion_label = ui.label("").classes("text-sm text-gray-500")
-            self._ui_element_refs["conversion_label"] = self.conversion_label
-
-        return temp_input
+            label = ui.label("").classes("text-sm text-gray-500")
+            self.bind(label, prop="text", one_way=True, converter=ConversionDisplayConverter(self.unit))
+        return root
 
 
 # Custom converters for temperature widget

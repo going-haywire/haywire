@@ -6,11 +6,12 @@ This directory holds two distinct kinds of tests. Know which you're touching.
 
 | File | Guards |
 |------|--------|
-| `test_sync_path_parity.py` | `SimpleWidget` vs `BaseWidget`+`create_default_binding()` produce identical model→view / view→model behavior for primitives; cleanup detaches the port subscription; the binding does not double-subscribe (finding #2). Keep these green if you touch the widget binding layer. |
+| `test_sync_path_parity.py` | The unified `BaseWidget` `bind()` path produces correct model→view behavior for primitives; cleanup detaches the port subscription; `render()` subscribes exactly once (finding #2). Keep these green if you touch the widget binding layer. |
 
 Shared scaffolding lives in `_sync_fixtures.py` (a minimal `DataPort` builder, a
-`_StandInElement`, and the three widget shapes). It is imported by both the
-parity test and the sync microbenchmark.
+`_StandInElement` / `_RecordingElement`, and two `BaseWidget` shapes — default
+`bind()` and explicit converter). It is imported by the parity test, the sync
+microbenchmark, and the `bind()` sugar/nested tests.
 
 ## 2. Performance instruments (`@pytest.mark.perf`, excluded from the default run)
 
@@ -21,7 +22,7 @@ widgets") so a number can't be silently measuring the wrong thing. They informed
 
 | File | Measures |
 |------|----------|
-| `test_sync_path_perf.py` | Microbenchmark: cost of `BaseWidget`'s `_sync_to_view` vs `SimpleWidget`'s. Concluded the base-class choice is perf-irrelevant for inline widgets. |
+| `test_sync_path_perf.py` | Microbenchmark: cost of `BaseWidget`'s `sync_to_view` on the default `bind()` path vs an explicit-converter path. Concluded the base-class choice is perf-irrelevant for inline widgets (ADR-0007 Finding B). |
 | `test_widget_cost_attribution.py` | On the real 200-node graph: `render_widget` is only ~13 % of render; the rest is the node card. |
 | `test_skin_render_profile.py` | cProfile + element census of one node-card render. Found the `expects_arguments`/`inspect.signature` hot spot and the tooltip element count. |
 | `test_expects_arguments_cache.py` | Wall-time speedup from caching `expects_arguments` on the real graph (~1.41× in harness). Doubles as the before/after yardstick for that optimization. |

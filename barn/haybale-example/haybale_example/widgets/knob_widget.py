@@ -1,6 +1,7 @@
 from haybale_core.types import FLOAT, INT
+from haywire.ui.widget.base import BaseWidget
+from haywire.ui.widget.converters import PrimitiveUnwrappingConverter
 from haywire.ui.widget.decorator import widget
-from haywire.ui.widget.simple import SimpleWidget
 from nicegui import ui
 
 
@@ -9,7 +10,7 @@ from typing import Any
 
 # --8<-- [start:knob_widget]
 @widget(description="knob widget", compatible_types=[FLOAT, INT])
-class KnobWidget(SimpleWidget):
+class KnobWidget(BaseWidget):
     """
     Rotary knob widget for numeric ports.
 
@@ -26,7 +27,7 @@ class KnobWidget(SimpleWidget):
         KnobWidget.config(properties={'min': 0, 'max': 360, 'step': 1, 'color': 'teal'})
     """
 
-    def create_element(self) -> Any:
+    def build(self) -> Any:
         props = self._config.get("properties", {})
         with ui.row().classes("w-full justify-center text-xs"):
             knob = ui.knob(
@@ -38,10 +39,10 @@ class KnobWidget(SimpleWidget):
                 color=props.get("color", "primary"),
                 size=props.get("size", "60px"),
             )
-        return knob.classes("w-32 h-32")
-
-    def get_default_value(self) -> float:
-        return 0.0
+        return self.bind(
+            knob.classes("w-32 h-32"),
+            converter=PrimitiveUnwrappingConverter(default_value=0.0),
+        )
 
 
 # --8<-- [end:knob_widget]

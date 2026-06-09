@@ -1,5 +1,4 @@
 from abc import ABC, abstractmethod
-from collections.abc import Callable
 from enum import Enum
 from typing import Any, Generic, List, Optional, TypeVar
 
@@ -12,15 +11,6 @@ class BindingMode(Enum):
     ONE_WAY = "one_way"  # Model → View only
     TWO_WAY = "two_way"  # Model ↔ View (default)
     ONE_TIME = "one_time"  # Initialize once, no updates
-
-
-class UpdateTrigger(Enum):
-    """When to propagate updates from view to model"""
-
-    IMMEDIATE = "immediate"  # Every keystroke/change
-    ON_BLUR = "on_blur"  # When user leaves field
-    ON_ENTER = "on_enter"  # When user presses enter
-    DEBOUNCED = "debounced"  # After delay with no changes
 
 
 # ============================================================================
@@ -72,16 +62,6 @@ class BindingConverter(ABC, Generic[T]):
         return True, None
 
 
-class IdentityConverter(BindingConverter):
-    """Pass-through converter - no transformation"""
-
-    def to_view(self, model_value: Any) -> Any:
-        return model_value
-
-    def to_model(self, view_value: Any) -> Any:
-        return view_value
-
-
 class PrimitiveUnwrappingConverter(BindingConverter):
     """
     Unwraps PrimitiveType instances to their underlying value.
@@ -114,39 +94,6 @@ class PrimitiveUnwrappingConverter(BindingConverter):
         the .value attribute update, so no wrapping needed here.
         """
         return view_value
-
-
-class FormattingConverter(BindingConverter):
-    """
-    Formats model values for display using format strings or custom functions.
-    Read-only by default.
-    """
-
-    def __init__(
-        self, format_spec: str | Callable[[Any], str], extractor: Optional[Callable[[Any], Any]] = None
-    ):
-        """
-        Args:
-            format_spec: Format string (e.g., "{:.2f}°C") or formatting function
-            extractor: Optional function to extract value before formatting
-        """
-        self.format_spec = format_spec
-        self.extractor = extractor or (lambda x: x)
-
-    def to_view(self, model_value: Any) -> str:
-        """Format model value as string"""
-        extracted = self.extractor(model_value)
-
-        # Unwrap if needed
-        if hasattr(extracted, "value"):
-            extracted = extracted.value
-
-        # Apply formatting: a format string uses str.format, otherwise it's a
-        # callable formatter. (isinstance(str) narrows cleanly where callable()
-        # would leave an uncallable intersection.)
-        if isinstance(self.format_spec, str):
-            return self.format_spec.format(extracted)
-        return self.format_spec(extracted)
 
 
 class CompositeConverter(BindingConverter):
@@ -224,67 +171,6 @@ class RangeValidatingConverter(BindingConverter):
         return True, None
 
 
-class PropertyPathConverter(BindingConverter):
-    """
-    Extracts nested properties from complex objects using dot notation.
-    Example: "bounding_box.min.x" extracts value.bounding_box.min.x
-    """
-
-    def __init__(self, path: str, default: Any = None):
-        self.path = path
-        self.path_parts = path.split(".")
-        self.default = default
-
-    def to_view(self, model_value: Any) -> Any:
-        """Navigate property path to extract value"""
-        current = model_value
-
-        try:
-            for part in self.path_parts:
-                if hasattr(current, part):
-                    current = getattr(current, part)
-                elif isinstance(current, dict):
-                    current = current.get(part, self.default)
-                elif part in ("length", "count", "size"):
-                    # `current` is runtime-shaped navigation data; len() on a
-                    # non-Sized value raises TypeError, which the surrounding
-                    # try/except deliberately handles by returning self.default.
-                    current = len(current)  # ty: ignore[invalid-argument-type]
-                else:
-                    return self.default
-            return current
-        except (AttributeError, KeyError, TypeError):
-            return self.default
-
-
-class ExtractorConverter(BindingConverter):
-    """
-    Uses custom functions to extract/update values from complex types.
-    More flexible than property paths for computed properties.
-    """
-
-    def __init__(
-        self, extractor: Callable[[Any], Any], updater: Optional[Callable[[Any, Any], None]] = None
-    ):
-        """
-        Args:
-            extractor: Function to extract view value from model value
-            updater: Optional function to update model value from view value
-        """
-        self.extractor = extractor
-        self.updater = updater
-
-    def to_view(self, model_value: Any) -> Any:
-        """Use extractor function"""
-        return self.extractor(model_value)
-
-    def to_model(self, view_value: Any) -> Any:
-        """For use with updater in binding"""
-        if self.updater is None:
-            raise NotImplementedError("No updater provided for two-way binding")
-        return view_value
-
-
 # ============================================================================
 # Converter Factory (Convenience)
 # ============================================================================
@@ -299,31 +185,11 @@ class Converters:
         return PrimitiveUnwrappingConverter(default_value)
 
     @staticmethod
-    def identity() -> IdentityConverter:
-        """Create identity converter (pass-through)"""
-        return IdentityConverter()
-
-    @staticmethod
-    def format(format_spec: str | Callable, extractor: Optional[Callable] = None) -> FormattingConverter:
-        """Create formatting converter"""
-        return FormattingConverter(format_spec, extractor)
-
-    @staticmethod
     def range(
         min_value: Optional[float] = None, max_value: Optional[float] = None, clamp: bool = True
     ) -> RangeValidatingConverter:
         """Create range validating converter"""
         return RangeValidatingConverter(min_value, max_value, clamp)
-
-    @staticmethod
-    def property_path(path: str, default: Any = None) -> PropertyPathConverter:
-        """Create property path converter"""
-        return PropertyPathConverter(path, default)
-
-    @staticmethod
-    def extractor(extractor: Callable, updater: Optional[Callable] = None) -> ExtractorConverter:
-        """Create extractor converter"""
-        return ExtractorConverter(extractor, updater)
 
     @staticmethod
     def chain(*converters: BindingConverter) -> CompositeConverter:

@@ -14,11 +14,11 @@
 The hot path is **model → view** (`_sync_to_view`), which fires on *every* port
 value change — i.e. every edge propagation, every worker write. For one port:
 
-- **SimpleWidget** ([simple.py:129](../../packages/haywire-core/src/haywire/ui/widget/simple.py#L129)):
+- **SimpleWidget** (`simple.py`):
   `port.get_value()` → (None? default) → `setattr(el, prop, value)`. One virtual
   call + one setattr. No converter, no isinstance branch.
 - **BaseWidget** via `PropertyBinding._sync_to_view`
-  ([binding.py:112](../../packages/haywire-core/src/haywire/ui/widget/binding.py#L112)):
+  (`binding.py`):
   `source_property=="value"` branch → `port.get_value()` →
   `converter.to_view(model_value)` (virtual call into `PrimitiveUnwrappingConverter`,
   which does an `isinstance(dict)` check + `hasattr(value,"value")` unwrap) →
@@ -240,3 +240,14 @@ directly resolves review finding #3 and tells us whether to delete `SimpleWidget
   "value"` branch are the only overhead). Measuring the un-trimmed version would
   unfairly penalize the proposal with code that would be deleted anyway.
 ```
+
+---
+
+## Verdict (recorded 2026-06-09)
+
+**GREEN — unified.** Per ADR-0007 Finding B, the SimpleWidget-vs-BaseWidget
+sync-path delta is performance-irrelevant: `render_widget` is ~13% of node-card
+render and the sync delta is a small fraction of that. No fast path was needed;
+`SimpleWidget` was deleted and `BaseWidget` is the single canonical base. The
+unification was implemented on branch `widget-unification` (see
+[`adr/0007`](../adr/0007-widget-unification-basewidget.md)).

@@ -1,5 +1,10 @@
 # Handoff — Widget unification (SimpleWidget vs BaseWidget) + widget perf attribution
 
+> **SUPERSEDED (2026-06-09).** All open decisions in this handoff are resolved by
+> [`docs/adr/0007-widget-unification-basewidget.md`](../../docs/adr/0007-widget-unification-basewidget.md)
+> and were implemented on branch `widget-unification`. Retained as the
+> measurement/analysis record only.
+
 **Date:** 2026-06-07
 **Branch:** `widget-perf-verification` (off `master`, not committed, not pushed)
 **Origin:** a thermo-nuclear code-quality review of the widget module and its

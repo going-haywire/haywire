@@ -16,10 +16,9 @@ class IWidget(ABC):
     """
     Minimal widget interface.
 
-    Developers are FREE to implement data binding however they want:
-    - Use SimpleWidget for performance-critical simple cases
-    - Use BaseWidget for sophisticated features
-    - Roll their own for custom requirements
+    Subclass ``BaseWidget`` for the standard authoring surface (``build()`` plus
+    the ``bind()`` sugar / ``on_model_changed()`` floor). Implement ``IWidget``
+    directly only for a fully custom widget that needs neither.
     """
 
     # Set by @widget decorator
