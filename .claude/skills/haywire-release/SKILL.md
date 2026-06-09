@@ -227,16 +227,28 @@ Expected: `uv.lock` is rewritten with the new versions for all bumped packages.
 Then stage the bumped files plus the freshly-locked file and commit:
 
 ```bash
-git add packages/*/pyproject.toml barn/*/pyproject.toml uv.lock
+git add -u
 git commit -m "chore: release v<NEW_VERSION>"
 ```
+
+Use `git add -u` (stage **all tracked modifications**), NOT a `barn/*/pyproject.toml`
+glob. A glob expands to every `barn/*` entry on disk — and if `barn/haybale-visiongraph`
+is present as a local symlink (it's a gitignored, out-of-tree package; see
+[`docs/guides/sharing-libraries.md`](../../../docs/guides/sharing-libraries.md) and the
+workspace `exclude`), git aborts the whole `git add` with
+`pathspec '…' is beyond a symbolic link` and **nothing gets staged** — the commit then
+silently fails with "no changes added." `git add -u` sidesteps this entirely: it only
+touches files git already tracks, and the visiongraph symlink is untracked, so it's
+never considered. This is safe because Step 2 guaranteed a clean tree, so the only
+tracked modifications are this release's 10 `pyproject.toml`s + `uv.lock`.
 
 Single-line subject, no body. The commit subject is exactly that — `chore: release v`
 prefix followed by the version. The CI workflow doesn't care about the message, but
 following the convention keeps `git log --oneline` searchable for past releases.
 
-After `uv lock`, `uv.lock` will always have changed (the version lines moved), so
-`git add uv.lock` stages a real diff — confirm it's in the commit with `git status`.
+After `uv lock`, `uv.lock` will always have changed (the version lines moved), so it's
+part of the staged set — confirm it's in the commit with `git diff --cached --name-only`
+(expect exactly 11 paths: 10 `pyproject.toml` + `uv.lock`).
 
 ### Step 7 — create the tag
 
