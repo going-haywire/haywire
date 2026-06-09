@@ -9,6 +9,11 @@ from typing import TYPE_CHECKING
 
 from nicegui import ui
 
+from haywire.core.session.signals import (
+    ActiveGraphMoved,
+    GraphDataMutated,
+    SelectionMoved,
+)
 from haywire.ui import elements as hui
 from haywire.ui.panel import BasePanel, PanelLayout
 from haywire.ui.panel.decorator import panel
@@ -21,12 +26,19 @@ if TYPE_CHECKING:
     from haywire.ui.widget.interface import IWidget
 
 
+def _type_name(port: object) -> str:
+    """Human-readable data-type name for a port's read-only metadata row."""
+    port_type = getattr(port, "data_type", None)
+    return port_type.__class__.__name__ if port_type else "—"
+
+
 @panel(
     focus=NodeFocus,
     label="Ports",
     icon=hui.icon.node_ports,
     default_open=False,
     order=20,
+    redraw_on=(SelectionMoved, GraphDataMutated, ActiveGraphMoved),
 )
 class NodePortsPanel(BasePanel):
     """Displays the inlet, outlet, and config ports of the selected node."""
@@ -55,6 +67,39 @@ class NodePortsPanel(BasePanel):
                 pass
         self._widgets.clear()
 
+    def _render_port(self, port, node_id: str, widget_factory) -> None:
+        """Render one port: its live widget (label above) when one applies,
+        otherwise a read-only id/type metadata row.
+
+        Honours should_show_widget() — the same predicate the Skin uses — so the
+        two surfaces stay semantically identical (a linked inlet / an outlet
+        shows no widget here either). A narrow try/except keeps one failing port
+        from blanking the whole panel; widget-render failures are already
+        isolated by WidgetFactory.render_widget (it returns an inline error
+        element rather than raising). The namespaced 'panel:<node_id>' key keeps
+        this panel's hot-reload tracking separate from the Skin's, so the Skin
+        tearing down the node card (unregister_widget_for_node(node_id)) can't
+        clobber it.
+        """
+        try:
+            shows_widget = (
+                widget_factory is not None and port.widget_key is not None and port.should_show_widget()
+            )
+            if shows_widget:
+                with ui.column().classes("w-full gap-0 compact-fields"):
+                    ui.label(port.label).classes("text-xs hw-text-dim px-2 pt-1")
+                    instance, _element = widget_factory.render_widget(
+                        registry_key=port.widget_key,
+                        port=port,
+                        node_id=f"panel:{node_id}",
+                    )
+                    if instance is not None:
+                        self._widgets[port.id] = instance
+            else:
+                hui.info_row(str(port.id), _type_name(port))
+        except Exception:
+            hui.error_label(f"Error rendering port '{getattr(port, 'id', '?')}'")
+
     @classmethod
     def poll(cls, ctx: "SessionContext") -> bool:
         return ctx.data[EditState].active_node is not None
@@ -64,10 +109,27 @@ class NodePortsPanel(BasePanel):
         ctx: "SessionContext",
         layout: PanelLayout,
     ) -> None:
+        # Dispose the previous batch before building a new one. draw() is the
+        # single teardown point: a redraw_on redraw and a selection change both
+        # re-enter here, and BaseWidget.cleanup() is idempotent.
+        self._dispose_widgets()
+
         node = ctx.data[EditState].active_node
         if node is None:
             return
+
+        widget_factory = getattr(ctx.app, "widget_factory", None)
+
         with layout:
+            # Register a one-time client-disconnect sweep so the final batch is
+            # cleaned up when the page closes (draw() won't run again then).
+            if not self._disconnect_registered:
+                try:
+                    ui.context.client.on_disconnect(self._dispose_widgets)
+                    self._disconnect_registered = True
+                except Exception:
+                    pass
+
             try:
                 hw_node = node.node if hasattr(node, "node") else None
                 if hw_node is None:
@@ -82,22 +144,24 @@ class NodePortsPanel(BasePanel):
                     if hasattr(p, "flow_type") and str(getattr(p.flow_type, "name", "")) == "NONE"
                 ]
 
-                def _type_name(port: object) -> str:
-                    port_type = getattr(port, "data_type", None)
-                    return port_type.__class__.__name__ if port_type else "—"
+                node_id = getattr(node, "node_id", "")
 
                 hui.section_label(f"Inlets ({len(inlets)})")
                 for port in inlets:
-                    hui.info_row(str(getattr(port, "port_id", "?")), _type_name(port))
+                    self._render_port(port, node_id, widget_factory)
 
                 hui.section_label(f"Outlets ({len(outlets)})")
                 for port in outlets:
-                    hui.info_row(str(getattr(port, "port_id", "?")), _type_name(port))
+                    self._render_port(port, node_id, widget_factory)
 
                 if configs:
                     hui.section_label(f"Config ({len(configs)})")
                     for port in configs:
-                        hui.info_row(str(getattr(port, "port_id", "?")), _type_name(port))
+                        self._render_port(port, node_id, widget_factory)
 
             except Exception:
+                # Structural backstop (Q11): a malformed node / port collection
+                # must not throw through the panel host. Per-port failures are
+                # handled inside _render_port; this catches everything above the
+                # port loops.
                 hui.error_label("Error reading ports")
