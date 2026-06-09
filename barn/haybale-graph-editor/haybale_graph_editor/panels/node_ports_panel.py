@@ -136,13 +136,18 @@ class NodePortsPanel(BasePanel):
                     hui.empty_state("No port data available", icon=hui.icon.node_ports)
                     return
 
-                inlets = list(getattr(hw_node, "inlets", {}).values())
-                outlets = list(getattr(hw_node, "outlets", {}).values())
-                configs = [
-                    p
-                    for p in getattr(hw_node, "ports", {}).values()
-                    if hasattr(p, "flow_type") and str(getattr(p.flow_type, "name", "")) == "NONE"
-                ]
+                # BaseNode stores every port in a single `ports` dict and exposes
+                # direction via is_inlet()/is_outlet()/is_config() — there is no
+                # `.inlets`/`.outlets` attribute. Mirror the node card by reading
+                # the same visible-port set the skins render (get_visible_ports),
+                # then classify each port the way render_port() does.
+                if hasattr(hw_node, "get_visible_ports"):
+                    visible_ports = hw_node.get_visible_ports()
+                else:
+                    visible_ports = list(getattr(hw_node, "ports", {}).values())
+                inlets = [p for p in visible_ports if p.is_inlet()]
+                outlets = [p for p in visible_ports if p.is_outlet()]
+                configs = [p for p in visible_ports if p.is_config()]
 
                 node_id = getattr(node, "node_id", "")
 
