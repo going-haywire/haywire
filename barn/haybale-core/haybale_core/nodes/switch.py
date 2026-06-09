@@ -43,6 +43,7 @@ class ControlSwitch(BaseNode):
             STRING.as_config(
                 "DataType",
                 label="Data Type",
+                description="",
                 widget=SelectWidget.config(properties={"options": ["int", "float", "string"]}),
                 default="int",
                 on_change="hb_change",
@@ -67,6 +68,7 @@ class ControlSwitch(BaseNode):
                     STRING.as_config(
                         "condition",
                         label="Condition",
+                        description="set form of comparison",
                         widget=SelectWidget.config(
                             properties={"options": [">", ">=", "==", "<", "<=", "!="]}
                         ),
@@ -80,6 +82,7 @@ class ControlSwitch(BaseNode):
                     STRING.as_config(
                         "condition",
                         label="Condition",
+                        description="set form of comparison",
                         widget=SelectWidget.config(
                             properties={"options": [">", ">=", "==", "<", "<=", "!="]}
                         ),
