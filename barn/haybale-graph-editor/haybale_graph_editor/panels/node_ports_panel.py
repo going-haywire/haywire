@@ -80,25 +80,56 @@ class NodePortsPanel(BasePanel):
         this panel's hot-reload tracking separate from the Skin's, so the Skin
         tearing down the node card (unregister_widget_for_node(node_id)) can't
         clobber it.
+
+        Widget cleanup is anchored to the per-widget container element, NOT to
+        this panel instance: PropertiesEditor instantiates a fresh panel object
+        on every redraw (``panel_cls().draw(...)`` after ``content.clear()``),
+        so an instance-held batch would never get disposed and its
+        ``port.on_changed`` subscription would leak on each redraw. Overriding
+        the container's ``_handle_delete`` (fired by ``content.clear()`` via the
+        client's ``remove_elements``) calls ``widget.cleanup()`` exactly when the
+        DOM is torn down, regardless of which panel instance built it.
         """
         try:
             shows_widget = (
                 widget_factory is not None and port.widget_key is not None and port.should_show_widget()
             )
             if shows_widget:
-                with ui.column().classes("w-full gap-0 compact-fields"):
+                container = ui.column().classes("w-full gap-0 compact-fields")
+                with container:
                     ui.label(port.label).classes("text-xs hw-text-dim px-2 pt-1")
                     instance, _element = widget_factory.render_widget(
                         registry_key=port.widget_key,
                         port=port,
                         node_id=f"panel:{node_id}",
                     )
-                    if instance is not None:
-                        self._widgets[port.id] = instance
+                if instance is not None:
+                    self._widgets[port.id] = instance
+                    self._anchor_cleanup_to_element(container, instance)
             else:
                 hui.info_row(str(port.id), _type_name(port))
         except Exception:
             hui.error_label(f"Error rendering port '{getattr(port, 'id', '?')}'")
+
+    @staticmethod
+    def _anchor_cleanup_to_element(element: "ui.element", widget: "IWidget") -> None:
+        """Call ``widget.cleanup()`` when ``element`` is deleted from the DOM.
+
+        NiceGUI fires ``Element._handle_delete()`` for every element removed by
+        ``content.clear()`` (client.remove_elements). BaseWidget.cleanup() is
+        idempotent, so this composes safely with the page-disconnect cleanup the
+        widget also registers in render().
+        """
+        original_handle_delete = element._handle_delete
+
+        def _handle_delete() -> None:
+            try:
+                widget.cleanup()
+            except Exception:
+                pass
+            original_handle_delete()
+
+        element._handle_delete = _handle_delete  # type: ignore[method-assign]
 
     @classmethod
     def poll(cls, ctx: "SessionContext") -> bool:
@@ -151,18 +182,20 @@ class NodePortsPanel(BasePanel):
 
                 node_id = getattr(node, "node_id", "")
 
-                hui.section_label(f"Inlets ({len(inlets)})")
-                for port in inlets:
-                    self._render_port(port, node_id, widget_factory)
-
-                hui.section_label(f"Outlets ({len(outlets)})")
-                for port in outlets:
-                    self._render_port(port, node_id, widget_factory)
-
                 if configs:
-                    hui.section_label(f"Config ({len(configs)})")
-                    for port in configs:
-                        self._render_port(port, node_id, widget_factory)
+                    with hui.expansion_section(label=f"Config ({len(configs)})", default_open=False):
+                        for port in configs:
+                            self._render_port(port, node_id, widget_factory)
+
+                if inlets:
+                    with hui.expansion_section(label=f"Inlets ({len(inlets)})", default_open=False):
+                        for port in inlets:
+                            self._render_port(port, node_id, widget_factory)
+
+                if outlets:
+                    with hui.expansion_section(label=f"Outlets ({len(outlets)})", default_open=False):
+                        for port in outlets:
+                            self._render_port(port, node_id, widget_factory)
 
             except Exception:
                 # Structural backstop (Q11): a malformed node / port collection
