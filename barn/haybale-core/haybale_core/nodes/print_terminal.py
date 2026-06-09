@@ -6,10 +6,7 @@ from haywire.core.node import node, BaseNode, NodeType
 logger = logging.getLogger("haybale.print")
 
 
-@node(
-    label="Print Terminal Message", 
-    menu="core/utils", 
-    node_type=NodeType.CONTROL)
+@node(label="Print Terminal Message", menu="core/utils", node_type=NodeType.CONTROL)
 class PrintTerminalMessageNode(BaseNode):
     """Simple control node that prints a message"""
 

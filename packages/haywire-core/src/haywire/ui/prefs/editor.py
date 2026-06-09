@@ -6,6 +6,7 @@ from haywire.core.settings.schema import FrameworkSettings
 
 # TODO: Find the right place for EditorSettings
 
+
 class EditorSettings(FrameworkSettings, namespace="editor"):
     """Global preferences controlling editor interaction and behaviour."""
 

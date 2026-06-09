@@ -6,6 +6,7 @@ from haywire.core.settings.schema import FrameworkSettings
 
 # TODO: Find the right place for CanvasSettings
 
+
 class CanvasSettings(FrameworkSettings, namespace="ui.canvas"):
     """Global preferences controlling canvas grid, zoom, and pan behaviour."""
 
