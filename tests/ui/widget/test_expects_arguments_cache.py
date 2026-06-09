@@ -35,7 +35,11 @@ from haywire.core.graph.base import BaseGraph
 from haywire.core.graph.scheduler import SyncScheduler
 from haywire.ui.skin.factory import SkinFactory
 
-pytestmark = pytest.mark.perf
+# perf + integration: depends on the `library_system` fixture and a fully-loaded
+# node registry (loads a real graph). Marked integration so it only runs where
+# that registry state is reliable — outside it, shared-global registry pollution
+# from earlier tests can leave PerformanceTester unregistered (0 nodes loaded).
+pytestmark = [pytest.mark.perf, pytest.mark.integration]
 
 _GRAPH = Path(__file__).resolve().parents[3] / "graphs" / "10x200nodes.haywire"
 _REPEATS = 3
