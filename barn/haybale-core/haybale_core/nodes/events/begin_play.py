@@ -6,7 +6,7 @@ from haywire.core.node import node, BaseNode, NodeType
 @node(
     label="Begin Player",
     description="Triggered once when execution starts",
-    menu="event/runtime",
+    menu="core/event",
     search_tags=["start", "init", "begin", "event"],
     node_type=NodeType.EVENT,
 )

@@ -6,7 +6,7 @@ from haywire.core.node import node, BaseNode, NodeType
 @node(
     label="Tick",
     description="Triggered periodically by a connected TickEmitNode",
-    menu="event/runtime",
+    menu="core/event",
     search_tags=["frame", "update", "loop", "event", "tick"],
     node_type=NodeType.EVENT,
 )

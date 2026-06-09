@@ -9,7 +9,7 @@ from haywire.core.node import node, BaseNode, NodeType
 @node(
     label="Tick Emit",
     description="Emits tick callbacks at a configurable framerate",
-    menu="emit/runtime",
+    menu="core/emit",
     search_tags=["tick", "frame", "loop", "emit", "fps", "timer"],
     node_type=NodeType.CONTROL,
 )

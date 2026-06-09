@@ -23,7 +23,7 @@ OPERATORS = {
 @node(
     label="Control Switch",
     description="Switches control flow based on condition",
-    menu="control/switch",
+    menu="core/control/switch",
     search_tags=["switch", "control", "flow", "event"],
     node_type=NodeType.CONTROL,
 )

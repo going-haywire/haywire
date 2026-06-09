@@ -10,7 +10,7 @@ from haywire.core.node import node, BaseNode
     label="Core Error Node",
     description="Placeholder for node that could not be loaded",
     search_tags=["error", "system", "placeholder"],
-    menu="system/error",
+    menu="core/system/error",
     _is_error=True,
 )
 class ErrorNode(BaseNode):

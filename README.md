@@ -21,13 +21,20 @@ Haywire is a Blueprint-inspired visual programming system that combines **execut
 
 ### Create a New Project
 
-```sh
-# Scaffold a new haywire project (installs haywire from PyPI, runs uv sync)
-# this command creates a project folder name 'my-project'
-uvx --from haywire-studio haywire init my-project
+Scaffold a new haywire project (installs haywire from PyPI, runs uv sync). 
 
-# Launch the editor
+This command creates a project folder named 'my-project':
+```sh
+uvx --from haywire-studio haywire init my-project
+```
+
+change into new directory:
+```sh
 cd my-project
+```
+
+Launch the editor:
+```sh
 uv run haywire
 ```
 
@@ -158,7 +165,6 @@ haywire-repo/
     ├── haybale-haystack/           # haystack library
     ├── haybale-example/            # example library
     ├── haybale-testing/            # test nodes for development
-    ├── haybale-visiongraph/        # vision/camera nodes
     └── haybale-TEST_A/             # test library
 ```
 

@@ -12,7 +12,7 @@ from haywire.core.node import node, BaseNode, NodeType
 @node(
     label="Shutdown",
     description="Triggered when execution is shutting down",
-    menu="event/runtime",
+    menu="core/event",
     search_tags=["stop", "end", "cleanup", "event"],
     node_type=NodeType.EVENT,
 )

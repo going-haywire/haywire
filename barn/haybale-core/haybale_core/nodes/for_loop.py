@@ -12,7 +12,7 @@ from haywire.core.execution.execution_context import ExecutionContext
 @node(
     label="For Loop",
     description="Iterate with start, end, and step control",
-    menu="control/loops",
+    menu="core/control/loops",
     search_tags=["loop", "for", "iterate", "index", "range"],
     node_type=NodeType.LOOPBACK,
 )
