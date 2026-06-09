@@ -1,4 +1,4 @@
-# packages/haywire-core/src/haywire/ui/panels/node_ports_panel.py
+# barn/haybale-graph-editor/haybale_graph_editor/panels/node_ports_panel.py
 """
 NodePortsPanel — lists inlet, outlet, and config ports on the selected node.
 """
@@ -6,6 +6,8 @@ NodePortsPanel — lists inlet, outlet, and config ports on the selected node.
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
+
+from nicegui import ui
 
 from haywire.ui import elements as hui
 from haywire.ui.panel import BasePanel, PanelLayout
@@ -16,6 +18,7 @@ from ..state.edit_state import EditState
 
 if TYPE_CHECKING:
     from haywire.core.session.context import SessionContext
+    from haywire.ui.widget.interface import IWidget
 
 
 @panel(
@@ -27,6 +30,30 @@ if TYPE_CHECKING:
 )
 class NodePortsPanel(BasePanel):
     """Displays the inlet, outlet, and config ports of the selected node."""
+
+    def __init__(self) -> None:
+        super().__init__()
+        # Live widget instances this panel created, keyed by port id. The panel
+        # owns their lifecycle: the previous batch is cleaned up at the top of
+        # every draw() (redraws + selection changes share this teardown), and a
+        # final sweep runs on client disconnect.
+        self._widgets: dict[str, "IWidget"] = {}
+        self._disconnect_registered: bool = False
+
+    def _dispose_widgets(self) -> None:
+        """Clean up every widget instance this panel created, then forget them.
+
+        Called at the top of each draw() before rebuilding, and once on client
+        disconnect. BaseWidget.cleanup() is idempotent, so overlapping calls are
+        safe. Each cleanup() drops the widget's port.on_changed subscription.
+        """
+        for widget in self._widgets.values():
+            try:
+                widget.cleanup()
+            except Exception:
+                # A widget that fails to clean up must not block the others.
+                pass
+        self._widgets.clear()
 
     @classmethod
     def poll(cls, ctx: "SessionContext") -> bool:
