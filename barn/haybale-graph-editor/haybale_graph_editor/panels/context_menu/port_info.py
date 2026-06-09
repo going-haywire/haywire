@@ -1,7 +1,7 @@
 """
 PortInfoPanel — display-only panel showing port info on port right-click.
 
-actions: PortContextActions (empty marker), focus=PortFocus.
+actions: PortContextActions (empty marker), focus=PinFocus.
 """
 
 from __future__ import annotations
@@ -13,7 +13,7 @@ from haywire.ui.panel import BasePanel
 from haywire.ui.panel.layout import PanelLayout
 from haywire.ui.panel.decorator import panel
 
-from ...focuses import PortFocus
+from ...focuses import PinFocus
 from ...state.edit_state import EditState
 from ...editors.graph_canvas.handlers.context_menu_actions import PortContextActions
 
@@ -23,7 +23,7 @@ if TYPE_CHECKING:
 
 @panel(
     actions=PortContextActions,
-    focus=PortFocus,
+    focus=PinFocus,
     label="Port Info",
     icon=hui.icon.edge,
     order=10,

@@ -18,7 +18,7 @@ from haywire.ui import elements as hui
 from haywire.ui.panel import BasePanel, PanelLayout
 from haywire.ui.panel.decorator import panel
 
-from ..focuses import NodeFocus
+from ..focuses import PortFocus
 from ..state.edit_state import EditState
 
 if TYPE_CHECKING:
@@ -33,7 +33,7 @@ def _type_name(port: object) -> str:
 
 
 @panel(
-    focus=NodeFocus,
+    focus=PortFocus,
     label="Ports",
     icon=hui.icon.node_ports,
     default_open=False,
@@ -156,7 +156,7 @@ class NodePortsPanel(BasePanel):
                 if configs:
                     with hui.expansion_section(
                         label=f"Config ({len(configs)})",
-                        default_open=False,
+                        default_open=True,
                         state=exp_state,
                         panel_key="node:ports:config",
                     ):
@@ -166,7 +166,7 @@ class NodePortsPanel(BasePanel):
                 if inlets:
                     with hui.expansion_section(
                         label=f"Inlets ({len(inlets)})",
-                        default_open=False,
+                        default_open=True,
                         state=exp_state,
                         panel_key="node:ports:inlets",
                     ):
@@ -176,7 +176,7 @@ class NodePortsPanel(BasePanel):
                 if outlets:
                     with hui.expansion_section(
                         label=f"Outlets ({len(outlets)})",
-                        default_open=False,
+                        default_open=True,
                         state=exp_state,
                         panel_key="node:ports:outlets",
                     ):

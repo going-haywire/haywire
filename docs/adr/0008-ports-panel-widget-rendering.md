@@ -4,7 +4,9 @@ status: accepted
 
 # Ports Panel renders live port Widgets as an always-on secondary surface
 
-The node Ports Panel now renders each port's live, editable Widget — the same
+The Ports Panel — under its own `ports` Scope (`PortFocus`, available when a
+node is selected; distinct from the singular per-pin `PinFocus` used by the
+right-click menu) — now renders each port's live, editable Widget — the same
 control the node card shows — in addition to (not instead of) the in-node
 rendering. The same port may have a live Widget instance in both the node card
 (via the Skin) and the Ports Panel at once, each with its own
@@ -85,3 +87,8 @@ the panel keeps those ports editable.
   Deferred follow-up.
 - `IProjectState` gains a `widget_factory` attribute; `LibrarySystemService`
   gains `get_widget_factory()`.
+- The Ports Panel lives under a new `ports` Scope (`PortFocus`) rather than the
+  `node` Scope, so the node's ports list is its own toolbar tab. The `node`
+  Scope retains `NodeInfoPanel` and `NodePropertiesPanel`. The pre-existing
+  per-pin context-menu scope was renamed `PortFocus` → `PinFocus` (`id="pin"`)
+  to free the `PortFocus`/`port` name for this node-scoped ports list.

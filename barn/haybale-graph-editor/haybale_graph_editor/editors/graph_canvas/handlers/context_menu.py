@@ -252,7 +252,7 @@ class SessionContextMenuProvider(IContextMenuProvider, BaseContextMenuProvider):
         self._open_menu(EdgeContextActions, EdgeFocus, pos)
 
     def on_port_context(self, pos, node_id, port_id, scope):
-        from haybale_graph_editor.focuses import PortFocus
+        from haybale_graph_editor.focuses import PinFocus
         from haybale_graph_editor.editors.graph_canvas.handlers.context_menu_actions import (
             PortContextActions,
         )
@@ -269,8 +269,8 @@ class SessionContextMenuProvider(IContextMenuProvider, BaseContextMenuProvider):
                 self._context.active_component = wrapper.registry_key
 
         self._open_ctx = _OpenMenuContext(click_pos=pos)
-        # Resolve the focus from the DOM-supplied id; fall back to PortFocus.
-        focus = focus_by_id(scope) or PortFocus
+        # Resolve the focus from the DOM-supplied id; fall back to PinFocus.
+        focus = focus_by_id(scope) or PinFocus
         self._open_menu(PortContextActions, focus, pos)
 
     def on_selection_context(self, pos, nodes, edges):

@@ -26,11 +26,18 @@ def test_graph_focus_has_id():
     assert focus_by_id("graph") is GraphFocus
 
 
-def test_port_focus_has_id():
+def test_pin_focus_has_id():
+    from haybale_graph_editor.focuses import PinFocus
+
+    assert PinFocus.id == "pin"
+    assert focus_by_id("pin") is PinFocus
+
+
+def test_ports_focus_has_id():
     from haybale_graph_editor.focuses import PortFocus
 
-    assert PortFocus.id == "port"
-    assert focus_by_id("port") is PortFocus
+    assert PortFocus.id == "ports"
+    assert focus_by_id("ports") is PortFocus
 
 
 def test_app_focus_has_id():

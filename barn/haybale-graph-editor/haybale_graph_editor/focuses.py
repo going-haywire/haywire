@@ -25,6 +25,17 @@ class NodeFocus(Focus):
         return ctx.data[EditState].active_node is not None
 
 
+class PortFocus(Focus):
+    id = "ports"
+    label = "Ports"
+    icon = "device_hub"  # matches NodePortsPanel's icon (hui.icon.node_ports)
+    order = 62
+
+    @classmethod
+    def available(cls, ctx: SessionContext) -> bool:
+        return ctx.data[EditState].active_node is not None
+
+
 class EdgeFocus(Focus):
     id = "edge"
     label = "Edge"
@@ -36,9 +47,9 @@ class EdgeFocus(Focus):
         return ctx.data[EditState].active_edge is not None
 
 
-class PortFocus(Focus):
-    id = "port"
-    label = "Port"
+class PinFocus(Focus):
+    id = "pin"
+    label = "Pin"
     icon = "settings_input_component"
     order = 80
 

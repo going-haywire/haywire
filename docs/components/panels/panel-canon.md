@@ -94,7 +94,8 @@ class NodeContextActions(Protocol):
 | `GraphFocus` | `graph` | active graph not None |
 | `NodeFocus` | `node` | active node not None |
 | `EdgeFocus` | `edge` | active edge not None |
-| `PortFocus` | `port` | active port not None |
+| `PortFocus` | `ports` | active node not None |
+| `PinFocus` | `pin` | active port not None |
 | `SelectionFocus` | `selection` | any nodes/edges selected |
 | `SettingsFocus` | `settings` | active node not None |
 
@@ -263,7 +264,8 @@ from haybale_studio.focuses import NodeFocus, EdgeFocus, GraphFocus
 | `GraphFocus` | `graph` | active graph not None |
 | `NodeFocus` | `node` | active node not None |
 | `EdgeFocus` | `edge` | active edge not None |
-| `PortFocus` | `port` | active port not None |
+| `PortFocus` | `ports` | active node not None |
+| `PinFocus` | `pin` | active port not None |
 | `SelectionFocus` | `selection` | any nodes/edges selected |
 | `SettingsFocus` | `settings` | active node not None |
 
