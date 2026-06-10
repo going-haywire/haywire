@@ -1031,6 +1031,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#15-panels-vs-editors-choosing-the-right-abstraction" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.5. Panels vs. Editors — Choosing the Right Abstraction
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#2-how-it-fits" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2822,6 +2833,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#15-panels-vs-editors-choosing-the-right-abstraction" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.5. Panels vs. Editors — Choosing the Right Abstraction
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#2-how-it-fits" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2943,6 +2965,87 @@
 <li>Any number of panels from any library can contribute to the same editor section.</li>
 <li>Hot-reload works: panels update in place when the library reloads.</li>
 </ul>
+<h2 id="15-panels-vs-editors-choosing-the-right-abstraction">1.5. Panels vs. Editors — Choosing the Right Abstraction<a class="headerlink" href="#15-panels-vs-editors-choosing-the-right-abstraction" title="Permanent link">&para;</a></h2>
+<p><strong>Panels and editors are intentionally separate concerns.</strong> Understanding when to use each is critical to writing maintainable code.</p>
+<table>
+<thead>
+<tr>
+<th>Aspect</th>
+<th>Panel</th>
+<th>Editor</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Purpose</strong></td>
+<td>Display read-only information from session state</td>
+<td>Build an interactive workspace with mutable state</td>
+</tr>
+<tr>
+<td><strong>Lifecycle</strong></td>
+<td>Ephemeral; recreated on every redraw</td>
+<td>Persistent per session</td>
+</tr>
+<tr>
+<td><strong>Instance state</strong></td>
+<td>None; panels are stateless across redraws</td>
+<td>Owns local state (unsaved changes, form drafts, interaction mode)</td>
+</tr>
+<tr>
+<td><strong>Visibility</strong></td>
+<td>Polled dynamically via <code>poll(ctx)</code> on each redraw</td>
+<td>Always shown when active (slot-managed)</td>
+</tr>
+<tr>
+<td><strong>Slot</strong></td>
+<td>Hosted inside another editor; no slot of its own</td>
+<td>Occupies one of the four workspace slots (Left/Right/Main/Bottom)</td>
+</tr>
+<tr>
+<td><strong>Signals</strong></td>
+<td>Subscribed by host editor via <code>redraw_on=</code></td>
+<td>Subscribed directly via <code>@redraw_on()</code> or <code>@react_on()</code></td>
+</tr>
+<tr>
+<td><strong>Use case</strong></td>
+<td>Properties panel, debug info, metadata display</td>
+<td>Code editor, library browser, graph editor, file explorer</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Decision tree:</strong></p>
+<ol>
+<li>
+<p><strong>Does your feature need to hold mutable state across user interactions?</strong> (Form with unsaved changes, multi-step workflow, edit drafts, undo stack)
+   → <strong>Build an editor.</strong> See <a href="../../editors/editor-canon/">components/editors</a>.</p>
+</li>
+<li>
+<p><strong>Is your feature a read-only display that changes when the selection or context changes?</strong>
+   → <strong>Build a panel.</strong> (This document.)</p>
+</li>
+<li>
+<p><strong>Does your feature need its own slot in the workspace layout?</strong>
+   → <strong>Build an editor.</strong> Panels don't manage slots; they appear inside editors.</p>
+</li>
+<li>
+<p><strong>Would your feature be useful in multiple contexts?</strong> (Visible in Properties sidebar AND context menus)
+   → <strong>Can be a panel</strong> if both contexts are read-only. Action panels appear in context menus; display panels appear in Properties.</p>
+</li>
+</ol>
+<p><strong>Examples:</strong></p>
+<ul>
+<li><strong>NodeSettingsPanel</strong> — read-only display of a node's settings. When you select a different node, it re-renders. <strong>Panel.</strong> ✅</li>
+<li><strong>CodeEditor</strong> — holds file content, tracks dirty state (unsaved changes), persists scroll position. <strong>Editor.</strong> ✅</li>
+<li><strong>NodePropertiesPanel</strong> — displays key/value metadata about the selected node. Stateless. <strong>Panel.</strong> ✅</li>
+<li><strong>LibraryComponentEditor</strong> — allows editing a library component with unsaved changes. <strong>Editor.</strong> ✅</li>
+<li><strong>Delete Node context-menu action</strong> — button that calls <code>delete_node()</code> on its host. Read-only display. <strong>Action panel.</strong> ✅</li>
+</ul>
+<p><strong>Why the boundary exists:</strong></p>
+<p>Panels are intentionally stateless so that:
+- <strong>Selection changes are clean.</strong> Switching nodes clears and rebuilds panels automatically; no stale state to clean up.
+- <strong>Hot-reload is simple.</strong> Panels reload their class definition; no instance state survives, so stale state never leaks through.
+- <strong>Composition is easy.</strong> Any library can contribute panels to the same editor without coordinating internal state.</p>
+<p>If you need to hold state, you need a proper container (an editor) that manages the full lifecycle.</p>
 <h2 id="2-how-it-fits">2. How it fits<a class="headerlink" href="#2-how-it-fits" title="Permanent link">&para;</a></h2>
 <div class="language-text highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>@panel(focus=...)                         PanelRegistry              Host editor
 </span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>class MyPanel(BasePanel):                 registers                  (e.g. PropertiesEditor)
@@ -3165,81 +3268,103 @@
 <td>Activates / returns the panel's container element.</td>
 </tr>
 <tr>
-<td><code>layout.expansion_state</code></td>
-<td>Caller-owned persistence bag (or <code>None</code>). Pass to <code>hui.expansion_section(..., state=layout.expansion_state, panel_key=...)</code> to persist a section's open/closed state across rebuilds.</td>
+<td><code>layout.state_bag</code></td>
+<td>Host-owned dict for panel UI state persistence (or <code>None</code> for ephemeral panels). Pass to <code>hui.expansion_section(..., state=layout.state_bag, panel_key=...)</code> or use directly for any UI state tracking (collapsed sections, scroll position, form selections, etc.).</td>
 </tr>
 </tbody>
 </table>
+<p><strong><code>layout.state_bag</code> — the one stateful injection.</strong> Panels are stateless, but the Properties editor holds a dict (<code>_state_bag</code>) that tracks panel UI state (which sections are collapsed, scroll positions, etc.). This dict is passed to every panel on every redraw via <code>PanelLayout</code>. Your panel reads from and writes to this shared dict <em>via</em> UI components like <code>hui.expansion_section()</code>:</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">draw</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ctx</span><span class="p">,</span> <span class="n">layout</span><span class="p">):</span>
+</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>    <span class="k">with</span> <span class="n">layout</span><span class="p">:</span>
+</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>        <span class="c1"># This section&#39;s collapsed/expanded state persists across redraws</span>
+</span><span id="__span-7-4"><a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a>        <span class="c1"># because the host editor owns the dict and passes it every time.</span>
+</span><span id="__span-7-5"><a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a>        <span class="k">with</span> <span class="n">hui</span><span class="o">.</span><span class="n">expansion_section</span><span class="p">(</span>
+</span><span id="__span-7-6"><a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a>            <span class="s2">&quot;My Section&quot;</span><span class="p">,</span>
+</span><span id="__span-7-7"><a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a>            <span class="n">state</span><span class="o">=</span><span class="n">layout</span><span class="o">.</span><span class="n">state_bag</span><span class="p">,</span>             <span class="c1"># host-owned dict</span>
+</span><span id="__span-7-8"><a id="__codelineno-7-8" name="__codelineno-7-8" href="#__codelineno-7-8"></a>            <span class="n">panel_key</span><span class="o">=</span><span class="s2">&quot;expansion:my_section&quot;</span><span class="p">,</span>   <span class="c1"># namespaced key</span>
+</span><span id="__span-7-9"><a id="__codelineno-7-9" name="__codelineno-7-9" href="#__codelineno-7-9"></a>            <span class="n">default_open</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+</span><span id="__span-7-10"><a id="__codelineno-7-10" name="__codelineno-7-10" href="#__codelineno-7-10"></a>        <span class="p">):</span>
+</span><span id="__span-7-11"><a id="__codelineno-7-11" name="__codelineno-7-11" href="#__codelineno-7-11"></a>            <span class="n">hui</span><span class="o">.</span><span class="n">label</span><span class="p">(</span><span class="s2">&quot;Content here&quot;</span><span class="p">)</span>
+</span></code></pre></div>
+<p>On the next redraw (when <code>SelectionMoved</code> fires), the editor clears the panel DOM, recreates the panel instance, calls <code>draw()</code> again, and passes the <em>same</em> <code>state_bag</code> dict. The section remembers whether it was collapsed. This is the <strong>only state that survives across panel redraws</strong> — and it's owned by the host editor, not the panel. The panel never stores state directly; it just consults the dict it's given.</p>
+<p><strong>Use namespaced keys to avoid collisions.</strong> When storing UI state in the bag, prefix keys with the feature they belong to:</p>
+<ul>
+<li><code>"expansion:section_name"</code> — for section collapse state</li>
+<li><code>"scroll:container_id"</code> — for scroll position</li>
+<li><code>"tab:tab_name"</code> — for active tab</li>
+<li>Custom namespaces for custom state</li>
+</ul>
+<p><strong>Why this pattern exists:</strong> Panels need to remember UI state for good UX (e.g., which sections are collapsed), but panels must be stateless (for clean hot-reload and composition). The solution: the host owns the state dict and loans it to panels. Panels are ephemeral; the dict is persistent.</p>
 <p><strong>Rule:</strong> Do not look for <code>layout.label()</code> / <code>layout.button()</code> / <code>layout.empty_state()</code> style helpers — they no longer exist. Use the <code>hui.*</code> function of the same name inside <code>with layout:</code>. For key/value metadata prefer <code>hui.info_row()</code> over <code>hui.label("Key: value")</code> (see design-guide §8.6).</p>
 <p><strong>Ordering.</strong> <code>order=</code> controls vertical position within a focus. Convention: 0–99 for built-in panels, 100+ for library panels, 1000+ for "always-last" panels (debug, advanced).</p>
 <p><strong><code>hb_*</code> methods are safe.</strong> Custom helper methods on a panel class should start with <code>hb_</code>, <code>my_</code>, <code>custom_</code>, or <code>ext_</code> — same convention as nodes. Avoids future-framework name clashes.</p>
 <p><strong>Imports</strong> (verified against codebase 2026-05):</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">haywire.ui.panel</span><span class="w"> </span><span class="kn">import</span> <span class="n">BasePanel</span><span class="p">,</span> <span class="n">PanelLayout</span>
-</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">haywire.ui.panel.decorator</span><span class="w"> </span><span class="kn">import</span> <span class="n">panel</span>
-</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>
-</span><span id="__span-7-4"><a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="c1"># Built-in focuses live in haybale-studio</span>
-</span><span id="__span-7-5"><a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a><span class="kn">from</span><span class="w"> </span><span class="nn">haybale_studio.focuses</span><span class="w"> </span><span class="kn">import</span> <span class="n">NodeFocus</span><span class="p">,</span> <span class="n">GraphFocus</span><span class="p">,</span> <span class="n">EdgeFocus</span>
-</span><span id="__span-7-6"><a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a><span class="c1"># For action panels: import your library&#39;s own Protocol</span>
-</span><span id="__span-7-7"><a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a><span class="c1"># from my_lib.actions import MyContextActions</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">haywire.ui.panel</span><span class="w"> </span><span class="kn">import</span> <span class="n">BasePanel</span><span class="p">,</span> <span class="n">PanelLayout</span>
+</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">haywire.ui.panel.decorator</span><span class="w"> </span><span class="kn">import</span> <span class="n">panel</span>
+</span><span id="__span-8-3"><a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a>
+</span><span id="__span-8-4"><a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a><span class="c1"># Built-in focuses live in haybale-studio</span>
+</span><span id="__span-8-5"><a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a><span class="kn">from</span><span class="w"> </span><span class="nn">haybale_studio.focuses</span><span class="w"> </span><span class="kn">import</span> <span class="n">NodeFocus</span><span class="p">,</span> <span class="n">GraphFocus</span><span class="p">,</span> <span class="n">EdgeFocus</span>
+</span><span id="__span-8-6"><a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a><span class="c1"># For action panels: import your library&#39;s own Protocol</span>
+</span><span id="__span-8-7"><a id="__codelineno-8-7" name="__codelineno-8-7" href="#__codelineno-8-7"></a><span class="c1"># from my_lib.actions import MyContextActions</span>
 </span></code></pre></div>
 <p><strong>Hot-reload.</strong> <code>PanelRegistry</code> extends <code>BaseRegistry</code>. New panel classes are picked up at the host editor's next render boundary. Existing panel instances are re-instantiated on the next <code>poll → draw</code> cycle. Focus ids are the stable lookup key, so reloads don't break scope tabs.</p>
 <h2 id="4-live-examples-from-the-codebase">4. Live examples from the codebase<a class="headerlink" href="#4-live-examples-from-the-codebase" title="Permanent link">&para;</a></h2>
 <p>Source: <a href="../../../barn/haybale-testing/haybale_testing/panels/"><code>barn/haybale-testing/haybale_testing/panels/</code></a></p>
 <p><strong>Simple action panel</strong> — <code>TestDeleteNodePanel</code> from <a href="../../../barn/haybale-testing/haybale_testing/panels/test_node_panels.py"><code>test_node_panels.py</code></a>. Demonstrates the minimal action-panel skeleton: <code>@panel</code> decorator, <code>actions: TestNodeContextActions</code> class-body annotation, <code>poll()</code> checking <code>EditState</code>, <code>draw()</code> rendering with <code>with layout: hui.button(...)</code> and dispatching through <code>self.actions</code>:</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="nd">@panel</span><span class="p">(</span>
-</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>    <span class="n">actions</span><span class="o">=</span><span class="n">TestNodeContextActions</span><span class="p">,</span>
-</span><span id="__span-8-3"><a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a>    <span class="n">focus</span><span class="o">=</span><span class="n">TestNodeFocus</span><span class="p">,</span>
-</span><span id="__span-8-4"><a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a>    <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Delete Node&quot;</span><span class="p">,</span>
-</span><span id="__span-8-5"><a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a>    <span class="n">icon</span><span class="o">=</span><span class="n">hui</span><span class="o">.</span><span class="n">icon</span><span class="o">.</span><span class="n">delete</span><span class="p">,</span>
-</span><span id="__span-8-6"><a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a>    <span class="n">order</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span>
-</span><span id="__span-8-7"><a id="__codelineno-8-7" name="__codelineno-8-7" href="#__codelineno-8-7"></a><span class="p">)</span>
-</span><span id="__span-8-8"><a id="__codelineno-8-8" name="__codelineno-8-8" href="#__codelineno-8-8"></a><span class="k">class</span><span class="w"> </span><span class="nc">TestDeleteNodePanel</span><span class="p">(</span><span class="n">BasePanel</span><span class="p">):</span>
-</span><span id="__span-8-9"><a id="__codelineno-8-9" name="__codelineno-8-9" href="#__codelineno-8-9"></a>    <span class="n">actions</span><span class="p">:</span> <span class="n">TestNodeContextActions</span>
-</span><span id="__span-8-10"><a id="__codelineno-8-10" name="__codelineno-8-10" href="#__codelineno-8-10"></a>
-</span><span id="__span-8-11"><a id="__codelineno-8-11" name="__codelineno-8-11" href="#__codelineno-8-11"></a>    <span class="nd">@classmethod</span>
-</span><span id="__span-8-12"><a id="__codelineno-8-12" name="__codelineno-8-12" href="#__codelineno-8-12"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">poll</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">ctx</span><span class="p">:</span> <span class="s2">&quot;SessionContext&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
-</span><span id="__span-8-13"><a id="__codelineno-8-13" name="__codelineno-8-13" href="#__codelineno-8-13"></a>        <span class="k">return</span> <span class="n">ctx</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">EditState</span><span class="p">]</span><span class="o">.</span><span class="n">active_node</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
-</span><span id="__span-8-14"><a id="__codelineno-8-14" name="__codelineno-8-14" href="#__codelineno-8-14"></a>
-</span><span id="__span-8-15"><a id="__codelineno-8-15" name="__codelineno-8-15" href="#__codelineno-8-15"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">draw</span><span class="p">(</span>
-</span><span id="__span-8-16"><a id="__codelineno-8-16" name="__codelineno-8-16" href="#__codelineno-8-16"></a>        <span class="bp">self</span><span class="p">,</span>
-</span><span id="__span-8-17"><a id="__codelineno-8-17" name="__codelineno-8-17" href="#__codelineno-8-17"></a>        <span class="n">ctx</span><span class="p">:</span> <span class="s2">&quot;SessionContext&quot;</span><span class="p">,</span>
-</span><span id="__span-8-18"><a id="__codelineno-8-18" name="__codelineno-8-18" href="#__codelineno-8-18"></a>        <span class="n">layout</span><span class="p">:</span> <span class="n">PanelLayout</span><span class="p">,</span>
-</span><span id="__span-8-19"><a id="__codelineno-8-19" name="__codelineno-8-19" href="#__codelineno-8-19"></a>    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-</span><span id="__span-8-20"><a id="__codelineno-8-20" name="__codelineno-8-20" href="#__codelineno-8-20"></a>        <span class="n">node</span> <span class="o">=</span> <span class="n">ctx</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">EditState</span><span class="p">]</span><span class="o">.</span><span class="n">active_node</span>
-</span><span id="__span-8-21"><a id="__codelineno-8-21" name="__codelineno-8-21" href="#__codelineno-8-21"></a>        <span class="k">if</span> <span class="n">node</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-</span><span id="__span-8-22"><a id="__codelineno-8-22" name="__codelineno-8-22" href="#__codelineno-8-22"></a>            <span class="k">return</span>
-</span><span id="__span-8-23"><a id="__codelineno-8-23" name="__codelineno-8-23" href="#__codelineno-8-23"></a>        <span class="n">node_id</span> <span class="o">=</span> <span class="n">node</span><span class="o">.</span><span class="n">node_id</span>
-</span><span id="__span-8-24"><a id="__codelineno-8-24" name="__codelineno-8-24" href="#__codelineno-8-24"></a>        <span class="k">with</span> <span class="n">layout</span><span class="p">:</span>
-</span><span id="__span-8-25"><a id="__codelineno-8-25" name="__codelineno-8-25" href="#__codelineno-8-25"></a>            <span class="n">hui</span><span class="o">.</span><span class="n">button</span><span class="p">(</span>
-</span><span id="__span-8-26"><a id="__codelineno-8-26" name="__codelineno-8-26" href="#__codelineno-8-26"></a>                <span class="s2">&quot;Delete Node&quot;</span><span class="p">,</span>
-</span><span id="__span-8-27"><a id="__codelineno-8-27" name="__codelineno-8-27" href="#__codelineno-8-27"></a>                <span class="n">icon</span><span class="o">=</span><span class="n">hui</span><span class="o">.</span><span class="n">icon</span><span class="o">.</span><span class="n">delete</span><span class="p">,</span>
-</span><span id="__span-8-28"><a id="__codelineno-8-28" name="__codelineno-8-28" href="#__codelineno-8-28"></a>                <span class="n">on_click</span><span class="o">=</span><span class="k">lambda</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">actions</span><span class="o">.</span><span class="n">test_delete_node</span><span class="p">(</span><span class="n">node_id</span><span class="p">),</span>
-</span><span id="__span-8-29"><a id="__codelineno-8-29" name="__codelineno-8-29" href="#__codelineno-8-29"></a>            <span class="p">)</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="nd">@panel</span><span class="p">(</span>
+</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>    <span class="n">actions</span><span class="o">=</span><span class="n">TestNodeContextActions</span><span class="p">,</span>
+</span><span id="__span-9-3"><a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a>    <span class="n">focus</span><span class="o">=</span><span class="n">TestNodeFocus</span><span class="p">,</span>
+</span><span id="__span-9-4"><a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a>    <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Delete Node&quot;</span><span class="p">,</span>
+</span><span id="__span-9-5"><a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a>    <span class="n">icon</span><span class="o">=</span><span class="n">hui</span><span class="o">.</span><span class="n">icon</span><span class="o">.</span><span class="n">delete</span><span class="p">,</span>
+</span><span id="__span-9-6"><a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a>    <span class="n">order</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span>
+</span><span id="__span-9-7"><a id="__codelineno-9-7" name="__codelineno-9-7" href="#__codelineno-9-7"></a><span class="p">)</span>
+</span><span id="__span-9-8"><a id="__codelineno-9-8" name="__codelineno-9-8" href="#__codelineno-9-8"></a><span class="k">class</span><span class="w"> </span><span class="nc">TestDeleteNodePanel</span><span class="p">(</span><span class="n">BasePanel</span><span class="p">):</span>
+</span><span id="__span-9-9"><a id="__codelineno-9-9" name="__codelineno-9-9" href="#__codelineno-9-9"></a>    <span class="n">actions</span><span class="p">:</span> <span class="n">TestNodeContextActions</span>
+</span><span id="__span-9-10"><a id="__codelineno-9-10" name="__codelineno-9-10" href="#__codelineno-9-10"></a>
+</span><span id="__span-9-11"><a id="__codelineno-9-11" name="__codelineno-9-11" href="#__codelineno-9-11"></a>    <span class="nd">@classmethod</span>
+</span><span id="__span-9-12"><a id="__codelineno-9-12" name="__codelineno-9-12" href="#__codelineno-9-12"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">poll</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">ctx</span><span class="p">:</span> <span class="s2">&quot;SessionContext&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+</span><span id="__span-9-13"><a id="__codelineno-9-13" name="__codelineno-9-13" href="#__codelineno-9-13"></a>        <span class="k">return</span> <span class="n">ctx</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">EditState</span><span class="p">]</span><span class="o">.</span><span class="n">active_node</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+</span><span id="__span-9-14"><a id="__codelineno-9-14" name="__codelineno-9-14" href="#__codelineno-9-14"></a>
+</span><span id="__span-9-15"><a id="__codelineno-9-15" name="__codelineno-9-15" href="#__codelineno-9-15"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">draw</span><span class="p">(</span>
+</span><span id="__span-9-16"><a id="__codelineno-9-16" name="__codelineno-9-16" href="#__codelineno-9-16"></a>        <span class="bp">self</span><span class="p">,</span>
+</span><span id="__span-9-17"><a id="__codelineno-9-17" name="__codelineno-9-17" href="#__codelineno-9-17"></a>        <span class="n">ctx</span><span class="p">:</span> <span class="s2">&quot;SessionContext&quot;</span><span class="p">,</span>
+</span><span id="__span-9-18"><a id="__codelineno-9-18" name="__codelineno-9-18" href="#__codelineno-9-18"></a>        <span class="n">layout</span><span class="p">:</span> <span class="n">PanelLayout</span><span class="p">,</span>
+</span><span id="__span-9-19"><a id="__codelineno-9-19" name="__codelineno-9-19" href="#__codelineno-9-19"></a>    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="__span-9-20"><a id="__codelineno-9-20" name="__codelineno-9-20" href="#__codelineno-9-20"></a>        <span class="n">node</span> <span class="o">=</span> <span class="n">ctx</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">EditState</span><span class="p">]</span><span class="o">.</span><span class="n">active_node</span>
+</span><span id="__span-9-21"><a id="__codelineno-9-21" name="__codelineno-9-21" href="#__codelineno-9-21"></a>        <span class="k">if</span> <span class="n">node</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="__span-9-22"><a id="__codelineno-9-22" name="__codelineno-9-22" href="#__codelineno-9-22"></a>            <span class="k">return</span>
+</span><span id="__span-9-23"><a id="__codelineno-9-23" name="__codelineno-9-23" href="#__codelineno-9-23"></a>        <span class="n">node_id</span> <span class="o">=</span> <span class="n">node</span><span class="o">.</span><span class="n">node_id</span>
+</span><span id="__span-9-24"><a id="__codelineno-9-24" name="__codelineno-9-24" href="#__codelineno-9-24"></a>        <span class="k">with</span> <span class="n">layout</span><span class="p">:</span>
+</span><span id="__span-9-25"><a id="__codelineno-9-25" name="__codelineno-9-25" href="#__codelineno-9-25"></a>            <span class="n">hui</span><span class="o">.</span><span class="n">button</span><span class="p">(</span>
+</span><span id="__span-9-26"><a id="__codelineno-9-26" name="__codelineno-9-26" href="#__codelineno-9-26"></a>                <span class="s2">&quot;Delete Node&quot;</span><span class="p">,</span>
+</span><span id="__span-9-27"><a id="__codelineno-9-27" name="__codelineno-9-27" href="#__codelineno-9-27"></a>                <span class="n">icon</span><span class="o">=</span><span class="n">hui</span><span class="o">.</span><span class="n">icon</span><span class="o">.</span><span class="n">delete</span><span class="p">,</span>
+</span><span id="__span-9-28"><a id="__codelineno-9-28" name="__codelineno-9-28" href="#__codelineno-9-28"></a>                <span class="n">on_click</span><span class="o">=</span><span class="k">lambda</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">actions</span><span class="o">.</span><span class="n">test_delete_node</span><span class="p">(</span><span class="n">node_id</span><span class="p">),</span>
+</span><span id="__span-9-29"><a id="__codelineno-9-29" name="__codelineno-9-29" href="#__codelineno-9-29"></a>            <span class="p">)</span>
 </span></code></pre></div>
 <p><strong>SessionState-reading panel</strong> — <code>TestSessionStatePanel</code> from <a href="../../../barn/haybale-testing/haybale_testing/panels/test_session_state_panel.py"><code>test_session_state_panel.py</code></a>. Demonstrates <code>poll()</code> reading a <code>SessionState</code> signal field and <code>draw()</code> displaying it with <code>with layout: hui.label(...)</code>:</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="nd">@panel</span><span class="p">(</span>
-</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>    <span class="n">actions</span><span class="o">=</span><span class="n">TestCanvasContextActions</span><span class="p">,</span>
-</span><span id="__span-9-3"><a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a>    <span class="n">focus</span><span class="o">=</span><span class="n">TestCanvasFocus</span><span class="p">,</span>
-</span><span id="__span-9-4"><a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a>    <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Test SessionState Panel&quot;</span><span class="p">,</span>
-</span><span id="__span-9-5"><a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a>    <span class="n">order</span><span class="o">=</span><span class="mi">99</span><span class="p">,</span>
-</span><span id="__span-9-6"><a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a><span class="p">)</span>
-</span><span id="__span-9-7"><a id="__codelineno-9-7" name="__codelineno-9-7" href="#__codelineno-9-7"></a><span class="k">class</span><span class="w"> </span><span class="nc">TestSessionStatePanel</span><span class="p">(</span><span class="n">BasePanel</span><span class="p">):</span>
-</span><span id="__span-9-8"><a id="__codelineno-9-8" name="__codelineno-9-8" href="#__codelineno-9-8"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Reads TestSessionState.counter — exists to anchor the eager import.&quot;&quot;&quot;</span>
-</span><span id="__span-9-9"><a id="__codelineno-9-9" name="__codelineno-9-9" href="#__codelineno-9-9"></a>
-</span><span id="__span-9-10"><a id="__codelineno-9-10" name="__codelineno-9-10" href="#__codelineno-9-10"></a>    <span class="n">actions</span><span class="p">:</span> <span class="n">TestCanvasContextActions</span>
-</span><span id="__span-9-11"><a id="__codelineno-9-11" name="__codelineno-9-11" href="#__codelineno-9-11"></a>
-</span><span id="__span-9-12"><a id="__codelineno-9-12" name="__codelineno-9-12" href="#__codelineno-9-12"></a>    <span class="nd">@classmethod</span>
-</span><span id="__span-9-13"><a id="__codelineno-9-13" name="__codelineno-9-13" href="#__codelineno-9-13"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">poll</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">ctx</span><span class="p">:</span> <span class="s2">&quot;SessionContext&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
-</span><span id="__span-9-14"><a id="__codelineno-9-14" name="__codelineno-9-14" href="#__codelineno-9-14"></a>        <span class="k">return</span> <span class="n">ctx</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">TestSessionState</span><span class="p">]</span><span class="o">.</span><span class="n">counter</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
-</span><span id="__span-9-15"><a id="__codelineno-9-15" name="__codelineno-9-15" href="#__codelineno-9-15"></a>
-</span><span id="__span-9-16"><a id="__codelineno-9-16" name="__codelineno-9-16" href="#__codelineno-9-16"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">draw</span><span class="p">(</span>
-</span><span id="__span-9-17"><a id="__codelineno-9-17" name="__codelineno-9-17" href="#__codelineno-9-17"></a>        <span class="bp">self</span><span class="p">,</span>
-</span><span id="__span-9-18"><a id="__codelineno-9-18" name="__codelineno-9-18" href="#__codelineno-9-18"></a>        <span class="n">ctx</span><span class="p">:</span> <span class="s2">&quot;SessionContext&quot;</span><span class="p">,</span>
-</span><span id="__span-9-19"><a id="__codelineno-9-19" name="__codelineno-9-19" href="#__codelineno-9-19"></a>        <span class="n">layout</span><span class="p">:</span> <span class="n">PanelLayout</span><span class="p">,</span>
-</span><span id="__span-9-20"><a id="__codelineno-9-20" name="__codelineno-9-20" href="#__codelineno-9-20"></a>    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-</span><span id="__span-9-21"><a id="__codelineno-9-21" name="__codelineno-9-21" href="#__codelineno-9-21"></a>        <span class="n">counter</span> <span class="o">=</span> <span class="n">ctx</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">TestSessionState</span><span class="p">]</span><span class="o">.</span><span class="n">counter</span>
-</span><span id="__span-9-22"><a id="__codelineno-9-22" name="__codelineno-9-22" href="#__codelineno-9-22"></a>        <span class="k">with</span> <span class="n">layout</span><span class="p">:</span>
-</span><span id="__span-9-23"><a id="__codelineno-9-23" name="__codelineno-9-23" href="#__codelineno-9-23"></a>            <span class="n">hui</span><span class="o">.</span><span class="n">label</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;counter: </span><span class="si">{</span><span class="n">counter</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="nd">@panel</span><span class="p">(</span>
+</span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>    <span class="n">actions</span><span class="o">=</span><span class="n">TestCanvasContextActions</span><span class="p">,</span>
+</span><span id="__span-10-3"><a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a>    <span class="n">focus</span><span class="o">=</span><span class="n">TestCanvasFocus</span><span class="p">,</span>
+</span><span id="__span-10-4"><a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a>    <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Test SessionState Panel&quot;</span><span class="p">,</span>
+</span><span id="__span-10-5"><a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a>    <span class="n">order</span><span class="o">=</span><span class="mi">99</span><span class="p">,</span>
+</span><span id="__span-10-6"><a id="__codelineno-10-6" name="__codelineno-10-6" href="#__codelineno-10-6"></a><span class="p">)</span>
+</span><span id="__span-10-7"><a id="__codelineno-10-7" name="__codelineno-10-7" href="#__codelineno-10-7"></a><span class="k">class</span><span class="w"> </span><span class="nc">TestSessionStatePanel</span><span class="p">(</span><span class="n">BasePanel</span><span class="p">):</span>
+</span><span id="__span-10-8"><a id="__codelineno-10-8" name="__codelineno-10-8" href="#__codelineno-10-8"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Reads TestSessionState.counter — exists to anchor the eager import.&quot;&quot;&quot;</span>
+</span><span id="__span-10-9"><a id="__codelineno-10-9" name="__codelineno-10-9" href="#__codelineno-10-9"></a>
+</span><span id="__span-10-10"><a id="__codelineno-10-10" name="__codelineno-10-10" href="#__codelineno-10-10"></a>    <span class="n">actions</span><span class="p">:</span> <span class="n">TestCanvasContextActions</span>
+</span><span id="__span-10-11"><a id="__codelineno-10-11" name="__codelineno-10-11" href="#__codelineno-10-11"></a>
+</span><span id="__span-10-12"><a id="__codelineno-10-12" name="__codelineno-10-12" href="#__codelineno-10-12"></a>    <span class="nd">@classmethod</span>
+</span><span id="__span-10-13"><a id="__codelineno-10-13" name="__codelineno-10-13" href="#__codelineno-10-13"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">poll</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">ctx</span><span class="p">:</span> <span class="s2">&quot;SessionContext&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+</span><span id="__span-10-14"><a id="__codelineno-10-14" name="__codelineno-10-14" href="#__codelineno-10-14"></a>        <span class="k">return</span> <span class="n">ctx</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">TestSessionState</span><span class="p">]</span><span class="o">.</span><span class="n">counter</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+</span><span id="__span-10-15"><a id="__codelineno-10-15" name="__codelineno-10-15" href="#__codelineno-10-15"></a>
+</span><span id="__span-10-16"><a id="__codelineno-10-16" name="__codelineno-10-16" href="#__codelineno-10-16"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">draw</span><span class="p">(</span>
+</span><span id="__span-10-17"><a id="__codelineno-10-17" name="__codelineno-10-17" href="#__codelineno-10-17"></a>        <span class="bp">self</span><span class="p">,</span>
+</span><span id="__span-10-18"><a id="__codelineno-10-18" name="__codelineno-10-18" href="#__codelineno-10-18"></a>        <span class="n">ctx</span><span class="p">:</span> <span class="s2">&quot;SessionContext&quot;</span><span class="p">,</span>
+</span><span id="__span-10-19"><a id="__codelineno-10-19" name="__codelineno-10-19" href="#__codelineno-10-19"></a>        <span class="n">layout</span><span class="p">:</span> <span class="n">PanelLayout</span><span class="p">,</span>
+</span><span id="__span-10-20"><a id="__codelineno-10-20" name="__codelineno-10-20" href="#__codelineno-10-20"></a>    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="__span-10-21"><a id="__codelineno-10-21" name="__codelineno-10-21" href="#__codelineno-10-21"></a>        <span class="n">counter</span> <span class="o">=</span> <span class="n">ctx</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">TestSessionState</span><span class="p">]</span><span class="o">.</span><span class="n">counter</span>
+</span><span id="__span-10-22"><a id="__codelineno-10-22" name="__codelineno-10-22" href="#__codelineno-10-22"></a>        <span class="k">with</span> <span class="n">layout</span><span class="p">:</span>
+</span><span id="__span-10-23"><a id="__codelineno-10-23" name="__codelineno-10-23" href="#__codelineno-10-23"></a>            <span class="n">hui</span><span class="o">.</span><span class="n">label</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;counter: </span><span class="si">{</span><span class="n">counter</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 </span></code></pre></div>
 <p>What these examples exercise:</p>
 <table>
@@ -3308,9 +3433,9 @@
 <li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> Place in <code>panels/</code> folder; register via <code>add_folder_to_registry(folder_path=..., registry_cls=PanelRegistry)</code> in <code>register_components</code></li>
 </ul>
 <h3 id="imports">Imports<a class="headerlink" href="#imports" title="Permanent link">&para;</a></h3>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">haywire.ui.panel</span><span class="w"> </span><span class="kn">import</span> <span class="n">BasePanel</span><span class="p">,</span> <span class="n">PanelLayout</span>
-</span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">haywire.ui.panel.decorator</span><span class="w"> </span><span class="kn">import</span> <span class="n">panel</span>
-</span><span id="__span-10-3"><a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a><span class="kn">from</span><span class="w"> </span><span class="nn">haybale_studio.focuses</span><span class="w"> </span><span class="kn">import</span> <span class="n">NodeFocus</span><span class="p">,</span> <span class="n">EdgeFocus</span><span class="p">,</span> <span class="n">GraphFocus</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">haywire.ui.panel</span><span class="w"> </span><span class="kn">import</span> <span class="n">BasePanel</span><span class="p">,</span> <span class="n">PanelLayout</span>
+</span><span id="__span-11-2"><a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">haywire.ui.panel.decorator</span><span class="w"> </span><span class="kn">import</span> <span class="n">panel</span>
+</span><span id="__span-11-3"><a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a><span class="kn">from</span><span class="w"> </span><span class="nn">haybale_studio.focuses</span><span class="w"> </span><span class="kn">import</span> <span class="n">NodeFocus</span><span class="p">,</span> <span class="n">EdgeFocus</span><span class="p">,</span> <span class="n">GraphFocus</span>
 </span></code></pre></div>
 <h3 id="built-in-focuses-haybale_studiofocuses">Built-in focuses (<code>haybale_studio.focuses</code>)<a class="headerlink" href="#built-in-focuses-haybale_studiofocuses" title="Permanent link">&para;</a></h3>
 <table>

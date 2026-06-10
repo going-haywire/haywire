@@ -10,7 +10,7 @@
       
       
       
-        <link rel="canonical" href="https://going-haywire.github.io/haywire/docs/adr/0008-ports-panel-widget-rendering/">
+        <link rel="canonical" href="https://going-haywire.github.io/haywire/docs/adr/0009-focus-id-stable-key/">
       
       
       
@@ -23,7 +23,7 @@
     
     
       
-        <title>Ports Panel renders live port Widgets as an always-on secondary surface - Haywire Documentation</title>
+        <title>Focus routing keys on the stable Focus.id string, not the class object - Haywire Documentation</title>
       
     
     
@@ -74,7 +74,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#ports-panel-renders-live-port-widgets-as-an-always-on-secondary-surface" class="md-skip">
+        <a href="#focus-routing-keys-on-the-stable-focusid-string-not-the-class-object" class="md-skip">
           Skip to content
         </a>
       
@@ -110,7 +110,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Ports Panel renders live port Widgets as an always-on secondary surface
+              Focus routing keys on the stable Focus.id string, not the class object
             
           </span>
         </div>
@@ -2692,94 +2692,68 @@
 
 
 
-<h1 id="ports-panel-renders-live-port-widgets-as-an-always-on-secondary-surface">Ports Panel renders live port Widgets as an always-on secondary surface<a class="headerlink" href="#ports-panel-renders-live-port-widgets-as-an-always-on-secondary-surface" title="Permanent link">&para;</a></h1>
-<p>The Ports Panel — under its own <code>ports</code> Scope (<code>PortFocus</code>, available when a
-node is selected; distinct from the singular per-pin <code>PinFocus</code> used by the
-right-click menu) — now renders each port's live, editable Widget — the same
-control the node card shows — in addition to (not instead of) the in-node
-rendering. The same port may have a live Widget instance in both the node card
-(via the Skin) and the Ports Panel at once, each with its own
-<code>port.on_changed</code> subscription. The motivating case is Skins that deliberately
-omit inline widgets (e.g. a flow-direction skin laying nodes out top-to-bottom):
-the panel keeps those ports editable.</p>
+<h1 id="focus-routing-keys-on-the-stable-focusid-string-not-the-class-object">Focus routing keys on the stable <code>Focus.id</code> string, not the class object<a class="headerlink" href="#focus-routing-keys-on-the-stable-focusid-string-not-the-class-object" title="Permanent link">&para;</a></h1>
+<p>Panel-to-focus matching, the Properties editor's active-tab tracking, and the
+focus registry all key on the <code>Focus.id</code> <strong>string</strong> rather than the <code>Focus</code>
+class object. <code>PanelRegistry</code> compares <code>focus.id</code> when selecting panels for a
+focus; <code>PropertiesEditor</code> stores the active tab as <code>self._active_focus_id: str</code>
+and resolves it back to a class on each render by id lookup; <code>_FOCUS_BY_ID</code>
+maps id → class and lets a re-declared class supersede the old one under the
+same id on hot-reload.</p>
 <h2 id="why-this-shape">Why this shape<a class="headerlink" href="#why-this-shape" title="Permanent link">&para;</a></h2>
 <ul>
-<li><strong>Always-on secondary surface, not a skin-driven fallback.</strong> Whether a Skin
-  renders a widget is a private Skin decision and is not queryable; coupling the
-  panel to it would be fragile. The panel instead renders unconditionally and
-  honours the port's own <code>should_show_widget()</code> (ADR 0003) — the same predicate
-  the Skin uses. A Skin that omits a widget does so by not calling
-  <code>render_widget</code> in <code>render()</code>, which is orthogonal to <code>should_show_widget()</code>,
-  so the panel surfaces the omitted widget for free without knowing the active
-  Skin.</li>
-<li><strong>Widget cleanup is anchored to the DOM element, not the panel instance.</strong>
-  <code>BaseWidget.render()</code> subscribes to <code>port.on_changed</code> and only unsubscribes in
-  the final, idempotent <code>cleanup()</code>. The panel cannot own this via instance
-  state: <code>PropertiesEditor</code> builds a <em>fresh</em> panel object on every redraw
-  (<code>panel_cls().draw(...)</code> after <code>content.clear()</code>), so an instance-held batch
-  would never be disposed and its subscription would leak on each redraw.
-  Instead each rendered widget's container element gets its <code>_handle_delete</code>
-  overridden to call <code>widget.cleanup()</code>. NiceGUI fires <code>_handle_delete</code> for
-  every element removed by <code>content.clear()</code> (redraw) and by
-  <code>client.remove_all_elements()</code> (page close), so cleanup runs exactly when the
-  DOM is torn down, regardless of which transient panel instance built it. This
-  is contained in the panel; the shared panel framework gained no new teardown
-  hook. (An earlier instance-owned design — dispose the prior batch at the top
-  of <code>draw()</code> plus a client-disconnect sweep — was abandoned once the
-  fresh-instance-per-redraw behaviour was confirmed; it never actually ran.)</li>
-<li><strong>Namespaced factory tracking key.</strong> The singleton <code>WidgetFactory</code> tracks
-  <code>widget_key -&gt; {node_ids}</code> for hot-reload and purges by <code>node_id</code> in
-  <code>unregister_widget_for_node</code>. The panel registers its widgets under
-  <code>panel:&lt;node_id&gt;</code> so the Skin tearing down the node card cannot clobber the
-  panel's tracking entry, and vice versa.</li>
-<li><strong>Factory reached via <code>IProjectState</code>.</strong> The panel obtains the factory as
-  <code>ctx.app.widget_factory</code>, mirroring how it already reaches <code>node_factory</code> and
-  <code>panel_registry</code>. Chosen over a module-level global-injector accessor to keep
-  the access typed and consistent with the established <code>ctx.app.&lt;service&gt;</code>
-  pattern, and to avoid introducing global-injector usage in the UI layer.</li>
-<li><strong>Ports read from <code>get_visible_ports()</code>.</strong> <code>BaseNode</code> keeps every port in a
-  single <code>ports</code> dict and exposes direction via <code>is_inlet()</code> / <code>is_outlet()</code> /
-  <code>is_config()</code>; it has no <code>.inlets</code> / <code>.outlets</code> attributes. The panel reads
-  the same visible-port set the skins render (<code>get_visible_ports()</code>) and
-  classifies each port the way <code>render_port()</code> does, so the panel mirrors the
-  node card and hidden / section-internal ports stay out of both surfaces.</li>
-<li><strong>Section expansion persisted via <code>PanelLayout.state_bag</code>.</strong> Because the
-  panel is rebuilt each redraw, the Config / Inlets / Outlets sections persist
-  their open/closed state through the editor-owned <code>PanelLayout.state_bag</code>
-  dict, keyed by a node-id-free <code>panel_key</code> (<code>node:ports:&lt;section&gt;</code>) so expansion
-  is a stable per-section-type preference rather than per-node.</li>
+<li><strong>Hot-reload supersedes the class object, but the id is invariant.</strong> When a
+  library with <code>file_watcher=True</code> reloads, its <code>@panel</code> / <code>Focus</code> modules are
+  re-imported and the decorators/<code>__init_subclass__</code> re-run, producing <strong>new
+  class objects</strong> with the same declared <code>id</code>. <code>Focus.__init_subclass__</code>
+  detects the same module + qualname and overwrites the <code>_FOCUS_BY_ID[id]</code>
+  entry with the fresh class (see <code>focus.py</code>). Anything that held the <em>old</em>
+  class object now holds a stale reference that will never be <code>is</code>-equal to the
+  class the registry hands out post-reload. The string id is a value, so it
+  survives the reload unchanged.</li>
+<li><strong>The registry already commits to id-matching for focus.</strong> <code>PanelRegistry</code>
+  matches panels to a focus by <code>focus.id</code>, explicitly <em>"stable across
+  hot-reload"</em>. This contrasts with <code>action_protocol</code>, which the registry
+  matches by <strong>class identity</strong> — and that is correct there precisely because a
+  panel and its action Protocol are declared in the same library scope and
+  reload together, so their class objects stay mutually consistent. Focus is
+  different: the editor that holds the active focus is in a <em>different</em> package
+  (<code>haybale_studio</code>) from the libraries that <em>declare</em> focuses, so it can
+  outlive a focus library's reload and must not pin a class object across it.</li>
+<li><strong>Active-tab state is transient and editor-local.</strong> <code>_active_focus_id</code> lives
+  only inside one <code>PropertiesEditor</code> instance and is not persisted to any slot
+  snapshot or workspace state. There is no external consumer and no
+  serialization boundary that a typed class reference would help; the only
+  forces acting on the representation are reload-safety (favours the string) and
+  IDE navigation (marginally favours the class).</li>
 </ul>
 <h2 id="considered-alternatives">Considered alternatives<a class="headerlink" href="#considered-alternatives" title="Permanent link">&para;</a></h2>
 <ul>
-<li><strong>Skin-driven fallback</strong> (panel shows a widget only for ports the Skin hid):
-  rejected — Skin render decisions are private and not queryable; would couple
-  the panel to internal Skin state. Honouring <code>should_show_widget()</code> achieves
-  the same user-visible outcome without the coupling.</li>
-<li><strong>Panel ignores <code>should_show_widget()</code> and renders every widget:</strong> rejected —
-  shows dead controls for linked inlets / outlets (the edge or display semantics
-  make editing meaningless), adding noise.</li>
-<li><strong>A new panel teardown hook on <code>BasePanel</code>:</strong> rejected — anchoring cleanup to
-  each widget's container element (<code>_handle_delete</code>) handles teardown without a
-  framework change, so no shared hook is needed.</li>
-<li><strong>Global-injector accessor for the factory:</strong> rejected in favour of
-  <code>IProjectState</code> exposure (typed, consistent with existing service access).</li>
+<li><strong>Store <code>self._active_focus: type[Focus]</code> (hold the class object directly).</strong>
+  Rejected — this is the reload hazard above made concrete: after a hot-reload
+  of the focus-declaring library, the editor's held class no longer matches the
+  superseded class from the registry, so <code>_active_focus</code> resolves to "no match"
+  and the active tab silently resets to the default focus on every such reload.
+  The marginal IDE-navigation / refactor-rename upside does not justify
+  reintroducing a stale-class-reference bug — the same failure class that
+  <code>LibraryIdentity.dependencies</code> and the <code>_FOCUS_BY_ID</code> supersede logic exist to
+  prevent. (This was proposed as a "Phase 3" follow-up in the panel-system
+  handoff doc and rejected on review against the code.)</li>
+<li><strong><code>NewType("FocusId", str)</code> for compile-time protection.</strong> Not adopted — the
+  id flows only through three private methods in a single file, all already
+  typed <code>str</code>; the wrapper buys little over the current typing and adds
+  ceremony at every call site and in the toolbar click closure.</li>
 </ul>
 <h2 id="consequences">Consequences<a class="headerlink" href="#consequences" title="Permanent link">&para;</a></h2>
 <ul>
-<li>Any <code>GraphDataMutated</code> re-mounts all display panels (existing behaviour) and
-  rebuilds every Ports-panel widget instance. Accepted as consistent with the
-  existing <code>node_settings.py</code> panel; a heavy/stateful widget on an <code>ALWAYS</code>/
-  config port would rebuild on unrelated edits.</li>
-<li>Panel widgets are <strong>not</strong> hot-reload-live: a widget-library reload re-renders
-  the node card's instances but not the panel's until the panel next redraws.
-  Deferred follow-up.</li>
-<li><code>IProjectState</code> gains a <code>widget_factory</code> attribute; <code>LibrarySystemService</code>
-  gains <code>get_widget_factory()</code>.</li>
-<li>The Ports Panel lives under a new <code>ports</code> Scope (<code>PortFocus</code>) rather than the
-  <code>node</code> Scope, so the node's ports list is its own toolbar tab. The <code>node</code>
-  Scope retains <code>NodeInfoPanel</code> and <code>NodePropertiesPanel</code>. The pre-existing
-  per-pin context-menu scope was renamed <code>PortFocus</code> → <code>PinFocus</code> (<code>id="pin"</code>)
-  to free the <code>PortFocus</code>/<code>port</code> name for this node-scoped ports list.</li>
+<li>Resolving the active focus is an id → class lookup on each render
+  (<code>_compute_toolbar_focuses</code> + <code>focus.id</code> compare), not a stored class
+  reference. This is O(focuses) per refresh, which is negligible and reload-safe.</li>
+<li>Any future cross-session persistence of the active tab should serialize the
+  string id, not a class reference — the id is already the durable key.</li>
+<li>New focus-keyed state elsewhere should follow the same rule: key on
+  <code>Focus.id</code>, resolve to a class via <code>focus_by_id</code> / registry lookup at point of
+  use; do not cache <code>type[Focus]</code> across anything that can span a hot-reload.</li>
 </ul>
 
 
