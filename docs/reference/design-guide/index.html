@@ -6027,6 +6027,9 @@ For settings category groups, use <code>hui.category_group()</code> instead (§8
 <li>Border: <code>var(--hw-border)</code> rest, <code>var(--hw-border-strong)</code> hover/focus</li>
 <li>Focus ring: <code>2px solid var(--hw-accent)</code> via <code>:focus-visible</code> — keyboard-only,
   not shown on mouse click (use <code>:focus-visible</code>, not <code>:focus</code>)</li>
+<li>Floating label (<code>label=</code>): <code>var(--hw-text-muted)</code> at rest, <code>var(--hw-accent)</code>
+  on focus — applied globally so an empty field's label never reads like an
+  entered value. Do not override per-field.</li>
 <li>Disabled: pass Quasar <code>:disable="True"</code> — renders <code>opacity: 0.5</code> automatically</li>
 <li>Validation error: pass Quasar <code>:rules=</code> and <code>lazy-rules="ondemand"</code> — error
   text appears below the field using <code>var(--hw-danger)</code>; never use a separate
@@ -6064,8 +6067,10 @@ For settings category groups, use <code>hui.category_group()</code> instead (§8
 <li>Props: <code>dense outlined</code></li>
 <li>Classes: <code>text-sm</code></li>
 <li><code>min-width: 160px</code> by default (override via <code>min_width=</code>)</li>
+<li><code>options</code> accepts a list (value == label) or a dict (value → label)</li>
 </ul>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-25-1"><a id="__codelineno-25-1" name="__codelineno-25-1" href="#__codelineno-25-1"></a><span class="n">hui</span><span class="o">.</span><span class="n">select_field</span><span class="p">(</span><span class="n">options</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;A&quot;</span><span class="p">,</span> <span class="s2">&quot;B&quot;</span><span class="p">],</span> <span class="n">value</span><span class="o">=</span><span class="s2">&quot;A&quot;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Mode&quot;</span><span class="p">)</span>
+</span><span id="__span-25-2"><a id="__codelineno-25-2" name="__codelineno-25-2" href="#__codelineno-25-2"></a><span class="n">hui</span><span class="o">.</span><span class="n">select_field</span><span class="p">(</span><span class="n">options</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;a&quot;</span><span class="p">:</span> <span class="s2">&quot;Option A&quot;</span><span class="p">},</span> <span class="n">value</span><span class="o">=</span><span class="s2">&quot;a&quot;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Mode&quot;</span><span class="p">)</span>
 </span></code></pre></div>
 <h3 id="819-huisection_dividertextnone">8.19 <code>hui.section_divider(text=None)</code><a class="headerlink" href="#819-huisection_dividertextnone" title="Permanent link">&para;</a></h3>
 <p>A visual break between sections. If <code>text</code> is provided, renders a

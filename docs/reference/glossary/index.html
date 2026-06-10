@@ -4032,8 +4032,8 @@
 </tr>
 <tr>
 <td><strong><code>@library(dependencies=[...])</code></strong></td>
-<td>The decorator parameter inside a library's <code>__init__.py</code>. Audience: haywire's runtime (LibraryManager). Lists which <em>other haywire libraries</em> must be enabled for this one to enable; gates Disable / Uninstall buttons via <code>get_installed_dependents()</code>. Uses underscore module names (e.g. <code>"haybale_core"</code>), NOT distribution names.</td>
-<td>library deps (ambiguous), runtime deps</td>
+<td>The decorator parameter inside a library's <code>__init__.py</code>. Audience: haywire's runtime (LibraryManager). Lists which <em>other haywire libraries</em> must be enabled for this one to enable; gates Disable / Uninstall buttons via <code>get_installed_dependents()</code>. Each entry is a <strong>top-level Python package name</strong> (e.g. <code>"haybale_core"</code>) — equal to the dependency library's <code>LibraryIdentity.module_name</code> top package. This is the canonical matching key: dependency resolution and hot-reload scope tracking (<code>_get_tracking_scopes</code>) both match a declared entry against each installed library's <code>module_name</code> (top-package-normalized), NOT its distribution name and NOT its short <code>id</code>. Distribution name is empty for folder installs; short id never appears in module paths — using either as the match key is a bug.</td>
+<td>library deps (ambiguous), runtime deps, distribution name (wrong key), library id (wrong key)</td>
 </tr>
 <tr>
 <td><strong>Three manifest layers</strong></td>
