@@ -17,22 +17,23 @@ class PanelLayout:
             with layout:
                 hui.section_label("PORTS")
                 hui.info_row("Inlet", "Image")
-                with hui.expansion_section("Details", state=layout.expansion_state,
+                with hui.expansion_section("Details", state=layout.state_bag,
                                            panel_key="details"):
                     hui.info_row("Key", node.registry_key)
 
-    The optional ``expansion_state`` dict (passed at construction) is the
-    persistence bag for ``hui.expansion_section``. The owning editor holds
-    it as an instance field so collapsed/expanded sections survive rebuilds
-    without leaking into shared session state; pass it through via
-    ``layout.expansion_state``. Hosts that construct a transient layout
-    (e.g. context-menu popups) leave it ``None`` — expansion is then
-    non-persistent, which is correct for ephemeral popups.
+    The optional ``state_bag`` dict (passed at construction) is the host's
+    persistence mechanism for panel UI state (collapsed sections, scroll
+    position, form selections, etc.). The owning editor holds it as an
+    instance field so UI state survives rebuilds without leaking into
+    shared session state. Panels read from and write to this dict via
+    UI components. Hosts that construct a transient layout (e.g. context-menu
+    popups) leave it ``None`` — UI state doesn't persist for ephemeral panels,
+    which is correct.
     """
 
-    def __init__(self, container: Any, *, expansion_state: dict[str, bool] | None = None):
+    def __init__(self, container: Any, *, state_bag: dict[str, Any] | None = None):
         self._container = container
-        self._expansion_state = expansion_state
+        self._state_bag = state_bag
 
     @property
     def container(self) -> Any:
@@ -40,13 +41,17 @@ class PanelLayout:
         return self._container
 
     @property
-    def expansion_state(self) -> dict[str, bool] | None:
-        """Caller-owned persistence bag for ``hui.expansion_section``.
+    def state_bag(self) -> dict[str, Any] | None:
+        """Host-owned dict for panel UI state persistence.
 
-        ``None`` when the host constructed a transient layout. Pass it
-        straight to ``hui.expansion_section(..., state=layout.expansion_state)``.
+        Use namespaced keys to avoid collisions across panels:
+        - "expansion:my_section"
+        - "scroll:my_container"
+        - "tab:active_tab"
+
+        ``None`` when the host constructed a transient layout (ephemeral).
         """
-        return self._expansion_state
+        return self._state_bag
 
     # ── Context manager ───────────────────────────────────────────────────────
 

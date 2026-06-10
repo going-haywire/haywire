@@ -25,6 +25,51 @@ This separation means:
 - Any number of panels from any library can contribute to the same editor section.
 - Hot-reload works: panels update in place when the library reloads.
 
+## 1.5. Panels vs. Editors — Choosing the Right Abstraction
+
+**Panels and editors are intentionally separate concerns.** Understanding when to use each is critical to writing maintainable code.
+
+| Aspect | Panel | Editor |
+| --- | --- | --- |
+| **Purpose** | Display read-only information from session state | Build an interactive workspace with mutable state |
+| **Lifecycle** | Ephemeral; recreated on every redraw | Persistent per session |
+| **Instance state** | None; panels are stateless across redraws | Owns local state (unsaved changes, form drafts, interaction mode) |
+| **Visibility** | Polled dynamically via `poll(ctx)` on each redraw | Always shown when active (slot-managed) |
+| **Slot** | Hosted inside another editor; no slot of its own | Occupies one of the four workspace slots (Left/Right/Main/Bottom) |
+| **Signals** | Subscribed by host editor via `redraw_on=` | Subscribed directly via `@redraw_on()` or `@react_on()` |
+| **Use case** | Properties panel, debug info, metadata display | Code editor, library browser, graph editor, file explorer |
+
+**Decision tree:**
+
+1. **Does your feature need to hold mutable state across user interactions?** (Form with unsaved changes, multi-step workflow, edit drafts, undo stack)
+   → **Build an editor.** See [components/editors](../editors/editor-canon.md).
+
+2. **Is your feature a read-only display that changes when the selection or context changes?**
+   → **Build a panel.** (This document.)
+
+3. **Does your feature need its own slot in the workspace layout?**
+   → **Build an editor.** Panels don't manage slots; they appear inside editors.
+
+4. **Would your feature be useful in multiple contexts?** (Visible in Properties sidebar AND context menus)
+   → **Can be a panel** if both contexts are read-only. Action panels appear in context menus; display panels appear in Properties.
+
+**Examples:**
+
+- **NodeSettingsPanel** — read-only display of a node's settings. When you select a different node, it re-renders. **Panel.** ✅
+- **CodeEditor** — holds file content, tracks dirty state (unsaved changes), persists scroll position. **Editor.** ✅
+- **NodePropertiesPanel** — displays key/value metadata about the selected node. Stateless. **Panel.** ✅
+- **LibraryComponentEditor** — allows editing a library component with unsaved changes. **Editor.** ✅
+- **Delete Node context-menu action** — button that calls `delete_node()` on its host. Read-only display. **Action panel.** ✅
+
+**Why the boundary exists:**
+
+Panels are intentionally stateless so that:
+- **Selection changes are clean.** Switching nodes clears and rebuilds panels automatically; no stale state to clean up.
+- **Hot-reload is simple.** Panels reload their class definition; no instance state survives, so stale state never leaks through.
+- **Composition is easy.** Any library can contribute panels to the same editor without coordinating internal state.
+
+If you need to hold state, you need a proper container (an editor) that manages the full lifecycle.
+
 ## 2. How it fits
 
 ```text
@@ -175,7 +220,34 @@ It exposes exactly two members:
 | Member | Purpose |
 | --- | --- |
 | `with layout:` / `layout.container` | Activates / returns the panel's container element. |
-| `layout.expansion_state` | Caller-owned persistence bag (or `None`). Pass to `hui.expansion_section(..., state=layout.expansion_state, panel_key=...)` to persist a section's open/closed state across rebuilds. |
+| `layout.state_bag` | Host-owned dict for panel UI state persistence (or `None` for ephemeral panels). Pass to `hui.expansion_section(..., state=layout.state_bag, panel_key=...)` or use directly for any UI state tracking (collapsed sections, scroll position, form selections, etc.). |
+
+**`layout.state_bag` — the one stateful injection.** Panels are stateless, but the Properties editor holds a dict (`_state_bag`) that tracks panel UI state (which sections are collapsed, scroll positions, etc.). This dict is passed to every panel on every redraw via `PanelLayout`. Your panel reads from and writes to this shared dict *via* UI components like `hui.expansion_section()`:
+
+```python
+def draw(self, ctx, layout):
+    with layout:
+        # This section's collapsed/expanded state persists across redraws
+        # because the host editor owns the dict and passes it every time.
+        with hui.expansion_section(
+            "My Section",
+            state=layout.state_bag,             # host-owned dict
+            panel_key="expansion:my_section",   # namespaced key
+            default_open=True,
+        ):
+            hui.label("Content here")
+```
+
+On the next redraw (when `SelectionMoved` fires), the editor clears the panel DOM, recreates the panel instance, calls `draw()` again, and passes the *same* `state_bag` dict. The section remembers whether it was collapsed. This is the **only state that survives across panel redraws** — and it's owned by the host editor, not the panel. The panel never stores state directly; it just consults the dict it's given.
+
+**Use namespaced keys to avoid collisions.** When storing UI state in the bag, prefix keys with the feature they belong to:
+
+- `"expansion:section_name"` — for section collapse state
+- `"scroll:container_id"` — for scroll position
+- `"tab:tab_name"` — for active tab
+- Custom namespaces for custom state
+
+**Why this pattern exists:** Panels need to remember UI state for good UX (e.g., which sections are collapsed), but panels must be stateless (for clean hot-reload and composition). The solution: the host owns the state dict and loans it to panels. Panels are ephemeral; the dict is persistent.
 
 **Rule:** Do not look for `layout.label()` / `layout.button()` / `layout.empty_state()` style helpers — they no longer exist. Use the `hui.*` function of the same name inside `with layout:`. For key/value metadata prefer `hui.info_row()` over `hui.label("Key: value")` (see design-guide §8.6).
 

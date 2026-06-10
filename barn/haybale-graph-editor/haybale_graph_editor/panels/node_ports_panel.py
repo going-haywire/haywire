@@ -150,14 +150,14 @@ class NodePortsPanel(BasePanel):
                 # bag threaded through PanelLayout. The panel_key omits the node
                 # id on purpose: section expansion is a per-section-type
                 # preference that stays stable as you select different nodes
-                # (see expansion-state scope decision), not a per-node setting.
-                exp_state = layout.expansion_state
+                # (see UI state scope decision), not a per-node setting.
+                state_bag = layout.state_bag
 
                 if configs:
                     with hui.expansion_section(
                         label=f"Config ({len(configs)})",
                         default_open=True,
-                        state=exp_state,
+                        state=state_bag,
                         panel_key="node:ports:config",
                     ):
                         for port in configs:
@@ -167,7 +167,7 @@ class NodePortsPanel(BasePanel):
                     with hui.expansion_section(
                         label=f"Inlets ({len(inlets)})",
                         default_open=True,
-                        state=exp_state,
+                        state=state_bag,
                         panel_key="node:ports:inlets",
                     ):
                         for port in inlets:
@@ -177,7 +177,7 @@ class NodePortsPanel(BasePanel):
                     with hui.expansion_section(
                         label=f"Outlets ({len(outlets)})",
                         default_open=True,
-                        state=exp_state,
+                        state=state_bag,
                         panel_key="node:ports:outlets",
                     ):
                         for port in outlets:

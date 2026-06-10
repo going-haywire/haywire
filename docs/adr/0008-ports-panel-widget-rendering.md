@@ -55,10 +55,10 @@ the panel keeps those ports editable.
   the same visible-port set the skins render (`get_visible_ports()`) and
   classifies each port the way `render_port()` does, so the panel mirrors the
   node card and hidden / section-internal ports stay out of both surfaces.
-- **Section expansion persisted via `PanelLayout.expansion_state`.** Because the
+- **Section expansion persisted via `PanelLayout.state_bag`.** Because the
   panel is rebuilt each redraw, the Config / Inlets / Outlets sections persist
-  their open/closed state through the editor-owned `PanelLayout.expansion_state`
-  bag, keyed by a node-id-free `panel_key` (`node:ports:<section>`) so expansion
+  their open/closed state through the editor-owned `PanelLayout.state_bag`
+  dict, keyed by a node-id-free `panel_key` (`node:ports:<section>`) so expansion
   is a stable per-section-type preference rather than per-node.
 
 ## Considered alternatives

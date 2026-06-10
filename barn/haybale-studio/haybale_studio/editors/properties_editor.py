@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Callable, TYPE_CHECKING
+from typing import Any, Callable, TYPE_CHECKING
 
 from nicegui import ui
 
@@ -60,9 +60,10 @@ class PropertiesEditor(BaseEditor):
         # Focus id of the currently-active toolbar tab; None when no
         # focus is selected (initial state, or no available focus).
         self._active_focus_id: str | None = None
-        # Per-editor expansion-section state, keyed by panel_key. Survives
-        # content rebuilds but stays scoped to this editor instance.
-        self._expansion_state: dict[str, bool] = {}
+        # Per-editor UI state bag (collapse state, scroll position, form state, etc.),
+        # keyed by namespaced panel keys. Survives content rebuilds but stays scoped
+        # to this editor instance.
+        self._state_bag: dict[str, Any] = {}
 
         # Panel-driven event-bus unsubscribe handles. Populated in
         # _subscribe_panel_event_handlers (first draw()), reconciled in
@@ -383,13 +384,13 @@ class PropertiesEditor(BaseEditor):
 
                 with hui.expansion_section(
                     identity.label,
-                    icon=getattr(identity, "icon", None),
-                    default_open=getattr(identity, "default_open", True),
-                    state=self._expansion_state,
+                    icon=identity.icon,
+                    default_open=identity.default_open,
+                    state=self._state_bag,
                     panel_key=panel_key,
                 ):
                     panel_container = ui.column().classes("w-full gap-1")
-                    layout = PanelLayout(panel_container, expansion_state=self._expansion_state)
+                    layout = PanelLayout(panel_container, state_bag=self._state_bag)
                     render_panel(panel_cls, context, layout)
 
             if not visible:

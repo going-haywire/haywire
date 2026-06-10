@@ -189,7 +189,7 @@ What this example exercises:
 |---|---|
 | `@editor(label, icon, default_slot=SlotName.CONTEXT, description)` — implicit `opens='required'` | top of class |
 | `class_identity` and `class_library` set automatically by the decorator | (set on the class object) |
-| Per-instance state initialised in `__init__`, persisted across redraws | `_active_focus_id`, `_expansion_state` |
+| Per-instance state initialised in `__init__`, persisted across redraws | `_active_focus_id`, `_state_bag` |
 | `draw(context, container)` builds the subtree; container starts cleared | `draw` |
 | Panel-driven bus subscriptions: editor unions `redraw_on=` signals across display panels per focus and subscribes the wrapper to the effective set | `_subscribe_panel_event_handlers` |
 | Reconciling subscriptions on catalog mutation (library install / uninstall / hot-reload) | `_on_panel_registry_event` |
