@@ -20,13 +20,14 @@ Per `CLAUDE.md`, **`docs/` is the first place to look up how a system works** �
 docs/
 ├── index.md               ← site landing page
 ├── welcome/               ← onboarding
-├── adr/                   ← Architecture Decision Records (6 new: 0003–0008)
-│   ├── 0003-show-widget-strategy.md (new)
-│   ├── 0004-semantic-slot-names.md (new)
-│   ├── 0005-compatibility-warnings.md (new)
-│   ├── 0006-node-render-performance.md (new)
-│   ├── 0007-widget-unification-basewidget.md (new)
-│   └── 0008-ports-panel-widget-rendering.md (new)
+├── adr/                   ← Architecture Decision Records (0001–0009)
+│   ├── 0003-show-widget-strategy.md
+│   ├── 0004-semantic-slot-names.md
+│   ├── 0005-compatibility-warnings.md
+│   ├── 0006-node-render-performance.md
+│   ├── 0007-widget-unification-basewidget.md
+│   ├── 0008-ports-panel-widget-rendering.md
+│   └── 0009-focus-id-stable-key.md (new)
 ├── architecture/          ← framework internals
 │   └── <area>/<area>-arch.md
 ├── components/            ← extension-point authoring guides
@@ -62,6 +63,7 @@ docs/
 - Marketplace behaviour → `docs/haybale/marketplace/`.
 - Understanding execution/library/settings/session internals → `docs/architecture/`.
 - Show vs hide widget logic → ADR 0003.
+- Why focus routing keys on `Focus.id` (not the class) → ADR 0009 + `haywire.ui.panel.focus`.
 - Node compatibility warnings → ADR 0005 + `haywire.core.node.node_warning`.
 - Graph canvas selection behaviour → `docs/plans/` or the code in `haybale_graph_editor`.
 - Building UI → `docs/reference/design-guide.md` is non-optional.

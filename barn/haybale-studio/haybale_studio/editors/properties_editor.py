@@ -7,7 +7,6 @@ from typing import Callable, TYPE_CHECKING
 
 from nicegui import ui
 
-from haywire.core.errors.haywire_exception import HaywireException
 from haywire.ui import elements as hui
 from haywire.ui.editor.base import BaseEditor
 from haywire.ui.editor.decorator import editor
@@ -16,6 +15,7 @@ from haywire.ui.panel.base import BasePanel
 from haywire.ui.panel.layout import PanelLayout
 from haywire.ui.panel.focus import Focus
 from haywire.ui.panel.registry import PanelRegistry
+from haywire.ui.panel.host_rendering import render_panel, visible_panels
 
 if TYPE_CHECKING:
     from haywire.core.session.context import SessionContext
@@ -375,45 +375,22 @@ class PropertiesEditor(BaseEditor):
         panel_registry = self._panel_registry(context)
         panel_classes = self._mount_panels_for_active_focus(panel_registry, focus)
 
-        has_panels = False
+        visible = visible_panels(panel_classes, context)
         with self._content:
-            for panel_cls in panel_classes:
-                try:
-                    if not panel_cls.poll(context):
-                        continue
-                except Exception as exc:
-                    HaywireException.from_exception(
-                        exception=exc,
-                        category="Panel Poll Error",
-                        operation="panel_poll",
-                        message=f"PropertiesEditor: poll() error in {panel_cls.__name__}",
-                    ).log(logger)
-                    continue
-
-                has_panels = True
-                default_open = getattr(panel_cls.class_identity, "default_open", True)
-                icon = getattr(panel_cls.class_identity, "icon", None)
-                panel_key = f"{focus.id}:{panel_cls.class_identity.registry_key}"
+            for panel_cls in visible:
+                identity = panel_cls.class_identity
+                panel_key = f"{focus.id}:{identity.registry_key}"
 
                 with hui.expansion_section(
-                    panel_cls.class_identity.label,
-                    icon=icon,
-                    default_open=default_open,
+                    identity.label,
+                    icon=getattr(identity, "icon", None),
+                    default_open=getattr(identity, "default_open", True),
                     state=self._expansion_state,
                     panel_key=panel_key,
                 ):
                     panel_container = ui.column().classes("w-full gap-1")
                     layout = PanelLayout(panel_container, expansion_state=self._expansion_state)
-                    try:
-                        panel_cls().draw(context, layout)
-                    except Exception as exc:
-                        HaywireException.from_exception(
-                            exception=exc,
-                            category="Panel Draw Error",
-                            operation="panel_draw",
-                            message=f"PropertiesEditor: draw() error in {panel_cls.__name__}",
-                        ).log(logger)
-                        hui.error_label(f"Error: {exc}")
+                    render_panel(panel_cls, context, layout)
 
-            if not has_panels:
+            if not visible:
                 hui.empty_state("No properties available", icon=hui.icon.node_info)

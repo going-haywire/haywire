@@ -229,7 +229,28 @@ def test_close_callback_clears_active_port_and_edge(register_edit_state):
     edit = ctx.data[EditStateCls]
     edit.active_port = MagicMock()
     edit.active_edge = MagicMock()
+    NodeContextActions = _current_actions().NodeContextActions
+    NodeFocus = _current_focuses().NodeFocus
+
+    # A visible panel so the popup actually opens and wires on_close.
+    @panel(
+        actions=NodeContextActions,
+        focus=NodeFocus,
+        label="Always True",
+        registry_id="close_cb_panel",
+    )
+    class _Panel(BasePanel):
+        actions: NodeContextActions
+
+        @classmethod
+        def poll(cls, context):
+            return True
+
+        def draw(self, ctx, layout):
+            pass
+
     registry = PanelRegistry()
+    registry._register_class(_Panel, _FAKE_LIBRARY_IDENTITY)
     provider, popup, _ = make_provider(ctx, registry)
 
     provider.on_node_context((10, 20), "node-1")
@@ -238,5 +259,22 @@ def test_close_callback_clears_active_port_and_edge(register_edit_state):
     close_cb = popup.on_close.call_args[0][0]
     close_cb()
 
+    assert edit.active_port is None
+    assert edit.active_edge is None
+
+
+def test_close_cleanup_runs_immediately_when_no_panels_visible(register_edit_state):
+    """No visible panel → gesture ends at once: active_port/edge cleared without an opened popup."""
+    session = MagicMock()
+    ctx, EditStateCls = make_context(register_edit_state, session=session)
+    edit = ctx.data[EditStateCls]
+    edit.active_port = MagicMock()
+    edit.active_edge = MagicMock()
+    registry = PanelRegistry()
+    provider, popup, _ = make_provider(ctx, registry)
+
+    provider.on_node_context((10, 20), "node-1")
+
+    popup.open.assert_not_called()
     assert edit.active_port is None
     assert edit.active_edge is None

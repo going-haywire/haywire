@@ -293,12 +293,36 @@ def test_reconnect_active_edge_no_active_edge_is_noop():
     assert captured == []
 
 
+def _register_visible_node_panel(provider, action, focus):
+    """Register a visible action panel so _open_menu opens (vs. closing immediately).
+
+    With no visible panel _open_menu runs its close cleanup and returns without
+    opening a popup; these tests exercise the open path, so they need one.
+    """
+    from haywire.ui.panel.base import BasePanel
+    from haywire.ui.panel.decorator import panel
+
+    @panel(actions=action, focus=focus, label="Visible", registry_id="open_ctx_test_panel")
+    class _Panel(BasePanel):
+        actions: action  # type: ignore[valid-type]
+
+        @classmethod
+        def poll(cls, context):
+            return True
+
+        def draw(self, ctx, layout):
+            pass
+
+    provider._panel_registry._register_class(_Panel)
+
+
 def test_open_menu_creates_open_ctx_with_click_pos():
     """_open_menu records click_pos in _open_ctx."""
     from haybale_graph_editor.editors.graph_canvas.handlers.context_menu_actions import NodeContextActions
     from haybale_graph_editor.focuses import NodeFocus
 
     provider = _make_provider()
+    _register_visible_node_panel(provider, NodeContextActions, NodeFocus)
     # _open_menu opens a Popup which requires NiceGUI runtime — patch it.
     provider._build_popup = MagicMock(return_value=MagicMock())  # see implementation below
 
@@ -314,6 +338,7 @@ def test_open_menu_clears_open_ctx_on_close(monkeypatch):
     from haybale_graph_editor.focuses import NodeFocus
 
     provider = _make_provider()
+    _register_visible_node_panel(provider, NodeContextActions, NodeFocus)
     popup = MagicMock()
     on_close_callback = []
 
@@ -328,4 +353,19 @@ def test_open_menu_clears_open_ctx_on_close(monkeypatch):
 
     # Trigger the close callback
     on_close_callback[0]()
+    assert provider._open_ctx is None
+
+
+def test_open_menu_no_visible_panels_runs_cleanup_without_opening():
+    """No visible panel → _open_ctx cleared immediately, popup never opened."""
+    from haybale_graph_editor.editors.graph_canvas.handlers.context_menu_actions import NodeContextActions
+    from haybale_graph_editor.focuses import NodeFocus
+
+    provider = _make_provider()  # empty registry → no visible panels
+    popup = MagicMock()
+    provider._build_popup = MagicMock(return_value=popup)
+
+    provider._open_menu(NodeContextActions, NodeFocus, (0.0, 0.0))
+
+    popup.open.assert_not_called()
     assert provider._open_ctx is None

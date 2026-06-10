@@ -12,6 +12,7 @@ import logging
 from typing import Callable, Optional, Tuple, TYPE_CHECKING
 
 from haywire.ui.panel.layout import PanelLayout
+from haywire.ui.panel.host_rendering import render_panel, visible_panels
 from haywire.ui.components.popup import Popup
 
 if TYPE_CHECKING:
@@ -57,11 +58,13 @@ class BaseContextMenuProvider:
         """Build popup, query panels for (action, focus), inject self as the
         actions provider on each mounted panel, draw matched ones.
 
-        on_close: subclass-supplied additional cleanup, called when the
-        popup closes (after the base clears _open_popup).
+        on_close: subclass-supplied cleanup (reset gesture/edit state, resume
+        paused drags, etc.). Always runs once the menu is dismissed — and, if
+        no panel is visible, runs immediately, since the gesture is over even
+        though no popup ever opened. This cleanup is load-bearing: intent
+        handlers set edit state (active_port/active_edge, right_clicked_file)
+        before calling here and rely on it being reset on close.
         """
-        popup = self._build_popup(pos)
-        self._open_popup = popup
 
         def _wrapped_on_close() -> None:
             self._open_popup = None
@@ -71,19 +74,22 @@ class BaseContextMenuProvider:
                 except Exception as exc:
                     logger.exception(f"on_close handler raised: {exc}")
 
-        popup.on_close(_wrapped_on_close)
-
+        # Poll-filter before building anything. If nothing is visible there's
+        # no popup to open — but the gesture still ended, so run the close
+        # cleanup now and bail without constructing/registering a popup.
         panel_classes = self._panel_registry.get_panels_for_action(action, focus)
-        visible = [cls for cls in panel_classes if cls.poll(self._context)]
+        visible = visible_panels(panel_classes, self._context)
         if not visible:
+            _wrapped_on_close()
             return
 
+        popup = self._build_popup(pos)
+        self._open_popup = popup
+        popup.on_close(_wrapped_on_close)
+
+        # Inject ``self`` as the actions host (see BasePanel.actions); draw
+        # errors surface inline rather than crashing the popup.
         layout = PanelLayout(popup.content)
         for cls in visible:
-            try:
-                instance = cls()
-                instance.actions = self  # host injection — see BasePanel.actions
-                instance.draw(self._context, layout)
-            except Exception as exc:
-                logger.exception(f"Error drawing context menu panel {cls.__name__}: {exc}")
+            render_panel(cls, self._context, layout, actions_host=self)
         popup.open()

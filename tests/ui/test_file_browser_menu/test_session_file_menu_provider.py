@@ -26,8 +26,15 @@ def _make_provider_under_test(panels=None):
     return provider, ctx, session, panel_registry, state_inst
 
 
+def _visible_panel():
+    """A MagicMock panel class that polls visible, so the popup actually opens."""
+    panel_cls = MagicMock()
+    panel_cls.poll.return_value = True
+    return panel_cls
+
+
 def test_on_file_context_sets_right_clicked_file():
-    provider, ctx, session, panel_registry, state = _make_provider_under_test()
+    provider, ctx, session, panel_registry, state = _make_provider_under_test(panels=[_visible_panel()])
     p = Path("/tmp/foo.haywire")
     with patch.object(provider, "_build_popup") as mock_popup_factory:
         mock_popup_factory.return_value = MagicMock()
@@ -37,7 +44,7 @@ def test_on_file_context_sets_right_clicked_file():
 
 
 def test_on_close_clears_right_clicked_file():
-    provider, ctx, session, panel_registry, state = _make_provider_under_test()
+    provider, ctx, session, panel_registry, state = _make_provider_under_test(panels=[_visible_panel()])
     p = Path("/tmp/foo.haywire")
 
     captured_on_close = {}
@@ -53,6 +60,20 @@ def test_on_close_clears_right_clicked_file():
 
     assert state.right_clicked_file == p
     captured_on_close["cb"]()  # Simulate menu close
+    assert state.right_clicked_file is None
+
+
+def test_on_close_runs_immediately_when_no_panels_visible():
+    """With no visible panel the gesture ends at once — cleanup runs without a popup."""
+    provider, ctx, session, panel_registry, state = _make_provider_under_test()
+    p = Path("/tmp/foo.haywire")
+
+    popup = MagicMock()
+    with patch.object(provider, "_build_popup", return_value=popup):
+        provider.on_file_context(pos=(0, 0), path=p)
+
+    # No popup opened, but the close cleanup still ran: state was reset.
+    popup.open.assert_not_called()
     assert state.right_clicked_file is None
 
 
