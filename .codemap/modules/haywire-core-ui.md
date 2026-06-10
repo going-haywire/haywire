@@ -5,35 +5,35 @@
 **Path:** `packages/haywire-core/src/haywire/ui/`
 **Language:** Python + Vue 3 (.vue) + JS
 **Owner:** Haywire core team
-**Tree hash:** part of `packages/haywire-core` (`93e6c623…`)
-**Mapped at:** a08a6931 (2026-05-31)
+**Tree hash:** part of `packages/haywire-core`
+**Mapped at:** b5068ae7 (2026-06-10)
 
 ---
 
 ## 1. Scope & Purpose
 
-The presentation layer of `haywire-core`. It renders the dual-flow graph as an interactive Vue canvas, hosts editors/panels in the workspace shell, exposes a theme/skin system (CSS tokens + `WorkbenchTheme`/`NodeTheme`), and provides reactive UI primitives. It bridges the engine's signal bus to the browser via NiceGUI. Concrete editors/panels/widgets live in haybale-* libraries; this module supplies the abstractions and registries.
+The presentation layer of `haywire-core`. It renders the dual-flow graph as an interactive Vue canvas, hosts editors/panels in the workspace shell, exposes a theme/skin system (CSS tokens + `WorkbenchTheme`/`NodeTheme`), and provides reactive UI primitives (unified BaseWidget, binding, converters). It bridges the engine's signal bus to the browser via NiceGUI. Concrete editors/panels/widgets live in haybale-* libraries; this module supplies the abstractions and registries.
 
 ## 2. Folder Architecture
 
 ```
 ui/
 ├── app/             ← app shell, slots (icon_slot, tab_slot, generic slot)
-├── components/      ← Vue components: graph/, minimap/, popup/, zoom/, number/drag
-│   └── graph/       ← canvas.py + canvas.vue (the main editing surface)
-├── console_bridge.py← Python↔JS console bridge
-├── editor/          ← Editor base + decorator + registry + wrapper
+├── components/      ← Vue components: graph/, zoom/, popup/
+│   ├── graph/       ← canvas.py + canvas.vue (main editing surface + event defs)
+│   ├── debug_overlay/ (new) ← optional debug UI for tracing
+│   └── zoom/        ← pan.py (pan.vue rewrite for perf)
+├── editor/          ← Editor base + decorator + registry + wrapper + identity
 ├── elements/        ← shared NiceGUI elements + icon set
-├── errors/          ← UI-level error info + exception type
+├── errors/          ← UI-level error info
 ├── modals/          ← confirm, pick, rename, save-as dialogs
-├── panel/           ← Panel base + decorator + registry + focus + layout + render_utils
-├── prefs/           ← canvas/editor/edge_ui preference panels
+├── panel/           ← Panel base + decorator + registry + focus + layout
+├── prefs/           ← canvas/editor/edge_ui preferences
 ├── skin/            ← Skin interface + factory + decorator + registry + settings
-├── themes/          ← Theme decorator, icons, icon-preview.html
-├── widget/          ← reusable NiceGUI widgets (used by haybale libs)
-├── workspace/       ← (currently empty in git tree; see core/session/workspace/)
-├── ui_nodecard.py   ← Node card composer
-└── utils.py         ← shared UI helpers
+├── themes/          ← Theme decorator, icons
+├── widget/          ← **BaseWidget unification** (binding, converters, simple merged in)
+├── nicegui_patches.py (new) ← patches for NiceGUI/Quasar issues
+└── utils.py         ← shared helpers
 ```
 
 ## 3. Always-load vs On-demand
@@ -47,11 +47,13 @@ ui/
 
 ### On-demand
 
-- `themes/`, `skin/` — only when building/editing `WorkbenchTheme`/`NodeTheme` or CSS tokens.
-- `modals/*` — when adding/modifying dialogs (use `hui.dialog_card()`; see insight).
-- `console_bridge.py` — debugging Python↔browser logs.
-- `components/minimap/*`, `components/zoom/*` — when working on viewport / minimap layout (sibling-of-ZoomPanContainer rule).
-- `components/popup/*` — when reusing the popup pattern (Vue `_`-prefix `data()` trap).
+- `widget/` — **BaseWidget unification** (ADR 0007); replaces old simple.py + converters.py. Read `base.py`, `binding.py`, then ad-hoc `simple.py` pieces if needed.
+- `widget/binding.py` — reactive data binding for NiceGUI; enables two-way sync with ports.
+- `themes/`, `skin/` — when building/editing `WorkbenchTheme`/`NodeTheme` or CSS tokens.
+- `modals/*` — when adding dialogs (use `hui.dialog_card()`).
+- `components/debug_overlay/` — optional instrumentation for event tracing / performance profiling.
+- `components/zoom/` — pan/zoom rendering; pan.vue was rewritten for performance.
+- `nicegui_patches.py` — patches for NiceGUI/Quasar workarounds (nested menus, autofocus, etc.).
 
 ## 4. Rules & Boundaries
 

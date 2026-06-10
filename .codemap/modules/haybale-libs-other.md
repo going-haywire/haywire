@@ -5,8 +5,8 @@
 **Path:** `barn/haybale-example/`, `barn/haybale-testing/`, `barn/haybale-TEST_A/`
 **Language:** Python 3.10+
 **Owner:** Various (bundled plugins)
-**Tree hashes:** see [META.md](../META.md)
-**Mapped at:** a08a6931 (2026-05-31)
+**Tree hashes:** (updated 2026-06-10)
+**Mapped at:** b5068ae7 (2026-06-10)
 
 > ⚠️ `barn/haybale-visiongraph/` is now **gitignored** (`.gitignore:211`) and untracked in HEAD — it exists on disk as a local-only library and is no longer part of the committed repo. It is therefore dropped from this map's hash tracking.
 
@@ -26,9 +26,23 @@ If you are documenting how to author a haybale library, point readers to `haybal
 
 ```
 barn/
-├── haybale-example/   haybale_example/   ← README + nodes/types
-├── haybale-testing/   haybale_testing/   ← test-only nodes
-└── haybale-TEST_A/    haybale_test_a/    ← library-system test fixture
+├── haybale-example/
+│   └── haybale_example/
+│       ├── __init__.py       ← Library subclass
+│       ├── adapters/         ← example adapters (updated for widget unification)
+│       ├── skins/example_skin.py ← example skin
+│       └── widgets/example_widget.py (rewritten) + knob_widget.py
+│
+├── haybale-testing/
+│   └── haybale_testing/
+│       ├── __init__.py       ← Library subclass
+│       ├── nodes/
+│       │   ├── testbed/      ← new: group_and_sections.py, print_node.py
+│       │   └── …
+│       └── panels/           ← updated test panels
+│
+└── haybale-TEST_A/
+    └── haybale_test_a/       ← library-system test fixture
 ```
 
 Each follows the standard layout: `__init__.py` exposes a `Library` subclass and registers components via `register_components()`.
@@ -42,7 +56,10 @@ Each follows the standard layout: `__init__.py` exposes a `Library` subclass and
 
 ### On-demand
 
-- Other libraries' internals — only if you're changing a specific node, type, or test fixture there.
+- **`haybale-example/haybale_example/widgets/`** — rewritten examples for BaseWidget unification (ADR 0007).
+- **`haybale-testing/haybale_testing/nodes/testbed/`** (new) — group_and_sections.py, print_node.py for rendering test UI.
+- **`haybale-testing/haybale_testing/panels/`** (updated) — test node panels with new widget patterns.
+- Other libraries' internals — only if you're changing a specific node, type, or test fixture.
 
 ## 4. Rules & Boundaries
 

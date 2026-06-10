@@ -5,8 +5,8 @@
 **Path:** `barn/haybale-haystack/haybale_haystack/`
 **Language:** Python 3.10+
 **Owner:** Haywire studio team (bundled plugin)
-**Tree hash:** `73d73f00b120b5140f992547f83004cd5e047c28`
-**Mapped at:** a08a6931 (2026-05-31)
+**Tree hash:** (updated 2026-06-10)
+**Mapped at:** b5068ae7 (2026-06-10)
 
 ---
 
@@ -40,9 +40,11 @@ haybale_haystack/
 
 ### On-demand
 
-- `editors/` — when changing the haystack editor UI; pair with `haywire/ui/editor/wrapper.py`.
+- **`state/haystack_state.py`** (updated) — haystack state container for editors/panels.
+- **`persistence.py`** (updated) — read/write logic for .haywire graph files.
+- **`editors/haystack_editor.py`** (updated) — haystack editor (file list + focus) UI.
 - `signals.py` — when emitting/listening to haystack-scoped events.
-- `state/` — when modifying mutable haystack state.
+- `panels/file_browser/` — file browser panels and file actions.
 
 ## 4. Rules & Boundaries
 

@@ -5,8 +5,8 @@
 **Path:** `packages/haywire-studio/src/haywire_studio/`
 **Language:** Python 3.10+
 **Owner:** Haywire studio team
-**Tree hash:** `087438af63732dd1bd342783491c55fa978d07ea`
-**Mapped at:** a08a6931 (2026-05-31)
+**Tree hash:** (updated 2026-06-10)
+**Mapped at:** b5068ae7 (2026-06-10)
 
 ---
 
@@ -39,8 +39,11 @@ haywire_studio/
 
 ### On-demand
 
-- `init.py`, `share.py` — only when modifying the corresponding CLI subcommands (`share.py` delegates to `core/marketstall/share.py`).
-- `workspace/` — when changing how the studio mounts a workspace differently from core.
+- **`init.py`** (updated) — `haywire init` scaffolding CLI subcommand.
+- **`share.py`** (updated) — `haywire share` CLI; thin wrapper over `core/marketstall/share.py`.
+- **`app.py`** (updated) — HaywireApp orchestrator; wires up all plugins.
+- **`config.py`** (updated) — TOML config resolution logic.
+- `workspace/` — when changing workspace-specific pieces.
 
 ## 4. Rules & Boundaries
 

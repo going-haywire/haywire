@@ -5,8 +5,8 @@
 **Path:** `docs/`
 **Language:** Markdown (mkdocs-material)
 **Owner:** All teams (each owns docs near their module)
-**Tree hash:** `26b10d7a19ba6492c43f6cbe2ba1e5bbf407f878`
-**Mapped at:** a08a6931 (2026-05-31)
+**Tree hash:** (updated 2026-06-10)
+**Mapped at:** b5068ae7 (2026-06-10)
 
 ---
 
@@ -20,19 +20,29 @@ Per `CLAUDE.md`, **`docs/` is the first place to look up how a system works** �
 docs/
 ├── index.md               ← site landing page
 ├── welcome/               ← onboarding
-├── adr/                   ← Architecture Decision Records
+├── adr/                   ← Architecture Decision Records (6 new: 0003–0008)
+│   ├── 0003-show-widget-strategy.md (new)
+│   ├── 0004-semantic-slot-names.md (new)
+│   ├── 0005-compatibility-warnings.md (new)
+│   ├── 0006-node-render-performance.md (new)
+│   ├── 0007-widget-unification-basewidget.md (new)
+│   └── 0008-ports-panel-widget-rendering.md (new)
 ├── architecture/          ← framework internals
-│   └── <area>/<area>-arch.md     e.g., execution-pipeline, library-system, settings-resolution
+│   └── <area>/<area>-arch.md
 ├── components/            ← extension-point authoring guides
-│   └── <area>/<area>-canon.md    e.g., nodes-canon, types-canon, ports-canon, editor-canon
-├── haybale/               ← library/package authoring + marketplace docs (moved out of components/)
-│   ├── library-canon.md   ← was components/libraries/library-canon.md
-│   ├── haybale-package-canon.md ← was components/haybale-package/…
-│   └── marketplace/       ← marketplace-canon.md + haybale-marketplace-arch.md (was architecture/library-manager/)
-├── guides/                ← how-tos
+│   ├── widgets/widget-canon.md (majorly rewritten for widget unification)
+│   ├── panels/panel-canon.md (updated with new panel patterns)
+│   ├── editors/editor-canon.md
+│   └── <area>-canon.md files
+├── haybale/               ← library/package authoring + marketplace docs
+│   ├── library-canon.md (new)
+│   ├── haybale-package-canon.md
+│   └── marketplace/
+├── guides/                ← how-tos (e.g., sharing-libraries.md)
+├── plans/                 ← implementation plans (new in v0.0.19 docs)
 ├── reference/             ← glossary + design guide
-│   ├── glossary.md        ← canonical vocabulary (incl. 5 meanings of "library")
-│   └── design-guide.md    ← UI design rules + design tokens
+│   ├── glossary.md (updated)
+│   └── design-guide.md (expanded)
 └── archive/               ← retired pages
 ```
 
@@ -45,10 +55,15 @@ docs/
 
 ### On-demand (by task)
 
-- Authoring nodes/types/ports/widgets/themes/editors/panels → the matching `docs/components/<area>/<area>-canon.md`.
-- Authoring a library / haybale package, or marketplace behaviour → `docs/haybale/` (canon under `docs/haybale/`, marketplace under `docs/haybale/marketplace/`).
-- Understanding execution/library/settings/session internals → the matching `docs/architecture/<area>/<area>-arch.md`.
-- ADRs → `docs/adr/` only when explicitly investigating an old decision (e.g. ADR 0002 — validation-scheduler injection).
+- Authoring nodes/types/ports/themes/editors/panels → the matching `docs/components/<area>/<area>-canon.md`.
+- **Authoring widgets** → `docs/components/widgets/widget-canon.md` (covers BaseWidget unification, ADR 0007).
+- Widget rendering in ports panel → ADR 0008 + `haybale_graph_editor.panels.node_ports_panel`.
+- Authoring a library / haybale package → `docs/haybale/` (library-canon.md, haybale-package-canon.md).
+- Marketplace behaviour → `docs/haybale/marketplace/`.
+- Understanding execution/library/settings/session internals → `docs/architecture/`.
+- Show vs hide widget logic → ADR 0003.
+- Node compatibility warnings → ADR 0005 + `haywire.core.node.node_warning`.
+- Graph canvas selection behaviour → `docs/plans/` or the code in `haybale_graph_editor`.
 - Building UI → `docs/reference/design-guide.md` is non-optional.
 
 ## 4. Rules & Boundaries

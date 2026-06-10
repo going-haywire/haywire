@@ -5,8 +5,8 @@
 **Path:** `barn/haybale-core/haybale_core/`
 **Language:** Python 3.10+
 **Owner:** Haywire core team (bundled plugin)
-**Tree hash:** `9a75ac86ea0138cde74883f7b3e706ef7d926d5e`
-**Mapped at:** a08a6931 (2026-05-31)
+**Tree hash:** (updated 2026-06-10)
+**Mapped at:** b5068ae7 (2026-06-10)
 
 ---
 
@@ -18,15 +18,20 @@
 
 ```
 haybale_core/
-├── __init__.py    ← exposes `Library` (BaseLibrary subclass)
-├── adapters/      ← type/port adapters
-├── nodes/         ← concrete node classes
-├── panels/        ← built-in panels (e.g., inspector)
-├── settings/      ← library- and node-level settings descriptors
-├── skins/         ← skin implementations (how nodes render)
-├── themes/        ← WorkbenchTheme / NodeTheme presets
-├── types/         ← value/port types beyond core primitives
-└── widgets/       ← reusable NiceGUI widgets
+├── __init__.py               ← exposes `Library` (BaseLibrary subclass)
+├── adapters/compound_adapters.py ← updated for widget unification
+├── nodes/
+│   ├── for_loop.py (updated) ← loop iteration syntax changes
+│   ├── print_terminal.py     ← print to terminal UI (rewritten)
+│   ├── print_ui_log.py
+│   ├── switch.py
+│   └── events/*, emits/*
+├── panels/
+├── settings/
+├── skins/
+├── themes/
+├── types/pooled_type.py
+└── widgets/basic_widgets.py (major rewrite) ← BaseWidget unification
 ```
 
 ## 3. Always-load vs On-demand
@@ -38,8 +43,11 @@ haybale_core/
 
 ### On-demand
 
-- `adapters/`, `types/` — when extending the type system or coercion rules.
-- `widgets/` — when reusing or extending an existing widget; check before adding new ones.
+- **`widgets/basic_widgets.py`** (major rewrite) — uses new BaseWidget unification (ADR 0007); pattern for downstream libraries.
+- `adapters/` — when extending type/port adapter rules (updated for widget unification).
+- `types/` — when extending the type system beyond primitives.
+- `nodes/for_loop.py` — loop iteration syntax; check before using in tests.
+- `nodes/print_terminal.py` (rewritten) — print-to-UI output; reuses BaseWidget.
 - `themes/`, `skins/` — when modifying visual presentation; coordinate with `docs/reference/design-guide.md`.
 - `panels/`, `settings/` — when adding inspector content or library/node settings UI.
 

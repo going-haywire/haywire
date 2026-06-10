@@ -3,8 +3,8 @@
 | Field | Value |
 |-------|-------|
 | Generated at | 2026-05-16 10:25 UTC |
-| Last refreshed at | 2026-05-31 (2nd refresh) |
-| Commit | a08a693148be827b608ee86cab865f6cc9d0983b |
+| Last refreshed at | 2026-06-10 (3rd refresh) |
+| Commit | b5068ae7d0e5adfceac82baa156793a28c62b283 |
 | Branch | master |
 | Generator | codebase-cartographer |
 | Modules mapped | 11 |
@@ -49,7 +49,7 @@ To refresh this map:
 
 If `git status --porcelain` shows uncommitted changes at refresh time, the map only reflects the last committed state.
 
-Last check (2026-05-31, 2nd refresh): clean working tree.
+Last check (2026-06-10, 3rd refresh): clean working tree.
 
 ## Change Log
 
@@ -58,11 +58,12 @@ Last check (2026-05-31, 2nd refresh): clean working tree.
 | 2026-05-16 | b2e5340b | Initial generation — 9 modules + 3 cross-cuts mapped |
 | 2026-05-31 | 4e5c1da7 | Full refresh — all modules changed. Added `haybale-marketplace`. Dropped `haybale-visiongraph` (now gitignored). Reflected `core/marketstall` + `core/host` engine subsystems and the move of `library_manager.py` out of haywire-studio. |
 | 2026-05-31 | a08a6931 | 2nd refresh — content updates to `haywire-core-engine` (new `graph/scheduler.py`, ADR 0002), `haybale-studio` (new `loop_scheduler.py`), `docs` (docs/components/{libraries,haybale-package} → docs/haybale/; library-manager → marketplace), `tests` (scheduler + dirty-sync + editor-base tests). Hash-only refresh on 7 modules; no module added/removed. |
+| 2026-06-10 | b5068ae7 | 3rd refresh — full refresh across all modules. Major: ADRs 0003–0008, widget unification + BaseWidget, clipboard (copy/paste), node warnings/compatibility, ShowWidget strategy, Ports panel rendering, graph canvas selection rewrite, marketplace editor UX. Tests: 15+ new test files (widget, clipboard, compatibility, show-widget, scheduler-wait, etc.). UI: debug overlay, canvas/pan/zoom updates, nicegui-patches. Docs: 6 new ADRs, widget-canon rewrite, design-guide updates. |
 
 ### Diff since b2e5340b
 
-`370 files changed, 52389 insertions(+), 8367 deletions(-)` (commits since old: haywire-core 64, tests 50, haybale-studio 44, haywire-studio 43, graph-editor 26, docs 26, marketplace 25, haystack 22).
+`659 files changed, 248733 insertions(+), 13065 deletions(-)` (major expansion: widget unification, clipboard, compatibility warnings, new docs/architecture/ADRs).
 
-Changed modules: **all** (every module tree hash moved).
+Changed modules: **all** (every module touched).
 New module: `haybale-marketplace`.
 Removed from tracking: `haybale-visiongraph` (gitignored).

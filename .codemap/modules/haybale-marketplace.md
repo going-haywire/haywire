@@ -5,8 +5,8 @@
 **Path:** `barn/haybale-marketplace/haybale_marketplace/`
 **Language:** Python 3.10+
 **Owner:** Haywire team (optional bundled plugin)
-**Tree hash:** `7343cfdffeb8007c634928ebd07bdad322b70188`
-**Mapped at:** a08a6931 (2026-05-31)
+**Tree hash:** (updated 2026-06-10)
+**Mapped at:** b5068ae7 (2026-06-10)
 
 ---
 
@@ -42,7 +42,9 @@ haybale_marketplace/
 
 - `state/marketplace_state.py` — when changing manifest parsing, refresh, or install/upgrade impact (delegates to core `marketstall`).
 - `state/library_manager_state.py` — when changing how editors obtain the manager.
-- `editors/*` — when modifying a specific browser/overview/dialog surface.
+- **`editors/library_browser_editor.py`** (updated UX) — main browser surface; see memory `project_install_hotreload_fix` for 3-step install flow.
+- `editors/library_overview_editor.py` (updated) — per-library overview.
+- `editors/library_marketplace_dialog.py` — install/upgrade impact + progress dialogs.
 
 ## 4. Rules & Boundaries
 

@@ -5,8 +5,8 @@
 **Path:** `barn/haybale-studio/haybale_studio/`
 **Language:** Python 3.10+
 **Owner:** Haywire studio team (bundled plugin)
-**Tree hash:** `ed61ffe797fe53ab3b8c5aa30b73c6fa4121870c`
-**Mapped at:** a08a6931 (2026-05-31)
+**Tree hash:** (updated 2026-06-10)
+**Mapped at:** b5068ae7 (2026-06-10)
 
 ---
 
@@ -18,20 +18,26 @@ Where [haybale-core](haybale-core.md) provides nodes/types for graphs, `haybale-
 
 ```
 haybale_studio/
-├── __init__.py     ← Library entry (BaseLibrary subclass)
-├── adapters/       ← studio-specific adapters
-├── editors/        ← Editor classes (graph editor, file viewer, …)
-├── nodes/          ← studio-only node types (if any)
-├── panels/         ← library overview, properties editor, file browser panels
-├── settings/       ← studio settings descriptors
-├── skins/          ← studio skins
-├── state/          ← state container (edit/runtime state, focuses)
-├── themes/         ← studio themes
-├── types/          ← studio value/port types
-├── widgets/        ← studio widgets
-├── focuses.py      ← focus model (which object the workspace is on)
-├── file_focus.py   ← file-typed focus
-└── loop_scheduler.py ← LoopScheduler: NiceGUI event-loop ValidationScheduler the studio injects into graphs (ADR 0002)
+├── __init__.py              ← Library entry (BaseLibrary subclass)
+├── adapters/                ← studio-specific adapters
+├── editors/                 ← Editor classes (graph editor, file viewer, …)
+│   └── …/ with major rewrites to file_browser.py, properties_editor.py
+├── nodes/                   ← studio-only node types
+├── panels/
+│   ├── __init__.py (new)   ← exports
+│   ├── canvas_settings.py (new) ← canvas zoom/pan preference panel
+│   ├── context_menu/        ← file/node actions
+│   └── …
+├── settings/                ← studio settings descriptors
+├── skins/
+│   └── node_skin.py (major rewrite) ← widget rendering per node type
+├── state/                   ← state container (edit/runtime, focuses)
+├── themes/                  ← studio themes
+├── types/                   ← studio value/port types
+├── widgets/                 ← studio widgets
+├── focuses.py               ← focus model
+├── file_focus.py            ← file-typed focus
+└── loop_scheduler.py        ← LoopScheduler (NiceGUI event-loop scheduler, ADR 0002)
 ```
 
 ## 3. Always-load vs On-demand
@@ -45,10 +51,12 @@ haybale_studio/
 ### On-demand
 
 - `editors/` — when adding/changing an editor; pair with `haywire/ui/editor/wrapper.py`.
-- `panels/` — when modifying built-in panels.
-- `themes/`, `skins/` — when touching visual presentation.
+- **`skins/node_skin.py`** (major rewrite) — renders node skin (widget layout, colors, icons). Pair with [widget unification](../../../.codemap/modules/haywire-core-ui.md) (ADR 0007).
+- `panels/canvas_settings.py` (new) — canvas zoom/pan preferences.
+- `panels/` — when modifying built-in panels (file browser, properties, etc.).
+- `themes/` — when touching visual presentation.
 - `settings/` — when surfacing studio settings.
-- `loop_scheduler.py` — when changing how validation is debounced onto the NiceGUI event loop; implements `haywire.core.graph.scheduler.ValidationScheduler` (see [engine](haywire-core-engine.md) + ADR 0002).
+- `loop_scheduler.py` — when changing validation debouncing; implements `ValidationScheduler` (ADR 0002).
 
 ## 4. Rules & Boundaries
 

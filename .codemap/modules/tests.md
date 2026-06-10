@@ -5,8 +5,8 @@
 **Path:** `tests/`
 **Language:** Python 3.10+ (pytest, pytest-playwright)
 **Owner:** All teams (each owns tests near their module)
-**Tree hash:** `aca64c64228dd8a4ac1348515225f0ca9915f4ce`
-**Mapped at:** a08a6931 (2026-05-31)
+**Tree hash:** (updated 2026-06-10)
+**Mapped at:** b5068ae7 (2026-06-10)
 
 ---
 
@@ -14,14 +14,14 @@
 
 The full automated test suite for the workspace. Tests are grouped by the area of the codebase they cover:
 
-- `tests/core/` — engine: di, execution, graph (incl. `test_graph/test_validation_scheduler.py`), node, settings, signals, state, session, reactive.
-- `tests/graph_editor/` — graph-editor plugin: `test_graph_editor_dirty_sync.py` (dirty-state propagation).
-- `tests/ui/` — UI primitives: editor/panel/slot/theme/signals/canvas handlers.
+- `tests/core/` — engine: di, execution, graph (clipboard, compatibility, node-warnings), node, settings, signals, state, session, reactive, library.
+- `tests/graph_editor/` — graph-editor plugin: graph-app-state, dirty-sync, warning-badge, compatibility-summary.
+- `tests/ui/` — UI primitives: editor/panel/slot/theme/signals/canvas handlers, **widget/** (new: base-floor, bind-nested/sugar, skin-profile, sync-path, cost-attribution, expect-args-cache, etc.).
 - `tests/studio/` — studio app: app shell, library state container, edit state, focus, haystack editor.
 - `tests/libraries/` — library-system behaviour (focus IDs, reactive clipboard).
 - `tests/haystack/` — haystack-specific tests.
-- `tests/integration/` — slow, full-stack tests (e.g., `test_haystack_carve_out.py`).
-- `tests/test_init_scaffolding.py`, `tests/test_smoke.py` — top-level smoke and CLI scaffolding tests.
+- `tests/integration/` — slow, full-stack tests.
+- `tests/test_init_scaffolding.py`, `tests/test_smoke.py`, `tests/test_share_bump_keyword.py` — CLI scaffolding, smoke, share.
 
 ## 2. Folder Architecture
 
@@ -30,26 +30,29 @@ tests/
 ├── conftest.py
 ├── test_smoke.py
 ├── test_init_scaffolding.py
+├── test_share_bump_keyword.py
 ├── core/
 │   ├── test_di/  test_execution/  test_graph/  test_node/
 │   ├── test_session/  test_settings/  test_signals/  test_state/
-│   ├── test_libraries/  test_debug/  test_reactive.py
+│   ├── test_library/  test_debug/  test_reactive.py
+│   └── test_graph/:
+│       ├── test_clipboard_payload.py (new)
+│       ├── test_compatibility_on_load.py (new)
+│       ├── test_node_warnings.py (new)
+│       ├── test_show_widget_strategy.py (new)
 ├── ui/
+│   ├── widget/ (new: base-floor, bind-*, skin-profile, sync-path, cost-attribution, etc.)
 │   ├── editor/  panel/  graph_canvas/  harness/  reactive/
-│   ├── properties_editor/  test_canvas_handlers/  test_file_browser_menu/
-│   ├── test_app_shell.py  test_console_bridge.py  test_signal_bus.py
-│   ├── test_panel_registry.py  test_editor_registry.py  test_theme_registry.py
-│   └── … (~25 more focused tests)
+│   ├── test_app_shell.py  test_editor_registry.py  test_theme_registry.py
+│   └── ~40 tests total
+├── graph_editor/
+│   ├── test_compatibility_summary.py (new)
+│   ├── test_graph_app_state.py
+│   └── test_warning_badge.py (new)
 ├── studio/
-│   ├── test_app/
-│   ├── test_app_library_state_container.py  test_edit_state.py
-│   ├── test_file_viewer_on_focus.py  test_graph_editor_on_focus.py
-│   └── test_haystack_editor_remove.py  test_library_overview_on_context.py
 ├── libraries/
-│   ├── test_clipboard_reactive.py  test_focuses_have_ids.py
 ├── haystack/
-├── integration/
-│   └── test_haystack_carve_out.py
+└── integration/
 ```
 
 ## 3. Always-load vs On-demand

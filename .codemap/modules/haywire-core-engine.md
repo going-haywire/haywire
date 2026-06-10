@@ -5,39 +5,39 @@
 **Path:** `packages/haywire-core/src/haywire/core/`
 **Language:** Python 3.10+
 **Owner:** Haywire core team
-**Tree hash:** `(part of packages/haywire-core: 93e6c623)`
-**Mapped at:** a08a6931 (2026-05-31)
+**Tree hash:** `(part of packages/haywire-core)`
+**Mapped at:** b5068ae7 (2026-06-10)
 
 ---
 
 ## 1. Scope & Purpose
 
-This is the engine layer. It defines the graph data model (nodes, edges, pins/ports), the dual-flow execution model (control + data), the DI framework, the settings/registry systems, validation/undo, the library plugin system, and the **marketstall** backend (manifests, sources, installer, provenance, share) plus the **host** store that persists app-level state like enabled libraries (host.toml). It has **no UI dependencies** — `haywire/ui` builds on top of it. If this module broke, nothing would execute.
+This is the engine layer. It defines the graph data model (nodes, edges, pins/ports), the dual-flow execution model (control + data), the DI framework, the settings/registry systems, validation/undo, copy/paste (clipboard), node compatibility warnings, the library plugin system, and the **marketstall** backend (manifests, sources, installer, provenance, share) plus the **host** store that persists app-level state like enabled libraries (host.toml). It has **no UI dependencies** — `haywire/ui` builds on top of it. If this module broke, nothing would execute.
 
 ## 2. Folder Architecture
 
 ```
 haywire/core/
-├── di/           ← dependency injection (module-level globals, NOT ContextVar)
-├── graph/        ← graph model + editor + scheduler.py (injectable validation debounce, ADR 0002)
-├── node/         ← node base classes, ports, workers
-├── edge/         ← edge model, connection rules
-├── assembly/     ← graph→execution assembly pipeline
-├── execution/    ← the dual-flow execution VM
-├── settings/     ← settings descriptors, resolution, registry
-├── registry/     ← component registries (nodes/types/etc.)
-├── library/      ← plugin system: base, decorator, discovery, loader, registry, scope
-├── marketstall/  ← install/share backend: installer, manifest, sources, provenance, share
-├── host/         ← host.py + store.py (host.toml app-level persistence)
-├── adapter/      ← type/port adapters
-├── types/        ← core value & port types
-├── session/      ← session management
-├── state/        ← reactive state containers + state registries
-├── validation/   ← graph validation rules
-├── undo/         ← undo/redo stack
-├── debug/        ← debug helpers
-├── errors/       ← error types
-└── namespaces.py ← namespace constants
+├── di/              ← dependency injection (module-level globals, NOT ContextVar)
+├── graph/           ← graph model + editor + scheduler.py (ADR 0002) + clipboard.py (copy/paste)
+├── node/            ← node base classes, ports, workers, node_warning.py (compatibility)
+├── edge/            ← edge model, connection rules, edge_wrapper.py
+├── assembly/        ← graph→execution assembly pipeline
+├── execution/       ← the dual-flow execution VM
+├── settings/        ← settings descriptors, resolution, registry
+├── registry/        ← component registries (nodes/types/etc.)
+├── library/         ← plugin system: base, decorator, discovery, loader, registry, scope, compatibility.py
+├── marketstall/     ← install/share backend: installer, manifest, sources, provenance, share
+├── host/            ← host.py + store.py (host.toml app-level persistence)
+├── adapter/         ← type/port adapters
+├── types/           ← core value & port types
+├── session/         ← session management
+├── state/           ← reactive state containers + state registries
+├── validation/      ← graph validation rules
+├── undo/            ← undo/redo stack (includes paste_action.py)
+├── debug/           ← debug helpers
+├── errors/          ← error types
+└── namespaces.py    ← namespace constants
 ```
 
 ## 3. Always-load vs On-demand
@@ -51,13 +51,16 @@ haywire/core/
 ### On-demand
 
 - `assembly/`, `execution/` — when touching how graphs run (dual-flow, scheduling, lazy propagation).
+- `graph/clipboard.py` — when changing copy/paste logic; handles `ClipboardPayload`, serialization/deserialization.
+- `node/node_warning.py` — when adding node warnings (e.g., compatibility flags); integrates with `node_warnings` in `node/registry.py`.
+- `library/compatibility.py` — when versioning libraries or handling breaking changes; tracks `compatibility_version`, issues warnings on load.
 - `library/` — when changing plugin discovery/loading/hot-reload or `BaseLibrary` (see [library plugin system cross-cut](../cross-cuts/library-plugin-system.md)).
 - `marketstall/` — when changing install/uninstall, manifest parsing, remote sources, provenance, or share/export.
 - `host/` — when changing host.toml persistence (e.g. enabled-library state).
 - `settings/` — when adding or changing settings descriptors/resolution.
 - `edge/`, `adapter/`, `types/` — when changing the type/connection system.
 - `session/`, `state/`, `undo/`, `validation/` — persistence, reactive state, undo, validation.
-- `graph/scheduler.py` — when changing the validation debounce strategy; defines the `ValidationScheduler`/`ScheduleHandle` protocols + `ThreadingTimerScheduler` (default) and `SyncScheduler` (tests). The studio injects `haybale_studio.loop_scheduler.LoopScheduler`. See ADR 0002.
+- `graph/scheduler.py` — when changing the validation debounce strategy; defines the `ValidationScheduler`/`ScheduleHandle` protocols. See ADR 0002.
 - `registry/` — when adding a new registry or component kind.
 
 ## 4. Rules & Boundaries
