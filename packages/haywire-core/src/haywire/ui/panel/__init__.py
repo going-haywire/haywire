@@ -17,6 +17,7 @@ from .layout import PanelLayout
 from .focus import Focus, all_focuses, focus_by_id
 from .base import BasePanel
 from .registry import PanelRegistry
+from .redraw_coordinator import PanelRedrawCoordinator
 
 # Import decorator last so the `panel` name resolves to the decorator function
 # rather than the `.panel` submodule (the `from .panel import BasePanel` above
@@ -33,5 +34,6 @@ __all__ = [
     "focus_by_id",
     "BasePanel",
     "PanelRegistry",
+    "PanelRedrawCoordinator",
     "panel",
 ]

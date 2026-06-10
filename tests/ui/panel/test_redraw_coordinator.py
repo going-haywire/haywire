@@ -260,3 +260,11 @@ def test_registry_query_raising_degrades_gracefully():
     coord.start()  # must not raise
 
     assert session.handlers == {}
+
+
+def test_coordinator_is_exported_from_panel_package():
+    """PanelRedrawCoordinator is importable from the package root, like
+    PanelRegistry and Focus."""
+    from haywire.ui.panel import PanelRedrawCoordinator as Exported
+
+    assert Exported is PanelRedrawCoordinator
