@@ -349,6 +349,17 @@ def main():
         "current version if VERSION is omitted.",
     )
 
+    rename_parser = subparsers.add_parser(
+        "rename", help="Rename a project library (run with studio stopped)"
+    )
+    rename_parser.add_argument("old_library", help="Current library dir, e.g. haybale-foo")
+    rename_parser.add_argument("new_name", help="New name (without the haybale- prefix)")
+    rename_parser.add_argument(
+        "--apply",
+        action="store_true",
+        help="Perform the rename. Without this flag, only a dry-run preview is printed.",
+    )
+
     args = parser.parse_args()
 
     if args.command == "init":
@@ -410,6 +421,19 @@ def main():
                 print(f"✓ Share this URL:\n  {result.share_url}")
             elif result.warning is not None:
                 print(f"⚠ {result.warning}")
+    elif args.command == "rename":
+        from pathlib import Path
+
+        from haywire_studio.rename import run_rename_cli
+
+        raise SystemExit(
+            run_rename_cli(
+                old_library=args.old_library,
+                new_name=args.new_name,
+                workspace_root=Path.cwd(),
+                apply=args.apply,
+            )
+        )
     else:
         run_app()
 

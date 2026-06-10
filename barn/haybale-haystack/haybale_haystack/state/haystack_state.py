@@ -460,9 +460,9 @@ class HaystackState(AppState):
         """Scan ``<workspace>/graphs/`` recursively for .haywire files."""
         if self._workspace_root is None:
             return []
-        graphs_dir = self._workspace_root / "graphs"
-        if not graphs_dir.is_dir():
-            return []
+        from haywire.core.workspace import default_save_dir
+
+        graphs_dir = default_save_dir(self._workspace_root)
         return sorted(p for p in graphs_dir.rglob("*.haywire") if p.is_file())
 
     def rename_haystack(self, old_name: str, new_name: str) -> bool:
@@ -470,7 +470,14 @@ class HaystackState(AppState):
 
         if self._workspace_root is None:
             return False
-        return _rename(self._workspace_root, old_name, new_name)
+        if not _rename(self._workspace_root, old_name, new_name):
+            return False
+        # Keep in-memory pointer in lockstep and broadcast so peer sessions
+        # see the rename. rename was the lone mutator missing this.
+        if self._haystack_settings is not None and self._haystack_settings.last_haystack_name == old_name:
+            self._haystack_settings.last_haystack_name = new_name
+        self._broadcast_data_mutated()
+        return True
 
     def delete_haystack(self, name: str) -> bool:
         from haybale_haystack.persistence import delete_haystack as _delete
@@ -482,6 +489,11 @@ class HaystackState(AppState):
     # ------------------------------------------------------------------
     # Internal helpers
     # ------------------------------------------------------------------
+
+    @property
+    def is_haystack_dirty(self) -> bool:
+        """Whether the haystack-set diverges from its saved TOML."""
+        return self._haystack_dirty
 
     def _mark_haystack_dirty(self) -> None:
         """Mark the haystack-set as diverged from the saved TOML.

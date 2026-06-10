@@ -123,7 +123,7 @@ class HaystackEditor(BaseEditor):
     def _render_header(self, context: "SessionContext") -> None:
         title = self._get_active_haystack_name(context) or "Haystacks"
         hs = context.app_data[HaystackState]
-        is_dirty = hs._haystack_dirty
+        is_dirty = hs.is_haystack_dirty
         # The dirty dot (when is_dirty=True) is rendered by panel_header
         # itself between the icon and the title — we only add the save
         # icon and the overflow menu on the action side here.
@@ -484,10 +484,10 @@ class HaystackEditor(BaseEditor):
     # ------------------------------------------------------------------
 
     def _default_save_dir(self, app) -> Path:
-        """Return workspace_root/graphs/ if it exists, else workspace_root/."""
+        from haywire.core.workspace import default_save_dir
+
         root = Path(getattr(app, "workspace_root", str(Path.home())))
-        graphs_dir = root / "graphs"
-        return graphs_dir if graphs_dir.is_dir() else root
+        return default_save_dir(root)
 
     def _open_save_as_dialog(
         self,
@@ -831,20 +831,10 @@ class HaystackEditor(BaseEditor):
 
         def _do_rename(new_name: str) -> None:
             if new_name == old_name:
-                return  # no-op
-            success = hs.rename_haystack(old_name, new_name)
-            if not success:
+                return
+            if not hs.rename_haystack(old_name, new_name):
                 ui.notify("Rename failed", type="negative", position="top-right")
                 return
-            # Keep last_haystack_name in lockstep with the rename — without
-            # this, the next on_enable would try to rehydrate from the OLD
-            # name (whose TOML was just renamed) and warn-and-skip.
-            if hs._haystack_settings is not None and hs._haystack_settings.last_haystack_name == old_name:
-                hs._haystack_settings.last_haystack_name = new_name
-            # hs.rename_haystack only renames the TOML file — it does NOT
-            # broadcast. Trigger a redraw so the header picks up the new
-            # active-haystack name.
-            self._notify_data_mutated(context)
             ui.notify(f"Haystack renamed to '{new_name}'", type="positive")
 
         rename_modal(

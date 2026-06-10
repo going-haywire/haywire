@@ -16,7 +16,6 @@ ComponentDetailEditor can react.
 import asyncio
 import dataclasses
 import logging
-import re
 import toml
 from functools import partial
 from pathlib import Path
@@ -208,6 +207,33 @@ class LibraryOverviewEditor(BaseEditor):
                 hui.empty_state("Select a library to view details", icon=hui.icon.library)
 
     # ─────────────────────────────────────────────────────────────────────────
+    # Shared UI helpers
+    # ─────────────────────────────────────────────────────────────────────────
+
+    def _action_button(
+        self,
+        label: str,
+        icon: str,
+        *,
+        block_reason: "str | None",
+        on_click,
+        color: str,
+        flat: bool = True,
+    ) -> None:
+        """Render a button that is locked with an info modal when block_reason is set."""
+        props = f"size=sm color={color}{' flat' if flat else ''}"
+        if block_reason:
+            ui.button(
+                label,
+                icon=hui.icon.locked,
+                on_click=lambda m=block_reason: info_modal(
+                    title="Action unavailable", icon="lock", message=m
+                ),
+            ).props(props)
+        else:
+            ui.button(label, icon=icon, on_click=on_click).props(props)
+
+    # ─────────────────────────────────────────────────────────────────────────
     # Center panel — unified renderer
     # ─────────────────────────────────────────────────────────────────────────
 
@@ -359,51 +385,38 @@ class LibraryOverviewEditor(BaseEditor):
 
                             # Enable / Disable toggle
                             if installed_lib.enabled:
-                                if _block_disable:
-                                    _names = ", ".join(f'"{d.identity.label}"' for d in _block_disable)
-                                    _msg = f'"{_lib_label}" cannot be disabled — {_names} depend on it.'
-                                    _detail = "Disable all dependents first."
-                                    ui.button(
-                                        "Disable",
-                                        icon=hui.icon.locked,
-                                        on_click=lambda m=_msg, d=_detail: info_modal(
-                                            title="Cannot Disable Library",
-                                            icon="lock",
-                                            message=m,
-                                            detail=d,
-                                        ),
-                                    ).props("size=sm color=orange flat")
-                                else:
-                                    ui.button(
-                                        "Disable",
-                                        icon=hui.icon.pause,
-                                        on_click=lambda lid=_lib_id, ctx=context: (
-                                            self._disable_library(lid, manager, ctx)
-                                        ),
-                                    ).props("size=sm color=orange flat")
+                                _names = ", ".join(f'"{d.identity.label}"' for d in _block_disable)
+                                _disable_msg = (
+                                    f'"{_lib_label}" cannot be disabled — {_names} depend on it.'
+                                    " Disable all dependents first."
+                                    if _block_disable
+                                    else None
+                                )
+                                self._action_button(
+                                    "Disable",
+                                    hui.icon.pause,
+                                    block_reason=_disable_msg,
+                                    on_click=lambda lid=_lib_id, ctx=context: (
+                                        self._disable_library(lid, manager, ctx)
+                                    ),
+                                    color="orange",
+                                )
                             else:
-                                if _block_enable:
-                                    _names = ", ".join(f'"{d}"' for d in _block_enable)
-                                    _msg = (
-                                        f'"{_lib_label}" cannot be enabled — {_names} must be enabled first.'
-                                    )
-                                    ui.button(
-                                        "Enable",
-                                        icon=hui.icon.locked,
-                                        on_click=lambda m=_msg: info_modal(
-                                            title="Cannot Enable Library",
-                                            icon="lock",
-                                            message=m,
-                                        ),
-                                    ).props("size=sm color=green flat")
-                                else:
-                                    ui.button(
-                                        "Enable",
-                                        icon=hui.icon.resume,
-                                        on_click=lambda lid=_lib_id, ctx=context: (
-                                            self._enable_library(lid, manager, ctx)
-                                        ),
-                                    ).props("size=sm color=green flat")
+                                _names = ", ".join(f'"{d}"' for d in _block_enable)
+                                _enable_msg = (
+                                    f'"{_lib_label}" cannot be enabled — {_names} must be enabled first.'
+                                    if _block_enable
+                                    else None
+                                )
+                                self._action_button(
+                                    "Enable",
+                                    hui.icon.resume,
+                                    block_reason=_enable_msg,
+                                    on_click=lambda lid=_lib_id, ctx=context: (
+                                        self._enable_library(lid, manager, ctx)
+                                    ),
+                                    color="green",
+                                )
 
                             # Edit (project library) or Uninstall dropdown
                             if _is_project:
@@ -416,20 +429,21 @@ class LibraryOverviewEditor(BaseEditor):
                                     ctx=context: (self._build_edit_dialog(ilib, mp, m, ctx).open()),
                                 ).props("size=sm color=blue flat")
                             elif installed_lib.install_type.name in ("REGULAR", "EDITABLE"):
-                                if _block_uninstall:
-                                    _names = ", ".join(f'"{d.identity.label}"' for d in _block_uninstall)
-                                    _msg = f'"{_lib_label}" cannot be uninstalled — {_names} depend on it.'
-                                    _detail = "Uninstall all dependents first."
-                                    ui.button(
+                                _names = ", ".join(f'"{d.identity.label}"' for d in _block_uninstall)
+                                _uninstall_msg = (
+                                    f'"{_lib_label}" cannot be uninstalled — {_names} depend on it.'
+                                    " Uninstall all dependents first."
+                                    if _block_uninstall
+                                    else None
+                                )
+                                if _uninstall_msg:
+                                    self._action_button(
                                         "Uninstall",
-                                        icon=hui.icon.locked,
-                                        on_click=lambda m=_msg, d=_detail: info_modal(
-                                            title="Cannot Uninstall Library",
-                                            icon="lock",
-                                            message=m,
-                                            detail=d,
-                                        ),
-                                    ).props("size=sm color=negative flat")
+                                        hui.icon.delete,
+                                        block_reason=_uninstall_msg,
+                                        on_click=None,
+                                        color="negative",
+                                    )
                                 else:
                                     with ui.row().classes("gap-0 items-center"):
                                         if update_available and marketplace_pkg:
@@ -474,50 +488,31 @@ class LibraryOverviewEditor(BaseEditor):
                                                 )
                         elif not installed_lib and marketplace_pkg and manager:
                             # Not installed — Install button, blocked if deps missing OR OS doesn't match
-                            _installed_ids = {
-                                manager._norm(lib.distribution_name or lib.identity.id)
-                                for lib in manager.list_installed()
-                            }
-                            _missing_deps = [
-                                dep
-                                for dep in (marketplace_pkg.dependencies or [])
-                                if manager._norm(dep) not in _installed_ids
-                            ]
+                            _missing_deps = manager.get_missing_dependencies_for_package(
+                                marketplace_pkg, require_enabled=False
+                            )
                             _os_block_msg = should_block_install_for_os(marketplace_pkg)
 
+                            _install_block: str | None
                             if _missing_deps:
                                 _names = ", ".join(f'"{d}"' for d in _missing_deps)
-                                _msg = (
+                                _install_block = (
                                     f'"{marketplace_pkg.label or marketplace_pkg.name}"'
                                     f" cannot be installed — {_names} must be installed first."
                                 )
-                                ui.button(
-                                    "Install",
-                                    icon=hui.icon.locked,
-                                    on_click=lambda m=_msg: info_modal(
-                                        title="Cannot Install Library",
-                                        icon="lock",
-                                        message=m,
-                                    ),
-                                ).props("color=positive size=sm")
-                            elif _os_block_msg:
-                                ui.button(
-                                    "Install",
-                                    icon=hui.icon.locked,
-                                    on_click=lambda m=_os_block_msg: info_modal(
-                                        title="Not available on this OS",
-                                        icon="block",
-                                        message=m,
-                                    ),
-                                ).props("color=positive size=sm").tooltip(_os_block_msg)
                             else:
-                                ui.button(
-                                    "Install",
-                                    icon=hui.icon.download,
-                                    on_click=lambda e, pkg=marketplace_pkg, m=manager, ctx=context: (
-                                        self._install_with_safety_check(pkg, e.sender, m, ctx)
-                                    ),
-                                ).props("color=positive size=sm")
+                                _install_block = _os_block_msg
+
+                            self._action_button(
+                                "Install",
+                                hui.icon.download,
+                                block_reason=_install_block,
+                                on_click=lambda e, pkg=marketplace_pkg, m=manager, ctx=context: (
+                                    self._install_with_safety_check(pkg, e.sender, m, ctx)
+                                ),
+                                color="positive",
+                                flat=False,
+                            )
 
                 # ── Metadata ───────────────────────────────────────────────────
                 if description:
@@ -585,96 +580,23 @@ class LibraryOverviewEditor(BaseEditor):
             if installed_lib and tabs is not None:
                 with ui.tab_panels(tabs, value=t_overview).classes("w-full").style("height: 100%;"):
                     self._make_tab_panel(t_overview, self._render_overview, installed_lib)
-                    if t_nodes:
-                        self._make_tab_panel(
-                            t_nodes,
-                            self._render_component_tab,
-                            installed_lib,
-                            node_registry,
-                            _CFG_NODES,
-                            context,
-                        )
-                    if t_widgets:
-                        self._make_tab_panel(
-                            t_widgets,
-                            self._render_component_tab,
-                            installed_lib,
-                            widget_registry,
-                            _CFG_WIDGETS,
-                            context,
-                        )
-                    if t_types:
-                        self._make_tab_panel(
-                            t_types,
-                            self._render_component_tab,
-                            installed_lib,
-                            type_registry,
-                            _CFG_TYPES,
-                            context,
-                        )
-                    if t_adapters:
-                        self._make_tab_panel(
-                            t_adapters,
-                            self._render_component_tab,
-                            installed_lib,
-                            adapter_registry,
-                            _CFG_ADAPTERS,
-                            context,
-                        )
-                    if t_skins:
-                        self._make_tab_panel(
-                            t_skins,
-                            self._render_component_tab,
-                            installed_lib,
-                            skin_registry,
-                            _CFG_SKINS,
-                            context,
-                        )
-                    if t_settings:
-                        self._make_tab_panel(
-                            t_settings,
-                            self._render_component_tab,
-                            installed_lib,
-                            settings_registry,
-                            _CFG_SETTINGS,
-                            context,
-                        )
-                    if t_states:
-                        self._make_tab_panel(
-                            t_states,
-                            self._render_component_tab,
-                            installed_lib,
-                            state_registry,
-                            _CFG_STATES,
-                            context,
-                        )
-                    if t_themes:
-                        self._make_tab_panel(
-                            t_themes,
-                            self._render_component_tab,
-                            installed_lib,
-                            theme_registry,
-                            _CFG_THEMES,
-                            context,
-                        )
-                    if t_panels:
-                        self._make_tab_panel(
-                            t_panels,
-                            self._render_component_tab,
-                            installed_lib,
-                            panel_registry,
-                            _CFG_PANELS,
-                            context,
-                        )
-                    if t_editors:
-                        self._make_tab_panel(
-                            t_editors,
-                            self._render_component_tab,
-                            installed_lib,
-                            editor_registry,
-                            _CFG_EDITORS,
-                            context,
-                        )
+                    _tab_configs = [
+                        (t_nodes, node_registry, _CFG_NODES),
+                        (t_widgets, widget_registry, _CFG_WIDGETS),
+                        (t_types, type_registry, _CFG_TYPES),
+                        (t_adapters, adapter_registry, _CFG_ADAPTERS),
+                        (t_skins, skin_registry, _CFG_SKINS),
+                        (t_settings, settings_registry, _CFG_SETTINGS),
+                        (t_states, state_registry, _CFG_STATES),
+                        (t_themes, theme_registry, _CFG_THEMES),
+                        (t_panels, panel_registry, _CFG_PANELS),
+                        (t_editors, editor_registry, _CFG_EDITORS),
+                    ]
+                    for tab, registry, cfg in _tab_configs:
+                        if tab:
+                            self._make_tab_panel(
+                                tab, self._render_component_tab, installed_lib, registry, cfg, context
+                            )
 
             elif marketplace_pkg and not installed_lib:
                 # Marketplace-only: async-load OVERVIEW.md from source repo
@@ -686,7 +608,7 @@ class LibraryOverviewEditor(BaseEditor):
                             ui.label("Loading overview…").classes("text-sm hw-text-muted")
                         content_area = ui.column().classes("w-full")
                 asyncio.ensure_future(
-                    self._load_marketplace_overview(marketplace_pkg, loading_row, content_area)
+                    self._load_marketplace_overview(marketplace_pkg, loading_row, content_area, context)
                 )
 
     # ─────────────────────────────────────────────────────────────────────────
@@ -918,16 +840,12 @@ class LibraryOverviewEditor(BaseEditor):
     ) -> "ui.dialog":
         """Build the Edit dialog — all identity fields immediately editable.
 
-        The package name field is locked behind a padlock icon. Clicking the
-        padlock shows a warning dialog; if the user confirms, the name field
-        becomes editable and saving triggers a full rename. When only identity
-        fields are changed (name unchanged), a lightweight save is performed
-        without any directory rename or uv sync.
+        The package name is read-only. To rename a library use the CLI:
+        ``uv run haywire rename haybale-<name> <new-name>`` with studio stopped.
         """
         old_name_part = (
             lib.distribution_name.removeprefix("haybale-") if lib.distribution_name else lib.identity.id
         )
-        _state = {"unlocked": False}
 
         with ui.dialog() as edit_dialog, ui.card().style("width: 480px;").classes("gap-3"):
             ui.label("Edit Library").classes("text-lg font-bold")
@@ -993,27 +911,25 @@ class LibraryOverviewEditor(BaseEditor):
             hui.section_label("Package Name")
             with ui.row().classes("w-full items-center gap-2"):
                 ui.label("haybale-").classes("text-sm font-mono hw-text-muted flex-shrink-0")
-                name_input = ui.input(value=old_name_part).classes("flex-1").props("dense")
-                name_input.disable()
-                lock_btn = (
-                    ui.button(icon=hui.icon.locked)
-                    .props("flat round dense size=sm color=orange")
-                    .tooltip("Click to unlock — renaming breaks saved graph references")
-                )
-            preview_label = ui.label("").classes("text-xs hw-text-dim font-mono")
-
-            def _update_preview():
-                v = name_input.value.strip()
-                if _state["unlocked"] and v and v != old_name_part:
-                    mod = "haybale_" + re.sub(r"[^a-zA-Z0-9_]", "_", v.lower())
-                    preview_label.set_text(f"Package: haybale-{v}  ·  Module: {mod}")
-                else:
-                    preview_label.set_text("")
-
-            name_input.on("update:model-value", lambda _: _update_preview())
+                ui.input(value=old_name_part).classes("flex-1").props("dense readonly")
+                _cur = f"haybale-{old_name_part}"
+                ui.button(
+                    icon="info",
+                    on_click=lambda c=_cur: info_modal(
+                        title="Renaming a library",
+                        icon="info",
+                        message=(
+                            "Renaming happens from the command line, with studio stopped:\n\n"
+                            f"  1. Quit studio\n"
+                            f"  2. uv run haywire rename {c} <new-name>\n"
+                            "  3. Restart studio\n\n"
+                            "Why stopped: rename rewrites installed packages and runs "
+                            "`uv sync`, which isn't safe while studio is running."
+                        ),
+                    ),
+                ).props("flat round dense size=sm").tooltip("How to rename")
 
             async def _save():
-                new_name = name_input.value.strip()
                 identity = {
                     "label": label_input.value.strip(),
                     "version": version_input.value.strip().lstrip("vV"),
@@ -1028,62 +944,12 @@ class LibraryOverviewEditor(BaseEditor):
                 if os_select is not None:
                     identity["os"] = list(os_select.value or [])
                 edit_dialog.close()
-                if _state["unlocked"] and new_name and new_name != old_name_part:
-                    await self._do_rename(lib, new_name, identity, marketplace_path, manager, context)
-                else:
-                    await self._do_update_identity(lib, identity, marketplace_path, manager, context)
+                await self._do_update_identity(lib, identity, marketplace_path, manager, context)
 
             with ui.row().classes("w-full justify-end gap-2 mt-2"):
                 ui.button("Cancel", on_click=edit_dialog.close).props("flat size=sm")
                 ui.button("Save Changes", on_click=_save).props("color=positive size=sm")
 
-        # ── Warning dialog ────────────────────────────────────────────────────
-        with ui.dialog() as warn_dialog, ui.card().classes("max-w-md gap-3"):
-            with ui.row().classes("items-center gap-2"):
-                ui.icon("warning", size="24px").classes("hw-text-warning")
-                ui.label("Rename changes registry keys").classes("text-lg font-bold")
-            ui.separator()
-            ui.label(
-                "Every node and widget from this library is identified in saved graphs "
-                "by its registry key, which includes the library name "
-                f'(e.g. "{lib.identity.id}:node:…"). '
-                "After renaming, graphs that reference this library from other projects "
-                "will fail to load those nodes. If your nodes are using absolute "
-                "from ... import ... statements referencing this library, "
-                "those will also need to be updated."
-            ).classes("text-sm hw-text-muted")
-            ui.label(
-                "Only proceed if you have a backup of this project and this project's "
-                "graphs/ folder is the only place these nodes are used — or if you "
-                "really know what you're doing. Alternatively be prepared to enter a "
-                "world of pain."
-            ).classes("text-sm hw-text-dim italic")
-
-            def _unlock_name():
-                warn_dialog.close()
-                _state["unlocked"] = True
-                name_input.enable()
-                lock_btn.props("icon=lock_open color=blue-grey")
-
-            with ui.row().classes("w-full justify-end gap-2 mt-1"):
-                ui.button("Cancel", on_click=warn_dialog.close).props("flat size=sm")
-                ui.button(
-                    "Unlock Name Field",
-                    icon=hui.icon.unlocked,
-                    on_click=_unlock_name,
-                ).props("color=warning size=sm")
-
-        def _lock_clicked():
-            if _state["unlocked"]:
-                _state["unlocked"] = False
-                name_input.value = old_name_part
-                name_input.disable()
-                lock_btn.props("icon=lock color=orange")
-                preview_label.set_text("")
-            else:
-                warn_dialog.open()
-
-        lock_btn.on("click", lambda: _lock_clicked())
         return edit_dialog
 
     def _detect_dependencies(
@@ -1287,127 +1153,6 @@ class LibraryOverviewEditor(BaseEditor):
         self._container.clear()
         self._rebuild(context)
 
-    async def _do_rename(
-        self,
-        lib: LibraryInfo,
-        new_name: str,
-        new_identity: dict | None,
-        marketplace_path: str | None,
-        manager,
-        context: "SessionContext",
-    ):
-        """Perform rename with streaming log output."""
-        if not marketplace_path:
-            ui.notify("No project workspace set.", type="negative")
-            return
-        old_library_id = lib.identity.id
-        ui.notify(f"Renaming {lib.identity.label}…", type="info")
-        log = self._create_log_in_card(self._fixed, f"Renaming to haybale-{new_name}…")
-        workspace_root = str(Path(marketplace_path).parent.parent)
-
-        success, message = await manager.rename_project_library_streaming(
-            library_id=lib.identity.id,
-            new_name=new_name,
-            workspace_root=workspace_root,
-            on_output=log.push,
-            new_identity=new_identity,
-        )
-
-        if success:
-            log.push(f"--- Renamed to haybale-{new_name} ---")
-            ui.notify(f"Renamed to haybale-{new_name}", type="positive")
-        else:
-            log.push(f"--- ERROR: {message} ---")
-            ui.notify(message, type="negative")
-
-        # Build the patch dialog BEFORE clearing (slot context must be clean)
-        patch_dialog = (
-            self._build_graph_patch_dialog(old_library_id, new_name, workspace_root) if success else None
-        )
-
-        context.active_library = None
-        # _do_rename is wired from a button drawn during draw(), so
-        # _container has been set by then.
-        assert self._container is not None
-        self._container.clear()
-        self._rebuild(context)
-
-        if patch_dialog is not None:
-            patch_dialog.open()
-
-    # ─────────────────────────────────────────────────────────────────────────
-    # Graph file patching (post-rename)
-    # ─────────────────────────────────────────────────────────────────────────
-
-    def _build_graph_patch_dialog(
-        self, old_library_id: str, new_library_id: str, workspace_root: str
-    ) -> "ui.dialog | None":
-        """Build (but don't open) a dialog offering to patch graph files."""
-        graphs_dir = Path(workspace_root) / "graphs"
-        if not graphs_dir.exists():
-            return None
-
-        old_prefix = old_library_id + ":"
-        matching = [f for f in sorted(graphs_dir.glob("**/*.json")) if old_prefix in f.read_text()]
-        if not matching:
-            return None
-
-        with ui.dialog() as dialog, ui.card().classes("max-w-lg gap-3"):
-            with ui.row().classes("items-center gap-2"):
-                ui.icon("find_replace", size="22px").classes("hw-text-accent")
-                ui.label("Update graph files?").classes("text-lg font-bold")
-            ui.separator()
-            ui.label(
-                f"Found {len(matching)} graph file(s) in graphs/ that reference "
-                f'"{old_library_id}:…" registry keys. '
-                f'Replace them with "{new_library_id}:…"?'
-            ).classes("text-sm hw-text-muted")
-            with ui.column().classes("gap-0 max-h-28 overflow-y-auto"):
-                for f in matching[:6]:
-                    ui.label(f.name).classes("text-xs font-mono hw-text-dim")
-                if len(matching) > 6:
-                    ui.label(f"… and {len(matching) - 6} more").classes("text-xs hw-text-dim italic")
-
-            async def _patch_and_close():
-                dialog.close()
-                count, errors = await asyncio.to_thread(
-                    self._patch_graph_files, graphs_dir, old_library_id, new_library_id
-                )
-                if errors:
-                    ui.notify(
-                        f"Patched {count} file(s); {len(errors)} error(s)",
-                        type="warning",
-                    )
-                else:
-                    ui.notify(f"Updated {count} graph file(s)", type="positive")
-
-            with ui.row().classes("w-full justify-end gap-2 mt-1"):
-                ui.button("Skip", on_click=dialog.close).props("flat size=sm")
-                ui.button(
-                    "Update files",
-                    icon=hui.icon.find_replace,
-                    on_click=_patch_and_close,
-                ).props("color=positive size=sm")
-
-        return dialog
-
-    @staticmethod
-    def _patch_graph_files(graphs_dir: Path, old_id: str, new_id: str) -> tuple[int, list[str]]:
-        """Replace all occurrences of old_id: with new_id: in .json graph files."""
-        old_prefix = old_id + ":"
-        new_prefix = new_id + ":"
-        count = 0
-        errors: list[str] = []
-        for f in graphs_dir.glob("**/*.json"):
-            try:
-                text = f.read_text()
-                if old_prefix in text:
-                    f.write_text(text.replace(old_prefix, new_prefix))
-                    count += 1
-            except OSError as e:
-                errors.append(f"{f.name}: {e}")
-        return count, errors
-
     # ─────────────────────────────────────────────────────────────────────────
     # Install
     # ─────────────────────────────────────────────────────────────────────────
@@ -1514,34 +1259,30 @@ class LibraryOverviewEditor(BaseEditor):
 
         # Step 2: if collateral upgrades exist, confirm with the user
         if removals:
-            confirmed = {"value": False}
+            loop = asyncio.get_event_loop()
+            decision: asyncio.Future[bool] = loop.create_future()
 
             def _on_continue() -> None:
-                confirmed["value"] = True
+                if not decision.done():
+                    decision.set_result(True)
+
+            def _on_cancel() -> None:
+                if not decision.done():
+                    decision.set_result(False)
 
             upgrade_impact_modal(
                 installing=name,
                 also_upgrading=removals,
                 on_continue=_on_continue,
+                on_cancel=_on_cancel,
             )
 
-            # Wait for the user's decision (poll via asyncio.sleep — the modal
-            # callbacks run on the NiceGUI event loop in the same task context).
-            for _ in range(600):  # 60 s timeout
-                if confirmed["value"]:
-                    break
-                await asyncio.sleep(0.1)
-            else:
-                # Timed out or cancelled — abort silently
-                if button:
-                    try:
-                        button.enable()
-                        button.props(remove="loading")
-                    except Exception:
-                        pass
-                return
+            try:
+                proceed = await decision
+            finally:
+                pass
 
-            if not confirmed["value"]:
+            if not proceed:
                 if button:
                     try:
                         button.enable()
@@ -1551,22 +1292,30 @@ class LibraryOverviewEditor(BaseEditor):
                 return
 
         # Step 3: open progress popup and run the install
-        progress = library_operation_progress_modal(title=f"Installing {name}…")
+        try:
+            progress = library_operation_progress_modal(title=f"Installing {name}…")
 
-        success, message, hints = await manager.install(install_spec, progress.push, source_pkg)
+            success, message, hints = await manager.install(install_spec, progress.push, source_pkg)
 
-        if success:
-            progress.push(f"--- {name} installed successfully ---")
-            progress.finish(hints=hints)
-            ui.notify(f"Installed: {name}", type="positive")
-            installed = self._find_installed_by_dist_name(name, manager)
-            if installed:
-                context.active_library = installed
-            self._notify_library_changed(context)
-        else:
-            progress.push(f"--- ERROR: {message} ---")
-            progress.finish(error=message, hints=hints)
-            ui.notify(message, type="negative")
+            if success:
+                progress.push(f"--- {name} installed successfully ---")
+                progress.finish(hints=hints)
+                ui.notify(f"Installed: {name}", type="positive")
+                installed = self._find_installed_by_dist_name(name, manager)
+                if installed:
+                    context.active_library = installed
+                self._notify_library_changed(context)
+            else:
+                progress.push(f"--- ERROR: {message} ---")
+                progress.finish(error=message, hints=hints)
+                ui.notify(message, type="negative")
+        finally:
+            if button:
+                try:
+                    button.enable()
+                    button.props(remove="loading")
+                except Exception:
+                    pass
 
     def _open_version_picker(self, pkg: Haybale, manager, context: "SessionContext"):
         """Dialog to fetch and select a specific version for installation."""
@@ -1617,114 +1366,18 @@ class LibraryOverviewEditor(BaseEditor):
     # Marketplace overview fetch (async)
     # ─────────────────────────────────────────────────────────────────────────
 
-    async def _fetch_marketplace_overview(self, pkg: Haybale) -> "str | None":
-        """
-        Fetch OVERVIEW.md (or README fallback) for a marketplace-only package.
-
-        Priority:
-        1. ``docs_url`` field — explicit raw URL to OVERVIEW.md or to the
-           directory that contains it (e.g. a GitHub raw content URL).
-           If the URL ends with a filename it is fetched directly; otherwise
-           OVERVIEW.md and QUICKREF.md are appended and tried in order.
-        2. Heuristic GitHub lookup — derived from ``source_url`` or
-           ``install_spec``, for both pypi and git sources. The module name
-           is inferred from the package name (``-`` → ``_``) and the optional
-           ``#subdirectory=`` fragment of ``install_spec`` is respected.
-        3. PyPI long_description fallback — only when no GitHub URL is found
-           and ``source == 'pypi'``.
-        """
-        import json
-        import urllib.request
-
-        def _try_urls(urls: list) -> "str | None":
-            for url in urls:
-                try:
-                    with urllib.request.urlopen(url, timeout=6) as resp:
-                        return resp.read().decode("utf-8", errors="replace")
-                except Exception:
-                    continue
-            return None
-
-        # ── 1. Explicit docs_url ──────────────────────────────────────────────
-        if pkg.docs_url:
-            p = Path(pkg.docs_url)
-            if p.is_dir():
-                for candidate in (p / "OVERVIEW.md", p / "QUICKREF.md"):
-                    if candidate.exists():
-                        return candidate.read_text()
-            elif p.is_file():
-                return p.read_text()
-            elif pkg.docs_url.startswith("http"):
-                url = pkg.docs_url.rstrip("/")
-                if url.endswith(".md"):
-                    candidates = [url]
-                else:
-                    candidates = [f"{url}/OVERVIEW.md", f"{url}/QUICKREF.md"]
-                content = await asyncio.to_thread(_try_urls, candidates)
-                if content:
-                    return content
-
-        # ── 2. Heuristic: derive raw GitHub URL ──────────────────────────────
-        module_name = pkg.name.replace("-", "_")
-
-        subdir = ""
-        if pkg.install_spec and "#subdirectory=" in pkg.install_spec:
-            subdir = pkg.install_spec.split("#subdirectory=")[-1].strip("/")
-
-        def _github_raw_base(url: str) -> "str | None":
-            url = url.rstrip("/").removesuffix(".git")
-            if "github.com" not in url:
-                return None
-            return url.replace("https://github.com/", "https://raw.githubusercontent.com/")
-
-        raw_base = None
-        if pkg.source_url and "github.com" in pkg.source_url:
-            raw_base = _github_raw_base(pkg.source_url)
-        elif pkg.source == "git" and pkg.install_spec:
-            git_url = pkg.install_spec.removeprefix("git+").split("@")[0].split("#")[0].rstrip("/")
-            raw_base = _github_raw_base(git_url)
-
-        if raw_base:
-            candidates = []
-            for branch in ("main", "master"):
-                prefix = f"{raw_base}/{branch}"
-                pkg_prefix = f"{prefix}/{subdir}/{module_name}" if subdir else f"{prefix}/{module_name}"
-                candidates.append(f"{pkg_prefix}/OVERVIEW.md")
-                candidates.append(f"{pkg_prefix}/QUICKREF.md")
-            for branch in ("main", "master"):
-                prefix = f"{raw_base}/{branch}"
-                if subdir:
-                    candidates.append(f"{prefix}/{subdir}/OVERVIEW.md")
-                candidates.append(f"{prefix}/OVERVIEW.md")
-
-            content = await asyncio.to_thread(_try_urls, candidates)
-            if content:
-                return content
-
-        # ── 3. PyPI long_description fallback ────────────────────────────────
-        if pkg.source == "pypi":
-
-            def _pypi_desc():
-                try:
-                    url = f"https://pypi.org/pypi/{pkg.name}/json"
-                    with urllib.request.urlopen(url, timeout=8) as resp:
-                        data = json.loads(resp.read())
-                    return data.get("info", {}).get("description") or None
-                except Exception:
-                    return None
-
-            return await asyncio.to_thread(_pypi_desc)
-
-        return None
-
     async def _load_marketplace_overview(
         self,
         pkg: Haybale,
         loading_row,
         content_area,
+        context: "SessionContext",
     ):
         """Fetch overview content async and populate the content_area."""
-        content = await self._fetch_marketplace_overview(pkg)
+        from haybale_marketplace.state.marketplace_state import MarketplaceState
+
+        marketplace_state = context.app_data.get(MarketplaceState) if context.app_data else None
+        content = await marketplace_state.fetch_overview(pkg) if marketplace_state else None
         loading_row.set_visibility(False)
         with content_area:
             if content:

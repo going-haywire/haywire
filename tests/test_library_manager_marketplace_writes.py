@@ -28,14 +28,10 @@ def test_update_library_identity_writes_heap_entry() -> None:
     )
     content = src.read_text()
 
-    # The two project-marketplace.toml writes must reference "heaps", not "packages".
-    # (Line 311's data["tool"]["hatch"]["build"]["targets"]["wheel"]["packages"] is
+    # The project-marketplace.toml write in update_library_identity must reference
+    # "heaps", not "packages".
+    # (data["tool"]["hatch"]["build"]["targets"]["wheel"]["packages"] is
     # hatch's wheel-packages config, unrelated to our marketplace section.)
-    rename_marker = "# --- 9. Update marketplace.toml ---"
-    rename_block = content[content.index(rename_marker) : content.index(rename_marker) + 1000]
-    assert 'data.get("heaps"' in rename_block
-    assert 'data.get("packages"' not in rename_block
-
     update_identity_marker = "# Update matching entry in marketplace.toml"
     update_identity_block = content[
         content.index(update_identity_marker) : content.index(update_identity_marker) + 800

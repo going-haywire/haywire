@@ -263,13 +263,7 @@ class CodeEditor(BaseEditor):
 
     def _update_save_state(self) -> None:
         is_dirty = self._content != self._original
-        self.wrapper.set_dirty(is_dirty)
-        slot = getattr(self.wrapper, "_slot", None)
-        if slot is not None and hasattr(slot, "_refresh_bar"):
-            try:
-                slot._refresh_bar()
-            except Exception:
-                pass
+        self.wrapper.set_dirty(is_dirty, refresh=True)
 
     # ------------------------------------------------------------------
     # save / save-as

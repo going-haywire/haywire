@@ -8,7 +8,6 @@ library registry operations into a single service API.
 import asyncio
 import importlib
 import importlib.metadata
-import os
 import re
 import subprocess
 import sys
@@ -481,198 +480,6 @@ class LibraryManager:
         except (OSError, KeyError) as e:
             on_output(f"Warning: failed to update pyproject.toml — {e}")
 
-    async def rename_project_library_streaming(
-        self,
-        library_id: str,
-        new_name: str,
-        workspace_root: str,
-        on_output: Callable[[str], None],
-        new_identity: dict[str, Any] | None = None,
-    ) -> tuple[bool, str]:
-        """Rename the project's local library to a new name.
-
-        Updates all affected files (lib pyproject.toml, __init__.py, project
-        pyproject.toml, marketplace.toml), renames directories, and runs
-        `uv sync` to register the new entry point.
-        """
-        workspace = Path(workspace_root)
-        marketplace_path = workspace / ".haywire" / "marketplace.toml"
-
-        # --- 1. Validate new_name ---
-        new_name = new_name.strip()
-        if not new_name:
-            return False, "New name cannot be empty."
-        if "/" in new_name or "\\" in new_name or ".." in new_name:
-            return False, "New name must not contain path separators."
-        sanitized = _sanitize_name(new_name)
-        if not sanitized:
-            return False, f'"{new_name}" produces an empty module name.'
-
-        new_lib_name = f"haybale-{new_name}"
-        new_module = f"haybale_{sanitized}"
-
-        dist_name = self.registry.get_library_distribution_name(library_id) or ""
-        if new_lib_name.lower() == dist_name.lower():
-            return False, "New name is the same as the current name."
-
-        installed = self.list_installed()
-        if any(lib.distribution_name.lower() == new_lib_name.lower() for lib in installed):
-            return False, f'"{new_lib_name}" is already installed.'
-
-        from haywire.core.marketstall import parse_project_marketplace
-
-        marketplace_pm = parse_project_marketplace(marketplace_path) if marketplace_path.exists() else None
-        marketplace_entries = marketplace_pm.caches if marketplace_pm else []
-        if any(
-            pkg.name.lower() == new_lib_name.lower() and pkg.name.lower() != dist_name.lower()
-            for pkg in marketplace_entries
-        ):
-            return False, f'"{new_lib_name}" already exists in the marketplace.'
-
-        new_lib_dir = workspace / "barn" / new_lib_name
-        if new_lib_dir.exists():
-            return False, f'Directory "{new_lib_dir}" already exists.'
-
-        # --- 2. Derive old paths ---
-        old_name_part = (
-            dist_name.removeprefix("haybale-") if dist_name.startswith("haybale-") else library_id
-        )
-        old_module = f"haybale_{_sanitize_name(old_name_part)}"
-        old_lib_dir = workspace / "barn" / dist_name
-        old_pkg_dir = old_lib_dir / old_module
-        new_pkg_dir_tmp = old_lib_dir / new_module  # inside old lib dir before lib rename
-        new_label = new_name.replace("-", " ").replace("_", " ").title()
-
-        # Resolve all identity values (new_identity overrides auto-generated defaults)
-        _id = new_identity or {}
-        label_val = _id.get("label") or new_label
-        version_val = _id.get("version") or "0.1.0"
-        desc_val = _id.get("description") or f"Local library for {new_name} project"
-        url_val = _id.get("url", "")
-        author_val = _id.get("author", "")
-        author_url_val = _id.get("author_url", "")
-        tags_list: list[str] = _id.get("tags") or []
-        deps_list: list[str] = _id.get("dependencies") or []
-
-        # --- 3. Disable old library ---
-        on_output(f"Disabling {library_id}...")
-        self.registry.disable_library(library_id)
-
-        # --- 4. Rename module directory ---
-        on_output(f"Renaming module directory:  {old_module}  →  {new_module}")
-        try:
-            os.rename(old_pkg_dir, new_pkg_dir_tmp)
-        except OSError as e:
-            return False, f"Failed to rename module directory: {e}"
-
-        # --- 5. Update __init__.py ---
-        on_output("Updating __init__.py...")
-        try:
-            init_file = new_pkg_dir_tmp / "__init__.py"
-            content = init_file.read_text()
-            content = re.sub(r"(    id=')[^']*(')", rf"\g<1>{new_name}\2", content)
-            content = re.sub(r"(    label=')[^']*(')", rf"\g<1>{label_val}\2", content)
-            content = re.sub(r"(    version=')[^']*(')", rf"\g<1>{version_val}\2", content)
-            content = re.sub(r"(    description=')[^']*(')", rf"\g<1>{desc_val}\2", content)
-            content = re.sub(r"(    url=')[^']*(')", rf"\g<1>{url_val}\2", content)
-            content = re.sub(r"(    author=')[^']*(')", rf"\g<1>{author_val}\2", content)
-            content = re.sub(r"(    author_url=')[^']*(')", rf"\g<1>{author_url_val}\2", content)
-            content = _set_decorator_list_field(content, "tags", tags_list)
-            content = _set_decorator_list_field(content, "dependencies", deps_list)
-            content = re.sub(
-                r"(Local haybale library for the )[^\n]*(\.)",
-                rf"\g<1>{new_name} project\2",
-                content,
-            )
-            init_file.write_text(content)
-        except OSError as e:
-            return False, f"Failed to update __init__.py: {e}"
-
-        # --- 6. Update lib's pyproject.toml ---
-        on_output("Updating lib pyproject.toml...")
-        try:
-            lib_pyproject = old_lib_dir / "pyproject.toml"
-            data = toml.loads(lib_pyproject.read_text())
-            data["project"]["name"] = new_lib_name
-            data["project"]["description"] = desc_val
-            ep = data.get("project", {}).get("entry-points", {}).get("haywire.libraries", {})
-            old_ep_key = next(iter(ep), None)
-            if old_ep_key:
-                del ep[old_ep_key]
-            ep[new_name] = f"{new_module}:Library"
-            data["tool"]["hatch"]["build"]["targets"]["wheel"]["packages"] = [new_module]
-            lib_pyproject.write_text(toml.dumps(data))
-        except (OSError, KeyError) as e:
-            return False, f"Failed to update lib pyproject.toml: {e}"
-
-        # --- 7. Rename library directory ---
-        on_output(f"Renaming library directory:  {dist_name}  →  {new_lib_name}")
-        try:
-            os.rename(old_lib_dir, new_lib_dir)
-        except OSError as e:
-            return False, f"Failed to rename library directory: {e}"
-
-        # --- 8. Update project pyproject.toml ---
-        on_output("Updating project pyproject.toml...")
-        try:
-            project_pyproject = workspace / "pyproject.toml"
-            data = toml.loads(project_pyproject.read_text())
-            deps = data.get("project", {}).get("dependencies", [])
-            data["project"]["dependencies"] = [
-                new_lib_name if d.lower() == dist_name.lower() else d for d in deps
-            ]
-            sources = data.get("tool", {}).get("uv", {}).get("sources", {})
-            old_key = next((k for k in sources if k.lower() == dist_name.lower()), None)
-            if old_key:
-                del sources[old_key]
-            sources[new_lib_name] = {"workspace": True}
-            project_pyproject.write_text(toml.dumps(data))
-        except (OSError, KeyError) as e:
-            return False, f"Failed to update project pyproject.toml: {e}"
-
-        # --- 9. Update marketplace.toml ---
-        on_output("Updating marketplace.toml...")
-        try:
-            if marketplace_path.exists():
-                data = toml.loads(marketplace_path.read_text())
-                for heap in data.get("heaps", []):
-                    if heap.get("name", "").lower() == dist_name.lower():
-                        heap["name"] = new_lib_name
-                        heap["path"] = str(new_lib_dir)
-                        heap["label"] = label_val
-                        heap["description"] = desc_val
-                        break
-                marketplace_path.write_text(toml.dumps(data))
-        except (OSError, KeyError) as e:
-            return False, f"Failed to update marketplace.toml: {e}"
-
-        # --- 10. Run uv sync ---
-        on_output("Running uv sync...")
-        proc = await asyncio.create_subprocess_exec(
-            "uv",
-            "sync",
-            cwd=workspace_root,
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.STDOUT,
-        )
-        assert proc.stdout is not None
-        async for line in proc.stdout:
-            on_output(line.decode().rstrip())
-        await proc.wait()
-        if proc.returncode != 0:
-            return (
-                False,
-                f'uv sync failed — filesystem already renamed, run "uv sync" manually in {workspace_root}',
-            )
-
-        # --- 11. Rescan and re-enable ---
-        on_output("Rescanning libraries...")
-        self._invalidate_caches()
-        await asyncio.to_thread(self.registry.scan_for_libraries)
-        self.registry.enable_all_libraries()
-
-        return True, f"Renamed to haybale-{new_name}"
-
     def list_installed(self) -> list[LibraryInfo]:
         """List all discovered libraries with their status."""
         libraries = []
@@ -712,56 +519,63 @@ class LibraryManager:
     def _norm(name: str) -> str:
         return re.sub(r"[-_.]+", "_", name).lower()
 
-    def _lib_norm_aliases(self, lib_id: str) -> set[str]:
-        """Return the set of normalized names that identify lib_id in @library deps.
+    def _lib_module_norm(self, lib_id: str) -> str:
+        """Normalized TOP-LEVEL module name — the canonical dependency key.
 
-        @library(dependencies=[...]) uses pip distribution names (e.g.
-        ``"haybale_graph_editor"``), while the registry key is just the short id
-        (e.g. ``"graph_editor"``).  Both normalized forms must be checked.
+        @library(dependencies=[...]) entries are top-level package names equal
+        to the dependency's module_name top package. NOT distribution_name
+        (empty for folder installs) and NOT the short id.
         """
-        aliases = {self._norm(lib_id)}
-        dist = self.registry.get_library_distribution_name(lib_id)
-        if dist:
-            aliases.add(self._norm(dist))
-        return aliases
+        identity = self.registry.get_library_identity(lib_id)
+        top = (identity.module_name or lib_id).split(".")[0]
+        return self._norm(top)
 
     def get_installed_dependents(self, lib_id: str) -> list[LibraryInfo]:
-        """Return all installed libraries whose @library dependencies include lib_id.
-
-        Checks all installed libraries regardless of enabled state — a disabled
-        dependent still has a declared dependency that would break on re-enable.
-        """
-        targets = self._lib_norm_aliases(lib_id)
+        """Return all installed libraries whose @library dependencies include lib_id."""
+        target_norm = self._lib_module_norm(lib_id)
         result = []
         for installed in self.list_installed():
             identity = self.registry.get_library_identity(installed.identity.id)
             for dep in identity.dependencies or []:
-                if self._norm(dep) in targets:
+                if self._norm(dep.split(".")[0]) == target_norm:
                     result.append(installed)
                     break
         return result
 
+    def get_missing_dependencies_for_package(self, pkg: "Haybale", *, require_enabled: bool) -> list[str]:
+        """Unmet deps for a NOT-yet-installed marketplace package (install gating).
+
+        Matches each declared dep (top-package-normalized) against installed
+        libraries' module_name. require_enabled=False => installed-at-all counts.
+        """
+        installed: set[str] = set()
+        enabled: set[str] = set()
+        for lid in self.registry.list_names():
+            norm = self._lib_module_norm(lid)
+            installed.add(norm)
+            if self.registry.is_library_enabled(lid):
+                enabled.add(norm)
+        check = enabled if require_enabled else installed
+        return [d for d in (pkg.dependencies or []) if self._norm(d.split(".")[0]) not in check]
+
     def get_missing_dependencies(self, lib_id: str, require_enabled: bool) -> list[str]:
         """Return dependency names from @library that are not satisfied.
 
-        Args:
-            lib_id: The library whose dependencies to check.
-            require_enabled: If True, a dep must be installed AND enabled.
-                             If False, only installed (in registry) is required.
-
-        Returns a list of unsatisfied dependency names (as declared in @library).
+        Matches each dep's top-level module name against installed libraries'
+        module_name (top package normalized).
         """
         identity = self.registry.get_library_identity(lib_id)
-        # Build lookup sets using all normalized aliases for each installed lib
-        # so that deps declared as "haybale_foo" match the registry id "foo".
         installed_norms: set[str] = set()
         enabled_norms: set[str] = set()
         for lid in self.registry.list_names():
-            installed_norms.update(self._lib_norm_aliases(lid))
+            norm = self._lib_module_norm(lid)
+            installed_norms.add(norm)
             if self.registry.is_library_enabled(lid):
-                enabled_norms.update(self._lib_norm_aliases(lid))
+                enabled_norms.add(norm)
         check_set = enabled_norms if require_enabled else installed_norms
-        return [dep for dep in (identity.dependencies or []) if self._norm(dep) not in check_set]
+        return [
+            dep for dep in (identity.dependencies or []) if self._norm(dep.split(".")[0]) not in check_set
+        ]
 
     async def fetch_versions(self, pkg: "Haybale") -> list[str]:
         """Fetch available versions for a marketplace package.

@@ -82,11 +82,6 @@ class GraphEditor(BaseEditor):
         self._graph_name_label = None  # ui.label in the header
         self._undo_button = None  # ui.button — undo
         self._redo_button = None  # ui.button — redo
-        self._save_as_dialog = None  # ui.dialog — Save As
-        self._save_base_dir: Optional[Path] = None  # fixed prefix (workspace root)
-        self._save_base_dir_label = None  # ui.label showing the fixed prefix
-        self._save_path_input = None  # ui.input — relative path / filename only
-        self._save_exists_warning = None  # ui.label — "file already exists" warning
 
     # ------------------------------------------------------------------
     # poll / draw
@@ -241,9 +236,6 @@ class GraphEditor(BaseEditor):
                 with self._canvas_wrapper:
                     self._build_canvas(context)
 
-            # ---- Save-As dialog (Quasar teleports it to <body>; slot doesn't matter) ----
-            self._save_as_dialog = self._build_save_as_dialog(context)
-
         self._update_header(context)
 
     # ------------------------------------------------------------------
@@ -330,13 +322,7 @@ class GraphEditor(BaseEditor):
     def _sync_tab_dirty(self, entry) -> None:
         """Mirror the entry's unsaved state to the tab bar via wrapper.set_dirty."""
         is_dirty = entry is not None and (entry.unsaved or entry.path is None)
-        self.wrapper.set_dirty(is_dirty)
-        slot = getattr(self.wrapper, "_slot", None)
-        if slot is not None and hasattr(slot, "_refresh_bar"):
-            try:
-                slot._refresh_bar()
-            except Exception:
-                pass
+        self.wrapper.set_dirty(is_dirty, refresh=True)
 
     def _update_undo_redo_buttons(self, entry) -> None:
         """Enable/disable undo and redo buttons based on history state."""
@@ -372,10 +358,10 @@ class GraphEditor(BaseEditor):
     # ------------------------------------------------------------------
 
     def _default_save_dir(self, app) -> Path:
-        """Return workspace_root/graphs/ if it exists, else workspace_root/."""
+        from haywire.core.workspace import default_save_dir
+
         root = Path(getattr(app, "workspace_root", str(Path.home())))
-        graphs_dir = root / "graphs"
-        return graphs_dir if graphs_dir.is_dir() else root
+        return default_save_dir(root)
 
     def _workspace_rel(self, path: Path) -> str:
         """Return ``path`` relative to the project workspace_root, or its full
@@ -417,133 +403,68 @@ class GraphEditor(BaseEditor):
 
         # No path yet — open the Save-As dialog
         app = context.app
-        self._open_save_as_dialog(app, entry)
+        self._open_save_as_dialog(app, entry, context)
 
-    def _open_save_as_dialog(self, app, entry) -> None:
-        """Pre-fill the Save-As dialog and open it."""
-        if self._save_as_dialog is None or self._save_path_input is None:
-            ui.notify("Save-As dialog not ready", type="warning")
-            return
+    def _open_save_as_dialog(self, app, entry, context: "SessionContext") -> None:
+        """Open Save-As modal using the canonical save_as_modal."""
+        from haywire.ui.modals import confirm_modal, save_as_modal
 
         workspace_root = Path(getattr(app, "workspace_root", str(Path.home())))
-        self._save_base_dir = workspace_root
 
-        # Show the fixed, non-editable workspace prefix in the label
-        if self._save_base_dir_label is not None:
-            self._save_base_dir_label.text = str(workspace_root).rstrip("/") + "/"
-
-        # Editable portion: path relative to workspace_root
+        initial_path: Optional[str] = None
         if entry.path is not None:
             try:
-                input_value = str(entry.path.relative_to(workspace_root))
+                initial_path = str(entry.path.relative_to(workspace_root))
             except ValueError:
-                # File is outside the workspace — fall back to just the filename
-                input_value = entry.path.name
+                initial_path = entry.path.name
         else:
             save_dir = self._default_save_dir(app)
             graph_name = getattr(entry.editor.graph, "name", "untitled")
             safe_name = graph_name.lower().replace(" ", "_")
             try:
                 rel_dir = save_dir.relative_to(workspace_root)
-                input_value = str(rel_dir / f"{safe_name}.haywire")
+                initial_path = str(rel_dir / f"{safe_name}.haywire")
             except ValueError:
-                input_value = f"{safe_name}.haywire"
+                initial_path = f"{safe_name}.haywire"
 
-        self._save_path_input.value = input_value
-        if self._save_exists_warning is not None:
-            self._save_exists_warning.set_visibility(False)
-        self._save_as_dialog.open()
+        def _do_save(save_path: Path) -> None:
+            old_binding_id = self.wrapper._binding_id
+            new_binding_id: Optional[str] = entry.save(save_as=save_path)
+            if new_binding_id is not None or not entry.unsaved:
+                context.data[EditState].active_graph_path = save_path
+                session = context.session
+                if new_binding_id is not None and old_binding_id != new_binding_id:
+                    self.wrapper.repayload(new_binding_id, new_label=entry.display_name)
+                if session:
+                    session.publish(ActiveGraphMoved())
+                    session.publish(GraphDataMutated())
+                ui.notify(f"Saved: {save_path.name}", type="positive", position="top-right")
+            else:
+                ui.notify("Save failed — check the path and try again", type="negative")
 
-    def _build_save_as_dialog(self, context: "SessionContext"):
-        """Create the Save-As dialog once during render(). Returns the dialog."""
-        with ui.dialog() as dialog, ui.card().style("min-width: 460px; max-width: 640px"):
-            with ui.column().classes("w-full gap-2"):
-                ui.label("Save Graph As").classes("text-base font-semibold")
-
-                # Read-only workspace prefix shown above the input
-                with (
-                    ui.row()
-                    .classes("w-full items-center gap-1 px-1")
-                    .style(
-                        "background: var(--hw-bg-page); border-radius: 4px;"
-                        " border: 1px solid var(--hw-border);"
-                    )
-                ):
-                    ui.icon("folder", size="14px").classes("hw-text-dim flex-shrink-0")
-                    self._save_base_dir_label = ui.label("").classes(
-                        "text-xs font-mono hw-text-dim truncate py-1"
-                    )
-
-                # Editable filename / relative path within the workspace
-                self._save_path_input = (
-                    ui.input(label="Path within workspace")
-                    .classes("w-full")
-                    .props("outlined dense")
-                    .on("update:model-value", lambda _: self._clear_exists_warning())
+        def _on_confirm(save_path: Path, raw_input: str) -> None:
+            if save_path == entry.path:
+                _do_save(save_path)
+                return
+            if save_path.exists():
+                confirm_modal(
+                    title="Overwrite file?",
+                    message=f'"{save_path.name}" already exists. Overwrite it?',
+                    confirm_label="Overwrite",
+                    danger=True,
+                    on_confirm=lambda: _do_save(save_path),
+                    on_cancel=lambda: self._open_save_as_dialog(app, entry, context),
                 )
-                self._save_exists_warning = ui.label("").classes("text-xs hw-text-danger -mt-1")
-                self._save_exists_warning.set_visibility(False)
-                with ui.row().classes("w-full justify-end gap-2 mt-1"):
-                    ui.button("Cancel", on_click=dialog.close).props("flat dense")
-                    ui.button(
-                        "Save",
-                        on_click=lambda: self._do_save_as(context, dialog),
-                    ).props("color=positive dense")
-        return dialog
+                return
+            _do_save(save_path)
 
-    def _clear_exists_warning(self) -> None:
-        if self._save_exists_warning is not None:
-            self._save_exists_warning.set_visibility(False)
-
-    def _do_save_as(self, context: "SessionContext", dialog) -> None:
-        """Execute the Save-As from within the dialog."""
-        entry = self._get_entry(context)
-        if entry is None:
-            ui.notify("No graph to save", type="warning")
-            dialog.close()
-            return
-
-        path_str = (self._save_path_input.value or "").strip()
-        if not path_str:
-            ui.notify("Please enter a file name", type="warning")
-            return
-
-        if self._save_base_dir is None:
-            ui.notify("Base directory not set", type="warning")
-            return
-
-        save_path = (self._save_base_dir / path_str).resolve()
-        if not save_path.suffix:
-            save_path = save_path.with_suffix(".haywire")
-
-        # Warn if the file already exists and the user would be overwriting a
-        # *different* graph (i.e. not the entry's own current path).
-        if save_path.exists() and save_path != entry.path:
-            if self._save_exists_warning is not None:
-                self._save_exists_warning.text = (
-                    f'"{save_path.name}" already exists — choose a different name.'
-                )
-                self._save_exists_warning.set_visibility(True)
-            return  # stay in the dialog
-
-        old_binding_id = self.wrapper._binding_id
-        new_binding_id: Optional[str] = entry.save(save_as=save_path)
-        if new_binding_id is not None or not entry.unsaved:
-            context.data[EditState].active_graph_path = save_path
-            session = context.session
-            if new_binding_id is not None and old_binding_id != new_binding_id:
-                # Save-as renamed the container — re-key the tab so the
-                # wrapper's binding_id + label reflect the new file path.
-                self.wrapper.repayload(new_binding_id, new_label=entry.display_name)
-            if session:
-                session.publish(ActiveGraphMoved())
-                # Notify peer sessions so their HaystackEditor and header
-                # also clear the dirty indicator.
-                session.publish(GraphDataMutated())
-            ui.notify(f"Saved: {save_path.name}", type="positive", position="top-right")
-            dialog.close()
-        else:
-            ui.notify("Save failed — check the path and try again", type="negative")
+        save_as_modal(
+            title="Save Graph As",
+            workspace_root=workspace_root,
+            initial_path=initial_path,
+            suffixes=(".haywire",),
+            on_confirm=_on_confirm,
+        )
 
     # ------------------------------------------------------------------
     # cleanup
@@ -556,8 +477,3 @@ class GraphEditor(BaseEditor):
             except Exception as exc:
                 logger.error(f"GraphEditor.cleanup(): {exc}")
             self._canvas_manager = None
-        self._save_as_dialog = None
-        self._save_base_dir = None
-        self._save_base_dir_label = None
-        self._save_path_input = None
-        self._save_exists_warning = None

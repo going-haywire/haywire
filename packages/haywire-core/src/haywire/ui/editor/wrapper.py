@@ -224,15 +224,19 @@ class EditorWrapper:
         if self._redraw_callback is not None:
             self._redraw_callback(self)
 
-    def set_dirty(self, value: bool) -> None:
+    def set_dirty(self, value: bool, *, refresh: bool = False) -> None:
         """Mark the wrapped editor's content as dirty (or not).
 
-        Called by editors when in-memory state diverges from disk. The
-        tab bar reads ``state.is_dirty`` on its next render to show the
-        unsaved-work badge — no immediate refresh is triggered (lazy
-        update is acceptable since the next user action repaints the bar).
+        Lazy by default — the tab bar reads ``state.is_dirty`` on its next
+        render. Pass ``refresh=True`` to eagerly repaint the bar now (used by
+        editors that change dirtiness outside a normal redraw cycle).
         """
         self._state.is_dirty = bool(value)
+        if refresh and self._slot is not None:
+            try:
+                self._slot._refresh_bar()
+            except Exception:
+                logger.warning("set_dirty(refresh=True): tab-bar refresh failed", exc_info=True)
 
     # ------------------------------------------------------------------
     # Lifecycle event handling (placeholder — implemented in Task 5)

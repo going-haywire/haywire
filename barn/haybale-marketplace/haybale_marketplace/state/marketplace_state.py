@@ -144,3 +144,108 @@ class MarketplaceState(AppState):
         if project_path is None:
             return False
         return remove_stale_haybale_from_project(project_path, name=name)
+
+    # ------------------------------------------------------------------
+    # Overview fetch (async)
+    # ------------------------------------------------------------------
+
+    async def fetch_overview(self, pkg: Haybale) -> "str | None":
+        """Fetch OVERVIEW.md (or README fallback) for a marketplace-only package.
+
+        Priority:
+        1. ``docs_url`` field — explicit raw URL to OVERVIEW.md or to the
+           directory that contains it (e.g. a GitHub raw content URL).
+           If the URL ends with a filename it is fetched directly; otherwise
+           OVERVIEW.md and QUICKREF.md are appended and tried in order.
+        2. Heuristic GitHub lookup — derived from ``source_url`` or
+           ``install_spec``, for both pypi and git sources. The module name
+           is inferred from the package name (``-`` → ``_``) and the optional
+           ``#subdirectory=`` fragment of ``install_spec`` is respected.
+        3. PyPI long_description fallback — only when no GitHub URL is found
+           and ``source == 'pypi'``.
+        """
+        import asyncio
+        import json
+        import urllib.request
+        from pathlib import Path
+
+        def _try_urls(urls: list) -> "str | None":
+            for url in urls:
+                try:
+                    with urllib.request.urlopen(url, timeout=6) as resp:
+                        return resp.read().decode("utf-8", errors="replace")
+                except Exception:
+                    continue
+            return None
+
+        # ── 1. Explicit docs_url ──────────────────────────────────────────────
+        if pkg.docs_url:
+            p = Path(pkg.docs_url)
+            if p.is_dir():
+                for candidate in (p / "OVERVIEW.md", p / "QUICKREF.md"):
+                    if candidate.exists():
+                        return candidate.read_text()
+            elif p.is_file():
+                return p.read_text()
+            elif pkg.docs_url.startswith("http"):
+                url = pkg.docs_url.rstrip("/")
+                if url.endswith(".md"):
+                    candidates = [url]
+                else:
+                    candidates = [f"{url}/OVERVIEW.md", f"{url}/QUICKREF.md"]
+                content = await asyncio.to_thread(_try_urls, candidates)
+                if content:
+                    return content
+
+        # ── 2. Heuristic: derive raw GitHub URL ──────────────────────────────
+        module_name = pkg.name.replace("-", "_")
+
+        subdir = ""
+        if pkg.install_spec and "#subdirectory=" in pkg.install_spec:
+            subdir = pkg.install_spec.split("#subdirectory=")[-1].strip("/")
+
+        def _github_raw_base(url: str) -> "str | None":
+            url = url.rstrip("/").removesuffix(".git")
+            if "github.com" not in url:
+                return None
+            return url.replace("https://github.com/", "https://raw.githubusercontent.com/")
+
+        raw_base = None
+        if pkg.source_url and "github.com" in pkg.source_url:
+            raw_base = _github_raw_base(pkg.source_url)
+        elif pkg.source == "git" and pkg.install_spec:
+            git_url = pkg.install_spec.removeprefix("git+").split("@")[0].split("#")[0].rstrip("/")
+            raw_base = _github_raw_base(git_url)
+
+        if raw_base:
+            candidates = []
+            for branch in ("main", "master"):
+                prefix = f"{raw_base}/{branch}"
+                pkg_prefix = f"{prefix}/{subdir}/{module_name}" if subdir else f"{prefix}/{module_name}"
+                candidates.append(f"{pkg_prefix}/OVERVIEW.md")
+                candidates.append(f"{pkg_prefix}/QUICKREF.md")
+            for branch in ("main", "master"):
+                prefix = f"{raw_base}/{branch}"
+                if subdir:
+                    candidates.append(f"{prefix}/{subdir}/OVERVIEW.md")
+                candidates.append(f"{prefix}/OVERVIEW.md")
+
+            content = await asyncio.to_thread(_try_urls, candidates)
+            if content:
+                return content
+
+        # ── 3. PyPI long_description fallback ────────────────────────────────
+        if pkg.source == "pypi":
+
+            def _pypi_desc():
+                try:
+                    url = f"https://pypi.org/pypi/{pkg.name}/json"
+                    with urllib.request.urlopen(url, timeout=8) as resp:
+                        data = json.loads(resp.read())
+                    return data.get("info", {}).get("description") or None
+                except Exception:
+                    return None
+
+            return await asyncio.to_thread(_pypi_desc)
+
+        return None
