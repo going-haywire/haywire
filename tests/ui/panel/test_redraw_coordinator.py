@@ -200,3 +200,63 @@ def test_cleanup_is_idempotent():
 
     assert session.unsub_calls == 1
     assert registry.batch_subscribers == []
+
+
+def test_catalog_change_rebuilds_subscriptions_and_redraws():
+    """Firing the registry lifecycle channel recomputes the union and
+    redraws once. Start with an empty union, then 'install' a panel that
+    declares _SigA."""
+    registry = _FakeRegistry({})
+    session = _FakeSession()
+    coord, redraws, focus = _make_coordinator(registry, session)
+
+    coord.start()
+    assert session.handlers == {}
+    session.fire(_SigA)
+    assert redraws == []
+
+    # 'Install': the union now includes _SigA. Fire the lifecycle channel.
+    registry._signals_by_focus = {focus: {_SigA}}
+    registry.notify()
+
+    assert redraws == [1]  # the reconciliation itself redrew once
+    redraws.clear()
+
+    # Now _SigA publishes reach the coordinator.
+    session.fire(_SigA)
+    assert redraws == [1]
+
+
+def test_rebuild_drops_stale_subscriptions():
+    """A catalog change that removes a signal from the union must
+    unsubscribe the stale per-signal handle."""
+    registry = _FakeRegistry()
+    session = _FakeSession()
+    coord, _redraws, focus = _make_coordinator(registry, session)
+    registry._signals_by_focus = {focus: {_SigA, _SigB}}
+
+    coord.start()
+    assert set(session.handlers.keys()) == {_SigA, _SigB}
+
+    # 'Uninstall' the panel that declared _SigB.
+    registry._signals_by_focus = {focus: {_SigA}}
+    registry.notify()
+
+    assert set(session.handlers.keys()) == {_SigA}
+
+
+def test_registry_query_raising_degrades_gracefully():
+    """If get_redraw_signals_for_focus raises, the coordinator logs and
+    leaves zero subscriptions rather than propagating."""
+
+    class _RaisingRegistry(_FakeRegistry):
+        def get_redraw_signals_for_focus(self, focus):
+            raise RuntimeError("intentional bad query")
+
+    registry = _RaisingRegistry()
+    session = _FakeSession()
+    coord, _redraws, _focus = _make_coordinator(registry, session)
+
+    coord.start()  # must not raise
+
+    assert session.handlers == {}
