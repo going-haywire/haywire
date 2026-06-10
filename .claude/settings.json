@@ -3,7 +3,7 @@
     "allow": [
       "Bash(uvx ty *)",
       "Bash(cd /Volumes/Ddrive/06_open_tracking_tool/haywire/haywire-repo *)",
-      "Bash(python3 -c \"print\\(repr\\(str\\(\\)\\), repr\\(int\\(\\)\\), repr\\(float\\(\\)\\), repr\\(bool\\(\\)\\), repr\\(list\\(\\)\\), repr\\(dict\\(\\)\\)\\)\")",
+      "Bash(python3 -c \"print\\(repr\\(str\\(\\)\\), repr\\(int\\(\\)\\), repr\\(float\\(\\)\\), repr\\(bool\\(\\)\\), repr\\(list\\(\\)\\), repr\\(dict\\(\\)\\)\\)\")"
     ],
     "additionalDirectories": [
       "/tmp"
