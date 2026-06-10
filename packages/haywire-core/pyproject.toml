@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "haywire-core"
-version = "0.0.19"
+version = "0.0.20"
 description = "Haywire Node System Framework"
 requires-python = ">=3.11"
 license = {text = "MIT"}
