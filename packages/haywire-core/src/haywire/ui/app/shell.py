@@ -271,6 +271,26 @@ class AppShell:
             " .hw-panel .q-field--outlined:hover .q-field__control:before"
             " { border-color: var(--hw-border-strong) !important; }"
             " .hw-panel .q-field__control { background: var(--hw-bg-input) !important; }"
+            # Selection chips (use-chips selects) — Quasar's default grey chip is
+            # too low-contrast on the elevated field background. Paint the whole
+            # chip with the accent colour and on-accent text so it reads as a
+            # clear 'selected' token. Target the chip, its content wrapper, and
+            # the remove icon; Quasar colours each separately.
+            " .hw-panel .q-field .q-chip,"
+            " .hw-panel .q-field .q-chip .q-chip__content {"
+            "   background: var(--hw-accent) !important;"
+            "   color: var(--hw-text-on-accent) !important;"
+            " }"
+            " .hw-panel .q-field .q-chip .q-chip__icon,"
+            " .hw-panel .q-field .q-chip .q-icon {"
+            "   color: var(--hw-text-on-accent) !important;"
+            " }"
+            # Field label — dim it so an empty field's label doesn't read like an
+            # entered value (both inherit body colour otherwise). Brighten to the
+            # accent when the field is focused, matching the focus underline.
+            " .hw-panel .q-field__label { color: var(--hw-text-muted) !important; }"
+            " .hw-panel .q-field--highlighted .q-field__label"
+            " { color: var(--hw-accent) !important; }"
             # Standard (non-outlined) field underline — override currentColor to use border token
             " .hw-panel .q-field--standard .q-field__control:before"
             " { border-bottom-color: var(--hw-border) !important; }"

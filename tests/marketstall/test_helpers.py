@@ -74,6 +74,35 @@ def test_add_heap_to_project_creates_file(tmp_path: Path) -> None:
 
 
 @pytest.mark.unit
+def test_add_heap_to_project_persists_dependencies(tmp_path: Path) -> None:
+    """Dependencies passed to add_heap_to_project survive the TOML round-trip."""
+    from haywire.core.marketstall.helpers import add_heap_to_project
+    from haywire.core.marketstall.parsing import parse_project_marketplace
+
+    f = tmp_path / "project.toml"
+    add_heap_to_project(
+        f,
+        name="haybale-haystack",
+        path=Path("/abs/haystack"),
+        dependencies=["haybale-studio", "haybale-graph-editor"],
+    )
+    pm = parse_project_marketplace(f)
+    assert pm.heaps[0]["dependencies"] == ["haybale-studio", "haybale-graph-editor"]
+
+
+@pytest.mark.unit
+def test_add_heap_to_project_omits_empty_dependencies(tmp_path: Path) -> None:
+    """No `dependencies` key is written when the list is empty/None."""
+    from haywire.core.marketstall.helpers import add_heap_to_project
+    from haywire.core.marketstall.parsing import parse_project_marketplace
+
+    f = tmp_path / "project.toml"
+    add_heap_to_project(f, name="haybale-x", path=Path("/p"))
+    pm = parse_project_marketplace(f)
+    assert "dependencies" not in pm.heaps[0]
+
+
+@pytest.mark.unit
 def test_add_heap_to_project_raises_on_duplicate(tmp_path: Path) -> None:
     from haywire.core.marketstall.errors import DuplicateHeapNameError
     from haywire.core.marketstall.helpers import add_heap_to_project

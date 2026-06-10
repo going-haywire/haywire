@@ -546,11 +546,16 @@ class LibraryManager:
         """Unmet deps for a NOT-yet-installed marketplace package (install gating).
 
         Matches each declared dep (top-package-normalized) against installed
-        libraries' module_name. require_enabled=False => installed-at-all counts.
+        libraries' module_name. Only counts libs with a distribution_name (i.e.
+        proper pip installs) — dev-barn folder libs without a dist name are
+        excluded so they don't silently satisfy marketplace dep checks.
+        require_enabled=True => dep must also be enabled.
         """
         installed: set[str] = set()
         enabled: set[str] = set()
         for lid in self.registry.list_names():
+            if not self.registry.get_library_distribution_name(lid):
+                continue
             norm = self._lib_module_norm(lid)
             installed.add(norm)
             if self.registry.is_library_enabled(lid):

@@ -487,9 +487,9 @@ class LibraryOverviewEditor(BaseEditor):
                                                     ctx=context: (self._confirm_uninstall(lid, ln, m, ctx)),
                                                 )
                         elif not installed_lib and marketplace_pkg and manager:
-                            # Not installed — Install button, blocked if deps missing OR OS doesn't match
+                            # Not installed — Install, blocked if deps missing/disabled or OS mismatch
                             _missing_deps = manager.get_missing_dependencies_for_package(
-                                marketplace_pkg, require_enabled=False
+                                marketplace_pkg, require_enabled=True
                             )
                             _os_block_msg = should_block_install_for_os(marketplace_pkg)
 
@@ -498,7 +498,7 @@ class LibraryOverviewEditor(BaseEditor):
                                 _names = ", ".join(f'"{d}"' for d in _missing_deps)
                                 _install_block = (
                                     f'"{marketplace_pkg.label or marketplace_pkg.name}"'
-                                    f" cannot be installed — {_names} must be installed first."
+                                    f" cannot be installed — {_names} must be installed and enabled first."
                                 )
                             else:
                                 _install_block = _os_block_msg
@@ -847,37 +847,32 @@ class LibraryOverviewEditor(BaseEditor):
             lib.distribution_name.removeprefix("haybale-") if lib.distribution_name else lib.identity.id
         )
 
-        with ui.dialog() as edit_dialog, ui.card().style("width: 480px;").classes("gap-3"):
-            ui.label("Edit Library").classes("text-lg font-bold")
-            ui.label(f"haybale-{old_name_part}").classes("text-sm hw-text-muted font-mono")
-            ui.separator()
+        with ui.dialog() as edit_dialog, hui.dialog_card("w-[480px]"):
+            ui.label("Edit Library").classes("text-base font-medium hw-text-body")
+            ui.label(f"haybale-{old_name_part}").classes("text-xs hw-text-muted font-mono")
+            hui.separator()
 
             hui.section_label("Identity")
-            label_input = ui.input(label="Label", value=lib.identity.label).classes("w-full")
-            version_input = ui.input(label="Version", value=lib.identity.version or "0.1.0").classes(
-                "w-full"
-            )
-            desc_input = ui.input(label="Description", value=lib.identity.description).classes("w-full")
-            author_input = ui.input(label="Author", value=lib.identity.author).classes("w-full")
-            author_url_input = ui.input(label="Author URL", value=lib.identity.author_url).classes("w-full")
-            url_input = ui.input(label="URL", value=lib.identity.url).classes("w-full")
-            tags_input = ui.input(
+            label_input = hui.input_field(label="Label", value=lib.identity.label)
+            version_input = hui.input_field(label="Version", value=lib.identity.version or "0.1.0")
+            desc_input = hui.input_field(label="Description", value=lib.identity.description)
+            author_input = hui.input_field(label="Author", value=lib.identity.author)
+            author_url_input = hui.input_field(label="Author URL", value=lib.identity.author_url)
+            url_input = hui.input_field(label="URL", value=lib.identity.url)
+            tags_input = hui.input_field(
                 label="Tags (comma-separated)",
                 value=", ".join(lib.identity.tags or []),
-            ).classes("w-full")
-            with ui.row().classes("w-full items-end gap-2"):
-                deps_input = ui.input(
-                    label="Dependencies (comma-separated)",
-                    value=", ".join(lib.identity.dependencies or []),
-                ).classes("flex-1")
-                detect_btn = (
-                    ui.button(icon="manage_search")
-                    .props("flat dense size=sm")
-                    .tooltip("Detect dependencies from source imports")
-                )
-                detect_btn.on(
-                    "click",
-                    lambda d=deps_input, m=manager, ilib=lib, mp=marketplace_path: (
+            )
+            deps_input = hui.input_field(
+                label="Dependencies (comma-separated)",
+                value=", ".join(lib.identity.dependencies or []),
+            )
+            with deps_input.add_slot("append"):
+                hui.icon_action(
+                    "manage_search",
+                    tooltip="Detect dependencies from source imports",
+                    size="sm",
+                    on_click=lambda d=deps_input, m=manager, ilib=lib, mp=marketplace_path: (
                         self._detect_dependencies(d, m, ilib, mp)
                     ),
                 )
@@ -888,14 +883,14 @@ class LibraryOverviewEditor(BaseEditor):
             os_select = None
             if is_heap:
                 os_select = (
-                    ui.select(
+                    hui.select_field(
                         options={"macos": "macOS", "windows": "Windows", "linux": "Linux"},
                         value=current_os,
                         multiple=True,
                         label="Supported OS (leave empty = all platforms)",
                     )
-                    .props("dense use-chips")
                     .classes("w-full")
+                    .props("use-chips")
                 )
             else:
                 # Installed wheels: read-only display of any os declaration.
@@ -906,28 +901,34 @@ class LibraryOverviewEditor(BaseEditor):
                         "text-xs hw-text-dim"
                     )
 
-            ui.separator()
+            hui.separator()
 
             hui.section_label("Package Name")
-            with ui.row().classes("w-full items-center gap-2"):
-                ui.label("haybale-").classes("text-sm font-mono hw-text-muted flex-shrink-0")
-                ui.input(value=old_name_part).classes("flex-1").props("dense readonly")
-                _cur = f"haybale-{old_name_part}"
-                ui.button(
-                    icon="info",
+            name_input = hui.input_field(value=old_name_part).props("readonly")
+            with name_input.add_slot("prepend"):
+                ui.label("haybale-").classes("text-sm font-mono hw-text-muted")
+            _cur = f"haybale-{old_name_part}"
+            with name_input.add_slot("append"):
+                hui.icon_action(
+                    "info",
+                    tooltip="How to rename",
+                    size="sm",
                     on_click=lambda c=_cur: info_modal(
                         title="Renaming a library",
                         icon="info",
                         message=(
-                            "Renaming happens from the command line, with studio stopped:\n\n"
-                            f"  1. Quit studio\n"
-                            f"  2. uv run haywire rename {c} <new-name>\n"
-                            "  3. Restart studio\n\n"
-                            "Why stopped: rename rewrites installed packages and runs "
+                            "Renaming happens from the command line, with studio stopped:\n"
+                            "\n"
+                            "1.  Quit studio\n"
+                            f"2.  uv run haywire rename {c} <new-name>\n"
+                            "3.  Restart studio\n"
+                        ),
+                        detail=(
+                            "The reason is rename rewrites installed packages and runs "
                             "`uv sync`, which isn't safe while studio is running."
                         ),
                     ),
-                ).props("flat round dense size=sm").tooltip("How to rename")
+                )
 
             async def _save():
                 identity = {
@@ -946,9 +947,11 @@ class LibraryOverviewEditor(BaseEditor):
                 edit_dialog.close()
                 await self._do_update_identity(lib, identity, marketplace_path, manager, context)
 
-            with ui.row().classes("w-full justify-end gap-2 mt-2"):
-                ui.button("Cancel", on_click=edit_dialog.close).props("flat size=sm")
-                ui.button("Save Changes", on_click=_save).props("color=positive size=sm")
+            hui.dialog_actions(
+                on_confirm=_save,
+                on_cancel=edit_dialog.close,
+                confirm_label="Save Changes",
+            )
 
         return edit_dialog
 

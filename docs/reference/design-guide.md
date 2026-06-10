@@ -828,6 +828,9 @@ A standard text input, pre-configured for panel use.
 - Border: `var(--hw-border)` rest, `var(--hw-border-strong)` hover/focus
 - Focus ring: `2px solid var(--hw-accent)` via `:focus-visible` — keyboard-only,
   not shown on mouse click (use `:focus-visible`, not `:focus`)
+- Floating label (`label=`): `var(--hw-text-muted)` at rest, `var(--hw-accent)`
+  on focus — applied globally so an empty field's label never reads like an
+  entered value. Do not override per-field.
 - Disabled: pass Quasar `:disable="True"` — renders `opacity: 0.5` automatically
 - Validation error: pass Quasar `:rules=` and `lazy-rules="ondemand"` — error
   text appears below the field using `var(--hw-danger)`; never use a separate
@@ -878,9 +881,11 @@ A standard dropdown select, pre-configured for panel use.
 - Props: `dense outlined`
 - Classes: `text-sm`
 - `min-width: 160px` by default (override via `min_width=`)
+- `options` accepts a list (value == label) or a dict (value → label)
 
 ```python
 hui.select_field(options=["A", "B"], value="A", label="Mode")
+hui.select_field(options={"a": "Option A"}, value="a", label="Mode")
 ```
 
 ### 8.19 `hui.section_divider(text=None)`

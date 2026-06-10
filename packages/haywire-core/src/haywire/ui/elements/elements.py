@@ -715,7 +715,7 @@ def number_field(
 
 def select_field(
     *,
-    options: list,
+    options: list | dict,
     value: Any = None,
     label: str | None = None,
     min_width: str = "160px",
@@ -730,9 +730,13 @@ def select_field(
     - Classes: ``text-sm``
     - ``min-width: 160px`` by default (override via ``min_width=``)
 
+    ``options`` accepts a list (value == label) or a dict (value -> label),
+    matching NiceGUI's ``ui.select``.
+
     Usage::
 
         hui.select_field(options=["A", "B"], value="A", label="Mode")
+        hui.select_field(options={"a": "Option A"}, value="a", label="Mode")
     """
     sel = (
         ui.select(options=options, value=value, label=label, **kwargs)

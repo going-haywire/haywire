@@ -43,7 +43,9 @@ def info_modal(
         with ui.row().classes("items-start gap-3 w-full"):
             ui.icon(icon, size="20px").classes("hw-text-warning flex-shrink-0 mt-0.5")
             with ui.column().classes("gap-1 min-w-0"):
-                ui.label(message).classes("text-sm hw-text-muted")
+                # pre-line so embedded "\n" in the message render as line breaks
+                # (a bare ui.label collapses them to spaces).
+                ui.label(message).classes("text-sm hw-text-muted").style("white-space: pre-line;")
                 if detail:
                     ui.label(detail).classes("text-xs hw-text-dim italic")
 

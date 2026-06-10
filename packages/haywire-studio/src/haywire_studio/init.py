@@ -103,7 +103,7 @@ def _generate_project_pyproject(name: str, dev_repo: str | None = None) -> str:
         "project": {
             "name": _project_root_name(name),
             "version": "0.1.0",
-            "requires-python": ">=3.10",
+            "requires-python": ">=3.11",
             "dependencies": [
                 f"haywire-studio{pin}",
                 f"haybale-marketplace{pin}",
@@ -156,7 +156,7 @@ haywire-core = {{ path = "{dev_repo}/packages/haywire-core", editable = true }}
 name = "{lib_name}"
 version = "0.0.1"
 description = "Local library for {name} project"
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 license = {{text = "MIT"}}
 
 dependencies = ["haywire-core{pin}"]
@@ -315,7 +315,7 @@ from haywire.ui.widget.registry import WidgetRegistry
     help_url='',
     author='',
     author_url='',
-    dependencies=['haybale_core'],
+    dependencies=[],
     tags=['experimental', 'project-local'],
     file_watcher=True,
 )
@@ -411,7 +411,10 @@ def _register_dev_repo_locals_in_project(dev_repo: str, project_dir: Path) -> No
     Idempotent: DuplicateHeapNameError per library is swallowed so re-running
     init against an existing project marketplace doesn't fail.
     """
+    from haywire.core.library.dep_detect import find_module_dir
     from haywire.core.marketstall import DuplicateHeapNameError, add_heap_to_project
+
+    from .share import _read_library_dependencies
 
     project_mp = project_dir / ".haywire" / "marketplace.toml"
 
@@ -424,9 +427,16 @@ def _register_dev_repo_locals_in_project(dev_repo: str, project_dir: Path) -> No
             continue
         # Read the package name from pyproject — don't trust the directory name.
         pyproject = toml.loads((lib_dir / "pyproject.toml").read_text())
-        lib_name = pyproject.get("project", {}).get("name", lib_dir.name)
+        project = pyproject.get("project", {})
+        lib_name = project.get("name", lib_dir.name)
         label = lib_name.removeprefix("haybale-").replace("-", " ").replace("_", " ").title()
-        description = pyproject.get("project", {}).get("description", "")
+        description = project.get("description", "")
+        # The @library(dependencies=[...]) decorator is the definitive source for
+        # the marketplace install gate — a version-less subset of the pyproject
+        # deps (share.py keeps the two in sync). _read_library_dependencies
+        # returns pip-package form (hyphens), which the gate normalizes.
+        module_dir = find_module_dir(lib_dir)
+        dependencies = _read_library_dependencies(module_dir) if module_dir else []
 
         try:
             add_heap_to_project(
@@ -435,6 +445,7 @@ def _register_dev_repo_locals_in_project(dev_repo: str, project_dir: Path) -> No
                 path=lib_dir,
                 label=label,
                 description=description,
+                dependencies=dependencies,
             )
         except DuplicateHeapNameError:
             continue
