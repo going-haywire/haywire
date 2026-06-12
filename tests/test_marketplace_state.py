@@ -19,6 +19,9 @@ def fake_home(tmp_path, monkeypatch):
     global_mp_dir = fake / ".haywire" / "db" / "haybale_marketplace"
     global_mp_dir.mkdir(parents=True, exist_ok=True)
     monkeypatch.setattr(mp_cfg, "GLOBAL_MARKETPLACE_DIR", global_mp_dir)
+    # Seed an empty marketplace.toml (no subscriptions) so _auto_refresh_if_empty
+    # short-circuits and tests don't hit the network.
+    (global_mp_dir / "marketplace.toml").write_text("")
     return fake
 
 

@@ -557,14 +557,6 @@ def init_project(name: str, auto_sync: bool = True, dev_repo: str | None = None)
     # init no longer writes [[heaps]] there).
     ensure_global_config()
 
-    # Ensure global marketplace.toml exists (created by haybale_marketplace)
-    try:
-        from haybale_marketplace.config import ensure_marketplace_config
-
-        ensure_marketplace_config()
-    except ImportError:
-        pass  # haybale_marketplace not installed; marketplace will be initialized on first use
-
     # Track as recent project
     add_recent_project(str(project_dir))
 

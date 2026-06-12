@@ -48,6 +48,9 @@ class MarketplaceState(AppState):
     def on_enable(self) -> None:
         from haywire.core.di.context import get_workspace_root
 
+        from haybale_marketplace.config import ensure_marketplace_config
+
+        ensure_marketplace_config()
         self._workspace_root = get_workspace_root()
         self._auto_refresh_if_empty()
 

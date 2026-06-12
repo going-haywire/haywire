@@ -28,6 +28,7 @@ def fake_home(tmp_path, monkeypatch):
     global_mp_dir = fake_haywire / "db" / "haybale_marketplace"
     global_mp_dir.mkdir(parents=True, exist_ok=True)
     monkeypatch.setattr(mp_cfg, "GLOBAL_MARKETPLACE_DIR", global_mp_dir)
+    mp_cfg.ensure_marketplace_config()
     return fake
 
 
@@ -351,32 +352,13 @@ class TestNameSanitization:
 
 
 class TestUserGlobalStaysEmpty:
-    """`haywire init` only creates ~/.haywire/db/haybale_marketplace/marketplace.toml
-    (with the default [[markets]] subscription to the official feed).
-
-    The user-global marketplace is reserved for user opt-in subscriptions
+    """The user-global marketplace is reserved for user opt-in subscriptions
     ([[markets]], [[stalls]]). Heaps — the project's own library and any
     --dev sibling libraries — live in the project marketplace instead.
 
-    Per spec §3.1: the global marketplace path is `~/.haywire/db/haybale_marketplace/`
-    (the Python package name haybale_marketplace, not the library name haybale-marketplace).
+    Note: `haywire init` does NOT create ~/.haywire/db/haybale_marketplace/marketplace.toml.
+    That file is seeded by MarketplaceState.on_enable() the first time the studio loads.
     """
-
-    def test_user_global_marketplace_file_exists(self, scaffold_project_with_fake_home, fake_home):
-        # ensure_marketplace_config creates the directory + the file with the default seed.
-        assert (fake_home / ".haywire" / "db" / "haybale_marketplace" / "marketplace.toml").is_file()
-
-    def test_user_global_has_no_heaps_for_project(self, scaffold_project_with_fake_home, fake_home):
-        data = toml.loads(
-            (fake_home / ".haywire" / "db" / "haybale_marketplace" / "marketplace.toml").read_text()
-        )
-        assert data.get("heaps", []) == []
-
-    def test_user_global_has_no_caches_for_project(self, scaffold_project_with_fake_home, fake_home):
-        data = toml.loads(
-            (fake_home / ".haywire" / "db" / "haybale_marketplace" / "marketplace.toml").read_text()
-        )
-        assert data.get("caches", []) == []
 
 
 class TestSameNameAcrossProjectsAllowed:
