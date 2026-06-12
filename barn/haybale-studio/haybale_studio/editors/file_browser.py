@@ -309,10 +309,10 @@ class LazyFileBrowserEditor(BaseEditor):
         if self._menu_provider is None:
             from haybale_studio.editors.file_browser_menu.provider import SessionFileMenuProvider
 
-            panel_registry = context.app.panel_registry  # type: ignore[union-attr]
+            panel_registry = context.app.panel_registry
             self._menu_provider = SessionFileMenuProvider(
                 context=context,
-                session=context.session,  # type: ignore[arg-type]
+                session=context.session,
                 panel_registry=panel_registry,
             )
         return self._menu_provider
