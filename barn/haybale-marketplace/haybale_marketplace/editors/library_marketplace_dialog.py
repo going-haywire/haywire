@@ -69,14 +69,13 @@ def _handle_add_source(user_input: str, dialog: "ui.dialog", on_added: Callable[
         resolve_and_subscribe,
     )
 
-    from haybale_marketplace.config import GLOBAL_MARKETPLACE_DIR, ensure_marketplace_config
+    from haybale_marketplace.config import GLOBAL_MARKETPLACE_DIR
 
     if not (user_input or "").strip():
         ui.notify("Please paste a URL or TOML block.", type="warning")
         return
 
     try:
-        ensure_marketplace_config()
         result = resolve_and_subscribe(
             GLOBAL_MARKETPLACE_DIR / "marketplace.toml",
             user_input,

@@ -281,18 +281,12 @@ class LibraryBrowserEditor(BaseEditor):
         ``ctx.active_file`` (the synthetic emit drives editors that follow it)
         then publish a ``Reveal`` so the CodeEditor opens, bound to this path.
 
-        Tolerates ensure_marketplace_config failures so the editor still opens when
         the marketplace.toml is malformed — its whole purpose here is to let
         the user repair such files. Click Refresh after saving to re-apply.
         """
         from haybale_studio.editors.code_editor import CodeEditor
         from haywire.core.session.signals import Reveal
-        from haybale_marketplace.config import GLOBAL_MARKETPLACE_DIR, ensure_marketplace_config
-
-        try:
-            ensure_marketplace_config()
-        except Exception as exc:
-            logger.warning(f"ensure_marketplace_config failed, opening editor anyway: {exc}")
+        from haybale_marketplace.config import GLOBAL_MARKETPLACE_DIR
 
         mp = GLOBAL_MARKETPLACE_DIR / "marketplace.toml"
 
