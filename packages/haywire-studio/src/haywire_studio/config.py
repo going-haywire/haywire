@@ -4,11 +4,6 @@ Global and project-level configuration management for Haywire.
 Global config lives at ~/.haywire/ and stores user preferences,
 marketplace sources, and recently opened projects.
 
-The global marketplace file lives under `~/.haywire/db/haybale-marketplace/`. The
-`GLOBAL_MARKETPLACE_DIR` constant is the canonical home for ALL marketplace
-state (marketplace.toml, stalls/, cache/) — every caller that
-reads or writes marketplace files must use it, not `GLOBAL_CONFIG_DIR`.
-
 Project config lives at <project>/.haywire/ and stores
 project-specific overrides.
 """
@@ -20,7 +15,6 @@ import toml
 
 
 GLOBAL_CONFIG_DIR = Path.home() / ".haywire"
-GLOBAL_MARKETPLACE_DIR = GLOBAL_CONFIG_DIR / "db" / "haybale-marketplace"
 
 DEFAULT_GLOBAL_CONFIG = {
     "haywire": {
@@ -31,18 +25,6 @@ DEFAULT_GLOBAL_CONFIG = {
     },
 }
 
-# The official haywire feed is pre-seeded as a [[markets]] subscription on first run.
-DEFAULT_MARKETPLACE: dict[str, list[dict]] = {
-    "markets": [
-        {
-            "url": "https://going-haywire.github.io/haywire/marketplace.toml",
-            "ignores": [],
-            "doubles": [],
-            "blocked": [],
-        }
-    ],
-}
-
 DEFAULT_PROJECT_CONFIG = {
     "haywire": {
         "version": "0.1.0",
@@ -51,17 +33,12 @@ DEFAULT_PROJECT_CONFIG = {
 
 
 def ensure_global_config():
-    """Create ~/.haywire/ + ~/.haywire/db/haybale-marketplace/ with defaults if missing."""
+    """Create ~/.haywire/ with defaults if missing."""
     GLOBAL_CONFIG_DIR.mkdir(exist_ok=True)
-    GLOBAL_MARKETPLACE_DIR.mkdir(parents=True, exist_ok=True)
 
     config_file = GLOBAL_CONFIG_DIR / "config.toml"
     if not config_file.exists():
         config_file.write_text(toml.dumps(DEFAULT_GLOBAL_CONFIG))
-
-    marketplace_file = GLOBAL_MARKETPLACE_DIR / "marketplace.toml"
-    if not marketplace_file.exists():
-        marketplace_file.write_text(toml.dumps(DEFAULT_MARKETPLACE))
 
     recent_file = GLOBAL_CONFIG_DIR / "recent_projects.toml"
     if not recent_file.exists():

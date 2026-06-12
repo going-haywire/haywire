@@ -69,14 +69,14 @@ def _handle_add_source(user_input: str, dialog: "ui.dialog", on_added: Callable[
         resolve_and_subscribe,
     )
 
-    from haywire_studio.config import GLOBAL_MARKETPLACE_DIR, ensure_global_config
+    from haybale_marketplace.config import GLOBAL_MARKETPLACE_DIR, ensure_marketplace_config
 
     if not (user_input or "").strip():
         ui.notify("Please paste a URL or TOML block.", type="warning")
         return
 
     try:
-        ensure_global_config()
+        ensure_marketplace_config()
         result = resolve_and_subscribe(
             GLOBAL_MARKETPLACE_DIR / "marketplace.toml",
             user_input,
@@ -170,7 +170,7 @@ def _show_conflict_resolution_dialog(
     """Modal with one row per conflict: 'Keep existing' or 'Use new' radio."""
     from haywire.core.marketstall import record_ignore_on_source
 
-    from haywire_studio.config import GLOBAL_MARKETPLACE_DIR
+    from haybale_marketplace.config import GLOBAL_MARKETPLACE_DIR
 
     # Map from package_name → "existing" | "new".
     choices: dict[str, str] = {}

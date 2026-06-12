@@ -7,11 +7,18 @@ import pytest
 
 @pytest.fixture
 def fake_home(tmp_path, monkeypatch):
-    """Sandbox ~/.haywire/ to a tmp dir."""
+    """Sandbox ~/.haywire/ to a tmp dir and patch haybale_marketplace.config.GLOBAL_MARKETPLACE_DIR."""
     fake = tmp_path / "fake-home"
     fake.mkdir()
     monkeypatch.setenv("HOME", str(fake))
     monkeypatch.setattr("pathlib.Path.home", lambda: fake)
+
+    # Patch GLOBAL_MARKETPLACE_DIR to ensure tests don't collide with other fixtures
+    import haybale_marketplace.config as mp_cfg
+
+    global_mp_dir = fake / ".haywire" / "db" / "haybale_marketplace"
+    global_mp_dir.mkdir(parents=True, exist_ok=True)
+    monkeypatch.setattr(mp_cfg, "GLOBAL_MARKETPLACE_DIR", global_mp_dir)
     return fake
 
 
@@ -81,9 +88,9 @@ def test_get_project_haybales_reads_existing_cache(state_with_workspace) -> None
 
 @pytest.mark.unit
 def test_get_global_returns_parsed(state_with_workspace, fake_home) -> None:
-    """get_global parses ~/.haywire/db/haybale-marketplace/marketplace.toml via marketstall."""
+    """get_global parses ~/.haywire/db/haybale_marketplace/marketplace.toml via marketstall."""
     state, _ = state_with_workspace
-    global_mp = fake_home / ".haywire" / "db" / "haybale-marketplace" / "marketplace.toml"
+    global_mp = fake_home / ".haywire" / "db" / "haybale_marketplace" / "marketplace.toml"
     global_mp.parent.mkdir(parents=True, exist_ok=True)
     global_mp.write_text(
         "[[markets]]\n"
@@ -98,10 +105,10 @@ def test_get_global_returns_parsed(state_with_workspace, fake_home) -> None:
 
 @pytest.mark.unit
 def test_get_global_returns_none_on_malformed(state_with_workspace, fake_home) -> None:
-    """When ~/.haywire/db/haybale-marketplace/marketplace.toml is malformed, get_global returns None
+    """When ~/.haywire/db/haybale_marketplace/marketplace.toml is malformed, get_global returns None
     and global_marketplace_error is set to the error message."""
     state, _ = state_with_workspace
-    global_mp = fake_home / ".haywire" / "db" / "haybale-marketplace" / "marketplace.toml"
+    global_mp = fake_home / ".haywire" / "db" / "haybale_marketplace" / "marketplace.toml"
     global_mp.parent.mkdir(parents=True, exist_ok=True)
     global_mp.write_text('this is = "not valid toml')
 
@@ -117,7 +124,7 @@ def test_refresh_invokes_runtime_refresh(state_with_workspace, fake_home, monkey
     state, workspace = state_with_workspace
 
     # Set up a stall subscription in the global marketplace.
-    global_mp = fake_home / ".haywire" / "db" / "haybale-marketplace" / "marketplace.toml"
+    global_mp = fake_home / ".haywire" / "db" / "haybale_marketplace" / "marketplace.toml"
     global_mp.parent.mkdir(parents=True, exist_ok=True)
     global_mp.write_text('[[stalls]]\nurl = "https://author.example/m.toml"\n')
 

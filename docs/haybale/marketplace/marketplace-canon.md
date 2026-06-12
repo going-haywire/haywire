@@ -69,7 +69,7 @@ The plugin owns **no registry state and no runtime parsing**. It calls `Marketpl
 
 ### The `LibraryManager` service
 
-`LibraryManager` (`library_manager.py`) is a **plain class, not an `AppState`** — it owns the install / uninstall / enable / disable / rename / edit-identity verbs. Composition over inheritance: its constructor takes `(registry, project_dir)`, which an `AppState`'s bare `cls()` instantiation can't supply, so `LibraryManagerState` resolves those from the DI context in `on_enable()` and holds the manager. See [ADR-0001 §Why composition](../../adr/0001-haybale-marketplace-carveout.md).
+`LibraryManager` (`library_manager.py`) is a **plain class, not an `AppState`** — it owns the install / uninstall / enable / disable / edit-identity verbs. Composition over inheritance: its constructor takes `(registry, project_dir)`, which an `AppState`'s bare `cls()` instantiation can't supply, so `LibraryManagerState` resolves those from the DI context in `on_enable()` and holds the manager. See [ADR-0001 §Why composition](../../adr/0001-haybale-marketplace-carveout.md).
 
 ## 4. Important concepts
 

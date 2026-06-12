@@ -35,7 +35,7 @@ class MarketplaceState(AppState):
 
     Path derivation (in on_enable):
       - workspace_root from haywire.core.di.context.get_workspace_root().
-      - global_path = ~/.haywire/db/haybale-marketplace/marketplace.toml.
+      - global_path = ~/.haywire/db/haybale_marketplace/marketplace.toml.
       - project_path = <workspace_root>/.haywire/marketplace.toml.
     """
 
@@ -85,8 +85,10 @@ class MarketplaceState(AppState):
     # ------------------------------------------------------------------
 
     def _global_path(self) -> Path:
-        """Path to ~/.haywire/db/haybale-marketplace/marketplace.toml."""
-        return Path.home() / ".haywire" / "db" / "haybale-marketplace" / "marketplace.toml"
+        """Path to ~/.haywire/db/haybale_marketplace/marketplace.toml."""
+        from haybale_marketplace.config import GLOBAL_MARKETPLACE_DIR
+
+        return GLOBAL_MARKETPLACE_DIR / "marketplace.toml"
 
     def _project_path(self) -> Optional[Path]:
         if self._workspace_root is None:
