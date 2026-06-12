@@ -37,7 +37,7 @@ Two files cooperate. Their concerns are deliberately separated. This section is 
 
 ### 2.1 Global marketplace
 
-**Path:** `~/.haywire/db/haybale-marketplace/marketplace.toml`.
+**Path:** `~/.haywire/db/haybale_marketplace/marketplace.toml`.
 **Owner:** the user (per-machine).
 **Purpose:** records what the user has opted into following, plus per-source overrides.
 
@@ -45,7 +45,7 @@ Two files cooperate. Their concerns are deliberately separated. This section is 
 |---|---|---|
 | `[[markets]]` | `url`, `ignores`, `doubles`, `blocked` | A subscription to a remote *marketplace* (an aggregator's catalog that references one or more marketstalls). |
 | `[[stalls]]` | `url`, `ignores`, `doubles`, `blocked` | A subscription to a remote *marketstall* (one author's publish file). |
-| `[[haybales]]` | full `Haybale` schema | A library the user has pasted in directly. Persisted under `~/.haywire/db/haybale-marketplace/stalls/<dist-name>.toml` and referenced via a `file://` `[[stalls]]` entry — there's no separate inline section. |
+| `[[haybales]]` | full `Haybale` schema | A library the user has pasted in directly. Persisted under `~/.haywire/db/haybale_marketplace/stalls/<dist-name>.toml` and referenced via a `file://` `[[stalls]]` entry — there's no separate inline section. |
 
 `[[markets]]` and `[[stalls]]` are structurally identical (same fields); the distinction is **how the runtime parses the response body**. A `[[markets]]` body may itself reference more stalls (one level deep, see §3.1); a `[[stalls]]` body contains only `[[haybales]]`.
 
@@ -139,7 +139,7 @@ When a remote `[[markets]]` body lists its *own* `[[markets]]` subscriptions, th
 
 ### 3.2 HTTP cache and fallback
 
-Every fetched URL is cached on disk at `~/.haywire/db/haybale-marketplace/cache/<url-hash>.toml`. If a refresh fetch fails (network error, 404), the runtime falls back to the cached body. If neither succeeds, the URL is recorded in the `RefreshReport.unavailable_urls` list. Cache invalidation happens only on the next successful fetch — there is no TTL.
+Every fetched URL is cached on disk at `~/.haywire/db/haybale_marketplace/cache/<url-hash>.toml`. If a refresh fetch fails (network error, 404), the runtime falls back to the cached body. If neither succeeds, the URL is recorded in the `RefreshReport.unavailable_urls` list. Cache invalidation happens only on the next successful fetch — there is no TTL.
 
 ### 3.3 Conflict resolution
 
@@ -288,7 +288,7 @@ The Library Browser handles three classes of failure with three distinct visual 
 
 ### 9.1 Subscribing to the official feed
 
-The user clicks **Add Source** in the Library Browser, pastes one URL — the single-field dialog accepts a blob URL, a raw URL, a plain TOML URL, or a TOML block pasted directly (spec §4.2). The runtime fetches the body, inspects its shape, and writes either a `[[markets]]` (aggregator catalog) or a `[[stalls]]` (single marketstall) entry to `~/.haywire/db/haybale-marketplace/marketplace.toml`. For the official feed:
+The user clicks **Add Source** in the Library Browser, pastes one URL — the single-field dialog accepts a blob URL, a raw URL, a plain TOML URL, or a TOML block pasted directly (spec §4.2). The runtime fetches the body, inspects its shape, and writes either a `[[markets]]` (aggregator catalog) or a `[[stalls]]` (single marketstall) entry to `~/.haywire/db/haybale_marketplace/marketplace.toml`. For the official feed:
 
 ```toml
 [[markets]]
@@ -320,7 +320,7 @@ description = "Core library for Haywire node system..."
 # ...one [[heaps]] per dev-repo sibling library
 ```
 
-The user's `~/.haywire/db/haybale-marketplace/marketplace.toml` is left untouched. The dev-repo libraries are scoped to this project only; opening a different project doesn't see them.
+The user's `~/.haywire/db/haybale_marketplace/marketplace.toml` is left untouched. The dev-repo libraries are scoped to this project only; opening a different project doesn't see them.
 
 ### 9.3 What `haywire share --save` produces
 

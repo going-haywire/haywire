@@ -25,7 +25,7 @@ Your project's library state lives in two files. Knowing what each is for helps 
 
 | File | Path | What it holds |
 |---|---|---|
-| **Global marketplace** | `~/.haywire/db/haybale-marketplace/marketplace.toml` | Your subscriptions: `[[markets]]` for remote aggregators, `[[stalls]]` for individual marketstall feeds. Pasted-TOML inputs are saved as a local stall file and referenced via a `file://` `[[stalls]]` entry. Per-machine. |
+| **Global marketplace** | `~/.haywire/db/haybale_marketplace/marketplace.toml` | Your subscriptions: `[[markets]]` for remote aggregators, `[[stalls]]` for individual marketstall feeds. Pasted-TOML inputs are saved as a local stall file and referenced via a `file://` `[[stalls]]` entry. Per-machine. |
 | **Project marketplace** | `<project>/.haywire/marketplace.toml` | This project's path-based libraries (`[[heaps]]`, written by `haywire init`) and the resolved catalog cache (`[[caches]]`, written by Refresh). Per-project; travels with the source tree. |
 
 You generally interact with the global file (subscriptions are a user concern). The project file is managed for you — `haywire init` sets up `[[heaps]]`, and Refresh maintains `[[caches]]`.
@@ -41,7 +41,7 @@ Click **Add Source** in the Library Browser toolbar. A single-field dialog opens
 | **Blob URL** (recommended) | `https://github.com/alice/cool-libs/blob/main/marketstall.toml` | The runtime recognizes the host, converts to the raw URL, and saves the appropriate `[[markets]]` or `[[stalls]]` subscription depending on the fetched body's shape. |
 | **Raw URL** | `https://raw.githubusercontent.com/alice/cool-libs/main/marketstall.toml` | Same as blob, but skips the URL transformation. |
 | **Plain TOML URL** | Any URL that serves a TOML file (GitHub Pages, GitLab Pages, your own host) | Fetched as-is; the body shape determines subscription type. |
-| **TOML block** pasted directly | A `[[haybales]]` (or `[[markets]]`/`[[stalls]]`) section pasted into the field | Saved as a local file under `~/.haywire/db/haybale-marketplace/stalls/<dist-name>.toml` and referenced via a `file://` `[[stalls]]` entry. |
+| **TOML block** pasted directly | A `[[haybales]]` (or `[[markets]]`/`[[stalls]]`) section pasted into the field | Saved as a local file under `~/.haywire/db/haybale_marketplace/stalls/<dist-name>.toml` and referenced via a `file://` `[[stalls]]` entry. |
 
 You don't pick a tab — the runtime inspects the fetched body and decides:
 

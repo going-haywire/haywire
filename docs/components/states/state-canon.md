@@ -183,6 +183,19 @@ from haywire.core.state import (
 from haywire.core.session.signals import signal_field
 ```
 
+**Per-library persistent storage.** If your `AppState` needs to read or write files that should survive across sessions (a cache, a database, saved state), use `library_storage_dir(__name__)` from `haywire.core.storage`. It returns (and lazily creates) `~/.haywire/db/<your_top_package>/` — a directory that belongs to your library and is never touched by the framework on uninstall.
+
+```python
+from haywire.core.storage import library_storage_dir
+
+class MyState(AppState):
+    def on_enable(self) -> None:
+        self._db_dir = library_storage_dir(__name__)   # ~/.haywire/db/haybale_mylib/
+        self._cache_file = self._db_dir / "cache.json"
+```
+
+Pass `__name__` — the same idiom as `logging.getLogger(__name__)`. The top-level package is derived automatically (`haybale_mylib.state` → `haybale_mylib`). The directory is created on first call and the call is idempotent. Do **not** call it in `__init__` — `on_enable` is the right lifecycle point, consistent with all other resolved dependencies.
+
 ## 4. One comprehensive example
 
 A library `haybale_midi` that exercises both scopes: an `AppState` (`MidiPool`) holding live device handles plus a composed `LibrarySettings` for poll rate, and a `SessionState` (`MidiSelection`) tracking which device the active session has picked. Plus a panel and a worker reading both.

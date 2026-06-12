@@ -516,7 +516,7 @@ uv pip install "haybale-mylib @ git+https://github.com/user/repo.git#subdirector
 | `uv run haywire share [--save] --strict` | Refuse to emit if any library has dependency drift (declared manifest ≠ source imports). Use in CI. |
 | `uv run haywire share [--save] --fix` | Auto-correct drift in place before emitting. Rewrites pyproject.toml `[project] dependencies` and `@library(dependencies=...)` for every drifty library. |
 | `uv run haywire init my-project` | Scaffold a new project. Writes `<my-project>/.haywire/marketplace.toml` with the project's own library as a `[[heaps]]` entry. |
-| `uv run haywire init my-project --dev` | Same, but additionally writes one `[[heaps]]` per haybale in the local dev repo into the project marketplace — *not* the global marketplace. The user's `~/.haywire/db/haybale-marketplace/marketplace.toml` is left untouched. |
+| `uv run haywire init my-project --dev` | Same, but additionally writes one `[[heaps]]` per haybale in the local dev repo into the project marketplace — *not* the global marketplace. The user's `~/.haywire/db/haybale_marketplace/marketplace.toml` is left untouched. |
 
 For the full author flow including how to keep manifests in sync without `--fix`, see the [sharing-libraries guide](../guides/sharing-libraries.md). For the consumer flow that subscribes to what you publish, see [subscribing-to-marketplaces](../guides/subscribing-to-marketplaces.md).
 

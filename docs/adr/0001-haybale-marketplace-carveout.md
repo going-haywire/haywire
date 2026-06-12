@@ -41,7 +41,7 @@ Optionality is the load-bearing property: hosts construct `HostStore` (file-back
 
 The marketplace UI is not a special case here. Its enable/disable buttons call `manager.registry.enable_library(id)` / `manager.registry.disable_library(id)` directly; the registry handles persistence. There is no AppState in between, no `LibraryEnableState` wrapper.
 
-`MarketplaceState` (currently in `haybale-studio`, owner of `~/.haywire/db/haybale-marketplace/marketplace.toml` and `<project>/.haywire/marketplace.toml`) moves too, by the same logic: it's marketplace-concern state, not studio-concern state.
+`MarketplaceState` (currently in `haybale-studio`, owner of `~/.haywire/db/haybale_marketplace/marketplace.toml` and `<project>/.haywire/marketplace.toml`) moves too, by the same logic: it's marketplace-concern state, not studio-concern state.
 
 ## Why `IProjectState.library_manager` goes away
 
