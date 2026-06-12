@@ -2968,7 +2968,7 @@
 <h2 id="2-the-two-tier-marketplace">2. The two-tier marketplace<a class="headerlink" href="#2-the-two-tier-marketplace" title="Permanent link">&para;</a></h2>
 <p>Two files cooperate. Their concerns are deliberately separated. This section is the architecture-level summary of the file format.</p>
 <h3 id="21-global-marketplace">2.1 Global marketplace<a class="headerlink" href="#21-global-marketplace" title="Permanent link">&para;</a></h3>
-<p><strong>Path:</strong> <code>~/.haywire/db/haybale-marketplace/marketplace.toml</code>.
+<p><strong>Path:</strong> <code>~/.haywire/db/haybale_marketplace/marketplace.toml</code>.
 <strong>Owner:</strong> the user (per-machine).
 <strong>Purpose:</strong> records what the user has opted into following, plus per-source overrides.</p>
 <table>
@@ -2993,7 +2993,7 @@
 <tr>
 <td><code>[[haybales]]</code></td>
 <td>full <code>Haybale</code> schema</td>
-<td>A library the user has pasted in directly. Persisted under <code>~/.haywire/db/haybale-marketplace/stalls/&lt;dist-name&gt;.toml</code> and referenced via a <code>file://</code> <code>[[stalls]]</code> entry — there's no separate inline section.</td>
+<td>A library the user has pasted in directly. Persisted under <code>~/.haywire/db/haybale_marketplace/stalls/&lt;dist-name&gt;.toml</code> and referenced via a <code>file://</code> <code>[[stalls]]</code> entry — there's no separate inline section.</td>
 </tr>
 </tbody>
 </table>
@@ -3175,7 +3175,7 @@
 <h3 id="31-one-level-deep-resolution">3.1 One-level-deep resolution<a class="headerlink" href="#31-one-level-deep-resolution" title="Permanent link">&para;</a></h3>
 <p>When a remote <code>[[markets]]</code> body lists its <em>own</em> <code>[[markets]]</code> subscriptions, those are ignored. Only the remote's <code>[[stalls]]</code> references and inline <code>[[haybales]]</code> are consumed. This bounds the resolution to a single hop and keeps the trust model legible — see <a href="../../../architecture/sharing/sharing-arch/#bounded-resolution">sharing-arch §Bounded resolution</a>.</p>
 <h3 id="32-http-cache-and-fallback">3.2 HTTP cache and fallback<a class="headerlink" href="#32-http-cache-and-fallback" title="Permanent link">&para;</a></h3>
-<p>Every fetched URL is cached on disk at <code>~/.haywire/db/haybale-marketplace/cache/&lt;url-hash&gt;.toml</code>. If a refresh fetch fails (network error, 404), the runtime falls back to the cached body. If neither succeeds, the URL is recorded in the <code>RefreshReport.unavailable_urls</code> list. Cache invalidation happens only on the next successful fetch — there is no TTL.</p>
+<p>Every fetched URL is cached on disk at <code>~/.haywire/db/haybale_marketplace/cache/&lt;url-hash&gt;.toml</code>. If a refresh fetch fails (network error, 404), the runtime falls back to the cached body. If neither succeeds, the URL is recorded in the <code>RefreshReport.unavailable_urls</code> list. Cache invalidation happens only on the next successful fetch — there is no TTL.</p>
 <h3 id="33-conflict-resolution">3.3 Conflict resolution<a class="headerlink" href="#33-conflict-resolution" title="Permanent link">&para;</a></h3>
 <p>Conflicts come from two sources providing the same <code>name</code>. The runtime applies four filters; the per-subscription ones (<code>blocked</code>, <code>ignores</code>) run while building each candidate batch, the cross-list ones (heaps shadow, first-come-first-served) run on the combined list:</p>
 <table>
@@ -3322,7 +3322,7 @@
 </tbody>
 </table>
 <p>The remaining three (<code>library_component_editor</code>, <code>component_source_editor</code>, <code>library_marketplace_dialog</code>) handle per-component inspection, editable source viewing, and the Add-Source flow. The full editor/state inventory is in <a href="../marketplace-canon.md#3-what-the-plugin-ships">marketplace-canon §What it ships</a>.</p>
-<p><code>LibraryManager</code> (the orchestrator class in <code>barn/haybale-marketplace/haybale_marketplace/library_manager.py</code>) owns the install / uninstall / enable / disable / rename / edit-identity verbs. It is a plain class — <em>not</em> an <code>AppState</code>. It is published to the other editors through a thin <code>LibraryManagerState(AppState)</code> holder (composition, not inheritance — see <a href="../../../adr/0001-haybale-marketplace-carveout/">ADR-0001 §Why composition</a>), so consumers reach it via <code>ctx.app_data[LibraryManagerState].manager.X</code>. The state resolves the registry and workspace root from the ambient DI context in <code>on_enable()</code>.</p>
+<p><code>LibraryManager</code> (the orchestrator class in <code>barn/haybale-marketplace/haybale_marketplace/library_manager.py</code>) owns the install / uninstall / enable / disable / edit-identity verbs. It is a plain class — <em>not</em> an <code>AppState</code>. It is published to the other editors through a thin <code>LibraryManagerState(AppState)</code> holder (composition, not inheritance — see <a href="../../../adr/0001-haybale-marketplace-carveout/">ADR-0001 §Why composition</a>), so consumers reach it via <code>ctx.app_data[LibraryManagerState].manager.X</code>. The state resolves the registry and workspace root from the ambient DI context in <code>on_enable()</code>.</p>
 <p>Enable/disable <strong>persistence</strong> is not a manager concern: the core <code>LibraryRegistry</code> owns it via <code>HostStore</code> (<code>&lt;workspace&gt;/.haywire/host.toml</code>). The editors call <code>manager.registry.enable_library(id)</code> / <code>disable_library(id)</code> directly and the registry writes through. See <a href="../../../adr/0001-haybale-marketplace-carveout/">ADR-0001 §Why persistence moves out of the manager</a>.</p>
 <h3 id="43-the-library-browsers-filter-rules">4.3 The Library Browser's filter rules<a class="headerlink" href="#43-the-library-browsers-filter-rules" title="Permanent link">&para;</a></h3>
 <p>The Browser groups libraries into four sections, computed at render time:</p>
@@ -3473,7 +3473,7 @@
 </ul>
 <h2 id="9-examples">9. Examples<a class="headerlink" href="#9-examples" title="Permanent link">&para;</a></h2>
 <h3 id="91-subscribing-to-the-official-feed">9.1 Subscribing to the official feed<a class="headerlink" href="#91-subscribing-to-the-official-feed" title="Permanent link">&para;</a></h3>
-<p>The user clicks <strong>Add Source</strong> in the Library Browser, pastes one URL — the single-field dialog accepts a blob URL, a raw URL, a plain TOML URL, or a TOML block pasted directly (spec §4.2). The runtime fetches the body, inspects its shape, and writes either a <code>[[markets]]</code> (aggregator catalog) or a <code>[[stalls]]</code> (single marketstall) entry to <code>~/.haywire/db/haybale-marketplace/marketplace.toml</code>. For the official feed:</p>
+<p>The user clicks <strong>Add Source</strong> in the Library Browser, pastes one URL — the single-field dialog accepts a blob URL, a raw URL, a plain TOML URL, or a TOML block pasted directly (spec §4.2). The runtime fetches the body, inspects its shape, and writes either a <code>[[markets]]</code> (aggregator catalog) or a <code>[[stalls]]</code> (single marketstall) entry to <code>~/.haywire/db/haybale_marketplace/marketplace.toml</code>. For the official feed:</p>
 <div class="language-toml highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="k">[[markets]]</span>
 </span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="n">url</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;https://going-haywire.github.io/haywire/marketplace.toml&quot;</span>
 </span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="n">ignores</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[]</span>
@@ -3497,7 +3497,7 @@
 </span><span id="__span-3-12"><a id="__codelineno-3-12" name="__codelineno-3-12" href="#__codelineno-3-12"></a>
 </span><span id="__span-3-13"><a id="__codelineno-3-13" name="__codelineno-3-13" href="#__codelineno-3-13"></a><span class="c1"># ...one [[heaps]] per dev-repo sibling library</span>
 </span></code></pre></div>
-<p>The user's <code>~/.haywire/db/haybale-marketplace/marketplace.toml</code> is left untouched. The dev-repo libraries are scoped to this project only; opening a different project doesn't see them.</p>
+<p>The user's <code>~/.haywire/db/haybale_marketplace/marketplace.toml</code> is left untouched. The dev-repo libraries are scoped to this project only; opening a different project doesn't see them.</p>
 <h3 id="93-what-haywire-share-save-produces">9.3 What <code>haywire share --save</code> produces<a class="headerlink" href="#93-what-haywire-share-save-produces" title="Permanent link">&para;</a></h3>
 <p>Running <code>haywire share --save</code> at a repo root with a <code>barn/</code> containing libraries writes <code>&lt;repo-root&gt;/marketstall.toml</code>:</p>
 <div class="language-toml highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="c1"># marketstall.toml — share this file&#39;s raw URL so others can subscribe</span>
