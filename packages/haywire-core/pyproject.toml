@@ -22,6 +22,8 @@ dependencies = [
     "toml>=0.10.2",
     "packaging",
     "typing_extensions",
+    "markdown2>=2.5",
+    "pygments>=2.18",
 ]
 
 [tool.hatch.build.targets.wheel]
