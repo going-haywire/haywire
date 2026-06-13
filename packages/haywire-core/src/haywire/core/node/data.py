@@ -740,13 +740,10 @@ class NodeData:
                 # Broken hierarchy - assume visible
                 break
 
-            # Check if this group is collapsed
-            try:
-                if not self.value(current_group_id):
-                    return True
-            except (KeyError, Exception):
-                # If we can't get state, assume expanded
-                pass
+            # group_port is in self.ports (checked above), so value() cannot
+            # KeyError here. Check whether this group is collapsed.
+            if not self.value(current_group_id):
+                return True
 
             # Move up to parent group
             current_group_id = group_port.parent_group
