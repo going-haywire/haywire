@@ -5,8 +5,8 @@
 **Path:** `barn/haybale-example/`, `barn/haybale-testing/`, `barn/haybale-TEST_A/`
 **Language:** Python 3.10+
 **Owner:** Various (bundled plugins)
-**Tree hashes:** (updated 2026-06-10)
-**Mapped at:** b5068ae7 (2026-06-10)
+**Tree hashes:** (2026-06-13)
+**Mapped at:** 8cc9ff00 (2026-06-13)
 
 > ⚠️ `barn/haybale-visiongraph/` is now **gitignored** (`.gitignore:211`) and untracked in HEAD — it exists on disk as a local-only library and is no longer part of the committed repo. It is therefore dropped from this map's hash tracking.
 

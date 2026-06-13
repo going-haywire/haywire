@@ -5,8 +5,8 @@
 **Path:** `packages/haywire-studio/src/haywire_studio/`
 **Language:** Python 3.10+
 **Owner:** Haywire studio team
-**Tree hash:** (updated 2026-06-10)
-**Mapped at:** b5068ae7 (2026-06-10)
+**Tree hash:** 20bbe022 (2026-06-13)
+**Mapped at:** 8cc9ff00 (2026-06-13)
 
 ---
 
@@ -23,6 +23,7 @@ haywire_studio/
 ├── app.py              ← `HaywireApp` – top-level orchestrator
 ├── config.py           ← global + project TOML config readers/writers
 ├── init.py             ← CLI: `haywire init` scaffolding
+├── rename.py           (new) ← CLI: `haywire rename` (relocates library renames from marketplace editor)
 ├── share.py            ← CLI: `haywire share` (thin wrapper over core/marketstall/share)
 └── workspace/          ← studio-specific workspace pieces
 ```
@@ -39,10 +40,11 @@ haywire_studio/
 
 ### On-demand
 
-- **`init.py`** (updated) — `haywire init` scaffolding CLI subcommand.
-- **`share.py`** (updated) — `haywire share` CLI; thin wrapper over `core/marketstall/share.py`.
-- **`app.py`** (updated) — HaywireApp orchestrator; wires up all plugins.
-- **`config.py`** (updated) — TOML config resolution logic.
+- **`init.py`** — `haywire init` scaffolding CLI subcommand; updated with new storage path helpers.
+- **`rename.py`** (new) — `haywire rename` CLI; JSON-aware library rename with dry-run graph patching (moved from marketplace editor).
+- **`share.py`** — `haywire share` CLI; thin wrapper over `core/marketstall/share.py`.
+- **`app.py`** — HaywireApp orchestrator; wires up all plugins.
+- **`config.py`** — TOML config resolution logic.
 - `workspace/` — when changing workspace-specific pieces.
 
 ## 4. Rules & Boundaries
@@ -85,4 +87,5 @@ haywire_studio/
 | `python -m haywire_studio` | `__main__.py` | Same as above without script alias |
 | App boot | `app.py:HaywireApp` | NiceGUI server + library loading |
 | `haywire init` | `init.py` | Scaffolds a new project tree |
+| `haywire rename` | `rename.py` | Relocates library with JSON-aware graph patching |
 | `haywire share` | `share.py` | Export/share flows |

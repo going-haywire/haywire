@@ -5,8 +5,8 @@
 **Path:** `packages/haywire-core/src/haywire/ui/`
 **Language:** Python + Vue 3 (.vue) + JS
 **Owner:** Haywire core team
-**Tree hash:** part of `packages/haywire-core`
-**Mapped at:** b5068ae7 (2026-06-10)
+**Tree hash:** part of `packages/haywire-core` (b5c34c5e)
+**Mapped at:** 8cc9ff00 (2026-06-13)
 
 ---
 
@@ -21,18 +21,20 @@ ui/
 ├── app/             ← app shell, slots (icon_slot, tab_slot, generic slot)
 ├── components/      ← Vue components: graph/, zoom/, popup/
 │   ├── graph/       ← canvas.py + canvas.vue (main editing surface + event defs)
-│   ├── debug_overlay/ (new) ← optional debug UI for tracing
+│   ├── debug_overlay/ ← optional debug UI for tracing
 │   └── zoom/        ← pan.py (pan.vue rewrite for perf)
 ├── editor/          ← Editor base + decorator + registry + wrapper + identity
 ├── elements/        ← shared NiceGUI elements + icon set
 ├── errors/          ← UI-level error info
 ├── modals/          ← confirm, pick, rename, save-as dialogs
 ├── panel/           ← Panel base + decorator + registry + focus + layout
+│   ├── host_rendering.py (new) ← renders panels under host ownership (replaces error_boundary)
+│   └── redraw_coordinator.py (new) ← coordinates panel redraws to avoid slot deletion
 ├── prefs/           ← canvas/editor/edge_ui preferences
 ├── skin/            ← Skin interface + factory + decorator + registry + settings
 ├── themes/          ← Theme decorator, icons
 ├── widget/          ← **BaseWidget unification** (binding, converters, simple merged in)
-├── nicegui_patches.py (new) ← patches for NiceGUI/Quasar issues
+├── nicegui_patches.py ← patches for NiceGUI/Quasar issues
 └── utils.py         ← shared helpers
 ```
 

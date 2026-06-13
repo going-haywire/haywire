@@ -5,8 +5,8 @@
 **Path:** `docs/`
 **Language:** Markdown (mkdocs-material)
 **Owner:** All teams (each owns docs near their module)
-**Tree hash:** (updated 2026-06-10)
-**Mapped at:** b5068ae7 (2026-06-10)
+**Tree hash:** 226e9f95 (2026-06-13)
+**Mapped at:** 8cc9ff00 (2026-06-13)
 
 ---
 
@@ -32,7 +32,10 @@ docs/
 │   └── <area>/<area>-arch.md
 ├── components/            ← extension-point authoring guides
 │   ├── widgets/widget-canon.md (majorly rewritten for widget unification)
-│   ├── panels/panel-canon.md (updated with new panel patterns)
+│   ├── panels/
+│   │   └── panel-canon.md (updated — host rendering, redraw coordination patterns)
+│   ├── states/
+│   │   └── state-canon.md (new — state container & FocusId patterns)
 │   ├── editors/editor-canon.md
 │   └── <area>-canon.md files
 ├── haybale/               ← library/package authoring + marketplace docs

@@ -5,8 +5,8 @@
 **Path:** `barn/haybale-marketplace/haybale_marketplace/`
 **Language:** Python 3.10+
 **Owner:** Haywire team (optional bundled plugin)
-**Tree hash:** (updated 2026-06-10)
-**Mapped at:** b5068ae7 (2026-06-10)
+**Tree hash:** c900f290 (2026-06-13)
+**Mapped at:** 8cc9ff00 (2026-06-13)
 
 ---
 
@@ -19,16 +19,21 @@
 ```
 haybale_marketplace/
 ├── __init__.py                ← Library subclass; scans state/ BEFORE editors/
+├── config.py                  (new) ← marketplace config (PyPI + custom registry defaults)
 ├── library_manager.py         ← LibraryManager service: pip + reload + eviction
 ├── state/
 │   ├── library_manager_state.py  ← publishes LibraryManager for editors
 │   └── marketplace_state.py      ← wraps core Marketstall (parse/refresh/impact)
 └── editors/
-    ├── library_browser_editor.py     ← browse/install/enable surface
-    ├── library_overview_editor.py    ← per-library overview
-    ├── library_component_editor.py   ← per-component view
-    ├── component_source_editor.py    ← source inspector
-    └── library_marketplace_dialog.py ← install/upgrade impact + progress dialog
+    ├── _overview_actions.py                (new) ← overview action handlers (refactored from library_overview_editor)
+    ├── _overview_edit_dialog.py            (new) ← library edit dialog (refactored)
+    ├── _overview_install_flow.py           (new) ← 3-step install flow (dry-run → impact → progress)
+    ├── _registry_utils.py                  (new) ← registry parsing + display helpers
+    ├── library_browser_editor.py           ← browse/install/enable surface (simplified, delegates to submodules)
+    ├── library_overview_editor.py          ← per-library overview (refactored, uses _overview_* modules)
+    ├── library_component_editor.py         ← per-component view
+    ├── component_source_editor.py          ← source inspector
+    └── library_marketplace_dialog.py       ← install/upgrade impact + progress dialog
 ```
 
 ## 3. Always-load vs On-demand
@@ -40,11 +45,18 @@ haybale_marketplace/
 
 ### On-demand
 
+- **`config.py`** (new) — marketplace configuration (PyPI endpoint, custom registries).
 - `state/marketplace_state.py` — when changing manifest parsing, refresh, or install/upgrade impact (delegates to core `marketstall`).
 - `state/library_manager_state.py` — when changing how editors obtain the manager.
-- **`editors/library_browser_editor.py`** (updated UX) — main browser surface; see memory `project_install_hotreload_fix` for 3-step install flow.
-- `editors/library_overview_editor.py` (updated) — per-library overview.
+- **`editors/library_browser_editor.py`** — main browser surface; simplified after refactoring, delegates to overview modules.
+- **`editors/library_overview_editor.py`** (refactored) — per-library overview; now uses `_overview_*` submodules.
+- **`editors/_overview_actions.py`** (new) — action handlers extracted from overview editor.
+- **`editors/_overview_edit_dialog.py`** (new) — library edit dialog extracted.
+- **`editors/_overview_install_flow.py`** (new) — 3-step install flow (dry-run → impact → progress) implementation.
+- **`editors/_registry_utils.py`** (new) — registry parsing helpers.
 - `editors/library_marketplace_dialog.py` — install/upgrade impact + progress dialogs.
+- `editors/library_component_editor.py` — per-component view.
+- `editors/component_source_editor.py` — source inspector.
 
 ## 4. Rules & Boundaries
 

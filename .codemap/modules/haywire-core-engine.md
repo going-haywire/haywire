@@ -5,8 +5,8 @@
 **Path:** `packages/haywire-core/src/haywire/core/`
 **Language:** Python 3.10+
 **Owner:** Haywire core team
-**Tree hash:** `(part of packages/haywire-core)`
-**Mapped at:** b5068ae7 (2026-06-10)
+**Tree hash:** `(part of packages/haywire-core)` (b5c34c5e)
+**Mapped at:** 8cc9ff00 (2026-06-13)
 
 ---
 
@@ -37,7 +37,8 @@ haywire/core/
 ├── undo/            ← undo/redo stack (includes paste_action.py)
 ├── debug/           ← debug helpers
 ├── errors/          ← error types
-└── namespaces.py    ← namespace constants
+├── namespaces.py    ← namespace constants
+└── storage.py       (new) ← storage path helpers (unifies workspace + per-library storage)
 ```
 
 ## 3. Always-load vs On-demand

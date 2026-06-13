@@ -5,8 +5,8 @@
 **Path:** `barn/haybale-graph-editor/haybale_graph_editor/`
 **Language:** Python 3.10+
 **Owner:** Haywire studio team (bundled plugin)
-**Tree hash:** (updated 2026-06-10)
-**Mapped at:** b5068ae7 (2026-06-10)
+**Tree hash:** b55488bd (2026-06-13)
+**Mapped at:** 8cc9ff00 (2026-06-13)
 
 ---
 
@@ -24,7 +24,8 @@ haybale_graph_editor/
 ├── protocols.py             ← GraphContainer Protocol
 ├── focuses.py (rewritten)   ← PortFocus / PinFocus focus management
 ├── editors/
-│   ├── graph_editor.py      ← GraphEditor surface (canvas + save-as)
+│   ├── graph_editor.py      ← GraphEditor surface (canvas + tab chrome)
+│   ├── graph_save_as.py     (new) ← extracted save-as dialog logic
 │   ├── node_status.py (new) ← shows warnings on nodes
 │   └── graph_canvas/        ← **Major rewrite** (selection, handlers, context menu)
 │       ├── handlers/

@@ -5,8 +5,8 @@
 **Path:** `barn/haybale-haystack/haybale_haystack/`
 **Language:** Python 3.10+
 **Owner:** Haywire studio team (bundled plugin)
-**Tree hash:** (updated 2026-06-10)
-**Mapped at:** b5068ae7 (2026-06-10)
+**Tree hash:** 5055151c (2026-06-13)
+**Mapped at:** 8cc9ff00 (2026-06-13)
 
 ---
 

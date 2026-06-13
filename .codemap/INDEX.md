@@ -4,7 +4,7 @@
 
 | Generated | Last refreshed | Commit | Tool |
 |-----------|----------------|--------|------|
-| 2026-05-16 10:25 UTC | 2026-06-10 | b5068ae7 | codebase-cartographer |
+| 2026-05-16 10:25 UTC | 2026-06-13 | 8cc9ff00 | codebase-cartographer |
 
 ## Tech Stack
 
