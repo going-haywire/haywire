@@ -229,28 +229,24 @@ class NodeSkin(BaseSkin, ABC):
 
         elif pin.flow_type == FlowType.DATA:
             pin_color = pin.color
-            pin_data_type = pin._data.get_stored_type().class_identity.registry_key
+            stored_type = pin.stored_type
+            pin_data_type = stored_type.class_identity.registry_key
             if pin.is_inlet():
                 if pin.allow_multiple_links:
-                    if issubclass(pin._data.get_stored_type(), CompoundType):
-                        data_icon = (
-                            pin._data.get_stored_type().class_identity.icon_in_multi or ICONS.WEB_STORIES
-                        )
+                    if issubclass(stored_type, CompoundType):
+                        data_icon = stored_type.class_identity.icon_in_multi or ICONS.WEB_STORIES
                     else:
-                        data_icon = (
-                            pin._data.get_stored_type().class_identity.icon_in_multi
-                            or ICONS.FIBER_SMART_RECORD
-                        )
+                        data_icon = stored_type.class_identity.icon_in_multi or ICONS.FIBER_SMART_RECORD
                 else:
                     if pin.type_cls and issubclass(pin.type_cls, CompoundType):
-                        data_icon = pin._data.get_stored_type().class_identity.icon_in or ICONS.VIEW_DAY
+                        data_icon = stored_type.class_identity.icon_in or ICONS.VIEW_DAY
                     else:
-                        data_icon = pin._data.get_stored_type().class_identity.icon_in or ICONS.MY_LOCATION
+                        data_icon = stored_type.class_identity.icon_in or ICONS.MY_LOCATION
             else:
                 if pin.type_cls and issubclass(pin.type_cls, CompoundType):
-                    data_icon = pin._data.get_stored_type().class_identity.icon_out_multi or ICONS.VIEW_DAY
+                    data_icon = stored_type.class_identity.icon_out_multi or ICONS.VIEW_DAY
                 else:
-                    data_icon = pin._data.get_stored_type().class_identity.icon_out_multi or ICONS.CIRCLE
+                    data_icon = stored_type.class_identity.icon_out_multi or ICONS.CIRCLE
             pin_el = (
                 ui.icon(data_icon, color=pin_color, size=pin_size)
                 .classes("port connection-pin zoom-pan-lod0")

@@ -5,12 +5,17 @@ This module provides the DataPortIdentity class which combines registry identity
 with type specification for all data that can flow through ports.
 """
 
-from dataclasses import dataclass, field
-from typing import Any
+from __future__ import annotations
 
-from haywire.core.types.enums import StoreStrategy
+from dataclasses import dataclass, field
+from typing import TYPE_CHECKING, Any
+
+from haywire.core.types.enums import FlowType, StoreStrategy
 
 from ..registry.identity import BaseIdentity
+
+if TYPE_CHECKING:
+    from haywire.core.types.interface import IType
 
 
 @dataclass
@@ -51,8 +56,6 @@ class DataTypeIdentity(BaseIdentity):
     # registry_key: str = ''
     # label: str = ''
     # description: str = ''
-    from . import IType
-    from .enums import FlowType
 
     # Override flow_type to make it required for ports
     flow_type: FlowType = FlowType.NONE

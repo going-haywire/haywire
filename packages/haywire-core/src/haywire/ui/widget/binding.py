@@ -98,8 +98,8 @@ class PropertyBinding:
         def on_model_changed(_):
             self.sync_to_view()
 
-        assert self._element is not None and self._element._data is not None
-        element_data = self._element._data
+        assert self._element is not None and self._element.data is not None
+        element_data = self._element.data
         element_data.on_changed += on_model_changed
         self._cleanup_callbacks.append(lambda: element_data.on_changed.remove(on_model_changed))
 
@@ -112,7 +112,7 @@ class PropertyBinding:
         if self.source_property == "value":
             model_value = self._element.get_value()
         else:
-            field = self._element._data
+            field = self._element.data
             if isinstance(field, BaseField):
                 container = field._container
                 model_value = self._navigate_path(container, self.source_property)
@@ -196,7 +196,7 @@ class PropertyBinding:
             ValueError: If field type doesn't support property updates
         """
         assert self._element is not None
-        field = self._element._data
+        field = self._element.data
 
         # Only works for BaseField
         if not isinstance(field, BaseField):

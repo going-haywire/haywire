@@ -48,6 +48,5 @@ class PortInfoPanel(BasePanel):
             if port.description:
                 hui.label(port.description)
             hui.info_label(f"Flow: {port.flow_type.value}")
-            if hasattr(port, "_data"):
-                type_key = port._data.get_stored_type().class_identity.registry_key
-                hui.info_label(f"Type: {type_key}")
+            type_key = port.stored_type.class_identity.registry_key
+            hui.info_label(f"Type: {type_key}")

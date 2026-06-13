@@ -430,8 +430,8 @@ class VisualLayerHandlers:
             if pending_flow and port.flow_type.value != pending_flow:
                 continue
             # For data pins, data type must match if provided
-            if pending_data and hasattr(port, "_data"):
-                type_key = port._data.get_stored_type().class_identity.registry_key
+            if pending_data:
+                type_key = port.stored_type.class_identity.registry_key
                 if type_key != pending_data:
                     continue
             compatible_ports.append(port_id)

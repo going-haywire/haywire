@@ -548,9 +548,9 @@ class EdgeWrapper:
             # create adapter chain (only for DATA edges)
             if self._edge_type == FlowType.DATA:
                 # Inlet determines what type it needs from outlet
-                sink_type = inlet_port._data.get_stored_type()
+                sink_type = inlet_port.stored_type
 
-                outlet_field = outlet_port._data
+                outlet_field = outlet_port.data
                 source_type = outlet_field.type_cls
 
                 # Create new chain

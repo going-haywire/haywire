@@ -9,7 +9,7 @@ from __future__ import annotations
 from dataclasses import MISSING, dataclass, field, fields
 from typing import Any, Dict, Optional, TYPE_CHECKING
 
-from haywire.core.types.enums import FlowType, PortType, ShowWidgetStrategy, StoreStrategy
+from haywire.core.types.enums import FlowType, PortType, ShowWidgetStrategy
 from haywire.core.edge.edge_wrapper import EdgeWrapper
 from haywire.core.types.identity import DataTypeIdentity
 from haywire.core.types.interface import IType
@@ -229,6 +229,20 @@ class DataPort(DataTypeIdentity):
     # VALUE MANAGEMENT
     # ========================================================================
 
+    @property
+    def data(self) -> DataField:
+        """The port's underlying ``DataField`` (typed storage + ``on_changed``).
+
+        Public accessor for the field; compound fields expose shape-specific
+        helpers (``get_values_list()``, ``get_source_ids()``, ``get_item()``).
+        """
+        return self._data
+
+    @property
+    def stored_type(self) -> type[IType]:
+        """The ``IType`` actually stored by this port's field (see ``DataField.get_stored_type``)."""
+        return self._data.get_stored_type()
+
     def get_value(self) -> Any:
         """
         Get unwrapped value for worker convenience.
@@ -263,9 +277,11 @@ class DataPort(DataTypeIdentity):
             return
 
         self._data.set_value(new_value, source_id=edge_id)
-        self._is_set_by_node = False
 
         if self.is_inlet():
+            # Inlet values come from an edge (edge_id set) or a widget/programmatic
+            # set — never from the owning node, so clear the node-set flag.
+            self._is_set_by_node = False
             if edge_id is None and self.on_change is not None:
                 # Widget/programmatic change → fire on_change immediately
                 self._trigger_callback("on_change", new_value)
@@ -273,7 +289,9 @@ class DataPort(DataTypeIdentity):
                 # Edge-driven OR no callback → defer to resolve_dirty_data()
                 self._mark_as_data_dirty()
         else:
-            # Outlet: fire on_change immediately (node is the setter)
+            # Outlet: the node is always the setter (out() is the only caller).
+            self._is_set_by_node = True
+            # Fire on_change immediately (node is the setter)
             if self.on_change is not None:
                 self._trigger_callback("on_change", new_value)
             if self._pipes is not None:
@@ -335,6 +353,20 @@ class DataPort(DataTypeIdentity):
             return self.is_linked()
         # NOT_LINKED
         return not self.is_linked()
+
+    def adopt_state_from(self, existing: "DataPort") -> None:
+        """Transplant edge state (and value, when types match) from a port being
+        replaced during reconfiguration. Called by ``BaseNode.add`` when a port id
+        is re-added in a push/rejig context.
+        """
+        self._linked_edges = existing._linked_edges.copy()
+        self._all_edges = existing._all_edges.copy()
+
+        # Preserve the field instance only when the type is unchanged, so the
+        # stored value (and its observers) survive the port swap.
+        if existing._data is not None and self._data is not None:
+            if existing.type_cls is self.type_cls:
+                self._data = existing._data
 
     def _add_link(self, edge_wrapper: EdgeWrapper) -> EdgeWrapper | None:
         """
@@ -511,11 +543,11 @@ class DataPort(DataTypeIdentity):
     # ========================================================================
 
     def has_pin(self) -> bool:
+        """Whether this port renders a connection pin on the canvas.
+
+        Config ports are panel-only (no pin); every inlet/outlet renders one.
         """
-        Check if this is a visible pin (not a config)
-        TODO: Not shure if this approach is correct
-        """
-        return self.flow_type != FlowType.NONE or self.port_type != PortType.CONFIG
+        return not self.is_config()
 
     def is_callback_pin(self) -> bool:
         """Check if this is a callback pin"""
@@ -641,14 +673,10 @@ class DataPort(DataTypeIdentity):
 
         # Optionally serialize field data
         if include_data and self._data:
-            ss = self.store_strategy
-            if (
-                not (ss & StoreStrategy.NEVER)
-                and ss != StoreStrategy.NONE
-                or (ss & StoreStrategy.ALWAYS)
-                or (ss & StoreStrategy.WHEN_LINKED and self.is_linked())
-                or (ss & StoreStrategy.HAS_WIDGET and self.widget_key is not None)
-                or (ss & StoreStrategy.NODE_SET and self._is_set_by_node)
+            if self.store_strategy.should_store(
+                is_linked=self.is_linked(),
+                has_widget=self.widget_key is not None,
+                node_set=self._is_set_by_node,
             ):
                 result["field_data"] = self._data.to_dict()
 

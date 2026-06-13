@@ -119,6 +119,8 @@ def worker(self, context: ExecutionContext, value: float, name: str = 'default')
 
 **Connection-state checking.** Use `self.ports['id'].is_linked()` — returns `True` when at least one edge is linked to the port. Some older docs reference `is_connected` or `inlets[id].is_connected`; those names do not exist on the current API.
 
+**Underlying field access.** `port.data` returns the port's `DataField` — the typed storage behind the port. Compound shapes expose shape-specific helpers on it (`get_values_list()`, `get_source_ids()` for pooled; `get_item()`, `len()` for array). `port.stored_type` is a shortcut for the `IType` the field actually stores.
+
 **Pooled access helpers.** A pooled inlet's value is a `dict[node_id, value]`. The underlying field also exposes:
 
 ```python

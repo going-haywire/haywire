@@ -52,6 +52,23 @@ class StoreStrategy(IntFlag):
     NODE_SET = 8
     ALWAYS = HAS_WIDGET | WHEN_LINKED | NODE_SET  # 14
 
+    def should_store(self, *, is_linked: bool, has_widget: bool, node_set: bool) -> bool:
+        """Resolve whether a port with this strategy should serialize its value.
+
+        ``NEVER`` and ``NONE`` never store. ``ALWAYS`` always stores. Otherwise
+        store if any set flag matches the port's current state (OR semantics —
+        there is no AND combination).
+        """
+        if self & StoreStrategy.NEVER or self == StoreStrategy.NONE:
+            return False
+        if (self & StoreStrategy.ALWAYS) == StoreStrategy.ALWAYS:
+            return True
+        return bool(
+            (self & StoreStrategy.WHEN_LINKED and is_linked)
+            or (self & StoreStrategy.HAS_WIDGET and has_widget)
+            or (self & StoreStrategy.NODE_SET and node_set)
+        )
+
 
 class ShowWidgetStrategy(Enum):
     """

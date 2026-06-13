@@ -260,14 +260,8 @@ class NodeData:
             else:
                 raise ValueError(f"Port ID already exists: {port.id}")
 
-            # Preserve connections from existing port
-            port._linked_edges = existing._linked_edges.copy()
-            port._all_edges = existing._all_edges.copy()
-
-            # Preserve value if types are compatible
-            if existing._data is not None and port._data is not None:
-                if existing.type_cls is port.type_cls:
-                    port._data = existing._data
+            # Preserve edges (and value, if types match) from the replaced port.
+            port.adopt_state_from(existing)
 
         # Add to ports collection
         self.ports[port.id] = port
@@ -544,10 +538,8 @@ class NodeData:
         if port.is_inlet():
             raise ValueError(f"Port '{id}' is an inlet and cannot be set via out()")
 
+        # set_value() flags the outlet as node-set (out() is its only caller).
         port.set_value(value)
-
-        # this indicates to the port that the value was set by the node
-        port._is_set_by_node = True
 
     # =========================================================================
     # Port Querying and Organization

@@ -101,7 +101,7 @@ class BaseWidget(IWidget, ABC):
 
             # Single model→view dispatch channel → on_model_changed.
             self._model_dispatch_cb = lambda _: self.on_model_changed(self.port.get_value())
-            self.port._data.on_changed += self._model_dispatch_cb
+            self.port.data.on_changed += self._model_dispatch_cb
 
             # Initial sync.
             self.on_model_changed(self.port.get_value())
@@ -118,7 +118,7 @@ class BaseWidget(IWidget, ABC):
             return
         if self._model_dispatch_cb is not None and self.port is not None:
             try:
-                self.port._data.on_changed -= self._model_dispatch_cb
+                self.port.data.on_changed -= self._model_dispatch_cb
             except Exception as e:
                 self.logger.warning(f"Failed to drop model dispatch: {e}", exc_info=True)
         self._model_dispatch_cb = None
