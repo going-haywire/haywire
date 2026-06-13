@@ -17,6 +17,8 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Sequence
 
 import markdown2
+from fastapi import Request
+from fastapi.responses import JSONResponse
 
 if TYPE_CHECKING:
     from nicegui import ui
@@ -84,8 +86,6 @@ def _ensure_render_route() -> None:
     global _render_route_registered
     if _render_route_registered:
         return
-    from fastapi import Request
-    from fastapi.responses import JSONResponse
     from nicegui import app
 
     @app.post(_RENDER_ROUTE)
