@@ -16,6 +16,7 @@ from __future__ import annotations
 import logging
 from typing import Optional
 
+from haywire.core.graph.base import BaseGraph
 from haywire.core.state.base import AppState
 from haywire.core.state.decorator import state
 
@@ -48,7 +49,7 @@ class GraphAppState(AppState):
         """Look up a container by ``binding_id``. Returns None when absent."""
         return self._graphs.get(binding_id)
 
-    def get_by_graph(self, graph: object) -> Optional[GraphContainer]:
+    def get_by_graph(self, graph: BaseGraph) -> Optional[GraphContainer]:
         """Find the container wrapping ``graph`` by identity, or None.
 
         Used to recover a container whose ``binding_id`` changed out from
@@ -64,10 +65,12 @@ class GraphAppState(AppState):
     def rekey(self, old_id: str, new_id: str) -> None:
         """Move a container from ``old_id`` to ``new_id``.
 
-        Source libraries call this after a save-as that changes the
-        container's identity. No-op when ``old_id`` is unknown or
-        identical to ``new_id``. When ``new_id`` is already occupied,
-        the destination is overwritten — see test_rekey_overwrites_existing_destination.
+        ``binding_id`` is ``str(path)`` for saved graphs (absolute filesystem
+        path) and ``"__unsaved_{counter}__"`` for unsaved ones. Source
+        libraries call this after a save-as that changes the container's
+        identity. No-op when ``old_id`` is unknown or identical to ``new_id``.
+        When ``new_id`` is already occupied, the destination is overwritten —
+        see test_rekey_overwrites_existing_destination.
         """
         if old_id == new_id:
             return

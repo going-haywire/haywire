@@ -85,10 +85,10 @@ def _make_context(entry: Optional[_FakeEntry], existing_active_graph=None):
     data = _make_data_with_edit_state(
         initial_active_graph=existing_active_graph,
     )
-    # on_focus calls ctx.app_data.get(GraphAppState). Wire a MagicMock
-    # whose .get() returns the fake registry for any key.
+    # on_focus calls ctx.app_data[GraphAppState]. Wire a MagicMock
+    # whose __getitem__ returns the fake registry for any key.
     app_data = MagicMock()
-    app_data.get.return_value = graph_app_state
+    app_data.__getitem__.return_value = graph_app_state
     ctx = SimpleNamespace(
         active_graph=existing_active_graph,
         active_graph_path=None,
@@ -169,33 +169,3 @@ def test_on_focus_missing_entry_force_closes_via_wrapper() -> None:
     assert ctx.session.signals == []
     assert ed.wrapper.force_close_calls == [True]
     assert ctx.data.edit_stub.active_graph is None
-
-
-def test_on_focus_no_binding_is_noop() -> None:
-    ctx = _make_context(entry=None)
-    ed = _make_editor_with_payload(None)
-
-    ed.on_focus(ctx)
-
-    assert ctx.session.signals == []
-    assert ctx.data.edit_stub.active_graph is None
-
-
-def test_on_focus_no_graph_app_state_is_noop() -> None:
-    """When ctx.app_data.get(GraphAppState) returns None, on_focus is a no-op."""
-    session = _FakeSession()
-    app_data = MagicMock()
-    app_data.get.return_value = None
-    ctx = SimpleNamespace(
-        active_graph=None,
-        active_graph_path=None,
-        session=session,
-        data=_make_data_with_edit_state(),
-        app_data=app_data,
-    )
-    session.context = ctx
-    ed = _make_editor_with_payload("/tmp/a.haywire")
-
-    ed.on_focus(ctx)
-
-    assert session.signals == []

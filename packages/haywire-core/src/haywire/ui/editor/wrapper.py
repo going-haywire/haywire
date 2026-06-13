@@ -309,21 +309,20 @@ class EditorWrapper:
     # ------------------------------------------------------------------
 
     def _instantiate(self) -> bool:
-        """Lazy-instantiate the editor instance from editor_cls.
+        """Ensure the editor instance exists, constructing it on first call.
 
-        Called internally on first runtime entry point (draw / on_focus /
-        any decorated handler invocation). Captures construction errors
-        into state.error_instantiate.
+        Idempotent — returns True immediately when already instantiated.
+        Captures construction errors into state.error_instantiate and returns
+        False; the instance stays None so callers can render a fallback.
 
         On success, also subscribes the new instance's ``@redraw_on`` and
         ``@react_on`` decorated methods to the session's event bus. Those
         subscriptions live until the next hot-reload (which calls
         ``_unsubscribe_event_handlers`` before clearing ``_instance``) or
         wrapper cleanup.
-
-        Returns:
-            True on success, False if editor_cls is None or construction raised.
         """
+        if self._instance is not None:
+            return True
         try:
             self._instance = self.editor_cls(self)
             self._state.error_instantiate = None
@@ -458,14 +457,13 @@ class EditorWrapper:
             logger.debug(f"EditorWrapper '{self.editor_key}': panel.clear() raised (dead client?): {exc}")
             return
 
-        if self._instance is None:
-            if not self._instantiate():
-                with panel:
-                    ui.label(f"'{self.editor_key}' unavailable — see error log").classes("hw-text-muted p-4")
-                return
+        if not self._instantiate():
+            with panel:
+                ui.label(f"'{self.editor_key}' unavailable — see error log").classes("hw-text-muted p-4")
+            return
+        assert self._instance is not None
 
         try:
-            assert self._instance is not None
             self._instance.draw(self._session.context, panel)
         except Exception as exc:
             error = HaywireException.from_exception(
@@ -497,12 +495,10 @@ class EditorWrapper:
         The slot draws the dirty marker and close button *around* this call;
         they are never this method's concern.
         """
-        if self._instance is None:
-            self._instantiate()
-
-        if self._instance is None:
+        if not self._instantiate():
             self._draw_tab_fallback(orientation)
             return
+        assert self._instance is not None
 
         try:
             self._instance.draw_tab(self._session.context, orientation=orientation)
@@ -541,11 +537,10 @@ class EditorWrapper:
         library-supplied SessionState). No-op if instantiation fails
         (placeholder will render on draw).
         """
-        if self._instance is None:
-            if not self._instantiate():
-                return
+        if not self._instantiate():
+            return
+        assert self._instance is not None
         try:
-            assert self._instance is not None
             self._instance.on_focus(self._session.context)
         except Exception as exc:
             self._state.error_runtime = HaywireException.from_exception(

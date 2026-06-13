@@ -91,7 +91,7 @@ def test_handler_recovers_stale_binding_id_after_external_rekey():
     gas.register(container)  # only the new key exists; old key is gone
 
     context = MagicMock()
-    context.app_data.get.return_value = gas
+    context.app_data.__getitem__.return_value = gas
 
     bindings = discover_handlers(GraphEditor)[GraphDataMutated]
     method = getattr(editor, bindings[0].method_name)

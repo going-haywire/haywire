@@ -124,18 +124,12 @@ class GraphEditor(BaseEditor):
         label and dirty marker. The graph object itself survives the rekey,
         so we recover the container by identity and repayload the tab.
         """
-        # No canvas means the tab hasn't been drawn (or has no graph) — there
-        # is no graph identity to recover against, so nothing to do. Mirrors
-        # ``_update_header``'s no-op-when-undrawn contract.
-        canvas_manager = getattr(self, "_canvas_manager", None)
-        if canvas_manager is None:
+        if self._canvas_manager is None:
             return
         if self._get_entry(context) is not None:
             return  # binding_id still resolves — nothing to recover
-        graph_app_state = context.app_data.get(GraphAppState)
-        if graph_app_state is None:
-            return
-        entry = graph_app_state.get_by_graph(canvas_manager.graph)
+        graph_app_state = context.app_data[GraphAppState]
+        entry = graph_app_state.get_by_graph(self._canvas_manager.graph)
         if entry is None or entry.binding_id == self.wrapper._binding_id:
             return
         self.wrapper.repayload(entry.binding_id, new_label=entry.display_name)
@@ -144,10 +138,9 @@ class GraphEditor(BaseEditor):
         """Claim ownership of session state when this tab becomes active.
 
         Resolves ``self.wrapper._binding_id`` (the container key) via
-        :class:`GraphAppState` and, if the container exists, updates
-        ``context.data[EditState].active_graph`` + ``active_graph_path``
-        and emits ``ActiveGraphMoved`` so panels (properties, minimap,
-        execution controls) refresh.
+        :class:`GraphAppState` and updates ``context.data[EditState].active_graph``
+        + ``active_graph_path`` and emits ``ActiveGraphMoved`` so panels
+        (properties, minimap, execution controls) refresh.
 
         If the binding_id no longer resolves to a container (the graph was
         concurrently removed from the registry), calls
@@ -156,15 +149,10 @@ class GraphEditor(BaseEditor):
         Short-circuits when the context already reflects this container
         so a redundant call is a no-op.
         """
-        if self.wrapper._binding_id is None:
-            return
         binding_id = self.wrapper._binding_id
-        graph_app_state = context.app_data.get(GraphAppState)
-        if graph_app_state is None:
-            return
-
+        assert binding_id is not None
+        graph_app_state = context.app_data[GraphAppState]
         entry = graph_app_state.get(binding_id)
-        session = getattr(context, "session", None)
         if entry is None:
             # Container vanished from GraphAppState — close ourselves.
             # Programmatic close (no consent dialog needed; the user
@@ -179,18 +167,11 @@ class GraphEditor(BaseEditor):
 
         edit_state.active_graph = graph
         edit_state.active_graph_path = entry.path
-
-        if session is not None:
-            session.publish(ActiveGraphMoved())
+        context.session.publish(ActiveGraphMoved())
 
     def draw(self, context: "SessionContext", container: "Element") -> None:
         self._context = context
         self._project_state = context.app
-        if self._project_state is None:
-            with container:
-                ui.label("GraphEditor: no app in context").classes("hw-text-danger p-4")
-            logger.warning("GraphEditor.draw(): project_state not found in context.metadata")
-            return
 
         # Clean up existing canvas manager before rebuilding
         if self._canvas_manager:
@@ -247,18 +228,7 @@ class GraphEditor(BaseEditor):
         """Instantiate a GraphCanvasManager inside _canvas_wrapper."""
         app = self._project_state
         entry = self._get_entry(context)
-
-        if entry is None:
-            # No graph is active — show a welcome/empty placeholder.
-            hui.empty_state(
-                "No graph open",
-                icon=hui.icon.graph,
-                hint=(
-                    "Use the Graphs panel ( layers ) to create a new graph,\n"
-                    "or open a .haywire file from the File Browser."
-                ),
-            )
-            return
+        assert entry is not None
 
         self._canvas_manager = GraphCanvasManager(
             editor=entry.editor,
@@ -282,22 +252,12 @@ class GraphEditor(BaseEditor):
         logger.info(f"GraphEditor: canvas built for session {context.session_id[:8]}")
 
     def _get_entry(self, context: "SessionContext") -> Optional["GraphContainer"]:
-        """Look up this tab's GraphContainer from GraphAppState via binding_id.
+        """Look up this tab's GraphContainer from GraphAppState via binding_id."""
+        binding_id = self.wrapper._binding_id
+        assert binding_id is not None
+        graph_app_state = context.app_data[GraphAppState]
+        return graph_app_state.get(binding_id)
 
-        Each GraphEditor instance is bound to one ``(editor_key, binding_id)``
-        pair — the binding_id is the ``GraphContainer.binding_id`` (a path
-        string for saved graphs, a synthetic token for unsaved). The tab
-        owns its graph identity; the session-level ``active_graph_path``
-        is no longer consulted here.
-        """
-        if self.wrapper._binding_id is None:
-            return None
-        graph_app_state = context.app_data.get(GraphAppState)
-        if graph_app_state is None:
-            return None
-        return graph_app_state.get(self.wrapper._binding_id)
-
-    # ------------------------------------------------------------------
     # ------------------------------------------------------------------
     # header
     # ------------------------------------------------------------------
@@ -308,11 +268,10 @@ class GraphEditor(BaseEditor):
             return
         entry = self._get_entry(context)
         if entry is None:
-            self._graph_name_label.text = "No graph"
-            self._graph_name_label.classes(remove="hw-text-body hw-text-muted", add="hw-text-dim")
-        elif entry.path is not None:
-            app = self._project_state
-            root = Path(getattr(app, "workspace_root", str(Path.home()))) if app else Path.home()
+            self.wrapper.force_close()
+            return
+        if entry.path is not None:
+            root = Path(self._project_state.workspace_root)
             try:
                 rel = str(entry.path.relative_to(root))
             except ValueError:
@@ -320,25 +279,21 @@ class GraphEditor(BaseEditor):
             self._graph_name_label.text = ("● " if entry.unsaved else "") + rel
             self._graph_name_label.classes(remove="hw-text-muted hw-text-dim", add="hw-text-body")
         else:
-            # Unnamed / not-yet-saved graph
             self._graph_name_label.text = "● not saved"
             self._graph_name_label.classes(remove="hw-text-body hw-text-dim", add="hw-text-muted")
         self._update_undo_redo_buttons(entry)
         self._sync_tab_dirty(entry)
 
-    def _sync_tab_dirty(self, entry) -> None:
+    def _sync_tab_dirty(self, entry: "GraphContainer") -> None:
         """Mirror the entry's unsaved state to the tab bar via wrapper.set_dirty."""
-        is_dirty = entry is not None and (entry.unsaved or entry.path is None)
-        self.wrapper.set_dirty(is_dirty, refresh=True)
+        self.wrapper.set_dirty(entry.unsaved or entry.path is None, refresh=True)
 
-    def _update_undo_redo_buttons(self, entry) -> None:
+    def _update_undo_redo_buttons(self, entry: "GraphContainer") -> None:
         """Enable/disable undo and redo buttons based on history state."""
-        can_undo = entry is not None and entry.editor.can_undo()
-        can_redo = entry is not None and entry.editor.can_redo()
         if self._undo_button is not None:
-            self._undo_button.set_enabled(can_undo)
+            self._undo_button.set_enabled(entry.editor.can_undo())
         if self._redo_button is not None:
-            self._redo_button.set_enabled(can_redo)
+            self._redo_button.set_enabled(entry.editor.can_redo())
 
     def _do_undo(self, context: "SessionContext") -> None:
         """Undo the last action on the active graph."""
@@ -346,9 +301,7 @@ class GraphEditor(BaseEditor):
         if entry is None or not entry.editor.can_undo():
             return
         entry.editor.undo()
-        session = context.session
-        if session is not None:
-            session.publish(GraphDataMutated())
+        context.session.publish(GraphDataMutated())
 
     def _do_redo(self, context: "SessionContext") -> None:
         """Redo the last undone action on the active graph."""
@@ -356,9 +309,7 @@ class GraphEditor(BaseEditor):
         if entry is None or not entry.editor.can_redo():
             return
         entry.editor.redo()
-        session = context.session
-        if session is not None:
-            session.publish(GraphDataMutated())
+        context.session.publish(GraphDataMutated())
 
     # ------------------------------------------------------------------
     # save
@@ -368,7 +319,6 @@ class GraphEditor(BaseEditor):
         """Save the active graph; opens Save-As dialog if no path exists yet."""
         entry = self._get_entry(context)
         if entry is None:
-            ui.notify("No graph to save", type="warning")
             return
 
         if entry.path is not None:
@@ -382,9 +332,7 @@ class GraphEditor(BaseEditor):
                 self._update_header(context)
                 # Notify all sessions viewing this graph so peer editors
                 # and headers clear their dirty indicators.
-                session = context.session
-                if session is not None:
-                    session.publish(GraphDataMutated())
+                context.session.publish(GraphDataMutated())
             else:
                 ui.notify("Save failed", type="negative", position="top-right")
             return
@@ -399,10 +347,8 @@ class GraphEditor(BaseEditor):
                 context.data[EditState].active_graph_path = save_path
                 if new_binding_id is not None and old_binding_id != new_binding_id:
                     self.wrapper.repayload(new_binding_id, new_label=entry.display_name)
-                session = context.session
-                if session:
-                    session.publish(ActiveGraphMoved())
-                    session.publish(GraphDataMutated())
+                context.session.publish(ActiveGraphMoved())
+                context.session.publish(GraphDataMutated())
                 return True
             return False
 
