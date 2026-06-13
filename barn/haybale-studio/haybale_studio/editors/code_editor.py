@@ -226,13 +226,24 @@ class CodeEditor(BaseEditor):
                 self._preview = ui.markdown(self._content).classes("w-full text-sm")
 
     def _make_codemirror(self, context: "SessionContext", language: Optional[CmLanguage]) -> ui.codemirror:
-        return ui.codemirror(
+        from haywire.ui.components.codemirror import attach_code_intelligence
+
+        cm = ui.codemirror(
             value=self._content,
             language=language,
             theme=self._codemirror_theme(context),
             line_wrapping=True,
             on_change=lambda e: self._on_text_changed(e.value),
         ).style("flex: 1; min-height: 0; width: 100%; height: 100%;")
+        # Intelligence self-silences for non-Python languages (the JS source
+        # reads the live language and no-ops unless it is in language_filter).
+        path = self._resolve_path()
+        attach_code_intelligence(
+            cm,
+            language_filter=("Python",),
+            path=str(path) if path is not None else None,
+        )
+        return cm
 
     def _on_text_changed(self, new_value) -> None:
         if not isinstance(new_value, str):
