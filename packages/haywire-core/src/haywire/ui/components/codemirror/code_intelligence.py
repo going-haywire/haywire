@@ -68,14 +68,201 @@ def _render_doc_html(signature: str | None, docstring: str | None) -> str:
     return markdown2.markdown("\n\n".join(parts), extras=_MD_EXTRAS)
 
 
+_RENDER_ROUTE = "/api/code-intel/render"
+_render_route_registered = False
+
+
+def _ensure_render_route() -> None:
+    """Register the core-owned doc-render endpoint exactly once.
+
+    Resolution X: the *element* (core) owns markdown -> HTML rendering, but the
+    HTML is consumed inside injected JS that cannot call Python per-keystroke.
+    So the element exposes its own route that turns the provider's plain
+    ``{signature, docstring}`` into the highlighted HTML the ``hw-cm-doc`` panel
+    expects. The provider (studio) stays plain-data; rendering stays in core.
+    """
+    global _render_route_registered
+    if _render_route_registered:
+        return
+    from fastapi import Request
+    from fastapi.responses import JSONResponse
+    from nicegui import app
+
+    @app.post(_RENDER_ROUTE)
+    async def render(request: Request) -> JSONResponse:
+        body = await request.json()
+        html = _render_doc_html(body.get("signature") or None, body.get("docstring") or None)
+        return JSONResponse({"html": html})
+
+    _render_route_registered = True
+
+
 def attach_code_intelligence(
     editor: "ui.codemirror",
     *,
     completion_url: str = "/api/code-intel/complete",
     info_url: str = "/api/code-intel/info",
     hover_url: str = "/api/code-intel/hover",
+    render_url: str = _RENDER_ROUTE,
     language_filter: Sequence[str] = ("Python",),
     path: str | None = None,
 ) -> None:
-    """Placeholder — real implementation added in Task 4."""
-    raise NotImplementedError
+    """Attach jedi-backed completion + hover documentation to ``editor``.
+
+    The injected sources read the editor's live language name and no-op unless
+    it is in ``language_filter``. ``path`` (the file path of the edited buffer)
+    is forwarded to the provider so jedi can resolve imports relative to it.
+
+    Must be called after ``editor`` is constructed (typically right after, in the
+    same draw); the JS polls for the element + its ``editorPromise`` before
+    wiring, so it tolerates being called before the client has mounted it.
+    """
+    import json
+
+    from nicegui import ui
+
+    _ensure_render_route()
+
+    ui.run_javascript(
+        _INJECTION_JS.format(
+            editor_id=editor.id,
+            completion_url=completion_url,
+            info_url=info_url,
+            hover_url=hover_url,
+            render_url=render_url,
+            path_js="null" if path is None else json.dumps(path),
+            langs_js=json.dumps(list(language_filter)),
+        )
+    )
+
+
+# CodeMirror autocomplete + hoverTooltip injection. Consumed by str.format();
+# literal JS braces are doubled. The completion/hover sources read the live
+# language from the editor's language facet and no-op unless it is one of the
+# allowed languages. The provider returns plain {name, kind, signature,
+# docstring}; this JS does the CM translation client-side (type via inline map,
+# boost via public/private/dunder) and fetches doc HTML lazily: /info (plain
+# text) -> /render (html) only for the highlighted/hovered item.
+_INJECTION_JS = r"""
+const CM = await import('nicegui-codemirror');
+let el;
+for (let i = 0; i < 50; i++) {{
+    el = getElement({editor_id});
+    if (el) break;
+    await new Promise(r => setTimeout(r, 100));
+}}
+if (!el) return;
+const editor = await el.editorPromise;
+
+const ALLOWED_LANGS = {langs_js};
+const KIND_TO_TYPE = {{
+    function: 'function', class: 'class', module: 'namespace',
+    instance: 'variable', keyword: 'keyword', property: 'property',
+    param: 'variable', path: 'text', statement: 'variable',
+}};
+function boost(name) {{
+    if (name.startsWith('__')) return -2;
+    if (name.startsWith('_')) return -1;
+    return 1;
+}}
+function activeLanguageName(state) {{
+    const lang = state.facet(CM.language);
+    return lang && lang.name ? lang.name : null;
+}}
+function languageAllowed(state) {{
+    const name = activeLanguageName(state);
+    if (!name) return false;
+    return ALLOWED_LANGS.some(l => l.toLowerCase() === name.toLowerCase());
+}}
+
+async function renderDocPanel(signature, docstring) {{
+    if (!signature && !docstring) return null;
+    const rr = await fetch('{render_url}', {{
+        method: 'POST', headers: {{'Content-Type': 'application/json'}},
+        body: JSON.stringify({{ signature, docstring }})
+    }});
+    const html = (await rr.json()).html;
+    if (!html) return null;
+    const dom = document.createElement('div');
+    dom.className = 'hw-cm-doc';
+    dom.innerHTML = html;
+    return dom;
+}}
+
+async function haywireComplete(context) {{
+    if (!languageAllowed(context.state)) return null;
+    const word = context.matchBefore(/\w*/);
+    if (!word || (word.from === word.to && !context.explicit)) return null;
+
+    const state = editor.state;
+    const pos = state.selection.main.head;
+    const doc = state.doc;
+    const line = doc.lineAt(pos);
+
+    const resp = await fetch('{completion_url}', {{
+        method: 'POST', headers: {{'Content-Type': 'application/json'}},
+        body: JSON.stringify({{
+            code: doc.toString(), line: line.number,
+            column: pos - line.from, path: {path_js}, explicit: context.explicit,
+        }})
+    }});
+    const data = await resp.json();
+    if (!data.completions || !data.completions.length) return null;
+
+    const reqLine = line.number;
+    const reqCol = pos - line.from;
+    const options = data.completions.map(c => ({{
+        label: c.name,
+        type: KIND_TO_TYPE[c.kind] || 'text',
+        detail: c.signature || '',
+        boost: boost(c.name),
+        info: async () => {{
+            const r = await fetch('{info_url}', {{
+                method: 'POST', headers: {{'Content-Type': 'application/json'}},
+                body: JSON.stringify({{
+                    code: doc.toString(), line: reqLine, column: reqCol,
+                    path: {path_js}, label: c.name,
+                }})
+            }});
+            const j = await r.json();
+            return await renderDocPanel(j.signature, j.docstring);
+        }},
+    }}));
+    return {{ from: word.from, options }};
+}}
+
+const haywireHover = CM.hoverTooltip(async (view, pos, side) => {{
+    if (!languageAllowed(view.state)) return null;
+    const doc = view.state.doc;
+    const lineObj = doc.lineAt(pos);
+    const text = doc.toString();
+    let start = pos, end = pos;
+    while (start > 0 && /[\w.]/.test(text[start - 1])) start--;
+    while (end < text.length && /[\w]/.test(text[end])) end++;
+    if (start === end) return null;
+
+    const resp = await fetch('{hover_url}', {{
+        method: 'POST', headers: {{'Content-Type': 'application/json'}},
+        body: JSON.stringify({{
+            code: text, line: lineObj.number,
+            column: pos - lineObj.from, path: {path_js},
+        }})
+    }});
+    const j = await resp.json();
+    const panel = await renderDocPanel(j.signature, j.docstring);
+    if (!panel) return null;
+    return {{ pos: start, end, above: true, create: () => ({{ dom: panel }}) }};
+}});
+
+const langExt = CM.languages.find(l => ALLOWED_LANGS.some(
+    a => a.toLowerCase() === l.name.toLowerCase()));
+if (langExt) {{
+    const ext = await langExt.load();
+    editor.dispatch({{
+        effects: CM.StateEffect.appendConfig.of([
+            ext.language.data.of({{ autocomplete: haywireComplete }}),
+            haywireHover,
+        ])
+    }});
+}}
+"""
