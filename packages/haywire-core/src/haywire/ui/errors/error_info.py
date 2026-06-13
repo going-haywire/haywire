@@ -2,7 +2,6 @@ from nicegui import ui
 from haywire.ui import elements as hui
 
 from haywire.core.errors.haywire_exception import HaywireException
-from haywire.core.node.dataclasses import NodeErrorInfo
 
 from haywire.ui.errors.haywire_exception import render_error_details
 from haywire.ui.components.popup import Popup
@@ -108,29 +107,3 @@ def error_render_detail(error: HaywireException) -> ui.element:
         detail_button.on_click(show_details)
 
     return container
-
-
-def render_error_info(error_info: NodeErrorInfo) -> ui.element:
-    """
-    Render error information for a node.
-
-    Args:
-        error_info: The NodeErrorInfo with error information
-
-    Returns:
-        ui.element: The rendered error info element
-    """
-    with (
-        ui.column()
-        .classes("items-left p-2")
-        .style("border: 1px solid var(--hw-danger); background: var(--hw-danger-bg);") as error_column
-    ):
-        with ui.row():
-            ui.icon(hui.icon.error).classes("text-sm").style("color: var(--hw-danger);")
-            ui.label(error_info.error).classes("text-sm hw-text-danger")
-        ui.label(error_info.error_message).classes("text-xs hw-text-danger")
-        if error_info.note:
-            for value in error_info.note:
-                ui.label(value).classes("text-xs hw-text-danger")
-        ui.label(error_info.timestamp).classes("text-xs hw-text-danger")
-    return error_column

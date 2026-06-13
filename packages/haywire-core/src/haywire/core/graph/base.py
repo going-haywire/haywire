@@ -787,34 +787,6 @@ class BaseGraph:
     # UTILITY METHODS
     # =========================================================================
 
-    def validate(self) -> List[str]:
-        """
-        Validate the graph structure (both formal and structural).
-
-        Returns:
-            List of validation errors (empty if valid)
-        """
-        errors = []
-
-        # Existing formal validation (orphaned edges, etc.)
-        for edge_id, edge in self.edge_wrappers.items():
-            if edge.source_node_id not in self.node_wrappers:
-                errors.append(f"Edge {edge_id} references non-existent output node: {edge.source_node_id}")
-            if edge.sink_node_id not in self.node_wrappers:
-                errors.append(f"Edge {edge_id} references non-existent input node: {edge.sink_node_id}")
-
-        # Wrapper-level validation
-        for wrapper in self.node_wrappers.values():
-            wrapper_errors = wrapper.validate()
-            for error in wrapper_errors:
-                errors.append(f"Node {wrapper.node_id}: {error}")
-
-        # NEW: Graph-wide structural validation
-        structural_errors = self._structural.validate_graph()
-        errors.extend(structural_errors)
-
-        return errors
-
     def get_disconnected_components(self) -> List[List[str]]:
         """
         Find disconnected components in the graph.

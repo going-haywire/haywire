@@ -19,7 +19,7 @@ class NodeCache(SimpleNamespace):
     can be safely recomputed.
 
     Example:
-        def initialize(self):
+        def post_init(self):
             self.cache.lookup_table = {}
             self.cache.last_result = None
 
@@ -52,7 +52,7 @@ class NodeStore:
     - Data that users don't need to see/edit
 
     Example:
-        def initialize(self):
+        def post_init(self):
             self.store.execution_count = 0
             self.store.accumulated_sum = 0.0
             self.store.history = []

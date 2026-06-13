@@ -10,7 +10,6 @@ import threading
 import logging
 from typing import List, Optional, Tuple, Any, Dict, TYPE_CHECKING
 from dataclasses import dataclass, field
-from abc import ABC, abstractmethod
 
 from ..graph.types import ChangeReason
 from haywire.core.node.node_warning import NodeWarning
@@ -45,7 +44,6 @@ class NodeWrapperState:
     has_test_passed: bool = False
     """The node has been successfully tested"""
     is_executing: bool = False
-    error: Optional["HaywireException"] = None
     error_import: Optional[HaywireException] = None
     """node import error"""
     error_instantiate: Optional[HaywireException] = None
@@ -119,20 +117,6 @@ class NodeWrapperState:
     def clear_warnings(self) -> None:
         """Drop all advisory warnings (e.g. before a re-check)."""
         self.warnings.clear()
-
-
-class NodeMiddleware(ABC):
-    """Abstract base for wrapper middleware/plugins"""
-
-    @abstractmethod
-    def before_method(self, wrapper: "NodeWrapper", method_name: str, *args) -> None:
-        """Called before a wrapper method executes"""
-        pass
-
-    @abstractmethod
-    def after_method(self, wrapper: "NodeWrapper", method_name: str, result: Any) -> None:
-        """Called after a wrapper method executes"""
-        pass
 
 
 class NodeWrapper:
@@ -554,30 +538,6 @@ class NodeWrapper:
                 self._node_instance._cleanup()
                 self._node_instance = None
             self._cleaned_up = True
-
-    def validate(self) -> List[str]:
-        """
-        Validate node and return list of issues.
-
-        Returns:
-            List of validation issue descriptions
-        """
-        with self._lock:
-            issues = []
-
-            if not self._state.is_valid():
-                issues.append("Node instance is not safe to use")
-
-            if self._state.error:
-                issues.append(f"Error state: {self._state.error}")
-
-            if not self._state.is_instantiated:
-                issues.append("Wrapper node is not instantiated")
-
-            # Additional validation can be added here
-            # e.g., pin compatibility, data types, etc.
-
-            return issues
 
     # =========================================================================
     # RUNTIME OPERATIONS
