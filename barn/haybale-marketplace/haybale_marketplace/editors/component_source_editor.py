@@ -27,19 +27,9 @@ from typing import TYPE_CHECKING, Literal, Optional
 from nicegui import ui
 
 from haywire.ui import elements as hui
-from haywire.core.library.utils import (
-    ADAPTER,
-    EDITOR,
-    NODE,
-    PANEL,
-    SETTING,
-    SKIN,
-    STATE,
-    THEME,
-    TYPE,
-    WIDGET,
-    get_registry_id_from_key,
-)
+from haywire.core.library.utils import get_registry_id_from_key, split_reg_key
+
+from ._registry_utils import _REGISTRY_GETTER, lookup_component_class
 from haywire.core.session.context import SessionContext
 from haywire.core.session.handlers import redraw_on
 from haywire.core.session.signals import Signal
@@ -54,20 +44,6 @@ if TYPE_CHECKING:
 
 
 logger = logging.getLogger(__name__)
-
-# Maps the comp_type segment of a registry_key to the library_service getter.
-_REGISTRY_GETTER = {
-    NODE: "get_node_registry",
-    WIDGET: "get_widget_registry",
-    TYPE: "get_type_registry",
-    ADAPTER: "get_adapter_registry",
-    SKIN: "get_skin_registry",
-    THEME: "get_theme_registry",
-    SETTING: "get_settings_registry",
-    STATE: "get_state_registry",
-    PANEL: "get_panel_registry",
-    EDITOR: "get_editor_registry",
-}
 
 
 @editor(
@@ -170,25 +146,7 @@ class ComponentSourceEditor(BaseEditor):
         self._sync_subscription(context)
 
     def _lookup_class(self, context: "SessionContext", registry_key: str) -> Optional[type]:
-        app = context.app
-        if app is None:
-            return None
-        parts = registry_key.split(":", 2)
-        if len(parts) != 3:
-            return None
-        _lib_id, comp_singular, _class_name = parts
-        getter_name = _REGISTRY_GETTER.get(comp_singular)
-        if getter_name is None:
-            return None
-        try:
-            svc = app.library_service
-            registry = getattr(svc, getter_name, lambda: None)()
-            if registry is None:
-                return None
-            return registry.get(registry_key)
-        except Exception as exc:
-            logger.debug("lookup_class failed for %s: %s", registry_key, exc)
-            return None
+        return lookup_component_class(context.app, registry_key)
 
     def _compute_is_editable(self, context: "SessionContext") -> bool:
         from haybale_marketplace.state.library_manager_state import LibraryManagerState
@@ -413,10 +371,7 @@ class ComponentSourceEditor(BaseEditor):
         app = context.app
         if app is None:
             return None
-        parts = self._registry_key.split(":", 2)
-        if len(parts) != 3:
-            return None
-        _lib_id, comp_singular, _class_name = parts
+        _lib_id, comp_singular, _class_name = split_reg_key(self._registry_key)
         getter_name = _REGISTRY_GETTER.get(comp_singular)
         if getter_name is None:
             return None

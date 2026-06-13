@@ -11,9 +11,11 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 from haywire.core.library.info import LibraryInfo
+from haywire.core.library.utils import split_reg_key
 from nicegui import ui
 
 from haywire.ui import elements as hui
+from ._registry_utils import lookup_component_class
 
 from haywire.ui.editor.decorator import editor
 from haywire.ui.editor.identity import SlotName
@@ -91,7 +93,7 @@ class LibraryComponentEditor(BaseEditor):
             from haybale_marketplace.state.library_manager_state import LibraryManagerState
 
             app = context.app
-            lib_id, comp_singular, class_name = registry_key.split(":", 2)
+            lib_id, comp_singular, class_name = split_reg_key(registry_key)
             comp_type = f"{comp_singular}s"
             manager_state = context.app_data.get(LibraryManagerState)
             manager = manager_state.manager if manager_state is not None else None
@@ -248,22 +250,4 @@ class LibraryComponentEditor(BaseEditor):
     @staticmethod
     def _lookup_class(app, lib_id: str, comp_type: str, registry_key: str):
         """Look up the component class from the appropriate registry."""
-        if not lib_id or not app:
-            return None
-        try:
-            svc = app.library_service
-            reg = {
-                "nodes": svc.get_node_registry,
-                "widgets": svc.get_widget_registry,
-                "types": svc.get_type_registry,
-                "adapters": svc.get_adapter_registry,
-                "skins": svc.get_skin_registry,
-                "themes": svc.get_theme_registry,
-                "settings": svc.get_settings_registry,
-                "states": svc.get_state_registry,
-                "panels": svc.get_panel_registry,
-                "editors": svc.get_editor_registry,
-            }.get(comp_type, lambda: None)()
-            return reg.get(registry_key) if reg else None
-        except Exception:
-            return None
+        return lookup_component_class(app, registry_key)

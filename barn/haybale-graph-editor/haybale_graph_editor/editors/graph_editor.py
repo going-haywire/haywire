@@ -29,6 +29,7 @@ from haywire.core.session.handlers import react_on
 from haywire.core.session.signals import ActiveGraphMoved, GraphDataMutated
 
 from ..editors.graph_canvas.graph_canvas_manager import GraphCanvasManager
+from ..editors.graph_save_as import open_graph_save_as_dialog
 from ..state.edit_state import EditState
 from ..state.graph_app_state import GraphAppState
 from ..protocols import GraphContainer  # noqa: F401  (used in type annotations)
@@ -310,7 +311,13 @@ class GraphEditor(BaseEditor):
             self._graph_name_label.text = "No graph"
             self._graph_name_label.classes(remove="hw-text-body hw-text-muted", add="hw-text-dim")
         elif entry.path is not None:
-            self._graph_name_label.text = ("● " if entry.unsaved else "") + self._workspace_rel(entry.path)
+            app = self._project_state
+            root = Path(getattr(app, "workspace_root", str(Path.home()))) if app else Path.home()
+            try:
+                rel = str(entry.path.relative_to(root))
+            except ValueError:
+                rel = str(entry.path)
+            self._graph_name_label.text = ("● " if entry.unsaved else "") + rel
             self._graph_name_label.classes(remove="hw-text-muted hw-text-dim", add="hw-text-body")
         else:
             # Unnamed / not-yet-saved graph
@@ -357,25 +364,6 @@ class GraphEditor(BaseEditor):
     # save
     # ------------------------------------------------------------------
 
-    def _default_save_dir(self, app) -> Path:
-        from haywire.core.workspace import default_save_dir
-
-        root = Path(getattr(app, "workspace_root", str(Path.home())))
-        return default_save_dir(root)
-
-    def _workspace_rel(self, path: Path) -> str:
-        """Return ``path`` relative to the project workspace_root, or its full
-        path string when ``path`` lies outside the workspace.
-        """
-        app = self._project_state
-        if app is not None:
-            root = Path(getattr(app, "workspace_root", str(Path.home())))
-            try:
-                return str(path.relative_to(root))
-            except ValueError:
-                pass
-        return str(path)
-
     def _save_graph(self, context: "SessionContext") -> None:
         """Save the active graph; opens Save-As dialog if no path exists yet."""
         entry = self._get_entry(context)
@@ -403,68 +391,22 @@ class GraphEditor(BaseEditor):
 
         # No path yet — open the Save-As dialog
         app = context.app
-        self._open_save_as_dialog(app, entry, context)
 
-    def _open_save_as_dialog(self, app, entry, context: "SessionContext") -> None:
-        """Open Save-As modal using the canonical save_as_modal."""
-        from haywire.ui.modals import confirm_modal, save_as_modal
-
-        workspace_root = Path(getattr(app, "workspace_root", str(Path.home())))
-
-        initial_path: Optional[str] = None
-        if entry.path is not None:
-            try:
-                initial_path = str(entry.path.relative_to(workspace_root))
-            except ValueError:
-                initial_path = entry.path.name
-        else:
-            save_dir = self._default_save_dir(app)
-            graph_name = getattr(entry.editor.graph, "name", "untitled")
-            safe_name = graph_name.lower().replace(" ", "_")
-            try:
-                rel_dir = save_dir.relative_to(workspace_root)
-                initial_path = str(rel_dir / f"{safe_name}.haywire")
-            except ValueError:
-                initial_path = f"{safe_name}.haywire"
-
-        def _do_save(save_path: Path) -> None:
+        def _save_fn(save_path: Path) -> bool:
             old_binding_id = self.wrapper._binding_id
-            new_binding_id: Optional[str] = entry.save(save_as=save_path)
+            new_binding_id = entry.save(save_as=save_path)
             if new_binding_id is not None or not entry.unsaved:
                 context.data[EditState].active_graph_path = save_path
-                session = context.session
                 if new_binding_id is not None and old_binding_id != new_binding_id:
                     self.wrapper.repayload(new_binding_id, new_label=entry.display_name)
+                session = context.session
                 if session:
                     session.publish(ActiveGraphMoved())
                     session.publish(GraphDataMutated())
-                ui.notify(f"Saved: {save_path.name}", type="positive", position="top-right")
-            else:
-                ui.notify("Save failed — check the path and try again", type="negative")
+                return True
+            return False
 
-        def _on_confirm(save_path: Path, raw_input: str) -> None:
-            if save_path == entry.path:
-                _do_save(save_path)
-                return
-            if save_path.exists():
-                confirm_modal(
-                    title="Overwrite file?",
-                    message=f'"{save_path.name}" already exists. Overwrite it?',
-                    confirm_label="Overwrite",
-                    danger=True,
-                    on_confirm=lambda: _do_save(save_path),
-                    on_cancel=lambda: self._open_save_as_dialog(app, entry, context),
-                )
-                return
-            _do_save(save_path)
-
-        save_as_modal(
-            title="Save Graph As",
-            workspace_root=workspace_root,
-            initial_path=initial_path,
-            suffixes=(".haywire",),
-            on_confirm=_on_confirm,
-        )
+        open_graph_save_as_dialog(app=app, entry=entry, save_fn=_save_fn)
 
     # ------------------------------------------------------------------
     # cleanup

@@ -9,7 +9,7 @@ Selecting a library updates context.active_library and fires LIBRARY_STATE_CHANG
 import logging
 
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, NamedTuple
 from urllib.parse import urlsplit
 
 from nicegui import ui
@@ -29,6 +29,44 @@ if TYPE_CHECKING:
     from nicegui.element import Element
 
 logger = logging.getLogger(__name__)
+
+
+class _LibView(NamedTuple):
+    """Normalised view of a LibraryInfo or Haybale for filter/display logic."""
+
+    raw: object
+    label: str
+    version: str
+    description: str
+    tags: list
+    enabled: bool
+    dist_name: object  # str | None
+    is_installed: bool
+
+
+def _lib_view(lib) -> "_LibView":
+    """Normalise a LibraryInfo or Haybale into a _LibView."""
+    if hasattr(lib, "identity"):
+        return _LibView(
+            raw=lib,
+            label=lib.identity.label or "",
+            version=lib.identity.version or "",
+            description=lib.identity.description or "",
+            tags=lib.identity.tags or [],
+            enabled=lib.enabled,
+            dist_name=lib.distribution_name,
+            is_installed=True,
+        )
+    return _LibView(
+        raw=lib,
+        label=getattr(lib, "label", "") or getattr(lib, "name", ""),
+        version=getattr(lib, "version", "") or "",
+        description=getattr(lib, "description", "") or "",
+        tags=getattr(lib, "tags", []) or [],
+        enabled=getattr(lib, "enabled", True),
+        dist_name=getattr(lib, "name", None),
+        is_installed=False,
+    )
 
 
 def derive_provenance_label(haybale, mf) -> str | None:
@@ -391,28 +429,19 @@ class LibraryBrowserEditor(BaseEditor):
         q = self._search_query.lower().strip()
 
         def _label(lib) -> str:
-            # LibraryInfo wraps identity; MarketplaceEntry has label/name directly
-            if hasattr(lib, "identity"):
-                return lib.identity.label or ""
-            return getattr(lib, "label", "") or getattr(lib, "name", "")
+            return _lib_view(lib).label
 
         def _enabled(lib) -> bool:
-            if hasattr(lib, "identity"):
-                return lib.enabled
-            return getattr(lib, "enabled", True)
+            return _lib_view(lib).enabled
 
         def matches(lib) -> bool:
             if not q:
                 return True
-            label = _label(lib)
-            if hasattr(lib, "identity"):
-                desc = lib.identity.description or ""
-                tags = lib.identity.tags or []
-            else:
-                desc = getattr(lib, "description", "") or ""
-                tags = getattr(lib, "tags", []) or []
+            v = _lib_view(lib)
             return (
-                q in label.lower() or bool(desc and q in desc.lower()) or any(q in t.lower() for t in tags)
+                q in v.label.lower()
+                or bool(v.description and q in v.description.lower())
+                or any(q in t.lower() for t in v.tags)
             )
 
         def is_required(lib) -> bool:
@@ -441,22 +470,37 @@ class LibraryBrowserEditor(BaseEditor):
         enabled.sort(key=_label)
         disabled.sort(key=_label)
 
-        # Marketplace entries not yet installed — both refreshed [[caches]]
-        # and [[heaps]] (path-based libraries the project knows about but
-        # uv hasn't surfaced as importable libraries yet).
-        available = []
-        if self._filter_available:
-            workspace_root = getattr(context.app, "workspace_root", None)
-            marketplace_path = (
-                Path(workspace_root) / ".haywire" / "marketplace.toml" if workspace_root else None
-            )
-            if marketplace_path:
-                try:
-                    from haywire.core.marketstall import Haybale, parse_project_marketplace
+        # installed_names is needed both for available-package filtering and for
+        # _library_item to decide whether a stale entry is user-removable.
+        installed_names = {lib.distribution_name for lib in libraries if lib.distribution_name}
 
-                    installed_names = {lib.distribution_name for lib in libraries if lib.distribution_name}
-                    pm = parse_project_marketplace(marketplace_path)
+        # Parse marketplace.toml once to build both `available` (packages not yet
+        # installed) and `updates_available` (dist names with newer cached versions).
+        available: list = []
+        updates_available: set[str] = set()
+        workspace_root = getattr(context.app, "workspace_root", None)
+        marketplace_path = Path(workspace_root) / ".haywire" / "marketplace.toml" if workspace_root else None
+        if marketplace_path and marketplace_path.exists():
+            try:
+                from packaging.version import Version
+                from haywire.core.marketstall import Haybale, parse_project_marketplace
 
+                pm = parse_project_marketplace(marketplace_path)
+
+                # Updates available — compare caches vs installed versions.
+                for entry in pm.caches:
+                    if not entry.min_version or not entry.name:
+                        continue
+                    lib = next((x for x in libraries if x.distribution_name == entry.name), None)
+                    if lib and lib.identity.version:
+                        try:
+                            if Version(entry.min_version) > Version(lib.identity.version):
+                                updates_available.add(entry.name)
+                        except Exception:
+                            pass
+
+                # Available (not yet installed) — both [[caches]] and [[heaps]].
+                if self._filter_available:
                     candidates: list = list(pm.caches)
                     # Surface [[heaps]] not already loaded as installed libraries.
                     for raw in pm.heaps:
@@ -476,40 +520,8 @@ class LibraryBrowserEditor(BaseEditor):
                         )
                     available = [e for e in candidates if e.name not in installed_names and matches(e)]
                     available.sort(key=lambda x: x.label or x.name)
-                except Exception as e:
-                    logger.warning(f"LibraryBrowser: failed to load marketplace: {e}")
-
-        # installed_names available outside the "available" branch too, so
-        # _library_item can decide whether a stale entry is user-removable.
-        installed_names = {lib.distribution_name for lib in libraries if lib.distribution_name}
-
-        # Build set of distribution names that have an update available in the
-        # marketplace cache, so _library_item can show the arrow indicator.
-        updates_available: set[str] = set()
-        workspace_root = getattr(context.app, "workspace_root", None)
-        marketplace_path = Path(workspace_root) / ".haywire" / "marketplace.toml" if workspace_root else None
-        if marketplace_path and marketplace_path.exists():
-            try:
-                from packaging.version import Version
-
-                from haywire.core.marketstall import parse_project_marketplace
-
-                pm = parse_project_marketplace(marketplace_path)
-                for entry in pm.caches:
-                    if not entry.min_version or not entry.name:
-                        continue
-                    lib = next(
-                        (x for x in libraries if x.distribution_name == entry.name),
-                        None,
-                    )
-                    if lib and lib.identity.version:
-                        try:
-                            if Version(entry.min_version) > Version(lib.identity.version):
-                                updates_available.add(entry.name)
-                        except Exception:
-                            pass
-            except Exception:
-                pass
+            except Exception as e:
+                logger.warning(f"LibraryBrowser: failed to load marketplace: {e}")
 
         with self._list_container:
             if required:

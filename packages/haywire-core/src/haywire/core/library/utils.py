@@ -103,6 +103,15 @@ def get_registry_id_from_key(registry_key: str) -> str:
     return registry_key.split(":")[-1]
 
 
+def split_reg_key(registry_key: str) -> tuple[str, str, str]:
+    """Decompose a registry key into its three parts.
+
+    Inverse of :func:`reg_key`.  Raises ``ValueError`` for malformed keys.
+    """
+    lib_id, comp_type, class_id = registry_key.split(":", 2)
+    return lib_id, comp_type, class_id
+
+
 def camel_to_dot_case(CamelCaseString: str) -> str:
     """Convert CamelCase to dot.case with handling of consecutive uppercase letters"""
     # Handle transition from lowercase to uppercase

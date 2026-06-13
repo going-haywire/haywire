@@ -85,9 +85,7 @@ class CodeEditor(BaseEditor):
         self._mode_button: Optional[ui.button] = None
         self._save_button: Optional[ui.button] = None
         self._path_label: Optional[ui.label] = None
-        self._save_as_dialog: Optional[ui.dialog] = None
-        self._save_as_input: Optional[ui.input] = None
-        self._save_as_warning: Optional[ui.label] = None
+        self._context: Optional["SessionContext"] = None
 
     # ------------------------------------------------------------------
     # identity / binding_id
@@ -125,6 +123,7 @@ class CodeEditor(BaseEditor):
         return "vscodeLight" if "light" in theme_key else "vscodeDark"
 
     def draw(self, context: "SessionContext", container: "Element") -> None:
+        self._context = context
         path = self._resolve_path()
         self._content = self._read_file(path) if path is not None else ""
         self._original = self._content
@@ -174,7 +173,7 @@ class CodeEditor(BaseEditor):
                         ui.button(
                             "Save As",
                             icon="save_as",
-                            on_click=self._open_save_as_dialog,
+                            on_click=lambda ctx=context: self._open_save_as_dialog(ctx),
                         )
                         .props("flat dense size=sm")
                         .tooltip("Save under a different name")
@@ -186,8 +185,6 @@ class CodeEditor(BaseEditor):
                     self._render_body_with_preview(context)
                 else:
                     self._render_editor_only(context)
-
-            self._save_as_dialog = self._build_save_as_dialog(context)
 
         self._update_save_state()
 
@@ -272,7 +269,8 @@ class CodeEditor(BaseEditor):
     def _save(self) -> None:
         path = self._resolve_path()
         if path is None:
-            self._open_save_as_dialog()
+            if self._context is not None:
+                self._open_save_as_dialog(self._context)
             return
         try:
             path.write_text(self._content, encoding="utf-8")
@@ -283,46 +281,42 @@ class CodeEditor(BaseEditor):
         self._update_save_state()
         ui.notify(f"Saved {path.name}", type="positive")
 
-    def _open_save_as_dialog(self) -> None:
-        if self._save_as_dialog is None or self._save_as_input is None:
-            return
+    def _open_save_as_dialog(self, context: "SessionContext") -> None:
         path = self._resolve_path()
         default = path.name if path is not None else "untitled.txt"
-        self._save_as_input.value = default
-        if self._save_as_warning is not None:
-            self._save_as_warning.set_visibility(False)
-        self._save_as_dialog.open()
 
-    def _build_save_as_dialog(self, context: "SessionContext"):
-        with ui.dialog() as dialog, ui.card().style("min-width: 420px;"):
+        with ui.dialog() as dialog, hui.dialog_card("w-[420px]"):
             with ui.column().classes("w-full gap-2"):
                 ui.label("Save As").classes("text-base font-semibold")
-                self._save_as_input = (
-                    ui.input(label="File path")
-                    .classes("w-full")
-                    .props("outlined dense")
-                    .on("update:model-value", lambda _: self._clear_save_as_warning())
-                )
-                self._save_as_warning = ui.label("").classes("text-xs hw-text-danger -mt-1")
-                self._save_as_warning.set_visibility(False)
+                path_input = hui.input_field(label="File path", value=default, autofocus=True)
+                warning_label = ui.label("").classes("text-xs hw-text-danger -mt-1")
+                warning_label.set_visibility(False)
+
+                def _clear_warning(_=None) -> None:
+                    warning_label.set_visibility(False)
+
+                path_input.on("update:model-value", _clear_warning)
+
                 with ui.row().classes("w-full justify-end gap-2 mt-1"):
                     ui.button("Cancel", on_click=dialog.close).props("flat dense")
                     ui.button(
                         "Save",
-                        on_click=lambda: self._do_save_as(context, dialog),
+                        on_click=lambda: self._do_save_as(context, dialog, path_input, warning_label),
                     ).props("color=positive dense")
-        return dialog
 
-    def _clear_save_as_warning(self) -> None:
-        if self._save_as_warning is not None:
-            self._save_as_warning.set_visibility(False)
+        dialog.open()
 
-    def _do_save_as(self, context: "SessionContext", dialog) -> None:
-        if self._save_as_input is None:
-            return
-        path_str = (self._save_as_input.value or "").strip()
+    def _do_save_as(
+        self,
+        context: "SessionContext",
+        dialog: "ui.dialog",
+        path_input: "ui.input",
+        warning_label: "ui.label",
+    ) -> None:
+        path_str = (path_input.value or "").strip()
         if not path_str:
-            self._show_save_as_warning("Please enter a file path.")
+            warning_label.text = "Please enter a file path."
+            warning_label.set_visibility(True)
             return
 
         target = Path(path_str).expanduser()
@@ -337,14 +331,16 @@ class CodeEditor(BaseEditor):
             target = target.with_suffix(old.suffix if old is not None else ".txt")
 
         if target.exists() and target != old:
-            self._show_save_as_warning(f'"{target.name}" already exists.')
+            warning_label.text = f'"{target.name}" already exists.'
+            warning_label.set_visibility(True)
             return
 
         try:
             target.parent.mkdir(parents=True, exist_ok=True)
             target.write_text(self._content, encoding="utf-8")
         except OSError as exc:
-            self._show_save_as_warning(f"Save failed: {exc}")
+            warning_label.text = f"Save failed: {exc}"
+            warning_label.set_visibility(True)
             return
 
         self._original = self._content
@@ -356,11 +352,6 @@ class CodeEditor(BaseEditor):
         self._update_save_state()
         ui.notify(f"Saved {target.name}", type="positive")
         dialog.close()
-
-    def _show_save_as_warning(self, msg: str) -> None:
-        if self._save_as_warning is not None:
-            self._save_as_warning.text = msg
-            self._save_as_warning.set_visibility(True)
 
     @staticmethod
     def _default_base_dir(context: "SessionContext") -> Path:
@@ -404,7 +395,8 @@ class CodeEditor(BaseEditor):
         if action == "save":
             path = self._resolve_path()
             if path is None:
-                self._open_save_as_dialog()
+                if self._context is not None:
+                    self._open_save_as_dialog(self._context)
                 return False
             try:
                 path.write_text(self._content, encoding="utf-8")
@@ -432,6 +424,4 @@ class CodeEditor(BaseEditor):
         self._mode_button = None
         self._save_button = None
         self._path_label = None
-        self._save_as_dialog = None
-        self._save_as_input = None
-        self._save_as_warning = None
+        self._context = None

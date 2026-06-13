@@ -2,7 +2,7 @@
 
 import logging
 from pathlib import Path
-from typing import Callable, Optional
+from typing import Optional
 
 from nicegui import ui
 
@@ -21,10 +21,11 @@ from haywire.core.session.signals import (
     GraphDataMutated,
     Reveal,
 )
-from haywire.ui.modals import confirm_modal, pick_modal, rename_modal, save_as_modal
+from haywire.ui.modals import confirm_modal, pick_modal, rename_modal
 
 from haybale_graph_editor.state.edit_state import EditState
 from haybale_graph_editor.editors.graph_editor import GraphEditor
+from haybale_graph_editor.editors.graph_save_as import open_graph_save_as_dialog
 
 from ..signals import HaystackReloaded, HaystackTeardown
 from ..state.haystack_state import HaystackState
@@ -334,7 +335,19 @@ class HaystackEditor(BaseEditor):
             return
 
         # No path — open save-as dialog
-        self._open_save_as_dialog(app, entry, context)
+        hs = context.app_data[HaystackState]
+
+        def _save_fn(save_path: Path) -> bool:
+            return hs.save_graph(entry, save_as=save_path)
+
+        def _on_success(save_path: Path) -> None:
+            if entry.graph is context.data[EditState].active_graph:
+                context.data[EditState].active_graph_path = save_path
+                session = context.session
+                if session:
+                    session.publish(ActiveGraphMoved())
+
+        open_graph_save_as_dialog(app=app, entry=entry, save_fn=_save_fn, on_success=_on_success)
 
     def _on_entry_save_as(self, binding_id: str, context: "SessionContext") -> None:
         """Always open the save-as dialog."""
@@ -345,7 +358,19 @@ class HaystackEditor(BaseEditor):
         entry = self._resolve_entry(binding_id, context)
         if entry is None:
             return
-        self._open_save_as_dialog(app, entry, context)
+        hs = context.app_data[HaystackState]
+
+        def _save_fn(save_path: Path) -> bool:
+            return hs.save_graph(entry, save_as=save_path)
+
+        def _on_success(save_path: Path) -> None:
+            if entry.graph is context.data[EditState].active_graph:
+                context.data[EditState].active_graph_path = save_path
+                session = context.session
+                if session:
+                    session.publish(ActiveGraphMoved())
+
+        open_graph_save_as_dialog(app=app, entry=entry, save_fn=_save_fn, on_success=_on_success)
 
     def _on_entry_rename(self, binding_id: str, context: "SessionContext") -> None:
         """Rename: inline edit for file-backed graphs, save-as for untitled."""
@@ -477,99 +502,6 @@ class HaystackEditor(BaseEditor):
             classify={"same": "Rename", "changed": "Rename", "existing": "Name taken"},
             allow_overwrite=False,
             on_confirm=_do_rename,
-        )
-
-    # ------------------------------------------------------------------
-    # save-as dialog
-    # ------------------------------------------------------------------
-
-    def _default_save_dir(self, app) -> Path:
-        from haywire.core.workspace import default_save_dir
-
-        root = Path(getattr(app, "workspace_root", str(Path.home())))
-        return default_save_dir(root)
-
-    def _open_save_as_dialog(
-        self,
-        app,
-        entry: "GraphEntry",
-        context: "SessionContext",
-        on_success: "Optional[Callable[[], None]]" = None,
-        initial_path: "Optional[str]" = None,
-    ) -> None:
-        """Open the Save-As modal for a graph entry.
-
-        Handles the overwrite-confirm flow: when the chosen path resolves to
-        an existing file that is NOT the entry's own current path, a stacked
-        :func:`confirm_modal` asks for confirmation before clobbering. On
-        cancel the save-as modal reopens with the user's typed path so they
-        don't lose their input.
-
-        Args:
-            initial_path: Override the default pre-filled value. Used to
-                preserve the user's input when reopening after an overwrite
-                cancel. When ``None``, the value is derived from
-                ``entry.path`` (or a sensible default for unnamed entries).
-        """
-        workspace_root = Path(getattr(app, "workspace_root", str(Path.home())))
-
-        if initial_path is None:
-            if entry.path is not None:
-                try:
-                    initial_path = str(entry.path.relative_to(workspace_root))
-                except ValueError:
-                    initial_path = entry.path.name
-            else:
-                save_dir = self._default_save_dir(app)
-                graph_name = getattr(entry.graph, "name", None) or "untitled"
-                safe_name = graph_name.lower().replace(" ", "_")
-                try:
-                    rel_dir = save_dir.relative_to(workspace_root)
-                    initial_path = str(rel_dir / f"{safe_name}.haywire")
-                except ValueError:
-                    initial_path = f"{safe_name}.haywire"
-
-        def _do_save(save_path: Path) -> None:
-            hs = context.app_data[HaystackState]
-            success = hs.save_graph(entry, save_as=save_path)
-            if not success:
-                ui.notify("Save failed — check the path and try again", type="negative")
-                return
-            session = context.session
-            if entry.graph is context.data[EditState].active_graph:
-                context.data[EditState].active_graph_path = save_path
-                if session:
-                    session.publish(ActiveGraphMoved())
-            ui.notify(f"Saved: {save_path.name}", type="positive", position="top-right")
-            if on_success is not None:
-                on_success()
-
-        def _on_confirm(save_path: Path, raw_input: str) -> None:
-            # If the chosen path is the entry's own current path, it's an
-            # in-place save — no overwrite prompt needed.
-            if save_path == entry.path:
-                _do_save(save_path)
-                return
-            if save_path.exists():
-                confirm_modal(
-                    title="Overwrite file?",
-                    message=f'"{save_path.name}" already exists. Overwrite it?',
-                    confirm_label="Overwrite",
-                    danger=True,
-                    on_confirm=lambda: _do_save(save_path),
-                    on_cancel=lambda: self._open_save_as_dialog(
-                        app, entry, context, on_success, initial_path=raw_input
-                    ),
-                )
-                return
-            _do_save(save_path)
-
-        save_as_modal(
-            title="Save Graph As",
-            workspace_root=workspace_root,
-            initial_path=initial_path,
-            suffixes=(".haywire",),
-            on_confirm=_on_confirm,
         )
 
     # ------------------------------------------------------------------

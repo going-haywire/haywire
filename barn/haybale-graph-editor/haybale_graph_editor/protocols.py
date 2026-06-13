@@ -32,11 +32,16 @@ class GraphContainer(Protocol):
         display_name: Human label for tab and header chrome.
     """
 
-    binding_id: str
-    editor: "Editor"
-    path: Optional[Path]
-    unsaved: bool
-    display_name: str
+    @property
+    def binding_id(self) -> str: ...
+    @property
+    def editor(self) -> "Editor": ...
+    @property
+    def path(self) -> Optional[Path]: ...
+    @property
+    def unsaved(self) -> bool: ...
+    @property
+    def display_name(self) -> str: ...
 
     def save(self, save_as: Optional[Path] = None) -> Optional[str]:
         """Persist the container.
