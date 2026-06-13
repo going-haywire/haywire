@@ -18,7 +18,7 @@ from haywire.core.host import HostStore
 from haywire.ui.console_bridge import get_bridge
 from haywire.ui.nicegui_patches import apply_nicegui_patches
 
-from .completion import register_completion_endpoint
+from .code_intelligence import register_code_intelligence_endpoints
 
 if TYPE_CHECKING:
     from haywire.ui.app.shell import AppShell
@@ -46,7 +46,7 @@ class HaywireApp:
         # rendering. See haywire.ui.nicegui_patches.
         apply_nicegui_patches()
 
-        register_completion_endpoint()
+        register_code_intelligence_endpoints()
 
         self.setup_library_system()
         self.setup_shared_services()
