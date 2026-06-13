@@ -56,7 +56,6 @@ The plugin owns **no registry state and no runtime parsing**. It calls `Marketpl
 | `LibraryBrowserEditor` | `left` | Lists installed + available libraries, grouped REQUIRED / ENABLED / DISABLED / AVAILABLE. Toolbar: Refresh, Add Source, Edit File. |
 | `LibraryOverviewEditor` | `main` | One library's identity, component breakdown, and Edit / Enable / Disable / Uninstall / Install actions. |
 | `LibraryComponentEditor` | `right` | Detail view for one component (node/type/widget/…) — import snippet, port-wiring hints. |
-| `ComponentSourceEditor` | `right` | Read/edit the component's source file (editable installs only). |
 
 `library_marketplace_dialog` is **not** a registered editor — it is a module of helper functions (`show_add_source_dialog`, conflict-resolution prompts) the Browser's Add Source button calls.
 

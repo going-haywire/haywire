@@ -9,8 +9,11 @@ registries, factories, and services.
 import os
 import logging
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import TYPE_CHECKING, Any, Dict, List, Optional
 from injector import Injector, Module, provider, singleton
+
+if TYPE_CHECKING:
+    from ..registry.base import BaseRegistry
 
 from ..debug.configurator import LoggingConfigurator
 from ...ui.skin.registry import SkinRegistry
@@ -23,6 +26,19 @@ from ...ui.panel.registry import PanelRegistry
 
 from ..host import HostStore
 from ..library.registry import LibraryRegistry
+from ..library.utils import (
+    ADAPTER,
+    EDITOR,
+    NODE,
+    PANEL,
+    SETTING,
+    SKIN,
+    STATE,
+    THEME,
+    TYPE,
+    WIDGET,
+    split_reg_key,
+)
 from ..node.registry import NodeRegistry
 from ..adapter.registry import AdapterRegistry
 from ..adapter.factory import AdapterFactory
@@ -691,6 +707,56 @@ class LibrarySystemService:
     def get_state_registry(self) -> LibraryStateRegistry:
         """Get the library state registry."""
         return self.injector.get(LibraryStateRegistry)
+
+    # =========================================================================
+    # Component lookup by registry_key
+    # =========================================================================
+
+    # Maps the singular comp_type segment of a registry_key (lib_id:TYPE:class)
+    # onto the getter method that returns the owning registry.
+    _REGISTRY_GETTERS: Dict[str, str] = {
+        NODE: "get_node_registry",
+        WIDGET: "get_widget_registry",
+        TYPE: "get_type_registry",
+        ADAPTER: "get_adapter_registry",
+        SKIN: "get_skin_registry",
+        THEME: "get_theme_registry",
+        SETTING: "get_settings_registry",
+        STATE: "get_state_registry",
+        PANEL: "get_panel_registry",
+        EDITOR: "get_editor_registry",
+    }
+
+    def get_registry_for_key(self, registry_key: str) -> Optional["BaseRegistry"]:
+        """Return the registry that owns ``registry_key``, or None.
+
+        Resolves the appropriate registry from the comp_type segment of the
+        key (e.g. 'node' in 'mylib:node:MyNode'). Returns None when the key is
+        malformed or the comp_type is unknown.
+        """
+        if not registry_key:
+            return None
+        try:
+            _lib_id, comp_singular, _class_name = split_reg_key(registry_key)
+        except ValueError:
+            return None
+        getter_name = self._REGISTRY_GETTERS.get(comp_singular)
+        if getter_name is None:
+            return None
+        getter = getattr(self, getter_name, None)
+        return getter() if getter is not None else None
+
+    def lookup_component_class(self, registry_key: str) -> Optional[type]:
+        """Return the component class registered under ``registry_key``, or None.
+
+        Resolves the owning registry via :meth:`get_registry_for_key`, then
+        looks the class up. Returns None when the key is malformed, the
+        registry is unavailable, or the class is not found.
+        """
+        registry = self.get_registry_for_key(registry_key)
+        if registry is None:
+            return None
+        return registry.get(registry_key)
 
     # =========================================================================
     # Settings convenience methods

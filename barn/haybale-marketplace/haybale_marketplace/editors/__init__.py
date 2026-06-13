@@ -4,5 +4,4 @@
 - LibraryOverviewEditor — per-library detail page.
 - LibraryComponentEditor — per-component inspector.
 - library_marketplace_dialog — Add Source modal.
-- ComponentSourceEditor — view a component's source.
 """

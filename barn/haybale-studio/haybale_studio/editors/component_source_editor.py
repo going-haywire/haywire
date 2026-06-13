@@ -27,9 +27,7 @@ from typing import TYPE_CHECKING, Literal, Optional
 from nicegui import ui
 
 from haywire.ui import elements as hui
-from haywire.core.library.utils import get_registry_id_from_key, split_reg_key
-
-from ._registry_utils import _REGISTRY_GETTER, lookup_component_class
+from haywire.core.library.utils import get_registry_id_from_key
 from haywire.core.session.context import SessionContext
 from haywire.core.session.handlers import redraw_on
 from haywire.core.session.signals import Signal
@@ -146,27 +144,22 @@ class ComponentSourceEditor(BaseEditor):
         self._sync_subscription(context)
 
     def _lookup_class(self, context: "SessionContext", registry_key: str) -> Optional[type]:
-        return lookup_component_class(context.app, registry_key)
+        app = context.app
+        if app is None:
+            return None
+        return app.library_service.lookup_component_class(registry_key)
 
     def _compute_is_editable(self, context: "SessionContext") -> bool:
-        from haybale_marketplace.state.library_manager_state import LibraryManagerState
+        from haywire.core.library.install_type import InstallType
 
         if not self._registry_key:
             return False
-        manager_state = context.app_data.get(LibraryManagerState)
-        manager = manager_state.manager if manager_state is not None else None
-        if manager is None:
+        app = context.app
+        if app is None:
             return False
         lib_id = self._registry_key.split(":", 1)[0]
-        lib = manager.get_installed_library(lib_id)
-        if lib is None:
-            return False
-        install_type = getattr(lib, "install_type", None)
-        if install_type is None:
-            return False
-        return (
-            install_type.name == "EDITABLE" if hasattr(install_type, "name") else install_type == "EDITABLE"
-        )
+        install_type = app.library_service.get_library_registry().get_library_install_type(lib_id)
+        return install_type == InstallType.EDITABLE
 
     def _read_buffer(self) -> None:
         text = self._read_file(self._path)
@@ -371,13 +364,8 @@ class ComponentSourceEditor(BaseEditor):
         app = context.app
         if app is None:
             return None
-        _lib_id, comp_singular, _class_name = split_reg_key(self._registry_key)
-        getter_name = _REGISTRY_GETTER.get(comp_singular)
-        if getter_name is None:
-            return None
         try:
-            svc = app.library_service
-            return getattr(svc, getter_name, lambda: None)()
+            return app.library_service.get_registry_for_key(self._registry_key)
         except Exception:
             return None
 

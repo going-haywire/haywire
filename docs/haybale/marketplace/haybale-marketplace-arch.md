@@ -187,14 +187,14 @@ The UI calls **`MarketplaceState`**, not `marketplace_runtime` directly. The sta
 
 ### 4.2 The editors and the manager state
 
-`haybale-marketplace` registers five editors (`barn/haybale-marketplace/haybale_marketplace/editors/`); the two primary ones are:
+`haybale-marketplace` registers four editors (`barn/haybale-marketplace/haybale_marketplace/editors/`); the two primary ones are:
 
 | Editor | Slot | Drives |
 |---|---|---|
 | **Library Browser** | left | Lists installed + available libraries. Filter toggles for REQUIRED / ENABLED / DISABLED / AVAILABLE. Toolbar exposes Refresh, Add Source, Edit File. |
 | **Library Overview Editor** | main | One library's identity, component breakdown, and Edit / Enable / Disable / Uninstall actions. Reached by clicking a row in the Library Browser. |
 
-The remaining three (`library_component_editor`, `component_source_editor`, `library_marketplace_dialog`) handle per-component inspection, editable source viewing, and the Add-Source flow. The full editor/state inventory is in [marketplace-canon §What it ships](../marketplace-canon.md#3-what-the-plugin-ships).
+The remaining two (`library_component_editor`, `library_marketplace_dialog`) handle per-component inspection and the Add-Source flow. The full editor/state inventory is in [marketplace-canon §What it ships](../marketplace-canon.md#3-what-the-plugin-ships).
 
 `LibraryManager` (the orchestrator class in `barn/haybale-marketplace/haybale_marketplace/library_manager.py`) owns the install / uninstall / enable / disable / edit-identity verbs. It is a plain class — *not* an `AppState`. It is published to the other editors through a thin `LibraryManagerState(AppState)` holder (composition, not inheritance — see [ADR-0001 §Why composition](../../adr/0001-haybale-marketplace-carveout.md)), so consumers reach it via `ctx.app_data[LibraryManagerState].manager.X`. The state resolves the registry and workspace root from the ambient DI context in `on_enable()`.
 

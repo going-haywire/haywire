@@ -15,7 +15,6 @@ from haywire.core.library.utils import split_reg_key
 from nicegui import ui
 
 from haywire.ui import elements as hui
-from ._registry_utils import lookup_component_class
 
 from haywire.ui.editor.decorator import editor
 from haywire.ui.editor.identity import SlotName
@@ -99,7 +98,7 @@ class LibraryComponentEditor(BaseEditor):
             manager = manager_state.manager if manager_state is not None else None
             lib: LibraryInfo | None = manager.get_installed_library(lib_id) if manager is not None else None
 
-            cls = self._lookup_class(app, lib_id, comp_type, registry_key)
+            cls = app.library_service.lookup_component_class(registry_key)
             identity = getattr(cls, "class_identity", None) if cls else None
 
             label = getattr(identity, "label", None) or class_name or "?"
@@ -246,8 +245,3 @@ class LibraryComponentEditor(BaseEditor):
         """Clear active component and notify listeners."""
         # Assigning emits SessionContext.active_component on the bus.
         context.active_component = None
-
-    @staticmethod
-    def _lookup_class(app, lib_id: str, comp_type: str, registry_key: str):
-        """Look up the component class from the appropriate registry."""
-        return lookup_component_class(app, registry_key)
