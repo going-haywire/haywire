@@ -284,6 +284,124 @@ class ComponentSourceEditor(BaseEditor):
                 theme=self._codemirror_theme(context),
                 on_change=on_change,
             ).style("flex: 1; min-height: 0; width: 100%; height: 100%;")
+            ui.timer(0.1, lambda: self._inject_completions(), once=True)
+
+    def _inject_completions(self) -> None:
+        if self._editor is None:
+            return
+        editor_id = self._editor.id
+        path_str = str(self._path) if self._path is not None else "null"
+        path_js = f'"{path_str}"' if self._path is not None else "null"
+        ui.run_javascript(f"""
+            const CM = await import('nicegui-codemirror');
+            let el;
+            for (let i = 0; i < 50; i++) {{
+                el = getElement({editor_id});
+                if (el) break;
+                await new Promise(r => setTimeout(r, 100));
+            }}
+            if (!el) return;
+            const editor = await el.editorPromise;
+
+            async function haywireComplete(context) {{
+                const word = context.matchBefore(/\\w*/);
+                if (!word || (word.from === word.to && !context.explicit)) return null;
+
+                const state = editor.state;
+                const pos = state.selection.main.head;
+                const doc = state.doc;
+                const line = doc.lineAt(pos);
+
+                const resp = await fetch('/api/complete', {{
+                    method: 'POST',
+                    headers: {{'Content-Type': 'application/json'}},
+                    body: JSON.stringify({{
+                        code: doc.toString(),
+                        line: line.number,
+                        column: pos - line.from,
+                        path: {path_js},
+                        explicit: context.explicit,
+                    }})
+                }});
+                const data = await resp.json();
+                if (!data.completions.length) return null;
+
+                const reqLine = line.number;
+                const reqCol = pos - line.from;
+                const options = data.completions.map(opt => ({{
+                    ...opt,
+                    info: async () => {{
+                        const r = await fetch('/api/complete/info', {{
+                            method: 'POST',
+                            headers: {{'Content-Type': 'application/json'}},
+                            body: JSON.stringify({{
+                                code: doc.toString(),
+                                line: reqLine,
+                                column: reqCol,
+                                path: {path_js},
+                                label: opt.label,
+                            }})
+                        }});
+                        const info = (await r.json()).info;
+                        if (!info) return null;
+                        const dom = document.createElement('div');
+                        dom.className = 'hw-cm-doc';
+                        dom.innerHTML = info;
+                        return dom;
+                    }},
+                }}));
+                return {{
+                    from: word.from,
+                    options: options,
+                }};
+            }}
+
+            const haywireHover = CM.hoverTooltip(async (view, pos, side) => {{
+                const doc = view.state.doc;
+                const lineObj = doc.lineAt(pos);
+                // Expand to the full identifier under the cursor.
+                const text = doc.toString();
+                let start = pos, end = pos;
+                while (start > 0 && /[\\w.]/.test(text[start - 1])) start--;
+                while (end < text.length && /[\\w]/.test(text[end])) end++;
+                if (start === end) return null;
+
+                const resp = await fetch('/api/hover', {{
+                    method: 'POST',
+                    headers: {{'Content-Type': 'application/json'}},
+                    body: JSON.stringify({{
+                        code: text,
+                        line: lineObj.number,
+                        column: pos - lineObj.from,
+                        path: {path_js},
+                    }})
+                }});
+                const info = (await resp.json()).info;
+                if (!info) return null;
+                return {{
+                    pos: start,
+                    end: end,
+                    above: true,
+                    create: () => {{
+                        const dom = document.createElement('div');
+                        dom.className = 'hw-cm-doc';
+                        dom.innerHTML = info;
+                        return {{ dom }};
+                    }},
+                }};
+            }});
+
+            const lang = CM.languages.find(l => l.name === 'Python');
+            if (lang) {{
+                const ext = await lang.load();
+                editor.dispatch({{
+                    effects: CM.StateEffect.appendConfig.of([
+                        ext.language.data.of({{ autocomplete: haywireComplete }}),
+                        haywireHover,
+                    ])
+                }});
+            }}
+        """)
 
     @staticmethod
     def _codemirror_theme(context: "SessionContext") -> Literal["vscodeLight", "vscodeDark"]:

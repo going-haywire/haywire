@@ -18,6 +18,8 @@ from haywire.core.host import HostStore
 from haywire.ui.console_bridge import get_bridge
 from haywire.ui.nicegui_patches import apply_nicegui_patches
 
+from .completion import register_completion_endpoint
+
 if TYPE_CHECKING:
     from haywire.ui.app.shell import AppShell
 
@@ -43,6 +45,8 @@ class HaywireApp:
         # Patch NiceGUI internals (e.g. cache expects_arguments) before any
         # rendering. See haywire.ui.nicegui_patches.
         apply_nicegui_patches()
+
+        register_completion_endpoint()
 
         self.setup_library_system()
         self.setup_shared_services()

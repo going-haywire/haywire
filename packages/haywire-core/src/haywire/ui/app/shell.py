@@ -32,6 +32,22 @@ from haywire.ui.editor.identity import SlotName
 
 logger = logging.getLogger(__name__)
 
+
+def _pygments_doc_css() -> str:
+    """Pygments token CSS for code blocks inside the .hw-cm-doc panel.
+
+    markdown2's fenced-code-blocks extra emits `.codehilite` wrappers with
+    pygments token classes. These tooltips are raw-DOM (not ui.markdown), so
+    NiceGUI's per-element codehilite CSS never applies — generate it here.
+    """
+    try:
+        from pygments.formatters import HtmlFormatter
+
+        return HtmlFormatter(nobackground=True).get_style_defs(".hw-cm-doc .codehilite")
+    except Exception:  # pragma: no cover - pygments always present via markdown2
+        return ""
+
+
 if TYPE_CHECKING:
     from haywire.ui.editor.registry import EditorTypeRegistry
     from haywire.core.session.session import Session
@@ -392,8 +408,48 @@ class AppShell:
             "   > .q-tree__node-collapsible > .q-tree__node-body:after {"
             "   border-color: var(--hw-border);"
             " }"
+            # CodeMirror completion/hover doc panel — portals to body, so target
+            # globally (like .q-menu above). Content is markdown2-rendered HTML.
+            " .hw-cm-doc {"
+            "   max-width: 480px;"
+            "   max-height: 320px;"
+            "   overflow: auto;"
+            "   padding: 8px 12px;"
+            "   font-size: 12px;"
+            "   line-height: 1.45;"
+            "   color: var(--hw-text-body);"
+            " }"
+            # Tighten markdown block spacing inside the panel.
+            " .hw-cm-doc > :first-child { margin-top: 0; }"
+            " .hw-cm-doc > :last-child { margin-bottom: 0; }"
+            " .hw-cm-doc p { margin: 0.4em 0; }"
+            " .hw-cm-doc h1, .hw-cm-doc h2, .hw-cm-doc h3, .hw-cm-doc h4 {"
+            "   margin: 0.6em 0 0.3em; font-size: 12px; font-weight: 600;"
+            "   color: var(--hw-text-body);"
+            " }"
+            # Inline + fenced code: monospace, subtle surface, theme tokens.
+            " .hw-cm-doc code {"
+            "   font-family: var(--hw-font-mono, monospace);"
+            "   font-size: 11.5px;"
+            " }"
+            " .hw-cm-doc pre {"
+            "   margin: 0.4em 0;"
+            "   padding: 6px 8px;"
+            "   background: var(--hw-bg-input);"
+            "   border: 1px solid var(--hw-border);"
+            "   border-radius: 4px;"
+            "   overflow-x: auto;"
+            "   white-space: pre;"
+            " }"
+            " .hw-cm-doc :not(pre) > code {"
+            "   padding: 1px 4px;"
+            "   background: var(--hw-bg-input);"
+            "   border-radius: 3px;"
+            " }"
+            # The doc panel's own padding replaces the tooltip wrapper's.
+            " .cm-tooltip.cm-completionInfo { padding: 0; }"
         )
-        ui.add_css(self._build_initial_theme_css() + _static_css)
+        ui.add_css(self._build_initial_theme_css() + _static_css + _pygments_doc_css())
 
         # React to workbench.theme setting changes (e.g. from the settings panel).
         settings_registry = self.session.context.app.library_service.get_settings_registry()
