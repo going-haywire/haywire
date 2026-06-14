@@ -44,7 +44,7 @@ class HaywireApp:
 
         # Patch NiceGUI internals (e.g. cache expects_arguments) before any
         # rendering. See haywire.ui.nicegui_patches.
-        apply_nicegui_patches()
+        # apply_nicegui_patches()
 
         register_code_intelligence_endpoints()
 

@@ -285,6 +285,12 @@ class UINode:
             except Exception as e:
                 logger.warning(f"Failed to clean up container slot: {e}", exc_info=True)
             self.container_slot = None
+        if self.container:
+            try:
+                self.container.delete()
+            except Exception as e:
+                logger.warning(f"Failed to delete node container: {e}", exc_info=True)
+            self.container = None
 
     def is_rendered(self) -> bool:
         """Check if the node is currently rendered."""

@@ -77,8 +77,8 @@ class CreateNodePanel(BasePanel):
 class CanvasPasteSelectionPanel(BasePanel):
     """Paste panel in the canvas context.
 
-    Companion to SelectionPasteSelectionPanel for the selection context.
-    Both share the paste_at_click verb on their respective Protocols.
+    Paste is a canvas-level operation: it places nodes at the click position.
+    Use this by right-clicking empty canvas space.
     """
 
     actions: CanvasContextActions
