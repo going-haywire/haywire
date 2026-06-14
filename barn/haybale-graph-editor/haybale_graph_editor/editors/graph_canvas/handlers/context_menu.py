@@ -382,33 +382,6 @@ class SessionContextMenuProvider(IContextMenuProvider, BaseContextMenuProvider):
         x, y = self._open_ctx.canvas_pos
         self._emit_sync(SyncRequestClipboardPasteEvent(canvasX=x, canvasY=y))
 
-    # NodeContextActions
-
-    def delete_node(self, node_id: str) -> None:
-        from haywire.ui.components.graph.event_definitions import UserRemoveEvent
-
-        self._emit(UserRemoveEvent(nodes=[node_id], edges=[]))
-
-    def copy_node(self, node_id: str) -> None:
-        from haywire.ui.components.graph.event_definitions import UserCopySelectedEvent
-
-        self._emit(UserCopySelectedEvent(selectedNodes=[node_id], selectedEdges=[]))
-
-    def redraw_node(self, node_id: str) -> None:
-        from haywire.ui.components.graph.event_definitions import ElementRedrawEvent
-
-        self._emit(ElementRedrawEvent(nodes=[node_id], edges=[]))
-
-    def revalidate_node(self, node_id: str) -> None:
-        from haywire.ui.components.graph.event_definitions import ElementRevalidateEvent
-
-        self._emit(ElementRevalidateEvent(nodes=[node_id], edges=[]))
-
-    def reset_node(self, node_id: str) -> None:
-        from haywire.ui.components.graph.event_definitions import ElementResetEvent
-
-        self._emit(ElementResetEvent(nodes=[node_id], edges=[]))
-
     # EdgeContextActions
 
     def delete_edge(self, edge_id: str) -> None:

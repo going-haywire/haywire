@@ -101,19 +101,6 @@ def test_provider_satisfies_selection_context_actions():
     assert isinstance(provider, SelectionContextActions)
 
 
-def test_delete_node_emits_user_remove_event():
-    from haywire.ui.components.graph.event_definitions import UserRemoveEvent
-
-    captured = []
-    provider = _make_provider(on_emit_event=captured.append)
-    provider.delete_node("node-1")
-
-    assert len(captured) == 1
-    assert isinstance(captured[0], UserRemoveEvent)
-    assert captured[0].nodes == ["node-1"]
-    assert captured[0].edges == []
-
-
 def test_delete_edge_emits_user_remove_event():
     from haywire.ui.components.graph.event_definitions import UserRemoveEvent
 
@@ -125,51 +112,6 @@ def test_delete_edge_emits_user_remove_event():
     assert isinstance(captured[0], UserRemoveEvent)
     assert captured[0].nodes == []
     assert captured[0].edges == ["edge-1"]
-
-
-def test_copy_node_emits_user_copy_selected_event():
-    from haywire.ui.components.graph.event_definitions import UserCopySelectedEvent
-
-    captured = []
-    provider = _make_provider(on_emit_event=captured.append)
-    provider.copy_node("node-1")
-
-    assert len(captured) == 1
-    assert isinstance(captured[0], UserCopySelectedEvent)
-    assert captured[0].selectedNodes == ["node-1"]
-    assert captured[0].selectedEdges == []
-
-
-def test_redraw_node_emits_element_redraw_event():
-    from haywire.ui.components.graph.event_definitions import ElementRedrawEvent
-
-    captured = []
-    provider = _make_provider(on_emit_event=captured.append)
-    provider.redraw_node("node-1")
-
-    assert len(captured) == 1
-    assert isinstance(captured[0], ElementRedrawEvent)
-    assert captured[0].nodes == ["node-1"]
-
-
-def test_revalidate_node_emits_element_revalidate_event():
-    from haywire.ui.components.graph.event_definitions import ElementRevalidateEvent
-
-    captured = []
-    provider = _make_provider(on_emit_event=captured.append)
-    provider.revalidate_node("node-1")
-
-    assert isinstance(captured[0], ElementRevalidateEvent)
-
-
-def test_reset_node_emits_element_reset_event():
-    from haywire.ui.components.graph.event_definitions import ElementResetEvent
-
-    captured = []
-    provider = _make_provider(on_emit_event=captured.append)
-    provider.reset_node("node-1")
-
-    assert isinstance(captured[0], ElementResetEvent)
 
 
 def test_copy_selection_uses_session_context_selection():

@@ -8,12 +8,12 @@ register_components(), following the same pattern as @renderer and @widget.
 
 Usage::
 
-    @panel(actions=NodeContextActions, focus=NodeFocus, label='Delete Node')
-    class DeleteNodePanel(BasePanel):
-        actions: NodeContextActions   # for type-checker visibility on self.actions
+    @panel(actions=SelectionContextActions, focus=SelectionFocus, label='Delete Selection')
+    class DeleteSelectionPanel(BasePanel):
+        actions: SelectionContextActions   # for type-checker visibility on self.actions
 
         def draw(self, ctx, layout):
-            self.actions.delete_node(...)
+            self.actions.delete_selection()
 
 Display panels omit both the decorator arg and the annotation:
 

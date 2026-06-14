@@ -18,15 +18,15 @@ class BasePanel(ABC):
     Subclasses are decorated with `@panel(...)` and inherit from `BasePanel`::
 
         @panel(
-            actions=NodeContextActions,  # -> decorator
-            focus=NodeFocus,
-            label="Delete Node",
+            actions=SelectionContextActions,  # -> decorator
+            focus=SelectionFocus,
+            label="Delete Selection",
         )
-        class DeleteNodePanel(BasePanel):
-            actions: NodeContextActions  # -> annotation
+        class DeleteSelectionPanel(BasePanel):
+            actions: SelectionContextActions  # -> annotation
 
             def draw(self, ctx, layout):
-                self.actions.delete_node(...)
+                self.actions.delete_selection()
 
     Panels with `actions` enter it in both the decorator and the annotation;
     panels with no `actions` omit it.

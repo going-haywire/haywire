@@ -20,13 +20,16 @@ class CanvasContextActions(Protocol):
 
 @runtime_checkable
 class NodeContextActions(Protocol):
-    """Verbs available when the user right-clicks on a node."""
+    """Marker Protocol for node-context panels.
 
-    def delete_node(self, node_id: str) -> None: ...
-    def copy_node(self, node_id: str) -> None: ...
-    def redraw_node(self, node_id: str) -> None: ...
-    def revalidate_node(self, node_id: str) -> None: ...
-    def reset_node(self, node_id: str) -> None: ...
+    Empty after node/selection unification: node *commands* moved to
+    SelectionContextActions (they act on the whole selection). This Protocol
+    survives as the default action surface for the custom-context extension
+    point (on_custom_context) and as the focus marker for node-scoped
+    display panels (e.g. node_errors inspector variant). Library authors may
+    declare verbs here for their own custom-focus panels. Mirrors
+    PortContextActions.
+    """
 
 
 @runtime_checkable
