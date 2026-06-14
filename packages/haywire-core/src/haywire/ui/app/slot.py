@@ -805,10 +805,7 @@ class Slot(ABC):
                     continue
                 if self.find_binding(event.registry_key) is not None:
                     continue
-                wrapper = self.add_binding(
-                    editor_key=event.registry_key, 
-                    editor_cls=cls
-                )
+                wrapper = self.add_binding(editor_key=event.registry_key, editor_cls=cls)
                 self._reorder_required_binding(wrapper)
                 bar_dirty = True
 

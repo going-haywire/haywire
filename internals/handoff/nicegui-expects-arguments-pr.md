@@ -1,7 +1,7 @@
 # Handoff — upstream NiceGUI PR: stop re-running `inspect.signature` on every observable change
 
 **Date:** 2026-06-09
-**Status:** deferred — Haywire side is done & shipped; only the upstream PR remains.
+**Status:** in progress: https://github.com/zauberzeug/nicegui/pull/6108
 **Who's waiting:** the NiceGUI maintainer reviewed our proposal, said the
 diagnosis is "spot on", and **offered to review a PR**. This is a welcomed,
 pre-greenlit contribution — not a cold submission.

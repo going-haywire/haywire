@@ -26,10 +26,7 @@ def notify_library_changed(context: "SessionContext") -> None:
         session.publish(LibraryCatalogChanged())
 
 
-def reload_installed(
-        library_id: str, 
-        manager: "LibraryManager"
-    ) -> LibraryInfo | None:
+def reload_installed(library_id: str, manager: "LibraryManager") -> LibraryInfo | None:
     try:
         libs = manager.list_installed()
         return next((lib for lib in libs if lib.identity.id == library_id), None)
@@ -37,10 +34,7 @@ def reload_installed(
         return None
 
 
-def find_installed_by_dist_name(
-        dist_name: str, 
-        manager: "LibraryManager"
-    ) -> LibraryInfo | None:
+def find_installed_by_dist_name(dist_name: str, manager: "LibraryManager") -> LibraryInfo | None:
     try:
         libs = manager.list_installed()
         return next((lib for lib in libs if lib.distribution_name == dist_name), None)
@@ -48,22 +42,14 @@ def find_installed_by_dist_name(
         return None
 
 
-def enable_library(
-        library_id: str, 
-        manager: "LibraryManager", 
-        context: "SessionContext"
-    ) -> None:
+def enable_library(library_id: str, manager: "LibraryManager", context: "SessionContext") -> None:
     manager.registry.enable_library(library_id)
     ui.notify(f"Enabled: {library_id}", type="positive")
     context.active_library = reload_installed(library_id, manager)
     notify_library_changed(context)
 
 
-def disable_library(
-        library_id: str, 
-        manager: "LibraryManager", 
-        context: "SessionContext"
-    ) -> None:
+def disable_library(library_id: str, manager: "LibraryManager", context: "SessionContext") -> None:
     manager.registry.disable_library(library_id)
     ui.notify(f"Disabled: {library_id}", type="warning")
     context.active_library = reload_installed(library_id, manager)
