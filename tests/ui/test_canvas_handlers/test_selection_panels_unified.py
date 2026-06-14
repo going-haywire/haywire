@@ -47,6 +47,10 @@ def test_selection_label_multiple_edges():
     assert selection_label("Delete", n_nodes=0, n_edges=2) == "Delete 2 Edges"
 
 
+def test_selection_label_zero_both_falls_back_to_selection():
+    assert selection_label("Delete", n_nodes=0, n_edges=0) == "Delete Selection"
+
+
 def _ctx_with_selection(nodes, edges):
     """Minimal SessionContext stub exposing data[EditState] -> selection sets."""
     from types import SimpleNamespace
