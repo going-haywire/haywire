@@ -326,11 +326,20 @@ class VisualLayerHandlers:
     # Selection + full clear
     # -------------------------------------------------------------------------
 
-    def sync_selections(self, selected_nodes, selected_edges):
-        """Emit consolidated selection sync event to Vue."""
+    def sync_selections(self, selected_nodes, selected_edges, active=None):
+        """Emit consolidated selection sync event to Vue.
+
+        ``active`` is the single primary element to reconcile on the canvas:
+        ``{"kind": "node"|"edge"|"", "id": str}``. ``None`` (the default) means
+        "no primary" and is sent as the ``{"kind": "", "id": ""}`` sentinel,
+        clearing any active highlight.
+        """
+        if active is None:
+            active = {"kind": "", "id": ""}
         sync_event = SyncSelectionsEvent(
             nodes=list(selected_nodes),
             edges=list(selected_edges),
+            active=active,
         )
         self.canvas_vue.emit_sync_event(sync_event)
 

@@ -170,6 +170,52 @@ def test_selection_changed_no_callback_does_not_raise(handler):
     handler.process_selection_change(SelectionChangedEvent(selectedNodes=[], selectedEdges=[]))
 
 
+def test_active_node_follows_event_active_id(handler, session, edit_state_cls):
+    """active_node is the event's activeNodeId, not an arbitrary set member."""
+    handler.process_selection_change(
+        SelectionChangedEvent(
+            selectedNodes=["n1", "n2", "n3"],
+            selectedEdges=[],
+            activeNodeId="n2",
+            activeEdgeId="",
+        )
+    )
+    edit = session.context.data[edit_state_cls]
+    # handler.graph.get_node_wrapper is a MagicMock; assert it was asked for n2.
+    handler.graph.get_node_wrapper.assert_called_with("n2")
+    assert edit.active_edge is None
+
+
+def test_active_edge_clears_active_node_single_active(handler, session, edit_state_cls):
+    """An active edge means no active node (single active element across kinds)."""
+    handler.process_selection_change(
+        SelectionChangedEvent(
+            selectedNodes=["n1"],
+            selectedEdges=["e1"],
+            activeNodeId="",
+            activeEdgeId="e1",
+        )
+    )
+    edit = session.context.data[edit_state_cls]
+    assert edit.active_node is None
+    handler.graph.get_edge_wrapper.assert_called_with("e1")
+
+
+def test_no_active_id_means_none(handler, session, edit_state_cls):
+    """Bulk selection (drag-box) carries no active id -> active_node/edge are None."""
+    handler.process_selection_change(
+        SelectionChangedEvent(
+            selectedNodes=["n1", "n2"],
+            selectedEdges=[],
+            activeNodeId="",
+            activeEdgeId="",
+        )
+    )
+    edit = session.context.data[edit_state_cls]
+    assert edit.active_node is None
+    assert edit.active_edge is None
+
+
 # ---------------------------------------------------------------------------
 # UserCopySelected
 # ---------------------------------------------------------------------------
@@ -226,6 +272,40 @@ def test_paste_event_carries_clipboard_text():
     # default stays empty for backward compat
     e2 = UserPasteClipboardEvent(canvasX=0.0, canvasY=0.0)
     assert e2.clipboardText == ""
+
+
+def test_selection_changed_event_carries_active_ids():
+    from haywire.ui.components.graph.event_definitions import SelectionChangedEvent
+
+    e = SelectionChangedEvent(
+        selectedNodes=["n1", "n2"],
+        selectedEdges=[],
+        activeNodeId="n2",
+        activeEdgeId="",
+    )
+    assert e.activeNodeId == "n2"
+    assert e.activeEdgeId == ""
+    # survives Python wire serialization, nested under "data"
+    d = e.to_dict()["data"]
+    assert d["activeNodeId"] == "n2"
+    assert d["activeEdgeId"] == ""
+
+    # defaults stay empty for backward compat (existing call sites omit them)
+    e2 = SelectionChangedEvent(selectedNodes=[], selectedEdges=[])
+    assert e2.activeNodeId == ""
+    assert e2.activeEdgeId == ""
+
+
+def test_sync_selections_event_carries_active():
+    from haywire.ui.components.graph.event_definitions import SyncSelectionsEvent
+
+    e = SyncSelectionsEvent(nodes=["n1"], edges=[], active={"kind": "node", "id": "n1"})
+    assert e.active == {"kind": "node", "id": "n1"}
+    assert e.to_dict()["data"]["active"] == {"kind": "node", "id": "n1"}
+
+    # default is the "no active" sentinel; existing emit sites omit it
+    e2 = SyncSelectionsEvent(nodes=[], edges=[])
+    assert e2.active == {"kind": "", "id": ""}
 
 
 # ---------------------------------------------------------------------------
@@ -333,7 +413,44 @@ def test_paste_auto_selects_pasted_elements(graph, session, edit_state_cls):
     edit = session.context.data[edit_state_cls]
     assert edit.selected_nodes == {"new_n1", "new_n2"}
     assert edit.selected_edges == {"new_e1"}
-    visual_layer.sync_selections.assert_called_once_with(["new_n1", "new_n2"], ["new_e1"])
+    visual_layer.sync_selections.assert_called_once_with(
+        ["new_n1", "new_n2"], ["new_e1"], active={"kind": "", "id": ""}
+    )
+
+
+def test_paste_clears_active(graph, session, edit_state_cls):
+    """A pasted subgraph is selected but has no active primary."""
+    editor = MagicMock()
+    editor.paste_clipboard.return_value = (["new_n1", "new_n2"], [])
+    visual_layer = MagicMock()
+    h = SelectionHandlers(
+        graph=graph,
+        editor=editor,
+        session_id="sess",
+        session=session,
+        visual_layer=visual_layer,
+    )
+    # seed a stale active so we can prove it gets cleared
+    edit = session.context.data[edit_state_cls]
+    edit.active_node = MagicMock()
+
+    payload = {
+        "haywire_clipboard": True,
+        "format_version": 1,
+        "source": {"session_id": "x", "timestamp": 99.0},
+        "bounding_box": {"min_x": 0, "min_y": 0, "max_x": 0, "max_y": 0},
+        "nodes": {},
+        "edges": {},
+    }
+    h.process_paste_clipboard(
+        UserPasteClipboardEvent(canvasX=5.0, canvasY=6.0, clipboardText=json.dumps(payload))
+    )
+    assert edit.active_node is None
+    assert edit.active_edge is None
+    # sync_selections is called with the new selection; the no-active sentinel
+    # is passed as the `active` kwarg.
+    _, kwargs = visual_layer.sync_selections.call_args
+    assert kwargs.get("active") == {"kind": "", "id": ""}
 
 
 def test_paste_ignores_text_without_source_timestamp(graph, session, edit_state_cls):

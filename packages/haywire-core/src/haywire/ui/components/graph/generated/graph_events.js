@@ -135,12 +135,12 @@ window.EventCreators = {
     };
   },
 
-  createSelectionChanged(selectedNodes, selectedEdges, sessionId = 'default') {
+  createSelectionChanged(selectedNodes, selectedEdges, activeNodeId, activeEdgeId, sessionId = 'default') {
     return {
       event_type: 'selectionChanged',
       source_session_id: sessionId,
       timestamp: Date.now(),
-      data: { selectedNodes, selectedEdges },
+      data: { selectedNodes, selectedEdges, activeNodeId, activeEdgeId },
       requires_broadcast: true
     };
   },
@@ -284,7 +284,7 @@ window.EventValidators = {
   },
 
   validateSelectionChanged(data) {
-    const requiredFields = ["selectedNodes", "selectedEdges"];
+    const requiredFields = ["selectedNodes", "selectedEdges", "activeNodeId", "activeEdgeId"];
     return requiredFields.every(field => field in data);
   },
 

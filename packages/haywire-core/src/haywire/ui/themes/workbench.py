@@ -102,10 +102,12 @@ class WorkbenchTheme(BaseTheme):
         "node_header_bg": "--hw-node-header-bg",
         "node_header_text": "--hw-node-header-text",
         "node_selected": "--hw-node-selected",
+        "node_active": "--hw-node-active",
         "node_shadow": "--hw-node-shadow",
         # Edges
         "edge_default": "--hw-edge-default",
         "edge_selected": "--hw-edge-selected",
+        "edge_active": "--hw-edge-active",
         # Canvas
         "canvas_bg": "--hw-canvas-bg",
         "canvas_grid": "--hw-canvas-grid",

@@ -16,7 +16,6 @@ from haywire.core.host import HostStore
 
 # UI imports
 from haywire.ui.console_bridge import get_bridge
-from haywire.ui.nicegui_patches import apply_nicegui_patches
 
 from .code_intelligence import register_code_intelligence_endpoints
 

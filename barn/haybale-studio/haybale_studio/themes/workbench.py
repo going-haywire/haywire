@@ -54,11 +54,13 @@ class HaywireDarkTheme(WorkbenchTheme):
     node_header_bg = "#252540"
     node_header_text = "rgba(255,255,255,0.87)"
     node_selected = "#4f8ef7"
+    node_active = "#8fb8ff"
     node_shadow = "rgba(0,0,0,0.4)"
 
     # Edges
     edge_default = "#4a4a6a"
     edge_selected = "#4f8ef7"
+    edge_active = "#8fb8ff"
 
     # Canvas
     canvas_bg = "#0e0e1a"
@@ -144,11 +146,13 @@ class HaywireLightTheme(WorkbenchTheme):
     node_header_bg = "#f0f0f6"
     node_header_text = "rgba(0,0,0,0.87)"
     node_selected = "#4f8ef7"
+    node_active = "#1f5fd0"
     node_shadow = "rgba(0,0,0,0.08)"
 
     # Edges
     edge_default = "#a0a0c0"
     edge_selected = "#4f8ef7"
+    edge_active = "#1f5fd0"
 
     # Canvas
     canvas_bg = "#1e1e1e"

@@ -157,6 +157,11 @@ class ElementRevalidateEvent(BaseGraphEvent):
 class SelectionChangedEvent(BaseGraphEvent):
     selectedNodes: List[str]
     selectedEdges: List[str]
+    # The single active (primary) element, by kind. At most one is non-empty;
+    # both empty means the selection has no primary (bulk/programmatic change).
+    # Defaults keep existing positional call sites working.
+    activeNodeId: str = ""
+    activeEdgeId: str = ""
 
 
 @graph_event("userRemove", category="user", description="User wants to remove elements")
@@ -334,6 +339,9 @@ class SyncEdgeRemovalEvent(BaseGraphEvent):
 class SyncSelectionsEvent(BaseGraphEvent):
     nodes: List[str]
     edges: List[str]
+    # Single active element to reconcile in the canvas: {"kind": "node"|"edge"|"", "id": str}.
+    # {"kind": "", "id": ""} means "no primary" (clears any active highlight).
+    active: Dict[str, str] = field(default_factory=lambda: {"kind": "", "id": ""})
 
 
 @graph_event("syncCanvasClear", category="sync", description="Clear entire canvas")

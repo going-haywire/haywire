@@ -80,6 +80,7 @@ export default {
             selectionState: {
                 selectedNodes: new Set(),
                 selectedEdges: new Set(),
+                activeElement: null,  // { kind: 'node'|'edge', id: string } | null — the single primary
                 lastClickTime: 0,
                 clickThreshold: 300
             },
@@ -596,7 +597,12 @@ export default {
                 // Update internal state to match new selection
                 this.selectionState.selectedEdges = newEdges;
             }
-            
+
+            // Reconcile the active primary (programmatic paths e.g. paste send
+            // {kind:'', id:''} to clear it).
+            const active = data.active || { kind: '', id: '' };
+            this._setActive(active.kind, active.id);
+
             console.log(`🔄 Synced selections: ${(nodes || []).length} nodes, ${(connections || []).length} connections`);
         },
 
@@ -1202,23 +1208,49 @@ export default {
         // UNIFIED SELECTION SYSTEM
         // =============================================================================
 
+        _setActive(kind, id) {
+            // Clear the previous active element's highlight (could be either kind).
+            const prev = this.selectionState.activeElement;
+            if (prev) {
+                if (prev.kind === 'node') this._updateNodeVisualActive(prev.id, false);
+                else if (prev.kind === 'edge') this._updateEdgeVisualActive(prev.id, false);
+            }
+            if (kind && id) {
+                this.selectionState.activeElement = { kind, id };
+                if (kind === 'node') this._updateNodeVisualActive(id, true);
+                else if (kind === 'edge') this._updateEdgeVisualActive(id, true);
+            } else {
+                this.selectionState.activeElement = null;
+            }
+        },
+
         _handleElementSelection(isShiftClick, elementType, elementId) {
             console.log(`Element clicked: ${elementType}:${elementId}, shift: ${isShiftClick}`);
 
+            const active = this.selectionState.activeElement;
+            const isActive = active && active.kind === elementType && active.id === elementId;
+            const isSelected = this._isElementSelected(elementType, elementId);
+
             if (isShiftClick) {
-                // Toggle selection
-                if (this._isElementSelected(elementType, elementId)) {
+                if (isActive) {
+                    // Shift-click the active element -> deselect it; active -> none.
                     this._deSelectElement(elementType, elementId);
+                    this._setActive('', '');
+                } else if (isSelected) {
+                    // Selected but not active -> promote (selection unchanged).
+                    this._setActive(elementType, elementId);
                 } else {
+                    // Not selected -> add and make active.
                     this._selectElement(elementType, elementId, true);
+                    this._setActive(elementType, elementId);
                 }
             } else {
-                // Clear other selections and select this element
+                // Plain click: replace selection with this one element; it is active.
                 this._clearSelection();
                 this._selectElement(elementType, elementId, false);
+                this._setActive(elementType, elementId);
             }
 
-            // Emit unified selection change event
             this._emitSelectionChanged();
         },
 
@@ -1279,13 +1311,26 @@ export default {
                 this._scheduleEdgeUpdates(nodeId, null, 300);
             });
 
+            // Clear the active primary too.
+            if (this.selectionState.activeElement) {
+                const a = this.selectionState.activeElement;
+                if (a.kind === 'node') this._updateNodeVisualActive(a.id, false);
+                else if (a.kind === 'edge') this._updateEdgeVisualActive(a.id, false);
+                this.selectionState.activeElement = null;
+            }
+
             console.log('🎯 Cleared all selections');
         },
 
         _emitSelectionChanged() {
+            const a = this.selectionState.activeElement;
+            const activeNodeId = a && a.kind === 'node' ? a.id : '';
+            const activeEdgeId = a && a.kind === 'edge' ? a.id : '';
             this.emitCanvasEvent(EventCreators.createSelectionChanged(
                 Array.from(this.selectionState.selectedNodes),
-                Array.from(this.selectionState.selectedEdges)
+                Array.from(this.selectionState.selectedEdges),
+                activeNodeId,
+                activeEdgeId
             ));
         },
 
@@ -1332,6 +1377,8 @@ export default {
             this.boxSelectionState.startPos = { x: 0, y: 0 };
             this.boxSelectionState.currentPos = { x: 0, y: 0 };
 
+            // Bulk selection has no primary element.
+            this._setActive('', '');
             this._emitSelectionChanged();
         },
 
@@ -2058,6 +2105,32 @@ export default {
             }
         },
 
+        _updateNodeVisualActive(nodeId, active, _retries = 6) {
+            const nodeElement = document.querySelector(`[data-node-id="${nodeId}"]`);
+            if (nodeElement) {
+                if (active) {
+                    nodeElement.classList.add('node-active');
+                } else {
+                    nodeElement.classList.remove('node-active');
+                }
+            } else if (active && _retries > 0) {
+                setTimeout(() => this._updateNodeVisualActive(nodeId, active, _retries - 1), 50);
+            }
+        },
+
+        _updateEdgeVisualActive(edge_id, active, _retries = 6) {
+            const edgeInfo = this.edgePaths.get(edge_id);
+            if (edgeInfo && edgeInfo.path) {
+                if (active) {
+                    edgeInfo.path.classList.add('connection-active');
+                } else {
+                    edgeInfo.path.classList.remove('connection-active');
+                }
+            } else if (active && _retries > 0) {
+                setTimeout(() => this._updateEdgeVisualActive(edge_id, active, _retries - 1), 50);
+            }
+        },
+
         // =============================================================================
         // UTILITY & HELPER METHODS
         // =============================================================================
@@ -2480,16 +2553,19 @@ export default {
 [data-node-id].node-selected {
     z-index: 1000 !important;
     outline: none !important;
-    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.25),
-        0 0 20px rgba(74, 144, 226, 0.4),
-        0 0 0 2px rgba(74, 144, 226, 0.3) !important;
+    box-shadow: 0 8px 25px var(--hw-node-shadow),
+        0 0 0 2px var(--hw-node-selected) !important;
 }
 
 [data-node-id].node-selected:hover {
     outline: none !important;
-    box-shadow: 0 12px 35px rgba(0, 0, 0, 0.3),
-        0 0 25px rgba(74, 144, 226, 0.5),
-        0 0 0 2px rgba(74, 144, 226, 0.4) !important;
+    box-shadow: 0 12px 35px var(--hw-node-shadow),
+        0 0 0 2px var(--hw-node-selected) !important;
+}
+
+[data-node-id].node-active {
+    outline: 2px solid var(--hw-node-active) !important;
+    outline-offset: 1px;
 }
 </style>
 
@@ -2548,6 +2624,11 @@ export default {
 
 path.connection-selected {
     filter: drop-shadow(0 0 12px rgba(74, 144, 226, 0.6)) drop-shadow(0 2px 8px rgba(0, 0, 0, 0.3)) !important;
+}
+
+.connection-active {
+    stroke: var(--hw-edge-active) !important;
+    stroke-width: 4 !important;
 }
 
 /* Edge state styles - UIEdge visual feedback */

@@ -59,8 +59,18 @@ class SelectionHandlers:
 
     @handles_event(SelectionChangedEvent)
     def process_selection_change(self, event: SelectionChangedEvent):
-        """Update local selection state and write through to SessionContext."""
-        logger.debug(f"Selection changed: nodes={event.selectedNodes}, connections={event.selectedEdges}")
+        """Update local selection state and write through to SessionContext.
+
+        The active (primary) element is whatever the canvas marked active on
+        the event — a node OR an edge, never both. An empty active id means the
+        selection has no primary (bulk/programmatic change), so both active
+        pointers are cleared. See the Active axis / Active-promotion glossary
+        entries.
+        """
+        logger.debug(
+            f"Selection changed: nodes={event.selectedNodes}, connections={event.selectedEdges}, "
+            f"activeNode={event.activeNodeId!r}, activeEdge={event.activeEdgeId!r}"
+        )
         self.selected_nodes = set(event.selectedNodes)
         self.selected_edges = set(event.selectedEdges)
 
@@ -68,12 +78,8 @@ class SelectionHandlers:
             return
 
         ctx = self._session.context
-        active_node = (
-            self.graph.get_node_wrapper(next(iter(self.selected_nodes))) if self.selected_nodes else None
-        )
-        active_edge = (
-            self.graph.get_edge_wrapper(next(iter(self.selected_edges))) if self.selected_edges else None
-        )
+        active_node = self.graph.get_node_wrapper(event.activeNodeId) if event.activeNodeId else None
+        active_edge = self.graph.get_edge_wrapper(event.activeEdgeId) if event.activeEdgeId else None
         edit_state = ctx.data[EditState]
         edit_state.selected_nodes = self.selected_nodes
         edit_state.selected_edges = self.selected_edges
@@ -150,13 +156,16 @@ class SelectionHandlers:
         ui.notify(f"Pasted {n} node{'s' if n != 1 else ''}", type="positive")
 
         # Auto-select the freshly pasted subgraph so the user can drag it
-        # immediately. Update both the local record and the session EditState,
-        # then push the selection to the canvas.
+        # immediately, but with NO primary (a programmatic bulk change clears
+        # the active element — see the Active axis glossary entry). Update both
+        # the local record and the session EditState, then push to the canvas.
         self.selected_nodes = set(new_node_ids)
         self.selected_edges = set(new_edge_ids)
         if self._session is not None:
             edit_state = self._session.context.data[EditState]
             edit_state.selected_nodes = self.selected_nodes
             edit_state.selected_edges = self.selected_edges
+            edit_state.active_node = None
+            edit_state.active_edge = None
         if self._visual_layer is not None:
-            self._visual_layer.sync_selections(new_node_ids, new_edge_ids)
+            self._visual_layer.sync_selections(new_node_ids, new_edge_ids, active={"kind": "", "id": ""})
