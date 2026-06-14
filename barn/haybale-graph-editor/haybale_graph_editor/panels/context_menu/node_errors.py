@@ -15,9 +15,9 @@ from haywire.ui.panel import BasePanel
 from haywire.ui.panel.layout import PanelLayout
 from haywire.ui.panel.decorator import panel
 
-from ...focuses import NodeFocus
+from ...focuses import NodeFocus, SelectionFocus
 from ...state.edit_state import EditState
-from ...editors.graph_canvas.handlers.context_menu_actions import NodeContextActions
+from ...editors.graph_canvas.handlers.context_menu_actions import NodeContextActions, SelectionContextActions
 
 if TYPE_CHECKING:
     from haywire.core.session.context import SessionContext
@@ -64,16 +64,21 @@ class NodeErrorsPanel(BasePanel):
 
 
 @panel(
-    actions=NodeContextActions,
-    focus=NodeFocus,
+    actions=SelectionContextActions,
+    focus=SelectionFocus,
     label="Node Errors",
     icon=hui.icon.error,
     order=0,
 )
 class ContextMenuNodeErrorsPanel(BasePanel):
-    """Node errors panel for the context menu (right-click on node)."""
+    """Node errors panel for the unified selection context menu.
 
-    actions: NodeContextActions
+    Scoped to the primary (active) node's errors via _node_has_errors, which
+    reads EditState.active_node — set by on_selection_context to the
+    selection's primary. Display-only; calls no action verb.
+    """
+
+    actions: SelectionContextActions
 
     @classmethod
     def poll(cls, ctx: "SessionContext") -> bool:
