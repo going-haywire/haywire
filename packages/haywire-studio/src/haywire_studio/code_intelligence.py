@@ -3,7 +3,7 @@
 Registers three HTTP endpoints that take editor text + cursor position and
 return PLAIN structured data in jedi's own vocabulary. NO CodeMirror types,
 NO boost, NO HTML — all of that is the consuming element's concern (see
-haywire.ui.components.codemirror).
+haywire.ui.extends.codemirror).
 """
 
 from __future__ import annotations

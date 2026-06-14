@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import haywire.core.graph.editor  # noqa: F401  (import-order guard per CLAUDE.md)
 
-from haywire.ui.components.codemirror.code_intelligence import (
+from haywire.ui.extends.codemirror.code_intelligence import (
     _jedi_kind_to_cm_type,
     _boost,
     _render_doc_html,

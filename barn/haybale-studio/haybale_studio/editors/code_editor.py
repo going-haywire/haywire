@@ -226,7 +226,7 @@ class CodeEditor(BaseEditor):
                 self._preview = ui.markdown(self._content).classes("w-full text-sm")
 
     def _make_codemirror(self, context: "SessionContext", language: Optional[CmLanguage]) -> ui.codemirror:
-        from haywire.ui.components.codemirror import attach_code_intelligence
+        from haywire.ui.extends.codemirror import attach_code_intelligence
 
         cm = ui.codemirror(
             value=self._content,

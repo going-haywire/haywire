@@ -289,7 +289,7 @@ class ComponentSourceEditor(BaseEditor):
     def _inject_completions(self) -> None:
         if self._editor is None:
             return
-        from haywire.ui.components.codemirror import attach_code_intelligence
+        from haywire.ui.extends.codemirror import attach_code_intelligence
 
         attach_code_intelligence(
             self._editor,
