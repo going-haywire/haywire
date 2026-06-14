@@ -154,20 +154,22 @@ These tokens are defined on `WorkbenchTheme` and used exclusively by the graph
 canvas, node skins, and edge renderers. Panel and shell code must not reference
 them.
 
-| Token                   | Use for                                                        |
-| ----------------------- | -------------------------------------------------------------- |
-| `--hw-node-bg`          | Default node card background                                   |
-| `--hw-node-border`      | Default node card border                                       |
-| `--hw-node-header-bg`   | Node header strip background                                   |
-| `--hw-node-header-text` | Node header text colour                                        |
-| `--hw-node-selected`    | Node border/glow when selected                                 |
-| `--hw-node-shadow`      | Node card drop shadow (only permitted `box-shadow` in the app) |
-| `--hw-edge-default`     | Default edge stroke colour                                     |
-| `--hw-edge-selected`    | Selected edge stroke colour                                    |
-| `--hw-canvas-bg`        | Canvas background fill                                         |
-| `--hw-canvas-grid`      | Canvas grid dot/line colour                                    |
-| `--hw-ghost-pin`        | Ghost/unconnected pin indicator colour (rgba, low opacity)     |
-| `--hw-danger-bg`        | Error node background fill (used by error skin)                |
+| Token                   | Use for                                                                                                                    |
+| ----------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| `--hw-node-bg`          | Default node card background                                                                                               |
+| `--hw-node-border`      | Default node card border                                                                                                   |
+| `--hw-node-header-bg`   | Node header strip background                                                                                               |
+| `--hw-node-header-text` | Node header text colour                                                                                                    |
+| `--hw-node-selected`    | Node border/glow when a node is selected (a selection member)                                                              |
+| `--hw-node-active`      | Accent ring on the single *active* node; `--hw-accent`-based, layered on the selected glow. See Active axis in the glossary |
+| `--hw-node-shadow`      | Node card drop shadow (only permitted `box-shadow` in the app)                                                             |
+| `--hw-edge-default`     | Default edge stroke colour                                                                                                 |
+| `--hw-edge-selected`    | Selected edge stroke colour                                                                                                |
+| `--hw-edge-active`      | Accent stroke (colour + weight) on the single *active* edge; mutually exclusive with `--hw-node-active`                    |
+| `--hw-canvas-bg`        | Canvas background fill                                                                                                     |
+| `--hw-canvas-grid`      | Canvas grid dot/line colour                                                                                                |
+| `--hw-ghost-pin`        | Ghost/unconnected pin indicator colour (rgba, low opacity)                                                                 |
+| `--hw-danger-bg`        | Error node background fill (used by error skin)                                                                            |
 
 **Rule:** `--hw-node-shadow` is the only permitted use of `box-shadow` in the
 entire application. Panel and shell chrome must use elevation colours instead.

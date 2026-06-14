@@ -2534,9 +2534,12 @@ export default {
     user-select: none;
 }
 
+/* Hover — subtle accent border; distinct from selected glow and active ring */
 [data-node-id]:hover {
     z-index: 1001 !important;
     cursor: grab;
+    outline: 1px solid var(--hw-accent-hover) !important;
+    outline-offset: 1px;
 }
 
 [data-node-id].dragging-node {
@@ -2544,12 +2547,14 @@ export default {
     cursor: grabbing !important;
     box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15) !important;
     transform: translateZ(0);
+    outline: none !important;
 }
 
 [data-node-id]:active {
     cursor: grabbing;
 }
 
+/* Selected — soft shadow glow ring; suppress default outline */
 [data-node-id].node-selected {
     z-index: 1000 !important;
     outline: none !important;
@@ -2563,9 +2568,29 @@ export default {
         0 0 0 2px var(--hw-node-selected) !important;
 }
 
+/* Active — crisp accent ring layered on top; must survive hover and selected */
 [data-node-id].node-active {
     outline: 2px solid var(--hw-node-active) !important;
-    outline-offset: 1px;
+    outline-offset: 2px;
+}
+
+[data-node-id].node-active:hover {
+    outline: 2px solid var(--hw-node-active) !important;
+    outline-offset: 2px;
+}
+
+[data-node-id].node-selected.node-active {
+    outline: 2px solid var(--hw-node-active) !important;
+    outline-offset: 2px;
+    box-shadow: 0 8px 25px var(--hw-node-shadow),
+        0 0 0 2px var(--hw-node-selected) !important;
+}
+
+[data-node-id].node-selected.node-active:hover {
+    outline: 2px solid var(--hw-node-active) !important;
+    outline-offset: 2px;
+    box-shadow: 0 12px 35px var(--hw-node-shadow),
+        0 0 0 2px var(--hw-node-selected) !important;
 }
 </style>
 
