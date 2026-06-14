@@ -73,3 +73,40 @@ def test_batch_panels_poll_false_when_nothing_selected():
     assert RedrawSelectionPanel.poll(ctx) is False
     assert RevalidateSelectionPanel.poll(ctx) is False
     assert ResetSelectionPanel.poll(ctx) is False
+
+
+def test_copy_and_delete_panels_use_count_aware_labels(monkeypatch):
+    """Copy/Delete panel draw() renders a count-aware label via selection_label."""
+    import haybale_graph_editor.panels.context_menu.selection_actions as sa
+    from haybale_graph_editor.panels.context_menu.selection_actions import (
+        CopySelectionPanel,
+        DeleteSelectionPanel,
+    )
+
+    rendered_labels = []
+
+    class _FakeLayout:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *a):
+            return False
+
+    def _fake_button(label, **kwargs):
+        rendered_labels.append(label)
+
+    monkeypatch.setattr(sa.hui, "button", _fake_button)
+
+    ctx = _ctx_with_selection(["n1", "n2", "n3"], [])
+    actions = MagicMock()
+
+    panel = DeleteSelectionPanel()
+    panel.actions = actions
+    panel.draw(ctx, _FakeLayout())
+
+    panel2 = CopySelectionPanel()
+    panel2.actions = actions
+    panel2.draw(ctx, _FakeLayout())
+
+    assert "Delete 3 Nodes" in rendered_labels
+    assert "Copy 3 Nodes" in rendered_labels

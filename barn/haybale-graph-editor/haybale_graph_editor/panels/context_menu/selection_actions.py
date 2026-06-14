@@ -57,9 +57,10 @@ class CopySelectionPanel(BasePanel):
         ctx: "SessionContext",
         layout: PanelLayout,
     ) -> None:
+        n_nodes, n_edges = _selection_counts(ctx)
         with layout:
             hui.button(
-                "Copy Selection",
+                selection_label("Copy", n_nodes, n_edges),
                 icon=hui.icon.copy,
                 on_click=self.actions.copy_selection,
             )
@@ -123,9 +124,10 @@ class DeleteSelectionPanel(BasePanel):
         ctx: "SessionContext",
         layout: PanelLayout,
     ) -> None:
+        n_nodes, n_edges = _selection_counts(ctx)
         with layout:
             hui.button(
-                "Delete Selection",
+                selection_label("Delete", n_nodes, n_edges),
                 icon=hui.icon.delete,
                 on_click=self.actions.delete_selection,
             )
