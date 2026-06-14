@@ -17,7 +17,7 @@ from haywire.ui.panel.decorator import panel
 
 from ...focuses import NodeFocus, SelectionFocus
 from ...state.edit_state import EditState
-from ...editors.graph_canvas.handlers.context_menu_actions import NodeContextActions, SelectionContextActions
+from ...editors.graph_canvas.handlers.context_menu_actions import SelectionContextActions
 
 if TYPE_CHECKING:
     from haywire.core.session.context import SessionContext

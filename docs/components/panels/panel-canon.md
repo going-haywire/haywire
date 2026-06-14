@@ -172,17 +172,16 @@ def draw(
 from haywire.ui import elements as hui
 from haywire.ui.panel import BasePanel
 from haywire.ui.panel.decorator import panel
-from my_lib.actions import NodeContextActions
-from my_lib.focuses import NodeFocus
+from my_lib.actions import SelectionContextActions
+from my_lib.focuses import SelectionFocus
 
-@panel(focus=NodeFocus, label="Delete Node", icon="delete")
-class DeleteNodePanel(BasePanel):
-    actions: NodeContextActions   # framework injects host at mount
+@panel(actions=SelectionContextActions, focus=SelectionFocus, label="Delete Selection", icon="delete")
+class DeleteSelectionPanel(BasePanel):
+    actions: SelectionContextActions   # framework injects host at mount
 
     def draw(self, ctx, layout):
-        node = ctx.data[EditState].active_node
         with layout:
-            hui.button("Delete", on_click=lambda: self.actions.delete_node(node.node_id))
+            hui.button("Delete Selection", on_click=self.actions.delete_selection)
 ```
 
 **Display panel** (no `actions:` annotation; mounted by PropertiesEditor):

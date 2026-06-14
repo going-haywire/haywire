@@ -80,7 +80,6 @@ def test_copy_and_delete_panels_use_count_aware_labels(monkeypatch):
     import haybale_graph_editor.panels.context_menu.selection_actions as sa
     from haybale_graph_editor.panels.context_menu.selection_actions import (
         CopySelectionPanel,
-        DeleteSelectionPanel,
     )
 
     rendered_labels = []
