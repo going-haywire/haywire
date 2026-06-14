@@ -39,11 +39,20 @@ class EdgeContextActions(Protocol):
 
 @runtime_checkable
 class SelectionContextActions(Protocol):
-    """Verbs available when the user right-clicks on a multi-element selection."""
+    """Verbs available when the user right-clicks on a selection (one or many).
+
+    The single command-menu Protocol after node/selection unification: every
+    right-click command goes through here and acts on the whole selection
+    (EditState.selected_nodes / selected_edges). The batch node verbs
+    (redraw/revalidate/reset) emit the list-form Element* events.
+    """
 
     def copy_selection(self) -> None: ...
     def paste_at_click(self) -> None: ...
     def delete_selection(self) -> None: ...
+    def redraw_selection(self) -> None: ...
+    def revalidate_selection(self) -> None: ...
+    def reset_selection(self) -> None: ...
 
 
 @runtime_checkable
