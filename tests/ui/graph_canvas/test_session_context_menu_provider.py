@@ -428,3 +428,17 @@ def test_provider_satisfies_selection_context_actions_with_batch_verbs():
     # After Task 1 the Protocol requires the batch verbs; the provider must
     # implement them or this isinstance check fails.
     assert isinstance(provider, SelectionContextActions)
+
+
+def test_on_selection_context_writes_selection_from_payload(monkeypatch):
+    """on_selection_context seeds EditState.selected_* from the event payload
+    before opening the menu, so menu panels poll against fresh state."""
+    provider = _make_provider()
+    edit = provider._test_edit_stub
+    # Prevent the real popup/registry machinery from running.
+    monkeypatch.setattr(provider, "_open_menu", lambda *a, **k: None)
+
+    provider.on_selection_context((0.0, 0.0), ["n1", "n2"], ["e1"])
+
+    assert edit.selected_nodes == {"n1", "n2"}
+    assert edit.selected_edges == {"e1"}

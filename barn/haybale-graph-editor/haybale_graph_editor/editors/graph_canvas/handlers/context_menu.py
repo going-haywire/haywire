@@ -279,6 +279,22 @@ class SessionContextMenuProvider(IContextMenuProvider, BaseContextMenuProvider):
             SelectionContextActions,
         )
 
+        # Seed the Selection axis from the event payload so the menu's panels
+        # poll against fresh state — independent of whether a separate
+        # selectionChanged event has landed yet. Mirrors on_node_context,
+        # which writes active_node from its own event.
+        edit = self._context.data[EditState]
+        edit.selected_nodes = set(nodes)
+        edit.selected_edges = set(edges)
+        # Keep the Active axis (inspector subject) consistent with the
+        # selection's primary, matching SelectionHandlers.process_selection_change.
+        graph = edit.active_graph
+        if graph is not None:
+            primary_node = next(iter(edit.selected_nodes), None)
+            primary_edge = next(iter(edit.selected_edges), None)
+            edit.active_node = graph.get_node_wrapper(primary_node) if primary_node else None
+            edit.active_edge = graph.get_edge_wrapper(primary_edge) if primary_edge else None
+
         self._open_ctx = _OpenMenuContext(click_pos=pos)
         self._open_menu(SelectionContextActions, SelectionFocus, pos)
 
