@@ -369,3 +369,62 @@ def test_open_menu_no_visible_panels_runs_cleanup_without_opening():
 
     popup.open.assert_not_called()
     assert provider._open_ctx is None
+
+
+def test_redraw_selection_emits_element_redraw_for_whole_selection():
+    from haywire.ui.components.graph.event_definitions import ElementRedrawEvent
+
+    captured = []
+    provider = _make_provider(on_emit_event=captured.append)
+    edit = provider._test_edit_stub
+    edit.selected_nodes = {"a", "b"}
+    edit.selected_edges = set()
+
+    provider.redraw_selection()
+
+    assert len(captured) == 1
+    event = captured[0]
+    assert isinstance(event, ElementRedrawEvent)
+    assert set(event.nodes) == {"a", "b"}
+    assert event.edges == []
+
+
+def test_revalidate_selection_emits_element_revalidate_for_whole_selection():
+    from haywire.ui.components.graph.event_definitions import ElementRevalidateEvent
+
+    captured = []
+    provider = _make_provider(on_emit_event=captured.append)
+    edit = provider._test_edit_stub
+    edit.selected_nodes = {"a"}
+    edit.selected_edges = set()
+
+    provider.revalidate_selection()
+
+    assert isinstance(captured[0], ElementRevalidateEvent)
+    assert set(captured[0].nodes) == {"a"}
+
+
+def test_reset_selection_emits_element_reset_for_whole_selection():
+    from haywire.ui.components.graph.event_definitions import ElementResetEvent
+
+    captured = []
+    provider = _make_provider(on_emit_event=captured.append)
+    edit = provider._test_edit_stub
+    edit.selected_nodes = {"a"}
+    edit.selected_edges = set()
+
+    provider.reset_selection()
+
+    assert isinstance(captured[0], ElementResetEvent)
+    assert set(captured[0].nodes) == {"a"}
+
+
+def test_provider_satisfies_selection_context_actions_with_batch_verbs():
+    from haybale_graph_editor.editors.graph_canvas.handlers.context_menu_actions import (
+        SelectionContextActions,
+    )
+
+    provider = _make_provider()
+    # After Task 1 the Protocol requires the batch verbs; the provider must
+    # implement them or this isinstance check fails.
+    assert isinstance(provider, SelectionContextActions)

@@ -461,6 +461,42 @@ class SessionContextMenuProvider(IContextMenuProvider, BaseContextMenuProvider):
             )
         )
 
+    def redraw_selection(self) -> None:
+        """Emit ElementRedrawEvent for every node/edge in the selection."""
+        from haywire.ui.components.graph.event_definitions import ElementRedrawEvent
+
+        edit = self._context.data[EditState]
+        self._emit(
+            ElementRedrawEvent(
+                nodes=list(edit.selected_nodes),
+                edges=list(edit.selected_edges),
+            )
+        )
+
+    def revalidate_selection(self) -> None:
+        """Emit ElementRevalidateEvent for every node/edge in the selection."""
+        from haywire.ui.components.graph.event_definitions import ElementRevalidateEvent
+
+        edit = self._context.data[EditState]
+        self._emit(
+            ElementRevalidateEvent(
+                nodes=list(edit.selected_nodes),
+                edges=list(edit.selected_edges),
+            )
+        )
+
+    def reset_selection(self) -> None:
+        """Emit ElementResetEvent for every node/edge in the selection."""
+        from haywire.ui.components.graph.event_definitions import ElementResetEvent
+
+        edit = self._context.data[EditState]
+        self._emit(
+            ElementResetEvent(
+                nodes=list(edit.selected_nodes),
+                edges=list(edit.selected_edges),
+            )
+        )
+
 
 # ---------------------------------------------------------------------------
 # Handler
