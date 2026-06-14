@@ -869,20 +869,23 @@ export default {
 
             if (nodeElement) {
                 const nodeId = nodeElement.dataset.nodeId;
-                const isNodeSelected = this.selectionState.selectedNodes.has(nodeId);
-                const hasMultipleSelected = this.selectionState.selectedNodes.size > 1 || this.selectionState.selectedEdges.size > 0;
-                
-                if (isNodeSelected && hasMultipleSelected) {
-                    this.emitCanvasEvent(EventCreators.createContextMenuSelected(
-                        clientX, clientY, canvasCoords.x, canvasCoords.y,
-                        Array.from(this.selectionState.selectedNodes),
-                        Array.from(this.selectionState.selectedEdges)
-                    ));
-                } else {
-                    this.emitCanvasEvent(EventCreators.createContextMenuNode(
-                        clientX, clientY, canvasCoords.x, canvasCoords.y, nodeId
+                // Replace-then-act: if the right-clicked node is outside the
+                // current selection, replace the selection with just this node
+                // and tell Python before opening the menu. If it is already in
+                // the selection (incl. a lone selected node), leave selection
+                // intact. Either way the menu is always the unified selection
+                // menu — there is no separate single-node menu.
+                if (!this.selectionState.selectedNodes.has(nodeId)) {
+                    this._setSelectionState([nodeId], []);
+                    this.emitCanvasEvent(EventCreators.createSelectionChanged(
+                        [nodeId], []
                     ));
                 }
+                this.emitCanvasEvent(EventCreators.createContextMenuSelected(
+                    clientX, clientY, canvasCoords.x, canvasCoords.y,
+                    Array.from(this.selectionState.selectedNodes),
+                    Array.from(this.selectionState.selectedEdges)
+                ));
             } else if (edgeElement && edge_id) {
                 const isEdgeSelected = this.selectionState.selectedEdges.has(edge_id);
                 const hasMultipleSelected = this.selectionState.selectedNodes.size > 0 || this.selectionState.selectedEdges.size > 1;
