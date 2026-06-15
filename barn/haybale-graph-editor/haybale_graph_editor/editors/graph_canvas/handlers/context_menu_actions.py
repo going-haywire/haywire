@@ -59,6 +59,19 @@ class SelectionContextActions(Protocol):
 
 
 @runtime_checkable
+class ToolbarActions(Protocol):
+    """Verbs the floating toolbar's curated face invokes.
+
+    The toolbar reuses SelectionContextActions for Copy/Delete (the provider
+    implements both Protocols structurally). This Protocol adds only the
+    toolbar-specific verb: opening the ⋯ overflow, which reaches back into the
+    SelectionFocus right-click menu.
+    """
+
+    def open_overflow_menu(self) -> None: ...
+
+
+@runtime_checkable
 class PortContextActions(Protocol):
     """Marker Protocol for port-context panels.
 

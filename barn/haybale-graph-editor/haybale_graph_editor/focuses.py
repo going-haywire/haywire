@@ -70,6 +70,18 @@ class SelectionFocus(Focus):
         return bool(edit.selected_nodes) or bool(edit.selected_edges)
 
 
+class ToolbarFocus(Focus):
+    id = "toolbar"
+    label = "Toolbar"
+    icon = "dashboard"
+    order = 91  # just after SelectionFocus (90)
+
+    @classmethod
+    def available(cls, ctx: SessionContext) -> bool:
+        edit = ctx.data[EditState]
+        return bool(edit.selected_nodes) or bool(edit.selected_edges)
+
+
 class SettingsFocus(Focus):
     id = "settings"
     label = "Settings"
