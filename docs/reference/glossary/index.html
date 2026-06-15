@@ -4268,8 +4268,18 @@
 </tr>
 <tr>
 <td><strong>SelectionFocus</strong></td>
-<td>The Scope (<code>id="selection"</code>, available when any node or edge is selected) that hosts the unified right-click <strong>command</strong> menu — Copy / Paste / Delete and the batch node ops (redraw / revalidate / reset), each acting on the whole <strong>Selection axis</strong>. The single command-menu pipeline for both lone and multi-element right-clicks. Distinct from <strong>NodeFocus</strong> / <strong>EdgeFocus</strong>, which remain for the single-element <em>inspector</em> (NodeFocus) and single-only verbs like edge reconnect (EdgeFocus).</td>
+<td>The Scope (<code>id="selection"</code>, available when any node or edge is selected) that hosts the unified right-click <strong>command</strong> menu — Copy / Paste / Delete and the batch node ops (redraw / revalidate / reset), each acting on the whole <strong>Selection axis</strong>. The single command-menu pipeline for both lone and multi-element right-clicks. Distinct from <strong>NodeFocus</strong> / <strong>EdgeFocus</strong>, which remain for the single-element <em>inspector</em> (NodeFocus) and single-only verbs like edge reconnect (EdgeFocus). Also distinct from <strong>ToolbarFocus</strong> — SelectionFocus is the right-click surface; ToolbarFocus is the floating-toolbar surface; the floating toolbar's overflow (⋯) reaches <em>back into</em> SelectionFocus panels.</td>
 <td>selection scope, multi-select menu</td>
+</tr>
+<tr>
+<td><strong>Floating toolbar</strong></td>
+<td>A persistent, Miro-style command surface anchored above the <strong>Selection axis</strong>'s on-screen bounding box whenever the selection is non-empty. A <em>second</em> command surface alongside the right-click menu, not a replacement. Rendered with <strong>NiceGUI panels</strong> (<code>ToolbarFocus</code>) into a persistent, no-backdrop <code>Popup</code> by <code>SelectionToolbarProvider</code> — the panel-render sibling of <code>SessionContextMenuProvider</code>. <strong>Python owns both content and the positioned container.</strong> The canvas (Vue) computes the selection's screen bounding box and emits a low-frequency <code>selectionBounds</code> event on selection-change and on pan/zoom/drag <strong>end</strong>, plus <code>selectionBoundsHide</code> on gesture <strong>start</strong> (Miro hide-during-gesture rule — no frame-rate traffic); the provider shows / <code>setPosition</code>s / hides the Popup in response. Its curated face is <strong>Copy · Delete · ⋯</strong>, rendered <strong>horizontally</strong> as icon-only buttons (<code>hui.icon_action</code>) into a <code>ui.row</code> — deliberately unlike the right-click menu, which is a <strong>vertical</strong> column of labelled rows. The ⋯ overflow re-opens the <strong>SelectionFocus</strong> right-click menu (via <code>ContextMenuSelectedEvent</code>) so the batch ops live in one place.</td>
+<td>selection toolbar, action bar, hover toolbar; do not call it a "context menu" (that is the right-click surface)</td>
+</tr>
+<tr>
+<td><strong>ToolbarFocus</strong></td>
+<td>The Scope (<code>id="toolbar"</code>) authors register <strong>floating-toolbar</strong> panels against — the curated face (Copy · Delete · ⋯). Distinct from <strong>SelectionFocus</strong> (the right-click surface). Copy/Delete panels declare <code>focus=ToolbarFocus</code> but <code>actions=SelectionContextActions</code> (reused); the ⋯ panel uses <code>actions=ToolbarActions</code> whose <code>open_overflow_menu</code> re-opens the SelectionFocus menu. Polled by <code>SelectionToolbarProvider</code>, not by the right-click provider.</td>
+<td>toolbar scope</td>
 </tr>
 <tr>
 <td><strong>Replace-then-act</strong></td>
