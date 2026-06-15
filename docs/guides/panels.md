@@ -29,6 +29,27 @@ Suffix rules:
 
 The suffix encodes where the panel will appear. You can tell at a glance from the class name whether it belongs in a menu or the sidebar.
 
+
+```
+panels/
+  properties/
+    introspect/     ← read-only identity, status, runtime info, errors
+    setting/        ← editable settings (app, canvas, node user-settings)
+
+  graph/
+    toolbar/        ← floating toolbar (ToolbarFocus)
+    menu/
+      canvas/       ← right-click empty canvas (CanvasFocus)
+      selection/    ← right-click node or multi-selection (SelectionFocus)
+      node/         ← reserved for future node-scoped panels; currently empty in production
+      edge/         ← right-click edge (EdgeFocus)
+      port/         ← right-click pin via data-hw-port-menu-focus-id (PinFocus)
+      skin/         ← right-click data-hw-custom-menu-focus-id elements (custom Focus)
+
+  file_browser/
+    menu/           ← file browser right-click actions (FileFocus)
+```
+
 ## Properties / introspect panel
 
 An introspect panel lives at `panels/properties/introspect/<subject>.py`. It registers against a node/edge/port focus (e.g. `NodeFocus`, `EdgeFocus`) and renders read-only identity or state information in the PropertiesEditor.
