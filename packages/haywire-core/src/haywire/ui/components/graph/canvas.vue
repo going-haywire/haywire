@@ -105,7 +105,11 @@ export default {
                 panX: 0,
                 panY: 0,
                 isDragging: false
-            }
+            },
+
+            // Toolbar gesture tracking — true while a pan/zoom drag is in progress
+            // so we suppress and restore the selection-bounds toolbar during gestures.
+            _toolbarHiddenForGesture: false
         };
     },
 
@@ -165,6 +169,7 @@ export default {
         this._cleanupZoomPanListener();
         // Clear any pending magnify timers so they don't fire post-unmount.
         this._clearAllMagnified();
+        if (this._zoomPanBoundsTimer) { clearTimeout(this._zoomPanBoundsTimer); this._zoomPanBoundsTimer = null; }
     },
 
     methods: {
@@ -357,6 +362,28 @@ export default {
                     return;
                 }
                 this.zoomState = { zoom, panX, panY, isDragging };
+
+                // Hide toolbar while panning (isDragging=true during mouse-drag pan).
+                if (isDragging && !this._toolbarHiddenForGesture) {
+                    this._toolbarHiddenForGesture = true;
+                    this._emitSelectionBoundsHide();
+                } else if (!isDragging && this._toolbarHiddenForGesture) {
+                    this._toolbarHiddenForGesture = false;
+                    this._emitSelectionBounds();
+                }
+
+                // Wheel-zoom and trackpad-pan fire zoom-pan-state with isDragging=false
+                // on every frame, so they never trigger the drag gate above.
+                // Use a short debounce: hide immediately on the first event, restore
+                // 120 ms after the last one settles.
+                if (!isDragging) {
+                    this._emitSelectionBoundsHide();
+                    if (this._zoomPanBoundsTimer) clearTimeout(this._zoomPanBoundsTimer);
+                    this._zoomPanBoundsTimer = setTimeout(() => {
+                        this._zoomPanBoundsTimer = null;
+                        this._emitSelectionBounds();
+                    }, 120);
+                }
             };
 
             document.addEventListener('zoom-pan-state', this.handleZoomPanUpdate);
@@ -1026,6 +1053,7 @@ export default {
             console.log('Starting unified drag for:', draggedElement.type, draggedElement.id);
 
             this.dragState.isDragging = true;
+            this._emitSelectionBoundsHide();
             this.dragState.startMousePos = { x: e.clientX, y: e.clientY };
             this.dragState.hasActuallyMoved = false;
 
@@ -1189,6 +1217,7 @@ export default {
 
             // Reset drag state
             this.dragState.isDragging = false;
+            this._emitSelectionBounds();
             this.dragState.draggedElements = [];
             this.dragState.startMousePos = { x: 0, y: 0 };
             this.dragState.startPositions.clear();
@@ -1334,6 +1363,45 @@ export default {
                 activeNodeId,
                 activeEdgeId
             ));
+            this._emitSelectionBounds();
+        },
+
+        /** Screen-space bounding box (CSS px, viewport-relative) of all
+         *  currently selected nodes. Returns null if nothing selected or no
+         *  rects resolvable. Edges-only selections fall back to null (toolbar hides). */
+        _computeSelectionScreenBounds() {
+            const ids = Array.from(this.selectionState.selectedNodes);
+            if (ids.length === 0) return null;
+
+            let left = Infinity, top = Infinity, right = -Infinity, bottom = -Infinity;
+            for (const nodeId of ids) {
+                const el = this.$refs.nodeContainer
+                    ? this.$refs.nodeContainer.querySelector(`[data-node-id="${nodeId}"]`)
+                    : null;
+                if (!el) continue;
+                const r = el.getBoundingClientRect();
+                if (r.left < left) left = r.left;
+                if (r.top < top) top = r.top;
+                if (r.right > right) right = r.right;
+                if (r.bottom > bottom) bottom = r.bottom;
+            }
+            if (left === Infinity) return null;
+            return { left, top, right, bottom };
+        },
+
+        _emitSelectionBounds() {
+            const b = this._computeSelectionScreenBounds();
+            if (!b) {
+                this.emitCanvasEvent(EventCreators.createSelectionBoundsHide());
+                return;
+            }
+            this.emitCanvasEvent(EventCreators.createSelectionBounds(
+                b.left, b.top, b.right, b.bottom
+            ));
+        },
+
+        _emitSelectionBoundsHide() {
+            this.emitCanvasEvent(EventCreators.createSelectionBoundsHide());
         },
 
         // =============================================================================
