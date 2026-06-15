@@ -83,7 +83,6 @@ def test_toolbar_panels_registered_in_panel_registry(tmp_path):
 
     from haywire.ui.panel.registry import PanelRegistry
     from haywire.core.library.identity import LibraryIdentity
-    from haybale_graph_editor import Library
     from haybale_graph_editor.panels.toolbar.toolbar_actions import (
         CopyToolbarPanel,
         DeleteToolbarPanel,
