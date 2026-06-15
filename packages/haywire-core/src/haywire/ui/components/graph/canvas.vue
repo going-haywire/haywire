@@ -376,7 +376,9 @@ export default {
                 // on every frame, so they never trigger the drag gate above.
                 // Use a short debounce: hide immediately on the first event, restore
                 // 120 ms after the last one settles.
-                if (!isDragging) {
+                // Guard: skip this path when the drag gate just fired (isDragging→false
+                // restores the toolbar above; running this branch would re-hide it for 120 ms).
+                else if (!isDragging && !this._toolbarHiddenForGesture) {
                     this._emitSelectionBoundsHide();
                     if (this._zoomPanBoundsTimer) clearTimeout(this._zoomPanBoundsTimer);
                     this._zoomPanBoundsTimer = setTimeout(() => {
@@ -1217,7 +1219,11 @@ export default {
 
             // Reset drag state
             this.dragState.isDragging = false;
-            this._emitSelectionBounds();
+            // Only re-emit bounds after a real drag (click path already emits via
+            // _handleElementSelection → _emitSelectionChanged → _emitSelectionBounds).
+            if (this.dragState.hasActuallyMoved) {
+                this._emitSelectionBounds();
+            }
             this.dragState.draggedElements = [];
             this.dragState.startMousePos = { x: 0, y: 0 };
             this.dragState.startPositions.clear();
