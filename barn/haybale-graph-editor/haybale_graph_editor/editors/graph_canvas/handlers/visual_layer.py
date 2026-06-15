@@ -28,6 +28,7 @@ from haywire.ui.components.graph.event_definitions import (
     ElementResetEvent,
     ElementRevalidateEvent,
     SyncNodePositionEvent,
+    SyncNodeRemovalEvent,
     SyncEdgeRemovalEvent,
     SyncSelectionsEvent,
     SyncCanvasClearEvent,
@@ -263,6 +264,7 @@ class VisualLayerHandlers:
 
         ui_node = self.node_panels.pop(node_id)
         ui_node.delete()
+        self.canvas_vue.emit_sync_event(SyncNodeRemovalEvent(nodeId=node_id))
         return True
 
     def remove_all_node_visuals(self):

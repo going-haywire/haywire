@@ -374,13 +374,18 @@ export default {
 
                 // Wheel-zoom and trackpad-pan fire zoom-pan-state with isDragging=false
                 // on every frame, so they never trigger the drag gate above.
-                // Use a short debounce: hide immediately on the first event, restore
-                // 120 ms after the last one settles.
+                // Use a short debounce: hide once on the LEADING edge of the burst,
+                // restore 120 ms after the last event settles.
                 // Guard: skip this path when the drag gate just fired (isDragging→false
                 // restores the toolbar above; running this branch would re-hide it for 120 ms).
                 else if (!isDragging && !this._toolbarHiddenForGesture) {
-                    this._emitSelectionBoundsHide();
-                    if (this._zoomPanBoundsTimer) clearTimeout(this._zoomPanBoundsTimer);
+                    // Leading edge only: a live timer means we already hid the toolbar
+                    // for this burst, so don't re-emit selectionBoundsHide every frame.
+                    if (!this._zoomPanBoundsTimer) {
+                        this._emitSelectionBoundsHide();
+                    } else {
+                        clearTimeout(this._zoomPanBoundsTimer);
+                    }
                     this._zoomPanBoundsTimer = setTimeout(() => {
                         this._zoomPanBoundsTimer = null;
                         this._emitSelectionBounds();
@@ -456,6 +461,9 @@ export default {
                     break;
                 case GraphEvents.SyncCommands.SYNC_EDGE_ADDITION:
                     this._syncEdgeAddition(data);
+                    break;
+                case GraphEvents.SyncCommands.SYNC_NODE_REMOVAL:
+                    this._syncNodeRemoval(data);
                     break;
                 case GraphEvents.SyncCommands.SYNC_EDGE_REMOVAL:
                     this._syncEdgeRemoval(data);
@@ -561,6 +569,28 @@ export default {
             } else {
                 console.error('🔗 Vue ❌ Failed to add connection via sync:', edge_id);
             }
+        },
+
+        _syncNodeRemoval(data) {
+            const { nodeId } = data;
+            let selectionChanged = false;
+
+            if (this.selectionState.selectedNodes.has(nodeId)) {
+                this.selectionState.selectedNodes.delete(nodeId);
+                selectionChanged = true;
+            }
+
+            const active = this.selectionState.activeElement;
+            if (active && active.kind === 'node' && active.id === nodeId) {
+                this.selectionState.activeElement = null;
+                selectionChanged = true;
+            }
+
+            if (selectionChanged) {
+                this._emitSelectionBounds();
+            }
+
+            console.log('🗑️ Vue node removed via sync:', nodeId);
         },
 
         _syncEdgeRemoval(data) {
@@ -1392,6 +1422,18 @@ export default {
                 if (r.bottom > bottom) bottom = r.bottom;
             }
             if (left === Infinity) return null;
+
+            // Clip against the canvas viewport: if the selection bounding box
+            // has been panned entirely outside the visible canvas, return null
+            // so the toolbar hides instead of floating over unrelated UI.
+            const container = this.$refs.container;
+            if (container) {
+                const v = container.getBoundingClientRect();
+                const intersects = left < v.right && right > v.left
+                    && top < v.bottom && bottom > v.top;
+                if (!intersects) return null;
+            }
+
             return { left, top, right, bottom };
         },
 

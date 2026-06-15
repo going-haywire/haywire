@@ -225,7 +225,7 @@ class GraphCanvasManager:
             self.canvas_vue.cleanup()
 
         if getattr(self, "_toolbar_provider", None) is not None:
-            self._toolbar_provider.hide()
+            self._toolbar_provider.destroy()
 
         self.visual_layer.cleanup()
 

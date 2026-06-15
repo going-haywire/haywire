@@ -70,6 +70,10 @@ class SelectionToolbarProvider:
         self._on_emit_sync_event = on_emit_sync_event
         self._toolbar_popup: Optional["Popup"] = None
         self._last_bounds: Optional[Tuple[float, float, float, float]] = None
+        # The panel set currently rendered into the popup. Repositioning during a
+        # pan/zoom must NOT rebuild this DOM — only a change in the visible panel
+        # set (e.g. a different selection) warrants a teardown + re-render.
+        self._rendered_panels: Optional[List[type]] = None
 
     # ------------------------------------------------------------------
     # Public interface
@@ -97,14 +101,38 @@ class SelectionToolbarProvider:
         if self._toolbar_popup is None:
             self._toolbar_popup = self._build_popup(center_x, pos_y)
         else:
-            # Reposition existing popup via Vue method
+            # Re-open before repositioning: open() calls _initPosition() which
+            # resets currentX/Y to the construction-time props, so setPosition
+            # must run after open() to land at the correct coordinates.
+            if not self._toolbar_popup.is_open:
+                self._toolbar_popup.open()
             self._toolbar_popup.run_method("setPosition", center_x, pos_y)
 
-        # Rebuild content in a horizontal row
-        self._render_into_popup(visible)
+        # Only rebuild the toolbar DOM when the visible panel set actually
+        # changed. A pure reposition (pan/zoom) keeps the same buttons, so the
+        # setPosition transform above is sufficient — clearing and re-rendering
+        # every frame is what made panning jerky.
+        if visible != self._rendered_panels:
+            self._render_into_popup(visible)
+            self._rendered_panels = list(visible)
 
     def hide(self) -> None:
-        """Dismiss the toolbar popup."""
+        """Hide the toolbar without destroying it.
+
+        Uses the popup's Vue-side ``close()`` (a ``v-show`` toggle) so the
+        rendered button DOM survives. The gesture path calls hide()/show_at()
+        on every pan frame; tearing the popup down and rebuilding it each time
+        is what made panning jerky. ``_rendered_panels`` is intentionally left
+        intact so a same-selection re-show skips re-rendering too.
+        """
+        if self._toolbar_popup is not None and self._toolbar_popup.is_open:
+            try:
+                self._toolbar_popup.close()
+            except Exception:
+                pass
+
+    def destroy(self) -> None:
+        """Fully tear down the popup (real lifecycle cleanup, not gesture hide)."""
         if self._toolbar_popup is not None:
             try:
                 self._toolbar_popup.close()
@@ -112,6 +140,7 @@ class SelectionToolbarProvider:
             except Exception:
                 pass
             self._toolbar_popup = None
+        self._rendered_panels = None
 
     # ------------------------------------------------------------------
     # Panel collection
