@@ -56,6 +56,7 @@ export default {
     draggable:          { type: Boolean, default: false },
     clampToViewport:    { type: Boolean, default: false },
     startVisible:       { type: Boolean, default: false },
+    centerX:            { type: Boolean, default: false },
   },
 
   data() {
@@ -132,6 +133,7 @@ export default {
           top:  this.currentY + 'px',
           margin: 0,
           zIndex: 7001,
+          transform: this.centerX ? 'translateX(-50%)' : undefined,
         };
       }
       return {

@@ -1402,6 +1402,15 @@ export default {
             this._emitSelectionBounds();
         },
 
+        /** The visible viewport rect of the ZoomPanContainer (overflow:hidden),
+         *  which is the true clip boundary for the canvas. Falls back to null
+         *  if the zoom container ID is not set or the element is not found. */
+        _getViewportRect() {
+            if (!this.zoomContainerId) return null;
+            const el = document.getElementById(this.zoomContainerId);
+            return el ? el.getBoundingClientRect() : null;
+        },
+
         /** Screen-space bounding box (CSS px, viewport-relative) of all
          *  currently selected nodes. Returns null if nothing selected or no
          *  rects resolvable. Edges-only selections fall back to null (toolbar hides). */
@@ -1423,12 +1432,9 @@ export default {
             }
             if (left === Infinity) return null;
 
-            // Clip against the canvas viewport: if the selection bounding box
-            // has been panned entirely outside the visible canvas, return null
-            // so the toolbar hides instead of floating over unrelated UI.
-            const container = this.$refs.container;
-            if (container) {
-                const v = container.getBoundingClientRect();
+            // Hide if the selection is entirely outside the visible viewport.
+            const v = this._getViewportRect();
+            if (v) {
                 const intersects = left < v.right && right > v.left
                     && top < v.bottom && bottom > v.top;
                 if (!intersects) return null;
@@ -1443,6 +1449,21 @@ export default {
                 this.emitCanvasEvent(EventCreators.createSelectionBoundsHide());
                 return;
             }
+
+            // Hide if the toolbar's anchor point would land outside the viewport.
+            // Mirrors the Python formula: center_x=(l+r)/2, pos_y=max(0,top-12-44).
+            // Pure geometry, no Python round-trip.
+            const v = this._getViewportRect();
+            if (v) {
+                const toolbarX = (b.left + b.right) / 2;
+                const toolbarY = Math.max(0, b.top - 12 - 44);
+                if (toolbarX < v.left || toolbarX > v.right
+                        || toolbarY < v.top || toolbarY > v.bottom) {
+                    this.emitCanvasEvent(EventCreators.createSelectionBoundsHide());
+                    return;
+                }
+            }
+
             this.emitCanvasEvent(EventCreators.createSelectionBounds(
                 b.left, b.top, b.right, b.bottom
             ));

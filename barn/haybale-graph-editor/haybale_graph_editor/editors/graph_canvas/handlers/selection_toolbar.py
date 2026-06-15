@@ -185,6 +185,7 @@ class SelectionToolbarProvider:
             backdrop_color="transparent",
             draggable=False,
             clamp_to_viewport=True,
+            center_x=True,
         )
         popup.open()
         return popup

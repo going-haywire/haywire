@@ -29,6 +29,7 @@ class Popup(ui.element, component="popup.vue"):
         position_y: Optional[float] = None,
         draggable: bool = False,
         clamp_to_viewport: bool = False,
+        center_x: bool = False,
     ):
         # Attach to the page layout so the element is in the DOM even when
         # instantiated dynamically inside an event handler (where the slot
@@ -51,6 +52,7 @@ class Popup(ui.element, component="popup.vue"):
         self._props["initial-y"] = position_y
         self._props["draggable"] = draggable
         self._props["clamp-to-viewport"] = clamp_to_viewport
+        self._props["center-x"] = center_x
         self._props["start-visible"] = False
 
         # Listen for close/position events emitted by the Vue component
