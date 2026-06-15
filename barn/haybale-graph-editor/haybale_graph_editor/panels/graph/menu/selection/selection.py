@@ -14,7 +14,7 @@ from haywire.ui.panel import BasePanel
 from haywire.ui.panel.layout import PanelLayout
 from haywire.ui.panel.decorator import panel
 
-from .....focuses import NodeFocus, SelectionFocus
+from .....focuses import SelectionFocus
 from .....state.edit_state import EditState
 from .....editors.graph_canvas.handlers.context_menu_actions import SelectionContextActions
 

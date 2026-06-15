@@ -12,9 +12,8 @@ from haywire.ui.panel import BasePanel, PanelLayout
 from haywire.ui.panel.decorator import panel
 from haywire.ui.panel.render_utils import render_settings
 
-from ....focuses import NodeFocus, SelectionFocus
+from ....focuses import NodeFocus
 from ....state.edit_state import EditState
-from ....editors.graph_canvas.handlers.context_menu_actions import SelectionContextActions
 
 if TYPE_CHECKING:
     from haywire.core.session.context import SessionContext
