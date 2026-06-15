@@ -14,6 +14,8 @@ window.GraphEvents = {
     ELEMENT_RESET: 'elementReset', // reset selected element
     ELEMENT_REVALIDATE: 'elementRevalidate', // revalidate selected element
     SELECTION_CHANGED: 'selectionChanged', // Selection state changed
+    SELECTION_BOUNDS: 'selectionBounds', // Selection screen bounding box (toolbar anchor)
+    SELECTION_BOUNDS_HIDE: 'selectionBoundsHide', // Hide the floating toolbar (gesture in progress)
     USER_REMOVE: 'userRemove', // User wants to remove elements
     USER_COPY_SELECTED: 'userCopySelected', // Copy selected elements to clipboard
     CONTEXT_MENU_CANVAS: 'contextMenuCanvas', // Canvas context menu triggered
@@ -26,6 +28,7 @@ window.GraphEvents = {
   },
   
   SyncCommands: {
+    TOOLBAR_ACTION: 'toolbarAction', // Floating-toolbar button clicked
     SYNC_NODE_ADDITION: 'syncNodeAddition', // Sync node addition to UI
     SYNC_NODE_REMOVAL: 'syncNodeRemoval', // Sync node removal from UI
     SYNC_NODE_POSITION: 'syncNodePosition', // Sync node position to UI
@@ -141,6 +144,26 @@ window.EventCreators = {
       source_session_id: sessionId,
       timestamp: Date.now(),
       data: { selectedNodes, selectedEdges, activeNodeId, activeEdgeId },
+      requires_broadcast: true
+    };
+  },
+
+  createSelectionBounds(left, top, right, bottom, sessionId = 'default') {
+    return {
+      event_type: 'selectionBounds',
+      source_session_id: sessionId,
+      timestamp: Date.now(),
+      data: { left, top, right, bottom },
+      requires_broadcast: true
+    };
+  },
+
+  createSelectionBoundsHide(sessionId = 'default') {
+    return {
+      event_type: 'selectionBoundsHide',
+      source_session_id: sessionId,
+      timestamp: Date.now(),
+      data: {  },
       requires_broadcast: true
     };
   },
@@ -285,6 +308,16 @@ window.EventValidators = {
 
   validateSelectionChanged(data) {
     const requiredFields = ["selectedNodes", "selectedEdges", "activeNodeId", "activeEdgeId"];
+    return requiredFields.every(field => field in data);
+  },
+
+  validateSelectionBounds(data) {
+    const requiredFields = ["left", "top", "right", "bottom"];
+    return requiredFields.every(field => field in data);
+  },
+
+  validateSelectionBoundsHide(data) {
+    const requiredFields = [];
     return requiredFields.every(field => field in data);
   },
 

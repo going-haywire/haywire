@@ -164,6 +164,38 @@ class SelectionChangedEvent(BaseGraphEvent):
     activeEdgeId: str = ""
 
 
+@graph_event(
+    "selectionBounds", category="user", description="Selection screen bounding box (toolbar anchor)"
+)
+@dataclass
+class SelectionBoundsEvent(BaseGraphEvent):
+    # Screen-space rectangle of the current selection's bounding box, in CSS px
+    # relative to the viewport. Emitted on selection change and on pan/zoom/drag
+    # END (never at frame rate). Python anchors the floating toolbar to this.
+    left: float
+    top: float
+    right: float
+    bottom: float
+
+
+@graph_event(
+    "selectionBoundsHide", category="user", description="Hide the floating toolbar (gesture in progress)"
+)
+@dataclass
+class SelectionBoundsHideEvent(BaseGraphEvent):
+    # Emitted on pan/zoom/drag START. Python hides the toolbar until the next
+    # selectionBounds arrives at gesture end (Miro hide-during-gesture rule).
+    pass
+
+
+@graph_event("toolbarAction", category="system", description="Floating-toolbar button clicked")
+@dataclass
+class ToolbarActionEvent(BaseGraphEvent):
+    # Currently unused by the curated face (panels call provider verbs directly),
+    # reserved for any future Vue-side toolbar affordance.
+    actionId: str
+
+
 @graph_event("userRemove", category="user", description="User wants to remove elements")
 @dataclass
 class UserRemoveEvent(BaseGraphEvent):

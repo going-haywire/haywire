@@ -129,8 +129,10 @@ export interface {interface_name} {{"""
             method_name = f"create{info['class_name'].replace('Event', '')}"
             fields_param = ", ".join([f"{field}" for field in info["fields"]])
             field_assignments = ", ".join(info["fields"])
+            # Avoid leading comma when there are no event-specific fields
+            params = f"{fields_param}, sessionId = 'default'" if fields_param else "sessionId = 'default'"
 
-            method = f"""  {method_name}({fields_param}, sessionId = 'default') {{
+            method = f"""  {method_name}({params}) {{
     return {{
       event_type: '{event_type}',
       source_session_id: sessionId,
