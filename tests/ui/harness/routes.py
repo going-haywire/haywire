@@ -37,6 +37,154 @@ def _resolve_class(dotted: str):
     return getattr(mod, class_name)
 
 
+# Two-node control graph used by the /graph-reconnect route: a Test Begin Play
+# (event source, ``exec`` outlet) wired to a Test Print (control sink, ``exec``
+# inlet). Built programmatically and round-tripped through a .haywire file at
+# request time so the fixture can never drift from the current serialization
+# format — if save_to_file/load_from_file break, the route (and its test) fail.
+_RECONNECT_SOURCE_KEY = "testing:node:TestBeginPlayNode"
+_RECONNECT_SINK_KEY = "testing:node:TestPrintNode"
+_RECONNECT_OUTLET = "exec"
+_RECONNECT_INLET = "exec"
+
+
+def _write_reconnect_graph(node_factory, out_path) -> None:
+    """Build the two-node/one-edge reconnect graph and serialize it to out_path.
+
+    Round-tripping through the real serializer (rather than a committed file)
+    keeps the fixture in lockstep with the save/load code on every run.
+    """
+    from haywire.core.graph.base import BaseGraph
+    from haywire.core.graph.editor import Editor
+
+    graph = BaseGraph("reconnect_fixture", "Reconnect Fixture")
+    editor = Editor(graph, node_factory)
+
+    source = graph.create_node_wrapper(_RECONNECT_SOURCE_KEY, position=(3600.0, 3700.0))
+    sink = graph.create_node_wrapper(_RECONNECT_SINK_KEY, position=(3950.0, 3700.0))
+    assert source is not None, f"could not create {_RECONNECT_SOURCE_KEY}"
+    assert sink is not None, f"could not create {_RECONNECT_SINK_KEY}"
+
+    ok = editor.create_edge(source.node_id, _RECONNECT_OUTLET, sink.node_id, _RECONNECT_INLET)
+    assert ok, f"could not connect {_RECONNECT_OUTLET} -> {_RECONNECT_INLET}"
+
+    assert graph.save_to_file(str(out_path)), f"save failed: {out_path}"
+
+
+def _build_connect_graph(node_factory):
+    """Two UNCONNECTED nodes with compatible free pins, for connect tests.
+
+    A Test Begin Play (``exec`` control outlet, ``timestamp`` float outlet) and a
+    Test Print (``exec`` control inlet, ``message`` string inlet). The exec pins
+    form a valid control pair the user can wire up; leaving them unconnected lets
+    the test drive the click-drag / click-click / proximity-snap entry paths.
+    """
+    from haywire.core.graph.base import BaseGraph
+    from haywire.core.graph.editor import Editor
+
+    graph = BaseGraph("connect_fixture", "Connect Fixture")
+    editor = Editor(graph, node_factory)
+
+    src = graph.create_node_wrapper(_RECONNECT_SOURCE_KEY, position=(3600.0, 3700.0))
+    dst = graph.create_node_wrapper(_RECONNECT_SINK_KEY, position=(3950.0, 3700.0))
+    assert src is not None and dst is not None, "could not create connect-fixture nodes"
+    return graph, editor
+
+
+_DYNAMIC_KEY = "testing:node:DynamicPortTestNode"
+_EDGE_LINK_KEY = "testing:node:EdgeLinkTestNode"
+_DYNAMIC_OUTLET = "dynamic_outlet_0"
+_EDGE_LINK_INLET = "int_inlet"
+
+
+def _build_dynamic_graph(node_factory):
+    """A DynamicPortTestNode wired to an EdgeLinkTestNode via a dynamic port.
+
+    ``dynamic_outlet_0`` (TEST_INT, present while port_count >= 1) → ``int_inlet``.
+    Lowering port_count to 0 removes the outlet; raising it restores the same id.
+    The canvas should fall its edge back to the node's ghost outlet when the real
+    pin disappears, and back onto the real pin when it returns. Returns
+    (graph, editor, dyn_node) so the route can mutate port_count.
+    """
+    from haywire.core.graph.base import BaseGraph
+    from haywire.core.graph.editor import Editor
+
+    graph = BaseGraph("dynamic_fixture", "Dynamic Fixture")
+    editor = Editor(graph, node_factory)
+
+    dyn = graph.create_node_wrapper(_DYNAMIC_KEY, position=(3600.0, 3700.0))
+    sink = graph.create_node_wrapper(_EDGE_LINK_KEY, position=(3980.0, 3700.0))
+    assert dyn is not None and sink is not None, "could not create dynamic-fixture nodes"
+
+    ok = editor.create_edge(dyn.node_id, _DYNAMIC_OUTLET, sink.node_id, _EDGE_LINK_INLET)
+    assert ok, f"could not connect {_DYNAMIC_OUTLET} -> {_EDGE_LINK_INLET}"
+    return graph, editor, dyn
+
+
+class _HarnessProjectState:
+    """Minimal IProjectState stand-in for harness routes that need a Session.
+
+    The studio's HaywireApp is the real project_state; sessions read only a few
+    attributes off it (``library_state_container`` and ``on_disconnect`` on the
+    session path, plus the factories on ``IProjectState``). This pulls those
+    from the booted library_service so a session can be created without the full
+    studio app.
+    """
+
+    def __init__(self, library_service) -> None:
+        from haywire.core.di.context import get_workspace_root
+        from haywire.core.state import LibraryStateContainer
+
+        self.workspace_root = str(get_workspace_root())
+        self.library_service = library_service
+        self.node_registry = library_service.get_node_registry()
+        self.node_factory = library_service.get_node_factory()
+        self.panel_registry = library_service.get_panel_registry()
+        self.widget_factory = library_service.get_widget_factory()
+        self.library_state_container = library_service.injector.get(LibraryStateContainer)
+
+    def on_disconnect(self, *args, **kwargs) -> None:  # session teardown hook
+        pass
+
+
+def _mount_graph_canvas(library_service, graph, editor, testid: str):
+    """Boot a real GraphCanvasManager over (graph, editor) inside the page.
+
+    Wires the full editor stack — session, handlers, context-menu provider —
+    exactly as the studio does, so canvas interactions (connect, reconnect,
+    context menus) run end-to-end. Returns the GraphCanvasManager.
+    """
+    from haywire.core.di.context import get_workspace_root
+    from haywire.core.session.session_manager import SessionManager
+    from haywire.core.session.workspace.manager import WorkspaceManager
+    from haybale_graph_editor.editors.graph_canvas.graph_canvas_manager import GraphCanvasManager
+    from haybale_graph_editor.state.edit_state import EditState
+
+    project_state = _HarnessProjectState(library_service)
+    session_manager = SessionManager(container=project_state.library_state_container)
+    workspace_manager = WorkspaceManager(project_path=get_workspace_root())
+    session = session_manager.create_session(
+        project_state=project_state,
+        workspace_manager=workspace_manager,
+    )
+    # Context-menu providers resolve wrappers off active_graph.
+    session.context.data[EditState].active_graph = graph
+
+    with ui.element("div").style("width: 800px; height: 600px; position: relative; border: 1px solid #666;"):
+        manager = GraphCanvasManager(
+            editor=editor,
+            skin_factory=library_service.get_skin_factory(),
+            node_factory=library_service.get_node_factory(),
+            panel_registry=library_service.get_panel_registry(),
+            session=session,
+        )
+        manager.zoom_container.props(f'data-testid="{testid}-zoom"')
+        manager.canvas_vue.props(f'data-testid="{testid}-canvas"')
+        manager.sync_with_graph()
+        manager.zoom_container._on_ready = manager.zoom_container.center_on_content
+    return manager
+
+
 def _build_theme_css(registry: "SettingsRegistry", theme_registry) -> str:
     """Build :root CSS block from the first available workbench theme."""
     valid_keys = [k for k in theme_registry.list_workbench_keys() if not k.startswith("__system__:")]
@@ -146,6 +294,76 @@ def register_routes(library_service) -> None:
                     canvas_height=400,
                 )
                 canvas.props('data-testid="graph-canvas-test"')
+
+    # -------------------------------------------------------------------------
+    # GET /graph-reconnect
+    #
+    # Boots a real graph editor (GraphCanvasManager + handlers + context-menu
+    # provider) over a tiny two-node/one-edge fixture, so the full reconnect
+    # pipeline runs end-to-end in a browser. Backs the edge-reconnect Playwright
+    # regression test (the anchor end must stay glued to its pin even though the
+    # node DOM is rebuilt during reconnect). See test_graph_reconnect.py.
+    # -------------------------------------------------------------------------
+
+    @ui.page("/graph-reconnect")
+    async def graph_reconnect_page():
+        import tempfile
+        from pathlib import Path
+
+        from haywire.core.graph.base import BaseGraph
+        from haywire.core.graph.editor import Editor
+
+        # Generate the fixture programmatically and round-trip it through a real
+        # .haywire file so the test exercises the live serialization path.
+        node_factory = library_service.get_node_factory()
+        with tempfile.NamedTemporaryFile(suffix=".haywire", delete=False) as tmp:
+            fixture = Path(tmp.name)
+        _write_reconnect_graph(node_factory, fixture)
+
+        graph = BaseGraph("reconnect_fixture", "Reconnect Fixture")
+        editor = Editor(graph, node_factory)
+        assert graph.load_from_file(str(fixture)), f"could not load fixture: {fixture}"
+        fixture.unlink(missing_ok=True)
+
+        _mount_graph_canvas(library_service, graph, editor, testid="reconnect")
+
+    # -------------------------------------------------------------------------
+    # GET /graph-connect
+    #
+    # Two UNCONNECTED nodes with compatible free pins, on the full editor stack.
+    # Backs the connection-interaction Playwright tests (click-drag, click-click,
+    # proximity-snap, reverse drag) — the UI entry paths that live only in
+    # canvas.vue. See test_graph_connect.py.
+    # -------------------------------------------------------------------------
+
+    @ui.page("/graph-connect")
+    async def graph_connect_page():
+        graph, editor = _build_connect_graph(library_service.get_node_factory())
+        _mount_graph_canvas(library_service, graph, editor, testid="connect")
+
+    # -------------------------------------------------------------------------
+    # GET /graph-dynamic
+    #
+    # A DynamicPortTestNode wired to an EdgeLinkTestNode through a dynamic port,
+    # with buttons to drop / restore the port via port_count. Backs the ghost-
+    # fallback test: removing the linked outlet must reattach the edge to the
+    # node's ghost outlet (not delete it); restoring the port reattaches it to
+    # the real pin. See test_graph_dynamic_ports.py.
+    # -------------------------------------------------------------------------
+
+    @ui.page("/graph-dynamic")
+    async def graph_dynamic_page():
+        graph, editor, dyn = _build_dynamic_graph(library_service.get_node_factory())
+
+        def _set_port_count(n: int) -> None:
+            # Drives hb_reconfigure → rejig → validation → canvas sync.
+            dyn.node.ports["port_count"].set_value(n)
+
+        # Controls outside the canvas so they never intercept canvas gestures.
+        ui.button("drop-port", on_click=lambda: _set_port_count(0)).props('data-testid="drop-port"')
+        ui.button("restore-port", on_click=lambda: _set_port_count(2)).props('data-testid="restore-port"')
+
+        _mount_graph_canvas(library_service, graph, editor, testid="dynamic")
 
     # -------------------------------------------------------------------------
     # POST /api/set?key=<key>&value=<value>
