@@ -225,16 +225,6 @@ class ContextMenuCanvasEvent(BaseGraphEvent):
     pendingDataType: str = ""  # data-type registry key or ''
 
 
-@graph_event("contextMenuNode", category="user", description="Node context menu triggered")
-@dataclass
-class ContextMenuNodeEvent(BaseGraphEvent):
-    screenX: float
-    screenY: float
-    canvasX: float
-    canvasY: float
-    nodeId: str
-
-
 @graph_event("contextMenuEdge", category="user", description="Connection context menu triggered")
 @dataclass
 class ContextMenuEdgeEvent(BaseGraphEvent):

@@ -3,7 +3,6 @@
 from haybale_graph_editor.editors.graph_canvas.handlers.context_menu_actions import (
     CanvasContextActions,
     EdgeContextActions,
-    NodeContextActions,
     PortContextActions,
     SelectionContextActions,
 )
@@ -25,17 +24,6 @@ class _CompleteImpl:
 
 def test_canvas_context_actions_is_runtime_checkable():
     assert isinstance(_CompleteImpl(), CanvasContextActions)
-
-
-def test_node_context_actions_is_empty_marker_protocol():
-    """After node/selection unification NodeContextActions has no verbs;
-    any class satisfies it (it survives only as a custom-context extension
-    point + node_errors focus marker)."""
-
-    class Anything:
-        pass
-
-    assert isinstance(Anything(), NodeContextActions)
 
 
 def test_edge_context_actions_is_runtime_checkable():

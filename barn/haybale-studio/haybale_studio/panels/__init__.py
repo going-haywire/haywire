@@ -1,16 +1,20 @@
-from .app_panels import ThemeSettingsPanel
-from .app_panels import NodeSkinDefaultPanel
-from .app_panels import EditorSettingsPanel
-from .canvas_settings import CanvasSettingsPanel
-from .canvas_settings import NodeSkinSettingsPanel
-from .canvas_settings import EdgeUISettingsPanel
-from .canvas_settings import EditorZoomPanSettingsPanel
-from .canvas_settings import MinimapSettingsPanel
-from .canvas_settings import DebugOverlaySettingsPanel
-from .debug_panel import DebugSettingsPanel
-from .execution_panel import ExecutionSettingsPanel
-from .context_menu.file_actions import OpenInCodeEditorPanel
-from .context_menu.file_actions import OpenInFileViewerPanel
+from .properties.setting.app import ThemeSettingsPanel
+from .properties.setting.app import NodeSkinDefaultPanel
+from .properties.setting.app import EditorSettingsPanel
+from .properties.setting.canvas import CanvasSettingsPanel
+from .properties.setting.canvas import NodeSkinSettingsPanel
+from .properties.setting.canvas import EdgeUISettingsPanel
+from .properties.setting.canvas import EditorZoomPanSettingsPanel
+from .properties.setting.canvas import MinimapSettingsPanel
+from .properties.setting.canvas import DebugOverlaySettingsPanel
+from .properties.setting.execution import DebugSettingsPanel
+from .properties.setting.execution import ExecutionSettingsPanel
+from .file_browser.menu.file import OpenInCodeEditorMenuPanel
+from .file_browser.menu.file import OpenInFileViewerMenuPanel
+
+# Backwards-compat aliases for external consumers using old names
+OpenInCodeEditorPanel = OpenInCodeEditorMenuPanel
+OpenInFileViewerPanel = OpenInFileViewerMenuPanel
 
 __all__ = [
     "CanvasSettingsPanel",
@@ -23,7 +27,9 @@ __all__ = [
     "MinimapSettingsPanel",
     "NodeSkinDefaultPanel",
     "NodeSkinSettingsPanel",
+    "OpenInCodeEditorMenuPanel",
     "OpenInCodeEditorPanel",
+    "OpenInFileViewerMenuPanel",
     "OpenInFileViewerPanel",
     "ThemeSettingsPanel",
 ]

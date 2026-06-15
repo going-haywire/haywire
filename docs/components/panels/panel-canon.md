@@ -270,18 +270,18 @@ from haybale_studio.focuses import NodeFocus, GraphFocus, EdgeFocus
 
 ## 4. Live examples from the codebase
 
-Source: [`barn/haybale-testing/haybale_testing/panels/`](../../../barn/haybale-testing/haybale_testing/panels/)
+Source: [`barn/haybale-testing/haybale_testing/panels/graph/menu/`](../../../barn/haybale-testing/haybale_testing/panels/graph/menu/)
 
-**Simple action panel** — `TestDeleteNodePanel` from [`test_node_panels.py`](../../../barn/haybale-testing/haybale_testing/panels/test_node_panels.py). Demonstrates the minimal action-panel skeleton: `@panel` decorator, `actions: TestNodeContextActions` class-body annotation, `poll()` checking `EditState`, `draw()` rendering with `with layout: hui.button(...)` and dispatching through `self.actions`:
+**Simple action panel** — `TestDeleteNodeMenuPanel` from [`graph/menu/node/node.py`](../../../barn/haybale-testing/haybale_testing/panels/graph/menu/node/node.py). Demonstrates the minimal action-panel skeleton: `@panel` decorator, `actions: TestNodeContextActions` class-body annotation, `poll()` checking `EditState`, `draw()` rendering with `with layout: hui.button(...)` and dispatching through `self.actions`:
 
 ```python
---8<-- "barn/haybale-testing/haybale_testing/panels/test_node_panels.py:test_delete_node_panel"
+--8<-- "barn/haybale-testing/haybale_testing/panels/graph/menu/node/node.py:test_delete_node_panel"
 ```
 
-**SessionState-reading panel** — `TestSessionStatePanel` from [`test_session_state_panel.py`](../../../barn/haybale-testing/haybale_testing/panels/test_session_state_panel.py). Demonstrates `poll()` reading a `SessionState` signal field and `draw()` displaying it with `with layout: hui.label(...)`:
+**SessionState-reading panel** — `TestSessionStateMenuPanel` from [`graph/menu/canvas/canvas.py`](../../../barn/haybale-testing/haybale_testing/panels/graph/menu/canvas/canvas.py). Demonstrates `poll()` reading a `SessionState` signal field and `draw()` displaying it with `with layout: hui.label(...)`:
 
 ```python
---8<-- "barn/haybale-testing/haybale_testing/panels/test_session_state_panel.py:test_session_state_panel"
+--8<-- "barn/haybale-testing/haybale_testing/panels/graph/menu/canvas/canvas.py:test_session_state_panel"
 ```
 
 What these examples exercise:

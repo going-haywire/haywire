@@ -20,15 +20,13 @@ class CanvasContextActions(Protocol):
 
 @runtime_checkable
 class NodeContextActions(Protocol):
-    """Marker Protocol for node-context panels.
+    """Marker Protocol for the skin/ extension point (on_custom_context).
 
-    Empty after node/selection unification: node *commands* moved to
-    SelectionContextActions (they act on the whole selection). This Protocol
-    survives as the default action surface for the custom-context extension
-    point (on_custom_context) and as the focus marker for node-scoped
-    display panels (e.g. node_errors inspector variant). Library authors may
-    declare verbs here for their own custom-focus panels. Mirrors
-    PortContextActions.
+    Empty by design — library authors register panels against this Protocol
+    to surface them in menus triggered via data-hw-custom-menu-focus-id DOM
+    attributes. The provider dispatches to NodeContextActions by default;
+    panels that need a narrower scope declare a custom Focus instead.
+    Mirrors PortContextActions.
     """
 
 

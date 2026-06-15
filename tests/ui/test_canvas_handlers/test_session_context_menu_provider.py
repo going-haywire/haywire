@@ -119,19 +119,19 @@ def test_panels_that_return_false_from_poll_are_not_drawn(register_edit_state):
     registry = PanelRegistry()
     _actions_mod = _current_actions()
     _focuses_mod = _current_focuses()
-    NodeContextActions = _actions_mod.NodeContextActions
-    NodeFocus = _focuses_mod.NodeFocus
+    SelectionContextActions = _actions_mod.SelectionContextActions
+    SelectionFocus = _focuses_mod.SelectionFocus
 
     drawn = []
 
     @panel(
-        actions=NodeContextActions,
-        focus=NodeFocus,
+        actions=SelectionContextActions,
+        focus=SelectionFocus,
         label="Always False",
         registry_id="always_false_panel",
     )
     class AlwaysFalsePanel(BasePanel):
-        actions: NodeContextActions
+        actions: SelectionContextActions
 
         @classmethod
         def poll(cls, context):
@@ -143,7 +143,7 @@ def test_panels_that_return_false_from_poll_are_not_drawn(register_edit_state):
     registry._register_class(AlwaysFalsePanel, _FAKE_LIBRARY_IDENTITY)
     provider, _, _ = make_provider(ctx, registry)
 
-    provider.on_node_context((10, 20), "node-1")
+    provider.on_selection_context((10, 20), [], [])
 
     assert drawn == []
 
@@ -153,19 +153,19 @@ def test_panels_that_return_true_from_poll_are_drawn(register_edit_state):
     registry = PanelRegistry()
     _actions_mod = _current_actions()
     _focuses_mod = _current_focuses()
-    NodeContextActions = _actions_mod.NodeContextActions
-    NodeFocus = _focuses_mod.NodeFocus
+    SelectionContextActions = _actions_mod.SelectionContextActions
+    SelectionFocus = _focuses_mod.SelectionFocus
 
     drawn = []
 
     @panel(
-        actions=NodeContextActions,
-        focus=NodeFocus,
+        actions=SelectionContextActions,
+        focus=SelectionFocus,
         label="Always True",
         registry_id="always_true_panel",
     )
     class AlwaysTruePanel(BasePanel):
-        actions: NodeContextActions
+        actions: SelectionContextActions
 
         @classmethod
         def poll(cls, context):
@@ -177,7 +177,7 @@ def test_panels_that_return_true_from_poll_are_drawn(register_edit_state):
     registry._register_class(AlwaysTruePanel, _FAKE_LIBRARY_IDENTITY)
     provider, _, _ = make_provider(ctx, registry)
 
-    provider.on_node_context((10, 20), "node-1")
+    provider.on_selection_context((10, 20), [], [])
 
     assert "AlwaysTruePanel" in drawn
 
@@ -189,7 +189,6 @@ def test_panels_for_wrong_focus_are_not_drawn(register_edit_state):
     _focuses_mod = _current_focuses()
     EdgeContextActions = _actions_mod.EdgeContextActions
     EdgeFocus = _focuses_mod.EdgeFocus
-    NodeFocus = _focuses_mod.NodeFocus  # noqa: F841
 
     drawn = []
 
@@ -212,8 +211,8 @@ def test_panels_for_wrong_focus_are_not_drawn(register_edit_state):
     registry._register_class(EdgeOnlyPanel, _FAKE_LIBRARY_IDENTITY)
     provider, _, _ = make_provider(ctx, registry)
 
-    # Trigger node context — should NOT draw edge panel (different focus)
-    provider.on_node_context((10, 20), "node-1")
+    # Trigger selection context — should NOT draw edge panel (different focus)
+    provider.on_selection_context((10, 20), [], [])
 
     assert drawn == []
 
@@ -229,18 +228,18 @@ def test_close_callback_clears_active_port_and_edge(register_edit_state):
     edit = ctx.data[EditStateCls]
     edit.active_port = MagicMock()
     edit.active_edge = MagicMock()
-    NodeContextActions = _current_actions().NodeContextActions
-    NodeFocus = _current_focuses().NodeFocus
+    SelectionContextActions = _current_actions().SelectionContextActions
+    SelectionFocus = _current_focuses().SelectionFocus
 
     # A visible panel so the popup actually opens and wires on_close.
     @panel(
-        actions=NodeContextActions,
-        focus=NodeFocus,
+        actions=SelectionContextActions,
+        focus=SelectionFocus,
         label="Always True",
         registry_id="close_cb_panel",
     )
     class _Panel(BasePanel):
-        actions: NodeContextActions
+        actions: SelectionContextActions
 
         @classmethod
         def poll(cls, context):
@@ -253,7 +252,7 @@ def test_close_callback_clears_active_port_and_edge(register_edit_state):
     registry._register_class(_Panel, _FAKE_LIBRARY_IDENTITY)
     provider, popup, _ = make_provider(ctx, registry)
 
-    provider.on_node_context((10, 20), "node-1")
+    provider.on_selection_context((10, 20), [], [])
 
     # Simulate popup close — provider must register a close callback on popup
     close_cb = popup.on_close.call_args[0][0]
@@ -273,7 +272,7 @@ def test_close_cleanup_runs_immediately_when_no_panels_visible(register_edit_sta
     registry = PanelRegistry()
     provider, popup, _ = make_provider(ctx, registry)
 
-    provider.on_node_context((10, 20), "node-1")
+    provider.on_selection_context((10, 20), [], [])
 
     popup.open.assert_not_called()
     assert edit.active_port is None

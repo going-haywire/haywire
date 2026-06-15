@@ -25,7 +25,6 @@ from haywire.ui.panel.context_menu_base import BaseContextMenuProvider
 
 from haywire.ui.components.graph.event_definitions import (
     ContextMenuCanvasEvent,
-    ContextMenuNodeEvent,
     ContextMenuEdgeEvent,
     ContextMenuSelectedEvent,
     ContextMenuCustomEvent,
@@ -61,14 +60,6 @@ class IContextMenuProvider:
         pending_connection: Optional[dict] = None,
     ) -> None:
         """User right-clicked on empty canvas space."""
-        ...
-
-    def on_node_context(
-        self,
-        pos: Tuple[float, float],
-        node_id: str,
-    ) -> None:
-        """User right-clicked on a node."""
         ...
 
     def on_edge_context(
@@ -181,7 +172,7 @@ class SessionContextMenuProvider(IContextMenuProvider, BaseContextMenuProvider):
         canvas-specific ``_on_close`` defined below).
         """
         # Open _OpenMenuContext for this popup; the intent handlers above
-        # (on_canvas_context, on_node_context, etc.) populated the rest of
+        # (on_canvas_context, on_edge_context, etc.) populated the rest of
         # its fields before calling _open_menu.
         if self._open_ctx is None:
             # Defensive: an intent handler called _open_menu without
@@ -215,22 +206,6 @@ class SessionContextMenuProvider(IContextMenuProvider, BaseContextMenuProvider):
             pending_connection=pending_connection,
         )
         self._open_menu(CanvasContextActions, CanvasFocus, pos)
-
-    def on_node_context(self, pos, node_id):
-        from haybale_graph_editor.focuses import NodeFocus
-        from haybale_graph_editor.editors.graph_canvas.handlers.context_menu_actions import (
-            NodeContextActions,
-        )
-
-        graph = self._context.data[EditState].active_graph
-        if graph is not None:
-            wrapper = graph.get_node_wrapper(node_id)
-            if wrapper is not None:
-                self._context.data[EditState].active_node = wrapper
-                self._context.active_component = wrapper.registry_key
-
-        self._open_ctx = _OpenMenuContext(click_pos=pos)
-        self._open_menu(NodeContextActions, NodeFocus, pos)
 
     def on_edge_context(self, pos, edge_id, edge, state, at_sink_end=False):
         from haybale_graph_editor.focuses import EdgeFocus
@@ -510,7 +485,6 @@ class ContextMenuHandlers:
 
     @handles_event(
         ContextMenuCanvasEvent,
-        ContextMenuNodeEvent,
         ContextMenuEdgeEvent,
         ContextMenuSelectedEvent,
         ContextMenuCustomEvent,
@@ -533,13 +507,6 @@ class ContextMenuHandlers:
                 (event.screenX, event.screenY),
                 (event.canvasX, event.canvasY),
                 pending_connection=pending,
-            )
-
-        elif isinstance(event, ContextMenuNodeEvent):
-            logger.debug(f"Node context menu for {event.nodeId} at ({event.screenX}, {event.screenY})")
-            self.provider.on_node_context(
-                (event.screenX, event.screenY),
-                event.nodeId,
             )
 
         elif isinstance(event, ContextMenuEdgeEvent):

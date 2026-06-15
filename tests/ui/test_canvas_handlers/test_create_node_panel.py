@@ -20,7 +20,7 @@ from haywire.ui.panel.layout import PanelLayout
 
 from haybale_testing.test_actions import TestCanvasContextActions
 from haybale_testing.test_focuses import TestCanvasFocus
-from haybale_testing.panels.test_create_node_panel import TestCreateNodePanel as CreateNodePanel
+from haybale_testing.panels.graph.menu.canvas.canvas import TestCreateNodeMenuPanel as CreateNodePanel
 
 _PANEL_MODULE = sys.modules[CreateNodePanel.__module__]
 

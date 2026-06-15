@@ -34,7 +34,7 @@ from haywire.ui.editor.wrapper import EditorWrapper
 from haywire.ui.panel import PanelRegistry
 
 from haybale_studio.editors.properties_editor import PropertiesEditor
-from haybale_graph_editor.panels.node_settings import NodeSettingsPanel
+from haybale_graph_editor.panels.properties.setting.node import NodeSettingsPanel
 
 
 _FAKE_LIBRARY_IDENTITY = LibraryIdentity(

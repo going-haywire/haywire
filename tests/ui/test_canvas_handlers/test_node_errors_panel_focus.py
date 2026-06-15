@@ -4,9 +4,9 @@ stays under NodeFocus."""
 
 from unittest.mock import MagicMock
 
-from haybale_graph_editor.panels.context_menu.node_errors import (
-    NodeErrorsPanel,
-    ContextMenuNodeErrorsPanel,
+from haybale_graph_editor.panels.properties.introspect.node import NodeErrorsPanel
+from haybale_graph_editor.panels.graph.menu.selection.selection import (
+    NodeErrorsSelectionMenuPanel as ContextMenuNodeErrorsPanel,
 )
 from haybale_graph_editor.focuses import NodeFocus, SelectionFocus
 from haybale_graph_editor.editors.graph_canvas.handlers.context_menu_actions import (

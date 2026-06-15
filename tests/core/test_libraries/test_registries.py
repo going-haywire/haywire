@@ -29,7 +29,7 @@ class TestBaseRegistryClassIdentity:
     def test_panel_pre_imported_class_matches_registered_class(self, library_system: LibrarySystemService):
         """Panel's eager import resolves to the same class the container holds."""
         # Resolve via the panel module — same path production code takes.
-        panel_module = importlib.import_module("haybale_testing.panels.test_session_state_panel")
+        panel_module = importlib.import_module("haybale_testing.panels.graph.menu.canvas.canvas")
         panel_class_ref = panel_module.TestSessionState
 
         # Resolve via the canonical state module path.

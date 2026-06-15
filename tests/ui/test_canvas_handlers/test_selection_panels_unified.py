@@ -5,11 +5,11 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from haybale_graph_editor.panels.context_menu.selection_actions import (
-    DeleteSelectionPanel,
-    RedrawSelectionPanel,
-    RevalidateSelectionPanel,
-    ResetSelectionPanel,
+from haybale_graph_editor.panels.graph.menu.selection.selection import (
+    DeleteSelectionMenuPanel as DeleteSelectionPanel,
+    RedrawSelectionMenuPanel as RedrawSelectionPanel,
+    RevalidateSelectionMenuPanel as RevalidateSelectionPanel,
+    ResetSelectionMenuPanel as ResetSelectionPanel,
     selection_label,
 )
 from haybale_graph_editor.focuses import SelectionFocus
@@ -77,9 +77,9 @@ def test_batch_panels_poll_false_when_nothing_selected():
 
 def test_copy_and_delete_panels_use_count_aware_labels(monkeypatch):
     """Copy/Delete panel draw() renders a count-aware label via selection_label."""
-    import haybale_graph_editor.panels.context_menu.selection_actions as sa
-    from haybale_graph_editor.panels.context_menu.selection_actions import (
-        CopySelectionPanel,
+    import haybale_graph_editor.panels.graph.menu.selection.selection as sa
+    from haybale_graph_editor.panels.graph.menu.selection.selection import (
+        CopySelectionMenuPanel as CopySelectionPanel,
     )
 
     rendered_labels = []

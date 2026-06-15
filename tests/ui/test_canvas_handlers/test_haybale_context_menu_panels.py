@@ -21,23 +21,23 @@ from haybale_testing.test_actions import (
     TestSelectionContextActions,
 )
 from haybale_testing.test_focuses import TestEdgeFocus, TestNodeFocus, TestSelectionFocus
-from haybale_testing.panels.test_node_panels import (
-    TestDeleteNodePanel as DeleteNodePanel,
-    TestCopyNodePanel as CopyNodePanel,
-    TestRedrawNodePanel as RedrawNodePanel,
-    TestRevalidateNodePanel as RevalidateNodePanel,
-    TestResetNodePanel as ResetNodePanel,
+from haybale_testing.panels.graph.menu.node.node import (
+    TestDeleteNodeMenuPanel as DeleteNodePanel,
+    TestCopyNodeMenuPanel as CopyNodePanel,
+    TestRedrawNodeMenuPanel as RedrawNodePanel,
+    TestRevalidateNodeMenuPanel as RevalidateNodePanel,
+    TestResetNodeMenuPanel as ResetNodePanel,
 )
-from haybale_testing.panels.test_edge_panels import (
-    TestDeleteEdgePanel as DeleteEdgePanel,
-    TestInspectEdgePanel as InspectEdgePanel,
-    TestEdgeErrorsPanel as EdgeErrorsPanel,
-    TestEdgeWarningsPanel as EdgeWarningsPanel,
-    TestEdgeConnectionPathPanel as EdgeConnectionPathPanel,
+from haybale_testing.panels.graph.menu.edge.edge import (
+    TestDeleteEdgeMenuPanel as DeleteEdgePanel,
+    TestInspectEdgeMenuPanel as InspectEdgePanel,
+    TestEdgeErrorsMenuPanel as EdgeErrorsPanel,
+    TestEdgeWarningsMenuPanel as EdgeWarningsPanel,
+    TestEdgePathMenuPanel as EdgeConnectionPathPanel,
 )
-from haybale_testing.panels.test_selection_panels import (
-    TestCopySelectionPanel as CopySelectionPanel,
-    TestPasteSelectionPanel as PasteSelectionPanel,
+from haybale_testing.panels.graph.menu.selection.selection import (
+    TestCopySelectionMenuPanel as CopySelectionPanel,
+    TestPasteSelectionMenuPanel as PasteSelectionPanel,
 )
 
 

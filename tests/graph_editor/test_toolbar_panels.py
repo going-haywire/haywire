@@ -5,7 +5,7 @@ from haybale_graph_editor.editors.graph_canvas.handlers.context_menu_actions imp
     SelectionContextActions,
     ToolbarActions,
 )
-from haybale_graph_editor.panels.toolbar.toolbar_actions import (
+from haybale_graph_editor.panels.graph.toolbar.selection import (
     CopyToolbarPanel,
     DeleteToolbarPanel,
     OverflowToolbarPanel,

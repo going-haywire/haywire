@@ -15,7 +15,6 @@ from haybale_graph_editor.editors.graph_canvas.handlers.context_menu import (
 )
 from haywire.ui.components.graph.event_definitions import (
     ContextMenuCanvasEvent,
-    ContextMenuNodeEvent,
     ContextMenuEdgeEvent,
     ContextMenuSelectedEvent,
 )
@@ -32,15 +31,11 @@ pytestmark = pytest.mark.unit
 class SpyProvider(IContextMenuProvider):
     def __init__(self):
         self.canvas_calls = []
-        self.node_calls = []
         self.edge_calls = []
         self.selection_calls = []
 
     def on_canvas_context(self, pos, canvas_pos, pending_connection=None):
         self.canvas_calls.append((pos, canvas_pos))
-
-    def on_node_context(self, pos, node_id):
-        self.node_calls.append((pos, node_id))
 
     def on_edge_context(self, pos, edge_id, edge, state, at_sink_end=False):
         self.edge_calls.append((pos, edge_id, edge, state))
@@ -77,21 +72,6 @@ def test_canvas_event_calls_on_canvas_context(handler, provider):
     pos, canvas_pos = provider.canvas_calls[0]
     assert pos == (10, 20)
     assert canvas_pos == (100, 200)
-
-
-# ---------------------------------------------------------------------------
-# Node context menu
-# ---------------------------------------------------------------------------
-
-
-def test_node_event_calls_on_node_context(handler, provider):
-    handler.process_context_menu(
-        ContextMenuNodeEvent(screenX=5, screenY=6, canvasX=50, canvasY=60, nodeId="n1")
-    )
-    assert len(provider.node_calls) == 1
-    pos, node_id = provider.node_calls[0]
-    assert pos == (5, 6)
-    assert node_id == "n1"
 
 
 # ---------------------------------------------------------------------------
@@ -161,12 +141,11 @@ def test_selection_event_calls_on_selection_context(handler, provider):
 
 
 def test_provider_protocol_has_intent_methods():
-    """IContextMenuProvider declares all four intent methods."""
+    """IContextMenuProvider declares all intent methods."""
     import inspect
 
     members = {name for name, _ in inspect.getmembers(IContextMenuProvider)}
     assert "on_canvas_context" in members
-    assert "on_node_context" in members
     assert "on_edge_context" in members
     assert "on_selection_context" in members
 
@@ -179,6 +158,5 @@ def test_provider_protocol_has_intent_methods():
 def test_all_context_menu_events_are_registered(handler):
     result = build_event_handler_map([handler])
     assert "contextMenuCanvas" in result
-    assert "contextMenuNode" in result
     assert "contextMenuEdge" in result
     assert "contextMenuSelected" in result

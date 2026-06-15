@@ -1,1 +1,0 @@
-"""Floating-toolbar panels (ToolbarFocus)."""
