@@ -137,8 +137,8 @@ class SelectionToolbarProvider:
                     seen.add(cls)
                     combined.append(cls)
 
-        # Sort by panel order attribute; fall back to 0 if missing
-        combined.sort(key=lambda cls: getattr(cls, "order", 0))
+        # Sort by the order stored on class_identity (set by @panel decorator)
+        combined.sort(key=lambda cls: getattr(getattr(cls, "class_identity", None), "order", 0))
         return combined
 
     # ------------------------------------------------------------------
