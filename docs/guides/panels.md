@@ -13,12 +13,14 @@ The panel authoring API — the `@panel` decorator, `BasePanel`, `poll()`, `draw
 
 ## Folder structure and naming logic
 
-Panels sit under `panels/` in each library and follow a three-level hierarchy:
+Panels sit under `panels/` in each library. The folder structure is **advisory only** — it helps humans navigate the codebase, but does not affect where panels appear. What's load-bearing is the `@panel` decorator (specifically `actions=` and the focus protocol), plus the `poll()` method to gate visibility.
+
+Panels follow a three-level naming convention for organization:
 
 ```
 panels/
-  <editor>/          # which editor surface shows this panel
-    <surface>/       # how the panel is triggered
+  <editor>/          # which editor surface (properties, graph, file_browser)
+    <surface>/       # how the panel is triggered (introspect, setting, menu, toolbar)
       <subject>/     # what data it operates on
 ```
 
@@ -27,32 +29,34 @@ Suffix rules:
 - `*MenuPanel` — action panel shown in a context menu (canvas, node, edge, selection, port, file).
 - `*ToolbarPanel` — action panel shown in the floating toolbar.
 
-The suffix encodes where the panel will appear. You can tell at a glance from the class name whether it belongs in a menu or the sidebar.
+The suffix helps you recognize panel type at a glance, but the **actual placement** depends on the focus and actions you register with `@panel`.
 
 
 ```
 panels/
   properties/
-    introspect/     ← read-only identity, status, runtime info, errors
-    setting/        ← editable settings (app, canvas, node user-settings)
+    introspect/     ← organize read-only identity, status, runtime info, errors here
+    setting/        ← organize editable settings (app, canvas, node user-settings) here
 
   graph/
-    toolbar/        ← floating toolbar (ToolbarFocus)
+    toolbar/        ← organize floating toolbar panels (ToolbarFocus) here
     menu/
-      canvas/       ← right-click empty canvas (CanvasFocus)
-      selection/    ← right-click node or multi-selection (SelectionFocus)
+      canvas/       ← organize right-click empty canvas panels (CanvasFocus) here
+      selection/    ← organize right-click node or multi-selection panels (SelectionFocus) here
       node/         ← reserved for future node-scoped panels; currently empty in production
-      edge/         ← right-click edge (EdgeFocus)
-      port/         ← right-click pin via data-hw-port-menu-focus-id (PinFocus)
-      skin/         ← right-click data-hw-custom-menu-focus-id elements (custom Focus)
+      edge/         ← organize right-click edge panels (EdgeFocus) here
+      port/         ← organize right-click pin panels (PinFocus) here
+      skin/         ← organize right-click custom menu panels (custom Focus) here
 
   file_browser/
-    menu/           ← file browser right-click actions (FileFocus)
+    menu/           ← organize file browser right-click panels (FileFocus) here
 ```
+
+**Important:** The folder labels above indicate the *focus type* and *context*. The folder location itself does not determine appearance — the `@panel` decorator's `actions=` parameter and `poll()` method are what actually wire the panel to the right place.
 
 ## Properties / introspect panel
 
-An introspect panel lives at `panels/properties/introspect/<subject>.py`. It registers against a node/edge/port focus (e.g. `NodeFocus`, `EdgeFocus`) and renders read-only identity or state information in the PropertiesEditor.
+Introspect panels register against focus objects (e.g. `NodeFocus`, `EdgeFocus`) and render read-only identity or state information in the PropertiesEditor.
 
 Source: [`barn/haybale-graph-editor/haybale_graph_editor/panels/properties/introspect/node.py`](../../barn/haybale-graph-editor/haybale_graph_editor/panels/properties/introspect/node.py)
 
@@ -66,7 +70,7 @@ Source: [`barn/haybale-graph-editor/haybale_graph_editor/panels/properties/intro
 
 ## Properties / settings panel
 
-A settings panel lives at `panels/properties/setting/<subject>.py`. It registers against a settings-scope focus (`CanvasFocus`, `AppFocus`, `ExecutionFocus`) and renders a schema using `render_schema()`.
+Settings panels register against settings-scope focuses (`CanvasFocus`, `AppFocus`, `ExecutionFocus`) and render a schema using `render_schema()` in the PropertiesEditor.
 
 Source: [`barn/haybale-studio/haybale_studio/panels/properties/setting/canvas.py`](../../barn/haybale-studio/haybale_studio/panels/properties/setting/canvas.py)
 
@@ -80,7 +84,7 @@ Source: [`barn/haybale-studio/haybale_studio/panels/properties/setting/canvas.py
 
 ## Graph menu / canvas panel
 
-A canvas menu panel lives at `panels/graph/menu/canvas/<subject>.py`. It registers against `CanvasFocus` with `actions=CanvasContextActions` and surfaces on right-click on empty canvas space.
+Canvas menu panels register against `CanvasFocus` with `actions=CanvasContextActions` and surface on right-click on empty canvas space.
 
 Source: [`barn/haybale-graph-editor/haybale_graph_editor/panels/graph/menu/canvas/canvas.py`](../../barn/haybale-graph-editor/haybale_graph_editor/panels/graph/menu/canvas/canvas.py)
 
@@ -94,7 +98,7 @@ Source: [`barn/haybale-graph-editor/haybale_graph_editor/panels/graph/menu/canva
 
 ## Graph menu / selection panel
 
-A selection menu panel lives at `panels/graph/menu/selection/<subject>.py`. It registers against `SelectionFocus` and surfaces when one or more nodes or edges are selected.
+Selection menu panels register against `SelectionFocus` and surface when one or more nodes or edges are selected.
 
 Source: [`barn/haybale-graph-editor/haybale_graph_editor/panels/graph/menu/selection/selection.py`](../../barn/haybale-graph-editor/haybale_graph_editor/panels/graph/menu/selection/selection.py)
 
@@ -108,7 +112,7 @@ Source: [`barn/haybale-graph-editor/haybale_graph_editor/panels/graph/menu/selec
 
 ## Graph toolbar panel
 
-A toolbar panel lives at `panels/graph/toolbar/<subject>.py`. It registers against `ToolbarFocus` and contributes a single icon button to the floating toolbar that appears over a canvas selection.
+Toolbar panels register against `ToolbarFocus` and contribute a single icon button to the floating toolbar that appears over a canvas selection.
 
 Source: [`barn/haybale-graph-editor/haybale_graph_editor/panels/graph/toolbar/selection.py`](../../barn/haybale-graph-editor/haybale_graph_editor/panels/graph/toolbar/selection.py)
 
@@ -143,7 +147,7 @@ Source: [`barn/haybale-graph-editor/haybale_graph_editor/panels/graph/menu/port/
 
 ## File browser menu panel
 
-A file browser menu panel lives at `panels/file_browser/menu/<subject>.py`. It registers against `FileFocus` (from haybale-studio) and surfaces in the FileBrowser's right-click menu.
+File browser menu panels register against `FileFocus` (from haybale-studio) and surface in the FileBrowser's right-click menu.
 
 Source: [`barn/haybale-haystack/haybale_haystack/panels/file_browser/menu/file.py`](../../barn/haybale-haystack/haybale_haystack/panels/file_browser/menu/file.py)
 
