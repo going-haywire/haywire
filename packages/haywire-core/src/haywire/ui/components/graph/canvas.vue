@@ -650,7 +650,9 @@ export default {
 
         _syncEdgeConnectResume() {
             if (this.edgeDrag.mode !== 'paused') return;
-            this._enterActiveEdge(this.edgeDrag.anchorPin);
+            // The anchor node may have been rebuilt while paused (context menu
+            // open); resolve a live element before re-entering active mode.
+            this._enterActiveEdge(this._resolveAnchorPin());
         },
 
         _syncEdgeConnectCancel() {
@@ -1545,6 +1547,34 @@ export default {
         // States: 'idle' → 'active' → 'paused' → 'active' (or 'idle')
         // =============================================================================
 
+        /**
+         * Return the live anchor-pin element, re-resolving by id if the held
+         * reference has gone stale.
+         *
+         * During a drag (especially a reconnect) the anchor node's DOM can be
+         * rebuilt by a redraw/validation sync. That detaches the element we
+         * captured in `_enterActiveEdge`; `getBoundingClientRect()` on a
+         * detached node returns zeros, which sent the anchor end of the preview
+         * to the top-left of the canvas. Re-query by the stable pin id and
+         * re-apply the active highlight the rebuild wiped.
+         */
+        _resolveAnchorPin() {
+            const held = this.edgeDrag.anchorPin;
+            if (held && held.isConnected) return held;
+            if (!held || !held.id) return held;
+
+            const fresh = document.getElementById(held.id);
+            if (!fresh) return held;  // node briefly gone; keep the old ref
+
+            // Re-apply the active highlight lost when the element was rebuilt.
+            fresh.style.boxShadow = '0 0 15px #4A90E2';
+            fresh.style.transform = 'scale(1.8)';
+            fresh.style.zIndex = '10003';
+
+            this.edgeDrag.anchorPin = fresh;
+            return fresh;
+        },
+
         /** Transition to active connection mode from a pin. */
         _enterActiveEdge(pin) {
             // A magnified node shifts pins; clear magnify before wiring an edge.
@@ -1626,12 +1656,16 @@ export default {
                 targetPin = this.edgeDrag.nearestCompatiblePin;
             }
 
-            if (targetPin && this._isValidEdge(this.edgeDrag.anchorPin, targetPin)) {
-                let sourceData = this.edgeDrag.anchorPin.dataset;
+            // The anchor element may have been rebuilt during the drag; read the
+            // live one so dataset and validity reflect the current DOM.
+            const anchorPin = this._resolveAnchorPin();
+
+            if (targetPin && this._isValidEdge(anchorPin, targetPin)) {
+                let sourceData = anchorPin.dataset;
                 let sinkData = targetPin.dataset;
 
                 if (targetPin.dataset.pinDir === 'outlet') {
-                    sinkData = this.edgeDrag.anchorPin.dataset;
+                    sinkData = anchorPin.dataset;
                     sourceData = targetPin.dataset;
                 }
 
@@ -1647,9 +1681,11 @@ export default {
         _handleEdgeDragMove(e) {
             if (!this.edgeDrag.previewPath) return;
 
-            const startPos = this._getPinPosition(this.edgeDrag.anchorPin);
+            const anchorPin = this._resolveAnchorPin();
+            if (!anchorPin) return;
+            const startPos = this._getPinPosition(anchorPin);
             const mousePos = this._transformScreenToSVG(e.clientX, e.clientY);
-            const [dirX, dirY] = this._getPinDirectionVector(this.edgeDrag.anchorPin);
+            const [dirX, dirY] = this._getPinDirectionVector(anchorPin);
 
             const pathData = this._createBezierPath(startPos, mousePos, [dirX, dirY], [-dirX, -dirY]);
             this.edgeDrag.previewPath.setAttribute('d', pathData);
@@ -1665,10 +1701,10 @@ export default {
             let nearestDistance = Infinity;
 
             document.querySelectorAll('.connection-pin').forEach(pin => {
-                if (pin === this.edgeDrag.anchorPin) return;
+                if (pin === anchorPin) return;
                 if (pin.dataset.pinFlowType === 'ghost') return;
 
-                const isValid = this._isValidEdge(this.edgeDrag.anchorPin, pin);
+                const isValid = this._isValidEdge(anchorPin, pin);
 
                 if (isValid) {
                     const pinPos = this._getPinPosition(pin);
@@ -1682,7 +1718,7 @@ export default {
                         nearestPin = pin;
                         nearestDistance = 0;
                     } else if (distance <= this.edgeDrag.suggestionProximityRange) {
-                        if (this.edgeDrag.anchorPin.dataset.pinDataType === pin.dataset.pinDataType) {
+                        if (anchorPin.dataset.pinDataType === pin.dataset.pinDataType) {
                             pin.classList.add('connection-compatible');
                             this._createSuggestionPath(pin, distance);
 
