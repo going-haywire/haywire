@@ -164,10 +164,13 @@ class SelectionToolbarProvider:
         """Clear popup content and render panels into a horizontal ui.row."""
         from nicegui import ui
 
-        # Clear existing children from the content column
-        self._toolbar_popup.content.clear()
+        popup = self._toolbar_popup
+        if popup is None:
+            return
 
-        with self._toolbar_popup.content:
+        popup.content.clear()
+
+        with popup.content:
             with ui.row().classes("hw-selection-toolbar items-center gap-1 no-wrap"):
                 layout = PanelLayout(ui.element("div"))
                 for cls in panel_classes:
