@@ -18,6 +18,7 @@ dependencies = [
     "nicegui>=3.12.1",
     "toml>=0.10.2",
     "jedi>=0.19",
+    "fastapi",
 ]
 
 [project.scripts]

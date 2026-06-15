@@ -915,7 +915,6 @@ dependencies = [
     { name = "haybale-core" },
     { name = "haybale-graph-editor" },
     { name = "haywire-core" },
-    { name = "nicegui" },
     { name = "typing-extensions" },
 ]
 
@@ -924,7 +923,6 @@ requires-dist = [
     { name = "haybale-core", editable = "barn/haybale-core" },
     { name = "haybale-graph-editor", editable = "barn/haybale-graph-editor" },
     { name = "haywire-core", editable = "packages/haywire-core" },
-    { name = "nicegui", specifier = ">=3.12.1" },
     { name = "typing-extensions" },
 ]
 
@@ -935,6 +933,7 @@ source = { editable = "packages/haywire-core" }
 dependencies = [
     { name = "attrs" },
     { name = "cattrs" },
+    { name = "fastapi" },
     { name = "injector" },
     { name = "markdown2" },
     { name = "nicegui" },
@@ -949,6 +948,7 @@ dependencies = [
 requires-dist = [
     { name = "attrs", specifier = "==25.4.0" },
     { name = "cattrs", specifier = "==25.3.0" },
+    { name = "fastapi" },
     { name = "injector", specifier = ">=0.22.0" },
     { name = "markdown2", specifier = ">=2.5" },
     { name = "nicegui", specifier = ">=3.12.1" },
@@ -964,6 +964,7 @@ name = "haywire-studio"
 version = "0.0.20"
 source = { editable = "packages/haywire-studio" }
 dependencies = [
+    { name = "fastapi" },
     { name = "haywire-core" },
     { name = "jedi" },
     { name = "nicegui" },
@@ -972,6 +973,7 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
+    { name = "fastapi" },
     { name = "haywire-core", editable = "packages/haywire-core" },
     { name = "jedi", specifier = ">=0.19" },
     { name = "nicegui", specifier = ">=3.12.1" },
