@@ -549,6 +549,19 @@ class EditorWrapper:
                 message=f"on_focus() raised in editor '{self.editor_key}'",
             ).enrich(registry_key=self.editor_key)
 
+    def on_blur(self) -> None:
+        """Notify the editor that it lost active status in its slot."""
+        if self._instance is None:
+            return
+        try:
+            self._instance.on_blur(self._session.context)
+        except Exception as exc:
+            self._state.error_runtime = HaywireException.from_exception(
+                exception=exc,
+                operation="Editor Blur",
+                message=f"on_blur() raised in editor '{self.editor_key}'",
+            ).enrich(registry_key=self.editor_key)
+
     async def request_close(self) -> bool:
         """Ask the editor whether it allows closing.
 

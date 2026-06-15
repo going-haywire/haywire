@@ -57,6 +57,18 @@ class BaseEditor(ABC):
         """
         pass
 
+    def on_blur(self, context: "SessionContext") -> None:
+        """Called when another wrapper becomes active in the same slot.
+
+        Symmetric counterpart to on_focus. Default is a no-op; override to
+        clean up transient UI that should not outlive the editor being visible
+        (e.g. floating toolbars, popups).
+
+        Args:
+            context: The current session context.
+        """
+        pass
+
     @abstractmethod
     def draw(self, context: "SessionContext", container: "Element") -> None:
         """

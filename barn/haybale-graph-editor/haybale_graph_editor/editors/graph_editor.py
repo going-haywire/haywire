@@ -169,6 +169,10 @@ class GraphEditor(BaseEditor):
         edit_state.active_graph_path = entry.path
         context.session.publish(ActiveGraphMoved())
 
+        provider = self._canvas_manager._toolbar_provider if self._canvas_manager else None
+        if provider and provider._last_bounds is not None:
+            provider.show_at(provider._last_bounds)
+
     def draw(self, context: "SessionContext", container: "Element") -> None:
         self._context = context
         self._project_state = context.app
@@ -353,6 +357,10 @@ class GraphEditor(BaseEditor):
             return False
 
         open_graph_save_as_dialog(app=app, entry=entry, save_fn=_save_fn)
+
+    def on_blur(self, context: "SessionContext") -> None:
+        if self._canvas_manager and self._canvas_manager._toolbar_provider:
+            self._canvas_manager._toolbar_provider.hide()
 
     # ------------------------------------------------------------------
     # cleanup

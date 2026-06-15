@@ -452,6 +452,8 @@ class Slot(ABC):
 
     def _activate(self, wrapper: EditorWrapper) -> None:
         """Make ``wrapper`` the active one and run its on_focus hook."""
+        if self._active is not None and self._active is not wrapper:
+            self._active.on_blur()
         self._active = wrapper
         wrapper.on_focus()
         self._ensure_drawn(wrapper)
