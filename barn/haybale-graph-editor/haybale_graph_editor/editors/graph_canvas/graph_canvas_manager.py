@@ -23,6 +23,7 @@ from .handlers.interaction import InteractionHandlers
 from .handlers.selection import SelectionHandlers
 from .handlers.visual_layer import VisualLayerHandlers
 from .handlers.context_menu import ContextMenuHandlers, SessionContextMenuProvider
+from .handlers.selection_toolbar import SelectionToolbarProvider, SelectionToolbarHandlers
 
 logger = logging.getLogger(__name__)
 
@@ -87,6 +88,15 @@ class GraphCanvasManager:
             provider=context_menu_provider,
         )
 
+        self._toolbar_provider = SelectionToolbarProvider(
+            context=self._session.context,
+            session=self._session,
+            panel_registry=self._panel_registry,
+            on_emit_event=self._handle_canvas_event,
+            on_emit_sync_event=self.canvas_vue.emit_sync_event,
+        )
+        self.toolbar_handlers = SelectionToolbarHandlers(provider=self._toolbar_provider)
+
         # Build dispatch map from all handler sources
         self._event_handlers: Dict[str, Callable] = build_event_handler_map(
             [
@@ -94,6 +104,7 @@ class GraphCanvasManager:
                 self.selection,
                 self.interactions,
                 self.context_menu_handlers,
+                self.toolbar_handlers,
             ]
         )
 
@@ -212,6 +223,9 @@ class GraphCanvasManager:
 
         if self.canvas_vue:
             self.canvas_vue.cleanup()
+
+        if getattr(self, "_toolbar_provider", None) is not None:
+            self._toolbar_provider.hide()
 
         self.visual_layer.cleanup()
 
