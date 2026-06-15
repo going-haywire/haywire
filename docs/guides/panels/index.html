@@ -2750,37 +2750,39 @@
 <h1 id="panel-types-worked-examples">Panel types — worked examples<a class="headerlink" href="#panel-types-worked-examples" title="Permanent link">&para;</a></h1>
 <p>The panel authoring API — the <code>@panel</code> decorator, <code>BasePanel</code>, <code>poll()</code>, <code>draw()</code>, focus objects, action protocols — is documented in <a href="../../components/panels/panel-canon/">components/panels/panel-canon</a>. This guide shows what's distinctive about each <strong>panel type</strong>: where it lives in the folder hierarchy, what suffix it carries, and a minimal live example.</p>
 <h2 id="folder-structure-and-naming-logic">Folder structure and naming logic<a class="headerlink" href="#folder-structure-and-naming-logic" title="Permanent link">&para;</a></h2>
-<p>Panels sit under <code>panels/</code> in each library and follow a three-level hierarchy:</p>
+<p>Panels sit under <code>panels/</code> in each library. The folder structure is <strong>advisory only</strong> — it helps humans navigate the codebase, but does not affect where panels appear. What's load-bearing is the <code>@panel</code> decorator (specifically <code>actions=</code> and the focus protocol), plus the <code>poll()</code> method to gate visibility.</p>
+<p>Panels follow a three-level naming convention for organization:</p>
 <div class="language-text highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>panels/
-</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>  &lt;editor&gt;/          # which editor surface shows this panel
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>    &lt;surface&gt;/       # how the panel is triggered
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>  &lt;editor&gt;/          # which editor surface (properties, graph, file_browser)
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>    &lt;surface&gt;/       # how the panel is triggered (introspect, setting, menu, toolbar)
 </span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>      &lt;subject&gt;/     # what data it operates on
 </span></code></pre></div>
 <p>Suffix rules:
 - <code>*Panel</code> — display panel shown in the PropertiesEditor sidebar (read-only or settings).
 - <code>*MenuPanel</code> — action panel shown in a context menu (canvas, node, edge, selection, port, file).
 - <code>*ToolbarPanel</code> — action panel shown in the floating toolbar.</p>
-<p>The suffix encodes where the panel will appear. You can tell at a glance from the class name whether it belongs in a menu or the sidebar.</p>
+<p>The suffix helps you recognize panel type at a glance, but the <strong>actual placement</strong> depends on the focus and actions you register with <code>@panel</code>.</p>
 <div class="language-text highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>panels/
 </span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>  properties/
-</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>    introspect/     ← read-only identity, status, runtime info, errors
-</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>    setting/        ← editable settings (app, canvas, node user-settings)
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>    introspect/     ← organize read-only identity, status, runtime info, errors here
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>    setting/        ← organize editable settings (app, canvas, node user-settings) here
 </span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>
 </span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>  graph/
-</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a>    toolbar/        ← floating toolbar (ToolbarFocus)
+</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a>    toolbar/        ← organize floating toolbar panels (ToolbarFocus) here
 </span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a>    menu/
-</span><span id="__span-1-9"><a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a>      canvas/       ← right-click empty canvas (CanvasFocus)
-</span><span id="__span-1-10"><a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a>      selection/    ← right-click node or multi-selection (SelectionFocus)
+</span><span id="__span-1-9"><a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a>      canvas/       ← organize right-click empty canvas panels (CanvasFocus) here
+</span><span id="__span-1-10"><a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a>      selection/    ← organize right-click node or multi-selection panels (SelectionFocus) here
 </span><span id="__span-1-11"><a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a>      node/         ← reserved for future node-scoped panels; currently empty in production
-</span><span id="__span-1-12"><a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a>      edge/         ← right-click edge (EdgeFocus)
-</span><span id="__span-1-13"><a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a>      port/         ← right-click pin via data-hw-port-menu-focus-id (PinFocus)
-</span><span id="__span-1-14"><a id="__codelineno-1-14" name="__codelineno-1-14" href="#__codelineno-1-14"></a>      skin/         ← right-click data-hw-custom-menu-focus-id elements (custom Focus)
+</span><span id="__span-1-12"><a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a>      edge/         ← organize right-click edge panels (EdgeFocus) here
+</span><span id="__span-1-13"><a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a>      port/         ← organize right-click pin panels (PinFocus) here
+</span><span id="__span-1-14"><a id="__codelineno-1-14" name="__codelineno-1-14" href="#__codelineno-1-14"></a>      skin/         ← organize right-click custom menu panels (custom Focus) here
 </span><span id="__span-1-15"><a id="__codelineno-1-15" name="__codelineno-1-15" href="#__codelineno-1-15"></a>
 </span><span id="__span-1-16"><a id="__codelineno-1-16" name="__codelineno-1-16" href="#__codelineno-1-16"></a>  file_browser/
-</span><span id="__span-1-17"><a id="__codelineno-1-17" name="__codelineno-1-17" href="#__codelineno-1-17"></a>    menu/           ← file browser right-click actions (FileFocus)
+</span><span id="__span-1-17"><a id="__codelineno-1-17" name="__codelineno-1-17" href="#__codelineno-1-17"></a>    menu/           ← organize file browser right-click panels (FileFocus) here
 </span></code></pre></div>
+<p><strong>Important:</strong> The folder labels above indicate the <em>focus type</em> and <em>context</em>. The folder location itself does not determine appearance — the <code>@panel</code> decorator's <code>actions=</code> parameter and <code>poll()</code> method are what actually wire the panel to the right place.</p>
 <h2 id="properties-introspect-panel">Properties / introspect panel<a class="headerlink" href="#properties-introspect-panel" title="Permanent link">&para;</a></h2>
-<p>An introspect panel lives at <code>panels/properties/introspect/&lt;subject&gt;.py</code>. It registers against a node/edge/port focus (e.g. <code>NodeFocus</code>, <code>EdgeFocus</code>) and renders read-only identity or state information in the PropertiesEditor.</p>
+<p>Introspect panels register against focus objects (e.g. <code>NodeFocus</code>, <code>EdgeFocus</code>) and render read-only identity or state information in the PropertiesEditor.</p>
 <p>Source: <a href="../../barn/haybale-graph-editor/haybale_graph_editor/panels/properties/introspect/node.py"><code>barn/haybale-graph-editor/haybale_graph_editor/panels/properties/introspect/node.py</code></a></p>
 <p><code>NodeInfoPanel</code> shows the selected node's label, class name, and node ID:</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="nd">@panel</span><span class="p">(</span>
@@ -2818,7 +2820,7 @@
 </span></code></pre></div>
 <p><strong>Type-specific:</strong> no <code>actions=</code> on <code>@panel</code> — introspect panels are display-only. <code>poll()</code> gates on <code>ctx.data[EditState].active_node</code>, so the panel appears only while a node is selected. <code>with layout:</code> places all rows inside the panel's container.</p>
 <h2 id="properties-settings-panel">Properties / settings panel<a class="headerlink" href="#properties-settings-panel" title="Permanent link">&para;</a></h2>
-<p>A settings panel lives at <code>panels/properties/setting/&lt;subject&gt;.py</code>. It registers against a settings-scope focus (<code>CanvasFocus</code>, <code>AppFocus</code>, <code>ExecutionFocus</code>) and renders a schema using <code>render_schema()</code>.</p>
+<p>Settings panels register against settings-scope focuses (<code>CanvasFocus</code>, <code>AppFocus</code>, <code>ExecutionFocus</code>) and render a schema using <code>render_schema()</code> in the PropertiesEditor.</p>
 <p>Source: <a href="../../barn/haybale-studio/haybale_studio/panels/properties/setting/canvas.py"><code>barn/haybale-studio/haybale_studio/panels/properties/setting/canvas.py</code></a></p>
 <p><code>CanvasSettingsPanel</code> renders the entire <code>CanvasSettings</code> schema into the panel:</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="nd">@panel</span><span class="p">(</span>
@@ -2841,7 +2843,7 @@
 </span></code></pre></div>
 <p><strong>Type-specific:</strong> no <code>actions=</code>, no <code>poll()</code> override — settings panels are always visible for their focus. <code>render_schema(SettingsClass, registry)</code> renders every field in the schema as a labelled input widget.</p>
 <h2 id="graph-menu-canvas-panel">Graph menu / canvas panel<a class="headerlink" href="#graph-menu-canvas-panel" title="Permanent link">&para;</a></h2>
-<p>A canvas menu panel lives at <code>panels/graph/menu/canvas/&lt;subject&gt;.py</code>. It registers against <code>CanvasFocus</code> with <code>actions=CanvasContextActions</code> and surfaces on right-click on empty canvas space.</p>
+<p>Canvas menu panels register against <code>CanvasFocus</code> with <code>actions=CanvasContextActions</code> and surface on right-click on empty canvas space.</p>
 <p>Source: <a href="../../barn/haybale-graph-editor/haybale_graph_editor/panels/graph/menu/canvas/canvas.py"><code>barn/haybale-graph-editor/haybale_graph_editor/panels/graph/menu/canvas/canvas.py</code></a></p>
 <p><code>CreateNodeMenuPanel</code> renders the full node-creation menu with search:</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="nd">@panel</span><span class="p">(</span>
@@ -2889,7 +2891,7 @@
 </span></code></pre></div>
 <p><strong>Type-specific:</strong> <code>actions=CanvasContextActions</code> wires the panel to the canvas action protocol. <code>poll()</code> returns <code>True</code> unconditionally — the canvas menu always has at least "Create Node". <code>self.actions.create_node_at_click(registry_key)</code> dispatches via the action protocol; the host resolves the concrete implementation.</p>
 <h2 id="graph-menu-selection-panel">Graph menu / selection panel<a class="headerlink" href="#graph-menu-selection-panel" title="Permanent link">&para;</a></h2>
-<p>A selection menu panel lives at <code>panels/graph/menu/selection/&lt;subject&gt;.py</code>. It registers against <code>SelectionFocus</code> and surfaces when one or more nodes or edges are selected.</p>
+<p>Selection menu panels register against <code>SelectionFocus</code> and surface when one or more nodes or edges are selected.</p>
 <p>Source: <a href="../../barn/haybale-graph-editor/haybale_graph_editor/panels/graph/menu/selection/selection.py"><code>barn/haybale-graph-editor/haybale_graph_editor/panels/graph/menu/selection/selection.py</code></a></p>
 <p><code>DeleteSelectionMenuPanel</code> deletes every selected node and edge in one undo step:</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="nd">@panel</span><span class="p">(</span>
@@ -2924,7 +2926,7 @@
 </span></code></pre></div>
 <p><strong>Type-specific:</strong> <code>poll()</code> gates on <code>edit.selected_nodes or edit.selected_edges</code> — the panel is hidden when nothing is selected. <code>selection_label()</code> (a helper in the same file) generates a count-aware button label ("Delete 3 Nodes", "Delete Edge", "Delete Selection").</p>
 <h2 id="graph-toolbar-panel">Graph toolbar panel<a class="headerlink" href="#graph-toolbar-panel" title="Permanent link">&para;</a></h2>
-<p>A toolbar panel lives at <code>panels/graph/toolbar/&lt;subject&gt;.py</code>. It registers against <code>ToolbarFocus</code> and contributes a single icon button to the floating toolbar that appears over a canvas selection.</p>
+<p>Toolbar panels register against <code>ToolbarFocus</code> and contribute a single icon button to the floating toolbar that appears over a canvas selection.</p>
 <p>Source: <a href="../../barn/haybale-graph-editor/haybale_graph_editor/panels/graph/toolbar/selection.py"><code>barn/haybale-graph-editor/haybale_graph_editor/panels/graph/toolbar/selection.py</code></a></p>
 <p><code>CopyToolbarPanel</code> renders a single copy icon:</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="nd">@panel</span><span class="p">(</span>
@@ -2989,7 +2991,7 @@
 </span></code></pre></div>
 <p><strong>Type-specific:</strong> <code>actions=PortContextActions</code> is an empty marker — there are no methods to dispatch; the panel only reads <code>ctx.data[EditState].active_port</code>. <code>layout.container</code> (not <code>with layout:</code>) is used here to render directly into the bare container without an extra wrapper.</p>
 <h2 id="file-browser-menu-panel">File browser menu panel<a class="headerlink" href="#file-browser-menu-panel" title="Permanent link">&para;</a></h2>
-<p>A file browser menu panel lives at <code>panels/file_browser/menu/&lt;subject&gt;.py</code>. It registers against <code>FileFocus</code> (from haybale-studio) and surfaces in the FileBrowser's right-click menu.</p>
+<p>File browser menu panels register against <code>FileFocus</code> (from haybale-studio) and surface in the FileBrowser's right-click menu.</p>
 <p>Source: <a href="../../barn/haybale-haystack/haybale_haystack/panels/file_browser/menu/file.py"><code>barn/haybale-haystack/haybale_haystack/panels/file_browser/menu/file.py</code></a></p>
 <p><code>OpenInHaystackMenuPanel</code> opens a <code>.haywire</code> graph file in the GraphEditor:</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="nd">@panel</span><span class="p">(</span>
