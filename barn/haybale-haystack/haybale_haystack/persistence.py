@@ -15,6 +15,9 @@ TOML schema
     path    = "graphs/foo.haywire"        # relative to workspace_root
     execute = false
 
+    [graphs.run]                          # optional; omitted when all values are defaults
+    autorestart = true
+
 Notes
 -----
 - Paths are stored as *relative* strings so haystacks stay portable when the
@@ -119,12 +122,14 @@ def dump_haystack(
             rel = str(entry.path.relative_to(workspace_root))
         except ValueError:
             rel = str(entry.path)
-        graphs_list.append(
-            {
-                "path": rel,
-                "execute": entry.is_executing,
-            }
-        )
+        run_dict = entry.run_settings.to_dict()
+        entry_dict: dict = {
+            "path": rel,
+            "execute": entry.is_executing,
+        }
+        if run_dict:
+            entry_dict["run"] = run_dict
+        graphs_list.append(entry_dict)
 
     haystack_meta: dict = {"name": name}
     if active_rel is not None:
@@ -185,8 +190,13 @@ def load_haystack(
             continue
         try:
             entry = state.open_graph(abs_path)
+            entry.run_settings.from_dict(gd.get("run", {}))
             if gd.get("execute", False):
-                entry.start_execution()
+                compile_result = entry.start_execution()
+                if not compile_result.ok:
+                    logger.warning(
+                        f"Haystack '{name}': autostart failed for {abs_path}: {compile_result.error}"
+                    )
         except Exception as exc:
             logger.error(f"Haystack '{name}': error loading {abs_path}: {exc}")
 

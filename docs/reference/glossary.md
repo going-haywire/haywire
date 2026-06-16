@@ -259,6 +259,7 @@ See [architecture/settings](../architecture/settings/settings-arch.md) for the r
 | **GraphAppState** | The app-wide registry mapping `binding_id` → **GraphContainer**. Source libraries (haystack, future cloud-graph libraries) `register` / `unregister` / `rekey` their containers here; **GraphEditor** reads from it on every render. Lives at `app_data[GraphAppState]` | Graph registry, graph index |
 | **Haystack** | A named, curated selection of **GraphEntry**'s stored as a TOML file in `haystacks/`; records which graphs are open and which should auto-execute on load. See [architecture/graph](../architecture/graph/graph-arch.md) | Session (overloaded with browser sessions), workspace (overloaded with layout), setlist, graphset |
 | **HaystackEditor** | The left-slot editor that lists all open graphs, provides play/stop per row, and save/load haystack actions in the header | GraphManagerEditor (renamed) |
+| **GraphRunSettings** | A purely-local (never registry-backed) `Settings` bag owned by a **GraphEntry** that records *how* the entry runs within its **Haystack** — e.g. the `autorestart` flag. Persisted per-entry in the haystack TOML, not in the `.haywire` graph file. Distinct from the **Execution Pipeline** vocabulary (Assembly/VM/Flow), which is about *running* a graph, not *policy for whether/how* an entry runs | Execution settings (collides with the VM/Assembly engine vocabulary), entry config |
 
 ---
 

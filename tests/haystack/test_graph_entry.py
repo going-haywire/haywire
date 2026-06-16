@@ -158,3 +158,22 @@ def test_graph_entry_holds_haystack_back_reference():
         haystack=sentinel_haystack,
     )
     assert entry.haystack is sentinel_haystack
+
+
+def test_graph_entry_has_run_settings_by_default():
+    from haybale_haystack.graph_entry import GraphEntry
+    from haybale_haystack.settings.graph_run_settings import GraphRunSettings
+
+    entry = GraphEntry(graph=MagicMock(), editor=MagicMock())
+    assert isinstance(entry.run_settings, GraphRunSettings)
+    assert entry.run_settings.autorestart is False
+
+
+def test_graph_entry_run_settings_are_per_instance():
+    """Two entries must not share one GraphRunSettings instance."""
+    from haybale_haystack.graph_entry import GraphEntry
+
+    a = GraphEntry(graph=MagicMock(), editor=MagicMock())
+    b = GraphEntry(graph=MagicMock(), editor=MagicMock())
+    a.run_settings.autorestart = True
+    assert b.run_settings.autorestart is False

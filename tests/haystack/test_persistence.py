@@ -340,3 +340,131 @@ def test_rename_haystack_returns_false_when_dst_exists(tmp_workspace):
     (tmp_workspace / "haystacks" / "b.toml").write_text("")
 
     assert rename_haystack(workspace_root=tmp_workspace, old_name="a", new_name="b") is False
+
+
+# ---------------------------------------------------------------------------
+# run_settings persistence
+# ---------------------------------------------------------------------------
+
+
+def test_dump_writes_run_table_when_autorestart_set(tmp_workspace):
+    import toml
+    from haybale_haystack.persistence import dump_haystack
+    from haybale_haystack.graph_entry import GraphEntry
+
+    p = tmp_workspace / "graphs" / "r.haywire"
+    p.write_text("")
+    entry = GraphEntry(graph=MagicMock(), editor=MagicMock(), path=p, unsaved=False)
+    entry.run_settings.autorestart = True
+
+    state = MagicMock()
+    state.all_entries.return_value = [entry]
+
+    dump_haystack(state, workspace_root=tmp_workspace, name="rs")
+
+    data = toml.loads((tmp_workspace / "haystacks" / "rs.toml").read_text())
+    assert data["graphs"][0]["run"] == {"autorestart": True}
+
+
+def test_dump_omits_run_table_when_default(tmp_workspace):
+    import toml
+    from haybale_haystack.persistence import dump_haystack
+    from haybale_haystack.graph_entry import GraphEntry
+
+    p = tmp_workspace / "graphs" / "d.haywire"
+    p.write_text("")
+    entry = GraphEntry(graph=MagicMock(), editor=MagicMock(), path=p, unsaved=False)
+    # autorestart left at default False -> sparse to_dict() is empty
+
+    state = MagicMock()
+    state.all_entries.return_value = [entry]
+
+    dump_haystack(state, workspace_root=tmp_workspace, name="dd")
+
+    data = toml.loads((tmp_workspace / "haystacks" / "dd.toml").read_text())
+    assert "run" not in data["graphs"][0]
+
+
+def test_load_restores_autorestart_onto_entry(tmp_workspace):
+    """load_haystack applies the [graphs.run] table to entry.run_settings."""
+    import toml
+    from haybale_haystack.persistence import load_haystack
+    from haybale_haystack.graph_entry import GraphEntry
+
+    gpath = tmp_workspace / "graphs" / "g.haywire"
+    gpath.write_text("")
+    toml_doc = {
+        "haystack": {"name": "ld"},
+        "graphs": [{"path": "graphs/g.haywire", "execute": False, "run": {"autorestart": True}}],
+    }
+    (tmp_workspace / "haystacks" / "ld.toml").write_text(toml.dumps(toml_doc))
+
+    opened = GraphEntry(graph=MagicMock(), editor=MagicMock(), path=gpath, unsaved=False)
+
+    state = MagicMock()
+    state.open_graph.return_value = opened
+
+    load_haystack(state, workspace_root=tmp_workspace, name="ld")
+
+    assert opened.run_settings.autorestart is True
+
+
+def test_load_tolerates_missing_run_table(tmp_workspace):
+    """Old haystacks without [graphs.run] load with defaults, no error."""
+    import toml
+    from haybale_haystack.persistence import load_haystack
+    from haybale_haystack.graph_entry import GraphEntry
+
+    gpath = tmp_workspace / "graphs" / "g2.haywire"
+    gpath.write_text("")
+    toml_doc = {
+        "haystack": {"name": "old"},
+        "graphs": [{"path": "graphs/g2.haywire", "execute": False}],
+    }
+    (tmp_workspace / "haystacks" / "old.toml").write_text(toml.dumps(toml_doc))
+
+    opened = GraphEntry(graph=MagicMock(), editor=MagicMock(), path=gpath, unsaved=False)
+    state = MagicMock()
+    state.open_graph.return_value = opened
+
+    load_haystack(state, workspace_root=tmp_workspace, name="old")
+
+    assert opened.run_settings.autorestart is False
+
+
+def test_load_skips_graph_whose_autostart_fails(tmp_workspace, caplog):
+    """A graph marked execute=true that fails to compile is skipped, not fatal,
+    and loading continues for the rest."""
+    import logging
+    import toml
+    from haybale_haystack.persistence import load_haystack
+    from haybale_haystack.graph_entry import GraphEntry
+    from haywire.core.execution.compile_result import CompileResult
+
+    g1 = tmp_workspace / "graphs" / "ok.haywire"
+    g1.write_text("")
+    g2 = tmp_workspace / "graphs" / "bad.haywire"
+    g2.write_text("")
+    toml_doc = {
+        "haystack": {"name": "mix"},
+        "graphs": [
+            {"path": "graphs/bad.haywire", "execute": True},
+            {"path": "graphs/ok.haywire", "execute": False},
+        ],
+    }
+    (tmp_workspace / "haystacks" / "mix.toml").write_text(toml.dumps(toml_doc))
+
+    bad_entry = GraphEntry(graph=MagicMock(), editor=MagicMock(), path=g2, unsaved=False)
+    bad_entry.start_execution = MagicMock(return_value=CompileResult(ok=False, error="broken graph"))
+    ok_entry = GraphEntry(graph=MagicMock(), editor=MagicMock(), path=g1, unsaved=False)
+
+    state = MagicMock()
+    # open_graph is called once per listed graph, in file order
+    state.open_graph.side_effect = [bad_entry, ok_entry]
+
+    with caplog.at_level(logging.WARNING):
+        load_haystack(state, workspace_root=tmp_workspace, name="mix")
+
+    # both graphs were opened; the bad one's failed autostart did not raise
+    assert state.open_graph.call_count == 2
+    assert any("broken graph" in r.message or "bad.haywire" in r.message for r in caplog.records)

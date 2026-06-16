@@ -12,6 +12,7 @@ from haywire.core.graph.editor import Editor
 from haywire.core.graph.validation import ValidationResult
 from haywire.core.node.factory import NodeFactory
 from haywire.core.state import LibraryStateContainer
+from haywire.core.execution.compile_result import CompileResult
 
 from ..graph_entry import GraphEntry
 from ..settings.haystack_settings import HaystackSettings
@@ -168,7 +169,14 @@ class HaystackState(AppState):
         """
         if entry.is_executing and result.has_changes() and result.graph is not None:
             if result.graph.requires_graph_reassembly():
+                autorestart = entry.run_settings.autorestart
                 entry.stop_execution()
+                if autorestart:
+                    result_compile = entry.start_execution()
+                    if not result_compile.ok:
+                        logger.info(
+                            f"Autorestart skipped for '{entry.display_name}': {result_compile.error}"
+                        )
 
         if bool(result.nodes or result.edges):
             entry.unsaved = True
@@ -350,9 +358,10 @@ class HaystackState(AppState):
     # state observes start/stop transitions.
     # ------------------------------------------------------------------
 
-    def start_execution(self, entry: GraphEntry) -> None:
-        entry.start_execution()
+    def start_execution(self, entry: GraphEntry) -> "CompileResult":
+        result = entry.start_execution()
         self._mark_haystack_dirty()
+        return result
 
     def stop_execution(self, entry: GraphEntry) -> None:
         entry.stop_execution()

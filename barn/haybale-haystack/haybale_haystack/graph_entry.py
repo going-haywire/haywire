@@ -14,9 +14,13 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import TYPE_CHECKING, Optional
 
+from haywire.core.di.context import get_library_state_container
+from haywire.core.execution.compile_result import CompileResult
+from haywire.core.execution.interpreter import Interpreter
+from haybale_haystack.settings.graph_run_settings import GraphRunSettings
+
 if TYPE_CHECKING:
     from haywire.core.graph.base import BaseGraph as HaywireGraph
-    from haywire.core.execution.interpreter import Interpreter
     from haywire.core.graph.editor import Editor
     from haybale_haystack.state.haystack_state import HaystackState
 
@@ -37,6 +41,8 @@ class GraphEntry:
                       :meth:`Haystack.create_new`. Unused once the entry is saved and
                       :attr:`path` becomes non-None. Accessed indirectly via
                       :attr:`binding_id`.
+        run_settings: Per-entry run policy (e.g. autorestart). Always present;
+                      persisted in the haystack TOML under ``[graphs.run]``.
     """
 
     graph: "HaywireGraph"
@@ -46,6 +52,7 @@ class GraphEntry:
     interpreter: Optional["Interpreter"] = field(default=None, repr=False)
     _unsaved_id: str = ""
     haystack: "Optional[HaystackState]" = field(default=None, repr=False)
+    run_settings: GraphRunSettings = field(default_factory=GraphRunSettings)
 
     @property
     def binding_id(self) -> str:
@@ -77,19 +84,38 @@ class GraphEntry:
         """True if the interpreter is currently executing."""
         return self.interpreter is not None and self.interpreter.is_executing
 
-    def start_execution(self) -> None:
-        """Create an Interpreter and start execution for this graph."""
+    def compile(self) -> CompileResult:
+        """Build the Interpreter and assemble the graph WITHOUT starting it."""
         if self.is_executing:
-            return
-
-        from haywire.core.di.context import get_library_state_container
-        from haywire.core.execution.interpreter import Interpreter
+            return CompileResult(ok=True, error=None)
 
         library_state_container = get_library_state_container()
-        self.interpreter = Interpreter(library_state_container=library_state_container)
-        self.interpreter.load_graph(self.graph)
+        interpreter = Interpreter(library_state_container=library_state_container)
+        try:
+            interpreter.load_graph(self.graph)
+        except RuntimeError as exc:
+            logger.warning(f"Compile failed for graph '{self.display_name}': {exc}")
+            self.interpreter = None
+            return CompileResult(ok=False, error=str(exc))
+
+        self.interpreter = interpreter
+        return CompileResult(ok=True, error=None)
+
+    def start(self) -> None:
+        """Start execution on an already-compiled interpreter (dispatch BEGIN_PLAY)."""
+        if self.interpreter is None:
+            return
         self.interpreter.start_execution()
         logger.info(f"Execution started for graph '{self.display_name}'")
+
+    def start_execution(self) -> CompileResult:
+        """Compile then start. Returns the compile verdict."""
+        if self.is_executing:
+            return CompileResult(ok=True, error=None)
+        result = self.compile()
+        if result.ok:
+            self.start()
+        return result
 
     def stop_execution(self) -> None:
         """Stop execution and shut down the Interpreter."""

@@ -551,7 +551,12 @@ class HaystackEditor(BaseEditor):
         if entry is None:
             return
         hs = context.app_data[HaystackState]
-        hs.start_execution(entry)
+        result = hs.start_execution(entry)
+        if not result.ok:
+            ui.notify(
+                f"Cannot start '{entry.display_name}': {result.error}",
+                type="negative",
+            )
         self._notify_data_mutated(context)
 
     def _on_stop_execution(self, binding_id: str, context: "SessionContext") -> None:
