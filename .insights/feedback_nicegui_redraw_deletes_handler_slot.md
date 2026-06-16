@@ -43,3 +43,55 @@ way that triggers `@redraw_on` of its own container and (b) emits UI afterward
 (`confirm_modal`, save-as, rename) are unaffected — the dialog is a separate,
 still-live slot. Related: [[feedback_nicegui_async.md]] (the async/empty-slot
 variant of the same client-resolution problem).
+
+---
+
+## Deferred-timer variant: a `ui.timer` can outlive the slot it was created in
+
+Same root cause (a slot deleted by a redraw), different trigger. A
+`ui.timer(delay, …, once=True)` created during a draw is parented to the
+*ambient draw slot*. If that container is cleared/rebuilt within `delay`, the
+timer fires after its parent slot is gone and NiceGUI's `Timer._run_once` →
+`_get_context()` → `parent_slot` raises **`RuntimeError: The parent slot of the
+element has been deleted.`** — a background-task traceback through
+`timer.py:_run_once`, not a handler crash.
+
+Concrete incident: selecting a node set `ctx.active_component`; the studio
+**component source editor** redrew to follow it, built a `ui.codemirror`, and
+`attach_code_intelligence()` scheduled `ui.timer(0.1, …, once=True)` in that
+draw slot. The tail of the selection event sequence (`selectionBounds`)
+triggered a second redraw inside the 0.1s window, clearing the slot → the timer
+fired orphaned → crash. Intermittent because it's a race against the delay.
+
+**The `with client:` fix does NOT apply here** — the problem isn't resolving a
+client for `ui.notify`, it's the timer object itself being parented to a doomed
+slot. Two fixes, combined:
+
+1. **Re-parent the timer to a stable element** that shares the lifecycle you
+   actually want — e.g. the editor element it acts on. When the host slot is
+   cleared, the timer is torn down *with* that element instead of firing into a
+   dead parent:
+
+   ```python
+   with editor:                       # not the ambient draw slot
+       ui.timer(0.1, _inject, once=True)
+   ```
+
+2. **Guard the body** so a client that disconnected before the tick is a quiet
+   no-op (the element may be gone even when correctly parented):
+
+   ```python
+   def _inject():
+       if not editor.client.has_socket_connection:
+           return
+       ui.run_javascript(js)
+   ```
+
+   (`element.client` is never `None`; check `has_socket_connection`, not the
+   client itself.)
+
+**How to apply:** any helper that defers work via `ui.timer(..., once=True)`
+during a draw and may be invoked from a container that redraws on selection /
+state change. The fix belongs in the *helper*, not each caller. See
+`attach_code_intelligence` in
+`packages/haywire-core/src/haywire/ui/extends/codemirror/code_intelligence.py`.

@@ -122,6 +122,14 @@ def attach_code_intelligence(
     need their own timer/mount-event — earlier attempts to trigger on
     ``.on("vue:mounted")`` silently failed because the codemirror element does
     not emit that event.
+
+    The deferred timer is parented to ``editor`` (not the ambient draw slot) so
+    that a panel/editor redraw which clears its container within the 0.1s delay
+    tears the timer down with the element instead of leaving it orphaned. A
+    re-selection that rebuilt the host fast enough used to fire the timer in a
+    slot that had already been deleted, raising NiceGUI's "parent slot of the
+    element has been deleted" RuntimeError. The body is also guarded so a
+    disconnected client (the element gone before the tick) is a quiet no-op.
     """
     import json
 
@@ -136,7 +144,19 @@ def attach_code_intelligence(
         path_js="null" if path is None else json.dumps(path),
         langs_js=json.dumps(list(language_filter)),
     )
-    ui.timer(0.1, lambda: ui.run_javascript(js), once=True)
+
+    def _inject() -> None:
+        # The editor may have been torn down (panel redraw) before this fires;
+        # run_javascript needs a live socket, so bail quietly if it is gone.
+        if not editor.client.has_socket_connection:
+            return
+        ui.run_javascript(js)
+
+    # Parent the once-timer to the editor element. When the host slot is cleared
+    # mid-delay, NiceGUI deletes this timer alongside the editor rather than
+    # firing it against a dead parent slot.
+    with editor:
+        ui.timer(0.1, _inject, once=True)
 
 
 # CodeMirror autocomplete + hoverTooltip injection. Consumed by str.format();
