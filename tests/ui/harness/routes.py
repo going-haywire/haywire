@@ -270,6 +270,12 @@ def register_routes(library_service) -> None:
     async def graph_context_menu_page():
         last_event = ui.label("none").props('id="last-event" data-testid="last-event"')
         last_coords = ui.label("-").props('id="last-coords" data-testid="last-coords"')
+        # Dedicated latch for context-menu events only. A right-click emits BOTH
+        # contextMenuCanvas and selectionBoundsHide as separate async events, so
+        # the shared last-event label is a last-writer race. This label is
+        # written solely by context-menu events, so the assertion is
+        # deterministic regardless of event ordering.
+        last_context_menu = ui.label("none").props('id="last-context-menu" data-testid="last-context-menu"')
 
         def on_canvas_event(event) -> None:
             event_type = getattr(event, "event_type", event.__class__.event_type)
@@ -277,6 +283,8 @@ def register_routes(library_service) -> None:
             canvas_y = getattr(event, "canvasY", None)
             last_event.set_text(event_type)
             last_coords.set_text(f"{canvas_x},{canvas_y}")
+            if event_type.startswith("contextMenu"):
+                last_context_menu.set_text(event_type)
 
         with ui.element("div").style(
             "width: 800px; height: 600px; position: relative; border: 1px solid #666;"

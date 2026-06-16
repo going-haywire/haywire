@@ -155,12 +155,16 @@ export default {
         this._setupObservers();
         this._setupZoomPanListener();
 
-        // Expose sync and context menu handlers for external invocation 
+        // Expose sync and context menu handlers for external invocation
         // used by pan.vue to forward context menu events
         this.$el._graphCanvasControls = {
             handleSyncEvent: this.handleSyncEvent,
             handleContextMenu: this.handleContextMenu
         };
+
+        // Readiness marker: by now the event listeners are attached.
+        // Playwright tests wait for [data-canvas-ready] before interacting.
+        this.$el.setAttribute('data-canvas-ready', '1');
     },
 
     beforeUnmount() {
