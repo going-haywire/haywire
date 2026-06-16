@@ -9,7 +9,7 @@ from __future__ import annotations
 from dataclasses import MISSING, dataclass, field, fields
 from typing import Any, Dict, Optional, TYPE_CHECKING
 
-from haywire.core.types.enums import FlowType, PortType, ShowWidgetStrategy
+from haywire.core.types.enums import FlowType, PortType, ShowWidgetStrategy, StoreStrategy
 from haywire.core.edge.edge_wrapper import EdgeWrapper
 from haywire.core.types.identity import DataTypeIdentity
 from haywire.core.types.interface import IType
@@ -606,6 +606,12 @@ class DataPort(DataTypeIdentity):
         if "show_widget" in kwargs:
             kwargs["show_widget"] = ShowWidgetStrategy(kwargs["show_widget"])
 
+        # store_strategy serializes to a raw int (IntFlag); reconstruct the enum
+        # so the round-tripped port keeps its should_store() behaviour. Absent
+        # means the field's static default applies.
+        if "store_strategy" in kwargs:
+            kwargs["store_strategy"] = StoreStrategy(kwargs["store_strategy"])
+
         # Freeform constructor-kwargs bag (mirrors PortSpec.kwargs: Dict[str, Any]).
         # Annotated explicitly so the merge of the Any-valued spec kwargs with the
         # typed literals below stays Any rather than widening to a concrete union
@@ -667,6 +673,8 @@ class DataPort(DataTypeIdentity):
             if isinstance(value, PortType):
                 value = value.value
             if isinstance(value, ShowWidgetStrategy):
+                value = value.value
+            if isinstance(value, StoreStrategy):
                 value = value.value
 
             result["kwargs"][f.name] = value

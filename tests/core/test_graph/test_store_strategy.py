@@ -58,6 +58,45 @@ class TestShouldStore:
         assert ss.should_store(is_linked=True, has_widget=False, node_set=False) is False
 
 
+@pytest.mark.integration
+class TestStoreStrategyRoundTrip:
+    """store_strategy must survive to_dict -> from_spec as a StoreStrategy enum.
+
+    Regression: from_spec reconstructed flow_type/port_type/show_widget but not
+    store_strategy, so a deserialized (or copied) port carried a plain int. The
+    next serialize then crashed on `int.should_store(...)` (copy/paste of a node
+    blew up with "'int' object has no attribute 'should_store'").
+    """
+
+    def test_store_strategy_survives_round_trip(self, graph_with_library_system: BaseGraph, library_system):
+        import json
+
+        from haywire.core.types.enums import StoreStrategy
+        from haywire.core.types.port import DataPort
+
+        node_a, _ = _create_two_nodes(graph_with_library_system)
+        wrapper = node_a
+        node = node_a.node
+        # Pick any real port and give it a non-default, OR-combining strategy so a
+        # round-trip that demoted it to int would change behaviour.
+        port = next(iter(node.ports.values()))
+        port.store_strategy = StoreStrategy.HAS_WIDGET | StoreStrategy.NODE_SET
+
+        # Go through JSON, like a save/load or clipboard copy does. This is what
+        # turns the IntFlag into a plain int and triggered the original crash.
+        spec = json.loads(json.dumps(port.to_dict(include_data=True)))
+        assert spec["kwargs"]["store_strategy"] == int(StoreStrategy.HAS_WIDGET | StoreStrategy.NODE_SET)
+        assert type(spec["kwargs"]["store_strategy"]) is int
+
+        rebuilt = DataPort.from_spec(spec, node._type_registry, wrapper, node)
+
+        assert isinstance(rebuilt.store_strategy, StoreStrategy)
+        assert rebuilt.store_strategy == StoreStrategy.HAS_WIDGET | StoreStrategy.NODE_SET
+        # And the reconstructed port can serialize again without crashing — this
+        # is the call that raised "'int' object has no attribute 'should_store'".
+        rebuilt.to_dict(include_data=True)
+
+
 def _create_two_nodes(graph: BaseGraph):
     from haybale_testing.nodes.testbed.edge_link_test import EdgeLinkTestNode
 
