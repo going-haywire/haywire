@@ -115,25 +115,28 @@ def attach_code_intelligence(
     Requires ``register_code_intelligence_render_endpoint()`` to have been called
     at app startup (the doc panel + hover fetch ``render_url``).
 
-    Must be called after ``editor`` is constructed (typically right after, in the
-    same draw); the JS polls for the element + its ``editorPromise`` before
-    wiring, so it tolerates being called before the client has mounted it.
+    Call this right after constructing ``editor`` in the draw. Timing is handled
+    internally: the ``run_javascript`` is deferred one tick via ``ui.timer`` so
+    the client connection can receive it, and the injected JS then polls
+    ``getElement()`` + awaits ``editorPromise`` before wiring. Callers do NOT
+    need their own timer/mount-event — earlier attempts to trigger on
+    ``.on("vue:mounted")`` silently failed because the codemirror element does
+    not emit that event.
     """
     import json
 
     from nicegui import ui
 
-    ui.run_javascript(
-        _INJECTION_JS.format(
-            editor_id=editor.id,
-            completion_url=completion_url,
-            info_url=info_url,
-            hover_url=hover_url,
-            render_url=render_url,
-            path_js="null" if path is None else json.dumps(path),
-            langs_js=json.dumps(list(language_filter)),
-        )
+    js = _INJECTION_JS.format(
+        editor_id=editor.id,
+        completion_url=completion_url,
+        info_url=info_url,
+        hover_url=hover_url,
+        render_url=render_url,
+        path_js="null" if path is None else json.dumps(path),
+        langs_js=json.dumps(list(language_filter)),
     )
+    ui.timer(0.1, lambda: ui.run_javascript(js), once=True)
 
 
 # CodeMirror autocomplete + hoverTooltip injection. Consumed by str.format();

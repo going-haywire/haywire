@@ -284,7 +284,7 @@ class ComponentSourceEditor(BaseEditor):
                 theme=self._codemirror_theme(context),
                 on_change=on_change,
             ).style("flex: 1; min-height: 0; width: 100%; height: 100%;")
-            self._editor.on("vue:mounted", lambda _: self._inject_completions())
+            self._inject_completions()
 
     def _inject_completions(self) -> None:
         if self._editor is None:
