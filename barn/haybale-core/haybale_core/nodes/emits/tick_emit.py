@@ -45,6 +45,7 @@ class TickEmitNode(BaseNode):
                 "target_fps",
                 default=60.0,
                 label="Target FPS",
+                description="Targeted Frames per second - needs a start signal to be applied",
                 widget=NumberWidget.config(properties={"min": 0.1, "max": 240, "step": 1}),
             )
         )
