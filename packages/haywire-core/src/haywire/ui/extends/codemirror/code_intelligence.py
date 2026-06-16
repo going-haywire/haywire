@@ -71,11 +71,15 @@ def _render_doc_html(signature: str | None, docstring: str | None) -> str:
 
 
 _RENDER_ROUTE = "/api/code-intel/render"
-_render_route_registered = False
 
 
-def _ensure_render_route() -> None:
-    """Register the core-owned doc-render endpoint exactly once.
+def register_code_intelligence_render_endpoint() -> None:
+    """Register the core-owned doc-render endpoint.
+
+    MUST be called at app startup, BEFORE ``ui.run()`` — NiceGUI/Starlette
+    freezes the route table when the server starts, so a route added later
+    (e.g. lazily during a page draw) 404s. Call this alongside the provider's
+    ``register_code_intelligence_endpoints()`` in the app bootstrap.
 
     Resolution X: the *element* (core) owns markdown -> HTML rendering, but the
     HTML is consumed inside injected JS that cannot call Python per-keystroke.
@@ -83,9 +87,6 @@ def _ensure_render_route() -> None:
     ``{signature, docstring}`` into the highlighted HTML the ``hw-cm-doc`` panel
     expects. The provider (studio) stays plain-data; rendering stays in core.
     """
-    global _render_route_registered
-    if _render_route_registered:
-        return
     from nicegui import app
 
     @app.post(_RENDER_ROUTE)
@@ -93,8 +94,6 @@ def _ensure_render_route() -> None:
         body = await request.json()
         html = _render_doc_html(body.get("signature") or None, body.get("docstring") or None)
         return JSONResponse({"html": html})
-
-    _render_route_registered = True
 
 
 def attach_code_intelligence(
@@ -113,6 +112,9 @@ def attach_code_intelligence(
     it is in ``language_filter``. ``path`` (the file path of the edited buffer)
     is forwarded to the provider so jedi can resolve imports relative to it.
 
+    Requires ``register_code_intelligence_render_endpoint()`` to have been called
+    at app startup (the doc panel + hover fetch ``render_url``).
+
     Must be called after ``editor`` is constructed (typically right after, in the
     same draw); the JS polls for the element + its ``editorPromise`` before
     wiring, so it tolerates being called before the client has mounted it.
@@ -120,8 +122,6 @@ def attach_code_intelligence(
     import json
 
     from nicegui import ui
-
-    _ensure_render_route()
 
     ui.run_javascript(
         _INJECTION_JS.format(
