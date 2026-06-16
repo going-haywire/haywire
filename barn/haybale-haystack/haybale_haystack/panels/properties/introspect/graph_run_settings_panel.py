@@ -28,7 +28,7 @@ if TYPE_CHECKING:
 @panel(
     focus=GraphFocus,
     label="Run Settings",
-    icon=hui.icon.refresh,
+    icon=hui.icon.execution,
     order=20,
     default_open=True,
     redraw_on=(ActiveGraphMoved, GraphDataMutated),

@@ -23,21 +23,21 @@ def _ctx_with_active_graph(graph, container):
 
 
 def test_poll_false_when_no_active_graph():
-    from haybale_haystack.panels.graph_run_settings_panel import GraphRunSettingsPanel
+    from haybale_haystack.panels.properties.introspect.graph_run_settings_panel import GraphRunSettingsPanel
 
     ctx = _ctx_with_active_graph(graph=None, container=None)
     assert GraphRunSettingsPanel.poll(ctx) is False
 
 
 def test_poll_false_when_active_graph_has_no_entry():
-    from haybale_haystack.panels.graph_run_settings_panel import GraphRunSettingsPanel
+    from haybale_haystack.panels.properties.introspect.graph_run_settings_panel import GraphRunSettingsPanel
 
     ctx = _ctx_with_active_graph(graph=MagicMock(), container=None)
     assert GraphRunSettingsPanel.poll(ctx) is False
 
 
 def test_poll_true_when_entry_resolves():
-    from haybale_haystack.panels.graph_run_settings_panel import GraphRunSettingsPanel
+    from haybale_haystack.panels.properties.introspect.graph_run_settings_panel import GraphRunSettingsPanel
     from haybale_haystack.graph_entry import GraphEntry
 
     g = MagicMock()
