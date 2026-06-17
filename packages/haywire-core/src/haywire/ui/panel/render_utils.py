@@ -604,6 +604,10 @@ def _make_reactive_setter(obj: "Settings", attr_name: str, error_container=None)
     Mirror override state (• prefix / reset button) and value display are kept in
     sync by the model subscription wired in ``render_settings`` (which calls each
     row's in-place updater), so the setter no longer rebuilds the row itself.
+
+    No echo guard here: ``setting.__set__`` short-circuits a write equal to the
+    field's resolved value (no callback, no phantom override), so the cross-tab
+    apply() → widget.value → on_change → setattr loop terminates at the model.
     """
 
     def make_setter(coerce):
@@ -615,18 +619,6 @@ def _make_reactive_setter(obj: "Settings", attr_name: str, error_container=None)
                     error_container.clear()
                     with error_container:
                         ui.label(str(exc)).classes("text-xs hw-text-danger px-2").props('data-error="true"')
-                return
-
-            # Echo terminator (value-equality short-circuit, house pattern). The
-            # external-sync apply() path assigns widget.value in place; some Quasar
-            # widgets (e.g. color_input) re-fire their change handler on a
-            # programmatic set. For mirror/shadow fields the descriptor default is
-            # None, so the model-layer short-circuit (compare to _default) can't
-            # see "already equal" and would re-create a local override, defeating
-            # reset. Compare against the resolved value here and drop the no-op.
-            if coerced == getattr(obj, attr_name):
-                if error_container is not None:
-                    error_container.clear()
                 return
 
             # Check validator before setting — descriptors silently reject invalid values

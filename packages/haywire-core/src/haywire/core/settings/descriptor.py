@@ -273,12 +273,20 @@ class setting(SettingDescriptor, Generic[T]):
         if not self.validate(value):
             return
 
-        key = self._setting_key if self._setting_key else self._attr_name
-        old = obj._local_store.get(key, self._default)
-        obj._local_store[key] = value
+        # No-op if the write matches what the field already RESOLVES to. For a
+        # mirror/shadow field with no local override the resolved value is the
+        # mirrored global, not _default — so writing that value back must not
+        # create a _local_store entry (which is_locally_set() would then report
+        # as an override, defeating reset). Comparing against the resolved value
+        # also terminates the cross-tab echo loop at the model layer, so the
+        # settings-panel setter doesn't need its own equality guard.
+        old = self.__get__(obj, type(obj))
+        if value == old:
+            return
 
-        if value != old:
-            obj._on_property_change(self._attr_name, value, old, self._on_change)
+        key = self._setting_key if self._setting_key else self._attr_name
+        obj._local_store[key] = value
+        obj._on_property_change(self._attr_name, value, old, self._on_change)
 
 
 class persistent_setting(setting, Generic[T]):
@@ -319,8 +327,13 @@ class persistent_setting(setting, Generic[T]):
         if registry is None or not self._setting_key:
             # No registry wired (test fixture / simple mode), or no
             # namespaced key — fall back to local-store write so existing
-            # behaviour is preserved.
+            # behaviour is preserved (incl. its resolved-value no-op guard).
             super().__set__(obj, value)
+            return
+
+        # No-op if the write matches the resolved value — terminates the
+        # cross-tab echo loop and avoids a redundant registry write + TOML save.
+        if value == self.__get__(obj, type(obj)):
             return
 
         # registry.set_global fires _notify_subscribers → owning instance's

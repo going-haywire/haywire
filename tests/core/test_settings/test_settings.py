@@ -304,6 +304,38 @@ class TestMirrorCallbackSuppression:
         assert len(calls) == 1
         assert calls[0] == ("color", "#aabbcc")
 
+    def test_redundant_write_of_resolved_value_creates_no_override(self):
+        """Writing a mirror field the value it already resolves to is a no-op.
+
+        Regression: __set__ compared the incoming value against the descriptor
+        _default (None for a mirror), not the resolved global, so writing the
+        resolved value back created a phantom _local_store entry that
+        is_locally_set() reported as an override — defeating reset. This is the
+        model-layer fix that let the settings-panel setter drop its echo guard.
+        """
+        registry, bag, key = _make_mirror_bag()
+        assert not bag.is_locally_set("color")
+        resolved = bag.color  # the mirrored global, "#ffffff"
+
+        calls = []
+        bag.subscribe(lambda name, val, old: calls.append((name, val)))
+
+        bag.color = resolved  # echo: write the value it already holds
+
+        assert not bag.is_locally_set("color"), "redundant write must not create an override"
+        assert calls == [], "redundant write must not fire a change callback"
+
+    def test_real_override_then_reset_still_works(self):
+        """A genuine local write still overrides; reset clears it back to global."""
+        registry, bag, key = _make_mirror_bag()
+        bag.color = "#123456"
+        assert bag.is_locally_set("color")
+        assert bag.color == "#123456"
+
+        bag.reset("color")
+        assert not bag.is_locally_set("color")
+        assert bag.color == "#ffffff"  # back to the resolved global
+
 
 # ---------------------------------------------------------------------------
 # @node decorator + direct binding on node instances
