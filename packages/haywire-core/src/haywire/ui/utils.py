@@ -1,10 +1,13 @@
 import os
 import shutil
+import logging
 import subprocess
 import platform
 from typing import Callable, NamedTuple
 
 from nicegui import ui
+
+logger = logging.getLogger(__name__)
 
 
 def anchor_cleanup_to_element(element: "ui.element", callback: Callable[[], None]) -> None:
@@ -21,7 +24,7 @@ def anchor_cleanup_to_element(element: "ui.element", callback: Callable[[], None
         try:
             callback()
         except Exception:
-            pass
+            logger.debug("anchor_cleanup_to_element callback failed", exc_info=True)
         original_handle_delete()
 
     element._handle_delete = _handle_delete  # type: ignore[method-assign]
