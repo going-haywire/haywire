@@ -562,3 +562,148 @@ class PasteClipboardAction(CompositeAction):
             )
 
         super().__init__(actions, description or "Paste clipboard")
+
+
+class _AddReroutePortsAction(ActionBase):
+    """Add a reroute node's typed inlet/outlet for ``itype``.
+
+    A child of ``SplitEdgeWithRerouteAction``. The reroute node ships
+    port-less; this action adds an inlet/outlet under the ids ``inlet_id`` /
+    ``outlet_id`` typed to ``itype``, inside a ``rejig`` block (the dynamic-port
+    primitive the node already exposes — using the same ids on a re-run keeps
+    the port set to exactly those two). The core never imports the node class or
+    names its type; the ids and target ``IType`` are passed in by the caller
+    (the graph-editor), so no core→library dependency is introduced.
+
+    Undo is a no-op — the sibling ``AddNodeAction`` removes the whole node (and
+    its ports) on undo, and redo re-runs this on the re-added (port-less)
+    wrapper.
+    """
+
+    def __init__(
+        self,
+        graph: BaseGraph,
+        node_id: str,
+        itype: Any,
+        inlet_id: str,
+        outlet_id: str,
+        description: Optional[str] = None,
+    ):
+        super().__init__(description or f"Add reroute ports '{node_id}'")
+        self.graph = graph
+        self.node_id = node_id
+        self.itype = itype
+        self.inlet_id = inlet_id
+        self.outlet_id = outlet_id
+
+    def _execute_impl(self) -> None:
+        wrapper = self.graph.get_node_wrapper(self.node_id)
+        if wrapper is None:
+            raise RuntimeError(f"Reroute node '{self.node_id}' not found for port configuration")
+        node = wrapper.node
+        # Add the typed ports. rejig (include=ids) makes the operation
+        # idempotent: on a fresh port-less node it simply adds them; on a redo
+        # it keeps the port set to exactly {inlet_id, outlet_id}.
+        with node.rejig(include=[self.inlet_id, self.outlet_id]):
+            node.add(self.itype.as_inlet(id=self.inlet_id, label=""))
+            node.add(self.itype.as_outlet(id=self.outlet_id, label=""))
+
+    def _undo_impl(self) -> None:
+        # No-op: the node (and its ports) is removed by the sibling
+        # AddNodeAction's undo. Nothing to reverse here.
+        pass
+
+
+class SplitEdgeWithRerouteAction(CompositeAction):
+    """Split a data edge and insert a reroute node in between.
+
+    Given an edge ``A.out -> B.in``, this composite (one undoable unit):
+
+    1. removes the original edge,
+    2. creates a port-less reroute node (``registry_key``) at ``position``,
+    3. adds its inlet/outlet (``inlet_id`` / ``outlet_id``) typed to the
+       outlet's concrete ``IType``,
+    4. wires ``A.out -> R.<inlet_id>`` (adapter-free, same type) and
+       ``R.<outlet_id> -> B.in`` (rebuilds whatever adapter the original had).
+
+    Typing the reroute to the **outlet** type keeps the split behaviorally
+    transparent: the first new edge needs no adapter, and the second edge
+    re-derives the original ``source_type -> sink_type`` adapter chain
+    automatically (see ``EdgeWrapper._build_adapter_chain``). One undo
+    restores the original edge with its chain intact.
+
+    The reroute node type is **not** named here — ``registry_key`` (and the
+    reroute's port ids) are supplied by the caller (the graph-editor library),
+    so the core carries no dependency on a specific haybale library. The caller
+    must pass a data edge whose endpoints/ports still exist; the outlet
+    ``IType`` is resolved here, at construction time, while the original edge is
+    still present.
+    """
+
+    def __init__(
+        self,
+        graph: BaseGraph,
+        edge_id: str,
+        position: Tuple[float, float],
+        registry_key: str,
+        inlet_id: str,
+        outlet_id: str,
+        description: Optional[str] = None,
+    ):
+        self.graph = graph
+        self.reroute_node_id: Optional[str] = None
+
+        edge = graph.get_edge_wrapper(edge_id)
+        if edge is None:
+            raise ValueError(f"Edge '{edge_id}' not found; cannot split")
+
+        source_node_id = edge.source_node_id
+        outlet_port_id = edge.outlet_port_id
+        sink_node_id = edge.sink_node_id
+        inlet_port_id = edge.inlet_port_id
+
+        # Resolve the outlet's concrete IType (the type the reroute will carry).
+        source_wrapper = graph.get_node_wrapper(source_node_id)
+        if source_wrapper is None:
+            raise ValueError(f"Source node '{source_node_id}' not found; cannot split edge")
+        outlet_port = source_wrapper.node.ports.get(outlet_port_id)
+        if outlet_port is None:
+            raise ValueError(f"Outlet port '{outlet_port_id}' not found; cannot split edge")
+        itype = outlet_port.stored_type
+
+        # Pre-mint the reroute node id so the edge children can reference it.
+        new_node_id = graph.generate_unique_node_id(prefix="reroute")
+        self.reroute_node_id = new_node_id
+
+        actions: List[IAction] = [
+            RemoveElementsAction(graph=graph, edges=[edge_id]),
+            AddNodeAction(
+                graph=graph,
+                registry_key=registry_key,
+                position=position,
+                node_id=new_node_id,
+            ),
+            _AddReroutePortsAction(
+                graph=graph,
+                node_id=new_node_id,
+                itype=itype,
+                inlet_id=inlet_id,
+                outlet_id=outlet_id,
+            ),
+            AddEdgeAction(
+                graph=graph,
+                source_node_id=source_node_id,
+                outlet_pin_id=outlet_port_id,
+                sink_node_id=new_node_id,
+                inlet_pin_id=inlet_id,
+            ),
+            AddEdgeAction(
+                graph=graph,
+                source_node_id=new_node_id,
+                outlet_pin_id=outlet_id,
+                sink_node_id=sink_node_id,
+                inlet_pin_id=inlet_port_id,
+            ),
+        ]
+
+        super().__init__(actions, description or "Insert reroute")

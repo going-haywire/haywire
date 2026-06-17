@@ -96,6 +96,8 @@ def node(**kwargs: Any) -> Callable[[Type[T]], Type[T]]:
             - NodeType.EVENT: Flow entry point (0 ctrl inlet/1 outlet)
             - NodeType.OUTPUT: Flow termination (1 ctrl inlet/0 outlet)
             - NodeType.LOOPBACK: Loop construct (1 ctrl inlet/2+ outlets with loopback)
+            - NodeType.REROUTE: A DATA node tolerating a port-less latent state
+              (edge-split reroute; typed ports added after creation)
         is_stateful (bool): Maintains state between executions. Default: False
         has_execute_async (bool): Supports async execution. Default: False
         is_mutable (bool): Configuration can change at runtime. Default: False

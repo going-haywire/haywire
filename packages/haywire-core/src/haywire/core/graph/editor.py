@@ -14,6 +14,7 @@ from haywire.core.undo.actions.graph_actions import (
     RemoveElementsAction,
     AddEdgeAction,
     PasteClipboardAction,
+    SplitEdgeWithRerouteAction,
 )
 
 logger = logging.getLogger(__name__)
@@ -225,6 +226,41 @@ class Editor:
         except Exception as e:
             logger.error(f"Error creating connection: {e}")
             return False
+
+    def split_edge_with_reroute(
+        self,
+        edge_id: str,
+        position: Tuple[float, float],
+        registry_key: str,
+        inlet_id: str,
+        outlet_id: str,
+    ) -> Optional[str]:
+        """Split a data edge and insert a reroute node at ``position``.
+
+        Removes the original edge, creates the port-less reroute node
+        (``registry_key``), adds its ports (``inlet_id`` / ``outlet_id``) typed
+        to the outlet's concrete ``IType``, and wires it in between — all as one
+        undoable operation (see ``SplitEdgeWithRerouteAction``).
+
+        The reroute node type and its port ids are supplied by the caller so the
+        core stays independent of any specific library. Returns the new reroute
+        node id, or ``None`` on failure.
+        """
+        try:
+            action = SplitEdgeWithRerouteAction(
+                graph=self.graph,
+                edge_id=edge_id,
+                position=position,
+                registry_key=registry_key,
+                inlet_id=inlet_id,
+                outlet_id=outlet_id,
+            )
+            self.history_manager.add_action(action)
+            logger.info(f"Split edge {edge_id} with reroute {action.reroute_node_id}")
+            return action.reroute_node_id
+        except Exception as e:
+            logger.error(f"Error splitting edge {edge_id} with reroute: {e}")
+            return None
 
     def list_edges(self) -> List[EdgeWrapper]:
         """Get a list of all connections in the graph."""

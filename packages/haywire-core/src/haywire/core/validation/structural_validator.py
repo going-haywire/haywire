@@ -76,6 +76,12 @@ class StructuralValidator(IStructuralValidator):
         if NodeType.EVENT in node.behavior.node_type:
             return self._validate_event_node(wrapper)
 
+        # Reroute must be checked BEFORE DATA: REROUTE carries the DATA bit, so
+        # `NodeType.DATA in node_type` is also true for reroutes. A reroute uses
+        # looser rules (a port-less latent state is valid).
+        if NodeType.REROUTE in node.behavior.node_type:
+            return self._validate_reroute_node(wrapper)
+
         if NodeType.DATA in node.behavior.node_type:
             return self._validate_data_node(wrapper)
 
@@ -176,6 +182,50 @@ class StructuralValidator(IStructuralValidator):
             )
 
         # All checks passed
+        return (True, None, [])
+
+    def _validate_reroute_node(self, wrapper: "NodeWrapper") -> tuple[bool, str | None, list[str]]:
+        """
+        Validate reroute node structural constraints.
+
+        A reroute is a DATA node (no control flow) used to split an edge. It
+        ships port-less; the split action adds a typed inlet/outlet after
+        creation. So unlike a plain data node, a port-less reroute is valid.
+
+        Rules:
+        - No control/callback pins allowed (it is data-only, like a DATA node).
+        - Either no data ports at all (unconfigured, valid), or a passthrough
+          pair: exactly one data inlet AND one data outlet.
+        """
+        node = wrapper.node
+
+        # Reject non-DATA pins (same as a data node — no control/callback flow).
+        ports = node.get_ports(is_not_flow_type=FlowType.DATA, has_pin=True)
+        if len(ports) > 0:
+            return (
+                False,
+                f"Reroute nodes cannot have pins on non-DATA ports. Found: {[p.id for p in ports]}",
+                ["Reroute nodes only carry data; remove non-DATA pins"],
+            )
+
+        data_inlets = node.get_ports(is_port_type=PortType.INLET, is_flow_type=FlowType.DATA)
+        data_outlets = node.get_ports(is_port_type=PortType.OUTLET, is_flow_type=FlowType.DATA)
+
+        # Port-less latent state is valid (awaiting configuration by the split).
+        if not data_inlets and not data_outlets:
+            return (True, None, [])
+
+        # Configured: must be a passthrough pair (one inlet + one outlet).
+        if len(data_inlets) != 1 or len(data_outlets) != 1:
+            return (
+                False,
+                (
+                    "A configured reroute must have exactly one data inlet and one data outlet "
+                    f"(found {len(data_inlets)} inlet(s), {len(data_outlets)} outlet(s))"
+                ),
+                ["A reroute passes one inlet value straight to one outlet"],
+            )
+
         return (True, None, [])
 
     def _validate_loopback_node(self, wrapper: "NodeWrapper") -> tuple[bool, str | None, list[str]]:

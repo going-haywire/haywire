@@ -74,12 +74,13 @@ The three projections relate as: the **dataclass** (3) represents one entry in t
 
 | Term | Definition | Aliases to avoid |
 |------|-----------|-----------------|
-| **NodeType** | The execution role of a node (the `NodeType` enum: DATA, CONTROL, EVENT, OUTPUT, LOOPBACK), determined by its EXEC port configuration. `NodeBehaviorFlags` is the dataclass that holds this field — prefer **NodeType** in conversation | Node category |
+| **NodeType** | The execution role of a node (the `NodeType` enum: DATA, CONTROL, EVENT, OUTPUT, LOOPBACK, REROUTE), determined by its EXEC port configuration. `NodeBehaviorFlags` is the dataclass that holds this field — prefer **NodeType** in conversation | Node category |
 | **DATA node** | A pure value transformer; has no EXEC ports; runs only when its outputs are demanded | Passive node |
 | **CONTROL node** | A sequenced node with both EXEC inlet and EXEC outlet; runs in explicit execution order | Active node |
 | **EVENT node** | A node with an EXEC outlet but no EXEC inlet; originates an execution chain (timer, callback source) | Source node (ambiguous with data source) |
 | **OUTPUT node** | A terminal node with an EXEC inlet but no EXEC outlet; receives execution, produces no further control | Sink node (ambiguous with data sink) |
 | **LOOPBACK node** | A CONTROL node that uses the loopback-stack in the VM to implement loops or sequences | Loop node |
+| **Reroute node** | A DATA node shipped by `haybale-graph-editor` whose class declares **no** ports; at creation it is given exactly one data inlet and one data outlet matching the split edge's type, and its worker passes the inlet value straight to the outlet. Used to split an edge and bend/organize a wire. | Proxy node (collides with `_FieldProxy` / state proxies), passthrough node |
 
 ---
 

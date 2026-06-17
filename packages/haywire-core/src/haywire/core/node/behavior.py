@@ -17,12 +17,20 @@ class NodeType(IntFlag):
     - EVENT: 0 ctrl inlet / 1 ctrl outlet
     - OUTPUT: 1 ctrl inlet / 0 ctrl outlet
     - LOOPBACK: 1 ctrl inlet / 2+ ctrl outlets (one with, and one without loopback)
+    - REROUTE: a DATA node (carries the DATA bit) that may exist in a port-less
+      latent state until configured; used to split an edge and bend a wire.
+
+    REROUTE carries the DATA bit so every ``NodeType.DATA in node_type`` check
+    (data-flow building, the execution dirty-port optimisation) keeps treating
+    it as a data node; the distinct REROUTE bit only changes which structural
+    validation rule applies (a reroute is allowed zero or one data outlet).
 
     Examples:
         @node(node_type=NodeType.EVENT)
         @node(node_type=NodeType.CONTROL)
         @node(node_type=NodeType.LOOPBACK)
         @node(node_type=NodeType.DATA)
+        @node(node_type=NodeType.REROUTE)
     """
 
     DATA = 1
@@ -30,6 +38,7 @@ class NodeType(IntFlag):
     EVENT = 4 | CONTROL  # 6
     OUTPUT = 8 | CONTROL  # 10
     LOOPBACK = 16 | CONTROL  # 18
+    REROUTE = 32 | DATA  # 33 — is-a DATA, distinctly tagged
 
 
 @dataclass(frozen=True)
@@ -100,8 +109,13 @@ class NodeBehaviorFlags:
 
     @property
     def is_data_node(self) -> bool:
-        """True if node is a pure data node (DATA)."""
+        """True if node is a pure data node (DATA). Reroute nodes are DATA too."""
         return bool(NodeType.DATA in self.node_type)
+
+    @property
+    def is_reroute_node(self) -> bool:
+        """True if node is a reroute (a DATA node permitting a port-less state)."""
+        return bool(NodeType.REROUTE in self.node_type)
 
     @property
     def is_event_node(self) -> bool:

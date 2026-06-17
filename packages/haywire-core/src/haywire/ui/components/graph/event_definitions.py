@@ -114,6 +114,17 @@ class NodeCreateRequestEvent(BaseGraphEvent):
     pending_connection: Optional[Dict[str, str]] = None
 
 
+@graph_event(
+    "splitEdgeWithReroute",
+    category="user",
+    description="Split a data edge and insert a reroute node from the edge context menu",
+)
+@dataclass
+class SplitEdgeWithRerouteEvent(BaseGraphEvent):
+    edge_id: str
+    position: Dict[str, float]  # {x: float, y: float} — where to place the reroute node
+
+
 @graph_event("edgeCreated", category="user", description="New connection created")
 @dataclass
 class EdgeCreatedEvent(BaseGraphEvent):

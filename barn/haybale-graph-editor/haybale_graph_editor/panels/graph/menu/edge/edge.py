@@ -88,6 +88,42 @@ class EdgeWarningsMenuPanel(BasePanel):
 @panel(
     actions=EdgeContextActions,
     focus=EdgeFocus,
+    label="Insert Reroute",
+    icon=hui.icon.edge,
+    order=20,
+)
+class InsertRerouteMenuPanel(BasePanel):
+    """Split the active data edge and insert a reroute node in between."""
+
+    actions: EdgeContextActions
+
+    @classmethod
+    def poll(cls, ctx: "SessionContext") -> bool:
+        edge = ctx.data[EditState].active_edge
+        # Data edges only — value passthrough has no meaning on control/callback.
+        return edge is not None and edge.is_data_edge()
+
+    def draw(
+        self,
+        ctx: "SessionContext",
+        layout: PanelLayout,
+    ) -> None:
+        edge = ctx.data[EditState].active_edge
+        if edge is None:
+            return
+        edge_id = edge.edge_id
+
+        with layout:
+            hui.button(
+                "Insert Reroute",
+                icon=hui.icon.edge,
+                on_click=lambda: self.actions.split_edge_with_reroute(edge_id),
+            )
+
+
+@panel(
+    actions=EdgeContextActions,
+    focus=EdgeFocus,
     label="Delete Connection",
     icon=hui.icon.delete,
     order=30,

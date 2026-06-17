@@ -37,7 +37,7 @@ class SpyProvider(IContextMenuProvider):
     def on_canvas_context(self, pos, canvas_pos, pending_connection=None):
         self.canvas_calls.append((pos, canvas_pos))
 
-    def on_edge_context(self, pos, edge_id, edge, state, at_sink_end=False):
+    def on_edge_context(self, pos, edge_id, edge, state, at_sink_end=False, canvas_pos=None):
         self.edge_calls.append((pos, edge_id, edge, state))
 
     def on_selection_context(self, pos, nodes, edges):

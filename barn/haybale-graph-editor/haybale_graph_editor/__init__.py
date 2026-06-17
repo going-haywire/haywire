@@ -10,6 +10,7 @@ from pathlib import Path
 
 from haywire.core.library.base import BaseLibrary
 from haywire.core.library.decorator import library
+from haywire.core.node.registry import NodeRegistry
 from haywire.core.state import LibraryStateRegistry
 from haywire.ui.editor.registry import EditorTypeRegistry
 
@@ -44,6 +45,11 @@ class Library(BaseLibrary):
         self.add_folder_to_registry(
             folder_path=str(base_path / "state"),
             registry_cls=LibraryStateRegistry,
+        )
+
+        self.add_folder_to_registry(
+            folder_path=str(base_path / "nodes"),
+            registry_cls=NodeRegistry,
         )
 
         self.add_folder_to_registry(

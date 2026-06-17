@@ -69,6 +69,7 @@ class IContextMenuProvider:
         edge: Any,
         state: Any,
         at_sink_end: bool = False,
+        canvas_pos: Optional[Tuple[float, float]] = None,
     ) -> None:
         """User right-clicked on an edge."""
         ...
@@ -207,7 +208,7 @@ class SessionContextMenuProvider(IContextMenuProvider, BaseContextMenuProvider):
         )
         self._open_menu(CanvasContextActions, CanvasFocus, pos)
 
-    def on_edge_context(self, pos, edge_id, edge, state, at_sink_end=False):
+    def on_edge_context(self, pos, edge_id, edge, state, at_sink_end=False, canvas_pos=None):
         from haybale_graph_editor.focuses import EdgeFocus
         from haybale_graph_editor.editors.graph_canvas.handlers.context_menu_actions import (
             EdgeContextActions,
@@ -221,6 +222,7 @@ class SessionContextMenuProvider(IContextMenuProvider, BaseContextMenuProvider):
 
         self._open_ctx = _OpenMenuContext(
             click_pos=pos,
+            canvas_pos=canvas_pos,
             edge_state=state,
             edge_reconnect_end=at_sink_end,
         )
@@ -396,6 +398,20 @@ class SessionContextMenuProvider(IContextMenuProvider, BaseContextMenuProvider):
             )
         )
 
+    def split_edge_with_reroute(self, edge_id: str) -> None:
+        """Emit SplitEdgeWithRerouteEvent for the right-clicked edge.
+
+        The reroute node lands at the click position (canvas coords captured in
+        the _OpenMenuContext). The visual layer handles the event and drives the
+        editor's undoable split.
+        """
+        from haywire.ui.components.graph.event_definitions import SplitEdgeWithRerouteEvent
+
+        if self._open_ctx is None or self._open_ctx.canvas_pos is None:
+            return
+        x, y = self._open_ctx.canvas_pos
+        self._emit(SplitEdgeWithRerouteEvent(edge_id=edge_id, position={"x": x, "y": y}))
+
     # SelectionContextActions
 
     def copy_selection(self) -> None:
@@ -519,6 +535,7 @@ class ContextMenuHandlers:
                     ui_edge.wrapper.edge,
                     ui_edge.wrapper.get_state(),
                     at_sink_end=event.atSinkEnd,
+                    canvas_pos=(event.canvasX, event.canvasY),
                 )
 
         elif isinstance(event, ContextMenuSelectedEvent):

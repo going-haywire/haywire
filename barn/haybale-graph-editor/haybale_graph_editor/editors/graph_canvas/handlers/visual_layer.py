@@ -23,6 +23,7 @@ from haywire.core.node import BaseNode
 from haywire.ui.components.graph.event_definitions import (
     UserRemoveEvent,
     NodeCreateRequestEvent,
+    SplitEdgeWithRerouteEvent,
     EdgeCreatedEvent,
     ElementRedrawEvent,
     ElementResetEvent,
@@ -408,6 +409,37 @@ class VisualLayerHandlers:
         except Exception as e:
             logger.error(f"Error creating node: {e}")
             ui.notify(f"Error creating node: {e}", type="negative")
+
+    @handles_event(SplitEdgeWithRerouteEvent)
+    def process_split_edge_with_reroute(self, event: SplitEdgeWithRerouteEvent):
+        """Split a data edge and insert a reroute node (one undoable op).
+
+        The reroute node type + its port ids are owned by this library and
+        passed down to the core action, so the core carries no dependency on
+        haybale-graph-editor.
+        """
+        from haybale_graph_editor.nodes.reroute import (
+            RerouteNode,
+            REROUTE_INLET_ID,
+            REROUTE_OUTLET_ID,
+        )
+
+        logger.info(f"✂️ Splitting edge {event.edge_id} with reroute")
+        try:
+            reroute_id = self.editor.split_edge_with_reroute(
+                event.edge_id,
+                (event.position["x"], event.position["y"]),
+                registry_key=RerouteNode.class_identity.registry_key,
+                inlet_id=REROUTE_INLET_ID,
+                outlet_id=REROUTE_OUTLET_ID,
+            )
+            if reroute_id:
+                ui.notify("Inserted reroute", type="positive")
+            else:
+                ui.notify("Failed to insert reroute", type="negative")
+        except Exception as e:
+            logger.error(f"Error splitting edge with reroute: {e}")
+            ui.notify(f"Error inserting reroute: {e}", type="negative")
 
     def _try_auto_wire(self, wrapper, pending: dict) -> None:
         """
