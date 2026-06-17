@@ -5,8 +5,8 @@
 **Path:** `packages/haywire-studio/src/haywire_studio/`
 **Language:** Python 3.10+
 **Owner:** Haywire studio team
-**Tree hash:** 20bbe022 (2026-06-13)
-**Mapped at:** 8cc9ff00 (2026-06-13)
+**Tree hash:** `f79ff7a13c7b19d2b912cde2565e80813df686a0`
+**Mapped at:** 51d1ac64 (2026-06-17)
 
 ---
 

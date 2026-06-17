@@ -5,8 +5,8 @@
 **Path:** `packages/haywire-core/src/haywire/core/`
 **Language:** Python 3.10+
 **Owner:** Haywire core team
-**Tree hash:** `(part of packages/haywire-core)` (b5c34c5e)
-**Mapped at:** 8cc9ff00 (2026-06-13)
+**Tree hash:** `de4de04c7f8081a32fe44fd4b27ebf00449628ef` (part of packages/haywire-core)
+**Mapped at:** 51d1ac64 (2026-06-17)
 
 ---
 

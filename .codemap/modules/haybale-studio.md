@@ -5,8 +5,8 @@
 **Path:** `barn/haybale-studio/haybale_studio/`
 **Language:** Python 3.10+
 **Owner:** Haywire studio team (bundled plugin)
-**Tree hash:** d7270871 (2026-06-13)
-**Mapped at:** 8cc9ff00 (2026-06-13)
+**Tree hash:** `18c6dab24dd5fcbdc447687645cc015fc7242829`
+**Mapped at:** 51d1ac64 (2026-06-17)
 
 ---
 

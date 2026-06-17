@@ -5,8 +5,8 @@
 **Path:** `barn/haybale-marketplace/haybale_marketplace/`
 **Language:** Python 3.10+
 **Owner:** Haywire team (optional bundled plugin)
-**Tree hash:** c900f290 (2026-06-13)
-**Mapped at:** 8cc9ff00 (2026-06-13)
+**Tree hash:** `bcf7bba2f74751d9ee0919fa47f77257ea0417d1`
+**Mapped at:** 51d1ac64 (2026-06-17)
 
 ---
 

@@ -5,8 +5,8 @@
 **Path:** `barn/haybale-core/haybale_core/`
 **Language:** Python 3.10+
 **Owner:** Haywire core team (bundled plugin)
-**Tree hash:** f1627211 (2026-06-13)
-**Mapped at:** 8cc9ff00 (2026-06-13)
+**Tree hash:** `b32c728b1b35f6e79686dc6c4e8cbf228657f775`
+**Mapped at:** 51d1ac64 (2026-06-17)
 
 ---
 
