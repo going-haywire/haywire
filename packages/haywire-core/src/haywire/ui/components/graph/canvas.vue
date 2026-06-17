@@ -2,7 +2,7 @@
     <div :id="containerId" ref="container" class="graph-canvas" :class="{
         dragging: dragState.isDragging,
         'box-selecting': boxSelectionState.isActive
-    }" :style="canvasSizeStyle" tabindex="0" @click="handleCanvasClick" @contextmenu="handleContextMenu">
+    }" :style="[canvasSizeStyle, backgroundStyle]" tabindex="0" @click="handleCanvasClick" @contextmenu="handleContextMenu">
         <!-- Box selection rectangle -->
         <div 
             v-if="boxSelectionState.isActive" 
@@ -40,6 +40,13 @@ export default {
         zoomContainerId: { type: String, default: '' },
         canvasWidth:  { type: Number, default: 8000 },
         canvasHeight: { type: Number, default: 8000 },
+        // Canvas appearance settings.
+        bgPattern:        { type: String,  default: 'dots' },
+        gridColor:        { type: String,  default: '#808080' },
+        gridEnabled:      { type: Boolean, default: true },
+        gridSize:         { type: Number,  default: 20 },
+        gridSubdivisions: { type: Number,  default: 5 },
+        snapToGrid:       { type: Boolean, default: true },
         // Hover magnifier (readability aid; see _setupHoverObserver).
         hoverScaleEnabled:    { type: Boolean, default: true },
         hoverScaleMax:        { type: Number,  default: 1.5 },
@@ -71,9 +78,7 @@ export default {
                 dragOffset: { x: 0, y: 0 },
                 hasActuallyMoved: false,
                 dragThreshold: 5,
-                mouseDownEvent: null,
-                finalDeltaX: 0,
-                finalDeltaY: 0
+                mouseDownEvent: null
             },
             
             // Unified selection state
@@ -124,6 +129,48 @@ export default {
 
         nodeContainerTransform() {
             return this.canvasSizeStyle;
+        },
+
+        backgroundStyle() {
+            if (this.bgPattern === 'none' || !this.gridEnabled) return {};
+            const size = this.gridSize;
+            const sub = this.gridSubdivisions;
+            const subSize = size / sub;
+            const color = this.gridColor;
+            // Derive a dimmer version for sub-grid marks (50% opacity of the base color).
+            const subColor = color.startsWith('#')
+                ? color + '80'   // append alpha byte; works for #rrggbb hex
+                : color.replace(/[\d.]+\)$/, v => `${(parseFloat(v) * 0.5).toFixed(2)})`);
+            if (this.bgPattern === 'dots') {
+                return {
+                    backgroundImage: `radial-gradient(circle, ${color} 1.5px, transparent 1.5px),
+                                      radial-gradient(circle, ${subColor} 1px, transparent 1px)`,
+                    backgroundSize: `${size}px ${size}px, ${subSize}px ${subSize}px`,
+                };
+            }
+            if (this.bgPattern === 'lines') {
+                return {
+                    backgroundImage: `linear-gradient(${color} 1px, transparent 1px),
+                                      linear-gradient(90deg, ${color} 1px, transparent 1px),
+                                      linear-gradient(${subColor} 1px, transparent 1px),
+                                      linear-gradient(90deg, ${subColor} 1px, transparent 1px)`,
+                    backgroundSize: `${size}px ${size}px, ${size}px ${size}px, ${subSize}px ${subSize}px, ${subSize}px ${subSize}px`,
+                };
+            }
+            if (this.bgPattern === 'cross') {
+                // Small tick marks centered on each grid intersection — NOT full-span lines.
+                // Major crosses: arm = 4px; minor crosses: arm = 2px.
+                const cross = (sz, arm, stroke, strokeWidth) => {
+                    const c = sz / 2;
+                    const path = `M${c} ${c-arm}v${arm*2}M${c-arm} ${c}h${arm*2}`;
+                    return `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='${sz}' height='${sz}'%3E%3Cpath d='${path}' stroke='${encodeURIComponent(stroke)}' stroke-width='${strokeWidth}'/%3E%3C/svg%3E")`;
+                };
+                return {
+                    backgroundImage: `${cross(size, 4, color, 1)}, ${cross(subSize, 2, subColor, 1)}`,
+                    backgroundSize: `${size}px ${size}px, ${subSize}px ${subSize}px`,
+                };
+            }
+            return {};
         },
 
         selectionBoxStyle() {
@@ -1103,14 +1150,21 @@ export default {
             // Determine what elements to drag
             this.dragState.draggedElements = this._getDraggedElements(draggedElement, e.shiftKey);
 
-            // Store initial positions for all dragged elements
+            // Store initial positions for all dragged elements.
+            // If snap is on, round to the nearest sub-grid point so any
+            // pre-existing misalignment is absorbed once at drag start.
+            const subSize = this.snapToGrid ? this.gridSize / this.gridSubdivisions : 0;
+            const snapPos = (v) => subSize > 0 ? Math.round(v / subSize) * subSize : v;
             this.dragState.startPositions.clear();
             this.dragState.draggedElements.forEach(element => {
                 if (element.type === 'node') {
                     const nodeElement = element.element;
                     const currentLeft = parseInt(nodeElement.style.left) || 0;
                     const currentTop = parseInt(nodeElement.style.top) || 0;
-                    this.dragState.startPositions.set(element.id, { x: currentLeft, y: currentTop });
+                    this.dragState.startPositions.set(element.id, {
+                        x: snapPos(currentLeft),
+                        y: snapPos(currentTop),
+                    });
                 }
             });
 
@@ -1190,17 +1244,15 @@ export default {
             const zoomFactor = this.zoomState.zoom || 1;
             const canvasDeltaX = mouseDeltaX / zoomFactor;
             const canvasDeltaY = mouseDeltaY / zoomFactor;
-
-            // Store the final delta values for the drag end event
-            this.dragState.finalDeltaX = canvasDeltaX;
-            this.dragState.finalDeltaY = canvasDeltaY;
+            const subSz = this.snapToGrid ? this.gridSize / this.gridSubdivisions : 0;
+            const snap = (v) => subSz > 0 ? Math.round(v / subSz) * subSz : v;
 
             this.dragState.draggedElements.forEach(element => {
                 if (element.type === 'node') {
                     const startPos = this.dragState.startPositions.get(element.id);
                     if (startPos) {
-                        const newX = Math.max(0, Math.min(startPos.x + canvasDeltaX, this.canvasWidth - 100));
-                        const newY = Math.max(0, Math.min(startPos.y + canvasDeltaY, this.canvasHeight - 100));
+                        const newX = Math.max(0, Math.min(snap(startPos.x + canvasDeltaX), this.canvasWidth - 100));
+                        const newY = Math.max(0, Math.min(snap(startPos.y + canvasDeltaY), this.canvasHeight - 100));
 
                         element.element.style.left = `${newX}px`;
                         element.element.style.top = `${newY}px`;
@@ -1229,12 +1281,17 @@ export default {
                     }
                 });
 
-                // Emit unified drag update event with final position
-                this.emitCanvasEvent(EventCreators.createUserDragUpdate(
-                    this._extractNodeIds(this.dragState.draggedElements),
-                    this.dragState.finalDeltaX || 0,
-                    this.dragState.finalDeltaY || 0
-                ));
+                // Emit unified drag update with absolute snapped positions.
+                const positions = {};
+                this.dragState.draggedElements.forEach(element => {
+                    if (element.type === 'node') {
+                        positions[element.id] = {
+                            x: parseFloat(element.element.style.left) || 0,
+                            y: parseFloat(element.element.style.top)  || 0,
+                        };
+                    }
+                });
+                this.emitCanvasEvent(EventCreators.createUserDragUpdate(positions));
 
                 // Emit unified drag end event
                 this.emitCanvasEvent(EventCreators.createUserDragEnd(
@@ -1264,8 +1321,6 @@ export default {
             this.dragState.dragOffset = { x: 0, y: 0 };
             this.dragState.hasActuallyMoved = false;
             this.dragState.mouseDownEvent = null;
-            this.dragState.finalDeltaX = 0;
-            this.dragState.finalDeltaY = 0;
         },
 
         _serializeDraggedElements(elements) {

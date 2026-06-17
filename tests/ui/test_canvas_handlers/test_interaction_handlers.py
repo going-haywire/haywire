@@ -41,9 +41,9 @@ def test_drag_start_calls_add_fence(handler, editor):
 
 
 def test_drag_start_does_not_move_nodes(handler, editor):
-    """DragStart must not call move_nodes — only fences."""
+    """DragStart must not call move_nodes_to — only fences."""
     handler.process_drag_start(UserDragStartEvent(nodes=["n1"]))
-    editor.move_nodes.assert_not_called()
+    editor.move_nodes_to.assert_not_called()
 
 
 # ---------------------------------------------------------------------------
@@ -51,16 +51,17 @@ def test_drag_start_does_not_move_nodes(handler, editor):
 # ---------------------------------------------------------------------------
 
 
-def test_drag_update_calls_move_nodes(handler, editor):
-    """DragUpdate forwards node IDs and delta to editor.move_nodes."""
-    handler.process_drag_update(UserDragUpdateEvent(nodes=["n1", "n2"], deltaX=15.0, deltaY=-8.5))
-    editor.move_nodes.assert_called_once_with(["n1", "n2"], 15.0, -8.5)
+def test_drag_update_calls_move_nodes_to(handler, editor):
+    """DragUpdate forwards absolute positions to editor.move_nodes_to."""
+    positions = {"n1": {"x": 100.0, "y": 80.0}, "n2": {"x": 200.0, "y": 160.0}}
+    handler.process_drag_update(UserDragUpdateEvent(positions=positions))
+    editor.move_nodes_to.assert_called_once_with(positions)
 
 
-def test_drag_update_with_empty_node_list(handler, editor):
-    """DragUpdate with no nodes still forwards the call (editor decides)."""
-    handler.process_drag_update(UserDragUpdateEvent(nodes=[], deltaX=0.0, deltaY=0.0))
-    editor.move_nodes.assert_called_once_with([], 0.0, 0.0)
+def test_drag_update_with_empty_positions(handler, editor):
+    """DragUpdate with no positions still forwards the call (editor decides)."""
+    handler.process_drag_update(UserDragUpdateEvent(positions={}))
+    editor.move_nodes_to.assert_called_once_with({})
 
 
 # ---------------------------------------------------------------------------

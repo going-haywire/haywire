@@ -94,9 +94,7 @@ class UserDragStartEvent(BaseGraphEvent):
 @graph_event("userDragUpdate", category="user", description="User is dragging nodes")
 @dataclass
 class UserDragUpdateEvent(BaseGraphEvent):
-    nodes: List[str]  # List of node IDs being dragged
-    deltaX: float
-    deltaY: float
+    positions: Dict[str, Dict[str, float]]  # {nodeId: {x, y}} absolute snapped positions
 
 
 @graph_event("userDragEnd", category="user", description="User finished dragging nodes")

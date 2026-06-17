@@ -246,6 +246,41 @@ class MoveNodesAction(ActionBase):
         return merged
 
 
+class MoveNodesToAction(ActionBase):
+    """Action for moving nodes to absolute positions (used by snapped drag)."""
+
+    def __init__(
+        self,
+        graph: BaseGraph,
+        positions: Dict[str, Dict[str, float]],
+        description: Optional[str] = None,
+    ):
+        node_count = len(positions)
+        if node_count == 1:
+            node_id = next(iter(positions))
+            super().__init__(description or f"Move node '{node_id}'")
+        else:
+            super().__init__(description or f"Move {node_count} nodes")
+
+        self.graph = graph
+        self.target_positions = positions  # {nodeId: {x, y}}
+        # Capture originals at construction time so undo is exact.
+        self.original_positions: Dict[str, Dict[str, float]] = {}
+        for node_id in positions:
+            wrapper = graph.get_node_wrapper(node_id)
+            if wrapper and wrapper.node:
+                node = wrapper.node
+                self.original_positions[node_id] = {"x": node.props.posX, "y": node.props.posY}
+
+    def _execute_impl(self) -> None:
+        for node_id, pos in self.target_positions.items():
+            self.graph.move_node(node_id, pos["x"], pos["y"])
+
+    def _undo_impl(self) -> None:
+        for node_id, pos in self.original_positions.items():
+            self.graph.move_node(node_id, pos["x"], pos["y"])
+
+
 class RemoveElementsAction(ActionBase):
     """
     Action for removing multiple nodes and connections in a single

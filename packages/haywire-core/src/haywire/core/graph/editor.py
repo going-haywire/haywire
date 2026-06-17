@@ -10,6 +10,7 @@ from haywire.core.undo.config import UndoConfig
 from haywire.core.undo.actions.graph_actions import (
     AddNodeAction,
     MoveNodesAction,
+    MoveNodesToAction,
     RemoveElementsAction,
     AddEdgeAction,
     PasteClipboardAction,
@@ -124,6 +125,19 @@ class Editor:
 
         except Exception as e:
             logger.error(f"Error moving nodes by delta: {e}")
+            return False
+
+    def move_nodes_to(self, positions: Dict[str, Dict[str, float]]) -> bool:
+        """Move nodes to absolute positions (e.g. from a snapped drag)."""
+        if not positions:
+            return False
+        try:
+            action = MoveNodesToAction(self.graph, positions)
+            self.history_manager.add_action(action)
+            logger.info(f"Moved {len(positions)} nodes to absolute positions")
+            return True
+        except Exception as e:
+            logger.error(f"Error moving nodes to absolute positions: {e}")
             return False
 
     def remove_elements(self, nodes: List[str], edges: List[str]) -> bool:

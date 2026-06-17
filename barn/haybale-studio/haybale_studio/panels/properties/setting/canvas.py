@@ -21,7 +21,7 @@ from haywire.ui.panel.decorator import panel
 from haywire.ui.panel.render_utils import render_schema
 from haywire.ui.components.minimap.settings import MinimapSettings
 from haywire.ui.components.debug_overlay.settings import DebugOverlaySettings
-from haywire.ui.prefs.canvas import CanvasSettings
+from haywire.ui.components.graph.settings import CanvasSettings
 from haywire.ui.prefs.edge_ui import EdgeUISettings
 from haywire.ui.panel.focus import CanvasFocus
 

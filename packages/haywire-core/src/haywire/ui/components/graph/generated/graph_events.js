@@ -58,12 +58,12 @@ window.EventCreators = {
     };
   },
 
-  createUserDragUpdate(nodes, deltaX, deltaY, sessionId = 'default') {
+  createUserDragUpdate(positions, sessionId = 'default') {
     return {
       event_type: 'userDragUpdate',
       source_session_id: sessionId,
       timestamp: Date.now(),
-      data: { nodes, deltaX, deltaY },
+      data: { positions },
       requires_broadcast: true
     };
   },
@@ -267,7 +267,7 @@ window.EventValidators = {
   },
 
   validateUserDragUpdate(data) {
-    const requiredFields = ["nodes", "deltaX", "deltaY"];
+    const requiredFields = ["positions"];
     return requiredFields.every(field => field in data);
   },
 

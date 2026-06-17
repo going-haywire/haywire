@@ -1,10 +1,8 @@
-# haywire/ui/prefs/canvas.py
+# haywire/ui/components/graph/canvas.py
 """Canvas grid, zoom, and pan preference singleton."""
 
-from haywire.core.settings import setting
+from haywire.core.settings import Color, setting
 from haywire.core.settings.schema import FrameworkSettings
-
-# TODO: Find the right place for CanvasSettings
 
 
 class CanvasSettings(FrameworkSettings, namespace="ui.canvas"):
@@ -18,6 +16,14 @@ class CanvasSettings(FrameworkSettings, namespace="ui.canvas"):
         category="ui.canvas",
         order=10,
         choices=["none", "dots", "lines", "cross"],
+    )
+    grid_color = setting[Color](
+        "#808080",
+        label="Grid Color",
+        description="Color of the canvas grid",
+        category="ui.canvas",
+        order=11,
+        widget="color",
     )
 
     # Grid

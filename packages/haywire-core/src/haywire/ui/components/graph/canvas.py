@@ -13,11 +13,21 @@ from pathlib import Path
 from nicegui import ui
 
 from haywire.ui.components.graph.event_definitions import BaseGraphEvent, GRAPH_EVENT_REGISTRY
+from haywire.ui.components.graph.settings import CanvasSettings
 from haywire.ui.components.zoom.settings import EditorPanZoomSettings
 
 _GRAPH_EVENTS_JS = Path(__file__).parent / "generated" / "graph_events.js"
 
 logger = logging.getLogger(__name__)
+
+_CANVAS_SETTING_PROPS: dict[str, str] = {
+    "bg_pattern": "bg-pattern",
+    "grid_color": "grid-color",
+    "grid_enabled": "grid-enabled",
+    "grid_size": "grid-size",
+    "grid_subdivisions": "grid-subdivisions",
+    "snap_to_grid": "snap-to-grid",
+}
 
 # Hover-magnifier settings → Vue prop names. The magnifier lives in canvas.vue
 # (graph-aware: it owns per-node hover hooks, edge refresh and zoomState), so the
@@ -58,6 +68,11 @@ class GraphCanvasVue(ui.element, component="canvas.vue", dependencies=[_GRAPH_EV
         # corrupt editor A's zoomState and render edges with wrong coords).
         self._props["zoomContainerId"] = zoom_container.container_id if zoom_container else ""
 
+        # Canvas appearance settings: push initial values and live-update on change.
+        self._canvas_settings = CanvasSettings()
+        self._apply_canvas_setting_props()
+        self._canvas_settings.subscribe(self._on_canvas_setting_changed)
+
         # Hover-magnifier settings: push initial values and live-update on change.
         self._pz_settings = EditorPanZoomSettings()
         self._apply_hover_setting_props()
@@ -65,6 +80,18 @@ class GraphCanvasVue(ui.element, component="canvas.vue", dependencies=[_GRAPH_EV
 
         # Register single unified event handler
         self.on("canvasEvent", self._handle_canvas_event)
+
+    def _apply_canvas_setting_props(self) -> None:
+        """Push current canvas appearance settings to Vue props."""
+        for name, prop in _CANVAS_SETTING_PROPS.items():
+            self._props[prop] = getattr(self._canvas_settings, name)
+
+    def _on_canvas_setting_changed(self, name: str, value, _old) -> None:
+        """Propagate a canvas appearance settings change to the Vue component."""
+        prop = _CANVAS_SETTING_PROPS.get(name)
+        if prop is not None:
+            self._props[prop] = value
+            self.update()
 
     def _apply_hover_setting_props(self) -> None:
         """Push current hover-magnifier settings to Vue props."""
@@ -124,8 +151,12 @@ class GraphCanvasVue(ui.element, component="canvas.vue", dependencies=[_GRAPH_EV
     def cleanup(self):
         """Cleanup resources and references."""
         self._is_cleanup = True
-        # Drop the settings subscription so this instance isn't kept alive (and
+        # Drop the settings subscriptions so this instance isn't kept alive (and
         # doesn't fire into a torn-down component) across hot-reload / tab close.
+        try:
+            self._canvas_settings.unsubscribe(self._on_canvas_setting_changed)
+        except Exception:
+            pass
         try:
             self._pz_settings.unsubscribe(self._on_setting_changed)
         except Exception:

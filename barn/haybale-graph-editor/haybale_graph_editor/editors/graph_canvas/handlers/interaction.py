@@ -41,9 +41,9 @@ class InteractionHandlers:
 
     @handles_event(UserDragUpdateEvent)
     def process_drag_update(self, event: UserDragUpdateEvent):
-        """Forward delta movement to editor (records MoveNodesAction)."""
-        logger.debug(f"Dragging {len(event.nodes)} nodes by ({event.deltaX}, {event.deltaY})")
-        self.editor.move_nodes(event.nodes, event.deltaX, event.deltaY)
+        """Forward absolute positions to editor (records MoveNodesToAction)."""
+        logger.debug(f"Dragging {len(event.positions)} nodes to absolute positions")
+        self.editor.move_nodes_to(event.positions)
 
     @handles_event(UserDragEndEvent)
     def process_drag_end(self, event: UserDragEndEvent):
