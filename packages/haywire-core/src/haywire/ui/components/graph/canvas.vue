@@ -134,30 +134,26 @@ export default {
         backgroundStyle() {
             if (this.bgPattern === 'none' || !this.gridEnabled) return {};
             const size = this.gridSize;
-            const color = this.gridColor;
+            const color = encodeURIComponent(this.gridColor);
+            // All patterns use SVG tiles with the mark centred at (0,0) so the
+            // visual grid points align with the snap coordinates (multiples of size).
+            const vb = (pad) => `${-pad} ${-pad} ${size} ${size}`;
+            const svgUrl = (body, pad = 0) =>
+                `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='${size}' height='${size}' viewBox='${vb(pad)}'%3E${body}%3C/svg%3E")`;
+
             if (this.bgPattern === 'dots') {
-                return {
-                    backgroundImage: `radial-gradient(circle, ${color} 1.5px, transparent 1.5px)`,
-                    backgroundSize: `${size}px ${size}px`,
-                };
+                const dot = `%3Ccircle cx='0' cy='0' r='1.5' fill='${color}'/%3E`;
+                return { backgroundImage: svgUrl(dot, 2), backgroundSize: `${size}px ${size}px` };
             }
             if (this.bgPattern === 'lines') {
-                return {
-                    backgroundImage: `linear-gradient(${color} 1px, transparent 1px),
-                                      linear-gradient(90deg, ${color} 1px, transparent 1px)`,
-                    backgroundSize: `${size}px ${size}px, ${size}px ${size}px`,
-                };
+                // Two lines through (0,0): one horizontal, one vertical, spanning the tile.
+                const lines = `%3Cline x1='0' y1='0' x2='${size}' y2='0' stroke='${color}' stroke-width='1'/%3E%3Cline x1='0' y1='0' x2='0' y2='${size}' stroke='${color}' stroke-width='1'/%3E`;
+                return { backgroundImage: svgUrl(lines), backgroundSize: `${size}px ${size}px` };
             }
             if (this.bgPattern === 'cross') {
-                // Cross centered at tile origin (0,0); arms extend ±arm px.
-                // backgroundPosition shifts the tile so (0,0) lands on snap points.
                 const arm = 4;
-                const path = `M0 ${-arm}v${arm*2}M${-arm} 0h${arm*2}`;
-                const svg = `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='${size}' height='${size}' viewBox='${-arm} ${-arm} ${size} ${size}'%3E%3Cpath d='${path}' stroke='${encodeURIComponent(color)}' stroke-width='1'/%3E%3C/svg%3E")`;
-                return {
-                    backgroundImage: svg,
-                    backgroundSize: `${size}px ${size}px`,
-                };
+                const cross = `%3Cpath d='M0 ${-arm}v${arm*2}M${-arm} 0h${arm*2}' stroke='${color}' stroke-width='1'/%3E`;
+                return { backgroundImage: svgUrl(cross, arm), backgroundSize: `${size}px ${size}px` };
             }
             return {};
         },
