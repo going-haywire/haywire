@@ -175,7 +175,13 @@ def _render_grouped(sorted_items, category_of, render_one) -> Any:
 
 
 def _render_definitions(sorted_defns: list, registry: "SettingsRegistry") -> None:
-    """Render a pre-sorted list of registry-backed field descriptors."""
+    """Render a pre-sorted list of registry-backed field descriptors.
+
+    Subscribes to the registry so that external changes (TOML reload, cross-tab
+    writes) update the rendered widgets in place without a full redraw.
+    """
+    # key -> apply(value) callback for in-place widget updates
+    appliers: dict[str, Callable[[Any], None]] = {}
 
     def _render_one(defn) -> None:
         key = defn._setting_key
@@ -184,7 +190,7 @@ def _render_definitions(sorted_defns: list, registry: "SettingsRegistry") -> Non
         except KeyError:
             return
         attr_name = defn._attr_name or key.split(".")[-1]
-        _render_field_row(
+        apply = _render_field_row(
             defn._label or attr_name,
             defn._description,
             defn,
@@ -192,8 +198,34 @@ def _render_definitions(sorted_defns: list, registry: "SettingsRegistry") -> Non
             lambda coerce, k=key: _make_setter(registry, k, coerce),
             attr_name=attr_name,
         )
+        if apply is not None:
+            appliers[key] = apply
 
-    _render_grouped(sorted_defns, category_of=lambda d: d._category, render_one=_render_one)
+    column = _render_grouped(sorted_defns, category_of=lambda d: d._category, render_one=_render_one)
+
+    def _on_registry_change(key: str, _value: Any) -> None:
+        apply = appliers.get(key)
+        if apply is None:
+            return
+        try:
+            resolved, _ = registry.resolve(key)
+            apply(resolved)
+        except KeyError:
+            pass
+
+    # Subscribe at the common namespace prefix so we receive only the keys we rendered.
+    all_keys = list(appliers.keys())
+    if all_keys:
+        parts_list = [k.split(".") for k in all_keys]
+        min_len = min(len(p) for p in parts_list)
+        namespace: str | None = None
+        for depth in range(min_len, 0, -1):
+            prefix = ".".join(parts_list[0][:depth])
+            if all(".".join(p[:depth]) == prefix for p in parts_list):
+                namespace = prefix
+                break
+        registry.subscribe(namespace, _on_registry_change)
+        anchor_cleanup_to_element(column, lambda: registry.unsubscribe(namespace, _on_registry_change))
 
 
 # ===========================================================================
@@ -201,17 +233,18 @@ def _render_definitions(sorted_defns: list, registry: "SettingsRegistry") -> Non
 # ===========================================================================
 
 
-def _render_field_row(label_text: str, description: str, defn, value, make_setter, attr_name: str = ""):
-    """Render a single label + widget row (registry path; no external sync)."""
+def _render_field_row(
+    label_text: str, description: str, defn, value, make_setter, attr_name: str = ""
+) -> Callable[[Any], None]:
+    """Render a single label + widget row (registry path); return apply(value) for external sync."""
     vec_meta = get_vec_meta(defn._type)
     if vec_meta is not None:
-        _render_vec_field_rows(label_text, description, vec_meta, value, make_setter, attr_name)
-        return
+        return _render_vec_field_rows(label_text, description, vec_meta, value, make_setter, attr_name)
     with ui.row().classes(_ROW_CLASSES).props(f'data-field="{attr_name}"' if attr_name else ""):
         lbl = ui.label(label_text).classes(_LABEL_CLASSES)
         if description:
             lbl.tooltip(description)
-        _build_field_widget(defn, value, make_setter)
+        return _build_field_widget(defn, value, make_setter)
 
 
 def _render_reactive_field_row(
