@@ -240,6 +240,62 @@ def register_routes(library_service) -> None:
                 ui.label(f"Error: {exc}").classes("text-red-400 text-xs")
 
     # -------------------------------------------------------------------------
+    # GET /node-live?class=<dotted.ClassName>&bag=<bag_name>
+    #
+    # Like /node, but additionally mounts a server-side "external write" button
+    # per field. Clicking a button does setattr(instance, field, value) WITHOUT
+    # touching the rendered widget — simulating a change from another tab /
+    # worker / mirror propagation. Backs test_external_sync.py.
+    # -------------------------------------------------------------------------
+
+    @ui.page("/node-live")
+    async def node_live_page(request: Request):
+        params = dict(request.query_params)
+        class_path = params.get("class", "")
+        bag_name = params.get("bag", "")
+
+        if theme_css:
+            ui.add_css(theme_css)
+
+        with ui.card().classes("w-full max-w-md mx-auto mt-8 p-4"):
+            if not class_path or not bag_name:
+                ui.label("Missing ?class= or ?bag= parameter").classes("text-red-400")
+                return
+            try:
+                node_cls = _resolve_class(class_path)
+                settings_cls = getattr(node_cls, bag_name)
+                settings_instance = settings_cls(registry=registry)
+                render_settings(settings_instance)
+
+                # External-write triggers. Each button mutates the model only.
+                def _ext_set(field: str, value):
+                    def _do():
+                        setattr(settings_instance, field, value)
+
+                    return _do
+
+                ui.button("ext-string", on_click=_ext_set("example_string", "EXTERNAL")).props(
+                    'data-testid="ext-string"'
+                )
+                ui.button("ext-float", on_click=_ext_set("persistent_value", 9.0)).props(
+                    'data-testid="ext-float"'
+                )
+                ui.button("ext-bool", on_click=_ext_set("example_bool", True)).props(
+                    'data-testid="ext-bool"'
+                )
+                ui.button("ext-choice", on_click=_ext_set("example_choices", "quality")).props(
+                    'data-testid="ext-choice"'
+                )
+                ui.button("ext-mirror", on_click=_ext_set("intensity", 0.7)).props(
+                    'data-testid="ext-mirror"'
+                )
+                ui.button("ext-vec", on_click=_ext_set("example_vec3f", (4.0, 5.0, 6.0))).props(
+                    'data-testid="ext-vec"'
+                )
+            except Exception as exc:
+                ui.label(f"Error: {exc}").classes("text-red-400 text-xs")
+
+    # -------------------------------------------------------------------------
     # GET /schema?class=<dotted.ClassName>
     # -------------------------------------------------------------------------
 
