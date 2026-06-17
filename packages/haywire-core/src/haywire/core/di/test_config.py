@@ -39,7 +39,7 @@ class _TestFrameworkSettings(FrameworkSettings, namespace="test.global"):
 class TestingWidgetSettings(FrameworkSettings, namespace="test.widgets"):
     """FrameworkSettings covering every widget type, for UI harness tests.
 
-    One field per widget branch in _render_widget_impl:
+    One field per widget branch in _build_field_widget:
       - bool   → ui.switch
       - int    → NumberDrag (step=1)
       - float  → NumberDrag

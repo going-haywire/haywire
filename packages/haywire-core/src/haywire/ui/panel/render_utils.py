@@ -1,11 +1,27 @@
-# haybale_studio/panels/_settings_panel_base.py
+# haywire/ui/panel/render_utils.py
 """
 Utility collection of renderer functions for
 FrameworkSettings / LibrarySettings / NodeSettings schema classes.
+
+The module reads top-to-bottom as a waterfall:
+
+    1. Entry points     render_settings / render_schema / render_keys
+    2. Collect & group  sort fields, group by category, lay out the column
+    3. Row rendering     one label + widget row (reactive instance / registry)
+    4. Choose+draw+link  _build_field_widget: pick the widget, build it, wire
+                         its on_change, return an apply(value) sync hook
+    5. Widget catalog    _WidgetSpec + the per-widget build specs/hooks
+    6. Setters           make-setter factories (instance vs. registry tier)
+
+Every field flows through the same four stages. Stage 4 always returns an
+``apply(value)`` callback that mutates the existing widget in place (NiceGUI
+"Case 3"); the reactive path stores it for external-change sync, the registry
+path discards it.
 """
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from itertools import groupby
 from typing import TYPE_CHECKING, Any, Callable
 
@@ -27,9 +43,9 @@ _WIDGET_CLASSES = "sf-widget"
 _COLUMN_STYLE = "container-type: inline-size; container-name: settings-panel;"
 
 
-# ---------------------------------------------------------------------------
-# Public entry points
-# ---------------------------------------------------------------------------
+# ===========================================================================
+# 1. Entry points
+# ===========================================================================
 
 
 def render_settings(obj: "Settings") -> None:
@@ -50,21 +66,18 @@ def render_settings(obj: "Settings") -> None:
 
     sorted_fields = sorted(
         visible_fields.items(),
-        key=lambda item: (
-            "" if item[1]._category.lower() == "root" else item[1]._category,
-            item[1]._order,
-            item[0],
-        ),
+        key=lambda item: _category_sort_key(item[1]._category, item[1]._order, item[0]),
     )
 
+    # attr_name -> zero-arg updater that re-reads the model and applies it to the
+    # widget + override chrome in place. Populated by _render_reactive_field_row.
     updaters: dict[str, Callable[[], None]] = {}
 
-    column = ui.column().classes("w-full gap-0 compact-fields").style(_COLUMN_STYLE)
-    with column:
-        for category, group in _group_by_category(sorted_fields, key=lambda item: item[1]._category):
-            with hui.category_group(category):
-                for attr_name, defn in group:
-                    _render_reactive_field_row(obj, attr_name, defn, updaters)
+    column = _render_grouped(
+        sorted_fields,
+        category_of=lambda item: item[1]._category,
+        render_one=lambda item: _render_reactive_field_row(obj, item[0], item[1], updaters),
+    )
 
     def _on_model_change(name: str, value: Any, old: Any) -> None:
         # Dispatch by field name to that row's in-place updater. Only Case-3
@@ -104,11 +117,7 @@ def render_schema(schema_cls: type["Settings"], registry: "SettingsRegistry") ->
         ui.label("No fields defined.").classes("text-xs hw-text-muted px-2 py-1")
         return
 
-    sorted_defns = sorted(
-        defns.values(),
-        key=lambda d: ("" if d._category.lower() == "root" else d._category, d._order, d._setting_key),
-    )
-    _render_definitions(sorted_defns, registry)
+    _render_definitions(_sort_definitions(defns.values()), registry)
 
 
 def render_keys(prefix: str, registry: "SettingsRegistry") -> None:
@@ -116,7 +125,7 @@ def render_keys(prefix: str, registry: "SettingsRegistry") -> None:
 
     Intended for dynamically registered keys (e.g. per-library log levels)
     that are not declared on any schema class. The category label is derived
-    from the key structure via _render_category_group.
+    from the key structure via the category group.
     """
     match_prefix = prefix + "."
     defns = {key: defn for key, defn in registry.all_definitions().items() if key.startswith(match_prefix)}
@@ -124,33 +133,25 @@ def render_keys(prefix: str, registry: "SettingsRegistry") -> None:
         ui.label(f"No fields found under: {prefix}.*").classes("text-xs hw-text-muted px-2 py-1")
         return
 
-    sorted_defns = sorted(
-        defns.values(),
-        key=lambda d: ("" if d._category.lower() == "root" else d._category, d._order, d._setting_key),
+    _render_definitions(_sort_definitions(defns.values()), registry)
+
+
+# ===========================================================================
+# 2. Collect & group
+# ===========================================================================
+
+
+def _category_sort_key(category: str, order: int, tiebreak: str) -> tuple[str, int, str]:
+    """Shared (category, order, name) sort key. ``root`` sorts before all others."""
+    return ("" if category.lower() == "root" else category, order, tiebreak)
+
+
+def _sort_definitions(defns) -> list:
+    """Sort a collection of field descriptors by (category, order, setting_key)."""
+    return sorted(
+        defns,
+        key=lambda d: _category_sort_key(d._category, d._order, d._setting_key),
     )
-    _render_definitions(sorted_defns, registry)
-
-
-def _render_definitions(sorted_defns: list, registry: "SettingsRegistry") -> None:
-    """Render a pre-sorted list of field descriptors grouped by category."""
-    with ui.column().classes("w-full gap-0 compact-fields").style(_COLUMN_STYLE):
-        for category, group in _group_by_category(sorted_defns):
-            with hui.category_group(category):
-                for defn in group:
-                    key = defn._setting_key
-                    try:
-                        value, _ = registry.resolve(key)
-                    except KeyError:
-                        continue
-                    attr_name = defn._attr_name or key.split(".")[-1]
-                    _render_field_row(
-                        defn._label or attr_name,
-                        defn._description,
-                        defn,
-                        value,
-                        lambda coerce, k=key: _make_setter(registry, k, coerce),
-                        attr_name=attr_name,
-                    )
 
 
 def _group_by_category(items: list, key=lambda x: x._category) -> list[tuple[str, list]]:
@@ -158,8 +159,50 @@ def _group_by_category(items: list, key=lambda x: x._category) -> list[tuple[str
     return [(cat, list(grp)) for cat, grp in groupby(items, key=key)]
 
 
+def _render_grouped(sorted_items, category_of, render_one) -> Any:
+    """Lay out *sorted_items* as a settings column, grouped into category sections.
+
+    Returns the outer ``ui.column`` so callers can anchor teardown to it.
+    *render_one* is called once per item, inside its category group.
+    """
+    column = ui.column().classes("w-full gap-0 compact-fields").style(_COLUMN_STYLE)
+    with column:
+        for category, group in _group_by_category(sorted_items, key=category_of):
+            with hui.category_group(category):
+                for item in group:
+                    render_one(item)
+    return column
+
+
+def _render_definitions(sorted_defns: list, registry: "SettingsRegistry") -> None:
+    """Render a pre-sorted list of registry-backed field descriptors."""
+
+    def _render_one(defn) -> None:
+        key = defn._setting_key
+        try:
+            value, _ = registry.resolve(key)
+        except KeyError:
+            return
+        attr_name = defn._attr_name or key.split(".")[-1]
+        _render_field_row(
+            defn._label or attr_name,
+            defn._description,
+            defn,
+            value,
+            lambda coerce, k=key: _make_setter(registry, k, coerce),
+            attr_name=attr_name,
+        )
+
+    _render_grouped(sorted_defns, category_of=lambda d: d._category, render_one=_render_one)
+
+
+# ===========================================================================
+# 3. Row rendering
+# ===========================================================================
+
+
 def _render_field_row(label_text: str, description: str, defn, value, make_setter, attr_name: str = ""):
-    """Render a single label + widget row."""
+    """Render a single label + widget row (registry path; no external sync)."""
     vec_meta = get_vec_meta(defn._type)
     if vec_meta is not None:
         _render_vec_field_rows(label_text, description, vec_meta, value, make_setter, attr_name)
@@ -168,7 +211,7 @@ def _render_field_row(label_text: str, description: str, defn, value, make_sette
         lbl = ui.label(label_text).classes(_LABEL_CLASSES)
         if description:
             lbl.tooltip(description)
-        _render_widget_impl(defn, value, make_setter)
+        _build_field_widget(defn, value, make_setter)
 
 
 def _render_reactive_field_row(
@@ -177,7 +220,7 @@ def _render_reactive_field_row(
     defn: "setting",
     updaters: dict[str, Callable[[], None]],
 ) -> None:
-    """Render a single reactive field row.
+    """Render a single reactive field row (instance path).
 
     Registers an entry in *updaters* keyed by ``attr_name``: a zero-arg callback
     that re-reads the current model value and applies it to the rendered widget
@@ -236,7 +279,7 @@ def _render_reactive_field_row(
 
         with ui.row().classes(_ROW_CLASSES).props(f'data-field="{attr_name}"'):
             _render_label()
-            value_apply = _render_widget_impl(
+            value_apply = _build_field_widget(
                 defn,
                 getattr(obj, attr_name),
                 _make_reactive_setter(obj, attr_name, error_container),
@@ -255,9 +298,251 @@ def _render_reactive_field_row(
     updaters[attr_name] = _apply_external
 
 
-# ---------------------------------------------------------------------------
-# Widget dispatch
-# ---------------------------------------------------------------------------
+# ===========================================================================
+# 4. Choose -> draw -> link
+# ===========================================================================
+
+
+def _build_field_widget(defn: "setting", value: Any, make_setter) -> Callable[[Any], None]:
+    """Choose, draw, and link the widget for *defn*; return its ``apply(value)``.
+
+    This is the single CHOOSE -> DRAW -> LINK stage every field passes through.
+    ``make_setter(coerce)`` yields the on_change handler. The returned
+    ``apply(value)`` updates the rendered widget IN PLACE (NiceGUI "Case 3" —
+    safe from any asyncio task) when the model value changes externally.
+
+    Routing:
+    - ``label``      -> no ``.value`` (set_text), built here directly.
+    - simple value   -> a ``_WidgetSpec`` (color/select/bool/number), wired by
+                        ``_wire_widget`` — the shared draw+link path.
+    - ``str``        -> inline input + expand-to-modal, built here (carries an
+                        extra modal mirror-cell, so it isn't a plain spec).
+    """
+    if defn._widget == "label":
+        return _build_label_widget(value)
+
+    spec = _value_widget_spec(defn)
+    if spec is not None:
+        return _wire_widget(spec, value, make_setter)
+
+    return _build_str_widget(defn, value, make_setter)
+
+
+def _wire_widget(spec: "_WidgetSpec", value: Any, make_setter) -> Callable[[Any], None]:
+    """Build a value-carrying widget from *spec* and return its ``apply(value)``.
+
+    The single on_change (coerce → setter → write ``data-value``) and the
+    model-driven ``apply`` both encode through ``spec.to_data`` against the same
+    host, so they can't drift. ``apply`` assigns ``el.value`` in place (NiceGUI
+    "Case 3", safe from any asyncio task); a value the element already holds is a
+    no-op, so no echo guard is needed.
+    """
+    set_value = make_setter(spec.coerce)
+
+    if spec.self_hosting:
+        host: Any = None  # set after build; NumberDrag is its own data-value host
+
+        def on_change(e: Any) -> None:
+            set_value(_Event(spec.coerce(spec.read_event(e))))
+
+        el = spec.build(value, on_change).classes(spec.classes)
+        host = el
+    else:
+        host = ui.element("div").classes(spec.classes).props(f'data-value="{spec.to_data(value)}"')
+
+        def on_change(e: Any) -> None:
+            coerced = spec.coerce(spec.read_event(e))
+            set_value(_Event(coerced))
+            host.props(f'data-value="{spec.to_data(coerced)}"')
+
+        with host:
+            el = spec.build(value, on_change)
+
+    def apply(v: Any) -> None:
+        el.value = spec.to_widget(v)
+        if not spec.self_hosting:
+            host.props(f'data-value="{spec.to_data(v)}"')
+
+    return apply
+
+
+# ===========================================================================
+# 5. Widget catalog
+# ===========================================================================
+
+
+@dataclass(frozen=True)
+class _WidgetSpec:
+    """Everything that varies between a value-carrying settings widget.
+
+    Everything NOT here — the ``data-value`` host, the initial prop, the shared
+    coerce→set→write-data-value ``on_change``, and the returned ``apply`` — lives
+    once in ``_wire_widget``. ``apply`` and the handler both encode through
+    ``to_data``, so the two sync directions cannot drift.
+
+    - ``build(value, on_change)`` constructs the nicegui element, wiring
+      *on_change* however that element expects (``.on_value_change`` for stock
+      widgets, the ``on_change=`` ctor arg for NumberDrag).
+    - ``self_hosting`` widgets (NumberDrag) maintain their own ``data-value``
+      prop, so ``_wire_widget`` writes neither a wrapper nor a prop for them.
+    """
+
+    build: Callable[[Any, Callable[[Any], None]], Any]
+    coerce: Callable[[Any], Any] = lambda v: v
+    to_widget: Callable[[Any], Any] = lambda v: v
+    to_data: Callable[[Any], str] = str
+    read_event: Callable[[Any], Any] = lambda e: e.value
+    classes: str = _WIDGET_CLASSES
+    self_hosting: bool = False
+
+
+def _value_widget_spec(defn: "setting") -> "_WidgetSpec | None":
+    """Return the spec for *defn*'s value-carrying widget, or None.
+
+    Returns None for the two widgets that are NOT plain value-carrying specs and
+    are built directly in ``_build_field_widget``: ``label`` (no ``.value``) and
+    ``str`` (carries an extra modal mirror-cell).
+    """
+    if defn._widget == "color":
+        to_color = lambda v: v or "#ffffff"  # noqa: E731
+        return _WidgetSpec(
+            build=lambda v, oc: ui.color_input(value=to_color(v))
+            .classes("w-full")
+            .props("dense hide-bottom-space")
+            .on_value_change(oc),
+            coerce=str,
+            to_widget=to_color,
+            to_data=to_color,
+        )
+
+    choices = defn.choices
+    if choices is not None:
+        keys = choices if isinstance(choices, list) else list(choices.keys())
+        in_keys = lambda v: v if v in keys else None  # noqa: E731
+        return _WidgetSpec(
+            build=lambda v, oc: ui.select(options=choices, value=in_keys(v))
+            .classes("w-full text-xs")
+            .props("dense hide-bottom-space")
+            .on_value_change(oc),
+            to_widget=in_keys,
+            classes=f"{_WIDGET_CLASSES} overflow-hidden",
+        )
+
+    if defn._type is bool:
+        return _WidgetSpec(
+            build=lambda v, oc: ui.switch(value=bool(v)).props("dense").on_value_change(oc),
+            coerce=bool,
+            to_widget=bool,
+            to_data=lambda v: str(bool(v)).lower(),
+            classes="",
+        )
+
+    if defn._type in (int, float):
+        return _number_spec(defn)
+
+    return None
+
+
+def _number_spec(defn: "setting") -> "_WidgetSpec":
+    """Build the NumberDrag spec for an int/float field, deriving step/precision."""
+    coerce = defn._type
+    kwargs: dict = {}
+    if defn._min is not None:
+        kwargs["min"] = defn._min
+    if defn._max is not None:
+        kwargs["max"] = defn._max
+    if defn._type is int:
+        kwargs["step"] = 1
+        kwargs["precision"] = 0
+    else:
+        kwargs["step"] = _float_step_from_default(defn._default)
+
+    def _build(v, on_change, _k=kwargs):
+        return NumberDrag(value=coerce(v) if v is not None else 0, on_change=on_change, **_k)
+
+    return _WidgetSpec(
+        build=_build,
+        coerce=coerce,  # NumberDrag delivers its raw value via e.args (read_event)
+        to_widget=lambda v: coerce(v) if v is not None else 0,
+        read_event=lambda e: e.args,
+        self_hosting=True,
+    )
+
+
+def _build_label_widget(value: Any) -> Callable[[Any], None]:
+    """Display-only ``label`` widget — no ``.value`` (set_text, not BindableProperty)."""
+    str_value = _escape(value)
+    lbl = (
+        ui.label(str_value)
+        .classes(f"text-xs text-right truncate hw-text-muted {_WIDGET_CLASSES}")
+        .props(f'data-value="{str_value}"')
+    )
+
+    def _apply_label(v, _lbl=lbl):
+        s = _escape(v)
+        _lbl.set_text(s)
+        _lbl.props(f'data-value="{s}"')
+
+    return _apply_label
+
+
+def _build_str_widget(defn: "setting", value: Any, make_setter) -> Callable[[Any], None]:
+    """str fallback — inline input + expand-to-modal button.
+
+    str is the one widget that carries extra state: a ``current_value`` mirror
+    cell the modal reads, kept in sync by both the inline handler and ``apply``.
+    """
+    wrapper = (
+        ui.element("div")
+        .classes(f"flex items-center gap-1 {_WIDGET_CLASSES}")
+        .props(f'data-value="{_escape(value)}"')
+    )
+    with wrapper:
+        current_value = [str(value) if value is not None else ""]
+
+        def _str_handler(e, _w=wrapper, _s=make_setter(str), _cv=current_value):
+            _cv[0] = str(e.value)
+            _s(e)
+            _w.props(f'data-value="{_escape(e.value)}"')
+
+        def _str_validation(v, _defn=defn):
+            return None if _defn.validate(str(v) if v is not None else "") else "Invalid value"
+
+        input_el = (
+            ui.input(
+                value=current_value[0],
+                on_change=_str_handler,
+                validation=_str_validation,
+            )
+            .classes("flex-1 text-xs")
+            .props("dense debounce=500")
+        )
+
+        def _open_modal(_cv=current_value, _s=make_setter(str), _w=wrapper):
+            with ui.dialog() as dlg, hui.dialog_card("w-[480px]"):
+                ta = ui.textarea(value=_cv[0]).classes("w-full text-xs").props("dense autogrow")
+
+                def _confirm():
+                    v = ta.value
+                    _cv[0] = v
+                    _s(_Event(v))
+                    _w.props(f'data-value="{_escape(v)}"')
+                    dlg.close()
+
+                hui.dialog_actions(on_confirm=_confirm, on_cancel=dlg.close)
+            dlg.open()
+
+        ui.button(icon=hui.icon.expand_full, on_click=_open_modal).props("flat dense size=xs").tooltip(
+            "Edit in full"
+        )
+
+    def _apply_str(v, _w=wrapper, _el=input_el, _cv=current_value):
+        s = str(v) if v is not None else ""
+        _cv[0] = s
+        _el.value = s
+        _w.props(f'data-value="{_escape(s)}"')
+
+    return _apply_str
 
 
 def _render_vec_field_rows(
@@ -288,18 +573,12 @@ def _render_vec_field_rows(
     precision = 0 if vec_meta.element_type is int else None
     coerce = vec_meta.element_type
 
-    class _E:
-        __slots__ = ("value",)
-        value: list
-
     def _make_component_setter(idx, _cv=current, _ms=make_setter, _c=coerce):
         handler = _ms(lambda v: v)
 
         def _on_change(e, _i=idx, _h=handler, _cv=_cv, _c=_c):
             _cv[_i] = _c(e.args)
-            ev = _E()
-            ev.value = list(_cv)
-            _h(ev)
+            _h(_Event(list(_cv)))
 
         return _on_change
 
@@ -333,6 +612,8 @@ def _render_vec_field_rows(
                     component_nds.append(nd)
 
     def _apply_vec(v, _nds=component_nds, _c=coerce, _len=vec_meta.length, _cur=current):
+        # NumberDrag.value's setter rewrites its own data-value prop, so we only
+        # assign .value here — no separate props() write needed.
         seq = list(v) if v is not None else [0] * _len
         while len(seq) < _len:
             seq.append(0)
@@ -340,7 +621,6 @@ def _render_vec_field_rows(
             coerced = _c(seq[i])
             _cur[i] = coerced
             nd.value = coerced
-            nd.props(f'data-value="{str(coerced)}"')
 
     return _apply_vec
 
@@ -366,236 +646,18 @@ def _escape(v: Any) -> str:
     return (str(v) if v is not None else "").encode("unicode_escape").decode()
 
 
-def _bind_apply(
-    el,
-    wrapper,
-    *,
-    to_widget: "Callable[[Any], Any]" = lambda v: v,
-    to_data: "Callable[[Any], str]" = str,
-) -> "tuple[Callable[[Any], None], Callable[[Any], str]]":
-    """Build a widget's external-sync ``apply()`` plus its ``data-value`` formatter.
+class _Event:
+    """Minimal change-event stand-in: setters read only ``.value``."""
 
-    Both directions of sync (the user-driven ``on_change`` handler and the
-    model-driven ``apply``) write the same ``data-value`` string, so they share
-    one *to_data* per widget and can't drift. ``apply`` assigns ``el.value`` in
-    place — NiceGUI "Case 3", safe from any asyncio task; setting a value the
-    element already holds is a no-op, so no echo guard is needed.
+    __slots__ = ("value",)
 
-    Returns ``(apply, to_data)``; the caller passes *to_data* to its on_change
-    handler so the encoding lives in exactly one place.
-    """
-
-    def apply(v: Any) -> None:
-        el.value = to_widget(v)
-        wrapper.props(f'data-value="{to_data(v)}"')
-
-    return apply, to_data
+    def __init__(self, value: Any) -> None:
+        self.value = value
 
 
-def _render_widget_impl(defn: "setting", value: Any, make_setter) -> Callable[[Any], None]:
-    """Shared widget dispatch. make_setter(coerce) -> on_change handler.
-
-    Returns an ``apply(value)`` callback that updates the rendered widget IN
-    PLACE (NiceGUI "Case 3" — safe from any asyncio task) when the model value
-    changes externally. Setting an existing element's ``.value`` to a value it
-    already holds is a no-op (BindableProperty / NumberDrag short-circuit), so
-    no echo guard is needed.
-    """
-    # Escape for safe embedding in props strings (newlines etc. break ast.literal_eval)
-    str_value = _escape(value)
-
-    if defn._widget == "label":
-        # label has no .value (set_text, not BindableProperty), so it can't go
-        # through _bind_apply.
-        lbl = (
-            ui.label(str_value)
-            .classes(f"text-xs text-right truncate hw-text-muted {_WIDGET_CLASSES}")
-            .props(f'data-value="{str_value}"')
-        )
-
-        def _apply_label(v, _lbl=lbl):
-            s = _escape(v)
-            _lbl.set_text(s)
-            _lbl.props(f'data-value="{s}"')
-
-        return _apply_label
-
-    if defn._widget == "color":
-        wrapper = ui.element("div").classes(_WIDGET_CLASSES).props(f'data-value="{str_value}"')
-
-        def _color(v):
-            return v or "#ffffff"
-
-        with wrapper:
-
-            def _color_handler(e, _w=wrapper, _s=make_setter(str)):
-                _w.props(f'data-value="{e.value}"')
-                _s(e)
-
-            color_el = (
-                ui.color_input(value=value or "#ffffff")
-                .classes("w-full")
-                .props("dense hide-bottom-space")
-                .on_value_change(_color_handler)
-            )
-
-        apply, _ = _bind_apply(color_el, wrapper, to_widget=_color, to_data=_color)
-        return apply
-
-    resolved_choices = defn.choices
-    if resolved_choices is not None:
-        wrapper = (
-            ui.element("div")
-            .classes(f"{_WIDGET_CLASSES} overflow-hidden")
-            .props(f'data-value="{str_value}"')
-        )
-        options_keys = (
-            resolved_choices if isinstance(resolved_choices, list) else list(resolved_choices.keys())
-        )
-
-        def _select_widget(v, _keys=options_keys):
-            return v if v in _keys else None
-
-        with wrapper:
-
-            def _select_handler(e, _w=wrapper, _s=make_setter(lambda v: v)):
-                _s(e)
-                _w.props(f'data-value="{str(e.value)}"')
-
-            select_el = (
-                ui.select(
-                    options=resolved_choices,
-                    value=_select_widget(value),
-                )
-                .classes("w-full text-xs")
-                .props("dense hide-bottom-space")
-                .on_value_change(_select_handler)
-            )
-
-        apply, _ = _bind_apply(select_el, wrapper, to_widget=_select_widget)
-        return apply
-
-    if defn._type is bool:
-        wrapper = ui.element("div").props(f'data-value="{str(bool(value)).lower()}"')
-
-        def _bool_data(v):
-            return str(bool(v)).lower()
-
-        with wrapper:
-
-            def _bool_handler(e, _w=wrapper, _s=make_setter(bool), _fmt=_bool_data):
-                _s(e)
-                _w.props(f'data-value="{_fmt(e.value)}"')
-
-            switch_el = ui.switch(value=bool(value)).props("dense").on_value_change(_bool_handler)
-
-        apply, _ = _bind_apply(switch_el, wrapper, to_widget=bool, to_data=_bool_data)
-        return apply
-
-    if defn._type in (int, float):
-        kwargs: dict = {}
-        if defn._min is not None:
-            kwargs["min"] = defn._min
-        if defn._max is not None:
-            kwargs["max"] = defn._max
-        if defn._type is int:
-            kwargs["step"] = 1
-            kwargs["precision"] = 0
-        elif defn._type is float:
-            kwargs["step"] = _float_step_from_default(defn._default)
-        coerce = defn._type
-        handler = make_setter(coerce)
-
-        def _number_widget(v, _c=coerce):
-            return _c(v) if v is not None else 0
-
-        class _E:
-            __slots__ = ("value",)
-            value: Any
-
-        nd_ref: list[NumberDrag | None] = [None]
-
-        def _on_number_change(e, _h=handler, _c=coerce):
-            ev = _E()
-            ev.value = _c(e.args)
-            _h(ev)
-            if nd_ref[0] is not None:
-                nd_ref[0].props(f'data-value="{str(ev.value)}"')
-
-        nd = (
-            NumberDrag(value=value if value is not None else 0, on_change=_on_number_change, **kwargs)
-            .classes(_WIDGET_CLASSES)
-            .props(f'data-value="{str_value}"')
-        )
-        nd_ref[0] = nd
-
-        # NumberDrag carries its own div, so apply targets the element itself.
-        apply, _ = _bind_apply(nd, nd, to_widget=_number_widget, to_data=lambda v: str(_number_widget(v)))
-        return apply
-
-    # str fallback — inline input + expand-to-modal button
-    wrapper = (
-        ui.element("div")
-        .classes(f"flex items-center gap-1 {_WIDGET_CLASSES}")
-        .props(f'data-value="{str_value}"')
-    )
-    with wrapper:
-        current_value = [str(value) if value is not None else ""]
-
-        def _str_handler(e, _w=wrapper, _s=make_setter(str), _cv=current_value):
-            _cv[0] = str(e.value)
-            _s(e)
-            _w.props(f'data-value="{_escape(e.value)}"')
-
-        def _str_validation(v, _defn=defn):
-            return None if _defn.validate(str(v) if v is not None else "") else "Invalid value"
-
-        input_el = (
-            ui.input(
-                value=current_value[0],
-                on_change=_str_handler,
-                validation=_str_validation,
-            )
-            .classes("flex-1 text-xs")
-            .props("dense debounce=500")
-        )
-
-        def _open_modal(_cv=current_value, _s=make_setter(str), _w=wrapper):
-            with ui.dialog() as dlg, hui.dialog_card("w-[480px]"):
-                ta = ui.textarea(value=_cv[0]).classes("w-full text-xs").props("dense autogrow")
-
-                def _confirm():
-                    v = ta.value
-                    _cv[0] = v
-
-                    class _Ev:
-                        value = v
-
-                    _s(_Ev())
-                    _w.props(f'data-value="{_escape(v)}"')
-                    dlg.close()
-
-                hui.dialog_actions(on_confirm=_confirm, on_cancel=dlg.close)
-            dlg.open()
-
-        ui.button(icon=hui.icon.expand_full, on_click=_open_modal).props("flat dense size=xs").tooltip(
-            "Edit in full"
-        )
-
-    # str carries an extra mirror-cell (the modal reads current_value[0]), so its
-    # apply updates that too — otherwise it's the same in-place sync as the rest.
-    def _apply_str(v, _w=wrapper, _el=input_el, _cv=current_value):
-        s = str(v) if v is not None else ""
-        _cv[0] = s
-        _el.value = s
-        _w.props(f'data-value="{_escape(s)}"')
-
-    return _apply_str
-
-
-# ---------------------------------------------------------------------------
-# Setter factories
-# ---------------------------------------------------------------------------
+# ===========================================================================
+# 6. Setters
+# ===========================================================================
 
 
 def _make_reactive_setter(obj: "Settings", attr_name: str, error_container=None):

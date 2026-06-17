@@ -1,5 +1,5 @@
 """
-Widget coverage tests: verify that every widget branch in _render_widget_impl
+Widget coverage tests: verify that every widget branch in _build_field_widget
 renders the correct DOM and carries the correct initial data-value.
 
 Full matrix for SettingsNode.example:
