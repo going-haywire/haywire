@@ -134,40 +134,29 @@ export default {
         backgroundStyle() {
             if (this.bgPattern === 'none' || !this.gridEnabled) return {};
             const size = this.gridSize;
-            const sub = this.gridSubdivisions;
-            const subSize = size / sub;
             const color = this.gridColor;
-            // Derive a dimmer version for sub-grid marks (50% opacity of the base color).
-            const subColor = color.startsWith('#')
-                ? color + '80'   // append alpha byte; works for #rrggbb hex
-                : color.replace(/[\d.]+\)$/, v => `${(parseFloat(v) * 0.5).toFixed(2)})`);
             if (this.bgPattern === 'dots') {
                 return {
-                    backgroundImage: `radial-gradient(circle, ${color} 1.5px, transparent 1.5px),
-                                      radial-gradient(circle, ${subColor} 1px, transparent 1px)`,
-                    backgroundSize: `${size}px ${size}px, ${subSize}px ${subSize}px`,
+                    backgroundImage: `radial-gradient(circle, ${color} 1.5px, transparent 1.5px)`,
+                    backgroundSize: `${size}px ${size}px`,
                 };
             }
             if (this.bgPattern === 'lines') {
                 return {
                     backgroundImage: `linear-gradient(${color} 1px, transparent 1px),
-                                      linear-gradient(90deg, ${color} 1px, transparent 1px),
-                                      linear-gradient(${subColor} 1px, transparent 1px),
-                                      linear-gradient(90deg, ${subColor} 1px, transparent 1px)`,
-                    backgroundSize: `${size}px ${size}px, ${size}px ${size}px, ${subSize}px ${subSize}px, ${subSize}px ${subSize}px`,
+                                      linear-gradient(90deg, ${color} 1px, transparent 1px)`,
+                    backgroundSize: `${size}px ${size}px, ${size}px ${size}px`,
                 };
             }
             if (this.bgPattern === 'cross') {
-                // Small tick marks centered on each grid intersection — NOT full-span lines.
-                // Major crosses: arm = 4px; minor crosses: arm = 2px.
-                const cross = (sz, arm, stroke, strokeWidth) => {
-                    const c = sz / 2;
-                    const path = `M${c} ${c-arm}v${arm*2}M${c-arm} ${c}h${arm*2}`;
-                    return `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='${sz}' height='${sz}'%3E%3Cpath d='${path}' stroke='${encodeURIComponent(stroke)}' stroke-width='${strokeWidth}'/%3E%3C/svg%3E")`;
-                };
+                // Cross centered at tile origin (0,0); arms extend ±arm px.
+                // backgroundPosition shifts the tile so (0,0) lands on snap points.
+                const arm = 4;
+                const path = `M0 ${-arm}v${arm*2}M${-arm} 0h${arm*2}`;
+                const svg = `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='${size}' height='${size}' viewBox='${-arm} ${-arm} ${size} ${size}'%3E%3Cpath d='${path}' stroke='${encodeURIComponent(color)}' stroke-width='1'/%3E%3C/svg%3E")`;
                 return {
-                    backgroundImage: `${cross(size, 4, color, 1)}, ${cross(subSize, 2, subColor, 1)}`,
-                    backgroundSize: `${size}px ${size}px, ${subSize}px ${subSize}px`,
+                    backgroundImage: svg,
+                    backgroundSize: `${size}px ${size}px`,
                 };
             }
             return {};
