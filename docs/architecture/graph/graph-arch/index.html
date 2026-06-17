@@ -1685,6 +1685,28 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#graphentry-execution-lifecycle" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        GraphEntry execution lifecycle
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#run-policy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Run policy
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#todo" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2738,6 +2760,28 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#graphentry-execution-lifecycle" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        GraphEntry execution lifecycle
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#run-policy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Run policy
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#todo" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2789,6 +2833,29 @@ see-also:
 <ul>
 <li><a href="../../../archive/whitepaper/Haywire_design/">Haywire_design.md (whitepaper)</a></li>
 </ul>
+<h2 id="graphentry-execution-lifecycle">GraphEntry execution lifecycle<a class="headerlink" href="#graphentry-execution-lifecycle" title="Permanent link">&para;</a></h2>
+<p><code>GraphEntry</code> separates <em>assembly</em> from <em>starting</em>:</p>
+<ul>
+<li><code>compile() -&gt; CompileResult</code> — builds the per-entry <code>Interpreter</code> and calls
+  <code>load_graph</code> (which assembles the graph; assembly raises <code>RuntimeError</code> on an
+  invalid graph). The exception is caught and converted to a <code>CompileResult</code>
+  verdict (<code>ok</code> + optional <code>error</code>); a failed compile leaves the entry
+  non-executing with <code>interpreter = None</code>.</li>
+<li><code>start()</code> — dispatches <code>BEGIN_PLAY</code> on the already-compiled interpreter.</li>
+<li><code>start_execution() -&gt; CompileResult</code> — compile then (if <code>ok</code>) start; the
+  back-compatible combined entry point. Returns the verdict so callers (play
+  button, haystack load, autorestart) surface assembly failure rather than
+  letting a <code>RuntimeError</code> escape.</li>
+</ul>
+<h2 id="run-policy">Run policy<a class="headerlink" href="#run-policy" title="Permanent link">&para;</a></h2>
+<p>Each <code>GraphEntry</code> owns a <code>GraphRunSettings</code> bag (purely local, never
+registry-backed) describing <em>how</em> it runs within its haystack — currently the
+<code>autorestart</code> flag. It is persisted under the <code>[graphs.run]</code> table of the
+haystack TOML (omitted when at defaults; sparse). When a running graph is
+auto-stopped by a reassembly-requiring validation change
+(<code>HaystackState._on_entry_validation</code>) and <code>autorestart</code> is set, the entry is
+recompiled and restarted — but only if <code>compile()</code> reports the rebuilt graph is
+viable; otherwise it stays stopped.</p>
 <h2 id="todo">TODO<a class="headerlink" href="#todo" title="Permanent link">&para;</a></h2>
 <ul class="task-list">
 <li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> Write content</li>

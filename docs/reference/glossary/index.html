@@ -4212,6 +4212,11 @@
 <td>The left-slot editor that lists all open graphs, provides play/stop per row, and save/load haystack actions in the header</td>
 <td>GraphManagerEditor (renamed)</td>
 </tr>
+<tr>
+<td><strong>GraphRunSettings</strong></td>
+<td>A purely-local (never registry-backed) <code>Settings</code> bag owned by a <strong>GraphEntry</strong> that records <em>how</em> the entry runs within its <strong>Haystack</strong> — e.g. the <code>autorestart</code> flag. Persisted per-entry in the haystack TOML, not in the <code>.haywire</code> graph file. Distinct from the <strong>Execution Pipeline</strong> vocabulary (Assembly/VM/Flow), which is about <em>running</em> a graph, not <em>policy for whether/how</em> an entry runs</td>
+<td>Execution settings (collides with the VM/Assembly engine vocabulary), entry config</td>
+</tr>
 </tbody>
 </table>
 <hr />
