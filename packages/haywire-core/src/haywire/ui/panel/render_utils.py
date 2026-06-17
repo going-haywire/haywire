@@ -15,6 +15,7 @@ from haywire.ui import elements as hui
 from haywire.core.settings.enums import SettingMode
 from haywire.core.settings.types import get_vec_meta
 from haywire.ui.components.number.drag import NumberDrag
+from haywire.ui.utils import anchor_cleanup_to_element
 
 if TYPE_CHECKING:
     from haywire.core.settings.registry import SettingsRegistry
@@ -82,17 +83,8 @@ def render_settings(obj: "Settings") -> None:
         _updater()
 
     # Tear down the subscription when the column leaves the DOM (redraw via
-    # content.clear() or page close), mirroring NodePortsPanel's cleanup anchor.
-    _original_handle_delete = column._handle_delete
-
-    def _handle_delete() -> None:
-        try:
-            obj.unsubscribe(_on_model_change)
-        except Exception:
-            pass
-        _original_handle_delete()
-
-    column._handle_delete = _handle_delete  # type: ignore[method-assign]
+    # content.clear() or page close).
+    anchor_cleanup_to_element(column, lambda: obj.unsubscribe(_on_model_change))
 
 
 def render_schema(schema_cls: type["Settings"], registry: "SettingsRegistry") -> None:
@@ -193,80 +185,74 @@ def _render_reactive_field_row(
     model (other tab / worker / mirror) are reflected.
     """
 
-    @ui.refreshable
-    def row_content():
-        is_mirrored = bool(defn._mirror_key)
+    is_mirrored = bool(defn._mirror_key)
 
-        def _label_text(locally_set: bool) -> str:
-            base = defn._label or attr_name
-            return f"• {base}" if (is_mirrored and locally_set) else base
+    def _label_text(locally_set: bool) -> str:
+        base = defn._label or attr_name
+        return f"• {base}" if (is_mirrored and locally_set) else base
 
-        is_locally_overridden = is_mirrored and obj.is_locally_set(attr_name)
+    is_locally_overridden = is_mirrored and obj.is_locally_set(attr_name)
 
-        label_ref: list[Any] = [None]
-        reset_btn_ref: list[Any] = [None]
-        value_apply_ref: list[Callable[[Any], None] | None] = [None]
+    label: Any = None
+    reset_btn: Any = None
+    value_apply: Callable[[Any], None] | None = None
 
-        def _render_label():
-            def _on_reset_click():
-                obj.reset(attr_name)
-                # reset() fires _on_property_change -> the subscription updater
-                # refreshes value + chrome in place; nothing else to do here.
+    def _render_label():
+        nonlocal label, reset_btn
 
-            with ui.row().classes("items-center gap-0 shrink-0 sf-label"):
-                lbl = ui.label(_label_text(is_locally_overridden)).classes("text-xs truncate")
-                if defn._description:
-                    lbl.tooltip(defn._description)
-                label_ref[0] = lbl
-                reset_btn = (
-                    ui.button(icon=hui.icon.reset)
-                    .props("flat dense size=xs")
-                    .tooltip("Reset to global default")
-                    .on("click", _on_reset_click)
-                )
-                reset_btn.set_visibility(is_mirrored and is_locally_overridden)
-                reset_btn_ref[0] = reset_btn
+        def _on_reset_click():
+            obj.reset(attr_name)
+            # reset() fires _on_property_change -> the subscription updater
+            # refreshes value + chrome in place; nothing else to do here.
 
-        vec_meta = get_vec_meta(defn._type)
-        if vec_meta is not None:
-            make_setter = _make_reactive_setter(obj, attr_name)
-            # _render_vec_field_rows returns an apply(value) updater for in-place
-            # external sync of each component NumberDrag.
-            value_apply_ref[0] = _render_vec_field_rows(
-                defn._label or attr_name,
-                defn._description,
-                vec_meta,
-                getattr(obj, attr_name),
-                make_setter,
-                attr_name,
-                render_label=_render_label,
+        with ui.row().classes("items-center gap-0 shrink-0 sf-label"):
+            label = ui.label(_label_text(is_locally_overridden)).classes("text-xs truncate")
+            if defn._description:
+                label.tooltip(defn._description)
+            reset_btn = (
+                ui.button(icon=hui.icon.reset)
+                .props("flat dense size=xs")
+                .tooltip("Reset to global default")
+                .on("click", _on_reset_click)
             )
-        else:
-            needs_manual_error = defn._type in (int, float) or defn._type is bool
-            error_container = ui.element("div").classes("w-full") if needs_manual_error else None
+            reset_btn.set_visibility(is_mirrored and is_locally_overridden)
 
-            with ui.row().classes(_ROW_CLASSES).props(f'data-field="{attr_name}"'):
-                _render_label()
-                value_apply_ref[0] = _render_widget_impl(
-                    defn,
-                    getattr(obj, attr_name),
-                    _make_reactive_setter(obj, attr_name, error_container),
-                )
+    vec_meta = get_vec_meta(defn._type)
+    if vec_meta is not None:
+        # _render_vec_field_rows returns an apply(value) updater for in-place
+        # external sync of each component NumberDrag.
+        value_apply = _render_vec_field_rows(
+            defn._label or attr_name,
+            defn._description,
+            vec_meta,
+            getattr(obj, attr_name),
+            _make_reactive_setter(obj, attr_name),
+            attr_name,
+            render_label=_render_label,
+        )
+    else:
+        needs_manual_error = defn._type in (int, float) or defn._type is bool
+        error_container = ui.element("div").classes("w-full") if needs_manual_error else None
 
-        def _apply_external():
-            apply_value = value_apply_ref[0]
-            if apply_value is not None:
-                apply_value(getattr(obj, attr_name))
-            if is_mirrored:
-                locally_set = obj.is_locally_set(attr_name)
-                if label_ref[0] is not None:
-                    label_ref[0].set_text(_label_text(locally_set))
-                if reset_btn_ref[0] is not None:
-                    reset_btn_ref[0].set_visibility(locally_set)
+        with ui.row().classes(_ROW_CLASSES).props(f'data-field="{attr_name}"'):
+            _render_label()
+            value_apply = _render_widget_impl(
+                defn,
+                getattr(obj, attr_name),
+                _make_reactive_setter(obj, attr_name, error_container),
+            )
 
-        updaters[attr_name] = _apply_external
+    def _apply_external():
+        if value_apply is not None:
+            value_apply(getattr(obj, attr_name))
+        if is_mirrored:
+            locally_set = obj.is_locally_set(attr_name)
+            if label is not None:
+                label.set_text(_label_text(locally_set))
+            if reset_btn is not None:
+                reset_btn.set_visibility(locally_set)
 
-    row_content()
+    updaters[attr_name] = _apply_external
 
 
 # ---------------------------------------------------------------------------
@@ -375,6 +361,37 @@ def _float_step_from_default(default: Any) -> float:
     return 10 ** -(decimals + 1)
 
 
+def _escape(v: Any) -> str:
+    """Format a value for safe embedding in a ``data-value`` props string."""
+    return (str(v) if v is not None else "").encode("unicode_escape").decode()
+
+
+def _bind_apply(
+    el,
+    wrapper,
+    *,
+    to_widget: "Callable[[Any], Any]" = lambda v: v,
+    to_data: "Callable[[Any], str]" = str,
+) -> "tuple[Callable[[Any], None], Callable[[Any], str]]":
+    """Build a widget's external-sync ``apply()`` plus its ``data-value`` formatter.
+
+    Both directions of sync (the user-driven ``on_change`` handler and the
+    model-driven ``apply``) write the same ``data-value`` string, so they share
+    one *to_data* per widget and can't drift. ``apply`` assigns ``el.value`` in
+    place — NiceGUI "Case 3", safe from any asyncio task; setting a value the
+    element already holds is a no-op, so no echo guard is needed.
+
+    Returns ``(apply, to_data)``; the caller passes *to_data* to its on_change
+    handler so the encoding lives in exactly one place.
+    """
+
+    def apply(v: Any) -> None:
+        el.value = to_widget(v)
+        wrapper.props(f'data-value="{to_data(v)}"')
+
+    return apply, to_data
+
+
 def _render_widget_impl(defn: "setting", value: Any, make_setter) -> Callable[[Any], None]:
     """Shared widget dispatch. make_setter(coerce) -> on_change handler.
 
@@ -385,9 +402,11 @@ def _render_widget_impl(defn: "setting", value: Any, make_setter) -> Callable[[A
     no echo guard is needed.
     """
     # Escape for safe embedding in props strings (newlines etc. break ast.literal_eval)
-    str_value = (str(value) if value is not None else "").encode("unicode_escape").decode()
+    str_value = _escape(value)
 
     if defn._widget == "label":
+        # label has no .value (set_text, not BindableProperty), so it can't go
+        # through _bind_apply.
         lbl = (
             ui.label(str_value)
             .classes(f"text-xs text-right truncate hw-text-muted {_WIDGET_CLASSES}")
@@ -395,7 +414,7 @@ def _render_widget_impl(defn: "setting", value: Any, make_setter) -> Callable[[A
         )
 
         def _apply_label(v, _lbl=lbl):
-            s = (str(v) if v is not None else "").encode("unicode_escape").decode()
+            s = _escape(v)
             _lbl.set_text(s)
             _lbl.props(f'data-value="{s}"')
 
@@ -403,6 +422,10 @@ def _render_widget_impl(defn: "setting", value: Any, make_setter) -> Callable[[A
 
     if defn._widget == "color":
         wrapper = ui.element("div").classes(_WIDGET_CLASSES).props(f'data-value="{str_value}"')
+
+        def _color(v):
+            return v or "#ffffff"
+
         with wrapper:
 
             def _color_handler(e, _w=wrapper, _s=make_setter(str)):
@@ -416,12 +439,8 @@ def _render_widget_impl(defn: "setting", value: Any, make_setter) -> Callable[[A
                 .on_value_change(_color_handler)
             )
 
-        def _apply_color(v, _w=wrapper, _el=color_el):
-            c = v or "#ffffff"
-            _el.value = c
-            _w.props(f'data-value="{c}"')
-
-        return _apply_color
+        apply, _ = _bind_apply(color_el, wrapper, to_widget=_color, to_data=_color)
+        return apply
 
     resolved_choices = defn.choices
     if resolved_choices is not None:
@@ -433,6 +452,10 @@ def _render_widget_impl(defn: "setting", value: Any, make_setter) -> Callable[[A
         options_keys = (
             resolved_choices if isinstance(resolved_choices, list) else list(resolved_choices.keys())
         )
+
+        def _select_widget(v, _keys=options_keys):
+            return v if v in _keys else None
+
         with wrapper:
 
             def _select_handler(e, _w=wrapper, _s=make_setter(lambda v: v)):
@@ -442,34 +465,32 @@ def _render_widget_impl(defn: "setting", value: Any, make_setter) -> Callable[[A
             select_el = (
                 ui.select(
                     options=resolved_choices,
-                    value=value if value in options_keys else None,
+                    value=_select_widget(value),
                 )
                 .classes("w-full text-xs")
                 .props("dense hide-bottom-space")
                 .on_value_change(_select_handler)
             )
 
-        def _apply_select(v, _w=wrapper, _el=select_el, _keys=options_keys):
-            _el.value = v if v in _keys else None
-            _w.props(f'data-value="{str(v)}"')
-
-        return _apply_select
+        apply, _ = _bind_apply(select_el, wrapper, to_widget=_select_widget)
+        return apply
 
     if defn._type is bool:
         wrapper = ui.element("div").props(f'data-value="{str(bool(value)).lower()}"')
+
+        def _bool_data(v):
+            return str(bool(v)).lower()
+
         with wrapper:
 
-            def _bool_handler(e, _w=wrapper, _s=make_setter(bool)):
+            def _bool_handler(e, _w=wrapper, _s=make_setter(bool), _fmt=_bool_data):
                 _s(e)
-                _w.props(f'data-value="{str(bool(e.value)).lower()}"')
+                _w.props(f'data-value="{_fmt(e.value)}"')
 
             switch_el = ui.switch(value=bool(value)).props("dense").on_value_change(_bool_handler)
 
-        def _apply_bool(v, _w=wrapper, _el=switch_el):
-            _el.value = bool(v)
-            _w.props(f'data-value="{str(bool(v)).lower()}"')
-
-        return _apply_bool
+        apply, _ = _bind_apply(switch_el, wrapper, to_widget=bool, to_data=_bool_data)
+        return apply
 
     if defn._type in (int, float):
         kwargs: dict = {}
@@ -484,6 +505,9 @@ def _render_widget_impl(defn: "setting", value: Any, make_setter) -> Callable[[A
             kwargs["step"] = _float_step_from_default(defn._default)
         coerce = defn._type
         handler = make_setter(coerce)
+
+        def _number_widget(v, _c=coerce):
+            return _c(v) if v is not None else 0
 
         class _E:
             __slots__ = ("value",)
@@ -505,12 +529,9 @@ def _render_widget_impl(defn: "setting", value: Any, make_setter) -> Callable[[A
         )
         nd_ref[0] = nd
 
-        def _apply_number(v, _nd=nd, _c=coerce):
-            coerced = _c(v) if v is not None else 0
-            _nd.value = coerced
-            _nd.props(f'data-value="{str(coerced)}"')
-
-        return _apply_number
+        # NumberDrag carries its own div, so apply targets the element itself.
+        apply, _ = _bind_apply(nd, nd, to_widget=_number_widget, to_data=lambda v: str(_number_widget(v)))
+        return apply
 
     # str fallback — inline input + expand-to-modal button
     wrapper = (
@@ -524,7 +545,7 @@ def _render_widget_impl(defn: "setting", value: Any, make_setter) -> Callable[[A
         def _str_handler(e, _w=wrapper, _s=make_setter(str), _cv=current_value):
             _cv[0] = str(e.value)
             _s(e)
-            _w.props(f'data-value="{str(e.value).encode("unicode_escape").decode()}"')
+            _w.props(f'data-value="{_escape(e.value)}"')
 
         def _str_validation(v, _defn=defn):
             return None if _defn.validate(str(v) if v is not None else "") else "Invalid value"
@@ -551,7 +572,7 @@ def _render_widget_impl(defn: "setting", value: Any, make_setter) -> Callable[[A
                         value = v
 
                     _s(_Ev())
-                    _w.props(f'data-value="{v.encode("unicode_escape").decode()}"')
+                    _w.props(f'data-value="{_escape(v)}"')
                     dlg.close()
 
                 hui.dialog_actions(on_confirm=_confirm, on_cancel=dlg.close)
@@ -561,11 +582,13 @@ def _render_widget_impl(defn: "setting", value: Any, make_setter) -> Callable[[A
             "Edit in full"
         )
 
+    # str carries an extra mirror-cell (the modal reads current_value[0]), so its
+    # apply updates that too — otherwise it's the same in-place sync as the rest.
     def _apply_str(v, _w=wrapper, _el=input_el, _cv=current_value):
         s = str(v) if v is not None else ""
         _cv[0] = s
         _el.value = s
-        _w.props(f'data-value="{s.encode("unicode_escape").decode()}"')
+        _w.props(f'data-value="{_escape(s)}"')
 
     return _apply_str
 

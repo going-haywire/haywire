@@ -17,13 +17,13 @@ from haywire.core.session.signals import (
 from haywire.ui import elements as hui
 from haywire.ui.panel import BasePanel, PanelLayout
 from haywire.ui.panel.decorator import panel
+from haywire.ui.utils import anchor_cleanup_to_element
 
 from ....focuses import PortFocus
 from ....state.edit_state import EditState
 
 if TYPE_CHECKING:
     from haywire.core.session.context import SessionContext
-    from haywire.ui.widget.interface import IWidget
 
 
 def _type_name(port: object) -> str:
@@ -83,31 +83,13 @@ class NodePortsPanel(BasePanel):
                         node_id=f"panel:{node_id}",
                     )
                 if instance is not None:
-                    self._anchor_cleanup_to_element(container, instance)
+                    # BaseWidget.cleanup() is idempotent, so this composes safely
+                    # with the page-disconnect cleanup the widget registers itself.
+                    anchor_cleanup_to_element(container, instance.cleanup)
             else:
                 hui.info_row(str(port.id), _type_name(port))
         except Exception:
             hui.error_label(f"Error rendering port '{getattr(port, 'id', '?')}'")
-
-    @staticmethod
-    def _anchor_cleanup_to_element(element: "ui.element", widget: "IWidget") -> None:
-        """Call ``widget.cleanup()`` when ``element`` is deleted from the DOM.
-
-        NiceGUI fires ``Element._handle_delete()`` for every element removed by
-        ``content.clear()`` (client.remove_elements). BaseWidget.cleanup() is
-        idempotent, so this composes safely with the page-disconnect cleanup the
-        widget also registers in render().
-        """
-        original_handle_delete = element._handle_delete
-
-        def _handle_delete() -> None:
-            try:
-                widget.cleanup()
-            except Exception:
-                pass
-            original_handle_delete()
-
-        element._handle_delete = _handle_delete  # type: ignore[method-assign]
 
     @classmethod
     def poll(cls, ctx: "SessionContext") -> bool:

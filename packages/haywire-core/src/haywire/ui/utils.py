@@ -2,9 +2,29 @@ import os
 import shutil
 import subprocess
 import platform
-from typing import NamedTuple
+from typing import Callable, NamedTuple
 
 from nicegui import ui
+
+
+def anchor_cleanup_to_element(element: "ui.element", callback: Callable[[], None]) -> None:
+    """Run *callback* when *element* is removed from the DOM.
+
+    Wraps NiceGUI's private ``Element._handle_delete``, which fires for every
+    element removed by ``content.clear()`` (client.remove_elements) or page
+    close. Exceptions from *callback* are swallowed so a failing teardown can't
+    block the delete; pass an idempotent callback.
+    """
+    original_handle_delete = element._handle_delete
+
+    def _handle_delete() -> None:
+        try:
+            callback()
+        except Exception:
+            pass
+        original_handle_delete()
+
+    element._handle_delete = _handle_delete  # type: ignore[method-assign]
 
 
 def generate_pin_uuid(node_id: str, pin_id: str) -> str:
