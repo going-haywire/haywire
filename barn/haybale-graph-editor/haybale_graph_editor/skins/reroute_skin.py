@@ -55,7 +55,7 @@ class RerouteSkin(BaseSkin):
                     self._render_reroute_pin(outlet, wrapper.node_id, "right")
 
     def _render_reroute_pin(self, port, node_id: str, direction: str) -> None:
-        pin_el = render_pin(
+        render_pin(
             port,
             node_id,
             direction=direction,
