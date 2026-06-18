@@ -545,54 +545,52 @@ class EdgeWrapper:
         outlet_port = self._outlet_port
         adapter_factory = self._adapter_factory
         try:
-            # create adapter chain (only for DATA edges)
-            if self._edge_type == FlowType.DATA:
-                # Inlet determines what type it needs from outlet
-                sink_type = inlet_port.stored_type
+            # Inlet determines what type it needs from outlet
+            sink_type = inlet_port.stored_type
 
-                outlet_field = outlet_port.data
-                source_type = outlet_field.type_cls
+            outlet_field = outlet_port.data
+            source_type = outlet_field.type_cls
 
-                # Create new chain
-                first_adapter, error = adapter_factory.create_chain(source_type, sink_type, self._edge_id)
+            # Create new chain
+            first_adapter, error = adapter_factory.create_chain(source_type, sink_type, self._edge_id)
 
-                if first_adapter:
-                    # Check for chain changes on rebuild
-                    if self._edge.chain_adapter_keys:
-                        old_adapter_keys = list(self._edge.chain_adapter_keys)[::-1]
-                        new_adapter_keys = list(first_adapter._get_registry_keys())[::-1]
-                        if self._source_type == source_type and old_adapter_keys != new_adapter_keys:
-                            # we only want to warn about adapter chain changes if
-                            # the source type is the same, otherwise it's expected that the chain changes
-                            self._state.warnings.append(
-                                f"Adapter chain composition changed during hot reload. "
-                                f"From '{' -> '.join(old_adapter_keys)}' "
-                                f"to '{' -> '.join(new_adapter_keys)}'. "
-                                f"Graph behavior may differ!"
-                            )
-                    # Set first adapter
-                    self._first_adapter = first_adapter
-                    self._edge.chain_adapter_keys = first_adapter._get_registry_keys()
+            if first_adapter:
+                # Check for chain changes on rebuild
+                if self._edge.chain_adapter_keys:
+                    old_adapter_keys = list(self._edge.chain_adapter_keys)[::-1]
+                    new_adapter_keys = list(first_adapter._get_registry_keys())[::-1]
+                    if self._source_type == source_type and old_adapter_keys != new_adapter_keys:
+                        # we only want to warn about adapter chain changes if
+                        # the source type is the same, otherwise it's expected that the chain changes
+                        self._state.warnings.append(
+                            f"Adapter chain composition changed during hot reload. "
+                            f"From '{' -> '.join(old_adapter_keys)}' "
+                            f"to '{' -> '.join(new_adapter_keys)}'. "
+                            f"Graph behavior may differ!"
+                        )
+                # Set first adapter
+                self._first_adapter = first_adapter
+                self._edge.chain_adapter_keys = first_adapter._get_registry_keys()
 
-                    self._source_type = source_type
+                self._source_type = source_type
 
-                else:
-                    # creating the haywire exception in here to avoid missleading stack traces
-                    self._state.error_build = HaywireException.create(
-                        message=f"{error}: Edge adapter creation failed for {self._edge_id}",
-                    ).enrich(
-                        operation="Adapter Chain Creation",
-                        category="Adapter Creation Error",
-                        suggestions=[
-                            "Check if libraries with required adapters are registered",
-                            "Create custom adapters if needed for your data types",
-                        ],
-                    )
-                    self._state.error_build.log()
-                    self._state.is_built = False
-                    self._state.warnings = []
+            else:
+                # creating the haywire exception in here to avoid missleading stack traces
+                self._state.error_build = HaywireException.create(
+                    message=f"{error}: Edge adapter creation failed for {self._edge_id}",
+                ).enrich(
+                    operation="Adapter Chain Creation",
+                    category="Adapter Creation Error",
+                    suggestions=[
+                        "Check if libraries with required adapters are registered",
+                        "Create custom adapters if needed for your data types",
+                    ],
+                )
+                self._state.error_build.log()
+                self._state.is_built = False
+                self._state.warnings = []
 
-                    return False
+                return False
 
             self._state.is_built = True
             self._state.error_build = None

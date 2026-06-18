@@ -63,7 +63,8 @@ The three projections relate as: the **dataclass** (3) represents one entry in t
 |------|-----------|-----------------|
 | **FlowType** | The transport category of a port/edge: `DATA`, `CONTROL` (EXEC), `CALLBACK`, or `NONE` | Port type (ambiguous with data type) |
 | **DATA port** | A port that carries typed values; outlets fan-out, inlets accept a single source | Value port |
-| **EXEC port** | A control port that carries execution order; outlets single-target, inlets multi-source | Control pin (Pin is acceptable colloquially) |
+| **EXEC port** | A control port that carries execution order; outlets single-target, inlets multi-source. *(may also carry a [Control payload](#flow-types--port-kinds))* | Control pin (Pin is acceptable colloquially) |
+| **Control payload** *(proposed)* | A `dict` value optionally carried by an EXEC edge. The upstream worker writes it to its EXEC **outlet** via `out()`. **Contract:** a worker writes a payload only on the outlet it returns that pulse. If a worker fires an outlet *without* writing it, the VM forwards the payload that arrived on the entered inlet by writing it to the fired outlet (which eagerly propagates the same way), so a payload-agnostic node is a transparent conduit. Transient — `EXEC` declares `store_strategy=NEVER`, so payloads never persist to saved graphs. Distinct from a DATA value (pulled lazily via a localized data-flow with no execution-order meaning). | Exec value, control data (ambiguous), pulse argument |
 | **CALLBACK port** | A port used for event-style signalling; no hardcoded multiplicity rules. See [architecture/execution/callbacks](../architecture/execution/callbacks/callbacks-arch.md) | Event port (overloaded) |
 | **Pooled inlet** | An inlet that accepts multiple sources and delivers them as a `dict[node_id, value]` to the worker | Multi-inlet |
 | **Pipe** | The internal transport object for a connected DATA port pair; handles eager push or lazy pull | Channel, stream |

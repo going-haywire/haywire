@@ -1,4 +1,4 @@
-from haywire.core.types import type, FlowType, PrimitiveType, PrimitiveField, BaseType
+from haywire.core.types import type, FlowType, PrimitiveType, PrimitiveField, StoreStrategy
 
 
 # ============================================================================
@@ -217,14 +217,16 @@ class DICT(PrimitiveType[dict]):
     label="Execution Signal",
     description="Signal for controlling execution flow between nodes",
     color="#004cff",
-    default={},
+    default={"value": {}},
+    store_strategy=StoreStrategy.NEVER,
 )
-class EXEC(BaseType):
-    """Execution signal type - represents execution flow, not data"""
+class EXEC(PrimitiveType[dict]):
+    """Execution signal carrying an optional ``dict`` payload.
+    """
 
     @classmethod
     def create_default(cls) -> "EXEC":
-        return cls()
+        return cls({})
 
 
 # ============================================================================
