@@ -13,6 +13,7 @@ from haywire.core.library.decorator import library
 from haywire.core.node.registry import NodeRegistry
 from haywire.core.state import LibraryStateRegistry
 from haywire.ui.editor.registry import EditorTypeRegistry
+from haywire.ui.skin.registry import SkinRegistry
 
 # Public API re-exports
 from haybale_graph_editor.protocols import GraphContainer
@@ -50,6 +51,11 @@ class Library(BaseLibrary):
         self.add_folder_to_registry(
             folder_path=str(base_path / "nodes"),
             registry_cls=NodeRegistry,
+        )
+
+        self.add_folder_to_registry(
+            folder_path=str(base_path / "skins"),
+            registry_cls=SkinRegistry,
         )
 
         self.add_folder_to_registry(

@@ -3,12 +3,12 @@ from typing import TYPE_CHECKING, List
 from nicegui import ui
 
 from haywire.core.errors import HaywireException
-from haywire.core.types import DataPort, CompoundType, FlowType
+from haywire.core.types import DataPort
 from haywire.core.node.node_wrapper import NodeWrapper
 
 from haywire.ui.skin.base import BaseSkin
+from haywire.ui.skin.pin_render import render_pin, add_pin_tooltip
 from haywire.ui import elements as hui
-from haywire.ui.themes.icons import ICONS
 from haywire.ui.utils import generate_pin_uuid
 
 from ..settings.node_skin_settings import NodeSkinSettings
@@ -160,154 +160,33 @@ class NodeSkin(BaseSkin, ABC):
         # Config ports render no pin, so they cannot carry a pin tooltip.
         # Attach the same label/description tooltip to the whole config row.
         if self._ui_settings.show_tooltips:
-            self._add_pin_tooltip(config_row, port)
+            add_pin_tooltip(config_row, port)
 
     def _render_pin(
         self, pin: DataPort, wrapper: NodeWrapper, direction: str = "left", cell_style: str = ""
     ):
         """Render a pin with connection system compatibility.
 
-        ``cell_style`` is appended to the pin element's own style, letting the
-        caller place the pin directly into a grid cell (grid-column / *-self
-        centering).
+        Thin wrapper over the framework ``render_pin`` helper, supplying this
+        skin's geometry settings. ``cell_style`` is forwarded to place the pin
+        into a grid cell. Wires the right-click port menu and attaches a hover
+        tooltip when enabled in settings.
         """
-        # Create unique pin ID and determine port type for connection system
-        pin_direction = "inlet" if pin.is_inlet() else "outlet"
-        pin_uuid = generate_pin_uuid(wrapper.node_id, pin.id)
-
-        # Calculate 2D direction vector components based on pin type
-        if pin.is_inlet():
-            # Inlets point left (negative X)
-            dir_x, dir_y = "-1", "0"
-        else:
-            # Outlets point right (positive X)
-            dir_x, dir_y = "1", "0"
-
-        common_props = (
-            f'id="{pin_uuid}" '
-            f'data-node-id="{wrapper.node_id}" '
-            f'data-pin-id="{pin.id}" '
-            f'data-pin-flow-type="{pin.flow_type.value}" '
-            f'data-pin-dir="{pin_direction}" '
-            f'data-pin-dir-x="{dir_x}" '
-            f'data-pin-dir-y="{dir_y}"'
+        pin_el = render_pin(
+            pin,
+            wrapper.node_id,
+            direction=direction,
+            cell_style=cell_style,
+            pin_gutter=self.PIN_GUTTER,
+            card_padding=self.CARD_H_PADDING,
+            pin_protrusion=self.PIN_PROTRUSION,
         )
-
-        pin_size = f"{self.PIN_GUTTER}px"
-        # offset = card padding + half gutter (pin's natural inset) + desired protrusion
-        offset_px = self.CARD_H_PADDING + self.PIN_GUTTER // 2 + self.PIN_PROTRUSION
-        pin_offset = f"position: relative; {direction}: -{offset_px}px; cursor: crosshair; {cell_style}"
-
-        port_menu_props = 'data-hw-port-menu-focus-id="port.info"'
-
-        pin_el: ui.element | None = None
-        if pin.flow_type == FlowType.CONTROL:
-            ctrl_color = pin.color
-            if pin.is_inlet():
-                ctrl_icon = pin.icon_in or ICONS.JOIN_LEFT
-            else:
-                ctrl_icon = pin.icon_out or ICONS.JOIN_RIGHT
-            pin_el = (
-                ui.icon(ctrl_icon, color=ctrl_color, size=pin_size)
-                .classes("port input-port connection-pin zoom-pan-lod0")
-                .style(pin_offset)
-                .props(f'{common_props} data-pin-color="{ctrl_color}" {port_menu_props}')
-            )
-
-        elif pin.flow_type == FlowType.CALLBACK:
-            callback_color = pin.color
-            if pin.is_inlet():
-                callback_icon = pin.icon_in or ICONS.SWIPE_LEFT_ALT
-            else:
-                callback_icon = pin.icon_out or ICONS.SWIPE_RIGHT_ALT
-            pin_el = (
-                ui.icon(callback_icon, color=callback_color, size=pin_size)
-                .classes("port input-port connection-pin zoom-pan-lod0")
-                .style(pin_offset)
-                .props(f'{common_props} data-pin-color="{callback_color}" {port_menu_props}')
-            )
-
-        elif pin.flow_type == FlowType.DATA:
-            pin_color = pin.color
-            stored_type = pin.stored_type
-            pin_data_type = stored_type.class_identity.registry_key
-            if pin.is_inlet():
-                if pin.allow_multiple_links:
-                    if issubclass(stored_type, CompoundType):
-                        data_icon = stored_type.class_identity.icon_in_multi or ICONS.WEB_STORIES
-                    else:
-                        data_icon = stored_type.class_identity.icon_in_multi or ICONS.FIBER_SMART_RECORD
-                else:
-                    if pin.type_cls and issubclass(pin.type_cls, CompoundType):
-                        data_icon = stored_type.class_identity.icon_in or ICONS.VIEW_DAY
-                    else:
-                        data_icon = stored_type.class_identity.icon_in or ICONS.MY_LOCATION
-            else:
-                if pin.type_cls and issubclass(pin.type_cls, CompoundType):
-                    data_icon = stored_type.class_identity.icon_out_multi or ICONS.VIEW_DAY
-                else:
-                    data_icon = stored_type.class_identity.icon_out_multi or ICONS.CIRCLE
-            pin_el = (
-                ui.icon(data_icon, color=pin_color, size=pin_size)
-                .classes("port connection-pin zoom-pan-lod0")
-                .style(pin_offset)
-                .props(
-                    f'{common_props} data-pin-data-type="{pin_data_type}" '
-                    f'data-pin-color="{pin_color}" {port_menu_props}'
-                )
-            )
-
-        if pin_el is not None and self._ui_settings.show_tooltips:
-            self._add_pin_tooltip(pin_el, pin)
-
-    def _add_pin_tooltip(self, pin_el: ui.element, pin: DataPort) -> None:
-        """Attach a hover tooltip showing a port's label and description.
-
-        Anchored to the pin element for inlets/outlets, or the config row for
-        config ports (which have no pin). The description line is omitted when
-        the port has no description.
-
-        Lazy construction: the tooltip (a QTooltip + 1–2 labels = 3 elements) is
-        built on the pin's first ``mouseenter`` rather than at render time. A
-        large graph has ~one tooltip per port (23 per PerformanceTester node →
-        ~69 elements), all invisible until hovered — building them eagerly was
-        measured at ~30% of graph-render time. Deferring to first hover pays that
-        cost only for pins the user actually hovers.
-
-        Visibility is driven explicitly by ``mouseenter`` → show / ``mouseleave``
-        → hide, and the QTooltip is given ``no-parent-event`` so Quasar does NOT
-        also run its own hover show/hide. Without that, two controllers fight:
-        the tooltip mounts after the current ``mouseenter`` (so Quasar misses the
-        first show — the "appears on second hover" bug) and a manual ``show``
-        then leaves Quasar's hide unreconciled (so tooltips orphan on screen).
-        Making our handlers the sole controller keeps the state deterministic.
-        Mirrors how node_menu_builder drives flyouts explicitly on hover.
-        """
-        tooltip: ui.tooltip | None = None
-
-        def show_tooltip() -> None:
-            nonlocal tooltip
-            if tooltip is None:
-                # Build inside the (stable) pin element. pin_el is not torn down
-                # by this handler, so its slot is safe to populate — unlike the
-                # redraw-during-handler case in
-                # .insights/feedback_nicegui_redraw_deletes_handler_slot.md.
-                with pin_el:
-                    # no-parent-event: we are the sole show/hide controller.
-                    tooltip = ui.tooltip().classes("text-xs").props("no-parent-event")
-                    with tooltip:
-                        ui.label(pin.label).classes("font-bold")
-                        description = (pin.description or "").strip()
-                        if description:
-                            ui.label(description)
-            tooltip.run_method("show")
-
-        def hide_tooltip() -> None:
-            if tooltip is not None:
-                tooltip.run_method("hide")
-
-        pin_el.on("mouseenter", lambda _: show_tooltip())
-        pin_el.on("mouseleave", lambda _: hide_tooltip())
+        if pin_el is not None:
+            # Wire the right-click port context menu (host concern — render_pin
+            # stays agnostic of which focus the menu opens).
+            pin_el.props('data-hw-port-menu-focus-id="port.info"')
+            if self._ui_settings.show_tooltips:
+                add_pin_tooltip(pin_el, pin)
 
     def _add_resize_handle(self, main_card: ui.card, wrapper: NodeWrapper):
         """Add a draggable resize handle to the bottom-right corner."""

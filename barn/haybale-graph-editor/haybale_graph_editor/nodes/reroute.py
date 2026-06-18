@@ -45,6 +45,16 @@ class RerouteNode(BaseNode):
         # action (_AddReroutePortsAction) right after creation.
         pass
 
+    def post_init(self) -> None:
+        # Bind this node to its dedicated minimal skin. post_init runs on both
+        # fresh creation and load (see NodeWrapper._initialize), so the binding
+        # is self-contained and survives reload without being persisted. The
+        # skin class is imported here (not at module top) to avoid a cycle —
+        # reroute_skin imports the port-id constants from this module.
+        from ..skins.reroute_skin import RerouteSkin
+
+        self.props.skin = RerouteSkin.class_identity.registry_key
+
     def worker(self, context: ExecutionContext) -> str | None:
         # Forward the inlet value straight to the outlet. Before the split
         # action configures the ports there is nothing to forward.

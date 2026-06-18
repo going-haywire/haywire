@@ -19,7 +19,7 @@ Run::
     uv run pytest -m perf tests/ui/widget/test_skin_render_profile.py -s
 
 Fork to watch for in the output:
-  * if OUR skin frames (``_render_pin``, ``_add_pin_tooltip``, ``get_stored_type``)
+  * if OUR skin frames (``_render_pin``, ``add_pin_tooltip``, ``get_stored_type``)
     dominate cumulative time → micro-opt the skin (cache type/icon, lazy tooltips).
   * if ``Element.__init__`` / ``Slot`` / ``Props``/``Style``/``Classes`` dominate
     → it's NiceGUI element volume; the lever is fewer mounted cards (culling),
@@ -57,7 +57,7 @@ _GRAPH = Path(__file__).resolve().parents[3] / "graphs" / "10x200nodes.haywire"
 # matched against the constructing call stack; first match wins, else "other".
 _BUCKETS = [
     ("_render_pin", "pin (icon + props)"),
-    ("_add_pin_tooltip", "tooltip (label x2)"),
+    ("add_pin_tooltip", "tooltip (label x2)"),
     ("render_widget", "widget"),
     ("_render_left", "port row structure"),
     ("_render_right", "port row structure"),
