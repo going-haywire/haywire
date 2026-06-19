@@ -6,14 +6,21 @@ so writing the outlet propagates the payload to the linked EXEC inlet — the sa
 machinery DATA outlets use. The VM additionally forwards the entered payload when
 a worker fires an outlet without writing it (transparent-conduit fallback).
 
-These tests exercise the mechanism at the port/edge layer plus the VM helper
-directly, using the testbed ``EdgeLinkTestNode`` which exposes EXEC pins.
+These tests cover the feature at two altitudes:
+
+1. The port/edge layer plus the VM helper (``_fallback_control_payload``)
+   directly, using the testbed ``EdgeLinkTestNode`` which exposes EXEC pins.
+2. End-to-end through a real assembled flow run by the ``Interpreter``, proving
+   a payload reaches a downstream control inlet *even when an intermediate
+   node's worker never writes its outlet* — the headline feature.
 """
 
 import haywire.core.graph.editor  # noqa: F401  (import first, per CLAUDE.md)
 
 import pytest
 
+from haywire.core.execution.event_source import SystemEventType
+from haywire.core.execution.interpreter import Interpreter
 from haywire.core.execution.vm import HaywireVM
 from haywire.core.graph.base import BaseGraph
 
@@ -109,3 +116,94 @@ class TestControlPayload:
 
         assert sink_inlet.get_value() == {"written": True}
         assert not outlet._is_set_by_node  # flag reset for next frame
+
+
+@pytest.mark.integration
+@pytest.mark.slow
+class TestControlPayloadEndToEnd:
+    """Run a real assembled flow and watch a payload travel down EXEC edges.
+
+    Chain: TestBeginPlay → conduit_a → conduit_b → sink, all wired exec→exec.
+    ``conduit_a`` writes an explicit payload via ``out()``; ``conduit_b`` writes
+    nothing and just returns its outlet, so the VM's transparent-conduit
+    fallback must forward the payload through it untouched.
+    """
+
+    def _build_chain(self, graph: BaseGraph):
+        from haybale_testing.nodes.testbed.begin_play_node import TestBeginPlayNode
+        from haybale_testing.nodes.testbed.control_payload_node import ControlPayloadTestNode
+
+        begin = graph.create_node_wrapper(TestBeginPlayNode.class_identity.registry_key, position=(0, 0))
+        conduit_a = graph.create_node_wrapper(
+            ControlPayloadTestNode.class_identity.registry_key, position=(200, 0)
+        )
+        conduit_b = graph.create_node_wrapper(
+            ControlPayloadTestNode.class_identity.registry_key, position=(400, 0)
+        )
+        sink = graph.create_node_wrapper(
+            ControlPayloadTestNode.class_identity.registry_key, position=(600, 0)
+        )
+
+        graph.create_edge_wrapper(begin.node_id, "exec", conduit_a.node_id, "exec_in")
+        graph.create_edge_wrapper(conduit_a.node_id, "exec_out", conduit_b.node_id, "exec_in")
+        graph.create_edge_wrapper(conduit_b.node_id, "exec_out", sink.node_id, "exec_in")
+
+        return conduit_a, conduit_b, sink
+
+    def test_payload_forwarded_through_silent_node(
+        self, graph_with_library_system: BaseGraph, library_system
+    ):
+        """conduit_a emits a payload; conduit_b forwards it without writing it."""
+        graph = graph_with_library_system
+        conduit_a, conduit_b, sink = self._build_chain(graph)
+
+        payload = {"hits": 7, "source": "conduit_a"}
+        # conduit_a explicitly writes the payload; conduit_b leaves emit_payload
+        # at the default None so its worker never touches its outlet.
+        conduit_a.node.emit_payload = payload
+
+        interpreter = Interpreter()
+        interpreter.load_graph(graph)
+        try:
+            triggered = interpreter.dispatch_system_event(SystemEventType.BEGIN_PLAY)
+            assert triggered == 1
+            interpreter.wait_all(timeout=5.0)
+        finally:
+            interpreter.shutdown()
+
+        # conduit_b received the explicit payload on its entered inlet,
+        assert conduit_b.node.received == payload
+        # and even though its worker wrote nothing, the payload reached the sink.
+        assert sink.node.received == payload
+
+        # Assert the individual key-value pairs survived the trip end-to-end,
+        # untouched by the silent conduit in the middle.
+        received = sink.node.received
+        assert received is not None
+        assert received["hits"] == 7
+        assert received["source"] == "conduit_a"
+
+    def test_payload_chains_through_multiple_silent_nodes(
+        self, graph_with_library_system: BaseGraph, library_system
+    ):
+        """With NO node writing its outlet, nothing spurious propagates.
+
+        The event node fires ``exec`` without a payload, so each conduit enters
+        with the EXEC empty-payload default (``{}``) and forwards it — the
+        fallback must not synthesise a value out of thin air.
+        """
+        graph = graph_with_library_system
+        _, conduit_b, sink = self._build_chain(graph)
+        # No emit_payload set anywhere → all conduits are pure pass-through.
+
+        interpreter = Interpreter()
+        interpreter.load_graph(graph)
+        try:
+            interpreter.dispatch_system_event(SystemEventType.BEGIN_PLAY)
+            interpreter.wait_all(timeout=5.0)
+        finally:
+            interpreter.shutdown()
+
+        # EXEC's empty-payload default is {} (see EXEC.create_default), not None.
+        assert conduit_b.node.received == {}
+        assert sink.node.received == {}
