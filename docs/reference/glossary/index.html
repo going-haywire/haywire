@@ -3477,8 +3477,13 @@
 </tr>
 <tr>
 <td><strong>EXEC port</strong></td>
-<td>A control port that carries execution order; outlets single-target, inlets multi-source</td>
+<td>A control port that carries execution order; outlets single-target, inlets multi-source. <em>(may also carry a <a href="#flow-types--port-kinds">Control payload</a>)</em></td>
 <td>Control pin (Pin is acceptable colloquially)</td>
+</tr>
+<tr>
+<td><strong>Control payload</strong> <em>(proposed)</em></td>
+<td>A <code>dict</code> value optionally carried by an EXEC edge. The upstream worker writes it to its EXEC <strong>outlet</strong> via <code>out()</code>. <strong>Contract:</strong> a worker writes a payload only on the outlet it returns that pulse. If a worker fires an outlet <em>without</em> writing it, the VM forwards the payload that arrived on the entered inlet by writing it to the fired outlet (which eagerly propagates the same way), so a payload-agnostic node is a transparent conduit. Transient — <code>EXEC</code> declares <code>store_strategy=NEVER</code>, so payloads never persist to saved graphs. Distinct from a DATA value (pulled lazily via a localized data-flow with no execution-order meaning).</td>
+<td>Exec value, control data (ambiguous), pulse argument</td>
 </tr>
 <tr>
 <td><strong>CALLBACK port</strong></td>
@@ -3510,7 +3515,7 @@
 <tbody>
 <tr>
 <td><strong>NodeType</strong></td>
-<td>The execution role of a node (the <code>NodeType</code> enum: DATA, CONTROL, EVENT, OUTPUT, LOOPBACK), determined by its EXEC port configuration. <code>NodeBehaviorFlags</code> is the dataclass that holds this field — prefer <strong>NodeType</strong> in conversation</td>
+<td>The execution role of a node (the <code>NodeType</code> enum: DATA, CONTROL, EVENT, OUTPUT, LOOPBACK, REROUTE), determined by its EXEC port configuration. <code>NodeBehaviorFlags</code> is the dataclass that holds this field — prefer <strong>NodeType</strong> in conversation</td>
 <td>Node category</td>
 </tr>
 <tr>
@@ -3537,6 +3542,11 @@
 <td><strong>LOOPBACK node</strong></td>
 <td>A CONTROL node that uses the loopback-stack in the VM to implement loops or sequences</td>
 <td>Loop node</td>
+</tr>
+<tr>
+<td><strong>Reroute node</strong></td>
+<td>A DATA node shipped by <code>haybale-graph-editor</code> whose class declares <strong>no</strong> ports; at creation it is given exactly one data inlet and one data outlet matching the split edge's type, and its worker passes the inlet value straight to the outlet. Used to split an edge and bend/organize a wire.</td>
+<td>Proxy node (collides with <code>_FieldProxy</code> / state proxies), passthrough node</td>
 </tr>
 </tbody>
 </table>
