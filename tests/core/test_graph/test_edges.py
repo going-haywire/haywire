@@ -1155,7 +1155,7 @@ class TestEdges:
         assert not inlet_port.get_value()
 
         # Port should be marked dirty (deferred)
-        assert inlet_port in node_b.node._has_dirty_ports
+        assert inlet_port.id in node_b.node._has_dirty_ports
 
     def test_lazy_edge_does_not_push_value(self, graph_with_library_system: BaseGraph, library_system):
         """
@@ -1183,7 +1183,7 @@ class TestEdges:
         assert inlet_port.get_value() == original_value
 
         # But inlet port should be marked dirty
-        assert inlet_port in node_b.node._has_dirty_ports
+        assert inlet_port.id in node_b.node._has_dirty_ports
 
         # And _pending_lazy_pipes should have an entry
         assert len(inlet_port._pending_lazy_pipes) == 1
@@ -1278,7 +1278,7 @@ class TestEdges:
         outlet_b.set_value(False)
 
         # Port should be dirty
-        assert pooled_port in node_c.node._has_dirty_ports
+        assert pooled_port.id in node_c.node._has_dirty_ports
 
         # Lazy edge should have pending pipe
         assert len(pooled_port._pending_lazy_pipes) == 1

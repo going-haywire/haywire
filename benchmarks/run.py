@@ -45,9 +45,10 @@ def _project_root() -> Path:
     raise RuntimeError("project root (pyproject.toml) not found")
 
 
-def _git(root: Path, *args: str) -> str:
+def _git(root: Path, *args: str) -> tuple[int, str]:
+    """Run a git command; return (returncode, stripped stdout). Never raises."""
     out = subprocess.run(["git", *args], capture_output=True, text=True, cwd=str(root), check=False)
-    return out.stdout.strip()
+    return out.returncode, out.stdout.strip()
 
 
 def _bootstrap_library_system(root: Path):
@@ -119,9 +120,15 @@ def main(argv: list[str]) -> int:
     results_file = root / "benchmarks" / "results" / "results.jsonl"
     results_file.parent.mkdir(parents=True, exist_ok=True)
 
-    commit = _git(root, "rev-parse", "HEAD")[:12] or "unknown"
-    branch = _git(root, "rev-parse", "--abbrev-ref", "HEAD") or "unknown"
-    dirty = bool(_git(root, "status", "--porcelain"))
+    rc_commit, commit_out = _git(root, "rev-parse", "HEAD")
+    commit = commit_out[:12] if rc_commit == 0 and commit_out else "unknown"
+    rc_branch, branch_out = _git(root, "rev-parse", "--abbrev-ref", "HEAD")
+    branch = branch_out if rc_branch == 0 and branch_out else "unknown"
+    # Fail-safe: a git-status failure (e.g. a transient index lock from a
+    # concurrent git client) must read as DIRTY, never clean — a run we cannot
+    # prove came from a clean tree must never be eligible as a baseline.
+    rc_status, status_out = _git(root, "status", "--porcelain")
+    dirty = rc_status != 0 or bool(status_out)
     host = platform.node() or "unknown"
     py = platform.python_version()
     timestamp = datetime.now(timezone.utc).isoformat(timespec="seconds")

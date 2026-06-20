@@ -156,7 +156,7 @@ class BaseNode(NodeData):
 
         # Resolve dirty data for ALL node types (lazy pulls + deferred on_change)
         while self._has_dirty_ports:
-            port = self._has_dirty_ports.pop()
+            _port_id, port = self._has_dirty_ports.popitem()
             port.resolve_dirty_data()
 
         self.on_validate(context)

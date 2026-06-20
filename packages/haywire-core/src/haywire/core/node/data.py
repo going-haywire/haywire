@@ -1,7 +1,7 @@
 from __future__ import annotations
 import inspect
 import re
-from typing import TYPE_CHECKING, Iterator, Set, Any, Callable, ClassVar, Dict, List, Optional, cast
+from typing import TYPE_CHECKING, Iterator, Any, Callable, ClassVar, Dict, List, Optional, cast
 from contextlib import contextmanager
 
 from haywire.core.execution.event_source import EventSource
@@ -79,7 +79,10 @@ class NodeData:
         # Store (persistent, serialized, NOT GUI-facing)
         self._store: NodeStore = NodeStore()
 
-        self._has_dirty_ports: Set[DataPort] = set()
+        # Keyed by port id (str → C-level hash, cached on the str) rather than a
+        # Set[DataPort] (whose membership calls the Python-level DataPort.__hash__
+        # on every mark). Idempotent: re-marking the same id overwrites.
+        self._has_dirty_ports: Dict[str, DataPort] = {}
 
         # ---------------------------------------------------------------------
         # Internal state
@@ -809,7 +812,7 @@ class NodeData:
         Called by ports when their value changes to indicate
         the requirement for executing the worker method
         """
-        self._has_dirty_ports.add(port)
+        self._has_dirty_ports[port.id] = port
 
     # =========================================================================
     # Worker Signature Analysis and Execution
