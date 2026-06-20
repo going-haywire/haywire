@@ -40,6 +40,10 @@ class DataPort(DataTypeIdentity):
     _data: DataField = field(init=False, repr=False, metadata={"serialize": False})
     """DataField instance storing port data (set in __post_init__)"""
 
+    _is_inlet: bool = field(init=False, repr=False, metadata={"serialize": False})
+    """Cached ``port_type == INLET`` (port_type is immutable); lets the set_value
+    hot path branch on an attribute read instead of an ``is_inlet()`` method call."""
+
     # Type tracking
     type_cls: type[IType] | None = field(default=None, metadata={"serialize": False})
     """The type class (FLOAT, ArrayType, etc.)"""
@@ -185,6 +189,8 @@ class DataPort(DataTypeIdentity):
                 f"DataPort instances must be created via from_spec()."
             )
         self._data = self.type_cls.create_field(default_override=self.default)
+        # Cache the immutable inlet/outlet role for the set_value hot path.
+        self._is_inlet = self.port_type == PortType.INLET
 
         # Hardcoded connection rules based on flow type and direction
         # They cannot be overridden by the user since they are fundamental to how the ports work
@@ -278,7 +284,7 @@ class DataPort(DataTypeIdentity):
 
         self._data.set_value(new_value, source_id=edge_id)
 
-        if self.is_inlet():
+        if self._is_inlet:
             # Inlet values come from an edge (edge_id set) or a widget/programmatic
             # set — never from the owning node, so clear the node-set flag.
             self._is_set_by_node = False
