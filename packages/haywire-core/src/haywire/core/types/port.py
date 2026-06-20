@@ -213,14 +213,19 @@ class DataPort(DataTypeIdentity):
     # CALLBACK TRIGGERING
     # ========================================================================
 
-    def _trigger_callback(self, callback_type: str, *args):
+    def _trigger_callback(self, callback_name: str | None, *args):
         """
-        Trigger a callback by resolving the identifier.
+        Invoke a node callback by name.
+
+        ``callback_name`` is the node method name held by one of this port's
+        callback attributes (``on_change`` / ``on_connect`` / ``on_disconnect``).
+        Callers pass the attribute value directly — they have already read and
+        truthiness-checked it — so this method does not re-resolve it.
 
         Examples:
-            on_change='on_port_changed'  → nodeon_port_changed(port, old, new)
+            self._trigger_callback(self.on_change, old, new)
+            # → node.<on_change>(port, old, new)
         """
-        callback_name = getattr(self, callback_type)
         if not callback_name or not self._wrapper:
             return
 
@@ -290,7 +295,7 @@ class DataPort(DataTypeIdentity):
             self._is_set_by_node = False
             if edge_id is None and self.on_change is not None:
                 # Widget/programmatic change → fire on_change immediately
-                self._trigger_callback("on_change", new_value)
+                self._trigger_callback(self.on_change, new_value)
             else:
                 # Edge-driven OR no callback → defer to resolve_dirty_data()
                 self._mark_as_data_dirty()
@@ -299,7 +304,7 @@ class DataPort(DataTypeIdentity):
             self._is_set_by_node = True
             # Fire on_change immediately (node is the setter)
             if self.on_change is not None:
-                self._trigger_callback("on_change", new_value)
+                self._trigger_callback(self.on_change, new_value)
             if self._pipes is not None:
                 self._pipes.propagate()
 
@@ -320,7 +325,7 @@ class DataPort(DataTypeIdentity):
 
         # 2. Fire deferred on_change (covers both eager pushes and lazy pulls)
         if self.on_change is not None:
-            self._trigger_callback("on_change", self.get_value())
+            self._trigger_callback(self.on_change, self.get_value())
 
     def _mark_as_data_dirty(self, pipe: "Pipe | None" = None) -> None:
         """
@@ -400,13 +405,13 @@ class DataPort(DataTypeIdentity):
                     displaced = self._linked_edges.pop(old_wrapper_uuid)
                     self._data.remove_source(old_wrapper_uuid)
                     if self.on_disconnect and displaced:
-                        self._trigger_callback("on_disconnect", displaced)
+                        self._trigger_callback(self.on_disconnect, displaced)
                 self._linked_edges = {edge_wrapper.edge_id: edge_wrapper}
             else:
                 self._linked_edges[edge_wrapper.edge_id] = edge_wrapper
 
             if self.on_connect:
-                self._trigger_callback("on_connect", edge_wrapper)
+                self._trigger_callback(self.on_connect, edge_wrapper)
 
         # Mark structurally dirty in any case because even if the
         # connection already exists, it may have been reconnected to a
@@ -448,7 +453,7 @@ class DataPort(DataTypeIdentity):
             self._mark_as_structuraly_dirty()
 
             if self.on_disconnect and edge_wrapper:
-                self._trigger_callback("on_disconnect", edge_wrapper)
+                self._trigger_callback(self.on_disconnect, edge_wrapper)
 
     def _remove_edge(self, wrapper_uuid: str) -> None:
         """
