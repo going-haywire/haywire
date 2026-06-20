@@ -28,15 +28,16 @@ class Pipe:
     def propagate(self):
         """Propagate outlet value through all pipe connections.
 
-        Eager edges: mark inlet dirty, then immediately pull (transform + store).
+        Eager edges: pull immediately (transform + store). ``pull()`` writes the
+        sink via ``set_value(edge_id=…)``, which already marks it data-dirty, so
+        an explicit pre-mark would be redundant.
         Lazy edges: mark inlet dirty with pipe ref (pull deferred to execution).
         """
         if self.is_lazy:
             # Lazy: defer pull to resolve_dirty_data()
             self.sink._mark_as_data_dirty(pipe=self)
         else:
-            # Eager: mark dirty + pull immediately
-            self.sink._mark_as_data_dirty()
+            # Eager: pull immediately; set_value() inside pull() marks the sink dirty.
             self.pull()
 
     def pull(self) -> None:
