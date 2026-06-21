@@ -221,8 +221,7 @@ class DICT(PrimitiveType[dict]):
     store_strategy=StoreStrategy.NEVER,
 )
 class EXEC(PrimitiveType[dict]):
-    """Execution signal carrying an optional ``dict`` payload.
-    """
+    """Execution signal carrying an optional ``dict`` payload."""
 
     @classmethod
     def create_default(cls) -> "EXEC":

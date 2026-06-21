@@ -880,17 +880,23 @@ class NodeData:
             return lambda ctx: self.worker(ctx, p0.get_value(), p1.get_value(), p2.get_value())
         elif n == 4:
             p0, p1, p2, p3 = ports
-            return lambda ctx: self.worker(ctx, p0.get_value(), p1.get_value(), p2.get_value(), p3.get_value())
+            return lambda ctx: self.worker(
+                ctx, p0.get_value(), p1.get_value(), p2.get_value(), p3.get_value()
+            )
         elif n == 5:
             p0, p1, p2, p3, p4 = ports
-            return lambda ctx: self.worker(ctx, p0.get_value(), p1.get_value(), p2.get_value(), p3.get_value(), p4.get_value())
+            return lambda ctx: self.worker(
+                ctx, p0.get_value(), p1.get_value(), p2.get_value(), p3.get_value(), p4.get_value()
+            )
         else:
             port_refs = list(zip(param_names, ports))
             cache: dict[str, Any] = {name: None for name in param_names}
+
             def extract_dict():
                 for name, port in port_refs:
                     cache[name] = port.get_value()
                 return cache
+
             return lambda ctx: self.worker(ctx, **extract_dict())
 
     def _parse_worker_result(self, result: str | None) -> str | None:

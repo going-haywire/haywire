@@ -1,18 +1,12 @@
 """Tests for control-edge payloads.
 
-A CONTROL (EXEC) edge may carry an optional ``dict`` payload. Because control
-edges now build an adapter chain, the source EXEC outlet gets an eager ``Pipe``,
+A CONTROL (EXEC) edge carries an optional ``dict`` payload. Because control
+edges build an adapter chain, the source EXEC outlet gets an eager ``Pipe``,
 so writing the outlet propagates the payload to the linked EXEC inlet — the same
-machinery DATA outlets use. The VM additionally forwards the entered payload when
-a worker fires an outlet without writing it (transparent-conduit fallback).
+machinery DATA outlets use.
 
-These tests cover the feature at two altitudes:
-
-1. The port/edge layer plus the VM helper (``_fallback_control_payload``)
-   directly, using the testbed ``EdgeLinkTestNode`` which exposes EXEC pins.
-2. End-to-end through a real assembled flow run by the ``Interpreter``, proving
-   a payload reaches a downstream control inlet *even when an intermediate
-   node's worker never writes its outlet* — the headline feature.
+Nodes that need to pass a payload through a control edge must do so explicitly
+via ``out()``; there is no automatic transparent-conduit fallback.
 """
 
 import haywire.core.graph.editor  # noqa: F401  (import first, per CLAUDE.md)
@@ -21,7 +15,6 @@ import pytest
 
 from haywire.core.execution.event_source import SystemEventType
 from haywire.core.execution.interpreter import Interpreter
-from haywire.core.execution.vm import HaywireVM
 from haywire.core.graph.base import BaseGraph
 
 
@@ -66,57 +59,6 @@ class TestControlPayload:
 
         assert inlet.get_value() == payload
 
-    def test_silent_node_forwards_entered_payload(
-        self, graph_with_library_system: BaseGraph, library_system
-    ):
-        """A worker that fires an outlet without writing it forwards the inlet payload.
-
-        Drives ``_push_control_payload`` directly: the source has a value on the
-        inlet it was 'entered' through, did NOT write the outlet, so the helper
-        writes the inlet value onto the outlet, which eagerly propagates.
-        """
-        graph = graph_with_library_system
-        source, sink, _ = self._exec_linked_nodes(graph)
-
-        # Simulate the pulse arriving on the source with a payload.
-        source.node.ports["execute_inlet"].set_value({"k": "v"})
-        outlet = source.node.ports["execute_out"]
-        sink_inlet = sink.node.ports["execute_inlet"]
-        assert not outlet._is_set_by_node  # worker has not written it
-
-        vm = HaywireVM()
-        vm._fallback_control_payload(source.node, "execute_inlet", "execute_out")
-
-        # Forwarded payload reached the sink, and the sticky flag is cleared.
-        assert sink_inlet.get_value() == {"k": "v"}
-        assert not outlet._is_set_by_node
-
-    def test_written_outlet_is_not_overwritten_by_fallback(
-        self, graph_with_library_system: BaseGraph, library_system
-    ):
-        """When the worker wrote the outlet, the fallback must not clobber it.
-
-        ``_push_control_payload`` should leave the eagerly-pushed value in place
-        and only clear the sticky ``_is_set_by_node`` flag.
-        """
-        graph = graph_with_library_system
-        source, sink, _ = self._exec_linked_nodes(graph)
-
-        outlet = source.node.ports["execute_out"]
-        sink_inlet = sink.node.ports["execute_inlet"]
-
-        # Worker writes the outlet (sets _is_set_by_node, eager-propagates).
-        outlet.set_value({"written": True})
-        assert outlet._is_set_by_node
-        # A different value sits on the entered inlet — must be ignored.
-        source.node.ports["execute_inlet"].set_value({"entered": True})
-
-        vm = HaywireVM()
-        vm._fallback_control_payload(source.node, "execute_inlet", "execute_out")
-
-        assert sink_inlet.get_value() == {"written": True}
-        assert not outlet._is_set_by_node  # flag reset for next frame
-
 
 @pytest.mark.integration
 @pytest.mark.slow
@@ -124,9 +66,8 @@ class TestControlPayloadEndToEnd:
     """Run a real assembled flow and watch a payload travel down EXEC edges.
 
     Chain: TestBeginPlay → conduit_a → conduit_b → sink, all wired exec→exec.
-    ``conduit_a`` writes an explicit payload via ``out()``; ``conduit_b`` writes
-    nothing and just returns its outlet, so the VM's transparent-conduit
-    fallback must forward the payload through it untouched.
+    Nodes must explicitly write their outlet via ``out()`` to propagate a payload;
+    there is no automatic transparent-conduit fallback.
     """
 
     def _build_chain(self, graph: BaseGraph):
@@ -149,39 +90,6 @@ class TestControlPayloadEndToEnd:
         graph.create_edge_wrapper(conduit_b.node_id, "exec_out", sink.node_id, "exec_in")
 
         return conduit_a, conduit_b, sink
-
-    def test_payload_forwarded_through_silent_node(
-        self, graph_with_library_system: BaseGraph, library_system
-    ):
-        """conduit_a emits a payload; conduit_b forwards it without writing it."""
-        graph = graph_with_library_system
-        conduit_a, conduit_b, sink = self._build_chain(graph)
-
-        payload = {"hits": 7, "source": "conduit_a"}
-        # conduit_a explicitly writes the payload; conduit_b leaves emit_payload
-        # at the default None so its worker never touches its outlet.
-        conduit_a.node.emit_payload = payload
-
-        interpreter = Interpreter()
-        interpreter.load_graph(graph)
-        try:
-            triggered = interpreter.dispatch_system_event(SystemEventType.BEGIN_PLAY)
-            assert triggered == 1
-            interpreter.wait_all(timeout=5.0)
-        finally:
-            interpreter.shutdown()
-
-        # conduit_b received the explicit payload on its entered inlet,
-        assert conduit_b.node.received == payload
-        # and even though its worker wrote nothing, the payload reached the sink.
-        assert sink.node.received == payload
-
-        # Assert the individual key-value pairs survived the trip end-to-end,
-        # untouched by the silent conduit in the middle.
-        received = sink.node.received
-        assert received is not None
-        assert received["hits"] == 7
-        assert received["source"] == "conduit_a"
 
     def test_payload_chains_through_multiple_silent_nodes(
         self, graph_with_library_system: BaseGraph, library_system
