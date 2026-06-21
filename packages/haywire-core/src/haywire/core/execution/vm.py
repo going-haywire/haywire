@@ -196,15 +196,6 @@ class HaywireVM:
             next_outlet_id = self._execute_control_node(node_info, flow, exec_ctx)
             # >>>>>>>>>>>
 
-            # Settle the control payload on the fired outlet. If the worker wrote
-            # it via out(), the outlet's eager Pipes already propagated it; if not,
-            # forward the payload that arrived on current_inlet_id so the node is a
-            # transparent conduit. See EXEC contract.
-            if next_outlet_id:
-                # this costs ca 300 ns:
-                self._fallback_control_payload(node_info.node, current_inlet_id, next_outlet_id)
-
-
             # Only push to loopback stack if taking a loopback outlet
             if node_info.is_loopback and next_outlet_id:
                 outlet_port = node_info.node.ports[next_outlet_id]
@@ -284,21 +275,6 @@ class HaywireVM:
         # )
 
         return next_outlet_id
-
-    def _fallback_control_payload(
-            self, node: "BaseNode", 
-            current_inlet_id: Optional[str], 
-            next_outlet_id: str
-        ) -> None:
-        """Settle the control payload on the just-fired outlet.
-            checks if worker wrote the outlet this pulse (``out()`` was called):
-            if not: forward the payload that arrived on the inlet
-        """
-        outlet = node.ports.get(next_outlet_id)
-        if current_inlet_id and not outlet._is_set_by_node:
-            # set_value on an outlet eagerly propagates to the linked inlet.
-            outlet.set_value(node.value(current_inlet_id))
-        outlet._is_set_by_node = False
 
     def catch_exception(self, exception: Exception, node: "BaseNode", operation: str) -> None:
         """
