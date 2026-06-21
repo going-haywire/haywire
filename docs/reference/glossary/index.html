@@ -3481,8 +3481,8 @@
 <td>Control pin (Pin is acceptable colloquially)</td>
 </tr>
 <tr>
-<td><strong>Control payload</strong> <em>(proposed)</em></td>
-<td>A <code>dict</code> value optionally carried by an EXEC edge. The upstream worker writes it to its EXEC <strong>outlet</strong> via <code>out()</code>. <strong>Contract:</strong> a worker writes a payload only on the outlet it returns that pulse. If a worker fires an outlet <em>without</em> writing it, the VM forwards the payload that arrived on the entered inlet by writing it to the fired outlet (which eagerly propagates the same way), so a payload-agnostic node is a transparent conduit. Transient — <code>EXEC</code> declares <code>store_strategy=NEVER</code>, so payloads never persist to saved graphs. Distinct from a DATA value (pulled lazily via a localized data-flow with no execution-order meaning).</td>
+<td><strong>Control payload</strong></td>
+<td>An EXEC edge can transmit a value like a data or callback edge. The upstream worker writes it to its EXEC <strong>outlet</strong> via <code>out()</code>. <strong>Contract:</strong> a worker writes a payload only on the outlet it returns that pulse. Forwarding is always explicit — if a node does not call <code>out()</code> on its fired outlet, no payload propagates; there is no automatic VM fallback. For reliable forwarding, use the execution context. Transient — <code>EXEC</code> declares <code>store_strategy=NEVER</code>, so payloads never persist to saved graphs.</td>
 <td>Exec value, control data (ambiguous), pulse argument</td>
 </tr>
 <tr>
