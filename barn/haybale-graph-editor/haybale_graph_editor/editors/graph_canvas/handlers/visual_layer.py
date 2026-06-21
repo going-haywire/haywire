@@ -24,6 +24,7 @@ from haywire.ui.components.graph.event_definitions import (
     UserRemoveEvent,
     NodeCreateRequestEvent,
     SplitEdgeWithRerouteEvent,
+    DissolveRerouteEvent,
     EdgeCreatedEvent,
     ElementRedrawEvent,
     ElementResetEvent,
@@ -440,6 +441,15 @@ class VisualLayerHandlers:
         except Exception as e:
             logger.error(f"Error splitting edge with reroute: {e}")
             ui.notify(f"Error inserting reroute: {e}", type="negative")
+
+    @handles_event(DissolveRerouteEvent)
+    def process_dissolve_reroute(self, event: DissolveRerouteEvent):
+        """Dissolve a reroute node (one undoable op)."""
+        logger.info(f"🔗 Dissolving reroute {event.node_id}")
+        if self.editor.dissolve_reroute(event.node_id):
+            ui.notify("Dissolved reroute", type="positive")
+        else:
+            ui.notify("Failed to dissolve reroute", type="negative")
 
     def _try_auto_wire(self, wrapper, pending: dict) -> None:
         """

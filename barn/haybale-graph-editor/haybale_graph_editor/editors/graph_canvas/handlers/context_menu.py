@@ -477,6 +477,16 @@ class SessionContextMenuProvider(IContextMenuProvider, BaseContextMenuProvider):
             )
         )
 
+    def dissolve_reroute(self, node_id: str) -> None:
+        """Emit DissolveRerouteEvent for the given reroute node.
+
+        The visual layer handles the event and drives the editor's undoable
+        dissolution of the reroute node back into a direct connection.
+        """
+        from haywire.ui.components.graph.event_definitions import DissolveRerouteEvent
+
+        self._emit(DissolveRerouteEvent(node_id=node_id))
+
 
 # ---------------------------------------------------------------------------
 # Handler

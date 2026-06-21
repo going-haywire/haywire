@@ -125,6 +125,16 @@ class SplitEdgeWithRerouteEvent(BaseGraphEvent):
     position: Dict[str, float]  # {x: float, y: float} — where to place the reroute node
 
 
+@graph_event(
+    "dissolveReroute",
+    category="user",
+    description="Dissolve a reroute node and bridge its connections",
+)
+@dataclass
+class DissolveRerouteEvent(BaseGraphEvent):
+    node_id: str
+
+
 @graph_event("edgeCreated", category="user", description="New connection created")
 @dataclass
 class EdgeCreatedEvent(BaseGraphEvent):

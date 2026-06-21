@@ -236,3 +236,45 @@ class NodeErrorsSelectionMenuPanel(BasePanel):
         layout: PanelLayout,
     ) -> None:
         _render_node_errors(ctx, layout)
+
+
+@panel(
+    actions=SelectionContextActions,
+    focus=SelectionFocus,
+    label="Dissolve Reroute",
+    icon=hui.icon.edge,
+    order=15,
+)
+class DissolveRerouteMenuPanel(BasePanel):
+    """Collapse a reroute node back into a direct connection.
+
+    Only visible when the right-clicked node is a reroute node.
+    Bridges the upstream outlet directly to every downstream inlet,
+    then removes the reroute — all as one undoable operation.
+    """
+
+    actions: SelectionContextActions
+
+    @classmethod
+    def poll(cls, ctx: "SessionContext") -> bool:
+        wrapper = ctx.data[EditState].active_node
+        if wrapper is None:
+            return False
+        return wrapper.node.behavior.is_reroute_node
+
+    def draw(
+        self,
+        ctx: "SessionContext",
+        layout: PanelLayout,
+    ) -> None:
+        wrapper = ctx.data[EditState].active_node
+        if wrapper is None:
+            return
+        node_id = wrapper.node_id
+
+        with layout:
+            hui.button(
+                "Dissolve Reroute",
+                icon=hui.icon.edge,
+                on_click=lambda: self.actions.dissolve_reroute(node_id),
+            )

@@ -15,6 +15,7 @@ from haywire.core.undo.actions.graph_actions import (
     AddEdgeAction,
     PasteClipboardAction,
     SplitEdgeWithRerouteAction,
+    DissolveRerouteAction,
 )
 
 logger = logging.getLogger(__name__)
@@ -261,6 +262,24 @@ class Editor:
         except Exception as e:
             logger.error(f"Error splitting edge {edge_id} with reroute: {e}")
             return None
+
+    def dissolve_reroute(self, node_id: str) -> bool:
+        """Dissolve a reroute node, bridging upstream to all downstream sinks.
+
+        Removes the reroute node and reconnects upstream directly to each
+        downstream sink — all as one undoable operation (see
+        ``DissolveRerouteAction``).
+
+        Returns ``True`` on success, ``False`` on failure.
+        """
+        try:
+            action = DissolveRerouteAction(graph=self.graph, node_id=node_id)
+            self.history_manager.add_action(action)
+            logger.info(f"Dissolved reroute node {node_id}")
+            return True
+        except Exception as e:
+            logger.error(f"Error dissolving reroute {node_id}: {e}")
+            return False
 
     def list_edges(self) -> List[EdgeWrapper]:
         """Get a list of all connections in the graph."""

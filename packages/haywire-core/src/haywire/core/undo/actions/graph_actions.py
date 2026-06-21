@@ -116,8 +116,10 @@ class AddEdgeAction(ActionBase):
         self.graph = graph
         self.source_node_id = source_node_id
         self.outlet_port_id = outlet_pin_id
+        self.outlet_pin_id = outlet_pin_id
         self.sink_node_id = sink_node_id
         self.inlet_port_id = inlet_pin_id
+        self.inlet_pin_id = inlet_pin_id
 
         # Wrapper created during execute
         self.wrapper: Optional[EdgeWrapper] = None
@@ -707,3 +709,63 @@ class SplitEdgeWithRerouteAction(CompositeAction):
         ]
 
         super().__init__(actions, description or "Insert reroute")
+
+
+class DissolveRerouteAction(CompositeAction):
+    """Dissolve a reroute node, bridging upstream to all downstream sinks.
+
+    Given a reroute R with upstream edges ``A.out → R.in``,
+    ``B.out → R.in`` and downstream edges ``R.out → C.in``,
+    ``R.out → D.in``, this composite (one undoable unit):
+
+    1. Removes R and all its connected edges (``RemoveElementsAction`` with
+       just the node id; cascade removes the edges).
+    2. For each (upstream, downstream) pair, adds a direct edge
+       ``upstream.out → downstream.in`` (``AddEdgeAction``).
+
+    DATA reroutes have one upstream edge; CONTROL reroutes allow multiple
+    upstream edges on the inlet (``allow_multiple_links=True``), so all
+    upstreams are bridged to all downstreams.
+
+    If no upstream edges exist (partial state), no bridge edges are created
+    — only the node is removed. This covers all partial states without
+    blocking the user.
+
+    Raises ``ValueError`` if ``node_id`` is not present in the graph.
+    """
+
+    def __init__(
+        self,
+        graph: BaseGraph,
+        node_id: str,
+        description: Optional[str] = None,
+    ):
+        wrapper = graph.get_node_wrapper(node_id)
+        if wrapper is None:
+            raise ValueError(f"Reroute node '{node_id}' not found; cannot dissolve")
+
+        all_edges = graph._get_all_edges(node_id)
+
+        # Partition into upstream (node is sink) and downstream (node is source).
+        upstream = [e for e in all_edges if e.sink_node_id == node_id]
+        downstream = [e for e in all_edges if e.source_node_id == node_id]
+
+        actions: List[IAction] = [
+            RemoveElementsAction(graph=graph, nodes=[node_id]),
+        ]
+
+        # Bridge every upstream source to every downstream sink.
+        # CONTROL inlets allow multiple upstream edges; DATA inlets allow one.
+        for src in upstream:
+            for sink_edge in downstream:
+                actions.append(
+                    AddEdgeAction(
+                        graph=graph,
+                        source_node_id=src.source_node_id,
+                        outlet_pin_id=src.outlet_port_id,
+                        sink_node_id=sink_edge.sink_node_id,
+                        inlet_pin_id=sink_edge.inlet_port_id,
+                    )
+                )
+
+        super().__init__(actions, description or "Dissolve reroute")
