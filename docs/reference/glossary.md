@@ -81,7 +81,7 @@ The three projections relate as: the **dataclass** (3) represents one entry in t
 | **EVENT node** | A node with an EXEC outlet but no EXEC inlet; originates an execution chain (timer, callback source) | Source node (ambiguous with data source) |
 | **OUTPUT node** | A terminal node with an EXEC inlet but no EXEC outlet; receives execution, produces no further control | Sink node (ambiguous with data sink) |
 | **LOOPBACK node** | A CONTROL node that uses the loopback-stack in the VM to implement loops or sequences | Loop node |
-| **Reroute node** | A DATA node shipped by `haybale-graph-editor` whose class declares **no** ports; at creation it is given exactly one data inlet and one data outlet matching the split edge's type, and its worker passes the inlet value straight to the outlet. Used to split an edge and bend/organize a wire. | Proxy node (collides with `_FieldProxy` / state proxies), passthrough node |
+| **Reroute node** | A pass-through node shipped by `haybale-graph-editor` whose class declares **no** ports; at creation it is given exactly one inlet and one outlet matching the split edge's type, and its worker passes the inlet value straight to the outlet and returns the outlet id. Supports **DATA**, **CONTROL**, and **CALLBACK** edges. Used to split an edge and bend/organize a wire. | Proxy node (collides with `_FieldProxy` / state proxies), passthrough node |
 
 ---
 

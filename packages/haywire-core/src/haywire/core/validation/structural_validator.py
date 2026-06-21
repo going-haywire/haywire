@@ -188,42 +188,46 @@ class StructuralValidator(IStructuralValidator):
         """
         Validate reroute node structural constraints.
 
-        A reroute is a DATA node (no control flow) used to split an edge. It
-        ships port-less; the split action adds a typed inlet/outlet after
-        creation. So unlike a plain data node, a port-less reroute is valid.
+        A reroute is a pass-through node used to split an edge. It ships port-less;
+        the split action adds a typed inlet/outlet after creation. Supports DATA,
+        CONTROL, and CALLBACK edges.
 
         Rules:
-        - No control/callback pins allowed (it is data-only, like a DATA node).
-        - Either no data ports at all (unconfigured, valid), or a passthrough
-          pair: exactly one data inlet AND one data outlet.
+        - Port-less (latent state) is valid — awaiting configuration by the split action.
+        - Configured: exactly one inlet AND one outlet of the same FlowType.
+        - Mixed FlowTypes (e.g. DATA inlet + CONTROL outlet) are invalid.
         """
         node = wrapper.node
 
-        # Reject non-DATA pins (same as a data node — no control/callback flow).
-        ports = node.get_ports(is_not_flow_type=FlowType.DATA, has_pin=True)
-        if len(ports) > 0:
-            return (
-                False,
-                f"Reroute nodes cannot have pins on non-DATA ports. Found: {[p.id for p in ports]}",
-                ["Reroute nodes only carry data; remove non-DATA pins"],
-            )
-
-        data_inlets = node.get_ports(is_port_type=PortType.INLET, is_flow_type=FlowType.DATA)
-        data_outlets = node.get_ports(is_port_type=PortType.OUTLET, is_flow_type=FlowType.DATA)
+        inlets = node.get_ports(is_port_type=PortType.INLET, has_pin=True)
+        outlets = node.get_ports(is_port_type=PortType.OUTLET, has_pin=True)
 
         # Port-less latent state is valid (awaiting configuration by the split).
-        if not data_inlets and not data_outlets:
+        if not inlets and not outlets:
             return (True, None, [])
 
-        # Configured: must be a passthrough pair (one inlet + one outlet).
-        if len(data_inlets) != 1 or len(data_outlets) != 1:
+        # Configured: must be exactly one inlet and one outlet.
+        if len(inlets) != 1 or len(outlets) != 1:
             return (
                 False,
                 (
-                    "A configured reroute must have exactly one data inlet and one data outlet "
-                    f"(found {len(data_inlets)} inlet(s), {len(data_outlets)} outlet(s))"
+                    "A configured reroute must have exactly one inlet and one outlet "
+                    f"(found {len(inlets)} inlet(s), {len(outlets)} outlet(s))"
                 ),
                 ["A reroute passes one inlet value straight to one outlet"],
+            )
+
+        # The inlet and outlet must carry the same FlowType.
+        inlet_flow = inlets[0].flow_type
+        outlet_flow = outlets[0].flow_type
+        if inlet_flow != outlet_flow:
+            return (
+                False,
+                (
+                    f"A reroute's inlet and outlet must have the same FlowType "
+                    f"(inlet={inlet_flow.value}, outlet={outlet_flow.value})"
+                ),
+                ["Reroute passes one type straight through; inlet and outlet must match"],
             )
 
         return (True, None, [])
@@ -369,27 +373,25 @@ class StructuralValidator(IStructuralValidator):
         Validate callback edge structural constraints.
 
         Rules:
-        - Target node must be an event node
+        - Source must be an EVENT node OR a REROUTE node.
 
-        Args:
-            wrapper: Callback edge wrapper to validate
-
-        Returns:
-            Tuple of (is_valid, error_message, suggestions).
-            Error message is None if valid.
-            Suggestions is a list of actionable fixes.
+        A REROUTE source is valid because the upstream CALLBACK edge
+        (EventNode -> reroute) is validated independently and guarantees
+        the value originated from an EVENT node. Trusting upstream edge
+        validity avoids traversal.
         """
         from haywire.core.node.behavior import NodeType
 
         assert wrapper._source_wrapper is not None  # validator runs after edge wiring
-        # Source must be an event node
-        if NodeType.EVENT not in wrapper._source_wrapper.node.behavior.node_type:
+        source_node_type = wrapper._source_wrapper.node.behavior.node_type
+        if NodeType.EVENT not in source_node_type and NodeType.REROUTE not in source_node_type:
             return (
                 False,
-                f"Callback edge source must be an event node. "
-                f"Node '{wrapper.source_node_id}' is not an event node.",
+                f"Callback edge source must be an event node or reroute node. "
+                f"Node '{wrapper.source_node_id}' is neither.",
                 [
-                    "Connect callback to an event node (EventNode subclass)",
+                    "Connect callback outlet to an event node (EventNode subclass)",
+                    "Or route through a reroute node inserted on a callback edge",
                     "Or change edge type to DATA if passing data",
                 ],
             )

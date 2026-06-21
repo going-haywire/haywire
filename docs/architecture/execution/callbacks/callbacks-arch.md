@@ -15,7 +15,7 @@ see-also:
 
 A **callback** is a cross-flow trigger: one Flow emits an event, and a sibling Flow whose entry EVENT-node is configured to listen for that event runs in response. Callbacks let an event-node-rooted Flow be triggered *programmatically* by another running flow, instead of only by an external system event (BEGIN_PLAY, Tick, user input).
 
-Callbacks are not Edges that participate in execution. They are **assembly-time wiring**: a CALLBACK edge between an emitter outlet and a listener-event-node's inlet tells the assembler "hook this listener up to fire when the emitter writes." Once assembled, the runtime callback machinery handles dispatch — there is no edge to traverse during execution.
+CALLBACK edges serve two roles: **assembly-time wiring** and **run-time value transport**. At assembly time, a CALLBACK edge between an emitter outlet and a listener-event-node's inlet tells the assembler "hook this listener up to fire when the emitter writes." At run-time, the pipe mechanism transports the string listener-id from the EVENT node outlet to the emitter's inlet — the emitter reads it to know which callbacks to fire.
 
 This is the third leg of haywire's connection types — see [reference/glossary §Flow Types & Port Kinds](../../../reference/glossary.md#flow-types-port-kinds):
 
@@ -23,7 +23,7 @@ This is the third leg of haywire's connection types — see [reference/glossary 
 |---|---|---|
 | **DATA edge** | Carries typed values from outlet to inlet | Run-time data transport |
 | **EXEC edge** | Carries control flow within a Flow | Run-time control transport |
-| **CALLBACK edge** | Wires a listener Flow to an emitter port | Assembly-time only |
+| **CALLBACK edge** | Carries a string listener-id from an EVENT node outlet to an emitter's `PooledType[CALLBACK]` inlet; wires listener Flows to emitter ports | **Run-time** value transport (string) + assembly-time topology registration |
 
 ## 2. Contract
 
@@ -36,7 +36,7 @@ CALLBACK ports use the same `DataPort` infrastructure as DATA ports but carry th
 | Outlet | `False` (default — one emitter per source) |
 | Inlet | `False` (default — one listener per target) |
 
-A CALLBACK edge is registered through the same `graph.create_edge_wrapper(...)` flow as DATA/EXEC edges, but its lifecycle ends at assembly: the assembler reads it once to wire the callback table, then the edge does not participate in execution.
+A CALLBACK edge is registered through the same `graph.create_edge_wrapper(...)` flow as DATA/EXEC edges. At run-time, the pipe mechanism transports the string listener-id from the EVENT node outlet to the emitter's `PooledType[CALLBACK]` inlet — the emitter reads this value to know which callback names to emit. Additionally, at assembly time, the assembler reads the edge topology to register listener Flows with the CallbackManager.
 
 ### 2.2 Two callback modes
 
@@ -116,7 +116,7 @@ CALLBACK edges follow the same hot-reload path as DATA/EXEC edges (see [architec
 The callback subsystem is **not**:
 
 - A **synchronous function call** mechanism — listeners run as standalone Flows; emitters do not wait.
-- A **data-passing channel** — CALLBACK ports carry only the trigger; data flow between sibling Flows requires AppState (see [architecture/session-and-state](../../session-and-state/session-and-state-arch.md)) or a shared `LibrarySettings`.
+- A **data-passing channel for arbitrary types** — CALLBACK ports carry string listener-ids only. Data flow between sibling Flows requires AppState (see [architecture/session-and-state](../../session-and-state/session-and-state-arch.md)) or a shared `LibrarySettings`.
 - A **subscription protocol** for UI events — that's the studio's `notify_context_changed` system; see [architecture/studio](../../studio/studio-arch.md).
 - An **inter-process communication** mechanism — callbacks are intra-Interpreter only.
 

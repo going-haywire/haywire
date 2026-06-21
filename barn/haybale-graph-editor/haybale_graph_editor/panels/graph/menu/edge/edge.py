@@ -93,15 +93,16 @@ class EdgeWarningsMenuPanel(BasePanel):
     order=20,
 )
 class InsertRerouteMenuPanel(BasePanel):
-    """Split the active data edge and insert a reroute node in between."""
+    """Split the active edge and insert a reroute node in between.
+
+    Available for DATA, CONTROL, and CALLBACK edges.
+    """
 
     actions: EdgeContextActions
 
     @classmethod
     def poll(cls, ctx: "SessionContext") -> bool:
-        edge = ctx.data[EditState].active_edge
-        # Data edges only — value passthrough has no meaning on control/callback.
-        return edge is not None and edge.is_data_edge()
+        return ctx.data[EditState].active_edge is not None
 
     def draw(
         self,

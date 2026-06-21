@@ -288,25 +288,55 @@ def test_validate_reroute_outlet_only_is_invalid():
     validator, wrapper, *_ = _reroute_validator_with_ports([(PortType.OUTLET, FlowType.DATA, True)])
     ok, err, _ = validator.validate_node(wrapper)
     assert not ok
-    assert "exactly one data inlet and one data outlet" in err
+    assert "exactly one inlet and one outlet" in err
 
 
-def test_validate_reroute_rejects_non_data_pins():
+def test_validate_reroute_accepts_control_passthrough_pair():
+    """A CONTROL inlet + CONTROL outlet is a valid configured reroute."""
     _, _, FlowType, PortType = _reroute_validator_with_ports([])
-    validator, wrapper, *_ = _reroute_validator_with_ports([(PortType.INLET, FlowType.CONTROL, True)])
+    validator, wrapper, *_ = _reroute_validator_with_ports(
+        [
+            (PortType.INLET, FlowType.CONTROL, True),
+            (PortType.OUTLET, FlowType.CONTROL, True),
+        ]
+    )
+    ok, err, _ = validator.validate_node(wrapper)
+    assert ok and err is None
+
+
+def test_validate_reroute_accepts_callback_passthrough_pair():
+    """A CALLBACK inlet + CALLBACK outlet is a valid configured reroute."""
+    _, _, FlowType, PortType = _reroute_validator_with_ports([])
+    validator, wrapper, *_ = _reroute_validator_with_ports(
+        [
+            (PortType.INLET, FlowType.CALLBACK, True),
+            (PortType.OUTLET, FlowType.CALLBACK, True),
+        ]
+    )
+    ok, err, _ = validator.validate_node(wrapper)
+    assert ok and err is None
+
+
+def test_validate_reroute_rejects_mixed_flow_types():
+    """An inlet and outlet of different FlowTypes is invalid."""
+    _, _, FlowType, PortType = _reroute_validator_with_ports([])
+    validator, wrapper, *_ = _reroute_validator_with_ports(
+        [
+            (PortType.INLET, FlowType.DATA, True),
+            (PortType.OUTLET, FlowType.CONTROL, True),
+        ]
+    )
     ok, err, _ = validator.validate_node(wrapper)
     assert not ok
-    assert "non-DATA ports" in err
 
 
-def test_reroute_node_type_carries_data_bit():
-    """is_data_node must stay True for a reroute so it keeps the DATA execution
-    path (dirty-port optimisation, data-flow building)."""
+def test_reroute_node_type_is_standalone_bit():
+    """REROUTE is a standalone bit — not DATA, not CONTROL."""
     from haywire.core.node.behavior import NodeBehaviorFlags, NodeType
 
     flags = NodeBehaviorFlags(node_type=NodeType.REROUTE)
-    assert flags.is_data_node is True
     assert flags.is_reroute_node is True
+    assert flags.is_data_node is False
     assert flags.is_control_node is False
 
 
@@ -376,6 +406,59 @@ class TestSplitEdgeRerouteIntegration:
         pairs = {(e.source_node_id, e.sink_node_id) for e in edges}
         assert pairs == {(node_a.node_id, reroute_id), (reroute_id, node_b.node_id)}
 
+    def test_split_control_edge_inserts_reroute(self, graph_with_library_system, library_system):
+        """Splitting a CONTROL edge inserts a reroute with EXEC inlet/outlet."""
+        from haybale_core.types import EXEC
+        from haywire.core.undo.actions.graph_actions import SplitEdgeWithRerouteAction
+        from haywire.core.types.enums import FlowType
+        from haybale_testing.nodes.testbed.begin_play_node import TestBeginPlayNode
+        from haybale_testing.nodes.testbed.print_node import TestPrintNode
+
+        graph = graph_with_library_system
+
+        begin_key = TestBeginPlayNode.class_identity.registry_key
+        print_key = TestPrintNode.class_identity.registry_key
+
+        begin = graph.create_node_wrapper(begin_key, position=(100, 100))
+        print_node = graph.create_node_wrapper(print_key, position=(300, 100))
+        edge = graph.create_edge_wrapper(begin.node_id, "exec", print_node.node_id, "exec")
+        assert edge.state.is_valid()
+        assert edge._edge_type == FlowType.CONTROL
+
+        original_ids = {begin.node_id, print_node.node_id}
+        original_edge_id = edge.edge_id
+
+        action = SplitEdgeWithRerouteAction(
+            graph=graph,
+            edge_id=edge.edge_id,
+            position=(200.0, 200.0),
+            **self._reroute_args(),
+        )
+        action._execute_impl()
+
+        # Original edge is gone.
+        assert graph.get_edge_wrapper(original_edge_id) is None
+
+        # Exactly one new node — the reroute.
+        new_ids = set(graph.node_wrappers.keys()) - original_ids
+        assert len(new_ids) == 1
+        reroute_id = next(iter(new_ids))
+
+        # Reroute has EXEC-typed ports.
+        reroute = graph.node_wrappers[reroute_id].node
+        assert set(reroute.ports.keys()) == {"in", "out"}
+        assert reroute.ports["in"].stored_type is EXEC
+        assert reroute.ports["out"].stored_type is EXEC
+        assert reroute.ports["in"].flow_type == FlowType.CONTROL
+        assert reroute.ports["out"].flow_type == FlowType.CONTROL
+
+        # Two valid edges.
+        edges = list(graph.edge_wrappers.values())
+        assert len(edges) == 2
+        assert all(e.state.is_valid() for e in edges)
+        pairs = {(e.source_node_id, e.sink_node_id) for e in edges}
+        assert pairs == {(begin.node_id, reroute_id), (reroute_id, print_node.node_id)}
+
     def test_split_undo_restores_original_edge(self, graph_with_library_system, library_system):
         from haywire.core.undo.actions.graph_actions import SplitEdgeWithRerouteAction
 
@@ -395,3 +478,31 @@ class TestSplitEdgeRerouteIntegration:
         restored = graph.get_edge_wrapper(original_edge_id)
         assert restored is not None
         assert restored.state.is_valid()
+
+
+def test_callback_edge_from_reroute_is_valid():
+    """A CALLBACK edge whose source is a REROUTE node should be valid.
+
+    The upstream edge (EventNode -> reroute) is validated independently and
+    guarantees the value originated from an EVENT node. Trusting upstream
+    edge validity means we only need to allow REROUTE as a source here.
+    """
+    from haywire.core.validation.structural_validator import StructuralValidator
+    from haywire.core.node.behavior import NodeBehaviorFlags, NodeType
+    from haywire.core.types.enums import FlowType
+
+    class _Node:
+        behavior = NodeBehaviorFlags(node_type=NodeType.REROUTE)
+        node_id = "reroute_1"
+
+    class _SourceWrapper:
+        node = _Node()
+
+    class _EdgeWrapper:
+        _edge_type = FlowType.CALLBACK
+        _source_wrapper = _SourceWrapper()
+        source_node_id = "reroute_1"
+
+    validator = StructuralValidator.__new__(StructuralValidator)
+    ok, err, _ = validator._validate_callback_edge(_EdgeWrapper())
+    assert ok and err is None
