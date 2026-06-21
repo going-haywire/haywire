@@ -5,9 +5,10 @@ Provides fixtures for different test scopes and scenarios.
 """
 
 import importlib
-import pytest
 from pathlib import Path
 from typing import Callable, Generator
+
+import pytest
 from injector import Injector
 
 from haywire.core.di.test_config import create_test_injector, create_test_library_system
@@ -41,6 +42,35 @@ def pytest_configure(config):
     config.addinivalue_line("markers", "slow: Slow running tests")
     config.addinivalue_line("markers", "ui: UI-related tests")
     config.addinivalue_line("markers", "core: Core functionality tests")
+
+
+# ==============================================================================
+# NiceGUI global-state reset
+#
+# user_simulation() (used by test_library_operation_progress_modal) starts a
+# NiceGUI event loop, sets core.script_mode=True, and leaves stale entries in
+# Slot.stacks keyed by the asyncio task that ran during the simulation.  Any
+# subsequent test that calls Client() outside an event loop then fails with
+# "The parent element this slot belongs to has been deleted" because
+# context.slot resolves to a dead slot from the previous simulation.
+#
+# This autouse fixture resets all three pieces of shared NiceGUI state after
+# every test so the next test always starts from a clean slate.
+# ==============================================================================
+
+
+@pytest.fixture(autouse=True)
+def _reset_nicegui_globals():
+    yield
+    try:
+        from nicegui import core
+        from nicegui.slot import Slot
+
+        Slot.stacks.clear()
+        core.script_mode = False
+        core.script_client = None
+    except Exception:
+        pass
 
 
 # ==============================================================================

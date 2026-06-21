@@ -59,6 +59,8 @@ def test_copy_selection_handler_writes_to_session_context(register_edit_state):
 
 def test_paste_clipboard_handler_reads_from_session_context(register_edit_state):
     """SelectionHandlers.process_paste_clipboard reads the clipboard from EditState."""
+    from unittest.mock import patch
+
     from haywire.ui.components.graph.event_definitions import UserPasteClipboardEvent
     from haybale_graph_editor.editors.graph_canvas.handlers.selection import SelectionHandlers
 
@@ -70,22 +72,24 @@ def test_paste_clipboard_handler_reads_from_session_context(register_edit_state)
     editor.paste_clipboard.return_value = (["a_new"], [])  # (new_node_ids, new_edge_ids)
     handlers = SelectionHandlers(graph=MagicMock(), editor=editor, session_id="t", session=session)
 
-    # No clipboard → no-op (logs warning, doesn't crash)
-    handlers.process_paste_clipboard(UserPasteClipboardEvent(canvasX=0, canvasY=0))
-    # No assertion — just verify no crash.
+    # Mock ui.notify for the whole test: both paths call it and require a NiceGUI context.
+    with patch("nicegui.ui.notify") as mock_notify:
+        # No clipboard → "Nothing to paste" warning.
+        handlers.process_paste_clipboard(UserPasteClipboardEvent(canvasX=0, canvasY=0))
+        assert mock_notify.call_count == 1
 
-    # With clipboard → handler reads ctx.data[EditState].clipboard and pastes it
-    ctx.data[EditStateCls].clipboard = ClipboardData(
-        payload={
-            "haywire_clipboard": True,
-            "format_version": 1,
-            "source": {"session_id": "t", "timestamp": 1.0},
-            "bounding_box": {"min_x": 0, "min_y": 0, "max_x": 0, "max_y": 0},
-            "nodes": {"a": {"node_id": "a"}},
-            "edges": {},
-        },
-        timestamp=1.0,
-    )
-    handlers.process_paste_clipboard(UserPasteClipboardEvent(canvasX=10, canvasY=20))
-    # Handler reads the clipboard from ctx and routes it to editor.paste_clipboard.
-    editor.paste_clipboard.assert_called_once()
+        # With clipboard → handler reads ctx.data[EditState].clipboard and pastes it.
+        ctx.data[EditStateCls].clipboard = ClipboardData(
+            payload={
+                "haywire_clipboard": True,
+                "format_version": 1,
+                "source": {"session_id": "t", "timestamp": 1.0},
+                "bounding_box": {"min_x": 0, "min_y": 0, "max_x": 0, "max_y": 0},
+                "nodes": {"a": {"node_id": "a"}},
+                "edges": {},
+            },
+            timestamp=1.0,
+        )
+        handlers.process_paste_clipboard(UserPasteClipboardEvent(canvasX=10, canvasY=20))
+        # Handler routes clipboard to editor.paste_clipboard.
+        editor.paste_clipboard.assert_called_once()
