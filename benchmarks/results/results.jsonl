@@ -1,0 +1,2 @@
+{"timestamp": "2026-06-21T08:49:35+00:00", "commit": "3d2e9fefd5a2", "dirty": false, "branch": "master", "host": "MB-41545", "python": "3.12.12", "case": "graph_loop", "category": "graph", "min": 2625.0, "median": 2656.5, "p90": 2691.4, "n": 15, "unit": "ns"}
+{"timestamp": "2026-06-21T08:49:35+00:00", "commit": "3d2e9fefd5a2", "dirty": false, "branch": "master", "host": "MB-41545", "python": "3.12.12", "case": "node_execute_bare", "category": "micro", "min": 330.6, "median": 333.4, "p90": 360.0, "n": 15, "unit": "ns"}
