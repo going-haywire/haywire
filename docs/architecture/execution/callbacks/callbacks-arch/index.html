@@ -3141,7 +3141,7 @@
 <h1 id="callbacks-architecture">Callbacks — Architecture<a class="headerlink" href="#callbacks-architecture" title="Permanent link">&para;</a></h1>
 <h2 id="1-mental-model">1. Mental model<a class="headerlink" href="#1-mental-model" title="Permanent link">&para;</a></h2>
 <p>A <strong>callback</strong> is a cross-flow trigger: one Flow emits an event, and a sibling Flow whose entry EVENT-node is configured to listen for that event runs in response. Callbacks let an event-node-rooted Flow be triggered <em>programmatically</em> by another running flow, instead of only by an external system event (BEGIN_PLAY, Tick, user input).</p>
-<p>Callbacks are not Edges that participate in execution. They are <strong>assembly-time wiring</strong>: a CALLBACK edge between an emitter outlet and a listener-event-node's inlet tells the assembler "hook this listener up to fire when the emitter writes." Once assembled, the runtime callback machinery handles dispatch — there is no edge to traverse during execution.</p>
+<p>CALLBACK edges serve two roles: <strong>assembly-time wiring</strong> and <strong>run-time value transport</strong>. At assembly time, a CALLBACK edge between an emitter outlet and a listener-event-node's inlet tells the assembler "hook this listener up to fire when the emitter writes." At run-time, the pipe mechanism transports the string listener-id from the EVENT node outlet to the emitter's inlet — the emitter reads it to know which callbacks to fire.</p>
 <p>This is the third leg of haywire's connection types — see <a href="../../../../reference/glossary/#flow-types-port-kinds">reference/glossary §Flow Types &amp; Port Kinds</a>:</p>
 <table>
 <thead>
@@ -3164,8 +3164,8 @@
 </tr>
 <tr>
 <td><strong>CALLBACK edge</strong></td>
-<td>Wires a listener Flow to an emitter port</td>
-<td>Assembly-time only</td>
+<td>Carries a string listener-id from an EVENT node outlet to an emitter's <code>PooledType[CALLBACK]</code> inlet; wires listener Flows to emitter ports</td>
+<td><strong>Run-time</strong> value transport (string) + assembly-time topology registration</td>
 </tr>
 </tbody>
 </table>
@@ -3190,7 +3190,7 @@
 </tr>
 </tbody>
 </table>
-<p>A CALLBACK edge is registered through the same <code>graph.create_edge_wrapper(...)</code> flow as DATA/EXEC edges, but its lifecycle ends at assembly: the assembler reads it once to wire the callback table, then the edge does not participate in execution.</p>
+<p>A CALLBACK edge is registered through the same <code>graph.create_edge_wrapper(...)</code> flow as DATA/EXEC edges. At run-time, the pipe mechanism transports the string listener-id from the EVENT node outlet to the emitter's <code>PooledType[CALLBACK]</code> inlet — the emitter reads this value to know which callback names to emit. Additionally, at assembly time, the assembler reads the edge topology to register listener Flows with the CallbackManager.</p>
 <h3 id="22-two-callback-modes">2.2 Two callback modes<a class="headerlink" href="#22-two-callback-modes" title="Permanent link">&para;</a></h3>
 <p>The framework supports two ways to wire a listener to an emitter:</p>
 <p><strong>Edge-based (visual, default).</strong> A <code>FlowType.CALLBACK</code> edge connects an emitter outlet to a listener <code>CallbackEvent</code>-node inlet. The event name propagates automatically — the emitter doesn't need a string identifier; the edge is the wiring.</p>
@@ -3247,7 +3247,7 @@
 <p>The callback subsystem is <strong>not</strong>:</p>
 <ul>
 <li>A <strong>synchronous function call</strong> mechanism — listeners run as standalone Flows; emitters do not wait.</li>
-<li>A <strong>data-passing channel</strong> — CALLBACK ports carry only the trigger; data flow between sibling Flows requires AppState (see <a href="../../../session-and-state/session-and-state-arch/">architecture/session-and-state</a>) or a shared <code>LibrarySettings</code>.</li>
+<li>A <strong>data-passing channel for arbitrary types</strong> — CALLBACK ports carry string listener-ids only. Data flow between sibling Flows requires AppState (see <a href="../../../session-and-state/session-and-state-arch/">architecture/session-and-state</a>) or a shared <code>LibrarySettings</code>.</li>
 <li>A <strong>subscription protocol</strong> for UI events — that's the studio's <code>notify_context_changed</code> system; see <a href="../../../studio/studio-arch/">architecture/studio</a>.</li>
 <li>An <strong>inter-process communication</strong> mechanism — callbacks are intra-Interpreter only.</li>
 </ul>

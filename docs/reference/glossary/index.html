@@ -3545,7 +3545,7 @@
 </tr>
 <tr>
 <td><strong>Reroute node</strong></td>
-<td>A DATA node shipped by <code>haybale-graph-editor</code> whose class declares <strong>no</strong> ports; at creation it is given exactly one data inlet and one data outlet matching the split edge's type, and its worker passes the inlet value straight to the outlet. Used to split an edge and bend/organize a wire.</td>
+<td>A pass-through node shipped by <code>haybale-graph-editor</code> whose class declares <strong>no</strong> ports; at creation it is given exactly one inlet and one outlet matching the split edge's type, and its worker passes the inlet value straight to the outlet and returns the outlet id. Supports <strong>DATA</strong>, <strong>CONTROL</strong>, and <strong>CALLBACK</strong> edges. Used to split an edge and bend/organize a wire.</td>
 <td>Proxy node (collides with <code>_FieldProxy</code> / state proxies), passthrough node</td>
 </tr>
 </tbody>
