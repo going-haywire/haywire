@@ -9,7 +9,7 @@ Run it via the skill:
 
 ```
 haywire-benchmark               # all cases
-haywire-benchmark control_edge  # only cases whose name contains "control_edge"
+haywire-benchmark graph_loop    # only cases whose name contains "graph_loop"
 ```
 
 or directly:
@@ -38,9 +38,9 @@ trust — but the headline, and the thing drift is computed against, is `min`.
 
 ### Absolute per case, never deltas
 
-We log each scenario as its own absolute case (`control_edge_forward`,
-`node_execute_bare`, …) and **never** store a derived delta (e.g. "fallback on −
-off"). A delta is a small difference of two large noisy numbers; we watched one
+We log each scenario as its own absolute case (`graph_loop`,
+`node_execute_bare`, …) and **never** store a derived delta (e.g. "with X −
+without X"). A delta is a small difference of two large noisy numbers; we watched one
 such delta swing **330 → 754 → 1119 ns across three identical runs** while the
 absolute per-case numbers it was derived from stayed stable to ~±2%. To compare
 two scenarios, add both as cases and read them side by side in the log — each is
@@ -88,7 +88,7 @@ One JSON object per line, one line per (run × case):
 Append-only and long-format, so tracking one case over time is a one-liner:
 
 ```
-jq 'select(.case=="control_edge_forward" and .host=="<your-host>" and .dirty==false) | .min' \
+jq 'select(.case=="graph_loop" and .host=="<your-host>" and .dirty==false) | .min' \
    benchmarks/results/results.jsonl
 ```
 

@@ -98,37 +98,9 @@ def _prepare_node_execute_bare() -> Prepared:
     return Prepared(run=run, ops=inner, repeats=15, warmup=5)
 
 
-# ---------------------------------------------------------------------------
-# micro case: control-edge payload forward (the fallback + eager pipe pull)
-# ---------------------------------------------------------------------------
-def _prepare_control_edge_forward() -> Prepared:
-    from haybale_testing.nodes.benchmark.bench_exec_node import BenchExecNode
-
-    from haywire.core.execution.vm import HaywireVM
-    from haywire.core.graph.base import BaseGraph
-
-    graph = BaseGraph(graph_id="bench_edge", name="bench edge")
-    src = graph.create_node_wrapper(BenchExecNode.class_identity.registry_key, position=(0, 0))
-    dst = graph.create_node_wrapper(BenchExecNode.class_identity.registry_key, position=(300, 0))
-    graph.create_edge_wrapper(src.node_id, "exec_out", dst.node_id, "exec_in")
-    graph.force_validation()
-
-    node = src.node
-    node.ports["exec_in"].set_value({"k": "v"})
-    fallback = HaywireVM()._fallback_control_payload
-    inner = 2000
-
-    def run() -> None:
-        for _ in range(inner):
-            fallback(node, "exec_in", "exec_out")
-
-    return Prepared(run=run, ops=inner, repeats=15, warmup=5)
-
-
 CASES: List[Case] = [
     Case("graph_loop", "graph", "ns", _prepare_graph_loop),
     Case("node_execute_bare", "micro", "ns", _prepare_node_execute_bare),
-    Case("control_edge_forward", "micro", "ns", _prepare_control_edge_forward),
 ]
 
 

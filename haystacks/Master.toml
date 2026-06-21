@@ -7,13 +7,8 @@ path = "graphs/loop.haywire"
 execute = false
 
 [[graphs]]
-path = "graphs/10x200nodes.haywire"
-execute = false
-
-[[graphs]]
 path = "graphs/empty.haywire"
 execute = false
 
 [haystack]
 name = "Master"
-active_graph = "graphs/webcam.haywire"
