@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 from haywire.core.adapter.base import IAdapter
 from haywire.core.edge.edge_wrapper import EdgeWrapper
@@ -40,31 +40,17 @@ class Pipe:
             # Eager: pull immediately; set_value() inside pull() marks the sink dirty.
             self.pull()
 
-    def push(self, value: Any) -> None:
-        """Forward an already-in-hand value through this pipe to the sink.
-
-        Eager edges run the chain straight to the sink — no outlet re-read.
-        Lazy edges defer: mark the sink dirty and let ``pull()`` read the
-        outlet's stored value later. The caller must have written that value to
-        the outlet first, so the deferred ``pull()`` still sees it.
-        """
-        if self.is_lazy:
-            self.sink._mark_as_data_dirty(pipe=self)
-        else:
-            self._forward(value)
-
     def pull(self) -> None:
-        """Pull the outlet's current value through the chain to the sink.
+        """Pull current outlet value through adapter chain to inlet.
 
-        The deferred (lazy) path: reads the outlet's stored value (always-latest
-        semantics) and forwards it. ``edge_id`` signals an edge-driven update.
+        Reads the outlet's current value (always-latest semantics),
+        transforms it, and stores it in the inlet via set_value.
+        The edge_id signals edge-driven update (defers on_change).
         """
-        self._forward(self._outlet_port.get_value())
-
-    def _forward(self, value: Any) -> None:
-        """Run the adapter chain on ``value`` and store the result in the sink."""
+        value = self._outlet_port.get_value()
         if value is not None:
-            self.sink.set_value(self.chain.execute(value), edge_id=self._edge_id)
+            converted_value = self.chain.execute(value)
+            self.sink.set_value(converted_value, edge_id=self._edge_id)
         else:
             self.sink.set_value(None, edge_id=self._edge_id)
 
@@ -104,11 +90,6 @@ class Pipes:
         """Propagate outlet value through all pipe connections."""
         for pipe in self._pipes.values():
             pipe.propagate()
-
-    def push(self, value: Any):
-        """Forward an already-in-hand value through all pipe connections."""
-        for pipe in self._pipes.values():
-            pipe.push(value)
 
     def clear(self):
         self._pipes.clear()

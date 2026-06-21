@@ -204,6 +204,7 @@ class HaywireVM:
                 # this costs ca 300 ns:
                 self._fallback_control_payload(node_info.node, current_inlet_id, next_outlet_id)
 
+
             # Only push to loopback stack if taking a loopback outlet
             if node_info.is_loopback and next_outlet_id:
                 outlet_port = node_info.node.ports[next_outlet_id]
@@ -285,24 +286,18 @@ class HaywireVM:
         return next_outlet_id
 
     def _fallback_control_payload(
-        self, node: "BaseNode", current_inlet_id: Optional[str], next_outlet_id: str
-    ) -> None:
+            self, node: "BaseNode", 
+            current_inlet_id: Optional[str], 
+            next_outlet_id: str
+        ) -> None:
         """Settle the control payload on the just-fired outlet.
-        checks if worker wrote the outlet this pulse (``out()`` was called):
-        if not: forward the payload that arrived on the inlet
+            checks if worker wrote the outlet this pulse (``out()`` was called):
+            if not: forward the payload that arrived on the inlet
         """
-        outlet = node.ports[next_outlet_id]  # the just-fired outlet always exists
+        outlet = node.ports.get(next_outlet_id)
         if current_inlet_id and not outlet._is_set_by_node:
-            # Forward the entered payload. Store it on the outlet's field (so the
-            # outlet carries it — always-latest, and any lazy edge's deferred pull
-            # can read it), then push it straight through the pipe(s) to the
-            # sink(s). This skips the full port.set_value() branch on the outlet and
-            # the pull()'s redundant outlet re-read — only the sink write + adapter
-            # chain remain (the chain must run; the adapter between nodes is unknown).
-            value = node.value(current_inlet_id)
-            outlet._data.set_value(value)
-            if outlet._pipes is not None:
-                outlet._pipes.push(value)
+            # set_value on an outlet eagerly propagates to the linked inlet.
+            outlet.set_value(node.value(current_inlet_id))
         outlet._is_set_by_node = False
 
     def catch_exception(self, exception: Exception, node: "BaseNode", operation: str) -> None:
