@@ -102,6 +102,9 @@ class InsertRerouteMenuPanel(BasePanel):
 
     @classmethod
     def poll(cls, ctx: "SessionContext") -> bool:
+        node_factory = ctx.app.node_factory
+        if node_factory is None or node_factory.get_reroute_node() is None:
+            return False
         return ctx.data[EditState].active_edge is not None
 
     def draw(

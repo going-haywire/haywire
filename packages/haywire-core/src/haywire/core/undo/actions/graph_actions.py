@@ -16,6 +16,13 @@ from ....ui.utils import generate_edge_uuid
 from ..base_action import ActionBase, CompositeAction
 from ..interfaces import IAction
 
+# Default port ids the split action stamps onto a reroute node. The reroute is
+# port-less until split; these ids are an implementation detail of the split
+# (the node discovers whatever it is given via introspection), so they live here
+# and are NOT part of the public split API.
+_REROUTE_INLET_ID = "in"
+_REROUTE_OUTLET_ID = "out"
+
 
 class AddNodeAction(ActionBase):
     """Action for adding a node to the graph."""
@@ -623,10 +630,9 @@ class SplitEdgeWithRerouteAction(CompositeAction):
 
     1. removes the original edge,
     2. creates a port-less reroute node (``registry_key``) at ``position``,
-    3. adds its inlet/outlet (``inlet_id`` / ``outlet_id``) typed to the
-       outlet's concrete ``IType``,
-    4. wires ``A.out -> R.<inlet_id>`` (adapter-free, same type) and
-       ``R.<outlet_id> -> B.in`` (rebuilds whatever adapter the original had).
+    3. adds its inlet/outlet typed to the outlet's concrete ``IType``,
+    4. wires ``A.out -> R.in`` (adapter-free, same type) and
+       ``R.out -> B.in`` (rebuilds whatever adapter the original had).
 
     Typing the reroute to the **outlet** type keeps the split behaviorally
     transparent: the first new edge needs no adapter, and the second edge
@@ -634,12 +640,10 @@ class SplitEdgeWithRerouteAction(CompositeAction):
     automatically (see ``EdgeWrapper._build_adapter_chain``). One undo
     restores the original edge with its chain intact.
 
-    The reroute node type is **not** named here — ``registry_key`` (and the
-    reroute's port ids) are supplied by the caller (the graph-editor library),
-    so the core carries no dependency on a specific haybale library. The caller
-    must pass a data edge whose endpoints/ports still exist; the outlet
-    ``IType`` is resolved here, at construction time, while the original edge is
-    still present.
+    The reroute node *type* is supplied by the caller as ``registry_key`` (the
+    graph editor discovers it via the registry's ``_is_reroute`` flag), so the
+    core carries no dependency on a specific haybale library. The port ids are an
+    implementation detail of the split (``_REROUTE_INLET_ID`` / ``_REROUTE_OUTLET_ID``).
     """
 
     def __init__(
@@ -648,8 +652,6 @@ class SplitEdgeWithRerouteAction(CompositeAction):
         edge_id: str,
         position: Tuple[float, float],
         registry_key: str,
-        inlet_id: str,
-        outlet_id: str,
         description: Optional[str] = None,
     ):
         self.graph = graph
@@ -689,20 +691,20 @@ class SplitEdgeWithRerouteAction(CompositeAction):
                 graph=graph,
                 node_id=new_node_id,
                 itype=itype,
-                inlet_id=inlet_id,
-                outlet_id=outlet_id,
+                inlet_id=_REROUTE_INLET_ID,
+                outlet_id=_REROUTE_OUTLET_ID,
             ),
             AddEdgeAction(
                 graph=graph,
                 source_node_id=source_node_id,
                 outlet_pin_id=outlet_port_id,
                 sink_node_id=new_node_id,
-                inlet_pin_id=inlet_id,
+                inlet_pin_id=_REROUTE_INLET_ID,
             ),
             AddEdgeAction(
                 graph=graph,
                 source_node_id=new_node_id,
-                outlet_pin_id=outlet_id,
+                outlet_pin_id=_REROUTE_OUTLET_ID,
                 sink_node_id=sink_node_id,
                 inlet_pin_id=inlet_port_id,
             ),

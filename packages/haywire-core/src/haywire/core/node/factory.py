@@ -209,6 +209,11 @@ class NodeFactory:
             library=library_identity,
         )
 
+    def get_reroute_node(self) -> type[BaseNode] | None:
+        """Return the reroute provider class (node registered with _is_reroute),
+        or None if no loaded library provides one."""
+        return self.node_registry._get_reroute_node()
+
     def get_menu_structure(self) -> Dict[str, List[NodeInfo]]:
         """
         Get nodes organized by menu path for UI building.

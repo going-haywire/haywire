@@ -13,8 +13,8 @@ from haywire.core.graph.base import BaseGraph
 pytestmark = pytest.mark.unit
 
 
-# The reroute's identity is supplied by the caller (graph-editor), not core.
-_RR_KEY = "graph_editor:node:RerouteNode"
+# The reroute node now ships in haybale-core; the split action owns the port ids.
+_RR_KEY = "core:node:RerouteNode"
 _RR_IN = "in"
 _RR_OUT = "out"
 
@@ -27,8 +27,6 @@ def _build_split_action(graph, **overrides):
         edge_id="e0",
         position=(50.0, 60.0),
         registry_key=_RR_KEY,
-        inlet_id=_RR_IN,
-        outlet_id=_RR_OUT,
     )
     kwargs.update(overrides)
     return SplitEdgeWithRerouteAction(**kwargs)
@@ -185,9 +183,7 @@ def test_editor_split_returns_reroute_id(monkeypatch):
     ed.graph = object()
     ed.history_manager = _HM()
 
-    result = ed.split_edge_with_reroute(
-        "e0", (1.0, 2.0), registry_key=_RR_KEY, inlet_id=_RR_IN, outlet_id=_RR_OUT
-    )
+    result = ed.split_edge_with_reroute("e0", (1.0, 2.0), registry_key=_RR_KEY)
 
     assert result == "reroute_x"
     assert isinstance(added["action"], _FakeAction)
@@ -204,12 +200,7 @@ def test_editor_split_returns_none_on_error():
     ed.graph = BaseGraph(graph_id="g", name="G")
     ed.history_manager = _HM()
     # Unknown edge -> action ctor raises inside the try -> None.
-    assert (
-        ed.split_edge_with_reroute(
-            "nope", (0.0, 0.0), registry_key=_RR_KEY, inlet_id=_RR_IN, outlet_id=_RR_OUT
-        )
-        is None
-    )
+    assert ed.split_edge_with_reroute("nope", (0.0, 0.0), registry_key=_RR_KEY) is None
 
 
 def _reroute_validator_with_ports(ports):
@@ -355,18 +346,8 @@ class TestSplitEdgeRerouteIntegration:
         return node_a, node_b, edge
 
     def _reroute_args(self):
-        """Resolve the reroute identity the same way the graph-editor handler does."""
-        from haybale_graph_editor.nodes.reroute import (
-            RerouteNode,
-            REROUTE_INLET_ID,
-            REROUTE_OUTLET_ID,
-        )
-
-        return dict(
-            registry_key=RerouteNode.class_identity.registry_key,
-            inlet_id=REROUTE_INLET_ID,
-            outlet_id=REROUTE_OUTLET_ID,
-        )
+        """The split action owns the port ids now; only the registry key remains."""
+        return dict(registry_key="core:node:RerouteNode")
 
     def test_split_inserts_typed_reroute_and_two_valid_edges(
         self, graph_with_library_system, library_system

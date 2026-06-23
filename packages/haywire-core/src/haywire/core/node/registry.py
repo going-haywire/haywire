@@ -19,6 +19,7 @@ class NodeRegistry(BaseRegistry[BaseNode]):
     def __init__(self):
         super().__init__()
         self._error_node: type[BaseNode] | None = None
+        self._reroute_node: type[BaseNode] | None = None
 
     def _class_filter(self, cls):
         """Check if a class is a valid Haywire node class."""
@@ -68,6 +69,16 @@ class NodeRegistry(BaseRegistry[BaseNode]):
             else:
                 self._error_node = cls
 
+        # Track the reroute provider (last-registered wins, warn on override).
+        if cls.class_identity._is_reroute:
+            if self._reroute_node is not None and self._reroute_node is not cls:
+                logger.warning(
+                    f"Overriding registered reroute node "
+                    f"'{self._reroute_node.class_identity.registry_key}' "
+                    f"with '{cls.class_identity.registry_key}'."
+                )
+            self._reroute_node = cls
+
         return super()._register(registry_key, cls, library_identity)
 
     def _unregister_class(self, registry_key) -> type[BaseNode] | None:
@@ -82,11 +93,19 @@ class NodeRegistry(BaseRegistry[BaseNode]):
             self._error_node = None
             logger.warning(f"Error node '{registry_key}' unregistered, no error node left in registry")
 
+        if self.get(registry_key) is self._reroute_node:
+            self._reroute_node = None
+            logger.warning(f"Reroute node '{registry_key}' unregistered; no reroute node left in registry")
+
         return super()._unregister(registry_key)
 
     def _get_error_node(self) -> type[BaseNode] | None:
         """Get the error node class"""
         return self._error_node
+
+    def _get_reroute_node(self) -> type[BaseNode] | None:
+        """Get the reroute node class (the node registered with _is_reroute)."""
+        return self._reroute_node
 
     def get_node_lastevent(self, key: str) -> LifeCycleEvent | None:
         """Get the last lifecycle event for a node by its registry key."""

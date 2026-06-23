@@ -415,24 +415,21 @@ class VisualLayerHandlers:
     def process_split_edge_with_reroute(self, event: SplitEdgeWithRerouteEvent):
         """Split a data edge and insert a reroute node (one undoable op).
 
-        The reroute node type + its port ids are owned by this library and
-        passed down to the core action, so the core carries no dependency on
-        haybale-graph-editor.
+        The reroute node type is discovered via the registry's ``_is_reroute``
+        flag so this handler carries no import dependency on any concrete
+        reroute implementation.
         """
-        from haybale_graph_editor.nodes.reroute import (
-            RerouteNode,
-            REROUTE_INLET_ID,
-            REROUTE_OUTLET_ID,
-        )
+        reroute_cls = self.editor._node_factory.get_reroute_node()
+        if reroute_cls is None:
+            ui.notify("No reroute node available", type="negative")
+            return
 
         logger.info(f"✂️ Splitting edge {event.edge_id} with reroute")
         try:
             reroute_id = self.editor.split_edge_with_reroute(
                 event.edge_id,
                 (event.position["x"], event.position["y"]),
-                registry_key=RerouteNode.class_identity.registry_key,
-                inlet_id=REROUTE_INLET_ID,
-                outlet_id=REROUTE_OUTLET_ID,
+                registry_key=reroute_cls.class_identity.registry_key,
             )
             if reroute_id:
                 ui.notify("Inserted reroute", type="positive")

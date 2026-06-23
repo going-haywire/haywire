@@ -13,3 +13,4 @@ class NodeIdentity(BaseIdentity):
     help_url: str = "https://haywire.io/internals/node-help"
     _is_error: bool = False
     _error_priority: int = 0
+    _is_reroute: bool = False

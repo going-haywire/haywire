@@ -244,17 +244,9 @@ class TestDissolveRerouteIntegration:
     """Execute a real dissolve against a live graph with real nodes/edges/types."""
 
     def _reroute_args(self):
-        from haybale_graph_editor.nodes.reroute import (
-            RerouteNode,
-            REROUTE_INLET_ID,
-            REROUTE_OUTLET_ID,
-        )
+        from haybale_core.nodes.reroute import RerouteNode
 
-        return dict(
-            registry_key=RerouteNode.class_identity.registry_key,
-            inlet_id=REROUTE_INLET_ID,
-            outlet_id=REROUTE_OUTLET_ID,
-        )
+        return dict(registry_key=RerouteNode.class_identity.registry_key)
 
     def _split_graph(self, graph):
         """Create A → reroute → B and return (node_a, node_b, reroute_id, original_edge_id)."""

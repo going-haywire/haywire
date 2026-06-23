@@ -2,11 +2,12 @@
 
 Renders only the reroute's inlet and outlet pin straddling a small inline box:
 no label, no header, no widget, no resize handle. Subclasses ``BaseSkin``
-directly (not ``NodeSkin``) so the graph-editor library stays host-agnostic —
-it pulls in none of ``NodeSkin``'s layout settings, only the framework
-``render_pin`` helper.
+directly (not ``NodeSkin``) so the layout carries no surplus settings.
 
-The reroute node binds itself to this skin in ``RerouteNode.post_init``.
+The reroute node binds itself to this skin by registry-key string in
+``RerouteNode.post_init``. This skin never imports the node class; it
+discovers its ports by ``PortType`` introspection so the port ids remain
+an implementation detail of ``SplitEdgeWithRerouteAction``.
 """
 
 from __future__ import annotations
@@ -14,11 +15,10 @@ from __future__ import annotations
 from nicegui import ui
 
 from haywire.core.node.node_wrapper import NodeWrapper
+from haywire.core.types.enums import PortType
 from haywire.ui.skin.base import BaseSkin
 from haywire.ui.skin.decorator import skin
 from haywire.ui.skin.pin_render import render_pin
-
-from ..nodes.reroute import REROUTE_INLET_ID, REROUTE_OUTLET_ID
 
 # Tiny fixed geometry — a reroute is a dot on a wire, not a card.
 _PIN_GUTTER = 18
@@ -41,14 +41,13 @@ class RerouteSkin(BaseSkin):
             "overflow: visible; padding: 4px; min-width: 0;"
         )
 
-        inlet = node.ports.get(REROUTE_INLET_ID)
-        outlet = node.ports.get(REROUTE_OUTLET_ID)
+        # Discover ports by PortType — the split action owns the IDs, not this skin.
+        ports = node.ports.values()
+        inlet = next((p for p in ports if p.port_type == PortType.INLET), None)
+        outlet = next((p for p in ports if p.port_type == PortType.OUTLET), None)
 
         with main_card:
             with ui.row().classes("items-center gap-1").style("flex-wrap: nowrap;"):
-                # No tooltips: the reroute skin simply does not call
-                # add_pin_tooltip (tooltips are decoupled from render_pin). The
-                # right-click port menu IS wired (host concern, added here).
                 if inlet is not None:
                     self._render_reroute_pin(inlet, wrapper.node_id, "left")
                 if outlet is not None:
