@@ -461,12 +461,12 @@ class TestSplitEdgeRerouteIntegration:
         assert restored.state.is_valid()
 
 
-def test_callback_edge_from_reroute_is_valid():
-    """A CALLBACK edge whose source is a REROUTE node should be valid.
+def test_callback_edge_from_reroute_is_invalid():
+    """A CALLBACK edge whose source is a REROUTE node must be rejected.
 
-    The upstream edge (EventNode -> reroute) is validated independently and
-    guarantees the value originated from an EVENT node. Trusting upstream
-    edge validity means we only need to allow REROUTE as a source here.
+    Reroutes are not valid CALLBACK sources: the flow assembly manager reads
+    the subscription key at wiring time, before any worker has run to forward
+    it through the reroute, so the listener flow never registers.
     """
     from haywire.core.validation.structural_validator import StructuralValidator
     from haywire.core.node.behavior import NodeBehaviorFlags, NodeType
@@ -486,4 +486,4 @@ def test_callback_edge_from_reroute_is_valid():
 
     validator = StructuralValidator.__new__(StructuralValidator)
     ok, err, _ = validator._validate_callback_edge(_EdgeWrapper())
-    assert ok and err is None
+    assert not ok and err is not None

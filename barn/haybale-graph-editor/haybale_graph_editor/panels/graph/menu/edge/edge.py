@@ -95,7 +95,10 @@ class EdgeWarningsMenuPanel(BasePanel):
 class InsertRerouteMenuPanel(BasePanel):
     """Split the active edge and insert a reroute node in between.
 
-    Available for DATA, CONTROL, and CALLBACK edges.
+    Available for DATA and CONTROL edges only. CALLBACK edges are excluded
+    because the flow assembly manager reads the subscription key from the
+    reroute's outlet at wiring time — before any worker has run to forward
+    it — so the listener flow never registers correctly.
     """
 
     actions: EdgeContextActions
@@ -105,7 +108,10 @@ class InsertRerouteMenuPanel(BasePanel):
         node_factory = ctx.app.node_factory
         if node_factory is None or node_factory.get_reroute_node() is None:
             return False
-        return ctx.data[EditState].active_edge is not None
+        edge = ctx.data[EditState].active_edge
+        if edge is None:
+            return False
+        return not edge.is_callback_edge()
 
     def draw(
         self,

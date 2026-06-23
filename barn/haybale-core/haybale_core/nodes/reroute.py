@@ -7,8 +7,11 @@ straight to the outlet and returns the outlet id.
 
 Returning the outlet id is required for CONTROL reroutes (the VM uses it to
 navigate the execution chain). For DATA reroutes the VM discards the return
-value, so returning it is harmless. CALLBACK reroutes forward the string
-listener-id through the pipe mechanism exactly like DATA reroutes.
+value, so returning it is harmless.
+
+CALLBACK edges are NOT supported: the flow assembly manager reads the
+subscription key from the reroute outlet at wiring time — before any worker
+has run to forward it — so the listener flow never registers.
 
 The port-less state is legal because the node is ``NodeType.REROUTE`` — the
 structural validator accepts a reroute with no ports (see
@@ -28,7 +31,7 @@ from haywire.core.types.enums import PortType
 
 @node(
     label="Reroute",
-    description="Pass-through node for bending wires. Supports DATA, CONTROL, and CALLBACK edges.",
+    description="Pass-through node for bending wires. Supports DATA and CONTROL edges.",
     search_tags=["reroute", "passthrough", "split", "wire"],
     # Deliberately no `menu`: a reroute only makes sense once configured with a
     # type by the edge-split action, so it is not offered in the canvas create
@@ -72,7 +75,7 @@ class RerouteNode(BaseNode):
     def worker(self, context: ExecutionContext) -> str | None:
         # Hot path: direct field read -> write, no dict lookup, no guards.
         # Returning the outlet id is required for CONTROL reroutes (VM navigation);
-        # DATA/CALLBACK discard it.
+        # DATA discards it.
         outlet = self.cache.outlet
         if outlet is None:
             return None  # still in the port-less latent state
