@@ -229,6 +229,8 @@ class NodeFactory:
                 continue
 
             menu_path = node_info.identity.menu
+            if not menu_path:
+                continue
 
             if menu_path not in menu:
                 menu[menu_path] = []
@@ -253,6 +255,9 @@ class NodeFactory:
         for key in self.node_registry.list_names():
             node_info = self._build_node_info(key)
             if node_info is None:
+                continue
+
+            if not node_info.identity.menu:
                 continue
 
             # Search in label, description, and tags
