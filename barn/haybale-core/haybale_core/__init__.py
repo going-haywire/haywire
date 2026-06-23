@@ -23,10 +23,10 @@ from haywire.ui.skin.registry import SkinRegistry
 
 
 @library(
-    label="Haybale Core",
+    label="Core",
     id="core",
     version=_pkg_version("haybale-core"),
-    description="Haywire library with fundamental components",
+    description="Fundamental components for hayire graphs",
     url="https://github.com/going-haywire/haywire",
     help_url="https://github.com/going-haywire/haywire",
     author="maybites",

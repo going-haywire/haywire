@@ -9,7 +9,7 @@ from haywire.ui.editor.registry import EditorTypeRegistry
 
 
 @library(
-    label="Library Marketplace",
+    label="Marketplace",
     id="marketplace",
     version=_pkg_version("haybale-marketplace"),
     description="Library installer + browser editors",
