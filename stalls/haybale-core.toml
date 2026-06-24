@@ -5,9 +5,9 @@
 
 [[haybales]]
 name = "haybale-core"
-label = "Haybale Core"
-min_version = "0.0.23"
-description = "Haywire library with fundamental components"
+label = "Core"
+min_version = "0.0.24"
+description = "Fundamental components for hayire graphs"
 author = "maybites"
 source = "pypi"
 install_spec = "haybale-core"
