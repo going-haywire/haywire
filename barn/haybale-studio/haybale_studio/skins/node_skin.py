@@ -307,12 +307,17 @@ class NodeSkin(BaseSkin, ABC):
         with btn:
             ui.badge(str(error_count), color="red").props("floating")
 
-    def _render_warnings_button(self, warnings: List["NodeWarning"], node_id: str) -> None:
+    def _render_warnings_button(
+        self,
+        warnings: List["NodeWarning"],
+        node_id: str,
+        deprecation_str: str = "",
+    ) -> None:
         """Render a non-fatal warnings badge with a popup listing the messages.
 
-        Advisory only — these never make a node invalid. For compatibility
-        warnings, the suggested remedy is the Reset Node action (re-derives the
-        node from current code; note it discards dynamically-created ports).
+        Advisory only — these never make a node invalid. Includes compatibility
+        warnings from NodeWarning records and the node's deprecation_warning
+        identity field (if set).
         """
         btn = ui.button(icon=hui.icon.warning, color="amber").props("flat dense round")
         btn.classes("text-xl px-2 py-1")
@@ -325,10 +330,14 @@ class NodeSkin(BaseSkin, ABC):
             # Body copy stays quiet (body/dim tokens) — the amber lives on the
             # badge icon, not the prose. Messages wrap, so override `truncate`.
             with ui.menu(), ui.column().classes("p-2 gap-1").style("max-width: 22rem"):
-                hui.section_label("Compatibility warnings")
-                for w in warnings:
-                    ui.label(w.message).classes("text-sm hw-text-body whitespace-normal")
-                ui.label(
-                    "Tip: 'Reset Node' re-derives this node from current code "
-                    "(note: this discards any dynamically-added ports)."
-                ).classes("text-xs hw-text-dim whitespace-normal")
+                if deprecation_str:
+                    hui.section_label("Deprecated")
+                    ui.label(deprecation_str).classes("text-sm hw-text-body whitespace-normal")
+                if warnings:
+                    hui.section_label("Compatibility warnings")
+                    for w in warnings:
+                        ui.label(w.message).classes("text-sm hw-text-body whitespace-normal")
+                    ui.label(
+                        "Tip: 'Reset Node' re-derives this node from current code "
+                        "(note: this discards any dynamically-added ports)."
+                    ).classes("text-xs hw-text-dim whitespace-normal")

@@ -235,6 +235,27 @@ class TestOpenBehavior:
 # ---------------------------------------------------------------------------
 
 
+def test_deprecation_warning_stored_on_identity():
+    @editor(
+        label="Old Editor",
+        deprecation_warning="Use NewEditor instead.",
+    )
+    class OldEditor(BaseEditor):
+        def draw(self, context, container):
+            pass
+
+    assert OldEditor.class_identity.deprecation_warning == "Use NewEditor instead."
+
+
+def test_deprecation_warning_defaults_to_empty_string():
+    @editor(label="Fine Editor")
+    class FineEditor(BaseEditor):
+        def draw(self, context, container):
+            pass
+
+    assert FineEditor.class_identity.deprecation_warning == ""
+
+
 class _PlainCls:
     pass
 

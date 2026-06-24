@@ -86,6 +86,8 @@ def node(**kwargs: Any) -> Callable[[Type[T]], Type[T]]:
         help_md (str): Markdown help content. Default: None
         help_url (str): URL to documentation. Default: 'https://haywire.io/internals/node-help'
         registry_id (str): Unique identifier within library. Default set to class name
+        deprecation_warning (str): Advisory message shown on the node card and in
+            the add-node menu when this node is deprecated. Default: ""
         _is_error (bool): Whether this is an error handler node. Default: False
         _error_priority (int): Priority for error handling. Default: 0
 

@@ -112,6 +112,25 @@ class _CustomNodeTheme(NodeTheme):
     header_bg = "#aabbcc"
 
 
+def test_deprecation_warning_stored_on_identity():
+    @theme(
+        label="Old Theme",
+        deprecation_warning="Use NewTheme instead.",
+    )
+    class OldTheme(WorkbenchTheme):
+        pass
+
+    assert OldTheme.class_identity.deprecation_warning == "Use NewTheme instead."
+
+
+def test_deprecation_warning_defaults_to_empty_string():
+    @theme(label="Fine Theme")
+    class FineTheme(WorkbenchTheme):
+        pass
+
+    assert FineTheme.class_identity.deprecation_warning == ""
+
+
 class TestCustomThemeRegistration:
     def test_custom_workbench_accessible(self):
         r = ThemeRegistry()

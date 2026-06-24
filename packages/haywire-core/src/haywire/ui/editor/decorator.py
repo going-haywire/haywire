@@ -27,6 +27,7 @@ def editor(
     opens: Union[OpenBehavior, str] = OpenBehavior.REQUIRED,
     order: int = 100,
     registry_id: Optional[str] = None,
+    deprecation_warning: str = "",
 ):
     """
     Decorator to mark a class as an editor type.
@@ -58,6 +59,8 @@ def editor(
         description: Human-readable description.
         registry_id: Unique ID for this editor, e.g. 'graph_editor'.
             Defaults to the class name if not provided.
+        deprecation_warning: Optional human-readable message shown when this
+            editor is listed anywhere. Empty string means not deprecated.
 
     Usage:
         @editor(
@@ -94,6 +97,7 @@ def editor(
             opens=opens_enum,
             order=order,
             description=description,
+            deprecation_warning=deprecation_warning,
             class_name=inner_cls.__name__,
             module=inner_cls.__module__,
         )

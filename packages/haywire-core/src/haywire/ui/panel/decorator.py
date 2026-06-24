@@ -51,6 +51,7 @@ def panel(
     description: str = "",
     registry_id: Optional[str] = None,
     redraw_on: Tuple[Any, ...] = (),
+    deprecation_warning: str = "",
 ):
     """Decorator to mark a class as a panel.
 
@@ -73,6 +74,8 @@ def panel(
         registry_id:  Unique ID for this panel. Defaults to the class name.
         redraw_on:    Tuple of Signal subclasses the panel wants its host
                       editor to redraw on. Empty tuple means no subscriptions.
+        deprecation_warning: Optional human-readable message shown when this
+            panel is listed anywhere. Empty string means not deprecated.
 
     Raises:
         ValueError: If focus= or label= is missing.
@@ -114,6 +117,7 @@ def panel(
             order=order,
             default_open=default_open,
             description=description,
+            deprecation_warning=deprecation_warning,
             class_name=inner_cls.__name__,
             module=inner_cls.__module__,
             action_protocol=actions,

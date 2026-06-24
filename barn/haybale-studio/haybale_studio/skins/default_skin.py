@@ -44,9 +44,14 @@ class DefaultNodeSkin(NodeSkin):
             if runtime_errors:
                 self._render_errors_button(runtime_errors, wrapper.node_id)
 
-            # Advisory warnings indicator (e.g. compatibility warnings).
-            if wrapper.state.has_warning():
-                self._render_warnings_button(wrapper.state.warnings, wrapper.node_id)
+            # Advisory warnings: compatibility warnings + deprecation notice.
+            deprecation_str = wrapper.node.identity.deprecation_warning
+            if wrapper.state.has_warning() or deprecation_str:
+                self._render_warnings_button(
+                    wrapper.state.warnings,
+                    wrapper.node_id,
+                    deprecation_str=deprecation_str,
+                )
 
             # Header with node label and ghost pins for hidden connected ports
             with ui.row().classes("drag-handle w-full items-center"):

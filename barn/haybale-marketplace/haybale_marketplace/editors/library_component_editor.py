@@ -103,6 +103,7 @@ class LibraryComponentEditor(BaseEditor):
 
             label = getattr(identity, "label", None) or class_name or "?"
             description = getattr(identity, "description", None) or ""
+            deprecation_warning = getattr(identity, "deprecation_warning", "") or ""
             tags = getattr(identity, "tags", []) or []
             icon = self._COMP_ICONS.get(comp_type, "extension")
             actual_name = getattr(cls, "__name__", class_name) if cls else class_name
@@ -132,6 +133,18 @@ class LibraryComponentEditor(BaseEditor):
                     ui.label(label).classes("text-base font-bold")
                     if description:
                         ui.label(description).classes("text-xs hw-text-muted")
+
+                # ── Deprecation banner ────────────────────────────────────
+                if deprecation_warning:
+                    with (
+                        ui.row()
+                        .classes("items-start gap-2 mb-2 p-2 rounded")
+                        .style("background: rgba(245,158,11,0.1); border: 1px solid rgba(245,158,11,0.4);")
+                    ):
+                        ui.icon("warning").classes("text-amber-500 text-base mt-0.5")
+                        with ui.column().classes("gap-0"):
+                            ui.label("Deprecated").classes("text-xs font-bold text-amber-500")
+                            ui.label(deprecation_warning).classes("text-xs hw-text-body whitespace-normal")
 
                 # ── Tags ──────────────────────────────────────────────────
                 if tags:

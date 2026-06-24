@@ -165,6 +165,31 @@ def test_panel_redraw_on_rejects_non_signal_type():
                 pass
 
 
+def test_deprecation_warning_stored_on_identity():
+    @panel(
+        focus=_DummyFocus,
+        label="Old Panel",
+        deprecation_warning="Use NewPanel instead.",
+    )
+    class OldPanel(BasePanel):
+        def draw(self, ctx, layout):
+            pass
+
+    assert OldPanel.class_identity.deprecation_warning == "Use NewPanel instead."
+
+
+def test_deprecation_warning_defaults_to_empty_string():
+    @panel(
+        focus=_DummyFocus,
+        label="Fine Panel",
+    )
+    class FinePanel(BasePanel):
+        def draw(self, ctx, layout):
+            pass
+
+    assert FinePanel.class_identity.deprecation_warning == ""
+
+
 def test_panel_redraw_on_error_mentions_panel_context():
     """Error message should make clear the failure is from @panel(redraw_on=...)."""
     with pytest.raises(TypeError, match=r"@panel\(\.\.\., redraw_on=\.\.\.\)"):

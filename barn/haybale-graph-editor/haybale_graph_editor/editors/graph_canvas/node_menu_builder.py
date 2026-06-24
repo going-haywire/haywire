@@ -123,6 +123,7 @@ class NodeMenuBuilder:
     def _create_search_result_item(self, node_info: NodeInfo):
         """Create a search result item."""
         library_id = node_info.library.label if node_info.library else "Unknown"
+        deprecation_warning = getattr(node_info.identity, "deprecation_warning", "")
 
         btn = ui.button(
             f"+ {node_info.identity.label}",
@@ -133,14 +134,16 @@ class NodeMenuBuilder:
         if self._on_context_click is not None:
             btn.on("contextmenu.prevent", lambda ni=node_info: self._on_context_click(ni))
 
-        # Add library badge
         with btn:
+            if deprecation_warning:
+                ui.icon("warning").classes("text-amber-500 text-sm")
             ui.badge(library_id).classes("ml-auto text-xs hw-text-dim")
 
-        # Enhanced tooltip
-        description = node_info.identity.description or "No description available"
-        tooltip_text = f"{description}\nLibrary: {library_id}"
-        btn.tooltip(tooltip_text)
+        tooltip_parts = [node_info.identity.description or "No description available"]
+        tooltip_parts.append(f"Library: {library_id}")
+        if deprecation_warning:
+            tooltip_parts.append(f"⚠ Deprecated: {deprecation_warning}")
+        btn.tooltip("\n".join(tooltip_parts))
 
     def _add_recent_nodes_section(self, recent_nodes: List[str], siblings: List[ui.menu]):
         """Add a hover-opening flyout submenu for recently created nodes."""
@@ -261,6 +264,8 @@ class NodeMenuBuilder:
 
     def _create_menu_item_for_node(self, node_info: NodeInfo):
         """Create a clickable menu item for a single node."""
+        deprecation_warning = getattr(node_info.identity, "deprecation_warning", "")
+
         menu_item = ui.menu_item(
             f"+ {node_info.identity.label}", lambda ni=node_info: self._on_node_selected(ni)
         ).props("dense")
@@ -268,12 +273,19 @@ class NodeMenuBuilder:
         if self._on_context_click is not None:
             menu_item.on("contextmenu.prevent", lambda ni=node_info: self._on_context_click(ni))
 
-        # Add tooltip with description and tags if available
+        with menu_item:
+            if deprecation_warning:
+                ui.icon("warning").classes("text-amber-500 text-sm ml-1")
+
+        tooltip_parts = []
         if node_info.identity.description:
-            tooltip_text = node_info.identity.description
-            if node_info.identity.search_tags:
-                tooltip_text += f"\nTags: {', '.join(node_info.identity.search_tags)}"
-            menu_item.tooltip(tooltip_text)
+            tooltip_parts.append(node_info.identity.description)
+        if node_info.identity.search_tags:
+            tooltip_parts.append(f"Tags: {', '.join(node_info.identity.search_tags)}")
+        if deprecation_warning:
+            tooltip_parts.append(f"⚠ Deprecated: {deprecation_warning}")
+        if tooltip_parts:
+            menu_item.tooltip("\n".join(tooltip_parts))
 
         return menu_item
 

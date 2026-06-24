@@ -23,6 +23,7 @@ def theme(
     label: str = "",
     description: str = "",
     registry_id: str | None = None,
+    deprecation_warning: str = "",
 ):
     """
     Decorator that registers a WorkbenchTheme or NodeTheme subclass.
@@ -39,6 +40,8 @@ def theme(
         registry_id:  Unique theme identifier (e.g. 'haywire-dark', 'default').
                       Defaults to the class name. Used as the final segment of the
                       registry_key, which is the canonical lookup key.
+        deprecation_warning: Optional human-readable message shown when this
+            theme is listed anywhere. Empty string means not deprecated.
 
     Usage:
         @theme(label='Haywire Dark')
@@ -78,6 +81,7 @@ def theme(
             registry_key=_registry_key,
             label=_label,
             description=description,
+            deprecation_warning=deprecation_warning,
             class_name=inner_cls.__name__,
             module=inner_cls.__module__,
         )

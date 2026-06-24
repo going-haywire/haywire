@@ -40,7 +40,9 @@ class SettingsClassIdentity(BaseIdentity):
     namespace: str = ""
 
 
-def settings(namespace: str, label: str = "", description: str = "") -> Callable[[_TSettings], _TSettings]:
+def settings(
+    namespace: str, label: str = "", description: str = "", deprecation_warning: str = ""
+) -> Callable[[_TSettings], _TSettings]:
     """
     Decorator for library settings classes.
 
@@ -53,6 +55,8 @@ def settings(namespace: str, label: str = "", description: str = "") -> Callable
                      identity and this sub namespace (e.g. 'my_lib.ui.info').
         label:       Human-readable display name. Defaults to namespace.
         description: Human-readable description. Defaults to ''.
+        deprecation_warning: Optional human-readable message shown when this
+            settings class is listed anywhere. Empty string means not deprecated.
 
     Usage:
         @settings(namespace='ui.info')
@@ -92,6 +96,7 @@ def settings(namespace: str, label: str = "", description: str = "") -> Callable
             registry_key=registry_key,
             label=label or namespace,
             description=description,
+            deprecation_warning=deprecation_warning,
             class_name=inner_cls.__name__,
             module=inner_cls.__module__,
         )
