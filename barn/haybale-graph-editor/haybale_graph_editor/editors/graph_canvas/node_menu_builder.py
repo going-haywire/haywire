@@ -123,7 +123,7 @@ class NodeMenuBuilder:
     def _create_search_result_item(self, node_info: NodeInfo):
         """Create a search result item."""
         library_id = node_info.library.label if node_info.library else "Unknown"
-        deprecation_warning = getattr(node_info.identity, "deprecation_warning", "")
+        deprecation_warning = node_info.identity.deprecation_warning
 
         btn = ui.button(
             f"+ {node_info.identity.label}",
@@ -139,11 +139,17 @@ class NodeMenuBuilder:
                 ui.icon("warning").classes("text-amber-500 text-sm")
             ui.badge(library_id).classes("ml-auto text-xs hw-text-dim")
 
-        tooltip_parts = [node_info.identity.description or "No description available"]
-        tooltip_parts.append(f"Library: {library_id}")
-        if deprecation_warning:
-            tooltip_parts.append(f"⚠ Deprecated: {deprecation_warning}")
-        btn.tooltip("\n".join(tooltip_parts))
+        with btn:
+            tip = ui.tooltip().classes("text-xs").props("no-parent-event")
+            with tip:
+                ui.label(node_info.identity.description or "No description available")
+                ui.label(f"Library: {library_id}").classes("hw-text-dim")
+                if deprecation_warning:
+                    with ui.row().classes("items-center gap-1 text-amber-500 mt-1"):
+                        ui.icon("warning").classes("text-sm")
+                        ui.label(deprecation_warning)
+        btn.on("mouseenter", lambda _: tip.run_method("show"))
+        btn.on("mouseleave", lambda _: tip.run_method("hide"))
 
     def _add_recent_nodes_section(self, recent_nodes: List[str], siblings: List[ui.menu]):
         """Add a hover-opening flyout submenu for recently created nodes."""
@@ -264,7 +270,7 @@ class NodeMenuBuilder:
 
     def _create_menu_item_for_node(self, node_info: NodeInfo):
         """Create a clickable menu item for a single node."""
-        deprecation_warning = getattr(node_info.identity, "deprecation_warning", "")
+        deprecation_warning = node_info.identity.deprecation_warning
 
         menu_item = ui.menu_item(
             f"+ {node_info.identity.label}", lambda ni=node_info: self._on_node_selected(ni)
@@ -277,15 +283,21 @@ class NodeMenuBuilder:
             if deprecation_warning:
                 ui.icon("warning").classes("text-amber-500 text-sm ml-1")
 
-        tooltip_parts = []
-        if node_info.identity.description:
-            tooltip_parts.append(node_info.identity.description)
-        if node_info.identity.search_tags:
-            tooltip_parts.append(f"Tags: {', '.join(node_info.identity.search_tags)}")
-        if deprecation_warning:
-            tooltip_parts.append(f"⚠ Deprecated: {deprecation_warning}")
-        if tooltip_parts:
-            menu_item.tooltip("\n".join(tooltip_parts))
+        has_tooltip = node_info.identity.description or node_info.identity.search_tags or deprecation_warning
+        if has_tooltip:
+            with menu_item:
+                tip = ui.tooltip().classes("text-xs").props("no-parent-event")
+                with tip:
+                    if node_info.identity.description:
+                        ui.label(node_info.identity.description)
+                    if node_info.identity.search_tags:
+                        ui.label(f"Tags: {', '.join(node_info.identity.search_tags)}").classes("hw-text-dim")
+                    if deprecation_warning:
+                        with ui.row().classes("items-center gap-1 text-amber-500 mt-1"):
+                            ui.icon("warning").classes("text-sm")
+                            ui.label(deprecation_warning)
+            menu_item.on("mouseenter", lambda _: tip.run_method("show"))
+            menu_item.on("mouseleave", lambda _: tip.run_method("hide"))
 
         return menu_item
 
