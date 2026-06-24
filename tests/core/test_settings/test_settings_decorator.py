@@ -1,8 +1,6 @@
 """@settings decorator stores deprecation_warning on SettingsClassIdentity."""
 
-import pytest
-
-from haywire.core.settings.decorator import settings, SettingsClassIdentity
+from haywire.core.settings.decorator import settings
 from haywire.core.settings.schema import LibrarySettings
 
 
