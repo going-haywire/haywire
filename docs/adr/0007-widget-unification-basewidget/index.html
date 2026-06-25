@@ -2721,7 +2721,7 @@ Matrix3x3/4x4, ColorRGB/RGBA — which <code>SimpleWidget</code> structurally ca
 reason to keep a sophisticated base; with it confirmed, maintaining two bases is
 no longer justified.</p>
 <p>The design was validated against the one genuinely complex production widget,
-<code>OpencvViewerWidget</code>, which today bypasses <strong>both</strong> base classes and implements
+<code>NumpyViewerWidget</code>, which today bypasses <strong>both</strong> base classes and implements
 <code>IWidget</code> directly. On the unified base it becomes a floor-only widget
 (<code>build()</code> returns a streaming card, <code>on_model_changed()</code> pushes frames, no
 <code>bind()</code> call) and shrinks — evidence the two-class system was incomplete and
@@ -2773,7 +2773,7 @@ the floor is a genuine need, not speculation.</p>
 </ul>
 <h2 id="consequences">Consequences<a class="headerlink" href="#consequences" title="Permanent link">&para;</a></h2>
 <ul>
-<li><code>SimpleWidget</code> is deleted; its 7 widgets and <code>OpencvViewerWidget</code> migrate to
+<li><code>SimpleWidget</code> is deleted; its 7 widgets and <code>NumpyViewerWidget</code> migrate to
   <code>BaseWidget</code> (<code>build()</code> + <code>bind()</code>/floor) in one change.</li>
 <li>The <code>UI_PROPERTY</code> / <code>UI_EVENT</code> / <code>IS_READONLY</code> class attributes are replaced by
   bind-site arguments (<code>prop=</code>, <code>event=</code>, <code>one_way=</code>).</li>
