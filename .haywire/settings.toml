@@ -23,6 +23,10 @@ min_zoom = 0.01
 pan_sensitivity = 5.0
 zoom_sensitivity = 0.56
 
+[ui.canvas]
+grid_size = 50
+grid_subdivisions = 1
+
 [ui.debug_overlay]
 enabled = false
 position = "top-left"
