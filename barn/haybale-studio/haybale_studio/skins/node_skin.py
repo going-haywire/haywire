@@ -286,50 +286,52 @@ class NodeSkin(BaseSkin, ABC):
             )
         )
 
-    def _render_errors_button(self, errors: List["HaywireException"], node_id: str):
-        """Render a badge that signals runtime errors on the node.
-
-        Right-click on the badge falls through to the regular node context
-        menu (which contains the Node Errors panel via the dual-host
-        registration). The badge no longer stamps a custom menu attribute.
-
-        Args:
-            errors: List of runtime errors to display
-            node_id: Node ID used by canvas.vue to resolve the active node
-        """
-        error_count = len(errors)
-
-        btn = ui.button(icon=hui.icon.warning, color="red")
-        btn.classes("text-xl px-2 py-1")
-        btn.props("dense flat")
-        btn.style("position: absolute; top: -25px;")
-        btn.props(f'data-node-id="{node_id}"')
-        with btn:
-            ui.badge(str(error_count), color="red").props("floating")
-
-    def _render_warnings_button(
+    def _render_diagnostics_button(
         self,
+        errors: List["HaywireException"],
         warnings: List["NodeWarning"],
         node_id: str,
         deprecation_str: str = "",
     ) -> None:
-        """Render a non-fatal warnings badge with a popup listing the messages.
+        """Render a single badge unifying errors and advisory warnings.
 
-        Advisory only — these never make a node invalid. Includes compatibility
-        warnings from NodeWarning records and the node's deprecation_warning
-        identity field (if set).
+        One icon, one floating count (errors + warnings + deprecation), colored
+        by the highest severity present: red when the node has any runtime error,
+        otherwise amber for advisory-only notices.
+
+        Left-click opens one popup listing errors first (fatal), then advisory
+        warnings and any deprecation notice. Right-click still falls through to
+        the node context menu (via `data-node-id`), which carries the Node Errors
+        panel through dual-host registration.
+
+        Args:
+            errors: Runtime errors (fatal — make the node invalid).
+            warnings: Advisory NodeWarning records (non-fatal).
+            node_id: Node ID used by canvas.vue to resolve the active node.
+            deprecation_str: Optional deprecation notice from node identity.
         """
-        btn = ui.button(icon=hui.icon.warning, color="amber").props("flat dense round")
+        has_errors = bool(errors)
+        # One count covering every diagnostic surfaced in the popup.
+        total = len(errors) + len(warnings) + (1 if deprecation_str else 0)
+
+        # Highest severity drives the color: red if any fatal error, else amber.
+        color = "red" if has_errors else "amber"
+
+        btn = ui.button(icon=hui.icon.warning, color=color).props("flat dense round")
         btn.classes("text-xl px-2 py-1")
-        # Offset right of the errors badge (which sits at top:-25px, left edge) so
-        # a node with both errors and warnings shows both badges side by side.
-        btn.style("position: absolute; top: -25px; left: 40px;")
+        btn.style("position: absolute; top: -25px;")
         btn.props(f'data-node-id="{node_id}"')
         with btn:
+            ui.badge(str(total), color=color).props("floating")
+
             # ui.menu renders on Layer 2 (--hw-bg-elevated) per the design system.
-            # Body copy stays quiet (body/dim tokens) — the amber lives on the
-            # badge icon, not the prose. Messages wrap, so override `truncate`.
+            # Body copy stays quiet (body/dim tokens) — severity lives on the badge
+            # icon, not the prose. Messages wrap, so override `truncate`.
             with ui.menu(), ui.column().classes("p-2 gap-1").style("max-width: 22rem"):
+                if errors:
+                    hui.section_label("Errors")
+                    for e in errors:
+                        ui.label(e.message).classes("text-sm hw-text-body whitespace-normal")
                 if deprecation_str:
                     hui.section_label("Deprecated")
                     ui.label(deprecation_str).classes("text-sm hw-text-body whitespace-normal")

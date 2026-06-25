@@ -70,10 +70,11 @@ class ErrorNodeSkin(NodeSkin):
                 with ui.row():
                     ui.label(node.identity.label).classes("text-h6")
 
-                # Runtime errors indicator with popup
+                # Runtime errors indicator with popup (error skin has no
+                # advisory warnings — pass an empty warnings list).
                 runtime_errors = wrapper.state.get_errors()
                 if runtime_errors:
-                    self._render_errors_button(runtime_errors, wrapper.node_id)
+                    self._render_diagnostics_button(runtime_errors, [], wrapper.node_id)
 
             # Main content: inlets and outlets in two columns
             with ui.row().classes("w-full gap-2"):

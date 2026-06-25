@@ -39,15 +39,14 @@ class DefaultNodeSkin(NodeSkin):
         )
 
         with main_card:
-            # Runtime errors indicator with popup
-            runtime_errors = wrapper.state.get_errors()
-            if runtime_errors:
-                self._render_errors_button(runtime_errors, wrapper.node_id)
-
-            # Advisory warnings: compatibility warnings + deprecation notice.
+            # Single diagnostics badge unifying runtime errors and advisory
+            # warnings (compatibility warnings + deprecation notice). One icon,
+            # one count, colored by highest severity. See _render_diagnostics_button.
+            runtime_errors = wrapper.state.get_errors() or []
             deprecation_str = wrapper.node.identity.deprecation_warning
-            if wrapper.state.has_warning() or deprecation_str:
-                self._render_warnings_button(
+            if runtime_errors or wrapper.state.has_warning() or deprecation_str:
+                self._render_diagnostics_button(
+                    runtime_errors,
                     wrapper.state.warnings,
                     wrapper.node_id,
                     deprecation_str=deprecation_str,

@@ -63,8 +63,7 @@ _BUCKETS = [
     ("_render_right", "port row structure"),
     ("_render_config", "port row structure"),
     ("_render_root_ghost_pins", "ghost pins"),
-    ("_render_errors_button", "error/warning badge"),
-    ("_render_warnings_button", "error/warning badge"),
+    ("_render_diagnostics_button", "error/warning badge"),
     ("render", "card / header / columns"),
 ]
 
