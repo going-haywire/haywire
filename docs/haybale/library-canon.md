@@ -269,14 +269,14 @@ Override `compatibility_warnings()` on your `BaseLibrary` subclass to return an
 
 ```python
 from haywire.core.library.compatibility import CompatibilityWarning
-from .nodes import WebcamFrameInfoDisplayNode
+from .nodes import FrameDisplayNode
 
 class VisiongraphLibrary(BaseLibrary):
     def compatibility_warnings(self) -> list[CompatibilityWarning]:
         return [
             CompatibilityWarning(
                 version="0.0.14",                       # the version the change landed in
-                component=WebcamFrameInfoDisplayNode,   # a node class, or None for library-wide
+                component=FrameDisplayNode,   # a node class, or None for library-wide
                 message="The 'frame' inlet widget strategy became author-declared; "
                         "graphs saved before 0.0.14 may hide the preview widget. "
                         "Reset the node to re-derive it from current code.",

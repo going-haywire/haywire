@@ -95,7 +95,7 @@ class BaseLibrary(ABC):
                 return [
                     CompatibilityWarning(
                         version="0.0.14",                       # where the change landed
-                        component=WebcamFrameInfoDisplayNode,   # or None for library-wide
+                        component=FrameDisplayNode,   # or None for library-wide
                         message="The 'frame' inlet widget strategy became "
                                 "author-declared; graphs saved before 0.0.14 may "
                                 "hide the preview widget. Reset the node to "

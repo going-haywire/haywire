@@ -24,7 +24,7 @@ reason to keep a sophisticated base; with it confirmed, maintaining two bases is
 no longer justified.
 
 The design was validated against the one genuinely complex production widget,
-`OpencvViewerWidget`, which today bypasses **both** base classes and implements
+`NumpyViewerWidget`, which today bypasses **both** base classes and implements
 `IWidget` directly. On the unified base it becomes a floor-only widget
 (`build()` returns a streaming card, `on_model_changed()` pushes frames, no
 `bind()` call) and shrinks — evidence the two-class system was incomplete and
@@ -77,7 +77,7 @@ the floor is a genuine need, not speculation.
 
 ## Consequences
 
-- `SimpleWidget` is deleted; its 7 widgets and `OpencvViewerWidget` migrate to
+- `SimpleWidget` is deleted; its 7 widgets and `NumpyViewerWidget` migrate to
   `BaseWidget` (`build()` + `bind()`/floor) in one change.
 - The `UI_PROPERTY` / `UI_EVENT` / `IS_READONLY` class attributes are replaced by
   bind-site arguments (`prop=`, `event=`, `one_way=`).

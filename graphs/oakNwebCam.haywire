@@ -5,7 +5,7 @@
   "version": "1.0.0",
   "author": "",
   "created_at": null,
-  "modified_at": "2026-06-25T20:09:02.506555",
+  "modified_at": "2026-06-25T20:27:09.652246",
   "nodes": {
     "BeginPlayNode_87f32274": {
       "node_id": "BeginPlayNode_87f32274",
@@ -62,7 +62,7 @@
               "registry_key": "core:type:FLOAT"
             },
             "field_data": {
-              "value": 1782409931.90326
+              "value": 1782412007.929943
             }
           }
         },
@@ -123,15 +123,15 @@
         }
       }
     },
-    "StartWebcamStreamNode_15b5bccb": {
-      "node_id": "StartWebcamStreamNode_15b5bccb",
-      "registry_key": "visiongraph:node:StartWebcamStreamNode",
+    "WebCameraNode_15b5bccb": {
+      "node_id": "WebCameraNode_15b5bccb",
+      "registry_key": "visiongraph:node:WebCameraNode",
       "position": [
         1050,
         1400
       ],
       "node_data": {
-        "node_id": "StartWebcamStreamNode_15b5bccb",
+        "node_id": "WebCameraNode_15b5bccb",
         "ports": {
           "start": {
             "kwargs": {
@@ -186,6 +186,7 @@
               "description": "Whole number",
               "class_name": "INT",
               "module": "haybale_core.types.specs",
+              "flow_type": "data",
               "default": {
                 "value": 0
               },
@@ -219,6 +220,7 @@
               "description": "Whole number",
               "class_name": "INT",
               "module": "haybale_core.types.specs",
+              "flow_type": "data",
               "default": {
                 "value": 0
               },
@@ -252,6 +254,7 @@
               "description": "Whole number",
               "class_name": "INT",
               "module": "haybale_core.types.specs",
+              "flow_type": "data",
               "default": {
                 "value": 0
               },
@@ -285,6 +288,7 @@
               "description": "Whole number",
               "class_name": "INT",
               "module": "haybale_core.types.specs",
+              "flow_type": "data",
               "default": {
                 "value": 0
               },
@@ -318,6 +322,7 @@
               "description": "Whole number",
               "class_name": "INT",
               "module": "haybale_core.types.specs",
+              "flow_type": "data",
               "default": {
                 "value": 1
               },
@@ -377,6 +382,7 @@
               "description": "Text data",
               "class_name": "STRING",
               "module": "haybale_core.types.specs",
+              "flow_type": "data",
               "default": {
                 "value": "Idle"
               },
@@ -392,7 +398,7 @@
               "registry_key": "core:type:STRING"
             },
             "field_data": {
-              "value": "Idle"
+              "value": "Shutdown"
             }
           },
           "started": {
@@ -454,13 +460,13 @@
         },
         "store": {},
         "identity": {
-          "registry_id": "StartWebcamStreamNode",
-          "registry_key": "visiongraph:node:StartWebcamStreamNode",
-          "label": "Start Webcam Stream",
+          "registry_id": "WebCameraNode",
+          "registry_key": "visiongraph:node:WebCameraNode",
+          "label": "Web Camera",
           "description": "Starts a webcam stream and emits frame callbacks",
           "deprecation_warning": "",
-          "class_name": "StartWebcamStreamNode",
-          "module": "haybale_visiongraph.nodes.start_web_cam_stream_node",
+          "class_name": "WebCameraNode",
+          "module": "haybale_visiongraph.nodes.web_cam_node",
           "search_tags": [
             "webcam",
             "camera",
@@ -556,7 +562,7 @@
               "registry_key": "core:type:FLOAT"
             },
             "field_data": {
-              "value": 1782409968.077794
+              "value": 1782412011.6988711
             }
           }
         },
@@ -617,15 +623,15 @@
         }
       }
     },
-    "WebcamFrameInfoDisplayNode_e397b53f": {
-      "node_id": "WebcamFrameInfoDisplayNode_e397b53f",
-      "registry_key": "visiongraph:node:WebcamFrameInfoDisplayNode",
+    "FrameDisplayNode_e397b53f": {
+      "node_id": "FrameDisplayNode_e397b53f",
+      "registry_key": "visiongraph:node:FrameDisplayNode",
       "position": [
         1050,
         1750
       ],
       "node_data": {
-        "node_id": "WebcamFrameInfoDisplayNode_e397b53f",
+        "node_id": "FrameDisplayNode_e397b53f",
         "ports": {
           "execute": {
             "kwargs": {
@@ -665,7 +671,7 @@
               },
               "store_strategy": 1,
               "color": "#9c27b0",
-              "widget_key": "visiongraph:widget:OpencvViewerWidget",
+              "widget_key": "visiongraph:widget:NumpyViewerWidget",
               "widget_config": {
                 "properties": {
                   "quality": 85,
@@ -708,7 +714,7 @@
               "registry_key": "core:type:STRING"
             },
             "field_data": {
-              "value": "Frame #1045 | 1920x1080x3 | 34.83s | 30.0 FPS"
+              "value": "Frame #72 | 1920x1080x3 | 2.39s | 30.2 FPS"
             }
           },
           "frame_ready": {
@@ -784,7 +790,7 @@
               "registry_key": "core:type:FLOAT"
             },
             "field_data": {
-              "value": 34.82514023780823
+              "value": 2.386620044708252
             }
           },
           "frame_number": {
@@ -811,7 +817,7 @@
               "registry_key": "core:type:INT"
             },
             "field_data": {
-              "value": 1045
+              "value": 72
             }
           },
           "width": {
@@ -881,20 +887,22 @@
         },
         "store": {},
         "identity": {
-          "registry_id": "WebcamFrameInfoDisplayNode",
-          "registry_key": "visiongraph:node:WebcamFrameInfoDisplayNode",
-          "label": "Webcam Frame Info Display",
-          "description": "Displays information about webcam frames with live preview",
+          "registry_id": "FrameDisplayNode",
+          "registry_key": "visiongraph:node:FrameDisplayNode",
+          "label": "Frame Info Display",
+          "description": "Displays information about frames with live preview",
           "deprecation_warning": "",
-          "class_name": "WebcamFrameInfoDisplayNode",
+          "class_name": "FrameDisplayNode",
           "module": "haybale_visiongraph.nodes.frame_info_display_node",
           "search_tags": [
-            "webcam",
+            "rgb",
+            "ir",
             "frame",
             "camera",
             "display",
             "preview",
-            "video"
+            "video",
+            "stream"
           ],
           "menu": "vision/info",
           "help_md": null,
@@ -929,15 +937,15 @@
         }
       }
     },
-    "OakDEmitNode_1f6b2a1b": {
-      "node_id": "OakDEmitNode_1f6b2a1b",
-      "registry_key": "visiongraph:node:OakDEmitNode",
+    "OakDCameraNode_1f6b2a1b": {
+      "node_id": "OakDCameraNode_1f6b2a1b",
+      "registry_key": "visiongraph:node:OakDCameraNode",
       "position": [
         1500,
         1400
       ],
       "node_data": {
-        "node_id": "OakDEmitNode_1f6b2a1b",
+        "node_id": "OakDCameraNode_1f6b2a1b",
         "ports": {
           "start": {
             "kwargs": {
@@ -992,6 +1000,7 @@
               "description": "Text data",
               "class_name": "STRING",
               "module": "haybale_core.types.specs",
+              "flow_type": "data",
               "default": {
                 "value": ""
               },
@@ -1044,6 +1053,7 @@
               "description": "Text data",
               "class_name": "STRING",
               "module": "haybale_core.types.specs",
+              "flow_type": "data",
               "default": {
                 "value": "Idle"
               },
@@ -1059,7 +1069,7 @@
               "registry_key": "core:type:STRING"
             },
             "field_data": {
-              "value": "Idle"
+              "value": "Shutdown"
             }
           },
           "started": {
@@ -1121,13 +1131,13 @@
         },
         "store": {},
         "identity": {
-          "registry_id": "OakDEmitNode",
-          "registry_key": "visiongraph:node:OakDEmitNode",
-          "label": "OAK-D Emit",
+          "registry_id": "OakDCameraNode",
+          "registry_key": "visiongraph:node:OakDCameraNode",
+          "label": "OAK-D Camera",
           "description": "Opens an OAK-D depth camera and emits colour/depth/infrared frame callbacks",
           "deprecation_warning": "",
-          "class_name": "OakDEmitNode",
-          "module": "haybale_visiongraph.nodes.oak_d_emit_node",
+          "class_name": "OakDCameraNode",
+          "module": "haybale_visiongraph.nodes.oak_d_camera_node",
           "search_tags": [
             "oak",
             "oak-d",
@@ -1171,15 +1181,15 @@
         }
       }
     },
-    "ThreeDFrameEventNode_bcbab615": {
-      "node_id": "ThreeDFrameEventNode_bcbab615",
-      "registry_key": "visiongraph:node:ThreeDFrameEventNode",
+    "NumpyFrameEventNode_bcbab615": {
+      "node_id": "NumpyFrameEventNode_bcbab615",
+      "registry_key": "visiongraph:node:NumpyFrameEventNode",
       "position": [
         550,
-        2100
+        2200
       ],
       "node_data": {
-        "node_id": "ThreeDFrameEventNode_bcbab615",
+        "node_id": "NumpyFrameEventNode_bcbab615",
         "ports": {
           "subscription": {
             "kwargs": {
@@ -1191,7 +1201,7 @@
               "module": "haybale_visiongraph.types.multiframe_callback_type",
               "flow_type": "callback",
               "default": {
-                "name": "ThreeDFrameEventNode_bcbab615",
+                "name": "NumpyFrameEventNode_bcbab615",
                 "rgb": true,
                 "depth": false,
                 "ir": false
@@ -1206,7 +1216,7 @@
               "registry_key": "visiongraph:type:MULTIFRAME_CALLBACK"
             },
             "field_data": {
-              "name": "ThreeDFrameEventNode_bcbab615",
+              "name": "NumpyFrameEventNode_bcbab615",
               "rgb": true,
               "depth": false,
               "ir": true
@@ -1220,6 +1230,7 @@
               "description": "True or False",
               "class_name": "BOOL",
               "module": "haybale_core.types.specs",
+              "flow_type": "data",
               "default": {
                 "value": true
               },
@@ -1247,6 +1258,7 @@
               "description": "True or False",
               "class_name": "BOOL",
               "module": "haybale_core.types.specs",
+              "flow_type": "data",
               "default": {
                 "value": false
               },
@@ -1274,6 +1286,7 @@
               "description": "True or False",
               "class_name": "BOOL",
               "module": "haybale_core.types.specs",
+              "flow_type": "data",
               "default": {
                 "value": false
               },
@@ -1340,7 +1353,7 @@
               "registry_key": "core:type:FLOAT"
             },
             "field_data": {
-              "value": 0.0
+              "value": 0.4362058639526367
             }
           },
           "frame_number": {
@@ -1367,7 +1380,7 @@
               "registry_key": "core:type:INT"
             },
             "field_data": {
-              "value": 0
+              "value": 13
             }
           },
           "rgb": {
@@ -1426,21 +1439,21 @@
         "settings": {
           "props": {
             "posX": 550,
-            "posY": 2100
+            "posY": 2200
           }
         },
         "props": {
           "posX": 550,
-          "posY": 2100
+          "posY": 2200
         },
         "store": {},
         "identity": {
-          "registry_id": "ThreeDFrameEventNode",
-          "registry_key": "visiongraph:node:ThreeDFrameEventNode",
+          "registry_id": "NumpyFrameEventNode",
+          "registry_key": "visiongraph:node:NumpyFrameEventNode",
           "label": "Frame Event",
           "description": "Triggered when a camera frame is ready; exposes colour/depth/infrared streams",
           "deprecation_warning": "",
-          "class_name": "ThreeDFrameEventNode",
+          "class_name": "NumpyFrameEventNode",
           "module": "haybale_visiongraph.nodes.three_d_frame_event_node",
           "search_tags": [
             "3d",
@@ -1452,7 +1465,8 @@
             "frame",
             "event",
             "rgb",
-            "ir"
+            "ir",
+            "image"
           ],
           "menu": "vision/event",
           "help_md": null,
@@ -1489,7 +1503,7 @@
     },
     "node_44069909": {
       "node_id": "node_44069909",
-      "registry_key": "visiongraph:node:WebcamFrameInfoDisplayNode",
+      "registry_key": "visiongraph:node:FrameDisplayNode",
       "position": [
         1050,
         2300
@@ -1535,7 +1549,7 @@
               },
               "store_strategy": 1,
               "color": "#9c27b0",
-              "widget_key": "visiongraph:widget:OpencvViewerWidget",
+              "widget_key": "visiongraph:widget:NumpyViewerWidget",
               "widget_config": {
                 "properties": {
                   "quality": 85,
@@ -1578,7 +1592,7 @@
               "registry_key": "core:type:STRING"
             },
             "field_data": {
-              "value": "Frame #986 | 1280x720x3 | 32.87s | 30.0 FPS"
+              "value": "Frame #13 | 1280x720x3 | 0.44s | 29.8 FPS"
             }
           },
           "frame_ready": {
@@ -1654,7 +1668,7 @@
               "registry_key": "core:type:FLOAT"
             },
             "field_data": {
-              "value": 32.86962008476257
+              "value": 0.4362058639526367
             }
           },
           "frame_number": {
@@ -1681,7 +1695,7 @@
               "registry_key": "core:type:INT"
             },
             "field_data": {
-              "value": 986
+              "value": 13
             }
           },
           "width": {
@@ -1751,20 +1765,22 @@
         },
         "store": {},
         "identity": {
-          "registry_id": "WebcamFrameInfoDisplayNode",
-          "registry_key": "visiongraph:node:WebcamFrameInfoDisplayNode",
-          "label": "Webcam Frame Info Display",
-          "description": "Displays information about webcam frames with live preview",
+          "registry_id": "FrameDisplayNode",
+          "registry_key": "visiongraph:node:FrameDisplayNode",
+          "label": "Frame Info Display",
+          "description": "Displays information about frames with live preview",
           "deprecation_warning": "",
-          "class_name": "WebcamFrameInfoDisplayNode",
+          "class_name": "FrameDisplayNode",
           "module": "haybale_visiongraph.nodes.frame_info_display_node",
           "search_tags": [
-            "webcam",
+            "rgb",
+            "ir",
             "frame",
             "camera",
             "display",
             "preview",
-            "video"
+            "video",
+            "stream"
           ],
           "menu": "vision/info",
           "help_md": null,
@@ -1801,7 +1817,7 @@
     },
     "node_7733ff48": {
       "node_id": "node_7733ff48",
-      "registry_key": "visiongraph:node:ThreeDFrameEventNode",
+      "registry_key": "visiongraph:node:NumpyFrameEventNode",
       "position": [
         550,
         1800
@@ -1848,6 +1864,7 @@
               "description": "True or False",
               "class_name": "BOOL",
               "module": "haybale_core.types.specs",
+              "flow_type": "data",
               "default": {
                 "value": true
               },
@@ -1875,6 +1892,7 @@
               "description": "True or False",
               "class_name": "BOOL",
               "module": "haybale_core.types.specs",
+              "flow_type": "data",
               "default": {
                 "value": false
               },
@@ -1902,6 +1920,7 @@
               "description": "True or False",
               "class_name": "BOOL",
               "module": "haybale_core.types.specs",
+              "flow_type": "data",
               "default": {
                 "value": false
               },
@@ -1968,7 +1987,7 @@
               "registry_key": "core:type:FLOAT"
             },
             "field_data": {
-              "value": 0.0
+              "value": 2.386620044708252
             }
           },
           "frame_number": {
@@ -1995,7 +2014,7 @@
               "registry_key": "core:type:INT"
             },
             "field_data": {
-              "value": 0
+              "value": 72
             }
           },
           "rgb": {
@@ -2017,7 +2036,7 @@
               "id": "rgb",
               "port_type": "outlet",
               "allow_multiple_links": true,
-              "order": 7,
+              "order": 10,
               "show_widget": "never"
             },
             "recipe": {
@@ -2037,12 +2056,12 @@
         },
         "store": {},
         "identity": {
-          "registry_id": "ThreeDFrameEventNode",
-          "registry_key": "visiongraph:node:ThreeDFrameEventNode",
+          "registry_id": "NumpyFrameEventNode",
+          "registry_key": "visiongraph:node:NumpyFrameEventNode",
           "label": "Frame Event",
           "description": "Triggered when a camera frame is ready; exposes colour/depth/infrared streams",
           "deprecation_warning": "",
-          "class_name": "ThreeDFrameEventNode",
+          "class_name": "NumpyFrameEventNode",
           "module": "haybale_visiongraph.nodes.three_d_frame_event_node",
           "search_tags": [
             "3d",
@@ -2054,7 +2073,8 @@
             "frame",
             "event",
             "rgb",
-            "ir"
+            "ir",
+            "image"
           ],
           "menu": "vision/event",
           "help_md": null,
@@ -2091,53 +2111,53 @@
     }
   },
   "edges": {
-    "edge::exec@BeginPlayNode_87f32274>>start@StartWebcamStreamNode_15b5bccb": {
+    "edge::exec@BeginPlayNode_87f32274>>start@WebCameraNode_15b5bccb": {
       "source_node_id": "BeginPlayNode_87f32274",
       "outlet_port_id": "exec",
-      "sink_node_id": "StartWebcamStreamNode_15b5bccb",
+      "sink_node_id": "WebCameraNode_15b5bccb",
       "inlet_port_id": "start",
       "edge_type": "control",
       "chain_adapter_keys": [],
       "is_lazy": false
     },
-    "edge::exec@ShutdownNode_f1b20b45>>stop@StartWebcamStreamNode_15b5bccb": {
+    "edge::exec@ShutdownNode_f1b20b45>>stop@WebCameraNode_15b5bccb": {
       "source_node_id": "ShutdownNode_f1b20b45",
       "outlet_port_id": "exec",
-      "sink_node_id": "StartWebcamStreamNode_15b5bccb",
+      "sink_node_id": "WebCameraNode_15b5bccb",
       "inlet_port_id": "stop",
       "edge_type": "control",
       "chain_adapter_keys": [],
       "is_lazy": false
     },
-    "edge::started@StartWebcamStreamNode_15b5bccb>>start@OakDEmitNode_1f6b2a1b": {
-      "source_node_id": "StartWebcamStreamNode_15b5bccb",
+    "edge::started@WebCameraNode_15b5bccb>>start@OakDCameraNode_1f6b2a1b": {
+      "source_node_id": "WebCameraNode_15b5bccb",
       "outlet_port_id": "started",
-      "sink_node_id": "OakDEmitNode_1f6b2a1b",
+      "sink_node_id": "OakDCameraNode_1f6b2a1b",
       "inlet_port_id": "start",
       "edge_type": "control",
       "chain_adapter_keys": [],
       "is_lazy": false
     },
-    "edge::stopped@StartWebcamStreamNode_15b5bccb>>stop@OakDEmitNode_1f6b2a1b": {
-      "source_node_id": "StartWebcamStreamNode_15b5bccb",
+    "edge::stopped@WebCameraNode_15b5bccb>>stop@OakDCameraNode_1f6b2a1b": {
+      "source_node_id": "WebCameraNode_15b5bccb",
       "outlet_port_id": "stopped",
-      "sink_node_id": "OakDEmitNode_1f6b2a1b",
+      "sink_node_id": "OakDCameraNode_1f6b2a1b",
       "inlet_port_id": "stop",
       "edge_type": "control",
       "chain_adapter_keys": [],
       "is_lazy": false
     },
-    "edge::subscription@ThreeDFrameEventNode_bcbab615>>callbacks@OakDEmitNode_1f6b2a1b": {
-      "source_node_id": "ThreeDFrameEventNode_bcbab615",
+    "edge::subscription@NumpyFrameEventNode_bcbab615>>callbacks@OakDCameraNode_1f6b2a1b": {
+      "source_node_id": "NumpyFrameEventNode_bcbab615",
       "outlet_port_id": "subscription",
-      "sink_node_id": "OakDEmitNode_1f6b2a1b",
+      "sink_node_id": "OakDCameraNode_1f6b2a1b",
       "inlet_port_id": "callbacks",
       "edge_type": "callback",
       "chain_adapter_keys": [],
       "is_lazy": false
     },
-    "edge::frame_ready@ThreeDFrameEventNode_bcbab615>>execute@node_44069909": {
-      "source_node_id": "ThreeDFrameEventNode_bcbab615",
+    "edge::frame_ready@NumpyFrameEventNode_bcbab615>>execute@node_44069909": {
+      "source_node_id": "NumpyFrameEventNode_bcbab615",
       "outlet_port_id": "frame_ready",
       "sink_node_id": "node_44069909",
       "inlet_port_id": "execute",
@@ -2145,8 +2165,8 @@
       "chain_adapter_keys": [],
       "is_lazy": false
     },
-    "edge::ir@ThreeDFrameEventNode_bcbab615>>frame@node_44069909": {
-      "source_node_id": "ThreeDFrameEventNode_bcbab615",
+    "edge::ir@NumpyFrameEventNode_bcbab615>>frame@node_44069909": {
+      "source_node_id": "NumpyFrameEventNode_bcbab615",
       "outlet_port_id": "ir",
       "sink_node_id": "node_44069909",
       "inlet_port_id": "frame",
@@ -2156,28 +2176,28 @@
       ],
       "is_lazy": false
     },
-    "edge::subscription@node_7733ff48>>callbacks@StartWebcamStreamNode_15b5bccb": {
+    "edge::subscription@node_7733ff48>>callbacks@WebCameraNode_15b5bccb": {
       "source_node_id": "node_7733ff48",
       "outlet_port_id": "subscription",
-      "sink_node_id": "StartWebcamStreamNode_15b5bccb",
+      "sink_node_id": "WebCameraNode_15b5bccb",
       "inlet_port_id": "callbacks",
       "edge_type": "callback",
       "chain_adapter_keys": [],
       "is_lazy": false
     },
-    "edge::frame_ready@node_7733ff48>>execute@WebcamFrameInfoDisplayNode_e397b53f": {
+    "edge::frame_ready@node_7733ff48>>execute@FrameDisplayNode_e397b53f": {
       "source_node_id": "node_7733ff48",
       "outlet_port_id": "frame_ready",
-      "sink_node_id": "WebcamFrameInfoDisplayNode_e397b53f",
+      "sink_node_id": "FrameDisplayNode_e397b53f",
       "inlet_port_id": "execute",
       "edge_type": "control",
       "chain_adapter_keys": [],
       "is_lazy": false
     },
-    "edge::rgb@node_7733ff48>>frame@WebcamFrameInfoDisplayNode_e397b53f": {
+    "edge::rgb@node_7733ff48>>frame@FrameDisplayNode_e397b53f": {
       "source_node_id": "node_7733ff48",
       "outlet_port_id": "rgb",
-      "sink_node_id": "WebcamFrameInfoDisplayNode_e397b53f",
+      "sink_node_id": "FrameDisplayNode_e397b53f",
       "inlet_port_id": "frame",
       "edge_type": "data",
       "chain_adapter_keys": [],
