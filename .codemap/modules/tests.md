@@ -5,8 +5,8 @@
 **Path:** `tests/`
 **Language:** Python 3.10+ (pytest, pytest-playwright)
 **Owner:** All teams (each owns tests near their module)
-**Tree hash:** `7077a73833c0c609ad9ef0e9ff74e6086267c726`
-**Mapped at:** 51d1ac64 (2026-06-17)
+**Tree hash:** `913f908e64c21e868b03a406cbcb7ac5a135c7c7`
+**Mapped at:** 45140b27 (2026-06-25)
 
 ---
 

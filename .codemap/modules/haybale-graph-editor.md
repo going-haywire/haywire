@@ -5,8 +5,8 @@
 **Path:** `barn/haybale-graph-editor/haybale_graph_editor/`
 **Language:** Python 3.10+
 **Owner:** Haywire studio team (bundled plugin)
-**Tree hash:** `7902ef680586e69c6329bf6de6c9ec35a8db69f8`
-**Mapped at:** 51d1ac64 (2026-06-17)
+**Tree hash:** `d1e7f8e40aaa4cf960d5444f223fe184cee4161d`
+**Mapped at:** 45140b27 (2026-06-25)
 
 ---
 

@@ -5,8 +5,8 @@
 **Path:** `barn/haybale-core/haybale_core/`
 **Language:** Python 3.10+
 **Owner:** Haywire core team (bundled plugin)
-**Tree hash:** `b32c728b1b35f6e79686dc6c4e8cbf228657f775`
-**Mapped at:** 51d1ac64 (2026-06-17)
+**Tree hash:** `17d68a970a077ff8d587c46046adf97a98be1241`
+**Mapped at:** 45140b27 (2026-06-25)
 
 ---
 
@@ -25,12 +25,15 @@ haybale_core/
 │   ├── print_terminal.py     ← print to terminal UI (rewritten)
 │   ├── print_ui_log.py
 │   ├── switch.py
+│   ├── reroute.py (new)      ← reroute/noop node for graph flow
 │   └── events/*, emits/*
 ├── panels/
 ├── settings/
 ├── skins/
+│   ├── default_skin.py
+│   └── reroute_skin.py (new) ← visual style for reroute nodes
 ├── themes/
-├── types/pooled_type.py
+├── types/pooled_type.py, specs.py
 └── widgets/basic_widgets.py (major rewrite) ← BaseWidget unification
 ```
 
@@ -46,8 +49,10 @@ haybale_core/
 - **`widgets/basic_widgets.py`** (major rewrite) — uses new BaseWidget unification (ADR 0007); pattern for downstream libraries.
 - `adapters/` — when extending type/port adapter rules (updated for widget unification).
 - `types/` — when extending the type system beyond primitives.
+- `nodes/reroute.py` (new) — reroute node for graph organization; added in recent refresh.
 - `nodes/for_loop.py` — loop iteration syntax; check before using in tests.
 - `nodes/print_terminal.py` (rewritten) — print-to-UI output; reuses BaseWidget.
+- `skins/reroute_skin.py` (new) — visual rendering for reroute nodes.
 - `themes/`, `skins/` — when modifying visual presentation; coordinate with `docs/reference/design-guide.md`.
 - `panels/`, `settings/` — when adding inspector content or library/node settings UI.
 
