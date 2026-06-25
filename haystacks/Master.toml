@@ -10,5 +10,10 @@ execute = false
 path = "graphs/empty.haywire"
 execute = false
 
+[[graphs]]
+path = "graphs/oakNwebCam.haywire"
+execute = false
+
 [haystack]
 name = "Master"
+active_graph = "graphs/oakNwebCam.haywire"

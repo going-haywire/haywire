@@ -488,6 +488,8 @@ See [guides/signals.md](../guides/signals.md) for authoring patterns; [architect
 
 ## Flagged ambiguities
 
+- **"frame" — two unrelated meanings** *(new)*: the execution **Frame** (one full pass through a Flow from its entry EVENT node — see Execution Pipeline) versus a **video frame** (a captured camera image, carried by the `RGB_FRAME` / `DEPTH_FRAME` / `GRAY_FRAME` datatypes in haybale-visiongraph). Never use bare "frame" where both could apply: say **execution Frame** or **video frame** / the specific datatype name. The datatypes are deliberately suffixed `_FRAME` (not bare `FRAME`) partly to keep this boundary visible.
+- **"depth map" vs "depth buffer"** *(new)*: the **depth buffer** is the raw uint16 metric data (`DEPTH_FRAME`, millimetres) — the measurement. A **depth map** is a *colourized* visualization of it (3-channel, JET/HSV, display-only) produced by an explicit node, never an adapter. They are different artifacts and colourizing is lossy and irreversible. Never use "depth map" for the raw buffer.
 - **"library"** has five distinct meanings (see top of this glossary). Always disambiguate.
 - **"pin"** appears in the codebase and docs as both the colloquial name for the icon port and a general synonym for any port. Canonical terms are **Inlet** / **Outlet**; **Pin** is acceptable only for EXEC ports.
 - **"connection"** is used loosely to mean both the act of connecting (verb) and the edge itself (noun). Prefer **Edge** for the object, and **link** for the action.

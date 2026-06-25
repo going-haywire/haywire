@@ -75,7 +75,7 @@ mypy_path = [
 ]
 
 [[tool.mypy.overrides]]
-module = ["toml", "nicegui.*", "jedi", "jedi.*", "markdown2", "pygments.*"]
+module = ["toml", "nicegui.*", "jedi", "jedi.*", "markdown2", "pygments.*", "visiongraph.*", "depthai"]
 ignore_missing_imports = true
 
 [tool.ruff]
