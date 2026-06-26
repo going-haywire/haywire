@@ -2954,6 +2954,17 @@
 
 <h1 id="haywire-dependency-report">Haywire Dependency Report<a class="headerlink" href="#haywire-dependency-report" title="Permanent link">&para;</a></h1>
 <p>Generated: 2026-05-17T11:56:29Z</p>
+<blockquote>
+<p>Updated 2026-06-26 (scoped re-audit of <strong>haybale-visiongraph</strong> after the vision
+estimator-node work): <strong>no dependency errors.</strong> A preliminary pass flagged a
+missing <code>haywire-studio</code> (because the package imports <code>haywire.ui.*</code>), but that
+was a <strong>false positive</strong> — the <code>haywire/ui</code> namespace is split across both
+framework packages, and the specific modules this library uses
+(<code>haywire.ui.skin.registry</code>, <code>haywire.ui.widget.{registry,base,decorator}</code>) are
+shipped by <strong><code>haywire-core</code></strong>, which is already declared. <code>haywire-studio</code> is
+NOT a dependency. The estimator-node code introduced no new dependency edge.
+Other packages were not re-scanned in this run.</p>
+</blockquote>
 <hr />
 <h2 id="flat-dependency-graph">Flat Dependency Graph<a class="headerlink" href="#flat-dependency-graph" title="Permanent link">&para;</a></h2>
 <p>Direct haywire/haybale inter-package dependencies per package (from import analysis).</p>
@@ -3068,7 +3079,7 @@ into <code>haybale-studio</code>, or by abstracting the interface).</p>
 </tr>
 <tr>
 <td>haybale-visiongraph</td>
-<td>1 (nicegui, skipped)</td>
+<td>0 (2026-06-26 re-audit; haywire-studio false positive)</td>
 <td>0</td>
 <td>0</td>
 </tr>
