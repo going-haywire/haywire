@@ -2,6 +2,16 @@
 
 Generated: 2026-05-17T11:56:29Z
 
+> Updated 2026-06-26 (scoped re-audit of **haybale-visiongraph** after the vision
+> estimator-node work): **no dependency errors.** A preliminary pass flagged a
+> missing `haywire-studio` (because the package imports `haywire.ui.*`), but that
+> was a **false positive** — the `haywire/ui` namespace is split across both
+> framework packages, and the specific modules this library uses
+> (`haywire.ui.skin.registry`, `haywire.ui.widget.{registry,base,decorator}`) are
+> shipped by **`haywire-core`**, which is already declared. `haywire-studio` is
+> NOT a dependency. The estimator-node code introduced no new dependency edge.
+> Other packages were not re-scanned in this run.
+
 ---
 
 ## Flat Dependency Graph
@@ -119,7 +129,7 @@ into `haybale-studio`, or by abstracting the interface).
 | haywire-studio | 0 | — | 2 (A5, A6: pyproject excess) |
 | haybale-core | 1 (nicegui, skipped) | 0 | 0 |
 | haybale-example | 1 (nicegui, skipped) | 0 | 0 |
-| haybale-visiongraph | 1 (nicegui, skipped) | 0 | 0 |
+| haybale-visiongraph | 0 (2026-06-26 re-audit; haywire-studio false positive) | 0 | 0 |
 | haybale-graph-editor | 1 (nicegui, skipped) | 0 | 2 (A1, A2: pyproject excess) |
 | haybale-haystack | 1 (nicegui, skipped) | 0 | 3 (A3, A4: excess; A10: thin dep) |
 | haybale-studio | 2 (nicegui skipped, packaging fixed) | 0 | 3 (A7, A8, A9: excess) |
