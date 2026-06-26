@@ -5,9 +5,11 @@ Defines the types of events that can trigger flow execution.
 """
 
 from __future__ import annotations
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any, Dict, Optional
+
+from haywire.core.execution.scheduler import QueueMode
 
 
 class SystemEventType(Enum):
@@ -24,7 +26,25 @@ class EventSource:
 
     All event sources are immutable (frozen) to ensure they can be used
     as dictionary keys and compared reliably.
+
+    Scheduler config carried by every event source:
+        queue_mode: How the subscribing flow's scheduler treats triggers that
+            arrive while a frame is executing. ``BLOCK`` (default) queues with
+            backpressure; ``DROP`` discards stale triggers for realtime. Set by
+            the event-node author in ``post_init``.
+        max_queue_size: Depth of the scheduler's trigger queue. ``DROP`` needs a
+            shallow queue (``1``) to actually keep only the newest frame, since
+            triggers can still slip in between frames; the author sets the pair.
+
+    Both are ``kw_only`` (so subclasses keep their positional identity fields)
+    and ``compare=False`` (so they ride along without participating in the frozen
+    identity/hash — two sources differing only in queue mode must still produce
+    key-stable, hashable subscriptions). System/external sources simply keep the
+    BLOCK default. See ADR 0010.
     """
+
+    queue_mode: QueueMode = field(default=QueueMode.BLOCK, compare=False, kw_only=True)
+    max_queue_size: int = field(default=100, compare=False, kw_only=True)
 
     def get_subscription_key(self) -> str:
         """
@@ -105,6 +125,9 @@ class CallbackEvent(EventSource):
 
     Args:
         event_name: Name of the callback event
+
+    Inherits ``queue_mode`` / ``max_queue_size`` (kw-only) from EventSource;
+    camera/realtime event nodes set ``queue_mode=DROP, max_queue_size=1``.
     """
 
     event_name: str

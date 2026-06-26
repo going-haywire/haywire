@@ -22,7 +22,7 @@ if TYPE_CHECKING:
 from haywire.core.assembly.flow_assembly_manager import FlowAssemblyManager
 from haywire.core.execution.vm import HaywireVM
 from haywire.core.execution.callback_manager import CallbackManager
-from haywire.core.execution.scheduler import FlowScheduler, QueueMode
+from haywire.core.execution.scheduler import FlowScheduler
 from haywire.core.execution.event_source import (
     SystemEvent,
     SystemEventType,
@@ -214,8 +214,13 @@ class Interpreter:
 
         logger.debug(f"Flow {flow.flow_id} registered for event '{subscription_key}'")
 
-        # Create scheduler
-        flow.scheduler = FlowScheduler(flow=flow, vm=self.vm, queue_mode=QueueMode.BLOCK)
+        # Create scheduler. Queue mode + depth ride on the event subscription
+        # (set by the event-node author); every EventSource carries them,
+        # defaulting to BLOCK / 100. See ADR 0010.
+        sub = flow.event_subscription
+        flow.scheduler = FlowScheduler(
+            flow=flow, vm=self.vm, queue_mode=sub.queue_mode, max_queue_size=sub.max_queue_size
+        )
 
         # Start execution thread - it will sleep until triggers arrive
         flow.scheduler.start()

@@ -18,7 +18,7 @@ hover_exit_delay = 0
 hover_scale_cutoff_zoom = 0.3
 hover_scale_enabled = false
 hover_scale_max = 5.0
-max_zoom = 1.8
+max_zoom = 5.0
 min_zoom = 0.01
 pan_sensitivity = 5.0
 zoom_sensitivity = 0.56
@@ -33,7 +33,7 @@ position = "top-left"
 
 [ui.minimap]
 debug_info = false
-enabled = true
+enabled = false
 ghost_opacity = 0.2
 opacity = 1.0
 position = "bottom-right"

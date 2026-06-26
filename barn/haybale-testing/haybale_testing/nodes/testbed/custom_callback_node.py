@@ -1,5 +1,6 @@
 from haywire.core.execution.event_source import CallbackEvent
 from haywire.core.execution.execution_context import ExecutionContext
+from haywire.core.execution.scheduler import QueueMode
 from haywire.core.node import node, BaseNode, NodeType
 
 
@@ -38,6 +39,18 @@ class TestCustomCallbackNode(BaseNode):
             )
         )
 
+        # Per-event-node queue mode (ADR 0010). Lets tests drive the realtime
+        # drop path through a real library event node, not a hand-built
+        # CallbackEvent. "block" is the safe default; "drop" → DROP + depth-1.
+        self.add(
+            STRING.as_config(
+                "queue_mode",
+                default="block",
+                label="Queue Mode",
+                widget=SelectWidget.config(properties={"options": ["block", "drop"]}),
+            )
+        )
+
         self.add(
             CALLBACK.as_outlet(
                 "listen_callback", label="Listen", default=self.node_id, allow_multiple_links=True
@@ -55,14 +68,23 @@ class TestCustomCallbackNode(BaseNode):
         self._update_subscription(None, None)
 
     def _update_subscription(self, port, new_value):
+        if self.value("queue_mode") == "drop":
+            queue_mode, max_queue_size = QueueMode.DROP, 1
+        else:
+            queue_mode, max_queue_size = QueueMode.BLOCK, 100
+
         mode = self.value("mode_switch")
         if mode:
             callback_name = self.value("custom_callback_name")
-            self.event_subscription = CallbackEvent(event_name=callback_name)
+            self.event_subscription = CallbackEvent(
+                event_name=callback_name, queue_mode=queue_mode, max_queue_size=max_queue_size
+            )
             self.wrapper.request_graph_reassembly()
         else:
             callback_name = self.value("listen_callback")
-            self.event_subscription = CallbackEvent(event_name=callback_name)
+            self.event_subscription = CallbackEvent(
+                event_name=callback_name, queue_mode=queue_mode, max_queue_size=max_queue_size
+            )
 
     def worker(self, context: ExecutionContext) -> str | None:
         payload = context.trigger.payload if context.trigger else None
