@@ -3602,6 +3602,31 @@
 <td>Tick (reserved for the Tick node event), cycle</td>
 </tr>
 <tr>
+<td><strong>FlowScheduler</strong></td>
+<td>The per-Flow component that owns the trigger queue and the single execution thread; one scheduler per Flow, hence one per EVENT node. Decides what happens to incoming Triggers via its <strong>Queue mode</strong>. See <a href="../../architecture/execution/flow/flow-arch/">architecture/execution/flow</a></td>
+<td>Queue (the queue is one part of it), dispatcher</td>
+</tr>
+<tr>
+<td><strong>Trigger</strong></td>
+<td>A single queued request to run a Flow once, built by <code>CallbackManager</code> when an EMIT node calls <code>emit_callback</code>; carries the payload (e.g. a video frame). Enqueued into the subscribing Flow's FlowScheduler</td>
+<td>Event (overloaded — see "event vs signal"), frame (a Trigger <em>carries</em> a video frame, it is not one)</td>
+</tr>
+<tr>
+<td><strong>Queue mode</strong></td>
+<td>How a FlowScheduler treats an incoming Trigger while a Frame is executing: <strong>DROP</strong> (discard it — newest-only, lossy by design) or <strong>BLOCK</strong> (queue it, with backpressure). Carried on the EVENT node's <code>EventSource</code> (<code>CallbackEvent.queue_mode</code>), read once at Assembly onto the Flow. The <code>QueueMode</code> enum is canonical. See ADR 0010</td>
+<td>Backpressure (describes BLOCK only, not DROP — see Flagged ambiguities)</td>
+</tr>
+<tr>
+<td><strong>DROP / realtime mode</strong></td>
+<td><code>QueueMode.DROP</code>: stale Triggers are discarded so the Flow always processes the newest available frame. Paired with <code>max_queue_size=1</code> to actually guarantee newest (DROP alone leaves a transient backlog). The author default of the camera <code>Frame Event</code> node</td>
+<td>Skip, throttle (imprecise)</td>
+</tr>
+<tr>
+<td><strong>BLOCK mode</strong></td>
+<td><code>QueueMode.BLOCK</code>: the default for every EVENT source except <code>Frame Event</code>. <strong>Best-effort, not lossless</strong> — <code>put(block=True, timeout=5.0)</code>, then drops + warns on timeout. NOT a "process every frame" guarantee; see Flagged ambiguities and the demand-driven pattern</td>
+<td>Lossless, every-frame (it is neither)</td>
+</tr>
+<tr>
 <td><strong>Eager push</strong></td>
 <td>Data transport mode where a Pipe immediately propagates a new value downstream on write</td>
 <td>Synchronous push</td>
@@ -4749,6 +4774,9 @@
 <li><strong>"refresh" vs "scan"</strong> <em>(new)</em>: <strong>Refresh</strong> is the orchestration pipeline that fetches subscriptions, applies conflict resolution, and writes the project <code>[[caches]]</code>. "Scan" usually means file-watcher reload or library-registry rescan — different subsystem. Use <strong>Refresh</strong> for the marketplace pipeline.</li>
 <li><strong>"stale"</strong> <em>(new)</em>: in the marketplace runtime, <strong>stale</strong> means a project-marketplace <code>[[caches]]</code> entry that a subsequent <strong>Refresh</strong> did not re-resolve from any source. It does NOT mean "out of date" in the version sense. Stale + installed entries are locked from removal; stale + uninstalled entries are trash-icon removable.</li>
 <li><strong>"component" overloaded</strong> <em>(new)</em>: the canonical meaning is a <strong>Component</strong> — a hot-reload-registry-managed library contribution (node, type, adapter, skin, widget, editor, panel, settings, theme); this is the meaning in <code>register_components()</code>, <code>lookup_component_class()</code>, <code>active_component</code>, <code>ComponentSourceEditor</code>, and the <code>docs/components/</code> tree. A <strong>second, internal-only meaning</strong> lives in the code path <code>haywire.ui.components.*</code> (e.g. <code>graph</code>, <code>minimap</code>, <code>number</code>/NumberDrag, <code>popup</code>), where "component" carries the generic Vue/NiceGUI sense of "a reusable <code>ui.element</code> subclass." These are deliberately kept distinct: the registry meaning is public API and author-facing vocabulary and cannot move; the <code>ui.components</code> path is a private package name retained to avoid churn. When writing prose, prefer <strong>Component</strong> (capitalized) for the registry meaning and qualify the other as "a <code>ui.components</code> element" or "reusable UI element." Never use bare "component" to mean a reusable UI element in author-facing docs. Note the sibling package <code>haywire.ui.extends.*</code> (e.g. <code>extends/codemirror</code>) is deliberately NOT under <code>ui.components</code>: those modules attach behavior to an existing element they do not own (helpers like <code>attach_code_intelligence</code>, no <code>.vue</code>, no render surface), whereas every <code>ui.components</code> entry is a self-contained Vue-backed <code>ui.element</code> subclass.</li>
+<li><strong>"BLOCK" does not mean lossless / "process every frame"</strong> <em>(new)</em>: the <code>QueueMode.BLOCK</code> scheduler mode is <em>best-effort backpressure</em> — <code>put(block=True, timeout=5.0)</code>, then the Trigger is <strong>dropped</strong> (with a warning) if the queue stays full past 5 s. It is NOT a guarantee that every frame is processed, and a deep queue (<code>max_queue_size=100</code>) does not make it one. True "process every frame" (offline/lossless) is met by a separate <strong>demand-driven</strong> pattern — the Flow's completion signal (<code>trigger.payload["_on_complete"]</code>) triggers the EMIT node to produce the next frame, one in flight, no queue — which is a <em>node behavior</em>, not a queue mode. Never describe BLOCK as lossless or "every-frame." (ADR 0010.)</li>
+<li><strong>"backpressure" vs "drop" vs "queue mode"</strong> <em>(new)</em>: <strong>Queue mode</strong> is the umbrella (<code>QueueMode</code>: <code>BLOCK</code> or <code>DROP</code>). <strong>Backpressure</strong> is the BLOCK-specific mechanism (the producer waits when the queue is full); <strong>DROP</strong> is the <em>absence</em> of backpressure (the producer is never slowed — stale Triggers are discarded). Use <strong>Queue mode</strong> for the selectable knob, <strong>backpressure</strong> only when you specifically mean BLOCK's wait behavior, never "backpressure" to mean DROP.</li>
+<li><strong>"event node" vs "emit node"</strong> <em>(new)</em>: an <strong>EVENT node</strong> (<code>NodeType.EVENT</code>, e.g. <code>Frame Event</code>, <code>Tick</code>) is the <em>subscriber</em> — it owns an <code>EventSource</code>, becomes a Flow + FlowScheduler at Assembly, and therefore owns the <strong>Queue mode</strong>. An <strong>EMIT node</strong> (<code>NodeType.CONTROL</code>, e.g. <code>Tick Emit</code>, a camera emit) is the <em>producer</em> — it calls <code>emit_callback</code> to enqueue Triggers and can fan out to many EVENT nodes. Queue mode lives on the EVENT node (it owns the scheduler), NOT the EMIT node (ADR 0010). Do not say "the emit node drops frames."</li>
 <li><strong>"dialog" vs "modal" vs "popup"</strong> <em>(new)</em>: in the haywire codebase, <strong>Popup</strong> is the Vue component all canonical modals are built on. The helpers in <code>haywire.ui.modals</code> (info_modal, confirm_modal, pick_modal, rename_modal, save_as_modal, diff_modal) wrap Popup with task-specific bodies. "Dialog" is the legacy NiceGUI/Quasar surface (<code>ui.dialog()</code>) — being migrated to Popup; legacy dialogs sit at Quasar's default z-index 6000, Popup at 7000/7001 so haywire modals always stack on top.</li>
 </ul>
 
