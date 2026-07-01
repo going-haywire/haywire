@@ -512,6 +512,29 @@ class LibraryRegistry:
             )
             raise LibraryLoadError(f"Failed instantiating library {library_folder_name}: {e}")
 
+    def _bundled_module_path(self, library_path: str) -> Optional[str]:
+        """Return the dotted import path for a library bundled inside the installed
+        ``haywire`` package, or ``None`` if ``library_path`` is outside it.
+
+        Bundled libraries (e.g. ``haywire/barn/builtin``) must be imported under their
+        real dotted name so the registered library class is identical to the one
+        ``import haywire.barn.builtin`` yields — not a duplicate top-level module.
+        """
+        import haywire
+
+        haywire_pkg_dir = os.path.dirname(os.path.abspath(haywire.__file__))
+        haywire_parent = os.path.dirname(haywire_pkg_dir)
+        try:
+            rel = os.path.relpath(os.path.abspath(library_path), haywire_parent)
+        except ValueError:
+            return None
+        if rel.startswith(os.pardir + os.sep) or rel == os.pardir:
+            return None
+        parts = rel.split(os.sep)
+        if not parts or parts[0] != "haywire":
+            return None
+        return ".".join(parts)
+
     def _load_module_and_metadata(self, library_id: str, library_path: str) -> Optional[ModuleType]:
         """
         Load module from a library's __init__.py.
@@ -525,6 +548,13 @@ class LibraryRegistry:
         if "src/haywire/libraries" in library_path:
             # For core libraries, use the haywire.libraries.X import path (flat structure)
             module_path = f"haywire.libraries.{library_id}"
+        elif (bundled_module_path := self._bundled_module_path(library_path)) is not None:
+            # Library bundled inside the installed ``haywire`` package (e.g.
+            # ``haywire/barn/builtin``). Import it under its real dotted name so the
+            # decorator-registered class is the SAME object that ``import
+            # haywire.barn.builtin`` resolves to — importing it under the bare folder
+            # name would create a duplicate, distinct module/class (see CLAUDE.md trap).
+            module_path = bundled_module_path
         else:
             # For external libraries, check structure type
             flat_init = os.path.join(library_path, "__init__.py")

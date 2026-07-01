@@ -4,7 +4,7 @@ from haywire.core.library.identity import LibraryIdentity
 from haywire.ui.widget.identity import WidgetIdentity
 
 if TYPE_CHECKING:
-    from haywire.core.types import DataPort
+    from haywire.core.types import WidgetModel
 
 
 # ============================================================================
@@ -26,12 +26,13 @@ class IWidget(ABC):
     class_library: ClassVar[LibraryIdentity]
 
     @abstractmethod
-    def __init__(self, element: "DataPort"):
+    def __init__(self, element: "WidgetModel"):
         """
-        Initialize widget with a DataPort.
+        Initialize widget with a WidgetModel.
 
         Args:
-            element: DataPort containing the data to bind to
+            element: WidgetModel (a DataPort, or a panel SettingWidgetModel
+                adapter) containing the data to bind to.
         """
         pass
 

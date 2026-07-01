@@ -34,8 +34,9 @@ class ControlSwitch(BaseNode):
 
     def init(self):
         # Control output
-        from haybale_core.widgets.basic_widgets import SelectWidget
-        from ..types.specs import EXEC, INT, STRING
+        from haywire.barn.builtin.widgets import SelectWidget
+        from haywire.barn.builtin.types import INT, STRING
+        from ..types.specs import EXEC
 
         self.add(EXEC.as_inlet("exec", label="Execute"))
 
@@ -59,8 +60,8 @@ class ControlSwitch(BaseNode):
         self.hb_change()
 
     def hb_change(self, *args, **kwargs) -> None:
-        from haybale_core.widgets.basic_widgets import SelectWidget, NumberWidget
-        from ..types.specs import FLOAT, INT, STRING
+        from haywire.barn.builtin.widgets import SelectWidget, NumberWidget
+        from haywire.barn.builtin.types import FLOAT, INT, STRING
 
         with self.rejig(exclude=["exec", "true", "false", "DataType", "test"]):
             if self.value("DataType") == "int":

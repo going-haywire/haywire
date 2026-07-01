@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 import logging
 from typing import Any, Optional
 
-from haywire.core.types import DataPort
+from haywire.core.types import WidgetModel
 from haywire.ui.widget.binding import PropertyBinding
 from haywire.ui.widget.converters import BindingConverter, BindingMode, PrimitiveUnwrappingConverter
 from haywire.ui.widget.interface import IWidget
@@ -22,7 +22,7 @@ class BaseWidget(IWidget, ABC):
                                    model field to a NiceGUI element property.
     """
 
-    def __init__(self, port: DataPort):
+    def __init__(self, port: WidgetModel):
         self.port = port
         self.port_id: str = port.id
         widget_config = port.widget_config if hasattr(port, "widget_config") and port.widget_config else {}

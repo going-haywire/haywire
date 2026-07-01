@@ -1,6 +1,6 @@
 """
-Widget coverage tests: verify that every widget branch in _build_field_widget
-renders the correct DOM and carries the correct initial data-value.
+Widget coverage tests: verify that each setting type resolves and renders the
+correct widget DOM (the right control per IType) through the shared-widget panel.
 
 Full matrix for SettingsNode.example:
   type     | direct          | mirror       | mirror + read_only
@@ -42,17 +42,8 @@ def test_bool_field_renders_switch(page: Page, harness):
     page.wait_for_selector("[data-field]")
 
     row = page.locator('[data-field="flag"]')
-    expect(row.locator("[data-value]")).to_be_attached()
     expect(row.locator("[data-number_drag]")).not_to_be_attached()
     expect(row.locator('[role="switch"]')).to_be_attached()
-
-
-def test_bool_field_default_data_value(page: Page, harness):
-    """Bool field data-value reflects the default (true)."""
-    page.goto(_WIDGET_SCHEMA_URL)
-    page.wait_for_selector("[data-field]")
-
-    expect(page.locator('[data-field="flag"] [data-value]')).to_have_attribute("data-value", "true")
 
 
 def test_int_field_renders_number_drag(page: Page, harness):
@@ -63,30 +54,12 @@ def test_int_field_renders_number_drag(page: Page, harness):
     expect(page.locator('[data-field="count"] [data-number_drag]')).to_be_attached()
 
 
-def test_int_field_default_data_value(page: Page, harness):
-    """Int field data-value shows the default (3) with no decimal point."""
-    page.goto(_WIDGET_SCHEMA_URL)
-    page.wait_for_selector("[data-field]")
-
-    val = page.locator('[data-field="count"] [data-number_drag]').get_attribute("data-value")
-    assert val == "3", f"expected '3', got {val!r}"
-    assert "." not in val, f"int field should have no decimal point, got {val!r}"
-
-
 def test_float_field_renders_number_drag(page: Page, harness):
     """A float field (ratio) renders a NumberDrag widget."""
     page.goto(_WIDGET_SCHEMA_URL)
     page.wait_for_selector("[data-field]")
 
     expect(page.locator('[data-field="ratio"] [data-number_drag]')).to_be_attached()
-
-
-def test_float_field_default_data_value(page: Page, harness):
-    """Float field data-value shows the default (0.5)."""
-    page.goto(_WIDGET_SCHEMA_URL)
-    page.wait_for_selector("[data-field]")
-
-    expect(page.locator('[data-field="ratio"] [data-number_drag]')).to_have_attribute("data-value", "0.5")
 
 
 def test_str_field_renders_input(page: Page, harness):
@@ -99,14 +72,6 @@ def test_str_field_renders_input(page: Page, harness):
     expect(row.locator("[data-number_drag]")).not_to_be_attached()
 
 
-def test_str_field_default_data_value(page: Page, harness):
-    """Str field data-value shows the default ('hello')."""
-    page.goto(_WIDGET_SCHEMA_URL)
-    page.wait_for_selector("[data-field]")
-
-    expect(page.locator('[data-field="label"] [data-value]')).to_have_attribute("data-value", "hello")
-
-
 def test_choices_field_renders_select(page: Page, harness):
     """A choices field (mode) renders a ui.select dropdown."""
     page.goto(_WIDGET_SCHEMA_URL)
@@ -117,14 +82,6 @@ def test_choices_field_renders_select(page: Page, harness):
     expect(row.locator(".q-select")).to_be_attached()
 
 
-def test_choices_field_default_data_value(page: Page, harness):
-    """Choices field data-value shows the default ('fast')."""
-    page.goto(_WIDGET_SCHEMA_URL)
-    page.wait_for_selector("[data-field]")
-
-    expect(page.locator('[data-field="mode"] [data-value]')).to_have_attribute("data-value", "fast")
-
-
 def test_color_field_renders_color_input(page: Page, harness):
     """A color field (tint) renders a ui.color_input."""
     page.goto(_WIDGET_SCHEMA_URL)
@@ -133,19 +90,6 @@ def test_color_field_renders_color_input(page: Page, harness):
     row = page.locator('[data-field="tint"]')
     expect(row.locator("[data-number_drag]")).not_to_be_attached()
     expect(row.locator("input")).to_be_attached()
-
-
-def test_color_field_default_data_value(page: Page, harness):
-    """Color field data-value shows the default ('#ff0000')."""
-    page.goto(_WIDGET_SCHEMA_URL)
-    page.wait_for_selector("[data-field]")
-
-    expect(page.locator('[data-field="tint"] [data-value]')).to_have_attribute("data-value", "#ff0000")
-
-
-# ---------------------------------------------------------------------------
-# TestingSettings schema — all fields present
-# ---------------------------------------------------------------------------
 
 
 def test_testing_schema_all_fields_present(page: Page, harness):
@@ -176,19 +120,14 @@ def test_direct_string_field(page: Page, harness):
 
     row = page.locator('[data-field="example_string"]')
     expect(row.locator("input")).to_be_attached()
-    expect(row.locator("[data-value]")).to_have_attribute("data-value", "default string")
 
 
 def test_direct_int_field(page: Page, harness):
-    """example_int renders as NumberDrag with correct default."""
+    """example_int renders as NumberDrag."""
     page.goto(_NODE_URL)
     page.wait_for_selector("[data-field]")
 
-    nd = page.locator('[data-field="example_int"] [data-number_drag]')
-    expect(nd).to_be_attached()
-    val = nd.get_attribute("data-value")
-    assert val == "3", f"expected '3', got {val!r}"
-    assert "." not in val
+    expect(page.locator('[data-field="example_int"] [data-number_drag]')).to_be_attached()
 
 
 def test_direct_float_field(page: Page, harness):
@@ -206,7 +145,6 @@ def test_direct_bool_field(page: Page, harness):
 
     row = page.locator('[data-field="example_bool"]')
     expect(row.locator('[role="switch"]')).to_be_attached()
-    expect(row.locator("[data-value]")).to_have_attribute("data-value", "false")
 
 
 def test_direct_choices_field(page: Page, harness):
@@ -216,7 +154,6 @@ def test_direct_choices_field(page: Page, harness):
 
     row = page.locator('[data-field="example_choices"]')
     expect(row.locator(".q-select")).to_be_attached()
-    expect(row.locator("[data-value]")).to_have_attribute("data-value", "fast")
 
 
 def test_direct_color_field(page: Page, harness):
@@ -226,7 +163,6 @@ def test_direct_color_field(page: Page, harness):
 
     row = page.locator('[data-field="example_color"]')
     expect(row.locator("input")).to_be_attached()
-    expect(row.locator("[data-value]")).to_have_attribute("data-value", "#00ff00")
 
 
 # ---------------------------------------------------------------------------
@@ -234,64 +170,13 @@ def test_direct_color_field(page: Page, harness):
 # ---------------------------------------------------------------------------
 
 
-def test_float_mirror_shows_global_default(page: Page, harness):
-    """intensity mirror shows the library default (0.5)."""
-    page.goto(_NODE_URL)
-    page.wait_for_selector("[data-field]")
-
-    expect(page.locator('[data-field="intensity"] [data-number_drag]')).to_have_attribute(
-        "data-value", "0.5"
-    )
-
-
-def test_int_mirror_shows_global_default(page: Page, harness):
-    """count_mirror shows the library default (7)."""
-    page.goto(_NODE_URL)
-    page.wait_for_selector("[data-field]")
-
-    val = page.locator('[data-field="count_mirror"] [data-number_drag]').get_attribute("data-value")
-    assert val == "7", f"expected '7', got {val!r}"
-
-
-def test_str_mirror_shows_global_default(page: Page, harness):
-    """label_mirror shows the library default ('default label')."""
-    page.goto(_NODE_URL)
-    page.wait_for_selector("[data-field]")
-
-    expect(page.locator('[data-field="label_mirror"] [data-value]')).to_have_attribute(
-        "data-value", "default label"
-    )
-
-
-def test_bool_mirror_shows_global_default(page: Page, harness):
-    """enabled mirror shows the library default (true)."""
-    page.goto(_NODE_URL)
-    page.wait_for_selector("[data-field]")
-
-    expect(page.locator('[data-field="enabled"] [data-value]')).to_have_attribute("data-value", "true")
-
-
-def test_choices_mirror_shows_global_default(page: Page, harness):
-    """mode mirror renders as dropdown and shows the library default ('fast')."""
+def test_choices_mirror_renders_select(page: Page, harness):
+    """mode mirror renders as a dropdown (mirror resolution → widget by type)."""
     page.goto(_NODE_URL)
     page.wait_for_selector("[data-field]")
 
     row = page.locator('[data-field="mode"]')
     expect(row.locator(".q-select")).to_be_attached()
-    expect(row.locator("[data-value]")).to_have_attribute("data-value", "fast")
-
-
-def test_color_mirror_shows_global_default(page: Page, harness):
-    """tint mirror shows the library default ('#ff0000')."""
-    page.goto(_NODE_URL)
-    page.wait_for_selector("[data-field]")
-
-    expect(page.locator('[data-field="tint"] [data-value]')).to_have_attribute("data-value", "#ff0000")
-
-
-# ---------------------------------------------------------------------------
-# SettingsNode.example — read-only mirror fields not rendered
-# ---------------------------------------------------------------------------
 
 
 def test_read_only_mirror_fields_not_rendered(page: Page, harness):

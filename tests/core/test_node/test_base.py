@@ -71,3 +71,30 @@ class TestBaseNodeWithLibraries:
             assert nodeWrapper.node.class_identity.registry_key == first_node_key
         else:
             pytest.skip("No nodes available in test libraries")
+
+    def test_cleanup_survives_throwing_on_teardown(
+        self, graph_with_library_system: BaseGraph, integration_node_factory: NodeFactory
+    ):
+        """A subclass on_teardown() that raises must not block _cleanup().
+
+        Regression: a node whose init() failed (e.g. a deserialized graph
+        referencing a since-removed type key) never ran post_init(), so its
+        on_teardown() can hit unset attributes and raise. Previously that
+        exception propagated out of _cleanup() and aborted re-instantiation,
+        wedging the node so a reset could never recover it.
+        """
+        available_nodes = integration_node_factory.list_all_nodes()
+        if not available_nodes:
+            pytest.skip("No nodes available in test libraries")
+
+        wrapper = graph_with_library_system.create_node_wrapper(available_nodes[0], [0, 0])
+        node_instance = wrapper.node
+
+        def boom() -> None:
+            raise AttributeError("simulated partial-init teardown failure")
+
+        node_instance.on_teardown = boom  # type: ignore[method-assign]
+
+        # Must not raise, and store cleanup must still run.
+        node_instance._cleanup()
+        assert len(node_instance._store) == 0

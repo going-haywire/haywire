@@ -15,7 +15,8 @@ class TestBeginPlayNode(BaseNode):
     """Test-only event node triggered when execution starts."""
 
     def init(self):
-        from haybale_core.types import EXEC, FLOAT
+        from haywire.barn.builtin.types import FLOAT
+        from haybale_core.types import EXEC
 
         self.add(EXEC.as_outlet("exec", label="Execute"))
         self.add(FLOAT.as_outlet("timestamp", label="Start Time"))

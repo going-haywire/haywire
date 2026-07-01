@@ -1,9 +1,9 @@
 from haywire.core.node import node, BaseNode, NodeType
 from haywire.core.execution.execution_context import ExecutionContext
-from haybale_core.types import STRING
 
-from haywire.core.settings import NodeSettings, setting, shadow, watch, Color, Vec2i, Vec3f, Vec4f
+from haywire.core.settings import NodeSettings, setting, shadow, watch, Vec2i, Vec3f, Vec4f
 from haybale_testing.settings.testing import TestingSettings
+from haywire.barn.builtin.types import BOOL, COLOR, FLOAT, INT, STRING, VEC2I, VEC3F, VEC4F
 
 
 @node(
@@ -19,13 +19,13 @@ class SettingsNode(BaseNode):
     # --8<-- [start:settings_node_class]
     class example(NodeSettings):
         # --- type_ ---
-        example_string = setting[str](
+        example_string = setting[STRING](
             "default string",
             label="Example String",
             description="An example string setting",
             category="type",
         )
-        example_int = setting[int](
+        example_int = setting[INT](
             3,
             min=0,
             max=100,
@@ -33,48 +33,47 @@ class SettingsNode(BaseNode):
             description="An example integer setting",
             category="type",
         )
-        example_float = setting[float](
+        example_float = setting[FLOAT](
             5,
             min=0.0,
             max=1.0,
             label="Example Float",
             description="A float setting with explicit type_ override",
             category="type",
-            type_=float,
         )
-        example_bool = setting[bool](
+        example_bool = setting[BOOL](
             False,
             label="Example Bool",
             description="An example boolean setting",
             category="type",
         )
-        example_choices = setting[str](
+        example_choices = setting[STRING](
             "fast",
             choices=["fast", "balanced", "quality"],
             label="Example Choices",
             description="An example choices setting",
             category="type",
         )
-        example_color = setting[Color](
+        example_color = setting[COLOR](
             "#00ff00",
             label="Example Color",
             description="An example color setting",
             category="type",
             widget="color",
         )
-        example_vec2i = setting[Vec2i](
+        example_vec2i = setting[VEC2I](
             Vec2i([4, 8]),
             label="Example Vec2i",
             description="A 2-component integer vector",
             category="type",
         )
-        example_vec3f = setting[Vec3f](
+        example_vec3f = setting[VEC3F](
             Vec3f([1.0, 2.0, 3.0]),
             label="Example Vec3f",
             description="A 3-component float vector",
             category="type",
         )
-        example_vec4f = setting[Vec4f](
+        example_vec4f = setting[VEC4F](
             Vec4f([0.0, 0.0, 0.0, 1.0]),
             label="Example Vec4f",
             description="A 4-component float vector (e.g. RGBA or homogeneous coords)",
@@ -82,7 +81,7 @@ class SettingsNode(BaseNode):
         )
 
         # --- read only ---
-        read_only_value = setting[float](
+        read_only_value = setting[FLOAT](
             1.0,
             label="Read-Only Value",
             description="Read-only stored setting",
@@ -91,13 +90,13 @@ class SettingsNode(BaseNode):
         )
 
         # --- stored ---
-        persistent_value = setting[float](
+        persistent_value = setting[FLOAT](
             1.0,
             label="Persistent Value",
             description="Normal stored setting (stored=True by default)",
             category="stored",
         )
-        transient_value = setting[float](
+        transient_value = setting[FLOAT](
             0.0,
             label="Transient Value",
             description="Ephemeral setting excluded from serialization",
@@ -128,14 +127,14 @@ class SettingsNode(BaseNode):
         )
 
         # --- validator ---
-        validated_string = setting[str](
+        validated_string = setting[STRING](
             "hello",
             label="Validated String",
             description="Must be non-empty",
             category="validator",
             validator=lambda v: isinstance(v, str) and len(v) > 0,
         )
-        clamped_positive = setting[float](
+        clamped_positive = setting[FLOAT](
             1.0,
             min=0.0,
             max=100.0,
@@ -144,12 +143,11 @@ class SettingsNode(BaseNode):
             category="validator",
             validator=lambda v: isinstance(v, (int, float)) and v > 0,
         )
-        even_int = setting[int](
+        even_int = setting[INT](
             4,
             label="Even Integer",
             description="Must be an even integer",
             category="validator",
-            type_=int,
             validator=lambda v: isinstance(v, int) and v % 2 == 0,
         )
 

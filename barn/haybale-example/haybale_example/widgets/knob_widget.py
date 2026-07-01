@@ -1,4 +1,3 @@
-from haybale_core.types import FLOAT, INT
 from haywire.ui.widget.base import BaseWidget
 from haywire.ui.widget.converters import PrimitiveUnwrappingConverter
 from haywire.ui.widget.decorator import widget
@@ -9,7 +8,7 @@ from typing import Any
 
 
 # --8<-- [start:knob_widget]
-@widget(description="knob widget", compatible_types=[FLOAT, INT])
+@widget(description="knob widget")
 class KnobWidget(BaseWidget):
     """
     Rotary knob widget for numeric ports.

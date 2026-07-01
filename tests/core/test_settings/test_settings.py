@@ -26,6 +26,7 @@ from haywire.core.settings import (
     get_vec_meta,
 )
 from haywire.core.di.test_config import create_test_bag
+from haywire.barn.builtin.types import BOOL, COLOR, FLOAT, INT, STRING, VEC2I, VEC3F, VEC4F
 
 
 # ---------------------------------------------------------------------------
@@ -34,9 +35,9 @@ from haywire.core.di.test_config import create_test_bag
 
 
 class SimpleSettings(Settings):
-    strength = setting[float](0.5, min=0.0, max=1.0, label="Strength")
-    mode = setting[str]("fast", choices=["fast", "precise"], label="Mode")
-    verbose = setting[bool](False, label="Verbose")
+    strength = setting[FLOAT](0.5, min=0.0, max=1.0, label="Strength")
+    mode = setting[STRING]("fast", choices=["fast", "precise"], label="Mode")
+    verbose = setting[BOOL](False, label="Verbose")
 
 
 class TestSimpleMode:
@@ -141,7 +142,7 @@ class TestSerialization:
 
 
 class SettingsWithCallback(Settings):
-    strength = setting[float](0.5, on_change="_on_strength")
+    strength = setting[FLOAT](0.5, on_change="_on_strength")
 
     def __init__(self, registry=None):
         super().__init__(registry)
@@ -179,8 +180,8 @@ class TestOnChange:
 
 
 class ReadOnlySettings(Settings):
-    editable = setting[float](1.0)
-    read_only_field = setting[bool](False, read_only=True)
+    editable = setting[FLOAT](1.0)
+    read_only_field = setting[BOOL](False, read_only=True)
 
 
 class TestReadOnly:
@@ -252,13 +253,13 @@ def _make_mirror_bag(predefined_local=None):
     LOCAL_KEY = "test.node.color"  # simulates a node-scoped field key
 
     class MirrorBag(Settings):
-        color = setting[str]("#ffffff", label="Color")
+        color = setting[COLOR]("#ffffff", label="Color")
 
     MirrorBag.color._setting_key = LOCAL_KEY
     MirrorBag.color._mirror_key = GLOBAL_KEY
 
     registry = SettingsRegistry()
-    registry.define(GLOBAL_KEY, "#ffffff")
+    registry.define(GLOBAL_KEY, "#ffffff", type_=COLOR)
 
     bag = MirrorBag(registry=registry)
     bag._subscribe_settings()
@@ -291,25 +292,26 @@ class TestMirrorCallbackSuppression:
 
         assert calls == [], "callback must be suppressed when local override exists"
 
-    def test_global_override_fires_callback_even_with_local_override(self):
-        """A global OVERRIDE beats the local value — callback must still fire."""
-        from haywire.core.settings.enums import SettingMode
+    def test_global_change_ignored_when_local_set_no_override_escape(self):
+        """Post-P2: with a local override, ANY global change is suppressed.
 
+        The pre-P2 OVERRIDE escape hatch (a forced global re-firing the callback
+        despite a local override) is gone — there is no OVERRIDE strength anymore.
+        """
         registry, bag, key = _make_mirror_bag(predefined_local={"color": "#ff0000"})
         calls = []
         bag.subscribe(lambda name, val, old: calls.append((name, val)))
 
-        registry.set_global(key, "#aabbcc", mode=SettingMode.OVERRIDE)
+        registry.set_global(key, "#aabbcc", tier="workspace")
 
-        assert len(calls) == 1
-        assert calls[0] == ("color", "#aabbcc")
+        assert calls == [], "a local override suppresses every global change post-P2"
 
     def test_redundant_write_of_resolved_value_creates_no_override(self):
         """Writing a mirror field the value it already resolves to is a no-op.
 
         Regression: __set__ compared the incoming value against the descriptor
         _default (None for a mirror), not the resolved global, so writing the
-        resolved value back created a phantom _local_store entry that
+        resolved value back created a phantom local override that
         is_locally_set() reported as an override — defeating reset. This is the
         model-layer fix that let the settings-panel setter drop its echo guard.
         """
@@ -363,7 +365,7 @@ class TestNodeDirectBinding:
         @node(label="Test Binding Node")
         class _TestBindingNode(BaseNode):
             class filter(NodeSettings):
-                strength = setting[float](0.5, min=0.0, max=1.0, label="Strength")
+                strength = setting[FLOAT](0.5, min=0.0, max=1.0, label="Strength")
 
         wrapper = type("W", (), {"node_id": "w1", "notify": lambda *a: None})()
         n = _TestBindingNode("n1", wrapper)
@@ -379,7 +381,7 @@ class TestNodeDirectBinding:
         @node(label="Test Read Node")
         class _TestReadNode(BaseNode):
             class params(NodeSettings):
-                threshold = setting[float](0.7)
+                threshold = setting[FLOAT](0.7)
 
         wrapper = type("W", (), {"node_id": "w1", "notify": lambda *a: None})()
         n = _TestReadNode("n1", wrapper)
@@ -394,7 +396,7 @@ class TestNodeDirectBinding:
         @node(label="Test Write Node")
         class _TestWriteNode(BaseNode):
             class params(NodeSettings):
-                threshold = setting[float](0.7)
+                threshold = setting[FLOAT](0.7)
 
         wrapper = type("W", (), {"node_id": "w1", "notify": lambda *a: None})()
         n = _TestWriteNode("n1", wrapper)
@@ -410,7 +412,7 @@ class TestNodeDirectBinding:
             @node(label="Conflict Node")
             class _ConflictNode(BaseNode):
                 class init(NodeSettings):  # 'init' is a BaseNode method
-                    x = setting[float](1.0)
+                    x = setting[FLOAT](1.0)
 
     def test_serialization_round_trip_on_node(self):
         from haywire.core.node import BaseNode, node
@@ -420,7 +422,7 @@ class TestNodeDirectBinding:
         @node(label="Test Serial Node")
         class _TestSerialNode(BaseNode):
             class filter(NodeSettings):
-                strength = setting[float](0.5)
+                strength = setting[FLOAT](0.5)
 
         wrapper = type("W", (), {"node_id": "w1", "notify": lambda *a: None})()
         n = _TestSerialNode("n1", wrapper)
@@ -440,37 +442,37 @@ class TestNodeDirectBinding:
 
 
 class TypedSettings(Settings):
-    explicit_int = setting[int](0, type_=int)
-    inferred_float = setting[float](1.0)
-    no_default_str = setting[str](type_=str)
+    explicit_int = setting[INT](0)
+    inferred_float = setting[FLOAT](1.0)
+    no_default_str = setting[STRING]()
 
 
 class StoredSettings(Settings):
-    stored_field = setting[float](0.5)
-    unstored_field = setting[float](0.5, stored=False)
+    stored_field = setting[FLOAT](0.5)
+    unstored_field = setting[FLOAT](0.5, stored=False)
 
 
 class ValidatedSettings(Settings):
-    positive = setting[float](1.0, validator=lambda v: v > 0)
+    positive = setting[FLOAT](1.0, validator=lambda v: v > 0)
 
 
 class TestTypeSetting:
     def test_explicit_type_stored_on_descriptor(self):
         descriptor = TypedSettings.__dict__["explicit_int"]
-        assert descriptor._type is int
+        assert descriptor._type is INT
 
     def test_explicit_type_overrides_default_inference(self):
-        # default is 0 (int), but type_ overrides — same result here; key is _type is int
+        # default is 0 (int), but type_ overrides — same result here; key is _type is INT
         descriptor = TypedSettings.__dict__["explicit_int"]
-        assert descriptor._type is int
+        assert descriptor._type is INT
 
     def test_type_inferred_from_default_when_no_type_arg(self):
         descriptor = TypedSettings.__dict__["inferred_float"]
-        assert descriptor._type is float
+        assert descriptor._type is FLOAT
 
     def test_type_explicit_when_no_default(self):
         descriptor = TypedSettings.__dict__["no_default_str"]
-        assert descriptor._type is str
+        assert descriptor._type is STRING
 
 
 class TestStoredSetting:
@@ -551,12 +553,12 @@ class TestValidatorSetting:
         with pytest.raises(ValueError, match="fails validation"):
 
             class BadSettings(Settings):
-                bad = setting[int](3, validator=lambda v: v % 2 == 0)
+                bad = setting[INT](3, validator=lambda v: v % 2 == 0)
 
     def test_none_default_skips_validation(self):
         # Should not raise — None default is allowed even with a validator
         class NoneDefaultSettings(Settings):
-            val = setting[int](type_=int, validator=lambda v: v > 0)
+            val = setting[INT](validator=lambda v: v > 0)
 
 
 # ---------------------------------------------------------------------------
@@ -565,20 +567,20 @@ class TestValidatorSetting:
 
 
 class VecSettings(Settings):
-    pos = setting[Vec3f]([0.0, 0.0, 0.0])
-    coord = setting[Vec2i]([0, 0])
-    color = setting[Vec4f]([1.0, 0.0, 0.0, 1.0])
+    pos = setting[VEC3F]([0.0, 0.0, 0.0])
+    coord = setting[VEC2I]([0, 0])
+    color = setting[VEC4F]([1.0, 0.0, 0.0, 1.0])
 
 
 class TestVecTypes:
     def test_annotation_infers_vec3f(self):
-        assert VecSettings.__dict__["pos"]._type is Vec3f
+        assert VecSettings.__dict__["pos"]._type is VEC3F
 
     def test_annotation_infers_vec2i(self):
-        assert VecSettings.__dict__["coord"]._type is Vec2i
+        assert VecSettings.__dict__["coord"]._type is VEC2I
 
     def test_annotation_infers_vec4f(self):
-        assert VecSettings.__dict__["color"]._type is Vec4f
+        assert VecSettings.__dict__["color"]._type is VEC4F
 
     def test_get_vec_meta_returns_correct_length(self):
         assert get_vec_meta(Vec3f).length == 3
@@ -621,6 +623,6 @@ class TestVecTypes:
 
     def test_explicit_type_also_works(self):
         class ExplicitVec(Settings):
-            pos = setting[Vec3f]([0.0, 0.0, 0.0], type_=Vec3f)
+            pos = setting[VEC3F]([0.0, 0.0, 0.0])
 
-        assert ExplicitVec.__dict__["pos"]._type is Vec3f
+        assert ExplicitVec.__dict__["pos"]._type is VEC3F

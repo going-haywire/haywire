@@ -249,9 +249,13 @@ See [architecture/settings](../architecture/settings/settings-arch.md) for the r
 | **setting()** | The descriptor that declares a typed, serializable field within any `Settings` subclass | option, param, prop |
 | **mirrors** | A `setting()` parameter that links a node field to a `FrameworkSettings` or `LibrarySettings` field, inheriting its default with per-node override capability | shadow, reference |
 | **read_only** | A `setting()` parameter (used with `mirrors=`) that makes a field a silent cache of a global value: invisible in panel, never stored, never writable per-instance | watch (avoid), computed |
+| **Promotion** | Assigning a **direction** to a value-bearing setting and surfacing it as a DATA port. A promoted port and its setting are *one cell, two views* — the port borrows the setting's `DataField` cell by reference. Two verbs (`promote(direction)` / `demote`), two directions (inlet / outlet). See [ADR 0014](../adr/0014-promotion-as-direction.md) | Exposing, hoisting, wiring a setting |
+| **promoted inlet / promoted outlet** | The two promotion directions. A promoted **inlet** lets an edge drive the setting (widget shows while unlinked); a promoted **outlet** lets the setting drive downstream consumers. A `watch()` field is outlet-only (read-only ⇒ no write path in) | — |
+| **is_linked_lazy** | A `DataPort` flag set on every promoted outlet: it forces any linked edge to lazy (pull-on-demand) propagation so an out-of-frame setting write doesn't propagate eagerly. Paired with an `on_changed → propagate` subscription that triggers the deferred pull; the flag alone is inert | — |
+| **freeze-on-disconnect** | Demote (and any structural action) never resets a promoted setting's value: whatever the shared cell holds stays. Recovery to the default is an explicit `reset()` | — |
 | **accessor name** | The inner `NodeSettings` class name as it appears on the node instance (e.g. `class filter` → `self.filter`); must not collide with existing `BaseNode` attributes | settings name, bag name |
 | **SettingsRegistry** | The central registry that holds all global setting schemas and their TOML-sourced values; used for the full resolution chain; inherits `BaseRegistry` hot-reload machinery | — |
-| **Three-tier resolution** | The precedence chain for a settings value: global TOML override → workspace TOML override → local instance value → workspace TOML set → global TOML set → descriptor default | — |
+| **Three-tier resolution** | The precedence chain for a settings value (highest-priority *set* tier wins): local instance value → workspace TOML set → global TOML set → descriptor default. Tiers are set-or-unset; there is no "override" strength | — |
 | **cache** | Transient, non-serialized per-node storage for computation buffers or memoization | temp, scratch |
 | **store** | Persistent, serialized per-node internal state not shown in the UI | private state |
 
@@ -463,7 +467,7 @@ See [guides/signals.md](../guides/signals.md) for authoring patterns; [architect
 > **Dev:** "What if I just want to read a global flag silently, without showing it in the panel?"
 > **Domain expert:** "Add `read_only=True` to the same `mirrors=` field. It becomes a silent cache — invisible in the panel, never stored, never writable per-instance. The value updates automatically when the **FrameworkSettings** source changes."
 > **Dev:** "Where does the actual value come from when the node runs?"
-> **Domain expert:** "**Three-tier resolution**: global TOML override wins, then workspace TOML override, then the node's local instance value, then workspace SET, then global SET, then the descriptor default. The **SettingsRegistry** owns that chain."
+> **Domain expert:** "**Three-tier resolution**, highest-priority *set* tier wins: the node's local instance value, then the workspace TOML set, then the global TOML set, then the descriptor default. Tiers are just set-or-unset — no 'force' strength. The **SettingsRegistry** owns that chain."
 > **Dev:** "And the framework's own `ExecutionSettings` — does it need to be registered manually?"
 > **Domain expert:** "No — **FrameworkSettings** subclasses self-register via `_pending_global` at registry init. **LibrarySettings** come in through the **BaseRegistry** hot-reload machinery when the **Library** loads."
 

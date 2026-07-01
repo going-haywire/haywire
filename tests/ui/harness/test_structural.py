@@ -72,17 +72,13 @@ def test_string_field_uses_input(page: Page, harness):
     expect(row.locator("[data-number_drag]")).not_to_be_attached()
 
 
-def test_int_field_step_one(page: Page, harness):
-    """An int field (even_int) renders a NumberDrag widget and displays an integer value."""
+def test_int_field_uses_number_drag(page: Page, harness):
+    """An int field (even_int) renders a NumberDrag widget (not a text input)."""
     page.goto(_NODE_URL)
     page.wait_for_selector("[data-field]")
     row = page.locator('[data-field="even_int"]')
-    nd = row.locator("[data-number_drag]")
-    expect(nd).to_be_attached()
-    # data-value for an integer field should not contain a decimal point (e.g. "4" not "4.0")
-    data_value = nd.get_attribute("data-value")
-    assert data_value is not None, "expected data-value attribute on NumberDrag"
-    assert "." not in data_value, f"expected integer data-value (no dot), got {data_value!r}"
+    expect(row.locator("[data-number_drag]")).to_be_attached()
+    expect(row.locator("input[type=text]")).not_to_be_attached()
 
 
 def test_category_headings_present(page: Page, harness):

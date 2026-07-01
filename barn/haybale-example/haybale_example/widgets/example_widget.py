@@ -2,15 +2,12 @@ from typing import Any
 from nicegui import ui
 
 
-from haybale_core.types import FLOAT, INT
 from haywire.ui.widget.base import BaseWidget
 from haywire.ui.widget.converters import BindingConverter, Converters
 from haywire.ui.widget.decorator import widget
 
-from haybale_example.types.specs import Temperature
 
-
-@widget(description="Number widget with range clamping", compatible_types=[FLOAT, INT])
+@widget(description="Number widget with range clamping")
 class ValidatedNumberWidget(BaseWidget):
     """Number widget with range validation and custom formatting"""
 
@@ -39,7 +36,7 @@ class ValidatedNumberWidget(BaseWidget):
         return self.bind(el)
 
 
-@widget(description="Temperature with unit conversion", compatible_types=[Temperature])
+@widget(description="Temperature with unit conversion")
 class TemperatureWidget(BaseWidget):
     """
     Temperature widget demonstrating:

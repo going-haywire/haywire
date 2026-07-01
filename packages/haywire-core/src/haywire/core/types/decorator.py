@@ -13,6 +13,7 @@ from dataclasses import asdict
 
 from ..library.utils import TYPE, derive_library_identity, reg_key
 from .base import BaseType, CompoundType, PrimitiveType
+from .enums import FlowType
 from .identity import DataTypeIdentity
 from .interface import IType
 from .utils import normalize_and_validate_default
@@ -133,6 +134,23 @@ def type(**kwargs) -> Callable[[Type[T]], Type[T]]:
             kwargs.setdefault("label", inner_cls.__name__)
             kwargs.setdefault("description", inner_cls.__doc__.strip() if inner_cls.__doc__ else "")
             identity_dict = kwargs
+
+        # CONTROL/CALLBACK flow types are signals, not editable values — a widget
+        # makes no sense on a pin that carries execution/callback flow. This also
+        # catches the inheritance trap: a CALLBACK/CONTROL type derived from a scalar
+        # (e.g. CALLBACK(STRING)) inherits the parent's widget_key via asdict() — pass
+        # widget_key=None explicitly to clear it.
+        flow = identity_dict.get("flow_type", FlowType.NONE)
+        flow_value = flow.value if isinstance(flow, FlowType) else flow
+        if flow_value in (FlowType.CONTROL.value, FlowType.CALLBACK.value) and identity_dict.get(
+            "widget_key"
+        ):
+            raise TypeError(
+                f"@type decorator for {inner_cls.__name__}: a {flow_value!r} flow type cannot "
+                f"have a widget_key (got {identity_dict['widget_key']!r}). CONTROL and CALLBACK "
+                f"pins are signals, not editable values. If this type inherits a widget_key from a "
+                f"parent (e.g. a scalar base), pass widget_key=None to clear it."
+            )
 
         # Validate 'default' parameter
         if "default" not in identity_dict:

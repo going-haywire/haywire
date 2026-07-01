@@ -1,8 +1,10 @@
 from __future__ import annotations
+import logging
 from typing import TYPE_CHECKING, Optional
 from dataclasses import asdict
 from abc import abstractmethod
 
+from haywire.core.errors.haywire_exception import HaywireException
 from haywire.core.node.properties import NodeProperties  # re-exported for type hints
 from ..execution.execution_context import ExecutionContext
 from .data import NodeData
@@ -10,6 +12,8 @@ from haywire.core.settings import Settings
 
 if TYPE_CHECKING:
     from haywire.core.node import NodeWrapper
+
+logger = logging.getLogger(__name__)
 
 
 class BaseNode(NodeData):
@@ -271,7 +275,27 @@ class BaseNode(NodeData):
 
     def _cleanup(self) -> None:
         """Clean up resources when node is destroyed."""
-        self.on_teardown()
+        # A subclass on_teardown() must never block the rest of cleanup or a
+        # subsequent re-instantiation. This matters most when a prior init()
+        # failed (e.g. a missing type after a deserialized graph references a
+        # since-removed type key): post_init() never ran, so teardown may hit
+        # unset attributes. Isolate it so the store/settings cleanup below still
+        # runs and the node can be re-instantiated.
+        try:
+            self.on_teardown()
+        except Exception as e:
+            error = HaywireException.from_exception(
+                exception=e,
+                operation="on_teardown()",
+                message=f"on_teardown() raised for node '{self.class_identity.registry_key}'",
+                registry_key=self.class_identity.registry_key,
+            ).enrich(
+                node_id=self.node_id,
+                module_name=self.class_library.module_name,
+                class_name=self.class_identity.class_name,
+                library_identity=self.class_library,
+            )
+            error.log(logger)
         self._store.clear()
         # Clean up settings bags (release global namespace subscriptions)
         for bag_name in type(self)._settings_bags:
@@ -339,15 +363,23 @@ class BaseNode(NodeData):
             node.metadata.custom['my_plugin'] = {'version': '1.0', 'data': [...]}
             # After save/load cycle, this data will be fully restored!
         """
-        # Deserialize ports (uses existing deserialize_ports method)
-        if "ports" in data:
-            self._deserialize_ports(data["ports"])
-
-        # Restore settings bags
+        # Restore settings bags FIRST (ADR 0014): a promoted port's from_spec
+        # binds the setting cell by reference, so the cell must already hold its
+        # loaded value before the port subscribes to it (an outlet's on_changed →
+        # propagate must not fire mid-load through a half-built graph). Settings
+        # restore mutates each cell in place, so binding a port afterwards sees
+        # the restored value with no load-time propagation.
         for bag_name, bag_data in data.get("settings", {}).items():
             bag = getattr(self, bag_name, None)
             if isinstance(bag, Settings):
                 bag.from_dict(bag_data)
+
+        # Deserialize ports (uses existing deserialize_ports method). A promoted
+        # port's from_spec re-binds its setting cell (restored above) by reference —
+        # the port id + DataPort.promoted are the whole binding signal (ADR 0014),
+        # so there is no descriptor flag to re-stamp on load.
+        if "ports" in data:
+            self._deserialize_ports(data["ports"])
 
         # Restore reactive props
         if "props" in data:

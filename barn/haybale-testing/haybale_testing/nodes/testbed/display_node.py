@@ -1,6 +1,6 @@
 from haywire.core.node import node, BaseNode, NodeType
 from haywire.core.execution.execution_context import ExecutionContext
-from haybale_core.types import FLOAT, STRING
+from haywire.barn.builtin.types import FLOAT, STRING
 
 
 @node(
@@ -18,11 +18,13 @@ class DisplayNode(BaseNode):
         self.props.skin = "example:skin:ExampleNodeSkin"
 
         # Using the new .as_inlet() API
-        self.add(FLOAT.as_inlet("a", label="Value A", default=10.0, widget_key="core:widget:NumberWidget"))
-        self.add(FLOAT.as_inlet("b", label="Value B", default=3.4, widget_key="core:widget:NumberWidget"))
+        self.add(
+            FLOAT.as_inlet("a", label="Value A", default=10.0, widget_key="builtin:widget:NumberWidget")
+        )
+        self.add(FLOAT.as_inlet("b", label="Value B", default=3.4, widget_key="builtin:widget:NumberWidget"))
         self.add(
             STRING.as_inlet(
-                "operation", label="Operation", default="add", widget_key="core:widget:TextWidget"
+                "operation", label="Operation", default="add", widget_key="builtin:widget:TextWidget"
             )
         )
         self.add(FLOAT.as_outlet("result", label="Result"))

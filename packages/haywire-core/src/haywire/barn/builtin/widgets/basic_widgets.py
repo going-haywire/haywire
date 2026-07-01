@@ -10,10 +10,8 @@ from haywire.ui.widget.base import BaseWidget
 from haywire.ui.widget.converters import PrimitiveUnwrappingConverter
 from haywire.ui.components.number.drag import NumberDrag
 
-from haybale_core.types import BOOL, FLOAT, INT, STRING
 
-
-@widget(description="Fast number input widget", compatible_types=[FLOAT, INT])
+@widget(description="Fast number input widget")
 class NumberWidget(BaseWidget):
     """
     Blender-style number input widget for float and int ports.
@@ -50,7 +48,7 @@ class NumberWidget(BaseWidget):
         )
 
 
-@widget(description="Fast text input widget", compatible_types=[STRING])
+@widget(description="Fast text input widget")
 class TextWidget(BaseWidget):
     """
     Text input widget for string ports.
@@ -75,11 +73,16 @@ class TextWidget(BaseWidget):
                 placeholder=props.get("placeholder", ""),
                 password=props.get("password", False),
             ).classes("w-full"),
+            # NiceGUI's ``ui.input`` emits ``update:value`` for its value sync (not
+            # the ``update:modelValue`` used by custom Vue components like NumberDrag
+            # and Quasar passthroughs). Binding to the wrong event silently drops all
+            # user edits in-browser, so the keystroke event must match the element.
+            event="update:value",
             converter=PrimitiveUnwrappingConverter(default_value=""),
         )
 
 
-@widget(description="checkbox widget", compatible_types=[BOOL])
+@widget(description="checkbox widget")
 class CheckboxWidget(BaseWidget):
     """
     Checkbox widget for boolean ports.
@@ -101,7 +104,7 @@ class CheckboxWidget(BaseWidget):
         )
 
 
-@widget(description="switch widget", compatible_types=[BOOL])
+@widget(description="switch widget")
 class SwitchWidget(BaseWidget):
     """
     Toggle switch widget for boolean ports.
@@ -123,7 +126,7 @@ class SwitchWidget(BaseWidget):
         )
 
 
-@widget(description="slider widget", compatible_types=[FLOAT, INT])
+@widget(description="slider widget")
 class SliderWidget(BaseWidget):
     """
     Horizontal slider widget for numeric ports.
@@ -155,7 +158,7 @@ class SliderWidget(BaseWidget):
         )
 
 
-@widget(description="select widget", compatible_types=[INT, STRING])
+@widget(description="select widget")
 class SelectWidget(BaseWidget):
     """
     Dropdown select widget for int and string ports.
@@ -183,7 +186,7 @@ class SelectWidget(BaseWidget):
         return self.bind(ui.select(**kwargs).classes("w-full text-xs"))
 
 
-@widget(description="Simple label for display only", compatible_types=[STRING, FLOAT, INT])
+@widget(description="Simple label for display only")
 class SimpleLabelWidget(BaseWidget):
     """
     Read-only label widget that displays the port value as text.

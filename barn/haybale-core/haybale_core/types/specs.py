@@ -1,4 +1,6 @@
-from haywire.core.types import type, FlowType, PrimitiveType, PrimitiveField, StoreStrategy
+from haywire.core.types import type, FlowType, PrimitiveType, StoreStrategy
+
+from haywire.barn.builtin.types import STRING
 
 
 # ============================================================================
@@ -11,125 +13,11 @@ from haywire.core.types import type, FlowType, PrimitiveType, PrimitiveField, St
     label="Group",
     description="Inlet group",
     color="#ebff0f",
-    widget_key="core:widget:SwitchWidget",
+    widget_key="builtin:widget:SwitchWidget",
     default={"value": False},
 )
 class GROUP(PrimitiveType[bool]):
     """Group data type"""
-
-    def to_dict(self) -> dict:
-        return {"value": bool(self._value)}
-
-    @classmethod
-    def from_dict(cls, data: dict) -> bool:
-        return bool(data.get("value", False))
-
-
-# ============================================================================
-# Numeric Types
-# ============================================================================
-
-
-@type(
-    flow_type=FlowType.DATA,
-    label="Integer",
-    description="Whole number",
-    color="#f7b0ff",
-    default={"value": 0},
-)
-class INT(PrimitiveType[int]):
-    """Integer data type"""
-
-    def to_dict(self) -> dict:
-        return {"value": int(self._value)}
-
-    @classmethod
-    def from_dict(cls, data: dict) -> int:
-        return int(data.get("value", 0))
-
-
-# define INTField for INT type to guarantee integer storage
-class INTField(PrimitiveField):
-    """DataField for INT type storing integer values"""
-
-    def set_value(self, value, source_id=None):
-        value = int(value)
-        return super().set_value(value, source_id)
-
-
-# Set field_class attributes after classes are defined
-INT.field_class = INTField
-
-# ============================================================================
-
-
-@type(
-    flow_type=FlowType.DATA,
-    label="Float",
-    description="Decimal numberer",
-    color="#50b0ff",
-    default={"value": 0.0},
-)
-class FLOAT(PrimitiveType[float]):
-    """Float data type"""
-
-    def to_dict(self) -> dict:
-        return {"value": float(self._value)}
-
-    @classmethod
-    def from_dict(cls, data: dict) -> float:
-        return float(data.get("value", 0.0))
-
-
-# define FLOATField for FLOAT type to guarantee float storage
-class FLOATField(PrimitiveField):
-    """DataField for FLOAT type storing float values"""
-
-    def set_value(self, value, source_id=None):
-        value = float(value)
-        return super().set_value(value, source_id)
-
-
-# Set field_class attributes after classes are defined
-FLOAT.field_class = FLOATField
-
-# ============================================================================
-# Text Types
-# ============================================================================
-
-
-@type(
-    flow_type=FlowType.DATA,
-    label="String",
-    description="Text data",
-    color="#ffc107",
-    default={"value": ""},
-)
-class STRING(PrimitiveType[str]):
-    """String data type"""
-
-    def to_dict(self) -> dict:
-        return {"value": str(self._value)}
-
-    @classmethod
-    def from_dict(cls, data: dict) -> str:
-        return str(data.get("value", ""))
-
-
-# ============================================================================
-# Boolean Type
-# ============================================================================
-
-
-@type(
-    flow_type=FlowType.DATA,
-    label="Boolean",
-    description="True or False",
-    color="#4caf50",
-    default={"value": False},
-)
-class BOOL(PrimitiveType[bool]):
-    """Boolean data type"""
 
     def to_dict(self) -> dict:
         return {"value": bool(self._value)}
@@ -239,6 +127,11 @@ class EXEC(PrimitiveType[dict]):
     description="Signal for callback execution between nodes",
     color="#ff3c00",
     default={},
+    # CALLBACK inherits STRING's payload but is a control-flow signal, not an
+    # editable value — it must NOT inherit STRING's TextWidget. A widget_key here
+    # also flips has_widget=True in StoreStrategy.should_store, which would try to
+    # serialize the signal's (None) field and crash. Keep it widget-less.
+    widget_key=None,
 )
 class CALLBACK(STRING):
     """

@@ -21,7 +21,6 @@ from nicegui import ui
 from haywire.ui.components.graph.canvas import GraphCanvasVue
 from haywire.ui.components.zoom.pan import ZoomPanContainer
 from haywire.ui.panel.render_utils import render_settings, render_schema
-from haywire.core.settings.enums import SettingMode
 
 if TYPE_CHECKING:
     from haywire.core.settings.registry import SettingsRegistry
@@ -444,13 +443,15 @@ def register_routes(library_service) -> None:
             defn = registry.get_definition(key)
             if defn is None:
                 return JSONResponse({"error": f"unknown key: {key}"}, status_code=404)
-            # Coerce to the correct type
-            type_ = defn._type or str
-            if type_ is bool:
+            # Coerce to the field's Python value type. defn._type is an IType
+            # (post widget-unification cutover); its element_type_cls is the
+            # underlying Python type (FLOAT -> float, BOOL -> bool, ...).
+            py_type = getattr(defn._type, "element_type_cls", None) or str
+            if py_type is bool:
                 coerced = raw_value.lower() in ("true", "1", "yes")
             else:
-                coerced = type_(raw_value)
-            registry.set_global(key, coerced, SettingMode.EXPLICIT)
+                coerced = py_type(raw_value)
+            registry.set_global(key, coerced)
             return JSONResponse({"ok": True, "key": key, "value": coerced})
         except Exception as exc:
             return JSONResponse({"error": str(exc)}, status_code=500)

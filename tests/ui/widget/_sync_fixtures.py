@@ -17,7 +17,7 @@ from haywire.core.types.enums import FlowType, PortType
 from haywire.ui.widget.base import BaseWidget
 from haywire.ui.widget.converters import Converters
 
-from haybale_core.types import FLOAT
+from haywire.barn.builtin.types import FLOAT
 
 
 def make_float_port(port_id: str = "v") -> DataPort:

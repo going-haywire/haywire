@@ -370,6 +370,16 @@ class AppShell:
             " .compact-fields .q-expansion-item__content {"
             "   padding: 0 0 0 0.5rem !important;"
             " }"
+            # ── settings-field row spacing ──
+            # One explicit, uniform vertical gap between field rows, applied at the
+            # list container so every field (scalar or multi-row vector) is spaced
+            # identically by construction — independent of each control's intrinsic
+            # height or the .nicegui-row min-height. Field rows must NOT add their
+            # own margins, or the gaps compound unevenly.
+            " :root { --hw-field-gap: 0.15rem; }"
+            " .sf-field-list { display: flex !important; flex-direction: column;"
+            "   gap: var(--hw-field-gap, 0.15rem) !important; }"
+            " .sf-field-list > .nicegui-row { min-height: 0 !important; }"
             # ── settings-field responsive layout ──
             # .sf-label / .sf-widget respond to their @container settings-panel.
             # Below 280px: 50/50 split.  Above: label is fixed 8rem, widget grows.

@@ -81,8 +81,8 @@ class HaywireModule(Module):
             workspace_root:     Root path of the workspace (auto-detected if None).
             library_paths:      Additional library paths to scan.
             enable_file_watching: Whether to enable file watching for hot reload.
-            settings_path:      Path to the global settings TOML file
-                                (default: ~/.haywire/settings.toml, hand-edited by user).
+            settings_path:      Path to the global settings JSON file
+                                (default: ~/.haywire/settings.json, hand-edited by user).
             watch_settings:     Whether to watch settings files for hot reload.
             host_store:         Optional HostStore the host has constructed for
                                 engine bootstrap state (e.g. ``[libraries] disabled``).
@@ -99,7 +99,7 @@ class HaywireModule(Module):
         if settings_path:
             self.settings_path = Path(settings_path).expanduser().resolve()
         else:
-            self.settings_path = Path.home() / ".haywire" / "settings.toml"
+            self.settings_path = Path.home() / ".haywire" / "settings.json"
 
         # Library paths must be explicitly provided by the app or test config.
         # The framework does not assume a particular workspace layout.
@@ -112,18 +112,18 @@ class HaywireModule(Module):
 
         Initialization order:
         1. Register built-in setting definitions (schema only, no values).
-        2. Load global tier from ~/.haywire/settings.toml (hand-edited by user).
-        3. Load workspace tier from <workspace>/.haywire/settings.toml (written by UI).
+        2. Load global tier from ~/.haywire/settings.json (hand-edited by user).
+        3. Load workspace tier from <workspace>/.haywire/settings.json (written by UI).
         4. Optionally watch both files for hot-reload.
         """
         registry = SettingsRegistry()
 
         # Global tier — hand-edited by user, never overwritten by the app
-        registry.load_from_toml(self.settings_path, tier="global", watch=self.watch_settings)
+        registry.load_from_json(self.settings_path, tier="global", watch=self.watch_settings)
 
-        # Workspace tier — managed by the UI, saved via registry.save_to_toml()
-        workspace_settings = Path(self.workspace_root) / ".haywire" / "settings.toml"
-        registry.load_from_toml(workspace_settings, tier="workspace", watch=self.watch_settings)
+        # Workspace tier — managed by the UI, saved via registry.save_to_json()
+        workspace_settings = Path(self.workspace_root) / ".haywire" / "settings.json"
+        registry.load_from_json(workspace_settings, tier="workspace", watch=self.watch_settings)
 
         set_settings_registry(registry)
         return registry
@@ -145,8 +145,14 @@ class HaywireModule(Module):
         """Provide singleton LibraryRegistry."""
         library_registry = LibraryRegistry(host_store=self.host_store)
 
-        # Core libraries are not used (loaded via pip entry points instead)
-        library_registry.load_core_libraries = False
+        # Builtin library (primitive types + basic adapters) ships inside the
+        # haywire-core package and loads at Priority 1, before any plugin.
+        from pathlib import Path
+
+        import haywire.barn as _barn
+
+        library_registry.load_core_libraries = True
+        library_registry.core_libraries_path = str(Path(_barn.__file__).parent)
 
         # Enable pip package discovery (priority 2 & 3)
         library_registry.load_pip_packages = True
@@ -448,25 +454,19 @@ class LibrarySystemService:
 
     def _print_settings_status(self, registry: SettingsRegistry) -> None:
         """Print settings registry status."""
-        from ..settings import SettingMode
-
         definitions = registry.all_definitions()
         categories = registry.definitions_by_category()
 
-        # Count overrides and custom values
-        overrides = 0
+        # Count custom (set) values
         custom_values = 0
         for name in definitions:
             sv = registry.get_global(name)
-            if sv.mode == SettingMode.OVERRIDE:
-                overrides += 1
-            elif sv.mode == SettingMode.EXPLICIT:
+            if sv.is_set:
                 custom_values += 1
 
         print(f"   Total settings:     {len(definitions)}")
         print(f"   Categories:         {len(categories)}")
         print(f"   Custom values:      {custom_values}")
-        print(f"   Global overrides:   {overrides}")
         print(f"   Global tier:        {registry._global_path}")
         print(f"   Workspace tier:     {registry._workspace_path}")
         print(
@@ -776,28 +776,24 @@ class LibrarySystemService:
         value, _ = registry.resolve(name)
         return value
 
-    def set_setting(self, name: str, value: Any, override: bool = False) -> None:
+    def set_setting(self, name: str, value: Any) -> None:
         """
         Set a global setting value.
 
         Args:
             name: Setting name
             value: Value to set
-            override: If True, force this value on all nodes
         """
-        from ..settings import SettingMode
-
         registry = self.get_settings_registry()
-        mode = SettingMode.OVERRIDE if override else SettingMode.EXPLICIT
-        registry.set_global(name, value, mode)
+        registry.set_global(name, value)
 
     def save_settings(self) -> None:
-        """Save current settings to TOML file."""
+        """Save current settings to JSON file."""
         registry = self.get_settings_registry()
-        registry.save_to_toml()
+        registry.save_to_json()
 
     def reload_settings(self) -> None:
-        """Reload settings from both TOML tiers."""
+        """Reload settings from both JSON tiers."""
         registry = self.get_settings_registry()
         if registry._global_path and registry._global_path.exists():
             registry._reload_from_file(registry._global_path, tier="global")
@@ -820,8 +816,8 @@ def create_haywire_injector(
         workspace_root:       Root path of the workspace (auto-detected if None).
         library_paths:        Additional library paths to scan.
         enable_file_watching: Whether to enable file watching for hot reload.
-        settings_path:        Path to the global settings TOML file
-                              (default: ~/.haywire/settings.toml).
+        settings_path:        Path to the global settings JSON file
+                              (default: ~/.haywire/settings.json).
         watch_settings:       Whether to watch settings files for hot reload.
         host_store:           Optional HostStore for engine bootstrap state.
                               ``None`` → in-memory (writes don't persist).
@@ -859,8 +855,8 @@ def create_library_system_service(
         workspace_root:       Root path of the workspace (auto-detected if None).
         library_paths:        Additional library paths to scan.
         enable_file_watching: Whether to enable file watching for library class hot reload.
-        settings_path:        Path to the global settings TOML file
-                              (default: ~/.haywire/settings.toml).
+        settings_path:        Path to the global settings JSON file
+                              (default: ~/.haywire/settings.json).
         watch_settings:       Whether to watch settings files for hot reload.
         host_store:           Optional HostStore for engine bootstrap state.
                               ``None`` → in-memory (writes don't persist).
@@ -943,6 +939,11 @@ def get_theme_registry() -> "ThemeRegistry":
 def get_skin_registry() -> "SkinRegistry":
     """Get the SkinRegistry from the global library system."""
     return get_library_system().get_skin_registry()
+
+
+def get_type_registry() -> "TypeRegistry":
+    """Get the TypeRegistry from the global library system."""
+    return get_library_system().get_type_registry()
 
 
 def get_settings_registry() -> SettingsRegistry:

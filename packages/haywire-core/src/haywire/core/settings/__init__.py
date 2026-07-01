@@ -6,7 +6,7 @@ Public API for node authors:
     from haywire.core.settings import Settings, setting, Color, Icon
 
     class filter(Settings):
-        strength = setting[float](0.5, min=0.0, max=1.0, label='Strength')
+        strength = setting[FLOAT](0.5, min=0.0, max=1.0, label='Strength')
 
 Framework / library internals:
     SettingsRegistry    — TOML resolution chain + LibrarySettings
@@ -20,7 +20,6 @@ from .settings import Settings
 from .node_settings import NodeSettings
 from .descriptor import setting, shadow, watch
 from .base import SettingDescriptor
-from .enums import SettingMode
 from .value import SettingValue
 from .types import Color, Icon, Vec2i, Vec3i, Vec4i, Vec2f, Vec3f, Vec4f, get_vec_meta
 from .registry import SettingsRegistry
@@ -45,7 +44,6 @@ __all__ = [
     "Vec4f",
     "get_vec_meta",
     # Framework internals
-    "SettingMode",
     "SettingValue",
     "SettingsRegistry",
     "LibrarySettings",

@@ -22,10 +22,8 @@ class MathOP(BaseNode):
 
     def init(self):
         from haybale_example.types.math import MathOPSelector
-        from haybale_core.types import (
-            FLOAT,
-        )
-        from haybale_core.widgets.basic_widgets import (
+        from haywire.barn.builtin.types import FLOAT
+        from haywire.barn.builtin.widgets import (
             NumberWidget,
         )
 

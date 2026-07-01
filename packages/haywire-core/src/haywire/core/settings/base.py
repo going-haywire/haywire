@@ -84,6 +84,7 @@ class SettingDescriptor:
             hint = hints.get(name)
             if hint is not None and isinstance(hint, type) and hint is not self._type:
                 self._type = hint
+                self._enforce_itype(owner, name)
                 return
         except Exception:
             pass
@@ -92,6 +93,26 @@ class SettingDescriptor:
             args = typing.get_args(orig_class)
             if args and isinstance(args[0], type) and args[0] is not self._type:
                 self._type = args[0]
+        self._enforce_itype(owner, name)
+
+    def _enforce_itype(self, owner: type, name: str) -> None:
+        """A setting field must be typed with an IType (e.g. ``setting[FLOAT]``).
+
+        Python types (``float``/``str``/...), ``object`` (no type resolved), and
+        unions are rejected — Python-type inference was removed in the
+        widget-unification cutover. ``shadow()``/``watch()`` mirrors inherit their
+        IType from the source and so pass here once the source is an IType.
+        """
+        from haywire.core.types.interface import IType
+
+        resolved = self._type
+        if isinstance(resolved, type) and issubclass(resolved, IType):
+            return
+        raise TypeError(
+            f"setting field '{owner.__name__}.{name}' must be typed with an IType "
+            f"(e.g. setting[FLOAT]); got {resolved!r}. Python types are no longer "
+            f"accepted — import the IType from haywire.barn.builtin.types."
+        )
 
     def __get__(self, obj: object | None, objtype: type | None = None) -> Any:
         if obj is None:

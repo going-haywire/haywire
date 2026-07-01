@@ -5,7 +5,7 @@
   "version": "1.0.0",
   "author": "",
   "created_at": null,
-  "modified_at": "2026-06-26T20:09:12.315100",
+  "modified_at": "2026-07-01T22:29:14.861283",
   "nodes": {
     "BeginPlayNode_87f32274": {
       "node_id": "BeginPlayNode_87f32274",
@@ -24,57 +24,59 @@
               "label": "Execute",
               "description": "Signal for controlling execution flow between nodes",
               "class_name": "EXEC",
-              "module": "haybale_core.types",
+              "module": "haybale_core.types.specs",
               "flow_type": "control",
-              "default": {},
-              "store_strategy": 14,
+              "default": {
+                "value": {}
+              },
+              "store_strategy": 1,
               "color": "#004cff",
               "id": "exec",
-              "port_type": "outlet"
+              "port_type": "outlet",
+              "show_widget": "never"
             },
             "recipe": {
               "registry_key": "core:type:EXEC"
-            },
-            "field_data": {
-              "value": {}
             }
           },
           "timestamp": {
             "kwargs": {
               "registry_id": "FLOAT",
-              "registry_key": "core:type:FLOAT",
+              "registry_key": "builtin:type:FLOAT",
               "label": "Start Time",
               "description": "Decimal numberer",
               "class_name": "FLOAT",
-              "module": "haybale_core.types",
+              "module": "haywire.barn.builtin.types.specs",
               "flow_type": "data",
               "default": {
                 "value": 0.0
               },
               "store_strategy": 14,
               "color": "#50b0ff",
+              "widget_key": "builtin:widget:NumberWidget",
               "id": "timestamp",
               "port_type": "outlet",
               "allow_multiple_links": true,
-              "order": 1
+              "order": 1,
+              "show_widget": "never"
             },
             "recipe": {
-              "registry_key": "core:type:FLOAT"
+              "registry_key": "builtin:type:FLOAT"
             },
             "field_data": {
-              "value": 1782497294.297142
+              "value": 0.0
             }
           }
         },
         "settings": {
           "props": {
-            "posX": 550,
-            "posY": 1400
+            "posX": 550.0,
+            "posY": 1400.0
           }
         },
         "props": {
-          "posX": 550,
-          "posY": 1400
+          "posX": 550.0,
+          "posY": 1400.0
         },
         "store": {},
         "identity": {
@@ -181,18 +183,17 @@
           "camera_index": {
             "kwargs": {
               "registry_id": "INT",
-              "registry_key": "core:type:INT",
+              "registry_key": "builtin:type:INT",
               "label": "Camera Index",
               "description": "Whole number",
               "class_name": "INT",
-              "module": "haybale_core.types.specs",
-              "flow_type": "data",
+              "module": "haywire.barn.builtin.types.specs",
               "default": {
                 "value": 0
               },
               "store_strategy": 14,
               "color": "#f7b0ff",
-              "widget_key": "core:widget:NumberWidget",
+              "widget_key": "builtin:widget:NumberWidget",
               "widget_config": {
                 "properties": {
                   "min": 0,
@@ -206,7 +207,7 @@
               "show_widget": "always"
             },
             "recipe": {
-              "registry_key": "core:type:INT"
+              "registry_key": "builtin:type:INT"
             },
             "field_data": {
               "value": 0
@@ -215,18 +216,17 @@
           "width": {
             "kwargs": {
               "registry_id": "INT",
-              "registry_key": "core:type:INT",
+              "registry_key": "builtin:type:INT",
               "label": "Width (0=auto)",
               "description": "Whole number",
               "class_name": "INT",
-              "module": "haybale_core.types.specs",
-              "flow_type": "data",
+              "module": "haywire.barn.builtin.types.specs",
               "default": {
                 "value": 0
               },
               "store_strategy": 14,
               "color": "#f7b0ff",
-              "widget_key": "core:widget:NumberWidget",
+              "widget_key": "builtin:widget:NumberWidget",
               "widget_config": {
                 "properties": {
                   "min": 0,
@@ -240,7 +240,7 @@
               "show_widget": "always"
             },
             "recipe": {
-              "registry_key": "core:type:INT"
+              "registry_key": "builtin:type:INT"
             },
             "field_data": {
               "value": 0
@@ -249,18 +249,17 @@
           "height": {
             "kwargs": {
               "registry_id": "INT",
-              "registry_key": "core:type:INT",
+              "registry_key": "builtin:type:INT",
               "label": "Height (0=auto)",
               "description": "Whole number",
               "class_name": "INT",
-              "module": "haybale_core.types.specs",
-              "flow_type": "data",
+              "module": "haywire.barn.builtin.types.specs",
               "default": {
                 "value": 0
               },
               "store_strategy": 14,
               "color": "#f7b0ff",
-              "widget_key": "core:widget:NumberWidget",
+              "widget_key": "builtin:widget:NumberWidget",
               "widget_config": {
                 "properties": {
                   "min": 0,
@@ -274,7 +273,7 @@
               "show_widget": "always"
             },
             "recipe": {
-              "registry_key": "core:type:INT"
+              "registry_key": "builtin:type:INT"
             },
             "field_data": {
               "value": 0
@@ -283,18 +282,17 @@
           "fps": {
             "kwargs": {
               "registry_id": "INT",
-              "registry_key": "core:type:INT",
+              "registry_key": "builtin:type:INT",
               "label": "FPS (0=auto)",
               "description": "Whole number",
               "class_name": "INT",
-              "module": "haybale_core.types.specs",
-              "flow_type": "data",
+              "module": "haywire.barn.builtin.types.specs",
               "default": {
                 "value": 0
               },
               "store_strategy": 14,
               "color": "#f7b0ff",
-              "widget_key": "core:widget:NumberWidget",
+              "widget_key": "builtin:widget:NumberWidget",
               "widget_config": {
                 "properties": {
                   "min": 0,
@@ -308,7 +306,7 @@
               "show_widget": "always"
             },
             "recipe": {
-              "registry_key": "core:type:INT"
+              "registry_key": "builtin:type:INT"
             },
             "field_data": {
               "value": 0
@@ -317,18 +315,17 @@
           "frame_skip": {
             "kwargs": {
               "registry_id": "INT",
-              "registry_key": "core:type:INT",
+              "registry_key": "builtin:type:INT",
               "label": "Frame Skip",
               "description": "Whole number",
               "class_name": "INT",
-              "module": "haybale_core.types.specs",
-              "flow_type": "data",
+              "module": "haywire.barn.builtin.types.specs",
               "default": {
                 "value": 1
               },
               "store_strategy": 14,
               "color": "#f7b0ff",
-              "widget_key": "core:widget:NumberWidget",
+              "widget_key": "builtin:widget:NumberWidget",
               "widget_config": {
                 "properties": {
                   "min": 1,
@@ -342,7 +339,7 @@
               "show_widget": "always"
             },
             "recipe": {
-              "registry_key": "core:type:INT"
+              "registry_key": "builtin:type:INT"
             },
             "field_data": {
               "value": 1
@@ -377,28 +374,27 @@
           "status": {
             "kwargs": {
               "registry_id": "STRING",
-              "registry_key": "core:type:STRING",
+              "registry_key": "builtin:type:STRING",
               "label": "Status",
               "description": "Text data",
               "class_name": "STRING",
-              "module": "haybale_core.types.specs",
-              "flow_type": "data",
+              "module": "haywire.barn.builtin.types.specs",
               "default": {
                 "value": "Idle"
               },
               "store_strategy": 14,
               "color": "#ffc107",
-              "widget_key": "core:widget:SimpleLabelWidget",
+              "widget_key": "builtin:widget:SimpleLabelWidget",
               "id": "status",
               "port_type": "config",
               "order": 8,
               "show_widget": "always"
             },
             "recipe": {
-              "registry_key": "core:type:STRING"
+              "registry_key": "builtin:type:STRING"
             },
             "field_data": {
-              "value": "Shutdown"
+              "value": "Idle"
             }
           },
           "started": {
@@ -450,13 +446,13 @@
         },
         "settings": {
           "props": {
-            "posX": 1000,
-            "posY": 1400
+            "posX": 1000.0,
+            "posY": 1400.0
           }
         },
         "props": {
-          "posX": 1000,
-          "posY": 1400
+          "posX": 1000.0,
+          "posY": 1400.0
         },
         "store": {},
         "identity": {
@@ -526,55 +522,57 @@
               "class_name": "EXEC",
               "module": "haybale_core.types.specs",
               "flow_type": "control",
-              "default": {},
-              "store_strategy": 14,
+              "default": {
+                "value": {}
+              },
+              "store_strategy": 1,
               "color": "#004cff",
               "id": "exec",
-              "port_type": "outlet"
+              "port_type": "outlet",
+              "show_widget": "never"
             },
             "recipe": {
               "registry_key": "core:type:EXEC"
-            },
-            "field_data": {
-              "value": {}
             }
           },
           "timestamp": {
             "kwargs": {
               "registry_id": "FLOAT",
-              "registry_key": "core:type:FLOAT",
+              "registry_key": "builtin:type:FLOAT",
               "label": "Shutdown Time",
               "description": "Decimal numberer",
               "class_name": "FLOAT",
-              "module": "haybale_core.types.specs",
+              "module": "haywire.barn.builtin.types.specs",
               "flow_type": "data",
               "default": {
                 "value": 0.0
               },
               "store_strategy": 14,
               "color": "#50b0ff",
+              "widget_key": "builtin:widget:NumberWidget",
               "id": "timestamp",
               "port_type": "outlet",
               "allow_multiple_links": true,
-              "order": 1
+              "order": 1,
+              "show_widget": "never"
             },
             "recipe": {
-              "registry_key": "core:type:FLOAT"
+              "registry_key": "builtin:type:FLOAT"
             },
             "field_data": {
-              "value": 1782497318.44772
+              "value": 0.0
             }
           }
         },
         "settings": {
           "props": {
-            "posX": 550,
-            "posY": 1600
+            "posX": 550.0,
+            "posY": 1600.0
           }
         },
         "props": {
-          "posX": 550,
-          "posY": 1600
+          "posX": 550.0,
+          "posY": 1600.0
         },
         "store": {},
         "identity": {
@@ -693,28 +691,27 @@
           "info_display": {
             "kwargs": {
               "registry_id": "STRING",
-              "registry_key": "core:type:STRING",
+              "registry_key": "builtin:type:STRING",
               "label": "Frame Info",
               "description": "Text data",
               "class_name": "STRING",
-              "module": "haybale_core.types.specs",
-              "flow_type": "data",
+              "module": "haywire.barn.builtin.types.specs",
               "default": {
                 "value": "No frame yet"
               },
               "store_strategy": 14,
               "color": "#ffc107",
-              "widget_key": "core:widget:SimpleLabelWidget",
+              "widget_key": "builtin:widget:SimpleLabelWidget",
               "id": "info_display",
               "port_type": "config",
               "order": 2,
               "show_widget": "always"
             },
             "recipe": {
-              "registry_key": "core:type:STRING"
+              "registry_key": "builtin:type:STRING"
             },
             "field_data": {
-              "value": "Frame #596 | 1920x1080x3 | 22.66s | 26.3 FPS"
+              "value": "No frame yet"
             }
           },
           "frame_ready": {
@@ -769,17 +766,18 @@
           "timestamp": {
             "kwargs": {
               "registry_id": "FLOAT",
-              "registry_key": "core:type:FLOAT",
+              "registry_key": "builtin:type:FLOAT",
               "label": "Timestamp (s)",
               "description": "Decimal numberer",
               "class_name": "FLOAT",
-              "module": "haybale_core.types.specs",
+              "module": "haywire.barn.builtin.types.specs",
               "flow_type": "data",
               "default": {
                 "value": 0.0
               },
               "store_strategy": 14,
               "color": "#50b0ff",
+              "widget_key": "builtin:widget:NumberWidget",
               "id": "timestamp",
               "port_type": "outlet",
               "allow_multiple_links": true,
@@ -787,26 +785,27 @@
               "show_widget": "never"
             },
             "recipe": {
-              "registry_key": "core:type:FLOAT"
+              "registry_key": "builtin:type:FLOAT"
             },
             "field_data": {
-              "value": 22.664615869522095
+              "value": 0.0
             }
           },
           "frame_number": {
             "kwargs": {
               "registry_id": "INT",
-              "registry_key": "core:type:INT",
+              "registry_key": "builtin:type:INT",
               "label": "Frame Number",
               "description": "Whole number",
               "class_name": "INT",
-              "module": "haybale_core.types.specs",
+              "module": "haywire.barn.builtin.types.specs",
               "flow_type": "data",
               "default": {
                 "value": 0
               },
               "store_strategy": 14,
               "color": "#f7b0ff",
+              "widget_key": "builtin:widget:NumberWidget",
               "id": "frame_number",
               "port_type": "outlet",
               "allow_multiple_links": true,
@@ -814,26 +813,27 @@
               "show_widget": "never"
             },
             "recipe": {
-              "registry_key": "core:type:INT"
+              "registry_key": "builtin:type:INT"
             },
             "field_data": {
-              "value": 596
+              "value": 0
             }
           },
           "width": {
             "kwargs": {
               "registry_id": "INT",
-              "registry_key": "core:type:INT",
+              "registry_key": "builtin:type:INT",
               "label": "Width",
               "description": "Whole number",
               "class_name": "INT",
-              "module": "haybale_core.types.specs",
+              "module": "haywire.barn.builtin.types.specs",
               "flow_type": "data",
               "default": {
                 "value": 0
               },
               "store_strategy": 14,
               "color": "#f7b0ff",
+              "widget_key": "builtin:widget:NumberWidget",
               "id": "width",
               "port_type": "outlet",
               "allow_multiple_links": true,
@@ -841,26 +841,27 @@
               "show_widget": "never"
             },
             "recipe": {
-              "registry_key": "core:type:INT"
+              "registry_key": "builtin:type:INT"
             },
             "field_data": {
-              "value": 1920
+              "value": 0
             }
           },
           "height": {
             "kwargs": {
               "registry_id": "INT",
-              "registry_key": "core:type:INT",
+              "registry_key": "builtin:type:INT",
               "label": "Height",
               "description": "Whole number",
               "class_name": "INT",
-              "module": "haybale_core.types.specs",
+              "module": "haywire.barn.builtin.types.specs",
               "flow_type": "data",
               "default": {
                 "value": 0
               },
               "store_strategy": 14,
               "color": "#f7b0ff",
+              "widget_key": "builtin:widget:NumberWidget",
               "id": "height",
               "port_type": "outlet",
               "allow_multiple_links": true,
@@ -868,22 +869,22 @@
               "show_widget": "never"
             },
             "recipe": {
-              "registry_key": "core:type:INT"
+              "registry_key": "builtin:type:INT"
             },
             "field_data": {
-              "value": 1080
+              "value": 0
             }
           }
         },
         "settings": {
           "props": {
-            "posX": 2000,
-            "posY": 1950
+            "posX": 2000.0,
+            "posY": 1950.0
           }
         },
         "props": {
-          "posX": 2000,
-          "posY": 1950
+          "posX": 2000.0,
+          "posY": 1950.0
         },
         "store": {},
         "identity": {
@@ -981,18 +982,17 @@
           "enable_rgb": {
             "kwargs": {
               "registry_id": "BOOL",
-              "registry_key": "core:type:BOOL",
+              "registry_key": "builtin:type:BOOL",
               "label": "Color",
               "description": "True or False",
               "class_name": "BOOL",
-              "module": "haybale_core.types.specs",
-              "flow_type": "data",
+              "module": "haywire.barn.builtin.types.specs",
               "default": {
                 "value": true
               },
               "store_strategy": 14,
               "color": "#4caf50",
-              "widget_key": "core:widget:SwitchWidget",
+              "widget_key": "builtin:widget:SwitchWidget",
               "id": "enable_rgb",
               "port_type": "config",
               "order": 1,
@@ -1000,7 +1000,7 @@
               "show_widget": "always"
             },
             "recipe": {
-              "registry_key": "core:type:BOOL"
+              "registry_key": "builtin:type:BOOL"
             },
             "field_data": {
               "value": true
@@ -1009,18 +1009,17 @@
           "enable_depth": {
             "kwargs": {
               "registry_id": "BOOL",
-              "registry_key": "core:type:BOOL",
+              "registry_key": "builtin:type:BOOL",
               "label": "Depth",
               "description": "True or False",
               "class_name": "BOOL",
-              "module": "haybale_core.types.specs",
-              "flow_type": "data",
+              "module": "haywire.barn.builtin.types.specs",
               "default": {
                 "value": false
               },
               "store_strategy": 14,
               "color": "#4caf50",
-              "widget_key": "core:widget:SwitchWidget",
+              "widget_key": "builtin:widget:SwitchWidget",
               "id": "enable_depth",
               "port_type": "config",
               "order": 2,
@@ -1028,7 +1027,7 @@
               "show_widget": "always"
             },
             "recipe": {
-              "registry_key": "core:type:BOOL"
+              "registry_key": "builtin:type:BOOL"
             },
             "field_data": {
               "value": false
@@ -1037,18 +1036,17 @@
           "enable_ir": {
             "kwargs": {
               "registry_id": "BOOL",
-              "registry_key": "core:type:BOOL",
+              "registry_key": "builtin:type:BOOL",
               "label": "Infrared",
               "description": "True or False",
               "class_name": "BOOL",
-              "module": "haybale_core.types.specs",
-              "flow_type": "data",
+              "module": "haywire.barn.builtin.types.specs",
               "default": {
                 "value": false
               },
               "store_strategy": 14,
               "color": "#4caf50",
-              "widget_key": "core:widget:SwitchWidget",
+              "widget_key": "builtin:widget:SwitchWidget",
               "id": "enable_ir",
               "port_type": "config",
               "order": 3,
@@ -1056,7 +1054,7 @@
               "show_widget": "always"
             },
             "recipe": {
-              "registry_key": "core:type:BOOL"
+              "registry_key": "builtin:type:BOOL"
             },
             "field_data": {
               "value": false
@@ -1088,17 +1086,18 @@
           "timestamp": {
             "kwargs": {
               "registry_id": "FLOAT",
-              "registry_key": "core:type:FLOAT",
+              "registry_key": "builtin:type:FLOAT",
               "label": "Timestamp (s)",
               "description": "Decimal numberer",
               "class_name": "FLOAT",
-              "module": "haybale_core.types.specs",
+              "module": "haywire.barn.builtin.types.specs",
               "flow_type": "data",
               "default": {
                 "value": 0.0
               },
               "store_strategy": 14,
               "color": "#50b0ff",
+              "widget_key": "builtin:widget:NumberWidget",
               "id": "timestamp",
               "port_type": "outlet",
               "allow_multiple_links": true,
@@ -1106,26 +1105,27 @@
               "show_widget": "never"
             },
             "recipe": {
-              "registry_key": "core:type:FLOAT"
+              "registry_key": "builtin:type:FLOAT"
             },
             "field_data": {
-              "value": 22.664615869522095
+              "value": 0.0
             }
           },
           "frame_number": {
             "kwargs": {
               "registry_id": "INT",
-              "registry_key": "core:type:INT",
+              "registry_key": "builtin:type:INT",
               "label": "Frame Number",
               "description": "Whole number",
               "class_name": "INT",
-              "module": "haybale_core.types.specs",
+              "module": "haywire.barn.builtin.types.specs",
               "flow_type": "data",
               "default": {
                 "value": 0
               },
               "store_strategy": 14,
               "color": "#f7b0ff",
+              "widget_key": "builtin:widget:NumberWidget",
               "id": "frame_number",
               "port_type": "outlet",
               "allow_multiple_links": true,
@@ -1133,10 +1133,10 @@
               "show_widget": "never"
             },
             "recipe": {
-              "registry_key": "core:type:INT"
+              "registry_key": "builtin:type:INT"
             },
             "field_data": {
-              "value": 596
+              "value": 0
             }
           },
           "rgb": {
@@ -1168,13 +1168,13 @@
         },
         "settings": {
           "props": {
-            "posX": 550,
-            "posY": 1850
+            "posX": 550.0,
+            "posY": 1850.0
           }
         },
         "props": {
-          "posX": 550,
-          "posY": 1850
+          "posX": 550.0,
+          "posY": 1850.0
         },
         "store": {},
         "identity": {
@@ -1290,18 +1290,17 @@
           "model": {
             "kwargs": {
               "registry_id": "STRING",
-              "registry_key": "core:type:STRING",
+              "registry_key": "builtin:type:STRING",
               "label": "Model",
               "description": "Text data",
               "class_name": "STRING",
-              "module": "haybale_core.types.specs",
-              "flow_type": "data",
+              "module": "haywire.barn.builtin.types.specs",
               "default": {
                 "value": "YOLOv8-Seg-N (COCO)"
               },
               "store_strategy": 14,
               "color": "#ffc107",
-              "widget_key": "core:widget:SelectWidget",
+              "widget_key": "builtin:widget:SelectWidget",
               "widget_config": {
                 "properties": {
                   "options": [
@@ -1318,7 +1317,7 @@
               "show_widget": "always"
             },
             "recipe": {
-              "registry_key": "core:type:STRING"
+              "registry_key": "builtin:type:STRING"
             },
             "field_data": {
               "value": "YOLOv8-Seg-N (COCO)"
@@ -1327,18 +1326,17 @@
           "min_score": {
             "kwargs": {
               "registry_id": "FLOAT",
-              "registry_key": "core:type:FLOAT",
+              "registry_key": "builtin:type:FLOAT",
               "label": "Min Score",
               "description": "Decimal numberer",
               "class_name": "FLOAT",
-              "module": "haybale_core.types.specs",
-              "flow_type": "data",
+              "module": "haywire.barn.builtin.types.specs",
               "default": {
                 "value": 0.0
               },
               "store_strategy": 14,
               "color": "#50b0ff",
-              "widget_key": "core:widget:NumberWidget",
+              "widget_key": "builtin:widget:NumberWidget",
               "widget_config": {
                 "properties": {
                   "min": 0.0,
@@ -1352,7 +1350,7 @@
               "show_widget": "always"
             },
             "recipe": {
-              "registry_key": "core:type:FLOAT"
+              "registry_key": "builtin:type:FLOAT"
             },
             "field_data": {
               "value": 0.0
@@ -1361,28 +1359,50 @@
           "status": {
             "kwargs": {
               "registry_id": "STRING",
-              "registry_key": "core:type:STRING",
+              "registry_key": "builtin:type:STRING",
               "label": "Status",
               "description": "Text data",
               "class_name": "STRING",
-              "module": "haybale_core.types.specs",
-              "flow_type": "data",
+              "module": "haywire.barn.builtin.types.specs",
               "default": {
                 "value": "Idle"
               },
               "store_strategy": 14,
               "color": "#ffc107",
-              "widget_key": "core:widget:SimpleLabelWidget",
+              "widget_key": "builtin:widget:SimpleLabelWidget",
               "id": "status",
               "port_type": "config",
               "order": 4,
               "show_widget": "always"
             },
             "recipe": {
-              "registry_key": "core:type:STRING"
+              "registry_key": "builtin:type:STRING"
             },
             "field_data": {
-              "value": "1 results · 94ms"
+              "value": "Idle"
+            }
+          },
+          "result_ready": {
+            "kwargs": {
+              "registry_id": "EXEC",
+              "registry_key": "core:type:EXEC",
+              "label": "Result Ready",
+              "description": "Signal for controlling execution flow between nodes",
+              "class_name": "EXEC",
+              "module": "haybale_core.types.specs",
+              "flow_type": "control",
+              "default": {
+                "value": {}
+              },
+              "store_strategy": 1,
+              "color": "#004cff",
+              "id": "result_ready",
+              "port_type": "outlet",
+              "order": 5,
+              "show_widget": "never"
+            },
+            "recipe": {
+              "registry_key": "core:type:EXEC"
             }
           },
           "result": {
@@ -1402,7 +1422,7 @@
               "id": "result",
               "port_type": "outlet",
               "allow_multiple_links": true,
-              "order": 5,
+              "order": 6,
               "show_widget": "never"
             },
             "recipe": {
@@ -1412,63 +1432,41 @@
           "count": {
             "kwargs": {
               "registry_id": "INT",
-              "registry_key": "core:type:INT",
+              "registry_key": "builtin:type:INT",
               "label": "Count",
               "description": "Whole number",
               "class_name": "INT",
-              "module": "haybale_core.types.specs",
+              "module": "haywire.barn.builtin.types.specs",
               "flow_type": "data",
               "default": {
                 "value": 0
               },
               "store_strategy": 14,
               "color": "#f7b0ff",
+              "widget_key": "builtin:widget:NumberWidget",
               "id": "count",
               "port_type": "outlet",
               "allow_multiple_links": true,
-              "order": 6,
-              "show_widget": "never"
-            },
-            "recipe": {
-              "registry_key": "core:type:INT"
-            },
-            "field_data": {
-              "value": 1
-            }
-          },
-          "result_ready": {
-            "kwargs": {
-              "registry_id": "EXEC",
-              "registry_key": "core:type:EXEC",
-              "label": "Result Ready",
-              "description": "Signal for controlling execution flow between nodes",
-              "class_name": "EXEC",
-              "module": "haybale_core.types.specs",
-              "flow_type": "control",
-              "default": {
-                "value": {}
-              },
-              "store_strategy": 1,
-              "color": "#004cff",
-              "id": "result_ready",
-              "port_type": "outlet",
               "order": 7,
               "show_widget": "never"
             },
             "recipe": {
-              "registry_key": "core:type:EXEC"
+              "registry_key": "builtin:type:INT"
+            },
+            "field_data": {
+              "value": 0
             }
           }
         },
         "settings": {
           "props": {
-            "posX": 950,
-            "posY": 1800
+            "posX": 950.0,
+            "posY": 1800.0
           }
         },
         "props": {
-          "posX": 950,
-          "posY": 1800
+          "posX": 950.0,
+          "posY": 1800.0
         },
         "store": {},
         "identity": {
@@ -1605,18 +1603,17 @@
           "min_score": {
             "kwargs": {
               "registry_id": "FLOAT",
-              "registry_key": "core:type:FLOAT",
+              "registry_key": "builtin:type:FLOAT",
               "label": "Min Score",
               "description": "Decimal numberer",
               "class_name": "FLOAT",
-              "module": "haybale_core.types.specs",
-              "flow_type": "data",
+              "module": "haywire.barn.builtin.types.specs",
               "default": {
                 "value": 0.0
               },
               "store_strategy": 14,
               "color": "#50b0ff",
-              "widget_key": "core:widget:NumberWidget",
+              "widget_key": "builtin:widget:NumberWidget",
               "widget_config": {
                 "properties": {
                   "min": 0.0,
@@ -1630,7 +1627,7 @@
               "show_widget": "always"
             },
             "recipe": {
-              "registry_key": "core:type:FLOAT"
+              "registry_key": "builtin:type:FLOAT"
             },
             "field_data": {
               "value": 0.0
@@ -1639,25 +1636,24 @@
           "show_info": {
             "kwargs": {
               "registry_id": "BOOL",
-              "registry_key": "core:type:BOOL",
+              "registry_key": "builtin:type:BOOL",
               "label": "Show Info",
               "description": "True or False",
               "class_name": "BOOL",
-              "module": "haybale_core.types.specs",
-              "flow_type": "data",
+              "module": "haywire.barn.builtin.types.specs",
               "default": {
                 "value": true
               },
               "store_strategy": 14,
               "color": "#4caf50",
-              "widget_key": "core:widget:SwitchWidget",
+              "widget_key": "builtin:widget:SwitchWidget",
               "id": "show_info",
               "port_type": "config",
               "order": 4,
               "show_widget": "always"
             },
             "recipe": {
-              "registry_key": "core:type:BOOL"
+              "registry_key": "builtin:type:BOOL"
             },
             "field_data": {
               "value": true
@@ -1715,14 +1711,14 @@
         },
         "settings": {
           "props": {
-            "posX": 1650,
-            "posY": 1900
+            "posX": 1650.0,
+            "posY": 1900.0
           },
           "style": {}
         },
         "props": {
-          "posX": 1650,
-          "posY": 1900
+          "posX": 1650.0,
+          "posY": 1900.0
         },
         "store": {},
         "identity": {
@@ -1833,17 +1829,17 @@
           "model": {
             "kwargs": {
               "registry_id": "STRING",
-              "registry_key": "core:type:STRING",
+              "registry_key": "builtin:type:STRING",
               "label": "Model",
               "description": "Text data",
               "class_name": "STRING",
-              "module": "haybale_core.types.specs",
+              "module": "haywire.barn.builtin.types.specs",
               "default": {
                 "value": "YOLOv8-N (COCO)"
               },
               "store_strategy": 14,
               "color": "#ffc107",
-              "widget_key": "core:widget:SelectWidget",
+              "widget_key": "builtin:widget:SelectWidget",
               "widget_config": {
                 "properties": {
                   "options": [
@@ -1863,7 +1859,7 @@
               "show_widget": "always"
             },
             "recipe": {
-              "registry_key": "core:type:STRING"
+              "registry_key": "builtin:type:STRING"
             },
             "field_data": {
               "value": "YOLOv8-N (COCO)"
@@ -1872,17 +1868,17 @@
           "min_score": {
             "kwargs": {
               "registry_id": "FLOAT",
-              "registry_key": "core:type:FLOAT",
+              "registry_key": "builtin:type:FLOAT",
               "label": "Min Score",
               "description": "Decimal numberer",
               "class_name": "FLOAT",
-              "module": "haybale_core.types.specs",
+              "module": "haywire.barn.builtin.types.specs",
               "default": {
                 "value": 0.0
               },
               "store_strategy": 14,
               "color": "#50b0ff",
-              "widget_key": "core:widget:NumberWidget",
+              "widget_key": "builtin:widget:NumberWidget",
               "widget_config": {
                 "properties": {
                   "min": 0.0,
@@ -1896,7 +1892,7 @@
               "show_widget": "always"
             },
             "recipe": {
-              "registry_key": "core:type:FLOAT"
+              "registry_key": "builtin:type:FLOAT"
             },
             "field_data": {
               "value": 0.0
@@ -1905,27 +1901,27 @@
           "status": {
             "kwargs": {
               "registry_id": "STRING",
-              "registry_key": "core:type:STRING",
+              "registry_key": "builtin:type:STRING",
               "label": "Status",
               "description": "Text data",
               "class_name": "STRING",
-              "module": "haybale_core.types.specs",
+              "module": "haywire.barn.builtin.types.specs",
               "default": {
                 "value": "Idle"
               },
               "store_strategy": 14,
               "color": "#ffc107",
-              "widget_key": "core:widget:SimpleLabelWidget",
+              "widget_key": "builtin:widget:SimpleLabelWidget",
               "id": "status",
               "port_type": "config",
               "order": 4,
               "show_widget": "always"
             },
             "recipe": {
-              "registry_key": "core:type:STRING"
+              "registry_key": "builtin:type:STRING"
             },
             "field_data": {
-              "value": "1 results · 12ms"
+              "value": "Idle"
             }
           },
           "result_ready": {
@@ -1978,17 +1974,18 @@
           "count": {
             "kwargs": {
               "registry_id": "INT",
-              "registry_key": "core:type:INT",
+              "registry_key": "builtin:type:INT",
               "label": "Count",
               "description": "Whole number",
               "class_name": "INT",
-              "module": "haybale_core.types.specs",
+              "module": "haywire.barn.builtin.types.specs",
               "flow_type": "data",
               "default": {
                 "value": 0
               },
               "store_strategy": 14,
               "color": "#f7b0ff",
+              "widget_key": "builtin:widget:NumberWidget",
               "id": "count",
               "port_type": "outlet",
               "allow_multiple_links": true,
@@ -1996,22 +1993,22 @@
               "show_widget": "never"
             },
             "recipe": {
-              "registry_key": "core:type:INT"
+              "registry_key": "builtin:type:INT"
             },
             "field_data": {
-              "value": 1
+              "value": 0
             }
           }
         },
         "settings": {
           "props": {
-            "posX": 1300,
-            "posY": 2100
+            "posX": 1300.0,
+            "posY": 2100.0
           }
         },
         "props": {
-          "posX": 1300,
-          "posY": 2100
+          "posX": 1300.0,
+          "posY": 2100.0
         },
         "store": {},
         "identity": {
@@ -2061,6 +2058,103 @@
           ],
           "file_watcher": false,
           "needs_refresh": true,
+          "needs_restart": false
+        }
+      }
+    },
+    "SettingsNode_9cfc9532": {
+      "node_id": "SettingsNode_9cfc9532",
+      "registry_key": "testing:node:SettingsNode",
+      "position": [
+        1650,
+        1600
+      ],
+      "node_data": {
+        "node_id": "SettingsNode_9cfc9532",
+        "ports": {
+          "settings": {
+            "kwargs": {
+              "registry_id": "STRING",
+              "registry_key": "builtin:type:STRING",
+              "label": "Settings",
+              "description": "Text data",
+              "class_name": "STRING",
+              "module": "haywire.barn.builtin.types.specs",
+              "flow_type": "data",
+              "default": {
+                "value": "default value"
+              },
+              "store_strategy": 14,
+              "color": "#ffc107",
+              "widget_key": "builtin:widget:TextWidget",
+              "id": "settings",
+              "port_type": "outlet",
+              "allow_multiple_links": true,
+              "show_widget": "never"
+            },
+            "recipe": {
+              "registry_key": "builtin:type:STRING"
+            },
+            "field_data": {
+              "value": "default value"
+            }
+          }
+        },
+        "settings": {
+          "props": {
+            "posX": 1650.0,
+            "posY": 1600.0
+          },
+          "example": {}
+        },
+        "props": {
+          "posX": 1650.0,
+          "posY": 1600.0
+        },
+        "store": {},
+        "identity": {
+          "registry_id": "SettingsNode",
+          "registry_key": "testing:node:SettingsNode",
+          "label": "Settings Test Node",
+          "description": "Test the Settings for debugging",
+          "deprecation_warning": "",
+          "class_name": "SettingsNode",
+          "module": "haybale_testing.nodes.testbed.settings_node",
+          "search_tags": [
+            "settings",
+            "debug",
+            "test",
+            "example"
+          ],
+          "menu": "testing/testbed",
+          "help_md": null,
+          "help_url": "https://haywire.io/internals/node-help",
+          "_is_error": false,
+          "_error_priority": 0,
+          "_is_reroute": false
+        },
+        "library": {
+          "label": "Testing",
+          "version": "0.0.25",
+          "description": "Test library for test support",
+          "url": "https://github.com/going-haywire/haywire",
+          "help_url": "https://github.com/going-haywire/haywire",
+          "author": "Haywire Team",
+          "author_url": "https://github.com/going-haywire/haywire",
+          "folder_path": "/Volumes/Ddrive/06_open_tracking_tool/haywire/haywire-repo/barn/haybale-testing/haybale_testing",
+          "module_name": "haybale_testing",
+          "id": "testing",
+          "dependencies": [
+            "haybale_core",
+            "haybale_graph_editor"
+          ],
+          "tags": [
+            "testing",
+            "development",
+            "debug"
+          ],
+          "file_watcher": true,
+          "needs_refresh": false,
           "needs_restart": false
         }
       }

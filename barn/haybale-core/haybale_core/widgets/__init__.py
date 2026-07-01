@@ -1,18 +1,7 @@
-from .basic_widgets import NumberWidget
-from .basic_widgets import TextWidget
-from .basic_widgets import CheckboxWidget
-from .basic_widgets import SwitchWidget
-from .basic_widgets import SliderWidget
-from .basic_widgets import SelectWidget
-from .basic_widgets import SimpleLabelWidget
+"""Core plugin widgets.
 
-
-__all__ = [
-    "CheckboxWidget",
-    "NumberWidget",
-    "SelectWidget",
-    "SimpleLabelWidget",
-    "SliderWidget",
-    "SwitchWidget",
-    "TextWidget",
-]
+The basic value widgets (Number/Text/Checkbox/Switch/Slider/Select/SimpleLabel)
+were hoisted into the framework ``builtin`` library; import them from
+``haywire.barn.builtin.widgets`` instead. This package is retained for any
+plugin-specific widgets.
+"""

@@ -7,7 +7,10 @@ structurally on a single class.
 
 from __future__ import annotations
 
-from typing import Protocol, runtime_checkable
+from typing import Protocol, TYPE_CHECKING, runtime_checkable
+
+if TYPE_CHECKING:
+    from haywire.core.types.enums import PortType
 
 
 @runtime_checkable
@@ -56,6 +59,7 @@ class SelectionContextActions(Protocol):
     def revalidate_selection(self) -> None: ...
     def reset_selection(self) -> None: ...
     def dissolve_reroute(self, node_id: str) -> None: ...
+    def promote_setting(self, node_id: str, accessor: str, field: str, direction: "PortType") -> None: ...
 
 
 @runtime_checkable
@@ -73,9 +77,11 @@ class ToolbarActions(Protocol):
 
 @runtime_checkable
 class PortContextActions(Protocol):
-    """Marker Protocol for port-context panels.
+    """Verbs available when the user right-clicks on a pin.
 
-    Empty by design — the only built-in port-context panel today is
-    PortInfoPanel, which is display-only. Library authors can declare
-    additional verbs here as needed.
+    PortInfoPanel (display-only) is the original port-context panel; the detach
+    verb backs the 'Detach from setting' panel shown on a promoted inlet. Library
+    authors can declare additional verbs here as needed.
     """
+
+    def demote_setting(self, port_id: str) -> None: ...

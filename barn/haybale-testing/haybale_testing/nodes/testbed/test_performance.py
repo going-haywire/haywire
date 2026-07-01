@@ -4,7 +4,7 @@ Shutdown Event Node.
 Triggered when the interpreter is shutting down, allowing for cleanup operations.
 """
 
-from haybale_core.widgets.basic_widgets import NumberWidget
+from haywire.barn.builtin.widgets import NumberWidget
 from haywire.core.execution.execution_context import ExecutionContext
 from haywire.core.node import node, BaseNode, NodeType
 
@@ -23,7 +23,8 @@ class PerformanceTester(BaseNode):
 
     def init(self):
         # Control output
-        from haybale_core.types import EXEC, INT
+        from haywire.barn.builtin.types import INT
+        from haybale_core.types import EXEC
 
         self.add(EXEC.as_inlet("exec", label="Execute"))
 
@@ -42,8 +43,8 @@ class PerformanceTester(BaseNode):
         pass
 
     def my_change(self, *args, **kwargs) -> None:
-        from haybale_core.widgets.basic_widgets import NumberWidget
-        from haybale_core.types import FLOAT
+        from haywire.barn.builtin.widgets import NumberWidget
+        from haywire.barn.builtin.types import FLOAT
 
         with self.rejig(exclude=["exec", "trigger", "port_count"]):
             for i in range(self.value("port_count")):

@@ -1,15 +1,16 @@
 # haywire/ui/components/graph/canvas.py
 """Canvas grid, zoom, and pan preference singleton."""
 
-from haywire.core.settings import Color, setting
+from haywire.core.settings import setting
 from haywire.core.settings.schema import FrameworkSettings
+from haywire.barn.builtin.types import BOOL, COLOR, INT, STRING
 
 
 class CanvasSettings(FrameworkSettings, namespace="ui.canvas"):
     """Global preferences controlling canvas grid, zoom, and pan behaviour."""
 
     # Background pattern (style, not color)
-    bg_pattern = setting[str](
+    bg_pattern = setting[STRING](
         "dots",
         label="Background Pattern",
         description="Pattern style for canvas background",
@@ -17,7 +18,7 @@ class CanvasSettings(FrameworkSettings, namespace="ui.canvas"):
         order=10,
         choices=["none", "dots", "lines", "cross"],
     )
-    grid_color = setting[Color](
+    grid_color = setting[COLOR](
         "#808080",
         label="Grid Color",
         description="Color of the canvas grid",
@@ -27,10 +28,10 @@ class CanvasSettings(FrameworkSettings, namespace="ui.canvas"):
     )
 
     # Grid
-    grid_enabled = setting[bool](
+    grid_enabled = setting[BOOL](
         True, label="Show Grid", description="Display grid on canvas", category="ui.canvas", order=20
     )
-    grid_size = setting[int](
+    grid_size = setting[INT](
         20,
         label="Grid Size",
         description="Grid cell size in pixels",
@@ -39,7 +40,7 @@ class CanvasSettings(FrameworkSettings, namespace="ui.canvas"):
         min=5,
         max=100,
     )
-    grid_subdivisions = setting[int](
+    grid_subdivisions = setting[INT](
         5,
         label="Grid Subdivisions",
         description="Minor grid lines per major line",
@@ -48,7 +49,7 @@ class CanvasSettings(FrameworkSettings, namespace="ui.canvas"):
         min=1,
         max=10,
     )
-    snap_to_grid = setting[bool](
+    snap_to_grid = setting[BOOL](
         True,
         label="Snap to Grid",
         description="Snap nodes to grid when moving",

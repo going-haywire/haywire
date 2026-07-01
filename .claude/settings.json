@@ -3,10 +3,14 @@
     "allow": [
       "Bash(uvx ty *)",
       "Bash(cd /Volumes/Ddrive/06_open_tracking_tool/haywire/haywire-repo *)",
-      "Bash(python3 -c \"print\\(repr\\(str\\(\\)\\), repr\\(int\\(\\)\\), repr\\(float\\(\\)\\), repr\\(bool\\(\\)\\), repr\\(list\\(\\)\\), repr\\(dict\\(\\)\\)\\)\")"
+      "Bash(python3 -c \"print\\(repr\\(str\\(\\)\\), repr\\(int\\(\\)\\), repr\\(float\\(\\)\\), repr\\(bool\\(\\)\\), repr\\(list\\(\\)\\), repr\\(dict\\(\\)\\)\\)\")",
+      "Bash(mkdir -p tests/barn/builtin packages/haywire-core/src/haywire/barn/builtin)",
+      "Bash(git rm *)",
+      "Bash(git stash *)"
     ],
     "additionalDirectories": [
-      "/tmp"
+      "/tmp",
+      "/Volumes/Ddrive/06_open_tracking_tool/haywire/haywire-repo/tests/barn"
     ]
   },
   "hooks": {

@@ -15,6 +15,7 @@ import pytest
 from haywire.core.settings.descriptor import setting, persistent_setting
 from haywire.core.settings.registry import SettingsRegistry
 from haywire.core.settings.schema import FrameworkSettings, LibrarySettings
+from haywire.barn.builtin.types import STRING
 
 
 # ---------------------------------------------------------------------------
@@ -23,11 +24,11 @@ from haywire.core.settings.schema import FrameworkSettings, LibrarySettings
 
 
 class _FrameworkSchema(FrameworkSettings, namespace="test.persistent.framework"):
-    name = setting[str]("default", label="Name")
+    name = setting[STRING]("default", label="Name")
 
 
 class _LibrarySchema(LibrarySettings, namespace="test.persistent.library"):
-    name = setting[str]("default", label="Name")
+    name = setting[STRING]("default", label="Name")
 
 
 # ---------------------------------------------------------------------------
@@ -68,8 +69,8 @@ def wired_library_schema():
 
 def test_write_persists_through_registry(wired_library_schema):
     """A write on instance A is visible on a freshly-constructed instance B —
-    regression test for the original bug (descriptor write only touched
-    _local_store, never the registry)."""
+    regression test for the original bug (descriptor write only touched the
+    per-instance value store, never the registry)."""
     make_instance, registry = wired_library_schema
 
     a = make_instance()
@@ -110,13 +111,13 @@ def test_write_does_not_double_fire_on_property_change(wired_library_schema):
     assert len(fired) == 1, f"Expected single fire, got {len(fired)}: {fired}"
 
 
-def test_save_to_toml_debounced_is_noop_without_workspace_path():
-    """save_to_toml_debounced must be a no-op when no path is configured —
-    otherwise the background timer would fire save_to_toml which raises
+def test_save_to_json_debounced_is_noop_without_workspace_path():
+    """save_to_json_debounced must be a no-op when no path is configured —
+    otherwise the background timer would fire save_to_json which raises
     ValueError on a thread with no error handling."""
     registry = SettingsRegistry()
     # No workspace_path set, no path argument.
-    registry.save_to_toml_debounced()
+    registry.save_to_json_debounced()
 
     # No timer was scheduled.
     assert getattr(registry, "_save_timer", None) is None
@@ -130,25 +131,27 @@ def test_save_to_toml_debounced_is_noop_without_workspace_path():
 def test_write_falls_back_to_local_store_when_registry_missing():
     """If a Library/FrameworkSettings is constructed without a registry
     (test/dev environments), persistent_setting falls through to the parent's
-    local-store write so existing tests aren't broken.
+    cell write so existing tests aren't broken.
 
-    Note: setting.__get__ in simple-mode reads by _attr_name while __set__ writes
-    by _setting_key (the full namespaced key). That asymmetry exists in the base
-    setting descriptor and is out of scope here. What matters is:
+    Post-P4 the value lands in the field's DataField cell (keyed by storage_key =
+    the namespaced _setting_key) rather than _local_store. What matters is:
       - no exception is raised
-      - the value lands in _local_store (not lost), keyed by _setting_key
-      - set_global / save_to_toml_debounced are NOT called (no registry)
+      - the value is not lost — it reads back through the public API
+      - the override is recorded under the canonical storage_key
+      - set_global / save_to_json_debounced are NOT called (no registry)
     """
 
     # Build a fresh schema and DON'T wire a registry.
     class _UnwiredSchema(LibrarySettings, namespace="test.persistent.unwired"):
-        name = setting[str]("default", label="Name")
+        name = setting[STRING]("default", label="Name")
 
     # No registry registration — _registry stays None.
     inst = _UnwiredSchema()
     inst.name = "fallback"  # must not raise
-    # Value is stored in _local_store under the namespaced key (parent __set__ behaviour)
-    assert inst._local_store.get("test.persistent.unwired.name") == "fallback"
+    # Value survives via the field's cell, keyed by the namespaced storage_key.
+    assert inst.name == "fallback"
+    assert "test.persistent.unwired.name" in inst._set_keys
+    assert inst._cells["test.persistent.unwired.name"].get_value() == "fallback"
 
 
 # ---------------------------------------------------------------------------
@@ -187,7 +190,7 @@ def test_settings_decorator_promotes_descriptor_to_persistent_setting():
 
     @settings(namespace="test.decorator.promoted")
     class _DecoratedSchema(LibrarySettings):
-        name = setting[str]("default", label="Name")
+        name = setting[STRING]("default", label="Name")
 
     descriptor = _DecoratedSchema.__dict__["name"]
     assert isinstance(descriptor, persistent_setting), (

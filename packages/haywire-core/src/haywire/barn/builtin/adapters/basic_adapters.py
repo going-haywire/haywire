@@ -3,12 +3,11 @@ Basic type conversion adapters
 """
 
 import random
+
 from typing_extensions import override
 
-from haywire.core.adapter.base import BaseAdapter
-from haywire.core.adapter.base import adapter
-
-from ..types.specs import BOOL, FLOAT, INT, STRING
+from haywire.barn.builtin.types import BOOL, FLOAT, INT, STRING
+from haywire.core.adapter.base import BaseAdapter, adapter
 
 
 @adapter(description="Convert integer to float", converts_from=INT, converts_to=FLOAT)

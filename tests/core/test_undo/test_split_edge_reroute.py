@@ -352,7 +352,7 @@ class TestSplitEdgeRerouteIntegration:
     def test_split_inserts_typed_reroute_and_two_valid_edges(
         self, graph_with_library_system, library_system
     ):
-        from haybale_core.types import FLOAT
+        from haywire.barn.builtin.types import FLOAT
         from haywire.core.undo.actions.graph_actions import SplitEdgeWithRerouteAction
 
         graph = graph_with_library_system

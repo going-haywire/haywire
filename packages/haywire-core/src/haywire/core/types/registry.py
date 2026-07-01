@@ -116,6 +116,25 @@ class TypeRegistry(BaseRegistry[IType]):
         """
         return self._classes.get(key)
 
+    def get_type_for_python_type(self, py_type: type) -> type[IType] | None:
+        """Find the registered IType whose ``element_type_cls`` is *py_type*.
+
+        Inverse of the IType→Python-type relationship each type already declares
+        (e.g. ``FLOAT.element_type_cls is float``). Used by the runtime/TOML
+        settings path to resolve an inferred Python type to its IType without a
+        hand-maintained mapping. Returns ``None`` if no registered type matches.
+
+        Exact match only (``element_type_cls is py_type``); a ``builtin:`` type is
+        preferred when several libraries register the same Python type.
+        """
+        matches = [
+            cls for cls in self._classes.values() if getattr(cls, "element_type_cls", None) is py_type
+        ]
+        if not matches:
+            return None
+        matches.sort(key=lambda c: 0 if c.class_identity.registry_key.startswith("builtin:") else 1)
+        return matches[0]
+
     def get_identity(self, key: str) -> DataTypeIdentity | None:
         """
         Get the DataPortIdentity for a registered type.

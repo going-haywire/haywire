@@ -260,6 +260,66 @@ def attach_stub_session(instance):
     return instance
 
 
+# ==============================================================================
+# Promotion Fixtures (promote-setting-to-inlet — Plan 3)
+# ==============================================================================
+
+
+def _make_stub_node_wrapper(node_id: str):
+    """A minimal NodeWrapper stand-in. ``NodeData.add``/``_pop`` call
+    ``mark_as_structuraly_dirty``/``redraw`` on the wrapper."""
+    return type(
+        "W",
+        (),
+        {
+            "node_id": node_id,
+            "notify": lambda *a, **k: None,
+            "mark_as_structuraly_dirty": lambda *a, **k: None,
+            "redraw": lambda *a, **k: None,
+        },
+    )()
+
+
+@pytest.fixture
+def make_node_with_setting(library_system):
+    """Build a live node with a plain ``setting[FLOAT]`` field (promotable).
+
+    Signature: ``make_node_with_setting(accessor="filter", field="threshold",
+    with_watch=False)`` → a ``NodeData`` instance whose ``<accessor>.<field>`` is a plain
+    setting defaulting to 0.5. With ``with_watch=True`` the bag also carries a
+    ``watch()`` field (``<field>_watched``) so menu tests can assert non-plain fields are
+    filtered out of the promote submenu.
+
+    Depends on ``library_system`` so the builtin types (``builtin:type:FLOAT``) are
+    registered for ``DataPort.from_spec``.
+    """
+    from haywire.barn.builtin.types import FLOAT
+    from haywire.core.di.context import set_settings_registry, set_type_registry
+    from haywire.core.node import BaseNode, node
+    from haywire.core.settings import NodeSettings, setting, watch
+
+    def _factory(accessor: str = "filter", field: str = "threshold", with_watch: bool = False):
+        # Re-assert the loaded registries as the ambient context: a function-scoped
+        # test_injector elsewhere in the suite can have swapped the module globals,
+        # leaving the node to cache a registry without the builtin types.
+        set_type_registry(library_system.get_type_registry())
+        set_settings_registry(library_system.get_settings_registry())
+
+        plain = setting[FLOAT](0.5)
+        body: dict = {field: plain}
+        if with_watch:
+            # watch() mirrors *plain*; pass type_ explicitly because plain's generic
+            # arg isn't resolved until its own __set_name__ runs (after this call).
+            body[f"{field}_watched"] = watch(plain, type_=FLOAT)
+        bag_cls = type(accessor, (NodeSettings,), body)
+        node_cls = node(label="Promotion Test Node")(
+            type("_PromotionTestNode", (BaseNode,), {accessor: bag_cls})
+        )
+        return node_cls("n1", _make_stub_node_wrapper("w1"))
+
+    return _factory
+
+
 @pytest.fixture
 def register_edit_state() -> Callable[[LibraryStateContainer, str], type]:
     """Register EditState into a LibraryStateContainer for tests.

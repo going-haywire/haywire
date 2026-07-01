@@ -9,7 +9,6 @@ from .keys import LIBRARY_LOG_LEVEL_FIELD_METATADATA_KEY, lib_id_from_key
 from .debug_settings import GLOBAL_BASELINE_LOG_LEVEL_KEY, DebugSettings
 from ..settings.registry import SettingsRegistry
 from ..settings.value import SettingValue
-from ..settings.enums import SettingMode
 
 # Maps DebugSettings attribute name → Python logger namespace
 _GROUP_MAP: dict[str, str] = {
@@ -129,11 +128,11 @@ class LoggingConfigurator:
             logging.getLogger(module_name).setLevel(logging.NOTSET)
             return
 
-        # New definition (AUTO) or value change
+        # New definition (unset) or value change
         self._register_library_from_key(name, self._registry)
 
-        if sv.mode == SettingMode.INHERIT:
-            # Newly defined — apply default (inherit)
+        if not sv.is_set:
+            # No tier value — apply default (inherit)
             self._apply_library_level(name, "")
         else:
             self._apply_library_level(name, str(sv.value) if sv.value else "")

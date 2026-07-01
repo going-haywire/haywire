@@ -1,4 +1,4 @@
-from haybale_core.widgets.basic_widgets import SelectWidget
+from haywire.barn.builtin.widgets import SelectWidget
 from haywire.core.execution.event_source import CallbackEvent
 from haywire.core.execution.execution_context import ExecutionContext
 from haywire.core.node import node, BaseNode, NodeType
@@ -25,8 +25,9 @@ class CustomCallbackNode(BaseNode):
     """
 
     def init(self):
-        from haybale_core.types import GROUP, EXEC, CALLBACK, STRING, FLOAT
-        from haybale_core.widgets import TextWidget
+        from haywire.barn.builtin.types import STRING, FLOAT
+        from haybale_core.types import GROUP, EXEC, CALLBACK
+        from haywire.barn.builtin.widgets import TextWidget
 
         # Config for callback name
         with self.group(

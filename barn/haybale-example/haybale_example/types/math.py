@@ -1,7 +1,7 @@
 # Custom data type for testing
 from enum import Enum
 from haywire.core.types.decorator import type
-from haybale_core.types import STRING
+from haywire.barn.builtin.types import STRING
 
 
 class MathOPs(Enum):
@@ -23,7 +23,7 @@ class MathOPs(Enum):
 @type(
     label="Simple Operations",
     description="Simple mathematical operations for one or two float values",
-    widget_key="core:widget:SelectWidget",
+    widget_key="builtin:widget:SelectWidget",
     widget_config={"properties": {"options": MathOPs.values()}},
     default=MathOPs.ADD.value,
 )

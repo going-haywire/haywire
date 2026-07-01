@@ -13,8 +13,9 @@ class TestGroupAndSectionNode(BaseNode):
     """Test-only"""
 
     def init(self):
-        from haybale_core.types import EXEC, STRING, FLOAT, GROUP, BOOL
-        from haybale_core.widgets.basic_widgets import SwitchWidget, TextWidget
+        from haywire.barn.builtin.types import STRING, FLOAT, BOOL
+        from haybale_core.types import EXEC, GROUP
+        from haywire.barn.builtin.widgets import SwitchWidget, TextWidget
 
         self.add(EXEC.as_inlet("execute", label="Execute"))
 

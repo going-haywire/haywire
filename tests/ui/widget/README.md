@@ -27,8 +27,8 @@ widgets") so a number can't be silently measuring the wrong thing. They informed
 | `test_skin_render_profile.py` | cProfile + element census of one node-card render. Found the `expects_arguments`/`inspect.signature` hot spot and the tooltip element count. |
 | `test_expects_arguments_cache.py` | Wall-time speedup from caching `expects_arguments` on the real graph (~1.41× in harness). Doubles as the before/after yardstick for that optimization. |
 
-Run them explicitly (they need the heavyweight `library_system` fixture and the
-`graphs/10x200nodes.haywire` reference graph):
+Run them explicitly (they need the heavyweight `library_system` fixture; the
+200-node reference graph is built fresh by `conftest.build_perf_graph`):
 
 ```sh
 uv run pytest -m perf tests/ui/widget/ -s      # -s surfaces the printed tables

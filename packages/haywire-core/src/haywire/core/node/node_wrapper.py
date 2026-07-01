@@ -356,7 +356,7 @@ class NodeWrapper:
                 operation="Initialize Node",
                 message=f"Failed to initialize node '{self.registry_key}'",
             ).enrich(
-                _node_id=self._node_id,
+                node_id=self._node_id,
                 registry_key=self.registry_key,
                 module_name=node_cls.__module__,
                 library_identity=node_cls.class_library,

@@ -15,8 +15,9 @@ class TestCustomCallbackNode(BaseNode):
     """Test-only event node that listens for custom callbacks."""
 
     def init(self):
-        from haybale_core.types import GROUP, EXEC, CALLBACK, STRING, FLOAT
-        from haybale_core.widgets.basic_widgets import TextWidget, SelectWidget
+        from haywire.barn.builtin.types import STRING, FLOAT
+        from haybale_core.types import GROUP, EXEC, CALLBACK
+        from haywire.barn.builtin.widgets import TextWidget, SelectWidget
 
         with self.group(
             GROUP.as_config("mode_switch", default=False, label="Use Custom Name", on_change="redraw")

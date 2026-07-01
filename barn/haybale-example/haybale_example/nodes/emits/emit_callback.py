@@ -24,9 +24,10 @@ class EmitCallbackNode(BaseNode):
     """
 
     def init(self):
-        from haybale_core.types import EXEC, STRING, FLOAT, CALLBACK, GROUP, BOOL
+        from haywire.barn.builtin.types import STRING, FLOAT, BOOL
+        from haybale_core.types import EXEC, CALLBACK, GROUP
         from haybale_core.types import PooledType
-        from haybale_core.widgets.basic_widgets import SwitchWidget, TextWidget
+        from haywire.barn.builtin.widgets import SwitchWidget, TextWidget
 
         # Control input
         self.add(EXEC.as_inlet("execute", label="Execute"))

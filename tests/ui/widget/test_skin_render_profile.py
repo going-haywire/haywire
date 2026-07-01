@@ -35,23 +35,20 @@ import cProfile
 import io
 import pstats
 from collections import Counter
-from pathlib import Path
 
 import pytest
 from nicegui import ui
 from nicegui.element import Element
 
-from haywire.core.graph.base import BaseGraph
-from haywire.core.graph.scheduler import SyncScheduler
 from haywire.ui.skin.factory import SkinFactory
 
-# perf + integration: depends on the `library_system` fixture and a fully-loaded
-# node registry (loads a real graph). Marked integration so it only runs where
-# that registry state is reliable — outside it, shared-global registry pollution
-# from earlier tests can leave PerformanceTester unregistered (0 nodes loaded).
-pytestmark = [pytest.mark.perf, pytest.mark.integration]
+from .conftest import build_perf_graph
 
-_GRAPH = Path(__file__).resolve().parents[3] / "graphs" / "10x200nodes.haywire"
+# perf + integration: depends on the `library_system` fixture and a fully-loaded
+# node registry (builds a real graph). Marked integration so it only runs where
+# that registry state is reliable — outside it, shared-global registry pollution
+# from earlier tests can leave PerformanceTester unregistered (0 nodes built).
+pytestmark = [pytest.mark.perf, pytest.mark.integration]
 
 # Call-site frames we bucket Element constructions by. Each key is a substring
 # matched against the constructing call stack; first match wins, else "other".
@@ -71,16 +68,13 @@ _BUCKETS = [
 def _load_graph_and_factory(library_system):
     injector = library_system.injector
     skin_factory = injector.get(SkinFactory)
-    graph = BaseGraph(graph_id="perf", name="perf", validation_scheduler=SyncScheduler())
-    assert _GRAPH.exists(), f"graph fixture missing: {_GRAPH}"
-    assert graph.load_from_file(str(_GRAPH)), "graph failed to load"
+    graph = build_perf_graph()
     wrappers = list(graph.node_wrappers.values())
-    assert len(wrappers) == 200, f"expected 200 nodes, got {len(wrappers)}"
     skin_key = skin_factory._skin_registry.get_default_skin_registry_key()
     return skin_factory, skin_key, wrappers
 
 
-def test_single_node_render_profile(library_system):
+def test_single_node_render_profile(library_system, nicegui_slot_context):
     """cProfile one node-card render and print the top cumulative frames."""
     skin_factory, skin_key, wrappers = _load_graph_and_factory(library_system)
     one = wrappers[0]
@@ -102,7 +96,7 @@ def test_single_node_render_profile(library_system):
     print(s.getvalue())
 
 
-def test_element_census_per_node(library_system):
+def test_element_census_per_node(library_system, nicegui_slot_context):
     """Count Element constructions for one node, bucketed by skin call site."""
     skin_factory, skin_key, wrappers = _load_graph_and_factory(library_system)
     one = wrappers[0]

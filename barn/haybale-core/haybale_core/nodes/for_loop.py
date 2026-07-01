@@ -36,8 +36,9 @@ class ForLoopNode(BaseNode):
     """
 
     def init(self):
-        from ..types.specs import EXEC, INT
-        from ..widgets.basic_widgets import NumberWidget
+        from haywire.barn.builtin.types import INT
+        from ..types.specs import EXEC
+        from haywire.barn.builtin.widgets import NumberWidget
 
         # Control input - starts the loop
         self.add(EXEC.as_inlet("execute", label="Execute"))

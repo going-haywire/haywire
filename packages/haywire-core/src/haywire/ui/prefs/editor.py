@@ -3,6 +3,7 @@
 
 from haywire.core.settings import setting
 from haywire.core.settings.schema import FrameworkSettings
+from haywire.barn.builtin.types import BOOL, INT, STRING
 
 # TODO: Find the right place for EditorSettings
 
@@ -11,7 +12,7 @@ class EditorSettings(FrameworkSettings, namespace="editor"):
     """Global preferences controlling editor interaction and behaviour."""
 
     # Undo/Redo
-    undo_limit = setting[int](
+    undo_limit = setting[INT](
         100,
         label="Undo Limit",
         description="Maximum number of undo steps",
@@ -20,7 +21,7 @@ class EditorSettings(FrameworkSettings, namespace="editor"):
         min=10,
         max=1000,
     )
-    group_undo_actions = setting[bool](
+    group_undo_actions = setting[BOOL](
         True,
         label="Group Undo Actions",
         description="Group related actions into single undo step",
@@ -29,10 +30,10 @@ class EditorSettings(FrameworkSettings, namespace="editor"):
     )
 
     # Auto-save
-    auto_save = setting[bool](
+    auto_save = setting[BOOL](
         True, label="Auto Save", description="Automatically save changes", category="editor", order=20
     )
-    auto_save_interval_seconds = setting[int](
+    auto_save_interval_seconds = setting[INT](
         60,
         label="Auto Save Interval (s)",
         description="Seconds between auto-saves",
@@ -41,14 +42,14 @@ class EditorSettings(FrameworkSettings, namespace="editor"):
         min=10,
         max=600,
     )
-    create_backups = setting[bool](
+    create_backups = setting[BOOL](
         True,
         label="Create Backups",
         description="Create backup files before saving",
         category="editor",
         order=22,
     )
-    max_backups = setting[int](
+    max_backups = setting[INT](
         5,
         label="Max Backups",
         description="Maximum number of backup files to keep",
@@ -59,24 +60,24 @@ class EditorSettings(FrameworkSettings, namespace="editor"):
     )
 
     # Selection and interaction
-    confirm_delete = setting[bool](
+    confirm_delete = setting[BOOL](
         True,
         label="Confirm Delete",
         description="Ask for confirmation when deleting nodes",
         category="editor",
         order=30,
     )
-    select_on_create = setting[bool](
+    select_on_create = setting[BOOL](
         True, label="Select on Create", description="Select newly created nodes", category="editor", order=31
     )
-    focus_on_create = setting[bool](
+    focus_on_create = setting[BOOL](
         True,
         label="Focus on Create",
         description="Pan canvas to show newly created nodes",
         category="editor",
         order=32,
     )
-    multi_select_modifier = setting[str](
+    multi_select_modifier = setting[STRING](
         "ctrl",
         label="Multi-Select Modifier",
         description="Key modifier for multi-selection",
@@ -86,7 +87,7 @@ class EditorSettings(FrameworkSettings, namespace="editor"):
     )
 
     # Mouse controls
-    pan_button = setting[str](
+    pan_button = setting[STRING](
         "middle",
         label="Pan Mouse Button",
         description="Mouse button for canvas panning",
@@ -94,7 +95,7 @@ class EditorSettings(FrameworkSettings, namespace="editor"):
         order=40,
         choices=["left", "middle", "right"],
     )
-    context_menu_button = setting[str](
+    context_menu_button = setting[STRING](
         "right",
         label="Context Menu Button",
         description="Mouse button for context menu",
@@ -102,7 +103,7 @@ class EditorSettings(FrameworkSettings, namespace="editor"):
         order=41,
         choices=["right", "middle"],
     )
-    double_click_action = setting[str](
+    double_click_action = setting[STRING](
         "edit",
         label="Double Click Action",
         description="Action when double-clicking a node",
@@ -112,14 +113,14 @@ class EditorSettings(FrameworkSettings, namespace="editor"):
     )
 
     # Clipboard
-    copy_with_connections = setting[bool](
+    copy_with_connections = setting[BOOL](
         True,
         label="Copy with Connections",
         description="Include internal connections when copying multiple nodes",
         category="editor",
         order=50,
     )
-    paste_offset = setting[int](
+    paste_offset = setting[INT](
         20,
         label="Paste Offset",
         description="Offset in pixels when pasting nodes",
@@ -130,14 +131,14 @@ class EditorSettings(FrameworkSettings, namespace="editor"):
     )
 
     # Node creation
-    quick_add_enabled = setting[bool](
+    quick_add_enabled = setting[BOOL](
         True,
         label="Enable Quick Add",
         description="Enable quick node creation with spacebar",
         category="editor",
         order=60,
     )
-    quick_add_key = setting[str](
+    quick_add_key = setting[STRING](
         "space",
         label="Quick Add Key",
         description="Key to open quick add menu",
@@ -145,14 +146,14 @@ class EditorSettings(FrameworkSettings, namespace="editor"):
         order=61,
         choices=["space", "tab", "a"],
     )
-    show_recent_nodes = setting[bool](
+    show_recent_nodes = setting[BOOL](
         True,
         label="Show Recent Nodes",
         description="Show recently used nodes in quick add menu",
         category="editor",
         order=62,
     )
-    recent_nodes_count = setting[int](
+    recent_nodes_count = setting[INT](
         10,
         label="Recent Nodes Count",
         description="Number of recent nodes to show",

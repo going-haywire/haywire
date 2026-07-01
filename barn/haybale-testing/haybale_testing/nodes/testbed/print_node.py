@@ -23,8 +23,9 @@ class TestPrintNode(BaseNode):
     """
 
     def init(self):
-        from haybale_core.types import EXEC, STRING
-        from haybale_core.widgets import TextWidget
+        from haywire.barn.builtin.types import STRING
+        from haybale_core.types import EXEC
+        from haywire.barn.builtin.widgets import TextWidget
 
         # Control flow
         self.add(EXEC.as_inlet("exec"))

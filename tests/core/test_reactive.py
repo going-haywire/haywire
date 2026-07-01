@@ -17,6 +17,7 @@ Coverage:
 
 import pytest
 from haywire.core.settings import Settings, setting, SettingDescriptor
+from haywire.barn.builtin.types import BOOL, FLOAT, INT, STRING
 
 
 # ---------------------------------------------------------------------------
@@ -25,22 +26,22 @@ from haywire.core.settings import Settings, setting, SettingDescriptor
 
 
 class _Simple(Settings):
-    threshold = setting[float](0.5, label="Threshold", min=0.0, max=1.0)
-    verbose = setting[bool](False, label="Verbose")
-    name = setting[str]("default", label="Name")
+    threshold = setting[FLOAT](0.5, label="Threshold", min=0.0, max=1.0)
+    verbose = setting[BOOL](False, label="Verbose")
+    name = setting[STRING]("default", label="Name")
 
 
 class _WithChoices(Settings):
-    algorithm = setting[str]("fast", choices=["fast", "accurate"])
-    dynamic = setting[str]("a", choices=lambda: ["a", "b", "c"])
+    algorithm = setting[STRING]("fast", choices=["fast", "accurate"])
+    dynamic = setting[STRING]("a", choices=lambda: ["a", "b", "c"])
 
 
 class _Parent(Settings):
-    x = setting[int](1, label="X")
+    x = setting[INT](1, label="X")
 
 
 class _Child(_Parent):
-    y = setting[int](2, label="Y")
+    y = setting[INT](2, label="Y")
 
 
 # ---------------------------------------------------------------------------
@@ -85,12 +86,12 @@ class TestSettingDescriptor:
         assert d._min == 0.0
         assert d._max == 1.0
         assert d._default == 0.5
-        assert d._type is float
+        assert d._type is FLOAT
 
     def test_type_inferred_from_default(self):
-        assert _Simple.threshold._type is float
-        assert _Simple.verbose._type is bool
-        assert _Simple.name._type is str
+        assert _Simple.threshold._type is FLOAT
+        assert _Simple.verbose._type is BOOL
+        assert _Simple.name._type is STRING
 
     def test_choices_list(self):
         assert _WithChoices.algorithm.choices == ["fast", "accurate"]

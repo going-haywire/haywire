@@ -6,8 +6,9 @@ cumulative cost is ``nicegui.events.handle_event`` → ``helpers.expects_argumen
 recomputing the signature of the SAME handful of handler functions every time.
 
 This test quantifies the *real* wall-time win from memoizing that introspection
-on the actual ``graphs/10x200nodes.haywire`` render — before deciding whether a
-startup-time monkeypatch of ``expects_arguments`` is worth carrying.
+on the 200-node perf-graph render (``conftest.build_perf_graph``) — before
+deciding whether a startup-time monkeypatch of ``expects_arguments`` is worth
+carrying.
 
 It is a measurement, not a fix: it patches in-test, reports the delta, and
 restores. If the delta is large, the follow-up is a permanent cache installed at
@@ -26,22 +27,20 @@ import haywire.core.graph.editor  # noqa: F401
 
 import time
 from functools import lru_cache
-from pathlib import Path
 
 import pytest
 from nicegui import ui
 
-from haywire.core.graph.base import BaseGraph
-from haywire.core.graph.scheduler import SyncScheduler
 from haywire.ui.skin.factory import SkinFactory
 
+from .conftest import build_perf_graph
+
 # perf + integration: depends on the `library_system` fixture and a fully-loaded
-# node registry (loads a real graph). Marked integration so it only runs where
+# node registry (builds a real graph). Marked integration so it only runs where
 # that registry state is reliable — outside it, shared-global registry pollution
-# from earlier tests can leave PerformanceTester unregistered (0 nodes loaded).
+# from earlier tests can leave PerformanceTester unregistered (0 nodes built).
 pytestmark = [pytest.mark.perf, pytest.mark.integration]
 
-_GRAPH = Path(__file__).resolve().parents[3] / "graphs" / "10x200nodes.haywire"
 _REPEATS = 3
 
 
@@ -53,12 +52,10 @@ def _render_all(skin_factory, wrappers, skin_key) -> float:
         return time.perf_counter() - t0
 
 
-def test_expects_arguments_cache_speedup(library_system):
+def test_expects_arguments_cache_speedup(library_system, nicegui_slot_context):
     skin_factory = library_system.injector.get(SkinFactory)
-    graph = BaseGraph(graph_id="perf", name="perf", validation_scheduler=SyncScheduler())
-    assert graph.load_from_file(str(_GRAPH))
+    graph = build_perf_graph()
     wrappers = list(graph.node_wrappers.values())
-    assert len(wrappers) == 200
     skin_key = skin_factory._skin_registry.get_default_skin_registry_key()
 
     _render_all(skin_factory, wrappers, skin_key)  # warm caches / lazy imports

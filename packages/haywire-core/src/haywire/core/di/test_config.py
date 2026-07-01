@@ -10,14 +10,13 @@ from pathlib import Path
 from typing import Optional, List, Any, TYPE_CHECKING
 from injector import Injector
 
+from haywire.barn.builtin.types import BOOL, COLOR, FLOAT, INT, STRING
 from ..settings import (
     SettingsRegistry,
-    SettingMode,
     SettingValue,
     FrameworkSettings,
     Settings,
     setting,
-    Color,
 )
 
 if TYPE_CHECKING:
@@ -32,8 +31,8 @@ if TYPE_CHECKING:
 class _TestFrameworkSettings(FrameworkSettings, namespace="test.global"):
     """Minimal FrameworkSettings for unit tests that need registered global keys."""
 
-    verbose_logging = setting[bool](False, label="Verbose Logging")
-    font_size = setting[int](12, label="Font Size", min=8, max=72)
+    verbose_logging = setting[BOOL](False, label="Verbose Logging")
+    font_size = setting[INT](12, label="Font Size", min=8, max=72)
 
 
 class TestingWidgetSettings(FrameworkSettings, namespace="test.widgets"):
@@ -48,24 +47,24 @@ class TestingWidgetSettings(FrameworkSettings, namespace="test.widgets"):
       - color  → ui.color_input
     """
 
-    flag = setting[bool](True, label="Flag", description="Boolean — renders as switch", category="types")
-    count = setting[int](
+    flag = setting[BOOL](True, label="Flag", description="Boolean — renders as switch", category="types")
+    count = setting[INT](
         3, min=0, max=10, label="Count", description="Integer — renders as NumberDrag", category="types"
     )
-    ratio = setting[float](
+    ratio = setting[FLOAT](
         0.5, min=0.0, max=1.0, label="Ratio", description="Float — renders as NumberDrag", category="types"
     )
-    label = setting[str](
+    label = setting[STRING](
         "hello", label="Label", description="String — renders as text input", category="types"
     )
-    mode = setting[str](
+    mode = setting[STRING](
         "fast",
         choices=["fast", "balanced", "quality"],
         label="Mode",
         description="Choices — renders as dropdown",
         category="types",
     )
-    tint = setting[Color](
+    tint = setting[COLOR](
         "#ff0000",
         label="Tint",
         description="Color — renders as color picker",
@@ -90,7 +89,7 @@ def create_test_injector(
 
     if settings_path is None and use_temp_settings:
         temp_dir = tempfile.mkdtemp(prefix="haywire_test_")
-        settings_path = str(Path(temp_dir) / "settings.toml")
+        settings_path = str(Path(temp_dir) / "settings.json")
 
     module = HaywireModule(
         workspace_root=workspace_root,
@@ -153,15 +152,20 @@ def create_test_settings_registry(
             'test.global.verbose_logging': True,
         })
     """
+    from haywire.barn.builtin.types import BOOL, FLOAT, INT, STRING
+
+    # define() now requires an IType; map a predefined value's Python type to one.
+    _py_to_itype = {bool: BOOL, int: INT, float: FLOAT, str: STRING}
+
     registry = SettingsRegistry()
 
     if predefined_settings:
         for name, value in predefined_settings.items():
             if registry.has_definition(name):
-                registry.set_global(name, value, SettingMode.EXPLICIT, tier="global")
+                registry.set_global(name, value, tier="global")
             else:
-                registry.define(name, value)
-                registry.set_global(name, value, SettingMode.EXPLICIT, tier="global")
+                registry.define(name, value, type_=_py_to_itype.get(type(value), STRING))
+                registry.set_global(name, value, tier="global")
 
     return registry
 
@@ -193,9 +197,9 @@ def create_test_bag(
     if bag_cls is None:
 
         class _DefaultTestBag(Settings):
-            bg_color = setting[str]("#ffffff", label="Background Color")
-            font_size = setting[int](12, min=8, max=72, label="Font Size")
-            verbose = setting[bool](False, label="Verbose Mode")
+            bg_color = setting[COLOR]("#ffffff", label="Background Color")
+            font_size = setting[INT](12, min=8, max=72, label="Font Size")
+            verbose = setting[BOOL](False, label="Verbose Mode")
 
         bag_cls = _DefaultTestBag
 
@@ -232,28 +236,23 @@ class SettingsTestContext:
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         for name, original in self._original_values.items():
-            if original is None or original.mode == SettingMode.INHERIT:
+            if original is None or not original.is_set:
                 self.registry.reset_global(name, tier="workspace")
             else:
-                self.registry.set_global(name, original.value, original.mode, tier="workspace")
+                self.registry.set_global(name, original.value, tier="workspace")
         return False
 
     def set(self, name: str, value: Any) -> None:
-        """Set a setting value (SET mode)."""
+        """Set a setting value."""
         self._save_original(name)
-        self.registry.set_global(name, value, SettingMode.EXPLICIT)
-
-    def set_override(self, name: str, value: Any) -> None:
-        """Set a setting value with OVERRIDE mode."""
-        self._save_original(name)
-        self.registry.set_global(name, value, SettingMode.OVERRIDE)
+        self.registry.set_global(name, value)
 
     def reset(self, name: str) -> None:
-        """Reset a setting to AUTO."""
+        """Reset a setting to unset."""
         self._save_original(name)
         self.registry.reset_global(name)
 
     def _save_original(self, name: str) -> None:
         if name not in self._original_values:
             sv = self.registry.get_global(name)
-            self._original_values[name] = SettingValue(mode=sv.mode, value=sv.value) if sv else None
+            self._original_values[name] = SettingValue(is_set=sv.is_set, value=sv.value) if sv else None

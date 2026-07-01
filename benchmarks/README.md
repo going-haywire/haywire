@@ -46,19 +46,23 @@ absolute per-case numbers it was derived from stayed stable to ~±2%. To compare
 two scenarios, add both as cases and read them side by side in the log — each is
 independently stable, so each drifts honestly.
 
-### Frozen inputs
+### Stable inputs
 
-Every graph and node a case touches is **frozen**:
+Every graph and node a case touches is held **stable** so a moved number means the
+*framework* moved, not the fixture:
 
-- graphs live in `benchmarks/graphs/` as static copies (not the live `graphs/`
-  files you edit),
+- graphs are **built fresh** each run from an explicit node-key + edge list in
+  [`cases.py`](cases.py) (`_LOOP_NODES` / `_LOOP_EDGES`). Same nodes, same edges,
+  same loop bound every time — deterministic, but tracking the live registry so a
+  node/type moving library can't silently break the load (a frozen `.haywire` file
+  did exactly that when the primitive types were hoisted into the `builtin`
+  library and the serialized port type keys went stale).
 - nodes live in `barn/haybale-testing/haybale_testing/nodes/benchmark/` and are
   marked *DO NOT EDIT*.
 
 If a benchmark reused a general testbed node and someone added a port to it, the
 number would "drift" for a reason that has nothing to do with framework
-performance. Freezing the inputs means **a moved number means the framework
-moved** — which is the whole point.
+performance — which is why the case builds an explicit, fixed topology.
 
 ### Host + dirty filtering
 

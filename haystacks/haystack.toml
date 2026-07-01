@@ -1,0 +1,11 @@
+[[graphs]]
+path = "graphs/webcam.haywire"
+execute = false
+
+[[graphs]]
+path = "graphs/10x200nodes.haywire"
+execute = false
+
+[haystack]
+name = "haystack"
+active_graph = "graphs/webcam.haywire"

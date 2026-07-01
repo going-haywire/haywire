@@ -4,8 +4,8 @@
 from haywire.core.settings import setting
 from haywire.core.settings.schema import FrameworkSettings, LibrarySettings
 from haywire.core.settings.decorator import settings
-from haywire.core.settings.enums import SettingMode
 from haywire.core.settings.registry import SettingsRegistry
+from haywire.barn.builtin.types import INT, STRING
 
 
 # ---------------------------------------------------------------------------
@@ -14,8 +14,8 @@ from haywire.core.settings.registry import SettingsRegistry
 
 
 class _HotGS(FrameworkSettings, namespace="hot.gs"):
-    alpha = setting[int](7, label="Alpha")
-    beta = setting[str]("abc", label="Beta")
+    alpha = setting[INT](7, label="Alpha")
+    beta = setting[STRING]("abc", label="Beta")
 
 
 class TestRegisterSchema:
@@ -33,7 +33,7 @@ class TestRegisterSchema:
         registry = SettingsRegistry()
         registry.register_schema(_HotGS)
 
-        registry.set_global("hot.gs.alpha", 42, SettingMode.EXPLICIT)
+        registry.set_global("hot.gs.alpha", 42)
         val, _ = registry.resolve("hot.gs.alpha")
         assert val == 42
 
@@ -52,7 +52,7 @@ class TestRegisterSchema:
 
 @settings(namespace="hot.lib")
 class _HotLib(LibrarySettings):
-    rate = setting[int](4, min=1, max=20)
+    rate = setting[INT](4, min=1, max=20)
 
 
 class TestRegisterLibrarySchema:
@@ -80,7 +80,7 @@ class TestHotReloadCycle:
     def test_fields_gone_after_unregister(self):
         registry = SettingsRegistry()
         registry.register_schema(_HotGS)
-        registry.set_global("hot.gs.alpha", 42, SettingMode.EXPLICIT)
+        registry.set_global("hot.gs.alpha", 42)
 
         # Simulate unregister (library removal)
         registry_key = _HotGS.class_identity.registry_key
@@ -92,7 +92,7 @@ class TestHotReloadCycle:
     def test_re_register_restores_defaults(self):
         registry = SettingsRegistry()
         registry.register_schema(_HotGS)
-        registry.set_global("hot.gs.alpha", 42, SettingMode.EXPLICIT)
+        registry.set_global("hot.gs.alpha", 42)
 
         registry_key = _HotGS.class_identity.registry_key
         registry._unregister_class(registry_key)

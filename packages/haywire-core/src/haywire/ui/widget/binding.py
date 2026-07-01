@@ -12,7 +12,7 @@ between data storage and binding logic.
 from dataclasses import dataclass, field
 from typing import Any, Callable, List, Optional
 
-from haywire.core.types import PrimitiveField, BaseField, DataPort
+from haywire.core.types import PrimitiveField, BaseField, WidgetModel
 from haywire.ui.widget.converters import (
     BindingConverter,
     BindingMode,
@@ -46,7 +46,7 @@ class PropertyBinding:
     mode: BindingMode = BindingMode.TWO_WAY
 
     # Internal state
-    _element: Optional[DataPort] = field(default=None, init=False, repr=False)
+    _element: Optional[WidgetModel] = field(default=None, init=False, repr=False)
     _ui_element: Optional[Any] = field(default=None, init=False, repr=False)
     _is_active: bool = field(default=False, init=False, repr=False)
     _cleanup_callbacks: List[Callable] = field(default_factory=list, init=False, repr=False)
@@ -57,7 +57,7 @@ class PropertyBinding:
         if self.converter is None:
             self.converter = PrimitiveUnwrappingConverter()
 
-    def activate(self, element: DataPort, ui_element: Any, subscribe_model_to_view: bool = True) -> None:
+    def activate(self, element: WidgetModel, ui_element: Any, subscribe_model_to_view: bool = True) -> None:
         """
         Activate binding between DataPort and UI element.
 

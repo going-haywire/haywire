@@ -8,7 +8,7 @@ from haywire.core.state import SessionState, state
 if TYPE_CHECKING:
     from haywire.core.edge.edge_wrapper import EdgeWrapper
     from haywire.core.graph.base import BaseGraph
-    from haywire.core.node.base import DataPort
+    from haywire.core.types import DataPort
     from haywire.core.node.node_wrapper import NodeWrapper
     from haywire.core.undo.actions.graph_actions import ClipboardData
 

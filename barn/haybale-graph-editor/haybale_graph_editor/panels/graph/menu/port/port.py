@@ -18,6 +18,7 @@ from .....focuses import PinFocus
 from .....state.edit_state import EditState
 from .....editors.graph_canvas.handlers.context_menu_actions import PortContextActions
 
+
 if TYPE_CHECKING:
     from haywire.core.session.context import SessionContext
 
@@ -55,3 +56,36 @@ class PortInfoMenuPanel(BasePanel):
 
 
 # --8<-- [end:port_info_menu_panel]
+
+
+@panel(
+    actions=PortContextActions,
+    focus=PinFocus,
+    label="Detach from setting",
+    icon=hui.icon.delete,
+    order=20,
+)
+class DetachSettingMenuPanel(BasePanel):
+    """Shown only on a promoted inlet; demotes it back to a plain setting."""
+
+    actions: PortContextActions
+
+    @classmethod
+    def poll(cls, ctx: "SessionContext") -> bool:
+        port = ctx.data[EditState].active_port
+        return port is not None and port.promoted
+
+    def draw(
+        self,
+        ctx: "SessionContext",
+        layout: PanelLayout,
+    ) -> None:
+        port = ctx.data[EditState].active_port
+        if port is None:
+            return
+        with layout:
+            hui.button(
+                "Detach from setting",
+                icon=hui.icon.delete,
+                on_click=lambda: self.actions.demote_setting(port.id),
+            )

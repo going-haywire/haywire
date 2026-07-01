@@ -1,6 +1,5 @@
 from typing import Any, Callable, Type, TypeVar
 
-from haywire.core.types.interface import IType
 from haywire.core.library.utils import WIDGET, derive_library_identity, reg_key
 
 from .interface import IWidget
@@ -38,40 +37,24 @@ def widget(**kwargs: Any) -> Callable[[Type[T]], Type[T]]:
 
     Usage:
         # Common customization
-        @widget(description="Custom widget for text input", compatible_types={STRING})
+        @widget(description="Custom widget for text input")
         class MyWidget(BaseWidget): ...
 
         # Full customization
         @widget(
             description="Advanced text input widget with validation",
-            compatible_types={STRING},
             _is_error=False,
         )
         class TextWidget(BaseWidget): ...
 
         # Error widget
-        @widget(description="Error display widget", compatible_types=set(), _is_error=True)
+        @widget(description="Error display widget", _is_error=True)
         class ErrorWidget(BaseWidget): ...
     """
 
     def decorator(inner_cls: Type[T]) -> Type[T]:
         if not issubclass(inner_cls, IWidget):
             raise TypeError(f"@widget can only be applied to BaseWidget subclasses, got {inner_cls}")
-
-        if "compatible_types" not in kwargs:
-            raise ValueError("'compatible_types' must be provided when registering a widget")
-
-        if not isinstance(kwargs["compatible_types"], (set, list)):
-            raise TypeError("'compatible_types' must be a set or list of type classes")
-
-        types = kwargs["compatible_types"]
-
-        # However, we allow no type constraints.
-        # This has to be explicit by setting an empty set/list.
-
-        for typ in types:
-            if not issubclass(typ, IType):
-                raise TypeError(f"All 'compatible_types' must be subclasses of IType, got '{typ}'")
 
         # Set defaults from class name if not provided
         kwargs.setdefault("registry_id", inner_cls.__name__)

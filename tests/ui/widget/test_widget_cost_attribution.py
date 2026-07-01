@@ -1,8 +1,8 @@
 """Cost attribution for the 200-node / 2200-widget graph.
 
-Answers "which part of the widget actually costs the time" for
-``graphs/10x200nodes.haywire`` (200 PerformanceTester nodes, **0 edges**, 11
-NumberWidgets each → 2200 widgets, all unlinked → all rendered).
+Answers "which part of the widget actually costs the time" for a fresh-built
+perf graph (200 PerformanceTester nodes, **0 edges**, 11 NumberWidgets each →
+2200 widgets, all unlinked → all rendered). See ``conftest.build_perf_graph``.
 
 It renders every node through the *real* SkinFactory under a headless NiceGUI
 client and counts three things, mapped to the cost centers from the review
@@ -29,23 +29,20 @@ from __future__ import annotations
 import haywire.core.graph.editor  # noqa: F401
 
 import time
-from pathlib import Path
 
 import pytest
 from nicegui import ui
 
-from haywire.core.graph.base import BaseGraph
-from haywire.core.graph.scheduler import SyncScheduler
 from haywire.ui.skin.base import BaseSkin
 from haywire.ui.skin.factory import SkinFactory
 
-# perf + integration: depends on the `library_system` fixture and a fully-loaded
-# node registry (loads a real graph). Marked integration so it only runs where
-# that registry state is reliable — outside it, shared-global registry pollution
-# from earlier tests can leave PerformanceTester unregistered (0 nodes loaded).
-pytestmark = [pytest.mark.perf, pytest.mark.integration]
+from .conftest import build_perf_graph
 
-_GRAPH = Path(__file__).resolve().parents[3] / "graphs" / "10x200nodes.haywire"
+# perf + integration: depends on the `library_system` fixture and a fully-loaded
+# node registry (builds a real graph). Marked integration so it only runs where
+# that registry state is reliable — outside it, shared-global registry pollution
+# from earlier tests can leave PerformanceTester unregistered (0 nodes built).
+pytestmark = [pytest.mark.perf, pytest.mark.integration]
 
 
 class _Counter:
@@ -76,17 +73,12 @@ class _Counter:
         setattr(self.owner, self.attr, self._orig)
 
 
-def test_widget_cost_attribution(library_system):
+def test_widget_cost_attribution(library_system, nicegui_slot_context):
     injector = library_system.injector
     skin_factory = injector.get(SkinFactory)
 
-    graph = BaseGraph(graph_id="perf", name="perf", validation_scheduler=SyncScheduler())
-    assert _GRAPH.exists(), f"graph fixture missing: {_GRAPH}"
-    assert graph.load_from_file(str(_GRAPH)), "graph failed to load"
-
+    graph = build_perf_graph()
     wrappers = list(graph.node_wrappers.values())
-    assert len(wrappers) == 200, f"expected 200 nodes, got {len(wrappers)}"
-    assert len(graph.edge_wrappers) == 0, "fixture is meant to be edge-free (all widgets render)"
 
     skin_key = skin_factory._skin_registry.get_default_skin_registry_key()
 
@@ -111,7 +103,7 @@ def test_widget_cost_attribution(library_system):
     enqueue_during_render = enqueue_counter.calls
 
     print(
-        "\n--- widget cost attribution: graphs/10x200nodes.haywire ---\n"
+        "\n--- widget cost attribution: 200-node perf graph (build_perf_graph) ---\n"
         f"  nodes                         : {len(wrappers)}\n"
         f"  edges                         : {len(graph.edge_wrappers)} (all widgets render)\n"
         f"  render_widget calls           : {render_widget_calls}  "

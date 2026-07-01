@@ -865,7 +865,7 @@ def category_group(label: str, *, default_open: bool = True):
             # rendered without a header
     """
     if label.lower() == "root":
-        with ui.column().classes("w-full gap-0") as col:
+        with ui.column().classes("w-full sf-field-list") as col:
             yield col
         return
 
@@ -878,8 +878,12 @@ def category_group(label: str, *, default_open: bool = True):
             ' header-class="text-xs font-bold hw-text-muted uppercase tracking-wide'
             ' px-2 py-0 min-h-[24px] truncate"'
         )
-    ) as exp:
-        yield exp
+    ):
+        # Field rows go into an sf-field-list column so they get the same uniform
+        # vertical gap as the root-category rows (the expansion content slot itself
+        # has no flex gap).
+        with ui.column().classes("w-full sf-field-list") as col:
+            yield col
 
 
 # ──────────────────────────────────────────────────────────────────────────────

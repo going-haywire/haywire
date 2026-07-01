@@ -187,6 +187,19 @@ The outer key is the accessor name; the inner dict maps field name → locally-s
 
 **Important ordering rule for `shadow()` / `watch()` between modules.** A node class using `shadow(MyLibSettings.api_url)` must be **defined after** `MyLibSettings`. The `@settings(namespace='my_lib')` decorator sets `_setting_key` on each descriptor at class evaluation time; if your node imports `MyLibSettings` later, that's fine — but if both live in the same module, declaration order matters.
 
+**Promoting a setting to a port (field + direction).** A setting can be *promoted* to a DATA port so the graph can drive it or read it. Promotion is a **field + a direction**; the port and the setting become one cell, two views (the port borrows the setting's cell by reference — see [architecture §6.5](../../architecture/settings/settings-arch.md#65-promotion--field--direction) and [ADR 0014](../../adr/0014-promotion-as-direction.md)).
+
+```python
+from haywire.core.node.promotion import promote_setting, demote_setting
+from haywire.core.types.enums import PortType
+
+promote_setting(node, "filter", "threshold", direction=PortType.INLET)   # edge drives the setting
+promote_setting(node, "filter", "threshold", direction=PortType.OUTLET)  # setting drives downstream
+demote_setting(node, "filter", "threshold")                              # remove the port
+```
+
+Eligibility is two flag checks: a `watch()` field is **outlet only** (read-only ⇒ no write path in); plain and `shadow()` fields can be promoted either way. Direction picks the port factory, so a promoted **inlet** shows its widget while unlinked and hides it while driven, and a promoted **outlet** never shows one. `demote` never resets the value (freeze-on-disconnect) — recovery is an explicit `reset`. In the graph editor these are the node right-click "Promote Setting → inlet / outlet" verbs and the pin's "Detach from setting".
+
 ## 3a. Using `LibrarySettings` from a State, Editor, or Panel
 
 Hold a `LibrarySettings` instance the same way you'd hold any other dependency: construct it once, read fields off it. No injection, no setup call.
