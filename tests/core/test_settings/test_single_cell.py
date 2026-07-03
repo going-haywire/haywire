@@ -14,6 +14,8 @@ new mechanism, added task-by-task.
 
 import haywire.core.graph.editor  # noqa: F401  (circular-import guard, per CLAUDE.md)
 
+import pytest
+
 from haywire.core.settings import Settings, setting
 from haywire.core.di.test_config import create_test_bag
 from haywire.barn.builtin.types import BOOL, COLOR, FLOAT, STRING, VEC2I
@@ -250,19 +252,20 @@ class TestCellFor:
         second = bag._cell_for(descriptor)
         assert first is second
 
-    def test_object_typed_field_returns_none(self):
-        """An un-IType (``object``-typed) field has no IType to build a cell from,
-        so ``_cell_for`` returns None. Real fields never reach here (``__set_name__``
-        enforces IType), so this exercises the defensive fallback directly."""
+    def test_object_typed_field_raises(self):
+        """Settings are IType-only: an un-IType (``object``-typed) field has no
+        cell and no fallback store. ``__set_name__`` rejects it at class-definition
+        time; a descriptor that bypassed enforcement fails loudly in ``_cell_for``."""
         bag = SimpleBag()
         # Build a bare descriptor with _type=object WITHOUT running __set_name__
-        # (which would reject a non-IType). This is the un-typed escape hatch.
+        # (which would reject a non-IType).
         descriptor = setting.__new__(setting)
         descriptor._type = object
         descriptor._default = "x"
         descriptor._setting_key = ""
         descriptor._attr_name = "untyped"
-        assert bag._cell_for(descriptor) is None
+        with pytest.raises(TypeError, match="IType-only"):
+            bag._cell_for(descriptor)
 
 
 # ---------------------------------------------------------------------------
@@ -315,9 +318,10 @@ class TestCellBackedSerialization:
         bag2.from_dict(data)
         assert list(bag2.offset) == [5, 9]
 
-    def test_local_store_attribute_is_gone(self):
-        """P4 removes the general _local_store; only the narrow _plain object-typed
-        fallback remains."""
+    def test_dict_value_stores_are_gone(self):
+        """P4 removed the general _local_store; the _plain object-typed fallback
+        followed once settings became IType-only — the per-field cell is the ONLY
+        local value store."""
         bag = SimpleBag()
         assert not hasattr(bag, "_local_store")
-        assert hasattr(bag, "_plain")
+        assert not hasattr(bag, "_plain")

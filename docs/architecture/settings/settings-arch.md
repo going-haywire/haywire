@@ -212,7 +212,7 @@ Section 4 traced how a `setting` value is *read* through the tier chain. Writes 
 
 #### `setting.__set__` — instance-local
 
-For `NodeSettings` and any plain `Settings` subclass, `setting.__set__` is the descriptor that runs. It writes the value into the field's `DataField` cell (`obj._cell_for(self).set_value(value)`), records the override in `obj._set_keys`, and fires `_on_property_change` to notify subscribers. The registry is not consulted; the write is invisible to peer instances and is never serialised to the workspace JSON. (An object-typed field with no IType keeps a narrow `_plain` dict instead of a cell — see [§6.4](#64-single-cell-value-model).)
+For `NodeSettings` and any plain `Settings` subclass, `setting.__set__` is the descriptor that runs. It writes the value into the field's `DataField` cell (`obj._cell_for(self).set_value(value)`), records the override in `obj._set_keys`, and fires `_on_property_change` to notify subscribers. The registry is not consulted; the write is invisible to peer instances and is never serialised to the workspace JSON. (Settings are IType-only, so every field has a cell — see [§6.4](#64-single-cell-value-model).)
 
 #### `persistent_setting.__set__` — registry-backed
 
@@ -278,7 +278,7 @@ Three properties follow:
 
 **Serialization stays bare.** The graph settings block keeps its existing wire shape — `bag.to_dict()` emits `{attr_name: bare_value}` per locally-set field (via `cell.get_value()`, not the IType `to_dict` dict), and `from_dict` writes each value back into the cell. Complex ITypes still round-trip losslessly because the *cell* guarantees the IType round-trip; the settings-block shape is unchanged, so existing saved graphs load. See [§7.4](#74-serialisation).
 
-**Object-typed escape hatch.** A field with no IType (`_type is object`) cannot build a cell, so `_cell_for` returns `None` and those fields fall back to a narrow `_plain: dict`. In practice `SettingDescriptor.__set_name__` enforces an IType on every declared field, so `_plain` stays empty — it is a defensive path, not a revived general store.
+**Settings are IType-only.** `SettingDescriptor.__set_name__` rejects any non-IType field at class-definition time, so every field has a cell — `_cell_for` always returns one and raises `TypeError` for a descriptor that somehow bypassed enforcement. There is no cell-less fallback store. (An earlier defensive `_plain: dict` for `object`-typed fields was removed once this invariant was committed to; a value that genuinely isn't an IType belongs in `self.store`/`self.cache`, not in settings.)
 
 **Promotion builds on this cell (P5, landed).** *Promotion* — a field + a direction — makes a port a second view of this same cell. See [§6.5 Promotion = field + direction](#65-promotion--field--direction) and [ADR 0014](../../adr/0014-promotion-as-direction.md). P5 also retired the UI's throwaway-`DataField` bridge (`SettingWidgetModel`), which now binds this cell directly for display.
 
@@ -286,7 +286,7 @@ Three properties follow:
 
 *Promoting* a setting assigns it a **direction** and surfaces it as a DATA port. A promoted port and the setting it binds are **one cell, two views**: the port borrows the setting's [§6.4 cell](#64-single-cell-value-model) *by reference* via `DataPort.bind_field`, so there is no second value and no read-tier bridge ([ADR 0014](../../adr/0014-promotion-as-direction.md)).
 
-**Two directions, two verbs.** `promote_setting(node, accessor, field, direction)` takes a `PortType ∈ {INLET, OUTLET}`; `demote_setting` removes it. There is no in-place redirect — redirect is demote + re-promote, and the cell (and its value) survives both, per the cell-mutation spine. The port id encodes the binding (`setting__<accessor>__<field>`) and, with `DataPort.promoted`, is the *whole* binding signal — the setting descriptor carries no port back-reference.
+**Two directions, two verbs.** `promote_setting(node, accessor, field, direction)` takes a `PortType ∈ {INLET, OUTLET}`; `demote_setting` removes it. There is no in-place redirect — redirect is demote + re-promote, and the cell (and its value) survives both, per the cell-mutation spine. A promoted port's id **is** the setting's `storage_key`, and `DataPort.promoted` marks it a promotion; `promote_setting` marks the field locally-set (`storage_key ∈ _set_keys`) for the port's lifetime, so the setting reads the shared cell (incl. any edge-driven value). The setting descriptor carries no port back-reference; `_resolve_promoted` maps a promoted port id back to its (bag, descriptor) by matching `storage_key`.
 
 **Eligibility is two flag checks, not a per-kind matrix.**
 
@@ -297,9 +297,9 @@ Everything else (mirror vs plain, set vs unset) rides that one `on_changed → p
 
 **Freshness — the two-part `is_linked_lazy` mechanism.** An out-of-frame write is unsafe to propagate eagerly. So (1) a linked edge on an `is_linked_lazy` outlet is forced `is_lazy`, deferring each consumer's pull to its next execution; and (2) `bind_field` on an outlet subscribes `field.on_changed → self._pipes.propagate()`, which *triggers* that lazy pull (the flag alone is inert — a lazy pipe only pulls once its sink is marked dirty). Downstream is "fresh as of the consumer's next execution"; idle-liveness is out of scope.
 
-**Mirror-cell authority.** For a promoted mirror to read correctly headless, the setting keeps a **cross-mirror** field's cell synced to the resolved global (`_cell_for` seeds it, `_on_field_change` writes it, `reset` re-seeds, `__get__` reads it, `cleanup` unsubscribes). "Cross-mirror" = a `shadow`/`watch` of *another* setting (`_mirror_key != storage_key`); a self-namespaced persistent field mirrors itself for resolution and is unaffected (its value lives in the registry tier).
+**Mirror-cell authority.** For a promoted mirror to read correctly headless, the setting keeps a **cross-mirror** field's cell synced to the resolved global (`_cell_for` seeds it, `_on_field_change` writes it, `reset` re-seeds, `__get__` reads it, `cleanup` unsubscribes). "Cross-mirror" = a `shadow`/`watch` of *another* setting (`_mirror_key != storage_key`); a self-namespaced persistent field mirrors itself for resolution and is unaffected (its value lives in the registry tier). Once a cross-mirror field is **promoted**, it is locally-set for the port's lifetime (ADR 0015), so `_on_field_change` no longer updates its read value — the promoted shadow freezes at its promote-time value until demote + `reset`.
 
-**Value-less serialization; settings-first load.** A promoted port serializes as `promoted:true` + `id` + `port_type` + display kwargs — no `recipe`, no `field_data`; the value round-trips through the settings block only. On load, settings bags restore *before* ports, so `from_spec`'s promoted branch binds a cell already at its loaded value — no propagation mid-load.
+**Value-less serialization; settings-first load.** A promoted port serializes with its type `recipe` like any other port, but omits `field_data` — the value round-trips through the settings block only. On load, settings bags restore *before* ports; `_bind_promoted_ports()` runs after ports deserialize and binds each promoted port to its setting's already-loaded cell (ADR 0015) — no propagation mid-load.
 
 **Freeze-on-disconnect.** Demote never resets the value (§C3): whatever the shared cell holds at demote stays. If that value diverges from the un-overridden resolution, the field is marked locally-set so the setting's own read returns it; recovery is an explicit `reset`.
 

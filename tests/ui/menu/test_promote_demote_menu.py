@@ -33,20 +33,16 @@ def test_promotable_fields_excludes_already_promoted(make_node_with_setting):
 
 
 @pytest.mark.integration
-def test_detach_panel_polls_only_on_promoted_port(make_node_with_setting):
-    """The pin-menu 'Detach from setting' panel is identified by is_promoted_port_id."""
-    from haywire.core.node.promotion import (
-        encode_promoted_port_id,
-        is_promoted_port_id,
-        promote_setting,
-    )
+def test_detach_panel_identifies_promoted_port(make_node_with_setting):
+    """The 'Detach from setting' panel targets a promoted port — identified by the
+    port being present with promoted=True at the setting's storage_key (ADR 0015)."""
+    from haywire.core.node.promotion import is_field_promoted, promote_setting
 
     node = make_node_with_setting(accessor="filter", field="threshold")
     promote_setting(node, "filter", "threshold")
-    pid = encode_promoted_port_id("filter", "threshold")
-
-    assert is_promoted_port_id(pid)
-    assert not is_promoted_port_id("some_regular_inlet")
+    assert is_field_promoted(node.filter, "threshold")
+    pid = type(node.filter).__dict__["threshold"].storage_key
+    assert node.ports[pid].promoted is True
 
 
 @pytest.mark.integration
@@ -67,8 +63,6 @@ def test_menu_enumerates_one_button_per_direction(make_node_with_setting):
 @pytest.mark.integration
 def test_promote_action_forwards_direction(make_node_with_setting):
     """The provider's promote_setting verb forwards its direction to core promotion."""
-    from haywire.core.node.promotion import encode_promoted_port_id
-
     node = make_node_with_setting(accessor="filter", field="threshold")
     captured: list = []
 
@@ -80,6 +74,6 @@ def test_promote_action_forwards_direction(make_node_with_setting):
         promote_setting(node, accessor, field, direction)
 
     promote_verb("filter", "threshold", PortType.OUTLET)
-    pid = encode_promoted_port_id("filter", "threshold")
+    pid = type(node.filter).__dict__["threshold"].storage_key
     assert captured == [PortType.OUTLET]
     assert node.ports[pid].is_outlet()

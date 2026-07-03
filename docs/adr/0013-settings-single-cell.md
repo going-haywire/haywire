@@ -22,7 +22,7 @@ A setting's per-instance value lives in a per-field `DataField` cell on the bag,
 - **The cell-mutation spine.** No *structural* action resets a cell. Its **value** returns to default only on an explicit `reset()` (or, in P5, an edge-drive); `reset` clears `_set_keys` and calls `cell.reset()` but never removes the cell. This stable identity is what a future port binds to.
 - **Registry tiers unchanged.** The global/workspace tiers, `save_to_json`/`load_from_json`, and `persistent_setting`'s registry write are untouched (P2/P3). Only the *instance-local* store changed.
 - **Wire shape preserved.** `bag.to_dict()` still emits `{attr_name: bare_value}` per locally-set field (via `cell.get_value()`, not the IType `to_dict` dict), and `from_dict` writes each value back into the cell. Existing saved graphs load unchanged; complex ITypes round-trip losslessly because the *cell* guarantees the IType round-trip.
-- **Object-typed escape hatch.** A field with no IType (`_type is object`) can't build a cell, so `_cell_for` returns `None` and those fields fall back to a narrow `_plain: dict`. `SettingDescriptor.__set_name__` enforces an IType on every declared field, so `_plain` stays empty in practice — it is defensive, not a revived general store.
+- **Object-typed escape hatch.** A field with no IType (`_type is object`) can't build a cell, so `_cell_for` returns `None` and those fields fall back to a narrow `_plain: dict`. `SettingDescriptor.__set_name__` enforces an IType on every declared field, so `_plain` stays empty in practice — it is defensive, not a revived general store. *(Since removed: settings were committed to as IType-only, `_plain` was deleted, and `_cell_for` now raises for a non-IType descriptor.)*
 
 ## Coordination with DECISIONS.md §D
 

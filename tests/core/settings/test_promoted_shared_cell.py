@@ -23,11 +23,11 @@ def _link_and_push(node, pid, value):
 @pytest.mark.integration
 def test_promoted_inlet_and_setting_share_one_cell(make_node_with_setting):
     node = make_node_with_setting(accessor="filter", field="threshold")
-    from haywire.core.node.promotion import encode_promoted_port_id, promote_setting
+    from haywire.core.node.promotion import promote_setting
 
     promote_setting(node, "filter", "threshold")
-    pid = encode_promoted_port_id("filter", "threshold")
     desc = type(node.filter).__dict__["threshold"]
+    pid = desc.storage_key
 
     # Identity: one cell, two views.
     assert node.ports[pid]._data is node.filter._cell_for(desc)
@@ -36,10 +36,10 @@ def test_promoted_inlet_and_setting_share_one_cell(make_node_with_setting):
 @pytest.mark.integration
 def test_driven_promoted_inlet_read_via_shared_cell(make_node_with_setting):
     node = make_node_with_setting(accessor="filter", field="threshold")
-    from haywire.core.node.promotion import encode_promoted_port_id, promote_setting
+    from haywire.core.node.promotion import promote_setting
 
     promote_setting(node, "filter", "threshold")
-    pid = encode_promoted_port_id("filter", "threshold")
+    pid = type(node.filter).__dict__["threshold"].storage_key
 
     _link_and_push(node, pid, 0.9)
     # The setting reflects the driven value — same cell, no bridge.

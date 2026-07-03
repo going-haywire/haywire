@@ -7,19 +7,20 @@ from haywire.core.types.enums import PortType
 
 @pytest.mark.integration
 def test_promoted_port_wire_shape_is_value_less(make_node_with_setting):
-    """A promoted port serializes as promoted:true + id + port_type, NO recipe,
-    NO field_data — the value round-trips through the settings block only."""
+    """A promoted port serializes as promoted:true + id + port_type + recipe
+    (ADR 0015: every port carries its type recipe so from_spec stays generic),
+    but NO field_data — the value round-trips through the settings block only."""
     node = make_node_with_setting(accessor="filter", field="threshold")
-    from haywire.core.node.promotion import encode_promoted_port_id, promote_setting
+    from haywire.core.node.promotion import promote_setting
 
     for direction in (PortType.INLET, PortType.OUTLET):
-        pid = encode_promoted_port_id("filter", "threshold")
+        pid = type(node.filter).__dict__["threshold"].storage_key
         promote_setting(node, "filter", "threshold", direction=direction)
         entry = node._to_dict()["ports"][pid]
 
         assert entry["kwargs"].get("promoted") is True
         assert entry["kwargs"]["id"] == pid
-        assert "recipe" not in entry
+        assert "recipe" in entry
         assert "field_data" not in entry
 
         from haywire.core.node.promotion import demote_setting
@@ -33,10 +34,10 @@ def test_driven_promoted_port_roundtrips_binding_by_reference(make_node_with_set
     """A driven-then-saved promoted port restores the binding by reference
     (port._data is the setting cell) AND the value, for inlet + outlet."""
     node = make_node_with_setting(accessor="filter", field="threshold")
-    from haywire.core.node.promotion import encode_promoted_port_id, promote_setting
+    from haywire.core.node.promotion import promote_setting
 
     promote_setting(node, "filter", "threshold", direction=direction)
-    pid = encode_promoted_port_id("filter", "threshold")
+    pid = type(node.filter).__dict__["threshold"].storage_key
     # Drive a value through the setting (widget-like write); shared cell holds it.
     node.filter.threshold = 0.42
 

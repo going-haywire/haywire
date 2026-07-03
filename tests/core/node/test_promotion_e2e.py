@@ -11,7 +11,6 @@ pytestmark = pytest.mark.integration
 def test_full_promote_drive_demote_cycle(graph_with_library_system, library_system):
     from haywire.core.node.promotion import (
         demote_setting,
-        encode_promoted_port_id,
         promote_setting,
     )
 
@@ -28,7 +27,7 @@ def test_full_promote_drive_demote_cycle(graph_with_library_system, library_syst
 
     # 1. promote example.example_float -> inlet
     promote_setting(node, "example", "example_float")
-    pid = encode_promoted_port_id("example", "example_float")
+    pid = type(node.example).__dict__["example_float"].storage_key
     assert pid in node.ports
 
     # 2. wire MathOP.result (FLOAT outlet) -> the promoted inlet
@@ -56,7 +55,7 @@ def test_promoted_outlet_drives_consumer_lazily(graph_with_library_system, libra
     """A promoted OUTLET wired to a consumer inlet: a setting write (out of frame)
     fires on_changed → the outlet propagates lazily → the consumer pulls the fresh
     value on its next execution. The linked edge is forced is_lazy."""
-    from haywire.core.node.promotion import encode_promoted_port_id, promote_setting
+    from haywire.core.node.promotion import promote_setting
     from haywire.core.types.enums import PortType
 
     graph = graph_with_library_system
@@ -66,7 +65,7 @@ def test_promoted_outlet_drives_consumer_lazily(graph_with_library_system, libra
 
     # 1. promote example.example_float -> OUTLET
     promote_setting(src, "example", "example_float", direction=PortType.OUTLET)
-    pid = encode_promoted_port_id("example", "example_float")
+    pid = type(src.example).__dict__["example_float"].storage_key
     assert src.ports[pid].is_outlet()
     assert src.ports[pid].is_linked_lazy is True
 
@@ -90,12 +89,12 @@ def test_promoted_outlet_drives_consumer_lazily(graph_with_library_system, libra
 def test_promoted_inlet_does_not_subscribe_to_propagate(make_node_with_setting):
     """A promoted INLET has nothing downstream to drive, so bind_field must NOT
     install an on_changed→propagate handler on the shared cell."""
-    from haywire.core.node.promotion import encode_promoted_port_id, promote_setting
+    from haywire.core.node.promotion import promote_setting
     from haywire.core.types.enums import PortType
 
     node = make_node_with_setting(accessor="filter", field="threshold")
     promote_setting(node, "filter", "threshold", direction=PortType.INLET)
-    pid = encode_promoted_port_id("filter", "threshold")
+    pid = type(node.filter).__dict__["threshold"].storage_key
     port = node.ports[pid]
     # The inlet's on_changed handler is not the outlet propagate handler.
     assert port._on_shared_field_changed not in port._data.on_changed
@@ -106,14 +105,13 @@ def test_demote_removes_outlet_propagate_subscription(make_node_with_setting):
     handler left on the shared cell."""
     from haywire.core.node.promotion import (
         demote_setting,
-        encode_promoted_port_id,
         promote_setting,
     )
     from haywire.core.types.enums import PortType
 
     node = make_node_with_setting(accessor="filter", field="threshold")
     promote_setting(node, "filter", "threshold", direction=PortType.OUTLET)
-    pid = encode_promoted_port_id("filter", "threshold")
+    pid = type(node.filter).__dict__["threshold"].storage_key
     port = node.ports[pid]
     desc = type(node.filter).__dict__["threshold"]
     cell = node.filter._cell_for(desc)

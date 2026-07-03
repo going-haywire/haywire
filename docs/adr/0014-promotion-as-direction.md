@@ -1,5 +1,11 @@
 # Promotion is a field + a direction; a setting and a promoted port are one cell, two views
 
+> **Note (ADR 0015):** The binding-signal *mechanism* below (synthetic `setting__…` port id,
+> id-as-binding-key, per-write `_set_keys` marking) is superseded by ADR 0015 — a promoted
+> port's id is the setting's `storage_key` and it is marked locally-set at promote-time. The
+> *direction* model (inlet/outlet, watch⇒outlet-only, `is_linked_lazy`) and one-cell-two-views
+> still hold.
+
 **Status:** Accepted.
 
 Promoting a setting used to mean "create a separate DATA inlet and bridge reads back to it." The inlet owned its own `DataField`; the setting descriptor carried a `_promoted_port_id` back-reference; and `setting.__get__` had a *read-tier branch* that, when the named port was linked, returned `port.get_value()` instead of resolving the setting. That is a **two-value** design — the port has one value, the setting resolves another, and a bridge forwards reads. This ADR records replacing it with **reference-sharing**: a promoted port borrows the setting's [P4 cell](0013-settings-single-cell.md) *by reference* (via a new `DataPort.bind_field`), so a setting and its promoted port are **one cell, two views** — there is no second value, no `_promoted_port_id`, and no read-tier bridge. It is plan **P5**, the final plan of the settings↔DataField unification arc (canonical-key → tier-collapse → JSON → single-cell → **promotion-as-direction**), and it completes the arc.

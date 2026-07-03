@@ -33,11 +33,10 @@ def test_promote_adds_encoded_inlet_demote_removes(make_node_with_setting):
     node = make_node_with_setting(accessor="filter", field="threshold")
     from haywire.core.node.promotion import (
         demote_setting,
-        encode_promoted_port_id,
         promote_setting,
     )
 
-    pid = encode_promoted_port_id("filter", "threshold")
+    pid = type(node.filter).__dict__["threshold"].storage_key
     promote_setting(node, "filter", "threshold")
     assert pid in node.ports
     assert node.ports[pid].is_inlet()
@@ -48,10 +47,10 @@ def test_promote_adds_encoded_inlet_demote_removes(make_node_with_setting):
 
 def test_linked_promoted_inlet_observed_via_setting(make_node_with_setting):
     node = make_node_with_setting(accessor="filter", field="threshold")
-    from haywire.core.node.promotion import encode_promoted_port_id, promote_setting
+    from haywire.core.node.promotion import promote_setting
 
     promote_setting(node, "filter", "threshold")
-    pid = encode_promoted_port_id("filter", "threshold")
+    pid = type(node.filter).__dict__["threshold"].storage_key
 
     # Unlinked → setting resolves normally (its own cell value / default).
     assert node.filter.threshold == 0.5
@@ -66,7 +65,7 @@ def test_watch_default_direction_rejected_shadow_default_ok(library_system):
     a ``watch()`` field defaults to the inlet direction and is rejected
     (read-only ⇒ outlet-only); a ``shadow()`` field promotes to the default
     inlet fine. Per-direction coverage lives in the Task 3 tests below."""
-    from haywire.core.node.promotion import encode_promoted_port_id, promote_setting
+    from haywire.core.node.promotion import promote_setting
 
     node = _make_mixed_bag_node(library_system)
 
@@ -76,15 +75,15 @@ def test_watch_default_direction_rejected_shadow_default_ok(library_system):
 
     # shadow → (default) inlet is now allowed.
     promote_setting(node, "cfg", "shadowed")
-    assert encode_promoted_port_id("cfg", "shadowed") in node.ports
+    assert type(node.cfg).__dict__["shadowed"].storage_key in node.ports
 
 
 def test_promoted_inlet_roundtrips_and_rebinds(make_node_with_setting):
     node = make_node_with_setting(accessor="filter", field="threshold")
-    from haywire.core.node.promotion import encode_promoted_port_id, promote_setting
+    from haywire.core.node.promotion import promote_setting
 
     promote_setting(node, "filter", "threshold")
-    pid = encode_promoted_port_id("filter", "threshold")
+    pid = type(node.filter).__dict__["threshold"].storage_key
 
     data = node._to_dict()
     restored = type(node)("n2", node.wrapper)
@@ -108,10 +107,10 @@ def test_promoted_inlet_shares_the_setting_cell_by_reference(make_node_with_sett
     """After promote, the port's ``_data`` IS the setting's P4 cell (identity),
     and a write through the setting is observed by the port with no copy step."""
     node = make_node_with_setting(accessor="filter", field="threshold")
-    from haywire.core.node.promotion import encode_promoted_port_id, promote_setting
+    from haywire.core.node.promotion import promote_setting
 
     promote_setting(node, "filter", "threshold")
-    pid = encode_promoted_port_id("filter", "threshold")
+    pid = type(node.filter).__dict__["threshold"].storage_key
 
     bag = node.filter
     desc = _descriptor_of(node, "filter", "threshold")
@@ -128,10 +127,10 @@ def test_promoted_inlet_shares_the_setting_cell_by_reference(make_node_with_sett
 def test_unbind_field_reverses_the_share(make_node_with_setting):
     """``unbind_field`` restores an independent field on the port."""
     node = make_node_with_setting(accessor="filter", field="threshold")
-    from haywire.core.node.promotion import encode_promoted_port_id, promote_setting
+    from haywire.core.node.promotion import promote_setting
 
     promote_setting(node, "filter", "threshold")
-    pid = encode_promoted_port_id("filter", "threshold")
+    pid = type(node.filter).__dict__["threshold"].storage_key
 
     desc = _descriptor_of(node, "filter", "threshold")
     cell = node.filter._cell_for(desc)
@@ -182,12 +181,12 @@ def _make_mixed_bag_node(library_system):
 
 
 def test_promote_plain_to_inlet_shows_widget_when_unlinked(make_node_with_setting):
-    from haywire.core.node.promotion import encode_promoted_port_id, promote_setting
+    from haywire.core.node.promotion import promote_setting
     from haywire.core.types.enums import PortType, ShowWidgetStrategy
 
     node = make_node_with_setting(accessor="filter", field="threshold")
     promote_setting(node, "filter", "threshold", direction=PortType.INLET)
-    pid = encode_promoted_port_id("filter", "threshold")
+    pid = type(node.filter).__dict__["threshold"].storage_key
     port = node.ports[pid]
     assert port.is_inlet()
     # Inlet default: NOT_LINKED → widget shows while unlinked.
@@ -199,12 +198,12 @@ def test_promote_plain_to_inlet_shows_widget_when_unlinked(make_node_with_settin
 
 
 def test_promote_plain_to_outlet_never_shows_widget_and_is_lazy(make_node_with_setting):
-    from haywire.core.node.promotion import encode_promoted_port_id, promote_setting
+    from haywire.core.node.promotion import promote_setting
     from haywire.core.types.enums import PortType, ShowWidgetStrategy
 
     node = make_node_with_setting(accessor="filter", field="threshold")
     promote_setting(node, "filter", "threshold", direction=PortType.OUTLET)
-    pid = encode_promoted_port_id("filter", "threshold")
+    pid = type(node.filter).__dict__["threshold"].storage_key
     port = node.ports[pid]
     assert port.is_outlet()
     assert port.show_widget == ShowWidgetStrategy.NEVER
@@ -217,22 +216,22 @@ def test_promote_plain_to_outlet_never_shows_widget_and_is_lazy(make_node_with_s
 
 def test_default_direction_is_inlet(make_node_with_setting):
     """Back-compat: omitting direction promotes to an inlet (Plan-3 behaviour)."""
-    from haywire.core.node.promotion import encode_promoted_port_id, promote_setting
+    from haywire.core.node.promotion import promote_setting
 
     node = make_node_with_setting(accessor="filter", field="threshold")
     promote_setting(node, "filter", "threshold")
-    assert node.ports[encode_promoted_port_id("filter", "threshold")].is_inlet()
+    assert node.ports[type(node.filter).__dict__["threshold"].storage_key].is_inlet()
 
 
 def test_watch_to_inlet_rejected_watch_to_outlet_ok(library_system):
-    from haywire.core.node.promotion import encode_promoted_port_id, promote_setting
+    from haywire.core.node.promotion import promote_setting
     from haywire.core.types.enums import PortType
 
     node = _make_mixed_bag_node(library_system)
     with pytest.raises(ValueError):
         promote_setting(node, "cfg", "watched", direction=PortType.INLET)
     promote_setting(node, "cfg", "watched", direction=PortType.OUTLET)
-    port = node.ports[encode_promoted_port_id("cfg", "watched")]
+    port = node.ports[type(node.cfg).__dict__["watched"].storage_key]
     assert port.is_outlet()
     assert port.is_linked_lazy is True
 
@@ -240,18 +239,18 @@ def test_watch_to_inlet_rejected_watch_to_outlet_ok(library_system):
 def test_shadow_to_both_directions_ok(library_system):
     from haywire.core.node.promotion import (
         demote_setting,
-        encode_promoted_port_id,
         promote_setting,
     )
     from haywire.core.types.enums import PortType
 
     node = _make_mixed_bag_node(library_system)
+    shadowed_pid = type(node.cfg).__dict__["shadowed"].storage_key
     promote_setting(node, "cfg", "shadowed", direction=PortType.INLET)
-    assert node.ports[encode_promoted_port_id("cfg", "shadowed")].is_inlet()
-    demote_setting(node, encode_promoted_port_id("cfg", "shadowed"))
+    assert node.ports[shadowed_pid].is_inlet()
+    demote_setting(node, shadowed_pid)
 
     promote_setting(node, "cfg", "shadowed", direction=PortType.OUTLET)
-    port = node.ports[encode_promoted_port_id("cfg", "shadowed")]
+    port = node.ports[shadowed_pid]
     assert port.is_outlet()
     assert port.is_linked_lazy is True
 
@@ -260,14 +259,13 @@ def test_demote_after_driven_value_keeps_the_cell_value(make_node_with_setting):
     """§C3: demote is structural — it never resets the value."""
     from haywire.core.node.promotion import (
         demote_setting,
-        encode_promoted_port_id,
         promote_setting,
     )
     from haywire.core.types.enums import PortType
 
     node = make_node_with_setting(accessor="filter", field="threshold")
     promote_setting(node, "filter", "threshold", direction=PortType.INLET)
-    pid = encode_promoted_port_id("filter", "threshold")
+    pid = type(node.filter).__dict__["threshold"].storage_key
     _link_and_push(node, pid, 0.77)
     assert node.filter.threshold == 0.77
 
