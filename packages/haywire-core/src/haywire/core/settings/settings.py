@@ -5,15 +5,23 @@ Settings — observable setting container for Haywire.
 Subclass and declare settings with ``setting()``:
 
     class FilterSettings(Settings):
-        strength = setting[float](0.5, min=0.0, max=1.0, label='Strength')
-        mode     = setting[str]('fast', choices=['fast', 'precise'])
+        strength = setting[FLOAT](0.5, min=0.0, max=1.0, label='Strength')
+        mode     = setting[STRING]('fast', choices=['fast', 'precise'])
 
-Simple mode (no registry):
-    Direct _local_store lookup.  Zero overhead.  Used by NodeProperties and
-    any Settings subclass that doesn't need global defaults.
+Single-cell value model (P4):
+    Every declared field owns a per-instance ``DataField`` cell (the same cell a
+    port uses), built lazily by ``_cell_for`` from the field's IType. The value
+    lives in the cell; ``__get__`` returns ``cell-if-set else default``, where
+    "set" is ``_set_keys`` membership (the cell always holds *a* value, so it
+    can't itself encode set-or-unset). See ADR 0013.
 
-Extended mode (registry injected by @node decorator):
-    Reads go through _resolve() — full resolution chain (TOML tiers).
+No registry (plain ``Settings`` / ``NodeSettings``):
+    ``__get__`` returns the cell value when locally set, else the descriptor
+    default.  Zero registry overhead.
+
+Registry injected (@node / FrameworkSettings / LibrarySettings):
+    An unset field's read goes through ``_resolve()`` — the full resolution
+    chain. A local override short-circuits the chain via the cell.
     mirrors= on a setting links to a FrameworkSettings/LibrarySettings setting.
     read_only=True on a setting prevents per-instance writes (watch behaviour).
 
@@ -33,6 +41,8 @@ from typing import Any, Callable, ClassVar, TYPE_CHECKING
 
 from typing_extensions import dataclass_transform
 
+from haywire.core.types.interface import IType
+
 from .descriptor import setting, shadow, watch
 
 if TYPE_CHECKING:
@@ -40,6 +50,8 @@ if TYPE_CHECKING:
     from haywire.core.settings.value import SettingValue
     from haywire.core.settings.decorator import SettingsClassIdentity
     from haywire.core.library.identity import LibraryIdentity
+    from haywire.core.types.fields import DataField
+    from haywire.core.node.data import NodeData
 
 logger = logging.getLogger(__name__)
 
@@ -66,11 +78,73 @@ class Settings:
     class_identity: ClassVar["SettingsClassIdentity"]
     class_library: ClassVar["LibraryIdentity"]
 
-    def __init__(self, registry: "SettingsRegistry | None" = None) -> None:
+    def __init__(self, registry: "SettingsRegistry | None" = None, node: "NodeData | None" = None) -> None:
         self._callbacks: list[Callable] = []
-        self._local_store: dict[str, Any] = {}  # key → value
+        # Per-field DataField cell — one cell per declared (IType-typed) field,
+        # built lazily by _cell_for. The cell holds the field's value (same cell
+        # a port uses); this is the store that supersedes the old dict (P4).
+        self._cells: dict[str, "DataField"] = {}
+        # The set-or-unset opinion. A cell ALWAYS holds a value (its default), so
+        # cell membership can't distinguish "inheriting" from "set to the default";
+        # _set_keys carries that opinion explicitly (mirrors the registry tiers'
+        # set-or-unset design from P2). storage_key ∈ _set_keys ⇔ locally set.
+        self._set_keys: set[str] = set()
         self._registry: "SettingsRegistry | None" = registry
         self._cleaned_up: bool = False
+        # Back-reference to the owning node (None for standalone Framework/Library
+        # settings). Lets promotion resolve node.ports from a bag. Constructor arg —
+        # no object.__setattr__ monkeypatch (ADR 0015).
+        self._node: "NodeData | None" = node
+
+    def _is_locally_set(self, descriptor: setting) -> bool:
+        """Return True if this field has a local instance override (P4)."""
+        return descriptor.storage_key in self._set_keys
+
+    def _local_value(self, descriptor: setting) -> Any:
+        """Return this field's locally-set value from its cell. Only meaningful
+        when the field is in ``_set_keys``."""
+        return self._cell_for(descriptor).get_value()
+
+    def _write_local(self, descriptor: setting, value: Any) -> None:
+        """Write *value* into this field's cell and mark it locally set. Used by
+        the silent-restore path (from_dict); the live path goes through the
+        descriptor's __set__."""
+        self._cell_for(descriptor).set_value(value)
+        self._set_keys.add(descriptor.storage_key)
+
+    def _cell_for(self, descriptor: setting) -> "DataField":
+        """Return (creating + caching on first call) this field's DataField cell.
+
+        The cell is built from the field's IType via ``create_field`` and seeded
+        with the descriptor default. Cached per ``storage_key``. Settings are
+        IType-only (``SettingDescriptor.__set_name__`` enforces it at
+        class-definition time), so every field has a cell; a descriptor that
+        somehow bypassed enforcement fails loudly here.
+        """
+        raw_type = descriptor._type
+        if not (isinstance(raw_type, type) and issubclass(raw_type, IType)):
+            raise TypeError(
+                f"setting field {descriptor.storage_key!r} has no IType "
+                f"(got {raw_type!r}) — settings are IType-only, there is no "
+                f"cell-less fallback store."
+            )
+        itype = raw_type
+        key = descriptor.storage_key
+        cell = self._cells.get(key)
+        if cell is None:
+            # A cross-mirror field (shadow/watch of another setting) has no
+            # meaningful descriptor default — its value is the resolved global
+            # (P5 Task 2.5). Seed the cell with the resolved value so a headless
+            # graph is correct before any change fires. A plain field (and a
+            # self-namespaced persistent field) seeds with its own default.
+            if descriptor.is_cross_mirror and self._registry is not None:
+                seed = self._resolve(descriptor.storage_key, descriptor._mirror_key, descriptor._default)
+            else:
+                default = descriptor._default
+                seed = default() if callable(default) else default
+            cell = itype.create_field(default_override={"value": seed})
+            self._cells[key] = cell
+        return cell
 
     # -------------------------------------------------------------------------
     # Extended mode: resolution chain
@@ -79,21 +153,23 @@ class Settings:
     def _resolve(self, field_key: str, mirror_key: str, default: Any) -> Any:
         """
         Full resolution chain (extended mode):
-            global OVERRIDE > workspace OVERRIDE > local SET > workspace SET > global SET > default
+            local SET > workspace SET > global SET > default
         """
         from haywire.core.settings.value import SettingValue
-        from haywire.core.settings.enums import SettingMode
 
         registry = self._registry
         assert (
             registry is not None
         )  # _resolve only called from extended mode (descriptor gates on _registry is not None)
         key = mirror_key if mirror_key else field_key
-        local_sv = (
-            SettingValue(mode=SettingMode.EXPLICIT, value=self._local_store[field_key])
-            if field_key in self._local_store
-            else None
-        )
+        # Local override: the value lives in the field's cell, gated on _set_keys
+        # (the cell always holds *a* value, so membership can't stand in for
+        # set-ness — see _set_keys).
+        local_sv = None
+        if field_key in self._set_keys:
+            cell = self._cells.get(field_key)
+            if cell is not None:
+                local_sv = SettingValue.of(cell.get_value())
 
         def _resolve_default(d: Any) -> Any:
             return d() if callable(d) else d
@@ -104,7 +180,9 @@ class Settings:
                 return _resolve_default(default)  # no mirror — use local descriptor's default
             return value
         except KeyError:
-            return _resolve_default(self._local_store.get(field_key, default))
+            if local_sv is not None:
+                return local_sv.value
+            return _resolve_default(default)
 
     def _subscribe_settings(self) -> None:
         """Subscribe all fields that have a _mirror_key. Delegates to _subscribe_setting."""
@@ -121,23 +199,25 @@ class Settings:
         """
         Dispatched by the registry when a mirrored field's effective value changes.
 
-        Suppresses the callback when the instance has a local override and the
-        incoming change is not a global OVERRIDE — in that case the resolved value
-        is unchanged, so firing the callback would be spurious.
-
-        A global OVERRIDE beats all local values, so the callback always fires then.
+        "Unset tracks; set ignores" (DECISIONS.md §A): when the instance has a
+        local override the resolved value is unchanged, so the callback is
+        suppressed. With no local override the field re-resolves and fires.
         """
-        from haywire.core.settings.enums import SettingMode
-
         if self._cleaned_up:
             return
         for attr_name, descriptor in type(self)._property_settings().items():
             if descriptor._mirror_key != full_key:
                 continue
-            field_key = descriptor._setting_key or attr_name
-            if field_key in self._local_store and value.mode != SettingMode.OVERRIDE:
+            if self._is_locally_set(descriptor):
                 continue
-            new_val = getattr(self, attr_name)
+            # Keep a cross-mirror's shared cell authoritative: write the resolved
+            # value into it so the cell (which a promoted port may share) always
+            # holds the current global. Headless-correct — no UI subscriber
+            # required (P5 Task 2.5). A self-namespaced persistent field resolves
+            # from the registry tier, so its cell is not written here.
+            new_val = self._resolve(descriptor.storage_key, descriptor._mirror_key, descriptor._default)
+            if descriptor.is_cross_mirror:
+                self._cell_for(descriptor).set_value(new_val)
             self._on_property_change(attr_name, new_val, None, descriptor._on_change or "")
 
     # -------------------------------------------------------------------------
@@ -198,24 +278,19 @@ class Settings:
                 continue
             if not descriptor._stored:
                 continue
-            key = descriptor._setting_key if descriptor._setting_key else name
-            if key in self._local_store:
-                val = self._local_store[key]
-                if val != descriptor._default:
-                    result[name] = val
-            elif self._registry is None:
-                # Simple mode: check by attr name
-                val = self._local_store.get(name, descriptor._default)
-                if val != descriptor._default:
-                    result[name] = val
+            if not self._is_locally_set(descriptor):
+                continue
+            val = self._local_value(descriptor)
+            if val != descriptor._default:
+                result[name] = val
         return result
 
     def from_dict(self, data: dict, *, silent: bool = True) -> None:
         """
         Restore values from *data*.
 
-        silent=True (default): writes directly to _local_store — no callbacks fired.
-            Used during deserialization (graph load).
+        silent=True (default): writes directly into the field's cell — no
+            callbacks fired. Used during deserialization (graph load).
         silent=False: uses normal setattr — callbacks fire.
             Used for live updates.
 
@@ -230,8 +305,7 @@ class Settings:
             if descriptor._read_only:
                 continue
             if silent:
-                key = descriptor._setting_key if descriptor._setting_key else attr_name
-                self._local_store[key] = value
+                self._write_local(descriptor, value)
             else:
                 setattr(self, attr_name, value)
 
@@ -245,10 +319,22 @@ class Settings:
         if name not in fields:
             raise KeyError(f"No setting '{name}' on {type(self).__name__}")
         descriptor = fields[name]
-        key = descriptor._setting_key if descriptor._setting_key else name
-        if key in self._local_store:
-            old = self._local_store.pop(key)
-            new = descriptor._default
+        key = descriptor.storage_key
+        if key in self._set_keys:
+            old = self._local_value(descriptor)
+            self._set_keys.discard(key)
+            # Return the cell to the value the field would resolve to with no
+            # override. For a mirror field that is the current global (re-seed +
+            # resume tracking, P5 Task 2.5); for a plain field it is the
+            # descriptor default. The cell is never structurally reset — only its
+            # *value* returns (DECISIONS §C3).
+            cell = self._cell_for(descriptor)
+            if descriptor.is_cross_mirror and self._registry is not None:
+                new = self._resolve(descriptor.storage_key, descriptor._mirror_key, descriptor._default)
+                cell.set_value(new)
+            else:
+                cell.reset()
+                new = descriptor._default
             if old != new:
                 self._on_property_change(name, new, old)
 
@@ -265,6 +351,12 @@ class Settings:
         """Release global namespace subscriptions.  Call on node removal."""
         self._cleaned_up = True
         self._callbacks.clear()
+        # Symmetric with _subscribe_setting: drop each mirror field's registry
+        # subscription so the registry doesn't hold a stale handler (P5 Task 2.5).
+        if self._registry is not None:
+            for descriptor in type(self)._property_settings().values():
+                if descriptor._mirror_key:
+                    self._registry.unsubscribe(descriptor._mirror_key, self._on_field_change)
 
     # -------------------------------------------------------------------------
     # Introspection
@@ -275,9 +367,7 @@ class Settings:
         fields = type(self)._property_settings()
         if name not in fields:
             return False
-        descriptor = fields[name]
-        key = descriptor._setting_key if descriptor._setting_key else name
-        return key in self._local_store
+        return self._is_locally_set(fields[name])
 
     @classmethod
     def _property_settings(cls) -> dict[str, setting]:

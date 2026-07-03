@@ -4,12 +4,15 @@ SettingsRegistry - central registry for setting definitions and global values.
 Extends BaseRegistry for hot-reload and folder scan support.
 
 Three-tier value storage:
-    global tier    (~/.haywire/settings.toml)      — hand-edited by user
-    workspace tier (<workspace>/.haywire/settings.toml) — written by UI, saved via save_to_toml()
+    global tier    (~/.haywire/settings.json)      — hand-edited by user
+    workspace tier (<workspace>/.haywire/settings.json) — written by UI, saved via save_to_json()
     local tier     (Settings per-node)        — serialised into graph JSON
 
-Resolution priority:
-    global OVERRIDE > workspace OVERRIDE > local SET > workspace SET > global SET > default
+Each tier value is simply set or unset (SettingValue.is_set); there is no
+forcing/OVERRIDE strength (dropped in the P2 tier collapse).
+
+Resolution priority (highest-priority *set* tier wins):
+    local SET > workspace SET > global SET > default
 """
 
 from __future__ import annotations
@@ -18,9 +21,8 @@ import threading
 import logging
 import weakref
 from pathlib import Path
-import toml
+import json
 
-from .enums import SettingMode
 from .value import SettingValue
 from .descriptor import setting
 from ..registry.base import BaseRegistry
@@ -54,19 +56,17 @@ class SettingsRegistry(BaseRegistry[Settings]):
     via register_schema() or discovered automatically from library folders.
 
     Two global tiers:
-        'global'    — loaded from ~/.haywire/settings.toml, hand-edited, never saved by UI
-        'workspace' — loaded from <workspace>/.haywire/settings.toml, written by UI via save_to_toml()
+        'global'    — loaded from ~/.haywire/settings.json, hand-edited, never saved by UI
+        'workspace' — loaded from <workspace>/.haywire/settings.json, written by UI via save_to_json()
 
-    TOML Format:
-        [ui.node]
-        bg_color = "#f0f0f0"                           # SET (simple)
-        font_size = { override = true, value = 14 }    # OVERRIDE
+    JSON Format (each value serialized via its IType's to_dict; see ADR 0012):
+        { "ui": { "node": { "bg_color": { "value": "#f0f0f0" } } } }   # SET
 
     Resolution:
-        - Not in file → AUTO (use default from code definition)
-        - Simple value → SET
-        - { override = true, value = X } → OVERRIDE
-        - Unknown setting in TOML → auto-defined with sensible defaults
+        - Not in file → unset (use default from code definition)
+        - {"value": X} (or a bare value) → SET (eligible to win)
+        - Legacy { "override": true, "value": X } → read as a plain SET of X
+        - Unknown setting in file → auto-defined with sensible defaults
     """
 
     TYPE_MAP = {
@@ -224,15 +224,15 @@ class SettingsRegistry(BaseRegistry[Settings]):
         is_new = name not in self._definitions
         self._definitions[name] = descriptor
         if name not in self._global_tier_values:
-            self._global_tier_values[name] = SettingValue(mode=SettingMode.INHERIT)
+            self._global_tier_values[name] = SettingValue.unset()
         if name not in self._workspace_tier_values:
-            self._workspace_tier_values[name] = SettingValue(mode=SettingMode.INHERIT)
+            self._workspace_tier_values[name] = SettingValue.unset()
         if category not in self._categories:
             self._categories[category] = []
         if name not in self._categories[category]:
             self._categories[category].append(name)
         if is_new:
-            self._notify_subscribers({name: SettingValue(mode=SettingMode.INHERIT)})
+            self._notify_subscribers({name: SettingValue.unset()})
 
     def _unregister_schema_fields(self, schema_cls: type["Settings"]) -> None:
         """Remove all descriptor fields of a schema class from definitions."""
@@ -251,7 +251,7 @@ class SettingsRegistry(BaseRegistry[Settings]):
                         cat_names.remove(key)
                 changed_keys.add(key)
         if changed_keys:
-            self._notify_subscribers({k: SettingValue(mode=SettingMode.INHERIT) for k in changed_keys})
+            self._notify_subscribers({k: SettingValue.unset() for k in changed_keys})
 
     def register_schema(self, schema_cls, library_identity: LibraryIdentity | None = None) -> str | None:
         """
@@ -322,14 +322,14 @@ class SettingsRegistry(BaseRegistry[Settings]):
     # TOML Loading
     # =========================================================================
 
-    def load_from_toml(self, path: Path | str, tier: str = "workspace", watch: bool = False) -> None:
+    def load_from_json(self, path: Path | str, tier: str = "workspace", watch: bool = False) -> None:
         """
-        Load setting values from a TOML file into the specified tier.
+        Load setting values from a JSON file into the specified tier.
 
         Args:
-            path:  Path to the TOML file.
-            tier:  'global'    — hand-edited user defaults (~/.haywire/settings.toml)
-                   'workspace' — set via UI, saved by save_to_toml() (<workspace>/.haywire/settings.toml)
+            path:  Path to the JSON file.
+            tier:  'global'    — hand-edited user defaults (~/.haywire/settings.json)
+                   'workspace' — set via UI, saved by save_to_json() (<workspace>/.haywire/settings.json)
             watch: If True, hot-reload on file changes.
         """
         path = Path(path).expanduser().resolve()
@@ -351,10 +351,10 @@ class SettingsRegistry(BaseRegistry[Settings]):
                 setattr(self, watch_flag, True)
 
     def _reload_from_file(self, path: Path, tier: str = "workspace") -> None:
-        """Parse TOML and apply values into the specified tier dict."""
+        """Parse JSON and apply values into the specified tier dict."""
         try:
             with open(path, "r") as f:
-                data = toml.load(f)
+                data = json.load(f)
         except Exception as e:
             logger.error(f"Failed to parse settings file: {e}")
             return
@@ -364,13 +364,13 @@ class SettingsRegistry(BaseRegistry[Settings]):
         with self._lock:
             # Snapshot effective values before change for change notification
             old_effective = {
-                name: (self._effective_value(name).mode, self._effective_value(name).value)
+                name: (self._effective_value(name).is_set, self._effective_value(name).value)
                 for name in self._definitions
             }
 
-            # Reset this tier's values to AUTO (file is the source of truth for this tier)
+            # Reset this tier's values to unset (file is the source of truth for this tier)
             for name in self._definitions:
-                tier_dict[name] = SettingValue(mode=SettingMode.INHERIT)
+                tier_dict[name] = SettingValue.unset()
 
             # Clear TOML-defined definitions that originated from this tier's file
             for name in list(self._toml_defined):
@@ -381,10 +381,10 @@ class SettingsRegistry(BaseRegistry[Settings]):
                             cat_names.remove(name)
                 self._toml_defined.discard(name)
 
-            # Process TOML entries into the tier dict
+            # Process JSON entries into the tier dict
             flat = self._flatten_toml(data)
             for name, entry in flat.items():
-                self._process_entry(name, entry, tier_dict)
+                self._process_entry(name, self._rehydrate_entry(name, entry), tier_dict)
 
             self._notify_changes(old_effective)
             logger.info(f"Loaded {len(flat)} settings from {path} into {tier} tier")
@@ -407,7 +407,7 @@ class SettingsRegistry(BaseRegistry[Settings]):
         """
         try:
             with open(path, "r") as f:
-                data = toml.load(f)
+                data = json.load(f)
         except Exception as e:
             logger.error(f"Failed to parse settings file for key repopulate: {e}")
             return
@@ -416,7 +416,7 @@ class SettingsRegistry(BaseRegistry[Settings]):
 
         with self._lock:
             old_effective = {
-                name: (self._effective_value(name).mode, self._effective_value(name).value)
+                name: (self._effective_value(name).is_set, self._effective_value(name).value)
                 for name in keys
                 if name in self._definitions
             }
@@ -426,7 +426,7 @@ class SettingsRegistry(BaseRegistry[Settings]):
             for name, entry in flat.items():
                 if name not in keys:
                     continue
-                self._process_entry(name, entry, tier_dict)
+                self._process_entry(name, self._rehydrate_entry(name, entry), tier_dict)
                 applied += 1
 
             self._notify_changes(old_effective)
@@ -441,6 +441,10 @@ class SettingsRegistry(BaseRegistry[Settings]):
         any of: 'value', 'override', 'default', 'type', 'mode'
         """
         result = {}
+        # 'override'/'mode' are retained here (post-P2) only so a legacy
+        # {override=true, value=…} table is still recognised as a *setting entry*
+        # (not a namespace) and routed through _parse_config_dict, which strips
+        # the override flag and reads it as a plain set value.
         setting_keys = {
             "value",
             "override",
@@ -472,30 +476,20 @@ class SettingsRegistry(BaseRegistry[Settings]):
         if isinstance(entry, dict):
             parsed = self._parse_config_dict(name, entry)
         else:
-            parsed = {
-                "value": entry,
-                "mode": SettingMode.EXPLICIT,
-            }
+            parsed = {"value": entry}
 
         if name not in self._definitions:
             self._auto_define(name, parsed)
 
-        if "value" in parsed and parsed.get("mode") != SettingMode.INHERIT:
-            tier_dict[name] = SettingValue(
-                mode=parsed.get("mode", SettingMode.EXPLICIT), value=parsed["value"]
-            )
+        if "value" in parsed:
+            tier_dict[name] = SettingValue.of(parsed["value"])
 
     def _parse_config_dict(self, name: str, config: dict) -> dict:
-        """Parse a configuration dict from TOML."""
-        result = {}
+        """Parse a configuration dict from TOML (legacy {override,value} → bare value)."""
+        result: dict = {}
 
-        if config.get("override", False):
-            result["mode"] = SettingMode.OVERRIDE
-        elif config.get("mode"):
-            result["mode"] = SettingMode[config["mode"].upper()]
-        else:
-            result["mode"] = SettingMode.EXPLICIT
-
+        # Legacy compatibility: a {override=true, value=X} table from a pre-P2
+        # file is read as a plain set value X. The 'override' flag is ignored.
         if "value" in config:
             result["value"] = config["value"]
 
@@ -546,9 +540,21 @@ class SettingsRegistry(BaseRegistry[Settings]):
             parts = name.split(".")
             category = ".".join(parts[:-1]) if len(parts) > 1 else "root"
 
-        d = setting(
+        # IType cutover: the descriptor stores an IType, never a Python type.
+        # Resolve the inferred Python type to its registered IType via each
+        # IType's declared element_type_cls (no hand-maintained mapping). An
+        # undeclared TOML key whose Python type has no registered IType is
+        # skipped rather than crashing settings load.
+        itype = self._resolve_itype_for_python_type(type_)
+        if itype is None:
+            logger.warning(
+                "Skipping auto-define of '%s': no registered IType for Python type %r", name, type_
+            )
+            return
+
+        d: setting[Any] = setting(
             default=default,
-            type_=type_,
+            type_=itype,
             label=label,
             description=parsed.get("description", ""),
             category=category,
@@ -565,15 +571,38 @@ class SettingsRegistry(BaseRegistry[Settings]):
         self._store_definition(name, d, category=category)
         logger.debug(f"Auto-defined setting from TOML: {name}")
 
+    def _resolve_itype_for_python_type(self, py_type: type) -> type | None:
+        """Resolve an inferred Python type to its registered IType.
+
+        Used only by the runtime/TOML auto-define path. Prefers the global
+        TypeRegistry (source of truth via each IType's ``element_type_cls``); when
+        it is unavailable (e.g. an isolated registry in a unit test, or early init
+        before libraries load) falls back to the builtin scalar ITypes so a plain
+        TOML scalar still auto-defines. Returns ``None`` only for a Python type
+        with no scalar builtin and no registry match.
+        """
+        try:
+            from haywire.core.di.config import get_type_registry
+
+            resolved = get_type_registry().get_type_for_python_type(py_type)
+            if resolved is not None:
+                return resolved
+        except Exception:
+            pass
+
+        from haywire.barn.builtin.types import BOOL, FLOAT, INT, STRING
+
+        return {bool: BOOL, int: INT, float: FLOAT, str: STRING}.get(py_type)
+
     def _notify_changes(self, old_effective: dict[str, tuple]) -> None:
         """Notify subscribers of changed effective values after a TOML reload."""
         all_names = set(old_effective.keys()) | set(self._definitions.keys())
         changed: dict[str, SettingValue] = {}
 
         for name in all_names:
-            old = old_effective.get(name, (SettingMode.INHERIT, None))
+            old = old_effective.get(name, (False, None))
             new = self._effective_value(name)
-            if (new.mode, new.value) != old:
+            if (new.is_set, new.value) != old:
                 changed[name] = new
 
         if changed:
@@ -585,8 +614,8 @@ class SettingsRegistry(BaseRegistry[Settings]):
 
     _SAVE_DEBOUNCE: float = 0.5  # seconds
 
-    def save_to_toml_debounced(self, path: Path | str | None = None) -> None:
-        """Schedule a debounced ``save_to_toml()`` call.
+    def save_to_json_debounced(self, path: Path | str | None = None) -> None:
+        """Schedule a debounced ``save_to_json()`` call.
 
         Each call resets the timer so that the file write only happens
         once the caller stops requesting saves for ``_SAVE_DEBOUNCE`` seconds.
@@ -603,16 +632,17 @@ class SettingsRegistry(BaseRegistry[Settings]):
         timer = getattr(self, "_save_timer", None)
         if timer is not None:
             timer.cancel()
-        self._save_timer = threading.Timer(self._SAVE_DEBOUNCE, self.save_to_toml, args=(path,))
+        self._save_timer = threading.Timer(self._SAVE_DEBOUNCE, self.save_to_json, args=(path,))
         self._save_timer.daemon = True
         self._save_timer.start()
 
-    def save_to_toml(self, path: Path | str | None = None) -> None:
+    def save_to_json(self, path: Path | str | None = None) -> None:
         """
-        Save current workspace-tier values to TOML.
+        Save current workspace-tier values to JSON.
 
-        Only the workspace tier is saved — the global tier is hand-edited by the user
-        and is never overwritten by the application.  Only non-AUTO values are written.
+        Only the workspace tier is saved — the global tier is hand-edited by the
+        user and is never overwritten by the application. Only *set* values are
+        written, each as its IType's to_dict-form (see _value_to_jsonable).
         """
         path = Path(path).expanduser().resolve() if path else self._workspace_path
         if not path:
@@ -622,20 +652,14 @@ class SettingsRegistry(BaseRegistry[Settings]):
 
         with self._lock:
             for name, sv in sorted(self._workspace_tier_values.items()):
-                if sv.mode == SettingMode.INHERIT:
+                if not sv.is_set:
                     continue
-
-                if sv.mode == SettingMode.EXPLICIT:
-                    entry = sv.value
-                else:
-                    entry = {"override": True, "value": sv.value}
-
-                self._set_nested(data, name, entry)
+                self._set_nested(data, name, self._value_to_jsonable(name, sv.value))
 
         path.parent.mkdir(parents=True, exist_ok=True)
 
         with open(path, "w") as f:
-            toml.dump(data, f)
+            json.dump(data, f, indent=2, sort_keys=True)
 
         logger.info(f"Settings saved to {path}")
 
@@ -739,7 +763,7 @@ class SettingsRegistry(BaseRegistry[Settings]):
         self,
         name: str,
         default: Any,
-        type_: type | None = None,
+        type_: type,
         label: str | None = None,
         description: str = "",
         category: str = "root",
@@ -758,14 +782,16 @@ class SettingsRegistry(BaseRegistry[Settings]):
         and adds it to the registry, making it available
         for resolution and UI immediately.
 
-        Code definitions take precedence over TOML definitions.
+        Code definitions take precedence over TOML definitions. ``type_`` must be
+        an IType (e.g. ``FLOAT``); Python-type inference from ``default`` was
+        removed in the widget-unification cutover.
         """
         with self._lock:
             self._toml_defined.discard(name)
 
-            d = setting(
+            d: setting[Any] = setting(
                 default=default,
-                type_=type_ or (type(default) if default is not None else str),
+                type_=type_,
                 validator=validator,
                 label=label or name.split(".")[-1].replace("_", " ").title(),
                 description=description,
@@ -786,8 +812,8 @@ class SettingsRegistry(BaseRegistry[Settings]):
     def undefine(self, name: str) -> None:
         """Remove a programmatically-defined setting key.
 
-        Notifies listeners with a SettingValue(mode=AUTO, value=None) sentinel
-        so subscribers (e.g. LoggingConfigurator) can react to the removal.
+        Notifies listeners with an unset SettingValue sentinel so subscribers
+        (e.g. LoggingConfigurator) can react to the removal.
         No-op if the key is not defined.
         """
         with self._lock:
@@ -800,7 +826,7 @@ class SettingsRegistry(BaseRegistry[Settings]):
             for cat_names in self._categories.values():
                 if name in cat_names:
                     cat_names.remove(name)
-        self._notify_subscribers({name: SettingValue(mode=SettingMode.INHERIT)})
+        self._notify_subscribers({name: SettingValue.unset()})
 
     def has_definition(self, name: str) -> bool:
         return name in self._definitions
@@ -823,25 +849,60 @@ class SettingsRegistry(BaseRegistry[Settings]):
     # Value Access
     # =========================================================================
 
-    def _effective_value(self, name: str) -> SettingValue:
-        """
-        Return the merged effective global value for a name.
+    def _value_to_jsonable(self, name: str, value: Any) -> Any:
+        """Convert a live tier value to its JSON-able form via the IType's to_dict.
 
-        Priority: global OVERRIDE > workspace OVERRIDE > workspace SET > global SET > AUTO
+        Keyed by the setting's declared ``_type``. Unknown keys (auto-defined
+        from a file, no code definition) and ITypes without a ``class_identity``
+        pass the value through unchanged — a plain JSON scalar.
+        """
+        defn = self._definitions.get(name)
+        itype = getattr(defn, "_type", None) if defn else None
+        if itype is None or not hasattr(itype, "class_identity"):
+            return value
+        try:
+            return itype(value).to_dict()
+        except Exception:
+            return value
+
+    def _value_from_jsonable(self, name: str, raw: Any) -> Any:
+        """Inverse of _value_to_jsonable: rehydrate the live value via from_dict.
+
+        A ``{"value": ...}`` dict from a typed key is run through the IType's
+        ``from_dict``; anything else (plain scalar, unknown key) passes through.
+        """
+        defn = self._definitions.get(name)
+        itype = getattr(defn, "_type", None) if defn else None
+        if itype is None or not hasattr(itype, "from_dict") or not isinstance(raw, dict):
+            return raw
+        try:
+            return itype.from_dict(raw)
+        except Exception:
+            return raw
+
+    def _rehydrate_entry(self, name: str, entry: Any) -> Any:
+        """Rehydrate a flattened JSON entry into the live value for _process_entry.
+
+        ``_process_entry`` expects either a bare scalar or a {"value": …} dict.
+        For a typed key whose entry is a {"value": …} dict, run from_dict so the
+        tier stores the live Python value (Vec2i, etc.); otherwise pass through.
+        """
+        if isinstance(entry, dict) and "value" in entry:
+            return {"value": self._value_from_jsonable(name, entry)}
+        return entry
+
+    def _effective_value(self, name: str) -> SettingValue:
+        """Return the merged effective global value: workspace-set beats global-set, else unset.
+
         Used internally for change detection and by get_global().
         """
-        global_sv = self._global_tier_values.get(name, SettingValue())
-        workspace_sv = self._workspace_tier_values.get(name, SettingValue())
-
-        if global_sv.mode == SettingMode.OVERRIDE:
-            return global_sv
-        if workspace_sv.mode == SettingMode.OVERRIDE:
+        workspace_sv = self._workspace_tier_values.get(name, SettingValue.unset())
+        if workspace_sv.is_set:
             return workspace_sv
-        if workspace_sv.mode == SettingMode.EXPLICIT:
-            return workspace_sv
-        if global_sv.mode == SettingMode.EXPLICIT:
+        global_sv = self._global_tier_values.get(name, SettingValue.unset())
+        if global_sv.is_set:
             return global_sv
-        return SettingValue()  # AUTO
+        return SettingValue.unset()
 
     def get_global(self, name: str) -> SettingValue:
         """
@@ -866,16 +927,13 @@ class SettingsRegistry(BaseRegistry[Settings]):
         self,
         name: str,
         value: Any,
-        mode: SettingMode = SettingMode.EXPLICIT,
         tier: str = "workspace",
     ) -> None:
-        """
-        Set a global value programmatically.
+        """Set a tier value programmatically (marks the tier *set*).
 
         Args:
             name:  Full setting key (e.g. 'ui.node.bg_color').
             value: New value.
-            mode:  SettingMode.EXPLICIT (default) or SettingMode.OVERRIDE.
             tier:  'workspace' (default, saved by UI) or 'global' (hand-edited).
         """
         tier_dict = self._workspace_tier_values if tier == "workspace" else self._global_tier_values
@@ -885,19 +943,18 @@ class SettingsRegistry(BaseRegistry[Settings]):
                 raise KeyError(f"Unknown setting: {name}")
 
             defn = self._definitions[name]
-            if mode != SettingMode.INHERIT and not defn.validate(value):
+            if not defn.validate(value):
                 raise ValueError(f"Invalid value for '{name}': {value}")
 
-            old_effective = (self._effective_value(name).mode, self._effective_value(name).value)
-            tier_dict[name] = SettingValue(mode=mode, value=value)
+            old_effective = (self._effective_value(name).is_set, self._effective_value(name).value)
+            tier_dict[name] = SettingValue.of(value)
             new_effective = self._effective_value(name)
 
-            if (new_effective.mode, new_effective.value) != old_effective:
+            if (new_effective.is_set, new_effective.value) != old_effective:
                 self._notify_subscribers({name: new_effective})
 
     def reset_global(self, name: str, tier: str = "workspace") -> None:
-        """
-        Reset a value to AUTO in the specified tier.
+        """Reset a value to *unset* in the specified tier.
 
         Args:
             name: Full setting key.
@@ -907,11 +964,11 @@ class SettingsRegistry(BaseRegistry[Settings]):
 
         with self._lock:
             if name in tier_dict:
-                old_effective = (self._effective_value(name).mode, self._effective_value(name).value)
-                tier_dict[name] = SettingValue(mode=SettingMode.INHERIT)
+                old_effective = (self._effective_value(name).is_set, self._effective_value(name).value)
+                tier_dict[name] = SettingValue.unset()
                 new_effective = self._effective_value(name)
 
-                if (new_effective.mode, new_effective.value) != old_effective:
+                if (new_effective.is_set, new_effective.value) != old_effective:
                     self._notify_subscribers({name: new_effective})
 
     # =========================================================================
@@ -919,42 +976,31 @@ class SettingsRegistry(BaseRegistry[Settings]):
     # =========================================================================
 
     def resolve(self, name: str, local: SettingValue | None = None) -> tuple[Any, str]:
-        """
-        Resolve the final value for a setting given an optional local override.
+        """Resolve the final value for a setting given an optional local override.
 
-        Resolution order:
-            1. global tier OVERRIDE   → forced (admin policy)
-            2. workspace tier OVERRIDE → forced (workspace-wide policy)
-            3. local SET              → per-node/per-instance override
-            4. workspace tier SET     → workspace default (set via UI)
-            5. global tier SET        → user global default (hand-edited)
-            6. definition default
+        Resolution order (highest-priority set tier wins):
+            1. local SET            → per-node/per-instance override
+            2. workspace tier SET   → workspace default (set via UI)
+            3. global tier SET      → user global default (hand-edited)
+            4. definition default
 
-        Returns:
-            (resolved_value, source) where source is one of:
-            'global_override', 'workspace_override', 'local', 'workspace', 'global', 'default'
+        Returns (resolved_value, source) where source is one of:
+        'local', 'workspace', 'global', 'default'.
         """
         defn = self._definitions.get(name)
         if not defn:
             raise KeyError(f"Unknown setting: {name}")
 
-        global_sv = self._global_tier_values.get(name, SettingValue())
-        workspace_sv = self._workspace_tier_values.get(name, SettingValue())
-        local = local or SettingValue()
-
-        if global_sv.mode == SettingMode.OVERRIDE:
-            return global_sv.value, "global_override"
-
-        if workspace_sv.mode == SettingMode.OVERRIDE:
-            return workspace_sv.value, "workspace_override"
-
-        if local.mode == SettingMode.EXPLICIT:
+        local = local or SettingValue.unset()
+        if local.is_set:
             return local.value, "local"
 
-        if workspace_sv.mode == SettingMode.EXPLICIT:
+        workspace_sv = self._workspace_tier_values.get(name, SettingValue.unset())
+        if workspace_sv.is_set:
             return workspace_sv.value, "workspace"
 
-        if global_sv.mode == SettingMode.EXPLICIT:
+        global_sv = self._global_tier_values.get(name, SettingValue.unset())
+        if global_sv.is_set:
             return global_sv.value, "global"
 
         default = defn._default() if callable(defn._default) else defn._default

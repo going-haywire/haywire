@@ -1,49 +1,50 @@
 # haywire/core/settings/value.py
 """
-SettingValue - stores mode and value for a field.
+SettingValue — a tier's stored opinion: either set (carries a value) or unset.
+
+The pre-P2 model had a three-way ``SettingMode`` (INHERIT/EXPLICIT/OVERRIDE).
+The OVERRIDE "forced" strength was dropped (DECISIONS.md §A); a tier value is
+now simply set-or-unset, and resolution is highest-priority-set-wins.
 """
 
 from dataclasses import dataclass
 from typing import Generic, TypeVar
-
-from .enums import SettingMode
 
 T = TypeVar("T")
 
 
 @dataclass
 class SettingValue(Generic[T]):
-    """
-    A field's stored state (mode + optional value).
+    """A tier's stored state: ``is_set`` plus an optional ``value``.
 
-    This is what gets serialized for both global and local settings.
+    Construct via :meth:`unset` / :meth:`of` rather than the raw fields.
     """
 
-    mode: SettingMode = SettingMode.INHERIT
+    is_set: bool = False
     value: T | None = None
 
-    def is_inherit(self) -> bool:
-        """Check if this field inherits from parent."""
-        return self.mode == SettingMode.INHERIT
+    @classmethod
+    def unset(cls) -> "SettingValue[T]":
+        """A tier with no opinion — defers to the next tier in priority order."""
+        return cls(is_set=False, value=None)
 
-    def is_explicit(self) -> bool:
-        """Check if this field has an explicit value."""
-        return self.mode == SettingMode.EXPLICIT
-
-    def is_override(self) -> bool:
-        """Check if this field forces value on children."""
-        return self.mode == SettingMode.OVERRIDE
+    @classmethod
+    def of(cls, value: T) -> "SettingValue[T]":
+        """A tier holding *value* — eligible to win resolution."""
+        return cls(is_set=True, value=value)
 
     def to_dict(self) -> dict:
-        """Serialize for storage."""
-        return {"mode": self.mode.name, "value": self.value}
+        """Serialize for storage. Unset values serialize to ``{}``."""
+        return {"value": self.value} if self.is_set else {}
 
     @classmethod
     def from_dict(cls, data: dict) -> "SettingValue":
         """Deserialize from storage."""
-        return cls(mode=SettingMode[data.get("mode", "INHERIT")], value=data.get("value"))
+        if "value" in data:
+            return cls.of(data["value"])
+        return cls.unset()
 
     def __repr__(self) -> str:
-        if self.mode == SettingMode.INHERIT:
-            return "SettingValue(INHERIT)"
-        return f"SettingValue({self.mode.name}, {self.value!r})"
+        if not self.is_set:
+            return "SettingValue(unset)"
+        return f"SettingValue({self.value!r})"

@@ -1,9 +1,9 @@
 """Promote a node setting to a DATA port (inlet or outlet).
 
-A promoted port is an ordinary dynamic port whose id encodes the setting it binds:
-``setting__<accessor>__<field>``. The id IS the binding key (no separate back-reference)
-— combined with ``DataPort.promoted``, it is the whole binding signal (ADR 0014). The
-port borrows the setting's DataField cell by reference (one cell, two views).
+A promoted port's id IS the setting's ``descriptor.storage_key`` (ADR 0015). The port
+carries only a ``promoted`` bool; it borrows the setting's DataField cell by reference
+(one cell, two views). ``_resolve_promoted`` maps a promoted port id back to its
+(bag, descriptor) by matching storage_key — the single port→settings crossing.
 """
 
 from __future__ import annotations
@@ -17,55 +17,38 @@ if TYPE_CHECKING:
     from haywire.core.settings.descriptor import setting
     from haywire.core.settings.settings import Settings
 
-_PREFIX = "setting__"
-_SEP = "__"
-
-
-def encode_promoted_port_id(accessor: str, field: str) -> str:
-    return f"{_PREFIX}{accessor}{_SEP}{field}"
-
-
-def is_promoted_port_id(port_id: str) -> bool:
-    return port_id.startswith(_PREFIX) and _SEP in port_id[len(_PREFIX) :]
-
-
-def decode_promoted_port_id(port_id: str) -> tuple[str, str]:
-    if not is_promoted_port_id(port_id):
-        raise ValueError(f"Not a promoted port id: {port_id!r}")
-    body = port_id[len(_PREFIX) :]
-    accessor, field = body.split(_SEP, 1)
-    return accessor, field
-
 
 def is_field_promoted(bag: "Settings", field: str) -> bool:
     """True if ``<bag>.<field>`` is currently promoted to a port.
 
-    The port id is the single source of truth (ADR 0014 — ``_promoted_port_id`` is
-    retired). Resolves the bag's accessor name on its owning node, then checks
-    whether the encoded port id exists. Returns False if the bag has no node
-    back-reference (standalone / non-node settings).
-    """
-    node = getattr(bag, "_node", None)
+    The promoted port's id IS the setting's storage_key (ADR 0015), so a promotion is
+    exactly the presence of that port on the owning node. False for a bag with no node."""
+    node = bag._node
     if node is None:
         return False
-    accessor = _accessor_name(node, bag)
-    if accessor is None:
+    desc = type(bag)._property_settings().get(field)
+    if desc is None:
         return False
-    return encode_promoted_port_id(accessor, field) in node.ports
+    return desc.storage_key in node.ports
 
 
-def _accessor_name(node: "NodeData", bag: "Settings") -> str | None:
-    """The attribute name under which *bag* is bound on *node*, or None."""
-    for name in type(node)._settings_bags:
-        if getattr(node, name, None) is bag:
-            return name
-    return None
+def _resolve_promoted(node: "NodeData", port_id: str) -> tuple["Settings", "setting"]:
+    """Resolve the (bag, descriptor) a promoted ``port_id`` binds, by matching the id
+    against each field's storage_key. The sole port→settings crossing (ADR 0015)."""
+    for accessor in type(node)._settings_bags:
+        bag = getattr(node, accessor)
+        for _field, desc in type(bag)._property_settings().items():
+            if desc.storage_key == port_id:
+                return bag, desc
+    raise KeyError(port_id)
 
 
 def _descriptor(node: "NodeData", accessor: str, field: str) -> "setting":
-    """The setting descriptor for ``<accessor>.<field>`` on *node*."""
+    """The setting descriptor for ``<accessor>.<field>`` on *node*. MRO-aware
+    (matches ``is_field_promoted``/``_resolve_promoted``) so a field inherited from a
+    settings-bag base class resolves correctly, not just one declared directly."""
     bag = getattr(node, accessor)
-    return type(bag).__dict__[field]
+    return type(bag)._property_settings()[field]
 
 
 def _metadata_to_port_kwargs(descriptor: "setting") -> dict:
@@ -95,8 +78,9 @@ def promote_setting(
 
     Promotion = field + direction (P5, ADR 0014). The port borrows the setting's
     DataField cell by reference (``bind_field``) — one cell, two views. The port id
-    encodes the binding (``setting__<accessor>__<field>``); the value round-trips
-    through the settings block only, so the port itself is value-less.
+    IS the setting's ``storage_key`` (ADR 0015); the field is marked locally-set at
+    promote-time so the setting read returns the shared cell (incl. any edge-driven
+    value) with no per-write hook.
 
     Eligibility is TWO orthogonal flag checks — not a per-kind matrix:
 
@@ -114,11 +98,11 @@ def promote_setting(
     if direction not in (PortType.INLET, PortType.OUTLET):
         raise ValueError(f"promote direction must be INLET or OUTLET, got {direction!r}")
 
-    pid = encode_promoted_port_id(accessor, field)
+    desc = _descriptor(node, accessor, field)
+    pid = desc.storage_key  # the setting's own key IS the port id (ADR 0015)
     if pid in node.ports:
         return
 
-    desc = _descriptor(node, accessor, field)
     # Flag check 1: a read-only (watch) field can only be an outlet.
     if getattr(desc, "_read_only", False) and direction is not PortType.OUTLET:
         raise ValueError("a read-only (watch) setting can only be promoted to an outlet")
@@ -130,15 +114,19 @@ def promote_setting(
         spec = type_cls.as_outlet(pid, promoted=True, is_linked_lazy=True, **kw)
     else:
         spec = type_cls.as_inlet(pid, promoted=True, **kw)
+
+    bag = getattr(node, accessor)
     # rejig(include=[pid]) flags only pid (which doesn't exist yet → flags nothing),
     # so add() introduces the port without disturbing the node's other ports. add()
-    # routes through DataPort.from_spec, whose promoted branch binds the port to
-    # the setting's P4 cell by reference (one cell, two views — no second value).
+    # keeps group/section/order/rejig bookkeeping.
     with node.rejig(include=[pid]):
-        node.add(spec)
-    # The port id + DataPort.promoted are the whole binding signal (ADR 0014).
-    # No descriptor flag: the setting stays oblivious to ports, and the port
-    # shares the setting's cell so reads agree.
+        port = node.add(spec)
+    # One cell, two views: share the setting's cell by reference.
+    port.bind_field(bag._cell_for(desc))
+    # A promoted field is locally-set for the port's lifetime (ADR 0015): the setting
+    # read returns the shared cell (incl. any edge-driven value). Bare set-membership,
+    # no callback — the cell already holds the value, so promoting is value-neutral.
+    bag._set_keys.add(desc.storage_key)
 
 
 def demote_setting(node: "NodeData", port_id: str) -> None:

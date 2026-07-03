@@ -14,6 +14,7 @@ from .enums import FlowType, PortType, StoreStrategy
 from .event import Event
 from .fields import DataField, PrimitiveField, BaseField
 from .port import DataPort
+from .widget_model import WidgetModel
 from .pipe import Pipes
 from .registry import TypeRegistry
 from .utils import (
@@ -48,6 +49,7 @@ __all__ = [
     "BaseField",
     # Ports and Pipes
     "DataPort",
+    "WidgetModel",
     "Pipes",
     # Registry
     "TypeRegistry",

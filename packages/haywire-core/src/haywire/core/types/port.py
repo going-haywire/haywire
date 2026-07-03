@@ -110,6 +110,12 @@ class DataPort(DataTypeIdentity):
     needs_loopback: bool = False
     """Set to True if the control flow from this outlet needs to loop back to the node"""
 
+    promoted: bool = False
+    """True for a port promoted from a setting"""
+
+    is_linked_lazy: bool = False
+    """Force any linked edge to lazy (pull-on-demand) propagation"""
+
     _is_dirty_structural: bool = False
     """Internal flag to track if port link has structurally changed"""
 
@@ -307,6 +313,51 @@ class DataPort(DataTypeIdentity):
                 self._trigger_callback(self.on_change, new_value)
             if self._pipes is not None:
                 self._pipes.propagate()
+
+    # ========================================================================
+    # FIELD BINDING (promotion — one cell, two views)
+    # ========================================================================
+
+    def bind_field(self, field: DataField) -> None:
+        """Share *field* as this port's ``_data`` by reference (promotion spine).
+
+        A promoted port does not own a value — it becomes a second view of the
+        setting's P4 ``DataField`` cell. This is the same object-swap ``_add_link``
+        performs when two ports share a cell; here it binds the port to the
+        setting's cell so a write on either side is seen by both.
+
+        On an OUTLET this also subscribes ``field.on_changed →
+        self._on_shared_field_changed`` so that when anything writes the shared
+        cell (widget edit, or the Task-2.5 registry sync) the port propagates its
+        own pipes. This is the *trigger* half of the freshness mechanism: the
+        ``is_linked_lazy`` flag alone is inert — a lazy pipe only pulls once its
+        sink is marked dirty via ``propagate()`` (ADR 0014 §C4).
+        """
+        self._data = field
+        if self.is_outlet():
+            field.on_changed.append(self._on_shared_field_changed)
+
+    def unbind_field(self) -> None:
+        """Reverse :meth:`bind_field` — restore an independent cell on this port.
+
+        Called by demote and by port cleanup (symmetric lifecycle). Removes the
+        outlet's ``on_changed`` subscription (no dangling handler on the shared
+        cell) and rebuilds a fresh field from ``type_cls`` so the port is
+        self-owned again.
+        """
+        assert self.type_cls is not None  # __post_init__ enforces this
+        if self.is_outlet() and self._data is not None:
+            self._data.on_changed.remove(self._on_shared_field_changed)
+        self._data = self.type_cls.create_field(default_override=self.default)
+
+    def _on_shared_field_changed(self, _value: Any) -> None:
+        """Propagate this outlet's pipes when its shared cell changes (Task 5).
+
+        Lazy edges (forced by ``is_linked_lazy``) just queue the sink pipe + mark
+        it dirty; the consumer pulls the fresh value on its next execution frame.
+        No-op when the outlet has no pipes (unlinked)."""
+        if self._pipes is not None:
+            self._pipes.propagate()
 
     # ========================================================================
     # Lazy Propagation
@@ -543,6 +594,12 @@ class DataPort(DataTypeIdentity):
                     self._pipes = Pipes(outlet_port=self)
                 self._pipes.clear()
                 for wrapper in self.get_valid_edges():
+                    # A promoted outlet writes its cell OUTSIDE the scheduler frame
+                    # (widget / registry / edge) — an eager pull then is unsafe
+                    # (ADR 0014 §C4). Forcing the edge lazy defers each consumer's
+                    # pull to its next execution; add_pipe reads is_lazy below.
+                    if self.is_linked_lazy:
+                        wrapper.is_lazy = True
                     self._pipes.add_pipe(wrapper)
             else:
                 if self._pipes:
@@ -602,10 +659,8 @@ class DataPort(DataTypeIdentity):
             Instantiated DataPort
         """
         kwargs = spec["kwargs"].copy()
-        recipe = spec["recipe"]
 
-        # Resolve type class (handles compound types via element_type)
-        type_cls = type_registry.resolve_type_from_spec(recipe)
+        type_cls = type_registry.resolve_type_from_spec(spec["recipe"])
 
         # Build port kwargs - spec already contains merged identity + user values
         flow_type = FlowType(kwargs.pop("flow_type", FlowType.DATA.value))
@@ -642,7 +697,6 @@ class DataPort(DataTypeIdentity):
         # Let type configure port (for compound types, etc.)
         type_cls._configure_port(port)
 
-        # Restore field data if present (backward compatible)
         if "field_data" in spec:
             port._data.from_dict(spec["field_data"])
 
@@ -659,10 +713,10 @@ class DataPort(DataTypeIdentity):
             dict: Serialized port representation
         """
         assert self.type_cls is not None  # __post_init__ enforces this
-        result: dict[str, Any] = {
-            "kwargs": {},
-            "recipe": serialize_element_type(self.type_cls),
-        }
+        result: dict[str, Any] = {"kwargs": {}}
+        # Every port serializes its type recipe. A promoted port omits only its VALUE
+        # (field_data below) — the value round-trips via the shared setting cell.
+        result["recipe"] = serialize_element_type(self.type_cls)
 
         # Iterate over dataclass fields
         for f in fields(self):
@@ -690,8 +744,10 @@ class DataPort(DataTypeIdentity):
 
             result["kwargs"][f.name] = value
 
-        # Optionally serialize field data
-        if include_data and self._data:
+        # Optionally serialize field data. A promoted port never persists its
+        # value here — the shared setting cell round-trips via the settings block
+        # (single-writer; ADR 0015).
+        if include_data and self._data and not self.promoted:
             if self.store_strategy.should_store(
                 is_linked=self.is_linked(),
                 has_widget=self.widget_key is not None,

@@ -69,12 +69,8 @@ class NodeData:
         # node instance attribute so node authors can write self.filter.threshold.
         _registry = get_settings_registry()
         for _bag_name, _bag_cls in type(self)._settings_bags.items():
-            _bag_instance: Settings = _bag_cls(registry=_registry)
+            _bag_instance: Settings = _bag_cls(registry=_registry, node=self)
             _bag_instance._subscribe_settings()
-            # Back-reference to the owning node so a promoted setting's read-tier
-            # (descriptor.__get__) can reach this node's ports. Set via object
-            # __setattr__ to bypass the descriptor protocol.
-            object.__setattr__(_bag_instance, "_node", self)
             object.__setattr__(self, _bag_name, _bag_instance)
 
         # Cache (transient, NOT serialized)
@@ -958,3 +954,17 @@ class NodeData:
 
         self._executor = None
         return True
+
+    def _bind_promoted_ports(self) -> None:
+        """Bind each promoted port to its setting's DataField cell by reference (ADR 0015).
+
+        Sole port→settings crossing on load. Settings bags are already restored (base
+        runs settings before ports), so the cell holds its loaded value."""
+        from haywire.core.node.promotion import _resolve_promoted
+
+        for port in self.ports.values():
+            if not port.promoted:
+                continue
+            bag, desc = _resolve_promoted(self, port.id)
+            port.bind_field(bag._cell_for(desc))
+            bag._set_keys.add(desc.storage_key)

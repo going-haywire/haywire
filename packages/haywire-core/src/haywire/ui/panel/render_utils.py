@@ -8,29 +8,25 @@ The module reads top-to-bottom as a waterfall:
     1. Entry points     render_settings / render_schema / render_keys
     2. Collect & group  sort fields, group by category, lay out the column
     3. Row rendering     one label + widget row (reactive instance / registry)
-    4. Choose+draw+link  _build_field_widget: pick the widget, build it, wire
-                         its on_change, return an apply(value) sync hook
-    5. Widget catalog    _WidgetSpec + the per-widget build specs/hooks
-    6. Setters           make-setter factories (instance vs. registry tier)
+    4. Resolve widget   _build_field_widget -> _resolve_widget_instance: resolve a
+                         shared BaseWidget by resolved_widget_key, build it against
+                         a SettingWidgetModel, return an apply(value) sync hook
+    5. Setters           make-setter factories (instance vs. registry tier)
 
-Every field flows through the same four stages. Stage 4 always returns an
-``apply(value)`` callback that mutates the existing widget in place (NiceGUI
+Every field flows through the same stages. Stage 4 returns an ``apply(value)``
+callback that pushes an external model change into the widget in place (NiceGUI
 "Case 3"); the reactive path stores it for external-change sync, the registry
 path discards it.
 """
 
 from __future__ import annotations
 
-from dataclasses import dataclass
 from itertools import groupby
 from typing import TYPE_CHECKING, Any, Callable
 
 from nicegui import ui
 
 from haywire.ui import elements as hui
-from haywire.core.settings.enums import SettingMode
-from haywire.core.settings.types import get_vec_meta
-from haywire.ui.components.number.drag import NumberDrag
 from haywire.ui.utils import anchor_cleanup_to_element
 
 if TYPE_CHECKING:
@@ -165,7 +161,7 @@ def _render_grouped(sorted_items, category_of, render_one) -> Any:
     Returns the outer ``ui.column`` so callers can anchor teardown to it.
     *render_one* is called once per item, inside its category group.
     """
-    column = ui.column().classes("w-full gap-0 compact-fields").style(_COLUMN_STYLE)
+    column = ui.column().classes("w-full compact-fields sf-field-list").style(_COLUMN_STYLE)
     with column:
         for category, group in _group_by_category(sorted_items, key=category_of):
             with hui.category_group(category):
@@ -237,9 +233,6 @@ def _render_field_row(
     label_text: str, description: str, defn, value, make_setter, attr_name: str = ""
 ) -> Callable[[Any], None]:
     """Render a single label + widget row (registry path); return apply(value) for external sync."""
-    vec_meta = get_vec_meta(defn._type)
-    if vec_meta is not None:
-        return _render_vec_field_rows(label_text, description, vec_meta, value, make_setter, attr_name)
     with ui.row().classes(_ROW_CLASSES).props(f'data-field="{attr_name}"' if attr_name else ""):
         lbl = ui.label(label_text).classes(_LABEL_CLASSES)
         if description:
@@ -262,6 +255,14 @@ def _render_reactive_field_row(
     """
 
     is_mirrored = bool(defn._mirror_key)
+    # A promoted field is driven by a DATA port (see haywire.core.node.promotion).
+    # The row is marked so the panel doesn't silently present an editable widget for
+    # a value the graph now owns; the value display stays live (the setting and the
+    # port share one cell, so getattr(obj, attr_name) reflects the port). The port id
+    # is the truth — _promoted_port_id was retired (ADR 0014).
+    from haywire.core.node.promotion import is_field_promoted
+
+    is_promoted = is_field_promoted(obj, attr_name)
 
     def _label_text(locally_set: bool) -> str:
         base = defn._label or attr_name
@@ -293,29 +294,37 @@ def _render_reactive_field_row(
             )
             reset_btn.set_visibility(is_mirrored and is_locally_overridden)
 
-    vec_meta = get_vec_meta(defn._type)
-    if vec_meta is not None:
-        # _render_vec_field_rows returns an apply(value) updater for in-place
-        # external sync of each component NumberDrag.
-        value_apply = _render_vec_field_rows(
-            defn._label or attr_name,
-            defn._description,
-            vec_meta,
-            getattr(obj, attr_name),
-            _make_reactive_setter(obj, attr_name),
-            attr_name,
-            render_label=_render_label,
-        )
-    else:
-        needs_manual_error = defn._type in (int, float) or defn._type is bool
-        error_container = ui.element("div").classes("w-full") if needs_manual_error else None
+    # Every field — scalars, vectors, color — resolves a shared BaseWidget by its
+    # resolved_widget_key (see _resolve_widget_instance). VecWidget handles vec
+    # types via widget_config['vec_meta']; the panel no longer special-cases them.
+    error_container = ui.element("div").classes("w-full")
 
-        with ui.row().classes(_ROW_CLASSES).props(f'data-field="{attr_name}"'):
-            _render_label()
-            value_apply = _build_field_widget(
-                defn,
-                getattr(obj, attr_name),
-                _make_reactive_setter(obj, attr_name, error_container),
+    # A column-oriented VecWidget renders multiple flush component rows; top-align
+    # the label against the first row rather than centering it across the whole
+    # block. Field-to-field spacing comes uniformly from the parent column's gap
+    # (same for scalars and vectors) — no per-field margin, which would compound
+    # unevenly between two adjacent vec rows. Scalars keep items-center.
+    row_classes = _ROW_CLASSES
+    if defn.resolved_widget_key == "builtin:widget:VecWidget":
+        orientation = defn.resolved_widget_config.get("properties", {}).get("orientation", "column")
+        if orientation == "column":
+            row_classes = _ROW_CLASSES.replace("items-center", "items-start")
+
+    row_props = f'data-field="{attr_name}"'
+    if is_promoted:
+        row_props += ' data-promoted="true"'
+
+    with ui.row().classes(row_classes).props(row_props):
+        _render_label()
+        value_apply = _build_field_widget(
+            defn,
+            getattr(obj, attr_name),
+            _make_reactive_setter(obj, attr_name, error_container),
+            bag=obj,
+        )
+        if is_promoted:
+            ui.label("↳ driven by inlet").classes("text-xs hw-text-muted px-2").props(
+                'data-promoted-hint="true"'
             )
 
     def _apply_external():
@@ -336,170 +345,66 @@ def _render_reactive_field_row(
 # ===========================================================================
 
 
-def _build_field_widget(defn: "setting", value: Any, make_setter) -> Callable[[Any], None]:
-    """Choose, draw, and link the widget for *defn*; return its ``apply(value)``.
+def _build_field_widget(
+    defn: "setting", value: Any, make_setter, bag: "Settings | None" = None
+) -> Callable[[Any], None]:
+    """Resolve, build, and link the shared widget for *defn*; return ``apply(value)``.
 
-    This is the single CHOOSE -> DRAW -> LINK stage every field passes through.
-    ``make_setter(coerce)`` yields the on_change handler. The returned
-    ``apply(value)`` updates the rendered widget IN PLACE (NiceGUI "Case 3" —
-    safe from any asyncio task) when the model value changes externally.
-
-    Routing:
-    - ``label``      -> no ``.value`` (set_text), built here directly.
-    - simple value   -> a ``_WidgetSpec`` (color/select/bool/number), wired by
-                        ``_wire_widget`` — the shared draw+link path.
-    - ``str``        -> inline input + expand-to-modal, built here (carries an
-                        extra modal mirror-cell, so it isn't a plain spec).
+    Every field resolves a ``BaseWidget`` by ``defn.resolved_widget_key`` (type
+    default, or desugared from ``choices``/``widget=``). The widget owns the
+    control; the panel keeps the surrounding chrome (label, override •/reset,
+    category groups, error container). ``make_setter(coerce)`` yields the
+    on_change handler; the returned ``apply(value)`` pushes an external model
+    change into the widget in place. When *bag* is given, the widget binds its
+    shared cell for display (registry/edge changes show live).
     """
-    if defn._widget == "label":
+    return _resolve_widget_instance(defn, value, make_setter, bag=bag)
+
+
+def _resolve_widget_instance(
+    defn: "setting", value: Any, make_setter, bag: "Settings | None" = None
+) -> Callable[[Any], None]:
+    """Build the shared ``BaseWidget`` for *defn* via a ``SettingWidgetModel``.
+
+    Falls back to a read-only label when the resolved widget key is unknown, so a
+    missing widget never renders a silent blank. When *bag* is given, the model
+    binds the bag's shared ``DataField`` cell for display (write still routes
+    through the descriptor via *make_setter*).
+    """
+    from haywire.ui.widget.globals import get_widget_class
+    from haywire.ui.panel.setting_widget_model import SettingWidgetModel
+
+    key = defn.resolved_widget_key
+    widget_cls = get_widget_class(key)
+    if widget_cls is None:
         return _build_label_widget(value)
 
-    spec = _value_widget_spec(defn)
-    if spec is not None:
-        return _wire_widget(spec, value, make_setter)
+    # Bind the bag's shared cell for display so a registry/edge write into it shows
+    # live; None for the registry path (no bag) keeps the throwaway-field fallback.
+    shared_cell = bag._cell_for(defn) if bag is not None else None
 
-    return _build_str_widget(defn, value, make_setter)
-
-
-def _wire_widget(spec: "_WidgetSpec", value: Any, make_setter) -> Callable[[Any], None]:
-    """Build a value-carrying widget from *spec* and return its ``apply(value)``.
-
-    The single on_change (coerce → setter → write ``data-value``) and the
-    model-driven ``apply`` both encode through ``spec.to_data`` against the same
-    host, so they can't drift. ``apply`` assigns ``el.value`` in place (NiceGUI
-    "Case 3", safe from any asyncio task); a value the element already holds is a
-    no-op, so no echo guard is needed.
-    """
-    set_value = make_setter(spec.coerce)
-
-    if spec.self_hosting:
-        host: Any = None  # set after build; NumberDrag is its own data-value host
-
-        def on_change(e: Any) -> None:
-            set_value(_Event(spec.coerce(spec.read_event(e))))
-
-        el = spec.build(value, on_change).classes(spec.classes)
-        host = el
-    else:
-        host = ui.element("div").classes(spec.classes).props(f'data-value="{spec.to_data(value)}"')
-
-        def on_change(e: Any) -> None:
-            coerced = spec.coerce(spec.read_event(e))
-            set_value(_Event(coerced))
-            host.props(f'data-value="{spec.to_data(coerced)}"')
-
-        with host:
-            el = spec.build(value, on_change)
-
-    def apply(v: Any) -> None:
-        el.value = spec.to_widget(v)
-        if not spec.self_hosting:
-            host.props(f'data-value="{spec.to_data(v)}"')
-
-    return apply
-
-
-# ===========================================================================
-# 5. Widget catalog
-# ===========================================================================
-
-
-@dataclass(frozen=True)
-class _WidgetSpec:
-    """Everything that varies between a value-carrying settings widget.
-
-    Everything NOT here — the ``data-value`` host, the initial prop, the shared
-    coerce→set→write-data-value ``on_change``, and the returned ``apply`` — lives
-    once in ``_wire_widget``. ``apply`` and the handler both encode through
-    ``to_data``, so the two sync directions cannot drift.
-
-    - ``build(value, on_change)`` constructs the nicegui element, wiring
-      *on_change* however that element expects (``.on_value_change`` for stock
-      widgets, the ``on_change=`` ctor arg for NumberDrag).
-    - ``self_hosting`` widgets (NumberDrag) maintain their own ``data-value``
-      prop, so ``_wire_widget`` writes neither a wrapper nor a prop for them.
-    """
-
-    build: Callable[[Any, Callable[[Any], None]], Any]
-    coerce: Callable[[Any], Any] = lambda v: v
-    to_widget: Callable[[Any], Any] = lambda v: v
-    to_data: Callable[[Any], str] = str
-    read_event: Callable[[Any], Any] = lambda e: e.value
-    classes: str = _WIDGET_CLASSES
-    self_hosting: bool = False
-
-
-def _value_widget_spec(defn: "setting") -> "_WidgetSpec | None":
-    """Return the spec for *defn*'s value-carrying widget, or None.
-
-    Returns None for the two widgets that are NOT plain value-carrying specs and
-    are built directly in ``_build_field_widget``: ``label`` (no ``.value``) and
-    ``str`` (carries an extra modal mirror-cell).
-    """
-    if defn._widget == "color":
-        to_color = lambda v: v or "#ffffff"  # noqa: E731
-        return _WidgetSpec(
-            build=lambda v, oc: ui.color_input(value=to_color(v))
-            .classes("w-full")
-            .props("dense hide-bottom-space")
-            .on_value_change(oc),
-            coerce=str,
-            to_widget=to_color,
-            to_data=to_color,
-        )
-
-    choices = defn.choices
-    if choices is not None:
-        keys = choices if isinstance(choices, list) else list(choices.keys())
-        in_keys = lambda v: v if v in keys else None  # noqa: E731
-        return _WidgetSpec(
-            build=lambda v, oc: ui.select(options=choices, value=in_keys(v))
-            .classes("w-full text-xs")
-            .props("dense hide-bottom-space")
-            .on_value_change(oc),
-            to_widget=in_keys,
-            classes=f"{_WIDGET_CLASSES} overflow-hidden",
-        )
-
-    if defn._type is bool:
-        return _WidgetSpec(
-            build=lambda v, oc: ui.switch(value=bool(v)).props("dense").on_value_change(oc),
-            coerce=bool,
-            to_widget=bool,
-            to_data=lambda v: str(bool(v)).lower(),
-            classes="",
-        )
-
-    if defn._type in (int, float):
-        return _number_spec(defn)
-
-    return None
-
-
-def _number_spec(defn: "setting") -> "_WidgetSpec":
-    """Build the NumberDrag spec for an int/float field, deriving step/precision."""
-    coerce = defn._type
-    kwargs: dict = {}
-    if defn._min is not None:
-        kwargs["min"] = defn._min
-    if defn._max is not None:
-        kwargs["max"] = defn._max
-    if defn._type is int:
-        kwargs["step"] = 1
-        kwargs["precision"] = 0
-    else:
-        kwargs["step"] = _float_step_from_default(defn._default)
-
-    def _build(v, on_change, _k=kwargs):
-        return NumberDrag(value=coerce(v) if v is not None else 0, on_change=on_change, **_k)
-
-    return _WidgetSpec(
-        build=_build,
-        coerce=coerce,  # NumberDrag delivers its raw value via e.args (read_event)
-        to_widget=lambda v: coerce(v) if v is not None else 0,
-        read_event=lambda e: e.args,
-        self_hosting=True,
+    model = SettingWidgetModel(
+        field_id=defn._attr_name or defn._label,
+        itype=defn._type,
+        value=value,
+        widget_config=defn.resolved_widget_config,
+        make_setter=make_setter,
+        field=shared_cell,
     )
+
+    # Render the widget inside an sf-widget cell so it sits in the value column
+    # next to the sf-label (CSS in app/shell.py sizes the two side by side). Port
+    # widgets are authored w-full to fill a node card; nesting them in the cell
+    # makes that "100% of the cell" instead of "100% of the row" (which would win
+    # the class-vs-class width fight and wrap the control below the label).
+    with ui.element("div").classes(f"{_WIDGET_CLASSES} min-w-0"):
+        widget = widget_cls(model)
+        widget.render()
+
+    def _apply(v: Any) -> None:
+        model.apply_external(v)
+
+    return _apply
 
 
 def _build_label_widget(value: Any) -> Callable[[Any], None]:
@@ -517,161 +422,6 @@ def _build_label_widget(value: Any) -> Callable[[Any], None]:
         _lbl.props(f'data-value="{s}"')
 
     return _apply_label
-
-
-def _build_str_widget(defn: "setting", value: Any, make_setter) -> Callable[[Any], None]:
-    """str fallback — inline input + expand-to-modal button.
-
-    str is the one widget that carries extra state: a ``current_value`` mirror
-    cell the modal reads, kept in sync by both the inline handler and ``apply``.
-    """
-    wrapper = (
-        ui.element("div")
-        .classes(f"flex items-center gap-1 {_WIDGET_CLASSES}")
-        .props(f'data-value="{_escape(value)}"')
-    )
-    with wrapper:
-        current_value = [str(value) if value is not None else ""]
-
-        def _str_handler(e, _w=wrapper, _s=make_setter(str), _cv=current_value):
-            _cv[0] = str(e.value)
-            _s(e)
-            _w.props(f'data-value="{_escape(e.value)}"')
-
-        def _str_validation(v, _defn=defn):
-            return None if _defn.validate(str(v) if v is not None else "") else "Invalid value"
-
-        input_el = (
-            ui.input(
-                value=current_value[0],
-                on_change=_str_handler,
-                validation=_str_validation,
-            )
-            .classes("flex-1 text-xs")
-            .props("dense debounce=500")
-        )
-
-        def _open_modal(_cv=current_value, _s=make_setter(str), _w=wrapper):
-            with ui.dialog() as dlg, hui.dialog_card("w-[480px]"):
-                ta = ui.textarea(value=_cv[0]).classes("w-full text-xs").props("dense autogrow")
-
-                def _confirm():
-                    v = ta.value
-                    _cv[0] = v
-                    _s(_Event(v))
-                    _w.props(f'data-value="{_escape(v)}"')
-                    dlg.close()
-
-                hui.dialog_actions(on_confirm=_confirm, on_cancel=dlg.close)
-            dlg.open()
-
-        ui.button(icon=hui.icon.expand_full, on_click=_open_modal).props("flat dense size=xs").tooltip(
-            "Edit in full"
-        )
-
-    def _apply_str(v, _w=wrapper, _el=input_el, _cv=current_value):
-        s = str(v) if v is not None else ""
-        _cv[0] = s
-        _el.value = s
-        _w.props(f'data-value="{_escape(s)}"')
-
-    return _apply_str
-
-
-def _render_vec_field_rows(
-    label_text: str,
-    description: str,
-    vec_meta,
-    value: Any,
-    make_setter,
-    attr_name: str = "",
-    render_label=None,
-) -> Callable[[Any], None]:
-    """Render a vector field as a tight column of rows aligned to the panel grid.
-
-    Layout per row:  [field label / spacer]  [X/Y/Z]  [NumberDrag]
-
-    render_label: optional callable that renders the label cell on row 0 (used by
-    reactive rows to inject the reset button inline after the label text).
-
-    Returns an ``apply(value)`` callback that updates each component NumberDrag in
-    place when the model changes externally.
-    """
-    current = list(value) if value is not None else [0] * vec_meta.length
-    while len(current) < vec_meta.length:
-        current.append(0)
-    current = current[: vec_meta.length]
-
-    step = 1 if vec_meta.element_type is int else None
-    precision = 0 if vec_meta.element_type is int else None
-    coerce = vec_meta.element_type
-
-    def _make_component_setter(idx, _cv=current, _ms=make_setter, _c=coerce):
-        handler = _ms(lambda v: v)
-
-        def _on_change(e, _i=idx, _h=handler, _cv=_cv, _c=_c):
-            _cv[_i] = _c(e.args)
-            _h(_Event(list(_cv)))
-
-        return _on_change
-
-    nd_kwargs: dict = {}
-    if step is not None:
-        nd_kwargs["step"] = step
-        nd_kwargs["precision"] = precision
-
-    prop = f'data-field="{attr_name}"' if attr_name else ""
-    component_nds: list[NumberDrag] = []
-
-    # Outer row: label left, component column right.
-    # items-start keeps the label aligned to the first component row, not centred across all.
-    with ui.row().classes(_ROW_CLASSES.replace("items-center", "items-start") + " py-1").props(prop):
-        if render_label is not None:
-            render_label()
-        else:
-            lbl = ui.label(label_text).classes(_LABEL_CLASSES)
-            if description:
-                lbl.tooltip(description)
-        # Component rows: gap-0, tighter row height than standard compact-fields rows
-        with ui.column().classes("gap-0 flex-1 pb-1").style("--hw-compact-row-min-h: 22px;"):
-            for i, component_label in enumerate(vec_meta.labels):
-                with ui.row().classes("w-full items-center gap-1"):
-                    ui.label(component_label).classes("text-xs w-4 text-right hw-text-muted shrink-0")
-                    nd = NumberDrag(
-                        value=coerce(current[i]),
-                        on_change=_make_component_setter(i),
-                        **nd_kwargs,
-                    ).classes("flex-1")
-                    component_nds.append(nd)
-
-    def _apply_vec(v, _nds=component_nds, _c=coerce, _len=vec_meta.length, _cur=current):
-        # NumberDrag.value's setter rewrites its own data-value prop, so we only
-        # assign .value here — no separate props() write needed.
-        seq = list(v) if v is not None else [0] * _len
-        while len(seq) < _len:
-            seq.append(0)
-        for i, nd in enumerate(_nds):
-            coerced = _c(seq[i])
-            _cur[i] = coerced
-            nd.value = coerced
-
-    return _apply_vec
-
-
-def _float_step_from_default(default: Any) -> float:
-    """Derive a drag step from the decimal places of a float default value.
-
-    0 decimals (e.g. 1.0 or 1) → 0.1, 1 decimal (e.g. 0.3) → 0.01, etc.
-    """
-    if not isinstance(default, (int, float)):
-        return 0.1
-    s = str(float(default))
-    dot = s.find(".")
-    if dot < 0:
-        decimals = 0
-    else:
-        decimals = len(s.rstrip("0")) - dot - 1
-    return 10 ** -(decimals + 1)
 
 
 def _escape(v: Any) -> str:
@@ -745,8 +495,8 @@ def _make_setter(registry: "SettingsRegistry", key: str, coerce):
             val = coerce(e.value)
             if val is None:
                 return
-            registry.set_global(key, val, SettingMode.EXPLICIT)
-            registry.save_to_toml_debounced()
+            registry.set_global(key, val)
+            registry.save_to_json_debounced()
         except Exception:
             pass
 

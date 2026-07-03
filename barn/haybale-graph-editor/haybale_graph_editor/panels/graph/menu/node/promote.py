@@ -37,17 +37,15 @@ def promotable_fields(node) -> list[tuple[str, str, tuple[PortType, ...]]]:
 
     *node* is a ``NodeData`` instance (the ``NodeWrapper.node``).
     """
-    from haywire.core.node.promotion import encode_promoted_port_id
-
     out: list[tuple[str, str, tuple[PortType, ...]]] = []
     for accessor in type(node)._settings_bags:
         bag = getattr(node, accessor)
-        for field, desc in type(bag).__dict__.items():
-            if not hasattr(desc, "_setting_key"):
-                continue
-            # already promoted -> skip. The port id is the truth (_promoted_port_id
-            # was retired, ADR 0014).
-            if encode_promoted_port_id(accessor, field) in node.ports:
+        # MRO-aware (matches is_field_promoted/_resolve_promoted) so a field inherited
+        # from a settings-bag base class is offered too, not just one declared directly.
+        for field, desc in type(bag)._property_settings().items():
+            # already promoted -> skip. The promoted port's id is the setting's
+            # storage_key (ADR 0015).
+            if desc.storage_key in node.ports:
                 continue
             if getattr(desc, "_read_only", False):
                 directions: tuple[PortType, ...] = (PortType.OUTLET,)

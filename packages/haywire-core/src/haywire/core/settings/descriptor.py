@@ -3,18 +3,20 @@
 setting — reactive property descriptor for Settings subclasses.
 
 Instance-level access reads/writes the value stored in the owning Settings's
-_local_store.  Change notifications are fired via Settings._on_prop_change().
+per-field ``DataField`` cell (``_cell_for``); ``_set_keys`` carries the
+set-or-unset opinion.  Change notifications fire via Settings._on_property_change().
 
-Two operating modes:
+Two operating modes (P4 single-cell model, ADR 0013):
 
-  Simple mode  (no registry injected on the Settings):
-      _setting_key is empty or Settings._registry is None.
-      Reads and writes go directly to _local_store keyed by attr name.
+  No registry (plain Settings / NodeSettings, _registry is None):
+      __get__ returns the cell value when the field is locally set (``_set_keys``),
+      else the descriptor default. __set__ writes the cell.
 
   Extended mode (registry injected by @node decorator):
       _setting_key is set and Settings._registry is not None.
-      Reads go through Settings._resolve() — full resolution chain.
-      Writes go to _local_store keyed by _setting_key.
+      A locally-set field short-circuits to its cell; otherwise reads go through
+      Settings._resolve() — the full resolution chain. Writes go to the cell,
+      keyed by storage_key (== _setting_key).
       mirrors= points to a FrameworkSettings/LibrarySettings descriptor whose
       _setting_key is stored as _mirror_key (used by _resolve for shadow/watch).
       read_only=True prevents writes (watch behaviour).
@@ -28,12 +30,18 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, Callable, Generic, TypeVar, overload
 
+from haywire.core.types.interface import IType
+
 from .base import SettingDescriptor
 
 if TYPE_CHECKING:
     from haywire.core.settings.registry import SettingsRegistry
 
-T = TypeVar("T")
+# ``setting`` is generic over its IType (e.g. ``setting[FLOAT]``). The descriptor
+# stores raw Python values, so the value side (default / __get__ / __set__) is
+# typed ``Any``: mypy cannot project an IType's value type (FLOAT -> float) from
+# the subscript (no higher-kinded types). ``_type`` stays strict (``type[T]``).
+T = TypeVar("T", bound=IType)
 
 
 class setting(SettingDescriptor, Generic[T]):
@@ -44,14 +52,14 @@ class setting(SettingDescriptor, Generic[T]):
     and persistence::
 
         class MySettings(LibrarySettings):
-            threshold = setting[float](0.5, min=0.0, max=1.0, label='Threshold')
-            mode = setting[str]('fast', choices=['fast', 'precise'], label='Mode')
+            threshold = setting[FLOAT](0.5, min=0.0, max=1.0, label='Threshold')
+            mode = setting[STRING]('fast', choices=['fast', 'precise'], label='Mode')
 
     On ``FrameworkSettings`` and ``LibrarySettings`` ,writes go through
-    the registry's workspace tier and persist to ``.haywire/settings.toml``).
+    the registry's workspace tier and persist to ``.haywire/settings.json``).
 
     On ``NodeSettings`` and plain ``Settings``, writes go to the
-    instance's ``_local_store`` only and are stored with the Graph.
+    instance's per-field ``DataField`` cell only and are stored with the Graph.
 
     Authors declare ``setting[T](...)`` either way — the framework
     picks the right behaviour.
@@ -167,7 +175,7 @@ class setting(SettingDescriptor, Generic[T]):
 
     def __init__(
         self,
-        default: "T | Callable[[], T]" = None,  # type: ignore[assignment]  # ty: ignore[invalid-parameter-default]
+        default: "Any | Callable[[], Any]" = None,
         *,
         label: str = "",
         description: str = "",
@@ -180,13 +188,25 @@ class setting(SettingDescriptor, Generic[T]):
         on_change: "str | None" = None,
         mirrors: "SettingDescriptor | str | None" = None,
         read_only: bool = False,
-        type_: "type | None" = None,
+        type_: "type[T] | None" = None,
         stored: bool = True,
         validator: "Callable | None" = None,
         metadata: "dict | None" = None,
     ) -> None:
         self._default = default
-        self._type = type_ if type_ is not None else (type(default) if default is not None else object)
+        # IType cutover: an explicit type_= must be an IType (Python-type inference
+        # via type(default) is gone). When type_ is absent, leave _type as the
+        # sentinel ``object`` so __set_name__ resolves it from the setting[IType]
+        # generic arg and enforces IType there.
+        if type_ is not None:
+            from haywire.core.types.interface import IType
+
+            if not (isinstance(type_, type) and issubclass(type_, IType)):
+                raise TypeError(
+                    f"setting field '{label or '?'}' type_= must be an IType "
+                    f"(e.g. type_=FLOAT); got {type_!r}. Python types are no longer accepted."
+                )
+        self._type = type_ if type_ is not None else object
         self._label = label
         self._description = description
         self._category = category
@@ -241,29 +261,108 @@ class setting(SettingDescriptor, Generic[T]):
     def _mirror_key(self, value: str) -> None:
         self.__mirror_key = value
 
+    @property
+    def is_cross_mirror(self) -> bool:
+        """True for a shadow/watch field that tracks a *different* setting.
+
+        A FrameworkSettings/LibrarySettings field "mirrors itself" (schema.py sets
+        ``_mirror_key = _setting_key``) purely for the resolution/subscription
+        machinery — its authoritative value lives in the registry workspace tier,
+        NOT a per-instance cell. A genuine shadow()/watch() points ``_mirror_key``
+        at another setting's key. Only the latter makes the instance cell
+        authoritative (P5 Task 2.5): its resolved global has no other home."""
+        return bool(self._mirror_key) and self._mirror_key != self.storage_key
+
     def validate(self, value: Any) -> bool:
         """Return True if *value* passes the validator (or if no validator is set)."""
         if self._validator is None:
             return True
         return bool(self._validator(value))
 
+    @property
+    def resolved_widget_key(self) -> str:
+        """Widget registry key for this field, desugaring legacy panel signals.
+
+        Precedence: explicit ``widget="label"`` → ``choices`` (SelectWidget) →
+        the field IType's declared default ``widget_key``.
+        """
+        if self._widget == "label":
+            return "builtin:widget:SimpleLabelWidget"
+        if self._widget == "color":
+            return "builtin:widget:ColorWidget"
+        if self._choices is not None:
+            return "builtin:widget:SelectWidget"
+        identity = getattr(self._type, "class_identity", None)
+        return getattr(identity, "widget_key", None) or ""
+
+    @property
+    def resolved_widget_config(self) -> dict:
+        """Widget config for this field: the IType's widget_config merged with the
+        legacy panel signals (``choices`` → options, ``min``/``max`` → bounds)."""
+        props: dict = {}
+        if self._choices is not None:
+            props["options"] = self.choices
+        for k in ("min", "max"):
+            v = getattr(self, f"_{k}")
+            if v is not None:
+                props[k] = v
+        identity = getattr(self._type, "class_identity", None)
+        type_cfg = getattr(identity, "widget_config", None) or {}
+        merged = {**type_cfg.get("properties", {}), **props}
+        return {"properties": merged}
+
+    @property
+    def storage_key(self) -> str:
+        """Canonical key for this field's cell / ``_set_keys`` entry on a ``Settings``.
+
+        The fully-qualified ``_setting_key`` (``namespace.accessor.field``) once a
+        namespacing path (@node / @settings / schema __init_subclass__) has run,
+        otherwise the short ``_attr_name`` set by ``__set_name__``. This single
+        accessor replaces the ``_setting_key if _setting_key else name`` fallback
+        that was previously hand-written at every value-store call site.
+
+        NOTE: this does NOT change the meaning of an empty ``_setting_key`` — that
+        still signals "not namespaced, not registry-eligible" to SettingsRegistry.
+        Only per-instance value keying is unified here.
+        """
+        return self._setting_key or self._attr_name
+
     @overload
     def __get__(self, obj: None, objtype: type | None = None) -> "setting[T]": ...
     @overload
-    def __get__(self, obj: object, objtype: type | None = None) -> T: ...
+    def __get__(self, obj: object, objtype: type | None = None) -> Any: ...
     def __get__(self, obj: Any, objtype: type | None = None) -> Any:
         if obj is None:
             return self  # class-level access -> descriptor itself
 
         # Extended mode: resolution chain via registry
         if self._setting_key and getattr(obj, "_registry", None) is not None:
+            # No promoted read-tier branch: a promoted port SHARES this field's cell
+            # (bind_field, ADR 0014), so reading the setting and reading the port hit
+            # the same object — the local-override short-circuit below already returns
+            # the shared cell when the port has driven a value.
+            # A local override short-circuits the chain — return the cell value
+            # directly (holds it, no re-resolve). Otherwise walk the chain.
+            if obj._is_locally_set(self):
+                return obj._local_value(self)
+            # Unset cross-mirror field (shadow/watch of ANOTHER setting): the cell
+            # is authoritative (P5 Task 2.5 — _cell_for seeds it, _on_field_change
+            # keeps it current), so read it instead of a live-resolve-and-bypass.
+            # This keeps the setting and a promoted port that shares the cell in
+            # perfect agreement. A self-namespaced persistent field is NOT a
+            # cross-mirror — its value lives in the registry tier, so it still
+            # walks the chain below.
+            if self.is_cross_mirror:
+                return obj._cell_for(self).get_value()
             return obj._resolve(self._setting_key, self._mirror_key, self._default)
 
-        # Simple mode: direct local store lookup by attr name
-        value = obj._local_store.get(self._attr_name, self._default)
+        # Simple mode: the cell holds the override, else the descriptor default.
+        if obj._is_locally_set(self):
+            return obj._local_value(self)
+        value = self._default
         return value() if callable(value) else value
 
-    def __set__(self, obj: Any, value: T) -> None:
+    def __set__(self, obj: Any, value: Any) -> None:
         if self._read_only:
             raise AttributeError(
                 f"'{self._attr_name}' is read-only — it mirrors a global setting "
@@ -276,16 +375,18 @@ class setting(SettingDescriptor, Generic[T]):
         # No-op if the write matches what the field already RESOLVES to. For a
         # mirror/shadow field with no local override the resolved value is the
         # mirrored global, not _default — so writing that value back must not
-        # create a _local_store entry (which is_locally_set() would then report
-        # as an override, defeating reset). Comparing against the resolved value
+        # create a local override (which is_locally_set() would then report as
+        # an override, defeating reset). Comparing against the resolved value
         # also terminates the cross-tab echo loop at the model layer, so the
         # settings-panel setter doesn't need its own equality guard.
         old = self.__get__(obj, type(obj))
         if value == old:
             return
 
-        key = self._setting_key if self._setting_key else self._attr_name
-        obj._local_store[key] = value
+        # The value lives in the field's DataField cell; _set_keys carries the
+        # set-or-unset opinion (the cell always holds a value, so it can't).
+        obj._cell_for(self).set_value(value)
+        obj._set_keys.add(self.storage_key)
         obj._on_property_change(self._attr_name, value, old, self._on_change)
 
 
@@ -300,7 +401,7 @@ class persistent_setting(setting, Generic[T]):
 
     Behavior change vs `setting`:
         Writes call ``registry.set_global(setting_key, value)`` followed by
-        ``registry.save_to_toml_debounced()``. The registry then fires
+        ``registry.save_to_json_debounced()``. The registry then fires
         change notifications to subscribers (including the owning Settings
         instance), so this class deliberately does NOT call
         ``_on_property_change`` itself — that would double-fire every
@@ -313,7 +414,7 @@ class persistent_setting(setting, Generic[T]):
     registry.
     """
 
-    def __set__(self, obj: Any, value: T) -> None:
+    def __set__(self, obj: Any, value: Any) -> None:
         if self._read_only:
             raise AttributeError(
                 f"'{self._attr_name}' is read-only — it mirrors a global setting "
@@ -332,7 +433,7 @@ class persistent_setting(setting, Generic[T]):
             return
 
         # No-op if the write matches the resolved value — terminates the
-        # cross-tab echo loop and avoids a redundant registry write + TOML save.
+        # cross-tab echo loop and avoids a redundant registry write + JSON save.
         if value == self.__get__(obj, type(obj)):
             return
 
@@ -340,7 +441,7 @@ class persistent_setting(setting, Generic[T]):
         # _on_field_change → _on_property_change. We MUST NOT also call
         # _on_property_change ourselves here, or subscribers fire twice.
         registry.set_global(self._setting_key, value)
-        registry.save_to_toml_debounced()
+        registry.save_to_json_debounced()
 
 
 def shadow(src: "setting[T]", **kwargs: Any) -> "setting[T]":
