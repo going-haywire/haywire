@@ -1,6 +1,5 @@
 from __future__ import annotations
 import inspect
-import logging
 import re
 from typing import TYPE_CHECKING, Iterator, Any, Callable, ClassVar, Dict, List, Optional, cast
 from contextlib import contextmanager
@@ -18,8 +17,6 @@ from haywire.core.settings import Settings
 if TYPE_CHECKING:
     from haywire.core.node import NodeWrapper
     from haywire.core.types.registry import TypeRegistry
-
-logger = logging.getLogger(__name__)
 
 
 class NodeData:
@@ -959,29 +956,8 @@ class NodeData:
         return True
 
     def _bind_promoted_ports(self) -> None:
-        """Bind each promoted port to its setting's DataField cell by reference (ADR 0015).
+        """Bind promoted ports to their setting cells — delegates to
+        haywire.core.node.promotion (the single port→settings crossing)."""
+        from haywire.core.node.promotion import bind_promoted_ports
 
-        Sole port→settings crossing on load. Settings bags are already restored (base
-        runs settings before ports), so the cell holds its loaded value.
-
-        A promoted port whose setting no longer exists (library renamed/removed it)
-        degrades instead of raising: the port stays on the node, promoted but unbound
-        to any setting — edges into it drive only its own field, and the user can
-        demote it manually. Mirrors the dangling-edge degradation stance (ADR 0015).
-        """
-        from haywire.core.node.promotion import _resolve_promoted
-
-        for port in self.ports.values():
-            if not port.promoted:
-                continue
-            try:
-                bag, desc = _resolve_promoted(self, port.id)
-            except KeyError:
-                logger.warning(
-                    "Promoted port %r on node %r matches no setting (library changed?); leaving it unbound.",
-                    port.id,
-                    self.node_id,
-                )
-                continue
-            port.bind_field(bag._cell_for(desc))
-            bag._set_keys.add(desc.storage_key)
+        bind_promoted_ports(self)

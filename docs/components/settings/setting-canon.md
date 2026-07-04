@@ -93,40 +93,75 @@ You never hand-write these — they are what TOML and the registry use under the
 | `description` | Tooltip text |
 | `category` | Panel grouping (collapsible group) |
 | `order` | Sort order within category |
-| `min` / `max` | Slider bounds; also infer the slider widget |
-| `choices` | Dropdown options (list, dict, or callable; see below) |
-| `widget` | Explicit widget hint (override the inferred one) |
+| `min` / `max` | Numeric bounds, folded into `widget_config["properties"]` |
+| `widget` | Explicit widget contract — a `{"key", "config"}` dict from `WidgetCls.config(...)`. Wins outright over the field IType's declared default widget |
+| `widget_config` | Bare property overrides layered on top of whichever widget was selected (IType default or explicit `widget=`) — e.g. `{"options": [...]}` for a `CHOICES` field |
 | `mirrors` | Source descriptor or full key — same effect as `shadow()` directly |
 | `read_only` | If `True`, instance writes raise `AttributeError`; field is invisible in panel |
 | `validator` | `Callable(value) -> bool`; return `False` to reject. Checked before `setattr` |
 | `metadata` | Arbitrary dict attached to the descriptor as `._metadata` |
 
-**Widget inference.** Type and parameters together pick the panel widget:
+**Widget selection is a stamped port contract (ADR 0017).** Every `setting()`
+descriptor computes plain `widget_key: str` / `widget_config: dict`
+attributes exactly **once** — at class-definition time (`__set_name__`) for a
+class-body field, or at construction time for a registry-built one (`registry.define(...)`,
+file auto-define). Nothing re-resolves at render time. Precedence:
 
-| Condition | Widget |
-|---|---|
-| `widget='label'` | Read-only label |
-| Type `Color` (`Color = str`) | Color picker |
-| Type `Icon` (`Icon = str`) | Material icon picker |
-| `choices` set | Dropdown |
-| Type `bool` | Toggle |
-| Type `int` / `float` | NumberDrag (Blender-style drag input) |
-| Otherwise | Text input |
+1. An explicit `widget=WidgetCls.config(...)` dict, if given — wins outright.
+2. Otherwise, the field's IType's own declared identity
+   (`@type(widget_key=..., widget_config=...)`) — e.g. `CHOICES` declares
+   `widget_key=SELECT_WIDGET`, `COLOR` declares a color-picker key, plain
+   `FLOAT`/`INT` declare a NumberDrag key, `BOOL` a toggle key.
+3. `min`/`max` and any `widget_config=` you pass are folded into
+   `widget_config["properties"]` on top of the IType's own declared
+   properties.
 
-**`choices` accepts three forms.**
+There is no `choices=` parameter and no string `widget="color"` /
+`widget="label"` shorthand — both were deleted. For a read-only label use
+`widget=SimpleLabelWidget.config()`; for a color field use `setting[COLOR]`
+(its IType identity already selects the color picker, no `widget=` needed).
+
+**Dropdowns use `setting[CHOICES]`, options supplied per-use.** `CHOICES` is
+a builtin `IType(STRING)` whose identity says "renders as a select" but
+carries **zero options** — every declaration site supplies its own via
+`widget_config={"options": ...}`. Three option shapes:
 
 ```python
+from haywire.barn.builtin.types import CHOICES
+
 # Static list — value shown and stored as-is
-algorithm = setting[str]('fast', choices=['fast', 'accurate'])
+algorithm = setting[CHOICES]('fast', widget_config={'options': ['fast', 'accurate']})
 
 # Dict — {stored_value: display_label}
-algorithm = setting[str]('fast', choices={'fast': 'Fast Mode', 'accurate': 'High Accuracy'})
+algorithm = setting[CHOICES](
+    'fast',
+    widget_config={'options': {'fast': 'Fast Mode', 'accurate': 'High Accuracy'}},
+)
 
-# Callable — evaluated at render time (use for dynamic lists from a registry)
-theme = setting[str]('', choices=lambda: get_theme_registry().list_workbench_keys())
+# Callable — resolved fresh by SelectWidget.build() on every widget build
+# (use for dynamic lists from a registry; plugin-added entries appear automatically)
+theme = setting[CHOICES]('', widget_config={'options': lambda: get_theme_registry().list_workbench_keys()})
 ```
 
-The callable form is evaluated fresh on every panel render, so plugin-added entries appear automatically.
+A real example from the codebase (`haywire/core/debug/debug_settings.py`):
+
+```python
+from haywire.barn.builtin.types import BOOL, CHOICES
+
+_LEVEL_CHOICES = ["DEBUG", "INFO", "WARNING", "ERROR"]
+
+class DebugSettings(FrameworkSettings, namespace=NAMESPACE_DEBUG):
+    log_level = setting[CHOICES](
+        "INFO",
+        label="Global Log Level",
+        description="Minimum log level for the haywire root logger",
+        widget_config={"options": _LEVEL_CHOICES},
+    )
+```
+
+Because `CHOICES` carries identity STRING↔CHOICES adapters (both directions,
+pure passthrough), a plain string port can connect to — or be promoted from —
+a `CHOICES`-typed setting with no special-case handling.
 
 **Reacting to a single field.** The `on_change='method'` string dispatch was retired (ADR 0016); use `subscribe_field` — one adapter on the field's cell, so it hears every writer (local set, reset, registry write-through, and edge drives into a promoted port's shared cell):
 
@@ -295,7 +330,7 @@ The callback fires on any change — local writes, global writes from other plac
 
 **LibrarySettings** — source: [`barn/haybale-testing/haybale_testing/settings/testing.py`](../../../barn/haybale-testing/haybale_testing/settings/testing.py)
 
-`TestingSettings` demonstrates the full `@settings` / `LibrarySettings` surface: `float`, `int`, `str`, `bool`, `Color`, `Vec2i`, `Vec3f` field types, `min`/`max`, `choices`, `category`, `widget`:
+`TestingSettings` demonstrates the full `@settings` / `LibrarySettings` surface: `FLOAT`, `INT`, `STRING`, `BOOL`, `CHOICES`, `COLOR`, `VEC2I`, `VEC3F` field types, `min`/`max`, `widget_config`, `category`:
 
 ```python
 --8<-- "barn/haybale-testing/haybale_testing/settings/testing.py:testing_settings"
@@ -314,12 +349,13 @@ What these examples exercise:
 | Concept | Where it shows up |
 |---|---|
 | `@settings(namespace=..., label=...)` on `LibrarySettings` | `TestingSettings` |
-| `setting[float]` with `min`/`max` | `default_intensity` |
-| `setting[int]` with `min`/`max` | `default_count` |
-| `setting[str]` plain and with `choices` | `default_label`, `default_mode` |
-| `setting[bool]` | `default_enabled` |
-| `setting[Color]` with `widget='color'` | `default_color` |
-| `setting[Vec2i]` / `setting[Vec3f]` | `default_offset`, `default_position` |
+| `setting[FLOAT]` with `min`/`max` | `default_intensity` |
+| `setting[INT]` with `min`/`max` | `default_count` |
+| `setting[STRING]` plain | `default_label` |
+| `setting[CHOICES]` with `widget_config={"options": [...]}` | `default_mode` |
+| `setting[BOOL]` | `default_enabled` |
+| `setting[COLOR]` (widget comes from the IType identity, no `widget=` needed) | `default_color` |
+| `setting[VEC2I]` / `setting[VEC3F]` | `default_offset`, `default_position` |
 | `read_only=True` — panel skips the field | `read_only_value` |
 | `shadow()` — writable mirror, per-node override OK | `intensity`, `count_mirror`, … |
 | `watch()` — read-only mirror, invisible in panel | `intensity_ro`, `count_ro`, … |
@@ -335,12 +371,13 @@ For the resolution chain, registry mechanics, and TOML format, see [architecture
 ### Three descriptors
 
 ```python
-from haywire.core.settings import NodeSettings, setting, shadow, watch, Color, Icon
+from haywire.core.settings import NodeSettings, setting, shadow, watch
+from haywire.barn.builtin.types import FLOAT
 
 class MyNode(BaseNode):
     class filter(NodeSettings):
         # Local
-        threshold = setting[float](0.5, min=0.0, max=1.0, label='Threshold')
+        threshold = setting[FLOAT](0.5, min=0.0, max=1.0, label='Threshold')
 
         # Writable mirror (per-node override OK)
         snap = shadow(CanvasSettings.snap_to_grid)

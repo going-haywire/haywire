@@ -3,20 +3,20 @@
 
 from haywire.core.settings import setting
 from haywire.core.settings.schema import FrameworkSettings
-from haywire.barn.builtin.types import BOOL, COLOR, INT, STRING
+from haywire.barn.builtin.types import BOOL, CHOICES, COLOR, INT
 
 
 class CanvasSettings(FrameworkSettings, namespace="ui.canvas"):
     """Global preferences controlling canvas grid, zoom, and pan behaviour."""
 
     # Background pattern (style, not color)
-    bg_pattern = setting[STRING](
+    bg_pattern = setting[CHOICES](
         "dots",
         label="Background Pattern",
         description="Pattern style for canvas background",
         category="ui.canvas",
         order=10,
-        choices=["none", "dots", "lines", "cross"],
+        widget_config={"options": ["none", "dots", "lines", "cross"]},
     )
     grid_color = setting[COLOR](
         "#808080",
@@ -24,7 +24,6 @@ class CanvasSettings(FrameworkSettings, namespace="ui.canvas"):
         description="Color of the canvas grid",
         category="ui.canvas",
         order=11,
-        widget="color",
     )
 
     # Grid

@@ -169,6 +169,26 @@ Field descriptors on `FrameworkSettings` and `LibrarySettings` are auto-promoted
 
 Deep inheritance (subclassing a `FrameworkSettings` or `LibrarySettings` subclass) is blocked by `__init_subclass__` to keep namespaces clean.
 
+**The registry/persistence split.** `SettingsRegistry` (`settings/registry.py`) owns
+definitions, tiers, cells, subscribers, and auto-define; it does not touch a
+filesystem directly. File I/O — JSON read/write, the debounced save timer,
+and the watchdog-backed file watcher — lives in a separate collaborator,
+`SettingsFileStore` (`settings/persistence.py`), that knows nothing about
+setting definitions, tiers, descriptors, or `SettingValue`: its whole
+vocabulary is flat `{dot.key: entry}` dicts and paths. The registry calls
+`store.read(path)` / `store.write(path, entries)` / `store.write_debounced(path,
+provider)` / `store.watch(path, on_change)` at the disk edge and does all the
+interpretation (flatten/nest, rehydration via IType `to_dict`/`from_dict`,
+auto-define) itself — the read/write seam is exactly "parse JSON into a flat
+dict, or flatten a dict back to JSON," nothing more. The split does not
+change §8.3's serialization contract or the resolution chain; it only moves
+*where* the bytes are read and written. One real external caller keeps a
+handful of registry internals (`_global_watch_enabled`,
+`_workspace_watch_enabled`, `_reload_from_file`) on the registry rather than
+the store: `core/di/config.py`'s `_print_settings_status`/`reload_settings()`
+read them directly, so `registry.py` is not — and was never targeted to be —
+as small as a clean definitions/tiers-only module would be in isolation.
+
 ### 6.2 The four key identifiers
 
 Four identifiers cooperate to thread a setting from class definition to JSON to panel. You won't normally write any of them by hand — the framework derives them — but you'll see them in tracebacks and registry dumps.
@@ -306,6 +326,68 @@ Everything else (mirror vs plain, set vs unset) rides that one `on_changed → p
 **Value-less serialization; settings-first load.** A promoted port serializes with its type `recipe` like any other port, but omits `field_data` — the value round-trips through the settings block only. On load, settings bags restore *before* ports; `_bind_promoted_ports()` runs after ports deserialize and binds each promoted port to its setting's already-loaded cell (ADR 0015) — no propagation mid-load.
 
 **Freeze-on-disconnect.** Demote never resets the value (§C3): whatever the shared cell holds at demote stays. If that value diverges from the un-overridden resolution, the field is marked locally-set so the setting's own read returns it; recovery is an explicit `reset`.
+
+**Promoted rows are direction- and link-aware (decision 7bA, ADR 0017).** The
+settings panel renders a promoted field differently depending on which
+direction it was promoted to, because promotion changes who owns the value:
+
+- **Promoted to an INLET** ⇒ the row renders **read-only** — a live label,
+  not an editable widget — because the graph now owns the value (an
+  incoming edge, or simply having been promoted at all puts the field in
+  `_set_keys`, so the setting's own writes would silently be shadowed by the
+  next edge-drive). The hint text is `"↳ promoted to inlet"` while the port
+  is unlinked, or `"↳ driven by inlet"` once an edge is connected
+  (`port.is_linked()`).
+- **Promoted to an OUTLET** ⇒ the row keeps its normal **editable** widget,
+  hinted `"↳ promoted to outlet"` — the setting is still the source of
+  truth; the port only exposes its value downstream.
+
+The row carries `data-promoted-direction="inlet"|"outlet"` (in addition to
+the existing `data-promoted="true"`) so tests and tooling can assert on
+direction, not just promoted-ness.
+
+### 6.6 The stamped widget contract (ADR 0017)
+
+Widget selection is computed **once** per descriptor and never re-resolved at
+render time. `SettingDescriptor._stamp_widget()` sets two plain attributes —
+`widget_key: str` and `widget_config: dict` — and every read site (the
+settings panel, the Ports Panel, the node-card widget) consumes them
+verbatim. `_stamp_widget()` runs from two call sites, because a descriptor's
+IType isn't always known at the same moment:
+
+- **Class-body field** (`threshold = setting[FLOAT](...)` inside a `Settings`
+  subclass) — stamped from `__set_name__`, once the IType is resolved from
+  the `setting[T]` generic subscript (or the owner class's type hint).
+- **Registry-constructed field** (`registry.define(...)`, file auto-define) —
+  these descriptors are built directly with an explicit `type_=`, never
+  receive `__set_name__` from a class body, so `setting.__init__` calls
+  `_stamp_widget()` itself once `self._type` is confirmed to be a real
+  `IType` subclass.
+
+Precedence inside `_stamp_widget()`: an explicit `widget=` dict (the
+`{"key", "config"}` shape from `WidgetCls.config(...)`) wins outright;
+otherwise `widget_key` comes from the field IType's own declared identity
+(`@type(widget_key=..., widget_config=...)` — see
+`haywire.barn.builtin.widget_keys`, a leaf module of plain string constants
+so engine-layer IType declarations never import a NiceGUI-backed widget
+class). `min`/`max` and any `widget_config=` are folded into
+`widget_config["properties"]` on top of the IType's own declared properties.
+Because this is a port contract rather than a render-time computation, a
+setting's panel row and its promoted port's row resolve the *same*
+`widget_key`/`widget_config` from the *same* descriptor — there is exactly
+one place the two surfaces could diverge (an explicit `widget=` on the
+descriptor), not the three overlapping resolution rules (`choices=` sugar,
+string `widget=` hints, ad-hoc type inference) that preceded it. See
+[ADR 0017](../../adr/0017-widget-selection-port-contract.md) for the full
+rationale and the alternatives it rejects.
+
+`CHOICES(STRING)` is the one builtin IType whose declared identity points at
+a dropdown (`widget_key=SELECT_WIDGET`) while carrying zero options itself —
+every declaration site supplies its own via `widget_config={"options": [...]
+| {value: label} | callable}`. `SelectWidget.build()` resolves a callable
+option-list at build time, so a dynamic list (e.g. sourced from a live
+registry) still refreshes on every widget instance build even though nothing
+about option resolution happens at stamp time.
 
 ## 7. Lifecycle
 

@@ -49,7 +49,7 @@ class setting(SettingDescriptor, Generic[T]):
 
         class MySettings(LibrarySettings):
             threshold = setting[FLOAT](0.5, min=0.0, max=1.0, label='Threshold')
-            mode = setting[STRING]('fast', choices=['fast', 'precise'], label='Mode')
+            mode = setting[CHOICES]('fast', widget_config={'options': ['fast', 'precise']}, label='Mode')
 
     On ``FrameworkSettings`` and ``LibrarySettings`` ,writes go through
     the registry's workspace tier and persist to ``.haywire/settings.json``).
@@ -90,36 +90,35 @@ class setting(SettingDescriptor, Generic[T]):
     min, max
         Bounds passed to numeric widgets (``NumberDrag``). UI-only — NOT
         enforced on direct writes. Use ``validator`` if you need runtime
-        enforcement.
+        enforcement. Folded into ``widget_config["properties"]`` at
+        ``__set_name__`` time (ADR 0017).
 
-    choices
-        Valid values for the field. Three forms:
+    widget : dict or None
+        Explicit widget contract built via ``WidgetCls.config(...)`` (see
+        ``IWidget.config``), e.g. ``widget=SimpleLabelWidget.config()`` or
+        ``widget=SelectWidget.config(properties={"options": [...]})``. When
+        given, it wins outright over the field IType's declared default
+        widget. ``None`` (default): the widget comes from the field IType's
+        declared default ``widget_key`` — use ``setting[CHOICES]`` for a
+        dropdown (see ``widget_config`` below for its options).
 
-        * ``list[T]`` — values shown and stored verbatim.
-        * ``dict[T, str]`` — keys are the stored values, values are the
-          displayed labels.
-        * ``Callable[[], list | dict]`` — evaluated at render time. Use for
-          dynamic lists that depend on registry state (e.g. enumerate
-          installed themes).
-
-        Presence of ``choices=`` makes the auto-renderer use a ``ui.select``
-        widget regardless of type. Not enforced on direct writes — use
-        ``validator`` for enforcement.
-
-    widget : str or None
-        Optional legacy widget override. Two recognised values: ``"label"``
-        (read-only SimpleLabelWidget) and ``"color"`` (ColorWidget). ``None``
-        (default): the widget comes from ``choices=`` (SelectWidget) or the
-        field IType's declared default ``widget_key``. Scheduled for removal —
-        see the Tier-2 plan (widget= converges on the port contract).
+    widget_config : dict or None
+        Bare config overrides layered on top of the IType's default widget
+        config when the default widget is fine but its properties need a
+        tweak — e.g. ``setting[CHOICES]("fast", widget_config={"options":
+        ["fast", "precise"]})``. Accepts either a ``{"properties": {...}}``
+        wrapper or a bare properties dict (``{"options": [...]}``) — both
+        spellings are equivalent.
 
     mirrors : SettingDescriptor or str or None
         Marks this field as a mirror of another setting. Two forms:
 
         * A ``SettingDescriptor`` reference — e.g.
           ``mirrors=NodeSkinSettings.studio_skin``. Inherits label,
-          description, choices, widget, and type from the source at
-          construction time; the source's setting key is resolved lazily.
+          description, and type from the source at construction time (the
+          mirror's own widget_key/widget_config are stamped from its own
+          ``_type`` at ``__set_name__``, since mirrors already inherit IType);
+          the source's setting key is resolved lazily.
         * A plain string key — e.g.
           ``mirrors="ui.node.default.skin.studio_skin"``. Use only when
           a descriptor reference is unavailable.
@@ -159,8 +158,8 @@ class setting(SettingDescriptor, Generic[T]):
         order: int = 0,
         min: Any = None,
         max: Any = None,
-        choices: "list | dict | Callable | None" = None,
-        widget: "str | None" = None,
+        widget: "dict | None" = None,
+        widget_config: "dict | None" = None,
         mirrors: "SettingDescriptor | str | None" = None,
         read_only: bool = False,
         type_: "type[T] | None" = None,
@@ -173,8 +172,6 @@ class setting(SettingDescriptor, Generic[T]):
         # sentinel ``object`` so __set_name__ resolves it from the setting[IType]
         # generic arg and enforces IType there.
         if type_ is not None:
-            from haywire.core.types.interface import IType
-
             if not (isinstance(type_, type) and issubclass(type_, IType)):
                 raise TypeError(
                     f"setting field '{label or '?'}' type_= must be an IType "
@@ -187,8 +184,8 @@ class setting(SettingDescriptor, Generic[T]):
         self._order = order
         self._min = min
         self._max = max
-        self._choices = choices
-        self._widget = widget
+        self._widget_spec = widget or {}
+        self._widget_config_override = widget_config or {}
         self._read_only = read_only
         self._validator = validator
         self._metadata: dict = metadata or {}
@@ -213,14 +210,20 @@ class setting(SettingDescriptor, Generic[T]):
                     self._label = getattr(mirrors, "_label", "")
                 if not description:
                     self._description = getattr(mirrors, "_description", "")
-                if choices is None:
-                    self._choices = getattr(mirrors, "_choices", None)
-                if widget is None:
-                    self._widget = getattr(mirrors, "_widget", None)
                 if self._type is object:
                     self._type = getattr(mirrors, "_type", object)
         else:
             self._mirror_key = ""
+
+        # Stamp the widget contract now if the IType is already known (ADR 0017):
+        # an explicit type_= (registry.define()/_auto_define(), or any setting(...)
+        # built outside a class body) or a mirror that inherited a resolved IType
+        # above. A class-body ``setting[T](...)`` field with no explicit type_=
+        # still has ``_type is object`` here — __set_name__ resolves the IType
+        # from the generic subscript and stamps then (this call would be a no-op
+        # widget_key="" anyway, since class_identity isn't available yet).
+        if isinstance(self._type, type) and issubclass(self._type, IType):
+            self._stamp_widget()
 
     @property
     def _mirror_key(self) -> str:
@@ -249,37 +252,23 @@ class setting(SettingDescriptor, Generic[T]):
             return True
         return bool(self._validator(value))
 
-    @property
-    def resolved_widget_key(self) -> str:
-        """Widget registry key for this field, desugaring legacy panel signals.
-
-        Precedence: explicit ``widget="label"`` → ``choices`` (SelectWidget) →
-        the field IType's declared default ``widget_key``.
-        """
-        if self._widget == "label":
-            return "builtin:widget:SimpleLabelWidget"
-        if self._widget == "color":
-            return "builtin:widget:ColorWidget"
-        if self._choices is not None:
-            return "builtin:widget:SelectWidget"
+    def _stamp_widget(self) -> None:
+        """Compute the final widget contract ONCE (ADR 0017): explicit widget=
+        wins, else the field IType's declared default. No render-time resolution."""
         identity = getattr(self._type, "class_identity", None)
-        return getattr(identity, "widget_key", None) or ""
-
-    @property
-    def resolved_widget_config(self) -> dict:
-        """Widget config for this field: the IType's widget_config merged with the
-        legacy panel signals (``choices`` → options, ``min``/``max`` → bounds)."""
-        props: dict = {}
-        if self._choices is not None:
-            props["options"] = self.choices
-        for k in ("min", "max"):
-            v = getattr(self, f"_{k}")
-            if v is not None:
-                props[k] = v
-        identity = getattr(self._type, "class_identity", None)
-        type_cfg = getattr(identity, "widget_config", None) or {}
-        merged = {**type_cfg.get("properties", {}), **props}
-        return {"properties": merged}
+        spec = self._widget_spec or {}
+        self.widget_key: str = spec.get("key") or (getattr(identity, "widget_key", None) or "")
+        type_props = (getattr(identity, "widget_config", None) or {}).get("properties", {})
+        own_props: dict = {}
+        if self._min is not None:
+            own_props["min"] = self._min
+        if self._max is not None:
+            own_props["max"] = self._max
+        spec_props = (spec.get("config") or {}).get("properties", {})
+        override_props = self._widget_config_override.get("properties", self._widget_config_override)
+        self.widget_config: dict = {
+            "properties": {**type_props, **own_props, **spec_props, **override_props}
+        }
 
     @property
     def storage_key(self) -> str:

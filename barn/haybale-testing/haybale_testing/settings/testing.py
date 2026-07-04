@@ -4,7 +4,7 @@
 from haywire.core.settings.schema import LibrarySettings
 from haywire.core.settings import setting, Vec2i, Vec3f
 from haywire.core.settings.decorator import settings
-from haywire.barn.builtin.types import BOOL, COLOR, FLOAT, INT, STRING, VEC2I, VEC3F
+from haywire.barn.builtin.types import BOOL, CHOICES, COLOR, FLOAT, INT, STRING, VEC2I, VEC3F
 
 
 # --8<-- [start:testing_settings]
@@ -40,9 +40,9 @@ class TestingSettings(LibrarySettings):
         description="Library-wide boolean default used by test nodes",
         category="root",
     )
-    default_mode = setting[STRING](
+    default_mode = setting[CHOICES](
         "fast",
-        choices=["fast", "balanced", "quality"],
+        widget_config={"options": ["fast", "balanced", "quality"]},
         label="Default Mode",
         description="Library-wide mode choice used by test nodes",
         category="root",
@@ -52,7 +52,6 @@ class TestingSettings(LibrarySettings):
         label="Default Color",
         description="Library-wide color default used by test nodes",
         category="root",
-        widget="color",
     )
     default_offset = setting[VEC2I](
         Vec2i([0, 0]),

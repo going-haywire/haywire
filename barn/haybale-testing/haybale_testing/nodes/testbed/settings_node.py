@@ -3,7 +3,7 @@ from haywire.core.execution.execution_context import ExecutionContext
 
 from haywire.core.settings import NodeSettings, setting, shadow, watch, Vec2i, Vec3f, Vec4f
 from haybale_testing.settings.testing import TestingSettings
-from haywire.barn.builtin.types import BOOL, COLOR, FLOAT, INT, STRING, VEC2I, VEC3F, VEC4F
+from haywire.barn.builtin.types import BOOL, CHOICES, COLOR, FLOAT, INT, STRING, VEC2I, VEC3F, VEC4F
 
 
 @node(
@@ -47,9 +47,9 @@ class SettingsNode(BaseNode):
             description="An example boolean setting",
             category="type",
         )
-        example_choices = setting[STRING](
+        example_choices = setting[CHOICES](
             "fast",
-            choices=["fast", "balanced", "quality"],
+            widget_config={"options": ["fast", "balanced", "quality"]},
             label="Example Choices",
             description="An example choices setting",
             category="type",
@@ -59,7 +59,6 @@ class SettingsNode(BaseNode):
             label="Example Color",
             description="An example color setting",
             category="type",
-            widget="color",
         )
         example_vec2i = setting[VEC2I](
             Vec2i([4, 8]),
@@ -102,7 +101,14 @@ class SettingsNode(BaseNode):
         count_mirror = shadow(TestingSettings.default_count, label="Count Mirror", category="mirrors")
         label_mirror = shadow(TestingSettings.default_label, label="Label Mirror", category="mirrors")
         enabled = shadow(TestingSettings.default_enabled, label="Enabled", category="mirrors")
-        mode = shadow(TestingSettings.default_mode, label="Mode", category="mirrors")
+        # ADR 0017: mirrors inherit IType (-> CHOICES/SELECT_WIDGET) from src, but
+        # NOT its per-setting widget_config — options must be re-supplied here.
+        mode = shadow(
+            TestingSettings.default_mode,
+            label="Mode",
+            category="mirrors",
+            widget_config={"options": ["fast", "balanced", "quality"]},
+        )
         tint = shadow(TestingSettings.default_color, label="Tint", category="mirrors")
         offset = shadow(TestingSettings.default_offset, label="Offset", category="mirrors")
         position = shadow(TestingSettings.default_position, label="Position", category="mirrors")
@@ -112,7 +118,12 @@ class SettingsNode(BaseNode):
         count_ro = watch(TestingSettings.default_count, label="Count (read-only)", category="mirrors")
         label_ro = watch(TestingSettings.default_label, label="Label (read-only)", category="mirrors")
         enabled_ro = watch(TestingSettings.default_enabled, label="Enabled (read-only)", category="mirrors")
-        mode_ro = watch(TestingSettings.default_mode, label="Mode (read-only)", category="mirrors")
+        mode_ro = watch(
+            TestingSettings.default_mode,
+            label="Mode (read-only)",
+            category="mirrors",
+            widget_config={"options": ["fast", "balanced", "quality"]},
+        )
         tint_ro = watch(TestingSettings.default_color, label="Tint (read-only)", category="mirrors")
         offset_ro = watch(TestingSettings.default_offset, label="Offset (read-only)", category="mirrors")
         position_ro = watch(

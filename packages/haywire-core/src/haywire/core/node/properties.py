@@ -11,7 +11,7 @@ Serialized under the 'props' key in graph JSON.
 
 from haywire.core.settings import NodeSettings, setting
 from haywire.core.settings.descriptor import shadow
-from haywire.ui.skin.settings import NodeDefaultSkinSettings
+from haywire.ui.skin.settings import NodeDefaultSkinSettings, _node_skin_choices
 from haywire.barn.builtin.types import BOOL, COLOR, FLOAT, STRING
 
 
@@ -64,6 +64,9 @@ class NodeProperties(NodeSettings):
         src=NodeDefaultSkinSettings.studio_skin,
         category="appearance",
         order=10,
+        # ADR 0017: mirrors inherit IType (-> CHOICES/SELECT_WIDGET) from src,
+        # but NOT its per-setting widget_config — options must be re-supplied here.
+        widget_config={"options": _node_skin_choices},
     )
 
     color_override = setting[COLOR](
@@ -72,7 +75,6 @@ class NodeProperties(NodeSettings):
         order=20,
         category="appearance",
         description="Custom background color for this node (None = use theme default)",
-        widget="color",
     )
 
     # -----------------------------------------------------------------

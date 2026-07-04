@@ -65,7 +65,7 @@ class TestRegisterClassRepopulatesFromToml:
         assert Schema().last_name == "my-session", (
             "After re-registration, the workspace JSON value must be restored. "
             "If this fails, _register_class is not calling "
-            "_repopulate_from_toml_for_keys."
+            "_repopulate_from_file_for_keys."
         )
 
     def test_global_value_survives_disable_reenable(self, tmp_path: Path):
@@ -146,7 +146,7 @@ class TestRegisterClassRepopulatesFromToml:
 
 
 class TestRepopulateHelperDirect:
-    """Targeted tests for SettingsRegistry._repopulate_from_toml_for_keys."""
+    """Targeted tests for SettingsRegistry._repopulate_from_file_for_keys."""
 
     def test_only_listed_keys_are_applied(self, tmp_path: Path):
         path = tmp_path / "settings.json"
@@ -176,7 +176,7 @@ class TestRepopulateHelperDirect:
         ].__class__()
 
         # Re-populate ONLY alpha.field.
-        registry._repopulate_from_toml_for_keys({"alpha.field"}, path, tier="workspace")
+        registry._repopulate_from_file_for_keys({"alpha.field"}, path, tier="workspace")
 
         assert Alpha().field == "a"
         # Beta still inheriting since we didn't repopulate it.
@@ -189,5 +189,5 @@ class TestRepopulateHelperDirect:
         registry = SettingsRegistry()
         # Should log + return, not raise.
         with caplog.at_level("ERROR"):
-            registry._repopulate_from_toml_for_keys({"anything"}, path, tier="workspace")
+            registry._repopulate_from_file_for_keys({"anything"}, path, tier="workspace")
         assert any("repopulate" in rec.message.lower() for rec in caplog.records)

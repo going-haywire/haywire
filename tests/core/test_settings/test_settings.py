@@ -26,7 +26,7 @@ from haywire.core.settings import (
     get_vec_meta,
 )
 from haywire.core.di.test_config import create_test_bag
-from haywire.barn.builtin.types import BOOL, COLOR, FLOAT, INT, STRING, VEC2I, VEC3F, VEC4F
+from haywire.barn.builtin.types import BOOL, CHOICES, COLOR, FLOAT, INT, STRING, VEC2I, VEC3F, VEC4F
 
 
 # ---------------------------------------------------------------------------
@@ -36,7 +36,7 @@ from haywire.barn.builtin.types import BOOL, COLOR, FLOAT, INT, STRING, VEC2I, V
 
 class SimpleSettings(Settings):
     strength = setting[FLOAT](0.5, min=0.0, max=1.0, label="Strength")
-    mode = setting[STRING]("fast", choices=["fast", "precise"], label="Mode")
+    mode = setting[CHOICES]("fast", widget_config={"options": ["fast", "precise"]}, label="Mode")
     verbose = setting[BOOL](False, label="Verbose")
 
 

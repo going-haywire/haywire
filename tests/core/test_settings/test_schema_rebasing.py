@@ -166,6 +166,29 @@ class TestRegistryReadsPropFields:
         finally:
             os.unlink(path)
 
+    def test_auto_define_with_choices_speaks_choices_type(self):
+        """A settings-file entry with 'choices' auto-defines as setting[CHOICES]
+        (ADR 0017) — widget_key is SELECT_WIDGET and options land in widget_config."""
+        import json
+        import tempfile
+        import os
+
+        from haywire.barn.builtin import widget_keys
+
+        registry = SettingsRegistry()
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
+            f.write(json.dumps({"custom": {"pick": {"value": "a", "choices": ["a", "b"], "type": "str"}}}))
+            path = f.name
+
+        try:
+            registry.load_from_json(path, tier="workspace")
+            defn = registry.get_definition("custom.pick")
+            assert defn is not None
+            assert defn.widget_key == widget_keys.SELECT_WIDGET
+            assert defn.widget_config["properties"]["options"] == ["a", "b"]
+        finally:
+            os.unlink(path)
+
     def test_settings_decorator_sets_setting_keys(self):
         """@settings decorator sets _setting_key on all settings via _prop_fields()."""
 

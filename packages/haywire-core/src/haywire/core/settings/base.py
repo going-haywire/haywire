@@ -3,8 +3,10 @@
 SettingDescriptor — shared base for all property descriptors.
 
 Provides the metadata contract that UI panels rely on: _default, _type,
-_label, _description, _category, _order, _min, _max, _choices, _widget,
-_attr_name, and the choices property.
+_label, _description, _category, _order, _min, _max, _attr_name, plus the
+stamped widget contract (``widget_key``, ``widget_config``) computed ONCE by
+``_stamp_widget()`` from ``__set_name__`` (ADR 0017) — no render-time
+resolution, no ``choices=``/str ``widget=`` sugar.
 
 Subclass:
     setting (settings/descriptor.py) — reactive instance setting on Settings subclasses
@@ -13,7 +15,7 @@ Subclass:
 from __future__ import annotations
 
 import typing
-from typing import Any, Callable
+from typing import Any
 
 
 class SettingDescriptor:
@@ -55,23 +57,14 @@ class SettingDescriptor:
     _max: Any = None
     """Maximum allowed value — used as the upper bound for numeric widgets."""
 
-    _choices: list | dict | Callable[[], list | dict] | None = None
-    """Dropdown options: a static list, a ``{value: label}`` dict, or a callable returning either."""
-
     _setting_key: str = ""
     """Fully-qualified registry key — set by subclasses in extended mode."""
 
-    _widget: str | None = None
-    """Explicit widget hint (e.g. ``'color'``) that overrides type-based inference."""
+    widget_key: str = ""
+    """Widget registry key stamped ONCE at ``__set_name__`` by ``_stamp_widget()`` (ADR 0017)."""
 
-    @property
-    def choices(self) -> list | dict | None:
-        """Resolve choices — calls the provider if it is a callable."""
-        choices = self._choices
-        if choices is None or isinstance(choices, (list, dict)):
-            return choices
-        # Remaining branch: a callable provider returning list | dict.
-        return choices()
+    widget_config: dict = {}
+    """Widget config (``{"properties": {...}}``) stamped ONCE at ``__set_name__`` (ADR 0017)."""
 
     def __set_name__(self, owner: type, name: str) -> None:
         self._attr_name = name
@@ -85,6 +78,7 @@ class SettingDescriptor:
             if hint is not None and isinstance(hint, type) and hint is not self._type:
                 self._type = hint
                 self._enforce_itype(owner, name)
+                self._stamp_widget()
                 return
         except Exception:
             pass
@@ -94,6 +88,13 @@ class SettingDescriptor:
             if args and isinstance(args[0], type) and args[0] is not self._type:
                 self._type = args[0]
         self._enforce_itype(owner, name)
+        self._stamp_widget()
+
+    def _stamp_widget(self) -> None:
+        """Compute the final widget contract ONCE (ADR 0017). Overridden by ``setting``
+        (settings/descriptor.py); the base no-op keeps other SettingDescriptor
+        subclasses (if any) from needing to implement it."""
+        pass
 
     def _enforce_itype(self, owner: type, name: str) -> None:
         """A setting field must be typed with an IType (e.g. ``setting[FLOAT]``).

@@ -3,7 +3,7 @@
 
 from haywire.core.settings import setting
 from haywire.core.settings.schema import FrameworkSettings
-from haywire.barn.builtin.types import BOOL, FLOAT, INT, STRING
+from haywire.barn.builtin.types import BOOL, CHOICES, FLOAT, INT
 
 # TODO: Find the right place for EdgeUISettings
 
@@ -41,13 +41,13 @@ class EdgeUISettings(FrameworkSettings, namespace="ui.edge"):
     )
 
     # Curve
-    curve_style = setting[STRING](
+    curve_style = setting[CHOICES](
         "bezier",
         label="Curve Style",
         description="How edges are drawn between nodes",
         category="ui.edge",
         order=20,
-        choices=["bezier", "straight", "step", "smoothstep"],
+        widget_config={"options": ["bezier", "straight", "step", "smoothstep"]},
     )
     curve_tension = setting[FLOAT](
         0.5,

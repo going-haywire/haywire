@@ -8,7 +8,7 @@ Subclass inside a @node class body and declare fields with ``setting()``:
     class FilterNode(BaseNode):
         class Settings(NodeSettings):
             strength = setting[FLOAT](0.5, min=0.0, max=1.0, label='Strength')
-            mode     = setting[STRING]('fast', choices=['fast', 'precise'])
+            mode     = setting[CHOICES]('fast', widget_config={'options': ['fast', 'precise']})
 
 NodeSettings are:
 - Purely local — values never enter the registry

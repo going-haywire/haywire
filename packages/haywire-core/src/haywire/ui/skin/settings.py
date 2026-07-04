@@ -1,7 +1,8 @@
 # haywire-core/haywire/ui/skin/settings.py
 """Node default skin settings."""
 
-from haywire.barn.builtin.types import STRING
+from haywire.barn.builtin.types import CHOICES, STRING
+from haywire.barn.builtin.widgets.basic_widgets import SimpleLabelWidget
 from haywire.core.namespaces import CATEGORY_NODE_SKINS, NAMESPACE_UI_NODE_DEFAULT_SKIN
 from haywire.core.settings.schema import FrameworkSettings
 from haywire.core.settings import setting
@@ -38,14 +39,14 @@ class NodeDefaultSkinSettings(FrameworkSettings, namespace=NAMESPACE_UI_NODE_DEF
         label="Default NodeSkin",
         description="Current default node skin",
         category=CATEGORY_NODE_SKINS,
-        widget="label",
+        widget=SimpleLabelWidget.config(),
         order=10,
     )
-    studio_skin = setting[STRING](
+    studio_skin = setting[CHOICES](
         default=_default_skin,
         label="Default Studio Skin",
         description="Studio default node skin",
         category=CATEGORY_NODE_SKINS,
-        choices=_node_skin_choices,
+        widget_config={"options": _node_skin_choices},
         order=20,
     )

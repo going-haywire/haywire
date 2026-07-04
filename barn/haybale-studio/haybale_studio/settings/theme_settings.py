@@ -5,7 +5,7 @@ from haywire.core.settings.schema import LibrarySettings
 from haywire.core.settings import setting
 from haywire.core.settings.decorator import settings
 from haywire.core.di.config import get_theme_registry
-from haywire.barn.builtin.types import STRING
+from haywire.barn.builtin.types import CHOICES, STRING
 
 
 def _workbench_theme_choices():
@@ -23,13 +23,13 @@ def _workbench_theme_choices():
 class WorkbenchThemeSettings(LibrarySettings):
     """Global settings controlling the active workbench theme."""
 
-    theme = setting[STRING](
+    theme = setting[CHOICES](
         "",
         label="Workbench Theme",
         description="Active workbench colour theme",
         category="workbench",
         order=10,
-        choices=_workbench_theme_choices,
+        widget_config={"options": _workbench_theme_choices},
     )
 
 

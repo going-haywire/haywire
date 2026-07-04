@@ -3,7 +3,7 @@
 
 from haywire.core.settings import setting
 from haywire.core.settings.schema import FrameworkSettings
-from haywire.barn.builtin.types import BOOL, INT, STRING
+from haywire.barn.builtin.types import BOOL, CHOICES, INT
 
 # TODO: Find the right place for EditorSettings
 
@@ -77,39 +77,39 @@ class EditorSettings(FrameworkSettings, namespace="editor"):
         category="editor",
         order=32,
     )
-    multi_select_modifier = setting[STRING](
+    multi_select_modifier = setting[CHOICES](
         "ctrl",
         label="Multi-Select Modifier",
         description="Key modifier for multi-selection",
         category="editor",
         order=33,
-        choices=["ctrl", "shift", "alt"],
+        widget_config={"options": ["ctrl", "shift", "alt"]},
     )
 
     # Mouse controls
-    pan_button = setting[STRING](
+    pan_button = setting[CHOICES](
         "middle",
         label="Pan Mouse Button",
         description="Mouse button for canvas panning",
         category="editor",
         order=40,
-        choices=["left", "middle", "right"],
+        widget_config={"options": ["left", "middle", "right"]},
     )
-    context_menu_button = setting[STRING](
+    context_menu_button = setting[CHOICES](
         "right",
         label="Context Menu Button",
         description="Mouse button for context menu",
         category="editor",
         order=41,
-        choices=["right", "middle"],
+        widget_config={"options": ["right", "middle"]},
     )
-    double_click_action = setting[STRING](
+    double_click_action = setting[CHOICES](
         "edit",
         label="Double Click Action",
         description="Action when double-clicking a node",
         category="editor",
         order=42,
-        choices=["edit", "collapse", "inspect", "none"],
+        widget_config={"options": ["edit", "collapse", "inspect", "none"]},
     )
 
     # Clipboard
@@ -138,13 +138,13 @@ class EditorSettings(FrameworkSettings, namespace="editor"):
         category="editor",
         order=60,
     )
-    quick_add_key = setting[STRING](
+    quick_add_key = setting[CHOICES](
         "space",
         label="Quick Add Key",
         description="Key to open quick add menu",
         category="editor",
         order=61,
-        choices=["space", "tab", "a"],
+        widget_config={"options": ["space", "tab", "a"]},
     )
     show_recent_nodes = setting[BOOL](
         True,

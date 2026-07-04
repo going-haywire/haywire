@@ -1,3 +1,4 @@
+from haywire.barn.builtin import widget_keys
 from haywire.core.types import FlowType, PrimitiveField, PrimitiveType, type
 
 
@@ -12,7 +13,7 @@ from haywire.core.types import FlowType, PrimitiveField, PrimitiveType, type
     description="Whole number",
     color="#f7b0ff",
     default={"value": 0},
-    widget_key="builtin:widget:NumberWidget",
+    widget_key=widget_keys.NUMBER_WIDGET,
 )
 class INT(PrimitiveType[int]):
     """Integer data type"""
@@ -46,7 +47,7 @@ INT.field_class = INTField
     description="Decimal numberer",
     color="#50b0ff",
     default={"value": 0.0},
-    widget_key="builtin:widget:NumberWidget",
+    widget_key=widget_keys.NUMBER_WIDGET,
 )
 class FLOAT(PrimitiveType[float]):
     """Float data type"""
@@ -82,7 +83,7 @@ FLOAT.field_class = FLOATField
     description="Text data",
     color="#ffc107",
     default={"value": ""},
-    widget_key="builtin:widget:TextWidget",
+    widget_key=widget_keys.TEXT_WIDGET,
 )
 class STRING(PrimitiveType[str]):
     """String data type"""
@@ -106,7 +107,7 @@ class STRING(PrimitiveType[str]):
     description="True or False",
     color="#4caf50",
     default={"value": False},
-    widget_key="builtin:widget:SwitchWidget",
+    widget_key=widget_keys.SWITCH_WIDGET,
 )
 class BOOL(PrimitiveType[bool]):
     """Boolean data type"""

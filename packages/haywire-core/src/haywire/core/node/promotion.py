@@ -8,6 +8,7 @@ carries only a ``promoted`` bool; it borrows the setting's DataField cell by ref
 
 from __future__ import annotations
 
+import logging
 from typing import TYPE_CHECKING
 
 from haywire.core.types.enums import PortType
@@ -16,6 +17,8 @@ if TYPE_CHECKING:
     from haywire.core.node.data import NodeData
     from haywire.core.settings.descriptor import setting
     from haywire.core.settings.settings import Settings
+
+logger = logging.getLogger(__name__)
 
 
 def is_field_promoted(bag: "Settings", field: str) -> bool:
@@ -66,6 +69,37 @@ def _metadata_to_port_kwargs(descriptor: "setting") -> dict:
         "order": getattr(descriptor, "_order", 0),
         "type_cls": getattr(descriptor, "_type"),
     }
+
+
+def _bind_port(port, bag: "Settings", desc: "setting") -> None:
+    """Share the setting's cell into *port* and mark the field locally-set.
+
+    THE bind+mark pair (ADR 0015): one cell, two views; a promoted field is
+    locally-set for the port's lifetime. Used by promote_setting (interactive)
+    and bind_promoted_ports (load)."""
+    port.bind_field(bag._cell_for(desc))
+    bag._set_keys.add(desc.storage_key)
+
+
+def bind_promoted_ports(node: "NodeData") -> None:
+    """Bind each promoted port on *node* to its setting's cell (load-time pass).
+
+    Settings bags are already restored (BaseNode.from_dict runs settings before
+    ports). A promoted port whose setting no longer exists degrades: stays on
+    the node, promoted but unbound (see Tier-1 plan / ADR 0015 stance)."""
+    for port in node.ports.values():
+        if not port.promoted:
+            continue
+        try:
+            bag, desc = _resolve_promoted(node, port.id)
+        except KeyError:
+            logger.warning(
+                "Promoted port %r on node %r matches no setting (library changed?); leaving it unbound.",
+                port.id,
+                node.node_id,
+            )
+            continue
+        _bind_port(port, bag, desc)
 
 
 def promote_setting(
@@ -122,11 +156,10 @@ def promote_setting(
     with node.rejig(include=[pid]):
         port = node.add(spec)
     # One cell, two views: share the setting's cell by reference.
-    port.bind_field(bag._cell_for(desc))
     # A promoted field is locally-set for the port's lifetime (ADR 0015): the setting
     # read returns the shared cell (incl. any edge-driven value). Bare set-membership,
     # no callback — the cell already holds the value, so promoting is value-neutral.
-    bag._set_keys.add(desc.storage_key)
+    _bind_port(port, bag, desc)
 
 
 def demote_setting(node: "NodeData", port_id: str) -> None:

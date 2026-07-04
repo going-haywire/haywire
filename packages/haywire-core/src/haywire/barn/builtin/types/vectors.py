@@ -6,6 +6,7 @@ so the vec editor renders X/Y/Z component fields (wired in Plan 2).
 
 from typing import ClassVar
 
+from haywire.barn.builtin import widget_keys
 from haywire.core.settings.types import (
     Vec2f,
     Vec2i,
@@ -44,11 +45,21 @@ def _vec_default(vec_cls: type) -> dict:
 
 
 def _vec_widget_config(vec_cls: type) -> dict:
-    """Carry VecMeta (length + component labels) so VecWidget can render N rows."""
+    """Carry VecMeta (length + component labels) so VecWidget can render N rows.
+
+    ``orientation: "column"`` matches VecWidget's own default layout (vec_widget.py)
+    so the panel's row-alignment check (render_utils.py, ADR 0017) top-aligns the
+    label against the multi-row block instead of centering it.
+    """
     meta = get_vec_meta(vec_cls)
     if meta is None:
         raise ValueError(f"No VecMeta registered for {vec_cls!r}")
-    return {"properties": {"vec_meta": {"length": meta.length, "labels": list(meta.labels)}}}
+    return {
+        "properties": {
+            "vec_meta": {"length": meta.length, "labels": list(meta.labels)},
+            "orientation": "column",
+        }
+    }
 
 
 @type_decorator(
@@ -56,7 +67,7 @@ def _vec_widget_config(vec_cls: type) -> dict:
     label="Vec2i",
     description="2D integer vector",
     default=_vec_default(Vec2i),
-    widget_key="builtin:widget:VecWidget",
+    widget_key=widget_keys.VEC_WIDGET,
     widget_config=_vec_widget_config(Vec2i),
 )
 class VEC2I(_VecSerialize, PrimitiveType[Vec2i]):
@@ -70,7 +81,7 @@ class VEC2I(_VecSerialize, PrimitiveType[Vec2i]):
     label="Vec3i",
     description="3D integer vector",
     default=_vec_default(Vec3i),
-    widget_key="builtin:widget:VecWidget",
+    widget_key=widget_keys.VEC_WIDGET,
     widget_config=_vec_widget_config(Vec3i),
 )
 class VEC3I(_VecSerialize, PrimitiveType[Vec3i]):
@@ -84,7 +95,7 @@ class VEC3I(_VecSerialize, PrimitiveType[Vec3i]):
     label="Vec4i",
     description="4D integer vector",
     default=_vec_default(Vec4i),
-    widget_key="builtin:widget:VecWidget",
+    widget_key=widget_keys.VEC_WIDGET,
     widget_config=_vec_widget_config(Vec4i),
 )
 class VEC4I(_VecSerialize, PrimitiveType[Vec4i]):
@@ -98,7 +109,7 @@ class VEC4I(_VecSerialize, PrimitiveType[Vec4i]):
     label="Vec2f",
     description="2D float vector",
     default=_vec_default(Vec2f),
-    widget_key="builtin:widget:VecWidget",
+    widget_key=widget_keys.VEC_WIDGET,
     widget_config=_vec_widget_config(Vec2f),
 )
 class VEC2F(_VecSerialize, PrimitiveType[Vec2f]):
@@ -112,7 +123,7 @@ class VEC2F(_VecSerialize, PrimitiveType[Vec2f]):
     label="Vec3f",
     description="3D float vector",
     default=_vec_default(Vec3f),
-    widget_key="builtin:widget:VecWidget",
+    widget_key=widget_keys.VEC_WIDGET,
     widget_config=_vec_widget_config(Vec3f),
 )
 class VEC3F(_VecSerialize, PrimitiveType[Vec3f]):
@@ -126,7 +137,7 @@ class VEC3F(_VecSerialize, PrimitiveType[Vec3f]):
     label="Vec4f",
     description="4D float vector",
     default=_vec_default(Vec4f),
-    widget_key="builtin:widget:VecWidget",
+    widget_key=widget_keys.VEC_WIDGET,
     widget_config=_vec_widget_config(Vec4f),
 )
 class VEC4F(_VecSerialize, PrimitiveType[Vec4f]):

@@ -6,7 +6,7 @@ Subclass and declare settings with ``setting()``:
 
     class FilterSettings(Settings):
         strength = setting[FLOAT](0.5, min=0.0, max=1.0, label='Strength')
-        mode     = setting[STRING]('fast', choices=['fast', 'precise'])
+        mode     = setting[CHOICES]('fast', widget_config={'options': ['fast', 'precise']})
 
 Cell-authoritative value model (ADR 0016, extending ADR 0013's single cell):
     Every field's value lives in a ``DataField`` cell (the same cell a port

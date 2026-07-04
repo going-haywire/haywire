@@ -21,10 +21,10 @@ import threading
 import logging
 import weakref
 from pathlib import Path
-import json
 
 from .value import SettingValue
 from .descriptor import setting
+from .persistence import SettingsFileStore
 from ..registry.base import BaseRegistry
 from ..library.identity import LibraryIdentity
 from ..types.fields import DataField
@@ -113,16 +113,18 @@ class SettingsRegistry(BaseRegistry[Settings]):
         # dropped with its definition on unregister (hot-reload).
         self._cells: dict[str, "DataField"] = {}
 
-        # Track which definitions came from TOML (vs code)
-        self._toml_defined: set[str] = set()
+        # Track which definitions came from a settings file (vs code)
+        self._file_defined: set[str] = set()
 
         # File paths per tier
         self._global_path: Path | None = None
         self._workspace_path: Path | None = None
 
-        # File watching per tier
-        self._global_observer = None
-        self._workspace_observer = None
+        # File I/O + watching collaborator (persistence.py) — one store, one
+        # set of watchdog observers, shared across both tiers. Registry keeps
+        # only the per-tier enabled flags (read externally, e.g. di/config.py's
+        # status printer).
+        self._files = SettingsFileStore()
         self._global_watch_enabled = False
         self._workspace_watch_enabled = False
 
@@ -159,24 +161,24 @@ class SettingsRegistry(BaseRegistry[Settings]):
     ) -> str | None:
         """Register schema class fields then store class in BaseRegistry.
 
-        After registering the fields, re-reads both TOML files (global +
+        After registering the fields, re-reads both settings files (global +
         workspace) for the keys this schema declared. This restores any
         on-disk values for these fields — necessary on re-registration
         (library disable→enable, hot-reload) because
         ``_unregister_schema_fields`` clears the in-memory tier entries
-        while the TOML files keep their values.
+        while the files keep their values.
         """
         registry_key = cls.class_identity.registry_key
         self._register_schema_fields(cls)
         cls._registry = self
-        # Collect this schema's setting keys and re-read both TOML files
+        # Collect this schema's setting keys and re-read both settings files
         # so on-disk values survive disable→re-enable / hot-reload cycles.
         schema_keys: set[str] = {d._setting_key for d in cls._property_settings().values() if d._setting_key}
         if schema_keys:
             if self._global_path is not None and self._global_path.exists():
-                self._repopulate_from_toml_for_keys(schema_keys, self._global_path, tier="global")
+                self._repopulate_from_file_for_keys(schema_keys, self._global_path, tier="global")
             if self._workspace_path is not None and self._workspace_path.exists():
-                self._repopulate_from_toml_for_keys(schema_keys, self._workspace_path, tier="workspace")
+                self._repopulate_from_file_for_keys(schema_keys, self._workspace_path, tier="workspace")
         return super()._register(registry_key, cls, library_identity or FRAMEWORK_IDENTITY)
 
     def _unregister_class(self, registry_key: str) -> type[Settings] | None:
@@ -297,7 +299,7 @@ class SettingsRegistry(BaseRegistry[Settings]):
                 self._definitions.pop(key, None)
                 self._global_tier_values.pop(key, None)
                 self._workspace_tier_values.pop(key, None)
-                self._toml_defined.discard(key)
+                self._file_defined.discard(key)
                 for cat_names in self._categories.values():
                     if key in cat_names:
                         cat_names.remove(key)
@@ -370,7 +372,7 @@ class SettingsRegistry(BaseRegistry[Settings]):
         self._subscribers[key] = [r for r in bucket if r() is not callback]
 
     # =========================================================================
-    # TOML Loading
+    # File loading
     # =========================================================================
 
     def load_from_json(self, path: Path | str, tier: str = "workspace", watch: bool = False) -> None:
@@ -398,18 +400,29 @@ class SettingsRegistry(BaseRegistry[Settings]):
         if watch:
             watch_flag = f"_{tier}_watch_enabled"
             if not getattr(self, watch_flag, False):
-                self._start_file_watcher(path, tier=tier)
+                self._files.watch(path, lambda: self._reload_from_file(path, tier=tier))
                 setattr(self, watch_flag, True)
 
     def _reload_from_file(self, path: Path, tier: str = "workspace") -> None:
-        """Parse JSON and apply values into the specified tier dict."""
-        try:
-            with open(path, "r") as f:
-                data = json.load(f)
-        except Exception as e:
-            logger.error(f"Failed to parse settings file: {e}")
-            return
+        """Read *path* via the store and apply its entries into *tier*.
 
+        Used by `load_from_json`, the file watcher callback, and external
+        callers (e.g. di/config.py's `reload_settings()`).
+        """
+        flat = self._files.read(path)
+        if flat is None:
+            return
+        self._apply_file_entries(flat, tier, source=path)
+
+    def _apply_file_entries(self, flat: dict[str, Any], tier: str, source: Path | None = None) -> None:
+        """Apply a flat {dot.key: entry} dict into *tier*, replacing its contents.
+
+        The file is the source of truth for this tier: existing values are
+        reset to unset, file-defined definitions that originated from this
+        tier's file are cleared, then each entry is processed (auto-defining
+        unknown keys) before subscribers are notified of the net effective
+        change.
+        """
         tier_dict = self._workspace_tier_values if tier == "workspace" else self._global_tier_values
 
         with self._lock:
@@ -423,44 +436,41 @@ class SettingsRegistry(BaseRegistry[Settings]):
             for name in self._definitions:
                 tier_dict[name] = SettingValue.unset()
 
-            # Clear TOML-defined definitions that originated from this tier's file
-            for name in list(self._toml_defined):
+            # Clear file-defined definitions that originated from this tier's file
+            for name in list(self._file_defined):
                 if name in self._definitions:
                     del self._definitions[name]
                     for cat_names in self._categories.values():
                         if name in cat_names:
                             cat_names.remove(name)
-                self._toml_defined.discard(name)
+                self._file_defined.discard(name)
 
-            # Process JSON entries into the tier dict
-            flat = self._flatten_toml(data)
+            # Process file entries into the tier dict
             for name, entry in flat.items():
                 self._process_entry(name, self._rehydrate_entry(name, entry), tier_dict)
 
             self._notify_changes(old_effective)
-            logger.info(f"Loaded {len(flat)} settings from {path} into {tier} tier")
+            logger.info(f"Loaded {len(flat)} settings from {source} into {tier} tier")
 
-    def _repopulate_from_toml_for_keys(self, keys: set[str], path: Path, tier: str = "workspace") -> None:
-        """Restore TOML values for *keys* in *tier* without touching other keys.
+    def _repopulate_from_file_for_keys(self, keys: set[str], path: Path, tier: str = "workspace") -> None:
+        """Restore file values for *keys* in *tier* without touching other keys.
 
         Used by ``_register_class`` to re-hydrate the in-memory tier dict
         for a schema's fields after it's re-registered (library
         disable→re-enable, hot-reload). ``_unregister_schema_fields``
         clears the tier entries when a schema leaves the registry; this
-        method puts them back from the on-disk TOML when the schema
+        method puts them back from the on-disk file when the schema
         comes back.
 
         Unlike ``_reload_from_file``, this does NOT reset other keys'
-        tier values or clear ``_toml_defined``. Only the entries whose
+        tier values or clear ``_file_defined``. Only the entries whose
         flattened key is in *keys* are applied.
 
         Silently skips if the file can't be parsed — best-effort restore.
         """
-        try:
-            with open(path, "r") as f:
-                data = json.load(f)
-        except Exception as e:
-            logger.error(f"Failed to parse settings file for key repopulate: {e}")
+        flat = self._files.read(path)
+        if flat is None:
+            logger.error(f"Failed to parse settings file for key repopulate: {path}")
             return
 
         tier_dict = self._workspace_tier_values if tier == "workspace" else self._global_tier_values
@@ -472,7 +482,6 @@ class SettingsRegistry(BaseRegistry[Settings]):
                 if name in self._definitions
             }
 
-            flat = self._flatten_toml(data)
             applied = 0
             for name, entry in flat.items():
                 if name not in keys:
@@ -484,46 +493,8 @@ class SettingsRegistry(BaseRegistry[Settings]):
             if applied:
                 logger.debug(f"Repopulated {applied} setting(s) from {path} into {tier} tier")
 
-    def _flatten_toml(self, data: dict, prefix: str = "") -> dict[str, Any]:
-        """
-        Flatten nested TOML to dot-notation keys.
-
-        A dict is a "setting entry" (not namespace) if it contains
-        any of: 'value', 'override', 'default', 'type', 'mode'
-        """
-        result = {}
-        # 'override'/'mode' are retained here (post-P2) only so a legacy
-        # {override=true, value=…} table is still recognised as a *setting entry*
-        # (not a namespace) and routed through _parse_config_dict, which strips
-        # the override flag and reads it as a plain set value.
-        setting_keys = {
-            "value",
-            "override",
-            "default",
-            "type",
-            "mode",
-            "label",
-            "category",
-            "min_value",
-            "max_value",
-            "choices",
-        }
-
-        for key, value in data.items():
-            full_key = f"{prefix}.{key}" if prefix else key
-
-            if isinstance(value, dict):
-                if any(k in value for k in setting_keys):
-                    result[full_key] = value
-                else:
-                    result.update(self._flatten_toml(value, full_key))
-            else:
-                result[full_key] = value
-
-        return result
-
     def _process_entry(self, name: str, entry: Any, tier_dict: dict[str, SettingValue]) -> None:
-        """Process a single TOML entry into the given tier dict."""
+        """Process a single settings-file entry into the given tier dict."""
         if isinstance(entry, dict):
             parsed = self._parse_config_dict(name, entry)
         else:
@@ -536,7 +507,7 @@ class SettingsRegistry(BaseRegistry[Settings]):
             tier_dict[name] = SettingValue.of(parsed["value"])
 
     def _parse_config_dict(self, name: str, config: dict) -> dict:
-        """Parse a configuration dict from TOML (legacy {override,value} → bare value)."""
+        """Parse a configuration dict from a settings file (legacy {override,value} → bare value)."""
         result: dict = {}
 
         # Legacy compatibility: a {override=true, value=X} table from a pre-P2
@@ -553,7 +524,6 @@ class SettingsRegistry(BaseRegistry[Settings]):
             "min_value",
             "max_value",
             "choices",
-            "ui_widget",
             "ui_order",
         ]:
             if key in config:
@@ -562,7 +532,7 @@ class SettingsRegistry(BaseRegistry[Settings]):
         return result
 
     def _auto_define(self, name: str, parsed: dict) -> None:
-        """Auto-define a setting from TOML that doesn't exist in code."""
+        """Auto-define a setting from a settings file that doesn't exist in code."""
         value = parsed.get("value", parsed.get("default"))
 
         if "type" in parsed:
@@ -594,14 +564,24 @@ class SettingsRegistry(BaseRegistry[Settings]):
         # IType cutover: the descriptor stores an IType, never a Python type.
         # Resolve the inferred Python type to its registered IType via each
         # IType's declared element_type_cls (no hand-maintained mapping). An
-        # undeclared TOML key whose Python type has no registered IType is
-        # skipped rather than crashing settings load.
+        # undeclared settings-file key whose Python type has no registered
+        # IType is skipped rather than crashing settings load.
         itype = self._resolve_itype_for_python_type(type_)
         if itype is None:
             logger.warning(
                 "Skipping auto-define of '%s': no registered IType for Python type %r", name, type_
             )
             return
+
+        widget_config: dict | None = None
+        if parsed.get("choices") is not None:
+            # A settings-file "choices" entry auto-defines as CHOICES (ADR 0017):
+            # the file dialect never speaks widget_key/ui_widget directly, only
+            # "choices" -> setting[CHOICES](..., widget_config={"options": ...}).
+            from haywire.barn.builtin.types import CHOICES
+
+            itype = CHOICES
+            widget_config = {"options": parsed["choices"]}
 
         d: setting[Any] = setting(
             default=default,
@@ -611,25 +591,24 @@ class SettingsRegistry(BaseRegistry[Settings]):
             category=category,
             min=parsed.get("min_value"),
             max=parsed.get("max_value"),
-            choices=parsed.get("choices"),
-            widget=parsed.get("ui_widget"),
+            widget_config=widget_config,
             order=parsed.get("ui_order", 0),
         )
         d._attr_name = name.split(".")[-1]
         d._setting_key = name
 
-        self._toml_defined.add(name)
+        self._file_defined.add(name)
         self._store_definition(name, d, category=category)
-        logger.debug(f"Auto-defined setting from TOML: {name}")
+        logger.debug(f"Auto-defined setting from file: {name}")
 
     def _resolve_itype_for_python_type(self, py_type: type) -> type | None:
         """Resolve an inferred Python type to its registered IType.
 
-        Used only by the runtime/TOML auto-define path. Prefers the global
+        Used only by the runtime/settings-file auto-define path. Prefers the global
         TypeRegistry (source of truth via each IType's ``element_type_cls``); when
         it is unavailable (e.g. an isolated registry in a unit test, or early init
         before libraries load) falls back to the builtin scalar ITypes so a plain
-        TOML scalar still auto-defines. Returns ``None`` only for a Python type
+        settings-file scalar still auto-defines. Returns ``None`` only for a Python type
         with no scalar builtin and no registry match.
         """
         try:
@@ -646,7 +625,7 @@ class SettingsRegistry(BaseRegistry[Settings]):
         return {bool: BOOL, int: INT, float: FLOAT, str: STRING}.get(py_type)
 
     def _notify_changes(self, old_effective: dict[str, tuple]) -> None:
-        """Notify subscribers of changed effective values after a TOML reload."""
+        """Notify subscribers of changed effective values after a settings file reload."""
         all_names = set(old_effective.keys()) | set(self._definitions.keys())
         changed: dict[str, SettingValue] = {}
 
@@ -660,17 +639,16 @@ class SettingsRegistry(BaseRegistry[Settings]):
             self._notify_subscribers(changed)
 
     # =========================================================================
-    # TOML Saving  (workspace tier only — global tier is hand-edited)
+    # File saving  (workspace tier only — global tier is hand-edited)
     # =========================================================================
-
-    _SAVE_DEBOUNCE: float = 0.5  # seconds
 
     def save_to_json_debounced(self, path: Path | str | None = None) -> None:
         """Schedule a debounced ``save_to_json()`` call.
 
         Each call resets the timer so that the file write only happens
-        once the caller stops requesting saves for ``_SAVE_DEBOUNCE`` seconds.
-        Useful during continuous interactions like drag-to-change widgets.
+        once the caller stops requesting saves for the store's debounce
+        window. Useful during continuous interactions like drag-to-change
+        widgets.
 
         No-op when there is no workspace path configured AND no path is
         passed in — there is nowhere to persist to (unsaved workspace, or
@@ -680,12 +658,23 @@ class SettingsRegistry(BaseRegistry[Settings]):
         if path is None and self._workspace_path is None:
             return
 
-        timer = getattr(self, "_save_timer", None)
-        if timer is not None:
-            timer.cancel()
-        self._save_timer = threading.Timer(self._SAVE_DEBOUNCE, self.save_to_json, args=(path,))
-        self._save_timer.daemon = True
-        self._save_timer.start()
+        resolved = Path(path).expanduser().resolve() if path else self._workspace_path
+        assert resolved is not None
+        self._files.write_debounced(resolved, lambda: self._collect_workspace_entries())
+
+    @property
+    def _save_timer(self) -> threading.Timer | None:
+        """Exposes the store's debounce timer for introspection (tests)."""
+        return self._files._save_timer
+
+    def _collect_workspace_entries(self) -> dict[str, Any]:
+        """Snapshot *set* workspace-tier values as their JSON-able form, keyed by dot-key."""
+        with self._lock:
+            return {
+                name: self._value_to_jsonable(name, sv.value)
+                for name, sv in sorted(self._workspace_tier_values.items())
+                if sv.is_set
+            }
 
     def save_to_json(self, path: Path | str | None = None) -> None:
         """
@@ -695,114 +684,26 @@ class SettingsRegistry(BaseRegistry[Settings]):
         user and is never overwritten by the application. Only *set* values are
         written, each as its IType's to_dict-form (see _value_to_jsonable).
         """
-        path = Path(path).expanduser().resolve() if path else self._workspace_path
-        if not path:
+        resolved = Path(path).expanduser().resolve() if path else self._workspace_path
+        if not resolved:
             raise ValueError("No workspace path configured and no path argument provided")
 
-        data: dict[str, Any] = {}
-
-        with self._lock:
-            for name, sv in sorted(self._workspace_tier_values.items()):
-                if not sv.is_set:
-                    continue
-                self._set_nested(data, name, self._value_to_jsonable(name, sv.value))
-
-        path.parent.mkdir(parents=True, exist_ok=True)
-
-        with open(path, "w") as f:
-            json.dump(data, f, indent=2, sort_keys=True)
-
-        logger.info(f"Settings saved to {path}")
-
-    def _set_nested(self, data: dict, name: str, value: Any) -> None:
-        """Set a value in nested dict using dot-notation key."""
-        parts = name.split(".")
-        current = data
-        for part in parts[:-1]:
-            if part not in current:
-                current[part] = {}
-            current = current[part]
-        current[parts[-1]] = value
+        entries = self._collect_workspace_entries()
+        self._files.write(resolved, entries)
 
     # =========================================================================
     # File Watching
     # =========================================================================
 
-    def _start_file_watcher(self, path: Path, tier: str = "workspace") -> None:
-        """Watch a config file for changes and reload into the specified tier."""
-        try:
-            from watchdog.observers import Observer
-            from watchdog.events import FileSystemEventHandler
-        except ImportError:
-            logger.warning(
-                "watchdog not installed, file watching disabled. Install with: pip install watchdog"
-            )
-            return
-
-        registry = self
-        tier_ref = tier
-
-        class ConfigHandler(FileSystemEventHandler):
-            def __init__(self):
-                self._debounce_time: float = 0.0
-
-            def on_modified(self, event):
-                import time
-
-                now = time.time()
-                if now - self._debounce_time < 0.5:
-                    return
-                self._debounce_time = now
-
-                if Path(event.src_path).resolve() == path:
-                    logger.info(f"Settings file changed ({tier_ref} tier), reloading...")
-                    try:
-                        registry._reload_from_file(path, tier=tier_ref)
-                    except Exception as e:
-                        logger.error(f"Failed to reload settings: {e}")
-
-        # The settings file may not exist yet ("create on save"), which means
-        # its parent directory may also be absent. Linux inotify raises when
-        # asked to watch a non-existent directory (macOS FSEvents tolerates
-        # it), so ensure the directory exists before scheduling the observer.
-        try:
-            path.parent.mkdir(parents=True, exist_ok=True)
-        except OSError as e:
-            logger.warning(f"Could not create settings dir {path.parent}; watching disabled: {e}")
-            return
-
-        observer = Observer()
-        observer.schedule(ConfigHandler(), str(path.parent), recursive=False)
-        try:
-            observer.start()
-        except OSError as e:
-            # File watching is non-essential; never let it break app init.
-            logger.warning(f"Could not start settings watcher for {path}; hot-reload disabled: {e}")
-            return
-
-        if tier == "global":
-            self._global_observer = observer
-        else:
-            self._workspace_observer = observer
-
-        logger.info(f"Watching settings file ({tier} tier): {path}")
-
     def stop_watching(self) -> None:
         """Stop all file watchers.
 
-        ``join`` is bounded so a watchdog observer thread that fails to
-        terminate (seen with the macOS FSEvents backend) degrades to a warning
-        instead of wedging the caller — the watcher is non-essential, and an
-        unbounded ``join()`` here can hang app shutdown or a whole test suite.
+        Delegates to the store, which bounds its ``join`` so a watchdog
+        observer thread that fails to terminate (seen with the macOS
+        FSEvents backend) degrades to a warning instead of wedging the
+        caller.
         """
-        for attr in ("_global_observer", "_workspace_observer"):
-            observer = getattr(self, attr, None)
-            if observer:
-                observer.stop()
-                observer.join(timeout=2.0)
-                if observer.is_alive():
-                    logger.warning(f"Settings watcher thread did not stop within 2s ({attr}); abandoning.")
-                setattr(self, attr, None)
+        self._files.stop()
         self._global_watch_enabled = False
         self._workspace_watch_enabled = False
 
@@ -820,9 +721,8 @@ class SettingsRegistry(BaseRegistry[Settings]):
         category: str = "root",
         min_value: Any = None,
         max_value: Any = None,
-        choices: list | dict | None = None,
         validator: Callable[[Any], bool] | None = None,
-        ui_widget: str | None = None,
+        widget_config: dict | None = None,
         ui_order: int = 0,
         metadata: dict | None = None,
     ) -> setting:
@@ -833,12 +733,14 @@ class SettingsRegistry(BaseRegistry[Settings]):
         and adds it to the registry, making it available
         for resolution and UI immediately.
 
-        Code definitions take precedence over TOML definitions. ``type_`` must be
-        an IType (e.g. ``FLOAT``); Python-type inference from ``default`` was
-        removed in the widget-unification cutover.
+        Code definitions take precedence over file-defined definitions. ``type_``
+        must be an IType (e.g. ``FLOAT``); Python-type inference from ``default``
+        was removed in the widget-unification cutover. For a dropdown, pass
+        ``type_=CHOICES, widget_config={"options": [...]}`` (ADR 0017) — the
+        ``choices=``/``ui_widget=`` params are gone, no compatibility shim.
         """
         with self._lock:
-            self._toml_defined.discard(name)
+            self._file_defined.discard(name)
 
             d: setting[Any] = setting(
                 default=default,
@@ -849,8 +751,7 @@ class SettingsRegistry(BaseRegistry[Settings]):
                 category=category,
                 min=min_value,
                 max=max_value,
-                choices=choices,
-                widget=ui_widget,
+                widget_config=widget_config,
                 order=ui_order,
                 metadata=metadata,
             )
@@ -873,7 +774,7 @@ class SettingsRegistry(BaseRegistry[Settings]):
             del self._definitions[name]
             self._global_tier_values.pop(name, None)
             self._workspace_tier_values.pop(name, None)
-            self._toml_defined.discard(name)
+            self._file_defined.discard(name)
             for cat_names in self._categories.values():
                 if name in cat_names:
                     cat_names.remove(name)
@@ -934,11 +835,17 @@ class SettingsRegistry(BaseRegistry[Settings]):
     def _rehydrate_entry(self, name: str, entry: Any) -> Any:
         """Rehydrate a flattened JSON entry into the live value for _process_entry.
 
-        ``_process_entry`` expects either a bare scalar or a {"value": …} dict.
-        For a typed key whose entry is a {"value": …} dict, run from_dict so the
-        tier stores the live Python value (Vec2i, etc.); otherwise pass through.
+        ``_process_entry`` expects either a bare scalar or a {"value": …, ...} dict.
+        For an ALREADY-DEFINED typed key whose entry is a {"value": …} dict, run
+        from_dict so the tier stores the live Python value (Vec2i, etc.); otherwise
+        (unknown key — the auto-define path, or a plain scalar) pass through
+        unchanged. Only defined keys are rehydrated: ``_value_from_jsonable``
+        returns its input as-is when there is no definition yet, so re-wrapping
+        that passthrough here would double-wrap the whole entry (including
+        auto-define metadata like ``type``/``choices``) inside another
+        ``{"value": ...}``.
         """
-        if isinstance(entry, dict) and "value" in entry:
+        if name in self._definitions and isinstance(entry, dict) and "value" in entry:
             return {"value": self._value_from_jsonable(name, entry)}
         return entry
 

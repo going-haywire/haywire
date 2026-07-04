@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Optional, List, Any, TYPE_CHECKING
 from injector import Injector
 
-from haywire.barn.builtin.types import BOOL, COLOR, FLOAT, INT, STRING
+from haywire.barn.builtin.types import BOOL, CHOICES, COLOR, FLOAT, INT, STRING
 from ..settings import (
     SettingsRegistry,
     SettingValue,
@@ -57,9 +57,9 @@ class TestingWidgetSettings(FrameworkSettings, namespace="test.widgets"):
     label = setting[STRING](
         "hello", label="Label", description="String — renders as text input", category="types"
     )
-    mode = setting[STRING](
+    mode = setting[CHOICES](
         "fast",
-        choices=["fast", "balanced", "quality"],
+        widget_config={"options": ["fast", "balanced", "quality"]},
         label="Mode",
         description="Choices — renders as dropdown",
         category="types",
@@ -69,7 +69,6 @@ class TestingWidgetSettings(FrameworkSettings, namespace="test.widgets"):
         label="Tint",
         description="Color — renders as color picker",
         category="types",
-        widget="color",
     )
 
 

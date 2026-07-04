@@ -125,7 +125,7 @@ class BaseLibrary(ABC):
 
     def _register_log_level_setting(self) -> None:
         """Register a per-library log level setting in the SettingsRegistry."""
-        from haywire.barn.builtin.types import STRING
+        from haywire.barn.builtin.types import CHOICES
         from haywire.core.settings.registry import SettingsRegistry
         from haywire.core.debug.debug_settings import _GROUP_CHOICES
         from haywire.core.debug.keys import LIBRARY_LOG_LEVEL_FIELD_METATADATA_KEY
@@ -141,11 +141,11 @@ class BaseLibrary(ABC):
         registry.define(
             name=key,
             default="",
-            type_=STRING,
+            type_=CHOICES,
             label=self.identity.label,
             description=f"Log level for {module_name} ('' = inherit from root)",
             category=CATEGORY_LIBRARY_LOG,
-            choices=_GROUP_CHOICES,
+            widget_config={"options": _GROUP_CHOICES},
             ui_order=0,
             metadata={LIBRARY_LOG_LEVEL_FIELD_METATADATA_KEY: module_name},
         )

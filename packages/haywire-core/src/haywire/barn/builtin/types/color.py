@@ -4,6 +4,7 @@ The color picker widget is wired in Plan 2 (widget unification); Plan 1 only
 establishes the type.
 """
 
+from haywire.barn.builtin import widget_keys
 from haywire.core.types import FlowType, PrimitiveType
 from haywire.core.types import type as type_decorator
 
@@ -18,7 +19,7 @@ class ColorStr(str):
     description="Hex or rgba color string",
     color="#f7b0ff",
     default={"value": "#ffffff"},
-    widget_key="builtin:widget:ColorWidget",
+    widget_key=widget_keys.COLOR_WIDGET,
 )
 class COLOR(PrimitiveType[ColorStr]):
     """Color data type."""

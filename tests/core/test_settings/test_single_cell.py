@@ -18,7 +18,7 @@ import pytest
 
 from haywire.core.settings import Settings, setting
 from haywire.core.di.test_config import create_test_bag
-from haywire.barn.builtin.types import BOOL, COLOR, FLOAT, STRING, VEC2I
+from haywire.barn.builtin.types import BOOL, CHOICES, COLOR, FLOAT, VEC2I
 
 
 # ---------------------------------------------------------------------------
@@ -28,7 +28,7 @@ from haywire.barn.builtin.types import BOOL, COLOR, FLOAT, STRING, VEC2I
 
 class SimpleBag(Settings):
     strength = setting[FLOAT](0.5, min=0.0, max=1.0, label="Strength")
-    mode = setting[STRING]("fast", choices=["fast", "precise"], label="Mode")
+    mode = setting[CHOICES]("fast", widget_config={"options": ["fast", "precise"]}, label="Mode")
     verbose = setting[BOOL](False, label="Verbose")
 
 

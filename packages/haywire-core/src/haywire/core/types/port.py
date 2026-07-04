@@ -338,12 +338,13 @@ class DataPort(DataTypeIdentity):
             field.on_changed.append(self._on_shared_field_changed)
 
     def unbind_field(self) -> None:
-        """Reverse :meth:`bind_field` — restore an independent cell on this port.
+        """Release the shared cell reference and recreate a private field.
 
-        Called by demote and by port cleanup (symmetric lifecycle). Removes the
-        outlet's ``on_changed`` subscription (no dangling handler on the shared
-        cell) and rebuilds a fresh field from ``type_cls`` so the port is
-        self-owned again.
+        Called by demote and by port cleanup (symmetric lifecycle). Removes
+        the outlet's ``on_changed`` subscription (no dangling handler on the
+        shared cell), then rebuilds a fresh field from ``type_cls`` so the
+        port is self-owned again — the new field starts at ``type_cls``'s
+        default, not the value the shared cell held.
         """
         assert self.type_cls is not None  # __post_init__ enforces this
         if self.is_outlet() and self._data is not None:

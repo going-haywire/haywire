@@ -9,7 +9,7 @@ Coverage:
 - from_dict() restores values (trusted-restore path)
 - from_dict() notifies subscribers already attached before the restore
 - reset() / reset_all() return to defaults
-- .choices property resolves callables
+- widget_config["properties"]["options"] resolves callable option providers (ADR 0017)
 - _prop_fields() walks MRO correctly
 - Inheritance: subclass adds fields, parent fields preserved
 - SettingDescriptor is the base class of setting
@@ -17,7 +17,7 @@ Coverage:
 
 import pytest
 from haywire.core.settings import Settings, setting, SettingDescriptor
-from haywire.barn.builtin.types import BOOL, FLOAT, INT, STRING
+from haywire.barn.builtin.types import BOOL, CHOICES, FLOAT, INT, STRING
 
 
 # ---------------------------------------------------------------------------
@@ -32,8 +32,8 @@ class _Simple(Settings):
 
 
 class _WithChoices(Settings):
-    algorithm = setting[STRING]("fast", choices=["fast", "accurate"])
-    dynamic = setting[STRING]("a", choices=lambda: ["a", "b", "c"])
+    algorithm = setting[CHOICES]("fast", widget_config={"options": ["fast", "accurate"]})
+    dynamic = setting[CHOICES]("a", widget_config={"options": lambda: ["a", "b", "c"]})
 
 
 class _Parent(Settings):
@@ -94,13 +94,17 @@ class TestSettingDescriptor:
         assert _Simple.name._type is STRING
 
     def test_choices_list(self):
-        assert _WithChoices.algorithm.choices == ["fast", "accurate"]
+        assert _WithChoices.algorithm.widget_config["properties"]["options"] == ["fast", "accurate"]
 
-    def test_choices_callable_resolved(self):
-        assert _WithChoices.dynamic.choices == ["a", "b", "c"]
+    def test_choices_callable_stored_unresolved(self):
+        # Callable options are stored as-is (ADR 0017) — resolved by SelectWidget at build time,
+        # never eagerly here.
+        options = _WithChoices.dynamic.widget_config["properties"]["options"]
+        assert callable(options)
+        assert options() == ["a", "b", "c"]
 
     def test_choices_none(self):
-        assert _Simple.threshold.choices is None
+        assert "options" not in _Simple.threshold.widget_config["properties"]
 
 
 # ---------------------------------------------------------------------------

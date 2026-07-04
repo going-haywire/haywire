@@ -8,15 +8,18 @@ The module reads top-to-bottom as a waterfall:
     1. Entry points     render_settings / render_schema / render_keys
     2. Collect & group  sort fields, group by category, lay out the column
     3. Row rendering     one label + widget row (reactive instance / registry)
-    4. Resolve widget   _build_field_widget -> _resolve_widget_instance: resolve a
-                         shared BaseWidget by resolved_widget_key, build it against
-                         a SettingWidgetModel, return an apply(value) sync hook
-    5. Setters           make-setter factories (instance vs. registry tier)
+    4. Resolve widget   _resolve_widget_instance: resolve a shared BaseWidget
+                         by defn.widget_key (stamped once at __set_name__, ADR
+                         0017), build it against a SettingWidgetModel wired to
+                         an on_edit closure; returns None for a real widget, or
+                         the label fallback's apply(value) sync hook
+    5. Write policy      on_edit closure factories (instance vs. registry tier)
 
 Every field flows through the same stages. Stage 4 returns an ``apply(value)``
-callback that pushes an external model change into the widget in place (NiceGUI
-"Case 3"); the reactive path stores it for external-change sync, the registry
-path discards it.
+callback used ONLY by the label fallback for an unknown widget key (no cell
+binding to hear); real widgets bind the field's shared cell directly and hear
+writes via ``on_changed`` (ADR 0016) — the reactive path still keeps its own
+mirror-chrome (• prefix / reset button) in sync via the ``updaters`` dict.
 """
 
 from __future__ import annotations
@@ -191,8 +194,8 @@ def _render_definitions(sorted_defns: list, registry: "SettingsRegistry") -> Non
             defn._label or attr_name,
             defn._description,
             defn,
-            cell.get_value(),
-            lambda coerce, k=key: _make_setter(registry, k, coerce),
+            registry,
+            key,
             attr_name=attr_name,
             cell=cell,
         )
@@ -209,18 +212,20 @@ def _render_field_row(
     label_text: str,
     description: str,
     defn,
-    value,
-    make_setter,
+    registry: "SettingsRegistry",
+    key: str,
     attr_name: str = "",
     cell: "DataField | None" = None,
-) -> Callable[[Any], None]:
+) -> Callable[[Any], None] | None:
     """Render a single label + widget row (registry path). The widget binds
     *cell* (the registry-owned cell) for live external sync (ADR 0016)."""
     with ui.row().classes(_ROW_CLASSES).props(f'data-field="{attr_name}"' if attr_name else ""):
         lbl = ui.label(label_text).classes(_LABEL_CLASSES)
         if description:
             lbl.tooltip(description)
-        return _build_field_widget(defn, value, make_setter, cell=cell)
+        error_container = ui.element("div").classes("w-full")
+        on_edit = _registry_on_edit(registry, key, error_container)
+        return _resolve_widget_instance(defn, on_edit, cell=cell)
 
 
 def _render_reactive_field_row(
@@ -246,6 +251,22 @@ def _render_reactive_field_row(
     from haywire.core.node.promotion import is_field_promoted
 
     is_promoted = is_field_promoted(obj, attr_name)
+
+    # Direction- and link-aware promoted row (decision 7bA): an INLET means the
+    # graph now owns the value (an incoming edge, or simply having been promoted),
+    # so the row goes read-only; an OUTLET keeps the setting as source of truth,
+    # so the editable widget stays. Recomputed per render — link-state staleness
+    # until the next redraw is accepted (decision Q7), no reactive tracking beyond
+    # this per-render check.
+    port = obj._node.ports.get(defn.storage_key) if (is_promoted and obj._node is not None) else None
+    is_promoted_inlet = False
+    promoted_hint = ""
+    if port is not None:
+        if port.is_inlet():
+            is_promoted_inlet = True
+            promoted_hint = "↳ driven by inlet" if port.is_linked() else "↳ promoted to inlet"
+        else:
+            promoted_hint = "↳ promoted to outlet"
 
     def _label_text(locally_set: bool) -> str:
         base = defn._label or attr_name
@@ -279,39 +300,49 @@ def _render_reactive_field_row(
             reset_btn.set_visibility(is_mirrored and is_locally_overridden)
 
     # Every field — scalars, vectors, color — resolves a shared BaseWidget by its
-    # resolved_widget_key (see _resolve_widget_instance). VecWidget handles vec
-    # types via widget_config['vec_meta']; the panel no longer special-cases them.
+    # widget_key, stamped once at __set_name__ (see _resolve_widget_instance, ADR
+    # 0017). VecWidget handles vec types via widget_config['vec_meta']; the panel
+    # no longer special-cases them.
     error_container = ui.element("div").classes("w-full")
 
-    # A column-oriented VecWidget renders multiple flush component rows; top-align
-    # the label against the first row rather than centering it across the whole
-    # block. Field-to-field spacing comes uniformly from the parent column's gap
-    # (same for scalars and vectors) — no per-field margin, which would compound
-    # unevenly between two adjacent vec rows. Scalars keep items-center.
+    # A column-oriented widget (e.g. VecWidget in row-per-component mode) renders
+    # multiple flush component rows; top-align the label against the first row
+    # rather than centering it across the whole block. Field-to-field spacing
+    # comes uniformly from the parent column's gap (same for scalars and
+    # vectors) — no per-field margin, which would compound unevenly between two
+    # adjacent vec rows. Scalars keep items-center. Config-driven (ADR 0017): no
+    # widget identity named here, just the "orientation" property.
     row_classes = _ROW_CLASSES
-    if defn.resolved_widget_key == "builtin:widget:VecWidget":
-        orientation = defn.resolved_widget_config.get("properties", {}).get("orientation", "column")
-        if orientation == "column":
-            row_classes = _ROW_CLASSES.replace("items-center", "items-start")
+    if defn.widget_config.get("properties", {}).get("orientation", "") == "column":
+        row_classes = _ROW_CLASSES.replace("items-center", "items-start")
 
     row_props = f'data-field="{attr_name}"'
     if is_promoted:
         row_props += ' data-promoted="true"'
+        if port is not None:
+            row_props += f' data-promoted-direction="{"inlet" if is_promoted_inlet else "outlet"}"'
 
     with ui.row().classes(row_classes).props(row_props):
         _render_label()
-        value_apply = _build_field_widget(
-            defn,
-            getattr(obj, attr_name),
-            _make_reactive_setter(obj, attr_name, error_container),
-            bag=obj,
-        )
-        if is_promoted:
-            ui.label("↳ driven by inlet").classes("text-xs hw-text-muted px-2").props(
-                'data-promoted-hint="true"'
-            )
+        if is_promoted_inlet:
+            # The graph owns the value now (an edge, or simply being promoted) —
+            # render a read-only label instead of an editable widget. It stays
+            # live via the same updater/bag-subscription chain as the label
+            # fallback for an unknown widget key (Task 9's just-landed pattern).
+            value_apply = _build_label_widget(getattr(obj, attr_name))
+        else:
+            on_edit = _bag_on_edit(obj, attr_name, error_container)
+            value_apply = _resolve_widget_instance(defn, on_edit, bag=obj)
+        if promoted_hint:
+            ui.label(promoted_hint).classes("text-xs hw-text-muted px-2").props('data-promoted-hint="true"')
 
-    def _apply_external():
+    def _refresh_chrome():
+        # Real widgets bind the shared cell directly (on_changed, ADR 0016), so
+        # re-pushing their value here would be a structural no-op — verified:
+        # value_apply is None for every case except the unknown-widget label
+        # fallback, which owns no cell subscription of its own and needs this
+        # to reflect external changes at all. Everything else in this callback
+        # is pure mirror chrome: the • prefix and reset-button visibility.
         if value_apply is not None:
             value_apply(getattr(obj, attr_name))
         if is_mirrored:
@@ -321,7 +352,7 @@ def _render_reactive_field_row(
             if reset_btn is not None:
                 reset_btn.set_visibility(locally_set)
 
-    updaters[attr_name] = _apply_external
+    updaters[attr_name] = _refresh_chrome
 
 
 # ===========================================================================
@@ -329,48 +360,34 @@ def _render_reactive_field_row(
 # ===========================================================================
 
 
-def _build_field_widget(
-    defn: "setting",
-    value: Any,
-    make_setter,
-    bag: "Settings | None" = None,
-    cell: "DataField | None" = None,
-) -> Callable[[Any], None]:
-    """Resolve, build, and link the shared widget for *defn*; return ``apply(value)``.
-
-    Every field resolves a ``BaseWidget`` by ``defn.resolved_widget_key`` (type
-    default, or desugared from ``choices``/``widget=``). The widget owns the
-    control; the panel keeps the surrounding chrome (label, override •/reset,
-    category groups, error container). ``make_setter(coerce)`` yields the
-    on_change handler; the returned ``apply(value)`` pushes an external model
-    change into the widget in place. The widget binds the field's shared cell:
-    *cell* (registry-owned, registry path) or *bag*'s instance cell (bag path)
-    — any write into it shows live (ADR 0016).
-    """
-    return _resolve_widget_instance(defn, value, make_setter, bag=bag, cell=cell)
-
-
 def _resolve_widget_instance(
     defn: "setting",
-    value: Any,
-    make_setter,
+    on_edit: Callable[[Any], None],
     bag: "Settings | None" = None,
     cell: "DataField | None" = None,
-) -> Callable[[Any], None]:
+) -> Callable[[Any], None] | None:
     """Build the shared ``BaseWidget`` for *defn* via a ``SettingWidgetModel``.
 
     Falls back to a read-only label when the resolved widget key is unknown, so
     a missing widget never renders a silent blank. The model always binds the
     field's shared ``DataField`` cell (ADR 0016): *cell* when given (the
     registry-owned cell, registry path), else *bag*'s instance cell. Writes
-    still route through *make_setter*, never raw into the cell.
+    route through *on_edit* — the write-policy closure (``_bag_on_edit`` /
+    ``_registry_on_edit``) — never raw into the cell.
+
+    Returns ``None`` for a real widget: it hears cell writes directly via
+    ``on_changed`` (ADR 0016), so there is nothing left for a caller to push.
+    Returns the label fallback's ``apply(value)`` when the widget key is
+    unknown, since that display has no cell binding of its own.
     """
     from haywire.ui.widget.globals import get_widget_class
     from haywire.ui.panel.setting_widget_model import SettingWidgetModel
 
-    key = defn.resolved_widget_key
+    key = defn.widget_key
     widget_cls = get_widget_class(key)
     if widget_cls is None:
+        shared_cell = cell if cell is not None else (bag._cell_for(defn) if bag is not None else None)
+        value = shared_cell.get_value() if shared_cell is not None else None
         return _build_label_widget(value)
 
     shared_cell = cell if cell is not None else (bag._cell_for(defn) if bag is not None else None)
@@ -378,11 +395,9 @@ def _resolve_widget_instance(
 
     model = SettingWidgetModel(
         field_id=defn._attr_name or defn._label,
-        itype=defn._type,
-        value=value,
-        widget_config=defn.resolved_widget_config,
-        make_setter=make_setter,
-        field=shared_cell,
+        widget_config=defn.widget_config,
+        cell=shared_cell,
+        on_edit=on_edit,
     )
 
     # Render the widget inside an sf-widget cell so it sits in the value column
@@ -394,14 +409,15 @@ def _resolve_widget_instance(
         widget = widget_cls(model)
         widget.render()
 
-    def _apply(v: Any) -> None:
-        model.apply_external(v)
-
-    return _apply
+    return None
 
 
 def _build_label_widget(value: Any) -> Callable[[Any], None]:
-    """Display-only ``label`` widget — no ``.value`` (set_text, not BindableProperty)."""
+    """Display-only ``label`` widget — no ``.value`` (set_text, not BindableProperty).
+
+    ``apply(value)`` exists solely for this label fallback (no cell binding);
+    real widgets hear the cell directly (ADR 0016).
+    """
     str_value = _escape(value)
     lbl = (
         ui.label(str_value)
@@ -422,75 +438,45 @@ def _escape(v: Any) -> str:
     return (str(v) if v is not None else "").encode("unicode_escape").decode()
 
 
-class _Event:
-    """Minimal change-event stand-in: setters read only ``.value``."""
-
-    __slots__ = ("value",)
-
-    def __init__(self, value: Any) -> None:
-        self.value = value
-
-
 # ===========================================================================
-# 6. Setters
+# 5. Write policy — on_edit closures
 # ===========================================================================
 
 
-def _make_reactive_setter(obj: "Settings", attr_name: str, error_container=None):
-    """Return a make_setter(coerce) factory that writes to a Settings instance.
+def _bag_on_edit(obj: "Settings", attr_name: str, error_container) -> Callable[[Any], None]:
+    """Write policy for the instance path: validate → setattr → error chrome."""
 
-    Mirror override state (• prefix / reset button) and value display are kept in
-    sync by the model subscription wired in ``render_settings`` (which calls each
-    row's in-place updater), so the setter no longer rebuilds the row itself.
+    def on_edit(value: Any) -> None:
+        descriptor = type(obj)._property_settings().get(attr_name)
+        if descriptor is not None and not descriptor.validate(value):
+            error_container.clear()
+            with error_container:
+                ui.label(f"Invalid value: {value!r}").classes("text-xs hw-text-danger px-2").props(
+                    'data-error="true"'
+                )
+            return
+        setattr(obj, attr_name, value)
+        error_container.clear()
 
-    No echo guard here: ``setting.__set__`` short-circuits a write equal to the
-    field's resolved value (no callback, no phantom override), so the cross-tab
-    apply() → widget.value → on_change → setattr loop terminates at the model.
-    """
-
-    def make_setter(coerce):
-        def handler(e):
-            try:
-                coerced = coerce(e.value)
-            except Exception as exc:
-                if error_container is not None:
-                    error_container.clear()
-                    with error_container:
-                        ui.label(str(exc)).classes("text-xs hw-text-danger px-2").props('data-error="true"')
-                return
-
-            # Check validator before setting — descriptors silently reject invalid values
-            descriptor = type(obj)._property_settings().get(attr_name)
-            if descriptor is not None and not descriptor.validate(coerced):
-                if error_container is not None:
-                    error_container.clear()
-                    with error_container:
-                        ui.label(f"Invalid value: {coerced!r}").classes("text-xs hw-text-danger px-2").props(
-                            'data-error="true"'
-                        )
-                return
-
-            setattr(obj, attr_name, coerced)
-
-            if error_container is not None:
-                error_container.clear()
-
-        return handler
-
-    return make_setter
+    return on_edit
 
 
-def _make_setter(registry: "SettingsRegistry", key: str, coerce):
-    """Return an on_change handler that writes *key* to the registry workspace tier."""
+def _registry_on_edit(registry: "SettingsRegistry", key: str, error_container) -> Callable[[Any], None]:
+    """Write policy for the registry path: set_global → debounced save → error chrome.
 
-    def handler(e):
+    Surfaces failures instead of swallowing them (review finding #6):
+    set_global raises ValueError on validator rejection and KeyError on a
+    dropped definition (hot-reload race)."""
+
+    def on_edit(value: Any) -> None:
         try:
-            val = coerce(e.value)
-            if val is None:
-                return
-            registry.set_global(key, val)
+            registry.set_global(key, value)
             registry.save_to_json_debounced()
-        except Exception:
-            pass
+        except (KeyError, ValueError) as exc:
+            error_container.clear()
+            with error_container:
+                ui.label(str(exc)).classes("text-xs hw-text-danger px-2").props('data-error="true"')
+            return
+        error_container.clear()
 
-    return handler
+    return on_edit
