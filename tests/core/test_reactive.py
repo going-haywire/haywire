@@ -6,8 +6,8 @@ Coverage:
 - setting() default values, class-level returns descriptor, instance-level returns value
 - __set__ fires callbacks, skips when value unchanged
 - to_dict() includes only non-default values
-- from_dict(silent=True) restores without callbacks
-- from_dict(silent=False) fires callbacks
+- from_dict() restores values (trusted-restore path)
+- from_dict() notifies subscribers already attached before the restore
 - reset() / reset_all() return to defaults
 - .choices property resolves callables
 - _prop_fields() walks MRO correctly
@@ -207,26 +207,19 @@ class TestToDict:
 
 
 class TestFromDict:
-    def test_silent_restores_value(self):
+    def test_from_dict_restores_value(self):
         s = _Simple()
         s.from_dict({"threshold": 0.3})
         assert s.threshold == 0.3
 
-    def test_silent_notifies_attached_subscribers(self):
-        # Subscription rides the cell event (ADR 0016): the silent restore
-        # writes the cell, so an already-attached subscriber sees it. Load-time
-        # restores happen before anything subscribes, so they stay unobserved.
+    def test_from_dict_notifies_attached_subscribers(self):
+        # Subscription rides the cell event (ADR 0016): the restore writes the
+        # cell, so an already-attached subscriber sees it. Load-time restores
+        # happen before anything subscribes, so they stay unobserved.
         s = _Simple()
         received = []
         s.subscribe(lambda n, v, o: received.append(v))
-        s.from_dict({"threshold": 0.3}, silent=True)
-        assert received == [0.3]
-
-    def test_not_silent_fires_callbacks(self):
-        s = _Simple()
-        received = []
-        s.subscribe(lambda n, v, o: received.append(v))
-        s.from_dict({"threshold": 0.3}, silent=False)
+        s.from_dict({"threshold": 0.3})
         assert received == [0.3]
 
     def test_unknown_keys_ignored(self):

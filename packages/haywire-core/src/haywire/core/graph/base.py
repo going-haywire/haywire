@@ -923,8 +923,8 @@ class BaseGraph:
             if "nodes" in data:
                 from ..node.node_wrapper import NodeWrapper
 
-                try:
-                    for node_id, wrapper_data in data["nodes"].items():
+                for node_id, wrapper_data in data["nodes"].items():
+                    try:
                         # Create wrapper
                         wrapper = NodeWrapper(
                             registry_key=wrapper_data["registry_key"],
@@ -938,16 +938,15 @@ class BaseGraph:
 
                         # Add to graph
                         self.add_node_wrapper(wrapper)
-
-                except Exception as e:
-                    logger.error(f"Error loading node {node_id} from dictionary: {e}", exc_info=True)
+                    except Exception as e:
+                        logger.error(f"Error loading node {node_id} from dictionary: {e}", exc_info=True)
 
             # Load edges
             if "edges" in data:
                 from ..edge.edge_wrapper import EdgeWrapper
 
-                try:
-                    for edge_id, edge_data in data["edges"].items():
+                for edge_id, edge_data in data["edges"].items():
+                    try:
                         edge_wrapper = EdgeWrapper(
                             graph=self,
                             source_node_id=edge_data["source_node_id"],
@@ -965,9 +964,8 @@ class BaseGraph:
                         edge_wrapper._check_chain_for_changes(chain)
 
                         self.add_edge_wrapper(edge_wrapper)
-
-                except Exception as e:
-                    logger.error(f"Error loading edge {edge_id} from dictionary: {e}", exc_info=True)
+                    except Exception as e:
+                        logger.error(f"Error loading edge {edge_id} from dictionary: {e}", exc_info=True)
 
             for wrapper in self.node_wrappers.values():
                 wrapper._housekeeping()

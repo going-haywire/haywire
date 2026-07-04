@@ -91,24 +91,16 @@ class TestSimpleModeCharacterization:
         bag.strength = 0.9
         assert bag.to_dict() == {"strength": 0.9}
 
-    def test_from_dict_silent_notifies_attached_subscribers(self):
-        # Subscription rides the cell event (ADR 0016): the silent restore
-        # writes the cell, so an already-attached subscriber sees it. Load-time
-        # restores happen before anything subscribes, so they stay unobserved.
+    def test_from_dict_notifies_attached_subscribers(self):
+        # Subscription rides the cell event (ADR 0016): the restore writes the
+        # cell, so an already-attached subscriber sees it. Load-time restores
+        # happen before anything subscribes, so they stay unobserved.
         bag = SimpleBag()
         calls = []
         bag.subscribe(lambda *a: calls.append(a))
-        bag.from_dict({"strength": 0.9}, silent=True)
+        bag.from_dict({"strength": 0.9})
         assert bag.strength == 0.9
         assert calls == [("strength", 0.9, 0.5)]
-
-    def test_from_dict_not_silent_fires(self):
-        bag = SimpleBag()
-        calls = []
-        bag.subscribe(lambda *a: calls.append(a))
-        bag.from_dict({"strength": 0.9}, silent=False)
-        assert bag.strength == 0.9
-        assert len(calls) == 1
 
     def test_reset_returns_to_default_and_fires(self):
         bag = SimpleBag()

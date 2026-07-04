@@ -44,7 +44,7 @@ class FrameworkSettings(Settings):
 
     Subclass with a namespace= kwarg:
         class ExecutionSettings(FrameworkSettings, namespace='execution'):
-            max_threads = field[int](4, label='Max Threads')
+            max_threads = setting[INT](4, label='Max Threads')
 
     Registration is automatic.
 
@@ -91,7 +91,7 @@ class FrameworkSettings(Settings):
                 if val._mirror_key:
                     raise TypeError(
                         f"mirrors= is not allowed in FrameworkSettings: '{cls.__name__}.{name}'. "
-                        f"Use plain field() without mirrors=, shadow(), or watch()."
+                        f"Use plain setting() without mirrors=, shadow(), or watch()."
                     )
                 val._setting_key = f"{namespace}.{name}"
                 # No self-mirror stamping (ADR 0016): _mirror_key means only
@@ -119,7 +119,7 @@ class LibrarySettings(Settings):
 
         @settings(namespace='my_lib.general', label='My Library')
         class GeneralSettings(LibrarySettings):
-            quality = field[int](80, label='Quality')
+            quality = setting[INT](80, label='Quality')
 
     Registration is via hot-reload machinery
 
@@ -152,7 +152,7 @@ class LibrarySettings(Settings):
                 if val._mirror_key:
                     raise TypeError(
                         f"mirrors= is not allowed in LibrarySettings: '{cls.__name__}.{name}'. "
-                        f"Use plain field() without mirrors=, shadow(), or watch()."
+                        f"Use plain setting() without mirrors=, shadow(), or watch()."
                     )
                 val._setting_key = f"{namespace}.{name}"
                 # No self-mirror stamping (ADR 0016): _mirror_key means only

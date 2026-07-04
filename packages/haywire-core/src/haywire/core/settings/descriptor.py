@@ -107,18 +107,11 @@ class setting(SettingDescriptor, Generic[T]):
         ``validator`` for enforcement.
 
     widget : str or None
-        Optional widget override. Two recognised values:
-
-        * ``"label"`` — read-only ``ui.label``.
-        * ``"color"`` — ``ui.color_input``.
-
-        ``None`` (default) means auto-dispatch by ``type_`` and the presence
-        of ``choices=``:
-
-        1. ``choices`` set → ``ui.select``
-        2. ``type_ is bool`` → ``ui.switch``
-        3. ``type_ in (int, float)`` → ``NumberDrag`` (honours ``min``/``max``)
-        4. otherwise → text input with expand-to-modal button
+        Optional legacy widget override. Two recognised values: ``"label"``
+        (read-only SimpleLabelWidget) and ``"color"`` (ColorWidget). ``None``
+        (default): the widget comes from ``choices=`` (SelectWidget) or the
+        field IType's declared default ``widget_key``. Scheduled for removal —
+        see the Tier-2 plan (widget= converges on the port contract).
 
     mirrors : SettingDescriptor or str or None
         Marks this field as a mirror of another setting. Two forms:
@@ -138,12 +131,11 @@ class setting(SettingDescriptor, Generic[T]):
         When ``True``, the field is read-only and raises ``AttributeError`
         if one does anyway
 
-    type_ : type or None
-        Explicit Python type. Defaults to ``type(default)`` if ``default`` is
-        a value, or ``object`` if ``default`` is ``None`` or a callable. The
-        auto-renderer uses this to pick a widget. Override when the default
-        doesn't disambiguate (e.g. ``type_=Color`` for hex strings, or
-        ``type_=float`` when ``default=None``).
+    type_ : type[IType] or None
+        Explicit IType (e.g. ``type_=FLOAT``). Usually omitted — the IType
+        comes from the ``setting[T]`` generic subscript via ``__set_name__``.
+        Python types are rejected (IType cutover); there is no inference from
+        ``default``.
 
     validator : Callable or None
         Callable ``(value) -> bool`` returning ``True`` if the value is
@@ -400,9 +392,10 @@ class persistent_setting(setting, Generic[T]):
         if value == self.__get__(obj, type(obj)):
             return
 
-        # registry.set_global fires _notify_subscribers → owning instance's
-        # _on_field_change → _on_property_change. We MUST NOT also call
-        # _on_property_change ourselves here, or subscribers fire twice.
+        # registry.set_global fires _notify_subscribers → the registry-owned
+        # cell's write-through → the cell event notifies every borrowing
+        # instance (ADR 0016). We MUST NOT also write the cell here, or
+        # subscribers fire twice.
         registry.set_global(self._setting_key, value)
         registry.save_to_json_debounced()
 

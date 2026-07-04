@@ -105,7 +105,7 @@ class Settings:
 
     def _write_local(self, descriptor: setting, value: Any) -> None:
         """Write *value* into this field's cell and mark it locally set. Used by
-        the silent-restore path (from_dict); the live path goes through the
+        the trusted-restore path (from_dict); the live path goes through the
         descriptor's __set__. Opinion first, then the cell write — the cell
         event must observe is_locally_set() already True (ADR 0016)."""
         self._set_keys.add(descriptor.storage_key)
@@ -317,17 +317,18 @@ class Settings:
                 result[name] = val
         return result
 
-    def from_dict(self, data: dict, *, silent: bool = True) -> None:
-        """
-        Restore values from *data*.
+    def from_dict(self, data: dict) -> None:
+        """Restore values from *data* — the trusted-restore path (graph load).
 
-        silent=True (default): writes directly into the field's cell — no
-            callbacks fired. Used during deserialization (graph load).
-        silent=False: uses normal setattr — callbacks fire.
-            Used for live updates.
+        Writes each field's cell directly via ``_write_local``: no validator,
+        no equality no-op guard, the field is always marked locally set. The
+        cell write fires the cell event (ADR 0016), so subscribers attached
+        BEFORE the restore do hear it; graph load restores before anything
+        subscribes, so load stays unobserved. For a live, validated write use
+        plain attribute assignment (``bag.field = value``).
 
-        Unknown keys are silently ignored (forward compatibility).
-        read_only fields are silently skipped.
+        Unknown keys are ignored without error (forward compatibility).
+        read_only fields are skipped without error.
         """
         fields = type(self)._property_settings()
         for attr_name, value in data.items():
@@ -336,10 +337,7 @@ class Settings:
             descriptor = fields[attr_name]
             if descriptor._read_only:
                 continue
-            if silent:
-                self._write_local(descriptor, value)
-            else:
-                setattr(self, attr_name, value)
+            self._write_local(descriptor, value)
 
     # -------------------------------------------------------------------------
     # Reset

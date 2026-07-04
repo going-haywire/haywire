@@ -46,7 +46,7 @@ _COLUMN_STYLE = "container-type: inline-size; container-name: settings-panel;"
 
 
 def render_settings(obj: "Settings") -> None:
-    """Render all ``field()`` fields of a ``Settings`` instance as labelled form rows.
+    """Render all ``setting()`` fields of a ``Settings`` instance as labelled form rows.
 
     - Fields with ``read_only=True`` are skipped (not rendered).
     - Fields with ``mirrors=`` that are locally overridden show a reset-to-global button.
@@ -262,8 +262,9 @@ def _render_reactive_field_row(
 
         def _on_reset_click():
             obj.reset(attr_name)
-            # reset() fires _on_property_change -> the subscription updater
-            # refreshes value + chrome in place; nothing else to do here.
+            # reset() writes the cell (set_value), so the cell event reaches the
+            # bag subscription wired in render_settings, which refreshes value +
+            # chrome in place; nothing else to do here.
 
         with ui.row().classes("items-center gap-0 shrink-0 sf-label"):
             label = ui.label(_label_text(is_locally_overridden)).classes("text-xs truncate")

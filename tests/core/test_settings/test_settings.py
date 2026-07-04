@@ -105,21 +105,21 @@ class TestSerialization:
 
     def test_from_dict_notifies_attached_subscribers(self):
         # Subscription rides the cell event (ADR 0016): any cell write —
-        # silent restore included — notifies already-attached subscribers.
-        # Graph load restores bags before anything subscribes, so load-time
+        # restore included — notifies already-attached subscribers. Graph
+        # load restores bags before anything subscribes, so load-time
         # restores stay unobserved in practice.
         bag = SimpleSettings()
         calls = []
         bag.subscribe(lambda *a: calls.append(a))
-        bag.from_dict({"strength": 0.9})  # silent=True by default
+        bag.from_dict({"strength": 0.9})
         assert bag.strength == 0.9
         assert calls == [("strength", 0.9, 0.5)]
 
-    def test_from_dict_not_silent(self):
+    def test_live_write_fires(self):
         bag = SimpleSettings()
         calls = []
         bag.subscribe(lambda *a: calls.append(a))
-        bag.from_dict({"strength": 0.9}, silent=False)
+        bag.strength = 0.9
         assert bag.strength == 0.9
         assert len(calls) == 1
 
