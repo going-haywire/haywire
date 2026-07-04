@@ -94,11 +94,9 @@ class FrameworkSettings(Settings):
                         f"Use plain field() without mirrors=, shadow(), or watch()."
                     )
                 val._setting_key = f"{namespace}.{name}"
-                # we need to set _mirror_key because in this class it is in fact
-                # a mirror of itself for resolution and subscription purposes
-                # we don't want the user to set mirrors because this would
-                # silently break the resolution and subscription machinery
-                val._mirror_key = val._setting_key
+                # No self-mirror stamping (ADR 0016): _mirror_key means only
+                # "mirrors ANOTHER setting". Persistent machinery keys off
+                # _setting_key + the registry-owned cell.
                 val.__class__ = persistent_setting
 
             # Self-registration: queue or register immediately
@@ -111,9 +109,6 @@ class FrameworkSettings(Settings):
 
     def __init__(self) -> None:
         super().__init__(registry=type(self)._registry)
-        for descriptor in type(self)._property_settings().values():
-            if descriptor._on_change:
-                self._subscribe_setting(descriptor)
 
 
 class LibrarySettings(Settings):
@@ -160,17 +155,12 @@ class LibrarySettings(Settings):
                         f"Use plain field() without mirrors=, shadow(), or watch()."
                     )
                 val._setting_key = f"{namespace}.{name}"
-                # we need to set _mirror_key because in this class it is in fact
-                # a mirror of itself for resolution and subscription purposes
-                # we don't want the user to set mirrors because this would
-                # silently break the resolution and subscription machinery
-                val._mirror_key = val._setting_key
+                # No self-mirror stamping (ADR 0016): _mirror_key means only
+                # "mirrors ANOTHER setting". Persistent machinery keys off
+                # _setting_key + the registry-owned cell.
                 val.__class__ = persistent_setting
 
         # No registry touch here — registration handled by BaseRegistry hot-reload path
 
     def __init__(self) -> None:
         super().__init__(registry=type(self)._registry)
-        for descriptor in type(self)._property_settings().values():
-            if descriptor._on_change:
-                self._subscribe_setting(descriptor)

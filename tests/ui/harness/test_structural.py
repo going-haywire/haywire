@@ -29,7 +29,6 @@ def test_node_fields_present(page: Page, harness):
         "example_color",
         # stored
         "persistent_value",
-        "transient_value",
         # mirrors
         "intensity",
         "count_mirror",

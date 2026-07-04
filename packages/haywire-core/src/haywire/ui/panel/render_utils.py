@@ -32,6 +32,7 @@ from haywire.ui.utils import anchor_cleanup_to_element
 if TYPE_CHECKING:
     from haywire.core.settings.registry import SettingsRegistry
     from haywire.core.settings import Settings, setting
+    from haywire.core.types.fields import DataField
 
 _ROW_CLASSES = "w-full items-center justify-between gap-0 px-2"
 _LABEL_CLASSES = "text-xs min-w-0 truncate sf-label"
@@ -173,55 +174,30 @@ def _render_grouped(sorted_items, category_of, render_one) -> Any:
 def _render_definitions(sorted_defns: list, registry: "SettingsRegistry") -> None:
     """Render a pre-sorted list of registry-backed field descriptors.
 
-    Subscribes to the registry so that external changes (TOML reload, cross-tab
-    writes) update the rendered widgets in place without a full redraw.
+    Each widget binds the registry-owned cell for its key (ADR 0016), so
+    external changes (JSON reload, cross-tab writes) show live via the cell's
+    own event — no registry subscription, re-resolve loop, or per-widget
+    throwaway field.
     """
-    # key -> apply(value) callback for in-place widget updates
-    appliers: dict[str, Callable[[Any], None]] = {}
 
     def _render_one(defn) -> None:
         key = defn._setting_key
         try:
-            value, _ = registry.resolve(key)
+            cell = registry.cell_for(key)
         except KeyError:
             return
         attr_name = defn._attr_name or key.split(".")[-1]
-        apply = _render_field_row(
+        _render_field_row(
             defn._label or attr_name,
             defn._description,
             defn,
-            value,
+            cell.get_value(),
             lambda coerce, k=key: _make_setter(registry, k, coerce),
             attr_name=attr_name,
+            cell=cell,
         )
-        if apply is not None:
-            appliers[key] = apply
 
-    column = _render_grouped(sorted_defns, category_of=lambda d: d._category, render_one=_render_one)
-
-    def _on_registry_change(key: str, _value: Any) -> None:
-        apply = appliers.get(key)
-        if apply is None:
-            return
-        try:
-            resolved, _ = registry.resolve(key)
-            apply(resolved)
-        except KeyError:
-            pass
-
-    # Subscribe at the common namespace prefix so we receive only the keys we rendered.
-    all_keys = list(appliers.keys())
-    if all_keys:
-        parts_list = [k.split(".") for k in all_keys]
-        min_len = min(len(p) for p in parts_list)
-        namespace: str | None = None
-        for depth in range(min_len, 0, -1):
-            prefix = ".".join(parts_list[0][:depth])
-            if all(".".join(p[:depth]) == prefix for p in parts_list):
-                namespace = prefix
-                break
-        registry.subscribe(namespace, _on_registry_change)
-        anchor_cleanup_to_element(column, lambda: registry.unsubscribe(namespace, _on_registry_change))
+    _render_grouped(sorted_defns, category_of=lambda d: d._category, render_one=_render_one)
 
 
 # ===========================================================================
@@ -230,14 +206,21 @@ def _render_definitions(sorted_defns: list, registry: "SettingsRegistry") -> Non
 
 
 def _render_field_row(
-    label_text: str, description: str, defn, value, make_setter, attr_name: str = ""
+    label_text: str,
+    description: str,
+    defn,
+    value,
+    make_setter,
+    attr_name: str = "",
+    cell: "DataField | None" = None,
 ) -> Callable[[Any], None]:
-    """Render a single label + widget row (registry path); return apply(value) for external sync."""
+    """Render a single label + widget row (registry path). The widget binds
+    *cell* (the registry-owned cell) for live external sync (ADR 0016)."""
     with ui.row().classes(_ROW_CLASSES).props(f'data-field="{attr_name}"' if attr_name else ""):
         lbl = ui.label(label_text).classes(_LABEL_CLASSES)
         if description:
             lbl.tooltip(description)
-        return _build_field_widget(defn, value, make_setter)
+        return _build_field_widget(defn, value, make_setter, cell=cell)
 
 
 def _render_reactive_field_row(
@@ -346,7 +329,11 @@ def _render_reactive_field_row(
 
 
 def _build_field_widget(
-    defn: "setting", value: Any, make_setter, bag: "Settings | None" = None
+    defn: "setting",
+    value: Any,
+    make_setter,
+    bag: "Settings | None" = None,
+    cell: "DataField | None" = None,
 ) -> Callable[[Any], None]:
     """Resolve, build, and link the shared widget for *defn*; return ``apply(value)``.
 
@@ -355,21 +342,27 @@ def _build_field_widget(
     control; the panel keeps the surrounding chrome (label, override •/reset,
     category groups, error container). ``make_setter(coerce)`` yields the
     on_change handler; the returned ``apply(value)`` pushes an external model
-    change into the widget in place. When *bag* is given, the widget binds its
-    shared cell for display (registry/edge changes show live).
+    change into the widget in place. The widget binds the field's shared cell:
+    *cell* (registry-owned, registry path) or *bag*'s instance cell (bag path)
+    — any write into it shows live (ADR 0016).
     """
-    return _resolve_widget_instance(defn, value, make_setter, bag=bag)
+    return _resolve_widget_instance(defn, value, make_setter, bag=bag, cell=cell)
 
 
 def _resolve_widget_instance(
-    defn: "setting", value: Any, make_setter, bag: "Settings | None" = None
+    defn: "setting",
+    value: Any,
+    make_setter,
+    bag: "Settings | None" = None,
+    cell: "DataField | None" = None,
 ) -> Callable[[Any], None]:
     """Build the shared ``BaseWidget`` for *defn* via a ``SettingWidgetModel``.
 
-    Falls back to a read-only label when the resolved widget key is unknown, so a
-    missing widget never renders a silent blank. When *bag* is given, the model
-    binds the bag's shared ``DataField`` cell for display (write still routes
-    through the descriptor via *make_setter*).
+    Falls back to a read-only label when the resolved widget key is unknown, so
+    a missing widget never renders a silent blank. The model always binds the
+    field's shared ``DataField`` cell (ADR 0016): *cell* when given (the
+    registry-owned cell, registry path), else *bag*'s instance cell. Writes
+    still route through *make_setter*, never raw into the cell.
     """
     from haywire.ui.widget.globals import get_widget_class
     from haywire.ui.panel.setting_widget_model import SettingWidgetModel
@@ -379,9 +372,8 @@ def _resolve_widget_instance(
     if widget_cls is None:
         return _build_label_widget(value)
 
-    # Bind the bag's shared cell for display so a registry/edge write into it shows
-    # live; None for the registry path (no bag) keeps the throwaway-field fallback.
-    shared_cell = bag._cell_for(defn) if bag is not None else None
+    shared_cell = cell if cell is not None else (bag._cell_for(defn) if bag is not None else None)
+    assert shared_cell is not None, f"no cell for setting widget {defn._attr_name!r} (ADR 0016)"
 
     model = SettingWidgetModel(
         field_id=defn._attr_name or defn._label,

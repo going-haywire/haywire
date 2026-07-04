@@ -462,8 +462,9 @@ class AppShell:
         ui.add_css(self._build_initial_theme_css() + _static_css + _pygments_doc_css())
 
         # React to workbench.theme setting changes (e.g. from the settings panel).
+        # Exact-key subscription — the shell only cares about this one key.
         settings_registry = self.session.context.app.library_service.get_settings_registry()
-        settings_registry.subscribe(None, self._on_setting_changed)
+        settings_registry.subscribe("workbench.theme", self._on_setting_changed)
 
         # Subscription to Workspace-mutation handlers.
         self._lifecycle_unsubs.append(self.session.subscribe(Reveal, self._reveal_editor))

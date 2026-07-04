@@ -93,15 +93,8 @@ class SettingsNode(BaseNode):
         persistent_value = setting[FLOAT](
             1.0,
             label="Persistent Value",
-            description="Normal stored setting (stored=True by default)",
+            description="Normal stored setting",
             category="stored",
-        )
-        transient_value = setting[FLOAT](
-            0.0,
-            label="Transient Value",
-            description="Ephemeral setting excluded from serialization",
-            category="stored",
-            stored=False,
         )
 
         # --- mirrors (shadow = writable, watch = read-only) ---
@@ -160,7 +153,6 @@ class SettingsNode(BaseNode):
         print(f"Post-init: example_string = {self.example.example_string}")
         print(f"Post-init: example_float = {self.example.example_float}")
         print(f"Post-init: persistent = {self.example.persistent_value}")
-        print(f"Post-init: transient = {self.example.transient_value}")
         print(f"Post-init: clamped_positive = {self.example.clamped_positive}")
         print(f"Post-init: even_int = {self.example.even_int}")
 

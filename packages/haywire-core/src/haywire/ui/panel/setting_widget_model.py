@@ -1,14 +1,14 @@
 """SettingWidgetModel — adapts a settings field to the ``WidgetModel`` surface.
 
-Lets the framework's port-bound ``BaseWidget`` subclasses render a *setting*. The
-adapter binds to the owning ``Settings`` bag's shared ``DataField`` cell
-(``bag._cell_for(descriptor)``) for **display** when one is provided — so a
-registry / edge change into that cell shows live via ``on_changed`` — and falls
-back to creating its own field for a standalone widget with no bag. Writes are
-NOT applied raw to the cell: they are forwarded to the owning ``Settings`` via the
-panel's ``make_setter`` (which routes through the descriptor ``__set__``), keeping
-``_set_keys`` set-vs-unset bookkeeping correct. External setting changes are pushed
-back into the field by the panel's ``apply`` (see ``_resolve_widget_instance``).
+Lets the framework's port-bound ``BaseWidget`` subclasses render a *setting*.
+The adapter ALWAYS binds the field's shared ``DataField`` cell (ADR 0016): the
+bag's instance cell (``bag._cell_for(descriptor)``) or, for a persistent
+setting rendered from the registry, the registry-owned cell
+(``registry.cell_for(key)``) — so any write into that cell (descriptor set,
+registry write-through, edge drive) shows live via ``on_changed``. Writes are
+NOT applied raw to the cell: they are forwarded via the panel's ``make_setter``
+(descriptor ``__set__`` or registry setter), keeping set-vs-unset bookkeeping
+correct.
 """
 
 from __future__ import annotations
@@ -43,17 +43,14 @@ class SettingWidgetModel:
         value: Any,
         widget_config: dict[str, Any],
         make_setter: Callable[[Callable[[Any], Any]], Callable[[Any], None]],
-        field: DataField | None = None,
+        field: DataField,
     ) -> None:
         self.id = field_id
         self.widget_config = widget_config or {}
-        # Bind to the bag's SHARED cell when provided (one cell, two views — a
-        # registry/edge write into it shows live via on_changed). Otherwise create
-        # a throwaway field for a standalone widget with no bag.
-        self._shared = field is not None
-        self._field: DataField = (
-            field if field is not None else itype.create_field(default_override={"value": value})
-        )
+        # ALWAYS the shared cell (ADR 0016) — the bag's instance cell or the
+        # registry-owned cell. Any write into it shows live via on_changed;
+        # there is no throwaway-field fallback anymore.
+        self._field: DataField = field
         # The panel's coerce→validate→setattr handler (identity coerce; the
         # widget already delivers a typed value). Writes route through the
         # descriptor __set__ — NOT raw cell.set_value — so _set_keys stays correct.
@@ -68,14 +65,11 @@ class SettingWidgetModel:
 
     def set_value(self, value: Any) -> None:
         # Widget → model. Forward to the owning Settings via the panel setter,
-        # which routes through the descriptor __set__ (marks _set_keys). For a
-        # SHARED cell that __set__ writes the cell (→ on_changed → widget), so we
-        # must NOT also write it raw here — a raw write would flip the value while
-        # leaving the field "unset", and the next registry sync would clobber the
-        # edit. For a standalone (own) field there is no bag to route through, so
-        # update the field directly to drive sibling bindings.
-        if not self._shared:
-            self._field.set_value(value)
+        # which routes through the descriptor __set__ (marks _set_keys) or the
+        # registry setter (persistent fields). The write lands in the SHARED
+        # cell (→ on_changed → widget), so we must NOT also write it raw here —
+        # that would flip the value while leaving the field "unset", and the
+        # next registry sync would clobber the edit.
         self._handler(_Event(value))
 
     def apply_external(self, value: Any) -> None:

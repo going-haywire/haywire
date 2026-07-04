@@ -103,13 +103,17 @@ class TestSerialization:
         d = bag.to_dict()
         assert d == {"strength": 0.9}
 
-    def test_from_dict_silent(self):
+    def test_from_dict_notifies_attached_subscribers(self):
+        # Subscription rides the cell event (ADR 0016): any cell write —
+        # silent restore included — notifies already-attached subscribers.
+        # Graph load restores bags before anything subscribes, so load-time
+        # restores stay unobserved in practice.
         bag = SimpleSettings()
         calls = []
         bag.subscribe(lambda *a: calls.append(a))
         bag.from_dict({"strength": 0.9})  # silent=True by default
         assert bag.strength == 0.9
-        assert calls == []  # no callbacks
+        assert calls == [("strength", 0.9, 0.5)]
 
     def test_from_dict_not_silent(self):
         bag = SimpleSettings()
@@ -137,41 +141,40 @@ class TestSerialization:
 
 
 # ---------------------------------------------------------------------------
-# on_change parameter
+# Change notification — subscribe() rides the cell event (ADR 0016; replaces
+# the deleted on_change='method' string dispatch)
 # ---------------------------------------------------------------------------
 
 
 class SettingsWithCallback(Settings):
-    strength = setting[FLOAT](0.5, on_change="_on_strength")
-
-    def __init__(self, registry=None):
-        super().__init__(registry)
-        self.callback_values = []
-
-    def _on_strength(self, value: float, field: str = "") -> None:
-        self.callback_values.append((value, field))
+    strength = setting[FLOAT](0.5)
 
 
-class TestOnChange:
-    def test_on_change_fires_on_set(self):
+class TestSubscribeNotification:
+    def _bag_with_log(self):
         bag = SettingsWithCallback()
+        log: list[tuple] = []
+        bag.subscribe(lambda name, value, old: log.append((name, value, old)))
+        return bag, log
+
+    def test_subscriber_fires_on_set(self):
+        bag, log = self._bag_with_log()
         bag.strength = 0.8
-        assert bag.callback_values == [(0.8, "strength")]
+        assert log == [("strength", 0.8, 0.5)]
 
-    def test_on_change_not_fired_same_value(self):
-        bag = SettingsWithCallback()
-        bag.strength = 0.5  # same as default
-        assert bag.callback_values == []
+    def test_subscriber_not_fired_same_value(self):
+        bag, log = self._bag_with_log()
+        bag.strength = 0.5  # same as default -> __set__ no-op guard
+        assert log == []
 
-    def test_on_change_not_fired_from_dict_silent(self):
-        bag = SettingsWithCallback()
-        bag.from_dict({"strength": 0.9})  # silent=True
-        assert bag.callback_values == []
-
-    def test_on_change_fired_from_dict_not_silent(self):
-        bag = SettingsWithCallback()
-        bag.from_dict({"strength": 0.9}, silent=False)
-        assert bag.callback_values == [(0.9, "strength")]
+    def test_from_dict_notifies_attached_subscribers(self):
+        # Subscription rides the cell event, so ANY cell write — including a
+        # from_dict restore — notifies subscribers that are already attached
+        # (ADR 0016). Graph load restores bags before anything subscribes, so
+        # load-time restores stay unobserved in practice.
+        bag, log = self._bag_with_log()
+        bag.from_dict({"strength": 0.9})
+        assert log == [("strength", 0.9, 0.5)]
 
 
 # ---------------------------------------------------------------------------
@@ -449,7 +452,6 @@ class TypedSettings(Settings):
 
 class StoredSettings(Settings):
     stored_field = setting[FLOAT](0.5)
-    unstored_field = setting[FLOAT](0.5, stored=False)
 
 
 class ValidatedSettings(Settings):
@@ -481,25 +483,6 @@ class TestStoredSetting:
         bag.stored_field = 0.9
         d = bag.to_dict()
         assert "stored_field" in d
-
-    def test_unstored_field_excluded_from_to_dict(self):
-        bag = StoredSettings()
-        bag.unstored_field = 0.9
-        d = bag.to_dict()
-        assert "unstored_field" not in d
-
-    def test_unstored_field_still_readable_and_writable(self):
-        bag = StoredSettings()
-        bag.unstored_field = 0.75
-        assert bag.unstored_field == 0.75
-
-    def test_default_stored_is_true(self):
-        descriptor = StoredSettings.__dict__["stored_field"]
-        assert descriptor._stored is True
-
-    def test_explicit_stored_false(self):
-        descriptor = StoredSettings.__dict__["unstored_field"]
-        assert descriptor._stored is False
 
 
 class TestValidatorSetting:

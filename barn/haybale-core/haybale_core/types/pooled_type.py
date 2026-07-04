@@ -196,11 +196,12 @@ class PooledField(DataField):
         if self._sources.get(source_id) == value:
             return
 
-        # Update source
+        # Update source (snapshot the old pool only when someone is listening)
+        old = dict(self._sources) if self.on_changed.has_observers() else None
         self._sources[source_id] = value
         self.is_dirty = True
-        if self.on_changed.has_observers():
-            self.fire(dict(self._sources))
+        if old is not None:
+            self.fire(dict(self._sources), old)
 
     def get_stored_type(self) -> Type[IType]:
         # other than most other fields, pooled field actually stores the element type
@@ -233,9 +234,10 @@ class PooledField(DataField):
             source_id: Node ID to remove
         """
         if source_id in self._sources:
+            old = dict(self._sources) if self.on_changed.has_observers() else None
             del self._sources[source_id]
             self.is_dirty = True
-            self.fire(dict(self._sources))
+            self.fire(dict(self._sources), old)
 
     def get_values_list(self) -> List[Any]:
         """

@@ -27,6 +27,8 @@ from .value import SettingValue
 from .descriptor import setting
 from ..registry.base import BaseRegistry
 from ..library.identity import LibraryIdentity
+from ..types.fields import DataField
+from ..types.interface import IType
 from .settings import Settings
 
 logger = logging.getLogger(__name__)
@@ -104,6 +106,12 @@ class SettingsRegistry(BaseRegistry[Settings]):
 
         self._subscribers: dict[str | None, list[weakref.ref]] = {}
         self._categories: dict[str, list[str]] = {}
+
+        # One live DataField per definition (ADR 0016) — THE cell every consumer
+        # of a persistent setting binds ("one cell, N views"). Lazily created by
+        # cell_for(), kept current by the _notify_subscribers write-through, and
+        # dropped with its definition on unregister (hot-reload).
+        self._cells: dict[str, "DataField"] = {}
 
         # Track which definitions came from TOML (vs code)
         self._toml_defined: set[str] = set()
@@ -195,17 +203,24 @@ class SettingsRegistry(BaseRegistry[Settings]):
         """
         Notify all subscribers for a batch of changed keys.
 
-        For each changed key, walks all namespace prefixes so a subscriber on
-        'ui' fires for 'ui.node.bg_color'.  Subscribers registered under
-        namespace=None receive every change.  Dead weakrefs are cleaned up.
-        """
-        for key, value in changed.items():
-            parts = key.split(".")
-            namespaces_to_notify: list[str | None] = [None]
-            for i in range(1, len(parts) + 1):
-                namespaces_to_notify.append(".".join(parts[:i]))
+        Exact-key subscribers fire for their key; subscribers registered under
+        key=None receive every change. Dead weakrefs are cleaned up.
 
-            for ns in namespaces_to_notify:
+        Also the single write-through point for registry-owned cells (ADR
+        0016): every tier mutation funnels here, so this is where the changed
+        key's live cell is brought current — set → the new effective value,
+        unset → whatever resolve() now yields (lower tier or default). A key
+        whose definition is gone (hot-reload unregister / undefine) drops its
+        cell; anything still bound to it holds a frozen, orphaned field.
+
+        Subscriptions are exact-key, plus ``None`` for listen-all (debug
+        configurator). The namespace-prefix walk is gone (ADR 0016) — its only
+        consumer was the settings panel's re-resolve loop, retired when panel
+        widgets started binding the registry-owned cells directly.
+        """
+        self._write_through_cells(changed)
+        for key, value in changed.items():
+            for ns in (key, None):
                 dead: list[weakref.ref] = []
                 for cb_ref in self._subscribers.get(ns, []):
                     cb = cb_ref()
@@ -218,6 +233,43 @@ class SettingsRegistry(BaseRegistry[Settings]):
                             logger.error(f"Subscriber error for {key!r} (namespace={ns!r}): {e}")
                 for ref in dead:
                     self._subscribers[ns].remove(ref)
+
+    def _write_through_cells(self, changed: dict[str, "SettingValue"]) -> None:
+        """Bring registry-owned cells current for a batch of changed keys (ADR 0016)."""
+        for key, value in changed.items():
+            cell = self._cells.get(key)
+            if cell is None:
+                continue
+            if key not in self._definitions:
+                # Definition gone (unregister/undefine) — the cell dies with it.
+                del self._cells[key]
+                continue
+            new_val = value.value if value.is_set else self.resolve(key)[0]
+            if new_val != cell.get_value():
+                cell.set_value(new_val)
+
+    def cell_for(self, key: str) -> DataField:
+        """THE live cell for a registered setting — one per definition (ADR 0016).
+
+        Lazily created, seeded via ``resolve(key)`` (so a tier already loaded
+        from JSON seeds correctly), stamped with ``field_id = key``, and kept
+        current by the ``_notify_subscribers`` write-through. Settings
+        instances and panels borrow this cell by reference — "one cell,
+        N views". Raises ``KeyError`` for an unregistered key.
+        """
+        cell = self._cells.get(key)
+        if cell is None:
+            defn = self._definitions.get(key)
+            if defn is None:
+                raise KeyError(f"Unknown setting: {key}")
+            value, _source = self.resolve(key)
+            itype = defn._type
+            if not (isinstance(itype, type) and issubclass(itype, IType)):
+                raise TypeError(f"setting {key!r} has no IType (got {itype!r})")
+            cell = itype.create_field(default_override={"value": value})
+            cell.field_id = key
+            self._cells[key] = cell
+        return cell
 
     def _store_definition(self, name: str, descriptor: setting, category: str = "root") -> None:
         """Store a descriptor in the definitions dict and initialize tier entries."""
@@ -287,15 +339,14 @@ class SettingsRegistry(BaseRegistry[Settings]):
     # Subscriptions
     # =========================================================================
 
-    def subscribe(self, namespace: str | None, callback: Callable[[str, "SettingValue"], None]) -> None:
+    def subscribe(self, key: str | None, callback: Callable[[str, "SettingValue"], None]) -> None:
         """
-        Subscribe *callback* to setting changes under *namespace*.
+        Subscribe *callback* to setting changes for *key*.
 
-        *namespace* controls the scope:
-            None           — fires on every key change (global listener)
-            'ui'           — fires when any key starting with 'ui.' changes
-            'ui.node'      — fires when any key starting with 'ui.node.' changes
-            'ui.node.color'— fires only when that exact key changes
+        *key* controls the scope (exact-key only, ADR 0016 — the namespace
+        prefix walk is gone):
+            None            — fires on every key change (global listener)
+            'ui.node.color' — fires only when that exact key changes
 
         The callback signature is ``callback(key: str, value: SettingValue)``.
 
@@ -308,15 +359,15 @@ class SettingsRegistry(BaseRegistry[Settings]):
             ref: weakref.ref = weakref.WeakMethod(callback)  # type: ignore[arg-type]
         except TypeError:
             ref = weakref.ref(callback)
-        bucket = self._subscribers.setdefault(namespace, [])
+        bucket = self._subscribers.setdefault(key, [])
         if any(r() == callback for r in bucket):
             return  # already subscribed — deduplicate
         bucket.append(ref)
 
-    def unsubscribe(self, namespace: str | None, callback: Callable[[str, "SettingValue"], None]) -> None:
+    def unsubscribe(self, key: str | None, callback: Callable[[str, "SettingValue"], None]) -> None:
         """Remove a subscription registered with ``subscribe``."""
-        bucket = self._subscribers.get(namespace, [])
-        self._subscribers[namespace] = [r for r in bucket if r() is not callback]
+        bucket = self._subscribers.get(key, [])
+        self._subscribers[key] = [r for r in bucket if r() is not callback]
 
     # =========================================================================
     # TOML Loading
@@ -1003,6 +1054,10 @@ class SettingsRegistry(BaseRegistry[Settings]):
         if global_sv.is_set:
             return global_sv.value, "global"
 
+        # A callable default is late-binding (e.g. "current default skin" —
+        # the source registry doesn't exist at class-definition time). It is
+        # evaluated here, at resolve/seed time — never on the read path, which
+        # is a pure cell read (ADR 0016).
         default = defn._default() if callable(defn._default) else defn._default
         return default, "default"
 

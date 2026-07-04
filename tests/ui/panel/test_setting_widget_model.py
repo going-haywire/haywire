@@ -6,6 +6,7 @@ from haywire.ui.panel.setting_widget_model import SettingWidgetModel
 
 
 def _make_model(initial=1.0):
+    """A model bound to its (always-required, ADR 0016) shared cell."""
     written = []
 
     def make_setter(coerce):
@@ -14,12 +15,14 @@ def _make_model(initial=1.0):
 
         return handler
 
+    cell = FLOAT.create_field(default_override={"value": initial})
     model = SettingWidgetModel(
         field_id="x",
         itype=FLOAT,
         value=initial,
         widget_config={"properties": {"min": 0.0}},
         make_setter=make_setter,
+        field=cell,
     )
     return model, written
 
@@ -36,11 +39,14 @@ def test_get_value_reflects_seed():
     assert model.get_value() == 2.5
 
 
-def test_set_value_forwards_to_setter_and_field():
+def test_set_value_forwards_to_setter_only():
+    # Widget -> model writes route through the setter (descriptor/registry);
+    # the shared cell is written by that path, never raw by the model
+    # (ADR 0016 — a raw write would bypass set-or-unset bookkeeping).
     model, written = _make_model(1.0)
     model.set_value(3.0)
-    assert model.get_value() == 3.0
     assert written == [3.0]
+    assert model.get_value() == 1.0  # display follows the CELL, not the widget
 
 
 def test_apply_external_updates_field_without_setter():

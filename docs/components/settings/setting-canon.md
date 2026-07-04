@@ -1,7 +1,7 @@
 ---
 status: draft
 doc_template: canonical-example
-scope: Authoring settings — NodeSettings, LibrarySettings, the setting() / shadow() / watch() descriptors, on_change, panel integration
+scope: Authoring settings — NodeSettings, LibrarySettings, the setting() / shadow() / watch() descriptors, change subscriptions, panel integration
 see-also:
   - ../../architecture/settings/settings-arch.md
   - ../nodes/node-canon.md
@@ -96,11 +96,9 @@ You never hand-write these — they are what TOML and the registry use under the
 | `min` / `max` | Slider bounds; also infer the slider widget |
 | `choices` | Dropdown options (list, dict, or callable; see below) |
 | `widget` | Explicit widget hint (override the inferred one) |
-| `on_change` | Method name on the *node* called when the value changes |
 | `mirrors` | Source descriptor or full key — same effect as `shadow()` directly |
 | `read_only` | If `True`, instance writes raise `AttributeError`; field is invisible in panel |
 | `validator` | `Callable(value) -> bool`; return `False` to reject. Checked before `setattr` |
-| `stored` | If `False`, excluded from serialization |
 | `metadata` | Arbitrary dict attached to the descriptor as `._metadata` |
 
 **Widget inference.** Type and parameters together pick the panel widget:
@@ -130,17 +128,17 @@ theme = setting[str]('', choices=lambda: get_theme_registry().list_workbench_key
 
 The callable form is evaluated fresh on every panel render, so plugin-added entries appear automatically.
 
-**`on_change` callbacks.** Method name on the *node class* called whenever the resolved value changes (local set, reset, or upstream global change for shadow/watch fields):
+**Reacting to a single field.** The `on_change='method'` string dispatch was retired (ADR 0016); use `subscribe_field` — one adapter on the field's cell, so it hears every writer (local set, reset, registry write-through, and edge drives into a promoted port's shared cell):
 
 ```python
-class filter(NodeSettings):
-    scale = setting[float](1.0, on_change='hb_on_scale')
+def post_init(self):
+    self.filter.subscribe_field('scale', self._on_scale)
 
-def hb_on_scale(self, value: float, field: str = ''):
+def _on_scale(self, value: float, old: float):
     self.cache.scaled = value * 2
 ```
 
-Use the `hb_*` prefix to keep your method names safe across framework updates.
+`unsubscribe(callback)` and `cleanup()` detach it; registration is idempotent per (field, callback), and one callback may watch several fields.
 
 **Panel rendering rules.** When the properties panel calls `render_reactive(node.filter)`:
 
@@ -165,9 +163,11 @@ div                                  ← error container (populated on validatio
 | `reset(name)` | Remove the local override for `name` (falls back through the chain) |
 | `reset_all()` | Reset every field |
 | `is_locally_set(name)` | `True` if the field has a local instance override |
-| `subscribe(callback)` | `callback(name, value, old)` on any change |
+| `subscribe(callback)` | `callback(name, value, old)` on any change to any field |
+| `subscribe_field(field, callback)` | `callback(value, old)` on changes to one field (ADR 0016) |
+| `unsubscribe(callback)` | Detach a callback registered by either subscribe method |
 | `to_dict()` | Returns only fields that differ from the descriptor default; `watch()` fields are never included |
-| `from_dict(data, silent=True)` | Restore values; `silent=True` writes directly without firing callbacks (used during graph load) |
+| `from_dict(data, silent=True)` | Restore values; `silent=True` writes cells directly, bypassing validation (graph load — subscribers attached later never see it) |
 
 **Serialization.** Only locally-overridden values are serialized. Fields at their default and `watch()` fields are never stored:
 
@@ -303,7 +303,7 @@ The callback fires on any change — local writes, global writes from other plac
 
 **NodeSettings with every descriptor** — source: [`barn/haybale-testing/haybale_testing/nodes/testbed/settings_node.py`](../../../barn/haybale-testing/haybale_testing/nodes/testbed/settings_node.py)
 
-`SettingsNode.example` exercises every `setting()` type, `read_only`, `stored=False`, `shadow()`, `watch()`, and `validator` in one inner class:
+`SettingsNode.example` exercises every `setting()` type, `read_only`, `shadow()`, `watch()`, and `validator` in one inner class:
 
 ```python
 --8<-- "barn/haybale-testing/haybale_testing/nodes/testbed/settings_node.py:settings_node_class"
@@ -321,7 +321,6 @@ What these examples exercise:
 | `setting[Color]` with `widget='color'` | `default_color` |
 | `setting[Vec2i]` / `setting[Vec3f]` | `default_offset`, `default_position` |
 | `read_only=True` — panel skips the field | `read_only_value` |
-| `stored=False` — excluded from serialization | `transient_value` |
 | `shadow()` — writable mirror, per-node override OK | `intensity`, `count_mirror`, … |
 | `watch()` — read-only mirror, invisible in panel | `intensity_ro`, `count_ro`, … |
 | `validator=` — rejects invalid values before write | `validated_string`, `clamped_positive`, `even_int` |

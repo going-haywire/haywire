@@ -152,10 +152,11 @@ class ArrayField(DataField):
         if not isinstance(value, list):
             raise TypeError(f"ArrayField requires list, got {value.__class__.__name__}")
 
+        old = self._items
         self._items = value
         self.is_dirty = True
         if self.on_changed.has_observers():
-            self.fire(list(self._items))
+            self.fire(list(self._items), old)
 
     def reset(self) -> None:
         """Reset to default array"""

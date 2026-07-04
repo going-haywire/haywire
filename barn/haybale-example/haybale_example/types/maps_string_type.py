@@ -109,10 +109,11 @@ class MapsStringField(DataField):
         if not isinstance(value, dict):
             raise TypeError(f"MapsStringField requires dict, got {value.__class__.__name__}")
 
+        old = self._items
         self._items = value
         self.is_dirty = True
         if self.on_changed.has_observers():
-            self.fire(dict(self._items))
+            self.fire(dict(self._items), old)
 
     def reset(self) -> None:
         """Reset to default array"""

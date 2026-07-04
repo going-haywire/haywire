@@ -9,7 +9,8 @@ panel callback it added — otherwise an external write fans out to stale,
 detached updaters (a leak that grows on every redraw).
 
 These run headless against a NiceGUI Client context (no browser): the invariant
-is pure callback bookkeeping on the model, observable on Settings._callbacks.
+is pure callback bookkeeping on the model, observable on Settings._subscriptions
+(callback -> cell adapters, ADR 0016).
 """
 
 import pytest
@@ -45,12 +46,12 @@ def _make_bag():
 
 def test_render_subscribes_exactly_one_callback(client: Client):
     bag = _make_bag()
-    assert bag._callbacks == []
+    assert bag._subscriptions == {}
 
     with client:
         render_settings(bag)
 
-    assert len(bag._callbacks) == 1, f"render should add one callback, got {bag._callbacks}"
+    assert len(bag._subscriptions) == 1, f"render should add one callback, got {bag._subscriptions}"
 
 
 def test_redraw_does_not_double_subscribe(client: Client):
@@ -67,19 +68,19 @@ def test_redraw_does_not_double_subscribe(client: Client):
         first = ui.column()
         with first:
             render_settings(bag)
-    assert len(bag._callbacks) == 1
+    assert len(bag._subscriptions) == 1
 
     # Redraw: the old column is deleted (content.clear()) before re-render.
     # Find and fire the column render_settings built so its anchor unsubscribes.
     built = first.default_slot.children[0]
     built._handle_delete()
-    assert bag._callbacks == [], "teardown must remove the panel callback"
+    assert bag._subscriptions == {}, "teardown must remove the panel callback"
 
     with client:
         second = ui.column()
         with second:
             render_settings(bag)
-    assert len(bag._callbacks) == 1, "redraw must not accumulate callbacks"
+    assert len(bag._subscriptions) == 1, "redraw must not accumulate callbacks"
 
 
 def test_teardown_removes_only_panel_callback(client: Client):
@@ -94,10 +95,10 @@ def test_teardown_removes_only_panel_callback(client: Client):
         with col:
             render_settings(bag)
     built = col.default_slot.children[0]
-    assert len(bag._callbacks) == 2  # foreign + panel
+    assert len(bag._subscriptions) == 2  # foreign + panel
 
     built._handle_delete()
-    assert bag._callbacks == [foreign], "only the panel callback should be removed"
+    assert list(bag._subscriptions) == [foreign], "only the panel callback should be removed"
 
     # The foreign subscriber still fires after panel teardown.
     bag.example_string = "after-teardown"
@@ -108,7 +109,7 @@ def test_external_write_after_redraw_updates_only_live_panel(client: Client):
     """After redraw, an external write must not also drive the torn-down panel.
 
     A leaked subscription would invoke updaters closed over deleted elements,
-    raising inside _on_property_change (swallowed + logged) — so we assert the
+    raising inside the cell adapter (swallowed + logged) — so we assert the
     model holds exactly one callback after a redraw and an external write fires
     cleanly (no error logged by the dispatch loop).
     """
@@ -125,10 +126,10 @@ def test_external_write_after_redraw_updates_only_live_panel(client: Client):
         with second:
             render_settings(bag)
 
-    assert len(bag._callbacks) == 1
+    assert len(bag._subscriptions) == 1
 
     # External write through the model dispatches to the single live panel.
-    # _on_property_change swallows per-callback errors, so a clean run means the
+    # the adapter swallows per-callback errors, so a clean run means the
     # one remaining updater applied without referencing dead elements.
     bag.example_string = "EXTERNAL"
     assert bag.example_string == "EXTERNAL"

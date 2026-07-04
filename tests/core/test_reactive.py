@@ -212,12 +212,15 @@ class TestFromDict:
         s.from_dict({"threshold": 0.3})
         assert s.threshold == 0.3
 
-    def test_silent_does_not_fire_callbacks(self):
+    def test_silent_notifies_attached_subscribers(self):
+        # Subscription rides the cell event (ADR 0016): the silent restore
+        # writes the cell, so an already-attached subscriber sees it. Load-time
+        # restores happen before anything subscribes, so they stay unobserved.
         s = _Simple()
         received = []
         s.subscribe(lambda n, v, o: received.append(v))
         s.from_dict({"threshold": 0.3}, silent=True)
-        assert received == []
+        assert received == [0.3]
 
     def test_not_silent_fires_callbacks(self):
         s = _Simple()

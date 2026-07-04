@@ -8,30 +8,26 @@ Subclass and declare settings with ``setting()``:
         strength = setting[FLOAT](0.5, min=0.0, max=1.0, label='Strength')
         mode     = setting[STRING]('fast', choices=['fast', 'precise'])
 
-Single-cell value model (P4):
-    Every declared field owns a per-instance ``DataField`` cell (the same cell a
-    port uses), built lazily by ``_cell_for`` from the field's IType. The value
-    lives in the cell; ``__get__`` returns ``cell-if-set else default``, where
-    "set" is ``_set_keys`` membership (the cell always holds *a* value, so it
-    can't itself encode set-or-unset). See ADR 0013.
-
-No registry (plain ``Settings`` / ``NodeSettings``):
-    ``__get__`` returns the cell value when locally set, else the descriptor
-    default.  Zero registry overhead.
-
-Registry injected (@node / FrameworkSettings / LibrarySettings):
-    An unset field's read goes through ``_resolve()`` — the full resolution
-    chain. A local override short-circuits the chain via the cell.
-    mirrors= on a setting links to a FrameworkSettings/LibrarySettings setting.
-    read_only=True on a setting prevents per-instance writes (watch behaviour).
+Cell-authoritative value model (ADR 0016, extending ADR 0013's single cell):
+    Every field's value lives in a ``DataField`` cell (the same cell a port
+    uses) and ``__get__`` is a pure cell read on every path. The chain runs at
+    write/seed time: a plain field's cell seeds with the descriptor default; a
+    cross-mirror (``shadow``/``watch`` of another setting) seeds from the
+    resolved global and is synced by ``_on_field_change``; a wired persistent
+    field (Framework/Library) borrows THE registry-owned cell, kept current by
+    the registry's tier write-through. ``_set_keys`` carries the set-or-unset
+    opinion (the cell always holds *a* value, so it can't encode set-ness);
+    ``read_only=True`` prevents per-instance writes (watch behaviour).
 
 Supports:
 - Direct attribute access (``obj.setting = value``)
-- on_change callbacks (``setting(on_change='method_name')``)
-- Change notification (``obj.subscribe(callback)``)
+- Change notification (``obj.subscribe(callback)`` for the whole bag,
+  ``obj.subscribe_field(field, callback)`` for one field — both ride the cell
+  event, so every writer notifies: descriptor sets, registry write-through,
+  edge drives)
 - Serialization (``to_dict()`` / ``from_dict()``)
 - Reset (``reset(name)`` / ``reset_all()``)
-- Cleanup of global subscriptions (``cleanup()``)
+- Cleanup of subscriptions (``cleanup()``)
 """
 
 from __future__ import annotations
@@ -43,7 +39,7 @@ from typing_extensions import dataclass_transform
 
 from haywire.core.types.interface import IType
 
-from .descriptor import setting, shadow, watch
+from .descriptor import persistent_setting, setting, shadow, watch
 
 if TYPE_CHECKING:
     from haywire.core.settings.registry import SettingsRegistry
@@ -79,7 +75,9 @@ class Settings:
     class_library: ClassVar["LibraryIdentity"]
 
     def __init__(self, registry: "SettingsRegistry | None" = None, node: "NodeData | None" = None) -> None:
-        self._callbacks: list[Callable] = []
+        # subscribe() bookkeeping: callback -> [(cell, adapter), ...] so
+        # unsubscribe/cleanup can detach the per-field cell adapters (ADR 0016).
+        self._subscriptions: dict[Callable, list[tuple["DataField", Callable]]] = {}
         # Per-field DataField cell — one cell per declared (IType-typed) field,
         # built lazily by _cell_for. The cell holds the field's value (same cell
         # a port uses); this is the store that supersedes the old dict (P4).
@@ -108,19 +106,29 @@ class Settings:
     def _write_local(self, descriptor: setting, value: Any) -> None:
         """Write *value* into this field's cell and mark it locally set. Used by
         the silent-restore path (from_dict); the live path goes through the
-        descriptor's __set__."""
-        self._cell_for(descriptor).set_value(value)
+        descriptor's __set__. Opinion first, then the cell write — the cell
+        event must observe is_locally_set() already True (ADR 0016)."""
         self._set_keys.add(descriptor.storage_key)
+        self._cell_for(descriptor).set_value(value)
 
     def _cell_for(self, descriptor: setting) -> "DataField":
-        """Return (creating + caching on first call) this field's DataField cell.
+        """Return this field's DataField cell — THE read surface (ADR 0016).
 
-        The cell is built from the field's IType via ``create_field`` and seeded
-        with the descriptor default. Cached per ``storage_key``. Settings are
+        A wired persistent field (FrameworkSettings/LibrarySettings) borrows
+        the registry-owned cell for its key ("one cell, N views" — the registry
+        keeps it current on every tier change). Every other field owns a
+        per-instance cell, created + cached on first call. Settings are
         IType-only (``SettingDescriptor.__set_name__`` enforces it at
         class-definition time), so every field has a cell; a descriptor that
         somehow bypassed enforcement fails loudly here.
         """
+        if (
+            isinstance(descriptor, persistent_setting)
+            and self._registry is not None
+            and descriptor._setting_key
+        ):
+            return self._registry.cell_for(descriptor._setting_key)
+
         raw_type = descriptor._type
         if not (isinstance(raw_type, type) and issubclass(raw_type, IType)):
             raise TypeError(
@@ -135,14 +143,17 @@ class Settings:
             # A cross-mirror field (shadow/watch of another setting) has no
             # meaningful descriptor default — its value is the resolved global
             # (P5 Task 2.5). Seed the cell with the resolved value so a headless
-            # graph is correct before any change fires. A plain field (and a
-            # self-namespaced persistent field) seeds with its own default.
+            # graph is correct before any change fires. A plain field seeds
+            # with its own default.
             if descriptor.is_cross_mirror and self._registry is not None:
                 seed = self._resolve(descriptor.storage_key, descriptor._mirror_key, descriptor._default)
             else:
+                # A callable default is late-binding — evaluated ONCE here at
+                # seed time, never on the read path (ADR 0016).
                 default = descriptor._default
                 seed = default() if callable(default) else default
             cell = itype.create_field(default_override={"value": seed})
+            cell.field_id = key
             self._cells[key] = cell
         return cell
 
@@ -172,6 +183,8 @@ class Settings:
                 local_sv = SettingValue.of(cell.get_value())
 
         def _resolve_default(d: Any) -> Any:
+            # Callable defaults are late-binding — evaluated at resolve/seed
+            # time only (the read path is a pure cell read, ADR 0016).
             return d() if callable(d) else d
 
         try:
@@ -199,65 +212,86 @@ class Settings:
         """
         Dispatched by the registry when a mirrored field's effective value changes.
 
-        "Unset tracks; set ignores" (DECISIONS.md §A): when the instance has a
-        local override the resolved value is unchanged, so the callback is
-        suppressed. With no local override the field re-resolves and fires.
+        Its ONE job (ADR 0016): keep a cross-mirror's shared cell authoritative —
+        write the resolved value into it so the cell (which a promoted port may
+        share) always holds the current global. Headless-correct, and the cell's
+        own event notifies any subscribers. "Unset tracks; set ignores"
+        (DECISIONS.md §A): a local override suppresses the sync.
         """
         if self._cleaned_up:
             return
-        for attr_name, descriptor in type(self)._property_settings().items():
-            if descriptor._mirror_key != full_key:
+        for _attr_name, descriptor in type(self)._property_settings().items():
+            if descriptor._mirror_key != full_key or not descriptor.is_cross_mirror:
                 continue
             if self._is_locally_set(descriptor):
                 continue
-            # Keep a cross-mirror's shared cell authoritative: write the resolved
-            # value into it so the cell (which a promoted port may share) always
-            # holds the current global. Headless-correct — no UI subscriber
-            # required (P5 Task 2.5). A self-namespaced persistent field resolves
-            # from the registry tier, so its cell is not written here.
             new_val = self._resolve(descriptor.storage_key, descriptor._mirror_key, descriptor._default)
-            if descriptor.is_cross_mirror:
-                self._cell_for(descriptor).set_value(new_val)
-            self._on_property_change(attr_name, new_val, None, descriptor._on_change or "")
+            self._cell_for(descriptor).set_value(new_val)
 
     # -------------------------------------------------------------------------
-    # Subscription
+    # Subscription — rides the cell event (ADR 0016)
     # -------------------------------------------------------------------------
 
     def subscribe(self, callback: Callable) -> None:
-        """Register ``callback(name, value, old)`` called on any setting change."""
-        if callback not in self._callbacks:
-            self._callbacks.append(callback)
+        """Register ``callback(name, value, old)`` called on any setting change.
+
+        One adapter per field cell, so EVERY writer notifies uniformly:
+        descriptor sets, resets, registry write-through (wired persistent
+        fields borrow the registry-owned cell), and edge drives into a
+        promoted shared cell."""
+        if callback in self._subscriptions:
+            return
+        adapters: list[tuple["DataField", Callable]] = []
+        for attr_name, descriptor in type(self)._property_settings().items():
+            cell = self._cell_for(descriptor)
+
+            def adapter(change: Any, _name: str = attr_name, _cb: Callable = callback) -> None:
+                try:
+                    _cb(_name, change.value, change.old)
+                except Exception as e:
+                    logger.error(f"subscribe callback error for '{_name}': {e}")
+
+            cell.on_changed.append(adapter)
+            adapters.append((cell, adapter))
+        self._subscriptions[callback] = adapters
         self._subscribe_settings()
 
-    def unsubscribe(self, callback: Callable) -> None:
-        """Remove a previously registered callback."""
-        try:
-            self._callbacks.remove(callback)
-        except ValueError:
-            pass
+    def subscribe_field(self, field: str, callback: Callable) -> None:
+        """Register ``callback(value, old)`` for changes to ONE field.
 
-    # -------------------------------------------------------------------------
-    # Change hook (called also by field.__set__)
-    # -------------------------------------------------------------------------
+        The per-field ergonomics of the retired ``on_change=`` string dispatch,
+        on the one change primitive (ADR 0016): a single adapter on the field's
+        cell, so it hears every writer — descriptor sets, resets, registry
+        write-through, edge drives. Same bookkeeping as :meth:`subscribe`:
+        ``unsubscribe(callback)`` and ``cleanup()`` detach it. Idempotent per
+        (field, callback); the same callback may watch several fields. Raises
+        ``KeyError`` for an unknown field name."""
+        fields = type(self)._property_settings()
+        if field not in fields:
+            raise KeyError(f"No setting '{field}' on {type(self).__name__}")
+        descriptor = fields[field]
+        cell = self._cell_for(descriptor)
+        existing = self._subscriptions.setdefault(callback, [])
+        if any(c is cell for c, _ in existing):
+            return  # already watching this field with this callback
 
-    def _on_property_change(self, name: str, value: Any, old: Any, on_change: str = "") -> None:
-        """Called when a setting value changes. Fires on_change method and all subscribe() callbacks."""
-        if on_change:
-            method = getattr(self, on_change, None)
-            if method is not None:
-                try:
-                    method(value, name)
-                except TypeError:
-                    try:
-                        method(value)
-                    except Exception as e:
-                        logger.error(f"on_change error for '{name}': {e}")
-        for cb in list(self._callbacks):
+        def adapter(change: Any, _cb: Callable = callback, _field: str = field) -> None:
             try:
-                cb(name, value, old)
+                _cb(change.value, change.old)
             except Exception as e:
-                logger.error(f"subscribe callback error for '{name}': {e}")
+                logger.error(f"subscribe_field callback error for '{_field}': {e}")
+
+        cell.on_changed.append(adapter)
+        existing.append((cell, adapter))
+        self._subscribe_setting(descriptor)
+
+    def unsubscribe(self, callback: Callable) -> None:
+        """Remove a previously registered callback (detaches its cell adapters)."""
+        for cell, adapter in self._subscriptions.pop(callback, []):
+            try:
+                cell.on_changed.remove(adapter)
+            except ValueError:
+                pass
 
     # -------------------------------------------------------------------------
     # Serialization
@@ -275,8 +309,6 @@ class Settings:
         result: dict = {}
         for name, descriptor in fields.items():
             if descriptor._read_only:
-                continue
-            if not descriptor._stored:
                 continue
             if not self._is_locally_set(descriptor):
                 continue
@@ -327,16 +359,15 @@ class Settings:
             # override. For a mirror field that is the current global (re-seed +
             # resume tracking, P5 Task 2.5); for a plain field it is the
             # descriptor default. The cell is never structurally reset — only its
-            # *value* returns (DECISIONS §C3).
-            cell = self._cell_for(descriptor)
+            # *value* returns (DECISIONS §C3). set_value (not cell.reset) so the
+            # cell event notifies subscribers/widgets of the returned value.
             if descriptor.is_cross_mirror and self._registry is not None:
                 new = self._resolve(descriptor.storage_key, descriptor._mirror_key, descriptor._default)
-                cell.set_value(new)
             else:
-                cell.reset()
-                new = descriptor._default
+                default = descriptor._default
+                new = default() if callable(default) else default
             if old != new:
-                self._on_property_change(name, new, old)
+                self._cell_for(descriptor).set_value(new)
 
     def reset_all(self) -> None:
         """Reset all fields to their defaults (clear all local overrides)."""
@@ -348,9 +379,13 @@ class Settings:
     # -------------------------------------------------------------------------
 
     def cleanup(self) -> None:
-        """Release global namespace subscriptions.  Call on node removal."""
+        """Release subscriptions.  Call on node removal.
+
+        Detaching the cell adapters is MANDATORY for wired persistent fields:
+        their cells are registry-owned and outlive this bag (ADR 0016)."""
         self._cleaned_up = True
-        self._callbacks.clear()
+        for callback in list(self._subscriptions):
+            self.unsubscribe(callback)
         # Symmetric with _subscribe_setting: drop each mirror field's registry
         # subscription so the registry doesn't hold a stale handler (P5 Task 2.5).
         if self._registry is not None:

@@ -16,6 +16,22 @@ from haywire.core.types import IType, BaseType, PrimitiveType, Event
 
 T = TypeVar("T")
 
+
+@dataclass(frozen=True)
+class FieldChange:
+    """Payload delivered by ``DataField.on_changed`` (ADR 0016).
+
+    Carries the new value, the value it replaced (``None`` when unknowable,
+    e.g. a manual re-fire after in-place container mutation), and the field's
+    identity — for a settings cell that is the descriptor's ``storage_key``
+    (== the promoted port id, ADR 0015); ``""`` when never stamped.
+    """
+
+    value: Any
+    old: Any = None
+    field_id: str = ""
+
+
 # ============================================================================
 # BASE DATAFIELD
 # ============================================================================
@@ -45,8 +61,12 @@ class DataField(ABC, Generic[T]):
 
     def __post_init__(self):
         """Initialize event system"""
-        self.on_changed: Event[Any] = Event[Any]()
+        self.on_changed: Event[FieldChange] = Event[FieldChange]()
         self.is_dirty: bool = True
+        # Identity stamped by the cell's owner at creation (settings bag:
+        # storage_key; registry: setting key). Purely descriptive — the field
+        # itself never reads it.
+        self.field_id: str = ""
 
     # ========================================================================
     # CORE API - Implemented by each subclass
@@ -119,9 +139,10 @@ class DataField(ABC, Generic[T]):
         """Remove observer"""
         self.on_changed.remove(callback)
 
-    def fire(self, value: Any) -> None:
-        """Notify observers of change"""
-        self.on_changed(value)
+    def fire(self, value: Any, old: Any = None) -> None:
+        """Notify observers of change. ``old`` is the replaced value — pass it
+        wherever it is knowable; ``None`` marks an in-place/unknowable change."""
+        self.on_changed(FieldChange(value, old, self.field_id))
 
     def mark_clean(self) -> None:
         """Mark field as clean (up-to-date)"""
@@ -210,10 +231,11 @@ class PrimitiveField(DataField[T]):
             field.set_value(FLOAT(42.0))    # From adapter - unwraps to 42.0
         """
 
+        old = self._value
         self._value = value
         self.is_dirty = True
         if self.on_changed.has_observers():
-            self.fire(self._value)
+            self.fire(self._value, old)
 
     def reset(self) -> None:
         """Reset to default value"""
@@ -292,10 +314,11 @@ class BaseField(DataField[BaseType]):
             raise TypeError(f"Expected {self.type_cls.__name__}, got {type(value).__name__}")
 
         # type_cls is type[IType] at the base; for BaseField it's always type[BaseType].
+        old = self._container
         self._container = cast(BaseType, value)
         self.is_dirty = True
         if self.on_changed.has_observers():
-            self.fire(self._container)
+            self.fire(self._container, old)
 
     def reset(self) -> None:
         """Reset to default value"""

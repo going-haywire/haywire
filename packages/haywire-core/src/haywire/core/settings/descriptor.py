@@ -2,24 +2,20 @@
 """
 setting — reactive property descriptor for Settings subclasses.
 
-Instance-level access reads/writes the value stored in the owning Settings's
-per-field ``DataField`` cell (``_cell_for``); ``_set_keys`` carries the
-set-or-unset opinion.  Change notifications fire via Settings._on_property_change().
+Cell-authoritative model (ADR 0016, extending ADR 0013's single cell):
 
-Two operating modes (P4 single-cell model, ADR 0013):
+  __get__ is a pure cell read (``obj._cell_for(self).get_value()``) on every
+  path — no mode branch, no resolution-chain walk. The cell is kept correct at
+  write/seed time: a plain field's cell seeds with the descriptor default; a
+  cross-mirror (shadow/watch of another setting) seeds from the resolved
+  global and is synced by ``_on_field_change``; a wired persistent field
+  borrows THE registry-owned cell (``registry.cell_for``), kept current by the
+  registry's tier write-through. ``_set_keys`` carries the set-or-unset
+  opinion; change notification is the cell's own ``on_changed`` event.
 
-  No registry (plain Settings / NodeSettings, _registry is None):
-      __get__ returns the cell value when the field is locally set (``_set_keys``),
-      else the descriptor default. __set__ writes the cell.
-
-  Extended mode (registry injected by @node decorator):
-      _setting_key is set and Settings._registry is not None.
-      A locally-set field short-circuits to its cell; otherwise reads go through
-      Settings._resolve() — the full resolution chain. Writes go to the cell,
-      keyed by storage_key (== _setting_key).
-      mirrors= points to a FrameworkSettings/LibrarySettings descriptor whose
-      _setting_key is stored as _mirror_key (used by _resolve for shadow/watch).
-      read_only=True prevents writes (watch behaviour).
+  ``persistent_setting`` (FrameworkSettings/LibrarySettings) routes writes to
+  ``registry.set_global``; plain ``setting`` writes the instance cell and
+  marks the opinion. ``read_only=True`` prevents writes (watch behaviour).
 
 Convenience factories:
     shadow(src, ...)  — writable mirror of src setting
@@ -68,9 +64,12 @@ class setting(SettingDescriptor, Generic[T]):
     ----------
     default
         Initial value for the field. Can be a literal of type ``T`` or a
-        zero-argument callable returning ``T`` (for late-binding / dynamic
-        defaults). When a ``validator`` is set, the default is checked at
-        construction time and ``ValueError`` is raised if it fails.
+        zero-argument callable returning ``T`` for late binding (e.g. the
+        source registry doesn't exist at class-definition time). A callable
+        default is evaluated ONCE, when the field's cell seeds — never per
+        read (the read path is a pure cell read, ADR 0016). When a
+        ``validator`` is set, the default is checked at construction time and
+        ``ValueError`` is raised if it fails.
 
     label : str
         Human-readable name shown in the UI. If empty, auto-renderers fall
@@ -121,15 +120,6 @@ class setting(SettingDescriptor, Generic[T]):
         3. ``type_ in (int, float)`` → ``NumberDrag`` (honours ``min``/``max``)
         4. otherwise → text input with expand-to-modal button
 
-    on_change : str or None
-        Name of a method on the **owning** ``Settings`` instance, called when
-        the value changes. Dispatched as ``method(value, name)``; falls back
-        to ``method(value)`` if the two-arg form raises ``TypeError``.
-
-        For callbacks defined outside the owning class, use
-        ``Settings.subscribe(callback)`` instead — that callback receives
-        ``(name, value, old)``.
-
     mirrors : SettingDescriptor or str or None
         Marks this field as a mirror of another setting. Two forms:
 
@@ -155,12 +145,6 @@ class setting(SettingDescriptor, Generic[T]):
         doesn't disambiguate (e.g. ``type_=Color`` for hex strings, or
         ``type_=float`` when ``default=None``).
 
-    stored : bool
-        When ``False``, the field is omitted from serialisation.
-        Use for ephemeral fields that shouldn't persist to disk.
-        Has no effect in LibryarySetting and FrameworkSetting.
-        Defaults to ``True``.
-
     validator : Callable or None
         Callable ``(value) -> bool`` returning ``True`` if the value is
         valid. Called from ``__set__`` (silently ignores invalid writes) AND
@@ -185,11 +169,9 @@ class setting(SettingDescriptor, Generic[T]):
         max: Any = None,
         choices: "list | dict | Callable | None" = None,
         widget: "str | None" = None,
-        on_change: "str | None" = None,
         mirrors: "SettingDescriptor | str | None" = None,
         read_only: bool = False,
         type_: "type[T] | None" = None,
-        stored: bool = True,
         validator: "Callable | None" = None,
         metadata: "dict | None" = None,
     ) -> None:
@@ -215,9 +197,7 @@ class setting(SettingDescriptor, Generic[T]):
         self._max = max
         self._choices = choices
         self._widget = widget
-        self._on_change = on_change
         self._read_only = read_only
-        self._stored = stored
         self._validator = validator
         self._metadata: dict = metadata or {}
         self._attr_name: str = ""  # set by __set_name__
@@ -263,15 +243,13 @@ class setting(SettingDescriptor, Generic[T]):
 
     @property
     def is_cross_mirror(self) -> bool:
-        """True for a shadow/watch field that tracks a *different* setting.
+        """True for a shadow/watch field that tracks another setting.
 
-        A FrameworkSettings/LibrarySettings field "mirrors itself" (schema.py sets
-        ``_mirror_key = _setting_key``) purely for the resolution/subscription
-        machinery — its authoritative value lives in the registry workspace tier,
-        NOT a per-instance cell. A genuine shadow()/watch() points ``_mirror_key``
-        at another setting's key. Only the latter makes the instance cell
-        authoritative (P5 Task 2.5): its resolved global has no other home."""
-        return bool(self._mirror_key) and self._mirror_key != self.storage_key
+        ``_mirror_key`` means only that (ADR 0016 — the self-mirror stamping is
+        gone): a genuine shadow()/watch() points it at another setting's key,
+        and the instance cell is kept authoritative for it (P5 Task 2.5) —
+        seeded from the resolved global, synced by ``_on_field_change``."""
+        return bool(self._mirror_key)
 
     def validate(self, value: Any) -> bool:
         """Return True if *value* passes the validator (or if no validator is set)."""
@@ -335,32 +313,15 @@ class setting(SettingDescriptor, Generic[T]):
         if obj is None:
             return self  # class-level access -> descriptor itself
 
-        # Extended mode: resolution chain via registry
-        if self._setting_key and getattr(obj, "_registry", None) is not None:
-            # No promoted read-tier branch: a promoted port SHARES this field's cell
-            # (bind_field, ADR 0014), so reading the setting and reading the port hit
-            # the same object — the local-override short-circuit below already returns
-            # the shared cell when the port has driven a value.
-            # A local override short-circuits the chain — return the cell value
-            # directly (holds it, no re-resolve). Otherwise walk the chain.
-            if obj._is_locally_set(self):
-                return obj._local_value(self)
-            # Unset cross-mirror field (shadow/watch of ANOTHER setting): the cell
-            # is authoritative (P5 Task 2.5 — _cell_for seeds it, _on_field_change
-            # keeps it current), so read it instead of a live-resolve-and-bypass.
-            # This keeps the setting and a promoted port that shares the cell in
-            # perfect agreement. A self-namespaced persistent field is NOT a
-            # cross-mirror — its value lives in the registry tier, so it still
-            # walks the chain below.
-            if self.is_cross_mirror:
-                return obj._cell_for(self).get_value()
-            return obj._resolve(self._setting_key, self._mirror_key, self._default)
-
-        # Simple mode: the cell holds the override, else the descriptor default.
-        if obj._is_locally_set(self):
-            return obj._local_value(self)
-        value = self._default
-        return value() if callable(value) else value
+        # THE read path (ADR 0016): a pure cell read — no mode branch, no chain
+        # walk, no set-or-unset check. The cell is kept correct at write/seed
+        # time instead: seeded with the default (plain field) or the resolved
+        # global (cross-mirror), written by descriptor sets / edge drives /
+        # _on_field_change, and for a wired persistent field _cell_for returns
+        # the registry-owned cell the write-through keeps current. A promoted
+        # port SHARES this cell (bind_field, ADR 0015), so reading the setting
+        # and reading the port hit the same object.
+        return obj._cell_for(self).get_value()
 
     def __set__(self, obj: Any, value: Any) -> None:
         if self._read_only:
@@ -385,9 +346,12 @@ class setting(SettingDescriptor, Generic[T]):
 
         # The value lives in the field's DataField cell; _set_keys carries the
         # set-or-unset opinion (the cell always holds a value, so it can't).
-        obj._cell_for(self).set_value(value)
+        # Mark the opinion BEFORE the cell write: set_value fires the cell
+        # event — the one notification channel (ADR 0016) — and a subscriber
+        # (e.g. the panel's dot-prefix/reset-button updater) must see
+        # is_locally_set() already True inside its callback.
         obj._set_keys.add(self.storage_key)
-        obj._on_property_change(self._attr_name, value, old, self._on_change)
+        obj._cell_for(self).set_value(value)
 
 
 class persistent_setting(setting, Generic[T]):
@@ -401,11 +365,10 @@ class persistent_setting(setting, Generic[T]):
 
     Behavior change vs `setting`:
         Writes call ``registry.set_global(setting_key, value)`` followed by
-        ``registry.save_to_json_debounced()``. The registry then fires
-        change notifications to subscribers (including the owning Settings
-        instance), so this class deliberately does NOT call
-        ``_on_property_change`` itself — that would double-fire every
-        callback.
+        ``registry.save_to_json_debounced()``. The registry's write-through
+        then updates its owned cell for this key (ADR 0016), whose event
+        notifies every borrowing instance's subscribers and bound widgets —
+        so this class deliberately writes NO cell itself.
 
     Falls back to ``super().__set__`` (parent's local-store write) when the
     instance has no registry wired (e.g. test fixtures in simple mode) or
