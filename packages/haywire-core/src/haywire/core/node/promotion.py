@@ -62,13 +62,28 @@ def _metadata_to_port_kwargs(descriptor: "setting") -> dict:
     that translates the descriptor's underscore-prefixed read side into the port-side
     kwarg names. ``type_cls`` is popped by the caller to select the IType; the rest pass
     through to the factory. Falls back to the field's attr name when no label is set.
+
+    ``widget_key``/``widget_config`` are forwarded so a promoted port's inline
+    canvas widget (ui/skin/base.py, keyed off ``port.widget_key``) carries the
+    setting's own stamped contract (ADR 0017) — a CHOICES field's options, a
+    numeric field's min/max, or an explicit ``widget=`` override — rather than
+    silently falling back to the IType's bare identity default with an empty
+    widget_config. Only forwarded when non-empty: an empty override would
+    otherwise stomp ``create_port_spec``'s IType-identity default with `{}`.
     """
-    return {
+    kwargs: dict = {
         "label": getattr(descriptor, "_label", "") or getattr(descriptor, "_attr_name", ""),
         "description": getattr(descriptor, "_description", "") or "",
         "order": getattr(descriptor, "_order", 0),
         "type_cls": getattr(descriptor, "_type"),
     }
+    widget_key = getattr(descriptor, "widget_key", "")
+    if widget_key:
+        kwargs["widget_key"] = widget_key
+    widget_config = getattr(descriptor, "widget_config", None)
+    if widget_config:
+        kwargs["widget_config"] = widget_config
+    return kwargs
 
 
 def _bind_port(port, bag: "Settings", desc: "setting") -> None:
