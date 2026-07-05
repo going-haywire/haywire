@@ -325,13 +325,14 @@ def _render_reactive_field_row(
                     .props("flat dense size=xs")
                     .tooltip(promoted_hint)
                 )
-            elif _has_local_opinion():
+            else:
                 reset_btn = (
                     ui.button(icon=hui.icon.reset)
                     .props("flat dense size=xs")
                     .tooltip(reset_tooltip)
                     .on("click", _on_reset_click)
                 )
+                reset_btn.set_visibility(_has_local_opinion())
 
     # Every field — scalars, vectors, color — resolves a shared BaseWidget by its
     # widget_key, stamped once at __set_name__ (see _resolve_widget_instance, ADR
