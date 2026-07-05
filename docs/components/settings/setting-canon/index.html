@@ -3309,7 +3309,7 @@ carries <strong>zero options</strong> — every declaration site supplies its ow
 <p>Because <code>CHOICES</code> carries identity STRING↔CHOICES adapters (both directions,
 pure passthrough), a plain string port can connect to — or be promoted from —
 a <code>CHOICES</code>-typed setting with no special-case handling.</p>
-<p><strong>Reacting to a single field.</strong> The <code>on_change='method'</code> string dispatch was retired (ADR 0016); use <code>subscribe_field</code> — one adapter on the field's cell, so it hears every writer (local set, reset, registry write-through, and edge drives into a promoted port's shared cell):</p>
+<p><strong>Reacting to a single field.</strong> The <code>on_change='method'</code> string dispatch was retired (ADR 0013); use <code>subscribe_field</code> — one adapter on the field's cell, so it hears every writer (local set, reset, registry write-through, and edge drives into a promoted port's shared cell):</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">post_init</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 </span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">filter</span><span class="o">.</span><span class="n">subscribe_field</span><span class="p">(</span><span class="s1">&#39;scale&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_on_scale</span><span class="p">)</span>
 </span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>
@@ -3358,7 +3358,7 @@ a <code>CHOICES</code>-typed setting with no special-case handling.</p>
 </tr>
 <tr>
 <td><code>subscribe_field(field, callback)</code></td>
-<td><code>callback(value, old)</code> on changes to one field (ADR 0016)</td>
+<td><code>callback(value, old)</code> on changes to one field (ADR 0013)</td>
 </tr>
 <tr>
 <td><code>unsubscribe(callback)</code></td>
@@ -3627,8 +3627,8 @@ a <code>CHOICES</code>-typed setting with no special-case handling.</p>
 </span><span id="__span-14-82"><a id="__codelineno-14-82" name="__codelineno-14-82" href="#__codelineno-14-82"></a>    <span class="n">count_mirror</span> <span class="o">=</span> <span class="n">shadow</span><span class="p">(</span><span class="n">TestingSettings</span><span class="o">.</span><span class="n">default_count</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Count Mirror&quot;</span><span class="p">,</span> <span class="n">category</span><span class="o">=</span><span class="s2">&quot;mirrors&quot;</span><span class="p">)</span>
 </span><span id="__span-14-83"><a id="__codelineno-14-83" name="__codelineno-14-83" href="#__codelineno-14-83"></a>    <span class="n">label_mirror</span> <span class="o">=</span> <span class="n">shadow</span><span class="p">(</span><span class="n">TestingSettings</span><span class="o">.</span><span class="n">default_label</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Label Mirror&quot;</span><span class="p">,</span> <span class="n">category</span><span class="o">=</span><span class="s2">&quot;mirrors&quot;</span><span class="p">)</span>
 </span><span id="__span-14-84"><a id="__codelineno-14-84" name="__codelineno-14-84" href="#__codelineno-14-84"></a>    <span class="n">enabled</span> <span class="o">=</span> <span class="n">shadow</span><span class="p">(</span><span class="n">TestingSettings</span><span class="o">.</span><span class="n">default_enabled</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Enabled&quot;</span><span class="p">,</span> <span class="n">category</span><span class="o">=</span><span class="s2">&quot;mirrors&quot;</span><span class="p">)</span>
-</span><span id="__span-14-85"><a id="__codelineno-14-85" name="__codelineno-14-85" href="#__codelineno-14-85"></a>    <span class="c1"># ADR 0017: mirrors inherit IType (-&gt; CHOICES/SELECT_WIDGET) from src, but</span>
-</span><span id="__span-14-86"><a id="__codelineno-14-86" name="__codelineno-14-86" href="#__codelineno-14-86"></a>    <span class="c1"># NOT its per-setting widget_config — options must be re-supplied here.</span>
+</span><span id="__span-14-85"><a id="__codelineno-14-85" name="__codelineno-14-85" href="#__codelineno-14-85"></a>    <span class="c1"># Mirrors inherit IType (-&gt; CHOICES/SELECT_WIDGET) from src, but NOT its</span>
+</span><span id="__span-14-86"><a id="__codelineno-14-86" name="__codelineno-14-86" href="#__codelineno-14-86"></a>    <span class="c1"># per-setting widget_config — options must be re-supplied here.</span>
 </span><span id="__span-14-87"><a id="__codelineno-14-87" name="__codelineno-14-87" href="#__codelineno-14-87"></a>    <span class="n">mode</span> <span class="o">=</span> <span class="n">shadow</span><span class="p">(</span>
 </span><span id="__span-14-88"><a id="__codelineno-14-88" name="__codelineno-14-88" href="#__codelineno-14-88"></a>        <span class="n">TestingSettings</span><span class="o">.</span><span class="n">default_mode</span><span class="p">,</span>
 </span><span id="__span-14-89"><a id="__codelineno-14-89" name="__codelineno-14-89" href="#__codelineno-14-89"></a>        <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Mode&quot;</span><span class="p">,</span>

@@ -2697,6 +2697,17 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#amendment-a-promoted-ports-id-is-the-settings-storage_key" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Amendment — a promoted port's id is the setting's storage_key
+      
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -2715,14 +2726,16 @@
 
 
 <h1 id="promotion-is-a-field-a-direction-a-setting-and-a-promoted-port-are-one-cell-two-views">Promotion is a field + a direction; a setting and a promoted port are one cell, two views<a class="headerlink" href="#promotion-is-a-field-a-direction-a-setting-and-a-promoted-port-are-one-cell-two-views" title="Permanent link">&para;</a></h1>
-<blockquote>
-<p><strong>Note (ADR 0015):</strong> The binding-signal <em>mechanism</em> below (synthetic <code>setting__…</code> port id,
-id-as-binding-key, per-write <code>_set_keys</code> marking) is superseded by ADR 0015 — a promoted
-port's id is the setting's <code>storage_key</code> and it is marked locally-set at promote-time. The
-<em>direction</em> model (inlet/outlet, watch⇒outlet-only, <code>is_linked_lazy</code>) and one-cell-two-views
-still hold.</p>
-</blockquote>
 <p><strong>Status:</strong> Accepted.</p>
+<blockquote>
+<p>The binding-signal <em>mechanism</em> originally recorded here (synthetic <code>setting__…</code> port id,
+id-as-binding-key, per-write <code>_set_keys</code> marking) was later replaced. The current mechanism
+— a promoted port's id IS the setting's <code>storage_key</code>, marked locally-set at promote-time —
+is recorded in the <a href="#amendment--a-promoted-ports-id-is-the-settings-storage_key">Amendment</a>
+at the end of this ADR. The prose in the Decision section below still describes the
+<em>original</em> synthetic-id mechanism; read it for the direction model and one-cell-two-views,
+and the amendment for the id mechanism that shipped.</p>
+</blockquote>
 <p>Promoting a setting used to mean "create a separate DATA inlet and bridge reads back to it." The inlet owned its own <code>DataField</code>; the setting descriptor carried a <code>_promoted_port_id</code> back-reference; and <code>setting.__get__</code> had a <em>read-tier branch</em> that, when the named port was linked, returned <code>port.get_value()</code> instead of resolving the setting. That is a <strong>two-value</strong> design — the port has one value, the setting resolves another, and a bridge forwards reads. This ADR records replacing it with <strong>reference-sharing</strong>: a promoted port borrows the setting's <a href="../0013-settings-single-cell/">P4 cell</a> <em>by reference</em> (via a new <code>DataPort.bind_field</code>), so a setting and its promoted port are <strong>one cell, two views</strong> — there is no second value, no <code>_promoted_port_id</code>, and no read-tier bridge. It is plan <strong>P5</strong>, the final plan of the settings↔DataField unification arc (canonical-key → tier-collapse → JSON → single-cell → <strong>promotion-as-direction</strong>), and it completes the arc.</p>
 <h2 id="context-a-second-cell-and-a-read-tier-bridge">Context — a second cell and a read-tier bridge<a class="headerlink" href="#context-a-second-cell-and-a-read-tier-bridge" title="Permanent link">&para;</a></h2>
 <p>The Plan-3 (P4-era) promotion design carried the value in two places:</p>
@@ -2760,6 +2773,12 @@ still hold.</p>
 <li><strong>Behavior-preserving for the inlet path.</strong> A characterization suite (<code>tests/core/node/test_promotion_single_cell.py</code>) pinned the inlet path before the rework; the whole suite stayed green through the arc.</li>
 <li><strong>The arc is complete.</strong> P1–P5 have landed; <code>architecture/settings/settings-arch.md</code> §6.4's "Deferred to P5" forward-ref now points here.</li>
 </ul>
+<hr />
+<h2 id="amendment-a-promoted-ports-id-is-the-settings-storage_key">Amendment — a promoted port's id is the setting's storage_key<a class="headerlink" href="#amendment-a-promoted-ports-id-is-the-settings-storage_key" title="Permanent link">&para;</a></h2>
+<p><em>(Originally ADR 0015. Supersedes-in-part the Decision section above: the direction model and one-cell-two-views stand; only the id-encoding + set-tracking mechanism is replaced.)</em></p>
+<p><strong>Context.</strong> The Decision above gave a promoted port a synthetic id <code>setting__&lt;accessor&gt;__&lt;field&gt;</code> and made "port id + <code>DataPort.promoted</code>" the binding signal, requiring a parallel encode/decode scheme, id-decode helpers on <code>DataPort</code>, a <code>from_spec</code> branch that reached into settings for the port's type, a per-write <code>_mark_promoted_setting_set</code> on edge-drive, and an <code>object.__setattr__</code> <code>_node</code> monkeypatch on each settings bag.</p>
+<p><strong>Decision.</strong> Keep the port as the promotion signal (still serialized in the ports block), but make its id the setting's own <code>descriptor.storage_key</code> (globally unique per node, dot-safe), deleting the encode/decode scheme. The port carries only <code>promoted: bool</code>. Promoted ports now serialize with a <code>recipe</code> (type) but no <code>field_data</code>, so <code>from_spec</code> is fully generic; the one port→settings crossing — binding the shared cell — moves to a node method <code>_bind_promoted_ports()</code> run after ports deserialize, resolving (bag, desc) via <code>_resolve_promoted</code> (match on storage_key). <code>promote_setting</code> marks the field locally-set at promote-time, so edge-drive needs no per-write hook. The <code>_node</code> back-reference becomes a constructor parameter.</p>
+<p><strong>Consequences.</strong> Deleted: the id encode/decode module, the <code>DataPort</code> id-decode helpers, <code>from_spec</code>'s promoted branch, <code>_mark_promoted_setting_set</code> and its edge-drive call site, and the <code>_node</code> monkeypatch. <strong>Demote stays trivial</strong> (remove port + unbind) — the port being the signal means no settings-side record to clean up. <strong>Behavioral change:</strong> a promoted field is locally-set for the port's lifetime, so a promoted <em>shadow</em> inlet stops tracking its global until demote + explicit <code>reset</code> (deliberate deviation from "unset tracks", DECISIONS.md §A). <strong>Hard cutover, no migration</strong> (matches <a href="../0011-collapse-settings-tiers/">ADR 0011</a>/<a href="../0012-settings-json-persistence/">ADR 0012</a>): port ids change, so an old graph's edge into a promoted port goes dangling on load.</p>
 
 
 

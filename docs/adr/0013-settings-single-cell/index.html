@@ -2697,6 +2697,17 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#amendment-cell-authoritative-reads-registry-owned-cells-one-change-primitive" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Amendment — cell-authoritative reads, registry-owned cells, one change primitive
+      
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -2752,6 +2763,20 @@
 <li><strong>Supersedes</strong> the "simple mode / extended mode" dual-mode prose in <code>architecture/settings/settings-arch.md</code> (rewritten to the single-cell model, §6.4).</li>
 <li>P4 is the cell; <strong>P5</strong> builds promotion-as-direction on it and retires the UI's throwaway-field bridge.</li>
 </ul>
+<hr />
+<h2 id="amendment-cell-authoritative-reads-registry-owned-cells-one-change-primitive">Amendment — cell-authoritative reads, registry-owned cells, one change primitive<a class="headerlink" href="#amendment-cell-authoritative-reads-registry-owned-cells-one-change-primitive" title="Permanent link">&para;</a></h2>
+<p><em>(Originally ADR 0016, folded in here as a refinement of the single-cell model. Depends on the promotion work in <a href="../0014-promotion-as-direction/">ADR 0014</a>.)</em></p>
+<p><strong>Context.</strong> After P4 (above) and promotion (<a href="../0014-promotion-as-direction/">ADR 0014</a>), a setting's value already lived in a <code>DataField</code> cell — but only <em>sometimes</em> authoritatively. <code>setting.__get__</code> had four semantically different paths: locally-set → cell; unset cross-mirror → cell (kept current by P5's sync); unset plain node field → a registry walk that ALWAYS ended in a swallowed <code>KeyError</code> (node settings have no registry definitions — the workspace/global tiers can never apply to them), paying a function-level import, branching, and an exception construction per read on the node-execution hot path; persistent (Framework/Library) fields → a genuine tier walk, with every rendered widget synthesizing a throwaway <code>DataField</code> plus a subscribe/re-resolve/apply loop to compensate for the value having no live cell home. Change notification ran over three overlapping channels (<code>Settings._callbacks</code> fan-out, <code>_on_property_change</code>, an unused <code>on_change='method'</code> string dispatch with a fragile two-arity <code>TypeError</code> fallback), and Framework/Library schemas stamped <code>_mirror_key = _setting_key</code> ("a mirror of itself") purely to ride the mirror subscription machinery.</p>
+<p><strong>Decision.</strong> The cell is authoritative everywhere; the resolution chain runs at <strong>write/seed time only</strong>.</p>
+<ul>
+<li><code>setting.__get__</code> is a pure cell read — <code>obj._cell_for(self).get_value()</code> — on every path. No mode branch, no locally-set check, no chain walk.</li>
+<li><strong>Registry-owned cells</strong>: a wired persistent field has no per-instance state (writes go to the tiers), so the registry owns one live <code>DataField</code> per definition (<code>registry.cell_for(key)</code>), lazily created, seeded via <code>resolve()</code>, stamped <code>field_id = key</code>, kept current by a single write-through in <code>_notify_subscribers</code> (every tier mutation funnels there), and dropped with its definition on hot-reload unregister. Instances' <code>_cell_for</code> <em>borrows</em> it — one cell, N views. The settings panel binds this same cell, deleting the throwaway per-widget field and its sync loop.</li>
+<li><strong>One change primitive</strong>: <code>DataField.on_changed</code> fires <code>FieldChange(value, old, field_id)</code>; <code>bag.subscribe(cb)</code> attaches one adapter per field cell, so a subscriber hears every writer uniformly — descriptor sets, resets, registry write-through, and edge drives into a promoted shared cell (previously silent). <code>setting.__set__</code> records the set-opinion <em>before</em> the cell write so callbacks observe <code>is_locally_set()</code> correctly. Deleted: <code>Settings._callbacks</code>, <code>_on_property_change</code>, the <code>on_change=</code> string dispatch, and the <code>stored=</code> flag (only user was the testbed field exercising it).</li>
+<li><strong>Self-mirror hack removed</strong>: <code>_mirror_key</code> means only "mirrors another setting"; <code>is_cross_mirror</code> is <code>bool(_mirror_key)</code>.</li>
+<li><strong>Exact-key registry subscriptions</strong> (plus <code>None</code> listen-all for the debug configurator); the namespace-prefix walk lost its last consumer with the panel convergence and is gone.</li>
+</ul>
+<p><strong>Callable defaults stay.</strong> The plan proposed dropping them on a zero-usage claim that proved wrong: <code>ui/skin/settings.py</code> passes <code>_default_skin</code> by function reference for genuine late binding (the skin registry doesn't exist at class-definition time). A callable default now evaluates <strong>once, at cell-seed time</strong> — never per read.</p>
+<p><strong>Consequences.</strong> The node-execution hot path (<code>self.&lt;bag&gt;.&lt;field&gt;</code> in <code>worker()</code>) is one dict hit + one attribute read, with no per-read exception. Correctness moves from pull (self-healing, re-derived per read) to push: a future tier-mutation path that bypasses <code>_notify_subscribers</code> would leave registry cells stale — keep tier mutations funnelling through it. <code>Settings.cleanup()</code> MUST run on bag teardown: adapters attached to borrowed registry-owned cells outlive the bag otherwise. Behavior changes: <code>from_dict</code> restores notify already-attached subscribers (graph load restores before anything subscribes); <code>reset()</code> notifies through the cell event; a field's value is never the raw callable (seeded once). Widgets on a dropped definition (hot-reload) hold a frozen, orphaned cell until their panel re-renders. <code>resolve()</code> and its <code>(value, source)</code> contract are unchanged for tier-aware UI display.</p>
 
 
 
