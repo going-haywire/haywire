@@ -14,6 +14,15 @@ strings), so ``hui.icon.add`` and ``AppIcon.add`` are identical.
 """
 
 from haywire.ui.elements.elements import *  # noqa: F401, F403
+from haywire.ui.elements.flyout import (  # noqa: F401
+    FLYOUT_PROPS,
+    FLYOUT_Z,
+    FlyoutSiblings,
+    close_flyout,
+    flyout_category,
+    menu_item_tooltip,
+    open_on_hover,
+)
 from haywire.ui.elements.icons import AppIcon  # noqa: F401
 
 # Module-level alias: hui.icon.add, hui.icon.canvas, etc.

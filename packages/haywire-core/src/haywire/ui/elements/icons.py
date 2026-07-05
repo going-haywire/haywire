@@ -162,6 +162,8 @@ class AppIcon:
     """Open for editing action."""
     reset: Final[str] = "restart_alt"
     """Reset to default / restart action."""
+    promote: Final[str] = "upgrade"
+    """Promote setting to port"""
 
     # ── Status ───────────────────────────────────────────────────────────────
     ok: Final[str] = "task_alt"

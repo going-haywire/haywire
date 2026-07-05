@@ -61,6 +61,56 @@ def test_menu_enumerates_one_button_per_direction(make_node_with_setting):
 
 
 @pytest.mark.integration
+def test_promotable_by_bag_groups_fields_under_accessor(make_node_with_setting):
+    """The flyout grouping keys promotable fields by their settings-bag accessor,
+    carrying each field's eligible directions through unchanged."""
+    from haybale_graph_editor.panels.graph.menu.node.promote import promotable_by_bag
+
+    node = make_node_with_setting(accessor="filter", field="threshold", with_watch=True)
+    by_bag = promotable_by_bag(node)
+
+    assert "filter" in by_bag
+    fields = {fld: dirs for fld, dirs, _desc in by_bag["filter"]}
+    assert fields["threshold"] == (PortType.INLET, PortType.OUTLET)
+    assert fields["threshold_watched"] == (PortType.OUTLET,)
+    # Grouping is a pure partition of promotable_fields — no field is lost or duplicated.
+    from haybale_graph_editor.panels.graph.menu.node.promote import promotable_fields
+
+    flat = [(acc, fld, dirs) for acc, fld, dirs in promotable_fields(node)]
+    regrouped = [(acc, fld, dirs) for acc, flds in by_bag.items() for fld, dirs, _desc in flds]
+    assert sorted(flat) == sorted(regrouped)
+
+
+@pytest.mark.integration
+def test_field_description_returns_help_text(library_system):
+    """field_description surfaces a setting's ``description=`` help text (the flyout
+    tooltip) and returns '' when the field declares none."""
+    from haybale_graph_editor.panels.graph.menu.node.promote import field_description
+    from haywire.core.node import BaseNode
+    from haywire.core.node.decorator import node
+    from haywire.core.settings import NodeSettings, setting
+    from haywire.barn.builtin.types import FLOAT
+    from haywire.core.di.context import set_settings_registry, set_type_registry
+
+    set_type_registry(library_system.get_type_registry())
+    set_settings_registry(library_system.get_settings_registry())
+
+    bag_cls = type(
+        "opts",
+        (NodeSettings,),
+        {
+            "gain": setting[FLOAT](0.5, description="Signal gain factor"),
+            "bare": setting[FLOAT](0.5),
+        },
+    )
+    node_cls = node(label="Described Setting Node")(type("_DescribedNode", (BaseNode,), {"opts": bag_cls}))
+    n = node_cls("n1", None)
+
+    assert field_description(n, "opts", "gain") == "Signal gain factor"
+    assert field_description(n, "opts", "bare") == ""
+
+
+@pytest.mark.integration
 def test_promote_action_forwards_direction(make_node_with_setting):
     """The provider's promote_setting verb forwards its direction to core promotion."""
     node = make_node_with_setting(accessor="filter", field="threshold")

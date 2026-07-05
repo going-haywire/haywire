@@ -171,8 +171,10 @@ def test_string_field_expand_modal_round_trip(page: Page, harness):
     inp.fill("hello")
     inp.blur()
 
-    # Open the modal — it seeds the textarea from the current value.
-    row.get_by_role("button").click()
+    # Open the modal — it seeds the textarea from the current value. Target the
+    # expand button specifically: filling the input above made the field dirty, so
+    # the row now also carries a reset button (locally-set chrome).
+    row.get_by_role("button").filter(has_text="open_in_full").click()
     textarea = page.locator("textarea")
     expect(textarea).to_be_visible()
     expect(textarea).to_have_value("hello")

@@ -19,7 +19,9 @@ Every field flows through the same stages. Stage 4 returns an ``apply(value)``
 callback used ONLY by the label fallback for an unknown widget key (no cell
 binding to hear); real widgets bind the field's shared cell directly and hear
 writes via ``on_changed`` (ADR 0016) — the reactive path still keeps its own
-mirror-chrome (• prefix / reset button) in sync via the ``updaters`` dict.
+override-chrome (• prefix / reset button) in sync via the ``updaters`` dict. That
+chrome shows for any locally-set field, mirror or plain, unless a promoted inlet
+owns the value (the graph drives it, so reset is meaningless).
 """
 
 from __future__ import annotations
@@ -52,7 +54,9 @@ def render_settings(obj: "Settings") -> None:
     """Render all ``setting()`` fields of a ``Settings`` instance as labelled form rows.
 
     - Fields with ``read_only=True`` are skipped (not rendered).
-    - Fields with ``mirrors=`` that are locally overridden show a reset-to-global button.
+    - Any locally-set field shows a • dirty prefix and a reset button (unless a
+      promoted inlet owns the value): "Reset to global default" for a ``mirrors=``
+      field, "Reset to default" for a plain one.
     - Subscribes to *obj* so external changes (another tab / worker / mirror
       propagation) update the rendered widgets in place. The subscription is
       removed when the rendered column leaves the DOM.
@@ -275,11 +279,24 @@ def _render_reactive_field_row(
         else:
             promoted_hint = "↳ promoted to outlet"
 
-    def _label_text(locally_set: bool) -> str:
-        base = defn._label or attr_name
-        return f"• {base}" if (is_mirrored and locally_set) else base
+    # Override chrome (• dirty prefix + reset button) is shown whenever the field
+    # carries a local opinion (_set_keys membership) AND the graph doesn't own its
+    # value through a promoted INLET. A promoted OUTLET keeps the setting as source
+    # of truth (its widget stays editable), so its chrome stays; an inlet-driven or
+    # inlet-promoted row is read-only, so resetting there is meaningless. The mirror
+    # gate is gone (decision Q1): plain fields get the same affordance, only the
+    # tooltip/meaning differs by field kind.
+    def _has_local_opinion() -> bool:
+        return obj.is_locally_set(attr_name) and not is_promoted_inlet
 
-    is_locally_overridden = is_mirrored and obj.is_locally_set(attr_name)
+    # "Reset to global default" re-seeds a mirror field from the current global and
+    # resumes tracking; a plain field has no global — reset restores the descriptor
+    # default. reset() already branches this internally; only the wording differs.
+    reset_tooltip = "Reset to global default" if is_mirrored else "Reset to default"
+
+    def _label_text(dirty: bool) -> str:
+        base = defn._label or attr_name
+        return f"• {base}" if dirty else base
 
     label: Any = None
     reset_btn: Any = None
@@ -290,21 +307,25 @@ def _render_reactive_field_row(
 
         def _on_reset_click():
             obj.reset(attr_name)
-            # reset() writes the cell (set_value), so the cell event reaches the
-            # bag subscription wired in render_settings, which refreshes value +
-            # chrome in place; nothing else to do here.
+            # reset() discards the local opinion but only writes the cell when the
+            # value actually changes (old != new). A field that was locally-set yet
+            # already equalled its default — e.g. promoted-then-demoted unchanged —
+            # fires NO cell event, so the bag subscription driving _refresh_chrome
+            # never runs and the • / reset button would linger. Refresh this row's
+            # chrome directly so it clears regardless of whether the value moved.
+            _refresh_chrome()
 
         with ui.row().classes("items-center gap-0 shrink-0 sf-label"):
-            label = ui.label(_label_text(is_locally_overridden)).classes("text-xs truncate")
+            label = ui.label(_label_text(_has_local_opinion())).classes("text-xs truncate")
             if defn._description:
                 label.tooltip(defn._description)
             reset_btn = (
                 ui.button(icon=hui.icon.reset)
                 .props("flat dense size=xs")
-                .tooltip("Reset to global default")
+                .tooltip(reset_tooltip)
                 .on("click", _on_reset_click)
             )
-            reset_btn.set_visibility(is_mirrored and is_locally_overridden)
+            reset_btn.set_visibility(_has_local_opinion())
 
     # Every field — scalars, vectors, color — resolves a shared BaseWidget by its
     # widget_key, stamped once at __set_name__ (see _resolve_widget_instance, ADR
@@ -349,15 +370,20 @@ def _render_reactive_field_row(
         # value_apply is None for every case except the unknown-widget label
         # fallback, which owns no cell subscription of its own and needs this
         # to reflect external changes at all. Everything else in this callback
-        # is pure mirror chrome: the • prefix and reset-button visibility.
+        # is pure override chrome: the • prefix and reset-button visibility.
+        #
+        # Applies to plain fields too (decision Q1): editing a plain field's widget
+        # writes its cell, and the • / reset must appear live rather than waiting
+        # for the next full panel redraw. is_promoted_inlet is a per-render constant
+        # (structural, needs a redraw to change), so a cell-value change only flips
+        # the is_locally_set half — recomputed here.
         if value_apply is not None:
             value_apply(getattr(obj, attr_name))
-        if is_mirrored:
-            locally_set = obj.is_locally_set(attr_name)
-            if label is not None:
-                label.set_text(_label_text(locally_set))
-            if reset_btn is not None:
-                reset_btn.set_visibility(locally_set)
+        dirty = _has_local_opinion()
+        if label is not None:
+            label.set_text(_label_text(dirty))
+        if reset_btn is not None:
+            reset_btn.set_visibility(dirty)
 
     updaters[attr_name] = _refresh_chrome
 
