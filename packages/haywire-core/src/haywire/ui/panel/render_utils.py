@@ -412,9 +412,19 @@ def _resolve_widget_instance(
     # widgets are authored w-full to fill a node card; nesting them in the cell
     # makes that "100% of the cell" instead of "100% of the row" (which would win
     # the class-vs-class width fight and wrap the control below the label).
-    with ui.element("div").classes(f"{_WIDGET_CLASSES} min-w-0"):
+    with ui.element("div").classes(f"{_WIDGET_CLASSES} min-w-0") as widget_cell:
         widget = widget_cls(model)
         widget.render()
+
+    # Tear the widget's cell subscription down when its row leaves the DOM.
+    # BaseWidget.render() only anchors cleanup to *client* disconnect, not to
+    # element deletion — so a panel re-render (e.g. promoting the field to an
+    # inlet, which rebuilds this row) would otherwise leave the old widget's
+    # _model_dispatch_cb subscribed to the shared cell. A later edit then fires
+    # sync_to_view() against the deleted element (NiceGUI "element deleted but
+    # still being used"). cleanup() is idempotent, so this is safe alongside
+    # the client-disconnect hook.
+    anchor_cleanup_to_element(widget_cell, widget.cleanup)
 
     return None
 
