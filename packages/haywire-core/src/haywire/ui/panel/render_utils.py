@@ -218,13 +218,20 @@ def _render_field_row(
     cell: "DataField | None" = None,
 ) -> Callable[[Any], None] | None:
     """Render a single label + widget row (registry path). The widget binds
-    *cell* (the registry-owned cell) for live external sync (ADR 0016)."""
+    *cell* (the registry-owned cell) for live external sync (ADR 0016).
+
+    *error_container* is a block-level element BEFORE the label+widget row,
+    not a third flex child inside it (mirrors ``_render_reactive_field_row``):
+    as a flex sibling inside the row, its own ``w-full`` would claim a third
+    column, squeezing the widget onto a wrapped second line instead of
+    sitting beside the label.
+    """
+    error_container = ui.element("div").classes("w-full")
+    on_edit = _registry_on_edit(registry, key, error_container)
     with ui.row().classes(_ROW_CLASSES).props(f'data-field="{attr_name}"' if attr_name else ""):
         lbl = ui.label(label_text).classes(_LABEL_CLASSES)
         if description:
             lbl.tooltip(description)
-        error_container = ui.element("div").classes("w-full")
-        on_edit = _registry_on_edit(registry, key, error_container)
         return _resolve_widget_instance(defn, on_edit, cell=cell)
 
 

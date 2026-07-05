@@ -108,6 +108,35 @@ def test_testing_schema_all_fields_present(page: Page, harness):
         expect(page.locator(f'[data-field="{field}"]')).to_be_visible()
 
 
+def test_schema_row_keeps_label_and_widget_side_by_side(page: Page, harness):
+    """A /schema (registry-path) row's label and widget sit on the same line.
+
+    Regression guard: _render_field_row's error_container div used to be a
+    third flex child inside the label+widget row, where its own w-full made
+    it claim a column and wrap the widget onto a line below the label —
+    unlike the reactive path (render_settings), which never exhibited this
+    because its error_container sits outside the row entirely.
+    """
+    page.goto(_WIDGET_SCHEMA_URL)
+    page.wait_for_selector("[data-field]")
+
+    row = page.locator('[data-field="mode"]')
+    label_box = row.locator(".sf-label").bounding_box()
+    widget_box = row.locator(".sf-widget").bounding_box()
+    assert label_box is not None
+    assert widget_box is not None
+    # Side-by-side ⇒ widget starts to the right of where the label ends.
+    assert widget_box["x"] >= label_box["x"] + label_box["width"]
+    # Same row ⇒ their vertical spans overlap. A ui.select is taller than a
+    # plain label (Quasar field chrome), so centering shifts their tops by a
+    # few px — that's expected; a widget wrapped onto its own line below would
+    # start well past the label's bottom edge instead of overlapping it.
+    label_bottom = label_box["y"] + label_box["height"]
+    widget_bottom = widget_box["y"] + widget_box["height"]
+    assert widget_box["y"] < label_bottom
+    assert label_box["y"] < widget_bottom
+
+
 # ---------------------------------------------------------------------------
 # SettingsNode.example — direct fields
 # ---------------------------------------------------------------------------
