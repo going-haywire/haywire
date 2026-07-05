@@ -5,6 +5,8 @@ Basic widget implementations for common data types
 from typing import Any
 from nicegui import ui
 
+from haywire.ui import elements as hui
+from haywire.ui.modals import text_modal
 from haywire.ui.widget.decorator import widget
 from haywire.ui.widget.base import BaseWidget
 from haywire.ui.widget.converters import PrimitiveUnwrappingConverter
@@ -53,6 +55,11 @@ class TextWidget(BaseWidget):
     """
     Text input widget for string ports.
 
+    An inline single-line input plus an expand-to-modal button: the button pops
+    out a full-size ``autogrow`` textarea (``text_modal``) for editing long or
+    multi-line values, writing the confirmed text back through the port cell so
+    the inline input re-syncs automatically.
+
     Config options (via ``TextWidget.config(properties={...})``):
 
     - ``label`` (str): Input label shown above the field.
@@ -66,19 +73,43 @@ class TextWidget(BaseWidget):
 
     def build(self) -> Any:
         props = self._config.get("properties", {})
-        return self.bind(
-            ui.input(
-                value="",
-                label=props.get("label", ""),
-                placeholder=props.get("placeholder", ""),
-                password=props.get("password", False),
-            ).classes("w-full"),
-            # NiceGUI's ``ui.input`` emits ``update:value`` for its value sync (not
-            # the ``update:modelValue`` used by custom Vue components like NumberDrag
-            # and Quasar passthroughs). Binding to the wrong event silently drops all
-            # user edits in-browser, so the keystroke event must match the element.
-            event="update:value",
-            converter=PrimitiveUnwrappingConverter(default_value=""),
+        self._label: str = props.get("label", "")
+        self._placeholder: str = props.get("placeholder", "")
+
+        # The row is the widget root; the bound input is the model→view target,
+        # so binding still drives the input exactly as before. The expand button
+        # is chrome beside it (view-only — it writes through set_value on confirm).
+        with ui.row().classes("w-full flex-nowrap items-center gap-1") as root:
+            self.bind(
+                ui.input(
+                    value="",
+                    label=self._label,
+                    placeholder=self._placeholder,
+                    password=props.get("password", False),
+                ).classes("flex-1 min-w-0"),
+                # NiceGUI's ``ui.input`` emits ``update:value`` for its value sync (not
+                # the ``update:modelValue`` used by custom Vue components like NumberDrag
+                # and Quasar passthroughs). Binding to the wrong event silently drops all
+                # user edits in-browser, so the keystroke event must match the element.
+                event="update:value",
+                converter=PrimitiveUnwrappingConverter(default_value=""),
+            )
+            ui.button(icon=hui.icon.expand_full, on_click=self._open_modal).props(
+                "flat dense size=xs"
+            ).tooltip("Edit in full")
+        return root
+
+    def _open_modal(self) -> None:
+        """Open the full-size text editor, seeded from the current value.
+
+        Confirm writes through ``set_value`` (the port cell); the inline input
+        re-syncs via the widget's own model→view dispatch — no mirror state."""
+        value = self.get_value()
+        text_modal(
+            title=self._label or "Edit text",
+            value="" if value is None else str(value),
+            placeholder=self._placeholder,
+            on_confirm=self.set_value,
         )
 
 

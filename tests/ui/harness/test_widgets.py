@@ -151,6 +151,38 @@ def test_direct_string_field(page: Page, harness):
     expect(row.locator("input")).to_be_attached()
 
 
+def test_string_field_has_expand_button(page: Page, harness):
+    """The editable string widget renders an expand-to-modal button beside the input."""
+    page.goto(_NODE_URL)
+    page.wait_for_selector("[data-field]")
+
+    row = page.locator('[data-field="example_string"]')
+    expect(row.locator("input")).to_be_attached()
+    expect(row.get_by_role("button")).to_be_attached()
+
+
+def test_string_field_expand_modal_round_trip(page: Page, harness):
+    """Clicking expand opens a textarea seeded with the value; confirming writes back."""
+    page.goto(_NODE_URL)
+    page.wait_for_selector("[data-field]")
+
+    row = page.locator('[data-field="example_string"]')
+    inp = row.locator("input")
+    inp.fill("hello")
+    inp.blur()
+
+    # Open the modal — it seeds the textarea from the current value.
+    row.get_by_role("button").click()
+    textarea = page.locator("textarea")
+    expect(textarea).to_be_visible()
+    expect(textarea).to_have_value("hello")
+
+    # Edit in the modal and confirm; the inline input re-syncs via the cell.
+    textarea.fill("edited via modal")
+    page.get_by_role("button", name="OK").click()
+    expect(inp).to_have_value("edited via modal")
+
+
 def test_direct_int_field(page: Page, harness):
     """example_int renders as NumberDrag."""
     page.goto(_NODE_URL)

@@ -12,6 +12,7 @@ from .install_safety_modal import install_safety_modal
 from .pick_modal import pick_modal
 from .rename_modal import rename_modal
 from .save_as_modal import save_as_modal
+from .text_modal import text_modal
 from .upgrade_impact_modal import upgrade_impact_modal
 
 __all__ = [
@@ -26,5 +27,6 @@ __all__ = [
     "pick_modal",
     "rename_modal",
     "save_as_modal",
+    "text_modal",
     "upgrade_impact_modal",
 ]
