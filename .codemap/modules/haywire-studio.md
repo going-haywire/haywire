@@ -5,8 +5,8 @@
 **Path:** `packages/haywire-studio/src/haywire_studio/`
 **Language:** Python 3.10+
 **Owner:** Haywire studio team
-**Tree hash:** `04f329fb834520fcdc93e1db63af333b92af648c`
-**Mapped at:** 45140b27 (2026-06-25)
+**Tree hash:** `004394fb080d75b68d3071f3b2ea89ef017ef9dc`
+**Mapped at:** 19bda1e (2026-07-05) — no content change since 45140b27; only the package's `pyproject.toml` version bumped (outside this manifest's path)
 
 ---
 

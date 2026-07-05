@@ -36,14 +36,15 @@ Subscribers (panels, editors, signal_handler_decorators)
 NiceGUI re-render
 ```
 
-Reactive descriptor path:
+Reactive descriptor path (cell-authoritative model, see [ADR 0013](../../docs/adr/0013-settings-single-cell.md)):
 
 ```
 Settings class defines shadow("foo") / watch("bar")
-    ↓ registered in SettingsRegistry (core/settings/registry.py)
-    ↓ resolved per node/library scope
-    ↓ panel binds to the descriptor's reactive value
-    ↓ change triggers re-evaluation + signal emission
+    ↓ each field's value lives in a per-field DataField cell
+    ↓ persistent fields borrow the registry-owned cell (one cell, N views)
+    ↓ panel/widget binds the shared cell directly (no throwaway copy)
+    ↓ any writer (descriptor set, registry write-through, edge drive into a
+      promoted port) fires the cell's own on_changed — the one notification channel
 ```
 
 ## Key Files
@@ -61,5 +62,5 @@ Settings class defines shadow("foo") / watch("bar")
 - Don't introduce a parallel reactive system. The `shadow()`/`watch()` descriptor pattern is canonical.
 - NiceGUI slot stack is per-asyncio-task: signal handlers that schedule UI work via `asyncio.ensure_future` will crash `ui.notify`. Use the three safe patterns in `.insights/feedback_nicegui_async.md`.
 - Signal vocabulary is checked by `tests/ui/test_signals_vocabulary.py` — adding a new signal requires updating `vocabulary.py`.
-- For settings UI panels, refer to `docs/architecture/<settings>/<settings>-arch.md` and `docs/components/<settings>/<settings>-canon.md`.
+- For settings UI panels, refer to `docs/architecture/settings/settings-arch.md` and `docs/components/settings/setting-canon.md`.
 - After mutating reactive state in a test, run `force_immediate_validation()` before asserting.

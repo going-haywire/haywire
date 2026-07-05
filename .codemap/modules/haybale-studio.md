@@ -5,8 +5,8 @@
 **Path:** `barn/haybale-studio/haybale_studio/`
 **Language:** Python 3.10+
 **Owner:** Haywire studio team (bundled plugin)
-**Tree hash:** `c4c7b200fa76b7d83eee6b0bfd0813efc65c8caf`
-**Mapped at:** 45140b27 (2026-06-25)
+**Tree hash:** `6fd3252213b0846f34a3e2fb02773c1cd3c5d449`
+**Mapped at:** 19bda1e (2026-07-05)
 
 ---
 
@@ -51,11 +51,11 @@ haybale_studio/
 ### On-demand
 
 - `editors/` — when adding/changing an editor; pair with `haywire/ui/editor/wrapper.py`.
-- **`skins/node_skin.py`** (major rewrite) — renders node skin (widget layout, colors, icons). Pair with [widget unification](../../../.codemap/modules/haywire-core-ui.md) (ADR 0007).
+- **`skins/node_skin.py`** (major rewrite) — renders node skin (widget layout, colors, icons). Pair with [widget unification](haywire-core-ui.md) (ADR 0007).
 - `panels/canvas_settings.py` (new) — canvas zoom/pan preferences.
 - `panels/` — when modifying built-in panels (file browser, properties, etc.).
 - `themes/` — when touching visual presentation.
-- `settings/` — when surfacing studio settings.
+- `settings/` — when surfacing studio settings; `node_skin_settings.py` and `theme_settings.py` use typed-setting markers (`setting[BOOL]`, `setting[INT]`, `setting[CHOICES]`, `setting[STRING]` from `haywire.barn.builtin.types`), not raw Python types.
 - `loop_scheduler.py` — when changing validation debouncing; implements `ValidationScheduler` (ADR 0002).
 
 ## 4. Rules & Boundaries

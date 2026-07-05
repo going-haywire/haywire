@@ -5,8 +5,8 @@
 **Path:** `barn/haybale-example/`, `barn/haybale-testing/`, `barn/haybale-TEST_A/`
 **Language:** Python 3.10+
 **Owner:** Various (bundled plugins)
-**Tree hashes:** `0425b23b96ec267eba8cbc65a0ca9f98e62dc2b8` / `39db23d3fdfd159ba41eba00d12c2c177534a316` / `2e4b71662527809d9bc7b844690e77bb4a4322fe`
-**Mapped at:** 45140b27 (2026-06-25)
+**Tree hashes:** `ad4b7776cb469462c779abb6fe1e7c89b91c7348` / `41a98cec3ae7197fd5b9af5468533b22aaad211b` / `728840422d66a22446f0321ff9e012baac74a2ea`
+**Mapped at:** 19bda1e (2026-07-05)
 
 > ⚠️ `barn/haybale-visiongraph/` is now **gitignored** (`.gitignore:211`) and untracked in HEAD — it exists on disk as a local-only library and is no longer part of the committed repo. It is therefore dropped from this map's hash tracking.
 
@@ -29,20 +29,26 @@ barn/
 ├── haybale-example/
 │   └── haybale_example/
 │       ├── __init__.py       ← Library subclass
-│       ├── adapters/         ← example adapters (updated for widget unification)
+│       ├── adapters/         ← example adapters
+│       ├── nodes/
+│       │   ├── emits/        ← callback emitter nodes (custom_callback, emit_callback, merge_callback)
+│       │   └── math_op.py
 │       ├── skins/example_skin.py ← example skin
-│       └── widgets/example_widget.py (rewritten) + knob_widget.py
+│       ├── types/            ← specs.py (Temperature), math.py, maps_string_type.py
+│       └── widgets/          ← example_widget.py, knob_widget.py
 │
 ├── haybale-testing/
 │   └── haybale_testing/
 │       ├── __init__.py       ← Library subclass
 │       ├── nodes/
-│       │   ├── testbed/      ← new: group_and_sections.py, print_node.py
+│       │   ├── testbed/      ← test-fixture nodes: settings, event queue-mode, group/section UI
+│       │   ├── benchmark/    ← perf benchmark node fixtures
 │       │   └── …
-│       └── panels/           ← updated test panels
+│       ├── settings/testing.py ← library-level TestingSettings (mirrored by settings_node.py)
+│       └── panels/           ← test node panels
 │
 └── haybale-TEST_A/
-    └── haybale_test_a/       ← library-system test fixture
+    └── haybale_test_a/       ← library-system test fixture (version-bump only this refresh)
 ```
 
 Each follows the standard layout: `__init__.py` exposes a `Library` subclass and registers components via `register_components()`.
@@ -56,17 +62,22 @@ Each follows the standard layout: `__init__.py` exposes a `Library` subclass and
 
 ### On-demand
 
-- **`haybale-example/haybale_example/widgets/`** — rewritten examples for BaseWidget unification (ADR 0007).
-- **`haybale-testing/haybale_testing/nodes/testbed/`** (new) — group_and_sections.py, print_node.py for rendering test UI.
-- **`haybale-testing/haybale_testing/panels/`** (updated) — test node panels with new widget patterns.
+- **`haybale-testing/haybale_testing/nodes/testbed/settings_node.py`** + **`settings/testing.py`** — canonical example of the current `setting[IType]` generic form, `shadow()`/`watch()` mirrors, and the widget_config re-supply gotcha (see Rules).
+- **`haybale-testing/haybale_testing/nodes/testbed/custom_callback_node.py`** — reference for wiring per-event-node `queue_mode` (`QueueMode.DROP`/`BLOCK`) into `CallbackEvent` for realtime frame-dropping (ADR 0010).
+- **`haybale-example/haybale_example/widgets/`** — reference widgets (no longer declare `compatible_types=[...]` on `@widget()`; see Rules).
+- **`haybale-testing/haybale_testing/panels/`** — test node panels with widget patterns.
 - Other libraries' internals — only if you're changing a specific node, type, or test fixture.
 
 ## 4. Rules & Boundaries
 
-- All four follow the same plugin contract as [haybale-core](haybale-core.md): register via `Library.register_components()`; entry point in `pyproject.toml`.
+- All three follow the same plugin contract as [haybale-core](haybale-core.md): register via `Library.register_components()`; entry point in `pyproject.toml`.
 - `haybale-testing` and `haybale-TEST_A` are **not** for general use — keep production logic out of them.
 - `haybale-TEST_A`'s name intentionally exercises identifier normalization; don't "fix" it.
 - mypy roots: see root `pyproject.toml` `[tool.mypy]` and the CLAUDE.md mypy command — example/testing/TEST_A are included (visiongraph is no longer tracked/linted by default).
+- **Primitive types/widgets import path moved**: `STRING`, `FLOAT`, `BOOL`, `INT`, `COLOR`, `VEC2I`/`VEC3F`/`VEC4F`, `CHOICES` and stock widgets (`TextWidget`, `SelectWidget`, `SwitchWidget`, `NumberWidget`) now live in `haywire.barn.builtin.types` / `haywire.barn.builtin.widgets`, not `haybale_core.types` / `haybale_core.widgets.basic_widgets`. `haybale_core.types` still owns structural types (`EXEC`, `CALLBACK`, `GROUP`, `PooledType`). All three libs updated their imports accordingly; keep new nodes consistent with this split.
+- **`widget_key` prefix**: builtin widget keys changed from `core:widget:*` to `builtin:widget:*` (see `display_node.py`).
+- **Settings generics**: `setting[str]`/`setting[int]`/etc. (bare Python types) are superseded by `setting[STRING]`/`setting[INT]`/etc. (IType generics); `choices=[...]` is now `widget_config={"options": [...]}`; `widget="color"` and `type_=` overrides are no longer needed/accepted. `shadow()`/`watch()` mirrors inherit the source's `IType` but **not** its `widget_config` — options-style config must be re-supplied at the mirror site (see `settings_node.py::mode`/`mode_ro`).
+- `@widget(...)` no longer takes `compatible_types=[...]` — compatibility is resolved elsewhere now; don't add it back to new widgets.
 
 ## 5. Source of Truth
 

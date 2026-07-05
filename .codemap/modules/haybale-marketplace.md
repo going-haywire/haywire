@@ -5,8 +5,8 @@
 **Path:** `barn/haybale-marketplace/haybale_marketplace/`
 **Language:** Python 3.10+
 **Owner:** Haywire team (optional bundled plugin)
-**Tree hash:** `398a83862e5630e49590315f59dd91f0ea73dc2f`
-**Mapped at:** 45140b27 (2026-06-25)
+**Tree hash:** `9db800b83769786bd3c3b2ea2c8f3cfd7fe1bbc5`
+**Mapped at:** 19bda1e (2026-07-05) — no content change since 45140b27; only the package's `pyproject.toml` version bumped (outside this manifest's path)
 
 ---
 

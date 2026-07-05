@@ -5,8 +5,8 @@
 **Path:** `barn/haybale-haystack/haybale_haystack/`
 **Language:** Python 3.10+
 **Owner:** Haywire studio team (bundled plugin)
-**Tree hash:** `ebc1fcd79d16a78301f79ef0ec8ec67f803fc51e`
-**Mapped at:** 45140b27 (2026-06-25)
+**Tree hash:** `287501d31bbab15842e74c0a8abce2394052d9d4`
+**Mapped at:** 19bda1e (2026-07-05)
 
 ---
 
@@ -40,11 +40,12 @@ haybale_haystack/
 
 ### On-demand
 
-- **`state/haystack_state.py`** (updated) — haystack state container for editors/panels.
-- **`persistence.py`** (updated) — read/write logic for .haywire graph files.
-- **`editors/haystack_editor.py`** (updated) — haystack editor (file list + focus) UI.
+- `state/haystack_state.py` — haystack state container for editors/panels.
+- `persistence.py` — read/write logic for .haywire graph files.
+- `editors/haystack_editor.py` — haystack editor (file list + focus) UI.
 - `signals.py` — when emitting/listening to haystack-scoped events.
 - `panels/file_browser/` — file browser panels and file actions.
+- `settings/graph_run_settings.py`, `settings/haystack_settings.py` (updated) — use typed-setting markers (`setting[BOOL]`, `setting[INT]`, `setting[STRING]` from `haywire.barn.builtin.types`), not raw Python types.
 
 ## 4. Rules & Boundaries
 
