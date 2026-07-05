@@ -275,9 +275,9 @@ def _render_reactive_field_row(
     if port is not None:
         if port.is_inlet():
             is_promoted_inlet = True
-            promoted_hint = "↳ driven by inlet" if port.is_linked() else "↳ promoted to inlet"
+            promoted_hint = "driven through inlet" if port.is_linked() else "promoted to inlet"
         else:
-            promoted_hint = "↳ promoted to outlet"
+            promoted_hint = "promoted to outlet"
 
     # Override chrome (• dirty prefix + reset button) is shown whenever the field
     # carries a local opinion (_set_keys membership) AND the graph doesn't own its
@@ -319,13 +319,19 @@ def _render_reactive_field_row(
             label = ui.label(_label_text(_has_local_opinion())).classes("text-xs truncate")
             if defn._description:
                 label.tooltip(defn._description)
-            reset_btn = (
-                ui.button(icon=hui.icon.reset)
-                .props("flat dense size=xs")
-                .tooltip(reset_tooltip)
-                .on("click", _on_reset_click)
-            )
-            reset_btn.set_visibility(_has_local_opinion())
+            if promoted_hint:
+                (
+                    ui.button(icon=hui.icon.promote)
+                    .props("flat dense size=xs")
+                    .tooltip(promoted_hint)
+                )
+            elif _has_local_opinion():
+                reset_btn = (
+                    ui.button(icon=hui.icon.reset)
+                    .props("flat dense size=xs")
+                    .tooltip(reset_tooltip)
+                    .on("click", _on_reset_click)
+                )
 
     # Every field — scalars, vectors, color — resolves a shared BaseWidget by its
     # widget_key, stamped once at __set_name__ (see _resolve_widget_instance, ADR
@@ -352,17 +358,9 @@ def _render_reactive_field_row(
 
     with ui.row().classes(row_classes).props(row_props):
         _render_label()
-        if is_promoted_inlet:
-            # The graph owns the value now (an edge, or simply being promoted) —
-            # render a read-only label instead of an editable widget. It stays
-            # live via the same updater/bag-subscription chain as the label
-            # fallback for an unknown widget key (Task 9's just-landed pattern).
-            value_apply = _build_label_widget(getattr(obj, attr_name))
-        else:
+        if is_promoted_inlet is False:
             on_edit = _bag_on_edit(obj, attr_name, error_container)
             value_apply = _resolve_widget_instance(defn, on_edit, bag=obj)
-        if promoted_hint:
-            ui.label(promoted_hint).classes("text-xs hw-text-muted px-2").props('data-promoted-hint="true"')
 
     def _refresh_chrome():
         # Real widgets bind the shared cell directly (on_changed, ADR 0016), so

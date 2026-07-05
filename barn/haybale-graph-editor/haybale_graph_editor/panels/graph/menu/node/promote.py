@@ -125,7 +125,11 @@ class PromoteSettingMenuPanel(BasePanel):
         with layout:
             # Single collapsed entry unfolding on hover into `bag ▸ field ▸ direction`,
             # mirroring the add-node menu's `➕ Add Nodes` flyout.
-            with hui.button("Promote Settings...", icon=hui.icon.promote):
+            with hui.button(
+                "Promote ...", 
+                icon=hui.icon.promote, 
+                tooltip="Promote settings to inlets or outlets"
+            ):
                 with ui.menu().props(hui.FLYOUT_PROPS).style(hui.FLYOUT_Z):
                     # Bag flyouts are siblings: opening one closes the rest.
                     bag_siblings: FlyoutSiblings = []
