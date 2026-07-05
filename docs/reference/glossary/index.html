@@ -4175,6 +4175,21 @@
 <td>option, param, prop</td>
 </tr>
 <tr>
+<td><strong>CHOICES</strong></td>
+<td>Builtin <code>IType(STRING)</code> whose identity declares <code>widget_key = SELECT_WIDGET</code> but carries <strong>zero options</strong> — every declaration site supplies its own via <code>widget_config={"options": [...] | {value: label} | callable}</code>. Identity STRING↔CHOICES adapters (both directions, pure passthrough) let a plain string port connect to or promote from a CHOICES-typed one with no special case. Replaces the old <code>choices=</code> sugar. See <a href="../../adr/0017-widget-selection-port-contract/">ADR 0017</a></td>
+<td>choices (the removed <code>setting(choices=...)</code> parameter), enum type, <code>*_SEL</code> type</td>
+</tr>
+<tr>
+<td><strong>widget key</strong></td>
+<td>The registry key (a plain string, e.g. <code>builtin:widget:SelectWidget</code>) selecting which <code>BaseWidget</code> subclass renders a field or port. Stamped on a <code>setting()</code> descriptor's <code>widget_key</code> attribute exactly once — at <code>__set_name__</code> for a class-body field, or at the end of <code>__init__</code> for a registry-constructed one (<code>registry.define(...)</code>, file auto-define) — never re-resolved at render time. An explicit <code>widget=</code> dict wins; otherwise it comes from the field's IType's declared identity (<code>@type(widget_key=...)</code>). See <a href="../../adr/0017-widget-selection-port-contract/">ADR 0017</a></td>
+<td>resolved_widget_key (removed — no render-time resolution), widget hint</td>
+</tr>
+<tr>
+<td><strong>transient widget config</strong></td>
+<td>The <code>{"key", "config"}</code> dict returned by <code>WidgetCls.config(...)</code> (<code>IWidget.config</code>), passed as <code>setting(widget=...)</code> to pin an explicit widget class + properties for a field, overriding the IType's declared default. Distinct from <code>widget_config=</code>, which layers bare property overrides (e.g. <code>{"options": [...]}</code>) on top of whichever widget was already selected. Called "transient" because it is a plain dict computed at declaration time, not a persisted object — nothing about it is serialized itself; only the stamped <code>widget_key</code>/<code>widget_config</code> result is retained on the descriptor</td>
+<td>widget spec, widget hint dict</td>
+</tr>
+<tr>
 <td><strong>mirrors</strong></td>
 <td>A <code>setting()</code> parameter that links a node field to a <code>FrameworkSettings</code> or <code>LibrarySettings</code> field, inheriting its default with per-node override capability</td>
 <td>shadow, reference</td>
@@ -4183,6 +4198,26 @@
 <td><strong>read_only</strong></td>
 <td>A <code>setting()</code> parameter (used with <code>mirrors=</code>) that makes a field a silent cache of a global value: invisible in panel, never stored, never writable per-instance</td>
 <td>watch (avoid), computed</td>
+</tr>
+<tr>
+<td><strong>Promotion</strong></td>
+<td>Assigning a <strong>direction</strong> to a value-bearing setting and surfacing it as a DATA port. A promoted port and its setting are <em>one cell, two views</em> — the port borrows the setting's <code>DataField</code> cell by reference and its id IS the setting's <code>storage_key</code>. The port stays the promotion signal (serialized in the ports block); demote just removes it. Two verbs (<code>promote(direction)</code> / <code>demote</code>), two directions (inlet / outlet). <strong>Direction- and link-aware editing surface (decision 7bA):</strong> a setting promoted to an <strong>inlet</strong> renders read-only in the settings panel — a live label, not an editable widget — because the graph now owns the value; the hint reads "↳ promoted to inlet" while unlinked or "↳ driven by inlet" once an edge is connected. A setting promoted to an <strong>outlet</strong> keeps its editable widget (the setting is still the source of truth), hinted "↳ promoted to outlet". The row carries <code>data-promoted-direction="inlet"|"outlet"</code>. See <a href="../../adr/0015-promotion-storage-key-id/">ADR 0015</a> (mechanism), <a href="../../adr/0014-promotion-as-direction/">ADR 0014</a> (direction model)</td>
+<td>Exposing, hoisting, wiring a setting</td>
+</tr>
+<tr>
+<td><strong>promoted inlet / promoted outlet</strong></td>
+<td>The two promotion directions. A promoted <strong>inlet</strong> lets an edge drive the setting (widget shows while unlinked); a promoted <strong>outlet</strong> lets the setting drive downstream consumers. A <code>watch()</code> field is outlet-only (read-only ⇒ no write path in)</td>
+<td>—</td>
+</tr>
+<tr>
+<td><strong>is_linked_lazy</strong></td>
+<td>A <code>DataPort</code> flag set on every promoted outlet: it forces any linked edge to lazy (pull-on-demand) propagation so an out-of-frame setting write doesn't propagate eagerly. Paired with an <code>on_changed → propagate</code> subscription that triggers the deferred pull; the flag alone is inert</td>
+<td>—</td>
+</tr>
+<tr>
+<td><strong>freeze-on-disconnect</strong></td>
+<td>Demote (and any structural action) never resets a promoted setting's value: whatever the shared cell holds stays. Recovery to the default is an explicit <code>reset()</code></td>
+<td>—</td>
 </tr>
 <tr>
 <td><strong>accessor name</strong></td>
@@ -4196,7 +4231,7 @@
 </tr>
 <tr>
 <td><strong>Three-tier resolution</strong></td>
-<td>The precedence chain for a settings value: global TOML override → workspace TOML override → local instance value → workspace TOML set → global TOML set → descriptor default</td>
+<td>The precedence chain for a settings value (highest-priority <em>set</em> tier wins): local instance value → workspace TOML set → global TOML set → descriptor default. Tiers are set-or-unset; there is no "override" strength</td>
 <td>—</td>
 </tr>
 <tr>
@@ -4633,6 +4668,16 @@
 <td>The library that declares a <code>Signal</code> subclass (or hosts a <code>signal_field</code>). Subscribers in other libraries must list it in their own <code>LibraryIdentity.dependencies</code> so hot-reload reloads them as a pair — otherwise <code>isinstance</code> checks after a reload spuriously return <code>False</code></td>
 <td>—</td>
 </tr>
+<tr>
+<td><strong>Flyout menu</strong></td>
+<td>A nested context-menu submenu that opens <strong>on hover</strong> of its anchor item and cascades to the right (<code>anchor="top end" self="top start"</code>), raised above the context-menu popup (<code>z-index 7100 &gt; 7001</code>). Only one open path from the root exists at a time: opening one flyout closes its <strong>siblings</strong> (same-level group) and their open descendants, via an explicit <code>_close_flyout</code> cascade — closing on click-away is left to Quasar's <code>auto-close</code>. The fragile hover-open / sibling-close mechanics are shared by the <strong>add-node menu</strong> and the <strong>Promote-Setting menu</strong> through a common flyout primitive. See [.insights/feedback_nicegui_nested_menu_flyouts.md]</td>
+<td>submenu, cascade menu, nested QMenu</td>
+</tr>
+<tr>
+<td><strong>Promote-Setting menu</strong></td>
+<td>The node right-click submenu listing a node's promotable <code>setting()</code> fields as a hierarchical <strong>Flyout menu</strong> (<code>bag ▸ field ▸ direction</code>), mirroring the add-node menu's shape. A single-direction (read-only <code>watch()</code>) field collapses to a labeled leaf (<code>field → outlet</code>); a two-direction field stays a <code>field ▸ [inlet\|outlet]</code> flyout. The bag level is always rendered. Replaces the earlier flat <code>accessor.field → verb</code> button list</td>
+<td>promote submenu, promotion menu</td>
+</tr>
 </tbody>
 </table>
 <hr />
@@ -4714,7 +4759,7 @@
 <strong>Dev:</strong> "What if I just want to read a global flag silently, without showing it in the panel?"
 <strong>Domain expert:</strong> "Add <code>read_only=True</code> to the same <code>mirrors=</code> field. It becomes a silent cache — invisible in the panel, never stored, never writable per-instance. The value updates automatically when the <strong>FrameworkSettings</strong> source changes."
 <strong>Dev:</strong> "Where does the actual value come from when the node runs?"
-<strong>Domain expert:</strong> "<strong>Three-tier resolution</strong>: global TOML override wins, then workspace TOML override, then the node's local instance value, then workspace SET, then global SET, then the descriptor default. The <strong>SettingsRegistry</strong> owns that chain."
+<strong>Domain expert:</strong> "<strong>Three-tier resolution</strong>, highest-priority <em>set</em> tier wins: the node's local instance value, then the workspace TOML set, then the global TOML set, then the descriptor default. Tiers are just set-or-unset — no 'force' strength. The <strong>SettingsRegistry</strong> owns that chain."
 <strong>Dev:</strong> "And the framework's own <code>ExecutionSettings</code> — does it need to be registered manually?"
 <strong>Domain expert:</strong> "No — <strong>FrameworkSettings</strong> subclasses self-register via <code>_pending_global</code> at registry init. <strong>LibrarySettings</strong> come in through the <strong>BaseRegistry</strong> hot-reload machinery when the <strong>Library</strong> loads."</p>
 </blockquote>

@@ -2274,10 +2274,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#why-the-descriptor-does-not-call-_on_property_change" class="md-nav__link">
+  <a href="#why-the-descriptor-writes-no-cell-itself" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Why the descriptor does NOT call _on_property_change
+        Why the descriptor writes NO cell itself
       
     </span>
   </a>
@@ -2297,6 +2297,39 @@
         
       </ul>
     </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#64-single-cell-value-model" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6.4 Single-cell value model
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#65-promotion-field-direction" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6.5 Promotion = field + direction
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#66-the-stamped-widget-contract-adr-0017" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6.6 The stamped widget contract (ADR 0017)
+      
+    </span>
+  </a>
   
 </li>
         
@@ -2394,6 +2427,17 @@
     <span class="md-ellipsis">
       
         8.2 Reactive non-node access
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#83-disk-edge-serialization" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8.3 Disk-edge serialization
       
     </span>
   </a>
@@ -3195,10 +3239,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#why-the-descriptor-does-not-call-_on_property_change" class="md-nav__link">
+  <a href="#why-the-descriptor-writes-no-cell-itself" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Why the descriptor does NOT call _on_property_change
+        Why the descriptor writes NO cell itself
       
     </span>
   </a>
@@ -3218,6 +3262,39 @@
         
       </ul>
     </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#64-single-cell-value-model" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6.4 Single-cell value model
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#65-promotion-field-direction" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6.5 Promotion = field + direction
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#66-the-stamped-widget-contract-adr-0017" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6.6 The stamped widget contract (ADR 0017)
+      
+    </span>
+  </a>
   
 </li>
         
@@ -3315,6 +3392,17 @@
     <span class="md-ellipsis">
       
         8.2 Reactive non-node access
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#83-disk-edge-serialization" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8.3 Disk-edge serialization
       
     </span>
   </a>
@@ -3428,14 +3516,17 @@
 
 <h1 id="settings-architecture">Settings — Architecture<a class="headerlink" href="#settings-architecture" title="Permanent link">&para;</a></h1>
 <h2 id="1-motivation">1. Motivation<a class="headerlink" href="#1-motivation" title="Permanent link">&para;</a></h2>
-<p>A node author writes <code>bg_color = "#fff"</code> as a default. The user opens the global settings panel and prefers <code>#000</code> everywhere. The user's workspace lead pins it to <code>#f0f0f0</code> for that project. A single graph picks one node and overrides the colour locally. And on a shared lab machine, the admin hand-edits a TOML file to <em>force</em> <code>#222</code> on every node, regardless of what anyone else asked for.</p>
-<p>All five claims are legitimate. Exactly one of them must win on every read, deterministically, with no surprises. The settings system exists to resolve that contest.</p>
+<p>A node author writes <code>bg_color = "#fff"</code> as a default. The user opens the global settings panel and prefers <code>#000</code> everywhere. The user's workspace lead pins it to <code>#f0f0f0</code> for that project. A single graph picks one node and overrides the colour locally.</p>
+<p>All four claims are legitimate. Exactly one of them must win on every read, deterministically, with no surprises. The settings system exists to resolve that contest.</p>
 <p>It does so by:</p>
 <ul>
 <li>giving each claim a well-defined <em>home</em> (a tier),</li>
-<li>letting each tier mark a value as either <em>an opinion</em> or <em>a force</em>, and</li>
-<li>evaluating reads through a fixed precedence chain.</li>
+<li>treating each tier value as simply <em>set</em> (an opinion) or <em>unset</em> (no opinion), and</li>
+<li>evaluating reads through a fixed precedence chain: the highest-priority <em>set</em> tier wins.</li>
 </ul>
+<blockquote>
+<p><strong>Historical note.</strong> Earlier versions added a fifth claim — an admin could <em>force</em> a value on a shared lab machine that beat even per-node overrides — implemented as an <code>OVERRIDE</code> strength on a tier value. That capability was deliberately removed; tiers are now plain set-or-unset and never "force." See <a href="../../../adr/0011-collapse-settings-tiers/">ADR 0011 — Collapse settings tiers</a> for the rationale and what was lost.</p>
+</blockquote>
 <p>What the system is <strong>not</strong> for:</p>
 <ul>
 <li>A general-purpose key-value store. Use <code>self.store</code> (per-node, persistent, hidden) or <code>self.cache</code> (per-node, transient, hidden). See <a href="../../../components/settings/setting-canon/#3-important-concepts">components/settings §3</a>.</li>
@@ -3448,13 +3539,13 @@
 <p>Three things hold values, plus one central object that arbitrates between them.</p>
 <div class="language-text highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>              SettingsRegistry
 </span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>              ┌────────────────────────────┐
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>              │ global tier   (TOML dict)  │   ← ~/.haywire/settings.toml
-</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>              │ workspace tier (TOML dict) │   ← &lt;workspace&gt;/.haywire/settings.toml
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>              │ global tier   (JSON dict)  │   ← ~/.haywire/settings.json
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>              │ workspace tier (JSON dict) │   ← &lt;workspace&gt;/.haywire/settings.json
 </span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>              │ schema definitions         │   ← every setting() ever declared
 </span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>              └────────────────────────────┘
 </span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>                          ▲
 </span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>                resolves reads through
-</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>                the six-step chain
+</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>                the four-step chain
 </span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>                          │
 </span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>        ┌─────────────────┼─────────────────┐
 </span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>        │                 │                 │
@@ -3465,85 +3556,75 @@
 </span><span id="__span-0-17"><a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a>        │                 │                 │
 </span><span id="__span-0-18"><a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a>        └─────────────────┼─────────────────┘
 </span><span id="__span-0-19"><a id="__codelineno-0-19" name="__codelineno-0-19" href="#__codelineno-0-19"></a>                          │
-</span><span id="__span-0-20"><a id="__codelineno-0-20" name="__codelineno-0-20" href="#__codelineno-0-20"></a>                     _local_store
-</span><span id="__span-0-21"><a id="__codelineno-0-21" name="__codelineno-0-21" href="#__codelineno-0-21"></a>              (per-instance overrides —
-</span><span id="__span-0-22"><a id="__codelineno-0-22" name="__codelineno-0-22" href="#__codelineno-0-22"></a>               the third tier, but lives
-</span><span id="__span-0-23"><a id="__codelineno-0-23" name="__codelineno-0-23" href="#__codelineno-0-23"></a>               on the instance, not the
-</span><span id="__span-0-24"><a id="__codelineno-0-24" name="__codelineno-0-24" href="#__codelineno-0-24"></a>               registry)
+</span><span id="__span-0-20"><a id="__codelineno-0-20" name="__codelineno-0-20" href="#__codelineno-0-20"></a>                per-field DataField cells
+</span><span id="__span-0-21"><a id="__codelineno-0-21" name="__codelineno-0-21" href="#__codelineno-0-21"></a>              (per-instance overrides — the
+</span><span id="__span-0-22"><a id="__codelineno-0-22" name="__codelineno-0-22" href="#__codelineno-0-22"></a>               third tier, but lives on the
+</span><span id="__span-0-23"><a id="__codelineno-0-23" name="__codelineno-0-23" href="#__codelineno-0-23"></a>               instance as one cell per field,
+</span><span id="__span-0-24"><a id="__codelineno-0-24" name="__codelineno-0-24" href="#__codelineno-0-24"></a>               not on the registry)
 </span></code></pre></div>
 <p>Two things to notice:</p>
 <ol>
 <li><strong>The first two tiers (global, workspace) live inside <code>SettingsRegistry</code>.</strong> They're dicts the registry owns and consults during <code>resolve()</code>.</li>
-<li><strong>The third tier (per-instance) lives on each <code>Settings</code> instance</strong> as <code>_local_store</code>. It's passed <em>into</em> <code>resolve()</code> per call. This asymmetry matters: it's why the resolution chain has to be told about local values explicitly.</li>
+<li><strong>The third tier (per-instance) lives on each <code>Settings</code> instance</strong> as a per-field <code>DataField</code> cell — the same cell a port uses (see <a href="#64-single-cell-value-model">§6.4 Single-cell value model</a> and <a href="../../../adr/0013-settings-single-cell/">ADR 0013</a>). The cell's value is passed <em>into</em> <code>resolve()</code> per call. This asymmetry matters: it's why the resolution chain has to be told about local values explicitly.</li>
 </ol>
 <p>A <strong>schema class</strong> (<code>FrameworkSettings</code>, <code>LibrarySettings</code>, <code>NodeSettings</code>) is just a <code>Settings</code> subclass that declares typed fields with <code>setting()</code>. <code>SettingsRegistry</code> is the runtime arbiter, not to be confused with <code>BaseRegistry</code> (the library system's class-tracking machinery, which is what registers <code>LibrarySettings</code> <em>classes</em> with the settings registry — see §6.1).</p>
 <h2 id="3-how-a-tier-expresses-its-opinion">3. How a tier expresses its opinion<a class="headerlink" href="#3-how-a-tier-expresses-its-opinion" title="Permanent link">&para;</a></h2>
-<p>Each tier (global, workspace) stores a <code>SettingValue(mode, value)</code> per key. The mode says <em>how strong the claim is</em>:</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="k">class</span><span class="w"> </span><span class="nc">SettingMode</span><span class="p">(</span><span class="n">Enum</span><span class="p">):</span>
-</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>    <span class="n">INHERIT</span>  <span class="o">=</span> <span class="n">auto</span><span class="p">()</span>  <span class="c1"># No opinion — defer to next tier up</span>
-</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>    <span class="n">EXPLICIT</span> <span class="o">=</span> <span class="n">auto</span><span class="p">()</span>  <span class="c1"># Deliberate value — wins unless OVERRIDE&#39;d from above</span>
-</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>    <span class="n">OVERRIDE</span> <span class="o">=</span> <span class="n">auto</span><span class="p">()</span>  <span class="c1"># Forced — beats everything below, including locals</span>
+<p>Each tier (global, workspace) stores a <code>SettingValue</code> per key. A tier value has exactly two states — <strong>set</strong> (it carries a value and is eligible to win) or <strong>unset</strong> (it has no opinion and defers down the chain):</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="nd">@dataclass</span>
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="k">class</span><span class="w"> </span><span class="nc">SettingValue</span><span class="p">(</span><span class="n">Generic</span><span class="p">[</span><span class="n">T</span><span class="p">]):</span>
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>    <span class="n">is_set</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>    <span class="n">value</span><span class="p">:</span> <span class="n">T</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>
+</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>    <span class="nd">@classmethod</span>
+</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">unset</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span> <span class="o">...</span>          <span class="c1"># no opinion — defer to the next tier</span>
+</span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a>    <span class="nd">@classmethod</span>
+</span><span id="__span-1-9"><a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">of</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span> <span class="o">...</span>      <span class="c1"># holds a value — eligible to win</span>
 </span></code></pre></div>
-<p>The third tier — per-instance <code>_local_store</code> — has no mode. Its presence <em>is</em> its opinion: if a key is in the dict, the instance has set it; otherwise it hasn't. Conceptually it sits at <code>EXPLICIT</code>-strength, between the workspace and global EXPLICITs but beneath any OVERRIDE.</p>
-<p>In TOML, <code>EXPLICIT</code> is a bare value and <code>OVERRIDE</code> uses an inline-table form:</p>
-<div class="language-toml highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="k">[ui.node]</span>
-</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="n">bg_color</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;#f0f0f0&quot;</span><span class="w">                              </span><span class="c1"># EXPLICIT — user&#39;s preference</span>
-</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="n">font_size</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">override</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span><span class="w"> </span><span class="n">value</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="mi">14</span><span class="w"> </span><span class="p">}</span><span class="w">       </span><span class="c1"># OVERRIDE — forced from this tier down</span>
+<p>There is no strength axis: a value is either an opinion or it isn't. The third tier — the per-instance field cell — works the same way, but the <em>opinion</em> is tracked separately from the <em>value</em>: a <code>DataField</code> cell always holds <em>a</em> value (its default), so membership can't stand in for set-ness. The instance keeps a <code>_set_keys: set[str]</code>; a field is locally set iff its <code>storage_key ∈ _set_keys</code> (mirroring the registry tiers' set-or-unset shape). See <a href="#64-single-cell-value-model">§6.4</a>.</p>
+<p>In JSON, a set value is serialized through its IType's <code>to_dict</code> — a <code>{"value": …}</code> table nested by the dotted key:</p>
+<div class="language-json highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="p">{</span><span class="w"> </span><span class="nt">&quot;ui&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nt">&quot;node&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nt">&quot;bg_color&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nt">&quot;value&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;#f0f0f0&quot;</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="p">}</span>
 </span></code></pre></div>
-<p>The asymmetry is deliberate: writing an OVERRIDE is rare and demands a more visible syntax. <code>save_to_toml()</code> only ever writes the workspace tier; the global TOML is hand-edited and never touched by the app.</p>
+<p><code>save_to_json()</code> only ever writes the workspace tier; the global JSON is hand-edited and never touched by the app. Each value is written as its IType's <code>to_dict</code> form and rehydrated via <code>from_dict</code> on load, so complex types (<code>COLOR</code>, <code>VEC2I</code>, <code>VEC3F</code>, …) round-trip losslessly — see <a href="#83-disk-edge-serialization">§8.3 Disk-edge serialization</a> and <a href="../../../adr/0012-settings-json-persistence/">ADR 0012</a>. A legacy <code>{ "override": true, "value": X }</code> table left over from a pre-collapse file still loads — it is read as a plain <em>set</em> of <code>X</code>, with the <code>override</code> flag ignored.</p>
 <h2 id="4-the-resolution-chain">4. The resolution chain<a class="headerlink" href="#4-the-resolution-chain" title="Permanent link">&para;</a></h2>
-<p>Given the three tiers and two strengths, precedence is fully determined: any OVERRIDE from above must beat a local value, and a local value must beat any non-OVERRIDE from below. Six cases fall out:</p>
+<p>With set-or-unset tiers, precedence is simply <em>the highest-priority set tier wins</em>. Four cases fall out:</p>
 <div class="language-text highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>self.filter.threshold        — look up _setting_key for this descriptor
 </span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>        │
 </span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>        ▼
-</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>1. Global tier OVERRIDE?       → return it   (admin policy, hand-edited TOML)
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>1. Local instance value set?   → return it   (per-node override)
 </span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>        │ no
 </span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>        ▼
-</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a>2. Workspace tier OVERRIDE?    → return it   (workspace-wide force)
+</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a>2. Workspace tier set?         → return it   (set via UI, saved to workspace JSON)
 </span><span id="__span-3-8"><a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a>        │ no
 </span><span id="__span-3-9"><a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a>        ▼
-</span><span id="__span-3-10"><a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a>3. Local instance value?       → return it   (per-node override)
+</span><span id="__span-3-10"><a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a>3. Global tier set?            → return it   (user&#39;s global preference)
 </span><span id="__span-3-11"><a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a>        │ no
 </span><span id="__span-3-12"><a id="__codelineno-3-12" name="__codelineno-3-12" href="#__codelineno-3-12"></a>        ▼
-</span><span id="__span-3-13"><a id="__codelineno-3-13" name="__codelineno-3-13" href="#__codelineno-3-13"></a>4. Workspace tier EXPLICIT?    → return it   (set via UI, saved to workspace TOML)
-</span><span id="__span-3-14"><a id="__codelineno-3-14" name="__codelineno-3-14" href="#__codelineno-3-14"></a>        │ no
-</span><span id="__span-3-15"><a id="__codelineno-3-15" name="__codelineno-3-15" href="#__codelineno-3-15"></a>        ▼
-</span><span id="__span-3-16"><a id="__codelineno-3-16" name="__codelineno-3-16" href="#__codelineno-3-16"></a>5. Global tier EXPLICIT?       → return it   (user&#39;s global preference)
-</span><span id="__span-3-17"><a id="__codelineno-3-17" name="__codelineno-3-17" href="#__codelineno-3-17"></a>        │ no
-</span><span id="__span-3-18"><a id="__codelineno-3-18" name="__codelineno-3-18" href="#__codelineno-3-18"></a>        ▼
-</span><span id="__span-3-19"><a id="__codelineno-3-19" name="__codelineno-3-19" href="#__codelineno-3-19"></a>6. Descriptor _default         → return it   (what the author declared)
+</span><span id="__span-3-13"><a id="__codelineno-3-13" name="__codelineno-3-13" href="#__codelineno-3-13"></a>4. Descriptor _default         → return it   (what the author declared)
 </span></code></pre></div>
-<p><code>SettingsRegistry.resolve(name, local=None)</code> returns <code>(value, source)</code>, where <code>source</code> is one of <code>'global_override'</code>, <code>'workspace_override'</code>, <code>'local'</code>, <code>'workspace'</code>, <code>'global'</code>, <code>'default'</code> — useful for UIs that want to show <em>why</em> a value is what it is.</p>
-<p>Instances constructed without a registry skip steps 1–2 and 4–5 and fall through to a direct <code>_local_store</code> lookup. That path exists for unit tests; see <a href="#9-test-utilities">§9 Test utilities</a>.</p>
+<p><code>SettingsRegistry.resolve(name, local=None)</code> returns <code>(value, source)</code>, where <code>source</code> is one of <code>'local'</code>, <code>'workspace'</code>, <code>'global'</code>, <code>'default'</code> — useful for UIs that want to show <em>why</em> a value is what it is.</p>
+<p><strong>The chain runs at write/seed time, never on a read (ADR 0016).</strong> <code>setting.__get__</code> is a pure cell read — <code>obj._cell_for(self).get_value()</code> — on every path. The chain's job is to decide what the cell <em>holds</em>: a plain field's cell seeds with the descriptor default; a cross-mirror seeds from the resolved global and is re-synced by <code>_on_field_change</code>; a wired persistent field borrows the registry-owned cell (<code>registry.cell_for(key)</code>), which the registry's write-through keeps at the chain's current answer on every tier mutation. A callable default is late-binding and evaluates once, at seed time.</p>
+<p>Instances constructed without a registry never involve tiers 2–3: their cells seed with descriptor defaults and hold local writes. That path is the common case for plain <code>Settings</code>/<code>NodeSettings</code> and for unit tests; see <a href="#9-test-utilities">§9 Test utilities</a>.</p>
 <h2 id="5-worked-example">5. Worked example<a class="headerlink" href="#5-worked-example" title="Permanent link">&para;</a></h2>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="k">class</span><span class="w"> </span><span class="nc">ExecutionSettings</span><span class="p">(</span><span class="n">FrameworkSettings</span><span class="p">,</span> <span class="n">namespace</span><span class="o">=</span><span class="s1">&#39;execution&#39;</span><span class="p">):</span>
 </span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>    <span class="n">max_threads</span> <span class="o">=</span> <span class="n">setting</span><span class="p">[</span><span class="nb">int</span><span class="p">](</span><span class="mi">4</span><span class="p">)</span>
 </span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>
-</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="c1"># At app startup, no TOML loaded yet:</span>
-</span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="c1">#   resolve(&#39;execution.max_threads&#39;)  →  (4, &#39;default&#39;)           ← step 6</span>
+</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="c1"># At app startup, no JSON loaded yet:</span>
+</span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="c1">#   resolve(&#39;execution.max_threads&#39;)  →  (4, &#39;default&#39;)           ← step 4</span>
 </span><span id="__span-4-6"><a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a>
-</span><span id="__span-4-7"><a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a><span class="c1"># User edits ~/.haywire/settings.toml:</span>
-</span><span id="__span-4-8"><a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a><span class="c1">#   [execution]</span>
-</span><span id="__span-4-9"><a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a><span class="c1">#   max_threads = 8</span>
-</span><span id="__span-4-10"><a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a><span class="c1"># After load:</span>
-</span><span id="__span-4-11"><a id="__codelineno-4-11" name="__codelineno-4-11" href="#__codelineno-4-11"></a><span class="c1">#   resolve(&#39;execution.max_threads&#39;)  →  (8, &#39;global&#39;)            ← step 5</span>
-</span><span id="__span-4-12"><a id="__codelineno-4-12" name="__codelineno-4-12" href="#__codelineno-4-12"></a>
-</span><span id="__span-4-13"><a id="__codelineno-4-13" name="__codelineno-4-13" href="#__codelineno-4-13"></a><span class="c1"># Workspace TOML adds:</span>
-</span><span id="__span-4-14"><a id="__codelineno-4-14" name="__codelineno-4-14" href="#__codelineno-4-14"></a><span class="c1">#   [execution]</span>
-</span><span id="__span-4-15"><a id="__codelineno-4-15" name="__codelineno-4-15" href="#__codelineno-4-15"></a><span class="c1">#   max_threads = 16</span>
-</span><span id="__span-4-16"><a id="__codelineno-4-16" name="__codelineno-4-16" href="#__codelineno-4-16"></a><span class="c1"># After load:</span>
-</span><span id="__span-4-17"><a id="__codelineno-4-17" name="__codelineno-4-17" href="#__codelineno-4-17"></a><span class="c1">#   resolve(&#39;execution.max_threads&#39;)  →  (16, &#39;workspace&#39;)        ← step 4</span>
-</span><span id="__span-4-18"><a id="__codelineno-4-18" name="__codelineno-4-18" href="#__codelineno-4-18"></a>
-</span><span id="__span-4-19"><a id="__codelineno-4-19" name="__codelineno-4-19" href="#__codelineno-4-19"></a><span class="c1"># A node instance sets a local override (instance._local_store[&#39;max_threads&#39;] = 32):</span>
-</span><span id="__span-4-20"><a id="__codelineno-4-20" name="__codelineno-4-20" href="#__codelineno-4-20"></a><span class="c1">#   resolve(&#39;execution.max_threads&#39;,</span>
-</span><span id="__span-4-21"><a id="__codelineno-4-21" name="__codelineno-4-21" href="#__codelineno-4-21"></a><span class="c1">#           local=SettingValue(EXPLICIT, 32))  →  (32, &#39;local&#39;)   ← step 3</span>
-</span><span id="__span-4-22"><a id="__codelineno-4-22" name="__codelineno-4-22" href="#__codelineno-4-22"></a>
-</span><span id="__span-4-23"><a id="__codelineno-4-23" name="__codelineno-4-23" href="#__codelineno-4-23"></a><span class="c1"># Admin appends OVERRIDE to global TOML:</span>
-</span><span id="__span-4-24"><a id="__codelineno-4-24" name="__codelineno-4-24" href="#__codelineno-4-24"></a><span class="c1">#   [execution]</span>
-</span><span id="__span-4-25"><a id="__codelineno-4-25" name="__codelineno-4-25" href="#__codelineno-4-25"></a><span class="c1">#   max_threads = { override = true, value = 2 }</span>
-</span><span id="__span-4-26"><a id="__codelineno-4-26" name="__codelineno-4-26" href="#__codelineno-4-26"></a><span class="c1"># After load:</span>
-</span><span id="__span-4-27"><a id="__codelineno-4-27" name="__codelineno-4-27" href="#__codelineno-4-27"></a><span class="c1">#   resolve(...)  →  (2, &#39;global_override&#39;)                       ← step 1 wins,</span>
-</span><span id="__span-4-28"><a id="__codelineno-4-28" name="__codelineno-4-28" href="#__codelineno-4-28"></a><span class="c1">#                                                                    beats all below</span>
+</span><span id="__span-4-7"><a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a><span class="c1"># User edits ~/.haywire/settings.json:</span>
+</span><span id="__span-4-8"><a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a><span class="c1">#   { &quot;execution&quot;: { &quot;max_threads&quot;: { &quot;value&quot;: 8 } } }</span>
+</span><span id="__span-4-9"><a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a><span class="c1"># After load:</span>
+</span><span id="__span-4-10"><a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a><span class="c1">#   resolve(&#39;execution.max_threads&#39;)  →  (8, &#39;global&#39;)            ← step 3</span>
+</span><span id="__span-4-11"><a id="__codelineno-4-11" name="__codelineno-4-11" href="#__codelineno-4-11"></a>
+</span><span id="__span-4-12"><a id="__codelineno-4-12" name="__codelineno-4-12" href="#__codelineno-4-12"></a><span class="c1"># Workspace JSON adds:</span>
+</span><span id="__span-4-13"><a id="__codelineno-4-13" name="__codelineno-4-13" href="#__codelineno-4-13"></a><span class="c1">#   { &quot;execution&quot;: { &quot;max_threads&quot;: { &quot;value&quot;: 16 } } }</span>
+</span><span id="__span-4-14"><a id="__codelineno-4-14" name="__codelineno-4-14" href="#__codelineno-4-14"></a><span class="c1"># After load:</span>
+</span><span id="__span-4-15"><a id="__codelineno-4-15" name="__codelineno-4-15" href="#__codelineno-4-15"></a><span class="c1">#   resolve(&#39;execution.max_threads&#39;)  →  (16, &#39;workspace&#39;)        ← step 2</span>
+</span><span id="__span-4-16"><a id="__codelineno-4-16" name="__codelineno-4-16" href="#__codelineno-4-16"></a>
+</span><span id="__span-4-17"><a id="__codelineno-4-17" name="__codelineno-4-17" href="#__codelineno-4-17"></a><span class="c1"># A node instance sets a local override (writes the field&#39;s cell, marks _set_keys):</span>
+</span><span id="__span-4-18"><a id="__codelineno-4-18" name="__codelineno-4-18" href="#__codelineno-4-18"></a><span class="c1">#   resolve(&#39;execution.max_threads&#39;,</span>
+</span><span id="__span-4-19"><a id="__codelineno-4-19" name="__codelineno-4-19" href="#__codelineno-4-19"></a><span class="c1">#           local=SettingValue.of(32))  →  (32, &#39;local&#39;)          ← step 1 wins,</span>
+</span><span id="__span-4-20"><a id="__codelineno-4-20" name="__codelineno-4-20" href="#__codelineno-4-20"></a><span class="c1">#                                                                    beats all below</span>
 </span></code></pre></div>
 <p>Each step of the chain corresponds to one line above. If you can predict the <code>(value, source)</code> for each line without looking at the comments, you understand the system.</p>
 <h2 id="6-contract-details">6. Contract details<a class="headerlink" href="#6-contract-details" title="Permanent link">&para;</a></h2>
@@ -3580,21 +3661,40 @@
 </tr>
 </tbody>
 </table>
-<p>Field descriptors on <code>FrameworkSettings</code> and <code>LibrarySettings</code> are auto-promoted to <code>persistent_setting</code> (a <code>setting</code> subclass that routes writes through <code>registry.set_global</code> + <code>save_to_toml_debounced</code>). The swap happens during field setup — in <code>__init_subclass__</code> for the class-signature <code>namespace=</code> form, and in the <code>@settings</code> decorator for the decorator form. <code>NodeSettings</code> fields are NOT promoted; node-local settings persist with the graph, not the workspace TOML, so <code>_local_store</code>-only semantics is correct for them.</p>
+<p>Field descriptors on <code>FrameworkSettings</code> and <code>LibrarySettings</code> are auto-promoted to <code>persistent_setting</code> (a <code>setting</code> subclass that routes writes through <code>registry.set_global</code> + <code>save_to_json_debounced</code>). The swap happens during field setup — in <code>__init_subclass__</code> for the class-signature <code>namespace=</code> form, and in the <code>@settings</code> decorator for the decorator form. <code>NodeSettings</code> fields are NOT promoted; node-local settings persist with the graph, not the workspace JSON, so instance-local (cell) semantics is correct for them.</p>
 <p>Deep inheritance (subclassing a <code>FrameworkSettings</code> or <code>LibrarySettings</code> subclass) is blocked by <code>__init_subclass__</code> to keep namespaces clean.</p>
+<p><strong>The registry/persistence split.</strong> <code>SettingsRegistry</code> (<code>settings/registry.py</code>) owns
+definitions, tiers, cells, subscribers, and auto-define; it does not touch a
+filesystem directly. File I/O — JSON read/write, the debounced save timer,
+and the watchdog-backed file watcher — lives in a separate collaborator,
+<code>SettingsFileStore</code> (<code>settings/persistence.py</code>), that knows nothing about
+setting definitions, tiers, descriptors, or <code>SettingValue</code>: its whole
+vocabulary is flat <code>{dot.key: entry}</code> dicts and paths. The registry calls
+<code>store.read(path)</code> / <code>store.write(path, entries)</code> / <code>store.write_debounced(path,
+provider)</code> / <code>store.watch(path, on_change)</code> at the disk edge and does all the
+interpretation (flatten/nest, rehydration via IType <code>to_dict</code>/<code>from_dict</code>,
+auto-define) itself — the read/write seam is exactly "parse JSON into a flat
+dict, or flatten a dict back to JSON," nothing more. The split does not
+change §8.3's serialization contract or the resolution chain; it only moves
+<em>where</em> the bytes are read and written. One real external caller keeps a
+handful of registry internals (<code>_global_watch_enabled</code>,
+<code>_workspace_watch_enabled</code>, <code>_reload_from_file</code>) on the registry rather than
+the store: <code>core/di/config.py</code>'s <code>_print_settings_status</code>/<code>reload_settings()</code>
+read them directly, so <code>registry.py</code> is not — and was never targeted to be —
+as small as a clean definitions/tiers-only module would be in isolation.</p>
 <h3 id="62-the-four-key-identifiers">6.2 The four key identifiers<a class="headerlink" href="#62-the-four-key-identifiers" title="Permanent link">&para;</a></h3>
-<p>Four identifiers cooperate to thread a setting from class definition to TOML to panel. You won't normally write any of them by hand — the framework derives them — but you'll see them in tracebacks and registry dumps.</p>
+<p>Four identifiers cooperate to thread a setting from class definition to JSON to panel. You won't normally write any of them by hand — the framework derives them — but you'll see them in tracebacks and registry dumps.</p>
 <p><strong><code>namespace</code></strong> — dot-separated prefix that identifies a schema. Set by <code>@settings(namespace='my_lib')</code> for <code>LibrarySettings</code> or <code>class FooSettings(FrameworkSettings, namespace='execution')</code> for <code>FrameworkSettings</code>.</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>namespace=&#39;execution&#39;   →   TOML section [execution]
+<div class="language-text highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>namespace=&#39;execution&#39;   →   JSON object { &quot;execution&quot;: { … } }
 </span></code></pre></div>
-<p><strong><code>_setting_key</code></strong> — full TOML address of one field: <code>{namespace}.{field_attr_name}</code>. Set on each <code>setting()</code> descriptor by <code>@settings</code> / <code>__init_subclass__</code> (for global schemas) or by <code>@node</code> / <code>_wire_settings_schemas</code> (for <code>NodeSettings</code>). For <code>FrameworkSettings</code> and <code>LibrarySettings</code>, the same setup pass also swaps the descriptor's <code>__class__</code> to <code>persistent_setting</code> so writes route through the registry (see <a href="#63-the-write-path">6.3 The write path</a>).</p>
+<p><strong><code>_setting_key</code></strong> — full address of one field: <code>{namespace}.{field_attr_name}</code>. Set on each <code>setting()</code> descriptor by <code>@settings</code> / <code>__init_subclass__</code> (for global schemas) or by <code>@node</code> / <code>_wire_settings_schemas</code> (for <code>NodeSettings</code>). For <code>FrameworkSettings</code> and <code>LibrarySettings</code>, the same setup pass also swaps the descriptor's <code>__class__</code> to <code>persistent_setting</code> so writes route through the registry (see <a href="#63-the-write-path">6.3 The write path</a>).</p>
 <div class="language-text highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>namespace=&#39;execution&#39;, field &#39;max_threads&#39;
 </span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>  →  _setting_key=&#39;execution.max_threads&#39;
 </span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>
 </span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a>node registry_key=&#39;haybale_core:node:filter&#39;, accessor &#39;params&#39;, field &#39;threshold&#39;
 </span><span id="__span-6-5"><a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a>  →  _setting_key=&#39;haybale_core.node.filter.params.threshold&#39;
 </span></code></pre></div>
-<p>This is what <code>SettingsRegistry</code> stores, resolves, and what <code>shadow()</code>/<code>watch()</code> reference. Single shared identity between schema, TOML, and registry lookup.</p>
+<p>This is what <code>SettingsRegistry</code> stores, resolves, and what <code>shadow()</code>/<code>watch()</code> reference. Single shared identity between schema, JSON, and registry lookup.</p>
 <p><strong><code>registry_key</code></strong> — <code>BaseRegistry</code>-level identifier for the <em>class</em> (not a field). Set by <code>@settings</code> as <code>reg_key(library_id, "settings", namespace)</code>. Used internally by <code>BaseRegistry</code> for class tracking, hot-reload, and dependency graphs. Not normally used directly by authors.</p>
 <div class="language-text highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>namespace=&#39;my_lib&#39;, library_id=&#39;haybale_image&#39;
 </span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>  →  registry_key=&#39;haybale_image:settings:my_lib&#39;
@@ -3630,17 +3730,17 @@
 <h3 id="63-the-write-path">6.3 The write path<a class="headerlink" href="#63-the-write-path" title="Permanent link">&para;</a></h3>
 <p>Section 4 traced how a <code>setting</code> value is <em>read</em> through the tier chain. Writes are simpler but have a comparable structural twist: which descriptor handles <code>__set__</code> depends on the schema class.</p>
 <h4 id="setting__set__-instance-local"><code>setting.__set__</code> — instance-local<a class="headerlink" href="#setting__set__-instance-local" title="Permanent link">&para;</a></h4>
-<p>For <code>NodeSettings</code> and any plain <code>Settings</code> subclass, <code>setting.__set__</code> is the descriptor that runs. It writes to <code>obj._local_store[key]</code> and fires <code>_on_property_change</code> to notify subscribers. The registry is not consulted; the write is invisible to peer instances and is never serialised to the workspace TOML.</p>
+<p>For <code>NodeSettings</code> and any plain <code>Settings</code> subclass, <code>setting.__set__</code> is the descriptor that runs. It records the override in <code>obj._set_keys</code> FIRST, then writes the value into the field's <code>DataField</code> cell (<code>obj._cell_for(self).set_value(value)</code>) — the cell's own <code>on_changed</code> event is the one notification channel (ADR 0016), and a subscriber's callback must observe <code>is_locally_set()</code> already true. The registry is not consulted; the write is invisible to peer instances and is never serialised to the workspace JSON. (Settings are IType-only, so every field has a cell — see <a href="#64-single-cell-value-model">§6.4</a>.)</p>
 <h4 id="persistent_setting__set__-registry-backed"><code>persistent_setting.__set__</code> — registry-backed<a class="headerlink" href="#persistent_setting__set__-registry-backed" title="Permanent link">&para;</a></h4>
 <p>For <code>FrameworkSettings</code> and <code>LibrarySettings</code>, the descriptor is promoted to <code>persistent_setting</code> (a <code>setting</code> subclass) during field setup. Its <code>__set__</code> routes writes through the registry:</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="c1"># Roughly:</span>
-</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="n">registry</span><span class="o">.</span><span class="n">set_global</span><span class="p">(</span><span class="n">setting_key</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">SettingMode</span><span class="o">.</span><span class="n">EXPLICIT</span><span class="p">)</span>
-</span><span id="__span-8-3"><a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a><span class="n">registry</span><span class="o">.</span><span class="n">save_to_toml_debounced</span><span class="p">()</span>
+</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="n">registry</span><span class="o">.</span><span class="n">set_global</span><span class="p">(</span><span class="n">setting_key</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+</span><span id="__span-8-3"><a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a><span class="n">registry</span><span class="o">.</span><span class="n">save_to_json_debounced</span><span class="p">()</span>
 </span></code></pre></div>
 <p>Two consequences flow from this:</p>
 <ul>
 <li>The value lands in the registry's workspace tier, so a freshly-constructed peer instance sees it on its next read.</li>
-<li><code>save_to_toml_debounced</code> schedules a write to <code>&lt;workspace&gt;/.haywire/settings.toml</code>, so the value survives restart.</li>
+<li><code>save_to_json_debounced</code> schedules a write to <code>&lt;workspace&gt;/.haywire/settings.json</code>, so the value survives restart.</li>
 </ul>
 <p>The author never sees <code>persistent_setting</code>. They write <code>settings.field = value</code>; the framework's class swap ensures the right descriptor runs transparently:</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="c1"># Library settings panel writes this:</span>
@@ -3648,9 +3748,9 @@
 </span><span id="__span-9-3"><a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a>
 </span><span id="__span-9-4"><a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a><span class="c1"># Because api_url&#39;s descriptor was promoted to persistent_setting at</span>
 </span><span id="__span-9-5"><a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a><span class="c1"># class-definition time, this call fans out to:</span>
-</span><span id="__span-9-6"><a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a><span class="c1">#   registry.set_global(&#39;my_lib.api_url&#39;, &#39;https://example.com&#39;, EXPLICIT)</span>
-</span><span id="__span-9-7"><a id="__codelineno-9-7" name="__codelineno-9-7" href="#__codelineno-9-7"></a><span class="c1">#   registry.save_to_toml_debounced()</span>
-</span><span id="__span-9-8"><a id="__codelineno-9-8" name="__codelineno-9-8" href="#__codelineno-9-8"></a><span class="c1"># …rather than writing to _local_store.</span>
+</span><span id="__span-9-6"><a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a><span class="c1">#   registry.set_global(&#39;my_lib.api_url&#39;, &#39;https://example.com&#39;)</span>
+</span><span id="__span-9-7"><a id="__codelineno-9-7" name="__codelineno-9-7" href="#__codelineno-9-7"></a><span class="c1">#   registry.save_to_json_debounced()</span>
+</span><span id="__span-9-8"><a id="__codelineno-9-8" name="__codelineno-9-8" href="#__codelineno-9-8"></a><span class="c1"># …rather than writing the instance-local cell.</span>
 </span></code></pre></div>
 <h4 id="three-places-the-class-swap-happens">Three places the class swap happens<a class="headerlink" href="#three-places-the-class-swap-happens" title="Permanent link">&para;</a></h4>
 <p>Field descriptors get their <code>__class__</code> rewritten to <code>persistent_setting</code> in three places, depending on how the schema is registered:</p>
@@ -3659,13 +3759,97 @@
 <li><code>LibrarySettings.__init_subclass__</code> — same, for library-side schemas using the class-signature form.</li>
 <li><code>@settings(namespace=...)</code> decorator — the canonical pattern for <code>LibrarySettings</code>.</li>
 </ol>
-<p>All three paths iterate <code>cls._property_settings()</code> and set <code>descriptor._setting_key</code> + <code>descriptor._mirror_key</code> + <code>descriptor.__class__ = persistent_setting</code> in one pass. Keeping the three paths in sync matters: missing the swap in one path silently restores the <code>_local_store</code>-only semantics for any schema registered through that path.</p>
-<h4 id="why-the-descriptor-does-not-call-_on_property_change">Why the descriptor does NOT call <code>_on_property_change</code><a class="headerlink" href="#why-the-descriptor-does-not-call-_on_property_change" title="Permanent link">&para;</a></h4>
-<p><code>persistent_setting.__set__</code> deliberately omits the <code>_on_property_change</code> call that the base <code>setting</code> makes. <code>registry.set_global</code> fans out to every subscriber registered for that namespace — including the writing instance, if it subscribed via <code>Settings.subscribe(...)</code>. The chain there is <code>_notify_subscribers → _on_field_change → _on_property_change → user callback</code>. If the descriptor also called <code>_on_property_change</code> directly, any subscribed user callback would fire twice for the same write.</p>
-<p>Instances that never subscribed receive no callback either way — neither from the descriptor nor from the registry. That is intentional: the writer just performed the write, so it does not need to be told what changed. Code that does want to react to its own writes (e.g. a panel that re-renders) must call <code>Settings.subscribe(...)</code> to opt in.</p>
+<p>All three paths iterate <code>cls._property_settings()</code> and set <code>descriptor._setting_key</code> + <code>descriptor.__class__ = persistent_setting</code> in one pass. (<code>_mirror_key</code> is NOT stamped — the self-mirror hack is gone, ADR 0016; <code>_mirror_key</code> means only "mirrors another setting".) Keeping the three paths in sync matters: missing the swap in one path silently restores the instance-local-only (cell) semantics for any schema registered through that path.</p>
+<h4 id="why-the-descriptor-writes-no-cell-itself">Why the descriptor writes NO cell itself<a class="headerlink" href="#why-the-descriptor-writes-no-cell-itself" title="Permanent link">&para;</a></h4>
+<p><code>persistent_setting.__set__</code> deliberately writes no cell. <code>registry.set_global</code> triggers the registry's write-through, which updates the registry-owned cell for that key (ADR 0016); the cell's <code>on_changed</code> event then notifies every borrowing instance's subscribers and bound widgets — one write, one notification, no double-fire.</p>
+<p>Code that wants to react to changes (its own writes included) calls <code>Settings.subscribe(...)</code>, which attaches one adapter per field cell — so it hears descriptor writes, registry write-through, and edge drives into a promoted shared cell uniformly.</p>
 <h4 id="fallback-when-no-registry-is-wired">Fallback when no registry is wired<a class="headerlink" href="#fallback-when-no-registry-is-wired" title="Permanent link">&para;</a></h4>
-<p>In test fixtures or unsaved workspaces, <code>persistent_setting.__set__</code> may run on an instance whose <code>_registry</code> is <code>None</code> or whose <code>_setting_key</code> is empty. In both cases it delegates to <code>super().__set__</code> — the base <code>setting</code>'s local-store write — so existing test fixtures and simple-mode usage are unaffected.</p>
-<p>A related guard sits in <code>save_to_toml_debounced</code> itself: when the registry has no workspace path configured (unsaved workspace), the debounce is a no-op rather than scheduling a timer whose firing would raise an error on a background thread. <code>set_global</code> still updates the in-memory workspace tier, so cross-instance visibility works even without disk persistence.</p>
+<p>In test fixtures or unsaved workspaces, <code>persistent_setting.__set__</code> may run on an instance whose <code>_registry</code> is <code>None</code> or whose <code>_setting_key</code> is empty. In both cases it delegates to <code>super().__set__</code> — the base <code>setting</code>'s cell write — so existing test fixtures and no-registry usage are unaffected.</p>
+<p>A related guard sits in <code>save_to_json_debounced</code> itself: when the registry has no workspace path configured (unsaved workspace), the debounce is a no-op rather than scheduling a timer whose firing would raise an error on a background thread. <code>set_global</code> still updates the in-memory workspace tier, so cross-instance visibility works even without disk persistence.</p>
+<h3 id="64-single-cell-value-model">6.4 Single-cell value model<a class="headerlink" href="#64-single-cell-value-model" title="Permanent link">&para;</a></h3>
+<p>The per-instance value does <strong>not</strong> live in a loose dict. Every declared field owns one <code>DataField</code> <strong>cell</strong> on its <code>Settings</code> instance — the <em>same</em> cell class a node port uses — built lazily from the field's IType by <code>Settings._cell_for(descriptor)</code> and cached in <code>self._cells</code> keyed by <code>storage_key</code>. A setting and a port are two views of one value (<a href="../../../adr/0013-settings-single-cell/">ADR 0013</a>). This is plan <strong>P4</strong> of the settings↔DataField unification arc (canonical-key → tier-collapse → TOML→JSON → <strong>single-cell</strong> → promotion-as-direction).</p>
+<p>Three properties follow:</p>
+<ul>
+<li><strong>Pure cell read.</strong> <code>setting.__get__</code> is <code>obj._cell_for(self).get_value()</code> on every path (ADR 0016) — no locally-set check, no mode branch, no chain walk. The cell is kept correct at write/seed time instead.</li>
+<li><strong>The cell holds its value.</strong> Nothing is recomputed on a read — the cell <em>holds</em> the current answer: the seeded default, the local override, the synced mirror global, or (registry-owned cells) the tier write-through's latest value.</li>
+<li><strong><code>_set_keys</code> carries the opinion, not the cell.</strong> A <code>DataField</code> always holds <em>a</em> value (its default), so cell membership cannot mean "overridden" the way dict membership did. <code>Settings._set_keys: set[str]</code> records the set-or-unset opinion explicitly: <code>__set__</code>/<code>from_dict</code> add the <code>storage_key</code>, <code>reset</code> discards it, and <code>is_locally_set(name)</code> ⇔ membership. Do <strong>not</strong> infer set-ness from <code>cell.get_value() != default</code> — that would misread "set to the default on purpose" and re-introduce the phantom-override bug P2 fixed at the tier level.</li>
+</ul>
+<p><strong>Cell-mutation spine.</strong> No <em>structural</em> action ever resets a cell. Once created, a field's cell persists for the life of the bag; its <strong>value</strong> returns to the default only on an explicit <code>reset()</code> (or moves by edit, or — in P5 — by edge-drive). <code>reset</code> clears <code>_set_keys</code> and writes the no-override value back via <code>cell.set_value(...)</code> (so the cell event notifies subscribers/widgets); it never removes the cell. This is what makes the cell a stable identity a future port can bind to.</p>
+<p><strong>Serialization stays bare.</strong> The graph settings block keeps its existing wire shape — <code>bag.to_dict()</code> emits <code>{attr_name: bare_value}</code> per locally-set field (via <code>cell.get_value()</code>, not the IType <code>to_dict</code> dict), and <code>from_dict</code> writes each value back into the cell. Complex ITypes still round-trip losslessly because the <em>cell</em> guarantees the IType round-trip; the settings-block shape is unchanged, so existing saved graphs load. See <a href="#74-serialisation">§7.4</a>.</p>
+<p><strong>Settings are IType-only.</strong> <code>SettingDescriptor.__set_name__</code> rejects any non-IType field at class-definition time, so every field has a cell — <code>_cell_for</code> always returns one and raises <code>TypeError</code> for a descriptor that somehow bypassed enforcement. There is no cell-less fallback store. (An earlier defensive <code>_plain: dict</code> for <code>object</code>-typed fields was removed once this invariant was committed to; a value that genuinely isn't an IType belongs in <code>self.store</code>/<code>self.cache</code>, not in settings.)</p>
+<p><strong>Promotion builds on this cell (P5, landed).</strong> <em>Promotion</em> — a field + a direction — makes a port a second view of this same cell. See <a href="#65-promotion--field--direction">§6.5 Promotion = field + direction</a> and <a href="../../../adr/0014-promotion-as-direction/">ADR 0014</a>. P5 retired the UI's throwaway-<code>DataField</code> bridge for node bags; ADR 0016 finished the job for the registry path — <code>SettingWidgetModel</code> always binds a real shared cell (the bag's instance cell, or <code>registry.cell_for(key)</code> for persistent settings).</p>
+<p><strong>Registry-owned cells (ADR 0016).</strong> A wired persistent field has no per-instance state (writes go to the tiers), so its live cell is owned by the registry — one <code>DataField</code> per definition, created lazily by <code>registry.cell_for(key)</code>, seeded via <code>resolve()</code>, kept current by the write-through in <code>_notify_subscribers</code>, and dropped with its definition on hot-reload unregister. Instances' <code>_cell_for</code> <em>borrows</em> it: one cell, N views.</p>
+<h3 id="65-promotion-field-direction">6.5 Promotion = field + direction<a class="headerlink" href="#65-promotion-field-direction" title="Permanent link">&para;</a></h3>
+<p><em>Promoting</em> a setting assigns it a <strong>direction</strong> and surfaces it as a DATA port. A promoted port and the setting it binds are <strong>one cell, two views</strong>: the port borrows the setting's <a href="#64-single-cell-value-model">§6.4 cell</a> <em>by reference</em> via <code>DataPort.bind_field</code>, so there is no second value and no read-tier bridge (<a href="../../../adr/0014-promotion-as-direction/">ADR 0014</a>).</p>
+<p><strong>Two directions, two verbs.</strong> <code>promote_setting(node, accessor, field, direction)</code> takes a <code>PortType ∈ {INLET, OUTLET}</code>; <code>demote_setting</code> removes it. There is no in-place redirect — redirect is demote + re-promote, and the cell (and its value) survives both, per the cell-mutation spine. A promoted port's id <strong>is</strong> the setting's <code>storage_key</code>, and <code>DataPort.promoted</code> marks it a promotion; <code>promote_setting</code> marks the field locally-set (<code>storage_key ∈ _set_keys</code>) for the port's lifetime, so the setting reads the shared cell (incl. any edge-driven value). The setting descriptor carries no port back-reference; <code>_resolve_promoted</code> maps a promoted port id back to its (bag, descriptor) by matching <code>storage_key</code>.</p>
+<p><strong>Eligibility is two flag checks, not a per-kind matrix.</strong></p>
+<ol>
+<li><code>descriptor._read_only</code> (a <code>watch()</code> field) ⇒ <strong>outlet only</strong> — a read-only field has no write path in, only a read path out.</li>
+<li><code>direction == OUTLET</code> ⇒ the port sets <code>is_linked_lazy</code> <strong>and</strong> subscribes <code>on_changed → propagate</code>. This holds for <em>every</em> promoted outlet (plain, shadow, watch), because a promoted outlet is never worker-<code>out()</code>-driven; it is written by widget / registry / edge, all <em>outside</em> the scheduler frame.</li>
+</ol>
+<p>Everything else (mirror vs plain, set vs unset) rides that one <code>on_changed → propagate</code> mechanism — there is no per-kind propagation logic. Plain and <code>shadow</code> fields are eligible for either direction; <code>watch</code> for outlet only.</p>
+<p><strong>Freshness — the two-part <code>is_linked_lazy</code> mechanism.</strong> An out-of-frame write is unsafe to propagate eagerly. So (1) a linked edge on an <code>is_linked_lazy</code> outlet is forced <code>is_lazy</code>, deferring each consumer's pull to its next execution; and (2) <code>bind_field</code> on an outlet subscribes <code>field.on_changed → self._pipes.propagate()</code>, which <em>triggers</em> that lazy pull (the flag alone is inert — a lazy pipe only pulls once its sink is marked dirty). Downstream is "fresh as of the consumer's next execution"; idle-liveness is out of scope.</p>
+<p><strong>Mirror-cell authority.</strong> For a promoted mirror to read correctly headless, the setting keeps a <strong>cross-mirror</strong> field's cell synced to the resolved global (<code>_cell_for</code> seeds it, <code>_on_field_change</code> writes it, <code>reset</code> re-seeds, <code>__get__</code> reads it, <code>cleanup</code> unsubscribes). "Cross-mirror" = a <code>shadow</code>/<code>watch</code> of <em>another</em> setting (<code>bool(_mirror_key)</code> — the self-mirror stamping is gone, ADR 0016); a persistent field's live value is the registry-owned cell instead. Once a cross-mirror field is <strong>promoted</strong>, it is locally-set for the port's lifetime (ADR 0015), so <code>_on_field_change</code> no longer updates its read value — the promoted shadow freezes at its promote-time value until demote + <code>reset</code>.</p>
+<p><strong>Value-less serialization; settings-first load.</strong> A promoted port serializes with its type <code>recipe</code> like any other port, but omits <code>field_data</code> — the value round-trips through the settings block only. On load, settings bags restore <em>before</em> ports; <code>_bind_promoted_ports()</code> runs after ports deserialize and binds each promoted port to its setting's already-loaded cell (ADR 0015) — no propagation mid-load.</p>
+<p><strong>Freeze-on-disconnect.</strong> Demote never resets the value (§C3): whatever the shared cell holds at demote stays. If that value diverges from the un-overridden resolution, the field is marked locally-set so the setting's own read returns it; recovery is an explicit <code>reset</code>.</p>
+<p><strong>Promoted rows are direction- and link-aware (decision 7bA, ADR 0017).</strong> The
+settings panel renders a promoted field differently depending on which
+direction it was promoted to, because promotion changes who owns the value:</p>
+<ul>
+<li><strong>Promoted to an INLET</strong> ⇒ the row renders <strong>read-only</strong> — a live label,
+  not an editable widget — because the graph now owns the value (an
+  incoming edge, or simply having been promoted at all puts the field in
+  <code>_set_keys</code>, so the setting's own writes would silently be shadowed by the
+  next edge-drive). The hint text is <code>"↳ promoted to inlet"</code> while the port
+  is unlinked, or <code>"↳ driven by inlet"</code> once an edge is connected
+  (<code>port.is_linked()</code>).</li>
+<li><strong>Promoted to an OUTLET</strong> ⇒ the row keeps its normal <strong>editable</strong> widget,
+  hinted <code>"↳ promoted to outlet"</code> — the setting is still the source of
+  truth; the port only exposes its value downstream.</li>
+</ul>
+<p>The row carries <code>data-promoted-direction="inlet"|"outlet"</code> (in addition to
+the existing <code>data-promoted="true"</code>) so tests and tooling can assert on
+direction, not just promoted-ness.</p>
+<h3 id="66-the-stamped-widget-contract-adr-0017">6.6 The stamped widget contract (ADR 0017)<a class="headerlink" href="#66-the-stamped-widget-contract-adr-0017" title="Permanent link">&para;</a></h3>
+<p>Widget selection is computed <strong>once</strong> per descriptor and never re-resolved at
+render time. <code>SettingDescriptor._stamp_widget()</code> sets two plain attributes —
+<code>widget_key: str</code> and <code>widget_config: dict</code> — and every read site (the
+settings panel, the Ports Panel, the node-card widget) consumes them
+verbatim. <code>_stamp_widget()</code> runs from two call sites, because a descriptor's
+IType isn't always known at the same moment:</p>
+<ul>
+<li><strong>Class-body field</strong> (<code>threshold = setting[FLOAT](...)</code> inside a <code>Settings</code>
+  subclass) — stamped from <code>__set_name__</code>, once the IType is resolved from
+  the <code>setting[T]</code> generic subscript (or the owner class's type hint).</li>
+<li><strong>Registry-constructed field</strong> (<code>registry.define(...)</code>, file auto-define) —
+  these descriptors are built directly with an explicit <code>type_=</code>, never
+  receive <code>__set_name__</code> from a class body, so <code>setting.__init__</code> calls
+  <code>_stamp_widget()</code> itself once <code>self._type</code> is confirmed to be a real
+  <code>IType</code> subclass.</li>
+</ul>
+<p>Precedence inside <code>_stamp_widget()</code>: an explicit <code>widget=</code> dict (the
+<code>{"key", "config"}</code> shape from <code>WidgetCls.config(...)</code>) wins outright;
+otherwise <code>widget_key</code> comes from the field IType's own declared identity
+(<code>@type(widget_key=..., widget_config=...)</code> — see
+<code>haywire.barn.builtin.widget_keys</code>, a leaf module of plain string constants
+so engine-layer IType declarations never import a NiceGUI-backed widget
+class). <code>min</code>/<code>max</code> and any <code>widget_config=</code> are folded into
+<code>widget_config["properties"]</code> on top of the IType's own declared properties.
+Because this is a port contract rather than a render-time computation, a
+setting's panel row and its promoted port's row resolve the <em>same</em>
+<code>widget_key</code>/<code>widget_config</code> from the <em>same</em> descriptor — there is exactly
+one place the two surfaces could diverge (an explicit <code>widget=</code> on the
+descriptor), not the three overlapping resolution rules (<code>choices=</code> sugar,
+string <code>widget=</code> hints, ad-hoc type inference) that preceded it. See
+<a href="../../../adr/0017-widget-selection-port-contract/">ADR 0017</a> for the full
+rationale and the alternatives it rejects.</p>
+<p><code>CHOICES(STRING)</code> is the one builtin IType whose declared identity points at
+a dropdown (<code>widget_key=SELECT_WIDGET</code>) while carrying zero options itself —
+every declaration site supplies its own via <code>widget_config={"options": [...]
+| {value: label} | callable}</code>. <code>SelectWidget.build()</code> resolves a callable
+option-list at build time, so a dynamic list (e.g. sourced from a live
+registry) still refreshes on every widget instance build even though nothing
+about option resolution happens at stamp time.</p>
 <h2 id="7-lifecycle">7. Lifecycle<a class="headerlink" href="#7-lifecycle" title="Permanent link">&para;</a></h2>
 <h3 id="71-registration-and-_pending_global">7.1 Registration and <code>_pending_global</code><a class="headerlink" href="#71-registration-and-_pending_global" title="Permanent link">&para;</a></h3>
 <p><code>FrameworkSettings</code> is the trickier case (it must self-register before the registry exists):</p>
@@ -3694,70 +3878,67 @@
 <li><code>BaseRegistry._on_change</code> re-imports the module.</li>
 <li><code>LibrarySettings</code> subclasses are re-registered under the same <code>_setting_key</code>s.</li>
 <li><code>cls._registry</code> is re-bound on the new class.</li>
-<li>Existing <code>Settings</code> instances <em>holding the old class as their type</em> keep working — their <code>_local_store</code> is unchanged, but their <code>_registry</code> reference must be re-acquired (the framework re-binds via the node-instance lifecycle).</li>
+<li>Existing <code>Settings</code> instances <em>holding the old class as their type</em> keep working — their per-field cells (and <code>_set_keys</code>) are unchanged, but their <code>_registry</code> reference must be re-acquired (the framework re-binds via the node-instance lifecycle).</li>
 <li>Subscribed mirror callbacks are re-attached on the new class.</li>
 </ol>
 <p>The hot-reload pipeline at large is documented in <a href="../../hot-reload/hot-reload-arch/">architecture/hot-reload</a>.</p>
 <h3 id="73-change-notification-shadow-watch">7.3 Change notification (<code>shadow()</code> / <code>watch()</code>)<a class="headerlink" href="#73-change-notification-shadow-watch" title="Permanent link">&para;</a></h3>
-<p>There is no cached resolved value — <code>setting.__get__</code> calls <code>obj._resolve()</code> → <code>registry.resolve()</code> on every read. What the framework propagates is <em>change callbacks</em>, not cache invalidations.</p>
+<p>Reads never re-resolve — the value lives in the cell (ADR 0016). What the framework propagates is <em>cell writes</em>: keeping the right cell current is the whole notification story, and the cell's own <code>on_changed</code> event carries every callback.</p>
 <p>The flow when a global value changes:</p>
 <ol>
 <li><code>SettingsRegistry.set_global()</code> updates the in-memory tier and calls <code>_notify_subscribers</code>.</li>
-<li><code>_notify_subscribers</code> walks <code>self._subscribers</code> — a dict of <code>namespace → list[weakref[callback]]</code> — and fires every callback whose namespace prefix matches the changed key.</li>
-<li>For a <code>Settings</code> instance that has subscribed via <code>Settings.subscribe(user_callback)</code>, the registry-side callback is the instance's <code>_on_field_change</code>. It identifies which mirrored field changed, re-reads the resolved value through the chain, and calls <code>_on_property_change</code> → <code>user_callback</code>.</li>
-<li>If the field has an <code>on_change</code> method on its node, <code>_on_property_change</code> calls it with the new value.</li>
+<li><code>_notify_subscribers</code> first write-through-updates the registry-owned cell for the changed key (which notifies every widget and <code>Settings.subscribe</code> adapter bound to it), then fires exact-key subscribers plus <code>None</code> listen-all subscribers — a dict of <code>key → list[weakref[callback]]</code>. (The namespace-prefix walk is gone, ADR 0016; its only consumer was the settings panel's retired re-resolve loop.)</li>
+<li>For a node bag with a <code>shadow()</code>/<code>watch()</code> of that key, the registry-side callback is the instance's <code>_on_field_change</code>: it writes the re-resolved value into the cross-mirror's instance cell ("unset tracks; set ignores"), and that cell write notifies the bag's subscribers.</li>
 </ol>
-<p>Important: callbacks fire only for instances that have explicitly called <code>Settings.subscribe(...)</code>. An instance that holds settings but never subscribed will not receive notifications when other code changes the underlying TOML value — its next read will resolve to the new value, but no callback runs in the meantime.</p>
-<p><code>Settings._subscribe_settings()</code> (plural — wires every field with a <code>_mirror_key</code>) and <code>_subscribe_setting()</code> (singular — wires one field) set up the weakref subscriptions; both are called from <code>Settings.subscribe()</code>. <code>Settings.cleanup()</code> clears the local callback list and marks the instance as torn down; the registry-side weakrefs are dropped when the instance is garbage-collected.</p>
+<p><code>Settings.subscribe(cb)</code> attaches one adapter per field cell (<code>subscribe_field(field, cb)</code> attaches a single one for per-field reaction — the retired <code>on_change=</code> dispatch's replacement), so a subscriber hears every writer uniformly — descriptor sets, resets, registry write-through, and edge drives into a promoted shared cell. <code>Settings._subscribe_settings()</code> / <code>_subscribe_setting()</code> wire the cross-mirror registry subscriptions. <code>Settings.cleanup()</code> detaches all cell adapters (mandatory for borrowed registry-owned cells, which outlive the bag) and drops the mirror subscriptions.</p>
 <h3 id="74-serialisation">7.4 Serialisation<a class="headerlink" href="#74-serialisation" title="Permanent link">&para;</a></h3>
-<p><code>Settings.to_dict()</code> returns only fields whose value differs from the descriptor default. <code>watch()</code> fields are never included.</p>
-<p><code>Settings.from_dict(data, silent=True)</code> writes directly to <code>_local_store</code> without firing callbacks (used during graph load to avoid spurious triggers). <code>silent=False</code> uses normal <code>setattr</code> semantics.</p>
+<p><code>Settings.to_dict()</code> returns only fields that are locally set (<code>_set_keys</code>) and whose value differs from the descriptor default, reading each value from the field's cell (<code>cell.get_value()</code>). <code>watch()</code> fields are never included. The emitted shape is the bare value per field (<code>{attr_name: value}</code>), matching the graph settings block that <code>NodeBase._to_dict</code> writes.</p>
+<p><code>Settings.from_dict(data, silent=True)</code> marks each field in <code>_set_keys</code> and writes the value into its cell directly, bypassing descriptor validation and the <code>__set__</code> no-op guard; <code>silent=False</code> uses normal <code>setattr</code> semantics. Either way the cell write notifies any <em>already-attached</em> subscribers (subscription rides the cell event, ADR 0016) — graph load restores bags before anything subscribes, so load-time restores stay unobserved in practice. Because the value round-trips through the field's <code>DataField</code> cell — the same IType <code>to_dict</code>/<code>from_dict</code> contract the registry uses at the disk edge (<a href="../../../adr/0012-settings-json-persistence/">ADR 0012</a>) — complex ITypes (<code>COLOR</code>, <code>VEC2I</code>, …) survive a save/load cycle losslessly. See <a href="#64-single-cell-value-model">§6.4 Single-cell value model</a> and <a href="../../../adr/0013-settings-single-cell/">ADR 0013</a>.</p>
 <h2 id="8-examples">8. Examples<a class="headerlink" href="#8-examples" title="Permanent link">&para;</a></h2>
 <h3 id="81-the-full-registry-api">8.1 The full registry API<a class="headerlink" href="#81-the-full-registry-api" title="Permanent link">&para;</a></h3>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">haywire.core.di.config</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_settings_registry</span>
-</span><span id="__span-11-2"><a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">haywire.core.settings</span><span class="w"> </span><span class="kn">import</span> <span class="n">SettingMode</span>
-</span><span id="__span-11-3"><a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a>
-</span><span id="__span-11-4"><a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a><span class="n">registry</span> <span class="o">=</span> <span class="n">get_settings_registry</span><span class="p">()</span>
-</span><span id="__span-11-5"><a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a>
-</span><span id="__span-11-6"><a id="__codelineno-11-6" name="__codelineno-11-6" href="#__codelineno-11-6"></a><span class="c1"># Read with provenance</span>
-</span><span id="__span-11-7"><a id="__codelineno-11-7" name="__codelineno-11-7" href="#__codelineno-11-7"></a><span class="n">value</span><span class="p">,</span> <span class="n">source</span> <span class="o">=</span> <span class="n">registry</span><span class="o">.</span><span class="n">resolve</span><span class="p">(</span><span class="s1">&#39;execution.max_threads&#39;</span><span class="p">)</span>
-</span><span id="__span-11-8"><a id="__codelineno-11-8" name="__codelineno-11-8" href="#__codelineno-11-8"></a><span class="c1"># → (4, &#39;default&#39;)   or   (8, &#39;global&#39;)   etc.</span>
-</span><span id="__span-11-9"><a id="__codelineno-11-9" name="__codelineno-11-9" href="#__codelineno-11-9"></a>
-</span><span id="__span-11-10"><a id="__codelineno-11-10" name="__codelineno-11-10" href="#__codelineno-11-10"></a><span class="c1"># Programmatic write to the global tier</span>
-</span><span id="__span-11-11"><a id="__codelineno-11-11" name="__codelineno-11-11" href="#__codelineno-11-11"></a><span class="n">registry</span><span class="o">.</span><span class="n">set_global</span><span class="p">(</span><span class="s1">&#39;execution.max_threads&#39;</span><span class="p">,</span> <span class="mi">8</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="n">SettingMode</span><span class="o">.</span><span class="n">EXPLICIT</span><span class="p">)</span>
-</span><span id="__span-11-12"><a id="__codelineno-11-12" name="__codelineno-11-12" href="#__codelineno-11-12"></a><span class="n">registry</span><span class="o">.</span><span class="n">set_global</span><span class="p">(</span><span class="s1">&#39;debug.verbose_logging&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="n">SettingMode</span><span class="o">.</span><span class="n">OVERRIDE</span><span class="p">)</span>
-</span><span id="__span-11-13"><a id="__codelineno-11-13" name="__codelineno-11-13" href="#__codelineno-11-13"></a>
-</span><span id="__span-11-14"><a id="__codelineno-11-14" name="__codelineno-11-14" href="#__codelineno-11-14"></a><span class="c1"># Reset to INHERIT</span>
-</span><span id="__span-11-15"><a id="__codelineno-11-15" name="__codelineno-11-15" href="#__codelineno-11-15"></a><span class="n">registry</span><span class="o">.</span><span class="n">reset_global</span><span class="p">(</span><span class="s1">&#39;execution.max_threads&#39;</span><span class="p">)</span>
-</span><span id="__span-11-16"><a id="__codelineno-11-16" name="__codelineno-11-16" href="#__codelineno-11-16"></a>
-</span><span id="__span-11-17"><a id="__codelineno-11-17" name="__codelineno-11-17" href="#__codelineno-11-17"></a><span class="c1"># Schema introspection</span>
-</span><span id="__span-11-18"><a id="__codelineno-11-18" name="__codelineno-11-18" href="#__codelineno-11-18"></a><span class="n">registry</span><span class="o">.</span><span class="n">has_definition</span><span class="p">(</span><span class="s1">&#39;execution.max_threads&#39;</span><span class="p">)</span>   <span class="c1"># True</span>
-</span><span id="__span-11-19"><a id="__codelineno-11-19" name="__codelineno-11-19" href="#__codelineno-11-19"></a><span class="n">descriptor</span> <span class="o">=</span> <span class="n">registry</span><span class="o">.</span><span class="n">get_definition</span><span class="p">(</span><span class="s1">&#39;execution.max_threads&#39;</span><span class="p">)</span>
-</span><span id="__span-11-20"><a id="__codelineno-11-20" name="__codelineno-11-20" href="#__codelineno-11-20"></a><span class="n">all_settings</span> <span class="o">=</span> <span class="n">registry</span><span class="o">.</span><span class="n">all_definitions</span><span class="p">()</span>           <span class="c1"># dict[str, setting]</span>
-</span><span id="__span-11-21"><a id="__codelineno-11-21" name="__codelineno-11-21" href="#__codelineno-11-21"></a>
-</span><span id="__span-11-22"><a id="__codelineno-11-22" name="__codelineno-11-22" href="#__codelineno-11-22"></a><span class="c1"># Programmatic schema definition (rarely needed)</span>
-</span><span id="__span-11-23"><a id="__codelineno-11-23" name="__codelineno-11-23" href="#__codelineno-11-23"></a><span class="n">new_setting</span> <span class="o">=</span> <span class="n">registry</span><span class="o">.</span><span class="n">define</span><span class="p">(</span>
-</span><span id="__span-11-24"><a id="__codelineno-11-24" name="__codelineno-11-24" href="#__codelineno-11-24"></a>    <span class="s1">&#39;my.dynamic_setting&#39;</span><span class="p">,</span>
-</span><span id="__span-11-25"><a id="__codelineno-11-25" name="__codelineno-11-25" href="#__codelineno-11-25"></a>    <span class="n">default</span><span class="o">=</span><span class="mi">42</span><span class="p">,</span>
-</span><span id="__span-11-26"><a id="__codelineno-11-26" name="__codelineno-11-26" href="#__codelineno-11-26"></a>    <span class="n">type_</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span>
-</span><span id="__span-11-27"><a id="__codelineno-11-27" name="__codelineno-11-27" href="#__codelineno-11-27"></a>    <span class="n">label</span><span class="o">=</span><span class="s1">&#39;My Dynamic Setting&#39;</span><span class="p">,</span>
-</span><span id="__span-11-28"><a id="__codelineno-11-28" name="__codelineno-11-28" href="#__codelineno-11-28"></a><span class="p">)</span>
-</span><span id="__span-11-29"><a id="__codelineno-11-29" name="__codelineno-11-29" href="#__codelineno-11-29"></a>
-</span><span id="__span-11-30"><a id="__codelineno-11-30" name="__codelineno-11-30" href="#__codelineno-11-30"></a><span class="c1"># TOML I/O</span>
-</span><span id="__span-11-31"><a id="__codelineno-11-31" name="__codelineno-11-31" href="#__codelineno-11-31"></a><span class="n">registry</span><span class="o">.</span><span class="n">load_from_toml</span><span class="p">(</span><span class="s1">&#39;~/.haywire/settings.toml&#39;</span><span class="p">,</span> <span class="n">tier</span><span class="o">=</span><span class="s1">&#39;global&#39;</span><span class="p">)</span>
-</span><span id="__span-11-32"><a id="__codelineno-11-32" name="__codelineno-11-32" href="#__codelineno-11-32"></a><span class="n">registry</span><span class="o">.</span><span class="n">load_from_toml</span><span class="p">(</span><span class="s1">&#39;&lt;workspace&gt;/.haywire/settings.toml&#39;</span><span class="p">,</span> <span class="n">tier</span><span class="o">=</span><span class="s1">&#39;workspace&#39;</span><span class="p">)</span>
-</span><span id="__span-11-33"><a id="__codelineno-11-33" name="__codelineno-11-33" href="#__codelineno-11-33"></a><span class="n">registry</span><span class="o">.</span><span class="n">save_to_toml</span><span class="p">()</span>  <span class="c1"># writes workspace tier</span>
-</span><span id="__span-11-34"><a id="__codelineno-11-34" name="__codelineno-11-34" href="#__codelineno-11-34"></a>
-</span><span id="__span-11-35"><a id="__codelineno-11-35" name="__codelineno-11-35" href="#__codelineno-11-35"></a><span class="c1"># Subscribe (change-notification hook).</span>
-</span><span id="__span-11-36"><a id="__codelineno-11-36" name="__codelineno-11-36" href="#__codelineno-11-36"></a><span class="c1"># `namespace=None` fires on every key; &#39;execution&#39; fires on any</span>
-</span><span id="__span-11-37"><a id="__codelineno-11-37" name="__codelineno-11-37" href="#__codelineno-11-37"></a><span class="c1"># &#39;execution.*&#39; key; &#39;execution.max_threads&#39; fires only on that exact key.</span>
-</span><span id="__span-11-38"><a id="__codelineno-11-38" name="__codelineno-11-38" href="#__codelineno-11-38"></a><span class="c1"># Pass a plain callable — the registry stores it as a weakref internally,</span>
-</span><span id="__span-11-39"><a id="__codelineno-11-39" name="__codelineno-11-39" href="#__codelineno-11-39"></a><span class="c1"># so the caller must keep a strong reference (hold `self`, or assign the</span>
-</span><span id="__span-11-40"><a id="__codelineno-11-40" name="__codelineno-11-40" href="#__codelineno-11-40"></a><span class="c1"># function to a module-level name).</span>
-</span><span id="__span-11-41"><a id="__codelineno-11-41" name="__codelineno-11-41" href="#__codelineno-11-41"></a><span class="k">def</span><span class="w"> </span><span class="nf">on_namespace_change</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
-</span><span id="__span-11-42"><a id="__codelineno-11-42" name="__codelineno-11-42" href="#__codelineno-11-42"></a>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s1"> = </span><span class="si">{</span><span class="n">value</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
-</span><span id="__span-11-43"><a id="__codelineno-11-43" name="__codelineno-11-43" href="#__codelineno-11-43"></a>
-</span><span id="__span-11-44"><a id="__codelineno-11-44" name="__codelineno-11-44" href="#__codelineno-11-44"></a><span class="n">registry</span><span class="o">.</span><span class="n">subscribe</span><span class="p">(</span><span class="s1">&#39;execution&#39;</span><span class="p">,</span> <span class="n">on_namespace_change</span><span class="p">)</span>
+</span><span id="__span-11-2"><a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a>
+</span><span id="__span-11-3"><a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a><span class="n">registry</span> <span class="o">=</span> <span class="n">get_settings_registry</span><span class="p">()</span>
+</span><span id="__span-11-4"><a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a>
+</span><span id="__span-11-5"><a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a><span class="c1"># Read with provenance</span>
+</span><span id="__span-11-6"><a id="__codelineno-11-6" name="__codelineno-11-6" href="#__codelineno-11-6"></a><span class="n">value</span><span class="p">,</span> <span class="n">source</span> <span class="o">=</span> <span class="n">registry</span><span class="o">.</span><span class="n">resolve</span><span class="p">(</span><span class="s1">&#39;execution.max_threads&#39;</span><span class="p">)</span>
+</span><span id="__span-11-7"><a id="__codelineno-11-7" name="__codelineno-11-7" href="#__codelineno-11-7"></a><span class="c1"># → (4, &#39;default&#39;)   or   (8, &#39;global&#39;)   etc.</span>
+</span><span id="__span-11-8"><a id="__codelineno-11-8" name="__codelineno-11-8" href="#__codelineno-11-8"></a>
+</span><span id="__span-11-9"><a id="__codelineno-11-9" name="__codelineno-11-9" href="#__codelineno-11-9"></a><span class="c1"># Programmatic write — marks the tier *set* (workspace tier by default)</span>
+</span><span id="__span-11-10"><a id="__codelineno-11-10" name="__codelineno-11-10" href="#__codelineno-11-10"></a><span class="n">registry</span><span class="o">.</span><span class="n">set_global</span><span class="p">(</span><span class="s1">&#39;execution.max_threads&#39;</span><span class="p">,</span> <span class="mi">8</span><span class="p">)</span>
+</span><span id="__span-11-11"><a id="__codelineno-11-11" name="__codelineno-11-11" href="#__codelineno-11-11"></a><span class="n">registry</span><span class="o">.</span><span class="n">set_global</span><span class="p">(</span><span class="s1">&#39;debug.verbose_logging&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
+</span><span id="__span-11-12"><a id="__codelineno-11-12" name="__codelineno-11-12" href="#__codelineno-11-12"></a>
+</span><span id="__span-11-13"><a id="__codelineno-11-13" name="__codelineno-11-13" href="#__codelineno-11-13"></a><span class="c1"># Reset to unset</span>
+</span><span id="__span-11-14"><a id="__codelineno-11-14" name="__codelineno-11-14" href="#__codelineno-11-14"></a><span class="n">registry</span><span class="o">.</span><span class="n">reset_global</span><span class="p">(</span><span class="s1">&#39;execution.max_threads&#39;</span><span class="p">)</span>
+</span><span id="__span-11-15"><a id="__codelineno-11-15" name="__codelineno-11-15" href="#__codelineno-11-15"></a>
+</span><span id="__span-11-16"><a id="__codelineno-11-16" name="__codelineno-11-16" href="#__codelineno-11-16"></a><span class="c1"># Schema introspection</span>
+</span><span id="__span-11-17"><a id="__codelineno-11-17" name="__codelineno-11-17" href="#__codelineno-11-17"></a><span class="n">registry</span><span class="o">.</span><span class="n">has_definition</span><span class="p">(</span><span class="s1">&#39;execution.max_threads&#39;</span><span class="p">)</span>   <span class="c1"># True</span>
+</span><span id="__span-11-18"><a id="__codelineno-11-18" name="__codelineno-11-18" href="#__codelineno-11-18"></a><span class="n">descriptor</span> <span class="o">=</span> <span class="n">registry</span><span class="o">.</span><span class="n">get_definition</span><span class="p">(</span><span class="s1">&#39;execution.max_threads&#39;</span><span class="p">)</span>
+</span><span id="__span-11-19"><a id="__codelineno-11-19" name="__codelineno-11-19" href="#__codelineno-11-19"></a><span class="n">all_settings</span> <span class="o">=</span> <span class="n">registry</span><span class="o">.</span><span class="n">all_definitions</span><span class="p">()</span>           <span class="c1"># dict[str, setting]</span>
+</span><span id="__span-11-20"><a id="__codelineno-11-20" name="__codelineno-11-20" href="#__codelineno-11-20"></a>
+</span><span id="__span-11-21"><a id="__codelineno-11-21" name="__codelineno-11-21" href="#__codelineno-11-21"></a><span class="c1"># Programmatic schema definition (rarely needed)</span>
+</span><span id="__span-11-22"><a id="__codelineno-11-22" name="__codelineno-11-22" href="#__codelineno-11-22"></a><span class="n">new_setting</span> <span class="o">=</span> <span class="n">registry</span><span class="o">.</span><span class="n">define</span><span class="p">(</span>
+</span><span id="__span-11-23"><a id="__codelineno-11-23" name="__codelineno-11-23" href="#__codelineno-11-23"></a>    <span class="s1">&#39;my.dynamic_setting&#39;</span><span class="p">,</span>
+</span><span id="__span-11-24"><a id="__codelineno-11-24" name="__codelineno-11-24" href="#__codelineno-11-24"></a>    <span class="n">default</span><span class="o">=</span><span class="mi">42</span><span class="p">,</span>
+</span><span id="__span-11-25"><a id="__codelineno-11-25" name="__codelineno-11-25" href="#__codelineno-11-25"></a>    <span class="n">type_</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span>
+</span><span id="__span-11-26"><a id="__codelineno-11-26" name="__codelineno-11-26" href="#__codelineno-11-26"></a>    <span class="n">label</span><span class="o">=</span><span class="s1">&#39;My Dynamic Setting&#39;</span><span class="p">,</span>
+</span><span id="__span-11-27"><a id="__codelineno-11-27" name="__codelineno-11-27" href="#__codelineno-11-27"></a><span class="p">)</span>
+</span><span id="__span-11-28"><a id="__codelineno-11-28" name="__codelineno-11-28" href="#__codelineno-11-28"></a>
+</span><span id="__span-11-29"><a id="__codelineno-11-29" name="__codelineno-11-29" href="#__codelineno-11-29"></a><span class="c1"># JSON I/O</span>
+</span><span id="__span-11-30"><a id="__codelineno-11-30" name="__codelineno-11-30" href="#__codelineno-11-30"></a><span class="n">registry</span><span class="o">.</span><span class="n">load_from_json</span><span class="p">(</span><span class="s1">&#39;~/.haywire/settings.json&#39;</span><span class="p">,</span> <span class="n">tier</span><span class="o">=</span><span class="s1">&#39;global&#39;</span><span class="p">)</span>
+</span><span id="__span-11-31"><a id="__codelineno-11-31" name="__codelineno-11-31" href="#__codelineno-11-31"></a><span class="n">registry</span><span class="o">.</span><span class="n">load_from_json</span><span class="p">(</span><span class="s1">&#39;&lt;workspace&gt;/.haywire/settings.json&#39;</span><span class="p">,</span> <span class="n">tier</span><span class="o">=</span><span class="s1">&#39;workspace&#39;</span><span class="p">)</span>
+</span><span id="__span-11-32"><a id="__codelineno-11-32" name="__codelineno-11-32" href="#__codelineno-11-32"></a><span class="n">registry</span><span class="o">.</span><span class="n">save_to_json</span><span class="p">()</span>  <span class="c1"># writes workspace tier</span>
+</span><span id="__span-11-33"><a id="__codelineno-11-33" name="__codelineno-11-33" href="#__codelineno-11-33"></a>
+</span><span id="__span-11-34"><a id="__codelineno-11-34" name="__codelineno-11-34" href="#__codelineno-11-34"></a><span class="c1"># Subscribe (change-notification hook).</span>
+</span><span id="__span-11-35"><a id="__codelineno-11-35" name="__codelineno-11-35" href="#__codelineno-11-35"></a><span class="c1"># `namespace=None` fires on every key; &#39;execution&#39; fires on any</span>
+</span><span id="__span-11-36"><a id="__codelineno-11-36" name="__codelineno-11-36" href="#__codelineno-11-36"></a><span class="c1"># &#39;execution.*&#39; key; &#39;execution.max_threads&#39; fires only on that exact key.</span>
+</span><span id="__span-11-37"><a id="__codelineno-11-37" name="__codelineno-11-37" href="#__codelineno-11-37"></a><span class="c1"># Pass a plain callable — the registry stores it as a weakref internally,</span>
+</span><span id="__span-11-38"><a id="__codelineno-11-38" name="__codelineno-11-38" href="#__codelineno-11-38"></a><span class="c1"># so the caller must keep a strong reference (hold `self`, or assign the</span>
+</span><span id="__span-11-39"><a id="__codelineno-11-39" name="__codelineno-11-39" href="#__codelineno-11-39"></a><span class="c1"># function to a module-level name).</span>
+</span><span id="__span-11-40"><a id="__codelineno-11-40" name="__codelineno-11-40" href="#__codelineno-11-40"></a><span class="k">def</span><span class="w"> </span><span class="nf">on_namespace_change</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+</span><span id="__span-11-41"><a id="__codelineno-11-41" name="__codelineno-11-41" href="#__codelineno-11-41"></a>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s1"> = </span><span class="si">{</span><span class="n">value</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+</span><span id="__span-11-42"><a id="__codelineno-11-42" name="__codelineno-11-42" href="#__codelineno-11-42"></a>
+</span><span id="__span-11-43"><a id="__codelineno-11-43" name="__codelineno-11-43" href="#__codelineno-11-43"></a><span class="n">registry</span><span class="o">.</span><span class="n">subscribe</span><span class="p">(</span><span class="s1">&#39;execution&#39;</span><span class="p">,</span> <span class="n">on_namespace_change</span><span class="p">)</span>
 </span></code></pre></div>
 <h3 id="82-reactive-non-node-access">8.2 Reactive non-node access<a class="headerlink" href="#82-reactive-non-node-access" title="Permanent link">&para;</a></h3>
 <p>Library/UI code that wants live access to a <code>LibrarySettings</code> field instantiates the schema directly. Once the library has loaded and <code>cls._registry</code> is set, no explicit injection is needed:</p>
@@ -3779,6 +3960,13 @@
 <div class="language-python highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="n">registry</span> <span class="o">=</span> <span class="n">get_settings_registry</span><span class="p">()</span>
 </span><span id="__span-13-2"><a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a><span class="n">url</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">registry</span><span class="o">.</span><span class="n">resolve</span><span class="p">(</span><span class="s1">&#39;my_lib.api_url&#39;</span><span class="p">)</span>
 </span></code></pre></div>
+<h3 id="83-disk-edge-serialization">8.3 Disk-edge serialization<a class="headerlink" href="#83-disk-edge-serialization" title="Permanent link">&para;</a></h3>
+<p>Both tiers persist as JSON (<code>~/.haywire/settings.json</code>, <code>&lt;workspace&gt;/.haywire/settings.json</code>). The serialization contract lives entirely <strong>at the disk edge</strong> — the in-memory tier holds the live Python value (a <code>str</code>, a <code>Vec2i</code>, …) and <code>resolve()</code> returns it unchanged. Conversion to and from JSON happens only inside <code>save_to_json</code> / <code>load_from_json</code>, keyed by each setting's declared IType:</p>
+<ul>
+<li><strong>Write</strong> — <code>save_to_json</code> runs each set value through <code>_value_to_jsonable(name, value)</code>, which wraps it in the setting's <code>_type</code> and stores <code>IType(value).to_dict()</code> (a <code>{"value": …}</code> table). Keys with no code definition pass through as a plain scalar.</li>
+<li><strong>Read</strong> — <code>load_from_json</code> runs each <code>{"value": …}</code> entry through <code>_value_from_jsonable(name, raw)</code>, which calls <code>IType.from_dict(raw)</code> to rehydrate the live value before it lands in the tier. The flatten/auto-define machinery (<code>_flatten_toml</code>, <code>_process_entry</code>) is reused unchanged; only the parse (<code>json.load</code>) and the value rehydration differ.</li>
+</ul>
+<p>Because the conversion is keyed by IType, complex types round-trip losslessly — <code>COLOR</code>, <code>VEC2I</code>, <code>VEC3F</code>, … all serialize and rehydrate through the same <code>to_dict</code>/<code>from_dict</code> pair that graph JSON uses. This is a <strong>hard cutover with no migration</strong>: pre-existing <code>.toml</code> files are not read or converted. See <a href="../../../adr/0012-settings-json-persistence/">ADR 0012</a>.</p>
 <h2 id="9-test-utilities">9. Test utilities<a class="headerlink" href="#9-test-utilities" title="Permanent link">&para;</a></h2>
 <p>All test helpers live in <code>haywire.core.di.test_config</code>:</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">haywire.core.di.test_config</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
@@ -3790,7 +3978,7 @@
 </span><span id="__span-14-7"><a id="__codelineno-14-7" name="__codelineno-14-7" href="#__codelineno-14-7"></a><span class="p">)</span>
 </span></code></pre></div>
 <h3 id="91-create_test_settings_registrypredefined_settingsnone-register_builtinstrue">9.1 <code>create_test_settings_registry(predefined_settings=None, register_builtins=True)</code><a class="headerlink" href="#91-create_test_settings_registrypredefined_settingsnone-register_builtinstrue" title="Permanent link">&para;</a></h3>
-<p>Isolated registry for unit tests. <code>predefined_settings</code> keys are full keys; values are applied in <code>EXPLICIT</code> mode at the global tier.</p>
+<p>Isolated registry for unit tests. <code>predefined_settings</code> keys are full keys; values are <em>set</em> at the global tier.</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-15-1"><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a><span class="n">registry</span> <span class="o">=</span> <span class="n">create_test_settings_registry</span><span class="p">({</span><span class="s1">&#39;ui.node.bg_color&#39;</span><span class="p">:</span> <span class="s1">&#39;#ff0000&#39;</span><span class="p">})</span>
 </span><span id="__span-15-2"><a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a><span class="n">value</span><span class="p">,</span> <span class="n">source</span> <span class="o">=</span> <span class="n">registry</span><span class="o">.</span><span class="n">resolve</span><span class="p">(</span><span class="s1">&#39;ui.node.bg_color&#39;</span><span class="p">)</span>
 </span><span id="__span-15-3"><a id="__codelineno-15-3" name="__codelineno-15-3" href="#__codelineno-15-3"></a><span class="c1"># → (&#39;#ff0000&#39;, &#39;global&#39;)</span>
@@ -3810,11 +3998,11 @@
 </span><span id="__span-16-2"><a id="__codelineno-16-2" name="__codelineno-16-2" href="#__codelineno-16-2"></a>    <span class="n">predefined_global</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;test.global.font_size&#39;</span><span class="p">:</span> <span class="mi">16</span><span class="p">},</span>
 </span><span id="__span-16-3"><a id="__codelineno-16-3" name="__codelineno-16-3" href="#__codelineno-16-3"></a>    <span class="n">predefined_local</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;font_size&#39;</span><span class="p">:</span> <span class="mi">20</span><span class="p">},</span>
 </span><span id="__span-16-4"><a id="__codelineno-16-4" name="__codelineno-16-4" href="#__codelineno-16-4"></a><span class="p">)</span>
-</span><span id="__span-16-5"><a id="__codelineno-16-5" name="__codelineno-16-5" href="#__codelineno-16-5"></a><span class="k">assert</span> <span class="n">bag</span><span class="o">.</span><span class="n">font_size</span> <span class="o">==</span> <span class="mi">20</span>         <span class="c1"># local wins (step 3 of resolution chain)</span>
+</span><span id="__span-16-5"><a id="__codelineno-16-5" name="__codelineno-16-5" href="#__codelineno-16-5"></a><span class="k">assert</span> <span class="n">bag</span><span class="o">.</span><span class="n">font_size</span> <span class="o">==</span> <span class="mi">20</span>         <span class="c1"># local wins (step 1 of resolution chain)</span>
 </span><span id="__span-16-6"><a id="__codelineno-16-6" name="__codelineno-16-6" href="#__codelineno-16-6"></a><span class="k">assert</span> <span class="n">bag</span><span class="o">.</span><span class="n">is_locally_set</span><span class="p">(</span><span class="s1">&#39;font_size&#39;</span><span class="p">)</span>
 </span><span id="__span-16-7"><a id="__codelineno-16-7" name="__codelineno-16-7" href="#__codelineno-16-7"></a>
 </span><span id="__span-16-8"><a id="__codelineno-16-8" name="__codelineno-16-8" href="#__codelineno-16-8"></a><span class="n">bag</span><span class="o">.</span><span class="n">reset</span><span class="p">(</span><span class="s1">&#39;font_size&#39;</span><span class="p">)</span>
-</span><span id="__span-16-9"><a id="__codelineno-16-9" name="__codelineno-16-9" href="#__codelineno-16-9"></a><span class="k">assert</span> <span class="n">bag</span><span class="o">.</span><span class="n">font_size</span> <span class="o">==</span> <span class="mi">16</span>         <span class="c1"># falls back to global (step 5)</span>
+</span><span id="__span-16-9"><a id="__codelineno-16-9" name="__codelineno-16-9" href="#__codelineno-16-9"></a><span class="k">assert</span> <span class="n">bag</span><span class="o">.</span><span class="n">font_size</span> <span class="o">==</span> <span class="mi">16</span>         <span class="c1"># falls back to global (step 3)</span>
 </span></code></pre></div>
 <h3 id="93-settingstestcontext">9.3 <code>SettingsTestContext</code><a class="headerlink" href="#93-settingstestcontext" title="Permanent link">&para;</a></h3>
 <p>Context manager for temporary registry mutations with auto-restore:</p>
@@ -3822,8 +4010,8 @@
 </span><span id="__span-17-2"><a id="__codelineno-17-2" name="__codelineno-17-2" href="#__codelineno-17-2"></a><span class="n">registry</span> <span class="o">=</span> <span class="n">service</span><span class="o">.</span><span class="n">get_settings_registry</span><span class="p">()</span>
 </span><span id="__span-17-3"><a id="__codelineno-17-3" name="__codelineno-17-3" href="#__codelineno-17-3"></a>
 </span><span id="__span-17-4"><a id="__codelineno-17-4" name="__codelineno-17-4" href="#__codelineno-17-4"></a><span class="k">with</span> <span class="n">SettingsTestContext</span><span class="p">(</span><span class="n">registry</span><span class="p">)</span> <span class="k">as</span> <span class="n">ctx</span><span class="p">:</span>
-</span><span id="__span-17-5"><a id="__codelineno-17-5" name="__codelineno-17-5" href="#__codelineno-17-5"></a>    <span class="n">ctx</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="s1">&#39;debug.verbose_logging&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>             <span class="c1"># SET mode</span>
-</span><span id="__span-17-6"><a id="__codelineno-17-6" name="__codelineno-17-6" href="#__codelineno-17-6"></a>    <span class="n">ctx</span><span class="o">.</span><span class="n">set_override</span><span class="p">(</span><span class="s1">&#39;ui.node.font_size&#39;</span><span class="p">,</span> <span class="mi">20</span><span class="p">)</span>          <span class="c1"># OVERRIDE mode</span>
+</span><span id="__span-17-5"><a id="__codelineno-17-5" name="__codelineno-17-5" href="#__codelineno-17-5"></a>    <span class="n">ctx</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="s1">&#39;debug.verbose_logging&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>             <span class="c1"># mark the tier set</span>
+</span><span id="__span-17-6"><a id="__codelineno-17-6" name="__codelineno-17-6" href="#__codelineno-17-6"></a>    <span class="n">ctx</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="s1">&#39;ui.node.font_size&#39;</span><span class="p">,</span> <span class="mi">20</span><span class="p">)</span>
 </span><span id="__span-17-7"><a id="__codelineno-17-7" name="__codelineno-17-7" href="#__codelineno-17-7"></a>
 </span><span id="__span-17-8"><a id="__codelineno-17-8" name="__codelineno-17-8" href="#__codelineno-17-8"></a>    <span class="k">assert</span> <span class="n">registry</span><span class="o">.</span><span class="n">resolve</span><span class="p">(</span><span class="s1">&#39;debug.verbose_logging&#39;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span> <span class="ow">is</span> <span class="kc">True</span>
 </span><span id="__span-17-9"><a id="__codelineno-17-9" name="__codelineno-17-9" href="#__codelineno-17-9"></a>    <span class="k">assert</span> <span class="n">registry</span><span class="o">.</span><span class="n">resolve</span><span class="p">(</span><span class="s1">&#39;ui.node.font_size&#39;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="mi">20</span>
@@ -3831,10 +4019,10 @@
 </span><span id="__span-17-11"><a id="__codelineno-17-11" name="__codelineno-17-11" href="#__codelineno-17-11"></a><span class="c1"># After block: original values restored automatically</span>
 </span><span id="__span-17-12"><a id="__codelineno-17-12" name="__codelineno-17-12" href="#__codelineno-17-12"></a><span class="k">assert</span> <span class="n">registry</span><span class="o">.</span><span class="n">resolve</span><span class="p">(</span><span class="s1">&#39;debug.verbose_logging&#39;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span> <span class="ow">is</span> <span class="kc">False</span>
 </span></code></pre></div>
-<p>Methods: <code>set(key, value)</code>, <code>set_override(key, value)</code>, <code>reset(key)</code>.</p>
+<p>Methods: <code>set(key, value)</code>, <code>reset(key)</code>.</p>
 <h3 id="94-best-practices">9.4 Best practices<a class="headerlink" href="#94-best-practices" title="Permanent link">&para;</a></h3>
 <ul>
-<li>Always pass <code>use_temp_settings=True</code> to <code>create_test_library_system()</code> so tests don't read from the user's real <code>~/.haywire/settings.toml</code>.</li>
+<li>Always pass <code>use_temp_settings=True</code> to <code>create_test_library_system()</code> so tests don't read from the user's real <code>~/.haywire/settings.json</code>.</li>
 <li><code>predefined_local</code> uses attr names; <code>predefined_global</code> and <code>registry.set_global()</code> use full keys. Mismatches fail silently.</li>
 <li>Test both default values and local overrides on the same field.</li>
 <li>Test <code>read_only=True</code> fields raise <code>AttributeError</code> on write.</li>
@@ -3900,8 +4088,8 @@
 </table>
 <h2 id="10-open-questions">10. Open questions<a class="headerlink" href="#10-open-questions" title="Permanent link">&para;</a></h2>
 <ul>
-<li><strong>Cross-tier conflict resolution UX.</strong> When global has <code>OVERRIDE</code> and workspace has <code>EXPLICIT</code>, the global wins silently. There's no in-app affordance that surfaces this to the user (they see a value they can't change but no explanation).</li>
-<li><strong>Schema migration.</strong> Renaming a <code>setting()</code> field is currently unsupported — existing TOML and per-node serialised data still reference the old key, and there's no aliasing layer.</li>
+<li><strong>Tier provenance UX.</strong> <code>resolve()</code> returns the winning tier as <code>source</code>, but there's no in-app affordance that surfaces <em>why</em> a value resolved the way it did (e.g. "this came from the workspace JSON, not your global preference").</li>
+<li><strong>Schema migration.</strong> Renaming a <code>setting()</code> field is currently unsupported — existing JSON and per-node serialised data still reference the old key, and there's no aliasing layer.</li>
 <li><strong>Type evolution.</strong> Changing a field's <code>type_</code> (e.g. <code>int</code> → <code>float</code>) is a breaking change for existing graphs. Validators provide some safety but no migration path.</li>
 <li><strong>Per-graph settings tier.</strong> Currently graphs serialise per-node overrides only; there's no notion of "this graph as a whole forces these settings" beyond the workspace tier. Could be useful for portable graphs that bring their own configuration.</li>
 </ul>
