@@ -31,6 +31,12 @@ class BaseWidget(IWidget, ABC):
         self.ui_element: Optional[Any] = None
         self._bindings: list[PropertyBinding] = []
         self._model_dispatch_cb: Optional[Any] = None
+        # The exact DataField the dispatch cb was subscribed to. Captured at
+        # render so cleanup unsubscribes from the SAME object — promotion/demotion
+        # swaps ``port._data`` underneath us (port.unbind_field recreates the
+        # field), so re-reading ``self.port.data`` at cleanup would target the
+        # wrong event and raise "x not in list".
+        self._dispatch_field: Optional[Any] = None
         self._cleaned_up: bool = False
         self.logger = logging.getLogger(__name__)
 
@@ -101,7 +107,8 @@ class BaseWidget(IWidget, ABC):
 
             # Single model→view dispatch channel → on_model_changed.
             self._model_dispatch_cb = lambda _: self.on_model_changed(self.port.get_value())
-            self.port.data.on_changed += self._model_dispatch_cb
+            self._dispatch_field = self.port.data
+            self._dispatch_field.on_changed += self._model_dispatch_cb
 
             # Initial sync.
             self.on_model_changed(self.port.get_value())
@@ -116,12 +123,13 @@ class BaseWidget(IWidget, ABC):
         then calls the subclass hook ``_on_cleanup()``. Idempotent."""
         if self._cleaned_up:
             return
-        if self._model_dispatch_cb is not None and self.port is not None:
+        if self._model_dispatch_cb is not None and self._dispatch_field is not None:
             try:
-                self.port.data.on_changed -= self._model_dispatch_cb
+                self._dispatch_field.on_changed -= self._model_dispatch_cb
             except Exception as e:
                 self.logger.warning(f"Failed to drop model dispatch: {e}", exc_info=True)
         self._model_dispatch_cb = None
+        self._dispatch_field = None
 
         for binding in self._bindings:
             binding.deactivate()
