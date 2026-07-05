@@ -163,7 +163,7 @@ Because `CHOICES` carries identity STRING↔CHOICES adapters (both directions,
 pure passthrough), a plain string port can connect to — or be promoted from —
 a `CHOICES`-typed setting with no special-case handling.
 
-**Reacting to a single field.** The `on_change='method'` string dispatch was retired (ADR 0016); use `subscribe_field` — one adapter on the field's cell, so it hears every writer (local set, reset, registry write-through, and edge drives into a promoted port's shared cell):
+**Reacting to a single field.** The `on_change='method'` string dispatch was retired (ADR 0013); use `subscribe_field` — one adapter on the field's cell, so it hears every writer (local set, reset, registry write-through, and edge drives into a promoted port's shared cell):
 
 ```python
 def post_init(self):
@@ -199,7 +199,7 @@ div                                  ← error container (populated on validatio
 | `reset_all()` | Reset every field |
 | `is_locally_set(name)` | `True` if the field has a local instance override |
 | `subscribe(callback)` | `callback(name, value, old)` on any change to any field |
-| `subscribe_field(field, callback)` | `callback(value, old)` on changes to one field (ADR 0016) |
+| `subscribe_field(field, callback)` | `callback(value, old)` on changes to one field (ADR 0013) |
 | `unsubscribe(callback)` | Detach a callback registered by either subscribe method |
 | `to_dict()` | Returns only fields that differ from the descriptor default; `watch()` fields are never included |
 | `from_dict(data, silent=True)` | Restore values; `silent=True` writes cells directly, bypassing validation (graph load — subscribers attached later never see it) |

@@ -216,7 +216,7 @@ class Interpreter:
 
         # Create scheduler. Queue mode + depth ride on the event subscription
         # (set by the event-node author); every EventSource carries them,
-        # defaulting to BLOCK / 100. See ADR 0010.
+        # defaulting to BLOCK / 100.
         sub = flow.event_subscription
         flow.scheduler = FlowScheduler(
             flow=flow, vm=self.vm, queue_mode=sub.queue_mode, max_queue_size=sub.max_queue_size

@@ -47,9 +47,9 @@ def _vec_default(vec_cls: type) -> dict:
 def _vec_widget_config(vec_cls: type) -> dict:
     """Carry VecMeta (length + component labels) so VecWidget can render N rows.
 
-    ``orientation: "column"`` matches VecWidget's own default layout (vec_widget.py)
-    so the panel's row-alignment check (render_utils.py, ADR 0017) top-aligns the
-    label against the multi-row block instead of centering it.
+    ``orientation: "column"`` matches VecWidget's own default layout so the
+    panel's row-alignment check top-aligns the label against the multi-row block
+    instead of centering it.
     """
     meta = get_vec_meta(vec_cls)
     if meta is None:

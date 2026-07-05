@@ -19,12 +19,12 @@ T = TypeVar("T")
 
 @dataclass(frozen=True)
 class FieldChange:
-    """Payload delivered by ``DataField.on_changed`` (ADR 0016).
+    """Payload delivered by ``DataField.on_changed``.
 
     Carries the new value, the value it replaced (``None`` when unknowable,
     e.g. a manual re-fire after in-place container mutation), and the field's
     identity — for a settings cell that is the descriptor's ``storage_key``
-    (== the promoted port id, ADR 0015); ``""`` when never stamped.
+    (== the promoted port id); ``""`` when never stamped.
     """
 
     value: Any

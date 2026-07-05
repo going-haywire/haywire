@@ -8,7 +8,7 @@ Subclass and declare settings with ``setting()``:
         strength = setting[FLOAT](0.5, min=0.0, max=1.0, label='Strength')
         mode     = setting[CHOICES]('fast', widget_config={'options': ['fast', 'precise']})
 
-Cell-authoritative value model (ADR 0016, extending ADR 0013's single cell):
+Cell-authoritative value model:
     Every field's value lives in a ``DataField`` cell (the same cell a port
     uses) and ``__get__`` is a pure cell read on every path. The chain runs at
     write/seed time: a plain field's cell seeds with the descriptor default; a
@@ -58,8 +58,8 @@ class Settings:
     Base Settings class for observable settings.
 
     Subclasses declare typed settings using ``setting()``.  When a
-    ``SettingsRegistry`` is injected (extended mode), ``setting`` fields
-    gain full TOML-tier resolution.
+    ``SettingsRegistry`` is injected, ``setting`` fields gain full
+    workspace/global tier resolution.
     """
 
     # Class-level fallback for subclasses (FrameworkSettings, LibrarySettings)
@@ -76,26 +76,25 @@ class Settings:
 
     def __init__(self, registry: "SettingsRegistry | None" = None, node: "NodeData | None" = None) -> None:
         # subscribe() bookkeeping: callback -> [(cell, adapter), ...] so
-        # unsubscribe/cleanup can detach the per-field cell adapters (ADR 0016).
+        # unsubscribe/cleanup can detach the per-field cell adapters.
         self._subscriptions: dict[Callable, list[tuple["DataField", Callable]]] = {}
         # Per-field DataField cell — one cell per declared (IType-typed) field,
         # built lazily by _cell_for. The cell holds the field's value (same cell
-        # a port uses); this is the store that supersedes the old dict (P4).
+        # a port uses).
         self._cells: dict[str, "DataField"] = {}
         # The set-or-unset opinion. A cell ALWAYS holds a value (its default), so
         # cell membership can't distinguish "inheriting" from "set to the default";
-        # _set_keys carries that opinion explicitly (mirrors the registry tiers'
-        # set-or-unset design from P2). storage_key ∈ _set_keys ⇔ locally set.
+        # _set_keys carries that opinion explicitly. storage_key ∈ _set_keys ⇔
+        # locally set.
         self._set_keys: set[str] = set()
         self._registry: "SettingsRegistry | None" = registry
         self._cleaned_up: bool = False
         # Back-reference to the owning node (None for standalone Framework/Library
-        # settings). Lets promotion resolve node.ports from a bag. Constructor arg —
-        # no object.__setattr__ monkeypatch (ADR 0015).
+        # settings). Lets promotion resolve node.ports from a bag.
         self._node: "NodeData | None" = node
 
     def _is_locally_set(self, descriptor: setting) -> bool:
-        """Return True if this field has a local instance override (P4)."""
+        """Return True if this field has a local instance override."""
         return descriptor.storage_key in self._set_keys
 
     def _local_value(self, descriptor: setting) -> Any:
@@ -107,12 +106,12 @@ class Settings:
         """Write *value* into this field's cell and mark it locally set. Used by
         the trusted-restore path (from_dict); the live path goes through the
         descriptor's __set__. Opinion first, then the cell write — the cell
-        event must observe is_locally_set() already True (ADR 0016)."""
+        event must observe is_locally_set() already True."""
         self._set_keys.add(descriptor.storage_key)
         self._cell_for(descriptor).set_value(value)
 
     def _cell_for(self, descriptor: setting) -> "DataField":
-        """Return this field's DataField cell — THE read surface (ADR 0016).
+        """Return this field's DataField cell — THE read surface.
 
         A wired persistent field (FrameworkSettings/LibrarySettings) borrows
         the registry-owned cell for its key ("one cell, N views" — the registry
@@ -141,15 +140,15 @@ class Settings:
         cell = self._cells.get(key)
         if cell is None:
             # A cross-mirror field (shadow/watch of another setting) has no
-            # meaningful descriptor default — its value is the resolved global
-            # (P5 Task 2.5). Seed the cell with the resolved value so a headless
-            # graph is correct before any change fires. A plain field seeds
-            # with its own default.
+            # meaningful descriptor default — its value is the resolved global.
+            # Seed the cell with the resolved value so a headless graph is
+            # correct before any change fires. A plain field seeds with its own
+            # default.
             if descriptor.is_cross_mirror and self._registry is not None:
                 seed = self._resolve(descriptor.storage_key, descriptor._mirror_key, descriptor._default)
             else:
                 # A callable default is late-binding — evaluated ONCE here at
-                # seed time, never on the read path (ADR 0016).
+                # seed time, never on the read path.
                 default = descriptor._default
                 seed = default() if callable(default) else default
             cell = itype.create_field(default_override={"value": seed})
@@ -158,12 +157,12 @@ class Settings:
         return cell
 
     # -------------------------------------------------------------------------
-    # Extended mode: resolution chain
+    # Resolution chain (registry-wired path)
     # -------------------------------------------------------------------------
 
     def _resolve(self, field_key: str, mirror_key: str, default: Any) -> Any:
         """
-        Full resolution chain (extended mode):
+        Full resolution chain:
             local SET > workspace SET > global SET > default
         """
         from haywire.core.settings.value import SettingValue
@@ -171,7 +170,7 @@ class Settings:
         registry = self._registry
         assert (
             registry is not None
-        )  # _resolve only called from extended mode (descriptor gates on _registry is not None)
+        )  # only called when a registry is wired (callers gate on _registry is not None)
         key = mirror_key if mirror_key else field_key
         # Local override: the value lives in the field's cell, gated on _set_keys
         # (the cell always holds *a* value, so membership can't stand in for
@@ -184,7 +183,7 @@ class Settings:
 
         def _resolve_default(d: Any) -> Any:
             # Callable defaults are late-binding — evaluated at resolve/seed
-            # time only (the read path is a pure cell read, ADR 0016).
+            # time only (the read path is a pure cell read).
             return d() if callable(d) else d
 
         try:
@@ -203,7 +202,7 @@ class Settings:
             self._subscribe_setting(descriptor)
 
     def _subscribe_setting(self, descriptor: setting) -> None:
-        """Subscribe a single field's _mirror_key to the registry (extended mode, no-op if no registry)."""
+        """Subscribe a single field's _mirror_key to the registry (no-op if no registry)."""
         if self._registry is None or not descriptor._mirror_key:
             return
         self._registry.subscribe(descriptor._mirror_key, self._on_field_change)
@@ -212,11 +211,11 @@ class Settings:
         """
         Dispatched by the registry when a mirrored field's effective value changes.
 
-        Its ONE job (ADR 0016): keep a cross-mirror's shared cell authoritative —
-        write the resolved value into it so the cell (which a promoted port may
-        share) always holds the current global. Headless-correct, and the cell's
-        own event notifies any subscribers. "Unset tracks; set ignores"
-        (DECISIONS.md §A): a local override suppresses the sync.
+        Its ONE job: keep a cross-mirror's shared cell authoritative — write the
+        resolved value into it so the cell (which a promoted port may share)
+        always holds the current global. Headless-correct, and the cell's own
+        event notifies any subscribers. Unset tracks; set ignores — a local
+        override suppresses the sync.
         """
         if self._cleaned_up:
             return
@@ -229,7 +228,7 @@ class Settings:
             self._cell_for(descriptor).set_value(new_val)
 
     # -------------------------------------------------------------------------
-    # Subscription — rides the cell event (ADR 0016)
+    # Subscription — rides the cell event
     # -------------------------------------------------------------------------
 
     def subscribe(self, callback: Callable) -> None:
@@ -259,10 +258,9 @@ class Settings:
     def subscribe_field(self, field: str, callback: Callable) -> None:
         """Register ``callback(value, old)`` for changes to ONE field.
 
-        The per-field ergonomics of the retired ``on_change=`` string dispatch,
-        on the one change primitive (ADR 0016): a single adapter on the field's
-        cell, so it hears every writer — descriptor sets, resets, registry
-        write-through, edge drives. Same bookkeeping as :meth:`subscribe`:
+        A single adapter on the field's cell, so it hears every writer —
+        descriptor sets, resets, registry write-through, edge drives. Same
+        bookkeeping as :meth:`subscribe`:
         ``unsubscribe(callback)`` and ``cleanup()`` detach it. Idempotent per
         (field, callback); the same callback may watch several fields. Raises
         ``KeyError`` for an unknown field name."""
@@ -322,7 +320,7 @@ class Settings:
 
         Writes each field's cell directly via ``_write_local``: no validator,
         no equality no-op guard, the field is always marked locally set. The
-        cell write fires the cell event (ADR 0016), so subscribers attached
+        cell write fires the cell event, so subscribers attached
         BEFORE the restore do hear it; graph load restores before anything
         subscribes, so load stays unobserved. For a live, validated write use
         plain attribute assignment (``bag.field = value``).
@@ -355,10 +353,10 @@ class Settings:
             self._set_keys.discard(key)
             # Return the cell to the value the field would resolve to with no
             # override. For a mirror field that is the current global (re-seed +
-            # resume tracking, P5 Task 2.5); for a plain field it is the
-            # descriptor default. The cell is never structurally reset — only its
-            # *value* returns (DECISIONS §C3). set_value (not cell.reset) so the
-            # cell event notifies subscribers/widgets of the returned value.
+            # resume tracking); for a plain field it is the descriptor default.
+            # The cell is never structurally reset — only its *value* returns.
+            # set_value (not cell.reset) so the cell event notifies
+            # subscribers/widgets of the returned value.
             if descriptor.is_cross_mirror and self._registry is not None:
                 new = self._resolve(descriptor.storage_key, descriptor._mirror_key, descriptor._default)
             else:
@@ -380,12 +378,12 @@ class Settings:
         """Release subscriptions.  Call on node removal.
 
         Detaching the cell adapters is MANDATORY for wired persistent fields:
-        their cells are registry-owned and outlive this bag (ADR 0016)."""
+        their cells are registry-owned and outlive this bag."""
         self._cleaned_up = True
         for callback in list(self._subscriptions):
             self.unsubscribe(callback)
         # Symmetric with _subscribe_setting: drop each mirror field's registry
-        # subscription so the registry doesn't hold a stale handler (P5 Task 2.5).
+        # subscription so the registry doesn't hold a stale handler.
         if self._registry is not None:
             for descriptor in type(self)._property_settings().values():
                 if descriptor._mirror_key:

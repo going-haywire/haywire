@@ -18,7 +18,7 @@ The module reads top-to-bottom as a waterfall:
 Every field flows through the same stages. Stage 4 returns an ``apply(value)``
 callback used ONLY by the label fallback for an unknown widget key (no cell
 binding to hear); real widgets bind the field's shared cell directly and hear
-writes via ``on_changed`` (ADR 0016) — the reactive path still keeps its own
+writes via ``on_changed`` — the reactive path still keeps its own
 override-chrome (• prefix / reset button) in sync via the ``updaters`` dict. That
 chrome shows for any locally-set field, mirror or plain, unless a promoted inlet
 owns the value (the graph drives it, so reset is meaningless).
@@ -181,7 +181,7 @@ def _render_grouped(sorted_items, category_of, render_one) -> Any:
 def _render_definitions(sorted_defns: list, registry: "SettingsRegistry") -> None:
     """Render a pre-sorted list of registry-backed field descriptors.
 
-    Each widget binds the registry-owned cell for its key (ADR 0016), so
+    Each widget binds the registry-owned cell for its key, so
     external changes (JSON reload, cross-tab writes) show live via the cell's
     own event — no registry subscription, re-resolve loop, or per-widget
     throwaway field.
@@ -222,7 +222,7 @@ def _render_field_row(
     cell: "DataField | None" = None,
 ) -> Callable[[Any], None] | None:
     """Render a single label + widget row (registry path). The widget binds
-    *cell* (the registry-owned cell) for live external sync (ADR 0016).
+    *cell* (the registry-owned cell) for live external sync.
 
     *error_container* is a block-level element BEFORE the label+widget row,
     not a third flex child inside it (mirrors ``_render_reactive_field_row``):
@@ -257,8 +257,8 @@ def _render_reactive_field_row(
     # A promoted field is driven by a DATA port (see haywire.core.node.promotion).
     # The row is marked so the panel doesn't silently present an editable widget for
     # a value the graph now owns; the value display stays live (the setting and the
-    # port share one cell, so getattr(obj, attr_name) reflects the port). The port id
-    # is the truth — _promoted_port_id was retired (ADR 0014).
+    # port share one cell, so getattr(obj, attr_name) reflects the port). The
+    # presence of the port is the truth.
     from haywire.core.node.promotion import is_field_promoted
 
     is_promoted = is_field_promoted(obj, attr_name)
@@ -320,11 +320,7 @@ def _render_reactive_field_row(
             if defn._description:
                 label.tooltip(defn._description)
             if promoted_hint:
-                (
-                    ui.button(icon=hui.icon.promote)
-                    .props("flat dense size=xs")
-                    .tooltip(promoted_hint)
-                )
+                (ui.button(icon=hui.icon.promote).props("flat dense size=xs").tooltip(promoted_hint))
             else:
                 reset_btn = (
                     ui.button(icon=hui.icon.reset)
@@ -345,8 +341,8 @@ def _render_reactive_field_row(
     # rather than centering it across the whole block. Field-to-field spacing
     # comes uniformly from the parent column's gap (same for scalars and
     # vectors) — no per-field margin, which would compound unevenly between two
-    # adjacent vec rows. Scalars keep items-center. Config-driven (ADR 0017): no
-    # widget identity named here, just the "orientation" property.
+    # adjacent vec rows. Scalars keep items-center. Config-driven: no widget
+    # identity named here, just the "orientation" property.
     row_classes = _ROW_CLASSES
     if defn.widget_config.get("properties", {}).get("orientation", "") == "column":
         row_classes = _ROW_CLASSES.replace("items-center", "items-start")
@@ -364,7 +360,7 @@ def _render_reactive_field_row(
             value_apply = _resolve_widget_instance(defn, on_edit, bag=obj)
 
     def _refresh_chrome():
-        # Real widgets bind the shared cell directly (on_changed, ADR 0016), so
+        # Real widgets bind the shared cell directly (on_changed), so
         # re-pushing their value here would be a structural no-op — verified:
         # value_apply is None for every case except the unknown-widget label
         # fallback, which owns no cell subscription of its own and needs this
@@ -402,13 +398,13 @@ def _resolve_widget_instance(
 
     Falls back to a read-only label when the resolved widget key is unknown, so
     a missing widget never renders a silent blank. The model always binds the
-    field's shared ``DataField`` cell (ADR 0016): *cell* when given (the
+    field's shared ``DataField`` cell: *cell* when given (the
     registry-owned cell, registry path), else *bag*'s instance cell. Writes
     route through *on_edit* — the write-policy closure (``_bag_on_edit`` /
     ``_registry_on_edit``) — never raw into the cell.
 
     Returns ``None`` for a real widget: it hears cell writes directly via
-    ``on_changed`` (ADR 0016), so there is nothing left for a caller to push.
+    ``on_changed``, so there is nothing left for a caller to push.
     Returns the label fallback's ``apply(value)`` when the widget key is
     unknown, since that display has no cell binding of its own.
     """
@@ -423,7 +419,7 @@ def _resolve_widget_instance(
         return _build_label_widget(value)
 
     shared_cell = cell if cell is not None else (bag._cell_for(defn) if bag is not None else None)
-    assert shared_cell is not None, f"no cell for setting widget {defn._attr_name!r} (ADR 0016)"
+    assert shared_cell is not None, f"no cell for setting widget {defn._attr_name!r}"
 
     model = SettingWidgetModel(
         field_id=defn._attr_name or defn._label,
@@ -458,7 +454,7 @@ def _build_label_widget(value: Any) -> Callable[[Any], None]:
     """Display-only ``label`` widget — no ``.value`` (set_text, not BindableProperty).
 
     ``apply(value)`` exists solely for this label fallback (no cell binding);
-    real widgets hear the cell directly (ADR 0016).
+    real widgets hear the cell directly.
     """
     str_value = _escape(value)
     lbl = (

@@ -1,12 +1,14 @@
 # Promotion is a field + a direction; a setting and a promoted port are one cell, two views
 
-> **Note (ADR 0015):** The binding-signal *mechanism* below (synthetic `setting__…` port id,
-> id-as-binding-key, per-write `_set_keys` marking) is superseded by ADR 0015 — a promoted
-> port's id is the setting's `storage_key` and it is marked locally-set at promote-time. The
-> *direction* model (inlet/outlet, watch⇒outlet-only, `is_linked_lazy`) and one-cell-two-views
-> still hold.
-
 **Status:** Accepted.
+
+> The binding-signal *mechanism* originally recorded here (synthetic `setting__…` port id,
+> id-as-binding-key, per-write `_set_keys` marking) was later replaced. The current mechanism
+> — a promoted port's id IS the setting's `storage_key`, marked locally-set at promote-time —
+> is recorded in the [Amendment](#amendment--a-promoted-ports-id-is-the-settings-storage_key)
+> at the end of this ADR. The prose in the Decision section below still describes the
+> *original* synthetic-id mechanism; read it for the direction model and one-cell-two-views,
+> and the amendment for the id mechanism that shipped.
 
 Promoting a setting used to mean "create a separate DATA inlet and bridge reads back to it." The inlet owned its own `DataField`; the setting descriptor carried a `_promoted_port_id` back-reference; and `setting.__get__` had a *read-tier branch* that, when the named port was linked, returned `port.get_value()` instead of resolving the setting. That is a **two-value** design — the port has one value, the setting resolves another, and a bridge forwards reads. This ADR records replacing it with **reference-sharing**: a promoted port borrows the setting's [P4 cell](0013-settings-single-cell.md) *by reference* (via a new `DataPort.bind_field`), so a setting and its promoted port are **one cell, two views** — there is no second value, no `_promoted_port_id`, and no read-tier bridge. It is plan **P5**, the final plan of the settings↔DataField unification arc (canonical-key → tier-collapse → JSON → single-cell → **promotion-as-direction**), and it completes the arc.
 
@@ -50,3 +52,15 @@ The Plan-3 two-cell + `_promoted_port_id` read-tier-bridge design (DECISIONS §E
 - **`shadow`/`watch` are now promotable** (to an outlet; `shadow` to an inlet too), which the Plan-3 design rejected outright.
 - **Behavior-preserving for the inlet path.** A characterization suite (`tests/core/node/test_promotion_single_cell.py`) pinned the inlet path before the rework; the whole suite stayed green through the arc.
 - **The arc is complete.** P1–P5 have landed; `architecture/settings/settings-arch.md` §6.4's "Deferred to P5" forward-ref now points here.
+
+---
+
+## Amendment — a promoted port's id is the setting's storage_key
+
+*(Originally ADR 0015. Supersedes-in-part the Decision section above: the direction model and one-cell-two-views stand; only the id-encoding + set-tracking mechanism is replaced.)*
+
+**Context.** The Decision above gave a promoted port a synthetic id `setting__<accessor>__<field>` and made "port id + `DataPort.promoted`" the binding signal, requiring a parallel encode/decode scheme, id-decode helpers on `DataPort`, a `from_spec` branch that reached into settings for the port's type, a per-write `_mark_promoted_setting_set` on edge-drive, and an `object.__setattr__` `_node` monkeypatch on each settings bag.
+
+**Decision.** Keep the port as the promotion signal (still serialized in the ports block), but make its id the setting's own `descriptor.storage_key` (globally unique per node, dot-safe), deleting the encode/decode scheme. The port carries only `promoted: bool`. Promoted ports now serialize with a `recipe` (type) but no `field_data`, so `from_spec` is fully generic; the one port→settings crossing — binding the shared cell — moves to a node method `_bind_promoted_ports()` run after ports deserialize, resolving (bag, desc) via `_resolve_promoted` (match on storage_key). `promote_setting` marks the field locally-set at promote-time, so edge-drive needs no per-write hook. The `_node` back-reference becomes a constructor parameter.
+
+**Consequences.** Deleted: the id encode/decode module, the `DataPort` id-decode helpers, `from_spec`'s promoted branch, `_mark_promoted_setting_set` and its edge-drive call site, and the `_node` monkeypatch. **Demote stays trivial** (remove port + unbind) — the port being the signal means no settings-side record to clean up. **Behavioral change:** a promoted field is locally-set for the port's lifetime, so a promoted *shadow* inlet stops tracking its global until demote + explicit `reset` (deliberate deviation from "unset tracks", DECISIONS.md §A). **Hard cutover, no migration** (matches [ADR 0011](0011-collapse-settings-tiers.md)/[ADR 0012](0012-settings-json-persistence.md)): port ids change, so an old graph's edge into a promoted port goes dangling on load.

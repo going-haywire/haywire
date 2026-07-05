@@ -2,9 +2,7 @@
 """
 SettingValue — a tier's stored opinion: either set (carries a value) or unset.
 
-The pre-P2 model had a three-way ``SettingMode`` (INHERIT/EXPLICIT/OVERRIDE).
-The OVERRIDE "forced" strength was dropped (DECISIONS.md §A); a tier value is
-now simply set-or-unset, and resolution is highest-priority-set-wins.
+A tier value is simply set-or-unset; resolution is highest-priority-set-wins.
 """
 
 from dataclasses import dataclass

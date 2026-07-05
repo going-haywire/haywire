@@ -2,8 +2,8 @@
 """Node right-click 'Promote setting' submenu.
 
 Lists every ``setting()`` field on the right-clicked node that is not already
-promoted, and lets the user promote it to a DATA **inlet or outlet** per the P5
-eligibility rule (ADR 0014): a read-only ``watch()`` field is outlet-only;
+promoted, and lets the user promote it to a DATA **inlet or outlet** per the
+eligibility rule: a read-only ``watch()`` field is outlet-only;
 ``shadow()`` and plain fields can be promoted either way. The matching 'Detach
 from setting' panel on the pin menu lives in ``../port/port.py``.
 
@@ -40,7 +40,7 @@ if TYPE_CHECKING:
 def promotable_fields(node) -> list[tuple[str, str, tuple[PortType, ...]]]:
     """Return ``(accessor, field, directions)`` for every ``setting()`` on *node*
     that is not already promoted, where *directions* are the eligible
-    ``PortType``s per the two-flag rule (ADR 0014):
+    ``PortType``s per the two-flag rule:
 
     * a read-only (``watch()``) field ⇒ ``(OUTLET,)`` — it has no write path in.
     * any writable field (plain / ``shadow()``) ⇒ ``(INLET, OUTLET)``.
@@ -54,7 +54,7 @@ def promotable_fields(node) -> list[tuple[str, str, tuple[PortType, ...]]]:
         # from a settings-bag base class is offered too, not just one declared directly.
         for field, desc in type(bag)._property_settings().items():
             # already promoted -> skip. The promoted port's id is the setting's
-            # storage_key (ADR 0015).
+            # storage_key.
             if desc.storage_key in node.ports:
                 continue
             if getattr(desc, "_read_only", False):
@@ -126,9 +126,7 @@ class PromoteSettingMenuPanel(BasePanel):
             # Single collapsed entry unfolding on hover into `bag ▸ field ▸ direction`,
             # mirroring the add-node menu's `➕ Add Nodes` flyout.
             with hui.button(
-                "Promote ...", 
-                icon=hui.icon.promote, 
-                tooltip="Promote settings to inlets or outlets"
+                "Promote ...", icon=hui.icon.promote, tooltip="Promote settings to inlets or outlets"
             ):
                 with ui.menu().props(hui.FLYOUT_PROPS).style(hui.FLYOUT_Z):
                     # Bag flyouts are siblings: opening one closes the rest.

@@ -1,6 +1,6 @@
 """Promote a node setting to a DATA port (inlet or outlet).
 
-A promoted port's id IS the setting's ``descriptor.storage_key`` (ADR 0015). The port
+A promoted port's id IS the setting's ``descriptor.storage_key``. The port
 carries only a ``promoted`` bool; it borrows the setting's DataField cell by reference
 (one cell, two views). ``_resolve_promoted`` maps a promoted port id back to its
 (bag, descriptor) by matching storage_key — the single port→settings crossing.
@@ -24,7 +24,7 @@ logger = logging.getLogger(__name__)
 def is_field_promoted(bag: "Settings", field: str) -> bool:
     """True if ``<bag>.<field>`` is currently promoted to a port.
 
-    The promoted port's id IS the setting's storage_key (ADR 0015), so a promotion is
+    The promoted port's id IS the setting's storage_key, so a promotion is
     exactly the presence of that port on the owning node. False for a bag with no node."""
     node = bag._node
     if node is None:
@@ -37,7 +37,7 @@ def is_field_promoted(bag: "Settings", field: str) -> bool:
 
 def _resolve_promoted(node: "NodeData", port_id: str) -> tuple["Settings", "setting"]:
     """Resolve the (bag, descriptor) a promoted ``port_id`` binds, by matching the id
-    against each field's storage_key. The sole port→settings crossing (ADR 0015)."""
+    against each field's storage_key. The sole port→settings crossing."""
     for accessor in type(node)._settings_bags:
         bag = getattr(node, accessor)
         for _field, desc in type(bag)._property_settings().items():
@@ -65,7 +65,7 @@ def _metadata_to_port_kwargs(descriptor: "setting") -> dict:
 
     ``widget_key``/``widget_config`` are forwarded so a promoted port's inline
     canvas widget (ui/skin/base.py, keyed off ``port.widget_key``) carries the
-    setting's own stamped contract (ADR 0017) — a CHOICES field's options, a
+    setting's own stamped contract — a CHOICES field's options, a
     numeric field's min/max, or an explicit ``widget=`` override — rather than
     silently falling back to the IType's bare identity default with an empty
     widget_config. Only forwarded when non-empty: an empty override would
@@ -89,9 +89,9 @@ def _metadata_to_port_kwargs(descriptor: "setting") -> dict:
 def _bind_port(port, bag: "Settings", desc: "setting") -> None:
     """Share the setting's cell into *port* and mark the field locally-set.
 
-    THE bind+mark pair (ADR 0015): one cell, two views; a promoted field is
-    locally-set for the port's lifetime. Used by promote_setting (interactive)
-    and bind_promoted_ports (load)."""
+    THE bind+mark pair: one cell, two views; a promoted field is locally-set
+    for the port's lifetime. Used by promote_setting (interactive) and
+    bind_promoted_ports (load)."""
     port.bind_field(bag._cell_for(desc))
     bag._set_keys.add(desc.storage_key)
 
@@ -101,7 +101,7 @@ def bind_promoted_ports(node: "NodeData") -> None:
 
     Settings bags are already restored (BaseNode.from_dict runs settings before
     ports). A promoted port whose setting no longer exists degrades: stays on
-    the node, promoted but unbound (see Tier-1 plan / ADR 0015 stance)."""
+    the node, promoted but unbound."""
     for port in node.ports.values():
         if not port.promoted:
             continue
@@ -125,19 +125,19 @@ def promote_setting(
 ) -> None:
     """Promote a setting field to a DATA port in *direction*. No-op if already promoted.
 
-    Promotion = field + direction (P5, ADR 0014). The port borrows the setting's
-    DataField cell by reference (``bind_field``) — one cell, two views. The port id
-    IS the setting's ``storage_key`` (ADR 0015); the field is marked locally-set at
-    promote-time so the setting read returns the shared cell (incl. any edge-driven
-    value) with no per-write hook.
+    Promotion = field + direction. The port borrows the setting's DataField cell
+    by reference (``bind_field``) — one cell, two views. The port id IS the
+    setting's ``storage_key``; the field is marked locally-set at promote-time so
+    the setting read returns the shared cell (incl. any edge-driven value) with no
+    per-write hook.
 
     Eligibility is TWO orthogonal flag checks — not a per-kind matrix:
 
     1. ``descriptor._read_only`` (a ``watch()`` field) ⇒ **outlet only**. A
        read-only field has no write path in, so it can only be a read path out.
-    2. ``direction == OUTLET`` ⇒ the port is ``is_linked_lazy`` (Task 5 wires the
-       link-time force + ``on_changed → propagate``). Holds for EVERY promoted
-       outlet — plain, shadow, watch alike — because a promoted outlet is never
+    2. ``direction == OUTLET`` ⇒ the port is ``is_linked_lazy`` (the link-time
+       force + ``on_changed → propagate``). Holds for EVERY promoted outlet —
+       plain, shadow, watch alike — because a promoted outlet is never
        worker-``out()``-driven.
 
     Direction selects the factory (``as_inlet``/``as_outlet``) and thus the
@@ -148,7 +148,7 @@ def promote_setting(
         raise ValueError(f"promote direction must be INLET or OUTLET, got {direction!r}")
 
     desc = _descriptor(node, accessor, field)
-    pid = desc.storage_key  # the setting's own key IS the port id (ADR 0015)
+    pid = desc.storage_key  # the setting's own key IS the port id
     if pid in node.ports:
         return
 
@@ -159,7 +159,7 @@ def promote_setting(
     kw = _metadata_to_port_kwargs(desc)
     type_cls = kw.pop("type_cls")
     if direction is PortType.OUTLET:
-        # Flag check 2: every promoted outlet is is_linked_lazy (Task 5 acts on it).
+        # Flag check 2: every promoted outlet is is_linked_lazy.
         spec = type_cls.as_outlet(pid, promoted=True, is_linked_lazy=True, **kw)
     else:
         spec = type_cls.as_inlet(pid, promoted=True, **kw)
@@ -171,7 +171,7 @@ def promote_setting(
     with node.rejig(include=[pid]):
         port = node.add(spec)
     # One cell, two views: share the setting's cell by reference.
-    # A promoted field is locally-set for the port's lifetime (ADR 0015): the setting
+    # A promoted field is locally-set for the port's lifetime: the setting
     # read returns the shared cell (incl. any edge-driven value). Bare set-membership,
     # no callback — the cell already holds the value, so promoting is value-neutral.
     _bind_port(port, bag, desc)

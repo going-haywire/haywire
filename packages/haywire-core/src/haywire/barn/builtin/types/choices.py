@@ -17,5 +17,5 @@ class CHOICES(STRING):
 
     The TYPE carries only 'renders as a select'; the options are supplied by
     each setting/port via widget_config={"options": [...] | {value: label} |
-    callable}. See ADR 0017 for why options never live on the type.
+    callable}.
     """

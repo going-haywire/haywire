@@ -1,6 +1,6 @@
 ---
 status: accepted
-see-also: ADR-0015, ADR-0016
+see-also: ADR-0013, ADR-0014
 ---
 
 # Widget selection is a port contract: one stamped `widget_key`/`widget_config`, options per-use

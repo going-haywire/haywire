@@ -363,9 +363,9 @@ class BaseNode(NodeData):
             node.metadata.custom['my_plugin'] = {'version': '1.0', 'data': [...]}
             # After save/load cycle, this data will be fully restored!
         """
-        # Restore settings bags FIRST (ADR 0015): _bind_promoted_ports() below
-        # binds each promoted port's cell by reference, so the cell must already
-        # hold its loaded value before the port subscribes to it (an outlet's
+        # Restore settings bags FIRST: _bind_promoted_ports() below binds each
+        # promoted port's cell by reference, so the cell must already hold its
+        # loaded value before the port subscribes to it (an outlet's
         # on_changed → propagate must not fire mid-load through a half-built
         # graph). Settings restore mutates each cell in place, so binding a port
         # afterwards sees the restored value with no load-time propagation.
@@ -374,13 +374,13 @@ class BaseNode(NodeData):
             if isinstance(bag, Settings):
                 bag.from_dict(bag_data)
 
-        # Deserialize ports. Promoted ports are recipe-carrying plain ports here
-        # (ADR 0015); _bind_promoted_ports() below shares each one's setting cell.
+        # Deserialize ports. Promoted ports are recipe-carrying plain ports here;
+        # _bind_promoted_ports() below shares each one's setting cell.
         if "ports" in data:
             self._deserialize_ports(data["ports"])
 
-        # Bind promoted ports to their setting cells (ADR 0015) — settings restored
-        # above, ports created above. Runs before edges wire (two-phase graph load).
+        # Bind promoted ports to their setting cells — settings restored above,
+        # ports created above. Runs before edges wire (two-phase graph load).
         self._bind_promoted_ports()
 
         # Restore reactive props

@@ -5,8 +5,7 @@ SettingDescriptor — shared base for all property descriptors.
 Provides the metadata contract that UI panels rely on: _default, _type,
 _label, _description, _category, _order, _min, _max, _attr_name, plus the
 stamped widget contract (``widget_key``, ``widget_config``) computed ONCE by
-``_stamp_widget()`` from ``__set_name__`` (ADR 0017) — no render-time
-resolution, no ``choices=``/str ``widget=`` sugar.
+``_stamp_widget()`` from ``__set_name__`` — no render-time resolution.
 
 Subclass:
     setting (settings/descriptor.py) — reactive instance setting on Settings subclasses
@@ -58,13 +57,13 @@ class SettingDescriptor:
     """Maximum allowed value — used as the upper bound for numeric widgets."""
 
     _setting_key: str = ""
-    """Fully-qualified registry key — set by subclasses in extended mode."""
+    """Fully-qualified registry key — set by persistent_setting subclasses at registration."""
 
     widget_key: str = ""
-    """Widget registry key stamped ONCE at ``__set_name__`` by ``_stamp_widget()`` (ADR 0017)."""
+    """Widget registry key stamped ONCE at ``__set_name__`` by ``_stamp_widget()``."""
 
     widget_config: dict = {}
-    """Widget config (``{"properties": {...}}``) stamped ONCE at ``__set_name__`` (ADR 0017)."""
+    """Widget config (``{"properties": {...}}``) stamped ONCE at ``__set_name__``."""
 
     def __set_name__(self, owner: type, name: str) -> None:
         self._attr_name = name
@@ -91,7 +90,7 @@ class SettingDescriptor:
         self._stamp_widget()
 
     def _stamp_widget(self) -> None:
-        """Compute the final widget contract ONCE (ADR 0017). Overridden by ``setting``
+        """Compute the final widget contract ONCE. Overridden by ``setting``
         (settings/descriptor.py); the base no-op keeps other SettingDescriptor
         subclasses (if any) from needing to implement it."""
         pass

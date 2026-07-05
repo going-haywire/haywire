@@ -101,8 +101,8 @@ class SettingsNode(BaseNode):
         count_mirror = shadow(TestingSettings.default_count, label="Count Mirror", category="mirrors")
         label_mirror = shadow(TestingSettings.default_label, label="Label Mirror", category="mirrors")
         enabled = shadow(TestingSettings.default_enabled, label="Enabled", category="mirrors")
-        # ADR 0017: mirrors inherit IType (-> CHOICES/SELECT_WIDGET) from src, but
-        # NOT its per-setting widget_config — options must be re-supplied here.
+        # Mirrors inherit IType (-> CHOICES/SELECT_WIDGET) from src, but NOT its
+        # per-setting widget_config — options must be re-supplied here.
         mode = shadow(
             TestingSettings.default_mode,
             label="Mode",

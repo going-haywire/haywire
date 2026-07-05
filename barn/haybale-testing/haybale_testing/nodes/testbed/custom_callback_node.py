@@ -40,7 +40,7 @@ class TestCustomCallbackNode(BaseNode):
             )
         )
 
-        # Per-event-node queue mode (ADR 0010). Lets tests drive the realtime
+        # Per-event-node queue mode. Lets tests drive the realtime
         # drop path through a real library event node, not a hand-built
         # CallbackEvent. "block" is the safe default; "drop" → DROP + depth-1.
         self.add(

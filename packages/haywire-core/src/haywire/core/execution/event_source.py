@@ -40,7 +40,7 @@ class EventSource:
     and ``compare=False`` (so they ride along without participating in the frozen
     identity/hash — two sources differing only in queue mode must still produce
     key-stable, hashable subscriptions). System/external sources simply keep the
-    BLOCK default. See ADR 0010.
+    BLOCK default.
     """
 
     queue_mode: QueueMode = field(default=QueueMode.BLOCK, compare=False, kw_only=True)

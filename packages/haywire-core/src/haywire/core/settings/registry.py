@@ -61,7 +61,7 @@ class SettingsRegistry(BaseRegistry[Settings]):
         'global'    — loaded from ~/.haywire/settings.json, hand-edited, never saved by UI
         'workspace' — loaded from <workspace>/.haywire/settings.json, written by UI via save_to_json()
 
-    JSON Format (each value serialized via its IType's to_dict; see ADR 0012):
+    JSON Format (each value serialized via its IType's to_dict):
         { "ui": { "node": { "bg_color": { "value": "#f0f0f0" } } } }   # SET
 
     Resolution:
@@ -107,8 +107,8 @@ class SettingsRegistry(BaseRegistry[Settings]):
         self._subscribers: dict[str | None, list[weakref.ref]] = {}
         self._categories: dict[str, list[str]] = {}
 
-        # One live DataField per definition (ADR 0016) — THE cell every consumer
-        # of a persistent setting binds ("one cell, N views"). Lazily created by
+        # One live DataField per definition — THE cell every consumer of a
+        # persistent setting binds ("one cell, N views"). Lazily created by
         # cell_for(), kept current by the _notify_subscribers write-through, and
         # dropped with its definition on unregister (hot-reload).
         self._cells: dict[str, "DataField"] = {}
@@ -216,9 +216,7 @@ class SettingsRegistry(BaseRegistry[Settings]):
         cell; anything still bound to it holds a frozen, orphaned field.
 
         Subscriptions are exact-key, plus ``None`` for listen-all (debug
-        configurator). The namespace-prefix walk is gone (ADR 0016) — its only
-        consumer was the settings panel's re-resolve loop, retired when panel
-        widgets started binding the registry-owned cells directly.
+        configurator).
         """
         self._write_through_cells(changed)
         for key, value in changed.items():
@@ -237,7 +235,7 @@ class SettingsRegistry(BaseRegistry[Settings]):
                     self._subscribers[ns].remove(ref)
 
     def _write_through_cells(self, changed: dict[str, "SettingValue"]) -> None:
-        """Bring registry-owned cells current for a batch of changed keys (ADR 0016)."""
+        """Bring registry-owned cells current for a batch of changed keys."""
         for key, value in changed.items():
             cell = self._cells.get(key)
             if cell is None:
@@ -251,7 +249,7 @@ class SettingsRegistry(BaseRegistry[Settings]):
                 cell.set_value(new_val)
 
     def cell_for(self, key: str) -> DataField:
-        """THE live cell for a registered setting — one per definition (ADR 0016).
+        """THE live cell for a registered setting — one per definition.
 
         Lazily created, seeded via ``resolve(key)`` (so a tier already loaded
         from JSON seeds correctly), stamped with ``field_id = key``, and kept
@@ -345,8 +343,7 @@ class SettingsRegistry(BaseRegistry[Settings]):
         """
         Subscribe *callback* to setting changes for *key*.
 
-        *key* controls the scope (exact-key only, ADR 0016 — the namespace
-        prefix walk is gone):
+        *key* controls the scope (exact-key only):
             None            — fires on every key change (global listener)
             'ui.node.color' — fires only when that exact key changes
 
@@ -575,7 +572,7 @@ class SettingsRegistry(BaseRegistry[Settings]):
 
         widget_config: dict | None = None
         if parsed.get("choices") is not None:
-            # A settings-file "choices" entry auto-defines as CHOICES (ADR 0017):
+            # A settings-file "choices" entry auto-defines as CHOICES:
             # the file dialect never speaks widget_key/ui_widget directly, only
             # "choices" -> setting[CHOICES](..., widget_config={"options": ...}).
             from haywire.barn.builtin.types import CHOICES
@@ -734,10 +731,8 @@ class SettingsRegistry(BaseRegistry[Settings]):
         for resolution and UI immediately.
 
         Code definitions take precedence over file-defined definitions. ``type_``
-        must be an IType (e.g. ``FLOAT``); Python-type inference from ``default``
-        was removed in the widget-unification cutover. For a dropdown, pass
-        ``type_=CHOICES, widget_config={"options": [...]}`` (ADR 0017) — the
-        ``choices=``/``ui_widget=`` params are gone, no compatibility shim.
+        must be an IType (e.g. ``FLOAT``). For a dropdown, pass
+        ``type_=CHOICES, widget_config={"options": [...]}``.
         """
         with self._lock:
             self._file_defined.discard(name)
@@ -964,7 +959,7 @@ class SettingsRegistry(BaseRegistry[Settings]):
         # A callable default is late-binding (e.g. "current default skin" —
         # the source registry doesn't exist at class-definition time). It is
         # evaluated here, at resolve/seed time — never on the read path, which
-        # is a pure cell read (ADR 0016).
+        # is a pure cell read.
         default = defn._default() if callable(defn._default) else defn._default
         return default, "default"
 

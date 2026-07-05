@@ -94,9 +94,9 @@ class FrameworkSettings(Settings):
                         f"Use plain setting() without mirrors=, shadow(), or watch()."
                     )
                 val._setting_key = f"{namespace}.{name}"
-                # No self-mirror stamping (ADR 0016): _mirror_key means only
-                # "mirrors ANOTHER setting". Persistent machinery keys off
-                # _setting_key + the registry-owned cell.
+                # No self-mirror stamping: _mirror_key means only "mirrors
+                # ANOTHER setting". Persistent machinery keys off _setting_key +
+                # the registry-owned cell.
                 val.__class__ = persistent_setting
 
             # Self-registration: queue or register immediately
@@ -155,9 +155,9 @@ class LibrarySettings(Settings):
                         f"Use plain setting() without mirrors=, shadow(), or watch()."
                     )
                 val._setting_key = f"{namespace}.{name}"
-                # No self-mirror stamping (ADR 0016): _mirror_key means only
-                # "mirrors ANOTHER setting". Persistent machinery keys off
-                # _setting_key + the registry-owned cell.
+                # No self-mirror stamping: _mirror_key means only "mirrors
+                # ANOTHER setting". Persistent machinery keys off _setting_key +
+                # the registry-owned cell.
                 val.__class__ = persistent_setting
 
         # No registry touch here — registration handled by BaseRegistry hot-reload path

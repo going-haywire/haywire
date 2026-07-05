@@ -1,7 +1,7 @@
 ---
 status: draft
 doc_template: impl-spec
-scope: Settings framework — three-tier model, SettingsRegistry, cell-authoritative reads (ADR 0016) with the four-step chain at write/seed time, JSON format, FrameworkSettings, test utilities
+scope: Settings framework — three-tier model, SettingsRegistry, cell-authoritative reads (ADR 0013) with the four-step chain at write/seed time, JSON format, FrameworkSettings, test utilities
 see-also:
   - ../../components/settings/setting-canon.md
   - ../hot-reload/hot-reload-arch.md
@@ -120,7 +120,7 @@ self.filter.threshold        — look up _setting_key for this descriptor
 
 `SettingsRegistry.resolve(name, local=None)` returns `(value, source)`, where `source` is one of `'local'`, `'workspace'`, `'global'`, `'default'` — useful for UIs that want to show *why* a value is what it is.
 
-**The chain runs at write/seed time, never on a read (ADR 0016).** `setting.__get__` is a pure cell read — `obj._cell_for(self).get_value()` — on every path. The chain's job is to decide what the cell *holds*: a plain field's cell seeds with the descriptor default; a cross-mirror seeds from the resolved global and is re-synced by `_on_field_change`; a wired persistent field borrows the registry-owned cell (`registry.cell_for(key)`), which the registry's write-through keeps at the chain's current answer on every tier mutation. A callable default is late-binding and evaluates once, at seed time.
+**The chain runs at write/seed time, never on a read (ADR 0013).** `setting.__get__` is a pure cell read — `obj._cell_for(self).get_value()` — on every path. The chain's job is to decide what the cell *holds*: a plain field's cell seeds with the descriptor default; a cross-mirror seeds from the resolved global and is re-synced by `_on_field_change`; a wired persistent field borrows the registry-owned cell (`registry.cell_for(key)`), which the registry's write-through keeps at the chain's current answer on every tier mutation. A callable default is late-binding and evaluates once, at seed time.
 
 Instances constructed without a registry never involve tiers 2–3: their cells seed with descriptor defaults and hold local writes. That path is the common case for plain `Settings`/`NodeSettings` and for unit tests; see [§9 Test utilities](#9-test-utilities).
 
@@ -234,7 +234,7 @@ Section 4 traced how a `setting` value is *read* through the tier chain. Writes 
 
 #### `setting.__set__` — instance-local
 
-For `NodeSettings` and any plain `Settings` subclass, `setting.__set__` is the descriptor that runs. It records the override in `obj._set_keys` FIRST, then writes the value into the field's `DataField` cell (`obj._cell_for(self).set_value(value)`) — the cell's own `on_changed` event is the one notification channel (ADR 0016), and a subscriber's callback must observe `is_locally_set()` already true. The registry is not consulted; the write is invisible to peer instances and is never serialised to the workspace JSON. (Settings are IType-only, so every field has a cell — see [§6.4](#64-single-cell-value-model).)
+For `NodeSettings` and any plain `Settings` subclass, `setting.__set__` is the descriptor that runs. It records the override in `obj._set_keys` FIRST, then writes the value into the field's `DataField` cell (`obj._cell_for(self).set_value(value)`) — the cell's own `on_changed` event is the one notification channel (ADR 0013), and a subscriber's callback must observe `is_locally_set()` already true. The registry is not consulted; the write is invisible to peer instances and is never serialised to the workspace JSON. (Settings are IType-only, so every field has a cell — see [§6.4](#64-single-cell-value-model).)
 
 #### `persistent_setting.__set__` — registry-backed
 
@@ -272,11 +272,11 @@ Field descriptors get their `__class__` rewritten to `persistent_setting` in thr
 2. `LibrarySettings.__init_subclass__` — same, for library-side schemas using the class-signature form.
 3. `@settings(namespace=...)` decorator — the canonical pattern for `LibrarySettings`.
 
-All three paths iterate `cls._property_settings()` and set `descriptor._setting_key` + `descriptor.__class__ = persistent_setting` in one pass. (`_mirror_key` is NOT stamped — the self-mirror hack is gone, ADR 0016; `_mirror_key` means only "mirrors another setting".) Keeping the three paths in sync matters: missing the swap in one path silently restores the instance-local-only (cell) semantics for any schema registered through that path.
+All three paths iterate `cls._property_settings()` and set `descriptor._setting_key` + `descriptor.__class__ = persistent_setting` in one pass. (`_mirror_key` is NOT stamped — the self-mirror hack is gone, ADR 0013; `_mirror_key` means only "mirrors another setting".) Keeping the three paths in sync matters: missing the swap in one path silently restores the instance-local-only (cell) semantics for any schema registered through that path.
 
 #### Why the descriptor writes NO cell itself
 
-`persistent_setting.__set__` deliberately writes no cell. `registry.set_global` triggers the registry's write-through, which updates the registry-owned cell for that key (ADR 0016); the cell's `on_changed` event then notifies every borrowing instance's subscribers and bound widgets — one write, one notification, no double-fire.
+`persistent_setting.__set__` deliberately writes no cell. `registry.set_global` triggers the registry's write-through, which updates the registry-owned cell for that key (ADR 0013); the cell's `on_changed` event then notifies every borrowing instance's subscribers and bound widgets — one write, one notification, no double-fire.
 
 Code that wants to react to changes (its own writes included) calls `Settings.subscribe(...)`, which attaches one adapter per field cell — so it hears descriptor writes, registry write-through, and edge drives into a promoted shared cell uniformly.
 
@@ -292,7 +292,7 @@ The per-instance value does **not** live in a loose dict. Every declared field o
 
 Three properties follow:
 
-- **Pure cell read.** `setting.__get__` is `obj._cell_for(self).get_value()` on every path (ADR 0016) — no locally-set check, no mode branch, no chain walk. The cell is kept correct at write/seed time instead.
+- **Pure cell read.** `setting.__get__` is `obj._cell_for(self).get_value()` on every path (ADR 0013) — no locally-set check, no mode branch, no chain walk. The cell is kept correct at write/seed time instead.
 - **The cell holds its value.** Nothing is recomputed on a read — the cell *holds* the current answer: the seeded default, the local override, the synced mirror global, or (registry-owned cells) the tier write-through's latest value.
 - **`_set_keys` carries the opinion, not the cell.** A `DataField` always holds *a* value (its default), so cell membership cannot mean "overridden" the way dict membership did. `Settings._set_keys: set[str]` records the set-or-unset opinion explicitly: `__set__`/`from_dict` add the `storage_key`, `reset` discards it, and `is_locally_set(name)` ⇔ membership. Do **not** infer set-ness from `cell.get_value() != default` — that would misread "set to the default on purpose" and re-introduce the phantom-override bug P2 fixed at the tier level.
 
@@ -302,9 +302,9 @@ Three properties follow:
 
 **Settings are IType-only.** `SettingDescriptor.__set_name__` rejects any non-IType field at class-definition time, so every field has a cell — `_cell_for` always returns one and raises `TypeError` for a descriptor that somehow bypassed enforcement. There is no cell-less fallback store. (An earlier defensive `_plain: dict` for `object`-typed fields was removed once this invariant was committed to; a value that genuinely isn't an IType belongs in `self.store`/`self.cache`, not in settings.)
 
-**Promotion builds on this cell (P5, landed).** *Promotion* — a field + a direction — makes a port a second view of this same cell. See [§6.5 Promotion = field + direction](#65-promotion--field--direction) and [ADR 0014](../../adr/0014-promotion-as-direction.md). P5 retired the UI's throwaway-`DataField` bridge for node bags; ADR 0016 finished the job for the registry path — `SettingWidgetModel` always binds a real shared cell (the bag's instance cell, or `registry.cell_for(key)` for persistent settings).
+**Promotion builds on this cell (P5, landed).** *Promotion* — a field + a direction — makes a port a second view of this same cell. See [§6.5 Promotion = field + direction](#65-promotion--field--direction) and [ADR 0014](../../adr/0014-promotion-as-direction.md). P5 retired the UI's throwaway-`DataField` bridge for node bags; ADR 0013 finished the job for the registry path — `SettingWidgetModel` always binds a real shared cell (the bag's instance cell, or `registry.cell_for(key)` for persistent settings).
 
-**Registry-owned cells (ADR 0016).** A wired persistent field has no per-instance state (writes go to the tiers), so its live cell is owned by the registry — one `DataField` per definition, created lazily by `registry.cell_for(key)`, seeded via `resolve()`, kept current by the write-through in `_notify_subscribers`, and dropped with its definition on hot-reload unregister. Instances' `_cell_for` *borrows* it: one cell, N views.
+**Registry-owned cells (ADR 0013).** A wired persistent field has no per-instance state (writes go to the tiers), so its live cell is owned by the registry — one `DataField` per definition, created lazily by `registry.cell_for(key)`, seeded via `resolve()`, kept current by the write-through in `_notify_subscribers`, and dropped with its definition on hot-reload unregister. Instances' `_cell_for` *borrows* it: one cell, N views.
 
 ### 6.5 Promotion = field + direction
 
@@ -321,9 +321,9 @@ Everything else (mirror vs plain, set vs unset) rides that one `on_changed → p
 
 **Freshness — the two-part `is_linked_lazy` mechanism.** An out-of-frame write is unsafe to propagate eagerly. So (1) a linked edge on an `is_linked_lazy` outlet is forced `is_lazy`, deferring each consumer's pull to its next execution; and (2) `bind_field` on an outlet subscribes `field.on_changed → self._pipes.propagate()`, which *triggers* that lazy pull (the flag alone is inert — a lazy pipe only pulls once its sink is marked dirty). Downstream is "fresh as of the consumer's next execution"; idle-liveness is out of scope.
 
-**Mirror-cell authority.** For a promoted mirror to read correctly headless, the setting keeps a **cross-mirror** field's cell synced to the resolved global (`_cell_for` seeds it, `_on_field_change` writes it, `reset` re-seeds, `__get__` reads it, `cleanup` unsubscribes). "Cross-mirror" = a `shadow`/`watch` of *another* setting (`bool(_mirror_key)` — the self-mirror stamping is gone, ADR 0016); a persistent field's live value is the registry-owned cell instead. Once a cross-mirror field is **promoted**, it is locally-set for the port's lifetime (ADR 0015), so `_on_field_change` no longer updates its read value — the promoted shadow freezes at its promote-time value until demote + `reset`.
+**Mirror-cell authority.** For a promoted mirror to read correctly headless, the setting keeps a **cross-mirror** field's cell synced to the resolved global (`_cell_for` seeds it, `_on_field_change` writes it, `reset` re-seeds, `__get__` reads it, `cleanup` unsubscribes). "Cross-mirror" = a `shadow`/`watch` of *another* setting (`bool(_mirror_key)` — the self-mirror stamping is gone, ADR 0013); a persistent field's live value is the registry-owned cell instead. Once a cross-mirror field is **promoted**, it is locally-set for the port's lifetime (ADR 0014), so `_on_field_change` no longer updates its read value — the promoted shadow freezes at its promote-time value until demote + `reset`.
 
-**Value-less serialization; settings-first load.** A promoted port serializes with its type `recipe` like any other port, but omits `field_data` — the value round-trips through the settings block only. On load, settings bags restore *before* ports; `_bind_promoted_ports()` runs after ports deserialize and binds each promoted port to its setting's already-loaded cell (ADR 0015) — no propagation mid-load.
+**Value-less serialization; settings-first load.** A promoted port serializes with its type `recipe` like any other port, but omits `field_data` — the value round-trips through the settings block only. On load, settings bags restore *before* ports; `_bind_promoted_ports()` runs after ports deserialize and binds each promoted port to its setting's already-loaded cell (ADR 0014) — no propagation mid-load.
 
 **Freeze-on-disconnect.** Demote never resets the value (§C3): whatever the shared cell holds at demote stays. If that value diverges from the un-overridden resolution, the field is marked locally-set so the setting's own read returns it; recovery is an explicit `reset`.
 
@@ -431,12 +431,12 @@ The hot-reload pipeline at large is documented in [architecture/hot-reload](../h
 
 ### 7.3 Change notification (`shadow()` / `watch()`)
 
-Reads never re-resolve — the value lives in the cell (ADR 0016). What the framework propagates is *cell writes*: keeping the right cell current is the whole notification story, and the cell's own `on_changed` event carries every callback.
+Reads never re-resolve — the value lives in the cell (ADR 0013). What the framework propagates is *cell writes*: keeping the right cell current is the whole notification story, and the cell's own `on_changed` event carries every callback.
 
 The flow when a global value changes:
 
 1. `SettingsRegistry.set_global()` updates the in-memory tier and calls `_notify_subscribers`.
-2. `_notify_subscribers` first write-through-updates the registry-owned cell for the changed key (which notifies every widget and `Settings.subscribe` adapter bound to it), then fires exact-key subscribers plus `None` listen-all subscribers — a dict of `key → list[weakref[callback]]`. (The namespace-prefix walk is gone, ADR 0016; its only consumer was the settings panel's retired re-resolve loop.)
+2. `_notify_subscribers` first write-through-updates the registry-owned cell for the changed key (which notifies every widget and `Settings.subscribe` adapter bound to it), then fires exact-key subscribers plus `None` listen-all subscribers — a dict of `key → list[weakref[callback]]`. (The namespace-prefix walk is gone, ADR 0013; its only consumer was the settings panel's retired re-resolve loop.)
 3. For a node bag with a `shadow()`/`watch()` of that key, the registry-side callback is the instance's `_on_field_change`: it writes the re-resolved value into the cross-mirror's instance cell ("unset tracks; set ignores"), and that cell write notifies the bag's subscribers.
 
 `Settings.subscribe(cb)` attaches one adapter per field cell (`subscribe_field(field, cb)` attaches a single one for per-field reaction — the retired `on_change=` dispatch's replacement), so a subscriber hears every writer uniformly — descriptor sets, resets, registry write-through, and edge drives into a promoted shared cell. `Settings._subscribe_settings()` / `_subscribe_setting()` wire the cross-mirror registry subscriptions. `Settings.cleanup()` detaches all cell adapters (mandatory for borrowed registry-owned cells, which outlive the bag) and drops the mirror subscriptions.
@@ -445,7 +445,7 @@ The flow when a global value changes:
 
 `Settings.to_dict()` returns only fields that are locally set (`_set_keys`) and whose value differs from the descriptor default, reading each value from the field's cell (`cell.get_value()`). `watch()` fields are never included. The emitted shape is the bare value per field (`{attr_name: value}`), matching the graph settings block that `NodeBase._to_dict` writes.
 
-`Settings.from_dict(data, silent=True)` marks each field in `_set_keys` and writes the value into its cell directly, bypassing descriptor validation and the `__set__` no-op guard; `silent=False` uses normal `setattr` semantics. Either way the cell write notifies any *already-attached* subscribers (subscription rides the cell event, ADR 0016) — graph load restores bags before anything subscribes, so load-time restores stay unobserved in practice. Because the value round-trips through the field's `DataField` cell — the same IType `to_dict`/`from_dict` contract the registry uses at the disk edge ([ADR 0012](../../adr/0012-settings-json-persistence.md)) — complex ITypes (`COLOR`, `VEC2I`, …) survive a save/load cycle losslessly. See [§6.4 Single-cell value model](#64-single-cell-value-model) and [ADR 0013](../../adr/0013-settings-single-cell.md).
+`Settings.from_dict(data, silent=True)` marks each field in `_set_keys` and writes the value into its cell directly, bypassing descriptor validation and the `__set__` no-op guard; `silent=False` uses normal `setattr` semantics. Either way the cell write notifies any *already-attached* subscribers (subscription rides the cell event, ADR 0013) — graph load restores bags before anything subscribes, so load-time restores stay unobserved in practice. Because the value round-trips through the field's `DataField` cell — the same IType `to_dict`/`from_dict` contract the registry uses at the disk edge ([ADR 0012](../../adr/0012-settings-json-persistence.md)) — complex ITypes (`COLOR`, `VEC2I`, …) survive a save/load cycle losslessly. See [§6.4 Single-cell value model](#64-single-cell-value-model) and [ADR 0013](../../adr/0013-settings-single-cell.md).
 
 ## 8. Examples
 

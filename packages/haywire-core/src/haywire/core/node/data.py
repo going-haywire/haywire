@@ -65,7 +65,7 @@ class NodeData:
 
         # Settings bags (GUI-facing, serialized)
         # Each Settings subclass declared in the node class body is instantiated with
-        # the global registry injected (extended mode), then bound directly as a
+        # the global registry injected, then bound directly as a
         # node instance attribute so node authors can write self.filter.threshold.
         _registry = get_settings_registry()
         for _bag_name, _bag_cls in type(self)._settings_bags.items():

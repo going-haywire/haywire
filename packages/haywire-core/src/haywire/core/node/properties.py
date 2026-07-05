@@ -64,8 +64,8 @@ class NodeProperties(NodeSettings):
         src=NodeDefaultSkinSettings.studio_skin,
         category="appearance",
         order=10,
-        # ADR 0017: mirrors inherit IType (-> CHOICES/SELECT_WIDGET) from src,
-        # but NOT its per-setting widget_config — options must be re-supplied here.
+        # Mirrors inherit IType (-> CHOICES/SELECT_WIDGET) from src, but NOT its
+        # per-setting widget_config — options must be re-supplied here.
         widget_config={"options": _node_skin_choices},
     )
 

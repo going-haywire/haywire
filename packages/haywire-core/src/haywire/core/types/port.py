@@ -328,10 +328,10 @@ class DataPort(DataTypeIdentity):
 
         On an OUTLET this also subscribes ``field.on_changed →
         self._on_shared_field_changed`` so that when anything writes the shared
-        cell (widget edit, or the Task-2.5 registry sync) the port propagates its
-        own pipes. This is the *trigger* half of the freshness mechanism: the
+        cell (widget edit, or a registry sync) the port propagates its own pipes.
+        This is the *trigger* half of the freshness mechanism: the
         ``is_linked_lazy`` flag alone is inert — a lazy pipe only pulls once its
-        sink is marked dirty via ``propagate()`` (ADR 0014 §C4).
+        sink is marked dirty via ``propagate()``.
         """
         self._data = field
         if self.is_outlet():
@@ -352,7 +352,7 @@ class DataPort(DataTypeIdentity):
         self._data = self.type_cls.create_field(default_override=self.default)
 
     def _on_shared_field_changed(self, _value: Any) -> None:
-        """Propagate this outlet's pipes when its shared cell changes (Task 5).
+        """Propagate this outlet's pipes when its shared cell changes.
 
         Lazy edges (forced by ``is_linked_lazy``) just queue the sink pipe + mark
         it dirty; the consumer pulls the fresh value on its next execution frame.
@@ -596,9 +596,9 @@ class DataPort(DataTypeIdentity):
                 self._pipes.clear()
                 for wrapper in self.get_valid_edges():
                     # A promoted outlet writes its cell OUTSIDE the scheduler frame
-                    # (widget / registry / edge) — an eager pull then is unsafe
-                    # (ADR 0014 §C4). Forcing the edge lazy defers each consumer's
-                    # pull to its next execution; add_pipe reads is_lazy below.
+                    # (widget / registry / edge) — an eager pull then is unsafe.
+                    # Forcing the edge lazy defers each consumer's pull to its next
+                    # execution; add_pipe reads is_lazy below.
                     if self.is_linked_lazy:
                         wrapper.is_lazy = True
                     self._pipes.add_pipe(wrapper)
@@ -747,7 +747,7 @@ class DataPort(DataTypeIdentity):
 
         # Optionally serialize field data. A promoted port never persists its
         # value here — the shared setting cell round-trips via the settings block
-        # (single-writer; ADR 0015).
+        # (single-writer).
         if include_data and self._data and not self.promoted:
             if self.store_strategy.should_store(
                 is_linked=self.is_linked(),

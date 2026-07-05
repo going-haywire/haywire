@@ -2,7 +2,7 @@
 """
 setting — reactive property descriptor for Settings subclasses.
 
-Cell-authoritative model (ADR 0016, extending ADR 0013's single cell):
+Cell-authoritative model:
 
   __get__ is a pure cell read (``obj._cell_for(self).get_value()``) on every
   path — no mode branch, no resolution-chain walk. The cell is kept correct at
@@ -67,7 +67,7 @@ class setting(SettingDescriptor, Generic[T]):
         zero-argument callable returning ``T`` for late binding (e.g. the
         source registry doesn't exist at class-definition time). A callable
         default is evaluated ONCE, when the field's cell seeds — never per
-        read (the read path is a pure cell read, ADR 0016). When a
+        read (the read path is a pure cell read). When a
         ``validator`` is set, the default is checked at construction time and
         ``ValueError`` is raised if it fails.
 
@@ -91,7 +91,7 @@ class setting(SettingDescriptor, Generic[T]):
         Bounds passed to numeric widgets (``NumberDrag``). UI-only — NOT
         enforced on direct writes. Use ``validator`` if you need runtime
         enforcement. Folded into ``widget_config["properties"]`` at
-        ``__set_name__`` time (ADR 0017).
+        ``__set_name__`` time.
 
     widget : dict or None
         Explicit widget contract built via ``WidgetCls.config(...)`` (see
@@ -190,7 +190,7 @@ class setting(SettingDescriptor, Generic[T]):
         self._validator = validator
         self._metadata: dict = metadata or {}
         self._attr_name: str = ""  # set by __set_name__
-        self._setting_key: str = ""  # set by @node decorator (extended mode)
+        self._setting_key: str = ""  # namespaced registry key, set at registration
         self._mirror_descriptor: "SettingDescriptor | None" = None  # set when mirrors= is a descriptor
 
         if self._validator is not None and default is not None and not self.validate(default):
@@ -215,7 +215,7 @@ class setting(SettingDescriptor, Generic[T]):
         else:
             self._mirror_key = ""
 
-        # Stamp the widget contract now if the IType is already known (ADR 0017):
+        # Stamp the widget contract now if the IType is already known:
         # an explicit type_= (registry.define()/_auto_define(), or any setting(...)
         # built outside a class body) or a mirror that inherited a resolved IType
         # above. A class-body ``setting[T](...)`` field with no explicit type_=
@@ -240,10 +240,9 @@ class setting(SettingDescriptor, Generic[T]):
     def is_cross_mirror(self) -> bool:
         """True for a shadow/watch field that tracks another setting.
 
-        ``_mirror_key`` means only that (ADR 0016 — the self-mirror stamping is
-        gone): a genuine shadow()/watch() points it at another setting's key,
-        and the instance cell is kept authoritative for it (P5 Task 2.5) —
-        seeded from the resolved global, synced by ``_on_field_change``."""
+        ``_mirror_key`` means only that: a genuine shadow()/watch() points it at
+        another setting's key, and the instance cell is kept authoritative for
+        it — seeded from the resolved global, synced by ``_on_field_change``."""
         return bool(self._mirror_key)
 
     def validate(self, value: Any) -> bool:
@@ -253,8 +252,8 @@ class setting(SettingDescriptor, Generic[T]):
         return bool(self._validator(value))
 
     def _stamp_widget(self) -> None:
-        """Compute the final widget contract ONCE (ADR 0017): explicit widget=
-        wins, else the field IType's declared default. No render-time resolution."""
+        """Compute the final widget contract ONCE: explicit widget= wins, else
+        the field IType's declared default. No render-time resolution."""
         identity = getattr(self._type, "class_identity", None)
         spec = self._widget_spec or {}
         self.widget_key: str = spec.get("key") or (getattr(identity, "widget_key", None) or "")
@@ -294,14 +293,14 @@ class setting(SettingDescriptor, Generic[T]):
         if obj is None:
             return self  # class-level access -> descriptor itself
 
-        # THE read path (ADR 0016): a pure cell read — no mode branch, no chain
-        # walk, no set-or-unset check. The cell is kept correct at write/seed
-        # time instead: seeded with the default (plain field) or the resolved
-        # global (cross-mirror), written by descriptor sets / edge drives /
+        # THE read path: a pure cell read — no mode branch, no chain walk, no
+        # set-or-unset check. The cell is kept correct at write/seed time
+        # instead: seeded with the default (plain field) or the resolved global
+        # (cross-mirror), written by descriptor sets / edge drives /
         # _on_field_change, and for a wired persistent field _cell_for returns
         # the registry-owned cell the write-through keeps current. A promoted
-        # port SHARES this cell (bind_field, ADR 0015), so reading the setting
-        # and reading the port hit the same object.
+        # port SHARES this cell (bind_field), so reading the setting and reading
+        # the port hit the same object.
         return obj._cell_for(self).get_value()
 
     def __set__(self, obj: Any, value: Any) -> None:
@@ -328,9 +327,9 @@ class setting(SettingDescriptor, Generic[T]):
         # The value lives in the field's DataField cell; _set_keys carries the
         # set-or-unset opinion (the cell always holds a value, so it can't).
         # Mark the opinion BEFORE the cell write: set_value fires the cell
-        # event — the one notification channel (ADR 0016) — and a subscriber
-        # (e.g. the panel's dot-prefix/reset-button updater) must see
-        # is_locally_set() already True inside its callback.
+        # event — the one notification channel — and a subscriber (e.g. the
+        # panel's dot-prefix/reset-button updater) must see is_locally_set()
+        # already True inside its callback.
         obj._set_keys.add(self.storage_key)
         obj._cell_for(self).set_value(value)
 
@@ -347,15 +346,14 @@ class persistent_setting(setting, Generic[T]):
     Behavior change vs `setting`:
         Writes call ``registry.set_global(setting_key, value)`` followed by
         ``registry.save_to_json_debounced()``. The registry's write-through
-        then updates its owned cell for this key (ADR 0016), whose event
-        notifies every borrowing instance's subscribers and bound widgets —
+        then updates its owned cell for this key, whose event notifies every
+        borrowing instance's subscribers and bound widgets —
         so this class deliberately writes NO cell itself.
 
-    Falls back to ``super().__set__`` (parent's local-store write) when the
-    instance has no registry wired (e.g. test fixtures in simple mode) or
-    when the field has no namespaced ``_setting_key``. This preserves
-    backwards compatibility with tests that construct schemas without a
-    registry.
+    Falls back to ``super().__set__`` (a per-instance cell write) when the
+    instance has no registry wired (e.g. a test fixture) or when the field has
+    no namespaced ``_setting_key``, so a schema constructed without a registry
+    still stores its value on the instance.
     """
 
     def __set__(self, obj: Any, value: Any) -> None:
@@ -370,9 +368,9 @@ class persistent_setting(setting, Generic[T]):
 
         registry: "SettingsRegistry | None" = getattr(obj, "_registry", None)
         if registry is None or not self._setting_key:
-            # No registry wired (test fixture / simple mode), or no
-            # namespaced key — fall back to local-store write so existing
-            # behaviour is preserved (incl. its resolved-value no-op guard).
+            # No registry wired (test fixture), or no namespaced key — fall back
+            # to the per-instance cell write (incl. its resolved-value no-op
+            # guard).
             super().__set__(obj, value)
             return
 
@@ -383,8 +381,8 @@ class persistent_setting(setting, Generic[T]):
 
         # registry.set_global fires _notify_subscribers → the registry-owned
         # cell's write-through → the cell event notifies every borrowing
-        # instance (ADR 0016). We MUST NOT also write the cell here, or
-        # subscribers fire twice.
+        # instance. We MUST NOT also write the cell here, or subscribers fire
+        # twice.
         registry.set_global(self._setting_key, value)
         registry.save_to_json_debounced()
 

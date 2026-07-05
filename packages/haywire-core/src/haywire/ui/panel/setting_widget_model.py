@@ -1,15 +1,15 @@
 """SettingWidgetModel — adapts a settings field to the ``WidgetModel`` surface.
 
 Lets the framework's port-bound ``BaseWidget`` subclasses render a *setting*.
-The adapter ALWAYS binds the field's shared ``DataField`` cell (ADR 0016): the
-bag's instance cell (``bag._cell_for(descriptor)``) or, for a persistent
-setting rendered from the registry, the registry-owned cell
+The adapter ALWAYS binds the field's shared ``DataField`` cell: the bag's
+instance cell (``bag._cell_for(descriptor)``) or, for a persistent setting
+rendered from the registry, the registry-owned cell
 (``registry.cell_for(key)``) — so any write into that cell (descriptor set,
 registry write-through, edge drive) shows live via ``on_changed``. Writes are
 NOT applied raw to the cell: the model forwards them verbatim to an injected
 ``on_edit`` callback, which implements whatever write policy applies
 (instance: validate → setattr; registry: set_global → debounced save) — see
-``render_utils._bag_on_edit`` / ``_registry_on_edit`` (Task 9). The model
+``render_utils._bag_on_edit`` / ``_registry_on_edit``. The model
 itself carries no policy at all; it is a thin adapter.
 """
 
@@ -37,9 +37,9 @@ class SettingWidgetModel:
     ) -> None:
         self.id = field_id
         self.widget_config = widget_config or {}
-        # ALWAYS the shared cell (ADR 0016) — the bag's instance cell or the
-        # registry-owned cell. Any write into it shows live via on_changed;
-        # there is no throwaway-field fallback.
+        # ALWAYS the shared cell — the bag's instance cell or the registry-owned
+        # cell. Any write into it shows live via on_changed; there is no
+        # throwaway-field fallback.
         self._cell: DataField = cell
         self._on_edit = on_edit
 
