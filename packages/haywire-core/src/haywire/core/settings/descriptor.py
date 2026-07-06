@@ -146,6 +146,18 @@ class setting(SettingDescriptor, Generic[T]):
         Free-form dict for application-specific metadata. The framework
         doesn't consult it; downstream code (custom renderers, introspection)
         can store anything here. Defaults to ``{}``.
+
+    ui_disabled : bool
+        When ``True``, the field starts in a disabled state in the panel —
+        rendered via Quasar ``:disable`` (or reduced opacity for container
+        widgets) and blocked from user interaction — without affecting
+        reads/writes at all (a normal ``setattr`` still works). This is only
+        the SEED for ``Settings._ui_disabled_keys``; the live per-instance
+        state is controlled via ``Settings.set_ui_disabled(name, bool)`` /
+        ``is_ui_disabled(name)`` and announced on the dedicated UI-state
+        channel (``subscribe_ui_state``) — never on the value/cell channel.
+        See also the ``enabled_when`` metadata convention for declarative,
+        same-bag reactive disabling (documented in setting-canon.md).
     """
 
     def __init__(
@@ -165,6 +177,7 @@ class setting(SettingDescriptor, Generic[T]):
         type_: "type[T] | None" = None,
         validator: "Callable | None" = None,
         metadata: "dict | None" = None,
+        ui_disabled: bool = False,
     ) -> None:
         self._default = default
         # IType cutover: an explicit type_= must be an IType (Python-type inference
@@ -189,6 +202,7 @@ class setting(SettingDescriptor, Generic[T]):
         self._read_only = read_only
         self._validator = validator
         self._metadata: dict = metadata or {}
+        self._ui_disabled: bool = ui_disabled
         self._attr_name: str = ""  # set by __set_name__
         self._setting_key: str = ""  # namespaced registry key, set at registration
         self._mirror_descriptor: "SettingDescriptor | None" = None  # set when mirrors= is a descriptor
