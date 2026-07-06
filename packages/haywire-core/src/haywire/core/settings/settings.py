@@ -37,6 +37,7 @@ from typing import Any, Callable, ClassVar, TYPE_CHECKING
 
 from typing_extensions import dataclass_transform
 
+from haywire.core.types.enums import PortType
 from haywire.core.types.interface import IType
 
 from .descriptor import persistent_setting, setting, shadow, watch
@@ -109,6 +110,15 @@ class Settings:
         # Back-reference to the owning node (None for standalone Framework/Library
         # settings). Lets promotion resolve node.ports from a bag.
         self._node: "NodeData | None" = node
+        # Promotion state — the SINGLE source of truth for which fields are
+        # currently promoted to a DATA port and in which direction. Mirrors the
+        # per-instance, storage_key-keyed shape of _set_keys/_ui_disabled_keys,
+        # but (unlike those) DOES serialize — into this bag's "promoted" block —
+        # because a promoted port is regenerated from here on load rather than
+        # persisted in the ports block. A field has at most one promoted port
+        # (its id IS the storage_key), so this is a single direction per key,
+        # never a set. See ADR 0019 and haywire.core.node.promotion.
+        self._promoted_keys: dict[str, PortType] = {}
 
     def _is_locally_set(self, descriptor: setting) -> bool:
         """Return True if this field has a local instance override."""
@@ -126,6 +136,43 @@ class Settings:
         event must observe is_locally_set() already True."""
         self._set_keys.add(descriptor.storage_key)
         self._cell_for(descriptor).set_value(value)
+
+    def set_promoted(self, name: str, direction: PortType) -> None:
+        """Record that field *name* is promoted to a port in *direction*.
+
+        The single source of truth for promotion. Called by
+        ``promote_setting`` (interactive AND load-time regen). Unknown *name*:
+        logs a warning and ignores (catches typos / stale field names).
+        Purely a promotion record — does not touch the field's value cell.
+        """
+        fields = type(self)._property_settings()
+        if name not in fields:
+            logger.warning("set_promoted: unknown field %r on %s — ignored", name, type(self).__name__)
+            return
+        self._promoted_keys[fields[name].storage_key] = direction
+
+    def clear_promoted(self, name: str) -> None:
+        """Clear field *name*'s promotion record (no-op if absent/unknown).
+
+        Called by ``demote_setting``. Mirror of :meth:`set_promoted`."""
+        fields = type(self)._property_settings()
+        if name not in fields:
+            return
+        self._promoted_keys.pop(fields[name].storage_key, None)
+
+    def is_promoted(self, name: str) -> bool:
+        """True if field *name* is currently promoted. False for unknown names."""
+        fields = type(self)._property_settings()
+        if name not in fields:
+            return False
+        return fields[name].storage_key in self._promoted_keys
+
+    def get_promoted_direction(self, name: str) -> PortType | None:
+        """The direction field *name* is promoted to, or None if not promoted."""
+        fields = type(self)._property_settings()
+        if name not in fields:
+            return None
+        return self._promoted_keys.get(fields[name].storage_key)
 
     def _cell_for(self, descriptor: setting) -> "DataField":
         """Return this field's DataField cell — THE read surface.
