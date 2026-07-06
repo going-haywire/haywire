@@ -53,8 +53,8 @@ def test_container_methods_key_consistently_simple_mode():
     bag = plain()
     bag.strength = 0.9
 
-    # to_dict surfaces the override under the attr name (public shape unchanged)
-    assert bag.to_dict() == {"strength": 0.9}
+    # to_dict surfaces the override under the attr name, nested under "values"
+    assert bag.to_dict() == {"values": {"strength": 0.9}, "promoted": {}}
     # is_locally_set reads the same key the setter wrote
     assert bag.is_locally_set("strength") is True
     # reset removes it
@@ -62,7 +62,7 @@ def test_container_methods_key_consistently_simple_mode():
     assert bag.is_locally_set("strength") is False
     assert bag.strength == 0.5
     # from_dict restores it
-    bag.from_dict({"strength": 0.7})
+    bag.from_dict({"values": {"strength": 0.7}, "promoted": {}})
     assert bag.strength == 0.7
     assert bag.is_locally_set("strength") is True
 

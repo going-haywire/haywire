@@ -87,9 +87,9 @@ class TestSimpleModeCharacterization:
 
     def test_to_dict_returns_only_changed_from_default(self):
         bag = SimpleBag()
-        assert bag.to_dict() == {}
+        assert bag.to_dict() == {"values": {}, "promoted": {}}
         bag.strength = 0.9
-        assert bag.to_dict() == {"strength": 0.9}
+        assert bag.to_dict() == {"values": {"strength": 0.9}, "promoted": {}}
 
     def test_from_dict_notifies_attached_subscribers(self):
         # Subscription rides the cell event (ADR 0016): the restore writes the
@@ -98,7 +98,7 @@ class TestSimpleModeCharacterization:
         bag = SimpleBag()
         calls = []
         bag.subscribe(lambda *a: calls.append(a))
-        bag.from_dict({"strength": 0.9})
+        bag.from_dict({"values": {"strength": 0.9}, "promoted": {}})
         assert bag.strength == 0.9
         assert calls == [("strength", 0.9, 0.5)]
 
@@ -135,7 +135,7 @@ class TestSimpleModeCharacterization:
         bag = SimpleBag()
         bag.strength = 0.5  # equal to default → echo-guarded no-op
         assert not bag.is_locally_set("strength")
-        assert bag.to_dict() == {}
+        assert bag.to_dict() == {"values": {}, "promoted": {}}
 
     def test_subscribe_callback_shape(self):
         bag = SimpleBag()
@@ -173,8 +173,8 @@ class TestExtendedModeCharacterization:
         registry, bag = create_test_bag()
         bag.font_size = 18
         d = bag.to_dict()
-        assert d == {"font_size": 18}
-        assert "bg_color" not in d
+        assert d == {"values": {"font_size": 18}, "promoted": {}}
+        assert "bg_color" not in d["values"]
 
     def test_shadow_unset_tracks_global_change(self):
         registry, bag, key = _make_mirror_bag()
@@ -210,7 +210,7 @@ class TestComplexITypeRoundTrip:
         bag = ComplexBag()
         bag.offset = [3, 7]
         data = bag.to_dict()
-        assert data == {"offset": [3, 7]}
+        assert data == {"values": {"offset": [3, 7]}, "promoted": {}}
 
         bag2 = ComplexBag()
         bag2.from_dict(data)
@@ -273,26 +273,26 @@ class TestCellBackedSerialization:
         registry, bag = create_test_bag()
         bag.font_size = 18
         d = bag.to_dict()
-        assert d == {"font_size": 18}  # bg_color inherited/unset → omitted
+        assert d == {"values": {"font_size": 18}, "promoted": {}}  # bg_color inherited/unset → omitted
 
     def test_to_dict_wire_shape_is_bare_value(self):
         """The graph settings block stores the BARE value, not the IType
         {"value": ...} dict — this matches NodeBase._to_dict → bag.to_dict()."""
         bag = SimpleBag()
         bag.strength = 0.9
-        assert bag.to_dict() == {"strength": 0.9}
+        assert bag.to_dict() == {"values": {"strength": 0.9}, "promoted": {}}
 
     def test_complex_type_wire_shape_is_bare_value(self):
         bag = ComplexBag()
         bag.offset = [3, 7]
         d = bag.to_dict()
         # Bare list, not {"value": [3, 7]}
-        assert d == {"offset": [3, 7]}
+        assert d == {"values": {"offset": [3, 7]}, "promoted": {}}
 
     def test_from_dict_populates_cell_and_marks_set_keys(self):
         bag = SimpleBag()
         descriptor = type(bag)._property_settings()["strength"]
-        bag.from_dict({"strength": 0.9})
+        bag.from_dict({"values": {"strength": 0.9}, "promoted": {}})
         assert bag._is_locally_set(descriptor)
         assert bag._cells["strength"].get_value() == 0.9
 

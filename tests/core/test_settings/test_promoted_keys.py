@@ -12,7 +12,10 @@ additions to this file. Panel/port wiring is tested at higher layers.
 
 import logging
 
+import pytest
+
 from haywire.core.settings import Settings, setting
+from haywire.core.settings.settings import PromotedFormatError
 from haywire.core.types.enums import PortType
 from haywire.barn.builtin.types import BOOL, FLOAT
 
@@ -78,3 +81,51 @@ class TestPromotedAccessors:
         bag.alpha = 9.0
         assert bag.alpha == 9.0
         assert bag.is_promoted("alpha") is True
+
+
+class TestSerializationShape:
+    def test_to_dict_new_shape_empty(self):
+        bag = PromoSettings()
+        d = bag.to_dict()
+        assert d == {"values": {}, "promoted": {}}
+
+    def test_to_dict_includes_values_and_promotions(self):
+        bag = PromoSettings()
+        bag.alpha = 5.0  # locally set, differs from default
+        bag.set_promoted("beta", PortType.OUTLET)
+        d = bag.to_dict()
+        assert d["values"] == {"alpha": 5.0}
+        # promoted is keyed by storage_key; for a plain field storage_key == attr name
+        assert d["promoted"] == {"beta": "outlet"}
+
+    def test_from_dict_restores_values_and_promotions(self):
+        bag = PromoSettings()
+        bag.from_dict({"values": {"alpha": 7.0}, "promoted": {"beta": "inlet"}})
+        assert bag.alpha == 7.0
+        assert bag.is_promoted("beta") is True
+        assert bag.get_promoted_direction("beta") is PortType.INLET
+
+    def test_round_trip(self):
+        bag = PromoSettings()
+        bag.beta = 42.0
+        bag.set_promoted("alpha", PortType.INLET)
+        restored = PromoSettings()
+        restored.from_dict(bag.to_dict())
+        assert restored.beta == 42.0
+        assert restored.get_promoted_direction("alpha") is PortType.INLET
+
+    def test_from_dict_old_flat_shape_raises(self):
+        bag = PromoSettings()
+        with pytest.raises(PromotedFormatError):
+            bag.from_dict({"alpha": 5.0})  # pre-refactor flat shape
+
+    def test_from_dict_empty_is_not_an_error(self):
+        bag = PromoSettings()
+        bag.from_dict({})  # a bag that serialized nothing — must not raise
+        assert bag.alpha == 1.0
+
+    def test_from_dict_missing_promoted_section_defaults_empty(self):
+        bag = PromoSettings()
+        bag.from_dict({"values": {"alpha": 3.0}})  # no "promoted" key
+        assert bag.alpha == 3.0
+        assert bag._promoted_keys == {}

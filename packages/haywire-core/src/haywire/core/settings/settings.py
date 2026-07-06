@@ -53,6 +53,15 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
+class PromotedFormatError(Exception):
+    """A settings dict is in the pre-promotion-refactor flat ``{field: value}``
+    shape and cannot be restored by the current ``{"values", "promoted"}``
+    loader. Raised by ``Settings.from_dict``; the node loader catches it,
+    resets the bag to defaults, and attaches a WARNING to the node (see
+    ``BaseNode._initialize_from_dict``). Hard breaking change — no migration
+    (ADR 0019)."""
+
+
 @dataclass_transform(field_specifiers=(setting, shadow, watch))
 class Settings:
     """
@@ -360,15 +369,17 @@ class Settings:
     # -------------------------------------------------------------------------
 
     def to_dict(self) -> dict:
-        """
-        Return only fields whose value differs from the descriptor default.
+        """Serialize to ``{"values": {...}, "promoted": {...}}``.
 
-        Extended mode: only locally-set fields (not inherited from global tiers).
-        Simple mode: any field whose current value differs from its default.
-        read_only (mirrored) fields are never serialized.
+        ``values``: only fields whose value differs from the descriptor default
+        and are locally set (read_only/mirrored fields are never serialized) —
+        same value-selection rule as before, now nested under a key.
+        ``promoted``: this bag's promotion records, ``storage_key → direction``
+        (``"inlet"``/``"outlet"``). A promoted port is regenerated from this on
+        load — it is NOT persisted in the node's ports block (ADR 0019).
         """
         fields = type(self)._property_settings()
-        result: dict = {}
+        values: dict = {}
         for name, descriptor in fields.items():
             if descriptor._read_only:
                 continue
@@ -376,30 +387,40 @@ class Settings:
                 continue
             val = self._local_value(descriptor)
             if val != descriptor._default:
-                result[name] = val
-        return result
+                values[name] = val
+        promoted = {key: direction.value for key, direction in self._promoted_keys.items()}
+        return {"values": values, "promoted": promoted}
 
     def from_dict(self, data: dict) -> None:
-        """Restore values from *data* — the trusted-restore path (graph load).
+        """Restore from the ``{"values", "promoted"}`` shape (trusted graph load).
 
-        Writes each field's cell directly via ``_write_local``: no validator,
-        no equality no-op guard, the field is always marked locally set. The
-        cell write fires the cell event, so subscribers attached
-        BEFORE the restore do hear it; graph load restores before anything
-        subscribes, so load stays unobserved. For a live, validated write use
-        plain attribute assignment (``bag.field = value``).
+        Values restore exactly as before (direct cell write via ``_write_local``,
+        no validator, marked locally set). Promotion records restore into
+        ``_promoted_keys``; the node loader then regenerates the actual ports
+        (``regenerate_promoted_ports``). Unknown value keys and read_only fields
+        are skipped without error (forward compatibility within the new shape).
 
-        Unknown keys are ignored without error (forward compatibility).
-        read_only fields are skipped without error.
+        Raises ``PromotedFormatError`` if *data* is non-empty but lacks the
+        ``"values"`` key — the pre-refactor flat shape. An empty ``{}`` (a bag
+        that serialized nothing) is valid and restores nothing.
         """
+        if data and "values" not in data:
+            raise PromotedFormatError(
+                f"{type(self).__name__}: settings dict is in the pre-promotion-refactor "
+                f"flat format (no 'values' key); expected {{'values', 'promoted'}}. "
+                f"This graph predates ADR 0019 and its settings for this bag cannot be "
+                f"restored; the node will load with default settings."
+            )
         fields = type(self)._property_settings()
-        for attr_name, value in data.items():
+        for attr_name, value in data.get("values", {}).items():
             if attr_name not in fields:
                 continue
             descriptor = fields[attr_name]
             if descriptor._read_only:
                 continue
             self._write_local(descriptor, value)
+        for key, direction_str in data.get("promoted", {}).items():
+            self._promoted_keys[key] = PortType(direction_str)
 
     # -------------------------------------------------------------------------
     # Reset

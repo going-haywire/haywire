@@ -95,13 +95,13 @@ class TestSimpleMode:
 class TestSerialization:
     def test_to_dict_excludes_defaults(self):
         bag = SimpleSettings()
-        assert bag.to_dict() == {}
+        assert bag.to_dict() == {"values": {}, "promoted": {}}
 
     def test_to_dict_includes_non_defaults(self):
         bag = SimpleSettings()
         bag.strength = 0.9
         d = bag.to_dict()
-        assert d == {"strength": 0.9}
+        assert d == {"values": {"strength": 0.9}, "promoted": {}}
 
     def test_from_dict_notifies_attached_subscribers(self):
         # Subscription rides the cell event (ADR 0016): any cell write —
@@ -111,7 +111,7 @@ class TestSerialization:
         bag = SimpleSettings()
         calls = []
         bag.subscribe(lambda *a: calls.append(a))
-        bag.from_dict({"strength": 0.9})
+        bag.from_dict({"values": {"strength": 0.9}, "promoted": {}})
         assert bag.strength == 0.9
         assert calls == [("strength", 0.9, 0.5)]
 
@@ -136,7 +136,7 @@ class TestSerialization:
 
     def test_from_dict_unknown_keys_ignored(self):
         bag = SimpleSettings()
-        bag.from_dict({"unknown_key": 42, "strength": 0.7})
+        bag.from_dict({"values": {"unknown_key": 42, "strength": 0.7}, "promoted": {}})
         assert bag.strength == 0.7
 
 
@@ -173,7 +173,7 @@ class TestSubscribeNotification:
         # (ADR 0016). Graph load restores bags before anything subscribes, so
         # load-time restores stay unobserved in practice.
         bag, log = self._bag_with_log()
-        bag.from_dict({"strength": 0.9})
+        bag.from_dict({"values": {"strength": 0.9}, "promoted": {}})
         assert log == [("strength", 0.9, 0.5)]
 
 
@@ -196,11 +196,11 @@ class TestReadOnly:
     def test_read_only_not_serialized(self):
         bag = ReadOnlySettings()
         d = bag.to_dict()
-        assert "read_only_field" not in d
+        assert "read_only_field" not in d["values"]
 
     def test_read_only_not_restored_from_dict(self):
         bag = ReadOnlySettings()
-        bag.from_dict({"read_only_field": True})
+        bag.from_dict({"values": {"read_only_field": True}, "promoted": {}})
         assert bag.read_only_field is False  # unchanged
 
 
@@ -232,9 +232,9 @@ class TestExtendedMode:
         registry, bag = create_test_bag()
         bag.font_size = 18
         d = bag.to_dict()
-        assert "font_size" in d
-        assert d["font_size"] == 18
-        assert "bg_color" not in d  # not locally set
+        assert "font_size" in d["values"]
+        assert d["values"]["font_size"] == 18
+        assert "bg_color" not in d["values"]  # not locally set
 
 
 # ---------------------------------------------------------------------------
@@ -432,7 +432,7 @@ class TestNodeDirectBinding:
         n.filter.strength = 0.9
 
         data = n._to_dict()
-        assert data["settings"]["filter"]["strength"] == 0.9
+        assert data["settings"]["filter"]["values"]["strength"] == 0.9
 
         n2 = _TestSerialNode("n2", wrapper)
         n2._initialize_from_dict({"settings": data["settings"]})
@@ -482,7 +482,7 @@ class TestStoredSetting:
         bag = StoredSettings()
         bag.stored_field = 0.9
         d = bag.to_dict()
-        assert "stored_field" in d
+        assert "stored_field" in d["values"]
 
 
 class TestValidatorSetting:
@@ -598,7 +598,7 @@ class TestVecTypes:
         bag = VecSettings()
         bag.pos = [1.0, 2.0, 3.0]
         data = bag.to_dict()
-        assert data["pos"] == [1.0, 2.0, 3.0]
+        assert data["values"]["pos"] == [1.0, 2.0, 3.0]
 
         bag2 = VecSettings()
         bag2.from_dict(data)
