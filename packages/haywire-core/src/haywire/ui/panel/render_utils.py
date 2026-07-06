@@ -26,6 +26,7 @@ owns the value (the graph drives it, so reset is meaningless).
 
 from __future__ import annotations
 
+import logging
 from itertools import groupby
 from typing import TYPE_CHECKING, Any, Callable
 
@@ -33,11 +34,14 @@ from nicegui import ui
 
 from haywire.ui import elements as hui
 from haywire.ui.utils import anchor_cleanup_to_element
+from haywire.ui.widget.base import DISABLED_STYLE
 
 if TYPE_CHECKING:
     from haywire.core.settings.registry import SettingsRegistry
     from haywire.core.settings import Settings, setting
     from haywire.core.types.fields import DataField
+
+logger = logging.getLogger(__name__)
 
 _ROW_CLASSES = "w-full items-center justify-between gap-0 px-2"
 _LABEL_CLASSES = "text-xs min-w-0 truncate sf-label"
@@ -91,7 +95,17 @@ def render_settings(obj: "Settings") -> None:
         if updater is not None:
             updater()
 
+    def _on_ui_state_change(name: str, _disabled: bool) -> None:
+        # Same dispatch shape as _on_model_change, arriving on the DEDICATED
+        # ui-state channel — set_ui_disabled never echoes through the cells,
+        # so value subscribers (widgets, node live-control handlers, promoted
+        # ports) never hear chrome changes.
+        updater = updaters.get(name)
+        if updater is not None:
+            updater()
+
     obj.subscribe(_on_model_change)
+    obj.subscribe_ui_state(_on_ui_state_change)
 
     # Explicit initial sync — exercise every row's apply() path once at render,
     # so "the widget shows the model" is a property of the apply path. Mirrors
@@ -99,9 +113,13 @@ def render_settings(obj: "Settings") -> None:
     for _updater in updaters.values():
         _updater()
 
-    # Tear down the subscription when the column leaves the DOM (redraw via
+    # Tear down both subscriptions when the column leaves the DOM (redraw via
     # content.clear() or page close).
-    anchor_cleanup_to_element(column, lambda: obj.unsubscribe(_on_model_change))
+    def _teardown() -> None:
+        obj.unsubscribe(_on_model_change)
+        obj.unsubscribe_ui_state(_on_ui_state_change)
+
+    anchor_cleanup_to_element(column, _teardown)
 
 
 def render_schema(schema_cls: type["Settings"], registry: "SettingsRegistry") -> None:
@@ -236,7 +254,8 @@ def _render_field_row(
         lbl = ui.label(label_text).classes(_LABEL_CLASSES)
         if description:
             lbl.tooltip(description)
-        return _resolve_widget_instance(defn, on_edit, cell=cell)
+        callback, _set_enabled = _resolve_widget_instance(defn, on_edit, cell=cell)
+        return callback
 
 
 def _render_reactive_field_row(
@@ -278,6 +297,37 @@ def _render_reactive_field_row(
             promoted_hint = "driven through inlet" if port.is_linked() else "promoted to inlet"
         else:
             promoted_hint = "promoted to outlet"
+
+    # Declarative same-bag gating (enabled_when metadata convention, composes
+    # with the imperative Settings.is_ui_disabled/set_ui_disabled via OR — see
+    # setting-canon.md). Resolved once per row build; the live part is the
+    # subscribe_field wired below (a controller-VALUE change is a genuine cell
+    # event), plus the bag's UI-state channel subscribed in render_settings
+    # for the imperative flag.
+    enabled_when = defn._metadata.get("enabled_when") if defn._metadata else None
+    enabled_when_controller: str | None = None
+    enabled_when_value: Any = None
+    if enabled_when is not None:
+        controller_name, expected_value = enabled_when
+        if controller_name in type(obj)._property_settings():
+            enabled_when_controller = controller_name
+            enabled_when_value = expected_value
+        else:
+            logger.warning(
+                "enabled_when=%r on field %r references unknown field %r on %s "
+                "— ignoring (field will never be auto-disabled by this rule)",
+                enabled_when,
+                attr_name,
+                controller_name,
+                type(obj).__name__,
+            )
+
+    def _is_ui_disabled() -> bool:
+        if obj.is_ui_disabled(attr_name):
+            return True
+        if enabled_when_controller is not None:
+            return getattr(obj, enabled_when_controller) != enabled_when_value
+        return False
 
     # Override chrome (• dirty prefix + reset button) is shown whenever the field
     # carries a local opinion (_set_keys membership) AND the graph doesn't own its
@@ -352,12 +402,29 @@ def _render_reactive_field_row(
         row_props += ' data-promoted="true"'
         if port is not None:
             row_props += f' data-promoted-direction="{"inlet" if is_promoted_inlet else "outlet"}"'
+    if _is_ui_disabled():
+        row_props += ' data-ui-disabled="true"'
 
-    with ui.row().classes(row_classes).props(row_props):
+    widget_set_enabled: Callable[[bool], None] | None = None
+    with ui.row().classes(row_classes).props(row_props) as row_element:
         _render_label()
         if is_promoted_inlet is False:
             on_edit = _bag_on_edit(obj, attr_name, error_container)
-            value_apply = _resolve_widget_instance(defn, on_edit, bag=obj)
+            value_apply, widget_set_enabled = _resolve_widget_instance(defn, on_edit, bag=obj)
+
+    def _refresh_row_disabled_marker() -> None:
+        disabled = _is_ui_disabled()
+        row_element.props(f'data-ui-disabled="{"true" if disabled else "false"}"')
+        if widget_set_enabled is not None:
+            widget_set_enabled(not disabled)
+
+    if enabled_when_controller is not None:
+
+        def _on_controller_changed(_value: Any, _old: Any) -> None:
+            _refresh_row_disabled_marker()
+
+        obj.subscribe_field(enabled_when_controller, _on_controller_changed)
+        anchor_cleanup_to_element(row_element, lambda: obj.unsubscribe(_on_controller_changed))
 
     def _refresh_chrome():
         # Real widgets bind the shared cell directly (on_changed), so
@@ -365,7 +432,8 @@ def _render_reactive_field_row(
         # value_apply is None for every case except the unknown-widget label
         # fallback, which owns no cell subscription of its own and needs this
         # to reflect external changes at all. Everything else in this callback
-        # is pure override chrome: the • prefix and reset-button visibility.
+        # is pure override chrome: the • prefix, reset-button visibility, and
+        # the ui-disabled marker.
         #
         # Applies to plain fields too (decision Q1): editing a plain field's widget
         # writes its cell, and the • / reset must appear live rather than waiting
@@ -379,6 +447,7 @@ def _render_reactive_field_row(
             label.set_text(_label_text(dirty))
         if reset_btn is not None:
             reset_btn.set_visibility(dirty)
+        _refresh_row_disabled_marker()
 
     updaters[attr_name] = _refresh_chrome
 
@@ -393,7 +462,7 @@ def _resolve_widget_instance(
     on_edit: Callable[[Any], None],
     bag: "Settings | None" = None,
     cell: "DataField | None" = None,
-) -> Callable[[Any], None] | None:
+) -> tuple[Callable[[Any], None] | None, Callable[[bool], None]]:
     """Build the shared ``BaseWidget`` for *defn* via a ``SettingWidgetModel``.
 
     Falls back to a read-only label when the resolved widget key is unknown, so
@@ -403,10 +472,14 @@ def _resolve_widget_instance(
     route through *on_edit* — the write-policy closure (``_bag_on_edit`` /
     ``_registry_on_edit``) — never raw into the cell.
 
-    Returns ``None`` for a real widget: it hears cell writes directly via
-    ``on_changed``, so there is nothing left for a caller to push.
-    Returns the label fallback's ``apply(value)`` when the widget key is
-    unknown, since that display has no cell binding of its own.
+    Returns ``(apply_callback, set_enabled)``. ``apply_callback`` is ``None``
+    for a real widget (it hears cell writes directly via ``on_changed``, so
+    there is nothing left for a caller to push) or the label fallback's
+    ``apply(value)`` when the widget key is unknown (that display has no cell
+    binding of its own). ``set_enabled(bool)`` toggles the widget's
+    disabled state — ``BaseWidget.set_enabled`` (Quasar ``:disable`` / §2.11
+    CSS fallback) for a real widget, a style toggle on the label fallback —
+    and is never ``None``.
     """
     from haywire.ui.widget.globals import get_widget_class
     from haywire.ui.panel.setting_widget_model import SettingWidgetModel
@@ -447,14 +520,25 @@ def _resolve_widget_instance(
     # the client-disconnect hook.
     anchor_cleanup_to_element(widget_cell, widget.cleanup)
 
-    return None
+    # get_widget_class()'s declared return type is Type[IWidget] (the minimal
+    # interface), but set_enabled is a BaseWidget addition (Task 2) — every
+    # widget actually resolved here subclasses BaseWidget (module docstring),
+    # so this is always present in practice. Fail soft rather than assert:
+    # an IWidget implemented directly against the interface (no BaseWidget)
+    # simply can't be disabled, which degrades to "always enabled" instead
+    # of crashing the panel.
+    set_enabled = getattr(widget, "set_enabled", lambda _enabled: None)
+
+    return None, set_enabled
 
 
-def _build_label_widget(value: Any) -> Callable[[Any], None]:
+def _build_label_widget(value: Any) -> tuple[Callable[[Any], None], Callable[[bool], None]]:
     """Display-only ``label`` widget — no ``.value`` (set_text, not BindableProperty).
 
     ``apply(value)`` exists solely for this label fallback (no cell binding);
-    real widgets hear the cell directly.
+    real widgets hear the cell directly. ``set_enabled(bool)`` applies/removes
+    the §2.11 disabled style directly on the label (a ui.label is not a
+    DisableableElement, so there is no Quasar :disable to prefer here).
     """
     str_value = _escape(value)
     lbl = (
@@ -468,7 +552,13 @@ def _build_label_widget(value: Any) -> Callable[[Any], None]:
         _lbl.set_text(s)
         _lbl.props(f'data-value="{s}"')
 
-    return _apply_label
+    def _set_label_enabled(enabled: bool, _lbl=lbl) -> None:
+        if enabled:
+            _lbl.style(remove=DISABLED_STYLE)
+        else:
+            _lbl.style(add=DISABLED_STYLE)
+
+    return _apply_label, _set_label_enabled
 
 
 def _escape(v: Any) -> str:
