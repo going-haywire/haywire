@@ -40,7 +40,7 @@ from typing_extensions import dataclass_transform
 from haywire.core.types.enums import PortType
 from haywire.core.types.interface import IType
 
-from .descriptor import persistent_setting, setting, shadow, watch
+from .descriptor import UiState, persistent_setting, setting, shadow, watch
 
 if TYPE_CHECKING:
     from haywire.core.settings.registry import SettingsRegistry
@@ -97,23 +97,24 @@ class Settings:
         # _set_keys carries that opinion explicitly. storage_key ∈ _set_keys ⇔
         # locally set.
         self._set_keys: set[str] = set()
-        # UI-only disabled-state opinion (never persisted, never affects
+        # UI-only presentation-state opinion (never persisted, never affects
         # reads/writes, NEVER touches a field's cell — the cell event keeps
-        # meaning "the value changed"). Seeded from any field declared
-        # setting(..., ui_disabled=True); grown/shrunk later via
-        # set_ui_disabled(), which announces transitions on the dedicated
-        # UI-state channel below. Declarative same-bag gating (enabled_when)
-        # composes with this via OR in the panel — see render_utils.py.
-        self._ui_disabled_keys: set[str] = set()
+        # meaning "the value changed"). Sparse: only non-NORMAL entries are
+        # stored (storage_key-keyed). Seeded from any field declared
+        # setting(..., ui_state=...); changed later via set_ui_state(), which
+        # announces transitions on the dedicated UI-state channel below.
+        # Declarative same-bag gating (enabled_when/visible_when) composes
+        # with this via severity max — see effective_ui_state(). ADR 0020.
+        self._ui_state: dict[str, UiState] = {}
         for _name, _descriptor in type(self)._property_settings().items():
-            if _descriptor._ui_disabled:
-                self._ui_disabled_keys.add(_descriptor.storage_key)
-        # Dedicated UI-state channel: callback(name, disabled) on each flag
+            if _descriptor._ui_state is not UiState.NORMAL:
+                self._ui_state[_descriptor.storage_key] = _descriptor._ui_state
+        # Dedicated UI-state channel: callback(name, state) on each state
         # transition. Separate from the cell/value channel by design (one
         # channel per concern — the NiceGUI BindableProperty model): a
         # chrome change must be structurally incapable of reaching value
         # subscribers (widgets, live-control node handlers, promoted ports).
-        self._ui_state_listeners: list[Callable[[str, bool], None]] = []
+        self._ui_state_listeners: list[Callable[[str, UiState], None]] = []
         self._registry: "SettingsRegistry | None" = registry
         self._cleaned_up: bool = False
         # Back-reference to the owning node (None for standalone Framework/Library
@@ -121,7 +122,7 @@ class Settings:
         self._node: "NodeData | None" = node
         # Promotion state — the SINGLE source of truth for which fields are
         # currently promoted to a DATA port and in which direction. Mirrors the
-        # per-instance, storage_key-keyed shape of _set_keys/_ui_disabled_keys,
+        # per-instance, storage_key-keyed shape of _set_keys/_ui_state,
         # but (unlike those) DOES serialize — into this bag's "promoted" block —
         # because a promoted port is regenerated from here on load rather than
         # persisted in the ports block. A field has at most one promoted port
@@ -486,71 +487,82 @@ class Settings:
             return False
         return self._is_locally_set(fields[name])
 
-    def set_ui_disabled(self, name: str, disabled: bool) -> None:
-        """Set or clear the UI-disabled flag for *name*.
+    def set_ui_state(self, name: str, state: UiState) -> None:
+        """Set the presentation state for *name* (``UiState.NORMAL`` clears it).
 
         Purely a display/interaction concern for the properties panel — the
         field's value and writability are completely unaffected; node code
-        keeps reading/writing it normally regardless of this flag. Fires the
+        keeps reading/writing it normally regardless of this state. Fires the
         UI-state listeners (``subscribe_ui_state``) on an actual transition
         only; idempotent calls are silent. Never touches the field's cell.
         Unknown *name*: logs a warning and ignores (catches typos in
-        hand-maintained field-name lists).
+        hand-maintained field-name lists). ADR 0020.
         """
         fields = type(self)._property_settings()
         if name not in fields:
-            logger.warning("set_ui_disabled: unknown field %r on %s — ignored", name, type(self).__name__)
+            logger.warning("set_ui_state: unknown field %r on %s — ignored", name, type(self).__name__)
             return
         key = fields[name].storage_key
-        if (key in self._ui_disabled_keys) == disabled:
+        if self._ui_state.get(key, UiState.NORMAL) is state:
             return  # no transition — stay silent
-        if disabled:
-            self._ui_disabled_keys.add(key)
+        if state is UiState.NORMAL:
+            self._ui_state.pop(key, None)
         else:
-            self._ui_disabled_keys.discard(key)
+            self._ui_state[key] = state
         for listener in list(self._ui_state_listeners):
             try:
-                listener(name, disabled)
+                listener(name, state)
             except Exception as e:
                 logger.error(f"ui-state listener error for '{name}': {e}")
 
-    def set_ui_disabled_all(self, disabled: bool) -> None:
-        """Set or clear the UI-disabled flag for EVERY field on this bag.
+    def set_ui_state_all(self, state: UiState, category: str | None = None) -> None:
+        """Set the presentation state for every field on this bag, or for
+        every field in *category* when given.
 
-        The bulk form of :meth:`set_ui_disabled`, for whole-bag gating (e.g.
-        a node disabling an entire per-stream settings category at once).
-        Iterates the bag's own declared fields, so callers need no
+        The bulk form of :meth:`set_ui_state`, for whole-bag or per-category
+        gating (e.g. a node disabling an entire per-stream settings bag, or
+        hiding one mode's field group). *category* is purely a selector over
+        the fields' declared ``category=`` — a category carries no state of
+        its own. Iterates the bag's own declared fields, so callers need no
         hand-maintained field-name lists. Same contract per field:
         display-only, transition-only listener firing (fields already in the
-        target state stay silent), never touches cells.
+        target state stay silent), never touches cells. Unknown *category*:
+        logs a warning and ignores.
         """
-        for name in type(self)._property_settings():
-            self.set_ui_disabled(name, disabled)
+        fields = type(self)._property_settings()
+        if category is not None and not any(d._category == category for d in fields.values()):
+            logger.warning(
+                "set_ui_state_all: unknown category %r on %s — ignored", category, type(self).__name__
+            )
+            return
+        for name, descriptor in fields.items():
+            if category is None or descriptor._category == category:
+                self.set_ui_state(name, state)
 
-    def is_ui_disabled(self, name: str) -> bool:
-        """Return True if *name* is currently UI-disabled (manually or by seed).
+    def ui_state(self, name: str) -> UiState:
+        """Return *name*'s IMPERATIVE presentation state (seed + set_ui_state).
 
-        This is only HALF the disabled-state check the panel performs — the
-        other half, ``enabled_when`` metadata (same-bag declarative gating),
-        lives in ``haywire.ui.panel.render_utils`` since it needs the render
-        pipeline's own subscription wiring. The panel combines both via OR.
+        This deliberately ignores the declarative ``enabled_when`` /
+        ``visible_when`` metadata — :meth:`effective_ui_state` is the
+        composed answer consumers should almost always use. Unknown *name*
+        returns ``UiState.NORMAL``.
         """
         fields = type(self)._property_settings()
         if name not in fields:
-            return False
-        return fields[name].storage_key in self._ui_disabled_keys
+            return UiState.NORMAL
+        return self._ui_state.get(fields[name].storage_key, UiState.NORMAL)
 
-    def subscribe_ui_state(self, callback: Callable[[str, bool], None]) -> None:
-        """Register ``callback(name, disabled)`` for UI-disabled flag transitions.
+    def subscribe_ui_state(self, callback: Callable[[str, UiState], None]) -> None:
+        """Register ``callback(name, state)`` for UI-state transitions.
 
         The UI-state analogue of :meth:`subscribe` — but a separate channel:
-        it fires ONLY for ``set_ui_disabled`` transitions, never for value
+        it fires ONLY for ``set_ui_state`` transitions, never for value
         changes, and value subscribers never hear UI-state changes.
         Idempotent per callback."""
         if callback not in self._ui_state_listeners:
             self._ui_state_listeners.append(callback)
 
-    def unsubscribe_ui_state(self, callback: Callable[[str, bool], None]) -> None:
+    def unsubscribe_ui_state(self, callback: Callable[[str, UiState], None]) -> None:
         """Remove a previously registered UI-state callback (no-op if absent)."""
         try:
             self._ui_state_listeners.remove(callback)

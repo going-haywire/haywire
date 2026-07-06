@@ -24,7 +24,7 @@ Convenience factories:
 
 from __future__ import annotations
 
-from enum import Flag, auto
+from enum import Flag, IntEnum, auto
 from typing import TYPE_CHECKING, Any, Callable, Generic, TypeVar, overload
 
 from haywire.core.types.interface import IType
@@ -58,6 +58,24 @@ class Promotable(Flag):
     INLET = auto()
     OUTLET = auto()
     ALL = INLET | OUTLET
+
+
+class UiState(IntEnum):
+    """Presentation state of a settings field in the properties panel.
+
+    Pure chrome (ADR 0020): a DISABLED or HIDDEN field stays fully
+    readable/writable from code, keeps its value, and serializes normally.
+    Severity-ordered on purpose — ``effective_ui_state`` composes multiple
+    sources by ``max()``: NORMAL < DISABLED < HIDDEN.
+
+    - NORMAL: rendered, interactive.
+    - DISABLED: rendered, non-interactive (exists but locked).
+    - HIDDEN: row not rendered (does not apply right now).
+    """
+
+    NORMAL = 0
+    DISABLED = 1
+    HIDDEN = 2
 
 
 class setting(SettingDescriptor, Generic[T]):
@@ -167,17 +185,19 @@ class setting(SettingDescriptor, Generic[T]):
         doesn't consult it; downstream code (custom renderers, introspection)
         can store anything here. Defaults to ``{}``.
 
-    ui_disabled : bool
-        When ``True``, the field starts in a disabled state in the panel —
-        rendered via Quasar ``:disable`` (or reduced opacity for container
-        widgets) and blocked from user interaction — without affecting
-        reads/writes at all (a normal ``setattr`` still works). This is only
-        the SEED for ``Settings._ui_disabled_keys``; the live per-instance
-        state is controlled via ``Settings.set_ui_disabled(name, bool)`` /
-        ``is_ui_disabled(name)`` and announced on the dedicated UI-state
-        channel (``subscribe_ui_state``) — never on the value/cell channel.
-        See also the ``enabled_when`` metadata convention for declarative,
-        same-bag reactive disabling (documented in setting-canon.md).
+    ui_state : UiState
+        The field's initial presentation state in the panel (default
+        ``UiState.NORMAL``). ``DISABLED`` renders via Quasar ``:disable``
+        (or reduced opacity for container widgets); ``HIDDEN`` removes the
+        row entirely. Never affects reads/writes (a normal ``setattr``
+        still works). This is only the SEED for ``Settings._ui_state``;
+        the live per-instance state is controlled via
+        ``Settings.set_ui_state(name, state)`` / ``ui_state(name)`` and
+        announced on the dedicated UI-state channel
+        (``subscribe_ui_state``) — never on the value/cell channel. See
+        also the ``enabled_when`` / ``visible_when`` metadata conventions
+        for declarative, same-bag reactive gating (setting-canon.md) and
+        ``effective_ui_state`` for how all sources compose. ADR 0020.
 
     promotable : Promotable
         Which port directions this field may be promoted to (default
@@ -205,7 +225,7 @@ class setting(SettingDescriptor, Generic[T]):
         type_: "type[T] | None" = None,
         validator: "Callable | None" = None,
         metadata: "dict | None" = None,
-        ui_disabled: bool = False,
+        ui_state: UiState = UiState.NORMAL,
         promotable: Promotable = Promotable.ALL,
     ) -> None:
         self._default = default
@@ -231,7 +251,7 @@ class setting(SettingDescriptor, Generic[T]):
         self._read_only = read_only
         self._validator = validator
         self._metadata: dict = metadata or {}
-        self._ui_disabled: bool = ui_disabled
+        self._ui_state: UiState = ui_state
         self._promotable: Promotable = promotable
         self._attr_name: str = ""  # set by __set_name__
         self._setting_key: str = ""  # namespaced registry key, set at registration

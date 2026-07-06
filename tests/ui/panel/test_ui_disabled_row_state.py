@@ -21,7 +21,7 @@ import haywire.core.graph.editor  # noqa: F401
 
 from nicegui import Client, ui
 
-from haywire.core.settings import Settings, setting
+from haywire.core.settings import Settings, UiState, setting
 from haywire.ui.panel.render_utils import render_settings
 from haywire.barn.builtin.types import BOOL, FLOAT
 
@@ -63,7 +63,7 @@ def _widget_is_disabled(row) -> bool:
 
 class ImperativeSettings(Settings):
     plain = setting[FLOAT](1.0, label="Plain")
-    starts_disabled = setting[FLOAT](2.0, label="Starts Disabled", ui_disabled=True)
+    starts_disabled = setting[FLOAT](2.0, label="Starts Disabled", ui_state=UiState.DISABLED)
 
 
 class EnabledWhenSettings(Settings):
@@ -111,11 +111,11 @@ class TestImperativeUiDisabled:
         anchor = _render(bag)
         row = _find_field_row(anchor, "plain")
 
-        bag.set_ui_disabled("plain", True)
+        bag.set_ui_state("plain", UiState.DISABLED)
         assert row._props.get("data-ui-disabled") == "true"
         assert _widget_is_disabled(row)
 
-        bag.set_ui_disabled("plain", False)
+        bag.set_ui_state("plain", UiState.NORMAL)
         assert row._props.get("data-ui-disabled") != "true"
         assert not _widget_is_disabled(row)
 
@@ -126,8 +126,8 @@ class TestImperativeUiDisabled:
         _render(bag)
         events: list[str] = []
         bag.subscribe(lambda name, value, old: events.append(name))
-        bag.set_ui_disabled("plain", True)
-        bag.set_ui_disabled("plain", False)
+        bag.set_ui_state("plain", UiState.DISABLED)
+        bag.set_ui_state("plain", UiState.NORMAL)
         assert events == []
 
 
@@ -178,7 +178,7 @@ class TestComposition:
     def test_manual_and_enabled_when_compose_via_or(self):
         bag = EnabledWhenSettings()
         assert bag.enable_color is True  # enabled_when says enabled
-        bag.set_ui_disabled("exposure", True)  # manual override says disabled
+        bag.set_ui_state("exposure", UiState.DISABLED)  # manual override says disabled
         anchor = _render(bag)
         row = _find_field_row(anchor, "exposure")
         assert row._props.get("data-ui-disabled") == "true", "manual flag must win via OR"

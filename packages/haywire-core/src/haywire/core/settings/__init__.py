@@ -18,7 +18,7 @@ Framework / library internals:
 
 from .settings import Settings
 from .node_settings import NodeSettings
-from .descriptor import setting, shadow, watch, Promotable
+from .descriptor import setting, shadow, watch, Promotable, UiState
 from .base import SettingDescriptor
 from .value import SettingValue
 from .types import Color, Icon, Vec2i, Vec3i, Vec4i, Vec2f, Vec3f, Vec4f, get_vec_meta
@@ -34,6 +34,7 @@ __all__ = [
     "shadow",
     "watch",
     "Promotable",
+    "UiState",
     "SettingDescriptor",
     "Color",
     "Icon",

@@ -32,6 +32,7 @@ from typing import TYPE_CHECKING, Any, Callable
 
 from nicegui import ui
 
+from haywire.core.settings import UiState
 from haywire.ui import elements as hui
 from haywire.ui.utils import anchor_cleanup_to_element
 from haywire.ui.widget.base import DISABLED_STYLE
@@ -95,9 +96,9 @@ def render_settings(obj: "Settings") -> None:
         if updater is not None:
             updater()
 
-    def _on_ui_state_change(name: str, _disabled: bool) -> None:
+    def _on_ui_state_change(name: str, _state: UiState) -> None:
         # Same dispatch shape as _on_model_change, arriving on the DEDICATED
-        # ui-state channel — set_ui_disabled never echoes through the cells,
+        # ui-state channel — set_ui_state never echoes through the cells,
         # so value subscribers (widgets, node live-control handlers, promoted
         # ports) never hear chrome changes.
         updater = updaters.get(name)
@@ -323,7 +324,7 @@ def _render_reactive_field_row(
             )
 
     def _is_ui_disabled() -> bool:
-        if obj.is_ui_disabled(attr_name):
+        if obj.ui_state(attr_name) is not UiState.NORMAL:
             return True
         if enabled_when_controller is not None:
             return getattr(obj, enabled_when_controller) != enabled_when_value
