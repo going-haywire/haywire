@@ -1,70 +1,95 @@
+# tests/core/node/test_promotion_serialization.py
+"""
+Settings-owned promotion serialization (ADR 0019):
+
+- a promoted port is ABSENT from the serialized ports block
+- promotion is recorded in the owning bag's "promoted" section instead
+- round-trip regenerates the live port from _promoted_keys via promote_setting
+- an edge into a promoted inlet survives round-trip (port exists before edges wire)
+- demote clears both the port AND the settings-side _promoted_keys record
+
+Uses "testing:node:SettingsNode" (registered test node, bag accessor "example",
+field "example_float") via the graph_with_library_system/library_system fixtures,
+same pattern as the sibling promotion test files in this directory.
+"""
+
+# Per CLAUDE.md test trap: import editor before other haywire modules.
 import haywire.core.graph.editor  # noqa: F401
 
 import pytest
 
+from haywire.core.node.promotion import demote_setting, is_field_promoted, promote_setting
 from haywire.core.types.enums import PortType
 
+pytestmark = pytest.mark.integration
 
-@pytest.mark.integration
-def test_promoted_port_wire_shape_is_value_less(make_node_with_setting):
-    """A promoted port serializes as promoted:true + id + port_type + recipe
-    (ADR 0015: every port carries its type recipe so from_spec stays generic),
-    but NO field_data — the value round-trips through the settings block only."""
-    node = make_node_with_setting(accessor="filter", field="threshold")
-    from haywire.core.node.promotion import promote_setting
 
-    for direction in (PortType.INLET, PortType.OUTLET):
-        pid = type(node.filter).__dict__["threshold"].storage_key
-        promote_setting(node, "filter", "threshold", direction=direction)
-        entry = node._to_dict()["ports"][pid]
+class TestPromotedPortNotSerialized:
+    def test_promoted_port_absent_from_ports_block(self, graph_with_library_system, library_system):
+        graph = graph_with_library_system
+        node = graph.create_node_wrapper("testing:node:SettingsNode", position=(0, 0)).node
+        promote_setting(node, "example", "example_float", PortType.INLET)
+        d = node._to_dict()
+        pid = type(node.example).__dict__["example_float"].storage_key
+        assert pid not in d["ports"], "a promoted port must not serialize in the ports block"
 
-        assert entry["kwargs"].get("promoted") is True
-        assert entry["kwargs"]["id"] == pid
-        assert "recipe" in entry
-        assert "field_data" not in entry
+    def test_promotion_recorded_in_settings_block(self, graph_with_library_system, library_system):
+        graph = graph_with_library_system
+        node = graph.create_node_wrapper("testing:node:SettingsNode", position=(0, 0)).node
+        promote_setting(node, "example", "example_float", PortType.OUTLET)
+        d = node._to_dict()
+        pid = type(node.example).__dict__["example_float"].storage_key
+        assert d["settings"]["example"]["promoted"] == {pid: "outlet"}
 
-        from haywire.core.node.promotion import demote_setting
 
+class TestRoundTripRegeneratesPort:
+    def test_reload_regenerates_the_promoted_port(self, graph_with_library_system, library_system):
+        graph = graph_with_library_system
+        node = graph.create_node_wrapper("testing:node:SettingsNode", position=(0, 0)).node
+        promote_setting(node, "example", "example_float", PortType.INLET)
+        pid = type(node.example).__dict__["example_float"].storage_key
+
+        data = node._to_dict()
+        reloaded = graph.create_node_wrapper("testing:node:SettingsNode", position=(50, 0)).node
+        reloaded._initialize_from_dict(data)
+
+        assert pid in reloaded.ports, "reload must regenerate the promoted port"
+        assert reloaded.ports[pid].promoted is True
+        assert reloaded.ports[pid].is_inlet() is True
+        assert is_field_promoted(reloaded.example, "example_float") is True
+
+
+class TestEdgeIntoPromotedInletSurvives:
+    def test_edge_to_promoted_inlet_round_trips(self, graph_with_library_system, library_system):
+        graph = graph_with_library_system
+        src = graph.create_node_wrapper("testing:node:SettingsNode", position=(0, 0))
+        sink = graph.create_node_wrapper("testing:node:SettingsNode", position=(100, 0))
+
+        promote_setting(src.node, "example", "example_float", PortType.OUTLET)
+        promote_setting(sink.node, "example", "example_float", PortType.INLET)
+        pid = type(src.node.example).__dict__["example_float"].storage_key
+
+        edge = graph.create_edge_wrapper(src.node_id, pid, sink.node_id, pid)
+        assert edge is not None and edge.state.is_valid()
+
+        data = graph.to_dict()
+        graph.clear()
+        graph.load_from_dict(data)
+
+        reloaded_sink = graph.node_wrappers[sink.node_id].node
+        assert pid in reloaded_sink.ports
+        assert any(e.edge.inlet_port_id == pid for e in graph.edge_wrappers.values()), (
+            "the edge into the promoted inlet must survive round-trip"
+        )
+
+
+class TestDemoteClearsRecord:
+    def test_demote_clears_promoted_keys(self, graph_with_library_system, library_system):
+        graph = graph_with_library_system
+        node = graph.create_node_wrapper("testing:node:SettingsNode", position=(0, 0)).node
+        promote_setting(node, "example", "example_float", PortType.INLET)
+        pid = type(node.example).__dict__["example_float"].storage_key
         demote_setting(node, pid)
-
-
-@pytest.mark.integration
-@pytest.mark.parametrize("direction", [PortType.INLET, PortType.OUTLET])
-def test_driven_promoted_port_roundtrips_binding_by_reference(make_node_with_setting, direction):
-    """A driven-then-saved promoted port restores the binding by reference
-    (port._data is the setting cell) AND the value, for inlet + outlet."""
-    node = make_node_with_setting(accessor="filter", field="threshold")
-    from haywire.core.node.promotion import promote_setting
-
-    promote_setting(node, "filter", "threshold", direction=direction)
-    pid = type(node.filter).__dict__["threshold"].storage_key
-    # Drive a value through the setting (widget-like write); shared cell holds it.
-    node.filter.threshold = 0.42
-
-    data = node._to_dict()
-    restored = type(node)("n2", node.wrapper)
-    restored._initialize_from_dict(data)
-
-    assert pid in restored.ports
-    desc = type(restored.filter).__dict__["threshold"]
-    # Bound by reference: the restored port shares the restored setting's cell.
-    assert restored.ports[pid]._data is restored.filter._cell_for(desc)
-    # And the value round-tripped (via the settings block).
-    assert restored.filter.threshold == 0.42
-
-
-@pytest.mark.integration
-def test_unset_promoted_field_persists_no_value(make_node_with_setting):
-    """An UNSET promoted field: the settings entry is empty and the value resolves
-    from the default on load (no persisted value)."""
-    node = make_node_with_setting(accessor="filter", field="threshold")
-    from haywire.core.node.promotion import promote_setting
-
-    promote_setting(node, "filter", "threshold")
-    data = node._to_dict()
-    # settings.filter carries no value for the unset field.
-    assert data["settings"].get("filter", {}) == {}
-
-    restored = type(node)("n2", node.wrapper)
-    restored._initialize_from_dict(data)
-    assert restored.filter.threshold == 0.5  # the descriptor default
+        assert pid not in node.ports
+        assert node.example.is_promoted("example_float") is False
+        assert node.example._promoted_keys == {}

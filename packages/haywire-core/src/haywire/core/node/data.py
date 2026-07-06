@@ -913,15 +913,24 @@ class NodeData:
 
     def _serialize_ports(self, include_data: bool = True) -> Dict[str, Any]:
         """
-        Serialize all ports to dictionary, optionally with data.
+        Serialize all NON-promoted ports to dictionary, optionally with data.
+
+        Promoted ports are deliberately omitted (ADR 0019): promotion is
+        recorded in the owning settings bag's "promoted" block and the port is
+        regenerated on load via regenerate_promoted_ports. Serializing it here
+        too would be a second, drifting source of truth.
 
         Args:
             include_data: If True, includes field values
 
         Returns:
-            Dictionary mapping port IDs to PortSpec-format dicts
+            Dictionary mapping port IDs to PortSpec-format dicts (promoted ports excluded)
         """
-        return {port_id: port.to_dict(include_data=include_data) for port_id, port in self.ports.items()}
+        return {
+            port_id: port.to_dict(include_data=include_data)
+            for port_id, port in self.ports.items()
+            if not port.promoted
+        }
 
     def _deserialize_ports(self, ports_data: Dict[str, Any]) -> bool:
         """
@@ -955,9 +964,9 @@ class NodeData:
         self._executor = None
         return True
 
-    def _bind_promoted_ports(self) -> None:
-        """Bind promoted ports to their setting cells — delegates to
-        haywire.core.node.promotion (the single port→settings crossing)."""
-        from haywire.core.node.promotion import bind_promoted_ports
+    def _regenerate_promoted_ports(self) -> None:
+        """Regenerate promoted ports from settings — delegates to
+        haywire.core.node.promotion (ADR 0019; replaces the old bind-only pass)."""
+        from haywire.core.node.promotion import regenerate_promoted_ports
 
-        bind_promoted_ports(self)
+        regenerate_promoted_ports(self)

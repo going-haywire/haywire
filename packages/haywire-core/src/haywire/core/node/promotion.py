@@ -24,15 +24,9 @@ logger = logging.getLogger(__name__)
 def is_field_promoted(bag: "Settings", field: str) -> bool:
     """True if ``<bag>.<field>`` is currently promoted to a port.
 
-    The promoted port's id IS the setting's storage_key, so a promotion is
-    exactly the presence of that port on the owning node. False for a bag with no node."""
-    node = bag._node
-    if node is None:
-        return False
-    desc = type(bag)._property_settings().get(field)
-    if desc is None:
-        return False
-    return desc.storage_key in node.ports
+    Consults the bag's ``_promoted_keys`` — the single source of truth (ADR
+    0019). False for a field that is not promoted or does not exist."""
+    return bag.is_promoted(field)
 
 
 def _resolve_promoted(node: "NodeData", port_id: str) -> tuple["Settings", "setting"]:
@@ -52,6 +46,31 @@ def _descriptor(node: "NodeData", accessor: str, field: str) -> "setting":
     settings-bag base class resolves correctly, not just one declared directly."""
     bag = getattr(node, accessor)
     return type(bag)._property_settings()[field]
+
+
+def eligible_promotion_directions(descriptor: "setting") -> tuple[PortType, ...]:
+    """The single source of truth for promotion eligibility.
+
+    Two orthogonal contributions, intersected:
+
+    1. **Declared intent** — ``setting(promotable=...)``, default ``ALL``.
+       ``NONE`` marks fields where a port would be misleading (e.g.
+       restart-required pipeline parameters).
+    2. **Structural** — a ``read_only`` (``watch()``) field has no write path
+       in, so it can never be an inlet regardless of declaration.
+
+    Consumed by ``promote_setting`` (raises for ineligible promotions) and the
+    promote menu's ``promotable_fields`` (hides ineligible entries).
+    """
+    from haywire.core.settings.descriptor import Promotable
+
+    declared = getattr(descriptor, "_promotable", Promotable.ALL)
+    directions: list[PortType] = []
+    if Promotable.INLET in declared and not getattr(descriptor, "_read_only", False):
+        directions.append(PortType.INLET)
+    if Promotable.OUTLET in declared:
+        directions.append(PortType.OUTLET)
+    return tuple(directions)
 
 
 def _metadata_to_port_kwargs(descriptor: "setting") -> dict:
@@ -90,31 +109,42 @@ def _bind_port(port, bag: "Settings", desc: "setting") -> None:
     """Share the setting's cell into *port* and mark the field locally-set.
 
     THE bind+mark pair: one cell, two views; a promoted field is locally-set
-    for the port's lifetime. Used by promote_setting (interactive) and
-    bind_promoted_ports (load)."""
+    for the port's lifetime. Used by promote_setting (interactive AND
+    load-time regen, via regenerate_promoted_ports)."""
     port.bind_field(bag._cell_for(desc))
     bag._set_keys.add(desc.storage_key)
 
 
-def bind_promoted_ports(node: "NodeData") -> None:
-    """Bind each promoted port on *node* to its setting's cell (load-time pass).
+def regenerate_promoted_ports(node: "NodeData") -> None:
+    """Regenerate every promoted port on *node* from its bag's ``_promoted_keys``
+    (load-time pass, ADR 0019).
 
-    Settings bags are already restored (BaseNode.from_dict runs settings before
-    ports). A promoted port whose setting no longer exists degrades: stays on
-    the node, promoted but unbound."""
-    for port in node.ports.values():
-        if not port.promoted:
-            continue
-        try:
-            bag, desc = _resolve_promoted(node, port.id)
-        except KeyError:
-            logger.warning(
-                "Promoted port %r on node %r matches no setting (library changed?); leaving it unbound.",
-                port.id,
-                node.node_id,
-            )
-            continue
-        _bind_port(port, bag, desc)
+    Settings bags are already restored (BaseNode._initialize_from_dict runs
+    settings before this), so each bag's ``_promoted_keys`` holds the loaded
+    promotions. This walks them and calls ``promote_setting`` — the SAME path an
+    interactive promotion takes — so there is one creation path for both. The
+    ``if pid in node.ports: return`` guard inside ``promote_setting`` makes this
+    idempotent. Runs before edges wire (two-phase graph load), so a regenerated
+    promoted inlet exists in ``node.ports`` before any edge resolves against it.
+    """
+    for accessor in type(node)._settings_bags:
+        bag = getattr(node, accessor)
+        # storage_key -> attr name, to translate the key back to promote_setting's
+        # (accessor, field) arguments.
+        fields = type(bag)._property_settings()
+        key_to_field = {desc.storage_key: name for name, desc in fields.items()}
+        for storage_key, direction in list(bag._promoted_keys.items()):
+            field = key_to_field.get(storage_key)
+            if field is None:
+                logger.warning(
+                    "Promoted key %r on node %r bag %r matches no field "
+                    "(library changed?); skipping regeneration.",
+                    storage_key,
+                    node.node_id,
+                    accessor,
+                )
+                continue
+            promote_setting(node, accessor, field, direction)
 
 
 def promote_setting(
@@ -131,14 +161,13 @@ def promote_setting(
     the setting read returns the shared cell (incl. any edge-driven value) with no
     per-write hook.
 
-    Eligibility is TWO orthogonal flag checks — not a per-kind matrix:
+    Eligibility is ``eligible_promotion_directions(desc)`` — declared
+    ``promotable=`` ∩ the read-only structural rule (``watch()`` ⇒ outlet
+    only). Raises for any ineligible promotion, interactive or load-time.
 
-    1. ``descriptor._read_only`` (a ``watch()`` field) ⇒ **outlet only**. A
-       read-only field has no write path in, so it can only be a read path out.
-    2. ``direction == OUTLET`` ⇒ the port is ``is_linked_lazy`` (the link-time
-       force + ``on_changed → propagate``). Holds for EVERY promoted outlet —
-       plain, shadow, watch alike — because a promoted outlet is never
-       worker-``out()``-driven.
+    A promoted outlet is always ``is_linked_lazy`` (the link-time force +
+    ``on_changed → propagate``) — holds for plain, shadow, watch alike, because
+    a promoted outlet is never worker-``out()``-driven.
 
     Direction selects the factory (``as_inlet``/``as_outlet``) and thus the
     per-direction ``ShowWidgetStrategy`` default (inlet NOT_LINKED → widget shows
@@ -152,14 +181,22 @@ def promote_setting(
     if pid in node.ports:
         return
 
-    # Flag check 1: a read-only (watch) field can only be an outlet.
-    if getattr(desc, "_read_only", False) and direction is not PortType.OUTLET:
-        raise ValueError("a read-only (watch) setting can only be promoted to an outlet")
+    # Eligibility — the single source of truth shared with the promote menu
+    # (declared promotable= ∩ the read-only structural rule). Applies to every
+    # promotion, including the load-time regen path: there are no saved graphs
+    # with promoted ports yet, so there is nothing to grandfather — an ineligible
+    # promotion is always a live authoring mistake and should fail loudly.
+    eligible = eligible_promotion_directions(desc)
+    if direction not in eligible:
+        raise ValueError(
+            f"setting {field!r} cannot be promoted to {direction.name.lower()} "
+            f"(eligible: {', '.join(d.name.lower() for d in eligible) or 'none'})"
+        )
 
     kw = _metadata_to_port_kwargs(desc)
     type_cls = kw.pop("type_cls")
     if direction is PortType.OUTLET:
-        # Flag check 2: every promoted outlet is is_linked_lazy.
+        # Every promoted outlet is is_linked_lazy.
         spec = type_cls.as_outlet(pid, promoted=True, is_linked_lazy=True, **kw)
     else:
         spec = type_cls.as_inlet(pid, promoted=True, **kw)
@@ -175,12 +212,27 @@ def promote_setting(
     # read returns the shared cell (incl. any edge-driven value). Bare set-membership,
     # no callback — the cell already holds the value, so promoting is value-neutral.
     _bind_port(port, bag, desc)
+    # Record the promotion in the bag — the single source of truth. This is what
+    # serializes (the port itself never does) and what regenerate_promoted_ports
+    # reads on load. Idempotent-safe: an early return above (pid already in
+    # node.ports) means we never reach here for an already-promoted field.
+    bag.set_promoted(field, direction)
 
 
 def demote_setting(node: "NodeData", port_id: str) -> None:
-    """Remove the promoted port ``port_id`` and release its cell binding."""
+    """Remove the promoted port ``port_id``, release its cell binding, and clear
+    the settings-side promotion record.
+
+    Mirror of ``promote_setting``: promote writes ``_promoted_keys``, demote
+    clears it (ADR 0019 — the port is no longer the promotion signal, so the
+    record must be maintained explicitly)."""
     if port_id not in node.ports:
         return
+    try:
+        bag, desc = _resolve_promoted(node, port_id)
+        bag.clear_promoted(desc._attr_name)
+    except KeyError:
+        pass  # port matches no setting (library changed) — just remove the port
     node.ports[port_id].unbind_field()
     with node.rejig(include=[port_id]):
         pass

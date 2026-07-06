@@ -184,25 +184,25 @@ class TestCallbacks:
 class TestToDict:
     def test_empty_when_all_defaults(self):
         s = _Simple()
-        assert s.to_dict() == {}
+        assert s.to_dict() == {"values": {}, "promoted": {}}
 
     def test_includes_non_default_values(self):
         s = _Simple()
         s.threshold = 0.8
-        assert s.to_dict() == {"threshold": 0.8}
+        assert s.to_dict() == {"values": {"threshold": 0.8}, "promoted": {}}
 
     def test_multiple_non_default_values(self):
         s = _Simple()
         s.threshold = 0.8
         s.verbose = True
         data = s.to_dict()
-        assert data == {"threshold": 0.8, "verbose": True}
+        assert data == {"values": {"threshold": 0.8, "verbose": True}, "promoted": {}}
 
     def test_revert_to_default_not_included(self):
         s = _Simple()
         s.threshold = 0.8
         s.threshold = 0.5  # back to default
-        assert s.to_dict() == {}
+        assert s.to_dict() == {"values": {}, "promoted": {}}
 
 
 # ---------------------------------------------------------------------------
@@ -213,7 +213,7 @@ class TestToDict:
 class TestFromDict:
     def test_from_dict_restores_value(self):
         s = _Simple()
-        s.from_dict({"threshold": 0.3})
+        s.from_dict({"values": {"threshold": 0.3}, "promoted": {}})
         assert s.threshold == 0.3
 
     def test_from_dict_notifies_attached_subscribers(self):
@@ -223,12 +223,12 @@ class TestFromDict:
         s = _Simple()
         received = []
         s.subscribe(lambda n, v, o: received.append(v))
-        s.from_dict({"threshold": 0.3})
+        s.from_dict({"values": {"threshold": 0.3}, "promoted": {}})
         assert received == [0.3]
 
     def test_unknown_keys_ignored(self):
         s = _Simple()
-        s.from_dict({"threshold": 0.3, "unknown_key": "ignored"})
+        s.from_dict({"values": {"threshold": 0.3, "unknown_key": "ignored"}, "promoted": {}})
         assert s.threshold == 0.3  # no exception
 
     def test_empty_dict(self):
@@ -336,11 +336,11 @@ class TestInheritance:
         c = _Child()
         c.x = 5
         data = c.to_dict()
-        assert data == {"x": 5}
+        assert data == {"values": {"x": 5}, "promoted": {}}
 
     def test_child_from_dict_restores_parent_setting(self):
         c = _Child()
-        c.from_dict({"x": 7})
+        c.from_dict({"values": {"x": 7}, "promoted": {}})
         assert c.x == 7
 
     def test_child_callback_fires_for_parent_setting(self):
