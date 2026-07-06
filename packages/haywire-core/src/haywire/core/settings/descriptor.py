@@ -24,6 +24,7 @@ Convenience factories:
 
 from __future__ import annotations
 
+from enum import Flag, auto
 from typing import TYPE_CHECKING, Any, Callable, Generic, TypeVar, overload
 
 from haywire.core.types.interface import IType
@@ -38,6 +39,25 @@ if TYPE_CHECKING:
 # typed ``Any``: mypy cannot project an IType's value type (FLOAT -> float) from
 # the subscript (no higher-kinded types). ``_type`` stays strict (``type[T]``).
 T = TypeVar("T", bound=IType)
+
+
+class Promotable(Flag):
+    """Which DATA-port directions a ``setting()`` may be promoted to.
+
+    Declared intent only — structural rules still intersect on top (a
+    ``read_only``/``watch()`` field has no write path in, so it can never be
+    an inlet regardless of this flag). ``eligible_promotion_directions()`` in
+    ``haywire.core.node.promotion`` is the single place that combines both.
+
+    ``NONE`` marks fields where a promotion would be *misleading* rather than
+    ill-typed — e.g. restart-required device-pipeline parameters, where a port
+    would imply live control the hardware can't deliver.
+    """
+
+    NONE = 0
+    INLET = auto()
+    OUTLET = auto()
+    ALL = INLET | OUTLET
 
 
 class setting(SettingDescriptor, Generic[T]):
@@ -158,6 +178,14 @@ class setting(SettingDescriptor, Generic[T]):
         channel (``subscribe_ui_state``) — never on the value/cell channel.
         See also the ``enabled_when`` metadata convention for declarative,
         same-bag reactive disabling (documented in setting-canon.md).
+
+    promotable : Promotable
+        Which port directions this field may be promoted to (default
+        ``Promotable.ALL``). ``Promotable.NONE`` removes the field from the
+        promote menu entirely and makes ``promote_setting()`` raise — use it
+        for fields where a port would be misleading (e.g. restart-required
+        pipeline parameters). Structural rules still apply on top:
+        ``read_only=True`` remains outlet-only regardless.
     """
 
     def __init__(
@@ -178,6 +206,7 @@ class setting(SettingDescriptor, Generic[T]):
         validator: "Callable | None" = None,
         metadata: "dict | None" = None,
         ui_disabled: bool = False,
+        promotable: Promotable = Promotable.ALL,
     ) -> None:
         self._default = default
         # IType cutover: an explicit type_= must be an IType (Python-type inference
@@ -203,6 +232,7 @@ class setting(SettingDescriptor, Generic[T]):
         self._validator = validator
         self._metadata: dict = metadata or {}
         self._ui_disabled: bool = ui_disabled
+        self._promotable: Promotable = promotable
         self._attr_name: str = ""  # set by __set_name__
         self._setting_key: str = ""  # namespaced registry key, set at registration
         self._mirror_descriptor: "SettingDescriptor | None" = None  # set when mirrors= is a descriptor
