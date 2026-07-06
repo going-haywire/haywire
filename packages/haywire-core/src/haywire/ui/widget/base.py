@@ -2,10 +2,17 @@ from abc import ABC, abstractmethod
 import logging
 from typing import Any, Optional
 
+from nicegui.elements.mixins.disableable_element import DisableableElement
+
 from haywire.core.types import WidgetModel
 from haywire.ui.widget.binding import PropertyBinding
 from haywire.ui.widget.converters import BindingConverter, BindingMode, PrimitiveUnwrappingConverter
 from haywire.ui.widget.interface import IWidget
+
+# design-guide.md §2.11: the manual disabled treatment for elements that
+# don't support Quasar :disable. Always applied/removed as a pair via
+# style(add=)/style(remove=) — Element.style("") does NOT clear styles.
+DISABLED_STYLE = "opacity: 0.5; pointer-events: none;"
 
 
 class BaseWidget(IWidget, ABC):
@@ -51,6 +58,28 @@ class BaseWidget(IWidget, ABC):
 
     def set_value(self, value: Any) -> None:
         self.port.set_value(value)
+
+    def set_enabled(self, enabled: bool) -> None:
+        """Enable/disable this widget's rendered root element.
+
+        Display/interaction only — the model stays fully writable; external
+        cell changes keep syncing into the view. Prefers Quasar ``:disable``
+        (design-guide §2.11) when the root is a NiceGUI DisableableElement;
+        container roots fall back to the §2.11 opacity+pointer-events style,
+        removed again on re-enable via ``style(remove=...)``. Safe no-op
+        before ``render()`` and after ``cleanup()`` (``ui_element is None``),
+        and for stand-in elements without ``.style()`` (headless tests).
+        """
+        el = self.ui_element
+        if el is None:
+            return
+        if isinstance(el, DisableableElement):
+            el.set_enabled(enabled)
+        elif hasattr(el, "style"):
+            if enabled:
+                el.style(remove=DISABLED_STYLE)
+            else:
+                el.style(add=DISABLED_STYLE)
 
     def on_model_changed(self, value: Any) -> None:
         """Override for custom model→view sync. Default drives bind()-ings.
