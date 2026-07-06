@@ -552,6 +552,42 @@ class Settings:
             return UiState.NORMAL
         return self._ui_state.get(fields[name].storage_key, UiState.NORMAL)
 
+    def effective_ui_state(self, name: str) -> UiState:
+        """Return *name*'s composed presentation state — the single oracle.
+
+        Severity max (``NORMAL < DISABLED < HIDDEN``, the ``UiState`` int
+        order) over every source:
+
+        - the imperative state (``ui_state=`` seed + :meth:`set_ui_state`),
+        - ``enabled_when`` metadata — contributes at most ``DISABLED``,
+        - ``visible_when`` metadata — contributes ``HIDDEN``.
+
+        Both metadata gates are ``(field_name, expected_value)`` tuples,
+        same-bag, exact-match; a gate whose controller field doesn't exist
+        on this bag is skipped silently here (the panel warns once per row
+        at build time). Consumed by the panel's row rendering AND the
+        promote menu, so panel and menu can never disagree. Reads controller
+        values via plain ``getattr`` — never writes, never touches cells.
+        Unknown *name* returns ``UiState.NORMAL``. ADR 0020.
+        """
+        fields = type(self)._property_settings()
+        if name not in fields:
+            return UiState.NORMAL
+        descriptor = fields[name]
+        state = self._ui_state.get(descriptor.storage_key, UiState.NORMAL)
+        metadata = descriptor._metadata or {}
+        gate = metadata.get("enabled_when")
+        if gate is not None:
+            controller, expected = gate
+            if controller in fields and getattr(self, controller) != expected:
+                state = max(state, UiState.DISABLED)
+        gate = metadata.get("visible_when")
+        if gate is not None:
+            controller, expected = gate
+            if controller in fields and getattr(self, controller) != expected:
+                state = max(state, UiState.HIDDEN)
+        return state
+
     def subscribe_ui_state(self, callback: Callable[[str, UiState], None]) -> None:
         """Register ``callback(name, state)`` for UI-state transitions.
 

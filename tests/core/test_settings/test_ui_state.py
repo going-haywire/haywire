@@ -211,3 +211,67 @@ class TestCellIsNeverTouched:
         cell.is_dirty = False
         bag.set_ui_state("normal", UiState.HIDDEN)
         assert cell.is_dirty is False
+
+
+class GatedSettings(Settings):
+    enable_color = setting[BOOL](True, label="Enable Color")
+    exposure = setting[FLOAT](20000.0, label="Exposure", metadata={"enabled_when": ("enable_color", True)})
+    manual_focus = setting[FLOAT](
+        0.0, label="Manual Focus", metadata={"visible_when": ("enable_color", True)}
+    )
+    typo_gated = setting[FLOAT](1.0, label="Typo Gated", metadata={"enabled_when": ("does_not_exist", True)})
+
+
+class TestEffectiveUiState:
+    def test_ungated_field_is_normal(self):
+        bag = GatedSettings()
+        assert bag.effective_ui_state("enable_color") is UiState.NORMAL
+
+    def test_enabled_when_contributes_at_most_disabled(self):
+        bag = GatedSettings()
+        bag.enable_color = False
+        assert bag.effective_ui_state("exposure") is UiState.DISABLED
+
+    def test_visible_when_contributes_hidden(self):
+        bag = GatedSettings()
+        bag.enable_color = False
+        assert bag.effective_ui_state("manual_focus") is UiState.HIDDEN
+
+    def test_satisfied_gates_leave_normal(self):
+        bag = GatedSettings()
+        assert bag.enable_color is True  # default
+        assert bag.effective_ui_state("exposure") is UiState.NORMAL
+        assert bag.effective_ui_state("manual_focus") is UiState.NORMAL
+
+    def test_severity_max_manual_hidden_beats_declarative_disabled(self):
+        bag = GatedSettings()
+        bag.enable_color = False  # enabled_when → DISABLED
+        bag.set_ui_state("exposure", UiState.HIDDEN)  # imperative → HIDDEN
+        assert bag.effective_ui_state("exposure") is UiState.HIDDEN
+
+    def test_severity_max_declarative_hidden_beats_manual_disabled(self):
+        bag = GatedSettings()
+        bag.enable_color = False  # visible_when → HIDDEN
+        bag.set_ui_state("manual_focus", UiState.DISABLED)
+        assert bag.effective_ui_state("manual_focus") is UiState.HIDDEN
+
+    def test_manual_state_composes_when_gates_are_satisfied(self):
+        bag = GatedSettings()
+        bag.set_ui_state("exposure", UiState.DISABLED)
+        assert bag.effective_ui_state("exposure") is UiState.DISABLED
+
+    def test_unknown_controller_is_skipped_silently(self):
+        bag = GatedSettings()
+        assert bag.effective_ui_state("typo_gated") is UiState.NORMAL
+
+    def test_unknown_name_returns_normal(self):
+        bag = GatedSettings()
+        assert bag.effective_ui_state("nonexistent") is UiState.NORMAL
+
+    def test_effective_state_never_touches_cells(self):
+        bag = GatedSettings()
+        events: list[str] = []
+        bag.subscribe(lambda name, value, old: events.append(name))
+        bag.effective_ui_state("exposure")
+        bag.effective_ui_state("manual_focus")
+        assert events == []
