@@ -255,43 +255,59 @@ class depth(NodeSettings):
 
 `Promotable` is a Flag: `NONE` / `INLET` / `OUTLET` / `ALL` (default). Effective eligibility is the intersection of the declaration and the structural rules (`read_only=True` stays outlet-only regardless; `read_only` + `promotable=INLET` intersects to nothing). The single source of truth is `eligible_promotion_directions()` in `haywire.core.node.promotion` — the promote menu hides ineligible entries and `promote_setting()` raises `ValueError` for them, whether the call is interactive or from the load-time regeneration pass.
 
-**Disabling a setting in the panel (`ui_disabled` / `enabled_when`).** A setting can render as disabled — Quasar `:disable` where the widget root supports it, the §2.11 opacity treatment otherwise — while staying a completely normal, fully-writable field from the code's perspective. This is purely a panel-display concern: node code and any direct `setattr` keep working regardless of disabled state; there is no write guard in the settings layer.
+**Presentation state (`UiState`: `ui_state=` / `enabled_when` / `visible_when`).** A setting has a three-valued presentation state in the panel — `UiState.NORMAL` (rendered, interactive), `UiState.DISABLED` (rendered but non-interactive: Quasar `:disable` where the widget root supports it, the §2.11 opacity treatment otherwise), and `UiState.HIDDEN` (the row is not rendered at all; a category whose rows are ALL hidden hides its header too). DISABLED means *exists but locked*; HIDDEN means *does not apply right now* (e.g. a manual-focus value while focus mode is AUTO). This is purely a panel-display concern: node code and any direct `setattr` keep working regardless of state; there is no write guard in the settings layer, values keep serializing normally, and the state itself is never persisted. See [ADR 0020](../../adr/0020-ui-state-three-valued-chrome.md).
 
-Two composable mechanisms, combined via OR (either one disabling the field is enough):
+Three composable sources, combined by **severity max** (`NORMAL < DISABLED < HIDDEN` — `UiState` is an `IntEnum` in that order):
 
 ```python
-from haywire.core.settings import NodeSettings, setting
-from haywire.barn.builtin.types import BOOL, FLOAT
+from haywire.core.settings import NodeSettings, UiState, setting
+from haywire.barn.builtin.types import BOOL, CHOICES, FLOAT
 
 class color(NodeSettings):
     enable_color = setting[BOOL](True, label="Enable Color")
+    focus_mode = setting[CHOICES]("AUTO", label="Focus Mode",
+                                  widget_config={"options": ["AUTO", "MANUAL"]})
 
-    # Declarative: disabled whenever enable_color != True. Same-bag only,
-    # exact-match only (no predicates). Live — toggling enable_color in the
-    # panel immediately disables exposure, no redraw needed.
+    # Declarative DISABLE: locked whenever enable_color != True. Same-bag
+    # only, exact-match only (no predicates). Live — toggling enable_color
+    # in the panel immediately disables exposure, no redraw needed.
     exposure = setting[FLOAT](
         20000.0,
         label="Exposure",
         metadata={"enabled_when": ("enable_color", True)},
     )
 
-    # Imperative: starts disabled until something says otherwise.
-    manual_gain = setting[FLOAT](1.0, label="Manual Gain", ui_disabled=True)
+    # Declarative HIDE: the row disappears whenever focus_mode != "MANUAL".
+    # Same tuple shape and same-bag/exact-match contract as enabled_when.
+    manual_focus = setting[FLOAT](
+        0.0,
+        label="Manual Focus",
+        metadata={"visible_when": ("focus_mode", "MANUAL")},
+    )
+
+    # Imperative seed: starts disabled until something says otherwise.
+    manual_gain = setting[FLOAT](1.0, label="Manual Gain", ui_state=UiState.DISABLED)
 ```
 
 ```python
 # Runtime API on any Settings instance — for gating driven by something
 # OTHER than a sibling setting (e.g. a different node's wiring state):
-bag.set_ui_disabled("manual_gain", False)   # re-enable
-bag.is_ui_disabled("manual_gain")           # -> False
-bag.set_ui_disabled_all(True)               # bulk: every field on the bag
+bag.set_ui_state("manual_gain", UiState.NORMAL)          # re-enable
+bag.ui_state("manual_gain")                              # imperative state only
+bag.effective_ui_state("manual_gain")                    # composed (use this)
+bag.set_ui_state_all(UiState.DISABLED)                   # bulk: every field on the bag
+bag.set_ui_state_all(UiState.HIDDEN, category="Manual")  # bulk: one category only
 ```
 
-**One channel per concern.** `set_ui_disabled` announces transitions on a dedicated UI-state channel (`bag.subscribe_ui_state(cb)` with `cb(name, disabled)`, removed via `unsubscribe_ui_state` / `cleanup()`), which the panel subscribes to. It never fires the field's cell event — the cell event keeps meaning exactly "the value changed", so value subscribers (widgets, node live-control handlers, promoted ports) are structurally incapable of hearing chrome changes. This mirrors NiceGUI's own design, where `enabled` and `value` are independent bindable properties. `set_ui_disabled` is transition-only: redundant calls fire nothing, so recomputing disabled state in a hot path is free in steady state.
+`effective_ui_state(name)` is the **single composition oracle** — severity max of the imperative state, `enabled_when` (contributes at most DISABLED), and `visible_when` (contributes HIDDEN). Both the panel's row rendering and the promote menu consume it, so they can never disagree. `category=` on the bulk setter is purely a *selector* over the fields' declared `category=` — a category carries no state of its own; header visibility is derived from its rows.
 
-`enabled_when` is a `(field_name, expected_value)` tuple stored in `metadata` — a string field reference, not validated at class-definition time. If the referenced field doesn't exist on the same bag, the panel logs a warning and the field renders normally (never auto-disabled) rather than raising. `enabled_when` only ever expresses a same-bag relationship; cross-bag or cross-node gating (e.g. one node's callback-edge wiring determining another's field state) uses `set_ui_disabled` from whatever code owns that external state.
+**One channel per concern.** `set_ui_state` announces transitions on a dedicated UI-state channel (`bag.subscribe_ui_state(cb)` with `cb(name, state)`, removed via `unsubscribe_ui_state` / `cleanup()`), which the panel subscribes to. It never fires the field's cell event — the cell event keeps meaning exactly "the value changed", so value subscribers (widgets, node live-control handlers, promoted ports) are structurally incapable of hearing chrome changes. This mirrors NiceGUI's own design, where `enabled` and `value` are independent bindable properties. `set_ui_state` is transition-only: redundant calls fire nothing, so recomputing state in a hot path is free in steady state. Declarative (`enabled_when`/`visible_when`) re-evaluation does NOT ride this channel — a controller-value change is a genuine cell event, and the panel's per-row controller subscription handles it.
 
-Neither mechanism is persisted — disabled state is always transient, recomputed at construction (`ui_disabled=`) or by whatever runtime code calls `set_ui_disabled`.
+`enabled_when` and `visible_when` are `(field_name, expected_value)` tuples stored in `metadata` — string field references, not validated at class-definition time. If the referenced field doesn't exist on the same bag, the panel logs a warning at row build and the field renders normally (never auto-gated) rather than raising; `effective_ui_state` skips the broken gate silently. Both only ever express a same-bag relationship; cross-bag or cross-node gating (e.g. one node's callback-edge wiring determining another's field state) uses `set_ui_state` from whatever code owns that external state.
+
+**Promotion interplay (ADR 0020).** The promote menu omits fields whose effective state is HIDDEN (chrome respects chrome); DISABLED fields stay promotable. Structural eligibility (`promotable=`, `eligible_promotion_directions()`) and load-time port regeneration ignore UiState entirely — hiding never unpromotes, and a linked inlet on a hidden field keeps driving the value (the port stays visible on the canvas).
+
+No part of this mechanism is persisted — presentation state is always transient, recomputed at construction (`ui_state=` seed) or by whatever runtime code calls `set_ui_state`.
 
 ## 3a. Using `LibrarySettings` from a State, Editor, or Panel
 
