@@ -188,6 +188,30 @@ class DataPort(DataTypeIdentity):
 
             self.widget = None
 
+        # A live callable in widget_config (e.g. {"options": self.method} for a
+        # dynamic dropdown) is intentional and works at render time, but it
+        # cannot survive JSON serialization. A promoted port never serializes
+        # its widget_config (it round-trips through the descriptor — ADR 0019),
+        # so a callable there is always safe. A plain port IS its own only copy,
+        # so a callable would crash json.dumps at save time, nine frames deep.
+        # Fail here instead — at construction (node.add during init()), naming
+        # the port and key. Reuses the same serializability check
+        # normalize_and_validate_default uses for default= values.
+        if not self.promoted and self.widget_config:
+            from haywire.core.types.utils import is_cattrs_serializable
+
+            ok, error_msg = is_cattrs_serializable(self.widget_config)
+            if not ok:
+                raise TypeError(
+                    f"DataPort {self.id!r}: 'widget_config' must be JSON serializable. "
+                    f"Got {self.widget_config!r} which is not serializable: {error_msg}\n"
+                    f"A live callable in widget_config (e.g. a dynamic-options method) is "
+                    f"only safe on a setting() field promoted to a port — the descriptor is "
+                    f"re-applied fresh on every load, so the callable is never serialized. "
+                    f"A plain (non-promoted) port has no such fallback: use a literal value, "
+                    f"or move this field into a Settings bag and promote it."
+                )
+
         # Create data field — DataPort always needs a type_cls to be functional.
         if self.type_cls is None:
             raise ValueError(

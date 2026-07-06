@@ -127,7 +127,10 @@ def dump_haystack(
             "path": rel,
             "execute": entry.is_executing,
         }
-        if run_dict:
+        # run_dict is always the {"values", "promoted"} shape (never falsy on its
+        # own) — only write the "run" table when there's actually a non-default
+        # value or an active promotion to persist.
+        if run_dict["values"] or run_dict["promoted"]:
             entry_dict["run"] = run_dict
         graphs_list.append(entry_dict)
 

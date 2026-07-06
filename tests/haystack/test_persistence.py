@@ -363,7 +363,8 @@ def test_dump_writes_run_table_when_autorestart_set(tmp_workspace):
     dump_haystack(state, workspace_root=tmp_workspace, name="rs")
 
     data = toml.loads((tmp_workspace / "haystacks" / "rs.toml").read_text())
-    assert data["graphs"][0]["run"] == {"autorestart": True}
+    # The toml library drops an empty nested table ("promoted": {}) on round-trip.
+    assert data["graphs"][0]["run"] == {"values": {"autorestart": True}}
 
 
 def test_dump_omits_run_table_when_default(tmp_workspace):
@@ -395,7 +396,13 @@ def test_load_restores_autorestart_onto_entry(tmp_workspace):
     gpath.write_text("")
     toml_doc = {
         "haystack": {"name": "ld"},
-        "graphs": [{"path": "graphs/g.haywire", "execute": False, "run": {"autorestart": True}}],
+        "graphs": [
+            {
+                "path": "graphs/g.haywire",
+                "execute": False,
+                "run": {"values": {"autorestart": True}, "promoted": {}},
+            }
+        ],
     }
     (tmp_workspace / "haystacks" / "ld.toml").write_text(toml.dumps(toml_doc))
 

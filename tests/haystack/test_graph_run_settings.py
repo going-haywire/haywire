@@ -19,11 +19,11 @@ def test_autorestart_can_be_set():
 
 
 def test_to_dict_is_sparse_when_default():
-    """A bag at all-defaults serializes to an empty dict (sparse storage)."""
+    """A bag at all-defaults serializes to an empty values/promoted dict (sparse storage)."""
     from haybale_haystack.settings.graph_run_settings import GraphRunSettings
 
     s = GraphRunSettings()
-    assert s.to_dict() == {}
+    assert s.to_dict() == {"values": {}, "promoted": {}}
 
 
 def test_to_dict_emits_non_default():
@@ -31,14 +31,14 @@ def test_to_dict_emits_non_default():
 
     s = GraphRunSettings()
     s.autorestart = True
-    assert s.to_dict() == {"autorestart": True}
+    assert s.to_dict() == {"values": {"autorestart": True}, "promoted": {}}
 
 
 def test_from_dict_restores_value():
     from haybale_haystack.settings.graph_run_settings import GraphRunSettings
 
     s = GraphRunSettings()
-    s.from_dict({"autorestart": True})
+    s.from_dict({"values": {"autorestart": True}, "promoted": {}})
     assert s.autorestart is True
 
 
@@ -47,7 +47,7 @@ def test_from_dict_ignores_unknown_keys():
     from haybale_haystack.settings.graph_run_settings import GraphRunSettings
 
     s = GraphRunSettings()
-    s.from_dict({"autorestart": True, "future_flag": "x"})
+    s.from_dict({"values": {"autorestart": True, "future_flag": "x"}, "promoted": {}})
     assert s.autorestart is True
 
 
