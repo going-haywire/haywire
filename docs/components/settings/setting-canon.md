@@ -175,7 +175,7 @@ def _on_scale(self, value: float, old: float):
 
 `unsubscribe(callback)` and `cleanup()` detach it; registration is idempotent per (field, callback), and one callback may watch several fields.
 
-**Panel rendering rules.** When the properties panel calls `render_reactive(node.filter)`:
+**Panel rendering rules.** When the properties panel calls `render_settings(node.filter)`:
 
 - Fields with `read_only=True` are skipped entirely.
 - Fields are sorted by `(category, order, attr_name)` and grouped under collapsible category headers.
@@ -183,7 +183,7 @@ def _on_scale(self, value: float, old: float):
 - Each row produces this DOM structure (useful for tests):
 
 ```text
-div[data-field="<attr_name>"]        ← row container
+div[data-field="<attr_name>"]        ← row container (data-ui-disabled="true" when disabled)
   label                              ← field label (with • prefix if locally overridden)
   <widget>[data-value="..."]         ← current value, always readable via DOM
   button[restart_alt]                ← reset button (mirror fields, when overridden)
@@ -234,6 +234,44 @@ demote_setting(node, "filter", "threshold")                              # remov
 ```
 
 Eligibility is two flag checks: a `watch()` field is **outlet only** (read-only ⇒ no write path in); plain and `shadow()` fields can be promoted either way. Direction picks the port factory, so a promoted **inlet** shows its widget while unlinked and hides it while driven, and a promoted **outlet** never shows one. `demote` never resets the value (freeze-on-disconnect) — recovery is an explicit `reset`. In the graph editor these are the node right-click "Promote Setting → inlet / outlet" verbs and the pin's "Detach from setting".
+
+**Disabling a setting in the panel (`ui_disabled` / `enabled_when`).** A setting can render as disabled — Quasar `:disable` where the widget root supports it, the §2.11 opacity treatment otherwise — while staying a completely normal, fully-writable field from the code's perspective. This is purely a panel-display concern: node code and any direct `setattr` keep working regardless of disabled state; there is no write guard in the settings layer.
+
+Two composable mechanisms, combined via OR (either one disabling the field is enough):
+
+```python
+from haywire.core.settings import NodeSettings, setting
+from haywire.barn.builtin.types import BOOL, FLOAT
+
+class color(NodeSettings):
+    enable_color = setting[BOOL](True, label="Enable Color")
+
+    # Declarative: disabled whenever enable_color != True. Same-bag only,
+    # exact-match only (no predicates). Live — toggling enable_color in the
+    # panel immediately disables exposure, no redraw needed.
+    exposure = setting[FLOAT](
+        20000.0,
+        label="Exposure",
+        metadata={"enabled_when": ("enable_color", True)},
+    )
+
+    # Imperative: starts disabled until something says otherwise.
+    manual_gain = setting[FLOAT](1.0, label="Manual Gain", ui_disabled=True)
+```
+
+```python
+# Runtime API on any Settings instance — for gating driven by something
+# OTHER than a sibling setting (e.g. a different node's wiring state):
+bag.set_ui_disabled("manual_gain", False)   # re-enable
+bag.is_ui_disabled("manual_gain")           # -> False
+bag.set_ui_disabled_all(True)               # bulk: every field on the bag
+```
+
+**One channel per concern.** `set_ui_disabled` announces transitions on a dedicated UI-state channel (`bag.subscribe_ui_state(cb)` with `cb(name, disabled)`, removed via `unsubscribe_ui_state` / `cleanup()`), which the panel subscribes to. It never fires the field's cell event — the cell event keeps meaning exactly "the value changed", so value subscribers (widgets, node live-control handlers, promoted ports) are structurally incapable of hearing chrome changes. This mirrors NiceGUI's own design, where `enabled` and `value` are independent bindable properties. `set_ui_disabled` is transition-only: redundant calls fire nothing, so recomputing disabled state in a hot path is free in steady state.
+
+`enabled_when` is a `(field_name, expected_value)` tuple stored in `metadata` — a string field reference, not validated at class-definition time. If the referenced field doesn't exist on the same bag, the panel logs a warning and the field renders normally (never auto-disabled) rather than raising. `enabled_when` only ever expresses a same-bag relationship; cross-bag or cross-node gating (e.g. one node's callback-edge wiring determining another's field state) uses `set_ui_disabled` from whatever code owns that external state.
+
+Neither mechanism is persisted — disabled state is always transient, recomputed at construction (`ui_disabled=`) or by whatever runtime code calls `set_ui_disabled`.
 
 ## 3a. Using `LibrarySettings` from a State, Editor, or Panel
 
