@@ -8,7 +8,10 @@
 > is recorded in the [Amendment](#amendment--a-promoted-ports-id-is-the-settings-storage_key)
 > at the end of this ADR. The prose in the Decision section below still describes the
 > *original* synthetic-id mechanism; read it for the direction model and one-cell-two-views,
-> and the amendment for the id mechanism that shipped.
+> and the amendment for the id mechanism that shipped. **The amendment itself is now
+> superseded by [ADR 0019](0019-settings-owned-promotion.md)** — see its superseded marker:
+> promotion state now lives in `Settings._promoted_keys`, and a promoted port is no longer
+> serialized in the ports block at all.
 
 Promoting a setting used to mean "create a separate DATA inlet and bridge reads back to it." The inlet owned its own `DataField`; the setting descriptor carried a `_promoted_port_id` back-reference; and `setting.__get__` had a *read-tier branch* that, when the named port was linked, returned `port.get_value()` instead of resolving the setting. That is a **two-value** design — the port has one value, the setting resolves another, and a bridge forwards reads. This ADR records replacing it with **reference-sharing**: a promoted port borrows the setting's [P4 cell](0013-settings-single-cell.md) *by reference* (via a new `DataPort.bind_field`), so a setting and its promoted port are **one cell, two views** — there is no second value, no `_promoted_port_id`, and no read-tier bridge. It is plan **P5**, the final plan of the settings↔DataField unification arc (canonical-key → tier-collapse → JSON → single-cell → **promotion-as-direction**), and it completes the arc.
 
@@ -58,6 +61,8 @@ The Plan-3 two-cell + `_promoted_port_id` read-tier-bridge design (DECISIONS §E
 ## Amendment — a promoted port's id is the setting's storage_key
 
 *(Originally ADR 0015. Supersedes-in-part the Decision section above: the direction model and one-cell-two-views stand; only the id-encoding + set-tracking mechanism is replaced.)*
+
+> **⚠️ Superseded by [ADR 0019](0019-settings-owned-promotion.md) (2026-07-06).** The amendment's core principle — "the port IS the promotion signal (serialized in the ports block); settings stay oblivious" — no longer describes the code. Promotion state now lives in `Settings._promoted_keys`; promoted ports are regenerated from settings on load and are **not serialized** in the ports block. `demote_setting` now clears the settings-side record (the amendment's "no settings-side record to clean up" property was deliberately given up). The direction model and one-cell-two-views (in the Decision section above) still stand. This amendment's prose is retained as the historical record of the intermediate design.
 
 **Context.** The Decision above gave a promoted port a synthetic id `setting__<accessor>__<field>` and made "port id + `DataPort.promoted`" the binding signal, requiring a parallel encode/decode scheme, id-decode helpers on `DataPort`, a `from_spec` branch that reached into settings for the port's type, a per-write `_mark_promoted_setting_set` on edge-drive, and an `object.__setattr__` `_node` monkeypatch on each settings bag.
 

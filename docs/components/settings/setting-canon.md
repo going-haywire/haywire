@@ -233,7 +233,27 @@ promote_setting(node, "filter", "threshold", direction=PortType.OUTLET)  # setti
 demote_setting(node, "filter", "threshold")                              # remove the port
 ```
 
-Eligibility is two flag checks: a `watch()` field is **outlet only** (read-only ⇒ no write path in); plain and `shadow()` fields can be promoted either way. Direction picks the port factory, so a promoted **inlet** shows its widget while unlinked and hides it while driven, and a promoted **outlet** never shows one. `demote` never resets the value (freeze-on-disconnect) — recovery is an explicit `reset`. In the graph editor these are the node right-click "Promote Setting → inlet / outlet" verbs and the pin's "Detach from setting".
+Eligibility is `eligible_promotion_directions(descriptor)` — declared `promotable=` (see below) intersected with the structural rule that a `watch()` field is **outlet only** (read-only ⇒ no write path in); plain and `shadow()` fields default to promotable either way. Direction picks the port factory, so a promoted **inlet** shows its widget while unlinked and hides it while driven, and a promoted **outlet** never shows one. `demote` never resets the value (freeze-on-disconnect) — recovery is an explicit `reset`. In the graph editor these are the node right-click "Promote Setting → inlet / outlet" verbs and the pin's "Detach from setting".
+
+**Serialization (ADR 0019).** Promotion state lives in the owning settings bag, not the port: `Settings._promoted_keys: dict[str, PortType]` (`storage_key → direction`) is the single source of truth. A bag's `to_dict()` returns `{"values": {...}, "promoted": {storage_key: "inlet"|"outlet"}}` — **a promoted port is never serialized in the node's `ports` block**; it is regenerated on load by `regenerate_promoted_ports`, which walks `_promoted_keys` and calls `promote_setting` for each entry (the same path an interactive promotion takes, so there is one creation path either way). This runs after settings restore and before edges wire, so a regenerated promoted inlet exists before any edge resolves against it. `demote_setting` clears `_promoted_keys[storage_key]` in addition to removing the port — promote writes the record, demote clears it. A pre-ADR-0019 settings dict (the old flat `{field: value}` shape) is treated as incompatible: `from_dict` raises `PromotedFormatError`, the node loader resets that bag to defaults and attaches a WARNING to the node rather than crashing.
+
+**Restricting promotion (`promotable=`).** By default every writable setting can be promoted to an inlet or an outlet, and a `watch()` field to an outlet only. A field can narrow or remove that with the `promotable=` kwarg:
+
+```python
+from haywire.core.settings import NodeSettings, Promotable, setting
+from haywire.barn.builtin.types import CHOICES
+
+class depth(NodeSettings):
+    # Restart-required pipeline parameter: a port would imply live control
+    # the hardware can't deliver — remove it from the promote menu entirely.
+    preset_mode = setting[CHOICES](
+        "HIGH_DENSITY",
+        label="Preset Mode",
+        promotable=Promotable.NONE,
+    )
+```
+
+`Promotable` is a Flag: `NONE` / `INLET` / `OUTLET` / `ALL` (default). Effective eligibility is the intersection of the declaration and the structural rules (`read_only=True` stays outlet-only regardless; `read_only` + `promotable=INLET` intersects to nothing). The single source of truth is `eligible_promotion_directions()` in `haywire.core.node.promotion` — the promote menu hides ineligible entries and `promote_setting()` raises `ValueError` for them, whether the call is interactive or from the load-time regeneration pass.
 
 **Disabling a setting in the panel (`ui_disabled` / `enabled_when`).** A setting can render as disabled — Quasar `:disable` where the widget root supports it, the §2.11 opacity treatment otherwise — while staying a completely normal, fully-writable field from the code's perspective. This is purely a panel-display concern: node code and any direct `setattr` keep working regardless of disabled state; there is no write guard in the settings layer.
 
