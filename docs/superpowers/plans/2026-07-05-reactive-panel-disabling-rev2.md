@@ -64,12 +64,12 @@ The panel's row renderer (`_render_reactive_field_row` in `render_utils.py`, the
   - `Settings.is_ui_disabled(name: str) -> bool` — `False` for unknown names.
   - `Settings.subscribe_ui_state(callback: Callable[[str, bool], None]) -> None` / `Settings.unsubscribe_ui_state(callback) -> None`.
 
-- [ ] **Step 1: Baseline check**
+- [x] **Step 1: Baseline check**
 
 Run: `uv run ruff check packages/haywire-core/src/haywire/core/settings/ && uv run mypy packages/haywire-core/src/haywire/core/settings/`
 Expected: both clean (no pre-existing errors). If not clean, stop and raise it — do not proceed on a dirty baseline.
 
-- [ ] **Step 2: Write the failing tests**
+- [x] **Step 2: Write the failing tests**
 
 Create `tests/core/test_settings/test_ui_disabled.py`:
 
@@ -254,12 +254,12 @@ class TestCellIsNeverTouched:
         assert cell.is_dirty is False
 ```
 
-- [ ] **Step 3: Run tests to verify they fail**
+- [x] **Step 3: Run tests to verify they fail**
 
 Run: `uv run pytest tests/core/test_settings/test_ui_disabled.py -v`
 Expected: FAIL — `TypeError: setting() got an unexpected keyword argument 'ui_disabled'` (or `AttributeError: ... has no attribute 'is_ui_disabled'`, whichever the collector hits first).
 
-- [ ] **Step 4: Add the `ui_disabled` kwarg to `setting.__init__`**
+- [x] **Step 4: Add the `ui_disabled` kwarg to `setting.__init__`**
 
 In `packages/haywire-core/src/haywire/core/settings/descriptor.py`:
 
@@ -309,7 +309,7 @@ Storage — insert after the existing `self._metadata: dict = metadata or {}` li
         self._ui_disabled: bool = ui_disabled
 ```
 
-- [ ] **Step 5: Add the disabled-key set, the UI-state channel, and the public API to `Settings`**
+- [x] **Step 5: Add the disabled-key set, the UI-state channel, and the public API to `Settings`**
 
 In `packages/haywire-core/src/haywire/core/settings/settings.py`:
 
@@ -418,22 +418,22 @@ Extend `cleanup()` (currently lines 377-390) — add one line after the existing
         self._ui_state_listeners.clear()
 ```
 
-- [ ] **Step 6: Run tests to verify they pass**
+- [x] **Step 6: Run tests to verify they pass**
 
 Run: `uv run pytest tests/core/test_settings/test_ui_disabled.py -v`
 Expected: PASS, all 18 tests green.
 
-- [ ] **Step 7: Run the existing settings suite for regressions**
+- [x] **Step 7: Run the existing settings suite for regressions**
 
 Run: `uv run pytest tests/core/test_settings/ -q`
 Expected: PASS, no regressions (the only touched existing code paths are `Settings.__init__` and `cleanup()`).
 
-- [ ] **Step 8: Full baseline re-check**
+- [x] **Step 8: Full baseline re-check**
 
 Run: `uv run ruff check packages/haywire-core/src/haywire/core/settings/ && uv run ruff format --check packages/haywire-core/src/haywire/core/settings/ && uv run mypy packages/haywire-core/src/haywire/core/settings/`
 Expected: all clean.
 
-- [ ] **Step 9: Commit**
+- [x] **Step 9: Commit**
 
 ```bash
 git add packages/haywire-core/src/haywire/core/settings/descriptor.py packages/haywire-core/src/haywire/core/settings/settings.py tests/core/test_settings/test_ui_disabled.py
@@ -454,12 +454,12 @@ git commit -m "feat(settings): ui_disabled flag with dedicated UI-state channel 
   - `haywire.ui.widget.base.DISABLED_STYLE: str` — the §2.11 style string, importable by the panel for the label fallback.
   - `BaseWidget.set_enabled(enabled: bool) -> None` — Quasar `:disable` when the root is a `DisableableElement`, CSS add/remove otherwise; safe no-op before `render()` and after `cleanup()`.
 
-- [ ] **Step 1: Baseline check**
+- [x] **Step 1: Baseline check**
 
 Run: `uv run ruff check packages/haywire-core/src/haywire/ui/widget/base.py && uv run mypy packages/haywire-core/src/haywire/ui/widget/base.py`
 Expected: both clean.
 
-- [ ] **Step 2: Write the failing tests**
+- [x] **Step 2: Write the failing tests**
 
 Create `tests/ui/widget/test_set_enabled.py`:
 
@@ -562,12 +562,12 @@ class TestLifecycleGuards:
         w.set_enabled(False)  # must not raise
 ```
 
-- [ ] **Step 3: Run tests to verify they fail**
+- [x] **Step 3: Run tests to verify they fail**
 
 Run: `uv run pytest tests/ui/widget/test_set_enabled.py -v`
 Expected: FAIL on every test — `AttributeError: '_NumberRootWidget' object has no attribute 'set_enabled'`.
 
-- [ ] **Step 4: Implement `DISABLED_STYLE` + `set_enabled`**
+- [x] **Step 4: Implement `DISABLED_STYLE` + `set_enabled`**
 
 In `packages/haywire-core/src/haywire/ui/widget/base.py`:
 
@@ -612,22 +612,22 @@ Add the method to `BaseWidget`, right after `set_value` (currently lines 52-53, 
                 el.style(add=DISABLED_STYLE)
 ```
 
-- [ ] **Step 5: Run tests to verify they pass**
+- [x] **Step 5: Run tests to verify they pass**
 
 Run: `uv run pytest tests/ui/widget/test_set_enabled.py -v`
 Expected: PASS, all 6 tests green.
 
-- [ ] **Step 6: Run the existing widget suite for regressions**
+- [x] **Step 6: Run the existing widget suite for regressions**
 
 Run: `uv run pytest tests/ui/widget/ -q`
 Expected: PASS, no regressions (this task only adds a method and a constant).
 
-- [ ] **Step 7: Full baseline re-check**
+- [x] **Step 7: Full baseline re-check**
 
 Run: `uv run ruff check packages/haywire-core/src/haywire/ui/widget/ && uv run ruff format --check packages/haywire-core/src/haywire/ui/widget/ && uv run mypy packages/haywire-core/src/haywire/ui/widget/`
 Expected: all clean.
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```bash
 git add packages/haywire-core/src/haywire/ui/widget/base.py tests/ui/widget/test_set_enabled.py
@@ -646,12 +646,12 @@ git commit -m "feat(widget): BaseWidget.set_enabled with Quasar :disable and §2
 - Consumes: `Settings.is_ui_disabled(name)`, `Settings.subscribe_ui_state`/`unsubscribe_ui_state` (Task 1); `BaseWidget.set_enabled`, `haywire.ui.widget.base.DISABLED_STYLE` (Task 2); `Settings.subscribe_field(name, callback)` / `unsubscribe(callback)` (existing, unchanged).
 - Produces: every `_render_reactive_field_row`-rendered row carries `data-ui-disabled="true"`/`"false"` in its props, and the widget is disabled/enabled live via `set_enabled`. `_resolve_widget_instance` changes its return contract from `Callable[[Any], None] | None` to `tuple[Callable[[Any], None] | None, Callable[[bool], None]]` — a breaking change to its one other call site (`_render_field_row`, registry path), updated in Step 7. No new public function signatures.
 
-- [ ] **Step 1: Baseline check**
+- [x] **Step 1: Baseline check**
 
 Run: `uv run ruff check packages/haywire-core/src/haywire/ui/panel/render_utils.py && uv run mypy packages/haywire-core/src/haywire/ui/panel/render_utils.py`
 Expected: both clean.
 
-- [ ] **Step 2: Write the failing tests**
+- [x] **Step 2: Write the failing tests**
 
 Create `tests/ui/panel/test_ui_disabled_row_state.py`:
 
@@ -842,12 +842,12 @@ class TestComposition:
         assert row._props.get("data-ui-disabled") == "true", "manual flag must win via OR"
 ```
 
-- [ ] **Step 3: Run tests to verify they fail**
+- [x] **Step 3: Run tests to verify they fail**
 
 Run: `uv run pytest tests/ui/panel/test_ui_disabled_row_state.py -v`
 Expected: FAIL on every test — `data-ui-disabled` is never set today, and nothing is ever disabled.
 
-- [ ] **Step 4: Add the module logger and the `enabled_when` resolution to `_render_reactive_field_row`**
+- [x] **Step 4: Add the module logger and the `enabled_when` resolution to `_render_reactive_field_row`**
 
 In `packages/haywire-core/src/haywire/ui/panel/render_utils.py`:
 
@@ -902,7 +902,7 @@ Inside `_render_reactive_field_row`, after the existing promoted-inlet block (cu
         return False
 ```
 
-- [ ] **Step 5: Apply the disabled state at render, wire the live subscriptions**
+- [x] **Step 5: Apply the disabled state at render, wire the live subscriptions**
 
 Still inside `_render_reactive_field_row`, find the row-building block (currently lines 350-360):
 
@@ -961,7 +961,7 @@ Then add the marker refresher and the `enabled_when` live subscription, right af
 
 (No explicit initial `_refresh_row_disabled_marker()` call here: `render_settings` already runs every row's updater once at render — Step 6 folds the marker into that updater — and the row props / seed state were applied at build above.)
 
-- [ ] **Step 6: Fold the marker into `_refresh_chrome`, subscribe the UI-state channel in `render_settings`**
+- [x] **Step 6: Fold the marker into `_refresh_chrome`, subscribe the UI-state channel in `render_settings`**
 
 Modify the existing `_refresh_chrome` (currently lines 362-383) — one added line before the closing of the function:
 
@@ -1038,7 +1038,7 @@ with:
     anchor_cleanup_to_element(column, _teardown)
 ```
 
-- [ ] **Step 7: Change `_resolve_widget_instance` / `_build_label_widget` to also return a `set_enabled` callable, and update the registry call site**
+- [x] **Step 7: Change `_resolve_widget_instance` / `_build_label_widget` to also return a `set_enabled` callable, and update the registry call site**
 
 Modify `_resolve_widget_instance` (currently lines 391-450) — new return type, docstring, and both return statements:
 
@@ -1131,29 +1131,29 @@ with:
         return callback
 ```
 
-- [ ] **Step 8: Run tests to verify they pass**
+- [x] **Step 8: Run tests to verify they pass**
 
 Run: `uv run pytest tests/ui/panel/test_ui_disabled_row_state.py -v`
 Expected: PASS, all 9 tests green.
 
-- [ ] **Step 9: Run the full existing panel test suite for regressions**
+- [x] **Step 9: Run the full existing panel test suite for regressions**
 
 The `_resolve_widget_instance` return-type change is the riskiest part of this task — run every test that touches `render_utils.py`:
 
 Run: `uv run pytest tests/ui/panel/ tests/haystack/test_graph_run_settings_panel.py -v`
 Expected: PASS, no regressions (in particular `test_promoted_row_state.py`, `test_render_settings_subscription.py`, and `test_render_settings_echo.py`, which exercise `_render_reactive_field_row` and `_resolve_widget_instance` heavily).
 
-- [ ] **Step 10: Full baseline re-check**
+- [x] **Step 10: Full baseline re-check**
 
 Run: `uv run ruff check packages/haywire-core/src/haywire/ui/panel/ && uv run ruff format --check packages/haywire-core/src/haywire/ui/panel/ && uv run mypy packages/haywire-core/src/haywire/ui/panel/`
 Expected: all clean.
 
-- [ ] **Step 11: Run the full fast test suite**
+- [x] **Step 11: Run the full fast test suite**
 
 Run: `uv run pytest -m "not integration" -q` and `uv run pytest -m integration tests/ui/ -q`
 Expected: all passing (matching the pre-existing pass count, plus this plan's new tests). Note: the new panel and widget test files use `pytestmark = pytest.mark.integration` (they need a NiceGUI `Client`), matching `test_promoted_row_state.py` — make sure they're picked up by the integration run, not silently skipped by `-m "not integration"`.
 
-- [ ] **Step 12: Commit**
+- [x] **Step 12: Commit**
 
 ```bash
 git add packages/haywire-core/src/haywire/ui/panel/render_utils.py tests/ui/panel/test_ui_disabled_row_state.py
@@ -1171,7 +1171,7 @@ git commit -m "feat(panel): reactive ui_disabled rendering + enabled_when declar
 - Consumes: the finished `ui_disabled=`/`set_ui_disabled`/`is_ui_disabled`/`subscribe_ui_state`/`enabled_when` API from Tasks 1-3 (must be written and tested first, so the docs describe real, verified behavior).
 - Produces: nothing consumed by later tasks — purely documentation.
 
-- [ ] **Step 1: Fix the pre-existing `render_reactive` → `render_settings` doc-drift**
+- [x] **Step 1: Fix the pre-existing `render_reactive` → `render_settings` doc-drift**
 
 In `docs/components/settings/setting-canon.md`, find the line (currently line 178):
 
@@ -1185,7 +1185,7 @@ Replace with:
 **Panel rendering rules.** When the properties panel calls `render_settings(node.filter)`:
 ```
 
-- [ ] **Step 2: Extend the DOM structure block with the disabled marker**
+- [x] **Step 2: Extend the DOM structure block with the disabled marker**
 
 Find the DOM contract block (currently lines 185-192) and change only its first line:
 
@@ -1195,7 +1195,7 @@ div[data-field="<attr_name>"]        ← row container (data-ui-disabled="true" 
 
 (the remaining lines of the block stay exactly as they are).
 
-- [ ] **Step 3: Add the `ui_disabled` / `enabled_when` section**
+- [x] **Step 3: Add the `ui_disabled` / `enabled_when` section**
 
 Find the existing "Promoting a setting to a port" section (currently lines 225-236, ending right before `## 3a. Using LibrarySettings...`). Insert a new subsection immediately after it (before the `## 3a.` heading):
 
@@ -1239,11 +1239,11 @@ bag.set_ui_disabled_all(True)               # bulk: every field on the bag
 Neither mechanism is persisted — disabled state is always transient, recomputed at construction (`ui_disabled=`) or by whatever runtime code calls `set_ui_disabled`.
 ```
 
-- [ ] **Step 4: Preview the docs site to sanity-check rendering**
+- [x] **Step 4: Preview the docs site to sanity-check rendering**
 
 Run: `uv run mkdocs serve` and visit `http://127.0.0.1:8000` → navigate to the settings canon page. Confirm the new section renders with correct code-block formatting and no broken markdown. Stop the server after checking (Ctrl+C).
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add docs/components/settings/setting-canon.md
@@ -1264,7 +1264,7 @@ git commit -m "docs(settings): document ui_disabled/enabled_when + UI-state chan
 - Consumes: `Settings.set_ui_disabled_all(bool)` from Task 1 (via `self.depth`/`self.ir`/`self.color`, the existing `NodeSettings` bags on `OakDCameraNode`). Because the ui-disabled API never touches cells, this task fires NOTHING into `hb_on_ir_changed`/`hb_on_color_changed` (the bag subscriptions that push straight to camera hardware) — and because it is transition-only, steady-state re-gathers are completely silent. The bulk form iterates each bag's own declared fields, so this task maintains no field-name lists at all.
 - Produces: nothing consumed by later tasks — this is the terminal consumer.
 
-- [ ] **Step 1: Baseline check**
+- [x] **Step 1: Baseline check**
 
 Run:
 ```bash
@@ -1274,7 +1274,7 @@ uv run mypy barn/haybale-visiongraph/haybale_visiongraph/nodes/oak_d_camera_node
 ```
 Expected: clean (matches the state left at the end of the prior OAK-D work in this same file).
 
-- [ ] **Step 2: Add stream-based disabling to `hb_gather_requirements`**
+- [x] **Step 2: Add stream-based disabling to `hb_gather_requirements`**
 
 Find `hb_gather_requirements` (currently lines 479-489):
 
@@ -1330,7 +1330,7 @@ Replace with:
         self.color.set_ui_disabled_all(not self.hb_want_rgb)
 ```
 
-- [ ] **Step 3: Verify manually via the running app**
+- [x] **Step 3: Verify manually via the running app**
 
 Start the app and confirm the feature works end-to-end (this node only ships frames on real OAK-D hardware, but the panel behavior is verifiable without a device — the simplest case is a graph with NO event node attached, which yields `want_rgb=want_depth=want_ir=False`):
 
@@ -1338,7 +1338,7 @@ Run (from haywire-repo): `uv run haywire`
 
 In the app: create an `OAK-D Camera` node with no `Frame Event` node attached, open its properties panel, and pulse `start` (or trigger `on_startup`) so `hb_gather_requirements` runs. Expected: all `depth`, `ir`, and `color` category fields render disabled since nothing subscribes to any stream. Attach a `NumpyFrameEventNode` with `rgb=True`, rewire the callback edge, and pulse `start` again — the `color` category's fields become enabled while `depth`/`ir` stay disabled (only `rgb` was requested). Known limitation (accepted): the disabled state refreshes only when `hb_gather_requirements` runs (startup / start pulse), so rewiring alone doesn't update the panel until the next start.
 
-- [ ] **Step 4: Full baseline re-check**
+- [x] **Step 4: Full baseline re-check**
 
 Run:
 ```bash
@@ -1349,12 +1349,12 @@ uv run mypy barn/haybale-visiongraph/haybale_visiongraph/nodes/oak_d_camera_node
 ```
 Expected: all clean.
 
-- [ ] **Step 5: Run the main repo's fast test suite once more (this node is exercised by the library-load integration test)**
+- [x] **Step 5: Run the main repo's fast test suite once more (this node is exercised by the library-load integration test)**
 
 Run: `cd /Volumes/Ddrive/06_open_tracking_tool/haywire/haywire-repo && uv run pytest -m "not integration" -q`
 Expected: all passing, same count as at the end of Task 3 (this change only affects `OakDCameraNode`'s runtime behavior, not its port/settings declarations).
 
-- [ ] **Step 6: Record the decision in `notes.md` and commit — in the haybale-visiongraph repo**
+- [x] **Step 6: Record the decision in `notes.md` and commit — in the haybale-visiongraph repo**
 
 Append to `barn/haybale-visiongraph/notes.md` (path relative to the haybale-visiongraph repo root), after the existing "Depth-quality / IR / color live-control knobs (fourth inquisition — BUILT)" section:
 
