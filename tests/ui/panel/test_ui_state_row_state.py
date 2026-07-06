@@ -215,3 +215,58 @@ class TestComposition:
         row = _find_field_row(anchor, "manual_focus")
         assert row._props.get("data-ui-state") == "hidden"
         assert row.visible is False
+
+
+def _find_category_group(root, category: str):
+    """Find the wrapper div carrying ``data-category-group="<category>"``."""
+    for el in _walk(root):
+        if getattr(el, "_props", {}).get("data-category-group") == category:
+            return el
+    return None
+
+
+class CategorySettings(Settings):
+    mode = setting[BOOL](True, label="Mode")
+    adv_a = setting[FLOAT](
+        1.0, label="Adv A", category="advanced", metadata={"visible_when": ("mode", True)}
+    )
+    adv_b = setting[FLOAT](
+        2.0, label="Adv B", category="advanced", metadata={"visible_when": ("mode", True)}
+    )
+
+
+class TestCategoryGroupHiding:
+    def test_group_visible_while_any_row_visible(self):
+        bag = CategorySettings()
+        anchor = _render(bag)
+        group = _find_category_group(anchor, "advanced")
+        assert group is not None
+        assert group.visible is True
+
+    def test_group_hides_when_all_rows_hidden_and_returns(self):
+        bag = CategorySettings()
+        anchor = _render(bag)
+        group = _find_category_group(anchor, "advanced")
+
+        bag.mode = False  # visible_when hides both advanced rows
+        assert group.visible is False
+
+        bag.mode = True
+        assert group.visible is True
+
+    def test_group_stays_while_one_row_remains_visible(self):
+        bag = CategorySettings()
+        anchor = _render(bag)
+        group = _find_category_group(anchor, "advanced")
+        bag.set_ui_state("adv_a", UiState.HIDDEN)  # only one of the two rows
+        assert group.visible is True
+        bag.set_ui_state("adv_b", UiState.HIDDEN)  # now both
+        assert group.visible is False
+
+    def test_initially_all_hidden_group_starts_hidden(self):
+        bag = CategorySettings()
+        bag.mode = False  # before render
+        anchor = _render(bag)
+        group = _find_category_group(anchor, "advanced")
+        assert group is not None
+        assert group.visible is False

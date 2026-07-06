@@ -82,10 +82,34 @@ def render_settings(obj: "Settings") -> None:
     # widget + override chrome in place. Populated by _render_reactive_field_row.
     updaters: dict[str, Callable[[], None]] = {}
 
+    # Category-group visibility (ADR 0020): a section whose rows are ALL
+    # effectively HIDDEN hides its wrapper (header included). Derived state
+    # only — recomputed from effective_ui_state, never stored per category.
+    group_wrappers: dict[str, Any] = {}
+    fields_by_category: dict[str, list[str]] = {}
+    for _name, _defn in sorted_fields:
+        fields_by_category.setdefault(_defn._category, []).append(_name)
+
+    def _refresh_group_visibility(category: str) -> None:
+        wrapper = group_wrappers.get(category)
+        if wrapper is None:
+            return
+        names = fields_by_category.get(category, [])
+        wrapper.set_visibility(any(obj.effective_ui_state(n) is not UiState.HIDDEN for n in names))
+
+    def _render_one(item: tuple[str, "setting"]) -> None:
+        category = item[1]._category
+
+        def _on_applied() -> None:
+            _refresh_group_visibility(category)
+
+        _render_reactive_field_row(obj, item[0], item[1], updaters, on_ui_state_applied=_on_applied)
+
     column = _render_grouped(
         sorted_fields,
         category_of=lambda item: item[1]._category,
-        render_one=lambda item: _render_reactive_field_row(obj, item[0], item[1], updaters),
+        render_one=_render_one,
+        group_wrappers=group_wrappers,
     )
 
     def _on_model_change(name: str, value: Any, old: Any) -> None:
@@ -182,18 +206,28 @@ def _group_by_category(items: list, key=lambda x: x._category) -> list[tuple[str
     return [(cat, list(grp)) for cat, grp in groupby(items, key=key)]
 
 
-def _render_grouped(sorted_items, category_of, render_one) -> Any:
+def _render_grouped(
+    sorted_items, category_of, render_one, group_wrappers: dict[str, Any] | None = None
+) -> Any:
     """Lay out *sorted_items* as a settings column, grouped into category sections.
 
     Returns the outer ``ui.column`` so callers can anchor teardown to it.
-    *render_one* is called once per item, inside its category group.
+    *render_one* is called once per item, inside its category group. Each
+    section sits in a wrapper div stamped ``data-category-group`` so callers
+    (and tests/CSS) can toggle a whole section; when *group_wrappers* is
+    given it maps ``category -> wrapper`` for visibility recomputes — a
+    fully-hidden category hides header and all (ADR 0020).
     """
     column = ui.column().classes("w-full compact-fields sf-field-list").style(_COLUMN_STYLE)
     with column:
         for category, group in _group_by_category(sorted_items, key=category_of):
-            with hui.category_group(category):
-                for item in group:
-                    render_one(item)
+            wrapper = ui.element("div").classes("w-full").props(f'data-category-group="{category}"')
+            if group_wrappers is not None:
+                group_wrappers[category] = wrapper
+            with wrapper:
+                with hui.category_group(category):
+                    for item in group:
+                        render_one(item)
     return column
 
 
@@ -264,6 +298,7 @@ def _render_reactive_field_row(
     attr_name: str,
     defn: "setting",
     updaters: dict[str, Callable[[], None]],
+    on_ui_state_applied: Callable[[], None] | None = None,
 ) -> None:
     """Render a single reactive field row (instance path).
 
@@ -416,6 +451,8 @@ def _render_reactive_field_row(
         row_element.props(f'data-ui-state="{state.name.lower()}"')
         if widget_set_enabled is not None:
             widget_set_enabled(state is UiState.NORMAL)
+        if on_ui_state_applied is not None:
+            on_ui_state_applied()
 
     for _controller in gate_controllers:
 
