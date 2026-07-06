@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING, Optional
 from dataclasses import asdict
 from abc import abstractmethod
 
-from haywire.core.errors.haywire_exception import HaywireException
+from haywire.core.errors.haywire_exception import ErrorSeverity, HaywireException
 from haywire.core.node.properties import NodeProperties  # re-exported for type hints
 from ..execution.execution_context import ExecutionContext
 from .data import NodeData
@@ -370,10 +370,30 @@ class BaseNode(NodeData):
         # half-built graph). Settings restore mutates each cell in place (and
         # restores each bag's _promoted_keys), so regenerating a port afterwards
         # sees the restored value with no load-time propagation.
+        from haywire.core.settings.settings import PromotedFormatError
+
         for bag_name, bag_data in data.get("settings", {}).items():
             bag = getattr(self, bag_name, None)
-            if isinstance(bag, Settings):
+            if not isinstance(bag, Settings):
+                continue
+            try:
                 bag.from_dict(bag_data)
+            except PromotedFormatError:
+                # Reset-and-continue (ADR 0019): the bag stays at descriptor
+                # defaults (nothing restored), the node loads and stays fully
+                # functional, and the user is told via a WARNING that renders on
+                # the node card. They lose this node's individually-saved
+                # settings — the accepted price of the hard format cutover.
+                logger.warning(
+                    "Node %r bag %r: incompatible (pre-ADR-0019) settings format; reset to defaults.",
+                    self.node_id,
+                    bag_name,
+                )
+                self.wrapper.state.error_custom = HaywireException.create(
+                    f"Settings for '{bag_name}' were saved in an old format and have "
+                    f"been reset to defaults. Re-save the graph to update it.",
+                    severity=ErrorSeverity.WARNING,
+                )
 
         # Deserialize the NON-promoted ports (promoted ports are not in the
         # ports block anymore — ADR 0019). Then regenerate promoted ports from
