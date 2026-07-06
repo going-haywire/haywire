@@ -299,36 +299,34 @@ def _render_reactive_field_row(
         else:
             promoted_hint = "promoted to outlet"
 
-    # Declarative same-bag gating (enabled_when metadata convention, composes
-    # with the imperative Settings.is_ui_disabled/set_ui_disabled via OR — see
-    # setting-canon.md). Resolved once per row build; the live part is the
-    # subscribe_field wired below (a controller-VALUE change is a genuine cell
-    # event), plus the bag's UI-state channel subscribed in render_settings
-    # for the imperative flag.
-    enabled_when = defn._metadata.get("enabled_when") if defn._metadata else None
-    enabled_when_controller: str | None = None
-    enabled_when_value: Any = None
-    if enabled_when is not None:
-        controller_name, expected_value = enabled_when
+    # Declarative same-bag gating (enabled_when / visible_when metadata
+    # conventions — see setting-canon.md). The CHECK lives on the bag
+    # (effective_ui_state, severity max with the imperative state, ADR 0020);
+    # only the warn-once-per-row-build for a typo'd controller and the live
+    # subscription wiring belong here. A controller-VALUE change is a genuine
+    # cell event (subscribe_field below); the imperative state arrives on the
+    # bag's UI-state channel subscribed in render_settings.
+    def _gate_controller(meta_key: str) -> str | None:
+        gate = defn._metadata.get(meta_key) if defn._metadata else None
+        if gate is None:
+            return None
+        controller_name, _expected = gate
         if controller_name in type(obj)._property_settings():
-            enabled_when_controller = controller_name
-            enabled_when_value = expected_value
-        else:
-            logger.warning(
-                "enabled_when=%r on field %r references unknown field %r on %s "
-                "— ignoring (field will never be auto-disabled by this rule)",
-                enabled_when,
-                attr_name,
-                controller_name,
-                type(obj).__name__,
-            )
+            return controller_name
+        logger.warning(
+            "%s=%r on field %r references unknown field %r on %s "
+            "— ignoring (field will never be auto-gated by this rule)",
+            meta_key,
+            gate,
+            attr_name,
+            controller_name,
+            type(obj).__name__,
+        )
+        return None
 
-    def _is_ui_disabled() -> bool:
-        if obj.ui_state(attr_name) is not UiState.NORMAL:
-            return True
-        if enabled_when_controller is not None:
-            return getattr(obj, enabled_when_controller) != enabled_when_value
-        return False
+    gate_controllers = {
+        name for name in (_gate_controller("enabled_when"), _gate_controller("visible_when")) if name
+    }
 
     # Override chrome (• dirty prefix + reset button) is shown whenever the field
     # carries a local opinion (_set_keys membership) AND the graph doesn't own its
@@ -403,8 +401,7 @@ def _render_reactive_field_row(
         row_props += ' data-promoted="true"'
         if port is not None:
             row_props += f' data-promoted-direction="{"inlet" if is_promoted_inlet else "outlet"}"'
-    if _is_ui_disabled():
-        row_props += ' data-ui-disabled="true"'
+    row_props += f' data-ui-state="{obj.effective_ui_state(attr_name).name.lower()}"'
 
     widget_set_enabled: Callable[[bool], None] | None = None
     with ui.row().classes(row_classes).props(row_props) as row_element:
@@ -413,19 +410,24 @@ def _render_reactive_field_row(
             on_edit = _bag_on_edit(obj, attr_name, error_container)
             value_apply, widget_set_enabled = _resolve_widget_instance(defn, on_edit, bag=obj)
 
-    def _refresh_row_disabled_marker() -> None:
-        disabled = _is_ui_disabled()
-        row_element.props(f'data-ui-disabled="{"true" if disabled else "false"}"')
+    def _refresh_row_ui_state() -> None:
+        state = obj.effective_ui_state(attr_name)
+        row_element.set_visibility(state is not UiState.HIDDEN)
+        row_element.props(f'data-ui-state="{state.name.lower()}"')
         if widget_set_enabled is not None:
-            widget_set_enabled(not disabled)
+            widget_set_enabled(state is UiState.NORMAL)
 
-    if enabled_when_controller is not None:
+    for _controller in gate_controllers:
 
         def _on_controller_changed(_value: Any, _old: Any) -> None:
-            _refresh_row_disabled_marker()
+            _refresh_row_ui_state()
 
-        obj.subscribe_field(enabled_when_controller, _on_controller_changed)
-        anchor_cleanup_to_element(row_element, lambda: obj.unsubscribe(_on_controller_changed))
+        obj.subscribe_field(_controller, _on_controller_changed)
+
+        def _unsubscribe(cb: Callable[[Any, Any], None] = _on_controller_changed) -> None:
+            obj.unsubscribe(cb)
+
+        anchor_cleanup_to_element(row_element, _unsubscribe)
 
     def _refresh_chrome():
         # Real widgets bind the shared cell directly (on_changed), so
@@ -448,7 +450,8 @@ def _render_reactive_field_row(
             label.set_text(_label_text(dirty))
         if reset_btn is not None:
             reset_btn.set_visibility(dirty)
-        _refresh_row_disabled_marker()
+        # Re-applies the ui-state marker (was: "the ui-disabled marker").
+        _refresh_row_ui_state()
 
     updaters[attr_name] = _refresh_chrome
 
