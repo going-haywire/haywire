@@ -127,3 +127,30 @@ def test_promote_action_forwards_direction(make_node_with_setting):
     pid = type(node.filter).__dict__["threshold"].storage_key
     assert captured == [PortType.OUTLET]
     assert node.ports[pid].is_outlet()
+
+
+@pytest.mark.integration
+def test_promotable_none_field_hidden_from_menu(make_node_with_setting):
+    """promotable=NONE removes the field from the promote submenu entirely
+    (hidden, not greyed — consistent with promoted-field omission)."""
+    from haywire.core.settings import Promotable
+    from haybale_graph_editor.panels.graph.menu.node.promote import promotable_fields
+
+    node = make_node_with_setting(accessor="filter", field="threshold")
+    type(node.filter).__dict__["threshold"]._promotable = Promotable.NONE
+
+    assert not any(acc == "filter" and fld == "threshold" for acc, fld, _ in promotable_fields(node))
+
+
+@pytest.mark.integration
+def test_single_direction_declaration_collapses_menu_entry(make_node_with_setting):
+    """promotable=OUTLET yields a single-direction entry — same rendering path
+    a watch() field already takes (labeled leaf, no direction flyout)."""
+    from haywire.core.settings import Promotable
+    from haybale_graph_editor.panels.graph.menu.node.promote import promotable_fields
+
+    node = make_node_with_setting(accessor="filter", field="threshold")
+    type(node.filter).__dict__["threshold"]._promotable = Promotable.OUTLET
+
+    fields = {(acc, fld): dirs for acc, fld, dirs in promotable_fields(node)}
+    assert fields[("filter", "threshold")] == (PortType.OUTLET,)

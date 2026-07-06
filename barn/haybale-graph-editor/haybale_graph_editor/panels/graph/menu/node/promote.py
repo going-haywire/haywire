@@ -2,10 +2,14 @@
 """Node right-click 'Promote setting' submenu.
 
 Lists every ``setting()`` field on the right-clicked node that is not already
-promoted, and lets the user promote it to a DATA **inlet or outlet** per the
-eligibility rule: a read-only ``watch()`` field is outlet-only;
-``shadow()`` and plain fields can be promoted either way. The matching 'Detach
-from setting' panel on the pin menu lives in ``../port/port.py``.
+promoted, and lets the user promote it to a DATA **inlet or outlet** per
+``eligible_promotion_directions()`` (``haywire.core.node.promotion``) — the
+single source of truth shared with ``promote_setting``'s guard: declared
+``promotable=`` (default ``ALL``) intersected with the read-only structural
+rule (a ``watch()`` field is outlet-only). A field with no eligible direction
+(``promotable=NONE``, or a contradiction like ``read_only=True,
+promotable=INLET``) is hidden entirely, not just greyed out. The matching
+'Detach from setting' panel on the pin menu lives in ``../port/port.py``.
 
 The settings are rendered as a hierarchical **flyout menu** — a single
 ``➕ Promote Setting`` entry unfolding on hover to ``bag ▸ field ▸ direction``
@@ -21,6 +25,7 @@ from typing import TYPE_CHECKING
 
 from nicegui import ui
 
+from haywire.core.node.promotion import eligible_promotion_directions
 from haywire.core.types.enums import PortType
 
 from haywire.ui import elements as hui
@@ -40,10 +45,11 @@ if TYPE_CHECKING:
 def promotable_fields(node) -> list[tuple[str, str, tuple[PortType, ...]]]:
     """Return ``(accessor, field, directions)`` for every ``setting()`` on *node*
     that is not already promoted, where *directions* are the eligible
-    ``PortType``s per the two-flag rule:
-
-    * a read-only (``watch()``) field ⇒ ``(OUTLET,)`` — it has no write path in.
-    * any writable field (plain / ``shadow()``) ⇒ ``(INLET, OUTLET)``.
+    ``PortType``s per :func:`eligible_promotion_directions` — the single source
+    of truth (declared ``promotable=`` ∩ the read-only structural rule),
+    shared with ``promote_setting``'s guard. A field with no eligible
+    direction (``promotable=NONE``, or ``read_only`` ∩ ``promotable=INLET``)
+    is omitted entirely.
 
     *node* is a ``NodeData`` instance (the ``NodeWrapper.node``).
     """
@@ -57,10 +63,9 @@ def promotable_fields(node) -> list[tuple[str, str, tuple[PortType, ...]]]:
             # storage_key.
             if desc.storage_key in node.ports:
                 continue
-            if getattr(desc, "_read_only", False):
-                directions: tuple[PortType, ...] = (PortType.OUTLET,)
-            else:
-                directions = (PortType.INLET, PortType.OUTLET)
+            directions = eligible_promotion_directions(desc)
+            if not directions:
+                continue  # promotable=NONE (or read_only ∩ INLET): hidden entirely
             out.append((accessor, field, directions))
     return out
 
