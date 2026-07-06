@@ -26,6 +26,7 @@ from typing import TYPE_CHECKING
 from nicegui import ui
 
 from haywire.core.node.promotion import eligible_promotion_directions
+from haywire.core.settings import UiState
 from haywire.core.types.enums import PortType
 
 from haywire.ui import elements as hui
@@ -49,7 +50,8 @@ def promotable_fields(node) -> list[tuple[str, str, tuple[PortType, ...]]]:
     of truth (declared ``promotable=`` ∩ the read-only structural rule),
     shared with ``promote_setting``'s guard. A field with no eligible
     direction (``promotable=NONE``, or ``read_only`` ∩ ``promotable=INLET``)
-    is omitted entirely.
+    is omitted entirely. Fields whose ``effective_ui_state`` is ``HIDDEN``
+    are omitted as well (chrome-level filter, ADR 0020).
 
     *node* is a ``NodeData`` instance (the ``NodeWrapper.node``).
     """
@@ -66,6 +68,13 @@ def promotable_fields(node) -> list[tuple[str, str, tuple[PortType, ...]]]:
             directions = eligible_promotion_directions(desc)
             if not directions:
                 continue  # promotable=NONE (or read_only ∩ INLET): hidden entirely
+            # Chrome-level filter (ADR 0020): the menu is chrome, so it
+            # respects chrome state — offering a field the panel currently
+            # hides would be contradictory. Structural eligibility and
+            # load-time port regeneration deliberately ignore UiState;
+            # hiding never unpromotes, and DISABLED stays promotable.
+            if bag.effective_ui_state(field) is UiState.HIDDEN:
+                continue
             out.append((accessor, field, directions))
     return out
 

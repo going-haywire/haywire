@@ -154,3 +154,24 @@ def test_single_direction_declaration_collapses_menu_entry(make_node_with_settin
 
     fields = {(acc, fld): dirs for acc, fld, dirs in promotable_fields(node)}
     assert fields[("filter", "threshold")] == (PortType.OUTLET,)
+
+
+@pytest.mark.integration
+def test_effectively_hidden_field_omitted_from_menu_but_disabled_stays(make_node_with_setting):
+    """Chrome-level filter (ADR 0020): the promote menu respects effective
+    UiState — a HIDDEN field is omitted (the panel says it doesn't apply right
+    now), while a DISABLED field stays promotable (chrome-locked, not
+    value-locked). Structural eligibility is untouched either way."""
+    from haywire.core.settings import UiState
+    from haybale_graph_editor.panels.graph.menu.node.promote import promotable_fields
+
+    node = make_node_with_setting()
+
+    node.filter.set_ui_state("threshold", UiState.HIDDEN)
+    assert not any(acc == "filter" and fld == "threshold" for acc, fld, _ in promotable_fields(node))
+
+    node.filter.set_ui_state("threshold", UiState.DISABLED)
+    assert any(acc == "filter" and fld == "threshold" for acc, fld, _ in promotable_fields(node))
+
+    node.filter.set_ui_state("threshold", UiState.NORMAL)
+    assert any(acc == "filter" and fld == "threshold" for acc, fld, _ in promotable_fields(node))
