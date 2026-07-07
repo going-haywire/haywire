@@ -242,10 +242,14 @@ def test_choices_mirror_renders_select(page: Page, harness):
     expect(row.locator(".q-select")).to_be_attached()
 
 
-def test_read_only_mirror_fields_not_rendered(page: Page, harness):
-    """All read-only mirror fields are absent from the rendered panel."""
+def test_read_only_mirror_fields_render_readonly_rows(page: Page, harness):
+    """Read-only mirror fields render as read-only value rows (Q8), not editable widgets."""
     page.goto(_NODE_URL)
     page.wait_for_selector("[data-field]")
 
     for field in ["intensity_ro", "count_ro", "label_ro", "enabled_ro", "mode_ro", "tint_ro"]:
-        expect(page.locator(f'[data-field="{field}"]')).not_to_be_attached()
+        row = page.locator(f'[data-field="{field}"]')
+        expect(row).to_be_visible()
+        expect(row.locator("input")).not_to_be_attached()
+        expect(row.locator("[data-number_drag]")).not_to_be_attached()
+        expect(row.locator('[role="switch"]')).not_to_be_attached()

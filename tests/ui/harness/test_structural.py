@@ -45,11 +45,14 @@ def test_node_fields_present(page: Page, harness):
         expect(page.locator(f'[data-field="{field}"]')).to_be_visible()
 
 
-def test_read_only_field_not_rendered(page: Page, harness):
-    """read_only=True fields must NOT appear in the rendered panel."""
+def test_read_only_field_renders_as_readonly_row(page: Page, harness):
+    """read_only=True fields render a read-only value row (Q8), not an editable widget."""
     page.goto(_NODE_URL)
     page.wait_for_selector("[data-field]")
-    expect(page.locator('[data-field="read_only_value"]')).not_to_be_attached()
+    row = page.locator('[data-field="read_only_value"]')
+    expect(row).to_be_visible()
+    expect(row.locator("input")).not_to_be_attached()
+    expect(row.locator("[data-number_drag]")).not_to_be_attached()
 
 
 def test_float_field_uses_number_drag(page: Page, harness):
