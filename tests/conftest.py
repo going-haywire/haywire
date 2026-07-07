@@ -285,14 +285,17 @@ def make_node_with_setting(library_system):
     """Build a live node with a plain ``setting[FLOAT]`` field (promotable).
 
     Signature: ``make_node_with_setting(accessor="filter", field="threshold",
-    with_watch=False)`` → a ``NodeData`` instance whose ``<accessor>.<field>`` is a plain
+    with_watch=False)`` -> a ``NodeData`` instance whose ``<accessor>.<field>`` is a plain
     setting defaulting to 0.5. With ``with_watch=True`` the bag also carries a
-    ``watch()`` field (``<field>_watched``) so menu tests can assert non-plain fields are
-    filtered out of the Setting-row menu.
+    ``watch()`` field (``<field>_watched``) mirroring
+    ``TestingSettings.default_intensity`` (a real cross-bag LibrarySettings
+    global, forced to 0.5 here) — same-bag mirroring is no longer supported
+    (mirrors= must reference a field on a different class).
 
     Depends on ``library_system`` so the builtin types (``builtin:type:FLOAT``) are
     registered for ``DataPort.from_spec``.
     """
+    from haybale_testing.settings.testing import TestingSettings
     from haywire.barn.builtin.types import FLOAT
     from haywire.core.di.context import set_settings_registry, set_type_registry
     from haywire.core.node import BaseNode, node
@@ -308,9 +311,9 @@ def make_node_with_setting(library_system):
         plain = setting[FLOAT](0.5)
         body: dict = {field: plain}
         if with_watch:
-            # watch() mirrors *plain*; pass type_ explicitly because plain's generic
-            # arg isn't resolved until its own __set_name__ runs (after this call).
-            body[f"{field}_watched"] = watch(plain, type_=FLOAT)
+            registry = library_system.get_settings_registry()
+            registry.set_global(TestingSettings.default_intensity._setting_key, 0.5)
+            body[f"{field}_watched"] = watch(TestingSettings.default_intensity, type_=FLOAT)
         bag_cls = type(accessor, (NodeSettings,), body)
         node_cls = node(label="Promotion Test Node")(
             type("_PromotionTestNode", (BaseNode,), {accessor: bag_cls})

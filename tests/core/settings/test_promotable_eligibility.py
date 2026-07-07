@@ -49,7 +49,7 @@ class TestPromotableKwarg:
 
 @pytest.mark.unit
 class TestEligibleDirections:
-    """The eligibility matrix: declared promotable= ∩ structural read_only rule."""
+    """The eligibility matrix: purely declared promotable= (no read_only override)."""
 
     def _dirs(self, **kwargs):
         from haywire.core.node.promotion import eligible_promotion_directions
@@ -73,14 +73,6 @@ class TestEligibleDirections:
         from haywire.core.types.enums import PortType
 
         assert self._dirs(promotable=Promotable.OUTLET) == (PortType.OUTLET,)
-
-    def test_read_only_intersects_to_outlet(self):
-        from haywire.core.types.enums import PortType
-
-        assert self._dirs(read_only=True) == (PortType.OUTLET,)
-
-    def test_read_only_plus_inlet_only_intersects_to_empty(self):
-        assert self._dirs(read_only=True, promotable=Promotable.INLET) == ()
 
 
 @pytest.mark.integration
