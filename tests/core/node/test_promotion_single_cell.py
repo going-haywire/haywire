@@ -61,10 +61,11 @@ def test_linked_promoted_inlet_observed_via_setting(make_node_with_setting):
 
 
 def test_watch_default_direction_rejected_shadow_default_ok(library_system):
-    """P5 eligibility (replaces the old blanket shadow/watch rejection):
-    a ``watch()`` field defaults to the inlet direction and is rejected
-    (read-only ⇒ outlet-only); a ``shadow()`` field promotes to the default
-    inlet fine. Per-direction coverage lives in the Task 3 tests below."""
+    """watch() seeds promotable=Promotable.OUTLET (Task 2): a watch() field
+    defaults to the inlet direction and is rejected (outlet-only by
+    declaration, not by a separate read_only structural check); a
+    ``shadow()`` field promotes to the default inlet fine. Per-direction
+    coverage lives in the Task 3 tests below."""
     from haywire.core.node.promotion import promote_setting
 
     node = _make_mixed_bag_node(library_system)
@@ -147,7 +148,14 @@ def test_unbind_field_reverses_the_share(make_node_with_setting):
 
 
 def _make_mixed_bag_node(library_system):
-    """A node whose bag carries a plain, a shadow, and a watch FLOAT field."""
+    """A node whose bag carries a plain, a shadow, and a watch FLOAT field.
+
+    shadowed/watched mirror TestingSettings.default_intensity (a real
+    cross-bag LibrarySettings global, forced to 0.5 here) — same-bag
+    mirroring is no longer supported (mirrors= must reference a field on a
+    different class).
+    """
+    from haybale_testing.settings.testing import TestingSettings
     from haywire.barn.builtin.types import FLOAT
     from haywire.core.di.context import set_settings_registry, set_type_registry
     from haywire.core.node import BaseNode, node
@@ -156,14 +164,16 @@ def _make_mixed_bag_node(library_system):
     set_type_registry(library_system.get_type_registry())
     set_settings_registry(library_system.get_settings_registry())
 
-    plain = setting[FLOAT](0.5)
+    registry = library_system.get_settings_registry()
+    registry.set_global(TestingSettings.default_intensity._setting_key, 0.5)
+
     bag_cls = type(
         "mixed",
         (NodeSettings,),
         {
-            "plain": plain,
-            "shadowed": shadow(plain, type_=FLOAT),
-            "watched": watch(plain, type_=FLOAT),
+            "plain": setting[FLOAT](0.5),
+            "shadowed": shadow(TestingSettings.default_intensity, type_=FLOAT),
+            "watched": watch(TestingSettings.default_intensity, type_=FLOAT),
         },
     )
     node_cls = node(label="Mixed Promotion Node")(type("_MixedPromotionNode", (BaseNode,), {"cfg": bag_cls}))
