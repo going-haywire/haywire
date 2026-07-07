@@ -155,24 +155,6 @@ def test_write_falls_back_to_local_store_when_registry_missing():
 
 
 # ---------------------------------------------------------------------------
-# Read-only mirror still raises
-# ---------------------------------------------------------------------------
-
-
-def test_persistent_setting_respects_read_only():
-    """A read_only field must still raise AttributeError on write —
-    persistent_setting overrides __set__ but inherits the read_only guard."""
-    descriptor = _FrameworkSchema.__dict__["name"]
-    descriptor._read_only = True
-    try:
-        inst = _FrameworkSchema()
-        with pytest.raises(AttributeError, match="read-only"):
-            inst.name = "x"
-    finally:
-        descriptor._read_only = False
-
-
-# ---------------------------------------------------------------------------
 # @settings decorator path — separate from class-signature namespace path
 # ---------------------------------------------------------------------------
 

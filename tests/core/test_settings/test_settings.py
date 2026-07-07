@@ -6,8 +6,7 @@ Covers:
 - Simple mode (no registry): direct local store access
 - Extended mode (registry injected): resolution chain
 - on_change callbacks
-- mirrors= (shadow behaviour)
-- read_only= (watch behaviour)
+- mirrors= (shadow/watch behaviour)
 - Serialization round-trip (to_dict / from_dict)
 - Conflict detection at class-definition time
 - Direct binding on node instances via @node decorator
@@ -175,33 +174,6 @@ class TestSubscribeNotification:
         bag, log = self._bag_with_log()
         bag.from_dict({"values": {"strength": 0.9}, "promoted": {}})
         assert log == [("strength", 0.9, 0.5)]
-
-
-# ---------------------------------------------------------------------------
-# read_only (watch behaviour)
-# ---------------------------------------------------------------------------
-
-
-class ReadOnlySettings(Settings):
-    editable = setting[FLOAT](1.0)
-    read_only_field = setting[BOOL](False, read_only=True)
-
-
-class TestReadOnly:
-    def test_read_only_raises_on_set(self):
-        bag = ReadOnlySettings()
-        with pytest.raises(AttributeError):
-            bag.read_only_field = True
-
-    def test_read_only_not_serialized(self):
-        bag = ReadOnlySettings()
-        d = bag.to_dict()
-        assert "read_only_field" not in d["values"]
-
-    def test_read_only_not_restored_from_dict(self):
-        bag = ReadOnlySettings()
-        bag.from_dict({"values": {"read_only_field": True}, "promoted": {}})
-        assert bag.read_only_field is False  # unchanged
 
 
 # ---------------------------------------------------------------------------

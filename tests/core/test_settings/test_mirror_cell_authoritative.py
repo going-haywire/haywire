@@ -13,7 +13,7 @@ import haywire.core.graph.editor  # noqa: F401  (circular-import guard, per CLAU
 
 import pytest
 
-from haywire.core.settings import Settings, SettingsRegistry, setting, shadow, watch
+from haywire.core.settings import Settings, SettingsRegistry, setting, shadow
 from haywire.barn.builtin.types import COLOR, FLOAT
 
 
