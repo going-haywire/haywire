@@ -312,9 +312,9 @@ Three properties follow:
 
 **Two directions, two verbs.** `promote_setting(node, accessor, field, direction)` takes a `PortType ∈ {INLET, OUTLET}`; `demote_setting` removes it. There is no in-place redirect — redirect is demote + re-promote, and the cell (and its value) survives both, per the cell-mutation spine. A promoted port's id **is** the setting's `storage_key`, and `DataPort.promoted` marks it a promotion; `promote_setting` marks the field locally-set (`storage_key ∈ _set_keys`) for the port's lifetime, so the setting reads the shared cell (incl. any edge-driven value). The setting descriptor carries no port back-reference; `_resolve_promoted` maps a promoted port id back to its (bag, descriptor) by matching `storage_key`.
 
-**Eligibility is two flag checks, not a per-kind matrix.**
+**Eligibility is `promotable=` alone, not a per-kind matrix.**
 
-1. `descriptor._read_only` (a `watch()` field) ⇒ **outlet only** — a read-only field has no write path in, only a read path out.
+1. `eligible_promotion_directions(descriptor)` reads purely `descriptor._promotable` — a `watch()` field declares `promotable=Promotable.OUTLET` itself (seeded by the `watch()` factory), so it is outlet only by declaration; there is no separate structural override here.
 2. `direction == OUTLET` ⇒ the port sets `is_linked_lazy` **and** subscribes `on_changed → propagate`. This holds for *every* promoted outlet (plain, shadow, watch), because a promoted outlet is never worker-`out()`-driven; it is written by widget / registry / edge, all *outside* the scheduler frame.
 
 Everything else (mirror vs plain, set vs unset) rides that one `on_changed → propagate` mechanism — there is no per-kind propagation logic. Plain and `shadow` fields are eligible for either direction; `watch` for outlet only.
@@ -608,7 +608,7 @@ Methods: `set(key, value)`, `reset(key)`.
 - Always pass `use_temp_settings=True` to `create_test_library_system()` so tests don't read from the user's real `~/.haywire/settings.json`.
 - `predefined_local` uses attr names; `predefined_global` and `registry.set_global()` use full keys. Mismatches fail silently.
 - Test both default values and local overrides on the same field.
-- Test `read_only=True` fields raise `AttributeError` on write.
+- Test `watch()` fields render disabled and are outlet-only-promotable.
 
 ### 9.5 UI test harness
 

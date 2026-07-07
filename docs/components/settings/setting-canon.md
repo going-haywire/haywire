@@ -17,7 +17,7 @@ A **setting** is a configurable value that a user (or a TOML file, or a panel) c
 
 - **NodeSettings** — per-node-instance settings; declared as an inner class on a `@node` class. Stored in the graph (only when locally overridden), shown in the property panel, accessible via `self.<accessor_name>.<field>` from worker code.
 - **LibrarySettings** — library-wide defaults that nodes can mirror; declared as a `@settings`-decorated class in your library. Backed by `~/.haywire/settings.toml` and `<workspace>/.haywire/settings.toml`.
-- **Mirror descriptors** (`shadow()` / `watch()`) — a node setting that *references* a global setting. `shadow()` is writable (per-node override allowed); `watch()` is read-only (invisible in panel, never stored).
+- **Mirror descriptors** (`shadow()` / `watch()`) — a node setting that *references* a global setting. `shadow()` is writable (per-node override allowed); `watch()` seeds `ui_state=DISABLED` and `promotable=OUTLET` (renders as a greyed widget, outlet-only-promotable by declaration — writes are not structurally blocked, just conventionally discouraged).
 
 Together these three replace ad-hoc instance attributes, manual TOML parsing, and per-node-config plumbing. One declarative API, automatic panel rendering, hot-reload aware.
 
@@ -68,9 +68,9 @@ Use `cache` for "lost on restart, fine"; `store` for "must survive saves, hidden
 |---|---|
 | `setting[T](default, ...)` | Local field. Stored in graph (NodeSettings) or TOML (LibrarySettings/FrameworkSettings). |
 | `shadow(GlobalSettings.field)` | Writable mirror of a global setting. Inherits the source's label/default/type/widget/min/max. Per-node writes are allowed and stored as overrides. Panel shows a `•` prefix and a reset button when locally overridden. |
-| `watch(GlobalSettings.field)` | Read-only mirror. Invisible in panel, never stored. Tracks the global value reactively. Any write attempt raises `AttributeError`. |
+| `watch(GlobalSettings.field)` | Sugar over `shadow()`: seeds `ui_state=UiState.DISABLED` (renders as a greyed, non-interactive widget in the panel) and `promotable=Promotable.OUTLET`. Tracks the global value reactively. Writes are still technically legal (no enforced guard) but are a naming/usage convention — a `watch()` field is meant to be read, not written. |
 
-`shadow()` and `watch()` accept either a descriptor reference (`shadow(CanvasSettings.snap_to_grid)`) or a raw key string (`shadow("ui.canvas.snap_to_grid")`).
+`shadow()` and `watch()` accept either a descriptor reference (`shadow(CanvasSettings.snap_to_grid)`) or a raw key string (`shadow("ui.canvas.snap_to_grid")`), and the source must be declared on a DIFFERENT class — a same-bag sibling raises `ValueError`.
 
 **The accessor name.** A node's `class filter(NodeSettings):` becomes `self.filter` on every instance. The class name is the accessor name — pick descriptive ones (`filter`, `output`, `api`). Multiple accessors per node are allowed; each gets its own `_setting_key` namespace.
 
@@ -96,8 +96,9 @@ You never hand-write these — they are what TOML and the registry use under the
 | `min` / `max` | Numeric bounds, folded into `widget_config["properties"]` |
 | `widget` | Explicit widget contract — a `{"key", "config"}` dict from `WidgetCls.config(...)`. Wins outright over the field IType's declared default widget |
 | `widget_config` | Bare property overrides layered on top of whichever widget was selected (IType default or explicit `widget=`) — e.g. `{"options": [...]}` for a `CHOICES` field |
-| `mirrors` | Source descriptor or full key — same effect as `shadow()` directly |
-| `read_only` | If `True`, instance writes raise `AttributeError`; field is invisible in panel |
+| `mirrors` | Source descriptor or full key, on a DIFFERENT class — same effect as `shadow()` directly |
+| `ui_state` | Initial `UiState` (`NORMAL`/`DISABLED`/`HIDDEN`) seed — see ADR 0020 |
+| `promotable` | Which port directions this field may be promoted to (default `ALL`) |
 | `validator` | `Callable(value) -> bool`; return `False` to reject. Checked before `setattr` |
 | `metadata` | Arbitrary dict attached to the descriptor as `._metadata` |
 
@@ -177,13 +178,13 @@ def _on_scale(self, value: float, old: float):
 
 **Panel rendering rules.** When the properties panel calls `render_settings(node.filter)`:
 
-- Fields with `read_only=True` are skipped entirely.
-- Fields are sorted by `(category, order, attr_name)` and grouped under collapsible category headers.
+- Every field renders a row, sorted by `(category, order, attr_name)` and grouped under collapsible category headers.
+- A field's `effective_ui_state()` (ADR 0020) controls chrome: `DISABLED` renders the widget non-interactive (greyed), `HIDDEN` removes the row entirely. `watch()` seeds `DISABLED`.
 - Mirror fields (`shadow()` / `watch()`) that are locally overridden show a `•` prefix and a reset button (`restart_alt` icon) that calls `obj.reset(attr_name)`.
 - Each row produces this DOM structure (useful for tests):
 
 ```text
-div[data-field="<attr_name>"]        ← row container (data-ui-disabled="true" when disabled)
+div[data-field="<attr_name>"]        ← row container (data-ui-state="normal"|"disabled"|"hidden")
   label                              ← field label (with • prefix if locally overridden)
   <widget>[data-value="..."]         ← current value, always readable via DOM
   button[restart_alt]                ← reset button (mirror fields, when overridden)
@@ -201,10 +202,10 @@ div                                  ← error container (populated on validatio
 | `subscribe(callback)` | `callback(name, value, old)` on any change to any field |
 | `subscribe_field(field, callback)` | `callback(value, old)` on changes to one field (ADR 0013) |
 | `unsubscribe(callback)` | Detach a callback registered by either subscribe method |
-| `to_dict()` | Returns only fields that differ from the descriptor default; `watch()` fields are never included |
+| `to_dict()` | Returns only fields that differ from the descriptor default and are locally set |
 | `from_dict(data, silent=True)` | Restore values; `silent=True` writes cells directly, bypassing validation (graph load — subscribers attached later never see it) |
 
-**Serialization.** Only locally-overridden values are serialized. Fields at their default and `watch()` fields are never stored:
+**Serialization.** Only locally-overridden values are serialized. Fields at their default are never stored:
 
 ```json
 {
@@ -233,7 +234,7 @@ promote_setting(node, "filter", "threshold", direction=PortType.OUTLET)  # setti
 demote_setting(node, "filter", "threshold")                              # remove the port
 ```
 
-Eligibility is `eligible_promotion_directions(descriptor)` — declared `promotable=` (see below) intersected with the structural rule that a `watch()` field is **outlet only** (read-only ⇒ no write path in); plain and `shadow()` fields default to promotable either way. Direction picks the port factory. In the settings panel a promoted **inlet** row replaces its widget with a "promoted" label (the graph owns the value); a promoted **outlet** row keeps its editable widget. `demote` never resets the value (freeze-on-disconnect) — recovery is an explicit `reset`. In the studio these live in the **Setting-row menu** (right-click a row's label in the properties panel: Promote to inlet / Promote to outlet / Demote / Reset); the pin's right-click keeps "Detach from setting".
+Eligibility is `eligible_promotion_directions(descriptor)` — purely the field's declared `promotable=` (see below); `watch()` seeds `Promotable.OUTLET` itself, so plain and `shadow()` fields default to promotable either way and a `watch()` field is outlet only by declaration, not by a separate structural rule. Direction picks the port factory. In the settings panel a promoted **inlet** row replaces its widget with a "promoted" label (the graph owns the value); a promoted **outlet** row keeps its editable widget. `demote` never resets the value (freeze-on-disconnect) — recovery is an explicit `reset`. In the studio these live in the **Setting-row menu** (right-click a row's label in the properties panel: Promote to inlet / Promote to outlet / Demote / Reset); the pin's right-click keeps "Detach from setting".
 
 **Serialization (ADR 0019).** Promotion state lives in the owning settings bag, not the port: `Settings._promoted_keys: dict[str, PortType]` (`storage_key → direction`) is the single source of truth. A bag's `to_dict()` returns `{"values": {...}, "promoted": {storage_key: "inlet"|"outlet"}}` — **a promoted port is never serialized in the node's `ports` block**; it is regenerated on load by `regenerate_promoted_ports`, which walks `_promoted_keys` and calls `promote_setting` for each entry (the same path an interactive promotion takes, so there is one creation path either way). This runs after settings restore and before edges wire, so a regenerated promoted inlet exists before any edge resolves against it. `demote_setting` clears `_promoted_keys[storage_key]` in addition to removing the port — promote writes the record, demote clears it. A pre-ADR-0019 settings dict (the old flat `{field: value}` shape) is treated as incompatible: `from_dict` raises `PromotedFormatError`, the node loader resets that bag to defaults and attaches a WARNING to the node rather than crashing.
 
@@ -253,7 +254,7 @@ class depth(NodeSettings):
     )
 ```
 
-`Promotable` is a Flag: `NONE` / `INLET` / `OUTLET` / `ALL` (default). Effective eligibility is the intersection of the declaration and the structural rules (`read_only=True` stays outlet-only regardless; `read_only` + `promotable=INLET` intersects to nothing). The single source of truth is `eligible_promotion_directions()` in `haywire.core.node.promotion` — the Setting-row menu hides ineligible entries and `promote_setting()` raises `ValueError` for them, whether the call is interactive or from the load-time regeneration pass.
+`Promotable` is a Flag: `NONE` / `INLET` / `OUTLET` / `ALL` (default). Effective eligibility is purely the declared flag — `watch()` seeds `Promotable.OUTLET` itself, so there's no separate structural rule to intersect with. The single source of truth is `eligible_promotion_directions()` in `haywire.core.node.promotion` — the Setting-row menu hides ineligible entries and `promote_setting()` raises `ValueError` for them, whether the call is interactive or from the load-time regeneration pass.
 
 **Presentation state (`UiState`: `ui_state=` / `enabled_when` / `visible_when`).** A setting has a three-valued presentation state in the panel — `UiState.NORMAL` (rendered, interactive), `UiState.DISABLED` (rendered but non-interactive: Quasar `:disable` where the widget root supports it, the §2.11 opacity treatment otherwise), and `UiState.HIDDEN` (the row is not rendered at all; a category whose rows are ALL hidden hides its header too). DISABLED means *exists but locked*; HIDDEN means *does not apply right now* (e.g. a manual-focus value while focus mode is AUTO). This is purely a panel-display concern: node code and any direct `setattr` keep working regardless of state; there is no write guard in the settings layer, values keep serializing normally, and the state itself is never persisted. See [ADR 0020](../../adr/0020-ui-state-three-valued-chrome.md).
 
@@ -306,8 +307,6 @@ bag.set_ui_state_all(UiState.HIDDEN, category="Manual")  # bulk: one category on
 `enabled_when` and `visible_when` are `(field_name, expected_value)` tuples stored in `metadata` — string field references, not validated at class-definition time. If the referenced field doesn't exist on the same bag, the panel logs a warning at row build and the field renders normally (never auto-gated) rather than raising; `effective_ui_state` skips the broken gate silently. Both only ever express a same-bag relationship; cross-bag or cross-node gating (e.g. one node's callback-edge wiring determining another's field state) uses `set_ui_state` from whatever code owns that external state.
 
 **Promotion interplay (ADR 0020).** The Setting-row menu never renders for HIDDEN rows (the row itself isn't rendered); DISABLED fields stay promotable. Structural eligibility (`promotable=`, `eligible_promotion_directions()`) and load-time port regeneration ignore UiState entirely — hiding never unpromotes, and a linked inlet on a hidden field keeps driving the value (the port stays visible on the canvas).
-
-**Read-only fields are visible.** `watch()` / `read_only=True` fields render in the settings panel as read-only live-value rows (no widget, no dirty chrome, no Reset). This is what gives their `promotable=OUTLET` declaration a surface: the row menu offers "Promote to outlet".
 
 No part of this mechanism is persisted — presentation state is always transient, recomputed at construction (`ui_state=` seed) or by whatever runtime code calls `set_ui_state`.
 
@@ -414,7 +413,7 @@ The callback fires on any change — local writes, global writes from other plac
 
 **NodeSettings with every descriptor** — source: [`barn/haybale-testing/haybale_testing/nodes/testbed/settings_node.py`](../../../barn/haybale-testing/haybale_testing/nodes/testbed/settings_node.py)
 
-`SettingsNode.example` exercises every `setting()` type, `read_only`, `shadow()`, `watch()`, and `validator` in one inner class:
+`SettingsNode.example` exercises every `setting()` type, `shadow()`, `watch()`, and `validator` in one inner class:
 
 ```python
 --8<-- "barn/haybale-testing/haybale_testing/nodes/testbed/settings_node.py:settings_node_class"
@@ -432,9 +431,8 @@ What these examples exercise:
 | `setting[BOOL]` | `default_enabled` |
 | `setting[COLOR]` (widget comes from the IType identity, no `widget=` needed) | `default_color` |
 | `setting[VEC2I]` / `setting[VEC3F]` | `default_offset`, `default_position` |
-| `read_only=True` — panel skips the field | `read_only_value` |
 | `shadow()` — writable mirror, per-node override OK | `intensity`, `count_mirror`, … |
-| `watch()` — read-only mirror, invisible in panel | `intensity_ro`, `count_ro`, … |
+| `watch()` — mirror seeded DISABLED + outlet-only-promotable | `intensity_ro`, `count_ro`, … |
 | `validator=` — rejects invalid values before write | `validated_string`, `clamped_positive`, `even_int` |
 | Multiple field types in one `NodeSettings` inner class | `class example(NodeSettings)` |
 
@@ -458,7 +456,7 @@ class MyNode(BaseNode):
         # Writable mirror (per-node override OK)
         snap = shadow(CanvasSettings.snap_to_grid)
 
-        # Read-only mirror (invisible, never stored)
+        # Mirror seeded DISABLED + outlet-only-promotable (still writable — convention, not enforced)
         log_to_file = watch(DebugSettings.log_to_file)
 ```
 
