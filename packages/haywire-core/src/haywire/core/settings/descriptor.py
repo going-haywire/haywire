@@ -15,11 +15,12 @@ Cell-authoritative model:
 
   ``persistent_setting`` (FrameworkSettings/LibrarySettings) routes writes to
   ``registry.set_global``; plain ``setting`` writes the instance cell and
-  marks the opinion. ``read_only=True`` prevents writes (watch behaviour).
+  marks the opinion.
 
 Convenience factories:
     shadow(src, ...)  — writable mirror of src setting
-    watch(src, ...)   — read-only mirror of src setting
+    watch(src, ...)   — mirror of src setting, seeded DISABLED + outlet-only
+                         (write-guard is convention, not enforced — see watch())
 """
 
 from __future__ import annotations
@@ -44,14 +45,14 @@ T = TypeVar("T", bound=IType)
 class Promotable(Flag):
     """Which DATA-port directions a ``setting()`` may be promoted to.
 
-    Declared intent only — structural rules still intersect on top (a
-    ``read_only``/``watch()`` field has no write path in, so it can never be
-    an inlet regardless of this flag). ``eligible_promotion_directions()`` in
-    ``haywire.core.node.promotion`` is the single place that combines both.
+    Declared intent only. ``eligible_promotion_directions()`` in
+    ``haywire.core.node.promotion`` is the single place that reads this flag.
 
     ``NONE`` marks fields where a promotion would be *misleading* rather than
     ill-typed — e.g. restart-required device-pipeline parameters, where a port
-    would imply live control the hardware can't deliver.
+    would imply live control the hardware can't deliver. ``watch()`` seeds
+    ``OUTLET`` for the same reason: a mirrored value has no legitimate write
+    path in.
     """
 
     NONE = 0
@@ -156,17 +157,16 @@ class setting(SettingDescriptor, Generic[T]):
           description, and type from the source at construction time (the
           mirror's own widget_key/widget_config are stamped from its own
           ``_type`` at ``__set_name__``, since mirrors already inherit IType);
-          the source's setting key is resolved lazily.
+          the source's setting key is resolved lazily. Must reference a field
+          declared on a DIFFERENT class (a registered ``LibrarySettings`` /
+          ``FrameworkSettings`` global, or any other class's field) — a
+          same-class (same-bag) sibling raises ``ValueError`` at construction.
         * A plain string key — e.g.
           ``mirrors="ui.node.default.skin.studio_skin"``. Use only when
           a descriptor reference is unavailable.
 
         **Prefer the ``shadow()`` and ``watch()`` factories** over
-        constructing ``setting(mirrors=..., read_only=...)`` directly.
-
-    read_only : bool
-        When ``True``, the field is read-only and raises ``AttributeError`
-        if one does anyway
+        constructing ``setting(mirrors=...)`` directly.
 
     type_ : type[IType] or None
         Explicit IType (e.g. ``type_=FLOAT``). Usually omitted — the IType
@@ -204,8 +204,10 @@ class setting(SettingDescriptor, Generic[T]):
         ``Promotable.ALL``). ``Promotable.NONE`` removes the field from the
         Setting-row menu entirely and makes ``promote_setting()`` raise — use it
         for fields where a port would be misleading (e.g. restart-required
-        pipeline parameters). Structural rules still apply on top:
-        ``read_only=True`` remains outlet-only regardless.
+        pipeline parameters). ``watch()`` seeds ``Promotable.OUTLET`` — a
+        field whose value comes from elsewhere has no legitimate write path
+        in, so inlet promotion would be misleading even though nothing
+        structurally forbids it.
     """
 
     def __init__(
@@ -221,7 +223,6 @@ class setting(SettingDescriptor, Generic[T]):
         widget: "dict | None" = None,
         widget_config: "dict | None" = None,
         mirrors: "SettingDescriptor | str | None" = None,
-        read_only: bool = False,
         type_: "type[T] | None" = None,
         validator: "Callable | None" = None,
         metadata: "dict | None" = None,
@@ -248,7 +249,6 @@ class setting(SettingDescriptor, Generic[T]):
         self._max = max
         self._widget_spec = widget or {}
         self._widget_config_override = widget_config or {}
-        self._read_only = read_only
         self._validator = validator
         self._metadata: dict = metadata or {}
         self._ui_state: UiState = ui_state
@@ -368,12 +368,6 @@ class setting(SettingDescriptor, Generic[T]):
         return obj._cell_for(self).get_value()
 
     def __set__(self, obj: Any, value: Any) -> None:
-        if self._read_only:
-            raise AttributeError(
-                f"'{self._attr_name}' is read-only — it mirrors a global setting "
-                f"and cannot be set per-instance."
-            )
-
         if not self.validate(value):
             return
 
@@ -421,12 +415,6 @@ class persistent_setting(setting, Generic[T]):
     """
 
     def __set__(self, obj: Any, value: Any) -> None:
-        if self._read_only:
-            raise AttributeError(
-                f"'{self._attr_name}' is read-only — it mirrors a global setting "
-                f"and cannot be set per-instance."
-            )
-
         if not self.validate(value):
             return
 
@@ -453,9 +441,18 @@ class persistent_setting(setting, Generic[T]):
 
 def shadow(src: "setting[T]", **kwargs: Any) -> "setting[T]":
     """Writable mirror of *src* setting. Inherits src metadata; local writes are allowed."""
-    return setting(mirrors=src, read_only=False, **kwargs)
+    return setting(mirrors=src, **kwargs)
 
 
 def watch(src: "setting[T]", **kwargs: Any) -> "setting[T]":
-    """Read-only mirror of *src* setting. Inherits src metadata; local writes raise AttributeError."""
-    return setting(mirrors=src, read_only=True, **kwargs)
+    """Read-only-by-convention mirror of *src* setting. Inherits src metadata.
+
+    Sugar over ``shadow()``: seeds ``ui_state=UiState.DISABLED`` (renders as a
+    greyed, non-interactive widget) and ``promotable=Promotable.OUTLET`` (the
+    only direction that makes sense for a field whose value comes from
+    elsewhere). Nothing prevents a direct Python write (``obj.field = x``) —
+    that guarantee was never load-bearing (no production code ever needed
+    it) and is now purely a naming/usage convention, same as any other field
+    a caller shouldn't mutate directly.
+    """
+    return setting(mirrors=src, ui_state=UiState.DISABLED, promotable=Promotable.OUTLET, **kwargs)

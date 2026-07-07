@@ -21,17 +21,18 @@ GLOBAL_KEY = "test.color"
 LOCAL_KEY = "test.node.color"
 
 
-def _make_mirror_bag(*, read_only: bool):
-    """A registry-backed bag with a single mirror field on ``GLOBAL_KEY``.
-
-    Built like ``test_single_cell._make_mirror_bag`` — a plain ``setting`` with
-    the mirror key set as a STRING (not a descriptor) so ``_mirror_key`` resolves
-    without the source descriptor needing its own ``_setting_key``. ``read_only``
-    switches between watch (True) and shadow (False) semantics.
+def _make_mirror_bag(*, use_watch: bool):
+    """A registry-backed bag with a single mirror field on ``GLOBAL_KEY``,
+    built via the real ``watch()``/``shadow()`` factory (not a hand-rolled
+    ``setting(mirrors=...)`` call) so these tests exercise the actual public
+    API surface.
     """
+    from haywire.core.settings import shadow, watch
+
+    factory = watch if use_watch else shadow
 
     class MirrorBag(Settings):
-        color = setting[COLOR]("#ffffff", label="Color", mirrors=GLOBAL_KEY, read_only=read_only)
+        color = factory(GLOBAL_KEY, label="Color", type_=COLOR)
 
     MirrorBag.color._setting_key = LOCAL_KEY
 
@@ -44,11 +45,11 @@ def _make_mirror_bag(*, read_only: bool):
 
 
 def _make_watch_bag():
-    return _make_mirror_bag(read_only=True)
+    return _make_mirror_bag(use_watch=True)
 
 
 def _make_shadow_bag():
-    return _make_mirror_bag(read_only=False)
+    return _make_mirror_bag(use_watch=False)
 
 
 def _cell(bag):
@@ -113,6 +114,34 @@ def test_cleanup_unsubscribes_from_registry():
     registry.set_global(GLOBAL_KEY, "#999999")
     # The bag is cleaned up; nothing should have been written into its cell.
     assert bag._cleaned_up is True
+
+
+def test_watch_is_writable_and_promotable_outlet_and_disabled():
+    """watch() is now sugar over setting(mirrors=..., ui_state=DISABLED,
+    promotable=OUTLET) — no _read_only flag, no AttributeError on write."""
+    from haywire.core.settings.descriptor import Promotable, UiState
+
+    registry, bag = _make_watch_bag()
+    desc = type(bag)._property_settings()["color"]
+
+    assert not hasattr(desc, "_read_only")
+    assert desc._ui_state is UiState.DISABLED
+    assert desc._promotable is Promotable.OUTLET
+
+    # Writes are now legal (convention-only guard, not enforced).
+    bag.color = "#ff0000"
+    assert bag.color == "#ff0000"
+
+
+def test_shadow_has_no_forced_ui_state_or_promotable():
+    from haywire.core.settings.descriptor import Promotable, UiState
+
+    registry, bag = _make_shadow_bag()
+    desc = type(bag)._property_settings()["color"]
+
+    assert not hasattr(desc, "_read_only")
+    assert desc._ui_state is UiState.NORMAL
+    assert desc._promotable is Promotable.ALL
 
 
 # ==============================================================================
