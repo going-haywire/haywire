@@ -79,15 +79,6 @@ class SettingsNode(BaseNode):
             category="type",
         )
 
-        # --- read only ---
-        read_only_value = setting[FLOAT](
-            1.0,
-            label="Read-Only Value",
-            description="Read-only stored setting",
-            category="stored",
-            read_only=True,
-        )
-
         # --- stored ---
         persistent_value = setting[FLOAT](
             1.0,

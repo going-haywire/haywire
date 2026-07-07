@@ -15,7 +15,7 @@ pytestmark = pytest.mark.ui
 
 
 def test_node_fields_present(page: Page, harness):
-    """All non-read-only fields in SettingsNode.example appear as data-field rows."""
+    """All non-mirror fields in SettingsNode.example appear as data-field rows."""
     page.goto(_NODE_URL)
     page.wait_for_selector("[data-field]")
 
@@ -45,14 +45,15 @@ def test_node_fields_present(page: Page, harness):
         expect(page.locator(f'[data-field="{field}"]')).to_be_visible()
 
 
-def test_read_only_field_renders_as_readonly_row(page: Page, harness):
-    """read_only=True fields render a read-only value row (Q8), not an editable widget."""
+def test_watch_field_renders_disabled_widget(page: Page, harness):
+    """watch() fields render a real (disabled) widget now — ui_state=DISABLED
+    is the general chrome mechanism, not a bespoke label-only path."""
     page.goto(_NODE_URL)
     page.wait_for_selector("[data-field]")
-    row = page.locator('[data-field="read_only_value"]')
+    row = page.locator('[data-field="intensity_ro"]')
     expect(row).to_be_visible()
-    expect(row.locator("input")).not_to_be_attached()
-    expect(row.locator("[data-number_drag]")).not_to_be_attached()
+    expect(row).to_have_attribute("data-ui-state", "disabled")
+    expect(row.locator("[data-number_drag]")).to_be_attached()
 
 
 def test_float_field_uses_number_drag(page: Page, harness):

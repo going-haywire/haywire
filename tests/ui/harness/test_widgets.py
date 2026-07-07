@@ -3,8 +3,8 @@ Widget coverage tests: verify that each setting type resolves and renders the
 correct widget DOM (the right control per IType) through the shared-widget panel.
 
 Full matrix for SettingsNode.example:
-  type     | direct          | mirror       | mirror + read_only
-  ---------|-----------------|--------------|-------------------
+  type     | direct          | mirror       | mirror + watch() (disabled)
+  ---------|-----------------|--------------|-----------------------------
   float    | example_float   | intensity    | intensity_ro
   int      | example_int     | count_mirror | count_ro
   str      | example_string  | label_mirror | label_ro
@@ -242,14 +242,23 @@ def test_choices_mirror_renders_select(page: Page, harness):
     expect(row.locator(".q-select")).to_be_attached()
 
 
-def test_read_only_mirror_fields_render_readonly_rows(page: Page, harness):
-    """Read-only mirror fields render as read-only value rows (Q8), not editable widgets."""
+def test_watch_mirror_fields_render_disabled_widgets(page: Page, harness):
+    """watch() mirror fields render real, disabled widgets — not a label
+    fallback. ui_state=DISABLED is uniform chrome across every field kind."""
     page.goto(_NODE_URL)
     page.wait_for_selector("[data-field]")
 
-    for field in ["intensity_ro", "count_ro", "label_ro", "enabled_ro", "mode_ro", "tint_ro"]:
+    checks = {
+        "intensity_ro": "[data-number_drag]",
+        "count_ro": "[data-number_drag]",
+        "label_ro": "input",
+        "enabled_ro": '[role="switch"]',
+        "mode_ro": ".q-select",
+        "tint_ro": None,  # color picker widget — presence checked via data-ui-state only
+    }
+    for field, widget_selector in checks.items():
         row = page.locator(f'[data-field="{field}"]')
         expect(row).to_be_visible()
-        expect(row.locator("input")).not_to_be_attached()
-        expect(row.locator("[data-number_drag]")).not_to_be_attached()
-        expect(row.locator('[role="switch"]')).not_to_be_attached()
+        expect(row).to_have_attribute("data-ui-state", "disabled")
+        if widget_selector is not None:
+            expect(row.locator(widget_selector)).to_be_attached()
