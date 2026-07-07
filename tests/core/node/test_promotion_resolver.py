@@ -37,3 +37,18 @@ def test_is_field_promoted(make_node_with_setting):
     assert is_field_promoted(node.filter, "threshold") is False
     promote_setting(node, "filter", "threshold")
     assert is_field_promoted(node.filter, "threshold") is True
+
+
+def test_bag_accessor_finds_bound_bag(make_node_with_setting):
+    from haywire.core.node.promotion import bag_accessor
+
+    node = make_node_with_setting(accessor="filter", field="threshold")
+    assert bag_accessor(node, node.filter) == "filter"
+
+
+def test_bag_accessor_returns_none_for_foreign_bag(make_node_with_setting):
+    from haywire.core.node.promotion import bag_accessor
+
+    node = make_node_with_setting(accessor="filter", field="threshold")
+    other = make_node_with_setting(accessor="filter", field="threshold")
+    assert bag_accessor(node, other.filter) is None

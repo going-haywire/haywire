@@ -40,6 +40,19 @@ def _resolve_promoted(node: "NodeData", port_id: str) -> tuple["Settings", "sett
     raise KeyError(port_id)
 
 
+def bag_accessor(node: "NodeData", bag: "Settings") -> str | None:
+    """The accessor name under which *bag* is bound on *node*, or ``None``.
+
+    Reverse of ``getattr(node, accessor)`` — identity comparison, so a bag of
+    the same class on another node never matches. Used by the setting-row menu,
+    which holds the bag object but calls ``promote_setting`` by accessor name.
+    """
+    for accessor in type(node)._settings_bags:
+        if getattr(node, accessor, None) is bag:
+            return accessor
+    return None
+
+
 def _descriptor(node: "NodeData", accessor: str, field: str) -> "setting":
     """The setting descriptor for ``<accessor>.<field>`` on *node*. MRO-aware
     (matches ``is_field_promoted``/``_resolve_promoted``) so a field inherited from a
