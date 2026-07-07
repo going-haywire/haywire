@@ -16,8 +16,7 @@ Cell-authoritative value model:
     resolved global and is synced by ``_on_field_change``; a wired persistent
     field (Framework/Library) borrows THE registry-owned cell, kept current by
     the registry's tier write-through. ``_set_keys`` carries the set-or-unset
-    opinion (the cell always holds *a* value, so it can't encode set-ness);
-    ``read_only=True`` prevents per-instance writes (watch behaviour).
+    opinion (the cell always holds *a* value, so it can't encode set-ness).
 
 Supports:
 - Direct attribute access (``obj.setting = value``)
@@ -97,12 +96,6 @@ class Settings:
         # _set_keys carries that opinion explicitly. storage_key ∈ _set_keys ⇔
         # locally set.
         self._set_keys: set[str] = set()
-        # In-bag mirror sync bookkeeping: this field's storage_key -> (sibling
-        # cell, adapter), so cleanup() can detach it symmetrically with the
-        # registry-mirror unsubscribe below. Populated lazily by
-        # _subscribe_in_bag_mirror — parallel to _subscriptions/_registry's
-        # role for the registered-global mirror path.
-        self._in_bag_mirror_adapters: dict[str, tuple["DataField", Callable]] = {}
         # UI-only presentation-state opinion (never persisted, never affects
         # reads/writes, NEVER touches a field's cell — the cell event keeps
         # meaning "the value changed"). Sparse: only non-NORMAL entries are
@@ -190,38 +183,6 @@ class Settings:
             return None
         return self._promoted_keys.get(fields[name].storage_key)
 
-    def _in_bag_mirror_of(self, descriptor: setting) -> "setting | None":
-        """Return the sibling descriptor *descriptor* mirrors, IF that sibling is
-        declared on this same bag class — else ``None``.
-
-        A ``shadow()``/``watch()`` field built with ``mirrors=<descriptor>`` keeps
-        that descriptor on ``_mirror_descriptor`` (as opposed to the bare-string
-        ``mirrors="some.key"`` form, which never sets it). Two genuinely
-        different mirror shapes share that same attribute, though:
-
-        - A registered global (``LibrarySettings``/``FrameworkSettings`` schema
-          field) declared on a DIFFERENT class — resolved via
-          ``SettingsRegistry`` (the existing, unchanged path).
-        - A plain sibling ``setting[...]`` declared on THIS bag (e.g. the
-          ad-hoc ``NodeSettings`` subclasses built by test fixtures, or any
-          ``watch()``/``shadow()`` of a field in the same class body) — never
-          registered with the registry (``NodeSettings`` fields get a
-          namespaced ``_setting_key`` string stamped by ``@node`` for identity/
-          promotion purposes only, but are never ``registry.define()``'d), so
-          ``registry.resolve`` would raise ``KeyError`` for it.
-
-        Membership in ``type(self)._property_settings()`` is the structural
-        test — it doesn't depend on ``_setting_key`` being empty (a
-        ``NodeSettings`` sibling's key is very much non-empty after ``@node``
-        wiring) or on whether a registry happens to be wired at all.
-        """
-        mirror = descriptor._mirror_descriptor
-        if not isinstance(mirror, setting):
-            return None
-        if mirror in type(self)._property_settings().values():
-            return mirror
-        return None
-
     def _cell_for(self, descriptor: setting) -> "DataField":
         """Return this field's DataField cell — THE read surface.
 
@@ -252,15 +213,11 @@ class Settings:
         cell = self._cells.get(key)
         if cell is None:
             # A cross-mirror field (shadow/watch of another setting) has no
-            # meaningful descriptor default — its value is the resolved global
-            # (registered global) or the sibling's own live cell value (in-bag
-            # sibling mirror). Seed the cell with that resolved value so a
-            # headless graph is correct before any change fires. A plain field
-            # seeds with its own default.
-            in_bag_mirror = self._in_bag_mirror_of(descriptor)
-            if in_bag_mirror is not None:
-                seed = self._cell_for(in_bag_mirror).get_value()
-            elif descriptor.is_cross_mirror and self._registry is not None:
+            # meaningful descriptor default — its value is the resolved global.
+            # Seed the cell with that resolved value so a headless graph is
+            # correct before any change fires. A plain field seeds with its
+            # own default.
+            if descriptor.is_cross_mirror and self._registry is not None:
                 seed = self._resolve(descriptor.storage_key, descriptor._mirror_key, descriptor._default)
             else:
                 # A callable default is late-binding — evaluated ONCE here at
@@ -320,41 +277,13 @@ class Settings:
     def _subscribe_setting(self, descriptor: setting) -> None:
         """Keep a single mirror field's cell synced to what it mirrors.
 
-        Two distinct sync sources, matching ``_in_bag_mirror_of``'s split:
-
-        - In-bag sibling mirror: no registry involved at all (the sibling was
-          never ``registry.define()``'d) — sync rides the sibling's OWN cell
-          event directly, same-instance. Idempotent per (self, descriptor):
-          the adapter is only attached once even if called again (e.g. via
-          both ``subscribe()`` and ``subscribe_field()``).
-        - Registered-global mirror: unchanged — subscribes to the registry's
-          notification channel for ``_mirror_key``.
+        Subscribes to the registry's notification channel for
+        ``descriptor._mirror_key``. No-op for a non-mirror field or when no
+        registry is wired.
         """
-        in_bag_mirror = self._in_bag_mirror_of(descriptor)
-        if in_bag_mirror is not None:
-            self._subscribe_in_bag_mirror(descriptor, in_bag_mirror)
-            return
         if self._registry is None or not descriptor._mirror_key:
             return
         self._registry.subscribe(descriptor._mirror_key, self._on_field_change)
-
-    def _subscribe_in_bag_mirror(self, descriptor: setting, sibling: setting) -> None:
-        """Attach the same-instance sync adapter for an in-bag mirror, once.
-
-        Mirrors ``_on_field_change``'s contract (unset tracks, set ignores) but
-        rides the sibling's cell event directly instead of the registry."""
-        sibling_cell = self._cell_for(sibling)
-        key = descriptor.storage_key
-        if key in self._in_bag_mirror_adapters:
-            return
-
-        def adapter(change: Any, _descriptor: setting = descriptor) -> None:
-            if self._cleaned_up or self._is_locally_set(_descriptor):
-                return
-            self._cell_for(_descriptor).set_value(change.value)
-
-        sibling_cell.on_changed.append(adapter)
-        self._in_bag_mirror_adapters[key] = (sibling_cell, adapter)
 
     def _on_field_change(self, full_key: str, value: "SettingValue") -> None:
         """
@@ -513,15 +442,12 @@ class Settings:
             old = self._local_value(descriptor)
             self._set_keys.discard(key)
             # Return the cell to the value the field would resolve to with no
-            # override. For a mirror field that is the current global (re-seed +
-            # resume tracking), or the in-bag sibling's live value; for a plain
-            # field it is the descriptor default. The cell is never structurally
-            # reset — only its *value* returns. set_value (not cell.reset) so the
-            # cell event notifies subscribers/widgets of the returned value.
-            in_bag_mirror = self._in_bag_mirror_of(descriptor)
-            if in_bag_mirror is not None:
-                new = self._cell_for(in_bag_mirror).get_value()
-            elif descriptor.is_cross_mirror and self._registry is not None:
+            # override. For a mirror field that is the current global
+            # (re-seed + resume tracking); for a plain field it is the
+            # descriptor default. The cell is never structurally reset — only
+            # its *value* returns. set_value (not cell.reset) so the cell
+            # event notifies subscribers/widgets of the returned value.
+            if descriptor.is_cross_mirror and self._registry is not None:
                 new = self._resolve(descriptor.storage_key, descriptor._mirror_key, descriptor._default)
             else:
                 default = descriptor._default
@@ -552,15 +478,6 @@ class Settings:
             for descriptor in type(self)._property_settings().values():
                 if descriptor._mirror_key:
                     self._registry.unsubscribe(descriptor._mirror_key, self._on_field_change)
-        # Symmetric for in-bag mirrors: detach each sync adapter from the
-        # sibling's cell (same-instance, so nothing outlives this bag, but a
-        # stale adapter would otherwise still fire on the sibling's cell).
-        for cell, adapter in self._in_bag_mirror_adapters.values():
-            try:
-                cell.on_changed.remove(adapter)
-            except ValueError:
-                pass
-        self._in_bag_mirror_adapters.clear()
         self._ui_state_listeners.clear()
 
     # -------------------------------------------------------------------------

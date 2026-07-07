@@ -289,6 +289,17 @@ class setting(SettingDescriptor, Generic[T]):
         if isinstance(self._type, type) and issubclass(self._type, IType):
             self._stamp_widget()
 
+    def __set_name__(self, owner: type, name: str) -> None:
+        if self._mirror_descriptor is not None and self._mirror_descriptor in owner.__dict__.values():
+            raise ValueError(
+                f"setting field '{name}' on {owner.__name__} mirrors a field declared "
+                f"on the same bag ({owner.__name__}) — mirrors= must reference a field "
+                f"on a DIFFERENT class (a registered LibrarySettings/FrameworkSettings "
+                f"global, or any other class's field). Same-bag mirroring is not "
+                f"supported."
+            )
+        super().__set_name__(owner, name)
+
     @property
     def _mirror_key(self) -> str:
         """Resolved mirror field key — lazy when mirrors= was given as a descriptor."""
