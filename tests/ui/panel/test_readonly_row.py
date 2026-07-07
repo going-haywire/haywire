@@ -1,4 +1,6 @@
-"""Read-only (watch) fields render live-value rows with an outlet-only menu (Q8)."""
+"""watch() fields render as disabled (greyed) widgets, not label-only rows —
+mirror-ness no longer forces a bespoke rendering path (Task 7). ui_state=
+DISABLED is the general chrome mechanism (ADR 0020), applied uniformly."""
 
 import haywire.core.graph.editor  # noqa: F401
 
@@ -46,12 +48,9 @@ def _has_row_menu(row) -> bool:
     return any(type(el).__name__ == "ContextMenu" for el in _walk(row))
 
 
-def _value_label_text(row) -> str | None:
-    for el in _walk(row):
-        props = getattr(el, "_props", {})
-        if "data-value" in props:
-            return props["data-value"]
-    return None
+def _reset_enabled(row) -> bool:
+    item = _menu_items(row).get("Reset to default") or _menu_items(row).get("Reset to global default")
+    return item is not None and item.enabled
 
 
 def _render(node, accessor="filter"):
@@ -63,41 +62,38 @@ def _render(node, accessor="filter"):
     return anchor
 
 
-def test_watch_field_renders_readonly_value_row(make_node_with_setting):
+def test_watch_field_renders_a_real_widget_not_a_label(make_node_with_setting):
     node = make_node_with_setting(accessor="filter", field="threshold", with_watch=True)
     anchor = _render(node)
     row = _find_field_row(anchor, "threshold_watched")
-    assert row is not None, "read_only fields must render a row now (Q8)"
-    assert _value_label_text(row) == "0.5"
+    assert row is not None
+    # A real widget (NumberDrag for FLOAT) renders — not the plain-label fallback.
+    assert any(getattr(el, "_props", {}).get("data-number_drag") is not None for el in _walk(row))
 
 
-def test_watch_row_reflects_value_on_rerender(make_node_with_setting):
-    node = make_node_with_setting(accessor="filter", field="threshold", with_watch=True)
-    node.filter.threshold = 0.9
-
-    anchor = _render(node)
-    row = _find_field_row(anchor, "threshold_watched")
-    assert _value_label_text(row) == "0.9"
-
-
-def test_watch_row_menu_offers_outlet_only_no_reset(make_node_with_setting):
+def test_watch_row_menu_offers_outlet_only(make_node_with_setting):
     node = make_node_with_setting(accessor="filter", field="threshold", with_watch=True)
     anchor = _render(node)
     row = _find_field_row(anchor, "threshold_watched")
-    assert set(_menu_items(row)) == {"Promote to outlet"}
+    assert set(_menu_items(row)) == {"Promote to outlet", "Reset to global default"}
+    assert not _reset_enabled(row), "clean row must grey reset"
 
 
-def test_watch_row_never_shows_dirty_glyph(make_node_with_setting):
+def test_watch_row_shows_dirty_glyph_once_locally_written(make_node_with_setting):
+    """watch() fields are writable now — a local write marks them dirty like
+    any other mirror field, with the same • chrome."""
     node = make_node_with_setting(accessor="filter", field="threshold", with_watch=True)
-    node.filter.threshold = 0.9
+    node.filter.threshold_watched = 0.9
     anchor = _render(node)
     row = _find_field_row(anchor, "threshold_watched")
-    for el in _walk(row):
-        text = getattr(el, "text", "") or ""
-        assert not text.startswith("•") and not text.startswith("→•")
+    texts = [getattr(el, "text", "") or "" for el in _walk(row)]
+    assert any(t.startswith("•") for t in texts)
 
 
-def test_unpromotable_watch_row_has_no_menu(make_node_with_setting):
+def test_unpromotable_watch_row_menu_has_reset_only(make_node_with_setting):
+    """Reset is offered for every field regardless of promotability (Task 7) —
+    it is no longer gated on _read_only, so an unpromotable watch() row still
+    gets a menu, just with no promote entries."""
     from haywire.core.settings.descriptor import Promotable
 
     node = make_node_with_setting(accessor="filter", field="threshold", with_watch=True)
@@ -105,7 +101,7 @@ def test_unpromotable_watch_row_has_no_menu(make_node_with_setting):
 
     anchor = _render(node)
     row = _find_field_row(anchor, "threshold_watched")
-    assert not _has_row_menu(row), "zero possible actions -> no context menu at all (Q4)"
+    assert set(_menu_items(row)) == {"Reset to global default"}
 
 
 def test_promoted_watch_row_menu_swaps_to_demote(make_node_with_setting):
@@ -117,4 +113,4 @@ def test_promoted_watch_row_menu_swaps_to_demote(make_node_with_setting):
 
     anchor = _render(node)
     row = _find_field_row(anchor, "threshold_watched")
-    assert set(_menu_items(row)) == {"Demote"}
+    assert set(_menu_items(row)) == {"Demote", "Reset to global default"}
