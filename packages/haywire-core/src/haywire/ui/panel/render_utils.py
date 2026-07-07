@@ -62,7 +62,10 @@ _COLUMN_STYLE = "container-type: inline-size; container-name: settings-panel;"
 def render_settings(obj: "Settings") -> None:
     """Render all ``setting()`` fields of a ``Settings`` instance as labelled form rows.
 
-    - Fields with ``read_only=True`` are skipped (not rendered).
+    - ``read_only=True`` (``watch()``) fields render as read-only rows: label +
+      live value label (no widget, no dirty chrome, no Reset). Their row menu
+      offers outlet promotion when eligible (Q8 — the row is the sole promote
+      surface, so promotable fields must be displayed).
     - Any locally-set field shows a • dirty prefix and a reset button (unless a
       promoted inlet owns the value): "Reset to global default" for a ``mirrors=``
       field, "Reset to default" for a plain one.
@@ -72,7 +75,7 @@ def render_settings(obj: "Settings") -> None:
     """
 
     fields = type(obj)._property_settings()
-    visible_fields = {name: defn for name, defn in fields.items() if not defn._read_only}
+    visible_fields = dict(fields)
     if not visible_fields:
         ui.label("No fields defined.").classes("text-xs hw-text-muted px-2 py-1")
         return
@@ -313,6 +316,7 @@ def _render_reactive_field_row(
     """
 
     is_mirrored = bool(defn._mirror_key)
+    is_readonly = bool(defn._read_only)
     # A promoted field is driven by a DATA port (see haywire.core.node.promotion).
     # The row is marked so the panel doesn't silently present an editable widget for
     # a value the graph now owns; the value display stays live (the setting and the
@@ -375,7 +379,7 @@ def _render_reactive_field_row(
     # gate is gone (decision Q1): plain fields get the same affordance, only the
     # tooltip/meaning differs by field kind.
     def _has_local_opinion() -> bool:
-        return obj.is_locally_set(attr_name) and not is_promoted_inlet
+        return (not is_readonly) and obj.is_locally_set(attr_name) and not is_promoted_inlet
 
     # "Reset to global default" re-seeds a mirror field from the current global and
     # resumes tracking; a plain field has no global — reset restores the descriptor
@@ -509,6 +513,8 @@ def _render_reactive_field_row(
             )
             if promoted_hint:
                 promoted_lbl.tooltip(promoted_hint)
+        elif is_readonly:
+            value_apply, widget_set_enabled = _build_label_widget(getattr(obj, attr_name))
         else:
             on_edit = _bag_on_edit(obj, attr_name, error_container)
             value_apply, widget_set_enabled = _resolve_widget_instance(defn, on_edit, bag=obj)
