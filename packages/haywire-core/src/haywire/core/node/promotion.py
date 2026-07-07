@@ -64,13 +64,10 @@ def _descriptor(node: "NodeData", accessor: str, field: str) -> "setting":
 def eligible_promotion_directions(descriptor: "setting") -> tuple[PortType, ...]:
     """The single source of truth for promotion eligibility.
 
-    Two orthogonal contributions, intersected:
-
-    1. **Declared intent** — ``setting(promotable=...)``, default ``ALL``.
-       ``NONE`` marks fields where a port would be misleading (e.g.
-       restart-required pipeline parameters).
-    2. **Structural** — a ``read_only`` (``watch()``) field has no write path
-       in, so it can never be an inlet regardless of declaration.
+    Purely ``setting(promotable=...)`` (default ``ALL``). ``watch()`` seeds
+    ``Promotable.OUTLET`` itself (a mirrored field has no legitimate write
+    path in) — there is no separate structural override here; the declared
+    flag IS the eligibility.
 
     Consumed by ``promote_setting`` (raises for ineligible promotions) and the
     setting-row menu (hides ineligible entries).
@@ -79,7 +76,7 @@ def eligible_promotion_directions(descriptor: "setting") -> tuple[PortType, ...]
 
     declared = getattr(descriptor, "_promotable", Promotable.ALL)
     directions: list[PortType] = []
-    if Promotable.INLET in declared and not getattr(descriptor, "_read_only", False):
+    if Promotable.INLET in declared:
         directions.append(PortType.INLET)
     if Promotable.OUTLET in declared:
         directions.append(PortType.OUTLET)
@@ -174,9 +171,9 @@ def promote_setting(
     the setting read returns the shared cell (incl. any edge-driven value) with no
     per-write hook.
 
-    Eligibility is ``eligible_promotion_directions(desc)`` — declared
-    ``promotable=`` ∩ the read-only structural rule (``watch()`` ⇒ outlet
-    only). Raises for any ineligible promotion, interactive or load-time.
+    Eligibility is ``eligible_promotion_directions(desc)`` — the field's
+    declared ``promotable=`` (``watch()`` seeds ``Promotable.OUTLET``).
+    Raises for any ineligible promotion, interactive or load-time.
 
     A promoted outlet is always ``is_linked_lazy`` (the link-time force +
     ``on_changed → propagate``) — holds for plain, shadow, watch alike, because
