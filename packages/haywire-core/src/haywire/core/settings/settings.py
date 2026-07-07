@@ -377,8 +377,8 @@ class Settings:
         """Serialize to ``{"values": {...}, "promoted": {...}}``.
 
         ``values``: only fields whose value differs from the descriptor default
-        and are locally set (read_only/mirrored fields are never serialized) —
-        same value-selection rule as before, now nested under a key.
+        and are locally set — same value-selection rule as before, now nested
+        under a key.
         ``promoted``: this bag's promotion records, ``storage_key → direction``
         (``"inlet"``/``"outlet"``). A promoted port is regenerated from this on
         load — it is NOT persisted in the node's ports block (ADR 0019).
@@ -386,8 +386,6 @@ class Settings:
         fields = type(self)._property_settings()
         values: dict = {}
         for name, descriptor in fields.items():
-            if descriptor._read_only:
-                continue
             if not self._is_locally_set(descriptor):
                 continue
             val = self._local_value(descriptor)
@@ -402,8 +400,8 @@ class Settings:
         Values restore exactly as before (direct cell write via ``_write_local``,
         no validator, marked locally set). Promotion records restore into
         ``_promoted_keys``; the node loader then regenerates the actual ports
-        (``regenerate_promoted_ports``). Unknown value keys and read_only fields
-        are skipped without error (forward compatibility within the new shape).
+        (``regenerate_promoted_ports``). Unknown value keys are skipped without
+        error (forward compatibility within the new shape).
 
         Raises ``PromotedFormatError`` if *data* is non-empty but lacks the
         ``"values"`` key — the pre-refactor flat shape. An empty ``{}`` (a bag
@@ -421,8 +419,6 @@ class Settings:
             if attr_name not in fields:
                 continue
             descriptor = fields[attr_name]
-            if descriptor._read_only:
-                continue
             self._write_local(descriptor, value)
         for key, direction_str in data.get("promoted", {}).items():
             self._promoted_keys[key] = PortType(direction_str)

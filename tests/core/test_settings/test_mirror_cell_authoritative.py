@@ -156,3 +156,17 @@ def test_same_bag_mirror_raises_value_error():
             mirrored = shadow(plain, type_=FLOAT)
 
 
+def test_watch_field_serializes_once_locally_set():
+    """watch() fields are writable now (Task 1) — once locally overridden,
+    they serialize like any other mirror field. The old read_only-driven
+    to_dict()/from_dict() exclusion is gone."""
+    registry, bag = _make_watch_bag()
+    bag.color = "#ff0000"
+
+    data = bag.to_dict()
+    assert data["values"] == {"color": "#ff0000"}
+
+    registry2, bag2 = _make_watch_bag()
+    bag2.from_dict(data)
+    assert bag2.color == "#ff0000"
+    assert bag2.is_locally_set("color")
