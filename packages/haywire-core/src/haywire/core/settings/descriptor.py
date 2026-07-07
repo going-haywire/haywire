@@ -202,7 +202,7 @@ class setting(SettingDescriptor, Generic[T]):
     promotable : Promotable
         Which port directions this field may be promoted to (default
         ``Promotable.ALL``). ``Promotable.NONE`` removes the field from the
-        promote menu entirely and makes ``promote_setting()`` raise — use it
+        Setting-row menu entirely and makes ``promote_setting()`` raise — use it
         for fields where a port would be misleading (e.g. restart-required
         pipeline parameters). Structural rules still apply on top:
         ``read_only=True`` remains outlet-only regardless.

@@ -245,7 +245,7 @@ from haywire.barn.builtin.types import CHOICES
 
 class depth(NodeSettings):
     # Restart-required pipeline parameter: a port would imply live control
-    # the hardware can't deliver — remove it from the promote menu entirely.
+    # the hardware can't deliver — remove it from the Setting-row menu entirely.
     preset_mode = setting[CHOICES](
         "HIGH_DENSITY",
         label="Preset Mode",

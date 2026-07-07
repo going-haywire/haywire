@@ -5,7 +5,7 @@ promotable= eligibility:
 - Promotable Flag enum semantics and the setting() kwarg (this task)
 - eligible_promotion_directions() matrix, promote_setting guard, and the
   promote guard (added in Task 3 of the merged plan)
-- the promote menu consumes the same helper (tests/ui/menu/test_promote_demote_menu.py)
+- the Setting-row menu consumes the same helper (tests/ui/panel/test_promoted_row_state.py)
 """
 
 # Per CLAUDE.md test trap: import editor before other haywire modules.

@@ -10,8 +10,7 @@ model (see ``.insights/feedback_nicegui_nested_menu_flyouts.md``): ``auto-close`
 dismisses a flyout on selection or click-away but NOT when the mouse moves to a
 *sibling* category, and 3.x drops closed-menu DOM, so close-timers break. This
 module is the single home for that machinery, so callers that build hierarchical
-hover menus (the add-node menu, the Promote-Setting menu) share one behaviour and
-can never drift.
+hover menus (the add-node menu) share one behaviour and can never drift.
 
 Callers keep their own domain recursion and leaf rendering; this module owns only
 the mechanics. The typical pattern::

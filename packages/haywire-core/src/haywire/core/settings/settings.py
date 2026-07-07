@@ -653,7 +653,7 @@ class Settings:
         same-bag, exact-match; a gate whose controller field doesn't exist
         on this bag is skipped silently here (the panel warns once per row
         at build time). Consumed by the panel's row rendering AND the
-        promote menu, so panel and menu can never disagree. Reads controller
+        Setting-row menu, so panel and menu can never disagree. Reads controller
         values via plain ``getattr`` — never writes, never touches cells.
         Unknown *name* returns ``UiState.NORMAL``. ADR 0020.
         """

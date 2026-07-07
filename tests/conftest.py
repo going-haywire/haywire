@@ -288,7 +288,7 @@ def make_node_with_setting(library_system):
     with_watch=False)`` → a ``NodeData`` instance whose ``<accessor>.<field>`` is a plain
     setting defaulting to 0.5. With ``with_watch=True`` the bag also carries a
     ``watch()`` field (``<field>_watched``) so menu tests can assert non-plain fields are
-    filtered out of the promote submenu.
+    filtered out of the Setting-row menu.
 
     Depends on ``library_system`` so the builtin types (``builtin:type:FLOAT``) are
     registered for ``DataPort.from_spec``.
