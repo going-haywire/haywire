@@ -116,13 +116,23 @@ def _metadata_to_port_kwargs(descriptor: "setting") -> dict:
 
 
 def _bind_port(port, bag: "Settings", desc: "setting") -> None:
-    """Share the setting's cell into *port* and mark the field locally-set.
+    """Share the setting's cell into *port*; for an INLET, also mark the
+    field locally-set.
 
-    THE bind+mark pair: one cell, two views; a promoted field is locally-set
-    for the port's lifetime. Used by promote_setting (interactive AND
-    load-time regen, via regenerate_promoted_ports)."""
+    One cell, two views. An INLET's only write path is the edge, so marking
+    it locally-set is what makes the setting's read return the edge-driven
+    value instead of falling back through the mirror-resolution chain (and
+    what `_on_field_change` checks to stop re-seeding a shadow/watch field
+    from its global once an edge owns it). An OUTLET has no such write path
+    of its own — it is still written through the normal panel/registry path,
+    exactly as if it weren't promoted — so promoting it must not freeze a
+    shadow/watch field against its global or make an unedited field serialize
+    as dirty; only an actual local write should ever mark it. Used by
+    promote_setting (interactive AND load-time regen, via
+    regenerate_promoted_ports)."""
     port.bind_field(bag._cell_for(desc))
-    bag._set_keys.add(desc.storage_key)
+    if port.is_inlet():
+        bag._set_keys.add(desc.storage_key)
 
 
 def regenerate_promoted_ports(node: "NodeData") -> None:
@@ -167,9 +177,12 @@ def promote_setting(
 
     Promotion = field + direction. The port borrows the setting's DataField cell
     by reference (``bind_field``) — one cell, two views. The port id IS the
-    setting's ``storage_key``; the field is marked locally-set at promote-time so
-    the setting read returns the shared cell (incl. any edge-driven value) with no
-    per-write hook.
+    setting's ``storage_key``. An INLET is additionally marked locally-set at
+    promote-time so the setting read returns the shared cell (incl. any
+    edge-driven value) with no per-write hook; an OUTLET is not — it has no
+    write path of its own (still written through the normal panel/registry
+    path), so promoting it must not freeze a shadow/watch field against its
+    global or make an unedited field serialize as dirty (see ``_bind_port``).
 
     Eligibility is ``eligible_promotion_directions(desc)`` — the field's
     declared ``promotable=`` (``watch()`` seeds ``Promotable.OUTLET``).

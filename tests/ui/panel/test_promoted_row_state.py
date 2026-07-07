@@ -412,7 +412,15 @@ def test_disabled_row_greys_reset_but_keeps_promote_active(make_node_with_settin
 
 def test_label_glyph_grammar(make_node_with_setting):
     """Pristine: 'threshold' — dirty: '• threshold' — inlet: '→ threshold' —
-    outlet(+dirty): '→• threshold'."""
+    outlet (unedited): '→ threshold' — outlet (+dirty): '→• threshold'.
+
+    An INLET is marked locally-set at promote-time (its only write path is
+    the edge), so it always renders without '•' regardless of whether it was
+    ever edited pre-promotion — the port, not local-set-ness, is what the
+    inlet branch keys off for its own "graph-owned" read-only rendering. An
+    OUTLET has no write path of its own — it's still written through the
+    normal panel/registry path — so promoting it must NOT itself mark it
+    locally-set; '•' only appears once the field is actually written."""
     from haywire.core.node.promotion import promote_setting
     from haywire.core.types.enums import PortType
 
@@ -438,4 +446,7 @@ def test_label_glyph_grammar(make_node_with_setting):
 
     node3 = make_node_with_setting(accessor="filter", field="threshold")
     promote_setting(node3, "filter", "threshold", direction=PortType.OUTLET)
+    assert _label_of(_render(node3)) == "→ threshold"  # unedited outlet -> no •
+
+    node3.filter.threshold = 0.9  # written through the normal panel/registry path
     assert _label_of(_render(node3)) == "→• threshold"

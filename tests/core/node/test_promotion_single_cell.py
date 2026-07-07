@@ -265,6 +265,33 @@ def test_shadow_to_both_directions_ok(library_system):
     assert port.is_linked_lazy is True
 
 
+def test_promoted_outlet_keeps_tracking_global_until_actually_written(library_system):
+    """Promoting a shadow() field to an OUTLET must not itself mark it
+    locally-set — an outlet has no write path of its own (still written
+    through the normal panel/registry path, same as if it weren't promoted),
+    so it must keep tracking its mirrored global exactly like an unpromoted,
+    unedited shadow field. Only an INLET's edge-driven value needs the
+    locally-set opinion (see _bind_port)."""
+    from haywire.core.node.promotion import promote_setting
+    from haywire.core.types.enums import PortType
+
+    node = _make_mixed_bag_node(library_system)
+    registry = library_system.get_settings_registry()
+    shadowed_desc = type(node.cfg).__dict__["shadowed"]
+
+    promote_setting(node, "cfg", "shadowed", direction=PortType.OUTLET)
+    assert not node.cfg.is_locally_set("shadowed")
+
+    registry.set_global(shadowed_desc._mirror_key, 0.9)
+    assert node.cfg.shadowed == 0.9
+
+    # A real local write still marks it, same as any unpromoted mirror field.
+    node.cfg.shadowed = 0.3
+    assert node.cfg.is_locally_set("shadowed")
+    registry.set_global(shadowed_desc._mirror_key, 0.1)
+    assert node.cfg.shadowed == 0.3  # tracking stopped once locally set
+
+
 def test_demote_after_driven_value_keeps_the_cell_value(make_node_with_setting):
     """§C3: demote is structural — it never resets the value."""
     from haywire.core.node.promotion import (
