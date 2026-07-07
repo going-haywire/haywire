@@ -217,7 +217,7 @@ class Settings:
             # Seed the cell with that resolved value so a headless graph is
             # correct before any change fires. A plain field seeds with its
             # own default.
-            if descriptor.is_cross_mirror and self._registry is not None:
+            if descriptor.is_mirror and self._registry is not None:
                 seed = self._resolve(descriptor.storage_key, descriptor._mirror_key, descriptor._default)
             else:
                 # A callable default is late-binding — evaluated ONCE here at
@@ -298,7 +298,7 @@ class Settings:
         if self._cleaned_up:
             return
         for _attr_name, descriptor in type(self)._property_settings().items():
-            if descriptor._mirror_key != full_key or not descriptor.is_cross_mirror:
+            if descriptor._mirror_key != full_key or not descriptor.is_mirror:
                 continue
             if self._is_locally_set(descriptor):
                 continue
@@ -443,7 +443,7 @@ class Settings:
             # descriptor default. The cell is never structurally reset — only
             # its *value* returns. set_value (not cell.reset) so the cell
             # event notifies subscribers/widgets of the returned value.
-            if descriptor.is_cross_mirror and self._registry is not None:
+            if descriptor.is_mirror and self._registry is not None:
                 new = self._resolve(descriptor.storage_key, descriptor._mirror_key, descriptor._default)
             else:
                 default = descriptor._default

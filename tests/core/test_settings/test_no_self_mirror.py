@@ -3,7 +3,7 @@
 ``_mirror_key`` means only "mirrors ANOTHER setting". Persistent fields on
 FrameworkSettings/LibrarySettings no longer stamp ``_mirror_key`` to their own
 ``_setting_key`` — their machinery keys off ``_setting_key`` + the
-registry-owned cell. ``is_cross_mirror`` collapses to ``bool(_mirror_key)``.
+registry-owned cell. ``is_mirror`` collapses to ``bool(_mirror_key)``.
 """
 
 from __future__ import annotations
@@ -26,16 +26,16 @@ def test_persistent_field_has_no_mirror_key():
     desc = _NoMirrorSchema.__dict__["threshold"]
     assert desc._setting_key == KEY
     assert desc._mirror_key == ""
-    assert desc.is_cross_mirror is False
+    assert desc.is_mirror is False
 
 
-def test_shadow_is_cross_mirror():
+def test_shadow_is_mirror():
     class _Bag(NodeSettings):
         mirrored = shadow(_NoMirrorSchema.threshold)
 
     desc = _Bag.__dict__["mirrored"]
     assert desc._mirror_key == KEY
-    assert desc.is_cross_mirror is True
+    assert desc.is_mirror is True
 
 
 def test_persistent_read_write_still_live_without_mirror_key():

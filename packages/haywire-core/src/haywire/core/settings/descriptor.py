@@ -312,7 +312,7 @@ class setting(SettingDescriptor, Generic[T]):
         self.__mirror_key = value
 
     @property
-    def is_cross_mirror(self) -> bool:
+    def is_mirror(self) -> bool:
         """True for a shadow/watch field that tracks another setting.
 
         ``_mirror_key`` means only that: a genuine shadow()/watch() points it at
