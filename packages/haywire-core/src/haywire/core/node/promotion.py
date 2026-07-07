@@ -73,7 +73,7 @@ def eligible_promotion_directions(descriptor: "setting") -> tuple[PortType, ...]
        in, so it can never be an inlet regardless of declaration.
 
     Consumed by ``promote_setting`` (raises for ineligible promotions) and the
-    promote menu's ``promotable_fields`` (hides ineligible entries).
+    setting-row menu (hides ineligible entries).
     """
     from haywire.core.settings.descriptor import Promotable
 
@@ -194,7 +194,7 @@ def promote_setting(
     if pid in node.ports:
         return
 
-    # Eligibility — the single source of truth shared with the promote menu
+    # Eligibility — the single source of truth shared with the setting-row menu
     # (declared promotable= ∩ the read-only structural rule). Applies to every
     # promotion, including the load-time regen path: there are no saved graphs
     # with promoted ports yet, so there is nothing to grandfather — an ineligible

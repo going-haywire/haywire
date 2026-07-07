@@ -16,10 +16,7 @@ Design:
 
 import logging
 from dataclasses import dataclass
-from typing import Any, Callable, Optional, TYPE_CHECKING, Tuple
-
-if TYPE_CHECKING:
-    from haywire.core.types.enums import PortType
+from typing import Any, Callable, Optional, Tuple
 
 from haywire.core.session.context import SessionContext
 from haywire.core.session.session import Session
@@ -490,19 +487,7 @@ class SessionContextMenuProvider(IContextMenuProvider, BaseContextMenuProvider):
 
         self._emit(DissolveRerouteEvent(node_id=node_id))
 
-    # SelectionContextActions / PortContextActions — setting promotion
-
-    def promote_setting(self, node_id: str, accessor: str, field: str, direction: "PortType") -> None:
-        """Promote ``<accessor>.<field>`` on *node_id* to a DATA port in *direction*
-        (inlet or outlet), then redraw the node so the new pin appears."""
-        from haywire.core.node.promotion import promote_setting
-
-        graph = self._context.data[EditState].active_graph
-        wrapper = graph.get_node_wrapper(node_id) if graph is not None else None
-        if wrapper is None:
-            return
-        promote_setting(wrapper.node, accessor, field, direction)
-        self._redraw_node(node_id)
+    # PortContextActions — setting demotion
 
     def demote_setting(self, port_id: str) -> None:
         """Remove the promoted port for ``port_id`` on the right-clicked node."""

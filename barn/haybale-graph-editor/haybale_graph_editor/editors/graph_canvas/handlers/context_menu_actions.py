@@ -7,10 +7,7 @@ structurally on a single class.
 
 from __future__ import annotations
 
-from typing import Protocol, TYPE_CHECKING, runtime_checkable
-
-if TYPE_CHECKING:
-    from haywire.core.types.enums import PortType
+from typing import Protocol, runtime_checkable
 
 
 @runtime_checkable
@@ -59,7 +56,6 @@ class SelectionContextActions(Protocol):
     def revalidate_selection(self) -> None: ...
     def reset_selection(self) -> None: ...
     def dissolve_reroute(self, node_id: str) -> None: ...
-    def promote_setting(self, node_id: str, accessor: str, field: str, direction: "PortType") -> None: ...
 
 
 @runtime_checkable
