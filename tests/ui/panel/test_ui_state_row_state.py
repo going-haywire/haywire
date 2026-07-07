@@ -51,11 +51,28 @@ def _find_field_row(root, attr_name: str):
     return None
 
 
+def _walk_skip_menus(element):
+    """Like ``_walk``, but prunes any ``ContextMenu`` subtree.
+
+    The Setting-row menu (Promote/Demote/Reset) nests inside the label cell,
+    so a plain ``_walk`` over a row would descend into it too. Its Reset
+    item's own enabled/disabled state (Q4/Q5) tracks dirtiness and UiState
+    independently of the row's *value-editing* chrome, which is what
+    ``_widget_is_disabled`` means to probe. A pristine NORMAL row's
+    permanently-listed, correctly-greyed Reset item must not read as "the
+    row is disabled"."""
+    yield element
+    if type(element).__name__ == "ContextMenu":
+        return
+    for child in element.default_slot.children:
+        yield from _walk_skip_menus(child)
+
+
 def _widget_is_disabled(row) -> bool:
-    """True if any element under *row* is disabled by EITHER mechanism:
-    Quasar ``disable`` prop (DisableableElement root) or the §2.11 CSS
-    (container root / label fallback)."""
-    for el in _walk(row):
+    """True if any element under *row* (outside its Setting-row menu) is
+    disabled by EITHER mechanism: Quasar ``disable`` prop (DisableableElement
+    root) or the §2.11 CSS (container root / label fallback)."""
+    for el in _walk_skip_menus(row):
         if getattr(el, "_props", {}).get("disable") is True:
             return True
         style = getattr(el, "_style", {}) or {}

@@ -19,9 +19,11 @@ Every field flows through the same stages. Stage 4 returns an ``apply(value)``
 callback used ONLY by the label fallback for an unknown widget key (no cell
 binding to hear); real widgets bind the field's shared cell directly and hear
 writes via ``on_changed`` — the reactive path still keeps its own
-override-chrome (• prefix / reset button) in sync via the ``updaters`` dict. That
-chrome shows for any locally-set field, mirror or plain, unless a promoted inlet
-owns the value (the graph drives it, so reset is meaningless).
+override-chrome (• dirty glyph / the row's context-menu Reset item) in sync via
+the ``updaters`` dict. That chrome shows for any locally-set field, mirror or
+plain, unless a promoted inlet owns the value (the graph drives it, so reset is
+meaningless). Promote/Demote/Reset all live on one right-click menu anchored to
+the row's label (see ``_build_row_menu``) — there is no other promote surface.
 """
 
 from __future__ import annotations
@@ -38,8 +40,10 @@ from haywire.ui.utils import anchor_cleanup_to_element
 from haywire.ui.widget.base import DISABLED_STYLE
 
 if TYPE_CHECKING:
+    from haywire.core.node.data import NodeData
     from haywire.core.settings.registry import SettingsRegistry
     from haywire.core.settings import Settings, setting
+    from haywire.core.types.enums import PortType
     from haywire.core.types.fields import DataField
 
 logger = logging.getLogger(__name__)
@@ -330,7 +334,7 @@ def _render_reactive_field_row(
     if port is not None:
         if port.is_inlet():
             is_promoted_inlet = True
-            promoted_hint = "driven through inlet" if port.is_linked() else "promoted to inlet"
+            promoted_hint = "driven by inlet" if port.is_linked() else "promoted to inlet"
         else:
             promoted_hint = "promoted to outlet"
 
@@ -380,39 +384,93 @@ def _render_reactive_field_row(
 
     def _label_text(dirty: bool) -> str:
         base = defn._label or attr_name
-        return f"• {base}" if dirty else base
+        prefix = ("→" if is_promoted else "") + ("•" if dirty else "")
+        return f"{prefix} {base}" if prefix else base
 
     label: Any = None
-    reset_btn: Any = None
     value_apply: Callable[[Any], None] | None = None
 
+    def _on_reset_click():
+        obj.reset(attr_name)
+        # reset() discards the local opinion but only writes the cell when the
+        # value actually changes (old != new). A field that was locally-set yet
+        # already equalled its default — e.g. promoted-then-demoted unchanged —
+        # fires NO cell event, so the bag subscription driving _refresh_chrome
+        # never runs and the • / greyed-reset state would linger. Refresh this
+        # row's chrome directly so it clears regardless of whether the value moved.
+        _refresh_chrome()
+
+    def _promote(direction: "PortType") -> None:
+        from haywire.core.node.promotion import bag_accessor, promote_setting
+
+        node = obj._node
+        if node is None:
+            return
+        accessor = bag_accessor(node, obj)
+        if accessor is None:
+            return
+        promote_setting(node, accessor, attr_name, direction)
+        _request_canvas_redraw(node)
+
+    def _demote() -> None:
+        from haywire.core.node.promotion import demote_setting
+
+        node = obj._node
+        if node is None:
+            return
+        demote_setting(node, defn.storage_key)
+        _request_canvas_redraw(node)
+
+    reset_item: Any = None
+
+    def _refresh_reset_item() -> None:
+        # Q4/Q5: Reset is the menu's one transient entry — listed permanently,
+        # greyed while the row is clean OR while UiState locks the row's
+        # value-editing chrome (DISABLED). Promote/Demote are structural and
+        # per-render constants: promotion changes rebuild the whole panel.
+        if reset_item is not None:
+            reset_item.set_enabled(
+                _has_local_opinion() and obj.effective_ui_state(attr_name) is UiState.NORMAL
+            )
+
+    def _build_row_menu() -> None:
+        # The setting-row menu (sole promote surface). Structural facts HIDE
+        # entries: no node -> no promotion; ineligible direction -> absent;
+        # promoted <-> unpromoted swaps Promote/Demote. Transient facts DISABLE:
+        # reset greys when clean/DISABLED. read_only rows never offer Reset.
+        # Nested in the label cell so the widget column keeps the browser's
+        # native context menu (copy/paste in inputs).
+        nonlocal reset_item
+        from haywire.core.node.promotion import eligible_promotion_directions
+
+        node = obj._node
+        structural: list[tuple[str, Callable[..., None]]] = []
+        if node is not None:
+            if is_promoted:
+                structural.append(("Demote", _demote))
+            else:
+                for direction in eligible_promotion_directions(defn):
+                    structural.append(
+                        (f"Promote to {direction.name.lower()}", lambda d=direction: _promote(d))
+                    )
+        offers_reset = not defn._read_only
+        if not structural and not offers_reset:
+            return  # nothing this row can ever do — no menu at all
+        with ui.context_menu().props('data-row-menu="true"'):
+            for text, handler in structural:
+                ui.menu_item(text, on_click=handler, auto_close=True)
+            if offers_reset:
+                reset_item = ui.menu_item(reset_tooltip, on_click=_on_reset_click, auto_close=True)
+        _refresh_reset_item()
+
     def _render_label():
-        nonlocal label, reset_btn
-
-        def _on_reset_click():
-            obj.reset(attr_name)
-            # reset() discards the local opinion but only writes the cell when the
-            # value actually changes (old != new). A field that was locally-set yet
-            # already equalled its default — e.g. promoted-then-demoted unchanged —
-            # fires NO cell event, so the bag subscription driving _refresh_chrome
-            # never runs and the • / reset button would linger. Refresh this row's
-            # chrome directly so it clears regardless of whether the value moved.
-            _refresh_chrome()
-
+        nonlocal label
         with ui.row().classes("items-center gap-0 shrink-0 sf-label"):
             label = ui.label(_label_text(_has_local_opinion())).classes("text-xs truncate")
-            if defn._description:
-                label.tooltip(defn._description)
-            if promoted_hint:
-                (ui.button(icon=hui.icon.promote).props("flat dense size=xs").tooltip(promoted_hint))
-            else:
-                reset_btn = (
-                    ui.button(icon=hui.icon.reset)
-                    .props("flat dense size=xs")
-                    .tooltip(reset_tooltip)
-                    .on("click", _on_reset_click)
-                )
-                reset_btn.set_visibility(_has_local_opinion())
+            tooltip_parts = [p for p in (defn._description, promoted_hint) if p]
+            if tooltip_parts:
+                label.tooltip(" — ".join(tooltip_parts))
+            _build_row_menu()
 
     # Every field — scalars, vectors, color — resolves a shared BaseWidget by its
     # widget_key, stamped once at __set_name__ (see _resolve_widget_instance, ADR
@@ -436,12 +494,22 @@ def _render_reactive_field_row(
         row_props += ' data-promoted="true"'
         if port is not None:
             row_props += f' data-promoted-direction="{"inlet" if is_promoted_inlet else "outlet"}"'
+        if promoted_hint:
+            row_props += f' data-hint="{promoted_hint}"'
     row_props += f' data-ui-state="{obj.effective_ui_state(attr_name).name.lower()}"'
 
     widget_set_enabled: Callable[[bool], None] | None = None
     with ui.row().classes(row_classes).props(row_props) as row_element:
         _render_label()
-        if is_promoted_inlet is False:
+        if is_promoted_inlet:
+            promoted_lbl = (
+                ui.label("promoted")
+                .classes(f"text-xs text-right italic hw-text-muted {_WIDGET_CLASSES}")
+                .props('data-promoted-hint="true" data-value="promoted"')
+            )
+            if promoted_hint:
+                promoted_lbl.tooltip(promoted_hint)
+        else:
             on_edit = _bag_on_edit(obj, attr_name, error_container)
             value_apply, widget_set_enabled = _resolve_widget_instance(defn, on_edit, bag=obj)
 
@@ -451,6 +519,7 @@ def _render_reactive_field_row(
         row_element.props(f'data-ui-state="{state.name.lower()}"')
         if widget_set_enabled is not None:
             widget_set_enabled(state is UiState.NORMAL)
+        _refresh_reset_item()
         if on_ui_state_applied is not None:
             on_ui_state_applied()
 
@@ -472,8 +541,8 @@ def _render_reactive_field_row(
         # value_apply is None for every case except the unknown-widget label
         # fallback, which owns no cell subscription of its own and needs this
         # to reflect external changes at all. Everything else in this callback
-        # is pure override chrome: the • prefix, reset-button visibility, and
-        # the ui-disabled marker.
+        # is pure override chrome: the • prefix, the menu's Reset enabled-state,
+        # and the ui-disabled marker.
         #
         # Applies to plain fields too (decision Q1): editing a plain field's widget
         # writes its cell, and the • / reset must appear live rather than waiting
@@ -485,8 +554,7 @@ def _render_reactive_field_row(
         dirty = _has_local_opinion()
         if label is not None:
             label.set_text(_label_text(dirty))
-        if reset_btn is not None:
-            reset_btn.set_visibility(dirty)
+        _refresh_reset_item()
         # Re-applies the ui-state marker (was: "the ui-disabled marker").
         _refresh_row_ui_state()
 
@@ -600,6 +668,25 @@ def _build_label_widget(value: Any) -> tuple[Callable[[Any], None], Callable[[bo
             _lbl.style(add=DISABLED_STYLE)
 
     return _apply_label, _set_label_enabled
+
+
+def _request_canvas_redraw(node: "NodeData") -> None:
+    """Best-effort canvas pin refresh after a promote/demote from the row menu.
+
+    Routes through BaseGraph.request_node_redraw: the debounced validation pass
+    picks the node up, the app layer (haystack) marks the graph unsaved and
+    broadcasts GraphDataMutated, and the settings panel's redraw_on rebuilds
+    this row with its new promotion state. Deliberately NO synchronous
+    publish here — a redraw of the emitting panel from inside its own click
+    handler deletes the handler's slot mid-flight (see
+    .insights/feedback_nicegui_redraw_deletes_handler_slot.md).
+
+    Headless tests build nodes on stub wrappers without a graph, hence the
+    getattr guard.
+    """
+    graph = getattr(node.wrapper, "_graph", None)
+    if graph is not None:
+        graph.request_node_redraw(node.node_id)
 
 
 def _escape(v: Any) -> str:

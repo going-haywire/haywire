@@ -66,12 +66,42 @@ def _find_field_row(root, attr_name: str):
     return None
 
 
-def _find_promoted_hint(row) -> str | None:
+def _row_hint(row) -> str | None:
+    """The row-level data-hint prop (promotion hint), or None."""
+    return getattr(row, "_props", {}).get("data-hint")
+
+
+def _find_promoted_label(row):
+    """The literal 'promoted' widget-column label on an inlet row, or None."""
     for el in _walk(row):
-        props = getattr(el, "_props", {})
-        if "data-promoted-hint" in props:
-            return el.text
+        if "data-promoted-hint" in getattr(el, "_props", {}):
+            return el
     return None
+
+
+def _menu_item_text(item) -> str:
+    """A ``MenuItem`` carries no ``.text`` of its own — it holds an ``ItemSection``
+    child (``TextElement``) that does. Headless equivalent of what a browser
+    renders as the item's label."""
+    for child in item.default_slot.children:
+        text = getattr(child, "text", None)
+        if text is not None:
+            return text
+    return ""
+
+
+def _menu_items(row) -> dict[str, object]:
+    """Map of menu-item text -> MenuItem element inside the row's context menu."""
+    return {_menu_item_text(el): el for el in _walk(row) if type(el).__name__ == "MenuItem"}
+
+
+def _has_row_menu(row) -> bool:
+    return any(type(el).__name__ == "ContextMenu" for el in _walk(row))
+
+
+def _reset_enabled(row) -> bool:
+    item = _menu_items(row).get("Reset to default") or _menu_items(row).get("Reset to global default")
+    return item is not None and item.enabled
 
 
 def _has_editable_widget(row) -> bool:
@@ -92,18 +122,13 @@ def test_promoted_unlinked_inlet_row_is_read_only(make_node_with_setting):
 
     promote_setting(node, "filter", "threshold")
 
-    client = Client(_noop_page, request=None)
-    with client:
-        anchor = ui.column()
-        with anchor:
-            render_settings(node.filter)
-
-    row = _find_field_row(anchor, "threshold")
+    row = _render(node)
     assert row is not None
     assert row._props.get("data-promoted-direction") == "inlet"
-    hint = _find_promoted_hint(row)
-    assert hint is not None and "promoted to inlet" in hint
+    assert _row_hint(row) == "promoted to inlet"
     assert not _has_editable_widget(row), "promoted inlet must render read-only, no editable widget"
+    lbl = _find_promoted_label(row)
+    assert lbl is not None and lbl.text == "promoted"
 
 
 def test_promoted_linked_inlet_row_shows_driven_hint(make_node_with_setting):
@@ -112,21 +137,12 @@ def test_promoted_linked_inlet_row_shows_driven_hint(make_node_with_setting):
 
     promote_setting(node, "filter", "threshold")
     desc = type(node.filter).__dict__["threshold"]
-    pid = desc.storage_key
-    port = node.ports[pid]
+    port = node.ports[desc.storage_key]
     port._linked_edges["fake_edge"] = object()  # is_linked() only checks length
 
-    client = Client(_noop_page, request=None)
-    with client:
-        anchor = ui.column()
-        with anchor:
-            render_settings(node.filter)
-
-    row = _find_field_row(anchor, "threshold")
+    row = _render(node)
     assert row is not None
-    assert row._props.get("data-promoted-direction") == "inlet"
-    hint = _find_promoted_hint(row)
-    assert hint is not None and "driven by inlet" in hint
+    assert _row_hint(row) == "driven by inlet"
     assert not _has_editable_widget(row), "promoted inlet must render read-only even when linked"
 
 
@@ -137,45 +153,41 @@ def test_promoted_outlet_row_stays_editable(make_node_with_setting):
 
     promote_setting(node, "filter", "threshold", direction=PortType.OUTLET)
 
-    client = Client(_noop_page, request=None)
-    with client:
-        anchor = ui.column()
-        with anchor:
-            render_settings(node.filter)
-
-    row = _find_field_row(anchor, "threshold")
+    row = _render(node)
     assert row is not None
     assert row._props.get("data-promoted-direction") == "outlet"
-    hint = _find_promoted_hint(row)
-    assert hint is not None and "promoted to outlet" in hint
+    assert _row_hint(row) == "promoted to outlet"
     assert _has_editable_widget(row), "promoted outlet must keep its editable widget"
+    assert _find_promoted_label(row) is None
+
+
+def test_promoted_outlet_keeps_reset_when_locally_set(make_node_with_setting):
+    """Outlet keeps the setting as source of truth: its menu Reset stays enabled."""
+    node = make_node_with_setting(accessor="filter", field="threshold")
+    from haywire.core.node.promotion import promote_setting
+    from haywire.core.types.enums import PortType
+
+    node.filter.threshold = 0.9
+    promote_setting(node, "filter", "threshold", direction=PortType.OUTLET)
+
+    row = _render(node)
+    assert row is not None
+    assert _reset_enabled(row), "promoted outlet must keep reset actionable"
+    assert _dirty_label(row)
 
 
 # --------------------------------------------------------------------------
-# Reset / dirty chrome (• prefix + reset button) — decision Q1/Q2/Q3.
+# Reset / dirty chrome (• prefix + menu Reset item) — decision Q1/Q2/Q3.
 # Shown when a field is locally-set AND not owned by a promoted inlet; hidden
 # otherwise. Applies to plain fields, not just mirror fields.
 # --------------------------------------------------------------------------
 
 
-def _find_reset_button(row):
-    """Return the reset ``ui.button`` in *row* (icon ``restart_alt``), or None."""
-    for el in _walk(row):
-        if getattr(el, "_props", {}).get("icon") == "restart_alt":
-            return el
-    return None
-
-
-def _reset_visible(row) -> bool:
-    btn = _find_reset_button(row)
-    return btn is not None and "hidden" not in getattr(btn, "_classes", [])
-
-
 def _dirty_label(row) -> bool:
-    """True if the field's label carries the • dirty prefix."""
+    """True if the field's label carries the • dirty glyph."""
     for el in _walk(row):
         text = getattr(el, "text", "") or ""
-        if text.startswith("• "):
+        if text.startswith("• ") or text.startswith("→• "):
             return True
     return False
 
@@ -195,66 +207,58 @@ def _click(button) -> None:
     button._handle_event({"listener_id": listener_id, "args": {}})
 
 
-def test_pristine_plain_field_has_no_reset(make_node_with_setting):
-    """An untouched, unpromoted plain field shows neither • nor a reset button."""
+def test_pristine_plain_field_has_reset_disabled(make_node_with_setting):
+    """An untouched field lists Reset in its menu but greyed (Q4: transient disables)."""
     node = make_node_with_setting(accessor="filter", field="threshold")
     row = _render(node)
     assert row is not None
-    assert not _reset_visible(row)
+    assert "Reset to default" in _menu_items(row)
+    assert not _reset_enabled(row)
     assert not _dirty_label(row)
 
 
-def test_locally_set_plain_field_shows_reset(make_node_with_setting):
-    """Editing a plain field to a non-default value marks it locally-set, so the
-    row shows the • prefix and a reset button (mirror gate removed — Q1)."""
+def test_locally_set_plain_field_enables_reset(make_node_with_setting):
     node = make_node_with_setting(accessor="filter", field="threshold")
     node.filter.threshold = 0.9  # != default 0.5 -> _set_keys
 
     row = _render(node)
     assert row is not None
-    assert _reset_visible(row)
+    assert _reset_enabled(row)
     assert _dirty_label(row)
 
 
-def test_reset_button_restores_default_and_clears_dirty(make_node_with_setting):
-    """Clicking reset (via reset()) restores the default and clears the local
-    opinion, so a re-render shows no • / reset."""
+def test_reset_restores_default_and_clears_dirty(make_node_with_setting):
     node = make_node_with_setting(accessor="filter", field="threshold")
     node.filter.threshold = 0.9
-    assert node.filter.is_locally_set("threshold")
-
     node.filter.reset("threshold")
     assert node.filter.threshold == 0.5
-    assert not node.filter.is_locally_set("threshold")
 
     row = _render(node)
     assert row is not None
-    assert not _reset_visible(row)
+    assert not _reset_enabled(row)
     assert not _dirty_label(row)
 
 
-def test_promoted_inlet_hides_reset_even_when_locally_set(make_node_with_setting):
-    """A promoted inlet owns the value; promotion marks the field locally-set, but
-    the read-only inlet row must NOT offer reset (Q3)."""
+def test_promoted_inlet_disables_reset_even_when_locally_set(make_node_with_setting):
+    """Promotion marks the field locally-set, but the graph owns an inlet's value (Q5/Q4)."""
     node = make_node_with_setting(accessor="filter", field="threshold")
     from haywire.core.node.promotion import promote_setting
 
-    promote_setting(node, "filter", "threshold")  # default direction = inlet
+    promote_setting(node, "filter", "threshold")
     assert node.filter.is_locally_set("threshold")
 
     row = _render(node)
     assert row is not None
-    assert row._props.get("data-promoted-direction") == "inlet"
-    assert not _reset_visible(row), "promoted inlet must hide reset"
+    assert not _reset_enabled(row), "promoted inlet must grey reset"
     assert not _dirty_label(row)
 
 
 def test_demoted_unchanged_field_is_dirty_then_reset_clears_it(make_node_with_setting):
     """Promote-then-demote leaves the field locally-set even if its value never
-    changed (freeze-on-disconnect): the row shows • + reset. reset() then discards
-    the local opinion — even though value == default and no cell event fires — so a
-    re-render shows no chrome. This is the state behind the 'reset does nothing'
-    report; the fix refreshes chrome directly from the click handler."""
+    changed (freeze-on-disconnect): the row shows • + an enabled Reset item. reset()
+    then discards the local opinion — even though value == default and no cell event
+    fires — so a re-render shows no chrome. This is the state behind the 'reset does
+    nothing' report; the fix refreshes chrome directly from the click handler."""
     from haywire.core.node.promotion import demote_setting, promote_setting
 
     node = make_node_with_setting(accessor="filter", field="threshold")
@@ -270,7 +274,7 @@ def test_demoted_unchanged_field_is_dirty_then_reset_clears_it(make_node_with_se
 
     row = _render(node)
     assert row is not None
-    assert _reset_visible(row), "demoted-unchanged field is dirty (freeze-on-disconnect)"
+    assert _reset_enabled(row), "demoted-unchanged field is dirty (freeze-on-disconnect)"
     assert _dirty_label(row)
 
     # reset() discards the opinion despite old == new (no cell write / event).
@@ -280,15 +284,15 @@ def test_demoted_unchanged_field_is_dirty_then_reset_clears_it(make_node_with_se
 
     row = _render(node)
     assert row is not None
-    assert not _reset_visible(row), "after reset the row is pristine"
+    assert not _reset_enabled(row), "after reset the row is pristine"
     assert not _dirty_label(row)
 
 
 def test_reset_click_clears_chrome_in_place_without_cell_event(make_node_with_setting):
     """The live regression: for a locally-set field whose value already equals the
     default, clicking reset fires NO cell event (old == new), so the ONLY thing that
-    clears the • / reset button is the handler refreshing its own row. Render once,
-    click the reset button in place, assert the same elements clear — no re-render."""
+    clears the • / reset item is the handler refreshing its own row. Render once,
+    click the reset menu item in place, assert the same elements clear — no re-render."""
     from haywire.core.node.promotion import demote_setting, promote_setting
 
     node = make_node_with_setting(accessor="filter", field="threshold")
@@ -306,28 +310,132 @@ def test_reset_click_clears_chrome_in_place_without_cell_event(make_node_with_se
 
         row = _find_field_row(anchor, "threshold")
         assert row is not None
-        assert _reset_visible(row) and _dirty_label(row)
+        assert _reset_enabled(row) and _dirty_label(row)
 
-        _click(_find_reset_button(row))
+        _click(_menu_items(row)["Reset to default"])
 
         # Same DOM, refreshed in place — no _render() rebuild.
         assert not node.filter.is_locally_set("threshold")
-        assert not _reset_visible(row), "reset click must hide the button in place"
+        assert not _reset_enabled(row), "reset click must grey the item in place"
         assert not _dirty_label(row), "reset click must drop the • prefix in place"
 
 
-def test_promoted_outlet_keeps_reset_when_locally_set(make_node_with_setting):
-    """A promoted outlet keeps the setting as source of truth (editable widget), so
-    a locally-set outlet field still offers reset (Q3)."""
+# --------------------------------------------------------------------------
+# Setting-row context menu (Q1/Q2/Q4/Q5/Q9) — the sole promote surface.
+# --------------------------------------------------------------------------
+
+
+def test_unpromoted_row_menu_offers_both_directions(make_node_with_setting):
     node = make_node_with_setting(accessor="filter", field="threshold")
+    row = _render(node)
+    items = _menu_items(row)
+    assert set(items) == {"Promote to inlet", "Promote to outlet", "Reset to default"}
+
+
+def test_promoted_row_menu_swaps_to_demote(make_node_with_setting):
+    from haywire.core.node.promotion import promote_setting
+
+    node = make_node_with_setting(accessor="filter", field="threshold")
+    promote_setting(node, "filter", "threshold")
+    row = _render(node)
+    items = _menu_items(row)
+    assert set(items) == {"Demote", "Reset to default"}
+
+
+def test_menu_promote_click_promotes_inlet(make_node_with_setting):
+    from haywire.core.node.promotion import is_field_promoted
+
+    node = make_node_with_setting(accessor="filter", field="threshold")
+    row = _render(node)
+    _click(_menu_items(row)["Promote to inlet"])
+
+    assert is_field_promoted(node.filter, "threshold")
+    pid = type(node.filter).__dict__["threshold"].storage_key
+    assert pid in node.ports and node.ports[pid].is_inlet()
+
+
+def test_menu_promote_click_promotes_outlet(make_node_with_setting):
+    node = make_node_with_setting(accessor="filter", field="threshold")
+    row = _render(node)
+    _click(_menu_items(row)["Promote to outlet"])
+
+    pid = type(node.filter).__dict__["threshold"].storage_key
+    assert pid in node.ports and not node.ports[pid].is_inlet()
+
+
+def test_menu_demote_click_demotes(make_node_with_setting):
+    from haywire.core.node.promotion import is_field_promoted, promote_setting
+
+    node = make_node_with_setting(accessor="filter", field="threshold")
+    promote_setting(node, "filter", "threshold")
+    row = _render(node)
+    _click(_menu_items(row)["Demote"])
+
+    assert not is_field_promoted(node.filter, "threshold")
+    pid = type(node.filter).__dict__["threshold"].storage_key
+    assert pid not in node.ports
+
+
+def test_promotable_none_row_menu_has_reset_only(make_node_with_setting):
+    from haywire.core.settings.descriptor import Promotable
+
+    node = make_node_with_setting(accessor="filter", field="threshold")
+    type(node.filter).__dict__["threshold"]._promotable = Promotable.NONE
+
+    row = _render(node)
+    assert set(_menu_items(row)) == {"Reset to default"}
+
+
+def test_nodeless_bag_menu_has_reset_only(make_node_with_setting):
+    """A bag without a node (e.g. GraphRunSettings) structurally hides promotion."""
+    node = make_node_with_setting(accessor="filter", field="threshold")
+    node.filter._node = None
+
+    row = _render(node)
+    assert set(_menu_items(row)) == {"Reset to default"}
+
+
+def test_disabled_row_greys_reset_but_keeps_promote_active(make_node_with_setting):
+    """ADR 0020: chrome-locked, not value-locked — promote stays, reset follows the lock."""
+    from haywire.core.settings import UiState
+
+    node = make_node_with_setting(accessor="filter", field="threshold")
+    node.filter.threshold = 0.9  # dirty — reset would be enabled if NORMAL
+    node.filter.set_ui_state("threshold", UiState.DISABLED)
+
+    row = _render(node)
+    items = _menu_items(row)
+    assert items["Promote to inlet"].enabled
+    assert items["Promote to outlet"].enabled
+    assert not _reset_enabled(row)
+
+
+def test_label_glyph_grammar(make_node_with_setting):
+    """Pristine: 'threshold' — dirty: '• threshold' — inlet: '→ threshold' —
+    outlet(+dirty): '→• threshold'."""
     from haywire.core.node.promotion import promote_setting
     from haywire.core.types.enums import PortType
 
-    node.filter.threshold = 0.9
-    promote_setting(node, "filter", "threshold", direction=PortType.OUTLET)
+    def _label_of(row) -> str:
+        for el in _walk(row):
+            classes = getattr(el, "_classes", [])
+            if "sf-label" in classes:
+                for child in _walk(el):
+                    text = getattr(child, "text", None)
+                    if text:
+                        return text
+        raise AssertionError("no label found")
 
-    row = _render(node)
-    assert row is not None
-    assert row._props.get("data-promoted-direction") == "outlet"
-    assert _reset_visible(row), "promoted outlet must keep reset"
-    assert _dirty_label(row)
+    node = make_node_with_setting(accessor="filter", field="threshold")
+    assert _label_of(_render(node)) == "threshold"
+
+    node.filter.threshold = 0.9
+    assert _label_of(_render(node)) == "• threshold"
+
+    node2 = make_node_with_setting(accessor="filter", field="threshold")
+    promote_setting(node2, "filter", "threshold")  # inlet: locally-set but graph-owned -> no •
+    assert _label_of(_render(node2)) == "→ threshold"
+
+    node3 = make_node_with_setting(accessor="filter", field="threshold")
+    promote_setting(node3, "filter", "threshold", direction=PortType.OUTLET)
+    assert _label_of(_render(node3)) == "→• threshold"

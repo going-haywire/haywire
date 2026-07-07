@@ -1,6 +1,6 @@
 """
 Interaction tests: verify value write/read-back, mirror indicator (• prefix),
-and the reset-to-global button.
+and the Reset item in the row's right-click Setting-row menu.
 """
 
 import pytest
@@ -44,7 +44,8 @@ def test_mirror_field_dot_prefix_after_local_override(page: Page, harness):
 
 
 def test_reset_button_appears_after_override(page: Page, harness):
-    """After overriding intensity locally, the reset (restart_alt) button appears."""
+    """After overriding intensity locally, the row's Setting-row menu offers an
+    enabled Reset item (right-click the label cell to open it)."""
     page.goto(_NODE_URL)
     page.wait_for_selector("[data-field]")
 
@@ -58,13 +59,14 @@ def test_reset_button_appears_after_override(page: Page, harness):
     page.wait_for_timeout(600)
 
     updated_row = page.locator('[data-field="intensity"]')
-    # NiceGUI renders Material icon buttons with the icon name as text content
-    reset_btn = updated_row.locator('button:has-text("restart_alt")')
-    expect(reset_btn).to_be_visible()
+    updated_row.locator(".sf-label").click(button="right")
+    reset_item = page.locator('[data-row-menu] >> text="Reset to global default"')
+    expect(reset_item).to_be_visible()
+    assert "disabled" not in (reset_item.get_attribute("class") or "")
 
 
 def test_reset_button_removes_dot_prefix(page: Page, harness):
-    """Clicking the reset button on intensity removes the • prefix."""
+    """Clicking the Reset menu item on intensity removes the • prefix."""
     page.goto(_NODE_URL)
     page.wait_for_selector("[data-field]")
 
@@ -77,10 +79,10 @@ def test_reset_button_removes_dot_prefix(page: Page, harness):
     edit_input.press("Enter")
     page.wait_for_timeout(600)
 
-    # Click reset
+    # Open the row menu and click Reset
     updated_row = page.locator('[data-field="intensity"]')
-    reset_btn = updated_row.locator('button:has-text("restart_alt")')
-    reset_btn.click()
+    updated_row.locator(".sf-label").click(button="right")
+    page.locator('[data-row-menu] >> text="Reset to global default"').click()
     page.wait_for_timeout(600)
 
     # • prefix should be gone
@@ -106,7 +108,8 @@ def test_color_mirror_dot_prefix_after_local_override(page: Page, harness):
 
 
 def test_color_mirror_reset_button_appears_after_override(page: Page, harness):
-    """After overriding tint locally, the reset button appears."""
+    """After overriding tint locally, the row's Setting-row menu offers an
+    enabled Reset item."""
     page.goto(_NODE_URL)
     page.wait_for_selector("[data-field]")
 
@@ -117,11 +120,14 @@ def test_color_mirror_reset_button_appears_after_override(page: Page, harness):
     page.wait_for_timeout(600)
 
     updated_row = page.locator('[data-field="tint"]')
-    expect(updated_row.locator('button:has-text("restart_alt")')).to_be_visible()
+    updated_row.locator(".sf-label").click(button="right")
+    reset_item = page.locator('[data-row-menu] >> text="Reset to global default"')
+    expect(reset_item).to_be_visible()
+    assert "disabled" not in (reset_item.get_attribute("class") or "")
 
 
 def test_color_mirror_reset_removes_dot_prefix(page: Page, harness):
-    """Clicking reset on tint removes the • prefix."""
+    """Clicking the Reset menu item on tint removes the • prefix."""
     page.goto(_NODE_URL)
     page.wait_for_selector("[data-field]")
 
@@ -132,7 +138,8 @@ def test_color_mirror_reset_removes_dot_prefix(page: Page, harness):
     page.wait_for_timeout(600)
 
     updated_row = page.locator('[data-field="tint"]')
-    updated_row.locator('button:has-text("restart_alt")').click()
+    updated_row.locator(".sf-label").click(button="right")
+    page.locator('[data-row-menu] >> text="Reset to global default"').click()
     page.wait_for_timeout(600)
 
     final_row = page.locator('[data-field="tint"]')
