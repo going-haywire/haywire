@@ -209,7 +209,7 @@ Nodes auto-register through folder scanning in `FolderScanMixin`. The registry c
 ### Lazy Propagation
 
 - Unified dirty model: both eager and lazy edges defer `on_change` to execution time
-- Pipes own all data transport: eager push + lazy `pull_lazy()` (always-latest semantics)
+- Pipes own all data transport: eager push + lazy `pull` (always-latest semantics)
 - `resolve_dirty_data()`: pulls lazy pipes, then fires deferred `on_change` once
 - `_execute()` resolves dirty ports for ALL node types
 

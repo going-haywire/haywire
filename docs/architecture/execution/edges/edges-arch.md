@@ -148,7 +148,7 @@ LAZY EDGE:
 AT EXECUTION TIME (both):
   node._execute()
     ├─ for each dirty port: resolve_dirty_data()
-    │     ├─ pull lazy pipe data (transform + store via pull_lazy())
+    │     ├─ pull lazy pipe data (transform + store via pull())
     │     └─ fire on_change ONCE (debounced across all edge types)
     ├─ on_validate()
     └─ worker()
@@ -156,21 +156,21 @@ AT EXECUTION TIME (both):
 
 ### 3.4 `set_value()` callback rules
 
-The `set_value()` method on DataPort distinguishes between edge-driven and widget/programmatic changes:
+The `set_value()` method on DataPort distinguishes between edge-driven, widget/programmatic changes and the flow type:
 
-| Path                                  | `edge_id` | `on_change` | Behaviour                                                                                       |
+| Path                                  | `Edge-driven` | `on_change` | Behaviour                                                                                       |
 | ------------------------------------- | --------- | ----------- | ----------------------------------------------------------------------------------------------- |
-| Edge-driven inlet, CALLBACK flow_type | set       | (any)       | Value stored; `on_change` fires **immediately**                                                 |
-| Edge-driven inlet, other flow_type    | set       | (any)       | Value stored; `_mark_as_data_dirty()` called; `on_change` fires later in `resolve_dirty_data()` |
-| Widget / programmatic inlet           | `None`    | exists      | Value stored; `on_change` fires **immediately**; no dirty mark (prevents double-fire)           |
-| Widget / programmatic inlet           | `None`    | absent      | Value stored; `_mark_as_data_dirty()` called; `resolve_dirty_data()` skips callback (none)      |
-| Outlet (any)                          | (any)     | exists      | `on_change` fires immediately; pipes propagate downstream                                       |
+| (any)               | no    | absent      | `on_change` does not fire      |
+| Widget / programmatic input           | no   | exists      | `on_change` fires **immediately**         |
+| CALLBACK flow_type | yes       | exists       | `on_change` fires **immediately**                                                 |
+| DATA, CONTROL flow_type    | yes       | exists       | `on_change` fires just before the worker |
+| Outlet (any)                          | (any)     | exists      | `on_change` fires **immediately**; pipes propagate downstream                                       |
 
-`set_value_by_lazy_link()` is a low-level method that stores the value without firing any callbacks. Used by `pull_lazy()` during lazy resolution. `set_value()` delegates to it for the actual storage step.
+`set_value_by_lazy_link()` is a low-level method that stores the value without firing any callbacks. Used by `pull()` during lazy resolution. `set_value()` delegates to it for the actual storage step.
 
 ### 3.5 Pipe-based data transport
 
-The `Pipes` class owns all data transport — both eager push (`propagate()`) and lazy pull (`pull_lazy()`). It stores:
+The `Pipes` class owns all data transport — both eager push (`propagate()`) and lazy pull (`pull()`). It stores:
 
 | Field          | Purpose                                                   |
 | -------------- | --------------------------------------------------------- |
@@ -270,7 +270,7 @@ Each edge gets its own entry in the pooled `dict[source_id, value]`.
 
 - **Re-enablement priority.** Currently FIFO. If multiple displaced edges are functional at re-enablement time, the first registered wins. A user-controllable priority mechanism may be useful.
 - **Adapter chain caching.** Chains are recomputed on every edge build. For libraries with many adapter pairs, caching the BFS result keyed by `(source_type, sink_type)` could help.
-- **Lazy propagation hot-reload.** When an adapter inside a lazy chain reloads, the edge marks dirty but the next `pull_lazy()` re-resolves through the new chain. This works today; whether the edge should *eagerly* re-pull on adapter change is undecided.
+- **Lazy propagation hot-reload.** When an adapter inside a lazy chain reloads, the edge marks dirty but the next `pull()` re-resolves through the new chain. This works today; whether the edge should *eagerly* re-pull on adapter change is undecided.
 
 ## Appendix — key state locations
 
@@ -293,7 +293,7 @@ Each edge gets its own entry in the pooled `dict[source_id, value]`.
 - `src/haywire/core/edge/edge_wrapper.py` — `EdgeWrapper` + `EdgeWrapperState` (owns link/unlink/detach lifecycle)
 - `src/haywire/core/edge/edge.py` — `Edge` data object (includes `is_lazy` flag)
 - `src/haywire/core/types/port.py` — `DataPort` (two-tier storage, displacement, re-enablement, deferred on_change, lazy resolution)
-- `src/haywire/core/types/pipe.py` — `Pipes` (eager push via `propagate()`, lazy pull via `pull_lazy()`, always-latest semantics)
+- `src/haywire/core/types/pipe.py` — `Pipes` (eager push via `propagate()`, lazy pull via `pull()`, always-latest semantics)
 - `src/haywire/core/graph/base.py` — `BaseGraph` (create/add/remove edge, delegates to edge methods)
 - `src/haywire/core/graph/validation.py` — `ValidationManager` (debounced batch validation, priority system)
 - `src/haywire/core/graph/types.py` — `ChangeReason` enum, `ValidationResult`

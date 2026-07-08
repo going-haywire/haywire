@@ -103,7 +103,7 @@ The three projections relate as: the **dataclass** (3) represents one entry in t
 | **DROP / realtime mode** | `QueueMode.DROP`: stale Triggers are discarded so the Flow always processes the newest available frame. Paired with `max_queue_size=1` to actually guarantee newest (DROP alone leaves a transient backlog). The author default of the camera `Frame Event` node | Skip, throttle (imprecise) |
 | **BLOCK mode** | `QueueMode.BLOCK`: the default for every EVENT source except `Frame Event`. **Best-effort, not lossless** — `put(block=True, timeout=5.0)`, then drops + warns on timeout. NOT a "process every frame" guarantee; see Flagged ambiguities and the demand-driven pattern | Lossless, every-frame (it is neither) |
 | **Eager push** | Data transport mode where a Pipe immediately propagates a new value downstream on write | Synchronous push |
-| **Lazy pull** | Data transport mode where a Pipe defers propagation; downstream calls `pull_lazy()` at execution time to get the latest value | Deferred, on-demand (imprecise) |
+| **Lazy pull** | Data transport mode where a Pipe defers propagation; downstream calls `pull()` at execution time to get the latest value | Deferred, on-demand (imprecise) |
 | **EVAL_MASK / LAZY_MASK** | Per-inlet / per-control-node bitmasks computed during assembly to determine which DATA nodes actually run each step. See [architecture/execution/lazy-evaluation](../architecture/execution/lazy-evaluation/lazy-evaluation-arch.md) | — |
 
 ---

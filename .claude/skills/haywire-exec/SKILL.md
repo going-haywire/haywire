@@ -10,7 +10,7 @@ Read the following documentation files in order and use them as the authoritativ
 ## Files to read
 
 1. `docs/architecture/execution/assembly/assembly-arch.md` — Graph → Assembly → Flow pipeline: `FlowAssemblyManager`, event-node identification, `LocalizedDataFlow`, lazy bitmasks (`EVAL_MASK`, `LAZY_MASK`), JIT reassembly triggers
-2. `docs/architecture/execution/edges/edges-arch.md` — 4-stage `EdgeWrapper.build()` pipeline, three-tier edge lifecycle (`link()` → `unlink()` → `detach()`), two-tier port storage (`_linked_edges` + `_all_edges`), asymmetric displacement, lazy propagation, `resolve_dirty_data()`, `pull_lazy()`, deferred `on_change`, `ValidationManager` priority system
+2. `docs/architecture/execution/edges/edges-arch.md` — 4-stage `EdgeWrapper.build()` pipeline, three-tier edge lifecycle (`link()` → `unlink()` → `detach()`), two-tier port storage (`_linked_edges` + `_all_edges`), asymmetric displacement, lazy propagation, `resolve_dirty_data()`, `pull()`, deferred `on_change`, `ValidationManager` priority system
 
 Optional context (load if the task needs it):
 
@@ -27,7 +27,7 @@ Summarise in 6–10 bullet points:
 - Three-tier edge lifecycle and the difference between `unlink()` and `detach()`
 - Two-tier port storage and when each set is queried
 - Asymmetric displacement: inlet informs outlet, outlet does NOT inform inlet
-- Lazy vs eager pipes: eager push vs `pull_lazy()` (always-latest), `resolve_dirty_data()` deferred `on_change`
+- Lazy vs eager pipes: eager push vs `pull()` (always-latest), `resolve_dirty_data()` deferred `on_change`
 - Any gotchas called out in the docs (e.g., reassembly on lazy state change at runtime)
 
 Then proceed with the user's task using these patterns as the guide.
