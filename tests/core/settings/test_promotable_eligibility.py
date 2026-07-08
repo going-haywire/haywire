@@ -65,11 +65,6 @@ class TestEligibleDirections:
 
         return eligible_promotion_directions(setting(0.5, type_=FLOAT, **kwargs))
 
-    def test_default_plain_field_both_directions(self):
-        from haywire.core.types.enums import PortType
-
-        assert self._dirs() == (PortType.INLET, PortType.OUTLET)
-
     def test_none_yields_empty(self):
         assert self._dirs(promotable=Promotable.NONE) == ()
 
@@ -82,6 +77,21 @@ class TestEligibleDirections:
         from haywire.core.types.enums import PortType
 
         assert self._dirs(promotable=Promotable.OUTLET) == (PortType.OUTLET,)
+
+    def test_config_only(self):
+        from haywire.core.types.enums import PortType
+
+        assert self._dirs(promotable=Promotable.CONFIG) == (PortType.CONFIG,)
+
+    def test_input_is_inlet_and_config(self):
+        from haywire.core.types.enums import PortType
+
+        assert self._dirs(promotable=Promotable.INPUT) == (PortType.INLET, PortType.CONFIG)
+
+    def test_default_plain_field_all_three_directions(self):
+        from haywire.core.types.enums import PortType
+
+        assert self._dirs() == (PortType.INLET, PortType.OUTLET, PortType.CONFIG)
 
 
 @pytest.mark.integration

@@ -80,6 +80,8 @@ def eligible_promotion_directions(descriptor: "setting") -> tuple[PortType, ...]
         directions.append(PortType.INLET)
     if Promotable.OUTLET in declared:
         directions.append(PortType.OUTLET)
+    if Promotable.CONFIG in declared:
+        directions.append(PortType.CONFIG)
     return tuple(directions)
 
 
