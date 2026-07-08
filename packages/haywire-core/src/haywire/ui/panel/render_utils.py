@@ -332,18 +332,18 @@ def _render_reactive_field_row(
     # until the next redraw is accepted (decision Q7), no reactive tracking beyond
     # this per-render check.
     port = obj._node.ports.get(defn.storage_key) if (is_promoted and obj._node is not None) else None
-    is_promoted_inlet = False
+    is_promoted_input = False
     promoted_hint = ""
     if port is not None:
         if port.is_inlet():
-            is_promoted_inlet = True
+            is_promoted_input = True
             promoted_hint = "driven by inlet" if port.is_linked() else "promoted to inlet"
         elif port.is_config():
             # A CONFIG port has no edge, ever — its widget is the only write
             # path. It still renders read-only here: the interactive widget
             # moves to wherever a CONFIG port's live widget already renders
             # today (Ports Panel / node card), not the Properties panel row.
-            is_promoted_inlet = True
+            is_promoted_input = True
             promoted_hint = "promoted to config"
         else:
             promoted_hint = "promoted to outlet"
@@ -385,7 +385,7 @@ def _render_reactive_field_row(
     # gate is gone (decision Q1): plain fields get the same affordance, only the
     # tooltip/meaning differs by field kind.
     def _has_local_opinion() -> bool:
-        return obj.is_locally_set(attr_name) and not is_promoted_inlet
+        return obj.is_locally_set(attr_name) and not is_promoted_input
 
     # "Reset to global default" re-seeds a mirror field from the current global and
     # resumes tracking; a plain field has no global — reset restores the descriptor
@@ -503,7 +503,7 @@ def _render_reactive_field_row(
     if is_promoted:
         row_props += ' data-promoted="true"'
         if port is not None:
-            direction_attr = "config" if port.is_config() else ("inlet" if is_promoted_inlet else "outlet")
+            direction_attr = "config" if port.is_config() else ("inlet" if is_promoted_input else "outlet")
             row_props += f' data-promoted-direction="{direction_attr}"'
         if promoted_hint:
             row_props += f' data-hint="{promoted_hint}"'
@@ -512,7 +512,7 @@ def _render_reactive_field_row(
     widget_set_enabled: Callable[[bool], None] | None = None
     with ui.row().classes(row_classes).props(row_props) as row_element:
         _render_label()
-        if is_promoted_inlet:
+        if is_promoted_input:
             promoted_lbl = (
                 ui.label("promoted")
                 .classes(f"text-xs text-right italic hw-text-muted {_WIDGET_CLASSES}")
@@ -557,7 +557,7 @@ def _render_reactive_field_row(
         #
         # Applies to plain fields too (decision Q1): editing a plain field's widget
         # writes its cell, and the • / reset must appear live rather than waiting
-        # for the next full panel redraw. is_promoted_inlet is a per-render constant
+        # for the next full panel redraw. is_promoted_input is a per-render constant
         # (structural, needs a redraw to change), so a cell-value change only flips
         # the is_locally_set half — recomputed here.
         if value_apply is not None:
