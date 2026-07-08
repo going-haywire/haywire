@@ -53,12 +53,21 @@ class Promotable(Flag):
     would imply live control the hardware can't deliver. ``watch()`` seeds
     ``OUTLET`` for the same reason: a mirrored value has no legitimate write
     path in.
+
+    ``CONFIG`` promotes a field to a pinless ``PortType.CONFIG`` port (never
+    edge-drivable) — see ADR 0014's "Config direction (re)introduced" note.
+    ``INPUT`` groups the two directions whose value flows INTO the setting
+    from outside the panel widget (an edge, or nothing but the widget itself
+    with no mirror-tracking guarantee) — INLET and CONFIG — as opposed to
+    OUTLET, whose value the setting itself still owns and writes.
     """
 
     NONE = 0
     INLET = auto()
     OUTLET = auto()
-    ALL = INLET | OUTLET
+    CONFIG = auto()
+    INPUT = INLET | CONFIG
+    ALL = INLET | OUTLET | CONFIG
 
 
 class UiState(IntEnum):

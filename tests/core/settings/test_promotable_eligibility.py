@@ -19,9 +19,6 @@ from haywire.core.settings import Promotable, setting
 
 @pytest.mark.unit
 class TestPromotableEnum:
-    def test_all_is_inlet_or_outlet(self):
-        assert Promotable.ALL == Promotable.INLET | Promotable.OUTLET
-
     def test_none_contains_nothing(self):
         assert Promotable.INLET not in Promotable.NONE
         assert Promotable.OUTLET not in Promotable.NONE
@@ -30,6 +27,18 @@ class TestPromotableEnum:
         assert Promotable.INLET in Promotable.ALL
         assert Promotable.OUTLET in Promotable.ALL
         assert Promotable.OUTLET not in Promotable.INLET
+
+    def test_all_includes_config(self):
+        assert Promotable.ALL == Promotable.INLET | Promotable.OUTLET | Promotable.CONFIG
+
+    def test_input_is_inlet_or_config(self):
+        assert Promotable.INPUT == Promotable.INLET | Promotable.CONFIG
+
+    def test_config_membership(self):
+        assert Promotable.CONFIG in Promotable.ALL
+        assert Promotable.CONFIG in Promotable.INPUT
+        assert Promotable.OUTLET not in Promotable.INPUT
+        assert Promotable.CONFIG not in Promotable.OUTLET
 
 
 @pytest.mark.unit
