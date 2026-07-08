@@ -120,3 +120,13 @@ class TestPromoteGuard:
         with pytest.raises(ValueError, match="cannot be promoted"):
             promote_setting(node, "filter", "threshold", PortType.INLET)
         promote_setting(node, "filter", "threshold", PortType.OUTLET)  # allowed
+
+    def test_promote_config_only_field_to_inlet_raises(self, make_node_with_setting):
+        from haywire.core.node.promotion import promote_setting
+        from haywire.core.types.enums import PortType
+
+        node = make_node_with_setting(accessor="filter", field="threshold")
+        type(node.filter).__dict__["threshold"]._promotable = Promotable.CONFIG
+        with pytest.raises(ValueError, match="cannot be promoted"):
+            promote_setting(node, "filter", "threshold", PortType.INLET)
+        promote_setting(node, "filter", "threshold", PortType.CONFIG)  # allowed

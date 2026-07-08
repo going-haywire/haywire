@@ -118,22 +118,24 @@ def _metadata_to_port_kwargs(descriptor: "setting") -> dict:
 
 
 def _bind_port(port, bag: "Settings", desc: "setting") -> None:
-    """Share the setting's cell into *port*; for an INLET, also mark the
-    field locally-set.
+    """Share the setting's cell into *port*; for an INLET or CONFIG, also mark
+    the field locally-set.
 
-    One cell, two views. An INLET's only write path is the edge, so marking
-    it locally-set is what makes the setting's read return the edge-driven
-    value instead of falling back through the mirror-resolution chain (and
-    what `_on_field_change` checks to stop re-seeding a shadow/watch field
-    from its global once an edge owns it). An OUTLET has no such write path
-    of its own — it is still written through the normal panel/registry path,
+    One cell, two views. INLET's only write path is the edge, and CONFIG has no
+    write path but its own widget (no edge exists at all) — both are "inputs"
+    (``Promotable.INPUT = INLET | CONFIG``), so marking them locally-set is what
+    makes the setting's read return the shared cell's current value instead of
+    falling back through the mirror-resolution chain (and what `_on_field_change`
+    checks to stop re-seeding a shadow/watch field from its global once the
+    field is considered promoted-and-owned). An OUTLET has no such write path of
+    its own — it is still written through the normal panel/registry path,
     exactly as if it weren't promoted — so promoting it must not freeze a
     shadow/watch field against its global or make an unedited field serialize
     as dirty; only an actual local write should ever mark it. Used by
     promote_setting (interactive AND load-time regen, via
     regenerate_promoted_ports)."""
     port.bind_field(bag._cell_for(desc))
-    if port.is_inlet():
+    if port.is_inlet() or port.is_config():
         bag._set_keys.add(desc.storage_key)
 
 
@@ -179,27 +181,35 @@ def promote_setting(
 
     Promotion = field + direction. The port borrows the setting's DataField cell
     by reference (``bind_field``) — one cell, two views. The port id IS the
-    setting's ``storage_key``. An INLET is additionally marked locally-set at
-    promote-time so the setting read returns the shared cell (incl. any
-    edge-driven value) with no per-write hook; an OUTLET is not — it has no
-    write path of its own (still written through the normal panel/registry
-    path), so promoting it must not freeze a shadow/watch field against its
-    global or make an unedited field serialize as dirty (see ``_bind_port``).
+    setting's ``storage_key``. An INLET or CONFIG is additionally marked
+    locally-set at promote-time so the setting read returns the shared cell
+    (incl. any edge-driven value for INLET) with no per-write hook — both have
+    no other write path in (CONFIG has no edge at all; INLET's only write path
+    IS the edge). An OUTLET is not marked locally-set — it has no write path of
+    its own (still written through the normal panel/registry path), so
+    promoting it must not freeze a shadow/watch field against its global or
+    make an unedited field serialize as dirty (see ``_bind_port``).
 
     Eligibility is ``eligible_promotion_directions(desc)`` — the field's
-    declared ``promotable=`` (``watch()`` seeds ``Promotable.OUTLET``).
+    declared ``promotable=`` (``watch()`` seeds ``Promotable.OUTLET``; a
+    ``watch()`` field is therefore never CONFIG-eligible).
     Raises for any ineligible promotion, interactive or load-time.
 
     A promoted outlet is always ``is_linked_lazy`` (the link-time force +
     ``on_changed → propagate``) — holds for plain, shadow, watch alike, because
-    a promoted outlet is never worker-``out()``-driven.
+    a promoted outlet is never worker-``out()``-driven. A promoted CONFIG port
+    is pinless (``flow_type=NONE``, ADR 0014) — never linked, never lazy.
 
-    Direction selects the factory (``as_inlet``/``as_outlet``) and thus the
-    per-direction ``ShowWidgetStrategy`` default (inlet NOT_LINKED → widget shows
-    while unlinked; outlet NEVER). Do NOT pass ``show_widget`` explicitly.
+    Direction selects the factory (``as_inlet``/``as_outlet``/``as_config``) and
+    thus the per-direction ``ShowWidgetStrategy`` default (inlet NOT_LINKED →
+    widget shows while unlinked; outlet NEVER; config ALWAYS — though the
+    Properties-panel row hides a promoted CONFIG's widget the same way it hides
+    a promoted INLET's, per ADR 0014; the port's own live widget still renders
+    wherever a CONFIG port's widget renders today, e.g. the Ports Panel).
+    Do NOT pass ``show_widget`` explicitly.
     """
-    if direction not in (PortType.INLET, PortType.OUTLET):
-        raise ValueError(f"promote direction must be INLET or OUTLET, got {direction!r}")
+    if direction not in (PortType.INLET, PortType.OUTLET, PortType.CONFIG):
+        raise ValueError(f"promote direction must be INLET, OUTLET, or CONFIG, got {direction!r}")
 
     desc = _descriptor(node, accessor, field)
     pid = desc.storage_key  # the setting's own key IS the port id
@@ -223,6 +233,8 @@ def promote_setting(
     if direction is PortType.OUTLET:
         # Every promoted outlet is is_linked_lazy.
         spec = type_cls.as_outlet(pid, promoted=True, is_linked_lazy=True, **kw)
+    elif direction is PortType.CONFIG:
+        spec = type_cls.as_config(pid, promoted=True, **kw)
     else:
         spec = type_cls.as_inlet(pid, promoted=True, **kw)
 
