@@ -329,7 +329,12 @@ def test_unpromoted_row_menu_offers_both_directions(make_node_with_setting):
     node = make_node_with_setting(accessor="filter", field="threshold")
     row = _render(node)
     items = _menu_items(row)
-    assert set(items) == {"Promote to inlet", "Promote to outlet", "Reset to default"}
+    assert set(items) == {
+        "Promote to inlet",
+        "Promote to outlet",
+        "Promote to config",
+        "Reset to default",
+    }
 
 
 def test_promoted_row_menu_swaps_to_demote(make_node_with_setting):
@@ -450,3 +455,34 @@ def test_label_glyph_grammar(make_node_with_setting):
 
     node3.filter.threshold = 0.9  # written through the normal panel/registry path
     assert _label_of(_render(node3)) == "→• threshold"
+
+
+def test_promoted_config_row_is_read_only(make_node_with_setting):
+    node = make_node_with_setting(accessor="filter", field="threshold")
+    from haywire.core.node.promotion import promote_setting
+    from haywire.core.types.enums import PortType
+
+    promote_setting(node, "filter", "threshold", direction=PortType.CONFIG)
+
+    row = _render(node)
+    assert row is not None
+    assert row._props.get("data-promoted-direction") == "config"
+    assert _row_hint(row) == "promoted to config"
+    assert not _has_editable_widget(row), "promoted config must render read-only, no editable widget"
+    lbl = _find_promoted_label(row)
+    assert lbl is not None and lbl.text == "promoted"
+
+
+def test_promoted_config_row_reset_is_meaningless(make_node_with_setting):
+    """Same as a promoted inlet: the row is read-only, so Reset is meaningless
+    even if the field carries a local opinion."""
+    node = make_node_with_setting(accessor="filter", field="threshold")
+    from haywire.core.node.promotion import promote_setting
+    from haywire.core.types.enums import PortType
+
+    node.filter.threshold = 0.9
+    promote_setting(node, "filter", "threshold", direction=PortType.CONFIG)
+
+    row = _render(node)
+    assert row is not None
+    assert not _reset_enabled(row), "promoted config row's Reset must stay disabled, same as inlet"

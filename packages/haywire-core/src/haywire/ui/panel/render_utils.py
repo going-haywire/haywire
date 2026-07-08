@@ -338,6 +338,13 @@ def _render_reactive_field_row(
         if port.is_inlet():
             is_promoted_inlet = True
             promoted_hint = "driven by inlet" if port.is_linked() else "promoted to inlet"
+        elif port.is_config():
+            # A CONFIG port has no edge, ever — its widget is the only write
+            # path. It still renders read-only here: the interactive widget
+            # moves to wherever a CONFIG port's live widget already renders
+            # today (Ports Panel / node card), not the Properties panel row.
+            is_promoted_inlet = True
+            promoted_hint = "promoted to config"
         else:
             promoted_hint = "promoted to outlet"
 
@@ -496,7 +503,8 @@ def _render_reactive_field_row(
     if is_promoted:
         row_props += ' data-promoted="true"'
         if port is not None:
-            row_props += f' data-promoted-direction="{"inlet" if is_promoted_inlet else "outlet"}"'
+            direction_attr = "config" if port.is_config() else ("inlet" if is_promoted_inlet else "outlet")
+            row_props += f' data-promoted-direction="{direction_attr}"'
         if promoted_hint:
             row_props += f' data-hint="{promoted_hint}"'
     row_props += f' data-ui-state="{obj.effective_ui_state(attr_name).name.lower()}"'
