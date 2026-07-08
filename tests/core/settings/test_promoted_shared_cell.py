@@ -70,3 +70,32 @@ def test_unpromoted_read_does_not_touch_ports(make_node_with_setting):  # noqa: 
 
     node.ports = _RaiseOnGet()
     assert node.filter.threshold == 0.5  # resolves without consulting ports
+
+
+@pytest.mark.integration
+def test_promoted_config_and_setting_share_one_cell(make_node_with_setting):
+    node = make_node_with_setting(accessor="filter", field="threshold")
+    from haywire.core.node.promotion import promote_setting
+    from haywire.core.types.enums import PortType
+
+    promote_setting(node, "filter", "threshold", PortType.CONFIG)
+    desc = type(node.filter).__dict__["threshold"]
+    pid = desc.storage_key
+
+    # Identity: one cell, two views.
+    assert node.ports[pid]._data is node.filter._cell_for(desc)
+
+
+@pytest.mark.integration
+def test_promoted_config_has_no_edge_and_reads_setting_value(make_node_with_setting):
+    """A CONFIG port is pinless — there is no edge to drive it. Writing the
+    setting directly (its only write path) is reflected on the shared cell."""
+    node = make_node_with_setting(accessor="filter", field="threshold")
+    from haywire.core.node.promotion import promote_setting
+    from haywire.core.types.enums import PortType
+
+    promote_setting(node, "filter", "threshold", PortType.CONFIG)
+    pid = type(node.filter).__dict__["threshold"].storage_key
+
+    node.filter.threshold = 0.9
+    assert node.ports[pid].get_value() == 0.9
