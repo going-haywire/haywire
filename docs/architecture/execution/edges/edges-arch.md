@@ -52,19 +52,19 @@ build()
 
 Sequential and short-circuiting on failure. Each stage sets flags and error fields on `EdgeWrapperState`.
 
-| State | Meaning |
-|---|---|
+| State          | Meaning                                               |
+| -------------- | ----------------------------------------------------- |
 | **functional** | registered + formally validated + built + test passed |
-| **valid** | functional + structural + linked on both ports |
+| **valid**      | functional + structural + linked on both ports        |
 
 ### 2.3 Connection rules by FlowType
 
-| | Outlet `allow_multiple` | Inlet `allow_multiple` |
-|---|---|---|
-| **DATA** | `True` (set by `DataPort.__post_init__`) | `False` (default) |
-| **CONTROL (EXEC)** | `False` (hardcoded in `__post_init__`) | `True` (hardcoded in `__post_init__`) |
-| **CALLBACK** | `False` (default) | `False` (default) |
-| **Pooled inlet** | N/A (inlet only) | `True` (set by `PooledType._configure_port`) |
+|                    | Outlet `allow_multiple`                  | Inlet `allow_multiple`                       |
+| ------------------ | ---------------------------------------- | -------------------------------------------- |
+| **DATA**           | `True` (set by `DataPort.__post_init__`) | `False` (default)                            |
+| **CONTROL (EXEC)** | `False` (hardcoded in `__post_init__`)   | `True` (hardcoded in `__post_init__`)        |
+| **CALLBACK**       | `False` (default)                        | `False` (default)                            |
+| **Pooled inlet**   | N/A (inlet only)                         | `True` (set by `PooledType._configure_port`) |
 
 Cross-flow connections (e.g. EXEC→DATA) are rejected in `_formal_validation()`. Same-direction connections (outlet→outlet, inlet→inlet) are also rejected there.
 
@@ -90,11 +90,13 @@ Port-linking logic lives in `EdgeWrapper`, not `Graph` — each edge owns its ow
 `AdapterFactory.create_chain(source_type, sink_type)` handles four cases:
 
 1. **Both scalar** → `_create_scalar_chain()`:
+   
    - Same type or child→parent (`issubclass`): `ReturnAdapter()` — no-op.
    - Different types: BFS through `AdapterRegistry` to find shortest chain; walks source's MRO for derived types.
    - Chain is built right-to-left: `AdapterA(child=AdapterB(child=ReturnAdapter()))`.
 
 2. **Same compound structure** (e.g. `ArrayType[X] → ArrayType[Y]`): `_create_element_chain()`:
+   
    - Finds container adapter (e.g. `ArrayArrayAdapter`) via registry.
    - Creates element chain for inner types.
    - Same element type → `ReturnAdapter()`.
@@ -128,6 +130,8 @@ Different edges to the same inlet can have different modes. The `lazy` parameter
 
 **Unified dirty model.** Both eager and lazy edges use the same deferred callback model. `on_change` callbacks for edge-driven inlet changes are *never* fired at push time — they are always deferred to `resolve_dirty_data()` at execution time. This debounces mixed pooled+lazy scenarios.
 
+**Exception: CALLBACK-flow inlets fire immediately.** A `FlowType.CALLBACK` inlet is exempt from the deferral above — `set_value()` fires its `on_change` synchronously at push time even when `edge_id` is set, same as the widget/programmatic path.
+
 ```text
 EAGER EDGE:
   outlet.set_value(value) → pipes.propagate(value)
@@ -154,12 +158,13 @@ AT EXECUTION TIME (both):
 
 The `set_value()` method on DataPort distinguishes between edge-driven and widget/programmatic changes:
 
-| Path | `edge_id` | `on_change` | Behaviour |
-|---|---|---|---|
-| Edge-driven inlet | set | (any) | Value stored; `_mark_as_data_dirty()` called; `on_change` fires later in `resolve_dirty_data()` |
-| Widget / programmatic inlet | `None` | exists | Value stored; `on_change` fires **immediately**; no dirty mark (prevents double-fire) |
-| Widget / programmatic inlet | `None` | absent | Value stored; `_mark_as_data_dirty()` called; `resolve_dirty_data()` skips callback (none) |
-| Outlet (any) | (any) | exists | `on_change` fires immediately; pipes propagate downstream |
+| Path                                  | `edge_id` | `on_change` | Behaviour                                                                                       |
+| ------------------------------------- | --------- | ----------- | ----------------------------------------------------------------------------------------------- |
+| Edge-driven inlet, CALLBACK flow_type | set       | (any)       | Value stored; `on_change` fires **immediately**                                                 |
+| Edge-driven inlet, other flow_type    | set       | (any)       | Value stored; `_mark_as_data_dirty()` called; `on_change` fires later in `resolve_dirty_data()` |
+| Widget / programmatic inlet           | `None`    | exists      | Value stored; `on_change` fires **immediately**; no dirty mark (prevents double-fire)           |
+| Widget / programmatic inlet           | `None`    | absent      | Value stored; `_mark_as_data_dirty()` called; `resolve_dirty_data()` skips callback (none)      |
+| Outlet (any)                          | (any)     | exists      | `on_change` fires immediately; pipes propagate downstream                                       |
 
 `set_value_by_lazy_link()` is a low-level method that stores the value without firing any callbacks. Used by `pull_lazy()` during lazy resolution. `set_value()` delegates to it for the actual storage step.
 
@@ -167,12 +172,12 @@ The `set_value()` method on DataPort distinguishes between edge-driven and widge
 
 The `Pipes` class owns all data transport — both eager push (`propagate()`) and lazy pull (`pull_lazy()`). It stores:
 
-| Field | Purpose |
-|---|---|
-| `_outlet_port` | Reference to the source DataPort (for lazy reads) |
-| `sinks` | `dict[edge_id, DataPort]` — target inlets |
-| `chains` | `dict[edge_id, IAdapter]` — adapter chains per connection |
-| `lazy_flags` | `dict[edge_id, bool]` — propagation mode per connection |
+| Field          | Purpose                                                   |
+| -------------- | --------------------------------------------------------- |
+| `_outlet_port` | Reference to the source DataPort (for lazy reads)         |
+| `sinks`        | `dict[edge_id, DataPort]` — target inlets                 |
+| `chains`       | `dict[edge_id, IAdapter]` — adapter chains per connection |
+| `lazy_flags`   | `dict[edge_id, bool]` — propagation mode per connection   |
 
 `pull_lazy(edge_id)` reads the outlet's current value (always-latest), transforms it through the adapter chain, and calls `set_value_by_lazy_link()` on the inlet.
 
@@ -182,14 +187,14 @@ The `Pipes` class owns all data transport — both eager push (`propagate()`) an
 
 **Priority system (`ChangeReason`).** Reasons are prioritised — higher priority overrides lower in the dirty queue:
 
-| Priority | Reasons |
-|---|---|
-| 100 | `NODE_REMOVED`, `EDGE_REMOVED` |
-| 90 | `NODE_ADDED`, `EDGE_ADDED` |
-| 80 | `NODE_HOT_RELOADED`, `NODE_RESET_REQUESTED`, `EDGE_ADAPTERS_RELOADED`, `EDGE_RESET_REQUESTED` |
-| 70 | `NODE_VALIDATION_REQUESTED`, `EDGE_VALIDATION_REQUESTED` |
-| 60 | Redraw reasons |
-| 50 | `GRAPH_REQUIRE_REASSEMBLY` |
+| Priority | Reasons                                                                                       |
+| -------- | --------------------------------------------------------------------------------------------- |
+| 100      | `NODE_REMOVED`, `EDGE_REMOVED`                                                                |
+| 90       | `NODE_ADDED`, `EDGE_ADDED`                                                                    |
+| 80       | `NODE_HOT_RELOADED`, `NODE_RESET_REQUESTED`, `EDGE_ADAPTERS_RELOADED`, `EDGE_RESET_REQUESTED` |
+| 70       | `NODE_VALIDATION_REQUESTED`, `EDGE_VALIDATION_REQUESTED`                                      |
+| 60       | Redraw reasons                                                                                |
+| 50       | `GRAPH_REQUIRE_REASSEMBLY`                                                                    |
 
 **Important for testing**: `create_node_wrapper()` leaves a pending `NODE_ADDED` (priority 90) in the dirty queue. Subsequent `mark_node_dirty()` calls with lower-priority reasons (like `NODE_HOT_RELOADED` at 80) are silently dropped. Tests must call `force_immediate_validation()` after setup to flush pending validations before testing specific scenarios.
 
@@ -231,22 +236,22 @@ FloatToStringAdapter: TEST_FLOAT → TEST_STRING
 
 Chains BFS-resolves to:
 
-| Source → Target | Chain |
-|---|---|
-| BOOL → INT | 1 adapter |
-| BOOL → FLOAT | 2 adapters (BOOL→INT, INT→FLOAT) |
-| BOOL → STRING | 3 adapters |
-| INT → FLOAT | 1 adapter |
-| INT → STRING | 2 adapters |
-| FLOAT → STRING | 1 adapter |
+| Source → Target | Chain                            |
+| --------------- | -------------------------------- |
+| BOOL → INT      | 1 adapter                        |
+| BOOL → FLOAT    | 2 adapters (BOOL→INT, INT→FLOAT) |
+| BOOL → STRING   | 3 adapters                       |
+| INT → FLOAT     | 1 adapter                        |
+| INT → STRING    | 2 adapters                       |
+| FLOAT → STRING  | 1 adapter                        |
 
 `TEST_TEMPERATURE` extends `TEST_FLOAT`, so:
 
-| Source → Target | Chain |
-|---|---|
-| TEMPERATURE → FLOAT | empty (child→parent passthrough) |
-| TEMPERATURE → STRING | 1 adapter (FLOAT→STRING resolved via MRO) |
-| FLOAT → TEMPERATURE | rejected (parent→child narrowing, no implicit downcast) |
+| Source → Target      | Chain                                                   |
+| -------------------- | ------------------------------------------------------- |
+| TEMPERATURE → FLOAT  | empty (child→parent passthrough)                        |
+| TEMPERATURE → STRING | 1 adapter (FLOAT→STRING resolved via MRO)               |
+| FLOAT → TEMPERATURE  | rejected (parent→child narrowing, no implicit downcast) |
 
 ### 5.2 Pooled inlet receiving multiple sources
 
@@ -269,19 +274,19 @@ Each edge gets its own entry in the pooled `dict[source_id, value]`.
 
 ## Appendix — key state locations
 
-| Field | Purpose |
-|---|---|
-| `EdgeWrapper._state` (`EdgeWrapperState`) | All flags, errors, timing |
-| `DataPort._linked_edges` | `dict[edge_id, EdgeWrapper]` — active linked edges (used for pipes) |
-| `DataPort._all_edges` | `dict[edge_id, EdgeWrapper]` — all tracked edges including displaced/non-functional |
-| `DataPort._pending_lazy_pipes` | `set[(Pipes, edge_id)]` — lazy pipes needing resolution at execution time |
-| `DataPort.allow_multiple_links` | Connection limit flag |
-| `Edge.is_lazy` | Per-edge lazy propagation flag (default `False`) |
-| `Edge.chain_adapter_keys` | List of adapter registry keys (empty = ReturnAdapter) |
-| `EdgeWrapper._first_adapter` | Head of the executable adapter chain |
-| `EdgeWrapper._outlet_port` / `_inlet_port` | Resolved DataPort references (set during formal validation) |
-| `Pipes._outlet_port` | Source DataPort reference (for lazy reads) |
-| `Pipes.lazy_flags` | `dict[edge_id, bool]` — per-connection propagation mode |
+| Field                                      | Purpose                                                                             |
+| ------------------------------------------ | ----------------------------------------------------------------------------------- |
+| `EdgeWrapper._state` (`EdgeWrapperState`)  | All flags, errors, timing                                                           |
+| `DataPort._linked_edges`                   | `dict[edge_id, EdgeWrapper]` — active linked edges (used for pipes)                 |
+| `DataPort._all_edges`                      | `dict[edge_id, EdgeWrapper]` — all tracked edges including displaced/non-functional |
+| `DataPort._pending_lazy_pipes`             | `set[(Pipes, edge_id)]` — lazy pipes needing resolution at execution time           |
+| `DataPort.allow_multiple_links`            | Connection limit flag                                                               |
+| `Edge.is_lazy`                             | Per-edge lazy propagation flag (default `False`)                                    |
+| `Edge.chain_adapter_keys`                  | List of adapter registry keys (empty = ReturnAdapter)                               |
+| `EdgeWrapper._first_adapter`               | Head of the executable adapter chain                                                |
+| `EdgeWrapper._outlet_port` / `_inlet_port` | Resolved DataPort references (set during formal validation)                         |
+| `Pipes._outlet_port`                       | Source DataPort reference (for lazy reads)                                          |
+| `Pipes.lazy_flags`                         | `dict[edge_id, bool]` — per-connection propagation mode                             |
 
 ### Key files
 

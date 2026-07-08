@@ -44,6 +44,10 @@ class DataPort(DataTypeIdentity):
     """Cached ``port_type == INLET`` (port_type is immutable); lets the set_value
     hot path branch on an attribute read instead of an ``is_inlet()`` method call."""
 
+    _is_callback: bool = field(init=False, repr=False, metadata={"serialize": False})
+    """Cache ``flow_type: FlowType = FlowType.CALLBACK (flow_type is immutable); 
+    lets the set_value hot path branch on an attribute read."""
+
     # Type tracking
     type_cls: type[IType] | None = field(default=None, metadata={"serialize": False})
     """The type class (FLOAT, ArrayType, etc.)"""
@@ -222,6 +226,9 @@ class DataPort(DataTypeIdentity):
         # Cache the immutable inlet/outlet role for the set_value hot path.
         self._is_inlet = self.port_type == PortType.INLET
 
+        # Cache the immutable flow type for the set_value hot path.
+        self._is_callback = self.flow_type == FlowType.CALLBACK
+
         # Hardcoded connection rules based on flow type and direction
         # They cannot be overridden by the user since they are fundamental to how the ports work
         if self.is_outlet():
@@ -304,8 +311,10 @@ class DataPort(DataTypeIdentity):
         Set port value. Single entry point for all value updates.
 
         For inlets:
-        - Widget/programmatic (no edge_id) with on_change: fire immediately
-        - Edge-driven (edge_id set) or no callback: defer to resolve_dirty_data()
+        - fire immediately with on_change when
+            - Widget/programmatic (no edge_id) or 
+            - CALLBACK flow_type when edge-driven 
+        - Otherwise defer to resolve_dirty_data()
 
         For outlets:
         - Fire on_change immediately, then propagate to downstream inlets
@@ -323,8 +332,8 @@ class DataPort(DataTypeIdentity):
             # Inlet values come from an edge (edge_id set) or a widget/programmatic
             # set — never from the owning node, so clear the node-set flag.
             self._is_set_by_node = False
-            if edge_id is None and self.on_change is not None:
-                # Widget/programmatic change → fire on_change immediately
+            if self.on_change is not None and (edge_id is None or self._is_callback):
+                # Widget/programmatic/callback change → fire on_change immediately
                 self._trigger_callback(self.on_change, new_value)
             else:
                 # Edge-driven OR no callback → defer to resolve_dirty_data()

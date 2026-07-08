@@ -38,6 +38,12 @@ CALLBACK ports use the same `DataPort` infrastructure as DATA ports but carry th
 
 A CALLBACK edge is registered through the same `graph.create_edge_wrapper(...)` flow as DATA/EXEC edges. At run-time, the pipe mechanism transports the string listener-id from the EVENT node outlet to the emitter's `PooledType[CALLBACK]` inlet — the emitter reads this value to know which callback names to emit. Additionally, at assembly time, the assembler reads the edge topology to register listener Flows with the CallbackManager.
 
+#### `on_change` timing on CALLBACK inlets
+
+`DataPort.set_value()` normally defers an edge-driven inlet's `on_change` callback to `resolve_dirty_data()`, which only runs when the owning node's `worker()` is next dispatched (see [edges-arch.md](../edges/edges-arch.md)). CALLBACK-flow inlets are the one exception: `set_value()` fires `on_change` **immediately**, even when the write came from an edge (`edge_id` set), instead of deferring it.
+
+This matters because emitter nodes with a pooled `PooledType[CALLBACK]` inlet are often `NodeType.CONTROL` nodes (e.g. `OakDCameraNode`) that only execute their `worker()` in response to a control pulse (`start`/`stop`), not on every dirty-port change. If a callback inlet's `on_change` were deferred like a normal DATA inlet, a subscriber changing its requirements (e.g. a `NumpyFrameEventNode` toggling `enable_depth`) would update the pooled dict but the emitter's `on_change` handler — and anything it derives, like a requirement-union setting — would silently stay stale until the node happened to execute again for an unrelated reason.
+
 ### 2.2 Two callback modes
 
 The framework supports two ways to wire a listener to an emitter:
