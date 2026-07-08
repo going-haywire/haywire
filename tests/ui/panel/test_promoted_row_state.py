@@ -486,3 +486,12 @@ def test_promoted_config_row_reset_is_meaningless(make_node_with_setting):
     row = _render(node)
     assert row is not None
     assert not _reset_enabled(row), "promoted config row's Reset must stay disabled, same as inlet"
+
+
+def test_config_eligible_field_offers_promote_to_config_menu_entry(make_node_with_setting):
+    node = make_node_with_setting(accessor="filter", field="threshold")
+
+    row = _render(node)
+    assert row is not None
+    items = _menu_items(row)
+    assert "Promote to config" in items, "an unpromoted, CONFIG-eligible field must offer Promote to config"
