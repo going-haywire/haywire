@@ -183,6 +183,45 @@ class Settings:
             return None
         return self._promoted_keys.get(fields[name].storage_key)
 
+    def promote(self, field: str, direction: PortType = PortType.INLET) -> None:
+        """Promote *field* to a DATA port in *direction*. Sugar over
+        ``haywire.core.node.promotion.promote_setting`` for ``post_init()`` call
+        sites — e.g. ``self.my_bag.promote("choice_field", PortType.CONFIG)``.
+
+        Requires this bag to be node-bound (``self._node`` set) — same
+        requirement ``promote_setting`` already has. No-op if *field* is
+        already promoted; raises ``ValueError`` for an ineligible direction
+        (see ``eligible_promotion_directions``).
+        """
+        from haywire.core.node.promotion import bag_accessor, promote_setting
+
+        if self._node is None:
+            raise ValueError(
+                f"{type(self).__name__}.promote({field!r}): bag has no bound node "
+                f"(self._node is None) — promotion requires a node-bound bag."
+            )
+        accessor = bag_accessor(self._node, self)
+        if accessor is None:
+            raise ValueError(
+                f"{type(self).__name__}.promote({field!r}): bag is not registered "
+                f"as a settings bag on its bound node."
+            )
+        promote_setting(self._node, accessor, field, direction)
+
+    def demote(self, field: str) -> None:
+        """Remove *field*'s promoted port, if any. Sugar over
+        ``haywire.core.node.promotion.demote_setting``. No-op if *field* is not
+        currently promoted or the bag is not node-bound."""
+        fields = type(self)._property_settings()
+        if field not in fields or self._node is None:
+            return
+        storage_key = fields[field].storage_key
+        if storage_key not in self._promoted_keys:
+            return
+        from haywire.core.node.promotion import demote_setting
+
+        demote_setting(self._node, storage_key)
+
     def _cell_for(self, descriptor: setting) -> "DataField":
         """Return this field's DataField cell — THE read surface.
 
