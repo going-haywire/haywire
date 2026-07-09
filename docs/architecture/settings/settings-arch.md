@@ -211,7 +211,7 @@ node registry_key='haybale_core:node:filter', accessor 'params', field 'threshol
 
 This is what `SettingsRegistry` stores, resolves, and what `shadow()`/`watch()` reference. Single shared identity between schema, JSON, and registry lookup.
 
-**`registry_key`** — `BaseRegistry`-level identifier for the *class* (not a field). Set by `@settings` as `reg_key(library_id, "settings", namespace)`. Used internally by `BaseRegistry` for class tracking, hot-reload, and dependency graphs. Not normally used directly by authors.
+**`registry_key`** — `BaseRegistry`-level identifier for the *class* (not a field). Set by `@settings` as `reg_key(library_id, "settings", namespace)` — the same universal `{library_id}:{kind}:{name}` format every registry-tracked component uses; see [library-system-arch §2.4a](../library-system/library-system-arch.md#24a-registry-keys-haywirecorelibraryutilspy) for how `library_id` is auto-derived rather than author-supplied. Used internally by `BaseRegistry` for class tracking, hot-reload, and dependency graphs. Not normally used directly by authors.
 
 ```text
 namespace='my_lib', library_id='haybale_image'

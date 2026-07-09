@@ -85,6 +85,21 @@ The install type is propagated to `LibraryIdentity` and exposed by the [haybale/
 
 Frozen dataclass attached as `class_library` on every component class. Carries the library ID, version, label, install type, and source path. The identity is what every other registry uses to attribute a class to its owning library.
 
+### 2.4a Registry keys (`haywire/core/library/utils.py`)
+
+Every registry-tracked component — `@node`, `@type`, `@adapter`, `@widget`, `@settings`, skins, themes, panels, editors, state classes — gets a **registry key** of the same universal shape, built by one shared helper:
+
+```python
+def reg_key(library_registry_id: str, module: str, node_registry_id: str) -> str:
+    return f"{library_registry_id}:{module}:{node_registry_id}"
+```
+
+producing keys like `builtin:node:RerouteNode`, `builtin:skin:RerouteSkin`, `core:widget:NumberWidget`. The middle segment is one of the constants in the same module (`NODE`, `WIDGET`, `TYPE`, `ADAPTER`, `SKIN`, `SETTING`, `STATE`, `THEME`, `PANEL`, `EDITOR`) — use these instead of a bare string to avoid a silent key mismatch. `split_reg_key()` / `get_registry_id_from_key()` invert the format.
+
+**The `library_registry_id` segment is never author-supplied.** Each decorator (`@node`, `@skin`, …) calls `derive_library_identity(cls)` at decoration time, which walks up `cls.__module__` looking for the nearest ancestor module that defines a `Library` class with `class_identity` set, and uses that library's `id`. A class that isn't parented under any `Library` falls back to the synthetic `__system__` identity rather than raising.
+
+The practical consequence: **a component's registry key is determined entirely by which library's source tree the file lives in** — not by anything written in the file itself. Moving a node or skin's `.py` file from one library's folder to another's changes its registry key automatically, with no code change required at the call site.
+
 ### 2.5 `FileWatcher` (`haywire/core/library/file_watcher.py`)
 
 A `watchdog`-based file-system observer started per library when `file_watcher=True`. On any `.py` change inside the library's source directory, it triggers the [hot-reload](../hot-reload/hot-reload-arch.md) pipeline: re-import the module, re-register components, rebuild affected node and edge wrappers, revalidate the graph.
@@ -146,6 +161,16 @@ State classes registered via `LibraryStateRegistry` have a two-phase lifecycle t
 | 4 | Folder paths | Added through `library_paths` config (no entry point) |
 
 First match wins. Detection is by the resolved filesystem location of the import.
+
+### 3.2a The `builtin` library (Priority 1's sole occupant)
+
+`haywire.barn.builtin` (`id="builtin"`) is the only library that currently loads via the Priority 1 "core libraries" path. It differs from every other library in this doc in one structural way: it ships **inside the `haywire-core` distribution** (`packages/haywire-core/src/haywire/barn/builtin/`), not as a separate haybale package with its own `pyproject.toml` and entry point. `core_libraries_path` (wired in DI to `Path(haywire.barn.__file__).parent`) is scanned directly — no `importlib.metadata.entry_points()` involved for this one.
+
+Because it always loads first, `builtin` is where framework-owned primitives that every other library may depend on must live: base scalar/vector/color types, their adapters and widgets, and the reroute node/skin (`nodes/`, `skins/` folders registered the same way any plugin registers them, via `add_folder_to_registry()` in `register_components()`). A plugin library never needs to declare a dependency on `builtin` — it is guaranteed to be loaded and its registries populated before any Priority 2+ library's `register_components()` runs.
+
+`builtin` already depends on `haywire.ui`/`nicegui` (its `widgets/` and `skins/` folders import them directly) — so "loads before everything else" does not imply "UI-free." A component that needs to stay importable on a headless execution path (e.g. `RerouteNode`) achieves that by never importing its own skin class — it binds the skin by registry-key string instead (`self.props.skin = "builtin:skin:RerouteSkin"`) and lets the renderer resolve it lazily. That string-binding discipline, not the folder it lives in, is what keeps a component headless-safe.
+
+See also the glossary's [note under "Library" — five distinct meanings](../../reference/glossary.md#library-five-distinct-meanings) disambiguating `builtin` from a haybale package.
 
 ### 3.3 Hot-reload trigger
 
@@ -212,6 +237,8 @@ A haybale library is a Python package with:
 3. Implements `register_components()` (mandatory) and `validate()` (returns `bool`).
 
 See [haybale/library](../../haybale/library-canon.md) for the full authoring story and [haybale/haybale-package](../../haybale/haybale-package-canon.md) for packaging and distribution.
+
+The one exception is the framework-internal [`builtin` library](#32a-the-builtin-library-priority-1s-sole-occupant) — it skips step 1 entirely (no `pyproject.toml`, no entry point) because it ships inside `haywire-core` and is discovered by filesystem scan, not `importlib.metadata`.
 
 ## 5. Programmatic embedding
 

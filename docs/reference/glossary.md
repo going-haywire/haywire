@@ -25,6 +25,8 @@ The word **library** appears five times in haywire with five different meanings.
 | 4 | **Library Manager** | The `haybale-marketplace` plugin — the optional in-app package-manager UI | [haybale/marketplace](../haybale/marketplace/marketplace-canon.md) · [arch](../haybale/marketplace/haybale-marketplace-arch.md) |
 | 5 | **LibrarySettings / LibraryState** | Per-library scope for cross-cutting subsystems | Chapters inside [components/settings](../components/settings/setting-canon.md) and [components/states](../components/states/state-canon.md) |
 
+**Builtin library** (`haywire.barn.builtin`, `id="builtin"`) is a **Library** (meaning 1) — but not a **Haybale package** (meaning 3): it ships inside the `haywire-core` distribution itself rather than as a separate pip package, and is discovered via `core_libraries_path` at Priority 1 (before any entry-point plugin), per [architecture/library-system §3.2](../architecture/library-system/library-system-arch.md#32-priority-order-when-multiple-sources-provide-the-same-library-id). It holds framework-owned primitives — base types, adapters, widgets, the reroute node/skin — that must resolve before any plugin library loads.
+
 ---
 
 ## "Haybale" — three distinct meanings *(new — marketstall distribution)*
@@ -81,7 +83,7 @@ The three projections relate as: the **dataclass** (3) represents one entry in t
 | **EVENT node** | A node with an EXEC outlet but no EXEC inlet; originates an execution chain (timer, callback source) | Source node (ambiguous with data source) |
 | **OUTPUT node** | A terminal node with an EXEC inlet but no EXEC outlet; receives execution, produces no further control | Sink node (ambiguous with data sink) |
 | **LOOPBACK node** | A CONTROL node that uses the loopback-stack in the VM to implement loops or sequences | Loop node |
-| **Reroute node** | A pass-through node shipped by `haybale-graph-editor` whose class declares **no** ports; at creation it is given exactly one inlet and one outlet matching the split edge's type, and its worker passes the inlet value straight to the outlet and returns the outlet id. Supports **DATA**, **CONTROL**, and **CALLBACK** edges. Used to split an edge and bend/organize a wire. | Proxy node (collides with `_FieldProxy` / state proxies), passthrough node |
+| **Reroute node** | A pass-through node shipped by the framework-owned **builtin** library (`haywire.barn.builtin`, not a plugin) whose class declares **no** ports; at creation it is given exactly one inlet and one outlet matching the split edge's type, and its worker passes the inlet value straight to the outlet and returns the outlet id. Supports **DATA** and **CONTROL** edges. **CALLBACK edges are not supported** — the flow assembly manager reads the subscription key at wiring time, before any worker has run to forward it, so a CALLBACK reroute's listener would never register. Used to split an edge and bend/organize a wire. | Proxy node (collides with `_FieldProxy` / state proxies), passthrough node |
 
 ---
 
