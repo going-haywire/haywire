@@ -13,8 +13,9 @@ from haywire.core.graph.base import BaseGraph
 pytestmark = pytest.mark.unit
 
 
-# The reroute node now ships in haybale-core; the split action owns the port ids.
-_RR_KEY = "core:node:RerouteNode"
+# The reroute node ships in the framework-owned builtin library; the split
+# action owns the port ids.
+_RR_KEY = "builtin:node:RerouteNode"
 _RR_IN = "in"
 _RR_OUT = "out"
 
@@ -347,7 +348,7 @@ class TestSplitEdgeRerouteIntegration:
 
     def _reroute_args(self):
         """The split action owns the port ids now; only the registry key remains."""
-        return dict(registry_key="core:node:RerouteNode")
+        return dict(registry_key="builtin:node:RerouteNode")
 
     def test_split_inserts_typed_reroute_and_two_valid_edges(
         self, graph_with_library_system, library_system

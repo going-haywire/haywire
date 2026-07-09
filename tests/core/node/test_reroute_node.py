@@ -9,7 +9,7 @@ pytestmark = pytest.mark.unit
 
 def _make_reroute_node():
     """Bypass BaseNode.__init__ (requires DI context) — only need _cache for these tests."""
-    from haybale_core.nodes.reroute import RerouteNode
+    from haywire.barn.builtin.nodes.reroute import RerouteNode
     from haywire.core.node.user_data import NodeCache
 
     node = RerouteNode.__new__(RerouteNode)
@@ -18,7 +18,7 @@ def _make_reroute_node():
 
 
 def test_reroute_node_ships_port_less_and_flags_reroute():
-    from haybale_core.nodes.reroute import RerouteNode
+    from haywire.barn.builtin.nodes.reroute import RerouteNode
 
     assert RerouteNode.class_identity._is_reroute is True
     # NodeType.REROUTE bit is set

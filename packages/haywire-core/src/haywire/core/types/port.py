@@ -227,6 +227,9 @@ class DataPort(DataTypeIdentity):
         self._is_inlet = self.port_type == PortType.INLET
 
         # Cache the immutable flow type for the set_value hot path.
+        # It is tempting to give CONTROL Flow types this feature, too, but
+        # due to the way Reroute Nodes work, this would actually break.
+        # (CALLBACK edges do not allow Reroutes)
         self._is_callback = self.flow_type == FlowType.CALLBACK
 
         # Hardcoded connection rules based on flow type and direction

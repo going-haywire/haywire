@@ -244,7 +244,7 @@ class TestDissolveRerouteIntegration:
     """Execute a real dissolve against a live graph with real nodes/edges/types."""
 
     def _reroute_args(self):
-        from haybale_core.nodes.reroute import RerouteNode
+        from haywire.barn.builtin.nodes.reroute import RerouteNode
 
         return dict(registry_key=RerouteNode.class_identity.registry_key)
 

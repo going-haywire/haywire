@@ -11,15 +11,16 @@ value, so returning it is harmless.
 
 CALLBACK edges are NOT supported: the flow assembly manager reads the
 subscription key from the reroute outlet at wiring time — before any worker
-has run to forward it — so the listener flow never registers.
+has run to forward it — so the listener flow would never register.
 
 The port-less state is legal because the node is ``NodeType.REROUTE`` — the
 structural validator accepts a reroute with no ports (see
 ``_validate_reroute_node``). See the glossary entry "Reroute node".
 
-This node lives in **haybale-core** (not the graph-editor library) so headless
-graphs can load reroutes without importing any display-only library: it binds
-its skin by registry-key *string*, never importing the skin class.
+This node lives in the framework-owned **builtin** library (not a plugin) so
+headless graphs can always load reroutes without importing any display-only
+library: it binds its skin by registry-key *string*, never importing the skin
+class.
 """
 
 from __future__ import annotations
@@ -60,7 +61,7 @@ class RerouteNode(BaseNode):
         # skin class lazily at render time (UI-only path). post_init runs on both
         # fresh creation and load, so the binding is self-contained and survives
         # reload without being persisted.
-        self.props.skin = "core:skin:RerouteSkin"
+        self.props.skin = "builtin:skin:RerouteSkin"
 
     def on_startup(self, context: ExecutionContext) -> None:
         # The split action stamps exactly one inlet + one outlet. Resolve the
