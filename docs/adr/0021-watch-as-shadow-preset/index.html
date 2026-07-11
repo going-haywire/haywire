@@ -10,7 +10,7 @@
       
       
       
-        <link rel="canonical" href="https://going-haywire.github.io/haywire/docs/adr/0013-settings-single-cell/">
+        <link rel="canonical" href="https://going-haywire.github.io/haywire/docs/adr/0021-watch-as-shadow-preset/">
       
       
       
@@ -23,7 +23,7 @@
     
     
       
-        <title>A setting's per-instance value lives in a per-field DataField cell (single-cell model) - Haywire Documentation</title>
+        <title>watch() is a shadow() preset; read_only and same-bag mirroring are deleted - Haywire Documentation</title>
       
     
     
@@ -74,7 +74,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#a-settings-per-instance-value-lives-in-a-per-field-datafield-cell-single-cell-model" class="md-skip">
+        <a href="#watch-is-a-shadow-preset-read_only-and-same-bag-mirroring-are-deleted" class="md-skip">
           Skip to content
         </a>
       
@@ -110,7 +110,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              A setting's per-instance value lives in a per-field DataField cell (single-cell model)
+              watch() is a shadow() preset; read_only and same-bag mirroring are deleted
             
           </span>
         </div>
@@ -2636,80 +2636,6 @@
     
   
   
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#context-an-untyped-dict-a-dual-mode-and-a-recompute-on-read" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Context — an untyped dict, a dual mode, and a recompute-on-read
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#decision" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Decision
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#coordination-with-decisionsmd-d" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Coordination with DECISIONS.md §D
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#scope-and-what-is-deferred-to-p5" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Scope and what is deferred to P5
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#consequences" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Consequences
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#amendment-cell-authoritative-reads-registry-owned-cells-one-change-primitive" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Amendment — cell-authoritative reads, registry-owned cells, one change primitive
-      
-    </span>
-  </a>
-  
-</li>
-      
-    </ul>
-  
 </nav>
                   </div>
                 </div>
@@ -2725,64 +2651,35 @@
 
 
 
-<h1 id="a-settings-per-instance-value-lives-in-a-per-field-datafield-cell-single-cell-model">A setting's per-instance value lives in a per-field DataField cell (single-cell model)<a class="headerlink" href="#a-settings-per-instance-value-lives-in-a-per-field-datafield-cell-single-cell-model" title="Permanent link">&para;</a></h1>
-<p><strong>Status:</strong> Accepted.</p>
-<p>A <code>Settings</code> instance's per-field value used to live in an untyped <code>_local_store: dict[str, Any]</code>, and the <code>setting</code> descriptor ran in one of two modes: a <em>simple</em> mode that read/wrote <code>_local_store</code> by attribute name, and an <em>extended</em> mode (registry injected) that walked the resolution chain and, for a local override, recomputed the resolved value on every read. The UI bridged this with a throwaway <code>DataField</code> in <code>SettingWidgetModel</code> that it copied values into and out of. This ADR records replacing <code>_local_store</code> with a per-field <strong><code>DataField</code> cell</strong> — the same cell a port uses — so a setting and a port become two views of one value. It is plan <strong>P4</strong> of the settings↔DataField unification arc (canonical-key → tier-collapse → TOML→JSON → <strong>single-cell</strong> → promotion-as-direction). P1 (canonical <code>storage_key</code>), P2 (tier collapse to set-or-unset), and P3 (<a href="../0012-settings-json-persistence/">ADR 0012</a>, TOML→JSON + the IType <code>to_dict</code>/<code>from_dict</code> seam) all landed first, and P4 builds on them.</p>
-<h2 id="context-an-untyped-dict-a-dual-mode-and-a-recompute-on-read">Context — an untyped dict, a dual mode, and a recompute-on-read<a class="headerlink" href="#context-an-untyped-dict-a-dual-mode-and-a-recompute-on-read" title="Permanent link">&para;</a></h2>
-<p>Three things sat in the way of the "settings and ports are the same value" model:</p>
+<h1 id="watch-is-a-shadow-preset-read_only-and-same-bag-mirroring-are-deleted">watch() is a shadow() preset; read_only and same-bag mirroring are deleted<a class="headerlink" href="#watch-is-a-shadow-preset-read_only-and-same-bag-mirroring-are-deleted" title="Permanent link">&para;</a></h1>
+<p><strong>Context.</strong> <code>setting()</code> carried a <code>read_only: bool</code> parameter, set by the <code>watch()</code> factory (<code>shadow()</code> left it <code>False</code>). It forked behavior through five independent call sites: the write guard (<code>__set__</code> raised <code>AttributeError</code>), promotion eligibility (<code>eligible_promotion_directions()</code> forced outlet-only regardless of <code>promotable=</code>), panel rendering (<code>render_utils.py</code> branched to a plain-label row instead of a real widget), dirty-chrome suppression (<code>_has_local_opinion()</code> hard-excluded read-only fields), and serialization (<code>to_dict()</code>/<code>from_dict()</code> skipped them outright). Auditing actual usage found <code>watch()</code> had exactly one call site in the entire codebase — 8 demo fields in <code>haybale-testing</code>'s <code>SettingsNode</code>, built to exercise the UI test harness. No production library used it.</p>
+<p>Separately, <code>_in_bag_mirror_adapters</code> (same-bag sibling mirroring — a field mirroring another field on the SAME <code>Settings</code> subclass, as opposed to a registered <code>LibrarySettings</code>/<code>FrameworkSettings</code> global on a different class) was found to have been introduced as a <code>fix:</code> commit closing a gap in the generic <code>mirrors=</code> type signature, not for any real driving use case. Also zero production usage.</p>
+<p><strong>Decision.</strong></p>
 <ul>
-<li><strong>The untyped store.</strong> Every <code>Settings</code> instance held <code>_local_store: dict[str, Any]</code> (<code>settings.py</code>). The value was a raw Python object; complex ITypes (<code>COLOR</code>, the <code>VEC*</code> types) had no cell to carry their IType round-trip at the instance level — only the registry's disk edge did (P3).</li>
-<li><strong>The <code>_registry is None</code> dual mode.</strong> <code>setting.__get__</code>/<code>__set__</code> branched on whether a registry was injected: <em>simple</em> mode read/wrote <code>_local_store</code> by attribute name; <em>extended</em> mode walked <code>_resolve</code>. Two code paths for one conceptual operation ("read this field's value").</li>
-<li><strong>Recompute-on-read.</strong> In extended mode a <em>local override</em> was re-resolved through the chain on every read, even though the instance already held the overriding value.</li>
-<li><strong>The throwaway-field bridge.</strong> <code>SettingWidgetModel</code> (<code>packages/haywire-core/src/haywire/ui/panel/setting_widget_model.py</code>) built a real <code>DataField</code> for the widget, seeded it with the setting's current value, and copied edits back through the panel setter — a copy-in/copy-out adapter standing in for the cell the value should have lived in all along.</li>
+<li><strong><code>read_only</code> is deleted</strong> as an independent descriptor concept. <code>watch(src, **kwargs)</code> is now pure sugar: <code>setting(mirrors=src, ui_state=UiState.DISABLED, promotable=Promotable.OUTLET, **kwargs)</code>. <code>shadow(src, **kwargs)</code> is unchanged in effect (<code>setting(mirrors=src, **kwargs)</code>).</li>
+<li><strong>The write guard is gone.</strong> A <code>watch()</code> field is now writable via plain <code>setattr</code> — the <code>AttributeError</code> protected against a mistake no production code ever made; keeping it required a dedicated boolean flag threaded through five call sites for a guarantee nothing depended on. "Don't write to a mirror you're meant to only read" is now a naming/usage convention, same as any other field a caller shouldn't mutate directly.</li>
+<li><strong>Promotion eligibility is <code>promotable=</code> alone.</strong> <code>eligible_promotion_directions()</code> no longer has a separate structural override for read-only-ness — <code>watch()</code> seeds <code>Promotable.OUTLET</code> itself, so the declared flag IS the eligibility. One fewer place two independent flags could disagree.</li>
+<li><strong>Panel rendering is uniform.</strong> <code>watch()</code> fields render through the same <code>UiState.DISABLED</code> path as any other disabled field (a real, greyed-out widget) instead of a bespoke plain-label branch. This is an intentional visible UI change from the previous "label-only, no widget" rendering (introduced 2026-07-07, commit <code>12c1bdbd</code>) — DISABLED is pure structure-agnostic chrome (ADR 0020) and a mirrored value showing in a disabled widget is normal, well-understood UI, not misleading.</li>
+<li><strong>Dirty/reset chrome applies uniformly.</strong> Since writes are legal, a <code>watch()</code> field that gets locally written now shows the same <code>•</code> dirty prefix and Reset menu item as any other mirror field. Reset is offered for every field regardless of promotability or mirror-ness (no more <code>read_only</code> gate on <code>offers_reset</code>).</li>
+<li><strong>Serialization applies uniformly.</strong> A locally-set <code>watch()</code> field now serializes like any other mirror field; the previous unconditional exclusion is gone.</li>
+<li><strong>Same-bag mirroring is deleted.</strong> <code>mirrors=</code> (used by both <code>shadow()</code> and <code>watch()</code>) must reference a field on a DIFFERENT class — a same-bag sibling raises <code>ValueError</code> at <code>__set_name__</code> time instead of being silently made to work via <code>_in_bag_mirror_adapters</code>. <code>_in_bag_mirror_adapters</code>, <code>_subscribe_in_bag_mirror</code>, and <code>_in_bag_mirror_of</code> are deleted along with their branches in <code>_cell_for</code>, <code>_subscribe_setting</code>, <code>reset</code>, and <code>cleanup</code>.</li>
 </ul>
-<h2 id="decision">Decision<a class="headerlink" href="#decision" title="Permanent link">&para;</a></h2>
-<p>A setting's per-instance value lives in a per-field <code>DataField</code> cell on the bag, built lazily from the field's IType by <code>Settings._cell_for(descriptor)</code> and cached in <code>self._cells</code> keyed by <code>storage_key</code>.</p>
+<p><strong>Considered and rejected.</strong></p>
 <ul>
-<li><strong><code>cell ?? default</code> resolution.</strong> <code>setting.__get__</code> returns the cell value when the field is locally set, else the per-kind default (a plain literal, or <code>registry.resolve(...)</code> for a shadow/watch/extended field). The dual <code>_registry is None</code> mode collapses to one question — "is this field locally set?" — and the local-override case returns the cell's held value instead of re-resolving (recompute-on-read gone).</li>
-<li><strong><code>_set_keys</code> carries the opinion.</strong> A <code>DataField</code> always holds <em>a</em> value (its default), so cell membership can't encode "overridden" the way dict membership did. <code>Settings._set_keys: set[str]</code> records the set-or-unset opinion explicitly — the same set-or-unset shape P2 gave the registry tiers. <code>__set__</code>/<code>from_dict</code> add the <code>storage_key</code>; <code>reset</code> discards it; <code>is_locally_set(name)</code> ⇔ membership. Set-ness is never inferred from <code>cell.get_value() != default</code> (that would misread "set to the default on purpose" and re-introduce the phantom-override bug P2 fixed at the tier level).</li>
-<li><strong>The cell-mutation spine.</strong> No <em>structural</em> action resets a cell. Its <strong>value</strong> returns to default only on an explicit <code>reset()</code> (or, in P5, an edge-drive); <code>reset</code> clears <code>_set_keys</code> and calls <code>cell.reset()</code> but never removes the cell. This stable identity is what a future port binds to.</li>
-<li><strong>Registry tiers unchanged.</strong> The global/workspace tiers, <code>save_to_json</code>/<code>load_from_json</code>, and <code>persistent_setting</code>'s registry write are untouched (P2/P3). Only the <em>instance-local</em> store changed.</li>
-<li><strong>Wire shape preserved.</strong> <code>bag.to_dict()</code> still emits <code>{attr_name: bare_value}</code> per locally-set field (via <code>cell.get_value()</code>, not the IType <code>to_dict</code> dict), and <code>from_dict</code> writes each value back into the cell. Existing saved graphs load unchanged; complex ITypes round-trip losslessly because the <em>cell</em> guarantees the IType round-trip.</li>
-<li><strong>Object-typed escape hatch.</strong> A field with no IType (<code>_type is object</code>) can't build a cell, so <code>_cell_for</code> returns <code>None</code> and those fields fall back to a narrow <code>_plain: dict</code>. <code>SettingDescriptor.__set_name__</code> enforces an IType on every declared field, so <code>_plain</code> stays empty in practice — it is defensive, not a revived general store. <em>(Since removed: settings were committed to as IType-only, <code>_plain</code> was deleted, and <code>_cell_for</code> now raises for a non-IType descriptor.)</em></li>
+<li><em>Keep <code>read_only</code> as an enforced write guard, drop only the panel-rendering special case.</em> Rejected — the write guard was the least-motivated piece (a self-afflicted restriction easily remedied with <code>ui_state=DISABLED</code>), and keeping it while deleting the rendering special-case would leave <code>_read_only</code> alive for no consumer except <code>__set__</code> — not a meaningful simplification.</li>
+<li><em>Derive DISABLED-implies-label-rendering as a new special case, decoupled from <code>read_only</code>.</em> Considered and rejected — it re-introduces a two-flags-must-agree problem (<code>ui_state is DISABLED</code> meaning "grey widget" for normal fields but "label only" for mirrors), which is exactly the class of bug this ADR removes.</li>
+<li><em>Keep same-bag mirroring as out-of-scope / a separate follow-up.</em> Rejected once its motivation was audited — it is the identical "unused generality accepted by a permissive type signature" pattern as <code>read_only</code>, discovered in the same session, with zero production usage and no documented driving scenario. Bundling both deletions in one ADR was judged cleaner than two overlapping partial changes to the same file.</li>
 </ul>
-<h2 id="coordination-with-decisionsmd-d">Coordination with DECISIONS.md §D<a class="headerlink" href="#coordination-with-decisionsmd-d" title="Permanent link">&para;</a></h2>
-<p><code>settings-datafield-unification-DECISIONS.md</code> §D-A says a tier should store the IType's <code>to_dict</code>, <code>resolve()</code> should return the <strong>raw serialized form</strong>, and the consuming <strong>field rehydrates via <code>from_dict</code></strong> into its cell. P3 deliberately deviated (<a href="../0012-settings-json-persistence/">ADR 0012</a>): the in-memory tier holds the <strong>live</strong> Python value and <code>resolve()</code> returns it live, with <code>to_dict</code>/<code>from_dict</code> only at the disk edge.</p>
-<p>P4 keeps P3's disk-edge contract. The cell materializes from a live value — <code>registry.resolve()</code> already returns a live value, so <code>cell.set_value(resolved_value)</code> needs no <code>from_dict</code> hop. <strong>The cell IS the "field that holds the value" §D refers to; §D is satisfied in substance once the value lives in a cell.</strong> The literal "tier stores <code>to_dict</code>" representation was judged unnecessary churn given P3's disk-edge seam already provides one serialization contract across the system. If a future reviewer wants the literal tier-stored-dict form, that is a separate, behavior-neutral registry-internal change — not gated by P4.</p>
-<h2 id="scope-and-what-is-deferred-to-p5">Scope and what is deferred to P5<a class="headerlink" href="#scope-and-what-is-deferred-to-p5" title="Permanent link">&para;</a></h2>
-<p>P4 is <strong>value-into-cell + dual-mode removal only</strong>. It stops before <em>promotion</em>, which is P5:</p>
-<ul>
-<li><strong>Promotion = field + direction.</strong> The direction-eligibility matrix (DECISIONS §B), the <code>_promoted_port_id</code> read-tier branch in <code>setting.__get__</code> (kept <strong>verbatim</strong> in P4), and <code>is_linked_lazy</code> / watch→outlet emit (§C4) are all P5. The ADR for promotion-as-direction (DECISIONS §E's ADR-C-promotion) is P5's.</li>
-<li><strong>The throwaway-field bridge stays.</strong> Binding <code>SettingWidgetModel</code> directly to the bag's cell was gated and <strong>skipped</strong>: the widget must display the <em>resolved</em> value, but an unset extended/mirror field's cell holds only the descriptor default (the resolved global lives in the registry). Reconciling that display gap is exactly P5's promotion-as-direction work, where the port reaches the cell cleanly. The copy-in/copy-out adapter is left for P5 to retire.</li>
-</ul>
-<h2 id="consequences">Consequences<a class="headerlink" href="#consequences" title="Permanent link">&para;</a></h2>
-<ul>
-<li><strong>One value model.</strong> A setting's per-instance value and a port's value are the same <code>DataField</code> cell; the <code>_registry is None</code> dual mode and recompute-on-read are gone. "Locally set" is <code>_set_keys</code> membership everywhere (<code>to_dict</code>, <code>from_dict</code>, <code>reset</code>, <code>is_locally_set</code>, <code>_on_field_change</code>).</li>
-<li><strong>Complex ITypes round-trip at the instance level.</strong> <code>COLOR</code>, <code>VEC2I</code>, <code>VEC3F</code>, … survive a bag <code>to_dict</code>/<code>from_dict</code> cycle losslessly, exercising the same IType seam P3 introduced.</li>
-<li><strong>Behavior-preserving refactor of storage.</strong> A characterization suite (<code>tests/core/test_settings/test_single_cell.py</code>) pins the public API through the migration; every commit stayed green (no intentionally-red window).</li>
-<li><strong>Supersedes</strong> the "simple mode / extended mode" dual-mode prose in <code>architecture/settings/settings-arch.md</code> (rewritten to the single-cell model, §6.4).</li>
-<li>P4 is the cell; <strong>P5</strong> builds promotion-as-direction on it and retires the UI's throwaway-field bridge.</li>
-</ul>
-<hr />
-<h2 id="amendment-cell-authoritative-reads-registry-owned-cells-one-change-primitive">Amendment — cell-authoritative reads, registry-owned cells, one change primitive<a class="headerlink" href="#amendment-cell-authoritative-reads-registry-owned-cells-one-change-primitive" title="Permanent link">&para;</a></h2>
-<p><em>(Originally ADR 0016, folded in here as a refinement of the single-cell model. Depends on the promotion work in <a href="../0014-promotion-as-direction/">ADR 0014</a>.)</em></p>
-<p><strong>Context.</strong> After P4 (above) and promotion (<a href="../0014-promotion-as-direction/">ADR 0014</a>), a setting's value already lived in a <code>DataField</code> cell — but only <em>sometimes</em> authoritatively. <code>setting.__get__</code> had four semantically different paths: locally-set → cell; unset cross-mirror → cell (kept current by P5's sync); unset plain node field → a registry walk that ALWAYS ended in a swallowed <code>KeyError</code> (node settings have no registry definitions — the workspace/global tiers can never apply to them), paying a function-level import, branching, and an exception construction per read on the node-execution hot path; persistent (Framework/Library) fields → a genuine tier walk, with every rendered widget synthesizing a throwaway <code>DataField</code> plus a subscribe/re-resolve/apply loop to compensate for the value having no live cell home. Change notification ran over three overlapping channels (<code>Settings._callbacks</code> fan-out, <code>_on_property_change</code>, an unused <code>on_change='method'</code> string dispatch with a fragile two-arity <code>TypeError</code> fallback), and Framework/Library schemas stamped <code>_mirror_key = _setting_key</code> ("a mirror of itself") purely to ride the mirror subscription machinery.</p>
-<p><strong>Decision.</strong> The cell is authoritative everywhere; the resolution chain runs at <strong>write/seed time only</strong>.</p>
-<ul>
-<li><code>setting.__get__</code> is a pure cell read — <code>obj._cell_for(self).get_value()</code> — on every path. No mode branch, no locally-set check, no chain walk.</li>
-<li><strong>Registry-owned cells</strong>: a wired persistent field has no per-instance state (writes go to the tiers), so the registry owns one live <code>DataField</code> per definition (<code>registry.cell_for(key)</code>), lazily created, seeded via <code>resolve()</code>, stamped <code>field_id = key</code>, kept current by a single write-through in <code>_notify_subscribers</code> (every tier mutation funnels there), and dropped with its definition on hot-reload unregister. Instances' <code>_cell_for</code> <em>borrows</em> it — one cell, N views. The settings panel binds this same cell, deleting the throwaway per-widget field and its sync loop.</li>
-<li><strong>One change primitive</strong>: <code>DataField.on_changed</code> fires <code>FieldChange(value, old, field_id)</code>; <code>bag.subscribe(cb)</code> attaches one adapter per field cell, so a subscriber hears every writer uniformly — descriptor sets, resets, registry write-through, and edge drives into a promoted shared cell (previously silent). <code>setting.__set__</code> records the set-opinion <em>before</em> the cell write so callbacks observe <code>is_locally_set()</code> correctly. Deleted: <code>Settings._callbacks</code>, <code>_on_property_change</code>, the <code>on_change=</code> string dispatch, and the <code>stored=</code> flag (only user was the testbed field exercising it).</li>
-<li><strong>Self-mirror hack removed</strong>: <code>_mirror_key</code> means only "mirrors another setting"; <code>is_mirror</code> is <code>bool(_mirror_key)</code>.</li>
-<li><strong>Exact-key registry subscriptions</strong> (plus <code>None</code> listen-all for the debug configurator); the namespace-prefix walk lost its last consumer with the panel convergence and is gone.</li>
-</ul>
-<p><strong>Callable defaults stay.</strong> The plan proposed dropping them on a zero-usage claim that proved wrong: <code>ui/skin/settings.py</code> passes <code>_default_skin</code> by function reference for genuine late binding (the skin registry doesn't exist at class-definition time). A callable default now evaluates <strong>once, at cell-seed time</strong> — never per read.</p>
-<p><strong>Consequences.</strong> The node-execution hot path (<code>self.&lt;bag&gt;.&lt;field&gt;</code> in <code>worker()</code>) is one dict hit + one attribute read, with no per-read exception. Correctness moves from pull (self-healing, re-derived per read) to push: a future tier-mutation path that bypasses <code>_notify_subscribers</code> would leave registry cells stale — keep tier mutations funnelling through it. <code>Settings.cleanup()</code> MUST run on bag teardown: adapters attached to borrowed registry-owned cells outlive the bag otherwise. Behavior changes: <code>from_dict</code> restores notify already-attached subscribers (graph load restores before anything subscribes); <code>reset()</code> notifies through the cell event; a field's value is never the raw callable (seeded once). Widgets on a dropped definition (hot-reload) hold a frozen, orphaned cell until their panel re-renders. <code>resolve()</code> and its <code>(value, source)</code> contract are unchanged for tier-aware UI display.</p>
+<p><strong>Consequences.</strong> <code>setting(read_only=...)</code> and any same-bag <code>mirrors=</code> are hard breaking changes — no deprecation shim (matches ADR 0019's precedent: "hard breaking change — no migration"). <code>haybale-testing/settings_node.py</code>'s <code>read_only_value</code> demo field (a non-mirror local field that used <code>read_only=True</code> for no structural reason — there was never a "read-only local field" concept, only "read-only mirror") is deleted outright, since nothing else in the codebase used a bare <code>read_only=True</code> local field and there is no replacement primitive for it (a locally-owned field that can't be written makes little sense — the mirror-specific rationale doesn't apply).</p>
 
 
 
 
 
 
+
+  
+  
 
 
 

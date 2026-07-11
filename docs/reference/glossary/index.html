@@ -3366,6 +3366,7 @@
 </tr>
 </tbody>
 </table>
+<p><strong>Builtin library</strong> (<code>haywire.barn.builtin</code>, <code>id="builtin"</code>) is a <strong>Library</strong> (meaning 1) — but not a <strong>Haybale package</strong> (meaning 3): it ships inside the <code>haywire-core</code> distribution itself rather than as a separate pip package, and is discovered via <code>core_libraries_path</code> at Priority 1 (before any entry-point plugin), per <a href="../../architecture/library-system/library-system-arch/#32-priority-order-when-multiple-sources-provide-the-same-library-id">architecture/library-system §3.2</a>. It holds framework-owned primitives — base types, adapters, widgets, the reroute node/skin — that must resolve before any plugin library loads.</p>
 <hr />
 <h2 id="haybale-three-distinct-meanings-new-marketstall-distribution">"Haybale" — three distinct meanings <em>(new — marketstall distribution)</em><a class="headerlink" href="#haybale-three-distinct-meanings-new-marketstall-distribution" title="Permanent link">&para;</a></h2>
 <p>In the marketstall distribution system, the word <strong>haybale</strong> carries three closely-related but distinct meanings. They cluster around the same concept (a haywire library and its distribution metadata) but project it onto different surfaces.</p>
@@ -3545,7 +3546,7 @@
 </tr>
 <tr>
 <td><strong>Reroute node</strong></td>
-<td>A pass-through node shipped by <code>haybale-graph-editor</code> whose class declares <strong>no</strong> ports; at creation it is given exactly one inlet and one outlet matching the split edge's type, and its worker passes the inlet value straight to the outlet and returns the outlet id. Supports <strong>DATA</strong>, <strong>CONTROL</strong>, and <strong>CALLBACK</strong> edges. Used to split an edge and bend/organize a wire.</td>
+<td>A pass-through node shipped by the framework-owned <strong>builtin</strong> library (<code>haywire.barn.builtin</code>, not a plugin) whose class declares <strong>no</strong> ports; at creation it is given exactly one inlet and one outlet matching the split edge's type, and its worker passes the inlet value straight to the outlet and returns the outlet id. Supports <strong>DATA</strong> and <strong>CONTROL</strong> edges. <strong>CALLBACK edges are not supported</strong> — the flow assembly manager reads the subscription key at wiring time, before any worker has run to forward it, so a CALLBACK reroute's listener would never register. Used to split an edge and bend/organize a wire.</td>
 <td>Proxy node (collides with <code>_FieldProxy</code> / state proxies), passthrough node</td>
 </tr>
 </tbody>
@@ -3633,7 +3634,7 @@
 </tr>
 <tr>
 <td><strong>Lazy pull</strong></td>
-<td>Data transport mode where a Pipe defers propagation; downstream calls <code>pull_lazy()</code> at execution time to get the latest value</td>
+<td>Data transport mode where a Pipe defers propagation; downstream calls <code>pull()</code> at execution time to get the latest value</td>
 <td>Deferred, on-demand (imprecise)</td>
 </tr>
 <tr>
@@ -4176,7 +4177,7 @@
 </tr>
 <tr>
 <td><strong>CHOICES</strong></td>
-<td>Builtin <code>IType(STRING)</code> whose identity declares <code>widget_key = SELECT_WIDGET</code> but carries <strong>zero options</strong> — every declaration site supplies its own via <code>widget_config={"options": [...] | {value: label} | callable}</code>. Identity STRING↔CHOICES adapters (both directions, pure passthrough) let a plain string port connect to or promote from a CHOICES-typed one with no special case. Replaces the old <code>choices=</code> sugar. See <a href="../../adr/0017-widget-selection-port-contract/">ADR 0017</a></td>
+<td>Builtin <code>IType(STRING)</code> whose identity declares <code>widget_key = SELECT_WIDGET</code> but carries <strong>zero options</strong> — every declaration site supplies its own via <code>widget_config={"options": [...] \| {value: label} \| callable}</code>. Identity STRING↔CHOICES adapters (both directions, pure passthrough) let a plain string port connect to or promote from a CHOICES-typed one with no special case. Replaces the old <code>choices=</code> sugar. <strong>The <code>callable</code> shape is safe only on a <code>setting()</code> field</strong> (promoted or not) — see <strong>live widget_config callable</strong> below; a plain (non-promoted) port constructed with a callable there raises <code>TypeError</code> at construction time. See <a href="../../adr/0017-widget-selection-port-contract/">ADR 0017</a></td>
 <td>choices (the removed <code>setting(choices=...)</code> parameter), enum type, <code>*_SEL</code> type</td>
 </tr>
 <tr>
@@ -4190,23 +4191,38 @@
 <td>widget spec, widget hint dict</td>
 </tr>
 <tr>
-<td><strong>mirrors</strong></td>
-<td>A <code>setting()</code> parameter that links a node field to a <code>FrameworkSettings</code> or <code>LibrarySettings</code> field, inheriting its default with per-node override capability</td>
-<td>shadow, reference</td>
+<td><strong>live widget_config callable</strong></td>
+<td>A callable placed in a port's or field's <code>widget_config</code> (e.g. <code>{"options": lambda: ...}</code>), resolved at widget render time (<code>SelectWidget.build()</code>: <code>if callable(options): options = options()</code>). Safe on a <strong><code>setting()</code> field</strong> and on a <strong>promoted port</strong> — <code>Settings.to_dict()</code> never serializes <code>widget_config</code>, and a promoted port is not serialized at all (regenerated from settings on load, ADR 0019), so the callable never needs to survive a save/load cycle. <strong>Unsafe on a plain (non-promoted) port</strong> — the port has no descriptor to fall back on, so the callable IS the only copy; <code>DataPort.__post_init__</code> raises <code>TypeError</code> at construction time (via <code>is_cattrs_serializable</code>) rather than letting it reach <code>to_dict()</code>/<code>json.dumps</code> later. See <a href="../../adr/0018-port-widget-config-serialization-boundary/">ADR 0018</a> (plain-port raise) and <a href="../../adr/0019-settings-owned-promotion/">ADR 0019</a> (promoted ports never serialize)</td>
+<td>dynamic options callable</td>
 </tr>
 <tr>
-<td><strong>read_only</strong></td>
-<td>A <code>setting()</code> parameter (used with <code>mirrors=</code>) that makes a field a silent cache of a global value: invisible in panel, never stored, never writable per-instance</td>
-<td>watch (avoid), computed</td>
+<td><strong>mirrors</strong></td>
+<td>A <code>setting()</code> parameter that links a node field to a <code>FrameworkSettings</code> or <code>LibrarySettings</code> field (or any field on a DIFFERENT class), inheriting its default with per-node override capability. Must not reference a field on the same bag — raises <code>ValueError</code></td>
+<td>shadow, watch, reference</td>
+</tr>
+<tr>
+<td><strong>shadow()</strong></td>
+<td>Convenience factory: <code>setting(mirrors=src, **kwargs)</code>. A writable mirror — per-node writes are allowed and stored as overrides; unset, it tracks the source's live value</td>
+<td>mirrors, watch</td>
+</tr>
+<tr>
+<td><strong>watch()</strong></td>
+<td>Convenience factory: <code>setting(mirrors=src, ui_state=UiState.DISABLED, promotable=Promotable.OUTLET, **kwargs)</code>. Renders as a greyed, non-interactive widget and is outlet-only-promotable by declaration. Writes are not structurally blocked (no <code>AttributeError</code>) — read-only-ness is a naming convention, not an enforced guarantee</td>
+<td>shadow, mirrors, UiState</td>
+</tr>
+<tr>
+<td><strong>UiState</strong></td>
+<td>Per-field, per-instance presentation state of a setting in the properties panel: <code>NORMAL</code> | <code>DISABLED</code> (visible but non-interactive) | <code>HIDDEN</code> (row not rendered; a fully-hidden category hides its header). Pure chrome — a DISABLED or HIDDEN field stays fully readable/writable from code, keeps its value, and serializes normally; UiState itself is <strong>never persisted</strong> (recomputed from the descriptor seed <code>ui_state=</code> plus runtime <code>set_ui_state</code> calls). Imperative API <code>set_ui_state(name, state)</code> / <code>set_ui_state_all(state, category=None)</code> (category is a <em>selector</em>, never a state store) announces transitions on the dedicated UI-state channel (<code>subscribe_ui_state</code>, <code>cb(name, UiState)</code>); declarative same-bag gating via <code>enabled_when</code> (contributes at most DISABLED) and <code>visible_when</code> (contributes HIDDEN) metadata. <code>bag.effective_ui_state(name)</code> composes all sources by severity max (<code>NORMAL &lt; DISABLED &lt; HIDDEN</code>) — the one oracle consumed by panel rows and the Setting-row menu. <strong>Hiding never unpromotes</strong>: graph structure never depends on UiState (ADR 0020). <em>(new)</em></td>
+<td>ui_disabled (removed boolean API), ui_visibility, visibility flag</td>
 </tr>
 <tr>
 <td><strong>Promotion</strong></td>
-<td>Assigning a <strong>direction</strong> to a value-bearing setting and surfacing it as a DATA port. A promoted port and its setting are <em>one cell, two views</em> — the port borrows the setting's <code>DataField</code> cell by reference and its id IS the setting's <code>storage_key</code>. The port stays the promotion signal (serialized in the ports block); demote just removes it. Two verbs (<code>promote(direction)</code> / <code>demote</code>), two directions (inlet / outlet). <strong>Direction- and link-aware editing surface (decision 7bA):</strong> a setting promoted to an <strong>inlet</strong> renders read-only in the settings panel — a live label, not an editable widget — because the graph now owns the value; the hint reads "↳ promoted to inlet" while unlinked or "↳ driven by inlet" once an edge is connected. A setting promoted to an <strong>outlet</strong> keeps its editable widget (the setting is still the source of truth), hinted "↳ promoted to outlet". The row carries <code>data-promoted-direction="inlet"\|"outlet"</code>. See <a href="../../adr/0014-promotion-as-direction/">ADR 0014</a> (direction model + storage-key id mechanism)</td>
+<td>Assigning a <strong>direction</strong> to a value-bearing setting and surfacing it as a DATA port. A promoted port and its setting are <em>one cell, two views</em> — the port borrows the setting's <code>DataField</code> cell by reference and its id IS the setting's <code>storage_key</code>. Promotion state lives in the owning settings bag (<code>Settings._promoted_keys</code>, <code>storage_key → direction</code>) — the single source of truth. The promoted port is <strong>regenerated from settings on load, never serialized</strong> in the ports block (ADR 0019); <code>promote_setting</code> records the promotion and <code>demote_setting</code> clears it (mirror operations). Two verbs (<code>promote(direction)</code> / <code>demote</code>), three directions (inlet / outlet / config — see ADR 0014's reintroduction note). Which directions a field may ever be promoted to is gated by <code>setting(promotable=Promotable.NONE\|INLET\|OUTLET\|CONFIG\|INPUT\|ALL)</code> (default <code>ALL</code>), via the single <code>eligible_promotion_directions()</code> oracle shared by <code>promote_setting</code> (raises for an ineligible direction) and the <strong>Setting-row menu</strong> (hides ineligible entries). <strong>Direction- and link-aware editing surface (decision 7bA, revised 2026-07-07):</strong> a promoted field's label carries the <code>→</code> glyph (<code>→• label</code> when also locally-set). A setting promoted to an <strong>inlet</strong> replaces its widget with a literal "promoted" label — the graph owns the value; the row hint (tooltip + <code>data-hint</code>) reads "promoted to inlet" while unlinked or "driven by inlet" once an edge is connected. A setting promoted to an <strong>outlet</strong> keeps its editable widget (the setting is still the source of truth), hinted "promoted to outlet". The row carries <code>data-promoted-direction="inlet"\|"outlet"</code> and <code>data-hint</code>. Promote/Demote/Reset live in the <strong>Setting-row menu</strong>; the settings panel is the <em>sole</em> promote surface (the canvas node menu no longer offers promotion; the port right-click keeps "Detach from setting"). See <a href="../../adr/0014-promotion-as-direction/">ADR 0014</a> (direction model + one-cell-two-views) and <a href="../../adr/0019-settings-owned-promotion/">ADR 0019</a> (settings-owned state + non-serialized regeneration, superseding 0014's amendment)</td>
 <td>Exposing, hoisting, wiring a setting</td>
 </tr>
 <tr>
 <td><strong>promoted inlet / promoted outlet</strong></td>
-<td>The two promotion directions. A promoted <strong>inlet</strong> lets an edge drive the setting (widget shows while unlinked); a promoted <strong>outlet</strong> lets the setting drive downstream consumers. A <code>watch()</code> field is outlet-only (read-only ⇒ no write path in)</td>
+<td>The two promotion directions. A promoted <strong>inlet</strong> lets an edge drive the setting (the panel widget is gone as soon as the promotion exists, linked or not); a promoted <strong>outlet</strong> lets the setting drive downstream consumers. A <code>watch()</code> field is outlet-only by declaration (<code>promotable=Promotable.OUTLET</code>, seeded by the <code>watch()</code> factory itself — no separate structural override). A promoted <strong>config</strong> field behaves like a promoted inlet in the Properties panel (widget replaced by a static "promoted" label, hinted "promoted to config") but has no pin at all — never linked, never driven by an edge; its live widget renders instead wherever a CONFIG port's widget already renders (Ports Panel / node card)</td>
 <td>—</td>
 </tr>
 <tr>
@@ -4670,13 +4686,13 @@
 </tr>
 <tr>
 <td><strong>Flyout menu</strong></td>
-<td>A nested context-menu submenu that opens <strong>on hover</strong> of its anchor item and cascades to the right (<code>anchor="top end" self="top start"</code>), raised above the context-menu popup (<code>z-index 7100 &gt; 7001</code>). Only one open path from the root exists at a time: opening one flyout closes its <strong>siblings</strong> (same-level group) and their open descendants, via an explicit <code>_close_flyout</code> cascade — closing on click-away is left to Quasar's <code>auto-close</code>. The fragile hover-open / sibling-close mechanics are shared by the <strong>add-node menu</strong> and the <strong>Promote-Setting menu</strong> through a common flyout primitive. See [.insights/feedback_nicegui_nested_menu_flyouts.md]</td>
+<td>A nested context-menu submenu that opens <strong>on hover</strong> of its anchor item and cascades to the right (<code>anchor="top end" self="top start"</code>), raised above the context-menu popup (<code>z-index 7100 &gt; 7001</code>). Only one open path from the root exists at a time: opening one flyout closes its <strong>siblings</strong> (same-level group) and their open descendants, via an explicit <code>_close_flyout</code> cascade — closing on click-away is left to Quasar's <code>auto-close</code>. The fragile hover-open / sibling-close mechanics are used by the <strong>add-node menu</strong> through a common flyout primitive. See [.insights/feedback_nicegui_nested_menu_flyouts.md]</td>
 <td>submenu, cascade menu, nested QMenu</td>
 </tr>
 <tr>
-<td><strong>Promote-Setting menu</strong></td>
-<td>The node right-click submenu listing a node's promotable <code>setting()</code> fields as a hierarchical <strong>Flyout menu</strong> (<code>bag ▸ field ▸ direction</code>), mirroring the add-node menu's shape. A single-direction (read-only <code>watch()</code>) field collapses to a labeled leaf (<code>field → outlet</code>); a two-direction field stays a <code>field ▸ [inlet\|outlet]</code> flyout. The bag level is always rendered. Replaces the earlier flat <code>accessor.field → verb</code> button list</td>
-<td>promote submenu, promotion menu</td>
+<td><strong>Setting-row menu</strong></td>
+<td>The right-click context menu on a settings-row <strong>label cell</strong> (native <code>ui.context_menu</code>, scoped to the label so widget inputs keep the browser menu) — the sole promote surface. Composition rule: <strong>structural facts hide, transient facts disable</strong> — Promote-to-inlet/outlet entries appear only for eligible directions on an unpromoted, node-bound field (swapping to Demote once promoted; absent entirely on node-less bags); Reset is permanently listed for writable fields but greyed while the row is clean or its effective UiState is DISABLED (promotion stays active on DISABLED rows — chrome-locked, not value-locked, ADR 0020). A row with zero possible actions (e.g. <code>promotable=NONE</code> on <code>watch()</code>) gets no menu. Replaces the canvas <strong>Promote-Setting flyout</strong> (removed 2026-07-07)</td>
+<td>promote submenu, promotion menu, Promote-Setting menu (removed flyout), row context menu</td>
 </tr>
 </tbody>
 </table>
@@ -4756,8 +4772,8 @@
 <blockquote>
 <p><strong>Dev:</strong> "I want my node to respect the library's default quality setting, but let users override it per-node."
 <strong>Domain expert:</strong> "Declare a <strong>NodeSettings</strong> inner class with a field that <code>mirrors=</code> the <strong>LibrarySettings</strong> field. The <strong>accessor name</strong> is whatever you call the inner class — <code>self.output</code>, say."
-<strong>Dev:</strong> "What if I just want to read a global flag silently, without showing it in the panel?"
-<strong>Domain expert:</strong> "Add <code>read_only=True</code> to the same <code>mirrors=</code> field. It becomes a silent cache — invisible in the panel, never stored, never writable per-instance. The value updates automatically when the <strong>FrameworkSettings</strong> source changes."
+<strong>Dev:</strong> "What if I just want to display a global flag, without letting the user edit it per-node?"
+<strong>Domain expert:</strong> "Use <code>watch()</code> instead of <code>shadow()</code> for that field. It renders as a greyed, non-interactive widget and is outlet-only-promotable. The value updates automatically when the <strong>FrameworkSettings</strong> source changes; writing to it directly is legal but only a naming convention discourages it — nothing enforces read-only-ness."
 <strong>Dev:</strong> "Where does the actual value come from when the node runs?"
 <strong>Domain expert:</strong> "<strong>Three-tier resolution</strong>, highest-priority <em>set</em> tier wins: the node's local instance value, then the workspace TOML set, then the global TOML set, then the descriptor default. Tiers are just set-or-unset — no 'force' strength. The <strong>SettingsRegistry</strong> owns that chain."
 <strong>Dev:</strong> "And the framework's own <code>ExecutionSettings</code> — does it need to be registered manually?"

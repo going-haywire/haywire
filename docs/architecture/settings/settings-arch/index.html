@@ -3695,7 +3695,7 @@ as small as a clean definitions/tiers-only module would be in isolation.</p>
 </span><span id="__span-6-5"><a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a>  →  _setting_key=&#39;haybale_core.node.filter.params.threshold&#39;
 </span></code></pre></div>
 <p>This is what <code>SettingsRegistry</code> stores, resolves, and what <code>shadow()</code>/<code>watch()</code> reference. Single shared identity between schema, JSON, and registry lookup.</p>
-<p><strong><code>registry_key</code></strong> — <code>BaseRegistry</code>-level identifier for the <em>class</em> (not a field). Set by <code>@settings</code> as <code>reg_key(library_id, "settings", namespace)</code>. Used internally by <code>BaseRegistry</code> for class tracking, hot-reload, and dependency graphs. Not normally used directly by authors.</p>
+<p><strong><code>registry_key</code></strong> — <code>BaseRegistry</code>-level identifier for the <em>class</em> (not a field). Set by <code>@settings</code> as <code>reg_key(library_id, "settings", namespace)</code> — the same universal <code>{library_id}:{kind}:{name}</code> format every registry-tracked component uses; see <a href="../../library-system/library-system-arch/#24a-registry-keys-haywirecorelibraryutilspy">library-system-arch §2.4a</a> for how <code>library_id</code> is auto-derived rather than author-supplied. Used internally by <code>BaseRegistry</code> for class tracking, hot-reload, and dependency graphs. Not normally used directly by authors.</p>
 <div class="language-text highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>namespace=&#39;my_lib&#39;, library_id=&#39;haybale_image&#39;
 </span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>  →  registry_key=&#39;haybale_image:settings:my_lib&#39;
 </span></code></pre></div>
@@ -3782,9 +3782,9 @@ as small as a clean definitions/tiers-only module would be in isolation.</p>
 <h3 id="65-promotion-field-direction">6.5 Promotion = field + direction<a class="headerlink" href="#65-promotion-field-direction" title="Permanent link">&para;</a></h3>
 <p><em>Promoting</em> a setting assigns it a <strong>direction</strong> and surfaces it as a DATA port. A promoted port and the setting it binds are <strong>one cell, two views</strong>: the port borrows the setting's <a href="#64-single-cell-value-model">§6.4 cell</a> <em>by reference</em> via <code>DataPort.bind_field</code>, so there is no second value and no read-tier bridge (<a href="../../../adr/0014-promotion-as-direction/">ADR 0014</a>).</p>
 <p><strong>Two directions, two verbs.</strong> <code>promote_setting(node, accessor, field, direction)</code> takes a <code>PortType ∈ {INLET, OUTLET}</code>; <code>demote_setting</code> removes it. There is no in-place redirect — redirect is demote + re-promote, and the cell (and its value) survives both, per the cell-mutation spine. A promoted port's id <strong>is</strong> the setting's <code>storage_key</code>, and <code>DataPort.promoted</code> marks it a promotion; <code>promote_setting</code> marks the field locally-set (<code>storage_key ∈ _set_keys</code>) for the port's lifetime, so the setting reads the shared cell (incl. any edge-driven value). The setting descriptor carries no port back-reference; <code>_resolve_promoted</code> maps a promoted port id back to its (bag, descriptor) by matching <code>storage_key</code>.</p>
-<p><strong>Eligibility is two flag checks, not a per-kind matrix.</strong></p>
+<p><strong>Eligibility is <code>promotable=</code> alone, not a per-kind matrix.</strong></p>
 <ol>
-<li><code>descriptor._read_only</code> (a <code>watch()</code> field) ⇒ <strong>outlet only</strong> — a read-only field has no write path in, only a read path out.</li>
+<li><code>eligible_promotion_directions(descriptor)</code> reads purely <code>descriptor._promotable</code> — a <code>watch()</code> field declares <code>promotable=Promotable.OUTLET</code> itself (seeded by the <code>watch()</code> factory), so it is outlet only by declaration; there is no separate structural override here.</li>
 <li><code>direction == OUTLET</code> ⇒ the port sets <code>is_linked_lazy</code> <strong>and</strong> subscribes <code>on_changed → propagate</code>. This holds for <em>every</em> promoted outlet (plain, shadow, watch), because a promoted outlet is never worker-<code>out()</code>-driven; it is written by widget / registry / edge, all <em>outside</em> the scheduler frame.</li>
 </ol>
 <p>Everything else (mirror vs plain, set vs unset) rides that one <code>on_changed → propagate</code> mechanism — there is no per-kind propagation logic. Plain and <code>shadow</code> fields are eligible for either direction; <code>watch</code> for outlet only.</p>
@@ -4025,7 +4025,7 @@ about option resolution happens at stamp time.</p>
 <li>Always pass <code>use_temp_settings=True</code> to <code>create_test_library_system()</code> so tests don't read from the user's real <code>~/.haywire/settings.json</code>.</li>
 <li><code>predefined_local</code> uses attr names; <code>predefined_global</code> and <code>registry.set_global()</code> use full keys. Mismatches fail silently.</li>
 <li>Test both default values and local overrides on the same field.</li>
-<li>Test <code>read_only=True</code> fields raise <code>AttributeError</code> on write.</li>
+<li>Test <code>watch()</code> fields render disabled and are outlet-only-promotable.</li>
 </ul>
 <h3 id="95-ui-test-harness">9.5 UI test harness<a class="headerlink" href="#95-ui-test-harness" title="Permanent link">&para;</a></h3>
 <p>The settings UI harness in <code>tests/ui/harness/</code> lets Playwright tests verify rendered panel behaviour without spinning up the full Haywire app. It is a standalone NiceGUI app exposing three routes:</p>

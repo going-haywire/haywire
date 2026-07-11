@@ -3336,8 +3336,12 @@
 <h3 id="31-adapter-chain-creation-data-edges-only">3.1 Adapter chain creation (DATA edges only)<a class="headerlink" href="#31-adapter-chain-creation-data-edges-only" title="Permanent link">&para;</a></h3>
 <p><code>AdapterFactory.create_chain(source_type, sink_type)</code> handles four cases:</p>
 <ol>
-<li><strong>Both scalar</strong> → <code>_create_scalar_chain()</code>:</li>
-<li>Same type or child→parent (<code>issubclass</code>): <code>ReturnAdapter()</code> — no-op.</li>
+<li>
+<p><strong>Both scalar</strong> → <code>_create_scalar_chain()</code>:</p>
+</li>
+<li>
+<p>Same type or child→parent (<code>issubclass</code>): <code>ReturnAdapter()</code> — no-op.</p>
+</li>
 <li>Different types: BFS through <code>AdapterRegistry</code> to find shortest chain; walks source's MRO for derived types.</li>
 <li>
 <p>Chain is built right-to-left: <code>AdapterA(child=AdapterB(child=ReturnAdapter()))</code>.</p>
@@ -3345,7 +3349,9 @@
 <li>
 <p><strong>Same compound structure</strong> (e.g. <code>ArrayType[X] → ArrayType[Y]</code>): <code>_create_element_chain()</code>:</p>
 </li>
-<li>Finds container adapter (e.g. <code>ArrayArrayAdapter</code>) via registry.</li>
+<li>
+<p>Finds container adapter (e.g. <code>ArrayArrayAdapter</code>) via registry.</p>
+</li>
 <li>Creates element chain for inner types.</li>
 <li>Same element type → <code>ReturnAdapter()</code>.</li>
 <li>
@@ -3375,6 +3381,7 @@
 </ul>
 <p>Different edges to the same inlet can have different modes. The <code>lazy</code> parameter is passed to <code>create_edge_wrapper()</code> and stored on the <code>Edge</code> dataclass. It serialises via <code>to_dict()</code> and deserialises with <code>False</code> default for backward compatibility.</p>
 <p><strong>Unified dirty model.</strong> Both eager and lazy edges use the same deferred callback model. <code>on_change</code> callbacks for edge-driven inlet changes are <em>never</em> fired at push time — they are always deferred to <code>resolve_dirty_data()</code> at execution time. This debounces mixed pooled+lazy scenarios.</p>
+<p><strong>Exception: CALLBACK-flow inlets fire immediately.</strong> A <code>FlowType.CALLBACK</code> inlet is exempt from the deferral above — <code>set_value()</code> fires its <code>on_change</code> synchronously at push time even when <code>edge_id</code> is set, same as the widget/programmatic path.</p>
 <div class="language-text highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>EAGER EDGE:
 </span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>  outlet.set_value(value) → pipes.propagate(value)
 </span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>    ├─ adapter chain transforms value
@@ -3390,52 +3397,58 @@
 </span><span id="__span-2-13"><a id="__codelineno-2-13" name="__codelineno-2-13" href="#__codelineno-2-13"></a>AT EXECUTION TIME (both):
 </span><span id="__span-2-14"><a id="__codelineno-2-14" name="__codelineno-2-14" href="#__codelineno-2-14"></a>  node._execute()
 </span><span id="__span-2-15"><a id="__codelineno-2-15" name="__codelineno-2-15" href="#__codelineno-2-15"></a>    ├─ for each dirty port: resolve_dirty_data()
-</span><span id="__span-2-16"><a id="__codelineno-2-16" name="__codelineno-2-16" href="#__codelineno-2-16"></a>    │     ├─ pull lazy pipe data (transform + store via pull_lazy())
+</span><span id="__span-2-16"><a id="__codelineno-2-16" name="__codelineno-2-16" href="#__codelineno-2-16"></a>    │     ├─ pull lazy pipe data (transform + store via pull())
 </span><span id="__span-2-17"><a id="__codelineno-2-17" name="__codelineno-2-17" href="#__codelineno-2-17"></a>    │     └─ fire on_change ONCE (debounced across all edge types)
 </span><span id="__span-2-18"><a id="__codelineno-2-18" name="__codelineno-2-18" href="#__codelineno-2-18"></a>    ├─ on_validate()
 </span><span id="__span-2-19"><a id="__codelineno-2-19" name="__codelineno-2-19" href="#__codelineno-2-19"></a>    └─ worker()
 </span></code></pre></div>
 <h3 id="34-set_value-callback-rules">3.4 <code>set_value()</code> callback rules<a class="headerlink" href="#34-set_value-callback-rules" title="Permanent link">&para;</a></h3>
-<p>The <code>set_value()</code> method on DataPort distinguishes between edge-driven and widget/programmatic changes:</p>
+<p>The <code>set_value()</code> method on DataPort distinguishes between edge-driven, widget/programmatic changes and the flow type:</p>
 <table>
 <thead>
 <tr>
 <th>Path</th>
-<th><code>edge_id</code></th>
+<th><code>Edge-driven</code></th>
 <th><code>on_change</code></th>
 <th>Behaviour</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td>Edge-driven inlet</td>
-<td>set</td>
 <td>(any)</td>
-<td>Value stored; <code>_mark_as_data_dirty()</code> called; <code>on_change</code> fires later in <code>resolve_dirty_data()</code></td>
-</tr>
-<tr>
-<td>Widget / programmatic inlet</td>
-<td><code>None</code></td>
-<td>exists</td>
-<td>Value stored; <code>on_change</code> fires <strong>immediately</strong>; no dirty mark (prevents double-fire)</td>
-</tr>
-<tr>
-<td>Widget / programmatic inlet</td>
-<td><code>None</code></td>
+<td>no</td>
 <td>absent</td>
-<td>Value stored; <code>_mark_as_data_dirty()</code> called; <code>resolve_dirty_data()</code> skips callback (none)</td>
+<td><code>on_change</code> does not fire</td>
+</tr>
+<tr>
+<td>Widget / programmatic input</td>
+<td>no</td>
+<td>exists</td>
+<td><code>on_change</code> fires <strong>immediately</strong></td>
+</tr>
+<tr>
+<td>CALLBACK flow_type</td>
+<td>yes</td>
+<td>exists</td>
+<td><code>on_change</code> fires <strong>immediately</strong></td>
+</tr>
+<tr>
+<td>DATA, CONTROL flow_type</td>
+<td>yes</td>
+<td>exists</td>
+<td><code>on_change</code> fires just before the worker</td>
 </tr>
 <tr>
 <td>Outlet (any)</td>
 <td>(any)</td>
 <td>exists</td>
-<td><code>on_change</code> fires immediately; pipes propagate downstream</td>
+<td><code>on_change</code> fires <strong>immediately</strong>; pipes propagate downstream</td>
 </tr>
 </tbody>
 </table>
-<p><code>set_value_by_lazy_link()</code> is a low-level method that stores the value without firing any callbacks. Used by <code>pull_lazy()</code> during lazy resolution. <code>set_value()</code> delegates to it for the actual storage step.</p>
+<p><code>set_value_by_lazy_link()</code> is a low-level method that stores the value without firing any callbacks. Used by <code>pull()</code> during lazy resolution. <code>set_value()</code> delegates to it for the actual storage step.</p>
 <h3 id="35-pipe-based-data-transport">3.5 Pipe-based data transport<a class="headerlink" href="#35-pipe-based-data-transport" title="Permanent link">&para;</a></h3>
-<p>The <code>Pipes</code> class owns all data transport — both eager push (<code>propagate()</code>) and lazy pull (<code>pull_lazy()</code>). It stores:</p>
+<p>The <code>Pipes</code> class owns all data transport — both eager push (<code>propagate()</code>) and lazy pull (<code>pull()</code>). It stores:</p>
 <table>
 <thead>
 <tr>
@@ -3600,7 +3613,7 @@
 <ul>
 <li><strong>Re-enablement priority.</strong> Currently FIFO. If multiple displaced edges are functional at re-enablement time, the first registered wins. A user-controllable priority mechanism may be useful.</li>
 <li><strong>Adapter chain caching.</strong> Chains are recomputed on every edge build. For libraries with many adapter pairs, caching the BFS result keyed by <code>(source_type, sink_type)</code> could help.</li>
-<li><strong>Lazy propagation hot-reload.</strong> When an adapter inside a lazy chain reloads, the edge marks dirty but the next <code>pull_lazy()</code> re-resolves through the new chain. This works today; whether the edge should <em>eagerly</em> re-pull on adapter change is undecided.</li>
+<li><strong>Lazy propagation hot-reload.</strong> When an adapter inside a lazy chain reloads, the edge marks dirty but the next <code>pull()</code> re-resolves through the new chain. This works today; whether the edge should <em>eagerly</em> re-pull on adapter change is undecided.</li>
 </ul>
 <h2 id="appendix-key-state-locations">Appendix — key state locations<a class="headerlink" href="#appendix-key-state-locations" title="Permanent link">&para;</a></h2>
 <table>
@@ -3662,7 +3675,7 @@
 <li><code>src/haywire/core/edge/edge_wrapper.py</code> — <code>EdgeWrapper</code> + <code>EdgeWrapperState</code> (owns link/unlink/detach lifecycle)</li>
 <li><code>src/haywire/core/edge/edge.py</code> — <code>Edge</code> data object (includes <code>is_lazy</code> flag)</li>
 <li><code>src/haywire/core/types/port.py</code> — <code>DataPort</code> (two-tier storage, displacement, re-enablement, deferred on_change, lazy resolution)</li>
-<li><code>src/haywire/core/types/pipe.py</code> — <code>Pipes</code> (eager push via <code>propagate()</code>, lazy pull via <code>pull_lazy()</code>, always-latest semantics)</li>
+<li><code>src/haywire/core/types/pipe.py</code> — <code>Pipes</code> (eager push via <code>propagate()</code>, lazy pull via <code>pull()</code>, always-latest semantics)</li>
 <li><code>src/haywire/core/graph/base.py</code> — <code>BaseGraph</code> (create/add/remove edge, delegates to edge methods)</li>
 <li><code>src/haywire/core/graph/validation.py</code> — <code>ValidationManager</code> (debounced batch validation, priority system)</li>
 <li><code>src/haywire/core/graph/types.py</code> — <code>ChangeReason</code> enum, <code>ValidationResult</code></li>

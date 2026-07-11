@@ -10,7 +10,7 @@
       
       
       
-        <link rel="canonical" href="https://going-haywire.github.io/haywire/docs/adr/0013-settings-single-cell/">
+        <link rel="canonical" href="https://going-haywire.github.io/haywire/docs/adr/0019-settings-owned-promotion/">
       
       
       
@@ -23,7 +23,7 @@
     
     
       
-        <title>A setting's per-instance value lives in a per-field DataField cell (single-cell model) - Haywire Documentation</title>
+        <title>Promotion state lives in Settings; promoted ports are regenerated on load, never serialized - Haywire Documentation</title>
       
     
     
@@ -74,7 +74,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#a-settings-per-instance-value-lives-in-a-per-field-datafield-cell-single-cell-model" class="md-skip">
+        <a href="#promotion-state-lives-in-settings-promoted-ports-are-regenerated-on-load-never-serialized" class="md-skip">
           Skip to content
         </a>
       
@@ -110,7 +110,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              A setting's per-instance value lives in a per-field DataField cell (single-cell model)
+              Promotion state lives in Settings; promoted ports are regenerated on load, never serialized
             
           </span>
         </div>
@@ -2636,80 +2636,6 @@
     
   
   
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#context-an-untyped-dict-a-dual-mode-and-a-recompute-on-read" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Context — an untyped dict, a dual mode, and a recompute-on-read
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#decision" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Decision
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#coordination-with-decisionsmd-d" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Coordination with DECISIONS.md §D
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#scope-and-what-is-deferred-to-p5" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Scope and what is deferred to P5
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#consequences" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Consequences
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#amendment-cell-authoritative-reads-registry-owned-cells-one-change-primitive" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Amendment — cell-authoritative reads, registry-owned cells, one change primitive
-      
-    </span>
-  </a>
-  
-</li>
-      
-    </ul>
-  
 </nav>
                   </div>
                 </div>
@@ -2725,64 +2651,36 @@
 
 
 
-<h1 id="a-settings-per-instance-value-lives-in-a-per-field-datafield-cell-single-cell-model">A setting's per-instance value lives in a per-field DataField cell (single-cell model)<a class="headerlink" href="#a-settings-per-instance-value-lives-in-a-per-field-datafield-cell-single-cell-model" title="Permanent link">&para;</a></h1>
-<p><strong>Status:</strong> Accepted.</p>
-<p>A <code>Settings</code> instance's per-field value used to live in an untyped <code>_local_store: dict[str, Any]</code>, and the <code>setting</code> descriptor ran in one of two modes: a <em>simple</em> mode that read/wrote <code>_local_store</code> by attribute name, and an <em>extended</em> mode (registry injected) that walked the resolution chain and, for a local override, recomputed the resolved value on every read. The UI bridged this with a throwaway <code>DataField</code> in <code>SettingWidgetModel</code> that it copied values into and out of. This ADR records replacing <code>_local_store</code> with a per-field <strong><code>DataField</code> cell</strong> — the same cell a port uses — so a setting and a port become two views of one value. It is plan <strong>P4</strong> of the settings↔DataField unification arc (canonical-key → tier-collapse → TOML→JSON → <strong>single-cell</strong> → promotion-as-direction). P1 (canonical <code>storage_key</code>), P2 (tier collapse to set-or-unset), and P3 (<a href="../0012-settings-json-persistence/">ADR 0012</a>, TOML→JSON + the IType <code>to_dict</code>/<code>from_dict</code> seam) all landed first, and P4 builds on them.</p>
-<h2 id="context-an-untyped-dict-a-dual-mode-and-a-recompute-on-read">Context — an untyped dict, a dual mode, and a recompute-on-read<a class="headerlink" href="#context-an-untyped-dict-a-dual-mode-and-a-recompute-on-read" title="Permanent link">&para;</a></h2>
-<p>Three things sat in the way of the "settings and ports are the same value" model:</p>
+<h1 id="promotion-state-lives-in-settings-promoted-ports-are-regenerated-on-load-never-serialized">Promotion state lives in Settings; promoted ports are regenerated on load, never serialized<a class="headerlink" href="#promotion-state-lives-in-settings-promoted-ports-are-regenerated-on-load-never-serialized" title="Permanent link">&para;</a></h1>
+<p><strong>Supersedes</strong> the <a href="../0014-promotion-as-direction/#amendment--a-promoted-ports-id-is-the-settings-storage_key">ADR 0014 amendment</a> ("the port IS the promotion signal; settings stay oblivious"). <strong>Supersedes in part</strong> <a href="../0018-port-widget-config-serialization-boundary/">ADR 0018</a>: its promoted-port mechanism (exclude <code>widget_config</code> from <code>to_dict</code>, re-apply from the descriptor in <code>_bind_port</code>) is replaced by "promoted ports are not serialized at all"; its plain-port mechanism (construction-time <code>is_cattrs_serializable</code> raise) is <strong>retained</strong>.</p>
+<p><strong>Context.</strong> ADR 0014's amendment made a promoted port the sole promotion signal: it serialized into the node's <code>ports</code> block (id + <code>promoted</code> flag + <code>recipe</code> + display kwargs, no <code>field_data</code>), and <code>_bind_promoted_ports</code> re-bound its cell on load. That put the port's <code>widget_config</code> — which can legitimately hold a live callable for dynamic dropdowns (<code>{"options": self.method}</code>, resolved at render time) — into the serialized output, where <code>json.dumps</code> crashes on the callable (the <code>OakDCameraNode</code> save bug). ADR 0018 patched this by excluding a promoted port's <code>widget_config</code> from <code>to_dict</code> and re-applying it from the live descriptor. That works, but leaves promotion recorded in two structurally-coupled places (the serialized port stub AND the descriptor it defers to) and keeps a value-less port stub in every saved graph.</p>
+<p><strong>Decision.</strong> Promotion becomes a per-instance, per-field opinion owned by the settings bag, mirroring <code>_set_keys</code>/<code>_ui_disabled_keys</code>:</p>
 <ul>
-<li><strong>The untyped store.</strong> Every <code>Settings</code> instance held <code>_local_store: dict[str, Any]</code> (<code>settings.py</code>). The value was a raw Python object; complex ITypes (<code>COLOR</code>, the <code>VEC*</code> types) had no cell to carry their IType round-trip at the instance level — only the registry's disk edge did (P3).</li>
-<li><strong>The <code>_registry is None</code> dual mode.</strong> <code>setting.__get__</code>/<code>__set__</code> branched on whether a registry was injected: <em>simple</em> mode read/wrote <code>_local_store</code> by attribute name; <em>extended</em> mode walked <code>_resolve</code>. Two code paths for one conceptual operation ("read this field's value").</li>
-<li><strong>Recompute-on-read.</strong> In extended mode a <em>local override</em> was re-resolved through the chain on every read, even though the instance already held the overriding value.</li>
-<li><strong>The throwaway-field bridge.</strong> <code>SettingWidgetModel</code> (<code>packages/haywire-core/src/haywire/ui/panel/setting_widget_model.py</code>) built a real <code>DataField</code> for the widget, seeded it with the setting's current value, and copied edits back through the panel setter — a copy-in/copy-out adapter standing in for the cell the value should have lived in all along.</li>
+<li><strong><code>Settings._promoted_keys: dict[str, PortType]</code></strong> — <code>storage_key → direction</code>, the single source of truth. A field has at most one promoted port (its id IS its <code>storage_key</code>), so this is one direction per key, never a set.</li>
+<li><strong>Serialization.</strong> Each bag's <code>to_dict()</code> returns <code>{"values": {...}, "promoted": {storage_key: "inlet"|"outlet"}}</code>. <strong>Promoted ports are absent from the node's <code>ports</code> block entirely</strong> — <code>_serialize_ports</code> skips <code>port.promoted</code>. The <code>widget_config</code>-callable crash is thus <em>structurally impossible</em> for promoted ports: there is no serialized port to hold a callable.</li>
+<li><strong>One creation path.</strong> On load, <code>regenerate_promoted_ports</code> (replacing <code>bind_promoted_ports</code>) walks each bag's <code>_promoted_keys</code> and calls <code>promote_setting(node, accessor, field, direction)</code> — the identical path an interactive promotion takes — after settings restore and before edges wire (two-phase graph load guarantees the regenerated inlet exists before any edge resolves to it). <code>promote_setting</code>'s existing <code>if pid in node.ports: return</code> makes it idempotent.</li>
+<li><strong>Demote clears the record.</strong> <code>demote_setting</code> removes the port, unbinds the cell, and clears <code>_promoted_keys[storage_key]</code>. Promote writes the key; demote clears it — mirror operations. This is the deliberate cost of the reversal: the amendment's "nothing to clean up on demote" is given up for a single, symmetric sync point.</li>
+<li><strong><code>is_field_promoted</code> consults <code>_promoted_keys</code></strong>, not port presence — one oracle.</li>
+<li><strong>Hard breaking format change, reset-and-continue on old graphs.</strong> A pre-refactor flat <code>{field: value}</code> settings dict raises <code>PromotedFormatError</code> in <code>from_dict</code>; the node loader catches it, leaves the bag at descriptor defaults, and attaches a WARNING-severity <code>HaywireException</code> (renders on the node card). The node loads and stays fully functional; the user loses that node's individually-saved settings — the accepted price of the cutover (matches ADR 0011/0012/0014's "hard cutover, no migration"). An edge into a promoted port whose promotion was reset simply dangles — already-documented, already-handled behavior.</li>
 </ul>
-<h2 id="decision">Decision<a class="headerlink" href="#decision" title="Permanent link">&para;</a></h2>
-<p>A setting's per-instance value lives in a per-field <code>DataField</code> cell on the bag, built lazily from the field's IType by <code>Settings._cell_for(descriptor)</code> and cached in <code>self._cells</code> keyed by <code>storage_key</code>.</p>
-<ul>
-<li><strong><code>cell ?? default</code> resolution.</strong> <code>setting.__get__</code> returns the cell value when the field is locally set, else the per-kind default (a plain literal, or <code>registry.resolve(...)</code> for a shadow/watch/extended field). The dual <code>_registry is None</code> mode collapses to one question — "is this field locally set?" — and the local-override case returns the cell's held value instead of re-resolving (recompute-on-read gone).</li>
-<li><strong><code>_set_keys</code> carries the opinion.</strong> A <code>DataField</code> always holds <em>a</em> value (its default), so cell membership can't encode "overridden" the way dict membership did. <code>Settings._set_keys: set[str]</code> records the set-or-unset opinion explicitly — the same set-or-unset shape P2 gave the registry tiers. <code>__set__</code>/<code>from_dict</code> add the <code>storage_key</code>; <code>reset</code> discards it; <code>is_locally_set(name)</code> ⇔ membership. Set-ness is never inferred from <code>cell.get_value() != default</code> (that would misread "set to the default on purpose" and re-introduce the phantom-override bug P2 fixed at the tier level).</li>
-<li><strong>The cell-mutation spine.</strong> No <em>structural</em> action resets a cell. Its <strong>value</strong> returns to default only on an explicit <code>reset()</code> (or, in P5, an edge-drive); <code>reset</code> clears <code>_set_keys</code> and calls <code>cell.reset()</code> but never removes the cell. This stable identity is what a future port binds to.</li>
-<li><strong>Registry tiers unchanged.</strong> The global/workspace tiers, <code>save_to_json</code>/<code>load_from_json</code>, and <code>persistent_setting</code>'s registry write are untouched (P2/P3). Only the <em>instance-local</em> store changed.</li>
-<li><strong>Wire shape preserved.</strong> <code>bag.to_dict()</code> still emits <code>{attr_name: bare_value}</code> per locally-set field (via <code>cell.get_value()</code>, not the IType <code>to_dict</code> dict), and <code>from_dict</code> writes each value back into the cell. Existing saved graphs load unchanged; complex ITypes round-trip losslessly because the <em>cell</em> guarantees the IType round-trip.</li>
-<li><strong>Object-typed escape hatch.</strong> A field with no IType (<code>_type is object</code>) can't build a cell, so <code>_cell_for</code> returns <code>None</code> and those fields fall back to a narrow <code>_plain: dict</code>. <code>SettingDescriptor.__set_name__</code> enforces an IType on every declared field, so <code>_plain</code> stays empty in practice — it is defensive, not a revived general store. <em>(Since removed: settings were committed to as IType-only, <code>_plain</code> was deleted, and <code>_cell_for</code> now raises for a non-IType descriptor.)</em></li>
-</ul>
-<h2 id="coordination-with-decisionsmd-d">Coordination with DECISIONS.md §D<a class="headerlink" href="#coordination-with-decisionsmd-d" title="Permanent link">&para;</a></h2>
-<p><code>settings-datafield-unification-DECISIONS.md</code> §D-A says a tier should store the IType's <code>to_dict</code>, <code>resolve()</code> should return the <strong>raw serialized form</strong>, and the consuming <strong>field rehydrates via <code>from_dict</code></strong> into its cell. P3 deliberately deviated (<a href="../0012-settings-json-persistence/">ADR 0012</a>): the in-memory tier holds the <strong>live</strong> Python value and <code>resolve()</code> returns it live, with <code>to_dict</code>/<code>from_dict</code> only at the disk edge.</p>
-<p>P4 keeps P3's disk-edge contract. The cell materializes from a live value — <code>registry.resolve()</code> already returns a live value, so <code>cell.set_value(resolved_value)</code> needs no <code>from_dict</code> hop. <strong>The cell IS the "field that holds the value" §D refers to; §D is satisfied in substance once the value lives in a cell.</strong> The literal "tier stores <code>to_dict</code>" representation was judged unnecessary churn given P3's disk-edge seam already provides one serialization contract across the system. If a future reviewer wants the literal tier-stored-dict form, that is a separate, behavior-neutral registry-internal change — not gated by P4.</p>
-<h2 id="scope-and-what-is-deferred-to-p5">Scope and what is deferred to P5<a class="headerlink" href="#scope-and-what-is-deferred-to-p5" title="Permanent link">&para;</a></h2>
-<p>P4 is <strong>value-into-cell + dual-mode removal only</strong>. It stops before <em>promotion</em>, which is P5:</p>
-<ul>
-<li><strong>Promotion = field + direction.</strong> The direction-eligibility matrix (DECISIONS §B), the <code>_promoted_port_id</code> read-tier branch in <code>setting.__get__</code> (kept <strong>verbatim</strong> in P4), and <code>is_linked_lazy</code> / watch→outlet emit (§C4) are all P5. The ADR for promotion-as-direction (DECISIONS §E's ADR-C-promotion) is P5's.</li>
-<li><strong>The throwaway-field bridge stays.</strong> Binding <code>SettingWidgetModel</code> directly to the bag's cell was gated and <strong>skipped</strong>: the widget must display the <em>resolved</em> value, but an unset extended/mirror field's cell holds only the descriptor default (the resolved global lives in the registry). Reconciling that display gap is exactly P5's promotion-as-direction work, where the port reaches the cell cleanly. The copy-in/copy-out adapter is left for P5 to retire.</li>
-</ul>
-<h2 id="consequences">Consequences<a class="headerlink" href="#consequences" title="Permanent link">&para;</a></h2>
-<ul>
-<li><strong>One value model.</strong> A setting's per-instance value and a port's value are the same <code>DataField</code> cell; the <code>_registry is None</code> dual mode and recompute-on-read are gone. "Locally set" is <code>_set_keys</code> membership everywhere (<code>to_dict</code>, <code>from_dict</code>, <code>reset</code>, <code>is_locally_set</code>, <code>_on_field_change</code>).</li>
-<li><strong>Complex ITypes round-trip at the instance level.</strong> <code>COLOR</code>, <code>VEC2I</code>, <code>VEC3F</code>, … survive a bag <code>to_dict</code>/<code>from_dict</code> cycle losslessly, exercising the same IType seam P3 introduced.</li>
-<li><strong>Behavior-preserving refactor of storage.</strong> A characterization suite (<code>tests/core/test_settings/test_single_cell.py</code>) pins the public API through the migration; every commit stayed green (no intentionally-red window).</li>
-<li><strong>Supersedes</strong> the "simple mode / extended mode" dual-mode prose in <code>architecture/settings/settings-arch.md</code> (rewritten to the single-cell model, §6.4).</li>
-<li>P4 is the cell; <strong>P5</strong> builds promotion-as-direction on it and retires the UI's throwaway-field bridge.</li>
-</ul>
-<hr />
-<h2 id="amendment-cell-authoritative-reads-registry-owned-cells-one-change-primitive">Amendment — cell-authoritative reads, registry-owned cells, one change primitive<a class="headerlink" href="#amendment-cell-authoritative-reads-registry-owned-cells-one-change-primitive" title="Permanent link">&para;</a></h2>
-<p><em>(Originally ADR 0016, folded in here as a refinement of the single-cell model. Depends on the promotion work in <a href="../0014-promotion-as-direction/">ADR 0014</a>.)</em></p>
-<p><strong>Context.</strong> After P4 (above) and promotion (<a href="../0014-promotion-as-direction/">ADR 0014</a>), a setting's value already lived in a <code>DataField</code> cell — but only <em>sometimes</em> authoritatively. <code>setting.__get__</code> had four semantically different paths: locally-set → cell; unset cross-mirror → cell (kept current by P5's sync); unset plain node field → a registry walk that ALWAYS ended in a swallowed <code>KeyError</code> (node settings have no registry definitions — the workspace/global tiers can never apply to them), paying a function-level import, branching, and an exception construction per read on the node-execution hot path; persistent (Framework/Library) fields → a genuine tier walk, with every rendered widget synthesizing a throwaway <code>DataField</code> plus a subscribe/re-resolve/apply loop to compensate for the value having no live cell home. Change notification ran over three overlapping channels (<code>Settings._callbacks</code> fan-out, <code>_on_property_change</code>, an unused <code>on_change='method'</code> string dispatch with a fragile two-arity <code>TypeError</code> fallback), and Framework/Library schemas stamped <code>_mirror_key = _setting_key</code> ("a mirror of itself") purely to ride the mirror subscription machinery.</p>
-<p><strong>Decision.</strong> The cell is authoritative everywhere; the resolution chain runs at <strong>write/seed time only</strong>.</p>
-<ul>
-<li><code>setting.__get__</code> is a pure cell read — <code>obj._cell_for(self).get_value()</code> — on every path. No mode branch, no locally-set check, no chain walk.</li>
-<li><strong>Registry-owned cells</strong>: a wired persistent field has no per-instance state (writes go to the tiers), so the registry owns one live <code>DataField</code> per definition (<code>registry.cell_for(key)</code>), lazily created, seeded via <code>resolve()</code>, stamped <code>field_id = key</code>, kept current by a single write-through in <code>_notify_subscribers</code> (every tier mutation funnels there), and dropped with its definition on hot-reload unregister. Instances' <code>_cell_for</code> <em>borrows</em> it — one cell, N views. The settings panel binds this same cell, deleting the throwaway per-widget field and its sync loop.</li>
-<li><strong>One change primitive</strong>: <code>DataField.on_changed</code> fires <code>FieldChange(value, old, field_id)</code>; <code>bag.subscribe(cb)</code> attaches one adapter per field cell, so a subscriber hears every writer uniformly — descriptor sets, resets, registry write-through, and edge drives into a promoted shared cell (previously silent). <code>setting.__set__</code> records the set-opinion <em>before</em> the cell write so callbacks observe <code>is_locally_set()</code> correctly. Deleted: <code>Settings._callbacks</code>, <code>_on_property_change</code>, the <code>on_change=</code> string dispatch, and the <code>stored=</code> flag (only user was the testbed field exercising it).</li>
-<li><strong>Self-mirror hack removed</strong>: <code>_mirror_key</code> means only "mirrors another setting"; <code>is_mirror</code> is <code>bool(_mirror_key)</code>.</li>
-<li><strong>Exact-key registry subscriptions</strong> (plus <code>None</code> listen-all for the debug configurator); the namespace-prefix walk lost its last consumer with the panel convergence and is gone.</li>
-</ul>
-<p><strong>Callable defaults stay.</strong> The plan proposed dropping them on a zero-usage claim that proved wrong: <code>ui/skin/settings.py</code> passes <code>_default_skin</code> by function reference for genuine late binding (the skin registry doesn't exist at class-definition time). A callable default now evaluates <strong>once, at cell-seed time</strong> — never per read.</p>
-<p><strong>Consequences.</strong> The node-execution hot path (<code>self.&lt;bag&gt;.&lt;field&gt;</code> in <code>worker()</code>) is one dict hit + one attribute read, with no per-read exception. Correctness moves from pull (self-healing, re-derived per read) to push: a future tier-mutation path that bypasses <code>_notify_subscribers</code> would leave registry cells stale — keep tier mutations funnelling through it. <code>Settings.cleanup()</code> MUST run on bag teardown: adapters attached to borrowed registry-owned cells outlive the bag otherwise. Behavior changes: <code>from_dict</code> restores notify already-attached subscribers (graph load restores before anything subscribes); <code>reset()</code> notifies through the cell event; a field's value is never the raw callable (seeded once). Widgets on a dropped definition (hot-reload) hold a frozen, orphaned cell until their panel re-renders. <code>resolve()</code> and its <code>(value, source)</code> contract are unchanged for tier-aware UI display.</p>
+<p><strong>Eligibility (<code>Promotable</code> flag).</strong> Alongside the serialization reversal, a <code>setting(..., promotable=Promotable.NONE|INLET|OUTLET|ALL)</code> kwarg (default <code>ALL</code>) lets a field declare which port directions it may ever be promoted to — for fields where a port would be <em>misleading</em> rather than ill-typed (e.g. a restart-required device-pipeline parameter, where a live port implies control the hardware can't actually deliver mid-run). <code>eligible_promotion_directions(descriptor) -&gt; tuple[PortType, ...]</code> is the single source of truth, computed as declared <code>promotable=</code> intersected with the structural rule (<code>read_only=True</code> / <code>watch()</code> stays outlet-only regardless of <code>promotable=</code>). Both <code>promote_setting</code> (raises <code>ValueError</code> for an ineligible direction, whether called interactively or from the load-time regen pass — there are no saved graphs with promoted ports yet, so nothing to grandfather) and the promote menu's <code>promotable_fields</code> (hides ineligible entries entirely, not just greys them) consume this one helper.</p>
+<p><strong>Plain ports (retained from ADR 0018).</strong> A plain (non-promoted) port has no descriptor to fall back on, so a callable in its <code>widget_config</code> IS the only copy. <code>DataPort.__post_init__</code> runs <code>is_cattrs_serializable(self.widget_config)</code> when <code>self.promoted</code> is <code>False</code> and raises <code>TypeError</code> at construction — the moment <code>node.add(...)</code> runs — naming the port and key, instead of crashing later in <code>json.dumps</code>. Skipped when <code>promoted</code> is <code>True</code> (a promoted port's <code>widget_config</code> is never serialized, so a callable there is provably safe). <code>OakDCameraNode.mxid</code> is left deliberately broken by this; its fix is a separate follow-up in <code>haybale-visiongraph</code>.</p>
+<p><strong>Consequences.</strong>
+- The <code>widget_config</code> serialization crash is eliminated for promoted ports by construction (no serialized port) and surfaced early for plain ports (construction-time raise).
+- Promotion has a single source of truth (<code>_promoted_keys</code>), not two (port stub + descriptor).
+- Demote gains one line (clear the record); this is the reversal's honest cost.
+- <code>Settings.to_dict()</code>/<code>from_dict()</code> change shape — a breaking <code>.haywire</code> format change (and clipboard format, since copy/paste serializes the same way). No migration; old graphs reset the affected bag and warn.
+- A demoted port in the same live session keeps its promoted-era <code>widget_config</code> (<code>__post_init__</code> doesn't re-run) — an accepted, documented narrow gap, unchanged from ADR 0018.
+- A field can be permanently excluded from promotion (<code>promotable=Promotable.NONE</code>) for cases where a port would misrepresent what the hardware/pipeline can actually do — enforced uniformly at both the menu (hidden) and the API (raises), with one shared eligibility oracle.</p>
 
 
 
 
 
 
+
+  
+  
 
 
 

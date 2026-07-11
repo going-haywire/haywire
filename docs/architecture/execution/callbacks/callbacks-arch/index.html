@@ -2023,6 +2023,23 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="2.1 The FlowType.CALLBACK port type">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#on_change-timing-on-callback-inlets" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        on_change timing on CALLBACK inlets
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
         
           <li class="md-nav__item">
@@ -2948,6 +2965,23 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="2.1 The FlowType.CALLBACK port type">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#on_change-timing-on-callback-inlets" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        on_change timing on CALLBACK inlets
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
         
           <li class="md-nav__item">
@@ -3191,6 +3225,9 @@
 </tbody>
 </table>
 <p>A CALLBACK edge is registered through the same <code>graph.create_edge_wrapper(...)</code> flow as DATA/EXEC edges. At run-time, the pipe mechanism transports the string listener-id from the EVENT node outlet to the emitter's <code>PooledType[CALLBACK]</code> inlet — the emitter reads this value to know which callback names to emit. Additionally, at assembly time, the assembler reads the edge topology to register listener Flows with the CallbackManager.</p>
+<h4 id="on_change-timing-on-callback-inlets"><code>on_change</code> timing on CALLBACK inlets<a class="headerlink" href="#on_change-timing-on-callback-inlets" title="Permanent link">&para;</a></h4>
+<p><code>DataPort.set_value()</code> normally defers an edge-driven inlet's <code>on_change</code> callback to <code>resolve_dirty_data()</code>, which only runs when the owning node's <code>worker()</code> is next dispatched (see <a href="../../edges/edges-arch/">edges-arch.md</a>). CALLBACK-flow inlets are the one exception: <code>set_value()</code> fires <code>on_change</code> <strong>immediately</strong>, even when the write came from an edge (<code>edge_id</code> set), instead of deferring it.</p>
+<p>This matters because emitter nodes with a pooled <code>PooledType[CALLBACK]</code> inlet are often <code>NodeType.CONTROL</code> nodes (e.g. <code>OakDCameraNode</code>) that only execute their <code>worker()</code> in response to a control pulse (<code>start</code>/<code>stop</code>), not on every dirty-port change. If a callback inlet's <code>on_change</code> were deferred like a normal DATA inlet, a subscriber changing its requirements (e.g. a <code>NumpyFrameEventNode</code> toggling <code>enable_depth</code>) would update the pooled dict but the emitter's <code>on_change</code> handler — and anything it derives, like a requirement-union setting — would silently stay stale until the node happened to execute again for an unrelated reason.</p>
 <h3 id="22-two-callback-modes">2.2 Two callback modes<a class="headerlink" href="#22-two-callback-modes" title="Permanent link">&para;</a></h3>
 <p>The framework supports two ways to wire a listener to an emitter:</p>
 <p><strong>Edge-based (visual, default).</strong> A <code>FlowType.CALLBACK</code> edge connects an emitter outlet to a listener <code>CallbackEvent</code>-node inlet. The event name propagates automatically — the emitter doesn't need a string identifier; the edge is the wiring.</p>

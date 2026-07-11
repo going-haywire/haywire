@@ -2102,6 +2102,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#24a-registry-keys-haywirecorelibraryutilspy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.4a Registry keys (haywire/core/library/utils.py)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#25-filewatcher-haywirecorelibraryfile_watcherpy" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2156,6 +2167,17 @@
     <span class="md-ellipsis">
       
         3.2 Priority order when multiple sources provide the same library ID
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#32a-the-builtin-library-priority-1s-sole-occupant" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.2a The builtin library (Priority 1's sole occupant)
       
     </span>
   </a>
@@ -3056,6 +3078,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#24a-registry-keys-haywirecorelibraryutilspy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.4a Registry keys (haywire/core/library/utils.py)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#25-filewatcher-haywirecorelibraryfile_watcherpy" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -3110,6 +3143,17 @@
     <span class="md-ellipsis">
       
         3.2 Priority order when multiple sources provide the same library ID
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#32a-the-builtin-library-priority-1s-sole-occupant" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.2a The builtin library (Priority 1's sole occupant)
       
     </span>
   </a>
@@ -3360,6 +3404,14 @@
 <p>The install type is propagated to <code>LibraryIdentity</code> and exposed by the <a href="../../../haybale/marketplace/haybale-marketplace-arch/">haybale/marketplace — architecture</a> UI to control which actions are available (Save source, Uninstall).</p>
 <h3 id="24-libraryidentity-haywirecorelibraryidentitypy">2.4 <code>LibraryIdentity</code> (<code>haywire/core/library/identity.py</code>)<a class="headerlink" href="#24-libraryidentity-haywirecorelibraryidentitypy" title="Permanent link">&para;</a></h3>
 <p>Frozen dataclass attached as <code>class_library</code> on every component class. Carries the library ID, version, label, install type, and source path. The identity is what every other registry uses to attribute a class to its owning library.</p>
+<h3 id="24a-registry-keys-haywirecorelibraryutilspy">2.4a Registry keys (<code>haywire/core/library/utils.py</code>)<a class="headerlink" href="#24a-registry-keys-haywirecorelibraryutilspy" title="Permanent link">&para;</a></h3>
+<p>Every registry-tracked component — <code>@node</code>, <code>@type</code>, <code>@adapter</code>, <code>@widget</code>, <code>@settings</code>, skins, themes, panels, editors, state classes — gets a <strong>registry key</strong> of the same universal shape, built by one shared helper:</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">reg_key</span><span class="p">(</span><span class="n">library_registry_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">module</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">node_registry_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>    <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">library_registry_id</span><span class="si">}</span><span class="s2">:</span><span class="si">{</span><span class="n">module</span><span class="si">}</span><span class="s2">:</span><span class="si">{</span><span class="n">node_registry_id</span><span class="si">}</span><span class="s2">&quot;</span>
+</span></code></pre></div>
+<p>producing keys like <code>builtin:node:RerouteNode</code>, <code>builtin:skin:RerouteSkin</code>, <code>core:widget:NumberWidget</code>. The middle segment is one of the constants in the same module (<code>NODE</code>, <code>WIDGET</code>, <code>TYPE</code>, <code>ADAPTER</code>, <code>SKIN</code>, <code>SETTING</code>, <code>STATE</code>, <code>THEME</code>, <code>PANEL</code>, <code>EDITOR</code>) — use these instead of a bare string to avoid a silent key mismatch. <code>split_reg_key()</code> / <code>get_registry_id_from_key()</code> invert the format.</p>
+<p><strong>The <code>library_registry_id</code> segment is never author-supplied.</strong> Each decorator (<code>@node</code>, <code>@skin</code>, …) calls <code>derive_library_identity(cls)</code> at decoration time, which walks up <code>cls.__module__</code> looking for the nearest ancestor module that defines a <code>Library</code> class with <code>class_identity</code> set, and uses that library's <code>id</code>. A class that isn't parented under any <code>Library</code> falls back to the synthetic <code>__system__</code> identity rather than raising.</p>
+<p>The practical consequence: <strong>a component's registry key is determined entirely by which library's source tree the file lives in</strong> — not by anything written in the file itself. Moving a node or skin's <code>.py</code> file from one library's folder to another's changes its registry key automatically, with no code change required at the call site.</p>
 <h3 id="25-filewatcher-haywirecorelibraryfile_watcherpy">2.5 <code>FileWatcher</code> (<code>haywire/core/library/file_watcher.py</code>)<a class="headerlink" href="#25-filewatcher-haywirecorelibraryfile_watcherpy" title="Permanent link">&para;</a></h3>
 <p>A <code>watchdog</code>-based file-system observer started per library when <code>file_watcher=True</code>. On any <code>.py</code> change inside the library's source directory, it triggers the <a href="../../hot-reload/hot-reload-arch/">hot-reload</a> pipeline: re-import the module, re-register components, rebuild affected node and edge wrappers, revalidate the graph.</p>
 <p>Two switches gate file watching at different scopes:</p>
@@ -3378,28 +3430,28 @@
 </ul>
 <h2 id="3-data-flow">3. Data flow<a class="headerlink" href="#3-data-flow" title="Permanent link">&para;</a></h2>
 <h3 id="31-discovery-sequence-at-startup">3.1 Discovery sequence at startup<a class="headerlink" href="#31-discovery-sequence-at-startup" title="Permanent link">&para;</a></h3>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>HaywireApp.__init__()
-</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>  │
-</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>  ├── LibraryDiscovery.scan()
-</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>  │     importlib.metadata.entry_points(group=&#39;haywire.libraries&#39;)
-</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>  │     → [DiscoveredLibrary(id, import_path, install_type), ...]
-</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>  │
-</span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>  ├── for each DiscoveredLibrary:
-</span><span id="__span-2-8"><a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a>  │     LibraryRegistry.load(discovered)
-</span><span id="__span-2-9"><a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a>  │       │
-</span><span id="__span-2-10"><a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a>  │       ├── importlib.import_module(import_path)
-</span><span id="__span-2-11"><a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a>  │       ├── Library = getattr(module, &#39;Library&#39;)
-</span><span id="__span-2-12"><a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a>  │       ├── LibraryIdentity(...) ← from @library decorator + install_type
-</span><span id="__span-2-13"><a id="__codelineno-2-13" name="__codelineno-2-13" href="#__codelineno-2-13"></a>  │       ├── library_instance = Library()
-</span><span id="__span-2-14"><a id="__codelineno-2-14" name="__codelineno-2-14" href="#__codelineno-2-14"></a>  │       ├── library_instance.register_components()
-</span><span id="__span-2-15"><a id="__codelineno-2-15" name="__codelineno-2-15" href="#__codelineno-2-15"></a>  │       │     └── self.add_folder_to_registry(folder=&#39;nodes&#39;, registry_cls=NodeRegistry)
-</span><span id="__span-2-16"><a id="__codelineno-2-16" name="__codelineno-2-16" href="#__codelineno-2-16"></a>  │       │     └── self.add_folder_to_registry(folder=&#39;types&#39;, registry_cls=TypeRegistry)
-</span><span id="__span-2-17"><a id="__codelineno-2-17" name="__codelineno-2-17" href="#__codelineno-2-17"></a>  │       │     └── ...
-</span><span id="__span-2-18"><a id="__codelineno-2-18" name="__codelineno-2-18" href="#__codelineno-2-18"></a>  │       ├── if not library_instance.validate(): abort
-</span><span id="__span-2-19"><a id="__codelineno-2-19" name="__codelineno-2-19" href="#__codelineno-2-19"></a>  │       └── if @library(file_watcher=True):
-</span><span id="__span-2-20"><a id="__codelineno-2-20" name="__codelineno-2-20" href="#__codelineno-2-20"></a>  │             FileWatcher(library_instance.source_path).start()
-</span><span id="__span-2-21"><a id="__codelineno-2-21" name="__codelineno-2-21" href="#__codelineno-2-21"></a>  │
-</span><span id="__span-2-22"><a id="__codelineno-2-22" name="__codelineno-2-22" href="#__codelineno-2-22"></a>  └── all class registries now populated; app proceeds
+<div class="language-text highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>HaywireApp.__init__()
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>  │
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>  ├── LibraryDiscovery.scan()
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>  │     importlib.metadata.entry_points(group=&#39;haywire.libraries&#39;)
+</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>  │     → [DiscoveredLibrary(id, import_path, install_type), ...]
+</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>  │
+</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a>  ├── for each DiscoveredLibrary:
+</span><span id="__span-3-8"><a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a>  │     LibraryRegistry.load(discovered)
+</span><span id="__span-3-9"><a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a>  │       │
+</span><span id="__span-3-10"><a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a>  │       ├── importlib.import_module(import_path)
+</span><span id="__span-3-11"><a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a>  │       ├── Library = getattr(module, &#39;Library&#39;)
+</span><span id="__span-3-12"><a id="__codelineno-3-12" name="__codelineno-3-12" href="#__codelineno-3-12"></a>  │       ├── LibraryIdentity(...) ← from @library decorator + install_type
+</span><span id="__span-3-13"><a id="__codelineno-3-13" name="__codelineno-3-13" href="#__codelineno-3-13"></a>  │       ├── library_instance = Library()
+</span><span id="__span-3-14"><a id="__codelineno-3-14" name="__codelineno-3-14" href="#__codelineno-3-14"></a>  │       ├── library_instance.register_components()
+</span><span id="__span-3-15"><a id="__codelineno-3-15" name="__codelineno-3-15" href="#__codelineno-3-15"></a>  │       │     └── self.add_folder_to_registry(folder=&#39;nodes&#39;, registry_cls=NodeRegistry)
+</span><span id="__span-3-16"><a id="__codelineno-3-16" name="__codelineno-3-16" href="#__codelineno-3-16"></a>  │       │     └── self.add_folder_to_registry(folder=&#39;types&#39;, registry_cls=TypeRegistry)
+</span><span id="__span-3-17"><a id="__codelineno-3-17" name="__codelineno-3-17" href="#__codelineno-3-17"></a>  │       │     └── ...
+</span><span id="__span-3-18"><a id="__codelineno-3-18" name="__codelineno-3-18" href="#__codelineno-3-18"></a>  │       ├── if not library_instance.validate(): abort
+</span><span id="__span-3-19"><a id="__codelineno-3-19" name="__codelineno-3-19" href="#__codelineno-3-19"></a>  │       └── if @library(file_watcher=True):
+</span><span id="__span-3-20"><a id="__codelineno-3-20" name="__codelineno-3-20" href="#__codelineno-3-20"></a>  │             FileWatcher(library_instance.source_path).start()
+</span><span id="__span-3-21"><a id="__codelineno-3-21" name="__codelineno-3-21" href="#__codelineno-3-21"></a>  │
+</span><span id="__span-3-22"><a id="__codelineno-3-22" name="__codelineno-3-22" href="#__codelineno-3-22"></a>  └── all class registries now populated; app proceeds
 </span></code></pre></div>
 <p>State classes registered via <code>LibraryStateRegistry</code> have a two-phase lifecycle that intersects this loop: instantiation happens per library as it enables, but <code>AppState.on_enable</code> is held back until the whole <code>enable_all_libraries()</code> loop returns and a catch-up pass runs. See <a href="../../session-and-state/session-and-state-arch/#31-appstate-lifecycle">session-and-state-arch §3.1</a> and <a href="../../session-and-state/session-and-state-arch/#52-librarysystemservice-wiring">§5.2</a> for the wiring and rationale.</p>
 <h3 id="32-priority-order-when-multiple-sources-provide-the-same-library-id">3.2 Priority order when multiple sources provide the same library ID<a class="headerlink" href="#32-priority-order-when-multiple-sources-provide-the-same-library-id" title="Permanent link">&para;</a></h3>
@@ -3435,22 +3487,27 @@
 </tbody>
 </table>
 <p>First match wins. Detection is by the resolved filesystem location of the import.</p>
+<h3 id="32a-the-builtin-library-priority-1s-sole-occupant">3.2a The <code>builtin</code> library (Priority 1's sole occupant)<a class="headerlink" href="#32a-the-builtin-library-priority-1s-sole-occupant" title="Permanent link">&para;</a></h3>
+<p><code>haywire.barn.builtin</code> (<code>id="builtin"</code>) is the only library that currently loads via the Priority 1 "core libraries" path. It differs from every other library in this doc in one structural way: it ships <strong>inside the <code>haywire-core</code> distribution</strong> (<code>packages/haywire-core/src/haywire/barn/builtin/</code>), not as a separate haybale package with its own <code>pyproject.toml</code> and entry point. <code>core_libraries_path</code> (wired in DI to <code>Path(haywire.barn.__file__).parent</code>) is scanned directly — no <code>importlib.metadata.entry_points()</code> involved for this one.</p>
+<p>Because it always loads first, <code>builtin</code> is where framework-owned primitives that every other library may depend on must live: base scalar/vector/color types, their adapters and widgets, and the reroute node/skin (<code>nodes/</code>, <code>skins/</code> folders registered the same way any plugin registers them, via <code>add_folder_to_registry()</code> in <code>register_components()</code>). A plugin library never needs to declare a dependency on <code>builtin</code> — it is guaranteed to be loaded and its registries populated before any Priority 2+ library's <code>register_components()</code> runs.</p>
+<p><code>builtin</code> already depends on <code>haywire.ui</code>/<code>nicegui</code> (its <code>widgets/</code> and <code>skins/</code> folders import them directly) — so "loads before everything else" does not imply "UI-free." A component that needs to stay importable on a headless execution path (e.g. <code>RerouteNode</code>) achieves that by never importing its own skin class — it binds the skin by registry-key string instead (<code>self.props.skin = "builtin:skin:RerouteSkin"</code>) and lets the renderer resolve it lazily. That string-binding discipline, not the folder it lives in, is what keeps a component headless-safe.</p>
+<p>See also the glossary's <a href="../../../reference/glossary/#library-five-distinct-meanings">note under "Library" — five distinct meanings</a> disambiguating <code>builtin</code> from a haybale package.</p>
 <h3 id="33-hot-reload-trigger">3.3 Hot-reload trigger<a class="headerlink" href="#33-hot-reload-trigger" title="Permanent link">&para;</a></h3>
 <p>For libraries with <code>file_watcher=True</code>:</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>FileWatcher detects .py change
-</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>  │
-</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>  ├── importlib.reload(module)
-</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>  │
-</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>  ├── BaseRegistry._on_change fires for each registry that holds classes from this module
-</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>  │     → NodeRegistry, TypeRegistry, AdapterRegistry, WidgetRegistry, …
-</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a>  │     → For each registered class whose source is in the changed file:
-</span><span id="__span-3-8"><a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a>  │         drop old class, register new class under same registry_key
-</span><span id="__span-3-9"><a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a>  │
-</span><span id="__span-3-10"><a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a>  ├── Affected NodeWrappers rebuild from recipe (port specs serialized → re-instantiated)
-</span><span id="__span-3-11"><a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a>  │
-</span><span id="__span-3-12"><a id="__codelineno-3-12" name="__codelineno-3-12" href="#__codelineno-3-12"></a>  ├── Affected EdgeWrappers rebuild adapter chains
-</span><span id="__span-3-13"><a id="__codelineno-3-13" name="__codelineno-3-13" href="#__codelineno-3-13"></a>  │
-</span><span id="__span-3-14"><a id="__codelineno-3-14" name="__codelineno-3-14" href="#__codelineno-3-14"></a>  └── Graph revalidates; UI re-renders
+<div class="language-text highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>FileWatcher detects .py change
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>  │
+</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>  ├── importlib.reload(module)
+</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>  │
+</span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>  ├── BaseRegistry._on_change fires for each registry that holds classes from this module
+</span><span id="__span-4-6"><a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a>  │     → NodeRegistry, TypeRegistry, AdapterRegistry, WidgetRegistry, …
+</span><span id="__span-4-7"><a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a>  │     → For each registered class whose source is in the changed file:
+</span><span id="__span-4-8"><a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a>  │         drop old class, register new class under same registry_key
+</span><span id="__span-4-9"><a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a>  │
+</span><span id="__span-4-10"><a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a>  ├── Affected NodeWrappers rebuild from recipe (port specs serialized → re-instantiated)
+</span><span id="__span-4-11"><a id="__codelineno-4-11" name="__codelineno-4-11" href="#__codelineno-4-11"></a>  │
+</span><span id="__span-4-12"><a id="__codelineno-4-12" name="__codelineno-4-12" href="#__codelineno-4-12"></a>  ├── Affected EdgeWrappers rebuild adapter chains
+</span><span id="__span-4-13"><a id="__codelineno-4-13" name="__codelineno-4-13" href="#__codelineno-4-13"></a>  │
+</span><span id="__span-4-14"><a id="__codelineno-4-14" name="__codelineno-4-14" href="#__codelineno-4-14"></a>  └── Graph revalidates; UI re-renders
 </span></code></pre></div>
 <p>See <a href="../../hot-reload/hot-reload-arch/">architecture/hot-reload</a> for the full pipeline.</p>
 <h2 id="4-performance-errors-and-boundaries">4. Performance, errors, and boundaries<a class="headerlink" href="#4-performance-errors-and-boundaries" title="Permanent link">&para;</a></h2>
@@ -3493,45 +3550,46 @@
 <p>A haybale library is a Python package with:</p>
 <ol>
 <li>A <code>pyproject.toml</code> declaring the entry point:
-   <div class="language-toml highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="k">[project.entry-points.</span><span class="s2">&quot;haywire.libraries&quot;</span><span class="k">]</span>
-</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="n">mylib</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;haybale_mylib:Library&quot;</span>
+   <div class="language-toml highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="k">[project.entry-points.</span><span class="s2">&quot;haywire.libraries&quot;</span><span class="k">]</span>
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="n">mylib</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;haybale_mylib:Library&quot;</span>
 </span></code></pre></div></li>
 <li>An <code>__init__.py</code> containing a <code>@library(...)</code> decorated <code>Library</code> class that subclasses <code>BaseLibrary</code>.</li>
 <li>Implements <code>register_components()</code> (mandatory) and <code>validate()</code> (returns <code>bool</code>).</li>
 </ol>
 <p>See <a href="../../../haybale/library-canon/">haybale/library</a> for the full authoring story and <a href="../../../haybale/haybale-package-canon/">haybale/haybale-package</a> for packaging and distribution.</p>
+<p>The one exception is the framework-internal <a href="#32a-the-builtin-library-priority-1s-sole-occupant"><code>builtin</code> library</a> — it skips step 1 entirely (no <code>pyproject.toml</code>, no entry point) because it ships inside <code>haywire-core</code> and is discovered by filesystem scan, not <code>importlib.metadata</code>.</p>
 <h2 id="5-programmatic-embedding">5. Programmatic embedding<a class="headerlink" href="#5-programmatic-embedding" title="Permanent link">&para;</a></h2>
 <p>Two factory functions in <code>packages/haywire-core/src/haywire/core/di/config.py</code> let you embed the library system outside the studio app — for headless scripts, integration tests, or alternative front-ends.</p>
 <h3 id="create_library_system_service-most-callers"><code>create_library_system_service(...)</code> — most callers<a class="headerlink" href="#create_library_system_service-most-callers" title="Permanent link">&para;</a></h3>
 <p>Convenience factory that creates the DI injector, constructs a <code>LibrarySystemService</code>, and runs <code>service.initialize()</code> in one call. Use this when you want a fully-loaded library system ready to read from.</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">haywire.core.di.config</span><span class="w"> </span><span class="kn">import</span> <span class="n">create_library_system_service</span>
-</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>
-</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="n">service</span> <span class="o">=</span> <span class="n">create_library_system_service</span><span class="p">(</span>
-</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>    <span class="n">workspace_root</span><span class="o">=</span><span class="s1">&#39;/path/to/project&#39;</span><span class="p">,</span>  <span class="c1"># or None to auto-detect</span>
-</span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a>    <span class="n">library_paths</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;/path/to/extra/libs&#39;</span><span class="p">],</span>  <span class="c1"># additional folder-loaded libraries</span>
-</span><span id="__span-5-6"><a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a>    <span class="n">enable_file_watching</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>              <span class="c1"># hot-reload (default True)</span>
-</span><span id="__span-5-7"><a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a>    <span class="n">settings_path</span><span class="o">=</span><span class="s1">&#39;~/.haywire/settings.toml&#39;</span><span class="p">,</span>  <span class="c1"># global settings (default)</span>
-</span><span id="__span-5-8"><a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a>    <span class="n">watch_settings</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>                    <span class="c1"># reload settings on file change (default True)</span>
-</span><span id="__span-5-9"><a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a><span class="p">)</span>
-</span><span id="__span-5-10"><a id="__codelineno-5-10" name="__codelineno-5-10" href="#__codelineno-5-10"></a>
-</span><span id="__span-5-11"><a id="__codelineno-5-11" name="__codelineno-5-11" href="#__codelineno-5-11"></a><span class="c1"># At this point all entry-point libraries are discovered and registered.</span>
-</span><span id="__span-5-12"><a id="__codelineno-5-12" name="__codelineno-5-12" href="#__codelineno-5-12"></a><span class="n">node_registry</span> <span class="o">=</span> <span class="n">service</span><span class="o">.</span><span class="n">get_node_registry</span><span class="p">()</span>
-</span><span id="__span-5-13"><a id="__codelineno-5-13" name="__codelineno-5-13" href="#__codelineno-5-13"></a><span class="n">panel_registry</span> <span class="o">=</span> <span class="n">service</span><span class="o">.</span><span class="n">get_panel_registry</span><span class="p">()</span>
-</span><span id="__span-5-14"><a id="__codelineno-5-14" name="__codelineno-5-14" href="#__codelineno-5-14"></a><span class="c1"># ... etc.</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">haywire.core.di.config</span><span class="w"> </span><span class="kn">import</span> <span class="n">create_library_system_service</span>
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>
+</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="n">service</span> <span class="o">=</span> <span class="n">create_library_system_service</span><span class="p">(</span>
+</span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a>    <span class="n">workspace_root</span><span class="o">=</span><span class="s1">&#39;/path/to/project&#39;</span><span class="p">,</span>  <span class="c1"># or None to auto-detect</span>
+</span><span id="__span-6-5"><a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a>    <span class="n">library_paths</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;/path/to/extra/libs&#39;</span><span class="p">],</span>  <span class="c1"># additional folder-loaded libraries</span>
+</span><span id="__span-6-6"><a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a>    <span class="n">enable_file_watching</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>              <span class="c1"># hot-reload (default True)</span>
+</span><span id="__span-6-7"><a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a>    <span class="n">settings_path</span><span class="o">=</span><span class="s1">&#39;~/.haywire/settings.toml&#39;</span><span class="p">,</span>  <span class="c1"># global settings (default)</span>
+</span><span id="__span-6-8"><a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a>    <span class="n">watch_settings</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>                    <span class="c1"># reload settings on file change (default True)</span>
+</span><span id="__span-6-9"><a id="__codelineno-6-9" name="__codelineno-6-9" href="#__codelineno-6-9"></a><span class="p">)</span>
+</span><span id="__span-6-10"><a id="__codelineno-6-10" name="__codelineno-6-10" href="#__codelineno-6-10"></a>
+</span><span id="__span-6-11"><a id="__codelineno-6-11" name="__codelineno-6-11" href="#__codelineno-6-11"></a><span class="c1"># At this point all entry-point libraries are discovered and registered.</span>
+</span><span id="__span-6-12"><a id="__codelineno-6-12" name="__codelineno-6-12" href="#__codelineno-6-12"></a><span class="n">node_registry</span> <span class="o">=</span> <span class="n">service</span><span class="o">.</span><span class="n">get_node_registry</span><span class="p">()</span>
+</span><span id="__span-6-13"><a id="__codelineno-6-13" name="__codelineno-6-13" href="#__codelineno-6-13"></a><span class="n">panel_registry</span> <span class="o">=</span> <span class="n">service</span><span class="o">.</span><span class="n">get_panel_registry</span><span class="p">()</span>
+</span><span id="__span-6-14"><a id="__codelineno-6-14" name="__codelineno-6-14" href="#__codelineno-6-14"></a><span class="c1"># ... etc.</span>
 </span></code></pre></div>
 <h3 id="create_haywire_injector-when-you-need-the-injector-itself"><code>create_haywire_injector(...)</code> — when you need the injector itself<a class="headerlink" href="#create_haywire_injector-when-you-need-the-injector-itself" title="Permanent link">&para;</a></h3>
 <p>Returns the raw DI <code>Injector</code> without initializing the library system. Use this when you want to wire your own services on top, or when you need to defer <code>service.initialize()</code> until later in your bootstrap. Same parameter list as <code>create_library_system_service</code> (minus the auto-initialization).</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">haywire.core.di.config</span><span class="w"> </span><span class="kn">import</span> <span class="n">create_haywire_injector</span>
-</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">haywire.core.di.config</span><span class="w"> </span><span class="kn">import</span> <span class="n">LibrarySystemService</span>
-</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>
-</span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="n">injector</span> <span class="o">=</span> <span class="n">create_haywire_injector</span><span class="p">(</span>
-</span><span id="__span-6-5"><a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a>    <span class="n">workspace_root</span><span class="o">=</span><span class="s1">&#39;/path/to/project&#39;</span><span class="p">,</span>
-</span><span id="__span-6-6"><a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a>    <span class="n">enable_file_watching</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>  <span class="c1"># disable hot-reload in CI</span>
-</span><span id="__span-6-7"><a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a><span class="p">)</span>
-</span><span id="__span-6-8"><a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a>
-</span><span id="__span-6-9"><a id="__codelineno-6-9" name="__codelineno-6-9" href="#__codelineno-6-9"></a><span class="c1"># Wire your own services here, then initialize the library system:</span>
-</span><span id="__span-6-10"><a id="__codelineno-6-10" name="__codelineno-6-10" href="#__codelineno-6-10"></a><span class="n">service</span> <span class="o">=</span> <span class="n">injector</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">LibrarySystemService</span><span class="p">)</span>
-</span><span id="__span-6-11"><a id="__codelineno-6-11" name="__codelineno-6-11" href="#__codelineno-6-11"></a><span class="n">service</span><span class="o">.</span><span class="n">initialize</span><span class="p">()</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">haywire.core.di.config</span><span class="w"> </span><span class="kn">import</span> <span class="n">create_haywire_injector</span>
+</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">haywire.core.di.config</span><span class="w"> </span><span class="kn">import</span> <span class="n">LibrarySystemService</span>
+</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>
+</span><span id="__span-7-4"><a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="n">injector</span> <span class="o">=</span> <span class="n">create_haywire_injector</span><span class="p">(</span>
+</span><span id="__span-7-5"><a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a>    <span class="n">workspace_root</span><span class="o">=</span><span class="s1">&#39;/path/to/project&#39;</span><span class="p">,</span>
+</span><span id="__span-7-6"><a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a>    <span class="n">enable_file_watching</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>  <span class="c1"># disable hot-reload in CI</span>
+</span><span id="__span-7-7"><a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a><span class="p">)</span>
+</span><span id="__span-7-8"><a id="__codelineno-7-8" name="__codelineno-7-8" href="#__codelineno-7-8"></a>
+</span><span id="__span-7-9"><a id="__codelineno-7-9" name="__codelineno-7-9" href="#__codelineno-7-9"></a><span class="c1"># Wire your own services here, then initialize the library system:</span>
+</span><span id="__span-7-10"><a id="__codelineno-7-10" name="__codelineno-7-10" href="#__codelineno-7-10"></a><span class="n">service</span> <span class="o">=</span> <span class="n">injector</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">LibrarySystemService</span><span class="p">)</span>
+</span><span id="__span-7-11"><a id="__codelineno-7-11" name="__codelineno-7-11" href="#__codelineno-7-11"></a><span class="n">service</span><span class="o">.</span><span class="n">initialize</span><span class="p">()</span>
 </span></code></pre></div>
 <h3 id="parameter-reference-both-functions">Parameter reference (both functions)<a class="headerlink" href="#parameter-reference-both-functions" title="Permanent link">&para;</a></h3>
 <table>
