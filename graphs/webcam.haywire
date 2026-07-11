@@ -5,7 +5,7 @@
   "version": "1.0.0",
   "author": "",
   "created_at": null,
-  "modified_at": "2026-07-01T22:29:14.861283",
+  "modified_at": "2026-07-07T07:53:18.267891",
   "nodes": {
     "BeginPlayNode_87f32274": {
       "node_id": "BeginPlayNode_87f32274",
@@ -70,13 +70,19 @@
         },
         "settings": {
           "props": {
-            "posX": 550.0,
-            "posY": 1400.0
+            "values": {
+              "posX": 550.0,
+              "posY": 1400.0
+            },
+            "promoted": {}
           }
         },
         "props": {
-          "posX": 550.0,
-          "posY": 1400.0
+          "values": {
+            "posX": 550.0,
+            "posY": 1400.0
+          },
+          "promoted": {}
         },
         "store": {},
         "identity": {
@@ -446,13 +452,19 @@
         },
         "settings": {
           "props": {
-            "posX": 1000.0,
-            "posY": 1400.0
+            "values": {
+              "posX": 1000.0,
+              "posY": 1400.0
+            },
+            "promoted": {}
           }
         },
         "props": {
-          "posX": 1000.0,
-          "posY": 1400.0
+          "values": {
+            "posX": 1000.0,
+            "posY": 1400.0
+          },
+          "promoted": {}
         },
         "store": {},
         "identity": {
@@ -566,13 +578,19 @@
         },
         "settings": {
           "props": {
-            "posX": 550.0,
-            "posY": 1600.0
+            "values": {
+              "posX": 550.0,
+              "posY": 1600.0
+            },
+            "promoted": {}
           }
         },
         "props": {
-          "posX": 550.0,
-          "posY": 1600.0
+          "values": {
+            "posX": 550.0,
+            "posY": 1600.0
+          },
+          "promoted": {}
         },
         "store": {},
         "identity": {
@@ -878,13 +896,19 @@
         },
         "settings": {
           "props": {
-            "posX": 2000.0,
-            "posY": 1950.0
+            "values": {
+              "posX": 2000.0,
+              "posY": 1950.0
+            },
+            "promoted": {}
           }
         },
         "props": {
-          "posX": 2000.0,
-          "posY": 1950.0
+          "values": {
+            "posX": 2000.0,
+            "posY": 1950.0
+          },
+          "promoted": {}
         },
         "store": {},
         "identity": {
@@ -1168,13 +1192,19 @@
         },
         "settings": {
           "props": {
-            "posX": 550.0,
-            "posY": 1850.0
+            "values": {
+              "posX": 550.0,
+              "posY": 1850.0
+            },
+            "promoted": {}
           }
         },
         "props": {
-          "posX": 550.0,
-          "posY": 1850.0
+          "values": {
+            "posX": 550.0,
+            "posY": 1850.0
+          },
+          "promoted": {}
         },
         "store": {},
         "identity": {
@@ -1460,13 +1490,19 @@
         },
         "settings": {
           "props": {
-            "posX": 950.0,
-            "posY": 1800.0
+            "values": {
+              "posX": 950.0,
+              "posY": 1800.0
+            },
+            "promoted": {}
           }
         },
         "props": {
-          "posX": 950.0,
-          "posY": 1800.0
+          "values": {
+            "posX": 950.0,
+            "posY": 1800.0
+          },
+          "promoted": {}
         },
         "store": {},
         "identity": {
@@ -1711,14 +1747,23 @@
         },
         "settings": {
           "props": {
+            "values": {
+              "posX": 1650.0,
+              "posY": 1900.0
+            },
+            "promoted": {}
+          },
+          "style": {
+            "values": {},
+            "promoted": {}
+          }
+        },
+        "props": {
+          "values": {
             "posX": 1650.0,
             "posY": 1900.0
           },
-          "style": {}
-        },
-        "props": {
-          "posX": 1650.0,
-          "posY": 1900.0
+          "promoted": {}
         },
         "store": {},
         "identity": {
@@ -2002,13 +2047,19 @@
         },
         "settings": {
           "props": {
-            "posX": 1300.0,
-            "posY": 2100.0
+            "values": {
+              "posX": 1300.0,
+              "posY": 2100.0
+            },
+            "promoted": {}
           }
         },
         "props": {
-          "posX": 1300.0,
-          "posY": 2100.0
+          "values": {
+            "posX": 1300.0,
+            "posY": 2100.0
+          },
+          "promoted": {}
         },
         "store": {},
         "identity": {
@@ -2102,14 +2153,23 @@
         },
         "settings": {
           "props": {
+            "values": {
+              "posX": 1650.0,
+              "posY": 1600.0
+            },
+            "promoted": {}
+          },
+          "example": {
+            "values": {},
+            "promoted": {}
+          }
+        },
+        "props": {
+          "values": {
             "posX": 1650.0,
             "posY": 1600.0
           },
-          "example": {}
-        },
-        "props": {
-          "posX": 1650.0,
-          "posY": 1600.0
+          "promoted": {}
         },
         "store": {},
         "identity": {

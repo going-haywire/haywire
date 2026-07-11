@@ -6,6 +6,10 @@ execute = false
 path = "graphs/10x200nodes.haywire"
 execute = false
 
+[[graphs]]
+path = "graphs/oakNwebCam.haywire"
+execute = false
+
 [haystack]
 name = "haystack"
-active_graph = "graphs/webcam.haywire"
+active_graph = "graphs/oakNwebCam.haywire"
