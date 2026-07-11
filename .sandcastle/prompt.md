@@ -1,70 +1,66 @@
-# ISSUES
+# Haywire ticket loop — {{FEATURE}}
 
-Issues JSON is provided at start of context. Parse it to get open issues with their bodies and comments.
+You are one iteration of a loop. Your job: complete exactly **one** ticket of
+this feature, close it out cleanly, and stop. The next iteration starts with a
+fresh context and picks up the next ticket from the state you leave behind —
+the ticket files and your commits are the only memory that survives you.
 
-You've also been passed the last 10 RALPH commits (SHA, date, full message). Review these to understand what work has been done.
+## Ground rules
 
-# ENVIRONMENT
+- Read `CLAUDE.md` first and follow it: read files before editing, check
+  `docs/` before reading source, read the relevant `.insights/` trap files
+  before debugging, respect the ADRs.
+- Read the spec in full: `{{SPEC_PATH}}`. Its Implementation Decisions are
+  binding — do not relitigate them.
+- Never modify the spec, other tickets' scope, or anything under `.sandcastle/`.
+- Run `uv sync` if dependencies are not already installed.
 
-This is a Python project using uv as the package manager. It is a uv workspace monorepo.
+## Select the frontier ticket
 
-Before starting work, run:
-```
-uv sync
-```
+Tickets live in `{{TICKETS_DIR}}`, one file each, numbered in dependency
+order. Read all of them, including their checkboxes and any `## Progress`
+notes from previous iterations.
 
-# TASK SELECTION
+The frontier ticket is the **lowest-numbered** file whose `**Status:**` is
+`ready-for-agent` and whose "Blocked by" tickets all have `**Status:** done`.
 
-Pick the next task. Prioritize tasks in this order:
+If no ticket qualifies — everything is done, or the only remaining tickets are
+blocked — output `<promise>COMPLETE</promise>` and stop immediately. Do not
+invent extra work.
 
-1. Critical bugfixes
-2. Tracer bullets for new features
+## Work the ticket
 
-Tracer bullets comes from the Pragmatic Programmer. When building systems, you want to write code that gets you feedback as quickly as possible. Tracer bullets are small slices of functionality that go through all layers of the system, allowing you to test and validate your approach early. This helps in identifying potential issues and ensures that the overall architecture is sound before investing significant time in development.
+- One ticket only. Do not start a second, even if you finish early.
+- If a previous iteration left a `## Progress` note on this ticket, continue
+  from where it stopped instead of starting over.
+- Test at the seams the spec's Testing Decisions name — assert observable
+  behaviour, never private internals.
 
-TL;DR - build a tiny, end-to-end slice of the feature first, then expand it out.
+## Validation gates
 
-3. Polish and quick wins
-4. Refactors
+Before claiming anything done, all of these must pass with no new findings
+(the mypy target list is in CLAUDE.md — use it verbatim):
 
-If all tasks are complete, output <promise>COMPLETE</promise>.
-
-# EXPLORATION
-
-Explore the repo and fill your context window with relevant information that will allow you to complete the task. Read CLAUDE.md for project conventions and architecture guidance.
-
-# VALIDATION
-
-Before committing, always run:
-```
+```sh
 uv run pytest
 uv run ruff check .
+uv run ruff format --check .
+uv run mypy <CLAUDE.md target list>
 ```
 
-Fix any failures before proceeding.
+A gate failure you cannot fix this iteration means the ticket is NOT done —
+close out honestly per below.
 
-# EXECUTION
+## Close out
 
-Complete the task.
-
-# COMMIT
-
-Make a git commit. The commit message must:
-
-1. Start with `RALPH:` prefix
-2. Include task completed + issue reference
-3. Key decisions made
-4. Files changed
-5. Blockers or notes for next iteration
-
-Keep it concise.
-
-# THE ISSUE
-
-If the task is complete, close the original GitHub issue.
-
-If the task is not complete, leave a comment on the GitHub issue with what was done.
-
-# FINAL RULES
-
-ONLY WORK ON A SINGLE TASK.
+- Check off only the acceptance boxes you actually **verified** — evidence,
+  not intention. Boxes requiring a human (e.g. "verified in the running app")
+  stay unchecked; they are the reviewer's gate, not yours.
+- Ticket finished (all boxes except human-only ones): flip its `**Status:**`
+  to `done`.
+- Ticket unfinished: leave `**Status:** ready-for-agent` and append a
+  `## Progress` section to the ticket file saying precisely what is done, what
+  is not, and what blocked you.
+- Commit everything — code, tests, and the updated ticket file — as
+  `agent({{FEATURE}}): <NN> <summary>`, with key decisions and any blockers
+  in the body. Commit even unfinished work (the branch is the handoff).

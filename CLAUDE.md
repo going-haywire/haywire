@@ -107,3 +107,7 @@ Things that aren't visible from the code itself — bugs we hit, framework quirk
 - [project_ui_design_system.md](.insights/project_ui_design_system.md) — anti-patterns with reasons: no hardcoded colors, no `box-shadow` on chrome, no `truncate` on QBtn, no `ui.card()` inside `ui.dialog()`.
 
 When you discover a new trap that isn't obvious from the code, add a file to `.insights/` and a one-line entry above. Keep this list under ~20 entries — if it gets longer, demote less-load-bearing ones to a subdir `CLAUDE.md`.
+
+## Sandcastle
+
+The repo has an autonomous agent loop (Docker sandbox, ticket queue, review branches) — setup, usage, and model variants are documented in [.sandcastle/README.md](.sandcastle/README.md).

@@ -188,6 +188,15 @@ cd /tmp
 uv run --project <absolute path to haywire-repo> haywire init myTestProject --dev
 ```
 
+### Autonomous agent loop (sandcastle)
+
+The repo ships a [sandcastle](https://github.com/mattpocock/sandcastle)-based
+agent loop that works ticket queues inside a Docker sandbox and commits to a
+review branch. It is optional tooling; using it requires **Node.js ≥ 20** and
+**Docker** on the host (the Python toolchain lives inside the sandbox image).
+Setup, usage, and model variants (Anthropic API vs. local Ollama) are
+documented in [.sandcastle/README.md](.sandcastle/README.md).
+
 ### Documentation
 
 The published docs at <https://going-haywire.github.io/haywire/docs/> are built from

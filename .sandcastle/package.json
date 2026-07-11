@@ -1,0 +1,16 @@
+{
+  "name": "haywire-sandcastle",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "tsx main.mts"
+  },
+  "dependencies": {
+    "@ai-hero/sandcastle": "^0.12.0"
+  },
+  "devDependencies": {
+    "@types/node": "^26.1.1",
+    "tsx": "^4.19.0",
+    "typescript": "^7.0.2"
+  }
+}
