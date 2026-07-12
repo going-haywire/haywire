@@ -1,4 +1,4 @@
-# haywire/core/settings/graph_settings.py
+# haywire/core/settings/settings_graph.py
 """
 GraphSettings — base class for graph-owned settings bags.
 

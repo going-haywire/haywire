@@ -2,7 +2,8 @@
 """Tests for SettingsRegistry hot-reload: register_schema / unregister."""
 
 from haywire.core.settings import setting
-from haywire.core.settings.schema import FrameworkSettings, LibrarySettings
+from haywire.core.settings.settings_framework import FrameworkSettings
+from haywire.core.settings.settings_library import LibrarySettings
 from haywire.core.settings.decorator import settings
 from haywire.core.settings.registry import SettingsRegistry
 from haywire.barn.builtin.types import INT, STRING

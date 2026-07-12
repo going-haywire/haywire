@@ -21,7 +21,7 @@ import pytest
 
 from haywire.core.settings import setting
 from haywire.core.settings.registry import SettingsRegistry
-from haywire.core.settings.schema import LibrarySettings
+from haywire.core.settings.settings_library import LibrarySettings
 from haywire.barn.builtin.types import STRING
 
 

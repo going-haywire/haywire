@@ -504,7 +504,7 @@ def graph(src: "setting[T]", **kwargs: Any) -> "setting[T]":
     subclass (e.g. ``GraphProperties.default_skin``). For framework/library
     settings use ``shadow()``/``watch()``.
     """
-    from haywire.core.settings.graph_settings import GraphSettings
+    from haywire.core.settings.settings_graph import GraphSettings
 
     owner = getattr(src, "_owner_cls", None)
     if not (isinstance(owner, type) and issubclass(owner, GraphSettings)):

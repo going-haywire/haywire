@@ -161,10 +161,10 @@ All inherit from `Settings` (`packages/haywire-core/src/haywire/core/settings/se
 
 | Class | File | Registration | When `cls._registry` is set |
 | --- | --- | --- | --- |
-| `FrameworkSettings` | `settings/schema.py` | Auto-register via `_pending_global` queue at registry init | Drained by `SettingsRegistry.__init__` → `_drain_pending_global()` |
-| `LibrarySettings` | `settings/schema.py` | Via `BaseRegistry` hot-reload machinery (`_class_filter` picks up `class_identity`) | Set when the registry processes the class on library load |
-| `NodeSettings` | `settings/node_settings.py` | Never registered as a *class* — settings *instances* are bound per-node by `@node` | Per-instance: `__init__` accepts `registry`; `@node` injects it from the node's wrapper |
-| `GraphSettings` | `settings/graph_settings.py` | Never registered as a *class* — one instance owned per `BaseGraph` (`graph.props`) | Per-instance: `BaseGraph.__init__` calls `get_settings_registry()` unconditionally, same precondition as `NodeData.__init__` — no constructor override; tests configure the ambient DI context via `set_settings_registry(...)` before constructing a graph |
+| `FrameworkSettings` | `settings/settings_framework.py` | Auto-register via `_pending_global` queue at registry init | Drained by `SettingsRegistry.__init__` → `_drain_pending_global()` |
+| `LibrarySettings` | `settings/settings_library.py` | Via `BaseRegistry` hot-reload machinery (`_class_filter` picks up `class_identity`) | Set when the registry processes the class on library load |
+| `NodeSettings` | `settings/settings_node.py` | Never registered as a *class* — settings *instances* are bound per-node by `@node` | Per-instance: `__init__` accepts `registry`; `@node` injects it from the node's wrapper |
+| `GraphSettings` | `settings/settings_graph.py` | Never registered as a *class* — one instance owned per `BaseGraph` (`graph.props`) | Per-instance: `BaseGraph.__init__` calls `get_settings_registry()` unconditionally, same precondition as `NodeData.__init__` — no constructor override; tests configure the ambient DI context via `set_settings_registry(...)` before constructing a graph |
 
 Field descriptors on `FrameworkSettings` and `LibrarySettings` are auto-promoted to `persistent_setting` (a `setting` subclass that routes writes through `registry.set_global` + `save_to_json_debounced`). The swap happens during field setup — in `__init_subclass__` for the class-signature `namespace=` form, and in the `@settings` decorator for the decorator form. `NodeSettings` and `GraphSettings` fields are NOT promoted; their settings persist with the graph, not the workspace JSON, so instance-local (cell) semantics is correct for them.
 

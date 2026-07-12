@@ -12,7 +12,7 @@ core must never import from ui.
 from haywire.barn.builtin.types import CHOICES, STRING
 from haywire.barn.builtin.widgets.basic_widgets import SimpleLabelWidget
 from haywire.core.namespaces import CATEGORY_NODE_SKINS, NAMESPACE_UI_NODE_DEFAULT_SKIN
-from haywire.core.settings.schema import FrameworkSettings
+from haywire.core.settings.settings_framework import FrameworkSettings
 from haywire.core.settings import setting
 
 

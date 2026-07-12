@@ -13,7 +13,7 @@ import pytest
 
 from haywire.core.settings.descriptor import setting
 from haywire.core.settings.registry import SettingsRegistry
-from haywire.core.settings.schema import FrameworkSettings
+from haywire.core.settings.settings_framework import FrameworkSettings
 from haywire.barn.builtin.types import FLOAT
 
 

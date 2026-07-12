@@ -13,7 +13,7 @@ on load. ADR 0022.
 """
 
 from haywire.core.settings.descriptor import shadow
-from haywire.core.settings.graph_settings import GraphSettings
+from haywire.core.settings.settings_graph import GraphSettings
 from haywire.core.skin.settings import NodeDefaultSkinSettings, _node_skin_choices
 
 

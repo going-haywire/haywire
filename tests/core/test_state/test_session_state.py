@@ -10,7 +10,7 @@ Covers:
 
 import pytest
 
-from haywire.core.settings.schema import LibrarySettings
+from haywire.core.settings.settings_library import LibrarySettings
 from haywire.core.state import AppState, LibraryState, SessionState
 
 

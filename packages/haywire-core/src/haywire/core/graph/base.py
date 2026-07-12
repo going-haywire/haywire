@@ -26,7 +26,7 @@ if TYPE_CHECKING:
     from ..edge.edge_wrapper import EdgeWrapper
     from ..node.node_wrapper import NodeWrapper
     from .scheduler import ValidationScheduler
-    from ..settings.graph_settings import GraphSettings
+    from ..settings.settings_graph import GraphSettings
     from .properties import GraphProperties
 
 logger = logging.getLogger(__name__)

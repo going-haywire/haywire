@@ -152,7 +152,7 @@ def _reject_library_settings_fields(cls: type) -> None:
     """
     from typing import get_type_hints
 
-    from haywire.core.settings.schema import LibrarySettings
+    from haywire.core.settings.settings_library import LibrarySettings
 
     try:
         hints = get_type_hints(cls, include_extras=False)

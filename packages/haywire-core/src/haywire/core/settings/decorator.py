@@ -71,8 +71,9 @@ def settings(
     """
 
     def decorator(inner_cls: _TSettings) -> _TSettings:
-        # Lazy import to avoid circular dependency (schema imports descriptors)
-        from haywire.core.settings.schema import LibrarySettings, FrameworkSettings  # noqa: PLC0415
+        # Lazy import to avoid circular dependency (settings_library/settings_framework import descriptors)
+        from haywire.core.settings.settings_library import LibrarySettings  # noqa: PLC0415
+        from haywire.core.settings.settings_framework import FrameworkSettings  # noqa: PLC0415
         from haywire.core.settings.descriptor import persistent_setting  # noqa: PLC0415
 
         if not issubclass(inner_cls, (LibrarySettings, FrameworkSettings)):

@@ -1,4 +1,4 @@
-# haywire/core/settings/node_settings.py
+# haywire/core/settings/settings_node.py
 """
 NodeSettings — base class for node-local settings.
 

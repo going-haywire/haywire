@@ -1,6 +1,6 @@
 """HaystackSettings — per-workspace settings for the haystack library."""
 
-from haywire.core.settings.schema import LibrarySettings
+from haywire.core.settings.settings_library import LibrarySettings
 from haywire.core.settings import setting
 from haywire.core.settings.decorator import settings
 from haywire.barn.builtin.types import INT, STRING

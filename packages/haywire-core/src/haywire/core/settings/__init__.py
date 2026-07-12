@@ -17,14 +17,15 @@ Framework / library internals:
 """
 
 from .settings import Settings
-from .node_settings import NodeSettings
-from .graph_settings import GraphSettings
+from .settings_node import NodeSettings
+from .settings_graph import GraphSettings
 from .descriptor import setting, shadow, watch, graph, Promotable, UiState
 from .base import SettingDescriptor
 from .value import SettingValue
 from .types import Color, Icon, Vec2i, Vec3i, Vec4i, Vec2f, Vec3f, Vec4f, get_vec_meta
 from .registry import SettingsRegistry
-from .schema import LibrarySettings, FrameworkSettings
+from .settings_library import LibrarySettings
+from .settings_framework import FrameworkSettings
 from .decorator import SettingsClassIdentity, settings
 
 __all__ = [

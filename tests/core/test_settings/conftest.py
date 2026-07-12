@@ -23,7 +23,7 @@ import pytest
 
 @pytest.fixture(autouse=True)
 def _reset_framework_settings_registry():
-    from haywire.core.settings.schema import FrameworkSettings, _pending_global
+    from haywire.core.settings.settings_framework import FrameworkSettings, _pending_global
 
     saved_registry = FrameworkSettings._registry
     saved_pending = list(_pending_global)

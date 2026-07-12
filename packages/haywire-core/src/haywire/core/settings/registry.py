@@ -133,7 +133,7 @@ class SettingsRegistry(BaseRegistry[Settings]):
 
     def _drain_pending_global(self) -> None:
         """Register FrameworkSettings subclasses queued before this registry was created."""
-        from .schema import FrameworkSettings, _pending_global
+        from .settings_framework import FrameworkSettings, _pending_global
 
         FrameworkSettings._registry = self
         while _pending_global:
@@ -147,7 +147,8 @@ class SettingsRegistry(BaseRegistry[Settings]):
 
     def _class_filter(self, cls: Type) -> bool:
         """Accept LibrarySettings and FrameworkSettings subclasses with class_identity."""
-        from .schema import LibrarySettings, FrameworkSettings
+        from .settings_library import LibrarySettings
+        from .settings_framework import FrameworkSettings
 
         return (
             isinstance(cls, type)

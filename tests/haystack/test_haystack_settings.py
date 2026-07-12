@@ -19,7 +19,7 @@ def test_default_new_counter_starts_at_one():
 
 def test_settings_class_subclasses_library_settings():
     from haybale_haystack.settings.haystack_settings import HaystackSettings
-    from haywire.core.settings.schema import LibrarySettings
+    from haywire.core.settings.settings_library import LibrarySettings
 
     assert issubclass(HaystackSettings, LibrarySettings)
 

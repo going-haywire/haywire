@@ -7,7 +7,7 @@ from haywire.core.namespaces import (
     CATEGORY_EDITOR_HOVER,
 )
 from haywire.core.settings import setting
-from haywire.core.settings.schema import FrameworkSettings
+from haywire.core.settings.settings_framework import FrameworkSettings
 from haywire.barn.builtin.types import BOOL, FLOAT, INT
 
 

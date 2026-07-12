@@ -1,7 +1,7 @@
 # haybale_core/settings/ui_node.py
 """Node layout and visibility settings for the haybale-core skin implementations."""
 
-from haywire.core.settings.schema import LibrarySettings
+from haywire.core.settings.settings_library import LibrarySettings
 from haywire.core.settings import setting
 from haywire.core.settings.decorator import settings
 from haywire.barn.builtin.types import BOOL, INT
