@@ -536,9 +536,11 @@ class PasteClipboardAction(CompositeAction):
             # position the paste point. deepcopy keeps the shared payload dict
             # (mirror / OS-clipboard) intact for re-paste.
             node_data = copy.deepcopy(node.get("node_data") or {})
-            props = node_data.setdefault("props", {})
-            props["posX"] = new_x
-            props["posY"] = new_y
+            # Props serialize in the ADR 0019 nested shape — from_dict restores
+            # positions from the "values" block only.
+            props_values = node_data.setdefault("props", {}).setdefault("values", {})
+            props_values["posX"] = new_x
+            props_values["posY"] = new_y
 
             actions.append(
                 AddNodeAction(

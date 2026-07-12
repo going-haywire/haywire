@@ -315,8 +315,8 @@ class DataPort(DataTypeIdentity):
 
         For inlets:
         - fire immediately with on_change when
-            - Widget/programmatic (no edge_id) or 
-            - CALLBACK flow_type when edge-driven 
+            - Widget/programmatic (no edge_id) or
+            - CALLBACK flow_type when edge-driven
         - Otherwise defer to resolve_dirty_data()
 
         For outlets:

@@ -630,8 +630,7 @@ class NodeWrapper:
                 self._graph._validation.mark_node_dirty(self._node_id, ChangeReason.NODE_REDRAW_REQUESTED)
 
     def _subscribe_props_redraw(self) -> None:
-        """Watch the instance's appearance-affecting props and redraw on change.
-        """
+        """Watch the instance's appearance-affecting props and redraw on change."""
         if self._node_instance is None:
             return
 

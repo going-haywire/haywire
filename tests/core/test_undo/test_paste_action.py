@@ -130,9 +130,13 @@ def test_paste_builds_child_actions_with_new_ids_and_remapped_edges(monkeypatch)
     edge_actions = [a for a in action.actions if isinstance(a, AddEdgeAction)]
     assert {a.registry_key for a in node_actions} == {"k"}
     # node_data carries the original "v" plus the overwritten paste position in
-    # props (so build()'s _initialize_from_dict restore lands the paste point).
+    # props' "values" block — the ADR 0019 nested shape from_dict restores from
+    # (so build()'s _initialize_from_dict restore lands the paste point).
     assert {a.node_data["v"] for a in node_actions} == {1, 2}
-    assert all("posX" in a.node_data["props"] and "posY" in a.node_data["props"] for a in node_actions)
+    assert all(
+        "posX" in a.node_data["props"]["values"] and "posY" in a.node_data["props"]["values"]
+        for a in node_actions
+    )
     assert len(edge_actions) == 1
     ea = edge_actions[0]
     assert ea.source_node_id == "new_a"
