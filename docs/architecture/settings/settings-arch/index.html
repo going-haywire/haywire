@@ -2207,10 +2207,10 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#61-three-schema-classes" class="md-nav__link">
+  <a href="#61-four-schema-classes" class="md-nav__link">
     <span class="md-ellipsis">
       
-        6.1 Three schema classes
+        6.1 Four schema classes
       
     </span>
   </a>
@@ -2373,10 +2373,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#73-change-notification-shadow-watch" class="md-nav__link">
+  <a href="#73-change-notification-shadow-watch-graph" class="md-nav__link">
     <span class="md-ellipsis">
       
-        7.3 Change notification (shadow() / watch())
+        7.3 Change notification (shadow() / watch() / graph())
       
     </span>
   </a>
@@ -3172,10 +3172,10 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#61-three-schema-classes" class="md-nav__link">
+  <a href="#61-four-schema-classes" class="md-nav__link">
     <span class="md-ellipsis">
       
-        6.1 Three schema classes
+        6.1 Four schema classes
       
     </span>
   </a>
@@ -3338,10 +3338,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#73-change-notification-shadow-watch" class="md-nav__link">
+  <a href="#73-change-notification-shadow-watch-graph" class="md-nav__link">
     <span class="md-ellipsis">
       
-        7.3 Change notification (shadow() / watch())
+        7.3 Change notification (shadow() / watch() / graph())
       
     </span>
   </a>
@@ -3629,7 +3629,7 @@
 <p>Each step of the chain corresponds to one line above. If you can predict the <code>(value, source)</code> for each line without looking at the comments, you understand the system.</p>
 <h2 id="6-contract-details">6. Contract details<a class="headerlink" href="#6-contract-details" title="Permanent link">&para;</a></h2>
 <p>The earlier sections give you the model; this one is reference material you can skip on a first read.</p>
-<h3 id="61-three-schema-classes">6.1 Three schema classes<a class="headerlink" href="#61-three-schema-classes" title="Permanent link">&para;</a></h3>
+<h3 id="61-four-schema-classes">6.1 Four schema classes<a class="headerlink" href="#61-four-schema-classes" title="Permanent link">&para;</a></h3>
 <p>All inherit from <code>Settings</code> (<code>packages/haywire-core/src/haywire/core/settings/settings.py</code>). They differ only in <em>how</em> they get wired to the registry:</p>
 <table>
 <thead>
@@ -3643,25 +3643,32 @@
 <tbody>
 <tr>
 <td><code>FrameworkSettings</code></td>
-<td><code>settings/schema.py</code></td>
+<td><code>settings/settings_framework.py</code></td>
 <td>Auto-register via <code>_pending_global</code> queue at registry init</td>
 <td>Drained by <code>SettingsRegistry.__init__</code> → <code>_drain_pending_global()</code></td>
 </tr>
 <tr>
 <td><code>LibrarySettings</code></td>
-<td><code>settings/schema.py</code></td>
+<td><code>settings/settings_library.py</code></td>
 <td>Via <code>BaseRegistry</code> hot-reload machinery (<code>_class_filter</code> picks up <code>class_identity</code>)</td>
 <td>Set when the registry processes the class on library load</td>
 </tr>
 <tr>
 <td><code>NodeSettings</code></td>
-<td><code>settings/node_settings.py</code></td>
+<td><code>settings/settings_node.py</code></td>
 <td>Never registered as a <em>class</em> — settings <em>instances</em> are bound per-node by <code>@node</code></td>
 <td>Per-instance: <code>__init__</code> accepts <code>registry</code>; <code>@node</code> injects it from the node's wrapper</td>
 </tr>
+<tr>
+<td><code>GraphSettings</code></td>
+<td><code>settings/settings_graph.py</code></td>
+<td>Never registered as a <em>class</em> — one instance owned per <code>BaseGraph</code> (<code>graph.props</code>)</td>
+<td>Per-instance: <code>BaseGraph.__init__</code> calls <code>get_settings_registry()</code> unconditionally, same precondition as <code>NodeData.__init__</code> — no constructor override; tests configure the ambient DI context via <code>set_settings_registry(...)</code> before constructing a graph</td>
+</tr>
 </tbody>
 </table>
-<p>Field descriptors on <code>FrameworkSettings</code> and <code>LibrarySettings</code> are auto-promoted to <code>persistent_setting</code> (a <code>setting</code> subclass that routes writes through <code>registry.set_global</code> + <code>save_to_json_debounced</code>). The swap happens during field setup — in <code>__init_subclass__</code> for the class-signature <code>namespace=</code> form, and in the <code>@settings</code> decorator for the decorator form. <code>NodeSettings</code> fields are NOT promoted; node-local settings persist with the graph, not the workspace JSON, so instance-local (cell) semantics is correct for them.</p>
+<p>Field descriptors on <code>FrameworkSettings</code> and <code>LibrarySettings</code> are auto-promoted to <code>persistent_setting</code> (a <code>setting</code> subclass that routes writes through <code>registry.set_global</code> + <code>save_to_json_debounced</code>). The swap happens during field setup — in <code>__init_subclass__</code> for the class-signature <code>namespace=</code> form, and in the <code>@settings</code> decorator for the decorator form. <code>NodeSettings</code> and <code>GraphSettings</code> fields are NOT promoted; their settings persist with the graph, not the workspace JSON, so instance-local (cell) semantics is correct for them.</p>
+<p><code>GraphSettings</code> carries a <code>_graph</code> backref instead of <code>_node</code>; <code>_node</code> stays <code>None</code> unconditionally, which structurally disables promotion and the setting-row menu's promote entries for any <code>GraphSettings</code> bag (both gate on <code>obj._node is not None</code>) with no special-casing in those surfaces. See <a href="../../../adr/0022-graph-settings-tier/">ADR 0022</a> for the full design — the framework-provided bag (<code>GraphProperties</code>), the <code>graph()</code> mirror factory, and the <code>BaseGraph.settings_bag_for()</code> lookup seam that lets a node field mirror a field on its owning graph's bag.</p>
 <p>Deep inheritance (subclassing a <code>FrameworkSettings</code> or <code>LibrarySettings</code> subclass) is blocked by <code>__init_subclass__</code> to keep namespaces clean.</p>
 <p><strong>The registry/persistence split.</strong> <code>SettingsRegistry</code> (<code>settings/registry.py</code>) owns
 definitions, tiers, cells, subscribers, and auto-define; it does not touch a
@@ -3882,7 +3889,7 @@ about option resolution happens at stamp time.</p>
 <li>Subscribed mirror callbacks are re-attached on the new class.</li>
 </ol>
 <p>The hot-reload pipeline at large is documented in <a href="../../hot-reload/hot-reload-arch/">architecture/hot-reload</a>.</p>
-<h3 id="73-change-notification-shadow-watch">7.3 Change notification (<code>shadow()</code> / <code>watch()</code>)<a class="headerlink" href="#73-change-notification-shadow-watch" title="Permanent link">&para;</a></h3>
+<h3 id="73-change-notification-shadow-watch-graph">7.3 Change notification (<code>shadow()</code> / <code>watch()</code> / <code>graph()</code>)<a class="headerlink" href="#73-change-notification-shadow-watch-graph" title="Permanent link">&para;</a></h3>
 <p>Reads never re-resolve — the value lives in the cell (ADR 0013). What the framework propagates is <em>cell writes</em>: keeping the right cell current is the whole notification story, and the cell's own <code>on_changed</code> event carries every callback.</p>
 <p>The flow when a global value changes:</p>
 <ol>
@@ -3891,6 +3898,7 @@ about option resolution happens at stamp time.</p>
 <li>For a node bag with a <code>shadow()</code>/<code>watch()</code> of that key, the registry-side callback is the instance's <code>_on_field_change</code>: it writes the re-resolved value into the cross-mirror's instance cell ("unset tracks; set ignores"), and that cell write notifies the bag's subscribers.</li>
 </ol>
 <p><code>Settings.subscribe(cb)</code> attaches one adapter per field cell (<code>subscribe_field(field, cb)</code> attaches a single one for per-field reaction — the retired <code>on_change=</code> dispatch's replacement), so a subscriber hears every writer uniformly — descriptor sets, resets, registry write-through, and edge drives into a promoted shared cell. <code>Settings._subscribe_settings()</code> / <code>_subscribe_setting()</code> wire the cross-mirror registry subscriptions. <code>Settings.cleanup()</code> detaches all cell adapters (mandatory for borrowed registry-owned cells, which outlive the bag) and drops the mirror subscriptions.</p>
+<p><strong>The <code>graph()</code> mirror hop (ADR 0022) rides a separate, cell-to-cell channel — not the registry channel above.</strong> A node field declared <code>graph(src=&lt;GraphSettings field&gt;)</code> keeps its own cell and subscribes directly to the src field's cell on the owning graph's bag (located via <code>BaseGraph.settings_bag_for()</code>), so a graph-tier opinion change propagates as: graph bag cell write → node's adapter (same "unset tracks, set ignores" rule) → node's own cell write → node's own <code>on_changed</code> fires. This composes transitively with the registry-key hop above it: a framework-level change reaches an unset node field only by first passing through an unset graph bag. <code>_on_field_change</code> (the registry-key mirror's callback) is untouched by this — a graph mirror never subscribes to it. A <code>graph()</code> field on a bag with no reachable graph (no node, node not in a graph, graph lacking the src bag) holds its descriptor default and is not live; there is no registry fallback (a deliberate scope decision — see ADR 0022's rejected alternatives).</p>
 <h3 id="74-serialisation">7.4 Serialisation<a class="headerlink" href="#74-serialisation" title="Permanent link">&para;</a></h3>
 <p><code>Settings.to_dict()</code> returns only fields that are locally set (<code>_set_keys</code>) and whose value differs from the descriptor default, reading each value from the field's cell (<code>cell.get_value()</code>). <code>watch()</code> fields are never included. The emitted shape is the bare value per field (<code>{attr_name: value}</code>), matching the graph settings block that <code>NodeBase._to_dict</code> writes.</p>
 <p><code>Settings.from_dict(data, silent=True)</code> marks each field in <code>_set_keys</code> and writes the value into its cell directly, bypassing descriptor validation and the <code>__set__</code> no-op guard; <code>silent=False</code> uses normal <code>setattr</code> semantics. Either way the cell write notifies any <em>already-attached</em> subscribers (subscription rides the cell event, ADR 0013) — graph load restores bags before anything subscribes, so load-time restores stay unobserved in practice. Because the value round-trips through the field's <code>DataField</code> cell — the same IType <code>to_dict</code>/<code>from_dict</code> contract the registry uses at the disk edge (<a href="../../../adr/0012-settings-json-persistence/">ADR 0012</a>) — complex ITypes (<code>COLOR</code>, <code>VEC2I</code>, …) survive a save/load cycle losslessly. See <a href="#64-single-cell-value-model">§6.4 Single-cell value model</a> and <a href="../../../adr/0013-settings-single-cell/">ADR 0013</a>.</p>
@@ -4091,7 +4099,7 @@ about option resolution happens at stamp time.</p>
 <li><strong>Tier provenance UX.</strong> <code>resolve()</code> returns the winning tier as <code>source</code>, but there's no in-app affordance that surfaces <em>why</em> a value resolved the way it did (e.g. "this came from the workspace JSON, not your global preference").</li>
 <li><strong>Schema migration.</strong> Renaming a <code>setting()</code> field is currently unsupported — existing JSON and per-node serialised data still reference the old key, and there's no aliasing layer.</li>
 <li><strong>Type evolution.</strong> Changing a field's <code>type_</code> (e.g. <code>int</code> → <code>float</code>) is a breaking change for existing graphs. Validators provide some safety but no migration path.</li>
-<li><strong>Per-graph settings tier.</strong> Currently graphs serialise per-node overrides only; there's no notion of "this graph as a whole forces these settings" beyond the workspace tier. Could be useful for portable graphs that bring their own configuration.</li>
+<li><del><strong>Per-graph settings tier.</strong></del> Resolved by <a href="../../../adr/0022-graph-settings-tier/">ADR 0022</a> — graphs own a <code>GraphSettings</code> bag (<code>graph.props</code>); see §6.1 for the schema-class table entry and §7.3 for the <code>graph()</code> mirror's notification flow.</li>
 </ul>
 
 

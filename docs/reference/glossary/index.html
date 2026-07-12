@@ -4161,6 +4161,11 @@
 <td>Config, options, Bag, Settings (avoid bare Settings for node inner classes)</td>
 </tr>
 <tr>
+<td><strong>GraphSettings</strong></td>
+<td>The fourth Settings flavour (ADR 0022), parallel to <code>NodeSettings</code>: per-instance cells, never registered with the global registry, carries a <code>_graph</code> backref instead of <code>_node</code> (which stays <code>None</code> unconditionally — structurally disables promotion and the Setting-row menu's promote entries with no special case in those surfaces). One framework-provided bag today, <code>GraphProperties</code>, owned per-graph as <code>graph.props</code> and serialized under the graph's <code>"props"</code> key</td>
+<td>Graph props, graph bag</td>
+</tr>
+<tr>
 <td><strong>FrameworkSettings</strong></td>
 <td>Base class for framework/app-defined settings schemas; subclassed with <code>namespace=</code>; auto-registers via <code>_pending_global</code> at registry init; <code>cls._registry</code> is set by the registry so instances need no explicit injection</td>
 <td>—</td>
@@ -4209,6 +4214,11 @@
 <td><strong>watch()</strong></td>
 <td>Convenience factory: <code>setting(mirrors=src, ui_state=UiState.DISABLED, promotable=Promotable.OUTLET, **kwargs)</code>. Renders as a greyed, non-interactive widget and is outlet-only-promotable by declaration. Writes are not structurally blocked (no <code>AttributeError</code>) — read-only-ness is a naming convention, not an enforced guarantee</td>
 <td>shadow, mirrors, UiState</td>
+</tr>
+<tr>
+<td><strong>graph mirror / graph()</strong></td>
+<td>The graph-tier mirror factory (ADR 0022): <code>graph(src=...)</code> declares a node-bag field that mirrors a field on a <code>GraphSettings</code> bag, giving <strong>framework &lt; graph &lt; node</strong> resolution. Distinct from the registry-key <code>mirrors</code>/<code>shadow()</code>/<code>watch()</code> family — validates <code>src</code> eagerly (<code>TypeError</code> unless its owner is a <code>GraphSettings</code> subclass) and is wired cell-to-cell against the owning graph's bag (located via <code>BaseGraph.settings_bag_for()</code>), never through the registry notification channel. "Unset tracks, set ignores" per hop, composing transitively. A field on a bag with no reachable graph holds its plain descriptor default and is not live — no registry fallback, a deliberate scope decision (see the ADR's rejected alternatives)</td>
+<td>shadow (do not conflate — different channel), graph shadow</td>
 </tr>
 <tr>
 <td><strong>UiState</strong></td>
@@ -4718,6 +4728,7 @@
 <li>A <strong>Node</strong> may declare one or more <strong>NodeSettings</strong> inner classes; each is accessible via its <strong>accessor name</strong> on the node instance.</li>
 <li>A <strong>NodeSettings</strong> field may <code>mirrors=</code> a <strong>FrameworkSettings</strong> or <strong>LibrarySettings</strong> field; the value resolves through the <strong>SettingsRegistry</strong> via <strong>Three-tier resolution</strong>.</li>
 <li><strong>FrameworkSettings</strong> classes auto-register at registry init; <strong>LibrarySettings</strong> classes register via the <strong>BaseRegistry</strong> hot-reload path when their <strong>Library</strong> loads.</li>
+<li>A <strong>Graph</strong> owns exactly one <strong>GraphSettings</strong> bag (<code>graph.props</code>, a <code>GraphProperties</code> instance); a <strong>NodeSettings</strong> field may use <strong>graph mirror / graph()</strong> to mirror a <strong>GraphSettings</strong> field, giving <strong>framework &lt; graph &lt; node</strong> resolution (ADR 0022).</li>
 <li>A <strong>GraphEntry</strong> wraps exactly one <strong>Graph</strong>, one <strong>Editor</strong> and one <strong>Interpreter</strong> when it is executing; these are created/destroyed by <code>start_execution()</code> / <code>stop_execution()</code>.</li>
 <li>A <strong>GraphEntry</strong> structurally implements the <strong>GraphContainer</strong> protocol; source libraries register their containers into <strong>GraphAppState</strong> so <strong>GraphEditor</strong> can resolve <code>binding_id</code> → container on render.</li>
 <li>A <strong>Haystack</strong> references zero or more <strong>GraphEntries</strong> by relative file path; it also records which graph is active and which graphs should auto-execute on load.</li>
