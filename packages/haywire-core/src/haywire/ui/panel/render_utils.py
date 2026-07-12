@@ -315,7 +315,7 @@ def _render_reactive_field_row(
     model (other tab / worker / mirror) are reflected.
     """
 
-    is_mirrored = bool(defn._mirror_key)
+    is_mirrored = defn.is_mirror or defn.is_graph_mirror
     # A promoted field is driven by a DATA port (see haywire.core.node.promotion).
     # The row is marked so the panel doesn't silently present an editable widget for
     # a value the graph now owns; the value display stays live (the setting and the

@@ -21,9 +21,13 @@ Nodes access their settings via self.<inner_class_name>:
     self.settings.reset('strength')
 """
 
+from typing_extensions import dataclass_transform
+
+from .descriptor import graph, setting, shadow, watch
 from .settings import Settings
 
 
+@dataclass_transform(field_specifiers=(setting, shadow, watch, graph))
 class NodeSettings(Settings):
     """
     Base class for node-local settings.

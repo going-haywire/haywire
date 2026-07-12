@@ -18,7 +18,8 @@ Framework / library internals:
 
 from .settings import Settings
 from .node_settings import NodeSettings
-from .descriptor import setting, shadow, watch, Promotable, UiState
+from .graph_settings import GraphSettings
+from .descriptor import setting, shadow, watch, graph, Promotable, UiState
 from .base import SettingDescriptor
 from .value import SettingValue
 from .types import Color, Icon, Vec2i, Vec3i, Vec4i, Vec2f, Vec3f, Vec4f, get_vec_meta
@@ -30,9 +31,11 @@ __all__ = [
     # Node-author API
     "Settings",
     "NodeSettings",
+    "GraphSettings",
     "setting",
     "shadow",
     "watch",
+    "graph",
     "Promotable",
     "UiState",
     "SettingDescriptor",

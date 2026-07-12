@@ -54,23 +54,25 @@ Use `cache` for "lost on restart, fine"; `store` for "must survive saves, hidden
 
 ## 3. Important concepts
 
-**The three Settings classes.** All three inherit from `Settings`. Pick by scope:
+**The four Settings classes.** All four inherit from `Settings`. Pick by scope:
 
 | Class | Where you declare it | Persisted to | Instances |
 |---|---|---|---|
 | `NodeSettings` | Inner class on a `@node` class | Graph file (only overrides) | One per node, owned by the node |
+| `GraphSettings` | Framework-internal only (one bag today: `GraphProperties`) | Graph file, under `"props"` (only overrides) | One per graph, owned by the graph (`graph.props`) |
 | `LibrarySettings` | `@settings`-decorated class in your library | Workspace / global TOML | Construct as many as you need — they share state via the registry |
 | `FrameworkSettings` | Framework-internal only | Workspace / global TOML | Construct as many as you need — they share state via the registry |
 
-**Three descriptor types — `setting()`, `shadow()`, `watch()`.** All three are declared at class level on a Settings subclass:
+**Four descriptor types — `setting()`, `shadow()`, `watch()`, `graph()`.** All four are declared at class level on a Settings subclass:
 
 | Descriptor | Behaviour |
 |---|---|
-| `setting[T](default, ...)` | Local field. Stored in graph (NodeSettings) or TOML (LibrarySettings/FrameworkSettings). |
-| `shadow(GlobalSettings.field)` | Writable mirror of a global setting. Inherits the source's label/default/type/widget/min/max. Per-node writes are allowed and stored as overrides. Panel shows a `•` prefix and a reset button when locally overridden. |
+| `setting[T](default, ...)` | Local field. Stored in graph (NodeSettings/GraphSettings) or TOML (LibrarySettings/FrameworkSettings). |
+| `shadow(GlobalSettings.field)` | Writable mirror of a global (registry-backed) setting. Inherits the source's label/default/type/widget/min/max. Per-node writes are allowed and stored as overrides. Panel shows a `•` prefix and a reset button when locally overridden. |
 | `watch(GlobalSettings.field)` | Sugar over `shadow()`: seeds `ui_state=UiState.DISABLED` (renders as a greyed, non-interactive widget in the panel) and `promotable=Promotable.OUTLET`. Tracks the global value reactively. Writes are still technically legal (no enforced guard) but are a naming/usage convention — a `watch()` field is meant to be read, not written. |
+| `graph(GraphSettingsField)` | Writable mirror of a field declared on a `GraphSettings` bag (ADR 0022) — the graph-tier analogue of `shadow()`. See [§3b](#3b-mirroring-a-graph-setting-from-a-node-bag) below. |
 
-`shadow()` and `watch()` accept either a descriptor reference (`shadow(CanvasSettings.snap_to_grid)`) or a raw key string (`shadow("ui.canvas.snap_to_grid")`), and the source must be declared on a DIFFERENT class — a same-bag sibling raises `ValueError`.
+`shadow()` and `watch()` accept either a descriptor reference (`shadow(CanvasSettings.snap_to_grid)`) or a raw key string (`shadow("ui.canvas.snap_to_grid")`), and the source must be declared on a DIFFERENT class — a same-bag sibling raises `ValueError`. `graph()` accepts **only** a descriptor reference, and only one whose owner is a `GraphSettings` subclass — `TypeError` at class-definition time otherwise. Use `shadow()`/`watch()` for a registry-backed (Framework/Library) source; use `graph()` for a `GraphSettings` source. Pointing `shadow()` at a `GraphSettings` field instead of using `graph()` fails loudly at wiring time (bag construction), naming the fix.
 
 **The accessor name.** A node's `class filter(NodeSettings):` becomes `self.filter` on every instance. The class name is the accessor name — pick descriptive ones (`filter`, `output`, `api`). Multiple accessors per node are allowed; each gets its own `_setting_key` namespace.
 
@@ -309,6 +311,36 @@ bag.set_ui_state_all(UiState.HIDDEN, category="Manual")  # bulk: one category on
 **Promotion interplay (ADR 0020).** The Setting-row menu never renders for HIDDEN rows (the row itself isn't rendered); DISABLED fields stay promotable. Structural eligibility (`promotable=`, `eligible_promotion_directions()`) and load-time port regeneration ignore UiState entirely — hiding never unpromotes, and a linked inlet on a hidden field keeps driving the value (the port stays visible on the canvas).
 
 No part of this mechanism is persisted — presentation state is always transient, recomputed at construction (`ui_state=` seed) or by whatever runtime code calls `set_ui_state`.
+
+## 3b. Mirroring a graph setting from a node bag
+
+A graph owns one framework-provided settings bag, `graph.props` (a `GraphProperties` instance), accessed the same way `node.props` is. Its `default_skin` field shadows the framework's studio-skin default via an ordinary `shadow()` — nothing new there. What's new is the **other** direction: a node field mirroring a field on the graph bag, so the resolution order becomes **framework default < graph opinion < node opinion**.
+
+```python
+from haywire.core.settings import NodeSettings
+from haywire.core.settings.descriptor import graph
+from haywire.core.graph.properties import GraphProperties
+
+class NodeProperties(NodeSettings):
+    skin = graph(
+        src=GraphProperties.default_skin,
+        label="Skin",
+        category="appearance",
+        # Mirrors inherit IType from src, but NOT its per-setting widget_config —
+        # options must be re-supplied here.
+        widget_config={"options": _node_skin_choices},
+    )
+```
+
+This is the actual declaration `NodeProperties.skin` uses (ADR 0022).
+
+**Tier semantics, per hop.** Each hop in the chain (framework → graph, graph → node) independently follows "unset tracks, set ignores": while a field has no local override, it live-tracks the tier below it; a local write wins and the field stops tracking; `reset()` returns to *whatever the tier below currently holds* (not the framework default, unless the tier below is itself unset all the way down). A framework change only reaches an unset node field by passing through an unset graph bag first — a graph-level opinion is a genuine dam in the chain.
+
+**When to use `graph()` vs `shadow()`/`watch()`.** Use `shadow()`/`watch()` when the source field lives on a `FrameworkSettings` or `LibrarySettings` schema (registry-backed, has a `_setting_key`). Use `graph()` when the source lives on a `GraphSettings` bag. The two are not interchangeable: `graph()` validates its `src` eagerly (`TypeError` at class-definition time unless `src`'s owner is a `GraphSettings` subclass), and a `shadow()` mistakenly pointed at a `GraphSettings` field fails loudly at bag-construction time instead of silently never tracking.
+
+**Headless / detached bags.** A `graph()` field's mirror is only live when its bag can reach a graph (`node.wrapper.graph`, for a `NodeSettings` bag). A bag built without a node, or a node not yet attached to a graph, sees the field hold its plain descriptor default — not a fallback resolution of the framework value. This is deliberate (ADR 0022): no production code path constructs such a bag, since a `NodeWrapper`'s graph is a required constructor argument.
+
+**Declaring your own `GraphSettings` bag.** Only one bag exists today (`GraphProperties`); a library adding its own graph-scoped bag is out of scope for now (see ADR 0022's rejected alternatives — the hot-reload lifecycle for library-registered graph bags was judged not worth the risk yet).
 
 ## 3a. Using `LibrarySettings` from a State, Editor, or Panel
 

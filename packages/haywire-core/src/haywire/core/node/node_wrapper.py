@@ -225,6 +225,11 @@ class NodeWrapper:
         """Get the node id"""
         return self._node_id
 
+    @property
+    def graph(self) -> "BaseGraph":
+        """The parent graph this wrapper belongs to."""
+        return self._graph
+
     def set_as_registered(self, is_registered: bool) -> None:
         """
         Set the node as registered with the graph.

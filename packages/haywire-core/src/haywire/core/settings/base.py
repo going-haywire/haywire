@@ -30,6 +30,11 @@ class SettingDescriptor:
     _attr_name: str = ""
     """Short attribute name on the owning class, assigned by ``__set_name__``."""
 
+    _owner_cls: "type | None" = None
+    """Class this descriptor was declared on, recorded by ``__set_name__``.
+    Graph mirrors use it to locate 'the instance of that bag on my graph'
+    (``BaseGraph.settings_bag_for``). ADR 0022."""
+
     # Set by constructor (subclass __init__)
     _default: Any = None
     """Default value returned when no local or global override is set."""
@@ -67,6 +72,7 @@ class SettingDescriptor:
 
     def __set_name__(self, owner: type, name: str) -> None:
         self._attr_name = name
+        self._owner_cls = owner
         # Refine _type from a more specific source than the inferred default
         # (e.g. Vec3f vs plain list). Two refinement sources, in priority order:
         #   1. Owner class annotation `name: T = field(...)`

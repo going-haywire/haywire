@@ -10,8 +10,9 @@ Serialized under the 'props' key in graph JSON.
 """
 
 from haywire.core.settings import NodeSettings, setting
-from haywire.core.settings.descriptor import shadow
-from haywire.ui.skin.settings import NodeDefaultSkinSettings, _node_skin_choices
+from haywire.core.settings.descriptor import graph
+from haywire.core.graph.properties import GraphProperties
+from haywire.core.skin.settings import _node_skin_choices
 from haywire.barn.builtin.types import BOOL, COLOR, FLOAT, STRING
 
 
@@ -60,8 +61,9 @@ class NodeProperties(NodeSettings):
     # Appearance
     # -----------------------------------------------------------------
 
-    skin = shadow(
-        src=NodeDefaultSkinSettings.studio_skin,
+    skin = graph(
+        src=GraphProperties.default_skin,
+        label="Skin",
         category="appearance",
         order=10,
         # Mirrors inherit IType (-> CHOICES/SELECT_WIDGET) from src, but NOT its

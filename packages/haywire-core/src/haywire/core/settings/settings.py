@@ -39,7 +39,7 @@ from typing_extensions import dataclass_transform
 from haywire.core.types.enums import PortType
 from haywire.core.types.interface import IType
 
-from .descriptor import UiState, persistent_setting, setting, shadow, watch
+from .descriptor import UiState, persistent_setting, setting
 
 if TYPE_CHECKING:
     from haywire.core.settings.registry import SettingsRegistry
@@ -48,6 +48,7 @@ if TYPE_CHECKING:
     from haywire.core.library.identity import LibraryIdentity
     from haywire.core.types.fields import DataField
     from haywire.core.node.data import NodeData
+    from haywire.core.graph.base import BaseGraph
 
 logger = logging.getLogger(__name__)
 
@@ -61,7 +62,7 @@ class PromotedFormatError(Exception):
     (ADR 0019)."""
 
 
-@dataclass_transform(field_specifiers=(setting, shadow, watch))
+@dataclass_transform(field_specifiers=(setting,))
 class Settings:
     """
     Base Settings class for observable settings.
@@ -128,6 +129,9 @@ class Settings:
         # (its id IS the storage_key), so this is a single direction per key,
         # never a set. See ADR 0019 and haywire.core.node.promotion.
         self._promoted_keys: dict[str, PortType] = {}
+        # Graph-mirror wiring (ADR 0022): storage_key -> (src cell, adapter)
+        # for fields synced cell-to-cell against the owning graph's bag.
+        self._graph_mirror_adapters: dict[str, tuple["DataField", Callable]] = {}
 
     def _is_locally_set(self, descriptor: setting) -> bool:
         """Return True if this field has a local instance override."""
@@ -222,6 +226,40 @@ class Settings:
 
         demote_setting(self._node, storage_key)
 
+    def _owning_graph(self) -> "BaseGraph | None":
+        """The graph this bag can reach: its own (GraphSettings) or its
+        node's (node → wrapper → graph). None for standalone bags."""
+        graph_obj = getattr(self, "_graph", None)
+        if graph_obj is not None:
+            return graph_obj
+        if self._node is None:
+            return None
+        wrapper = getattr(self._node, "wrapper", None)
+        if wrapper is None:
+            return None
+        return getattr(wrapper, "graph", None)
+
+    def _graph_src_cell(self, descriptor: setting) -> "DataField | None":
+        """The live cell of a graph mirror's src field on the owning graph's
+        bag — or None when detached (standalone bag, node not in a graph,
+        graph lacks the src bag). Detached fields hold the descriptor
+        default and are not live (ADR 0022)."""
+        if not descriptor.is_graph_mirror:
+            return None
+        src = descriptor._mirror_descriptor
+        owner = getattr(src, "_owner_cls", None)
+        if src is None or owner is None:
+            return None
+        graph_obj = self._owning_graph()
+        if graph_obj is None:
+            return None
+        bag = graph_obj.settings_bag_for(owner)
+        if bag is None or bag is self:
+            return None
+        if not isinstance(src, setting):
+            return None
+        return bag._cell_for(src)
+
     def _cell_for(self, descriptor: setting) -> "DataField":
         """Return this field's DataField cell — THE read surface.
 
@@ -256,11 +294,17 @@ class Settings:
             # Seed the cell with that resolved value so a headless graph is
             # correct before any change fires. A plain field seeds with its
             # own default.
-            if descriptor.is_mirror and self._registry is not None:
+            src_cell = self._graph_src_cell(descriptor) if descriptor.is_graph_mirror else None
+            if src_cell is not None:
+                # Graph mirror on an attached bag: seed from the src field's
+                # live cell (the graph bag restores before nodes on load).
+                seed = src_cell.get_value()
+            elif descriptor.is_mirror and self._registry is not None:
                 seed = self._resolve(descriptor.storage_key, descriptor._mirror_key, descriptor._default)
             else:
-                # A callable default is late-binding — evaluated ONCE here at
-                # seed time, never on the read path.
+                # Plain field, DETACHED graph mirror, or no registry: the
+                # descriptor default. A callable default is late-binding —
+                # evaluated ONCE here at seed time, never on the read path.
                 default = descriptor._default
                 seed = default() if callable(default) else default
             cell = itype.create_field(default_override={"value": seed})
@@ -316,13 +360,47 @@ class Settings:
     def _subscribe_setting(self, descriptor: setting) -> None:
         """Keep a single mirror field's cell synced to what it mirrors.
 
-        Subscribes to the registry's notification channel for
-        ``descriptor._mirror_key``. No-op for a non-mirror field or when no
-        registry is wired.
-        """
+        Registry-key mirror → registry notification channel. Graph mirror →
+        cell adapter on the src bag's cell (detached bags stay at the
+        descriptor default, not live). No-op for plain fields."""
+        if descriptor.is_graph_mirror:
+            self._subscribe_graph_mirror(descriptor)
+            return
+        if descriptor._mirror_descriptor is not None and not descriptor._mirror_key:
+            # A plain shadow() pointed at a per-instance bag field: it has no
+            # registry key to ride and was not declared via graph(), so it
+            # would silently never track. Fail loudly at wiring time.
+            raise TypeError(
+                f"setting field '{descriptor.storage_key}' on {type(self).__name__} shadows a "
+                f"field on a per-instance bag ({descriptor._mirror_descriptor!r}) — declare it "
+                f"with graph(src=...) instead of shadow() (ADR 0022)."
+            )
         if self._registry is None or not descriptor._mirror_key:
             return
         self._registry.subscribe(descriptor._mirror_key, self._on_field_change)
+
+    def _subscribe_graph_mirror(self, descriptor: setting) -> None:
+        """Wire one graph mirror ('unset tracks, set ignores', per hop).
+
+        Attaches ONE adapter to the src field's cell on the owning graph's
+        bag; the adapter writes changes into this field's own cell unless a
+        local opinion suppresses it. Detached bag → no-op (descriptor
+        default, not live). Idempotent per field. ADR 0022."""
+        key = descriptor.storage_key
+        if key in self._graph_mirror_adapters:
+            return
+        src_cell = self._graph_src_cell(descriptor)
+        if src_cell is None:
+            return  # detached — seeded with the descriptor default (ADR 0022)
+        self._cell_for(descriptor)  # ensure own cell exists + is seeded first
+
+        def _adapter(change: Any, _descriptor: setting = descriptor) -> None:
+            if self._cleaned_up or self._is_locally_set(_descriptor):
+                return
+            self._cell_for(_descriptor).set_value(change.value)
+
+        src_cell.on_changed.append(_adapter)
+        self._graph_mirror_adapters[key] = (src_cell, _adapter)
 
     def _on_field_change(self, full_key: str, value: "SettingValue") -> None:
         """
@@ -482,7 +560,10 @@ class Settings:
             # descriptor default. The cell is never structurally reset — only
             # its *value* returns. set_value (not cell.reset) so the cell
             # event notifies subscribers/widgets of the returned value.
-            if descriptor.is_mirror and self._registry is not None:
+            src_cell = self._graph_src_cell(descriptor) if descriptor.is_graph_mirror else None
+            if src_cell is not None:
+                new = src_cell.get_value()
+            elif descriptor.is_mirror and self._registry is not None:
                 new = self._resolve(descriptor.storage_key, descriptor._mirror_key, descriptor._default)
             else:
                 default = descriptor._default
@@ -513,6 +594,14 @@ class Settings:
             for descriptor in type(self)._property_settings().values():
                 if descriptor._mirror_key:
                     self._registry.unsubscribe(descriptor._mirror_key, self._on_field_change)
+        # Detach graph-mirror adapters — MANDATORY: the src cells are
+        # graph-owned and outlive this bag (same rule as registry-owned cells).
+        for cell, adapter in self._graph_mirror_adapters.values():
+            try:
+                cell.on_changed.remove(adapter)
+            except ValueError:
+                pass
+        self._graph_mirror_adapters.clear()
         self._ui_state_listeners.clear()
 
     # -------------------------------------------------------------------------

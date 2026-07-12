@@ -7,8 +7,6 @@ from typing import TYPE_CHECKING
 from nicegui import ui, app
 
 # Core imports
-from haywire.core.graph.editor import Editor
-from haywire.core.graph.base import BaseGraph
 from haywire.core.undo.config import DEVELOPMENT_CONFIG
 from haywire.core.di.config import create_library_system_service
 from haywire.core.di.context import set_workspace_root
@@ -170,16 +168,6 @@ class HaywireApp:
         # library system during create_library_system_service. See ADR-0001.
 
         print("Shared services configured successfully.")
-
-    # ------------------------------------------------------------------
-    # Graph factory
-    # ------------------------------------------------------------------
-
-    def _graph_factory(self, graph_id: str, name: str) -> tuple[BaseGraph, Editor]:
-        """Standard factory producing (BaseGraph, Editor) pairs."""
-        g = BaseGraph(graph_id, name)
-        e = Editor(g, self.node_factory, undo_config=self.undo_config)
-        return g, e
 
     def save_workspace(self, shell=None, active_graph_path=None) -> None:
         """Save workspace snapshot atomically.

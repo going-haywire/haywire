@@ -155,7 +155,7 @@ Each step of the chain corresponds to one line above. If you can predict the `(v
 
 The earlier sections give you the model; this one is reference material you can skip on a first read.
 
-### 6.1 Three schema classes
+### 6.1 Four schema classes
 
 All inherit from `Settings` (`packages/haywire-core/src/haywire/core/settings/settings.py`). They differ only in *how* they get wired to the registry:
 
@@ -164,8 +164,11 @@ All inherit from `Settings` (`packages/haywire-core/src/haywire/core/settings/se
 | `FrameworkSettings` | `settings/schema.py` | Auto-register via `_pending_global` queue at registry init | Drained by `SettingsRegistry.__init__` → `_drain_pending_global()` |
 | `LibrarySettings` | `settings/schema.py` | Via `BaseRegistry` hot-reload machinery (`_class_filter` picks up `class_identity`) | Set when the registry processes the class on library load |
 | `NodeSettings` | `settings/node_settings.py` | Never registered as a *class* — settings *instances* are bound per-node by `@node` | Per-instance: `__init__` accepts `registry`; `@node` injects it from the node's wrapper |
+| `GraphSettings` | `settings/graph_settings.py` | Never registered as a *class* — one instance owned per `BaseGraph` (`graph.props`) | Per-instance: `BaseGraph.__init__` calls `get_settings_registry()` unconditionally, same precondition as `NodeData.__init__` — no constructor override; tests configure the ambient DI context via `set_settings_registry(...)` before constructing a graph |
 
-Field descriptors on `FrameworkSettings` and `LibrarySettings` are auto-promoted to `persistent_setting` (a `setting` subclass that routes writes through `registry.set_global` + `save_to_json_debounced`). The swap happens during field setup — in `__init_subclass__` for the class-signature `namespace=` form, and in the `@settings` decorator for the decorator form. `NodeSettings` fields are NOT promoted; node-local settings persist with the graph, not the workspace JSON, so instance-local (cell) semantics is correct for them.
+Field descriptors on `FrameworkSettings` and `LibrarySettings` are auto-promoted to `persistent_setting` (a `setting` subclass that routes writes through `registry.set_global` + `save_to_json_debounced`). The swap happens during field setup — in `__init_subclass__` for the class-signature `namespace=` form, and in the `@settings` decorator for the decorator form. `NodeSettings` and `GraphSettings` fields are NOT promoted; their settings persist with the graph, not the workspace JSON, so instance-local (cell) semantics is correct for them.
+
+`GraphSettings` carries a `_graph` backref instead of `_node`; `_node` stays `None` unconditionally, which structurally disables promotion and the setting-row menu's promote entries for any `GraphSettings` bag (both gate on `obj._node is not None`) with no special-casing in those surfaces. See [ADR 0022](../../adr/0022-graph-settings-tier.md) for the full design — the framework-provided bag (`GraphProperties`), the `graph()` mirror factory, and the `BaseGraph.settings_bag_for()` lookup seam that lets a node field mirror a field on its owning graph's bag.
 
 Deep inheritance (subclassing a `FrameworkSettings` or `LibrarySettings` subclass) is blocked by `__init_subclass__` to keep namespaces clean.
 
@@ -429,7 +432,7 @@ When a library reloads (file watcher detects a `.py` change):
 
 The hot-reload pipeline at large is documented in [architecture/hot-reload](../hot-reload/hot-reload-arch.md).
 
-### 7.3 Change notification (`shadow()` / `watch()`)
+### 7.3 Change notification (`shadow()` / `watch()` / `graph()`)
 
 Reads never re-resolve — the value lives in the cell (ADR 0013). What the framework propagates is *cell writes*: keeping the right cell current is the whole notification story, and the cell's own `on_changed` event carries every callback.
 
@@ -440,6 +443,8 @@ The flow when a global value changes:
 3. For a node bag with a `shadow()`/`watch()` of that key, the registry-side callback is the instance's `_on_field_change`: it writes the re-resolved value into the cross-mirror's instance cell ("unset tracks; set ignores"), and that cell write notifies the bag's subscribers.
 
 `Settings.subscribe(cb)` attaches one adapter per field cell (`subscribe_field(field, cb)` attaches a single one for per-field reaction — the retired `on_change=` dispatch's replacement), so a subscriber hears every writer uniformly — descriptor sets, resets, registry write-through, and edge drives into a promoted shared cell. `Settings._subscribe_settings()` / `_subscribe_setting()` wire the cross-mirror registry subscriptions. `Settings.cleanup()` detaches all cell adapters (mandatory for borrowed registry-owned cells, which outlive the bag) and drops the mirror subscriptions.
+
+**The `graph()` mirror hop (ADR 0022) rides a separate, cell-to-cell channel — not the registry channel above.** A node field declared `graph(src=<GraphSettings field>)` keeps its own cell and subscribes directly to the src field's cell on the owning graph's bag (located via `BaseGraph.settings_bag_for()`), so a graph-tier opinion change propagates as: graph bag cell write → node's adapter (same "unset tracks, set ignores" rule) → node's own cell write → node's own `on_changed` fires. This composes transitively with the registry-key hop above it: a framework-level change reaches an unset node field only by first passing through an unset graph bag. `_on_field_change` (the registry-key mirror's callback) is untouched by this — a graph mirror never subscribes to it. A `graph()` field on a bag with no reachable graph (no node, node not in a graph, graph lacking the src bag) holds its descriptor default and is not live; there is no registry fallback (a deliberate scope decision — see ADR 0022's rejected alternatives).
 
 ### 7.4 Serialisation
 
@@ -658,4 +663,4 @@ DOM contract for tests:
 - **Tier provenance UX.** `resolve()` returns the winning tier as `source`, but there's no in-app affordance that surfaces *why* a value resolved the way it did (e.g. "this came from the workspace JSON, not your global preference").
 - **Schema migration.** Renaming a `setting()` field is currently unsupported — existing JSON and per-node serialised data still reference the old key, and there's no aliasing layer.
 - **Type evolution.** Changing a field's `type_` (e.g. `int` → `float`) is a breaking change for existing graphs. Validators provide some safety but no migration path.
-- **Per-graph settings tier.** Currently graphs serialise per-node overrides only; there's no notion of "this graph as a whole forces these settings" beyond the workspace tier. Could be useful for portable graphs that bring their own configuration.
+- ~~**Per-graph settings tier.**~~ Resolved by [ADR 0022](../../adr/0022-graph-settings-tier.md) — graphs own a `GraphSettings` bag (`graph.props`); see §6.1 for the schema-class table entry and §7.3 for the `graph()` mirror's notification flow.

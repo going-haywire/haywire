@@ -1,5 +1,13 @@
-# haywire-core/haywire/ui/skin/settings.py
-"""Node default skin settings."""
+# haywire/core/skin/settings.py
+"""Node default skin settings.
+
+A pure FrameworkSettings schema — it declares WHICH skin is the default,
+not how a skin renders. The rendering machinery (nicegui-backed skin
+classes, node card layout) lives in haywire.ui.skin; this module has no
+dependency on it, which is exactly why it lives in core: NodeProperties
+and GraphProperties (both core) shadow/graph-mirror these fields, and
+core must never import from ui.
+"""
 
 from haywire.barn.builtin.types import CHOICES, STRING
 from haywire.barn.builtin.widgets.basic_widgets import SimpleLabelWidget

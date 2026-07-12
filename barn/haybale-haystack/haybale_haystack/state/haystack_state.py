@@ -347,6 +347,8 @@ class HaystackState(AppState):
         if entry.binding_id in self._entries and self._entries[entry.binding_id] is entry:
             if self._graph_app_state is not None:
                 self._graph_app_state.unregister(entry.binding_id)
+            if hasattr(entry.graph, "cleanup"):
+                entry.graph.cleanup()  # releases props bag's registry subscriptions (ADR 0022)
             del self._entries[entry.binding_id]
             self._broadcast_data_mutated()
             self._mark_haystack_dirty()

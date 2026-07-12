@@ -26,6 +26,8 @@ if TYPE_CHECKING:
     from ..edge.edge_wrapper import EdgeWrapper
     from ..node.node_wrapper import NodeWrapper
     from .scheduler import ValidationScheduler
+    from ..settings.graph_settings import GraphSettings
+    from .properties import GraphProperties
 
 logger = logging.getLogger(__name__)
 
@@ -100,6 +102,7 @@ class BaseGraph:
             validation_scheduler: Strategy that runs the debounced validation
                 pass. Defaults to a background ``threading.Timer`` (legacy
                 behavior). See ``haywire.core.graph.scheduler`` and ADR 0002.
+
         """
         self.graph_id: str = graph_id
         self.name: str = name or f"Graph_{graph_id}"
@@ -125,6 +128,16 @@ class BaseGraph:
         # Library-wide compatibility findings from the most recent load_from_dict call.
         # Node-specific findings are written directly onto node state as NodeWarnings.
         self.library_compatibility_findings: list[str] = []
+
+        # Graph-owned settings bag — the graph tier (ADR 0022). The registry
+        # comes from the DI context exactly like node bags (NodeData.__init__)
+        # — DI must be configured; there is no separate constructor override.
+        from haywire.core.di.context import get_settings_registry
+        from haywire.core.graph.properties import GraphProperties
+
+        settings_registry = get_settings_registry()
+        self.props: GraphProperties = GraphProperties(registry=settings_registry, graph=self)
+        self.props._subscribe_settings()
 
         # Internal managers (private - implementation details)
         self._validation = ValidationManager(
@@ -854,6 +867,26 @@ class BaseGraph:
         # Clear validation manager state after notifications
         self._validation.clear()
 
+    def settings_bag_for(self, owner_cls: type) -> "GraphSettings | None":
+        """Return this graph's settings bag that is an instance of *owner_cls*.
+
+        THE lookup seam for graph mirrors ("which bag on my graph does this
+        src descriptor live on?" — see Settings._graph_src_cell, ADR 0022).
+        Plain class matching: haywire-core never hot-reloads, so class
+        identity is stable. One framework bag today; a future registration
+        path for library graph bags changes only this method.
+        """
+        if isinstance(self.props, owner_cls):
+            return self.props
+        return None
+
+    def cleanup(self) -> None:
+        """Release graph-owned resources (the props bag's registry
+        subscriptions). Call when the graph object is discarded for good.
+        ``clear()`` deliberately does NOT call this — a cleared graph is
+        still usable (``load_from_dict`` clears and reloads in place)."""
+        self.props.cleanup()
+
     # =========================================================================
     # SERIALIZATION
     # =========================================================================
@@ -882,6 +915,7 @@ class BaseGraph:
             },
             "edges": {edge_id: wrapper.edge.to_dict() for edge_id, wrapper in self.edge_wrappers.items()},
             "variables": {name: var.to_dict() for name, var in self.variables.items()},
+            "props": self.props.to_dict(),
         }
 
     def load_from_dict(self, data: Dict[str, Any]) -> bool:
@@ -906,6 +940,13 @@ class BaseGraph:
 
             # Clear existing data
             self.clear()
+
+            # Graph-tier settings restore BEFORE nodes: node-bag graph
+            # mirrors seed from the graph bag's cells at node construction
+            # (ADR 0022). reset_all first — load_from_dict may reuse a live
+            # graph whose bag still carries the previous graph's opinions.
+            self.props.reset_all()
+            self.props.from_dict(data.get("props", {}))
 
             # Load variables first
             if "variables" in data:

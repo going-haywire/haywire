@@ -265,6 +265,7 @@ class setting(SettingDescriptor, Generic[T]):
         self._attr_name: str = ""  # set by __set_name__
         self._setting_key: str = ""  # namespaced registry key, set at registration
         self._mirror_descriptor: "SettingDescriptor | None" = None  # set when mirrors= is a descriptor
+        self._graph_mirror: bool = False  # set True by the graph() factory (ADR 0022)
 
         if self._validator is not None and default is not None and not self.validate(default):
             raise ValueError(f"Default value {default!r} fails validation for field '{label or '?'}'")
@@ -328,6 +329,17 @@ class setting(SettingDescriptor, Generic[T]):
         another setting's key, and the instance cell is kept authoritative for
         it — seeded from the resolved global, synced by ``_on_field_change``."""
         return bool(self._mirror_key)
+
+    @property
+    def is_graph_mirror(self) -> bool:
+        """True for a field declared via the ``graph()`` factory — a mirror
+        of a field on the owning graph's settings bag (GraphSettings).
+
+        Wired cell-to-cell against the graph bag's live cell ('unset tracks,
+        set ignores', per hop) — NOT through the registry-key channel
+        (``is_mirror`` is False for these: the src has no ``_setting_key``).
+        ADR 0022."""
+        return self._graph_mirror
 
     def validate(self, value: Any) -> bool:
         """Return True if *value* passes the validator (or if no validator is set)."""
@@ -476,3 +488,30 @@ def watch(src: "setting[T]", **kwargs: Any) -> "setting[T]":
     a caller shouldn't mutate directly.
     """
     return setting(mirrors=src, ui_state=UiState.DISABLED, promotable=Promotable.OUTLET, **kwargs)
+
+
+def graph(src: "setting[T]", **kwargs: Any) -> "setting[T]":
+    """Mirror of a field on the owning graph's settings bag (GraphSettings).
+
+    The graph-tier analogue of ``shadow()``: while unset, the field tracks
+    the graph bag's live value; a local set wins; ``reset()`` returns to the
+    graph's CURRENT value. Requires a graph-attached bag (node → wrapper →
+    graph) to be live; a detached bag (tests, standalone construction) holds
+    the descriptor default and does not track — there is no registry
+    fallback (ADR 0022).
+
+    Validates eagerly: *src* must be a field declared on a ``GraphSettings``
+    subclass (e.g. ``GraphProperties.default_skin``). For framework/library
+    settings use ``shadow()``/``watch()``.
+    """
+    from haywire.core.settings.graph_settings import GraphSettings
+
+    owner = getattr(src, "_owner_cls", None)
+    if not (isinstance(owner, type) and issubclass(owner, GraphSettings)):
+        raise TypeError(
+            f"graph(src=...) requires a field declared on a GraphSettings subclass; "
+            f"got {src!r} (owner: {owner!r}). For framework/library settings use shadow()."
+        )
+    s = setting(mirrors=src, **kwargs)
+    s._graph_mirror = True
+    return s

@@ -21,9 +21,11 @@ so instantiation with no args produces a fully registry-wired instance.
 from __future__ import annotations
 from typing import TYPE_CHECKING, ClassVar
 
+from typing_extensions import dataclass_transform
+
 from haywire.core.library.identity import LibraryIdentity
 from haywire.core.settings.decorator import SettingsClassIdentity
-from haywire.core.settings.descriptor import persistent_setting
+from haywire.core.settings.descriptor import persistent_setting, setting, shadow
 from haywire.core.settings.settings import Settings
 
 if TYPE_CHECKING:
@@ -35,6 +37,7 @@ if TYPE_CHECKING:
 _pending_global: list[type[FrameworkSettings]] = []
 
 
+@dataclass_transform(field_specifiers=(setting,))
 class FrameworkSettings(Settings):
     """
     Framework/app-defined settings schema.
@@ -111,6 +114,7 @@ class FrameworkSettings(Settings):
         super().__init__(registry=type(self)._registry)
 
 
+@dataclass_transform(field_specifiers=(setting, shadow))
 class LibrarySettings(Settings):
     """
     Library plugin-defined settings schema.
