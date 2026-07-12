@@ -107,6 +107,8 @@ with self.rejig(exclude=['exec', 'true', 'false', 'DataType']):
 
 **Settings inner classes.** A node can declare one or more `NodeSettings` inner classes for declarative settings (with `setting()`, `shadow()`, `watch()`). Full coverage in [components/settings](../settings/setting-canon.md).
 
+**Props changes redraw the node card automatically.** Changing an appearance-affecting field on `self.props` (`skin`, `color_override`, `muted`, `collapsed`, `condensed`, `pinned`, `comment`, `show_comment` — the set is `NodeProperties.REDRAW_FIELDS`) triggers a debounced redraw of the node card; no manual `self.wrapper.redraw()` is needed. Layout fields (`posX`/`posY`/`width`/`height`) are excluded — position updates ride a cheaper path. This applies only to `self.props`; if a field in a custom settings bag affects your card, subscribe yourself: `self.settings.subscribe_field('field', lambda v, o: self.wrapper.redraw())`.
+
 ## 4. Live examples from the codebase
 
 **DATA node — `MathOP`** from [`barn/haybale-example/haybale_example/nodes/math_op.py`](../../../barn/haybale-example/haybale_example/nodes/math_op.py). Demonstrates the minimal node skeleton: `@node` decorator, `init()` declaring ports, and `worker()` reading named inlet parameters and writing an outlet:

@@ -24,6 +24,23 @@ class NodeProperties(NodeSettings):
     Serialized under ``'props'`` key in the graph JSON.
     """
 
+    REDRAW_FIELDS: tuple[str, ...] = (
+        "muted",
+        "collapsed",
+        "condensed",
+        "pinned",
+        "skin",
+        "color_override",
+        "comment",
+        "show_comment",
+    )
+    """Fields whose change triggers a full node-card redraw.
+
+    NodeWrapper subscribes to these after each build; layout fields
+    (posX/posY/width/height/…) are deliberately absent — position changes
+    ride the cheaper NODE_MOVED path and fire on every drag tick.
+    """
+
     # -----------------------------------------------------------------
     # Visual state
     # -----------------------------------------------------------------
@@ -33,7 +50,7 @@ class NodeProperties(NodeSettings):
         label="Muted",
         order=10,
         category="state",
-        description="Skip this node during execution",
+        description="Mark this node as muted (execution skipping not yet implemented)",
     )
     collapsed = setting[BOOL](
         False,

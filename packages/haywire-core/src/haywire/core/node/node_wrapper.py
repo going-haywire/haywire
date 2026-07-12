@@ -285,14 +285,17 @@ class NodeWrapper:
             # code (Reset / hot-reload), so any such warning no longer applies.
             self._state.clear_warnings()
 
-            if self._instantiate():
-                if self._initialize(node_info):
-                    if self._structural_validation():
-                        if self._test():
-                            logger.debug(f"Node building succeeded: {self._node_id}")
-                            return
+            if (
+                self._instantiate()
+                and self._initialize(node_info)
+                and self._structural_validation()
+                and self._test()
+            ):
+                logger.debug(f"Node building succeeded: {self._node_id}")
+            else:
+                logger.debug(".. building failed with errors.")
 
-            logger.debug(".. building failed with errors.")
+            self._subscribe_props_redraw()
 
     def _instantiate(self) -> bool:
         """
@@ -625,6 +628,19 @@ class NodeWrapper:
             # Notify graph of redraw request
             if self._graph:
                 self._graph._validation.mark_node_dirty(self._node_id, ChangeReason.NODE_REDRAW_REQUESTED)
+
+    def _subscribe_props_redraw(self) -> None:
+        """Watch the instance's appearance-affecting props and redraw on change.
+        """
+        if self._node_instance is None:
+            return
+
+        for field_name in type(self._node_instance.props).REDRAW_FIELDS:
+            self._node_instance.props.subscribe_field(field_name, self._on_props_redraw_change)
+
+    def _on_props_redraw_change(self, _value: Any, _old: Any) -> None:
+        """Cell-event adapter to request a debounced redraw."""
+        self.redraw()
 
     def request_graph_reassembly(self) -> None:
         """
