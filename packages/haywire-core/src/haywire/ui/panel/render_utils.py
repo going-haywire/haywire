@@ -80,9 +80,15 @@ def render_settings(obj: "Settings") -> None:
         ui.label("No fields defined.").classes("text-xs hw-text-muted px-2 py-1")
         return
 
+    # _property_settings() already yields fields in declaration order (base-first
+    # MRO walk over class __dict__, which Python preserves in insertion order).
+    # Tiebreak on that position rather than on name — sorted() is stable, so ties
+    # on (category, order) (order defaults to 0 for every field) then fall back to
+    # declaration order instead of scrambling alphabetically.
+    declaration_index = {name: i for i, name in enumerate(visible_fields)}
     sorted_fields = sorted(
         visible_fields.items(),
-        key=lambda item: _category_sort_key(item[1]._category, item[1]._order, item[0]),
+        key=lambda item: _category_sort_key(item[1]._category, item[1]._order, declaration_index[item[0]]),
     )
 
     # attr_name -> zero-arg updater that re-reads the model and applies it to the
@@ -195,8 +201,13 @@ def render_keys(prefix: str, registry: "SettingsRegistry") -> None:
 # ===========================================================================
 
 
-def _category_sort_key(category: str, order: int, tiebreak: str) -> tuple[str, int, str]:
-    """Shared (category, order, name) sort key. ``root`` sorts before all others."""
+def _category_sort_key(category: str, order: int, tiebreak: "str | int") -> tuple[str, int, "str | int"]:
+    """Shared (category, order, tiebreak) sort key. ``root`` sorts before all others.
+
+    ``tiebreak`` is a setting key/name (alphabetical) for registry-backed callers,
+    or a declaration-order index for ``render_settings`` — callers never mix the
+    two within one sort, so comparability across the union type is not needed.
+    """
     return ("" if category.lower() == "root" else category, order, tiebreak)
 
 
