@@ -79,15 +79,18 @@ def test_watch_row_menu_offers_outlet_only(make_node_with_setting):
     assert not _reset_enabled(row), "clean row must grey reset"
 
 
-def test_watch_row_shows_dirty_glyph_once_locally_written(make_node_with_setting):
-    """watch() fields are writable now — a local write marks them dirty like
-    any other mirror field, with the same • chrome."""
+def test_watch_row_suppresses_dirty_glyph_while_disabled(make_node_with_setting):
+    """watch() fields are writable now — a local write marks them locally-set
+    like any other mirror field (Reset lights up) — but watch() also seeds
+    ui_state=DISABLED, and the • glyph is suppressed on any non-NORMAL row, so
+    a greyed watch() field never shows the dirty marker."""
     node = make_node_with_setting(accessor="filter", field="threshold", with_watch=True)
     node.filter.threshold_watched = 0.9
     anchor = _render(node)
     row = _find_field_row(anchor, "threshold_watched")
     texts = [getattr(el, "text", "") or "" for el in _walk(row)]
-    assert any(t.startswith("•") for t in texts)
+    assert not any(t.startswith("•") for t in texts)
+    assert _reset_enabled(row) is False, "DISABLED row greys reset too, same UiState gate"
 
 
 def test_unpromotable_watch_row_menu_has_reset_only(make_node_with_setting):

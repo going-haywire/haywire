@@ -162,7 +162,9 @@ def test_promoted_outlet_row_stays_editable(make_node_with_setting):
 
 
 def test_promoted_outlet_keeps_reset_when_locally_set(make_node_with_setting):
-    """Outlet keeps the setting as source of truth: its menu Reset stays enabled."""
+    """Outlet keeps the setting as source of truth: its menu Reset stays enabled,
+    but the • dirty glyph is suppressed for any promotion direction (noise on a
+    row the user can't act on the same way as an unpromoted field)."""
     node = make_node_with_setting(accessor="filter", field="threshold")
     from haywire.core.node.promotion import promote_setting
     from haywire.core.types.enums import PortType
@@ -173,13 +175,15 @@ def test_promoted_outlet_keeps_reset_when_locally_set(make_node_with_setting):
     row = _render(node)
     assert row is not None
     assert _reset_enabled(row), "promoted outlet must keep reset actionable"
-    assert _dirty_label(row)
+    assert not _dirty_label(row)
 
 
 # --------------------------------------------------------------------------
 # Reset / dirty chrome (• prefix + menu Reset item) — decision Q1/Q2/Q3.
-# Shown when a field is locally-set AND not owned by a promoted inlet; hidden
-# otherwise. Applies to plain fields, not just mirror fields.
+# Reset is shown when a field is locally-set AND not owned by a promoted
+# inlet; hidden otherwise. Applies to plain fields, not just mirror fields.
+# The • dirty glyph is narrower still: suppressed whenever the field is
+# promoted (any direction) or its effective UiState is not NORMAL.
 # --------------------------------------------------------------------------
 
 
@@ -417,15 +421,13 @@ def test_disabled_row_greys_reset_but_keeps_promote_active(make_node_with_settin
 
 def test_label_glyph_grammar(make_node_with_setting):
     """Pristine: 'threshold' — dirty: '• threshold' — inlet: '→ threshold' —
-    outlet (unedited): '→ threshold' — outlet (+dirty): '→• threshold'.
+    outlet (unedited): '→ threshold' — outlet (+dirty): '→ threshold'.
 
-    An INLET is marked locally-set at promote-time (its only write path is
-    the edge), so it always renders without '•' regardless of whether it was
-    ever edited pre-promotion — the port, not local-set-ness, is what the
-    inlet branch keys off for its own "graph-owned" read-only rendering. An
-    OUTLET has no write path of its own — it's still written through the
-    normal panel/registry path — so promoting it must NOT itself mark it
-    locally-set; '•' only appears once the field is actually written."""
+    The • dirty glyph is suppressed for ANY promoted field, regardless of
+    direction — a promoted row (inlet or outlet) isn't something the plain
+    "locally overridden, click Reset" affordance applies to in the same way,
+    so the glyph would just be noise. The → promotion arrow alone conveys
+    the row's special status."""
     from haywire.core.node.promotion import promote_setting
     from haywire.core.types.enums import PortType
 
@@ -454,7 +456,7 @@ def test_label_glyph_grammar(make_node_with_setting):
     assert _label_of(_render(node3)) == "→ threshold"  # unedited outlet -> no •
 
     node3.filter.threshold = 0.9  # written through the normal panel/registry path
-    assert _label_of(_render(node3)) == "→• threshold"
+    assert _label_of(_render(node3)) == "→ threshold"  # still promoted -> no •
 
 
 def test_promoted_config_row_is_read_only(make_node_with_setting):

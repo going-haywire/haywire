@@ -377,15 +377,24 @@ def _render_reactive_field_row(
         name for name in (_gate_controller("enabled_when"), _gate_controller("visible_when")) if name
     }
 
-    # Override chrome (• dirty prefix + reset button) is shown whenever the field
-    # carries a local opinion (_set_keys membership) AND the graph doesn't own its
-    # value through a promoted INLET. A promoted OUTLET keeps the setting as source
-    # of truth (its widget stays editable), so its chrome stays; an inlet-driven or
-    # inlet-promoted row is read-only, so resetting there is meaningless. The mirror
-    # gate is gone (decision Q1): plain fields get the same affordance, only the
-    # tooltip/meaning differs by field kind.
+    # Override chrome (reset button) is offered whenever the field carries a local
+    # opinion (_set_keys membership) AND the graph doesn't own its value through a
+    # promoted INLET. A promoted OUTLET keeps the setting as source of truth (its
+    # widget stays editable), so its chrome stays; an inlet-driven or inlet-promoted
+    # row is read-only, so resetting there is meaningless. The mirror gate is gone
+    # (decision Q1): plain fields get the same affordance, only the tooltip/meaning
+    # differs by field kind.
     def _has_local_opinion() -> bool:
         return obj.is_locally_set(attr_name) and not is_promoted_input
+
+    # The • dirty prefix is narrower than "has a reset button": it's suppressed for
+    # ANY promotion direction (not just inlet) and while the row is DISABLED — a
+    # promoted or locked row isn't something the user can act on right now, so the
+    # marker would just be noise.
+    def _should_show_dirty() -> bool:
+        return (
+            _has_local_opinion() and not is_promoted and obj.effective_ui_state(attr_name) is UiState.NORMAL
+        )
 
     # "Reset to global default" re-seeds a mirror field from the current global and
     # resumes tracking; a plain field has no global — reset restores the descriptor
@@ -476,7 +485,7 @@ def _render_reactive_field_row(
     def _render_label():
         nonlocal label
         with ui.row().classes("items-center gap-0 shrink-0 sf-label"):
-            label = ui.label(_label_text(_has_local_opinion())).classes("text-xs truncate")
+            label = ui.label(_label_text(_should_show_dirty())).classes("text-xs truncate")
             tooltip_parts = [p for p in (defn._description, promoted_hint) if p]
             if tooltip_parts:
                 label.tooltip(" — ".join(tooltip_parts))
@@ -562,7 +571,7 @@ def _render_reactive_field_row(
         # the is_locally_set half — recomputed here.
         if value_apply is not None:
             value_apply(getattr(obj, attr_name))
-        dirty = _has_local_opinion()
+        dirty = _should_show_dirty()
         if label is not None:
             label.set_text(_label_text(dirty))
         _refresh_reset_item()
