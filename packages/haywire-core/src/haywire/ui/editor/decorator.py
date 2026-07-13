@@ -10,7 +10,7 @@ For built-in framework editors, registration is bootstrapped directly
 in the DI provider via register_builtin_editors().
 """
 
-from typing import Optional, Union
+from typing import Any, Union
 
 from haywire.core.library.utils import EDITOR, derive_library_identity, reg_key
 
@@ -18,17 +18,7 @@ from .base import BaseEditor
 from .identity import EditorIdentity, OpenBehavior, SlotName
 
 
-def editor(
-    *,
-    label: Optional[str] = None,
-    description: str = "",
-    icon: str = "extension",
-    default_slot: Union[SlotName, str] = SlotName.EDIT,
-    opens: Union[OpenBehavior, str] = OpenBehavior.REQUIRED,
-    order: int = 100,
-    registry_id: Optional[str] = None,
-    deprecation_warning: str = "",
-):
+def editor(**kwargs: Any):
     """
     Decorator to mark a class as an editor type.
 
@@ -42,7 +32,8 @@ def editor(
     For built-in framework editors, registration is bootstrapped directly
     in the DI provider via register_builtin_editors().
 
-    Args:
+    Accepted keys (splatted into ``EditorIdentity``; an unknown key raises
+    ``TypeError`` at class-definition time):
         label: Human-readable display name. Defaults to class name.
         icon: Material Design icon name. Defaults to 'extension'.
         default_slot: Which slot this editor belongs in by default. A
@@ -61,6 +52,13 @@ def editor(
             Defaults to the class name if not provided.
         deprecation_warning: Optional human-readable message shown when this
             editor is listed anywhere. Empty string means not deprecated.
+        hidden: When True, the editor is registered and usable but excluded
+            from author-facing selection UIs. See the glossary term
+            **Hidden component**.
+
+    ``registry_key``, ``class_name`` and ``module`` are derived by the
+    decorator and must not be passed. ``default_slot`` / ``opens`` accept the
+    enum or its string value and are coerced here.
 
     Usage:
         @editor(
@@ -78,28 +76,31 @@ def editor(
         if not issubclass(inner_cls, BaseEditor):
             raise TypeError(f"@editor can only be applied to BaseEditor subclasses, got {inner_cls}")
 
-        # Coerce strings to enums; raises ValueError at class-definition time on typo.
-        opens_enum = OpenBehavior(opens) if isinstance(opens, str) else opens
-        slot_enum = SlotName(default_slot) if not isinstance(default_slot, SlotName) else default_slot
+        identity_kwargs = dict(kwargs)
 
-        _registry_id = registry_id or inner_cls.__name__
-        _label = label or inner_cls.__name__
+        # Coerce strings to enums; raises ValueError at class-definition time on typo.
+        default_slot: Union[SlotName, str] = identity_kwargs.pop("default_slot", SlotName.EDIT)
+        opens: Union[OpenBehavior, str] = identity_kwargs.pop("opens", OpenBehavior.REQUIRED)
+        identity_kwargs["opens"] = OpenBehavior(opens) if isinstance(opens, str) else opens
+        identity_kwargs["default_slot"] = (
+            SlotName(default_slot) if not isinstance(default_slot, SlotName) else default_slot
+        )
+
+        _registry_id = identity_kwargs.pop("registry_id", None) or inner_cls.__name__
+        _label = identity_kwargs.pop("label", None) or inner_cls.__name__
 
         library_identity = derive_library_identity(inner_cls)
         _registry_key = reg_key(library_identity.id, EDITOR, _registry_id)
 
+        # Remaining keys (icon, order, description, deprecation_warning, hidden, …)
+        # splat straight into the identity; an unknown key surfaces as a TypeError.
         inner_cls.class_identity = EditorIdentity(
             registry_id=_registry_id,
             registry_key=_registry_key,
             label=_label,
-            icon=icon,
-            default_slot=slot_enum,
-            opens=opens_enum,
-            order=order,
-            description=description,
-            deprecation_warning=deprecation_warning,
             class_name=inner_cls.__name__,
             module=inner_cls.__module__,
+            **identity_kwargs,
         )
         inner_cls.class_library = library_identity
         return inner_cls

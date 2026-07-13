@@ -14,17 +14,13 @@ Consistent with @node, @editor, @panel, @settings pattern:
 
 from __future__ import annotations
 
+from typing import Any
+
 from haywire.core.library.utils import THEME, derive_library_identity, reg_key
 from haywire.ui.themes.identity import ThemeClassIdentity
 
 
-def theme(
-    *,
-    label: str = "",
-    description: str = "",
-    registry_id: str | None = None,
-    deprecation_warning: str = "",
-):
+def theme(**kwargs: Any):
     """
     Decorator that registers a WorkbenchTheme or NodeTheme subclass.
 
@@ -34,7 +30,8 @@ def theme(
     The theme type ('workbench' or 'node') is auto-detected from the base class —
     no need to specify it explicitly.
 
-    Args:
+    Accepted keys (splatted into ``ThemeClassIdentity``; an unknown key raises
+    ``TypeError`` at class-definition time):
         label:        Human-readable display name. Defaults to registry_id.
         description:  Human-readable description. Defaults to ''.
         registry_id:  Unique theme identifier (e.g. 'haywire-dark', 'default').
@@ -42,6 +39,12 @@ def theme(
                       registry_key, which is the canonical lookup key.
         deprecation_warning: Optional human-readable message shown when this
             theme is listed anywhere. Empty string means not deprecated.
+        hidden: When True, the theme is registered and usable but excluded from
+            author-facing selection UIs (the theme picker). Used by testing
+            themes. See the glossary term **Hidden component**.
+
+    ``registry_key``, ``theme_type``, ``class_name`` and ``module`` are derived
+    by the decorator and must not be passed.
 
     Usage:
         @theme(label='Haywire Dark')
@@ -69,21 +72,23 @@ def theme(
                 f"@theme can only be applied to WorkbenchTheme or NodeTheme subclasses, got {inner_cls}"
             )
 
-        _registry_id = registry_id or inner_cls.__name__
-        _label = label or _registry_id
+        identity_kwargs = dict(kwargs)
+        _registry_id = identity_kwargs.pop("registry_id", None) or inner_cls.__name__
+        _label = identity_kwargs.pop("label", "") or _registry_id
 
         library_identity = derive_library_identity(inner_cls)
         _registry_key = reg_key(library_identity.id, f"{THEME}:{theme_type}", _registry_id)
 
+        # Remaining keys (description, deprecation_warning, hidden, …) splat straight
+        # into the identity; an unknown key surfaces as a TypeError there.
         inner_cls.class_identity = ThemeClassIdentity(
             registry_id=_registry_id,
             theme_type=theme_type,
             registry_key=_registry_key,
             label=_label,
-            description=description,
-            deprecation_warning=deprecation_warning,
             class_name=inner_cls.__name__,
             module=inner_cls.__module__,
+            **identity_kwargs,
         )
         inner_cls.class_library = library_identity
         return inner_cls

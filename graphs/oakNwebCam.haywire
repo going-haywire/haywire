@@ -5,7 +5,7 @@
   "version": "1.0.0",
   "author": "",
   "created_at": null,
-  "modified_at": "2026-07-08T12:56:39.023844",
+  "modified_at": "2026-07-13T13:53:21.826337",
   "nodes": {
     "BeginPlayNode_87f32274": {
       "node_id": "BeginPlayNode_87f32274",
@@ -91,6 +91,7 @@
           "label": "Begin Player",
           "description": "Triggered once when execution starts",
           "deprecation_warning": "",
+          "hidden": false,
           "class_name": "BeginPlayNode",
           "module": "haybale_core.nodes.events.begin_play",
           "search_tags": [
@@ -479,6 +480,7 @@
           "label": "Web Camera",
           "description": "Starts a webcam stream and emits frame callbacks",
           "deprecation_warning": "",
+          "hidden": false,
           "class_name": "WebCameraNode",
           "module": "haybale_visiongraph.nodes.web_cam_node",
           "search_tags": [
@@ -605,6 +607,7 @@
           "label": "Shutdown",
           "description": "Triggered when execution is shutting down",
           "deprecation_warning": "",
+          "hidden": false,
           "class_name": "ShutdownNode",
           "module": "haybale_core.nodes.events.shutdown",
           "search_tags": [
@@ -924,6 +927,7 @@
           "label": "Frame Info Display",
           "description": "Displays information about frames with live preview",
           "deprecation_warning": "",
+          "hidden": false,
           "class_name": "FrameDisplayNode",
           "module": "haybale_visiongraph.nodes.numpy_frame_display_node",
           "search_tags": [
@@ -1007,7 +1011,7 @@
               "name": "NumpyFrameEventNode_bcbab615",
               "rgb": true,
               "depth": false,
-              "ir": false
+              "ir": true
             }
           },
           "enable_rgb": {
@@ -1091,7 +1095,7 @@
               "registry_key": "builtin:type:BOOL"
             },
             "field_data": {
-              "value": false
+              "value": true
             }
           },
           "frame_ready": {
@@ -1192,11 +1196,37 @@
               "id": "rgb",
               "port_type": "outlet",
               "allow_multiple_links": true,
-              "order": 8,
+              "order": 9,
               "show_widget": "never"
             },
             "recipe": {
               "registry_key": "visiongraph:type:RGB_FRAME"
+            }
+          },
+          "ir": {
+            "kwargs": {
+              "registry_id": "GRAY_FRAME",
+              "registry_key": "visiongraph:type:GRAY_FRAME",
+              "label": "Infrared",
+              "description": "Single-channel uint8 luminance video frame (e.g. infrared)",
+              "class_name": "GRAY_FRAME",
+              "module": "haybale_visiongraph.types.frame_type",
+              "flow_type": "data",
+              "default": {
+                "data": null,
+                "timestamp": 0.0,
+                "frame_number": 0
+              },
+              "store_strategy": 1,
+              "color": "#607d8b",
+              "id": "ir",
+              "port_type": "outlet",
+              "allow_multiple_links": true,
+              "order": 10,
+              "show_widget": "never"
+            },
+            "recipe": {
+              "registry_key": "visiongraph:type:GRAY_FRAME"
             }
           }
         },
@@ -1223,6 +1253,7 @@
           "label": "Frame Event",
           "description": "Triggered when a camera frame is ready; exposes colour/depth/infrared streams",
           "deprecation_warning": "",
+          "hidden": false,
           "class_name": "NumpyFrameEventNode",
           "module": "haybale_visiongraph.nodes.numpy_frame_event_node",
           "search_tags": [
@@ -1550,6 +1581,7 @@
           "label": "Frame Info Display",
           "description": "Displays information about frames with live preview",
           "deprecation_warning": "",
+          "hidden": false,
           "class_name": "FrameDisplayNode",
           "module": "haybale_visiongraph.nodes.numpy_frame_display_node",
           "search_tags": [
@@ -1849,6 +1881,7 @@
           "label": "Frame Event",
           "description": "Triggered when a camera frame is ready; exposes colour/depth/infrared streams",
           "deprecation_warning": "",
+          "hidden": false,
           "class_name": "NumpyFrameEventNode",
           "module": "haybale_visiongraph.nodes.numpy_frame_event_node",
           "search_tags": [
@@ -1987,6 +2020,7 @@
               "description": "Text data",
               "class_name": "STRING",
               "module": "haywire.barn.builtin.types.specs",
+              "flow_type": "data",
               "default": {
                 "value": "Idle"
               },
@@ -2067,7 +2101,10 @@
             }
           },
           "stream_flags": {
-            "values": {},
+            "values": {
+              "want_rgb": true,
+              "want_ir": true
+            },
             "promoted": {}
           },
           "color": {
@@ -2097,6 +2134,7 @@
           "label": "OAK-D Camera",
           "description": "Opens an OAK-D depth camera and emits colour/depth/infrared frame callbacks",
           "deprecation_warning": "",
+          "hidden": false,
           "class_name": "OakDCameraNode",
           "module": "haybale_visiongraph.nodes.oak_d_camera_node",
           "search_tags": [
@@ -2177,7 +2215,9 @@
       "sink_node_id": "node_44069909",
       "inlet_port_id": "frame",
       "edge_type": "data",
-      "chain_adapter_keys": [],
+      "chain_adapter_keys": [
+        "visiongraph:adapter:GrayToRgbAdapter"
+      ],
       "is_lazy": false
     },
     "edge::subscription@node_7733ff48>>callbacks@WebCameraNode_15b5bccb": {
@@ -2235,5 +2275,9 @@
       "is_lazy": false
     }
   },
-  "variables": {}
+  "variables": {},
+  "props": {
+    "values": {},
+    "promoted": {}
+  }
 }

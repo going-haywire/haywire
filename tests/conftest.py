@@ -74,6 +74,60 @@ def _reset_nicegui_globals():
 
 
 # ==============================================================================
+# Ambient settings registry for DI-less tests
+# ==============================================================================
+# Since ADR 0022, ``BaseGraph.__init__`` reads ``get_settings_registry()`` from
+# the ambient DI context (module-level globals in haywire.core.di.context — NOT
+# ContextVar, so they persist across tests). DI-less unit tests that construct a
+# bare ``BaseGraph()`` therefore need *some* ambient ``SettingsRegistry``, or they
+# raise "SettingsRegistry not set in ambient context". Previously they only passed
+# by accident, piggybacking on a registry an earlier integration test had leaked
+# into the globals — so the same test failed when run in isolation.
+#
+# This autouse fixture makes DI-less tests deterministic without corrupting the
+# session-scoped integration registry.
+#
+# The subtlety: constructing a ``SettingsRegistry()`` is NOT side-effect-free. Its
+# ``__init__`` calls ``_drain_pending_global()``, which repoints the class-level
+# ``FrameworkSettings._registry`` at itself and *drains* the module-level
+# ``_pending_global`` queue of framework schema classes. A naive throwaway registry
+# would therefore hijack where later-defined FrameworkSettings register and empty a
+# queue the real session registry still needs — which is exactly how a bare fallback
+# made ``ui.node.default.skin.studio_skin`` vanish from the session registry.
+#
+# So we snapshot ALL THREE pieces of global state a fallback would touch
+# (``di_context._settings_registry``, ``FrameworkSettings._registry``, and the
+# ``_pending_global`` list contents) and restore them verbatim on teardown, leaving
+# a DI-less test's fallback fully contained. When nothing is set, we install a
+# minimal registry so bare ``BaseGraph()`` construction works.
+#
+# The session library-system registry (set once via ``provide_settings_registry``)
+# is not re-run per test, so integration graph fixtures re-assert it themselves at
+# use time (see ``graph_with_library_system``).
+@pytest.fixture(autouse=True)
+def _ambient_settings_registry():
+    from haywire.core.di import context as di_context
+    from haywire.core.settings import settings_framework as fw
+    from haywire.core.settings.registry import SettingsRegistry
+
+    prev_ambient = di_context._settings_registry
+    prev_fw_registry = fw.FrameworkSettings._registry
+    prev_pending = list(fw._pending_global)
+
+    if prev_ambient is None:
+        # Constructing this drains _pending_global and repoints
+        # FrameworkSettings._registry — both restored below.
+        di_context.set_settings_registry(SettingsRegistry())
+
+    try:
+        yield
+    finally:
+        di_context._settings_registry = prev_ambient
+        fw.FrameworkSettings._registry = prev_fw_registry
+        fw._pending_global[:] = prev_pending
+
+
+# ==============================================================================
 # Path Fixtures
 # ==============================================================================
 

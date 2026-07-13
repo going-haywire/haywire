@@ -98,6 +98,7 @@ Things that aren't visible from the code itself — bugs we hit, framework quirk
 ### Architecture traps
 
 - [project_di_context.md](.insights/project_di_context.md) — DI context uses module-level globals, NOT `ContextVar`. ContextVar broke hot-reload (reload captured a different ContextVar instance than the rest of the app). Don't switch back without solving that.
+- [project_settings_registry_construction_side_effects.md](.insights/project_settings_registry_construction_side_effects.md) — building a `SettingsRegistry()` is NOT inert: it repoints `FrameworkSettings._registry` and drains the global `_pending_global` queue. A throwaway registry silently steals framework-schema registration. Get it from DI; if a test must build one, snapshot/restore all three globals.
 - [project_graph_canvas_connection.md](.insights/project_graph_canvas_connection.md) — `pin.flow_type.value` (`'data'`) vs `str(pin.flow_type)` (`'FlowType.DATA'`); `lastMousePos` workaround for resume-without-coords.
 - [project_minimap.md](.insights/project_minimap.md) — minimap must be sibling of `ZoomPanContainer`, not child. Why `offsetLeft`/`getBoundingClientRect` don't work for node scanning.
 - [project_library_dependencies_use_package_names.md](.insights/project_library_dependencies_use_package_names.md) — `@library(dependencies=[...])` takes Python package names (e.g. `"haybale_studio"`), NOT the library `id` from the same decorator. Mismatches silently break hot-reload scope tracking.
