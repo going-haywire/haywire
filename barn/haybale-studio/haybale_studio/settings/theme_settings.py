@@ -12,7 +12,7 @@ def _workbench_theme_choices():
     try:
         return {
             k: lbl
-            for k, lbl in get_theme_registry().list_workbench_themes()
+            for k, lbl in get_theme_registry().list_visible_workbench_themes()
             if not k.startswith("__system__:")
         }
     except Exception:

@@ -112,11 +112,22 @@ class ThemeRegistry(BaseRegistry[BaseTheme]):
         )
 
     def list_workbench_themes(self) -> list[tuple[str, str]]:
-        """Return sorted list of (registry_key, label) pairs for all workbench themes."""
+        """Return sorted list of(registry_key, label) pairs for ALL workbench themes.
+        """
         return sorted(
             (cls.class_identity.registry_key, cls.class_identity.label)
             for cls in self._classes.values()
             if issubclass(cls, WorkbenchTheme)
+        )
+
+    def list_visible_workbench_themes(self) -> list[tuple[str, str]]:
+        """Return sorted (registry_key, label) pairs for non-hidden workbench themes —
+        those offered as a choice in the theme picker.
+        """
+        return sorted(
+            (cls.class_identity.registry_key, cls.class_identity.label)
+            for cls in self._classes.values()
+            if issubclass(cls, WorkbenchTheme) and not cls.class_identity.hidden
         )
 
     def list_node_theme_keys(self) -> list[str]:

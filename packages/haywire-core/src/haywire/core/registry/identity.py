@@ -14,5 +14,6 @@ class BaseIdentity:
     label: str  # Human-readable display name
     description: str = ""  # Human-readable description
     deprecation_warning: str = ""  # Optional deprecation warning message
+    hidden: bool = False  # Exclude from author-facing selection UIs (still registered/usable)
     class_name: str = ""  # Python class name - set by decorator
     module: str = ""  # Python module name - set by decorator

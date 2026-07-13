@@ -22,5 +22,6 @@ see-also:
 ## TODO
 
 - [ ] Write content
+- [ ] Document `@skin(hidden=True)` — registers a skin normally but excludes it from the skin picker (used by the error/fallback skin, which sets `_is_error=True, hidden=True`). See glossary term **Hidden component**.
 - [ ] Verify against codebase
 - [ ] Archive source files

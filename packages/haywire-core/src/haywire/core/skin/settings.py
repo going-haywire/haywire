@@ -20,7 +20,7 @@ def _node_skin_choices():
     try:
         from haywire.core.di.config import get_skin_registry
 
-        return {reg_key: reg_key for reg_key in get_skin_registry().list_names()}
+        return {reg_key: reg_key for reg_key in get_skin_registry().list_visible_names()}
     except Exception:
         return {}
 

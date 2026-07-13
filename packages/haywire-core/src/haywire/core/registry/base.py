@@ -147,8 +147,17 @@ class BaseRegistry(HotReloadRegistry, FolderScanMixin, Generic[T]):
         return registry_key in self._classes
 
     def list_names(self) -> list[str]:
-        """List all classes registry_keys in this registry"""
+        """List all classes registry_keys in this registry. 
+        """
         return list(self._classes.keys())
+
+    def list_visible_names(self) -> list[str]:
+        """List registry_keys of non-hidden classes.
+        for those offered as a choice in author-facing selection UIs (menus, pickers).
+        """
+        return [
+            key for key, cls in self._classes.items() if not cast(BaseIdentity, cls.class_identity).hidden
+        ]
 
     def _register(
         self, registry_key: str, cls: type[T], library_identity: Optional[LibraryIdentity] = None

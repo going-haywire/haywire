@@ -45,6 +45,8 @@ The class you write is the *blueprint*. At runtime, a `NodeWrapper` owns the liv
 
 **The `@node` decorator.** Attaches identity metadata: `label`, `description`, `menu` (canvas menu path), `search_tags`, `node_type` (`NodeType.CONTROL` / `NodeType.DATA` / etc.). The decorator's `node_type` argument sets the default execution role; the actual role is inferred from the EXEC ports declared in `init()`.
 
+**`hidden` — keep a node out of the create menu.** Set `@node(..., hidden=True)` to register a node normally (usable in code, hot-reloaded, functional in existing graphs) while *excluding it from the Add-Nodes menu and node search*. This is the canonical way to hide a node from selection — used by framework-internal nodes (e.g. the reroute node) and testing/example nodes that shouldn't clutter an author's real palette. It affects *presentation as a choice only*; it does not deregister the node or hide it from browsing/debug surfaces. Note an **empty** `menu=""` no longer hides a node — it now routes the node to the top-level `Misc` category; use `hidden=True` to hide. See the glossary term **Hidden component**.
+
 **`init()` declares ports.** Called once when the node is first instantiated. Use `self.add(...)` with port specs from the type system: `EXEC.as_inlet('trigger')`, `FLOAT.as_inlet('value', default=0.0)`, `MyComplexType.as_outlet('result')`. Port creation surface lives in [guides/ports](../../guides/ports.md). 
 
 **IMPORTANT**: When a node is deserialized (loaded for a graph) its ports are instantiated from disc and the **`init()`** method is **NOT** called. What is called though is the **`post_init()`** method. Thus the **`init()`** should only define those ports that are needed when the node is instantiated awnew or reset.

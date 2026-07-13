@@ -26,7 +26,10 @@ _CARD_PADDING = 0
 _PIN_PROTRUSION = 0
 
 
-@skin(description="Minimal reroute skin — a tiny box with one inlet and one outlet pin.")
+@skin(
+    description="Minimal reroute skin — a tiny box with one inlet and one outlet pin.",
+    hidden=True
+)
 class RerouteSkin(BaseSkin):
     """Renders a reroute node as a small box with its two pins inline."""
 

@@ -14,7 +14,11 @@ from haywire.ui.skin.decorator import skin
 from .node_skin import NodeSkin
 
 
-@skin(description="Error skin that provides error styling for nodes", _is_error=True)
+@skin(
+    description="Error skin that provides error styling for nodes",
+    _is_error=True,
+    hidden=True,  # Fallback skin — not offered as a choice in the skin picker
+)
 class ErrorNodeSkin(NodeSkin):
     """
     Error skin that provides error styling for nodes.

@@ -7,7 +7,10 @@ from haywire.ui.themes.decorator import theme
 
 
 # --8<-- [start:test_node_theme]
-@theme(label="Test Node")
+@theme(
+    label="Test Node",
+    hidden=True
+)
 class TestNodeTheme(NodeTheme):
     """Minimal node theme for tests."""
 

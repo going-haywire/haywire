@@ -33,12 +33,8 @@ from haywire.core.types.enums import PortType
 @node(
     label="Reroute",
     description="Pass-through node for bending wires. Supports DATA and CONTROL edges.",
-    search_tags=["reroute", "passthrough", "split", "wire"],
-    # Deliberately no `menu`: a reroute only makes sense once configured with a
-    # type by the edge-split action, so it is not offered in the canvas create
-    # menu. It is created exclusively via SplitEdgeWithRerouteAction.
-    menu="",
     node_type=NodeType.REROUTE,
+    hidden=True,
     _is_reroute=True,
 )
 class RerouteNode(BaseNode):
