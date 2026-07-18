@@ -28,7 +28,6 @@ class WorkbenchThemeSettings(LibrarySettings):
         label="Workbench Theme",
         description="Active workbench colour theme",
         category="workbench",
-        order=10,
         widget_config={"options": _workbench_theme_choices},
     )
 
@@ -42,5 +41,4 @@ class NodeThemeSettings(LibrarySettings):
         label="Node Theme",
         description="Active node rendering theme",
         category="node_theme",
-        order=10,
     )

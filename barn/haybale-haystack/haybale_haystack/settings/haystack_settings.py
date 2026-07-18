@@ -15,7 +15,6 @@ class HaystackSettings(LibrarySettings):
         label="Last Haystack",
         description="Name of the haystack to auto-load on startup",
         category="haystack",
-        order=10,
     )
 
     new_counter = setting[INT](
@@ -23,5 +22,4 @@ class HaystackSettings(LibrarySettings):
         label="New Counter",
         description="Sequence used to name newly created untitled graphs",
         category="haystack",
-        order=20,
     )

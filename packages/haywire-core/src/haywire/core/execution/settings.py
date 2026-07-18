@@ -16,7 +16,6 @@ class ExecutionSettings(FrameworkSettings):
         label="Auto Execute",
         description="Automatically execute graph when inputs change",
         category="execution",
-        order=10,
     )
 
     execute_on_connect = setting[BOOL](
@@ -24,5 +23,4 @@ class ExecutionSettings(FrameworkSettings):
         label="Execute on Connect",
         description="Execute affected nodes when new connections are made",
         category="execution",
-        order=12,
     )

@@ -14,12 +14,10 @@ class DebugOverlaySettings(FrameworkSettings, namespace=NAMESPACE_UI_DEBUG_OVERL
         False,
         label="Show Debug Overlay",
         description="Display the live performance/debug HUD on the canvas",
-        order=10,
     )
     position = setting[CHOICES](
         "bottom-left",
         label="Overlay Position",
         description="Corner position of the debug overlay",
-        order=20,
         widget_config={"options": ["top-left", "top-right", "bottom-left", "bottom-right"]},
     )

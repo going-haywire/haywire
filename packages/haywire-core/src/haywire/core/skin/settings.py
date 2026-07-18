@@ -48,7 +48,6 @@ class NodeDefaultSkinSettings(FrameworkSettings, namespace=NAMESPACE_UI_NODE_DEF
         description="Current default node skin",
         category=CATEGORY_NODE_SKINS,
         widget=SimpleLabelWidget.config(),
-        order=10,
     )
     studio_skin = setting[CHOICES](
         default=_default_skin,
@@ -56,5 +55,4 @@ class NodeDefaultSkinSettings(FrameworkSettings, namespace=NAMESPACE_UI_NODE_DEF
         description="Studio default node skin",
         category=CATEGORY_NODE_SKINS,
         widget_config={"options": _node_skin_choices},
-        order=20,
     )
