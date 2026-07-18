@@ -158,23 +158,52 @@ def render_settings(obj: "Settings") -> None:
 
 
 def render_schema(schema_cls: type["Settings"], registry: "SettingsRegistry") -> None:
-    """Render only the fields declared on *schema_cls* as labelled form rows.
+    """Render only the fields declared on *schema_cls* as labelled form rows,
+    in declaration order.
 
-    Uses the schema's own _property_settings() so that keys registered under the
-    same namespace prefix by other code (e.g. dynamic library keys) are not
-    accidentally included.
+    Walks the schema's own _property_settings() directly (already in
+    declaration order — base-first MRO walk preserving dict insertion order)
+    and filters to registry-known keys, so keys registered under the same
+    namespace prefix by other code (e.g. dynamic library keys) are not
+    accidentally included. This is an order-preserving FILTER, not a
+    collect-then-sort: unlike render_keys, no (category, order, key) re-sort
+    happens here (see internals/superpowers/2026-07-18-settings-panel-ordering-spec.md).
+
+    MRO caveat: if a subclass re-declares a field name also present on a base
+    class, _property_settings()'s dict-assignment overwrites the VALUE at that
+    key but does not move the key's position, so the field renders at the base
+    class's declaration position, not the subclass's. LibrarySettings /
+    FrameworkSettings block deep subclassing, so this is unreachable for
+    either — documented, not fixed.
     """
     prop_fields = schema_cls._property_settings()
-    defns = {
-        defn._setting_key: defn
+    ordered_defns = [
+        defn
         for defn in prop_fields.values()
         if defn._setting_key and registry.has_definition(defn._setting_key)
-    }
-    if not defns:
+    ]
+    if not ordered_defns:
         ui.label("No fields defined.").classes("text-xs hw-text-muted px-2 py-1")
         return
 
-    _render_definitions(_sort_definitions(defns.values()), registry)
+    def _render_one(defn) -> None:
+        key = defn._setting_key
+        try:
+            cell = registry.cell_for(key)
+        except KeyError:
+            return
+        attr_name = defn._attr_name or key.split(".")[-1]
+        _render_field_row(
+            defn._label or attr_name,
+            defn._description,
+            defn,
+            registry,
+            key,
+            attr_name=attr_name,
+            cell=cell,
+        )
+
+    _render_grouped(ordered_defns, category_of=lambda d: d._category, render_one=_render_one)
 
 
 def render_keys(prefix: str, registry: "SettingsRegistry") -> None:
