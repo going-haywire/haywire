@@ -19,7 +19,6 @@ class EditorPanZoomSettings(FrameworkSettings, namespace=NAMESPACE_EDITOR_PAN_ZO
         label="Zoom Sensitivity",
         description="How fast scroll/pinch zooms the canvas",
         category=CATEGORY_EDITOR_PAN_ZOOM,
-        order=10,
         min=0.01,
         max=2.0,
     )
@@ -28,17 +27,7 @@ class EditorPanZoomSettings(FrameworkSettings, namespace=NAMESPACE_EDITOR_PAN_ZO
         label="Pan Sensitivity",
         description="How fast two-finger swipe pans the canvas",
         category=CATEGORY_EDITOR_PAN_ZOOM,
-        order=20,
         min=0.1,
-        max=5.0,
-    )
-    max_zoom = setting[FLOAT](
-        1.0,
-        label="Maximum Zoom",
-        description="Maximum zoom level",
-        category=CATEGORY_EDITOR_PAN_ZOOM,
-        order=40,
-        min=0.5,
         max=5.0,
     )
     min_zoom = setting[FLOAT](
@@ -49,9 +38,16 @@ class EditorPanZoomSettings(FrameworkSettings, namespace=NAMESPACE_EDITOR_PAN_ZO
             "viewport). A value above 0 overrides that, allowing further zoom-out."
         ),
         category=CATEGORY_EDITOR_PAN_ZOOM,
-        order=30,
         min=0,
         max=1.0,
+    )
+    max_zoom = setting[FLOAT](
+        1.0,
+        label="Maximum Zoom",
+        description="Maximum zoom level",
+        category=CATEGORY_EDITOR_PAN_ZOOM,
+        min=0.5,
+        max=5.0,
     )
 
     # --- Hover magnifier -----------------------------------------------------
@@ -65,14 +61,12 @@ class EditorPanZoomSettings(FrameworkSettings, namespace=NAMESPACE_EDITOR_PAN_ZO
         label="Hover Magnifier",
         description="Scale a node up on hover (when zoomed out) to read it without zooming in",
         category=CATEGORY_EDITOR_HOVER,
-        order=50,
     )
     hover_scale_max = setting[FLOAT](
         1.5,
         label="Hover Magnify Amount",
         description="How much a node scales up on hover when fully zoomed out",
         category=CATEGORY_EDITOR_HOVER,
-        order=51,
         min=1.0,
         max=5.0,
     )
@@ -81,7 +75,6 @@ class EditorPanZoomSettings(FrameworkSettings, namespace=NAMESPACE_EDITOR_PAN_ZO
         label="Hover Magnify Cutoff Zoom",
         description="At or above this zoom level the hover magnifier does nothing (scale 1.0)",
         category=CATEGORY_EDITOR_HOVER,
-        order=52,
         min=0.1,
         max=1.0,
     )
@@ -90,7 +83,6 @@ class EditorPanZoomSettings(FrameworkSettings, namespace=NAMESPACE_EDITOR_PAN_ZO
         label="Hover Magnify Delay (ms)",
         description="How long to dwell on a node before it magnifies",
         category=CATEGORY_EDITOR_HOVER,
-        order=53,
         min=0,
         max=2000,
     )
@@ -99,7 +91,6 @@ class EditorPanZoomSettings(FrameworkSettings, namespace=NAMESPACE_EDITOR_PAN_ZO
         label="Hover Magnify Release Delay (ms)",
         description="How long after leaving a node before it shrinks back",
         category=CATEGORY_EDITOR_HOVER,
-        order=54,
         min=0,
         max=1000,
     )
