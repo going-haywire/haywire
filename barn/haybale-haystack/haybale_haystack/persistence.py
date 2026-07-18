@@ -29,13 +29,9 @@ Notes
 from __future__ import annotations
 
 import logging
-from pathlib import Path
-from typing import TYPE_CHECKING, Optional
-
 import toml
-
-if TYPE_CHECKING:
-    pass  # HaystackState is not yet defined — avoid circular imports
+from pathlib import Path
+from typing import Optional
 
 logger = logging.getLogger(__name__)
 

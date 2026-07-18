@@ -25,7 +25,6 @@ def test_toolbar_handler_keys_present():
     """SelectionToolbarHandlers contributes selectionBounds + selectionBoundsHide
     when wired via build_event_handler_map.
     """
-    import haywire.core.graph.editor  # noqa: F401 — prevents circular import
 
     from haybale_graph_editor.editors.graph_canvas.handlers.selection_toolbar import (
         SelectionToolbarHandlers,
@@ -49,7 +48,6 @@ def test_toolbar_handlers_wired_into_gcm_source():
     build_event_handler_map. We verify this by inspecting the module source —
     if the class is not imported/referenced, the wiring is absent.
     """
-    import haywire.core.graph.editor  # noqa: F401
     import inspect
     from haybale_graph_editor.editors.graph_canvas import graph_canvas_manager
 
@@ -79,7 +77,6 @@ def test_toolbar_panels_registered_in_panel_registry(tmp_path):
     CopyToolbarPanel, DeleteToolbarPanel, and OverflowToolbarPanel are present
     in the PanelRegistry.
     """
-    import haywire.core.graph.editor  # noqa: F401
 
     from haywire.ui.panel.registry import PanelRegistry
     from haywire.core.library.identity import LibraryIdentity

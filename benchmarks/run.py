@@ -17,9 +17,6 @@ frozen-inputs / host-and-dirty filtering lives in ``benchmarks/README.md``.
 
 from __future__ import annotations
 
-# Import order matters (circular imports) — graph editor first, per CLAUDE.md.
-import haywire.core.graph.editor  # noqa: F401  (must precede other haywire imports)
-
 import json
 import platform
 import statistics

@@ -13,12 +13,6 @@ from injector import Injector
 
 from haywire.core.di.test_config import create_test_injector, create_test_library_system
 
-# IMPORTANT: Import order matters due to circular dependencies
-# Import graph module first to resolve circular imports
-from haywire.core.graph.editor import Editor  # noqa: F401
-from haywire.core.graph.base import BaseGraph  # noqa: F401
-
-# Import types only when needed to avoid circular imports
 from haywire.core.node.registry import NodeRegistry
 from haywire.core.node.factory import NodeFactory
 from haywire.core.adapter.registry import AdapterRegistry

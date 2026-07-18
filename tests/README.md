@@ -176,22 +176,6 @@ def test_with_real_nodes(library_system):
     # ...
 ```
 
-## Circular Import Handling
-
-**IMPORTANT**: Due to circular dependencies in the haywire core, imports in `conftest.py` must follow a specific order:
-
-```python
-# Import graph module FIRST to resolve circular imports
-from haywire.core.graph.editor import Editor  # noqa: F401
-from haywire.core.graph.base import BaseGraph  # noqa: F401
-
-# Then import other modules
-from haywire.core.node.registry import NodeRegistry
-# ...
-```
-
-This same pattern should be followed when creating new test files that import multiple haywire modules.
-
 ## Adding New Test Modules
 
 1. Create test file: `tests/[module]/test_[feature].py`

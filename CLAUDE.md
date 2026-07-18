@@ -32,7 +32,6 @@ Run `uv run mkdocs serve` to preview the published site at `http://127.0.0.1:800
 
 - Always run the full test suite (`pytest` or equivalent) after any refactor or multi-file change and confirm all tests pass before presenting work as complete.
 - Use `force_immediate_validation()` only when you need the `ValidationResult` synchronously, or for graphs left on the default (timer) scheduler. See ADR 0002.
-- In test files, import `haywire.core.graph.editor` before other haywire modules to avoid circular import errors.
 
 ### Pre-edit baseline
 
