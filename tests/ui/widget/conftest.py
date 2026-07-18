@@ -22,6 +22,10 @@ from haywire.core.graph.scheduler import SyncScheduler
 _CLIENT: list = []
 
 
+def _noop_page() -> None:  # registration target for a headless Client
+    pass
+
+
 @pytest.fixture
 def nicegui_slot_context():
     """Keep a valid NiceGUI default slot active for the test body.
@@ -35,16 +39,20 @@ def nicegui_slot_context():
     cross-test ordering pollution. Opt-in (not autouse) so it only touches the perf
     tests that need it (and only materializes the client on first use, so importing
     this conftest has no NiceGUI side effects).
+
+    Materialization must go through ``Client(...)`` (passes ``_client=`` explicitly
+    to its root ``Element``), not a bare ``ui.element(...)`` call — the latter reads
+    ``context.client`` off whatever slot is already on the stack, so it only works
+    by accident of ordering and raises "slot stack is empty" once no earlier test in
+    the run happens to have left a slot open (see ``test_ui_state_row_state.py``,
+    which materializes its own clients the same way).
     """
-    from nicegui import ui
-    from nicegui.slot import Slot
+    from nicegui import Client
 
     if not _CLIENT:
         # Materialize NiceGUI's default client/slot once and cache it. The client
         # persists across the per-test Slot.stacks reset; only the stack is cleared.
-        if not Slot.get_stack():
-            ui.element("div")
-        _CLIENT.append(Slot.get_stack()[0].parent.client)
+        _CLIENT.append(Client(_noop_page, request=None))
     with _CLIENT[0]:
         yield
 
