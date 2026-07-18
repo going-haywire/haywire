@@ -15,7 +15,6 @@ class CanvasSettings(FrameworkSettings, namespace="ui.canvas"):
         label="Background Pattern",
         description="Pattern style for canvas background",
         category="ui.canvas",
-        order=10,
         widget_config={"options": ["none", "dots", "lines", "cross"]},
     )
     grid_color = setting[COLOR](
@@ -23,19 +22,17 @@ class CanvasSettings(FrameworkSettings, namespace="ui.canvas"):
         label="Grid Color",
         description="Color of the canvas grid",
         category="ui.canvas",
-        order=11,
     )
 
     # Grid
     grid_enabled = setting[BOOL](
-        True, label="Show Grid", description="Display grid on canvas", category="ui.canvas", order=20
+        True, label="Show Grid", description="Display grid on canvas", category="ui.canvas"
     )
     grid_size = setting[INT](
         20,
         label="Grid Size",
         description="Grid cell size in pixels",
         category="ui.canvas",
-        order=21,
         min=5,
         max=100,
     )
@@ -44,7 +41,6 @@ class CanvasSettings(FrameworkSettings, namespace="ui.canvas"):
         label="Grid Subdivisions",
         description="Minor grid lines per major line",
         category="ui.canvas",
-        order=22,
         min=1,
         max=10,
     )
@@ -53,5 +49,4 @@ class CanvasSettings(FrameworkSettings, namespace="ui.canvas"):
         label="Snap to Grid",
         description="Snap nodes to grid when moving",
         category="ui.canvas",
-        order=23,
     )
