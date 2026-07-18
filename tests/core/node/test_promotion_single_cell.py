@@ -9,8 +9,6 @@ outlet direction extends a green base.
 Later tasks (2, 3, 4, 5) append their own assertions here.
 """
 
-import haywire.core.graph.editor  # noqa: F401
-
 import pytest
 
 pytestmark = pytest.mark.integration

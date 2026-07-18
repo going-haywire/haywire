@@ -7,7 +7,6 @@ severity. See the design note in node_skin.py.
 
 import inspect
 
-import haywire.core.graph.editor  # noqa: F401  circular-import guard (CLAUDE.md)
 
 import pytest
 

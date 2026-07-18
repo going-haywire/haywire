@@ -1,7 +1,5 @@
 """The Properties row marks a promoted field as inlet-driven (data-promoted)."""
 
-import haywire.core.graph.editor  # noqa: F401
-
 import pytest
 from nicegui import Client, ui
 from nicegui import app as _app  # noqa: F401

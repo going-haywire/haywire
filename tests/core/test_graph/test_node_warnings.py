@@ -1,7 +1,5 @@
 """NodeWrapperState carries advisory warnings, separate from errors."""
 
-import haywire.core.graph.editor  # noqa: F401  circular-import guard (CLAUDE.md)
-
 import pytest
 
 from haywire.core.node.node_warning import NodeWarning

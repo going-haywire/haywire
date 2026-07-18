@@ -11,8 +11,6 @@ Import order: editor first, per the repo test convention (avoids circular
 imports when pulling in haywire execution modules).
 """
 
-import haywire.core.graph.editor  # noqa: F401  (import-first ordering)
-
 import threading
 import time
 

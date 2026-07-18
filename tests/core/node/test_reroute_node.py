@@ -1,7 +1,5 @@
 """RerouteNode: port-less default, on_startup port caching, lean worker forward."""
 
-import haywire.core.graph.editor  # noqa: F401 — import first (circular-import guard)
-
 import pytest
 
 pytestmark = pytest.mark.unit

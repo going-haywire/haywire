@@ -1,7 +1,5 @@
 """HaystackSettings — per-workspace settings for haystack scalars."""
 
-import haywire.core.graph.editor  # noqa: F401 — circular-import guard
-
 
 def test_default_last_haystack_name_is_empty():
     from haybale_haystack.settings.haystack_settings import HaystackSettings

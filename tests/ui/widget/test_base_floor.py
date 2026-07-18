@@ -1,5 +1,3 @@
-import haywire.core.graph.editor  # noqa: F401  (circular-import guard, see CLAUDE.md)
-
 import pytest
 from typing import Any
 

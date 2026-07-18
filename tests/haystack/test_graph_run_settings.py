@@ -1,7 +1,5 @@
 """GraphRunSettings — purely-local per-entry run policy bag."""
 
-import haywire.core.graph.editor  # noqa: F401 — circular-import guard
-
 
 def test_autorestart_defaults_false():
     from haybale_haystack.settings.graph_run_settings import GraphRunSettings

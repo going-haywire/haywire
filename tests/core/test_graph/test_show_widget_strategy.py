@@ -8,9 +8,6 @@ Covers (see ADR 0003):
 - Serialization round-trip (to_dict → from_spec) preserves the enum.
 """
 
-# editor import first to avoid circular import (see CLAUDE.md / test conventions)
-import haywire.core.graph.editor  # noqa: F401
-
 import pytest
 
 from haywire.core.graph.base import BaseGraph

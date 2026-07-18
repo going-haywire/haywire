@@ -6,8 +6,6 @@ Mirrors the test pattern in tests/ui/test_canvas_handlers/test_session_context_m
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
-import haywire.core.graph.editor  # noqa: F401 — circular-import guard
-
 
 def _make_provider_under_test(panels=None):
     """Build a provider with mocked dependencies."""

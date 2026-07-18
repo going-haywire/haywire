@@ -1,7 +1,5 @@
 """Unit tests for node_data-carrying creation and the paste action."""
 
-import haywire.core.graph.editor  # noqa: F401 — import first (circular-import guard)
-
 import pytest
 
 from haywire.core.graph.base import BaseGraph

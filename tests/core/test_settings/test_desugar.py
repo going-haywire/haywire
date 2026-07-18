@@ -1,5 +1,3 @@
-import haywire.core.graph.editor  # noqa: F401
-
 from haywire.core.settings import NodeSettings, setting
 from haywire.barn.builtin.types import CHOICES, FLOAT, INT
 from haywire.barn.builtin.widgets.basic_widgets import SimpleLabelWidget

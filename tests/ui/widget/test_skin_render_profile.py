@@ -28,8 +28,6 @@ Fork to watch for in the output:
 
 from __future__ import annotations
 
-# editor import first to avoid circular import (see CLAUDE.md / test conventions)
-import haywire.core.graph.editor  # noqa: F401
 
 import cProfile
 import io

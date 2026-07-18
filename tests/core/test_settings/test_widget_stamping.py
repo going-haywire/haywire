@@ -1,5 +1,3 @@
-import haywire.core.graph.editor  # noqa: F401
-
 from haywire.barn.builtin.types import CHOICES, FLOAT
 from haywire.barn.builtin import widget_keys
 from haywire.core.settings import Settings, setting

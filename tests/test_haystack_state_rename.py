@@ -1,5 +1,4 @@
 # tests/test_haystack_state_rename.py
-import haywire.core.graph.editor  # noqa: F401  (circular-import guard, CLAUDE.md)
 
 from unittest.mock import MagicMock, patch
 import pytest

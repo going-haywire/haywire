@@ -1,7 +1,5 @@
 """Round-trip tests for the floating-toolbar graph events."""
 
-import haywire.core.graph.editor  # noqa: F401  (import-order guard, see CLAUDE.md)
-
 from haywire.ui.components.graph.event_definitions import (
     GRAPH_EVENT_REGISTRY,
     SelectionBoundsEvent,

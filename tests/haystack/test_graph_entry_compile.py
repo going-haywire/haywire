@@ -2,8 +2,6 @@
 
 from unittest.mock import MagicMock, patch
 
-import haywire.core.graph.editor  # noqa: F401 — circular-import guard
-
 
 def _make_entry():
     from haybale_haystack.graph_entry import GraphEntry

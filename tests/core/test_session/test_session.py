@@ -8,7 +8,6 @@ only manages its own bus subscriptions.
 
 from unittest.mock import MagicMock
 
-import haywire.core.graph.editor  # noqa: F401 — circular-import guard
 
 from haywire.core.session.session import Session
 from haywire.core.session.signals import SelectionMoved

@@ -1,5 +1,3 @@
-import haywire.core.graph.editor  # noqa: F401
-
 import pytest
 from typing import Any
 from unittest.mock import MagicMock, patch

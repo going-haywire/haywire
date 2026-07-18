@@ -11,8 +11,6 @@ edges, 11 NumberWidgets each) without tracking stale keys.
 
 from __future__ import annotations
 
-# editor import first to avoid circular import (see CLAUDE.md / test conventions)
-import haywire.core.graph.editor  # noqa: F401
 
 import pytest
 

@@ -1,7 +1,5 @@
 """Unit tests for Compatibility Warning semver parsing + trigger logic."""
 
-import haywire.core.graph.editor  # noqa: F401  circular-import guard (CLAUDE.md)
-
 import pytest
 
 from haywire.core.library.compatibility import (

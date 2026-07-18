@@ -15,7 +15,6 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Callable
 
-import haywire.core.graph.editor  # noqa: F401 — circular-import guard (see CLAUDE.md)
 
 from haywire.core.session.signals import Signal
 from haywire.ui.panel.redraw_coordinator import PanelRedrawCoordinator

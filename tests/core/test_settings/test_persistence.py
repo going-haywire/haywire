@@ -1,5 +1,3 @@
-import haywire.core.graph.editor  # noqa: F401
-
 import json
 
 from haywire.core.settings.persistence import SettingsFileStore

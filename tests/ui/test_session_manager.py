@@ -6,7 +6,6 @@ Cross-session broadcast (``broadcast``) is covered by
 
 from unittest.mock import MagicMock
 
-import haywire.core.graph.editor  # noqa: F401 — circular-import guard
 
 from haywire.core.state import LibraryStateContainer, LibraryStateRegistry
 from haywire.core.session.session_manager import SessionManager

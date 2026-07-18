@@ -23,7 +23,6 @@ from dataclasses import dataclass
 from types import SimpleNamespace
 from unittest.mock import MagicMock
 
-import haywire.core.graph.editor  # noqa: F401 — circular-import guard
 
 from haywire.core.library.identity import LibraryIdentity
 from haywire.core.registry.lifecycle_event import LifeCycleEvent, LifeCycleEventType

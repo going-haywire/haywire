@@ -12,7 +12,6 @@ Covers:
 
 import pytest
 
-import haywire.core.graph.editor  # noqa: F401 — circular-import guard
 
 from haywire.core.session import redraw_on, react_on
 from haywire.core.session.handlers import (

@@ -2,8 +2,6 @@
 
 from unittest.mock import MagicMock
 
-import haywire.core.graph.editor  # noqa: F401 — circular-import guard
-
 
 def _reassembly_result():
     """A ValidationResult-like double whose graph-change reason requires reassembly."""

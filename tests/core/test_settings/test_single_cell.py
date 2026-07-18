@@ -12,8 +12,6 @@ No test in the "characterization" classes below touches ``_local_store`` or
 new mechanism, added task-by-task.
 """
 
-import haywire.core.graph.editor  # noqa: F401  (circular-import guard, per CLAUDE.md)
-
 import pytest
 
 from haywire.core.settings import Settings, setting

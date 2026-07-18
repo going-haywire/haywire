@@ -1,8 +1,6 @@
 # tests/core/test_graph/test_clipboard_payload.py
 """Unit tests for the pure clipboard-payload builder."""
 
-import haywire.core.graph.editor  # noqa: F401 — import first (circular-import guard, see CLAUDE.md)
-
 import pytest
 from unittest.mock import MagicMock
 

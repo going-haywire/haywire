@@ -5,8 +5,6 @@ and the converter default for an unset port.  Single-subscription teardown lives
 in test_single_activation.py.
 """
 
-import haywire.core.graph.editor  # noqa: F401
-
 import pytest
 
 from tests.ui.widget._sync_fixtures import build_base_default

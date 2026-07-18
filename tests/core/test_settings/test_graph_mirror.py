@@ -5,8 +5,6 @@ exposing exactly the path the wiring walks (node.wrapper.graph) — no
 library system needed.
 """
 
-import haywire.core.graph.editor  # noqa: F401  (circular-import guard, per CLAUDE.md)
-
 import pytest
 
 from haywire.core.di.test_config import create_test_settings_registry

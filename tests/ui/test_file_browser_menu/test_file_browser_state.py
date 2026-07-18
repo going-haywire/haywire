@@ -2,7 +2,6 @@
 
 from pathlib import Path
 
-import haywire.core.graph.editor  # noqa: F401 — circular-import guard
 
 from tests.conftest import attach_stub_session
 

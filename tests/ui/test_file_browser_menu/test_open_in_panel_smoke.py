@@ -4,7 +4,6 @@ when right_clicked_file is set, and reveal() fires."""
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
-import haywire.core.graph.editor  # noqa: F401 — circular-import guard
 
 from haywire.core.library.identity import LibraryIdentity
 from tests.conftest import attach_stub_session

@@ -6,8 +6,6 @@ VEC* types relied on it and silently dropped their value. The JSON settings
 cutover routes tier reads through from_dict, so these must round-trip.
 """
 
-import haywire.core.graph.editor  # noqa: F401  (circular-import guard, per CLAUDE.md)
-
 import pytest
 
 from haywire.barn.builtin.types import COLOR, VEC2I, VEC3I, VEC4I, VEC2F, VEC3F, VEC4F

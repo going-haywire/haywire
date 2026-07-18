@@ -3,8 +3,6 @@
 from pathlib import Path
 from unittest.mock import MagicMock
 
-import haywire.core.graph.editor  # noqa: F401 — circular-import guard
-
 
 def test_file_focus_id():
     from haybale_studio.focuses import FileFocus

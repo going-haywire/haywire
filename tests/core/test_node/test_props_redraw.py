@@ -5,8 +5,6 @@ build and requests a debounced redraw on change. Layout fields stay on the
 NODE_MOVED path; graph-load restores never fire redraws.
 """
 
-import haywire.core.graph.editor  # noqa: F401  (circular-import guard, per CLAUDE.md)
-
 import importlib
 from typing import List
 

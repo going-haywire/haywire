@@ -1,7 +1,5 @@
 """Reroute discovery via the _is_reroute identity flag + registry/factory."""
 
-import haywire.core.graph.editor  # noqa: F401 — import first (circular-import guard)
-
 import pytest
 
 pytestmark = pytest.mark.unit

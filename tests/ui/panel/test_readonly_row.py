@@ -2,8 +2,6 @@
 mirror-ness no longer forces a bespoke rendering path (Task 7). ui_state=
 DISABLED is the general chrome mechanism (ADR 0020), applied uniformly."""
 
-import haywire.core.graph.editor  # noqa: F401
-
 import pytest
 from nicegui import Client, ui
 

@@ -1,5 +1,3 @@
-import haywire.core.graph.editor  # noqa: F401
-
 from haywire.barn.builtin.types import VEC2I, VEC3F
 from haywire.core.settings.types import Vec2i, Vec3f
 

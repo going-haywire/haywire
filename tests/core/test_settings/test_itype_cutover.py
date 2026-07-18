@@ -1,5 +1,3 @@
-import haywire.core.graph.editor  # noqa: F401
-
 import pytest
 
 from haywire.core.settings import NodeSettings, setting

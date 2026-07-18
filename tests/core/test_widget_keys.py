@@ -1,5 +1,3 @@
-import haywire.core.graph.editor  # noqa: F401
-
 from haywire.barn.builtin import widget_keys
 
 

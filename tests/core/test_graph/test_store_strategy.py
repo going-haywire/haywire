@@ -9,9 +9,6 @@ Covers:
   widget/programmatic inlet set clears it. Owned entirely by set_value().
 """
 
-# editor import first to avoid circular import (see CLAUDE.md / test conventions)
-import haywire.core.graph.editor  # noqa: F401
-
 import pytest
 
 from haywire.core.graph.base import BaseGraph

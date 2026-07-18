@@ -16,7 +16,6 @@ is pure callback bookkeeping on the model, observable on Settings._subscriptions
 import pytest
 
 # Per CLAUDE.md test trap: import editor before other haywire modules.
-import haywire.core.graph.editor  # noqa: F401
 
 from nicegui import Client, ui
 from nicegui.page import page as page_deco

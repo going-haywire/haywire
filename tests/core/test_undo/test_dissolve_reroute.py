@@ -4,8 +4,6 @@ Covers DissolveRerouteAction: child-action structure, partial connection
 handling, and the editor entry point.
 """
 
-import haywire.core.graph.editor  # noqa: F401 — circular-import guard
-
 import pytest
 
 pytestmark = pytest.mark.unit

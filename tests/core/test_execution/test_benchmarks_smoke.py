@@ -10,8 +10,6 @@ each frozen case still builds and runs after framework changes.
     uv run pytest -m perf tests/core/test_execution/test_benchmarks_smoke.py
 """
 
-import haywire.core.graph.editor  # noqa: F401  (import first, per CLAUDE.md)
-
 import sys
 import time
 from pathlib import Path

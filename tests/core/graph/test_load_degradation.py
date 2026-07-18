@@ -1,5 +1,3 @@
-import haywire.core.graph.editor  # noqa: F401
-
 import pytest
 
 pytestmark = pytest.mark.integration

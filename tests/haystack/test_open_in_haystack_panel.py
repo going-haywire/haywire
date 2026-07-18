@@ -3,7 +3,6 @@
 from pathlib import Path
 from unittest.mock import MagicMock
 
-import haywire.core.graph.editor  # noqa: F401 — circular-import guard
 
 from tests.conftest import attach_stub_session
 

@@ -7,8 +7,6 @@ so the setting and the port return the same value *because they share the cell*,
 not because a bridge forwards the read.
 """
 
-import haywire.core.graph.editor  # noqa: F401
-
 import pytest
 
 

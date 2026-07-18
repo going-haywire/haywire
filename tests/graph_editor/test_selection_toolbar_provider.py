@@ -1,7 +1,5 @@
 """Tests for SelectionToolbarProvider and SelectionToolbarHandlers."""
 
-import haywire.core.graph.editor  # noqa: F401
-
 from unittest.mock import MagicMock
 
 from haywire.ui.components.graph.event_definitions import (

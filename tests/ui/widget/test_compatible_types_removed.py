@@ -1,5 +1,3 @@
-import haywire.core.graph.editor  # noqa: F401
-
 from haywire.ui.widget.decorator import widget
 from haywire.ui.widget.base import BaseWidget
 

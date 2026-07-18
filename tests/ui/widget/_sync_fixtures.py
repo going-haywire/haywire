@@ -7,8 +7,6 @@ directly so tests/benchmarks measure the sync path with nothing else in the loop
 
 from __future__ import annotations
 
-# editor import first to avoid circular import (see CLAUDE.md / test conventions)
-import haywire.core.graph.editor  # noqa: F401
 
 from typing import Any
 

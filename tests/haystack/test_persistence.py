@@ -5,8 +5,6 @@ from unittest.mock import MagicMock
 
 import pytest
 
-import haywire.core.graph.editor  # noqa: F401 — circular-import guard
-
 
 @pytest.fixture
 def tmp_workspace(tmp_path):

@@ -1,5 +1,3 @@
-import haywire.core.graph.editor  # noqa: F401
-
 from haybale_graph_editor.focuses import ToolbarFocus
 from haybale_graph_editor.editors.graph_canvas.handlers.context_menu_actions import (
     SelectionContextActions,

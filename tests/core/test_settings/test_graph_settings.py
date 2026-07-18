@@ -5,8 +5,6 @@ prove it works on a graph-owned bag (unset tracks, set wins, reset resumes)
 and that the graph() declaration API validates eagerly.
 """
 
-import haywire.core.graph.editor  # noqa: F401  (circular-import guard, per CLAUDE.md)
-
 import pytest
 
 from haywire.core.di.test_config import create_test_settings_registry

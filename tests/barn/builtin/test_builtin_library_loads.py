@@ -1,5 +1,3 @@
-import haywire.core.graph.editor  # noqa: F401  # import first to avoid circular import (CLAUDE.md)
-
 import pytest
 
 from haywire.barn.builtin import Library

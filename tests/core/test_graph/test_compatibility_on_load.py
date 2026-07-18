@@ -1,7 +1,5 @@
 """Integration: loading a graph applies Compatibility Warnings to node state."""
 
-import haywire.core.graph.editor  # noqa: F401  circular-import guard (CLAUDE.md)
-
 import pytest
 
 from haywire.core.graph.base import BaseGraph

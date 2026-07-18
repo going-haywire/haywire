@@ -3,8 +3,6 @@
 
 from unittest.mock import MagicMock
 
-import haywire.core.graph.editor  # noqa: F401 — circular-import guard
-
 
 def _ctx_with_active_graph(graph, container):
     """Build a SessionContext double exposing EditState.active_graph and

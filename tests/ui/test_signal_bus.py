@@ -17,7 +17,6 @@ from unittest.mock import MagicMock
 
 import pytest
 
-import haywire.core.graph.editor  # noqa: F401 — circular-import guard
 
 from haywire.core.session.signals import SignalBus
 from haywire.core.session.session import Session

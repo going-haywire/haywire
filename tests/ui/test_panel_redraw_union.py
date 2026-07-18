@@ -12,7 +12,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-import haywire.core.graph.editor  # noqa: F401 — circular-import guard
 
 from haywire.core.library.identity import LibraryIdentity
 from haywire.core.session.signals import Signal

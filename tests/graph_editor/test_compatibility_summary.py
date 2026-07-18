@@ -1,7 +1,5 @@
 """The visual layer can summarise compatibility findings for the on-open notice."""
 
-import haywire.core.graph.editor  # noqa: F401  circular-import guard (CLAUDE.md)
-
 import pytest
 
 from haybale_graph_editor.editors.graph_canvas.handlers.visual_layer import (

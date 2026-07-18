@@ -1,5 +1,4 @@
 # tests/execution/test_compile_result.py
-import haywire.core.graph.editor  # noqa: F401 — circular-import guard
 
 
 def test_compile_result_ok_has_no_error():

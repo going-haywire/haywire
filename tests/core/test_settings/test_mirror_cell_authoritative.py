@@ -9,8 +9,6 @@ freshly-loaded headless graph is correct before any change fires.
 These tests are headless — no UI subscriber — which is exactly the gap P4 left.
 """
 
-import haywire.core.graph.editor  # noqa: F401  (circular-import guard, per CLAUDE.md)
-
 import pytest
 
 from haywire.core.settings import Settings, SettingsRegistry, setting, shadow

@@ -1,8 +1,6 @@
 # tests/core/test_settings/test_tier_collapse.py
 """Tests for the P2 tier-collapse: OVERRIDE dropped, tiers are set-or-unset."""
 
-import haywire.core.graph.editor  # noqa: F401  (circular-import guard, per CLAUDE.md)
-
 from pathlib import Path
 
 import pytest

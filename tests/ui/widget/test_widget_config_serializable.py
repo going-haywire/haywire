@@ -12,7 +12,6 @@ construction time (ADR 0019 / ADR 0018 plain-port half):
 """
 
 # Per CLAUDE.md test trap: import editor before other haywire modules.
-import haywire.core.graph.editor  # noqa: F401
 
 import pytest
 

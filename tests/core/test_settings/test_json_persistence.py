@@ -1,8 +1,6 @@
 # tests/core/test_settings/test_json_persistence.py
 """P3: settings persist as JSON; complex ITypes round-trip via to_dict/from_dict."""
 
-import haywire.core.graph.editor  # noqa: F401  (circular-import guard, per CLAUDE.md)
-
 from pathlib import Path
 
 from haywire.barn.builtin.types import COLOR, INT, VEC2I

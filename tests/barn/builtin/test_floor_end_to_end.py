@@ -1,7 +1,5 @@
 import pytest
 
-import haywire.core.graph.editor  # noqa: F401
-
 
 @pytest.mark.integration
 def test_builtin_types_resolve_through_registry(library_system):

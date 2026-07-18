@@ -4,8 +4,6 @@ Covers the SplitEdgeWithRerouteAction composite (child structure + real
 execution against a live graph) and the editor entry point.
 """
 
-import haywire.core.graph.editor  # noqa: F401 — import first (circular-import guard)
-
 import pytest
 
 from haywire.core.graph.base import BaseGraph

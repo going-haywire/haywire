@@ -10,8 +10,6 @@ BaseWidget captures the field at render and unsubscribes from that same object,
 so cleanup stays symmetric across the swap.
 """
 
-import haywire.core.graph.editor  # noqa: F401
-
 import logging
 from typing import Any
 

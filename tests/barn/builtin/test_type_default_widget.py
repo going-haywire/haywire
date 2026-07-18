@@ -1,5 +1,3 @@
-import haywire.core.graph.editor  # noqa: F401
-
 import pytest
 
 from haywire.barn.builtin.types import BOOL, COLOR, FLOAT, INT, STRING, VEC3F

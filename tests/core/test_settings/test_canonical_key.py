@@ -1,5 +1,4 @@
 # Import order guard (see Global Constraints)
-import haywire.core.graph.editor  # noqa: F401
 
 from haywire.barn.builtin.types import FLOAT, INT
 from haywire.core.di.test_config import create_test_settings_registry

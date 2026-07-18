@@ -1,5 +1,4 @@
 # tests/ui/test_editor_wrapper_set_dirty.py
-import haywire.core.graph.editor  # noqa: F401  (circular-import guard, CLAUDE.md)
 
 from unittest.mock import MagicMock
 import pytest

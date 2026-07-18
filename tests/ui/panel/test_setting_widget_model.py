@@ -1,5 +1,3 @@
-import haywire.core.graph.editor  # noqa: F401
-
 from haywire.core.types import WidgetModel
 from haywire.barn.builtin.types import FLOAT
 from haywire.ui.panel.setting_widget_model import SettingWidgetModel
