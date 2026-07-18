@@ -81,15 +81,12 @@ def render_settings(obj: "Settings") -> None:
         return
 
     # _property_settings() already yields fields in declaration order (base-first
-    # MRO walk over class __dict__, which Python preserves in insertion order).
-    # Tiebreak on that position rather than on name — sorted() is stable, so ties
-    # on (category, order) (order defaults to 0 for every field) then fall back to
-    # declaration order instead of scrambling alphabetically.
-    declaration_index = {name: i for i, name in enumerate(visible_fields)}
-    sorted_fields = sorted(
-        visible_fields.items(),
-        key=lambda item: _category_sort_key(item[1]._category, item[1]._order, declaration_index[item[0]]),
-    )
+    # MRO walk over class __dict__, which Python preserves in insertion order) —
+    # render in that order directly, no re-sort. Categories are NOT pre-grouped:
+    # _render_grouped's groupby only merges CONSECUTIVE same-category entries, so
+    # a category interrupted by a different one re-opens as a second section
+    # (see internals/superpowers/2026-07-18-settings-panel-ordering-spec.md).
+    sorted_fields = list(visible_fields.items())
 
     # attr_name -> zero-arg updater that re-reads the model and applies it to the
     # widget + override chrome in place. Populated by _render_reactive_field_row.
