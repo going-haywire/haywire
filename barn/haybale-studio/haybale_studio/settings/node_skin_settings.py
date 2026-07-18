@@ -21,21 +21,18 @@ class NodeSkinSettings(LibrarySettings):
         label="Show Port Labels",
         description="Display labels next to ports",
         category="visibility",
-        order=10,
     )
     show_tooltips = setting[BOOL](
         True,
         label="Show Tooltips",
         description="Display tooltips on port hover",
         category="visibility",
-        order=20,
     )
     show_resize_handle = setting[BOOL](
         True,
         label="Show Resize Handle",
         description="Display the drag handle for resizing nodes",
         category="visibility",
-        order=30,
     )
 
     # Pin geometry
@@ -44,7 +41,6 @@ class NodeSkinSettings(LibrarySettings):
         label="Pin Gutter",
         description="Width of the pin column in pixels",
         category="layout",
-        order=40,
         min=12,
         max=40,
     )
@@ -54,7 +50,6 @@ class NodeSkinSettings(LibrarySettings):
         description="How far the pin center sits outside the card edge (px). "
         "Positive = further out, negative = pulled inward",
         category="layout",
-        order=50,
         min=-20,
         max=20,
     )
@@ -64,7 +59,6 @@ class NodeSkinSettings(LibrarySettings):
         description="Offset between pin gutter edge and port label (px). "
         "Negative values overlap into the empty half of the gutter",
         category="layout",
-        order=60,
         min=-20,
         max=20,
     )
@@ -73,7 +67,6 @@ class NodeSkinSettings(LibrarySettings):
         label="Pin Row Height",
         description="Height of each pin cell in pixels",
         category="layout",
-        order=70,
         min=16,
         max=48,
     )
@@ -82,21 +75,14 @@ class NodeSkinSettings(LibrarySettings):
         label="Card Padding",
         description="Horizontal padding applied to the node card in pixels",
         category="layout",
-        order=80,
         min=4,
         max=32,
     )
     # --- debug ---
     show_node_ids = setting[BOOL](
-        False, label="Show Node IDs", description="Display internal node IDs", category="debug", order=21
+        False, label="Show Node IDs", description="Display internal node IDs", category="debug"
     )
     show_port_ids = setting[BOOL](
-        False, label="Show Port IDs", description="Display internal port IDs", category="debug", order=22
+        False, label="Show Port IDs", description="Display internal port IDs", category="debug"
     )
-    inspect_on_click = setting[BOOL](
-        False,
-        label="Inspect on Click",
-        description="Show data inspector when clicking ports",
-        category="debug",
-        order=41,
-    )
+
