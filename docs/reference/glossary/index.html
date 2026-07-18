@@ -4358,6 +4358,11 @@
 <td>Context (overloaded), category</td>
 </tr>
 <tr>
+<td><strong>Hidden component</strong></td>
+<td>A registered component (node, skin, theme, etc.) whose <code>hidden=True</code> field on its <code>BaseIdentity</code> excludes it from author-facing <strong>selection</strong> UIs (Add-Nodes menu, node search, skin/theme pickers). It stays fully registered, resolvable by registry key, and functional in existing graphs — <code>hidden</code> affects <em>presentation as a choice</em>, not existence. Browsing/debugging surfaces (marketplace, component editor) ignore <code>hidden</code> and still show it. <code>hidden</code> is the single canonical hide-from-selection mechanism. Primary use: framework-internal and testing components.</td>
+<td>Internal component, invisible component (avoid — it's not invisible everywhere), unlisted component</td>
+</tr>
+<tr>
 <td><strong>Selection axis</strong></td>
 <td>The set of currently-selected elements — <code>EditState.selected_nodes</code> / <code>selected_edges</code> (sets of ids). The <strong>command target</strong>: the elements a right-click menu, copy, paste, or delete acts upon. A lone right-clicked element is a selection of one. Distinct from the <strong>Active axis</strong>.</td>
 <td>selection state, current selection</td>
