@@ -21,7 +21,6 @@ class DebugSettings(FrameworkSettings, namespace=NAMESPACE_DEBUG):
         label="Global Log Level",
         description="Minimum log level for the haywire root logger",
         category=CATEGORY_LOG_LEVEL,
-        order=10,
         widget_config={"options": _LEVEL_CHOICES},
     )
 
@@ -31,7 +30,6 @@ class DebugSettings(FrameworkSettings, namespace=NAMESPACE_DEBUG):
         label="Execution",
         description="Log level for haywire.core.execution ('' = inherit)",
         category=CATEGORY_LOG_LEVEL,
-        order=20,
         widget_config={"options": _GROUP_CHOICES},
     )
     log_assembly = setting[CHOICES](
@@ -39,7 +37,6 @@ class DebugSettings(FrameworkSettings, namespace=NAMESPACE_DEBUG):
         label="Assembly",
         description="Log level for haywire.core.assembly ('' = inherit)",
         category=CATEGORY_LOG_LEVEL,
-        order=30,
         widget_config={"options": _GROUP_CHOICES},
     )
     log_graph = setting[CHOICES](
@@ -47,7 +44,6 @@ class DebugSettings(FrameworkSettings, namespace=NAMESPACE_DEBUG):
         label="Graph",
         description="Log level for haywire.core.graph ('' = inherit)",
         category=CATEGORY_LOG_LEVEL,
-        order=40,
         widget_config={"options": _GROUP_CHOICES},
     )
     log_node = setting[CHOICES](
@@ -55,7 +51,6 @@ class DebugSettings(FrameworkSettings, namespace=NAMESPACE_DEBUG):
         label="Node",
         description="Log level for haywire.core.node ('' = inherit)",
         category=CATEGORY_LOG_LEVEL,
-        order=50,
         widget_config={"options": _GROUP_CHOICES},
     )
     log_settings = setting[CHOICES](
@@ -63,7 +58,6 @@ class DebugSettings(FrameworkSettings, namespace=NAMESPACE_DEBUG):
         label="Settings",
         description="Log level for haywire.core.settings ('' = inherit)",
         category=CATEGORY_LOG_LEVEL,
-        order=60,
         widget_config={"options": _GROUP_CHOICES},
     )
     log_library = setting[CHOICES](
@@ -71,7 +65,6 @@ class DebugSettings(FrameworkSettings, namespace=NAMESPACE_DEBUG):
         label="Library",
         description="Log level for haywire.core.library ('' = inherit)",
         category=CATEGORY_LOG_LEVEL,
-        order=70,
         widget_config={"options": _GROUP_CHOICES},
     )
     log_registry = setting[CHOICES](
@@ -79,7 +72,6 @@ class DebugSettings(FrameworkSettings, namespace=NAMESPACE_DEBUG):
         label="Registry",
         description="Log level for haywire.core.registry ('' = inherit)",
         category=CATEGORY_LOG_LEVEL,
-        order=80,
         widget_config={"options": _GROUP_CHOICES},
     )
     log_ui = setting[CHOICES](
@@ -87,7 +79,6 @@ class DebugSettings(FrameworkSettings, namespace=NAMESPACE_DEBUG):
         label="UI",
         description="Log level for haywire.ui ('' = inherit)",
         category=CATEGORY_LOG_LEVEL,
-        order=90,
         widget_config={"options": _GROUP_CHOICES},
     )
 
@@ -96,5 +87,4 @@ class DebugSettings(FrameworkSettings, namespace=NAMESPACE_DEBUG):
         label="Log to File",
         description="Write logs to file in addition to console",
         category=CATEGORY_LOG_LEVEL,
-        order=100,
     )

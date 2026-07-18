@@ -17,7 +17,6 @@ class EdgeUISettings(FrameworkSettings, namespace="ui.edge"):
         label="Edge Width",
         description="Default edge width in pixels",
         category="ui.edge",
-        order=10,
         min=1,
         max=8,
     )
@@ -26,7 +25,6 @@ class EdgeUISettings(FrameworkSettings, namespace="ui.edge"):
         label="Selected Edge Width",
         description="Edge width when selected",
         category="ui.edge",
-        order=11,
         min=1,
         max=10,
     )
@@ -37,7 +35,6 @@ class EdgeUISettings(FrameworkSettings, namespace="ui.edge"):
         label="Use Port Colors",
         description="Tint edges with the connected port type colour",
         category="ui.edge",
-        order=12,
     )
 
     # Curve
@@ -46,7 +43,6 @@ class EdgeUISettings(FrameworkSettings, namespace="ui.edge"):
         label="Curve Style",
         description="How edges are drawn between nodes",
         category="ui.edge",
-        order=20,
         widget_config={"options": ["bezier", "straight", "step", "smoothstep"]},
     )
     curve_tension = setting[FLOAT](
@@ -54,7 +50,6 @@ class EdgeUISettings(FrameworkSettings, namespace="ui.edge"):
         label="Curve Tension",
         description="Tension for bezier curves (0–1)",
         category="ui.edge",
-        order=21,
         min=0.0,
         max=1.0,
     )
@@ -63,7 +58,6 @@ class EdgeUISettings(FrameworkSettings, namespace="ui.edge"):
         label="Curve Offset",
         description="Control point offset for curves",
         category="ui.edge",
-        order=22,
         min=10,
         max=200,
     )
@@ -74,14 +68,12 @@ class EdgeUISettings(FrameworkSettings, namespace="ui.edge"):
         label="Animate Flow",
         description="Show animated flow direction on edges",
         category="ui.edge",
-        order=30,
     )
     animation_speed = setting[FLOAT](
         1.0,
         label="Animation Speed",
         description="Speed of flow animation",
         category="ui.edge",
-        order=31,
         min=0.1,
         max=5.0,
     )
@@ -90,5 +82,4 @@ class EdgeUISettings(FrameworkSettings, namespace="ui.edge"):
         label="Animate on Execute",
         description="Animate edges during execution",
         category="ui.edge",
-        order=32,
     )
