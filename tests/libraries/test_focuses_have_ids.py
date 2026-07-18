@@ -41,21 +41,21 @@ def test_ports_focus_has_id():
 
 
 def test_app_focus_has_id():
-    from haybale_studio.focuses import AppFocus
+    from haywire.barn.builtin.focuses import AppFocus
 
     assert AppFocus.id == "app"
     assert focus_by_id("app") is AppFocus
 
 
 def test_execution_focus_has_id():
-    from haybale_studio.focuses import ExecutionFocus
+    from haywire.barn.builtin.focuses import ExecutionFocus
 
     assert ExecutionFocus.id == "execution"
     assert focus_by_id("execution") is ExecutionFocus
 
 
 def test_canvas_focus_has_id():
-    from haywire.ui.panel.focus import CanvasFocus
+    from haywire.barn.builtin.focuses import CanvasFocus
 
     assert CanvasFocus.id == "canvas"
 

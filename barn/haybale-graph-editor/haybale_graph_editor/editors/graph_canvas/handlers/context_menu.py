@@ -196,7 +196,7 @@ class SessionContextMenuProvider(IContextMenuProvider, BaseContextMenuProvider):
         super()._open_menu(action, focus, pos, on_close=_on_close)
 
     def on_canvas_context(self, pos, canvas_pos, pending_connection=None):
-        from haywire.ui.panel.focus import CanvasFocus
+        from haywire.barn.builtin.focuses import CanvasFocus
         from haybale_graph_editor.editors.graph_canvas.handlers.context_menu_actions import (
             CanvasContextActions,
         )

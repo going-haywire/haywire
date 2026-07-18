@@ -1,26 +1,32 @@
 from __future__ import annotations
 
-from haywire.core.session.context import SessionContext
+from typing import Any, ClassVar
+
 from haywire.ui.panel.focus import Focus
 
 
-class AppFocus(Focus):
-    id = "app"
-    label = "Application"
-    icon = "home"
-    order = 10
+class FileFocus(Focus):
+    """Discriminator for panels that appear in the file context menu.
+
+    When the user right-clicks a file in FileBrowser, SessionFileMenuProvider
+    sets FileBrowserState.right_clicked_file; FileFocus.available(ctx) returns
+    True; PanelRegistry then yields panels declared with focus=FileFocus, which
+    are filtered through poll(ctx) and rendered in the menu popup.
+
+    Mirrors NodeFocus / EdgeFocus / etc. in the same focuses package.
+    """
+
+    id: ClassVar[str] = "file"
+    label: ClassVar[str] = "File"
+    icon: ClassVar[str] = "description"
+    order: ClassVar[int] = 200  # library-ish, below built-ins (0–99)
 
     @classmethod
-    def available(cls, ctx: SessionContext) -> bool:
-        return True
+    def available(cls, ctx: Any) -> bool:
+        # Lazy import to avoid module-load ordering with state classes
+        from haybale_studio.state.file_browser_state import FileBrowserState
 
-
-class ExecutionFocus(Focus):
-    id = "execution"
-    label = "Execution"
-    icon = "rocket_launch"
-    order = 20
-
-    @classmethod
-    def available(cls, ctx: SessionContext) -> bool:
-        return True
+        try:
+            return ctx.data[FileBrowserState].right_clicked_file is not None
+        except KeyError:
+            return False

@@ -23,7 +23,7 @@ from haywire.ui.components.minimap.settings import MinimapSettings
 from haywire.ui.components.debug_overlay.settings import DebugOverlaySettings
 from haywire.ui.components.graph.settings import CanvasSettings
 from haywire.ui.prefs.edge_ui import EdgeUISettings
-from haywire.ui.panel.focus import CanvasFocus
+from haywire.barn.builtin.focuses import CanvasFocus
 
 from ....settings.node_skin_settings import NodeSkinSettings
 

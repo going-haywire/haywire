@@ -20,7 +20,7 @@ from haybale_studio.settings.theme_settings import WorkbenchThemeSettings, NodeT
 from haywire.core.skin.settings import NodeDefaultSkinSettings
 from haywire.ui.prefs.editor import EditorSettings
 
-from haybale_studio.focuses import AppFocus
+from haywire.barn.builtin.focuses import AppFocus
 
 if TYPE_CHECKING:
     from haywire.core.session.context import SessionContext

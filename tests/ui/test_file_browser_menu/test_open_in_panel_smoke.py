@@ -27,7 +27,7 @@ def test_panel_appears_and_reveal_fires():
     from haywire.ui.panel.base import BasePanel
     from haywire.ui.panel.decorator import panel
     from haywire.ui.panel.registry import PanelRegistry
-    from haybale_studio.file_focus import FileFocus
+    from haybale_studio.focuses import FileFocus
     from haybale_studio.state.file_browser_state import FileBrowserState
     from haybale_studio.editors.file_browser_menu.actions import FileBrowserActions
     from haybale_studio.editors.file_browser_menu.provider import SessionFileMenuProvider
@@ -75,7 +75,7 @@ def test_panel_skipped_when_extension_doesnt_match():
     from haywire.ui.panel.base import BasePanel
     from haywire.ui.panel.decorator import panel
     from haywire.ui.panel.registry import PanelRegistry
-    from haybale_studio.file_focus import FileFocus
+    from haybale_studio.focuses import FileFocus
     from haybale_studio.state.file_browser_state import FileBrowserState
     from haybale_studio.editors.file_browser_menu.actions import FileBrowserActions
     from haybale_studio.editors.file_browser_menu.provider import SessionFileMenuProvider

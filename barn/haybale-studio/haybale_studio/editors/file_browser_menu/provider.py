@@ -28,7 +28,7 @@ class SessionFileMenuProvider(BaseContextMenuProvider):
     def on_file_context(self, pos: Tuple[float, float], path: Path) -> None:
         """User right-clicked a file at screen position ``pos``."""
         from haybale_studio.state.file_browser_state import FileBrowserState
-        from haybale_studio.file_focus import FileFocus
+        from haybale_studio.focuses import FileFocus
         from haybale_studio.editors.file_browser_menu.actions import FileBrowserActions
 
         # Set transient menu state

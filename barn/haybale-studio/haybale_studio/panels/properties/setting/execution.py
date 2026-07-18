@@ -17,7 +17,7 @@ from haywire.ui.panel.render_utils import render_schema, render_keys
 from haywire.core.namespaces import NAMESPACE_LIBRARY_LOG
 from haywire.core.debug.debug_settings import DebugSettings
 
-from haybale_studio.focuses import ExecutionFocus
+from haywire.barn.builtin.focuses import ExecutionFocus
 
 if TYPE_CHECKING:
     from haywire.core.session.context import SessionContext

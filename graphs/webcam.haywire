@@ -5,7 +5,7 @@
   "version": "1.0.0",
   "author": "",
   "created_at": null,
-  "modified_at": "2026-07-07T07:53:18.267891",
+  "modified_at": "2026-07-15T13:07:47.195839",
   "nodes": {
     "BeginPlayNode_87f32274": {
       "node_id": "BeginPlayNode_87f32274",
@@ -64,7 +64,7 @@
               "registry_key": "builtin:type:FLOAT"
             },
             "field_data": {
-              "value": 0.0
+              "value": 1784113168.088835
             }
           }
         },
@@ -91,6 +91,7 @@
           "label": "Begin Player",
           "description": "Triggered once when execution starts",
           "deprecation_warning": "",
+          "hidden": false,
           "class_name": "BeginPlayNode",
           "module": "haybale_core.nodes.events.begin_play",
           "search_tags": [
@@ -194,6 +195,7 @@
               "description": "Whole number",
               "class_name": "INT",
               "module": "haywire.barn.builtin.types.specs",
+              "flow_type": "data",
               "default": {
                 "value": 0
               },
@@ -227,6 +229,7 @@
               "description": "Whole number",
               "class_name": "INT",
               "module": "haywire.barn.builtin.types.specs",
+              "flow_type": "data",
               "default": {
                 "value": 0
               },
@@ -249,7 +252,7 @@
               "registry_key": "builtin:type:INT"
             },
             "field_data": {
-              "value": 0
+              "value": 1280
             }
           },
           "height": {
@@ -260,6 +263,7 @@
               "description": "Whole number",
               "class_name": "INT",
               "module": "haywire.barn.builtin.types.specs",
+              "flow_type": "data",
               "default": {
                 "value": 0
               },
@@ -282,7 +286,7 @@
               "registry_key": "builtin:type:INT"
             },
             "field_data": {
-              "value": 0
+              "value": 720
             }
           },
           "fps": {
@@ -293,6 +297,7 @@
               "description": "Whole number",
               "class_name": "INT",
               "module": "haywire.barn.builtin.types.specs",
+              "flow_type": "data",
               "default": {
                 "value": 0
               },
@@ -326,6 +331,7 @@
               "description": "Whole number",
               "class_name": "INT",
               "module": "haywire.barn.builtin.types.specs",
+              "flow_type": "data",
               "default": {
                 "value": 1
               },
@@ -385,6 +391,7 @@
               "description": "Text data",
               "class_name": "STRING",
               "module": "haywire.barn.builtin.types.specs",
+              "flow_type": "data",
               "default": {
                 "value": "Idle"
               },
@@ -400,7 +407,7 @@
               "registry_key": "builtin:type:STRING"
             },
             "field_data": {
-              "value": "Idle"
+              "value": "Shutdown"
             }
           },
           "started": {
@@ -473,6 +480,7 @@
           "label": "Web Camera",
           "description": "Starts a webcam stream and emits frame callbacks",
           "deprecation_warning": "",
+          "hidden": false,
           "class_name": "WebCameraNode",
           "module": "haybale_visiongraph.nodes.web_cam_node",
           "search_tags": [
@@ -572,7 +580,7 @@
               "registry_key": "builtin:type:FLOAT"
             },
             "field_data": {
-              "value": 0.0
+              "value": 1784113336.2498071
             }
           }
         },
@@ -599,6 +607,7 @@
           "label": "Shutdown",
           "description": "Triggered when execution is shutting down",
           "deprecation_warning": "",
+          "hidden": false,
           "class_name": "ShutdownNode",
           "module": "haybale_core.nodes.events.shutdown",
           "search_tags": [
@@ -714,6 +723,7 @@
               "description": "Text data",
               "class_name": "STRING",
               "module": "haywire.barn.builtin.types.specs",
+              "flow_type": "data",
               "default": {
                 "value": "No frame yet"
               },
@@ -729,7 +739,7 @@
               "registry_key": "builtin:type:STRING"
             },
             "field_data": {
-              "value": "No frame yet"
+              "value": "Frame #4434 | 1280x720x3 | 166.47s | 26.6 FPS"
             }
           },
           "frame_ready": {
@@ -806,7 +816,7 @@
               "registry_key": "builtin:type:FLOAT"
             },
             "field_data": {
-              "value": 0.0
+              "value": 166.46897673606873
             }
           },
           "frame_number": {
@@ -834,7 +844,7 @@
               "registry_key": "builtin:type:INT"
             },
             "field_data": {
-              "value": 0
+              "value": 4434
             }
           },
           "width": {
@@ -862,7 +872,7 @@
               "registry_key": "builtin:type:INT"
             },
             "field_data": {
-              "value": 0
+              "value": 1280
             }
           },
           "height": {
@@ -890,7 +900,7 @@
               "registry_key": "builtin:type:INT"
             },
             "field_data": {
-              "value": 0
+              "value": 720
             }
           }
         },
@@ -917,6 +927,7 @@
           "label": "Frame Info Display",
           "description": "Displays information about frames with live preview",
           "deprecation_warning": "",
+          "hidden": false,
           "class_name": "FrameDisplayNode",
           "module": "haybale_visiongraph.nodes.numpy_frame_display_node",
           "search_tags": [
@@ -1011,6 +1022,7 @@
               "description": "True or False",
               "class_name": "BOOL",
               "module": "haywire.barn.builtin.types.specs",
+              "flow_type": "data",
               "default": {
                 "value": true
               },
@@ -1038,6 +1050,7 @@
               "description": "True or False",
               "class_name": "BOOL",
               "module": "haywire.barn.builtin.types.specs",
+              "flow_type": "data",
               "default": {
                 "value": false
               },
@@ -1065,6 +1078,7 @@
               "description": "True or False",
               "class_name": "BOOL",
               "module": "haywire.barn.builtin.types.specs",
+              "flow_type": "data",
               "default": {
                 "value": false
               },
@@ -1132,7 +1146,7 @@
               "registry_key": "builtin:type:FLOAT"
             },
             "field_data": {
-              "value": 0.0
+              "value": 166.46897673606873
             }
           },
           "frame_number": {
@@ -1160,7 +1174,7 @@
               "registry_key": "builtin:type:INT"
             },
             "field_data": {
-              "value": 0
+              "value": 4434
             }
           },
           "rgb": {
@@ -1213,6 +1227,7 @@
           "label": "Frame Event",
           "description": "Triggered when a camera frame is ready; exposes colour/depth/infrared streams",
           "deprecation_warning": "",
+          "hidden": false,
           "class_name": "NumpyFrameEventNode",
           "module": "haybale_visiongraph.nodes.numpy_frame_event_node",
           "search_tags": [
@@ -1325,6 +1340,7 @@
               "description": "Text data",
               "class_name": "STRING",
               "module": "haywire.barn.builtin.types.specs",
+              "flow_type": "data",
               "default": {
                 "value": "YOLOv8-Seg-N (COCO)"
               },
@@ -1361,6 +1377,7 @@
               "description": "Decimal numberer",
               "class_name": "FLOAT",
               "module": "haywire.barn.builtin.types.specs",
+              "flow_type": "data",
               "default": {
                 "value": 0.0
               },
@@ -1394,6 +1411,7 @@
               "description": "Text data",
               "class_name": "STRING",
               "module": "haywire.barn.builtin.types.specs",
+              "flow_type": "data",
               "default": {
                 "value": "Idle"
               },
@@ -1409,7 +1427,7 @@
               "registry_key": "builtin:type:STRING"
             },
             "field_data": {
-              "value": "Idle"
+              "value": "1 results · 43ms"
             }
           },
           "result_ready": {
@@ -1484,7 +1502,7 @@
               "registry_key": "builtin:type:INT"
             },
             "field_data": {
-              "value": 0
+              "value": 1
             }
           }
         },
@@ -1511,6 +1529,7 @@
           "label": "Segmentation",
           "description": "Instance segmentation: detect objects and their pixel masks",
           "deprecation_warning": "",
+          "hidden": false,
           "class_name": "SegmentationNode",
           "module": "haybale_visiongraph.nodes.segmentation_node",
           "search_tags": [
@@ -1644,6 +1663,7 @@
               "description": "Decimal numberer",
               "class_name": "FLOAT",
               "module": "haywire.barn.builtin.types.specs",
+              "flow_type": "data",
               "default": {
                 "value": 0.0
               },
@@ -1677,6 +1697,7 @@
               "description": "True or False",
               "class_name": "BOOL",
               "module": "haywire.barn.builtin.types.specs",
+              "flow_type": "data",
               "default": {
                 "value": true
               },
@@ -1772,6 +1793,7 @@
           "label": "Annotate Results",
           "description": "Draw estimator results (boxes / masks / poses) onto a frame",
           "deprecation_warning": "",
+          "hidden": false,
           "class_name": "AnnotateNode",
           "module": "haybale_visiongraph.nodes.annotate_node",
           "search_tags": [
@@ -1879,6 +1901,7 @@
               "description": "Text data",
               "class_name": "STRING",
               "module": "haywire.barn.builtin.types.specs",
+              "flow_type": "data",
               "default": {
                 "value": "YOLOv8-N (COCO)"
               },
@@ -1918,6 +1941,7 @@
               "description": "Decimal numberer",
               "class_name": "FLOAT",
               "module": "haywire.barn.builtin.types.specs",
+              "flow_type": "data",
               "default": {
                 "value": 0.0
               },
@@ -1951,6 +1975,7 @@
               "description": "Text data",
               "class_name": "STRING",
               "module": "haywire.barn.builtin.types.specs",
+              "flow_type": "data",
               "default": {
                 "value": "Idle"
               },
@@ -1966,7 +1991,7 @@
               "registry_key": "builtin:type:STRING"
             },
             "field_data": {
-              "value": "Idle"
+              "value": "1 results · 12ms"
             }
           },
           "result_ready": {
@@ -2041,7 +2066,7 @@
               "registry_key": "builtin:type:INT"
             },
             "field_data": {
-              "value": 0
+              "value": 1
             }
           }
         },
@@ -2068,6 +2093,7 @@
           "label": "Object Detector",
           "description": "Detect objects in a frame (bounding box + class + score)",
           "deprecation_warning": "",
+          "hidden": false,
           "class_name": "ObjectDetectorNode",
           "module": "haybale_visiongraph.nodes.object_detector_node",
           "search_tags": [
@@ -2178,6 +2204,7 @@
           "label": "Settings Test Node",
           "description": "Test the Settings for debugging",
           "deprecation_warning": "",
+          "hidden": false,
           "class_name": "SettingsNode",
           "module": "haybale_testing.nodes.testbed.settings_node",
           "search_tags": [
@@ -2339,5 +2366,9 @@
       "is_lazy": false
     }
   },
-  "variables": {}
+  "variables": {},
+  "props": {
+    "values": {},
+    "promoted": {}
+  }
 }

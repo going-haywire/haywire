@@ -7,13 +7,13 @@ import haywire.core.graph.editor  # noqa: F401 — circular-import guard
 
 
 def test_file_focus_id():
-    from haybale_studio.file_focus import FileFocus
+    from haybale_studio.focuses import FileFocus
 
     assert FileFocus.id == "file"
 
 
 def test_file_focus_unavailable_when_no_right_click():
-    from haybale_studio.file_focus import FileFocus
+    from haybale_studio.focuses import FileFocus
     from haybale_studio.state.file_browser_state import FileBrowserState
 
     ctx = MagicMock()
@@ -24,7 +24,7 @@ def test_file_focus_unavailable_when_no_right_click():
 
 
 def test_file_focus_available_when_right_clicked():
-    from haybale_studio.file_focus import FileFocus
+    from haybale_studio.focuses import FileFocus
     from haybale_studio.state.file_browser_state import FileBrowserState
 
     from tests.conftest import attach_stub_session
@@ -39,6 +39,6 @@ def test_file_focus_available_when_right_clicked():
 def test_file_focus_registered_in_focus_map():
     """Focus.__init_subclass__ should have registered FileFocus by id."""
     from haywire.ui.panel.focus import focus_by_id
-    from haybale_studio.file_focus import FileFocus  # noqa: F401 — triggers registration
+    from haybale_studio.focuses import FileFocus  # noqa: F401 — triggers registration
 
     assert focus_by_id("file") is FileFocus
