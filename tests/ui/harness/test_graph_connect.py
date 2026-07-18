@@ -21,6 +21,8 @@ import re
 import pytest
 from playwright.sync_api import Page
 
+from tests.ui.harness.nav import goto_ready
+
 _URL = "http://localhost:8090/graph-connect"
 
 pytestmark = pytest.mark.ui
@@ -53,7 +55,7 @@ def _edge_ids(page: Page) -> list[str]:
 
 
 def _open(page: Page) -> None:
-    page.goto(_URL)
+    goto_ready(page, _URL)
     page.wait_for_selector("[data-node-id]")
     page.wait_for_selector(".connection-pin")
     page.wait_for_timeout(1200)  # let the graph sync + center

@@ -11,8 +11,6 @@ construction time (ADR 0019 / ADR 0018 plain-port half):
 - a serializable widget_config (list/dict options) constructs fine
 """
 
-# Per CLAUDE.md test trap: import editor before other haywire modules.
-
 import pytest
 
 from haywire.barn.builtin.types import CHOICES

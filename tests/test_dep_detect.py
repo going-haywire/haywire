@@ -23,6 +23,9 @@ from haywire.core.library.dep_detect import (
     set_pyproject_dependencies,
 )
 
+# One venv metadata scan for the whole module (see tests/conftest.py).
+pytestmark = pytest.mark.usefixtures("cached_packages_distributions")
+
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Test scaffolding

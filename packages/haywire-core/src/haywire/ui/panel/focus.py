@@ -67,5 +67,3 @@ def focus_by_id(focus_id: str) -> type[Focus] | None:
 def all_focuses() -> list[type[Focus]]:
     """Return all registered Focus subclasses."""
     return list(_FOCUS_BY_ID.values())
-
-

@@ -56,6 +56,7 @@ uv run haywire
 
 # Tests
 uv run pytest                        # all tests
+uv run pytest -m "not browser and not perf"  # fast local loop (~33s): skips the Playwright browser harness
 uv run pytest -m unit                # unit tests only (fast)
 uv run pytest -m integration         # integration tests (full library system, slow)
 uv run pytest -m "not integration"   # everything except slow integration tests
@@ -88,11 +89,13 @@ Things that aren't visible from the code itself — bugs we hit, framework quirk
 - [project_popup_vue.md](.insights/project_popup_vue.md) — `__enter__` must return a `ui.column`; Vue 3 doesn't proxy `_`-prefixed `data()` properties.
 - [feedback_nicegui_redraw_deletes_handler_slot.md](.insights/feedback_nicegui_redraw_deletes_handler_slot.md) — a row handler that mutates state then redraws its own container deletes its slot mid-flight; capture `ui.context.client` first, then `ui.notify()` under `with client:`.
 - [project_nicegui_input_update_value_event.md](.insights/project_nicegui_input_update_value_event.md) — `ui.input` emits `update:value`, not `update:modelValue`; a widget binding on the wrong event silently drops all user edits in-browser. Other value elements (checkbox/switch/select/color) use `update:modelValue`.
+- [feedback_nicegui_outbox_updatevalue_stomp.md](.insights/feedback_nicegui_outbox_updatevalue_stomp.md) — render-time `updateValue` messages flush after the websocket connects and stomp early user input (edit silently reverted server-side). Harness pages stamp `data-hw-synced` last; tests use `goto_ready`.
 
 ### Test traps
 
 - [feedback_barn_module_reload_test_trap.md](.insights/feedback_barn_module_reload_test_trap.md) — top-of-file imports of barn classes go stale after `importlib.reload`. Use `importlib.import_module` + `patch.object`.
 - [project_registry_force_reload_bug.md](.insights/project_registry_force_reload_bug.md) — fixed in `7b7d86e`; symptom was `assert Foo is Foo` failing (same name, distinct objects). If it ever recurs, look for `force_reload=True` on initial registry scans.
+- [project_playwright_asyncio_order_trap.md](.insights/project_playwright_asyncio_order_trap.md) — the first Playwright test parks a running event loop in the main thread for the rest of the session; anyio tests after it fail. `tests/conftest.py` auto-marks `tests/ui/harness/` with `browser` and sorts browser tests last — Playwright tests elsewhere must carry `@pytest.mark.browser`. Ambient-DI leakage is contained by snapshot/restore in the `test_injector` fixtures; never call `create_test_injector()` directly in a test.
 
 ### Architecture traps
 

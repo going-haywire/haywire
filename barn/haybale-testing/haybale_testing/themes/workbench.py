@@ -9,10 +9,7 @@ from haywire.ui.themes.decorator import theme
 
 
 # --8<-- [start:test_dark_theme]
-@theme(
-    label="Test Dark",
-    hidden=True
-)
+@theme(label="Test Dark", hidden=True)
 class TestDarkTheme(WorkbenchTheme):
     """Minimal dark-style theme for tests."""
 

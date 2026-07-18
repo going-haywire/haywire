@@ -112,8 +112,7 @@ class ThemeRegistry(BaseRegistry[BaseTheme]):
         )
 
     def list_workbench_themes(self) -> list[tuple[str, str]]:
-        """Return sorted list of(registry_key, label) pairs for ALL workbench themes.
-        """
+        """Return sorted list of(registry_key, label) pairs for ALL workbench themes."""
         return sorted(
             (cls.class_identity.registry_key, cls.class_identity.label)
             for cls in self._classes.values()

@@ -3,6 +3,8 @@
 import pytest
 from playwright.sync_api import Page, expect
 
+from tests.ui.harness.nav import goto_ready
+
 _URL = "http://localhost:8090/graph-context-menu"
 
 pytestmark = pytest.mark.ui
@@ -10,7 +12,7 @@ pytestmark = pytest.mark.ui
 
 def test_right_click_on_viewport_background_emits_canvas_context_menu(page: Page, harness):
     """Right-clicking viewport background still reaches the graph canvas menu pipeline."""
-    page.goto(_URL)
+    goto_ready(page, _URL)
     # Wait for the canvas to finish mounting (listeners attached), not merely
     # for the viewport div to exist — otherwise the right-click can fire before
     # the contextmenu handler is wired and the event is lost (flaky).

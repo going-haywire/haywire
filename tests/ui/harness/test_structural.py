@@ -6,6 +6,8 @@ headings render for SettingsNode.example and TestingSettings.
 import pytest
 from playwright.sync_api import Page, expect
 
+from tests.ui.harness.nav import goto_ready
+
 _NODE_URL = (
     "http://localhost:8090/node?class=haybale_testing.nodes.testbed.settings_node.SettingsNode&bag=example"
 )
@@ -16,7 +18,7 @@ pytestmark = pytest.mark.ui
 
 def test_node_fields_present(page: Page, harness):
     """All non-mirror fields in SettingsNode.example appear as data-field rows."""
-    page.goto(_NODE_URL)
+    goto_ready(page, _NODE_URL)
     page.wait_for_selector("[data-field]")
 
     expected_fields = [
@@ -48,7 +50,7 @@ def test_node_fields_present(page: Page, harness):
 def test_watch_field_renders_disabled_widget(page: Page, harness):
     """watch() fields render a real (disabled) widget now — ui_state=DISABLED
     is the general chrome mechanism, not a bespoke label-only path."""
-    page.goto(_NODE_URL)
+    goto_ready(page, _NODE_URL)
     page.wait_for_selector("[data-field]")
     row = page.locator('[data-field="intensity_ro"]')
     expect(row).to_be_visible()
@@ -58,7 +60,7 @@ def test_watch_field_renders_disabled_widget(page: Page, harness):
 
 def test_float_field_uses_number_drag(page: Page, harness):
     """A float field (example_float) renders a NumberDrag widget (div[data-number_drag])."""
-    page.goto(_NODE_URL)
+    goto_ready(page, _NODE_URL)
     page.wait_for_selector("[data-field]")
     row = page.locator('[data-field="example_float"]')
     # NumberDrag Vue component renders as a div with the data-number_drag marker attribute
@@ -68,7 +70,7 @@ def test_float_field_uses_number_drag(page: Page, harness):
 
 def test_string_field_uses_input(page: Page, harness):
     """A string field (example_string) renders a plain text input."""
-    page.goto(_NODE_URL)
+    goto_ready(page, _NODE_URL)
     page.wait_for_selector("[data-field]")
     row = page.locator('[data-field="example_string"]')
     expect(row.locator("input")).to_be_attached()
@@ -77,7 +79,7 @@ def test_string_field_uses_input(page: Page, harness):
 
 def test_int_field_uses_number_drag(page: Page, harness):
     """An int field (even_int) renders a NumberDrag widget (not a text input)."""
-    page.goto(_NODE_URL)
+    goto_ready(page, _NODE_URL)
     page.wait_for_selector("[data-field]")
     row = page.locator('[data-field="even_int"]')
     expect(row.locator("[data-number_drag]")).to_be_attached()
@@ -86,7 +88,7 @@ def test_int_field_uses_number_drag(page: Page, harness):
 
 def test_category_headings_present(page: Page, harness):
     """Category expansion headings Type, Stored, Mirrors, Validator are all visible."""
-    page.goto(_NODE_URL)
+    goto_ready(page, _NODE_URL)
     page.wait_for_selector("[data-field]")
     for heading in ["Type", "Stored", "Mirrors", "Validator"]:
         expect(page.get_by_text(heading, exact=True).first).to_be_visible()
@@ -94,6 +96,6 @@ def test_category_headings_present(page: Page, harness):
 
 def test_schema_field_present(page: Page, harness):
     """TestingSettings.default_intensity field row appears in /schema route."""
-    page.goto(_SCHEMA_URL)
+    goto_ready(page, _SCHEMA_URL)
     page.wait_for_selector("[data-field]")
     expect(page.locator('[data-field="default_intensity"]')).to_be_visible()

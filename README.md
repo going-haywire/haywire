@@ -130,9 +130,11 @@ haywire-repo/
 ├── saves/
 │
 ├── packages/
-│   ├── haywire-core/          # core framework (publishable to PyPI)
+│   ├── haywire-core/               # core framework (publishable to PyPI)
 │   │   ├── pyproject.toml
 │   │   └── src/haywire/
+│   │       ├── barn/               # haywire builtin plugin 
+│   │       │   └── builtin/        # builtin library
 │   │       ├── core/               # graph engine, DI, nodes, edges, ports
 │   │       │   ├── node/           # node architecture and base classes
 │   │       │   ├── graph/          # graph structures and validation
@@ -215,12 +217,11 @@ uv run haywire
 
 # Run tests
 uv run pytest
+uv run pytest -m "not browser and not perf"  # fast local loop (~33s)
 
 # Run with module syntax
 uv run python -m haywire_studio
 
-# Playground scripts still work
-uv run python playground/app_graph_canvas.py
 ```
 
 ### Key Architecture Concepts

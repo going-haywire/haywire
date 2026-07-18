@@ -8,8 +8,6 @@ promotable= eligibility:
 - the Setting-row menu consumes the same helper (tests/ui/panel/test_promoted_row_state.py)
 """
 
-# Per CLAUDE.md test trap: import editor before other haywire modules.
-
 import pytest
 
 from haywire.barn.builtin.types import FLOAT

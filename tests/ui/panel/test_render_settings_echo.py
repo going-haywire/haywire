@@ -9,7 +9,6 @@ the model layer, independent of the browser.
 
 import pytest
 
-# Per CLAUDE.md test trap: import editor before other haywire modules.
 
 from haywire.core.settings import SettingsRegistry
 from haybale_testing.nodes.testbed.settings_node import SettingsNode

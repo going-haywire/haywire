@@ -19,7 +19,6 @@ import logging
 
 import pytest
 
-# Per CLAUDE.md test trap: import editor before other haywire modules.
 
 from nicegui import Client, ui
 

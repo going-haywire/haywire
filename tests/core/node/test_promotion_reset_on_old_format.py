@@ -10,8 +10,6 @@ Uses the same "testing:node:SettingsNode" test node + graph fixtures as
 test_promotion_serialization.py.
 """
 
-# Per CLAUDE.md test trap: import editor before other haywire modules.
-
 import pytest
 
 from haywire.core.errors.haywire_exception import ErrorSeverity

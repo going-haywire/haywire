@@ -320,22 +320,22 @@ class TestMirrorCallbackSuppression:
 
 
 class TestNodeDirectBinding:
-    @staticmethod
-    def _init_ambient():
-        """Create a test injector and force-resolve ambient singletons."""
-        from haywire.core.di.test_config import create_test_injector
-        from haywire.core.types.registry import TypeRegistry
-        from haywire.core.settings import SettingsRegistry
+    @pytest.fixture(autouse=True)
+    def _ambient_di(self, test_injector):
+        """Force-resolve ambient singletons through the hardened fixture.
 
-        inj = create_test_injector()
-        inj.get(TypeRegistry)
-        inj.get(SettingsRegistry)
-        return inj
+        Goes through ``test_injector`` (not a bare ``create_test_injector()``)
+        so the ambient DI globals it repoints are snapshot/restored on
+        teardown instead of leaking into later tests.
+        """
+        from haywire.core.settings import SettingsRegistry
+        from haywire.core.types.registry import TypeRegistry
+
+        test_injector.get(TypeRegistry)
+        test_injector.get(SettingsRegistry)
 
     def test_settings_bound_as_direct_attribute(self):
         from haywire.core.node import BaseNode, node
-
-        self._init_ambient()
 
         @node(label="Test Binding Node")
         class _TestBindingNode(BaseNode):
@@ -351,8 +351,6 @@ class TestNodeDirectBinding:
     def test_direct_read(self):
         from haywire.core.node import BaseNode, node
 
-        self._init_ambient()
-
         @node(label="Test Read Node")
         class _TestReadNode(BaseNode):
             class params(NodeSettings):
@@ -365,8 +363,6 @@ class TestNodeDirectBinding:
 
     def test_direct_write(self):
         from haywire.core.node import BaseNode, node
-
-        self._init_ambient()
 
         @node(label="Test Write Node")
         class _TestWriteNode(BaseNode):
@@ -391,8 +387,6 @@ class TestNodeDirectBinding:
 
     def test_serialization_round_trip_on_node(self):
         from haywire.core.node import BaseNode, node
-
-        self._init_ambient()
 
         @node(label="Test Serial Node")
         class _TestSerialNode(BaseNode):

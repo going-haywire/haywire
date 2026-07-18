@@ -12,8 +12,6 @@ Real NiceGUI elements need a Client slot context, hence the integration
 marker (same pattern as tests/ui/panel/test_promoted_row_state.py).
 """
 
-# Per CLAUDE.md test trap: import editor before other haywire modules.
-
 from typing import Any
 
 import pytest

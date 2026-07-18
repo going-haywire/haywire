@@ -6,6 +6,8 @@ and the Reset item in the row's right-click Setting-row menu.
 import pytest
 from playwright.sync_api import Page, expect
 
+from tests.ui.harness.nav import goto_ready
+
 _NODE_URL = (
     "http://localhost:8090/node?class=haybale_testing.nodes.testbed.settings_node.SettingsNode&bag=example"
 )
@@ -15,7 +17,7 @@ pytestmark = pytest.mark.ui
 
 def test_mirror_field_no_dot_prefix_initially(page: Page, harness):
     """The intensity mirror field label has no • prefix when not locally overridden."""
-    page.goto(_NODE_URL)
+    goto_ready(page, _NODE_URL)
     page.wait_for_selector("[data-field]")
 
     row = page.locator('[data-field="intensity"]')
@@ -25,7 +27,7 @@ def test_mirror_field_no_dot_prefix_initially(page: Page, harness):
 
 def test_mirror_field_dot_prefix_after_local_override(page: Page, harness):
     """Overriding the intensity mirror locally adds • to the label."""
-    page.goto(_NODE_URL)
+    goto_ready(page, _NODE_URL)
     page.wait_for_selector("[data-field]")
 
     row = page.locator('[data-field="intensity"]')
@@ -46,7 +48,7 @@ def test_mirror_field_dot_prefix_after_local_override(page: Page, harness):
 def test_reset_button_appears_after_override(page: Page, harness):
     """After overriding intensity locally, the row's Setting-row menu offers an
     enabled Reset item (right-click the label cell to open it)."""
-    page.goto(_NODE_URL)
+    goto_ready(page, _NODE_URL)
     page.wait_for_selector("[data-field]")
 
     row = page.locator('[data-field="intensity"]')
@@ -67,7 +69,7 @@ def test_reset_button_appears_after_override(page: Page, harness):
 
 def test_reset_button_removes_dot_prefix(page: Page, harness):
     """Clicking the Reset menu item on intensity removes the • prefix."""
-    page.goto(_NODE_URL)
+    goto_ready(page, _NODE_URL)
     page.wait_for_selector("[data-field]")
 
     # Override intensity via NumberDrag edit mode
@@ -93,7 +95,7 @@ def test_reset_button_removes_dot_prefix(page: Page, harness):
 
 def test_color_mirror_dot_prefix_after_local_override(page: Page, harness):
     """Typing a color value into the tint mirror adds • to the label."""
-    page.goto(_NODE_URL)
+    goto_ready(page, _NODE_URL)
     page.wait_for_selector("[data-field]")
 
     row = page.locator('[data-field="tint"]')
@@ -110,7 +112,7 @@ def test_color_mirror_dot_prefix_after_local_override(page: Page, harness):
 def test_color_mirror_reset_button_appears_after_override(page: Page, harness):
     """After overriding tint locally, the row's Setting-row menu offers an
     enabled Reset item."""
-    page.goto(_NODE_URL)
+    goto_ready(page, _NODE_URL)
     page.wait_for_selector("[data-field]")
 
     row = page.locator('[data-field="tint"]')
@@ -128,7 +130,7 @@ def test_color_mirror_reset_button_appears_after_override(page: Page, harness):
 
 def test_color_mirror_reset_removes_dot_prefix(page: Page, harness):
     """Clicking the Reset menu item on tint removes the • prefix."""
-    page.goto(_NODE_URL)
+    goto_ready(page, _NODE_URL)
     page.wait_for_selector("[data-field]")
 
     row = page.locator('[data-field="tint"]')

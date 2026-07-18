@@ -29,6 +29,7 @@ import ast
 import importlib.metadata
 import importlib.util
 import sys
+from collections.abc import Mapping
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Protocol, runtime_checkable
@@ -168,15 +169,17 @@ def _read_pyproject_name(start: Path) -> str | None:
     return None
 
 
-def _resolve_module_to_dist(module: str) -> str | None:
+def _resolve_module_to_dist(module: str, mapping: Mapping[str, list[str]]) -> str | None:
     """Map a top-level module name to its installed distribution name.
 
-    Tries ``importlib.metadata.packages_distributions()`` first (fast path).
+    Tries *mapping* (``importlib.metadata.packages_distributions()``) first.
+    The mapping is passed in rather than fetched here because building it
+    scans every installed distribution (~1s in a large venv) — callers fetch
+    it once per detection run, not once per module.
     Falls back to locating the module on disk and walking up to its
     pyproject.toml, which is necessary for editable installs created in dev
     monorepos where the metadata mapping is sometimes incomplete.
     """
-    mapping = importlib.metadata.packages_distributions()
     owners = mapping.get(module)
     if owners:
         return owners[0]
@@ -291,6 +294,9 @@ def detect_deps(lib_dir: Path, *, libraries: HaywireLibrarySource) -> DetectedDe
     # don't double up if the user imports both haywire.core.X and haywire.ui.Y.
     framework_added: set[str] = set()
 
+    # One venv-wide metadata scan for the whole run (it is ~1s in a large venv).
+    dist_mapping = importlib.metadata.packages_distributions()
+
     for module in sorted(candidates):
         if module == "haywire":
             # Split by submodule usage. ui-only → haywire-studio. Otherwise haywire-core.
@@ -306,7 +312,7 @@ def detect_deps(lib_dir: Path, *, libraries: HaywireLibrarySource) -> DetectedDe
                     resolved["haywire(.core.*)" if uses_core else "haywire"] = "haywire-core"
             continue
 
-        dist = _resolve_module_to_dist(module)
+        dist = _resolve_module_to_dist(module, dist_mapping)
         if dist is None:
             unresolved.append(module)
             continue

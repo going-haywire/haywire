@@ -26,6 +26,8 @@ def _make_ctx_with_edit_state(register_edit_state):
 
 def test_copy_selection_handler_writes_to_session_context(register_edit_state):
     """SelectionHandlers.process_copy_selection writes the clipboard to EditState."""
+    from unittest.mock import patch
+
     from haywire.ui.components.graph.event_definitions import UserCopySelectedEvent
     from haybale_graph_editor.editors.graph_canvas.handlers.selection import SelectionHandlers
 
@@ -33,11 +35,13 @@ def test_copy_selection_handler_writes_to_session_context(register_edit_state):
     session = MagicMock()
     session.context = ctx
 
-    # Build a fake graph with one node
+    # Build a fake graph with one node. serialize() must return a real dict:
+    # the handler json.dumps the payload for the OS-clipboard export, and a
+    # MagicMock there would divert into the error path (whose ui.notify only
+    # works when NiceGUI's pseudo-client fallback happens to be available —
+    # an execution-order accident).
     wrapper = MagicMock()
-    wrapper.node = MagicMock()
-    wrapper.node.props.posX = 10.0
-    wrapper.node.props.posY = 20.0
+    wrapper.serialize.return_value = {"node_id": "a", "position": [10.0, 20.0]}
 
     graph = MagicMock()
     graph.get_node_wrapper.return_value = wrapper
@@ -48,8 +52,11 @@ def test_copy_selection_handler_writes_to_session_context(register_edit_state):
     # Initially clipboard is None
     assert edit.clipboard is None
 
-    # Process a copy event
-    handlers.process_copy_selection(UserCopySelectedEvent(selectedNodes=["a"], selectedEdges=[]))
+    # Process a copy event. The OS-clipboard export runs ui.run_javascript,
+    # which needs a NiceGUI client context this test doesn't have — patch it
+    # out (transport is not under test; the EditState write is).
+    with patch("nicegui.ui.run_javascript"):
+        handlers.process_copy_selection(UserCopySelectedEvent(selectedNodes=["a"], selectedEdges=[]))
 
     # Now ctx.data[EditState].clipboard is a ClipboardData
     assert edit.clipboard is not None

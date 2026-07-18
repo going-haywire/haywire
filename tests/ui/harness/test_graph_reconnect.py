@@ -19,6 +19,8 @@ re-resolve snaps it back.
 import pytest
 from playwright.sync_api import Page
 
+from tests.ui.harness.nav import goto_ready
+
 _URL = "http://localhost:8090/graph-reconnect"
 
 pytestmark = pytest.mark.ui
@@ -106,7 +108,7 @@ def test_reconnect_anchor_stays_on_outlet_pin(page: Page, harness):
     the mouse while the outlet end must stay at the outlet pin. Without the fix,
     the stale held pin makes the anchor end drift off the outlet.
     """
-    page.goto(_URL)
+    goto_ready(page, _URL)
     page.wait_for_selector("#connection-svg path[data-edge-id]")
     page.wait_for_timeout(1500)  # let the graph sync + center
 

@@ -24,6 +24,9 @@ from haywire_studio.share import (
     union_pyproject_deps,
 )
 
+# One venv metadata scan for the whole module (see tests/conftest.py).
+pytestmark = pytest.mark.usefixtures("cached_packages_distributions")
+
 
 class _FakeLibrarySource:
     """Minimal HaywireLibrarySource for testing union/lag with a controlled set

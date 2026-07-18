@@ -36,6 +36,20 @@ def _resolve_class(dotted: str):
     return getattr(mod, class_name)
 
 
+def _stamp_synced() -> None:
+    """Mark the page as fully synced, for Playwright's ``goto_ready``.
+
+    Value writes during widget construction queue ``updateValue`` messages in
+    the client outbox; they are only flushed once the websocket connects. An
+    edit typed in the browser before that flush arrives gets stomped back to
+    the server value (and the stomp re-emits the old value, reverting the
+    edit server-side). This marker is queued LAST in the page build, so by
+    outbox FIFO it executes only after every pending sync message has been
+    applied — from then on user input is safe. See tests/ui/harness/nav.py.
+    """
+    ui.run_javascript("document.body.dataset.hwSynced = '1'")
+
+
 # Two-node control graph used by the /graph-reconnect route: a Test Begin Play
 # (event source, ``exec`` outlet) wired to a Test Print (control sink, ``exec``
 # inlet). Built programmatically and round-tripped through a .haywire file at
@@ -237,6 +251,7 @@ def register_routes(library_service) -> None:
                 render_settings(settings_instance)
             except Exception as exc:
                 ui.label(f"Error: {exc}").classes("text-red-400 text-xs")
+        _stamp_synced()
 
     # -------------------------------------------------------------------------
     # GET /node-live?class=<dotted.ClassName>&bag=<bag_name>
@@ -293,6 +308,7 @@ def register_routes(library_service) -> None:
                 )
             except Exception as exc:
                 ui.label(f"Error: {exc}").classes("text-red-400 text-xs")
+        _stamp_synced()
 
     # -------------------------------------------------------------------------
     # GET /schema?class=<dotted.ClassName>
@@ -316,6 +332,7 @@ def register_routes(library_service) -> None:
                 render_schema(schema_cls, registry)
             except Exception as exc:
                 ui.label(f"Error: {exc}").classes("text-red-400 text-xs")
+        _stamp_synced()
 
     # -------------------------------------------------------------------------
     # GET /graph-context-menu
@@ -357,6 +374,7 @@ def register_routes(library_service) -> None:
                     canvas_height=400,
                 )
                 canvas.props('data-testid="graph-canvas-test"')
+        _stamp_synced()
 
     # -------------------------------------------------------------------------
     # GET /graph-reconnect
@@ -389,6 +407,7 @@ def register_routes(library_service) -> None:
         fixture.unlink(missing_ok=True)
 
         _mount_graph_canvas(library_service, graph, editor, testid="reconnect")
+        _stamp_synced()
 
     # -------------------------------------------------------------------------
     # GET /graph-connect
@@ -403,6 +422,7 @@ def register_routes(library_service) -> None:
     async def graph_connect_page():
         graph, editor = _build_connect_graph(library_service.get_node_factory())
         _mount_graph_canvas(library_service, graph, editor, testid="connect")
+        _stamp_synced()
 
     # -------------------------------------------------------------------------
     # GET /graph-dynamic
@@ -427,6 +447,7 @@ def register_routes(library_service) -> None:
         ui.button("restore-port", on_click=lambda: _set_port_count(2)).props('data-testid="restore-port"')
 
         _mount_graph_canvas(library_service, graph, editor, testid="dynamic")
+        _stamp_synced()
 
     # -------------------------------------------------------------------------
     # POST /api/set?key=<key>&value=<value>

@@ -5,6 +5,8 @@ Validation tests: verify that invalid values surface a data-error DOM element.
 import pytest
 from playwright.sync_api import Page, expect
 
+from tests.ui.harness.nav import goto_ready
+
 _NODE_URL = (
     "http://localhost:8090/node?class=haybale_testing.nodes.testbed.settings_node.SettingsNode&bag=example"
 )
@@ -14,7 +16,7 @@ pytestmark = pytest.mark.ui
 
 def test_odd_integer_fails_validator(page: Page, harness):
     """Setting even_int to 3 (odd) produces a data-error element."""
-    page.goto(_NODE_URL)
+    goto_ready(page, _NODE_URL)
     page.wait_for_selector("[data-field]")
 
     row = page.locator('[data-field="even_int"]')
@@ -30,7 +32,7 @@ def test_odd_integer_fails_validator(page: Page, harness):
 
 def test_negative_clamped_positive_fails_validator(page: Page, harness):
     """Setting clamped_positive to -1 (negative) produces a data-error element."""
-    page.goto(_NODE_URL)
+    goto_ready(page, _NODE_URL)
     page.wait_for_selector("[data-field]")
 
     row = page.locator('[data-field="clamped_positive"]')
@@ -46,7 +48,7 @@ def test_negative_clamped_positive_fails_validator(page: Page, harness):
 
 def test_valid_value_clears_error(page: Page, harness):
     """After fixing even_int to 4 (even), the data-error element disappears."""
-    page.goto(_NODE_URL)
+    goto_ready(page, _NODE_URL)
     page.wait_for_selector("[data-field]")
 
     # First produce an error
@@ -75,7 +77,7 @@ def test_string_field_invalid_shows_error(page: Page, harness):
     (Validation display is now uniform across widget types via the panel's
     error container, not the string widget's own Quasar inline message.)
     """
-    page.goto(_NODE_URL)
+    goto_ready(page, _NODE_URL)
     page.wait_for_selector("[data-field]")
 
     row = page.locator('[data-field="validated_string"]')
@@ -90,7 +92,7 @@ def test_string_field_invalid_shows_error(page: Page, harness):
 
 def test_string_field_valid_clears_error(page: Page, harness):
     """Fixing validated_string after an error clears the panel's data-error element."""
-    page.goto(_NODE_URL)
+    goto_ready(page, _NODE_URL)
     page.wait_for_selector("[data-field]")
 
     row = page.locator('[data-field="validated_string"]')

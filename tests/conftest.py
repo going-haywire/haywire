@@ -29,13 +29,59 @@ from haywire.core.undo.config import UndoConfig
 # ==============================================================================
 
 
+class _BrowserTestsLast:
+    """Force Playwright browser tests to run after everything else.
+
+    pytest-playwright's sync API parks a *running* asyncio event loop in the
+    main thread (greenlet-based) for the rest of the session once the first
+    browser test runs. Any anyio/asyncio test that runs after it in the same
+    process then fails with "Cannot run the event loop while another loop is
+    running" / "Runner is closed". Alphabetical collection happened to run the
+    async tests first; this hook turns that accident into an invariant so the
+    suite stays green under any collection order (subset runs, reordering
+    plugins, future test files that sort after tests/ui/harness/).
+
+    Registered as a separate plugin object so this trylast sort and the
+    tryfirst marker application below can both hook
+    ``pytest_collection_modifyitems``.
+    """
+
+    @pytest.hookimpl(trylast=True)
+    def pytest_collection_modifyitems(self, items):
+        non_browser = [i for i in items if "browser" not in i.keywords]
+        browser = [i for i in items if "browser" in i.keywords]
+        items[:] = non_browser + browser
+
+
 def pytest_configure(config):
-    """Register custom markers."""
+    """Register custom markers and the browser-last ordering plugin."""
     config.addinivalue_line("markers", "unit: Unit tests (fast, isolated)")
     config.addinivalue_line("markers", "integration: Integration tests (slower, full system)")
     config.addinivalue_line("markers", "slow: Slow running tests")
     config.addinivalue_line("markers", "ui: UI-related tests")
     config.addinivalue_line("markers", "core: Core functionality tests")
+    config.addinivalue_line(
+        "markers",
+        "browser: Playwright browser tests (auto-applied to tests/ui/harness/; always run last)",
+    )
+    config.pluginmanager.register(_BrowserTestsLast(), "browser-tests-last")
+
+
+@pytest.hookimpl(tryfirst=True)
+def pytest_collection_modifyitems(items):
+    """Auto-apply the ``browser`` marker to everything under tests/ui/harness/.
+
+    tryfirst so the marker exists before pytest's own ``-m`` deselection
+    filters on it — ``-m "not browser and not perf"`` gives a browser-free
+    fast run. Playwright tests added outside tests/ui/harness/ must carry
+    ``@pytest.mark.browser`` themselves. The browser-last SORT lives in
+    ``_BrowserTestsLast`` (trylast) so it runs after any deselection or
+    reordering.
+    """
+    browser_marker = pytest.mark.browser
+    for item in items:
+        if item.nodeid.startswith("tests/ui/harness/"):
+            item.add_marker(browser_marker)
 
 
 # ==============================================================================
@@ -65,6 +111,32 @@ def _reset_nicegui_globals():
         core.script_client = None
     except Exception:
         pass
+
+
+# ==============================================================================
+# Cached venv metadata scan for dep-detection tests
+# ==============================================================================
+
+
+@pytest.fixture(scope="module")
+def cached_packages_distributions():
+    """Memoize ``importlib.metadata.packages_distributions()`` for one test module.
+
+    Building the module→distribution mapping scans every installed dist's
+    metadata (~1s in this venv), and ``detect_deps`` fetches it once per run.
+    Tests that call detect/drift code many times (test_dep_detect,
+    test_share_drift) re-pay that scan per test for an identical result — the
+    venv cannot change mid-run. Opt in per module with
+    ``pytestmark = pytest.mark.usefixtures("cached_packages_distributions")``.
+    Do NOT use in tests that install or remove distributions.
+    """
+    import importlib.metadata
+
+    mapping = importlib.metadata.packages_distributions()
+    mp = pytest.MonkeyPatch()
+    mp.setattr(importlib.metadata, "packages_distributions", lambda: mapping)
+    yield mapping
+    mp.undo()
 
 
 # ==============================================================================
@@ -148,6 +220,38 @@ def test_library_path(project_root: Path) -> Path:
 # DI Injector Fixtures
 # ==============================================================================
 
+# Every ambient DI module-global a function-scoped injector's providers can
+# repoint via their set_*() calls (haywire.core.di.context) plus the global
+# injector/library-system pair (haywire.core.di.config).
+_DI_CONTEXT_GLOBALS = (
+    "_node_factory",
+    "_adapter_factory",
+    "_type_registry",
+    "_settings_registry",
+    "_session_manager",
+    "_workspace_root",
+    "_library_state_container",
+)
+_DI_CONFIG_GLOBALS = ("_global_injector", "_global_library_system")
+
+
+def _snapshot_ambient_di() -> dict:
+    from haywire.core.di import config as di_config
+    from haywire.core.di import context as di_context
+
+    snap = {("context", n): getattr(di_context, n) for n in _DI_CONTEXT_GLOBALS}
+    snap.update({("config", n): getattr(di_config, n) for n in _DI_CONFIG_GLOBALS})
+    return snap
+
+
+def _restore_ambient_di(snap: dict) -> None:
+    from haywire.core.di import config as di_config
+    from haywire.core.di import context as di_context
+
+    modules = {"context": di_context, "config": di_config}
+    for (mod, name), value in snap.items():
+        setattr(modules[mod], name, value)
+
 
 @pytest.fixture(scope="function")
 def test_injector(project_root: Path) -> Generator[Injector, None, None]:
@@ -155,22 +259,32 @@ def test_injector(project_root: Path) -> Generator[Injector, None, None]:
     Provide a fresh test injector for each test.
 
     This is for unit tests that need DI but not full library loading.
+
+    The injector's providers repoint the ambient DI globals (set_type_registry
+    etc.) lazily on first ``injector.get(...)`` — without restore, a unit test
+    using this fixture leaves the ambient context pointing at its fresh,
+    library-less registries, and any later test that reads the ambient context
+    (node init resolving ``core:type:CALLBACK``, for example) fails depending
+    on execution order. Snapshot/restore keeps the poisoning contained.
     """
+    snap = _snapshot_ambient_di()
     injector = create_test_injector(
         workspace_root=str(project_root), enable_file_watching=False, load_libraries=False
     )
 
     yield injector
 
-    # Cleanup if needed
-    # (registries are fresh per test, so no cleanup required)
+    _restore_ambient_di(snap)
 
 
 @pytest.fixture(scope="function")
 def test_injector_with_undo(project_root: Path) -> Generator[Injector, None, None]:
     """
     Provide test injector (kept for backwards-compat; undo is now per-graph).
+
+    Same ambient-DI snapshot/restore as ``test_injector`` — see there.
     """
+    snap = _snapshot_ambient_di()
     injector = create_test_injector(
         workspace_root=str(project_root),
         enable_file_watching=False,
@@ -178,6 +292,8 @@ def test_injector_with_undo(project_root: Path) -> Generator[Injector, None, Non
     )
 
     yield injector
+
+    _restore_ambient_di(snap)
 
 
 @pytest.fixture(scope="session")

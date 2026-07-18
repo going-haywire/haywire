@@ -147,8 +147,7 @@ class BaseRegistry(HotReloadRegistry, FolderScanMixin, Generic[T]):
         return registry_key in self._classes
 
     def list_names(self) -> list[str]:
-        """List all classes registry_keys in this registry. 
-        """
+        """List all classes registry_keys in this registry."""
         return list(self._classes.keys())
 
     def list_visible_names(self) -> list[str]:
