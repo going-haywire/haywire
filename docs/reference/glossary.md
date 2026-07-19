@@ -171,6 +171,16 @@ See also the **"Library" — five distinct meanings** table at the top of this g
 
 ---
 
+## Farmhand — MCP server *(planned — spec effort in `.scratch/mcp-server/`)*
+
+| Term | Definition | Aliases to avoid |
+|------|-----------|-----------------|
+| **Farmhand** | The Haywire MCP server subsystem through which AI-agent clients operate the studio via library-contributed MCP tools. First-degree citizen of haywire: the host (transport mounted at `/mcp` on the studio app, session registry, baseline tools, `mcp` SDK dependency) lives in haywire-studio; the SDK-free contribution seam lives in haywire-core. An optional `haybale-farmhand` packaging was considered and ruled out (transport lifespan can't follow library enable/disable). | MCP server (ambiguous — any third-party MCP server), agent API |
+| **MCP tool** | One callable capability a **Library** contributes to Farmhand; named per the MCP protocol's own vocabulary (`tools/list`). A new **Component** kind: a `FarmhandTool` subclass in the library's `mcp/` folder, registered via `FarmhandToolRegistry`, keyed `{lib_id}:mcp:{name}`, surfaced to agents as `{lib_id}_{name}` (`studio` prefix reserved for host baseline tools). | chore, command, contribution |
+| **Error ledger** | A bounded, in-memory, sequence-numbered collection where every `HaywireException` registers at `.log()` time (registry-scan import errors wrapped in), queryable "since sequence N". Planned core facility; first consumers are Farmhand's `studio_get_errors` and `studio_verify_component`. | error log (file logs are unqueryable), exception history |
+
+---
+
 ## Marketstall distribution runtime
 
 The runtime that backs the Library Browser's Refresh / Add Source / Edit File flow. Code: `haywire.core.marketstall`.

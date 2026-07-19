@@ -90,6 +90,7 @@ Things that aren't visible from the code itself — bugs we hit, framework quirk
 - [feedback_nicegui_redraw_deletes_handler_slot.md](.insights/feedback_nicegui_redraw_deletes_handler_slot.md) — a row handler that mutates state then redraws its own container deletes its slot mid-flight; capture `ui.context.client` first, then `ui.notify()` under `with client:`.
 - [project_nicegui_input_update_value_event.md](.insights/project_nicegui_input_update_value_event.md) — `ui.input` emits `update:value`, not `update:modelValue`; a widget binding on the wrong event silently drops all user edits in-browser. Other value elements (checkbox/switch/select/color) use `update:modelValue`.
 - [feedback_nicegui_outbox_updatevalue_stomp.md](.insights/feedback_nicegui_outbox_updatevalue_stomp.md) — render-time `updateValue` messages flush after the websocket connects and stomp early user input (edit silently reverted server-side). Harness pages stamp `data-hw-synced` last; tests use `goto_ready`.
+- [feedback_nicegui_lifespan_task_scope.md](.insights/feedback_nicegui_lifespan_task_scope.md) — `app.on_startup`/`on_shutdown` handlers run in different tasks; an anyio task-group context entered in one and exited in the other crashes shutdown with a cancel-scope error. Use the single-runner-task pattern (found via the MCP mount prototype).
 
 ### Test traps
 
