@@ -901,9 +901,15 @@ class HaywireException(Exception):
     # ========================================================================
 
     def log(self, logger=None) -> "HaywireException":
-        """Log to console (fallback when UI not available)"""
+        """Log to console (fallback when UI not available) and register in the error ledger."""
         import logging
 
+        from haywire.core.errors.ledger import get_error_ledger
+
+        try:
+            get_error_ledger().record(self)
+        except Exception:
+            pass  # the ledger must never break error reporting itself
         logger = logger or logging.getLogger()
         logger.error(self.format_detailed())
         return self
