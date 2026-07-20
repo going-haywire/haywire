@@ -482,6 +482,21 @@ class HaywireException(Exception):
     module_name: Optional[str] = None
     """Python module name"""
 
+    node_id: Optional[str] = None
+    """Which instance in the graph caused this error. A string node ID
+    (e.g., ``node_1``, not a NodeWrapper). A string, not a node reference:
+    the exception outlives the node."""
+
+    graph_id: Optional[str] = None
+    """Which graph the offending instance lives in — the graph's binding_id
+    (``str(path)`` for saved graphs, ``__unsaved_N__`` for untitled). Stable
+    across save/rename; the key both HaystackState and GraphAppState use.
+    A string, not a graph reference: the exception outlives the graph."""
+
+    edge_id: Optional[str] = None
+    """The offending edge's id (adapter/edge errors). Self-encodes endpoints
+    (``edge::out@nodeA>>in@nodeB``). A string, not an EdgeWrapper reference."""
+
     # ========================================================================
     # TECHNICAL DETAILS (for advanced users / debugging)
     # ========================================================================
@@ -800,6 +815,8 @@ class HaywireException(Exception):
         registry_key: Optional[str] = None,
         library_identity: Optional[LibraryIdentity] = None,
         node_id: Optional[str] = None,
+        graph_id: Optional[str] = None,
+        edge_id: Optional[str] = None,
         suggestions: Optional[List[str]] = None,
         **kwargs,
     ) -> "HaywireException":
@@ -810,19 +827,27 @@ class HaywireException(Exception):
 
         Examples:
             # Add context metadata
-            error.enrich(registry_key="lib:Node", node_id="node_123")
+            error.enrich(
+                registry_key="lib:Node",
+                node_id="node_123",
+                graph_id="/tmp/g.haywire"
+            )
 
             # Extract from exception if technical details missing
             error.enrich(exception=exc, registry_key="lib:Node")
 
             # Chain multiple enrichments
-            error.enrich(registry_key="lib:Node").enrich(suggestions=["Try X"])
+            error.enrich(registry_key="lib:Node").enrich(
+                suggestions=["Try X"]
+            )
 
         Args:
             exception: Optional exception to extract technical details from
             registry_key: Registry key to add
             library_identity: Library identity to add
             node_id: Node ID to add
+            graph_id: Graph ID to add
+            edge_id: Edge ID to add
             suggestions: Suggestions to add
             **kwargs: Other attributes to set
 
@@ -840,6 +865,12 @@ class HaywireException(Exception):
             self.registry_key = registry_key
         if library_identity:
             self.library_identity = library_identity
+        if node_id:
+            self.node_id = node_id
+        if graph_id:
+            self.graph_id = graph_id
+        if edge_id:
+            self.edge_id = edge_id
         if suggestions:
             self.suggestions.extend(suggestions)
             self.is_actionable = True
