@@ -30,6 +30,7 @@ from typing import TYPE_CHECKING, Optional
 
 from nicegui import ui
 
+from haybale_studio.editors.error_navigation import open_component, open_file_in_studio
 from haywire.core.errors.haywire_exception import ErrorSeverity, HaywireException
 from haywire.core.errors.ledger import get_error_ledger
 from haywire.core.session.handlers import react_on
@@ -206,6 +207,12 @@ class ErrorsEditor(BaseEditor):
         with ui.context_menu():
             ui.menu_item("Show details", on_click=lambda s=seq: self._show_details(s), auto_close=True)
             ui.separator()
+            if entry.can_open_component():
+                ui.menu_item(
+                    "Open component",
+                    on_click=lambda s=seq: self._open_component(s),
+                    auto_close=True,
+                )
             if seen:
                 ui.menu_item("Mark unseen", on_click=lambda s=seq: self._mark_unseen(s), auto_close=True)
             else:
@@ -262,7 +269,13 @@ class ErrorsEditor(BaseEditor):
                 .classes("w-full gap-4 overflow-y-auto")
                 .style("min-width: 600px; max-width: min(1200px, 90vw); max-height: 80vh;")
             ):
-                render_error_details(entry, ui.column().classes("w-full gap-4"))
+                render_error_details(
+                    entry,
+                    ui.column().classes("w-full gap-4"),
+                    on_open_in_studio=lambda fp, ln: open_file_in_studio(fp, ln, self._context)
+                    if self._context is not None
+                    else None,
+                )
                 with (
                     ui.row()
                     .classes("justify-end w-full pt-3 mt-4")
@@ -325,6 +338,13 @@ class ErrorsEditor(BaseEditor):
         self._selected_seq = None
         self._render_detail()
         self._publish_changed()
+
+    def _open_component(self, seq: int) -> None:
+        """Point the component source viewer at this error's component."""
+        entry = self._entries_by_seq.get(seq)
+        if entry is None or self._context is None:
+            return
+        open_component(entry, self._context)
 
     def _publish_changed(self) -> None:
         """Broadcast a triage mutation so every session's editor re-renders.
