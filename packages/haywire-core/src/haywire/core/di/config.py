@@ -40,6 +40,7 @@ from ..library.utils import (
     split_reg_key,
 )
 from ..node.registry import NodeRegistry
+from ..farmhand.registry import FarmhandRegistry
 from ..adapter.registry import AdapterRegistry
 from ..adapter.factory import AdapterFactory
 from ..types.registry import TypeRegistry
@@ -217,6 +218,12 @@ class HaywireModule(Module):
 
     @provider
     @singleton
+    def provide_farmhand_registry(self) -> FarmhandRegistry:
+        """Provide singleton FarmhandRegistry (Farmhand/MCP-tool components, kind 'farmhand')."""
+        return FarmhandRegistry()
+
+    @provider
+    @singleton
     def provide_library_state_registry(self) -> LibraryStateRegistry:
         """Provide singleton LibraryStateRegistry — class registry for LibraryState subclasses."""
         return LibraryStateRegistry()
@@ -360,6 +367,7 @@ class LibrarySystemService:
         panel_registry = self.injector.get(PanelRegistry)
         editor_registry = self.injector.get(EditorTypeRegistry)
         library_state_registry = self.injector.get(LibraryStateRegistry)
+        farmhand_registry = self.injector.get(FarmhandRegistry)
         library_state_container = self.injector.get(LibraryStateContainer)
         # NOTE: container subscriptions are wired in two stages — lifecycle
         # events BEFORE enable_all_libraries(), per-library callbacks +
@@ -380,6 +388,7 @@ class LibrarySystemService:
         library_registry.add_class_registry(PanelRegistry, panel_registry)
         library_registry.add_class_registry(EditorTypeRegistry, editor_registry)
         library_registry.add_class_registry(LibraryStateRegistry, library_state_registry)
+        library_registry.add_class_registry(FarmhandRegistry, farmhand_registry)
 
         # Set up registry subscribers for cross-registry updates
         # this ensures that when new types are added,
