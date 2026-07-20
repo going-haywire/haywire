@@ -18,6 +18,7 @@ STATE = "state"
 THEME = "theme"
 PANEL = "panel"
 EDITOR = "editor"
+FARMHAND = "farmhand"
 
 
 def derive_library_identity(cls: Type) -> LibraryIdentity:
