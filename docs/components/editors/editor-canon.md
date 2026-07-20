@@ -154,7 +154,7 @@ context.session.publish(BroadcastClose(binding_id=entry_id))
 
 - **"Open component"** → `context.active_component = registry_key`, which the CONTEXT-slot `ComponentSourceEditor` follows to show the component's source
 - **"Open in Studio"** → `context.active_file = Path(file)` then `Reveal(editor=CodeEditor, binding_id=str(path), label=path.name)` to jump to the source file in the MAIN-slot code editor
-- **"Show in graph"** → resolve `graph_id` via `HaystackState.get_by_id`, then `Reveal(editor=GraphEditor, binding_id=graph_id, label=entry.display_name)` to open the graph, then set `context.data[EditState].active_node`/`active_edge` to the **resolved wrapper** (not the raw id) to select the offending instance
+- **"Show in graph"** → resolve `graph_id` via `HaystackState.get_by_id`, then set `context.data[EditState].active_node`/`active_edge` to the **resolved wrapper** (not the raw id), then `Reveal(editor=GraphEditor, binding_id=graph_id, label=entry.display_name)` to open the graph on the now-selected instance
 
 All three actions are optional, disabled when the target is gone (library uninstalled, graph closed, node deleted), and degrade to no-op — the framework never crashes on a stale locator.
 

@@ -107,7 +107,7 @@ class EditorSettings(FrameworkSettings, namespace="editor"):
         label="External Editor Command",
         description=(
             "Command template for opening files externally. "
-            "{file} and {line} are substituted. Leave the fallback list if empty."
+            "{file} and {line} are substituted. If empty, the per-OS fallback editor list is used."
         ),
         category="editor",
     )
