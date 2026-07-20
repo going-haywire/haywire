@@ -5,8 +5,10 @@ errors flow through the same path because the scan failure handlers .log()
 their exceptions. First consumers: Farmhand's studio_get_errors and
 studio_verify_component tools.
 
-The ambient accessor is a module-level global (not a ContextVar) to match
-the DI-context idiom — see .insights/project_di_context.md.
+The ambient accessor lives in haywire.core.di.context alongside the other
+get_*/set_* ambient singletons (get_workspace_root, get_node_factory, ...) —
+one ambient surface, not two. Re-exported here so call sites are unaffected
+by the move — see .insights/project_di_context.md.
 """
 
 from __future__ import annotations
@@ -16,8 +18,12 @@ from collections import deque
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Optional
 
+from haywire.core.di.context import get_error_ledger, set_error_ledger
+
 if TYPE_CHECKING:
     from haywire.core.errors.haywire_exception import HaywireException
+
+__all__ = ["ErrorLedger", "LedgerPage", "get_error_ledger", "set_error_ledger"]
 
 
 @dataclass
@@ -57,6 +63,8 @@ class ErrorLedger:
                     "filename": exc.filename,
                     "line_number": exc.line_number,
                     "tags": list(exc.tags),
+                    "suggestions": list(exc.suggestions),
+                    "detail": exc.format_detailed(),
                 }
             )
             return self._seq
@@ -79,19 +87,7 @@ class ErrorLedger:
             rows = [r for r in rows if r["registry_key"] == registry_key]
         return LedgerPage(entries=rows[offset : offset + limit], total=len(rows), cursor=self._seq)
 
-
-_error_ledger: Optional[ErrorLedger] = None
-
-
-def get_error_ledger() -> ErrorLedger:
-    """Return the ambient ledger, lazily creating the process-wide default."""
-    global _error_ledger
-    if _error_ledger is None:
-        _error_ledger = ErrorLedger()
-    return _error_ledger
-
-
-def set_error_ledger(ledger: Optional[ErrorLedger]) -> None:
-    """Replace the ambient ledger (tests use this for isolation)."""
-    global _error_ledger
-    _error_ledger = ledger
+    def clear(self) -> None:
+        """Drop all entries. Sequence numbers keep climbing from later record() calls."""
+        with self._lock:
+            self._entries.clear()

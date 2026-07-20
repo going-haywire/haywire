@@ -197,16 +197,14 @@ class BaseLibrary(ABC):
 
         self._registry_folders[registry_cls] = (folder_path, exclude_patterns)
 
-    # Canonical scan order: settings → state → farmhands → (types/nodes/adapters/
-    # widgets/skins/themes) → panels → editors. State must exist before editor
-    # CLASS_ADDED events fire; farmhands/ scans after state/ because tools may
-    # reference library states (Farmhand spec §3).
+    # Canonical scan order: settings → state → (types/nodes/adapters/
+    # widgets/skins/themes) → panels → editors → farmhands. State must exist before editor
+    # CLASS_ADDED events fire;
     # Registry classes not listed here sort to the middle tier (priority 50).
     _REGISTRY_SCAN_PRIORITY: ClassVar[Dict[str, int]] = {
         "ThemeRegistry": 10,
         "SettingsRegistry": 20,
         "LibraryStateRegistry": 30,
-        "FarmhandRegistry": 35,
         "TypeRegistry": 40,
         "AdapterRegistry": 50,
         "WidgetRegistry": 60,
@@ -214,6 +212,7 @@ class BaseLibrary(ABC):
         "SkinRegistry": 80,
         "PanelRegistry": 90,
         "EditorTypeRegistry": 100,
+        "FarmhandRegistry": 110,
     }
 
     def _attach_to_registries(self):

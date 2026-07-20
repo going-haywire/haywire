@@ -231,6 +231,7 @@ _DI_CONTEXT_GLOBALS = (
     "_session_manager",
     "_workspace_root",
     "_library_state_container",
+    "_error_ledger",
 )
 _DI_CONFIG_GLOBALS = ("_global_injector", "_global_library_system")
 

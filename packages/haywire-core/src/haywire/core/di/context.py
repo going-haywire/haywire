@@ -19,6 +19,7 @@ if TYPE_CHECKING:
     from ..settings import SettingsRegistry
     from ..session.session_manager import SessionManager
     from ..state import LibraryStateContainer
+    from ..errors.ledger import ErrorLedger
 
 
 # Module-level globals (not ContextVar): these are true app-wide singletons that must
@@ -32,6 +33,9 @@ _settings_registry: Optional["SettingsRegistry"] = None
 _session_manager: Optional["SessionManager"] = None
 _workspace_root: Optional[Path] = None
 _library_state_container: Optional["LibraryStateContainer"] = None
+# Process-wide diagnostic buffer, deliberately NOT reset on injector/hot-reload
+# rebuilds (unlike the singletons above) — see errors/ledger.py module docstring.
+_error_ledger: Optional["ErrorLedger"] = None
 
 
 # ---------------------------------------------------------------------------
@@ -73,6 +77,12 @@ def set_workspace_root(path) -> None:
 def set_library_state_container(container: "LibraryStateContainer") -> None:
     global _library_state_container
     _library_state_container = container
+
+
+def set_error_ledger(ledger: Optional["ErrorLedger"]) -> None:
+    """Replace the ambient ledger (tests use this for isolation)."""
+    global _error_ledger
+    _error_ledger = ledger
 
 
 # ---------------------------------------------------------------------------
@@ -138,3 +148,13 @@ def get_library_state_container() -> "LibraryStateContainer":
             "Ensure HaywireApp has been initialised before requesting it."
         )
     return _library_state_container
+
+
+def get_error_ledger() -> "ErrorLedger":
+    """Return the ambient ledger, lazily creating the process-wide default."""
+    global _error_ledger
+    if _error_ledger is None:
+        from ..errors.ledger import ErrorLedger
+
+        _error_ledger = ErrorLedger()
+    return _error_ledger
