@@ -124,6 +124,14 @@ The three projections relate as: the **dataclass** (3) represents one entry in t
 
 ---
 
+## Error Navigation
+
+| Term | Definition | Aliases to avoid |
+|------|-----------|-----------------|
+| **error locator** | The set of stable **string ids** a `HaywireException` optionally carries so the UI can navigate back to what the error was about: `registry_key` (`<library>:<kind>:<id>` — the component *definition*), `graph_id` (the graph's `binding_id`), `node_id` / `edge_id` (the offending *instance*). Locators are ids, never live wrapper/graph objects — the exception outlives them (hot-reload, graph close, off-thread logging), so navigation re-resolves the live target at click time and degrades gracefully when it is gone. | — |
+
+---
+
 ## Clipboard & Copy/Paste *(new)*
 
 The copy/paste subsystem moves a selection of nodes and edges between graphs — within a session, across sessions, and across separate Studio processes on the same machine — by serializing a slice of the graph to JSON on the OS system clipboard.

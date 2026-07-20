@@ -150,6 +150,14 @@ context.session.publish(BroadcastClose(binding_id=entry_id))
 
 `BroadcastClose` is a subclass of `Close`. Because the bus matches subscribers by exact type, AppShell subscribes separately to `Close` and `BroadcastClose`, but the close handler is the same and reads the shared `binding_id` field. Prefer `Close` for session-local UI actions; reserve `BroadcastClose` for cases where the close decision follows from a global fact rather than a session-local interaction.
 
+**Error navigation — using `Reveal` with error locators.** An error surface (such as an error list or detail viewer) can offer users direct navigation back to what the error was about. The `HaywireException` carries an **error locator** — stable string ids (`registry_key`, `graph_id`, `node_id`, `edge_id`) that survive the exception's lifecycle (hot-reload, graph close, off-thread logging). To navigate, examine the error's locator fields and publish:
+
+- **"Open component"** → `Reveal(editor=CodeEditor, binding_id=registry_key)` to show the component definition in the code editor
+- **"Open in Studio"** → `Reveal(editor=CodeEditor, binding_id=file, line_number=...)` to jump to the source file and line (set `context.active_component = registry_key` first if you need the right editor context)
+- **"Show in graph"** → `Reveal(editor=GraphEditor, binding_id=graph_id)` to open the graph, then set `context.data[EditState].active_node = node_id` and/or `context.data[EditState].active_edge = edge_id` to select the offending instance
+
+All three actions are optional, disabled when the target is gone (library uninstalled, graph closed, node deleted), and degrade to no-op — the framework never crashes on a stale locator.
+
 **Imports.**
 
 ```python
