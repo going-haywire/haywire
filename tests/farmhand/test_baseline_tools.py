@@ -133,6 +133,7 @@ def test_get_errors_returns_ledger_page():
     result = run_tool(StudioGetErrorsTool)
     assert result["total"] >= 1
     assert "cursor" in result
+    assert "first_retained_seq" in result
 
 
 def test_registry_holds_exactly_nine_studio_tools(library_system):

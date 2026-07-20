@@ -232,11 +232,24 @@ class EditorWrapper:
         editors that change dirtiness outside a normal redraw cycle).
         """
         self._state.is_dirty = bool(value)
-        if refresh and self._slot is not None:
+        if refresh:
+            self.refresh_tab_bar()
+
+    def refresh_tab_bar(self) -> None:
+        """Repaint this wrapper's tab-bar interior now.
+
+        Pure rendering — changes no wrapper state. Use it when something
+        ``draw_tab()`` reads has changed (a badge count, a dynamic label, a
+        thumbnail) and the bar needs to reflect it outside a normal redraw
+        cycle. No-op for detached wrappers (no owning slot). The slot still
+        owns the surrounding chrome (dirty marker, close button); this only
+        re-runs the interior.
+        """
+        if self._slot is not None:
             try:
                 self._slot._refresh_bar()
             except Exception:
-                logger.warning("set_dirty(refresh=True): tab-bar refresh failed", exc_info=True)
+                logger.warning("refresh_tab_bar: tab-bar refresh failed", exc_info=True)
 
     # ------------------------------------------------------------------
     # Lifecycle event handling (placeholder — implemented in Task 5)

@@ -108,6 +108,27 @@ class ErrorLogged(Signal):
     UI-ignorant; the studio app bridges its zero-arg listener hook to this
     signal via ``SessionManager.broadcast`` (marshalled onto the event loop
     with ``call_soon_threadsafe``). Wiring lives in ``HaywireApp.on_startup``.
+
+    Distinct from ``ErrorLedgerChanged`` (a *triage* mutation) — this fires only
+    when a NEW error is recorded, and so is the signal that drives an unseen
+    indicator / a new-error toast.
+    """
+
+    cross_session: ClassVar[bool] = True
+
+
+@dataclass(frozen=True)
+class ErrorLedgerChanged(Signal):
+    """A ledger entry's triage state changed — seen / unseen / delete / mark-all.
+
+    Carries no payload — subscribers re-read the ledger. Cross-session: the
+    ``seen`` flag lives on the process-wide ledger, so every session's Errors
+    editor must agree.
+
+    Unlike ``ErrorLogged`` (which fires from the thread-bridge when a new error
+    is recorded), this is published directly via ``session.publish`` from a UI
+    action on the main loop — no new error occurred, so nothing that reacts to
+    "a new error arrived" should key off it.
     """
 
     cross_session: ClassVar[bool] = True

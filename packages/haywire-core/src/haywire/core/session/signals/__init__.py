@@ -18,6 +18,7 @@ from .vocabulary import (
     GraphDataMutated,
     LibraryCatalogChanged,
     ErrorLogged,
+    ErrorLedgerChanged,
     Reveal,
     Close,
     BroadcastClose,
@@ -39,6 +40,7 @@ __all__ = [
     "GraphDataMutated",
     "LibraryCatalogChanged",
     "ErrorLogged",
+    "ErrorLedgerChanged",
     # Imperative commands
     "Reveal",
     "Close",

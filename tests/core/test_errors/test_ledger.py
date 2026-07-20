@@ -171,3 +171,95 @@ def test_fresh_ledger_has_no_listeners():
     ErrorLedger().add_listener(lambda: calls.append(1))  # onto a DIFFERENT object
     fresh.record(_exc("one"))
     assert calls == []
+
+
+# ----------------------------------------------------------------------
+# Seen-state lifecycle + deletion
+# ----------------------------------------------------------------------
+
+
+def test_new_entries_are_unseen(ledger):
+    ledger.record(_exc("one"))
+    assert ledger.query().entries[0]["seen"] is False
+
+
+def test_mark_seen_and_unseen(ledger):
+    seq = ledger.record(_exc("one"))
+    ledger.mark_seen(seq)
+    assert ledger.query().entries[0]["seen"] is True
+    ledger.mark_unseen(seq)
+    assert ledger.query().entries[0]["seen"] is False
+
+
+def test_mark_seen_unknown_seq_is_noop(ledger):
+    ledger.record(_exc("one"))
+    ledger.mark_seen(999)  # must not raise
+    assert ledger.query().entries[0]["seen"] is False
+
+
+def test_mark_all_seen(ledger):
+    for i in range(3):
+        ledger.record(_exc(f"e{i}"))
+    ledger.mark_all_seen()
+    assert all(e["seen"] for e in ledger.query().entries)
+
+
+def test_delete_removes_entry_but_keeps_cursor(ledger):
+    ledger.record(_exc("one"))
+    seq2 = ledger.record(_exc("two"))
+    ledger.record(_exc("three"))
+    ledger.delete(seq2)
+    page = ledger.query(limit=100)
+    assert [e["message"] for e in page.entries] == ["one", "three"]
+    # current_seq (cursor) is untouched — since_seq polling stays correct.
+    assert page.cursor == 3
+    assert ledger.current_seq == 3
+
+
+def test_delete_unknown_seq_is_noop(ledger):
+    ledger.record(_exc("one"))
+    ledger.delete(999)  # must not raise
+    assert ledger.query().total == 1
+
+
+def test_since_seq_polling_is_delete_safe(ledger):
+    ledger.record(_exc("one"))  # seq 1
+    seq2 = ledger.record(_exc("two"))  # seq 2
+    ledger.record(_exc("three"))  # seq 3
+    ledger.delete(seq2)
+    # A farmhand client that last saw seq 1 polls since_seq=1: the deleted
+    # entry is simply absent, exactly like an evicted one.
+    page = ledger.query(since_seq=1, limit=100)
+    assert [e["message"] for e in page.entries] == ["three"]
+    assert page.cursor == 3
+
+
+# ----------------------------------------------------------------------
+# first_retained_seq (retained-window marker for farmhand clients)
+# ----------------------------------------------------------------------
+
+
+def test_first_retained_seq_empty_is_zero(ledger):
+    assert ledger.query().first_retained_seq == 0
+
+
+def test_first_retained_seq_tracks_min_surviving(ledger):
+    ledger.record(_exc("one"))  # seq 1
+    ledger.record(_exc("two"))  # seq 2
+    assert ledger.query().first_retained_seq == 1
+    ledger.delete(1)
+    assert ledger.query().first_retained_seq == 2
+
+
+def test_first_retained_seq_after_eviction():
+    # max_entries=2: recording a 3rd evicts seq 1, so first retained is 2.
+    small = ErrorLedger(max_entries=2)
+    set_error_ledger(small)
+    try:
+        for i in range(3):
+            small.record(_exc(f"e{i}"))
+        page = small.query()
+        assert page.first_retained_seq == 2
+        assert page.cursor == 3
+    finally:
+        set_error_ledger(None)
