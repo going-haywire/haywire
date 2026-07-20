@@ -169,6 +169,17 @@ class HaywireApp:
 
         print("Shared services configured successfully.")
 
+    def setup_farmhand(self, port: int) -> None:
+        """Mount the Farmhand MCP server if enabled (flag read once; restart to apply)."""
+        from haywire_studio.farmhand.host import FarmhandHost
+        from haywire_studio.farmhand.settings import FarmhandSettings
+
+        if not FarmhandSettings().enabled:
+            logging.getLogger(__name__).info("Farmhand: disabled by settings (farmhand.enabled = false)")
+            return
+        self.farmhand_host = FarmhandHost(self.library_service, self.workspace_root)
+        self.farmhand_host.mount(port)
+
     def save_workspace(self, shell=None, active_graph_path=None) -> None:
         """Save workspace snapshot atomically.
 
@@ -235,6 +246,8 @@ class HaywireApp:
         """Run the application."""
         print("Starting Haywire...")
         self.create_ui()
+        # Mount the Farmhand MCP server on the same port before ui.run (flag read once).
+        self.setup_farmhand(8082)
         try:
             ui.run(
                 port=8082,

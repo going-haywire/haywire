@@ -19,6 +19,7 @@ dependencies = [
     "toml>=0.10.2",
     "jedi>=0.19",
     "fastapi",
+    "mcp>=1.28,<2",
 ]
 
 [project.scripts]
