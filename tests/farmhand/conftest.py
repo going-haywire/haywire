@@ -37,6 +37,10 @@ def _make_server(tmp_root: Path, library_paths: list[str]):
     from haywire_studio.farmhand.host import FarmhandHost
 
     snap = _snapshot_ambient_di()
+    # Set the ambient workspace_root BEFORE building the library system: AppState
+    # on_enable (e.g. HaystackState) fires during service.initialize() and reads
+    # get_workspace_root(), so it must already be set.
+    set_workspace_root(str(tmp_root))
     service = create_test_library_system(
         workspace_root=str(tmp_root),
         library_paths=library_paths,
