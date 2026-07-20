@@ -1,4 +1,5 @@
 import os
+import shlex
 import shutil
 import logging
 import subprocess
@@ -142,11 +143,47 @@ def parse_edge_id(edge_id: str) -> EdgeComponents:
     )
 
 
+def _build_editor_command(template: str, filepath: str, line_number: int | None) -> list[str] | None:
+    """Turn an editor-command template into an argv list.
+
+    ``{file}`` and ``{line}`` are substituted (line defaults to 1). A template
+    with no ``{file}`` gets the path appended as the final arg. An empty/blank
+    template returns None so the caller falls back to its per-OS editor list.
+    """
+    template = template.strip()
+    if not template:
+        return None
+    line = str(line_number or 1)
+    if "{file}" in template:
+        rendered = template.replace("{file}", filepath).replace("{line}", line)
+        return shlex.split(rendered)
+    # No placeholder — append the path.
+    return shlex.split(template) + [filepath]
+
+
 def _open_file_in_editor(filepath: str, line_number: int | None = None):
     """Open a file in the user's preferred editor with fallback options"""
     if not os.path.exists(filepath):
         ui.notify(f"File not found: {filepath}", type="negative")
         return
+
+    # Prefer the user-configured external editor command (framework setting).
+    from haywire.ui.prefs.editor import EditorSettings
+
+    configured = _build_editor_command(EditorSettings().external_editor_command, filepath, line_number)
+    if configured is not None:
+        try:
+            if configured[0] == "start":  # Windows built-in
+                subprocess.Popen(configured, shell=True)
+                ui.notify("Opening in external editor…", type="positive")
+                return
+            elif configured[0] in ("open", "xdg-open") or shutil.which(configured[0]):
+                subprocess.Popen(configured, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                ui.notify("Opening in external editor…", type="positive")
+                return
+            # command not found → fall through to the per-OS list
+        except (subprocess.CalledProcessError, FileNotFoundError, OSError):
+            pass  # fall through to the per-OS fallback list
 
     system = platform.system()
     success = False
