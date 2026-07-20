@@ -405,7 +405,12 @@ class EdgeWrapper:
         self._state.error_link = HaywireException.create(
             message="Edge was displaced from inlet port by a newer connection.",
             category="Port Linking Error",
-        ).enrich(operation="Port Linking Validation", suggestions=["Remove this edge or reconnect it"])
+        ).enrich(
+            operation="Port Linking Validation",
+            edge_id=self._edge_id,
+            graph_id=self._graph.graph_id,
+            suggestions=["Remove this edge or reconnect it"],
+        )
 
         # Inform source outlet: remove from its linked set too
         if self._outlet_port:
@@ -428,7 +433,12 @@ class EdgeWrapper:
         self._state.error_link = HaywireException.create(
             message="Edge was displaced from outlet port by a newer connection.",
             category="Port Linking Error",
-        ).enrich(operation="Port Linking Validation", suggestions=["Remove this edge or reconnect it"])
+        ).enrich(
+            operation="Port Linking Validation",
+            edge_id=self._edge_id,
+            graph_id=self._graph.graph_id,
+            suggestions=["Remove this edge or reconnect it"],
+        )
 
         # Do NOT inform sink inlet (asymmetric rule)
         self.redraw()
@@ -462,6 +472,8 @@ class EdgeWrapper:
                 message="Port link refused due to link limit on inlet port.", category="Port Linking Error"
             ).enrich(
                 operation="Port Linking Validation",
+                edge_id=self._edge_id,
+                graph_id=self._graph.graph_id,
                 suggestions=["Check port linking limits", "Ensure port is not already linked"],
             )
         elif not self._state.is_outlet_linked:
@@ -469,6 +481,8 @@ class EdgeWrapper:
                 message="Port link refused due to link limit on outlet port.", category="Port Linking Error"
             ).enrich(
                 operation="Port Linking Validation",
+                edge_id=self._edge_id,
+                graph_id=self._graph.graph_id,
                 suggestions=["Check port linking limits", "Ensure port is not already linked"],
             )
 
@@ -581,6 +595,8 @@ class EdgeWrapper:
                 ).enrich(
                     operation="Adapter Chain Creation",
                     category="Adapter Creation Error",
+                    edge_id=self._edge_id,
+                    graph_id=self._graph.graph_id,
                     suggestions=[
                         "Check if libraries with required adapters are registered",
                         "Create custom adapters if needed for your data types",
@@ -604,6 +620,8 @@ class EdgeWrapper:
             ).enrich(
                 operation="Adapter Chain Creation",
                 category="Adapter Creation Error",
+                edge_id=self._edge_id,
+                graph_id=self._graph.graph_id,
                 suggestions=[
                     "Check if libraries with required adapters are registered",
                     "Create custom adapters if needed for your data types",
@@ -692,6 +710,8 @@ class EdgeWrapper:
                 message=f"Port type validation failed: {e}", category="Port type Validation Error"
             ).enrich(
                 operation="Port Type Validation",
+                edge_id=self._edge_id,
+                graph_id=self._graph.graph_id,
                 suggestions=["Ensure both ports exist", "Check port flow types for compatibility"],
             )
             self._state.error_formal.log()
@@ -720,6 +740,7 @@ class EdgeWrapper:
             if not is_valid and error_message:
                 self._state.error_structural = HaywireException.create(message=error_message).enrich(
                     edge_id=self._edge_id,
+                    graph_id=self._graph.graph_id,
                     operation="Structural Validation",
                     category="Structural Validation Error",
                     suggestions=suggestions,
@@ -736,6 +757,8 @@ class EdgeWrapper:
             ).enrich(
                 operation="Structural Validation",
                 category="Structural Validation Error",
+                edge_id=self._edge_id,
+                graph_id=self._graph.graph_id,
                 suggestions=[
                     "Check edge type and node constraints",
                     "Verify callback edge rules if applicable",
@@ -785,6 +808,8 @@ class EdgeWrapper:
             ).enrich(
                 operation="Edge Test Execution",
                 category="Edge Execution Error",
+                edge_id=self._edge_id,
+                graph_id=self._graph.graph_id,
                 suggestions=["Check adapter chain code for errors", "Ensure data types are compatible"],
             )
             self._state.error_test.log()
@@ -810,6 +835,8 @@ class EdgeWrapper:
                         operation=f"Adapter Hot Reload: {event.event_type}",
                         category="Adapter Hot Reload Error",
                     ).enrich(
+                        edge_id=self._edge_id,
+                        graph_id=self._graph.graph_id,
                         library_identity=event.library_identity,
                         module_name=event.module_name,
                         registry_key=event.registry_key,

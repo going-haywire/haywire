@@ -59,3 +59,13 @@ def test_from_dict_round_trips_locator():
     restored = HaywireException.from_dict(exc.to_dict())
     assert restored.graph_id == "/tmp/g.haywire"
     assert restored.node_id == "n1"
+
+
+def test_edge_error_carries_edge_id_via_enrich():
+    # The edge_wrapper validation paths call .enrich(edge_id=<self.edge_id>).
+    # This is the contract those sites must satisfy.
+    exc = _exc("bad edge").enrich(edge_id="edge::out@n1>>in@n2")
+    assert exc.edge_id == "edge::out@n1>>in@n2"
+    assert exc.can_reveal_instance() is False  # no graph_id yet
+    exc.enrich(graph_id="/tmp/g.haywire")
+    assert exc.can_reveal_instance() is True
