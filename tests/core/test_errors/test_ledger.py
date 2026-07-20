@@ -49,9 +49,9 @@ def test_query_returns_entries_with_cursor(ledger):
     assert page.total == 1
     assert page.cursor == ledger.current_seq
     entry = page.entries[0]
-    assert entry["message"] == "boom"
-    assert entry["registry_key"] == "testing:node:foo"
-    assert entry["seq"] == ledger.current_seq
+    assert entry.message == "boom"
+    assert entry.registry_key == "testing:node:foo"
+    assert entry.ledger_seq == ledger.current_seq
 
 
 def test_query_since_seq_excludes_older(ledger):
@@ -60,7 +60,7 @@ def test_query_since_seq_excludes_older(ledger):
     ledger.record(_exc("new"))
     page = ledger.query(since_seq=marker)
     assert page.total == 1
-    assert page.entries[0]["message"] == "new"
+    assert page.entries[0].message == "new"
 
 
 def test_query_filters_by_library_and_registry_key(ledger):
@@ -76,7 +76,7 @@ def test_bounded_drops_oldest(ledger):
         ledger.record(_exc(f"e{i}"))
     page = ledger.query(limit=100)
     assert page.total == 5
-    assert page.entries[0]["message"] == "e3"  # oldest surviving
+    assert page.entries[0].message == "e3"  # oldest surviving
     # Sequence numbers keep climbing even though entries drop.
     assert ledger.current_seq == 8
 
@@ -86,14 +86,14 @@ def test_query_pagination(ledger):
         ledger.record(_exc(f"e{i}"))
     page = ledger.query(limit=2, offset=2)
     assert page.total == 5
-    assert [e["message"] for e in page.entries] == ["e2", "e3"]
+    assert [e.message for e in page.entries] == ["e2", "e3"]
 
 
 def test_log_registers_in_ambient_ledger(ledger):
     exc = _exc("logged error")
     exc.log()
     assert ledger.query().total == 1
-    assert ledger.query().entries[0]["message"] == "logged error"
+    assert ledger.query().entries[0].message == "logged error"
 
 
 def test_log_without_ledger_does_not_crash():
@@ -180,28 +180,28 @@ def test_fresh_ledger_has_no_listeners():
 
 def test_new_entries_are_unseen(ledger):
     ledger.record(_exc("one"))
-    assert ledger.query().entries[0]["seen"] is False
+    assert ledger.query().entries[0].seen is False
 
 
 def test_mark_seen_and_unseen(ledger):
     seq = ledger.record(_exc("one"))
     ledger.mark_seen(seq)
-    assert ledger.query().entries[0]["seen"] is True
+    assert ledger.query().entries[0].seen is True
     ledger.mark_unseen(seq)
-    assert ledger.query().entries[0]["seen"] is False
+    assert ledger.query().entries[0].seen is False
 
 
 def test_mark_seen_unknown_seq_is_noop(ledger):
     ledger.record(_exc("one"))
     ledger.mark_seen(999)  # must not raise
-    assert ledger.query().entries[0]["seen"] is False
+    assert ledger.query().entries[0].seen is False
 
 
 def test_mark_all_seen(ledger):
     for i in range(3):
         ledger.record(_exc(f"e{i}"))
     ledger.mark_all_seen()
-    assert all(e["seen"] for e in ledger.query().entries)
+    assert all(e.seen for e in ledger.query().entries)
 
 
 def test_delete_removes_entry_but_keeps_cursor(ledger):
@@ -210,7 +210,7 @@ def test_delete_removes_entry_but_keeps_cursor(ledger):
     ledger.record(_exc("three"))
     ledger.delete(seq2)
     page = ledger.query(limit=100)
-    assert [e["message"] for e in page.entries] == ["one", "three"]
+    assert [e.message for e in page.entries] == ["one", "three"]
     # current_seq (cursor) is untouched — since_seq polling stays correct.
     assert page.cursor == 3
     assert ledger.current_seq == 3
@@ -230,8 +230,47 @@ def test_since_seq_polling_is_delete_safe(ledger):
     # A farmhand client that last saw seq 1 polls since_seq=1: the deleted
     # entry is simply absent, exactly like an evicted one.
     page = ledger.query(since_seq=1, limit=100)
-    assert [e["message"] for e in page.entries] == ["three"]
+    assert [e.message for e in page.entries] == ["three"]
     assert page.cursor == 3
+
+
+# ----------------------------------------------------------------------
+# Object storage + idempotent record()
+# ----------------------------------------------------------------------
+
+
+def test_ledger_stores_the_live_exception_object(ledger):
+    exc = _exc("live")
+    ledger.record(exc)
+    # The very same object is returned by query — not a snapshot copy.
+    assert ledger.query().entries[0] is exc
+
+
+def test_record_stamps_ledger_seq_and_seen(ledger):
+    exc = _exc("stamp me")
+    assert exc.ledger_seq == 0  # never recorded
+    seq = ledger.record(exc)
+    assert exc.ledger_seq == seq
+    assert exc.seen is False
+
+
+def test_record_is_idempotent(ledger):
+    exc = _exc("once")
+    first = ledger.record(exc)
+    # Re-recording the SAME object is a no-op: same seq, no duplicate append.
+    second = ledger.record(exc)
+    assert second == first
+    assert ledger.query().total == 1
+    assert ledger.current_seq == 1  # no seq bump on the re-record
+
+
+def test_idempotent_record_does_not_fire_listeners(ledger):
+    calls = []
+    ledger.add_listener(lambda: calls.append(1))
+    exc = _exc("once")
+    ledger.record(exc)
+    ledger.record(exc)  # idempotent — must not notify again
+    assert calls == [1]
 
 
 # ----------------------------------------------------------------------

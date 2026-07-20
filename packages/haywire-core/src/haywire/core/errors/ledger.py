@@ -5,6 +5,15 @@ errors flow through the same path because the scan failure handlers .log()
 their exceptions. First consumers: Farmhand's studio_get_errors and
 studio_verify_component tools.
 
+The ledger stores the live ``HaywireException`` objects — not serialized
+snapshots. This is the exception's afterlife: once logged, it is otherwise
+discarded, so the ledger keeps it whole (traceback frames, source context,
+node_id, ...) for the Errors editor's rich detail popup and future
+jump-to-component navigation. ``record()`` stamps the object's ``ledger_seq``
+(monotonic, unique) and clears ``seen``; it is idempotent — an exception whose
+``ledger_seq`` is already set is not recorded twice. Serialization for JSON
+boundaries (the farmhand) goes through ``HaywireException.to_dict()``.
+
 The ambient accessor lives in haywire.core.di.context alongside the other
 get_*/set_* ambient singletons (get_workspace_root, get_node_factory, ...) —
 one ambient surface, not two. Re-exported here so call sites are unaffected
@@ -12,7 +21,7 @@ by the move — see .insights/project_di_context.md.
 
 Entries carry a per-record ``seen`` flag; the ledger exposes mark_seen /
 mark_unseen / mark_all_seen / delete to triage them (keyed by the stable,
-unique ``seq``). None of these touch ``current_seq``, so the farmhand's
+unique ``ledger_seq``). None of these touch ``current_seq``, so the farmhand's
 incremental ``since_seq`` cursor stays monotonic and delete-safe. The ledger
 is UI-ignorant: it fires a zero-arg listener on record() (bridged to the
 ErrorLogged signal by the studio app) but knows nothing about signals or
@@ -46,6 +55,9 @@ LedgerListener = Callable[[], None]
 class LedgerPage:
     """One page of ledger entries plus cursor and retained-window markers.
 
+    ``entries`` are the live ``HaywireException`` objects (serialize with
+    ``.to_dict()`` at a JSON boundary).
+
     ``cursor`` is ``current_seq`` — the highest seq ever assigned, monotonic and
     never reset (survives eviction, clear(), and delete()). Farmhand clients poll
     with ``since_seq=<cursor>`` for "everything new since last time".
@@ -55,17 +67,17 @@ class LedgerPage:
     so a client that expected to page back to them knows history was dropped.
     """
 
-    entries: list[dict]
+    entries: list["HaywireException"]
     total: int
     cursor: int
     first_retained_seq: int
 
 
 class ErrorLedger:
-    """Bounded collection of serialized HaywireException snapshots."""
+    """Bounded collection of live HaywireException objects (their afterlife)."""
 
     def __init__(self, max_entries: int = 500):
-        self._entries: deque[dict] = deque(maxlen=max_entries)
+        self._entries: deque["HaywireException"] = deque(maxlen=max_entries)
         self._seq = 0
         self._lock = threading.Lock()  # .log() fires from watchdog/timer threads too
         # Instance state (not a module global) so a fresh ErrorLedger per test
@@ -90,26 +102,21 @@ class ErrorLedger:
             pass
 
     def record(self, exc: "HaywireException") -> int:
+        """Record ``exc`` (stamping its ledger_seq) and return that seq.
+
+        Idempotent: if ``exc.ledger_seq`` is already set (nonzero), the exception
+        has been recorded before — return its existing seq and do nothing else
+        (no duplicate append, no seq bump, no listener fire, so a stray double
+        ``.log()`` can't spuriously flash the unseen badge). Once set, an
+        exception's ledger identity is permanent.
+        """
+        if exc.ledger_seq != 0:
+            return exc.ledger_seq
         with self._lock:
             self._seq += 1
-            self._entries.append(
-                {
-                    "seq": self._seq,
-                    "timestamp": exc.timestamp,
-                    "message": exc.message,
-                    "category": exc.category,
-                    "severity": exc.severity.value if exc.severity else None,
-                    "operation": exc.operation,
-                    "registry_key": exc.registry_key,
-                    "library": exc.library_identity.id if exc.library_identity else None,
-                    "filename": exc.filename,
-                    "line_number": exc.line_number,
-                    "tags": list(exc.tags),
-                    "suggestions": list(exc.suggestions),
-                    "detail": exc.format_detailed(),
-                    "seen": False,
-                }
-            )
+            exc.ledger_seq = self._seq
+            exc.seen = False
+            self._entries.append(exc)
             seq = self._seq
         # Notify OUTSIDE the lock: a listener may re-enter the ledger (query())
         # or be slow, and holding the lock would deadlock/contend with concurrent
@@ -138,13 +145,13 @@ class ErrorLedger:
             # marker reflects what history is actually retained, not what this
             # filtered page happens to include. Entries are seq-ordered, so the
             # first is the smallest.
-            first_retained = rows[0]["seq"] if rows else 0
+            first_retained = rows[0].ledger_seq if rows else 0
         if since_seq is not None:
-            rows = [r for r in rows if r["seq"] > since_seq]
+            rows = [r for r in rows if r.ledger_seq > since_seq]
         if library is not None:
-            rows = [r for r in rows if r["library"] == library]
+            rows = [r for r in rows if (r.library_identity.id if r.library_identity else None) == library]
         if registry_key is not None:
-            rows = [r for r in rows if r["registry_key"] == registry_key]
+            rows = [r for r in rows if r.registry_key == registry_key]
         return LedgerPage(
             entries=rows[offset : offset + limit],
             total=len(rows),
@@ -158,7 +165,7 @@ class ErrorLedger:
             self._entries.clear()
 
     # ------------------------------------------------------------------
-    # Seen-state lifecycle + deletion (keyed by the stable, unique seq).
+    # Seen-state lifecycle + deletion (keyed by the stable, unique ledger_seq).
     #
     # All mutate under the lock; none touch _seq, so the farmhand cursor
     # (current_seq) stays monotonic and delete-safe. Callers that need
@@ -167,34 +174,34 @@ class ErrorLedger:
     # ------------------------------------------------------------------
 
     def mark_seen(self, seq: int) -> None:
-        """Mark the entry with this seq as seen. No-op if not present."""
+        """Mark the entry with this ledger_seq as seen. No-op if not present."""
         self._set_seen(seq, True)
 
     def mark_unseen(self, seq: int) -> None:
-        """Mark the entry with this seq as unseen. No-op if not present."""
+        """Mark the entry with this ledger_seq as unseen. No-op if not present."""
         self._set_seen(seq, False)
 
     def _set_seen(self, seq: int, value: bool) -> None:
         with self._lock:
             for entry in self._entries:
-                if entry["seq"] == seq:
-                    entry["seen"] = value
+                if entry.ledger_seq == seq:
+                    entry.seen = value
                     return
 
     def mark_all_seen(self) -> None:
         """Mark every retained entry as seen."""
         with self._lock:
             for entry in self._entries:
-                entry["seen"] = True
+                entry.seen = True
 
     def delete(self, seq: int) -> None:
-        """Remove the entry with this seq. No-op if not present.
+        """Remove the entry with this ledger_seq. No-op if not present.
 
         current_seq is untouched, so incremental since_seq polling stays
         correct — a deleted entry is simply absent, exactly like an evicted one.
         """
         with self._lock:
             for i, entry in enumerate(self._entries):
-                if entry["seq"] == seq:
+                if entry.ledger_seq == seq:
                     del self._entries[i]
                     return

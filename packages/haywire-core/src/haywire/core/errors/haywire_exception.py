@@ -520,6 +520,20 @@ class HaywireException(Exception):
     tags: List[str] = field(default_factory=list)
     """Tags for filtering: ['hot-reload', 'widget', 'import', etc.]"""
 
+    # ========================================================================
+    # LEDGER AFTERLIFE (assigned by ErrorLedger.record(); 0 = never recorded)
+    # ========================================================================
+
+    ledger_seq: int = 0
+    """Monotonic sequence number assigned when this error is recorded in the
+    ErrorLedger. 0 means not (yet) recorded. Stable for the exception's whole
+    afterlife: record() is idempotent once this is set. Comparable for recency
+    — the ledger's since_seq / cursor / first_retained_seq all live in this space."""
+
+    seen: bool = False
+    """Whether the user has acknowledged this error in the Errors editor.
+    Ledger-owned triage state; toggled via the ledger's mark_seen/mark_unseen."""
+
     def __post_init__(self):
         """Initialize exception and compute derived fields"""
         super().__init__(self.message)
@@ -1145,17 +1159,24 @@ class HaywireException(Exception):
 
     def to_dict(self) -> dict:
         """
-        Serialize for future event log system.
+        Serialize to a JSON-friendly dict.
 
-        This will be used when you implement the NiceGUI event log panel.
+        This is the wire format for the Errors editor and the studio_get_errors
+        Farmhand (MCP): the ledger holds live HaywireException objects, and each
+        is serialized through here when it must cross a JSON boundary. Includes
+        the ledger-afterlife fields (ledger_seq, seen), the derived library id,
+        and the full formatted report (detail) so a client needs no second call.
         """
         return {
+            "seq": self.ledger_seq,
+            "seen": self.seen,
             "message": self.message,
-            "severity": self.severity.value,
+            "severity": self.severity.value if self.severity else None,
             "category": self.category,
             "timestamp": self.timestamp,
             "operation": self.operation,
             "registry_key": self.registry_key,
+            "library": self.library_identity.id if self.library_identity else None,
             "filename": self.filename,
             "line_number": self.line_number,
             "source_line": self.source_line,
@@ -1165,12 +1186,26 @@ class HaywireException(Exception):
             "is_actionable": self.is_actionable,
             "context_type": self.context_type,
             "highlighted_item": self.highlighted_item,
+            "detail": self.format_detailed(),
         }
 
     @classmethod
     def from_dict(cls, data: dict) -> "HaywireException":
-        """Reconstruct from serialized form (for event log persistence)"""
-        # Convert severity string back to enum
+        """Reconstruct from serialized form.
+
+        Tolerant of to_dict()'s output: derived / non-constructor keys (``seq``,
+        ``library``, ``detail``) are dropped, and ``seen`` maps to the field of
+        the same name. Round-trips the constructor fields; the derived ones are
+        recomputed or left at their defaults.
+        """
+        data = dict(data)  # don't mutate the caller's dict
+        # Convert severity string back to enum.
         if "severity" in data and isinstance(data["severity"], str):
             data["severity"] = ErrorSeverity(data["severity"])
+        # ``seq`` is the wire name for the ledger_seq field.
+        if "seq" in data:
+            data["ledger_seq"] = data.pop("seq")
+        # Drop derived, non-constructor keys.
+        for derived in ("library", "detail"):
+            data.pop(derived, None)
         return cls(**data)

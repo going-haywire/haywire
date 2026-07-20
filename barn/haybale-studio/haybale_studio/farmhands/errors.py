@@ -33,7 +33,9 @@ class StudioGetErrorsTool(Farmhand):
         )
         return {
             "summary": f"{result.total} ledger entries match (cursor {result.cursor}).",
-            "errors": result.entries,
+            # The ledger holds live HaywireException objects; serialize each to a
+            # JSON-friendly dict at this MCP boundary.
+            "errors": [e.to_dict() for e in result.entries],
             "total": result.total,
             "cursor": result.cursor,
             # Smallest seq still retained; entries below it were evicted or

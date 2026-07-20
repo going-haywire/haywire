@@ -380,13 +380,9 @@ def test_error_ledger_listener_broadcasts_to_every_session():
     ledger = ErrorLedger()
     ledger.add_listener(lambda: sm.broadcast(ErrorLogged()))
 
-    exc = MagicMock()
-    exc.severity = None
-    exc.library_identity = None
-    exc.tags = []
-    exc.suggestions = []
-    exc.format_detailed.return_value = "boom"
-    ledger.record(exc)
+    from haywire.core.errors.haywire_exception import HaywireException
+
+    ledger.record(HaywireException.create("boom"))
 
     assert len(a_received) == 1
     assert len(b_received) == 1

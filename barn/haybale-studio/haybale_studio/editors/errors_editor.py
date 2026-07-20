@@ -30,7 +30,7 @@ from typing import TYPE_CHECKING, Optional
 
 from nicegui import ui
 
-from haywire.core.errors.haywire_exception import ErrorSeverity
+from haywire.core.errors.haywire_exception import ErrorSeverity, HaywireException
 from haywire.core.errors.ledger import get_error_ledger
 from haywire.core.session.handlers import react_on
 from haywire.core.session.signals import ErrorLedgerChanged, ErrorLogged, Signal
@@ -38,6 +38,8 @@ from haywire.ui import elements as hui
 from haywire.ui.editor.base import BaseEditor
 from haywire.ui.editor.decorator import editor
 from haywire.ui.editor.identity import SlotName
+from haywire.ui.components.popup import Popup
+from haywire.ui.errors.haywire_exception import render_error_details
 
 if TYPE_CHECKING:
     from haywire.core.session.context import SessionContext
@@ -65,6 +67,11 @@ def _format_timestamp(ts: Optional[float]) -> str:
     return datetime.fromtimestamp(ts).strftime("%H:%M:%S")
 
 
+def _severity_value(error: HaywireException) -> str:
+    """The severity enum's string value ('' if unset), for color/rank lookups."""
+    return error.severity.value if error.severity else ""
+
+
 @editor(
     label="Errors",
     icon=hui.icon.debug,
@@ -80,7 +87,7 @@ class ErrorsEditor(BaseEditor):
         self._rows_container: Optional[ui.column] = None
         self._detail_container: Optional[ui.column] = None
         self._count_label: Optional[ui.label] = None
-        self._entries_by_seq: dict[int, dict] = {}
+        self._entries_by_seq: dict[int, HaywireException] = {}
         self._selected_seq: Optional[int] = None
 
     # ------------------------------------------------------------------
@@ -118,7 +125,7 @@ class ErrorsEditor(BaseEditor):
         """
         label = self.wrapper.label or self.class_identity.label
         page = get_error_ledger().query(limit=500)
-        unseen = [e for e in page.entries if not e.get("seen")]
+        unseen = [e for e in page.entries if not e.seen]
 
         with ui.row().classes("items-center gap-1 no-wrap"):
             if orientation == "vertical":
@@ -130,12 +137,12 @@ class ErrorsEditor(BaseEditor):
                 ui.badge(str(len(unseen))).props(f"color={color}").classes("text-xs")
 
     @staticmethod
-    def _worst_severity(entries: list[dict]) -> str:
+    def _worst_severity(entries: list[HaywireException]) -> str:
         """Return the highest-ranked severity value across entries ('' if none)."""
         worst = ""
         worst_rank = -1
         for e in entries:
-            sev = e.get("severity") or ""
+            sev = _severity_value(e)
             rank = _SEVERITY_RANK.get(sev, -1)
             if rank > worst_rank:
                 worst_rank, worst = rank, sev
@@ -146,7 +153,7 @@ class ErrorsEditor(BaseEditor):
             return
         ledger = get_error_ledger()
         page = ledger.query(limit=500)
-        self._entries_by_seq = {entry["seq"]: entry for entry in page.entries}
+        self._entries_by_seq = {entry.ledger_seq: entry for entry in page.entries}
 
         if self._count_label is not None:
             self._count_label.text = f"{page.total} entries"
@@ -164,15 +171,15 @@ class ErrorsEditor(BaseEditor):
             self._selected_seq = None
             self._render_detail()
 
-    def _render_row(self, entry: dict) -> None:
-        seq = entry["seq"]
-        seen = bool(entry.get("seen"))
-        dot_color = _SEVERITY_DOT_COLOR.get(entry.get("severity") or "", "grey")
-        sub_parts = [_format_timestamp(entry["timestamp"])]
-        if entry.get("registry_key"):
-            sub_parts.append(entry["registry_key"])
-        elif entry.get("library"):
-            sub_parts.append(entry["library"])
+    def _render_row(self, entry: HaywireException) -> None:
+        seq = entry.ledger_seq
+        seen = entry.seen
+        dot_color = _SEVERITY_DOT_COLOR.get(_severity_value(entry), "grey")
+        sub_parts = [_format_timestamp(entry.timestamp)]
+        if entry.registry_key:
+            sub_parts.append(entry.registry_key)
+        elif entry.library_identity:
+            sub_parts.append(entry.library_identity.id)
 
         row = ui.row().classes(
             "w-full px-2 py-1.5 cursor-pointer hw-list-item-hover items-center gap-2 rounded no-wrap"
@@ -188,15 +195,17 @@ class ErrorsEditor(BaseEditor):
                 # Unseen = bold (louder scan target); seen = normal weight, dimmed.
                 weight = "font-medium" if seen else "font-bold"
                 dim = " hw-text-dim" if seen else ""
-                ui.label(entry["message"]).classes(f"text-sm truncate {weight}{dim}")
+                ui.label(entry.message).classes(f"text-sm truncate {weight}{dim}")
                 ui.label(" · ".join(sub_parts)).classes("text-xs hw-text-dim")
             self._build_row_menu(entry)
 
-    def _build_row_menu(self, entry: dict) -> None:
-        """Right-click context menu for a row: toggle seen, delete."""
-        seq = entry["seq"]
-        seen = bool(entry.get("seen"))
+    def _build_row_menu(self, entry: HaywireException) -> None:
+        """Right-click context menu for a row: show details, toggle seen, delete."""
+        seq = entry.ledger_seq
+        seen = entry.seen
         with ui.context_menu():
+            ui.menu_item("Show details", on_click=lambda s=seq: self._show_details(s), auto_close=True)
+            ui.separator()
             if seen:
                 ui.menu_item("Mark unseen", on_click=lambda s=seq: self._mark_unseen(s), auto_close=True)
             else:
@@ -212,16 +221,56 @@ class ErrorsEditor(BaseEditor):
             if entry is None:
                 hui.empty_state("Select an error to see details", icon=hui.icon.debug)
                 return
-            with hui.panel_header(entry["category"] or "Error", icon=hui.icon.debug):
+            with hui.panel_header(entry.category or "Error", icon=hui.icon.debug):
                 pass
-            if entry.get("suggestions"):
+            if entry.suggestions:
                 with ui.column().classes("w-full gap-1 p-2"):
                     hui.section_label("Suggestions")
-                    for suggestion in entry["suggestions"]:
+                    for suggestion in entry.suggestions:
                         ui.label(f"• {suggestion}").classes("text-xs hw-text-body")
-            ui.code(entry.get("detail") or entry["message"], language="text").classes(
+            ui.code(entry.format_detailed() or entry.message, language="text").classes(
                 "w-full text-xs"
             ).style("border-radius: 0; min-height: 100%;")
+
+    def _show_details(self, seq: int) -> None:
+        """Open the rich error popup (source, traceback, suggestions) for this entry.
+
+        Reuses the shared ``render_error_details`` renderer inside a draggable
+        ``Popup`` — possible now that the ledger holds the live HaywireException
+        with its full context (traceback_frames, source_context, ...). Mirrors
+        ``haywire.ui.errors.error_info.show_details``. No-op if the entry was
+        evicted/deleted between menu-open and click.
+        """
+        entry = self._entries_by_seq.get(seq)
+        if entry is None:
+            return
+
+        popup = Popup(
+            width="400",
+            height="auto",
+            backdrop_click_close=True,
+            escape_close=True,
+            backdrop_color="rgba(0,0,0,0.5)",
+            clamp_to_viewport=True,
+            title="Error Details",
+            draggable=True,
+            closable=True,
+        )
+        with popup:
+            with (
+                ui.column()
+                .classes("w-full gap-4 overflow-y-auto")
+                .style("min-width: 600px; max-width: min(1200px, 90vw); max-height: 80vh;")
+            ):
+                render_error_details(entry, ui.column().classes("w-full gap-4"))
+                with (
+                    ui.row()
+                    .classes("justify-end w-full pt-3 mt-4")
+                    .style("border-top: 1px solid var(--hw-border);")
+                ):
+                    ui.button("Close", icon=hui.icon.close, on_click=popup.close).props("flat")
+        popup.on_close(popup.delete)
+        popup.open()
 
     # ------------------------------------------------------------------
     # Signal handlers — both refresh list + tab badge

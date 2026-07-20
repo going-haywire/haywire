@@ -134,6 +134,13 @@ def test_get_errors_returns_ledger_page():
     assert result["total"] >= 1
     assert "cursor" in result
     assert "first_retained_seq" in result
+    # Entries cross the MCP boundary as JSON dicts (serialized from the live
+    # HaywireException objects the ledger now holds), carrying seq + seen.
+    entry = result["errors"][0]
+    assert isinstance(entry, dict)
+    assert "seq" in entry
+    assert "seen" in entry
+    assert "message" in entry
 
 
 def test_registry_holds_exactly_nine_studio_tools(library_system):

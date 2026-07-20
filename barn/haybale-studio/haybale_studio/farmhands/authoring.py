@@ -194,7 +194,9 @@ class StudioVerifyComponentTool(Farmhand):
                 graph.cleanup()
 
         errors = ledger.query(since_seq=start_seq, limit=20)
-        result["errors"] = errors.entries
+        # The ledger holds live HaywireException objects; serialize to dicts at
+        # this MCP boundary.
+        result["errors"] = [e.to_dict() for e in errors.entries]
         result["summary"] = (
             f"{registry_key}: verified through stage '{result['stage_reached']}' "
             f"({len(errors.entries)} ledger entries)."
