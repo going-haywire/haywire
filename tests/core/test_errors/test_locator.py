@@ -28,3 +28,19 @@ def test_enrich_is_chainable_with_locator():
     exc = _exc().enrich(graph_id="/tmp/g.haywire").enrich(node_id="node_1")
     assert exc.graph_id == "/tmp/g.haywire"
     assert exc.node_id == "node_1"
+
+
+def test_can_open_component_requires_registry_key():
+    assert _exc().can_open_component() is False
+    assert _exc(registry_key="lib:node:Foo").can_open_component() is True
+
+
+def test_can_reveal_instance_requires_graph_plus_node_or_edge():
+    # graph_id alone is not enough — need something to select inside it.
+    assert _exc().enrich(graph_id="/tmp/g.haywire").can_reveal_instance() is False
+    # graph + node
+    assert _exc().enrich(graph_id="/tmp/g.haywire", node_id="n1").can_reveal_instance() is True
+    # graph + edge
+    assert _exc().enrich(graph_id="/tmp/g.haywire", edge_id="edge::o@a>>i@b").can_reveal_instance() is True
+    # node without graph — can't reveal (don't know which graph)
+    assert _exc().enrich(node_id="n1").can_reveal_instance() is False

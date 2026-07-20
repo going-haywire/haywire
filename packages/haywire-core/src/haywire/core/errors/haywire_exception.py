@@ -929,6 +929,21 @@ class HaywireException(Exception):
         """Does this have a specific tag?"""
         return tag in self.tags
 
+    def can_open_component(self) -> bool:
+        """True if we know which component definition this error relates to.
+
+        registry_key is ``<library>:<kind>:<id>`` — enough to open the
+        component's source (the kind is parsed from the key)."""
+        return self.registry_key is not None
+
+    def can_reveal_instance(self) -> bool:
+        """True if we can select the offending instance in its graph.
+
+        Needs the graph (graph_id) AND something to select inside it — a node
+        (node_id) or an edge (edge_id). graph_id alone can only reveal the
+        graph, not select an instance."""
+        return self.graph_id is not None and (self.node_id is not None or self.edge_id is not None)
+
     # ========================================================================
     # UI HELPERS (convenience methods for widgets)
     # ========================================================================
