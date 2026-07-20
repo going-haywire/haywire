@@ -3,7 +3,7 @@
 
 from haywire.core.settings import setting
 from haywire.core.settings.settings_framework import FrameworkSettings
-from haywire.barn.builtin.types import BOOL, CHOICES, INT
+from haywire.barn.builtin.types import BOOL, CHOICES, INT, STRING
 
 # TODO: Find the right place for EditorSettings
 
@@ -99,6 +99,17 @@ class EditorSettings(FrameworkSettings, namespace="editor"):
         description="Action when double-clicking a node",
         category="editor",
         widget_config={"options": ["edit", "collapse", "inspect", "none"]},
+    )
+
+    # External tools
+    external_editor_command = setting[STRING](
+        "code --goto {file}:{line}",
+        label="External Editor Command",
+        description=(
+            "Command template for opening files externally. "
+            "{file} and {line} are substituted. Leave the fallback list if empty."
+        ),
+        category="editor",
     )
 
     # Clipboard
