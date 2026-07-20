@@ -13,17 +13,25 @@ by the move — see .insights/project_di_context.md.
 
 from __future__ import annotations
 
+import logging
 import threading
 from collections import deque
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, Callable, Optional
 
 from haywire.core.di.context import get_error_ledger, set_error_ledger
 
 if TYPE_CHECKING:
     from haywire.core.errors.haywire_exception import HaywireException
 
+logger = logging.getLogger(__name__)
+
 __all__ = ["ErrorLedger", "LedgerPage", "get_error_ledger", "set_error_ledger"]
+
+# A ledger listener is a zero-arg callback fired after each record(). It carries
+# no payload — listeners re-read the ledger (query()), matching the "signals
+# carry no payload, subscribers re-read state" convention on the SignalBus.
+LedgerListener = Callable[[], None]
 
 
 @dataclass
@@ -42,10 +50,26 @@ class ErrorLedger:
         self._entries: deque[dict] = deque(maxlen=max_entries)
         self._seq = 0
         self._lock = threading.Lock()  # .log() fires from watchdog/timer threads too
+        # Instance state (not a module global) so a fresh ErrorLedger per test
+        # starts with no listeners — leakage across tests is structurally
+        # impossible. Notified after record(), outside the lock.
+        self._listeners: list[LedgerListener] = []
 
     @property
     def current_seq(self) -> int:
         return self._seq
+
+    def add_listener(self, listener: LedgerListener) -> None:
+        """Register a zero-arg callback fired after each record(). Idempotent per object."""
+        if listener not in self._listeners:
+            self._listeners.append(listener)
+
+    def remove_listener(self, listener: LedgerListener) -> None:
+        """Unregister a previously added listener. No-op if not present."""
+        try:
+            self._listeners.remove(listener)
+        except ValueError:
+            pass
 
     def record(self, exc: "HaywireException") -> int:
         with self._lock:
@@ -67,7 +91,19 @@ class ErrorLedger:
                     "detail": exc.format_detailed(),
                 }
             )
-            return self._seq
+            seq = self._seq
+        # Notify OUTSIDE the lock: a listener may re-enter the ledger (query())
+        # or be slow, and holding the lock would deadlock/contend with concurrent
+        # record()/query() from other threads. Snapshot the list so a listener
+        # that unsubscribes mid-notify can't mutate what we're iterating. Each
+        # listener is isolated — one raising must not abort the rest or bubble
+        # up and break error reporting itself (see HaywireException.log).
+        for listener in tuple(self._listeners):
+            try:
+                listener()
+            except Exception:
+                logger.debug("ErrorLedger listener %r raised; continuing", listener, exc_info=True)
+        return seq
 
     def query(
         self,

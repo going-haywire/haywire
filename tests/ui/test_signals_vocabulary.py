@@ -26,6 +26,7 @@ from haywire.core.session.signals import (
     BroadcastClose,
     Close,
     Signal,
+    ErrorLogged,
     GraphDataMutated,
     LibraryCatalogChanged,
     CommandSignal,
@@ -60,6 +61,12 @@ def test_signal_cross_session_defaults_false():
 def test_cross_session_signals_declared_correctly():
     assert GraphDataMutated.cross_session is True
     assert LibraryCatalogChanged.cross_session is True
+    assert ErrorLogged.cross_session is True
+
+
+def test_error_logged_is_observation_signal():
+    assert issubclass(ErrorLogged, Signal)
+    assert not issubclass(ErrorLogged, CommandSignal)
 
 
 def test_signal_is_frozen():
@@ -344,3 +351,35 @@ def test_broadcast_close_end_to_end_with_session_manager():
 
     assert origin_received == [bc]
     assert peer_received == [bc]
+
+
+def test_error_ledger_listener_broadcasts_to_every_session():
+    """Contract behind the studio bridge: a ledger listener that calls
+    SessionManager.broadcast(ErrorLogged()) reaches every session's
+    ErrorLogged subscribers. Mirrors HaywireApp._wire_error_ledger_broadcast
+    minus the loop hop (which the studio app owns).
+    """
+    from haywire.core.errors.ledger import ErrorLedger
+
+    sm = SessionManager(container=LibraryStateContainer(LibraryStateRegistry()))
+    a = sm.create_session(project_state=MagicMock(), workspace_manager=MagicMock())
+    b = sm.create_session(project_state=MagicMock(), workspace_manager=MagicMock())
+
+    a_received: list[ErrorLogged] = []
+    b_received: list[ErrorLogged] = []
+    a.subscribe(ErrorLogged, a_received.append)
+    b.subscribe(ErrorLogged, b_received.append)
+
+    ledger = ErrorLedger()
+    ledger.add_listener(lambda: sm.broadcast(ErrorLogged()))
+
+    exc = MagicMock()
+    exc.severity = None
+    exc.library_identity = None
+    exc.tags = []
+    exc.suggestions = []
+    exc.format_detailed.return_value = "boom"
+    ledger.record(exc)
+
+    assert len(a_received) == 1
+    assert len(b_received) == 1

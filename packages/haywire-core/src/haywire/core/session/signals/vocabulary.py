@@ -95,6 +95,24 @@ class LibraryCatalogChanged(Signal):
     cross_session: ClassVar[bool] = True
 
 
+@dataclass(frozen=True)
+class ErrorLogged(Signal):
+    """A HaywireException was recorded in the process-wide error ledger.
+
+    Carries no payload — subscribers re-read the ledger
+    (``get_error_ledger().query(...)``). Cross-session: an error is a global
+    fact, so every session's Errors editor refreshes.
+
+    Emission does NOT come from a normal ``session.publish`` on a UI action.
+    The ledger records from arbitrary threads (watchdog/scan) and is
+    UI-ignorant; the studio app bridges its zero-arg listener hook to this
+    signal via ``SessionManager.broadcast`` (marshalled onto the event loop
+    with ``call_soon_threadsafe``). Wiring lives in ``HaywireApp.on_startup``.
+    """
+
+    cross_session: ClassVar[bool] = True
+
+
 # ---------------------------------------------------------------------------
 # Imperative commands
 # ---------------------------------------------------------------------------

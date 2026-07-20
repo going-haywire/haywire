@@ -1,8 +1,9 @@
+import asyncio
 import os
 import logging
 import sys
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import Callable, Optional, TYPE_CHECKING
 
 from nicegui import ui, app
 
@@ -10,7 +11,9 @@ from nicegui import ui, app
 from haywire.core.undo.config import DEVELOPMENT_CONFIG
 from haywire.core.di.config import create_library_system_service
 from haywire.core.di.context import set_workspace_root
+from haywire.core.errors.ledger import get_error_ledger
 from haywire.core.host import HostStore
+from haywire.core.session.signals import ErrorLogged
 
 # UI imports
 from haywire.ui.console_bridge import get_bridge
@@ -58,12 +61,36 @@ class HaywireApp:
         # Client object.
         self._client_to_session: dict[str, str] = {}
 
+        # Bridge: process-wide error ledger → cross-session ErrorLogged signal.
+        # Wired in on_startup (first moment a running loop exists), torn down in
+        # on_app_shutdown. Holds the listener ref so remove_listener can undo it.
+        self._error_ledger_listener: Optional[Callable[[], None]] = None
+
         app.on_disconnect(self.on_disconnect)
         app.on_shutdown(self.on_app_shutdown)
+        app.on_startup(self._wire_error_ledger_broadcast)
 
     # ------------------------------------------------------------------
     # Lifecycle
     # ------------------------------------------------------------------
+
+    def _wire_error_ledger_broadcast(self) -> None:
+        """Bridge the process-wide error ledger to a cross-session ErrorLogged signal.
+
+        Runs once from ``app.on_startup`` — the first lifecycle callback inside
+        the running event loop, so ``get_running_loop()`` is valid here (DI /
+        setup_shared_services ran before ``ui.run()`` and had no loop). The
+        ledger's zero-arg listener fires on any thread (watchdog/scan); we hop
+        back onto the loop with ``call_soon_threadsafe`` before touching the
+        single-threaded SignalBus via ``SessionManager.broadcast``.
+        """
+        loop = asyncio.get_running_loop()
+
+        def _on_error_logged() -> None:
+            loop.call_soon_threadsafe(lambda: self.session_manager.broadcast(ErrorLogged()))
+
+        self._error_ledger_listener = _on_error_logged
+        get_error_ledger().add_listener(_on_error_logged)
 
     def on_app_shutdown(self):
         """Clean up all resources on application shutdown."""
@@ -83,6 +110,14 @@ class HaywireApp:
             bridge.clear_history()
         except Exception as e:
             print(f"  Error cleaning up console bridge: {e}")
+
+        # 3. Unwire the error-ledger → ErrorLogged bridge (mirrors console bridge).
+        if self._error_ledger_listener is not None:
+            try:
+                get_error_ledger().remove_listener(self._error_ledger_listener)
+            except Exception as e:
+                print(f"  Error removing error-ledger listener: {e}")
+            self._error_ledger_listener = None
 
         print("Application shutdown complete")
 

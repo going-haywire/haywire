@@ -1,26 +1,31 @@
 """
 ErrorsEditor — master-detail view of the error ledger.
 
-Sits next to the Terminal editor in the bottom (INFO) slot. The ledger
-(haywire.core.errors.ledger) has no Signal of its own — .log() can fire from
-watchdog/timer threads during a library scan, long before any session or
-signal bus exists — so this editor polls current_seq on a ui.timer rather
-than subscribing to a redraw signal, mirroring TerminalEditor's own-timer
-buffering for the same reason.
+Sits next to the Terminal editor in the bottom (INFO) slot. New errors arrive
+live via the cross-session ``ErrorLogged`` signal: the process-wide ledger is
+UI-ignorant and only exposes a zero-arg listener hook; the studio app bridges
+that hook to ``ErrorLogged`` (marshalling off the watchdog/scan thread onto the
+event loop). This editor just subscribes with ``@react_on(ErrorLogged)`` and
+re-renders the list — no polling. Errors logged before the bridge is wired
+(during early library scan) are still captured in the ledger and appear on this
+editor's first ``draw()``.
 
-Layout: a scrollable row list on top, a detail pane below showing the
-selected entry's full formatted report (HaywireException.format_detailed(),
-snapshotted into the ledger entry at log() time).
+Layout: a scrollable row list on the left, a detail pane on the right showing
+the selected entry's full formatted report (HaywireException.format_detailed(),
+snapshotted into the ledger entry at log() time). ``@react_on`` (not a full
+redraw) keeps the detail pane and splitter position intact when a new error
+arrives while the user is reading one.
 """
 
 from datetime import datetime
 from typing import TYPE_CHECKING, Optional
 
 from nicegui import ui
-from nicegui.timer import Timer
 
 from haywire.core.errors.haywire_exception import ErrorSeverity
 from haywire.core.errors.ledger import get_error_ledger
+from haywire.core.session.handlers import react_on
+from haywire.core.session.signals import ErrorLogged, Signal
 from haywire.ui import elements as hui
 from haywire.ui.editor.base import BaseEditor
 from haywire.ui.editor.decorator import editor
@@ -29,8 +34,6 @@ from haywire.ui.editor.identity import SlotName
 if TYPE_CHECKING:
     from haywire.core.session.context import SessionContext
     from nicegui.element import Element
-
-_POLL_INTERVAL = 1.0  # seconds between cursor checks
 
 _SEVERITY_DOT_COLOR = {
     ErrorSeverity.INFO.value: "blue",
@@ -60,8 +63,6 @@ class ErrorsEditor(BaseEditor):
         self._rows_container: Optional[ui.column] = None
         self._detail_container: Optional[ui.column] = None
         self._count_label: Optional[ui.label] = None
-        self._timer: Optional[Timer] = None
-        self._last_seq_seen = 0
         self._entries_by_seq: dict[int, dict] = {}
         self._selected_seq: Optional[int] = None
 
@@ -79,30 +80,26 @@ class ErrorsEditor(BaseEditor):
                     with ui.scroll_area().classes("w-full h-full"):
                         self._detail_container = ui.column().classes("w-full h-full")
 
-            self._last_seq_seen = 0
             self._selected_seq = None
             self._render_rows()
             self._render_detail()
-            if self._timer is not None:
-                self._timer.cancel()
-            # Parented to `container` (not the ambient slot outside the `with`
-            # block) so the timer shares container's lifecycle instead of
-            # whatever slot happens to be active when draw() returns — see
-            # .insights/feedback_nicegui_redraw_deletes_handler_slot.md
-            # (deferred-timer variant).
-            self._timer = ui.timer(_POLL_INTERVAL, self._poll)
 
-    def _poll(self) -> None:
-        ledger = get_error_ledger()
-        if ledger.current_seq != self._last_seq_seen:
-            self._render_rows()
+    @react_on(ErrorLogged)
+    def _on_error_logged(self, context: "SessionContext", signal: Signal) -> None:
+        """A new error was recorded — refresh just the list.
+
+        ``@react_on`` (targeted) rather than a full editor redraw so the detail
+        pane the user may be reading and the dragged splitter position survive.
+        Fires even when this tab is backgrounded (kept-alive), so the list stays
+        current behind the Terminal tab.
+        """
+        self._render_rows()
 
     def _render_rows(self) -> None:
         if self._rows_container is None:
             return
         ledger = get_error_ledger()
         page = ledger.query(limit=500)
-        self._last_seq_seen = ledger.current_seq
         self._entries_by_seq = {entry["seq"]: entry for entry in page.entries}
 
         if self._count_label is not None:
@@ -167,9 +164,8 @@ class ErrorsEditor(BaseEditor):
         self._render_detail()
 
     def cleanup(self) -> None:
-        if self._timer is not None:
-            self._timer.cancel()
-            self._timer = None
+        # The @react_on(ErrorLogged) bus subscription is dropped by the
+        # framework at editor cleanup / hot-reload — nothing to unwire here.
         self._rows_container = None
         self._detail_container = None
         self._count_label = None
