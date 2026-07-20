@@ -24,7 +24,9 @@ class Farmhand:
     class_library: ClassVar["LibraryIdentity"]
     input_schema_override: ClassVar[Optional[dict]] = None
 
-    async def run(self, ctx: "FarmhandContext", **kwargs: Any) -> dict:
+    async def run(self, ctx: "FarmhandContext", *args: Any, **kwargs: Any) -> dict:
+        # *args/**kwargs mirror BaseNode.worker so concrete subclasses can declare
+        # their own positional tool parameters without a signature-override error.
         raise NotImplementedError
 
     @classmethod

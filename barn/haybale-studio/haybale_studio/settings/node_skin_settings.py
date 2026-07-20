@@ -85,4 +85,3 @@ class NodeSkinSettings(LibrarySettings):
     show_port_ids = setting[BOOL](
         False, label="Show Port IDs", description="Display internal port IDs", category="debug"
     )
-

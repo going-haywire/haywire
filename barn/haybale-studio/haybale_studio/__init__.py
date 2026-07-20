@@ -22,6 +22,7 @@ from haywire.core.library.decorator import library
 from haywire.core.adapter.registry import AdapterRegistry
 from haywire.core.node.registry import NodeRegistry
 from haywire.core.settings.registry import SettingsRegistry
+from haywire.core.farmhand import FarmhandRegistry
 from haywire.core.state import LibraryStateRegistry
 from haywire.core.types.registry import TypeRegistry
 
@@ -64,6 +65,12 @@ class Library(BaseLibrary):
         self.add_folder_to_registry(
             folder_path=str(base_path / "state"),
             registry_cls=LibraryStateRegistry,
+        )
+
+        # Register MCP tools — the studio_* baseline (canonical order: after state)
+        self.add_folder_to_registry(
+            folder_path=str(base_path / "farmhands"),
+            registry_cls=FarmhandRegistry,
         )
 
         self.add_folder_to_registry(
