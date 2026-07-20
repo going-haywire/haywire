@@ -30,6 +30,9 @@ dependencies = [
 [tool.hatch.build.targets.wheel]
 packages = ["src/haywire"]
 
+[tool.hatch.build.targets.wheel.force-include]
+"../../docs/components" = "haywire/docs/canons"
+
 [tool.hatch.build.targets.sdist]
 include = [
     "src/haywire/",
